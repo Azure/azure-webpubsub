@@ -1,0 +1,12 @@
+- title: Simple Chat
+  name: chat
+  demolink: https://wssimpledemo.z13.web.core.windows.net/
+- title: Advanced Chat
+  name: achat
+  demolink: https://serverless-ws-chat-demo.azurewebsites.net/?code=LJ0EgrwWYSkm5MXGAe2AvPKVRGTaYpqQ/pxzJaFpVvyCY4j53s055Q==
+- title: Whiteboard
+  name: whiteboard
+  demolink: https://ws-whiteboard.azurewebsites.net/
+- title: Apollo GraphQL
+  name: graphql
+  demolink: https://wssimpledemo.z13.web.core.windows.net/

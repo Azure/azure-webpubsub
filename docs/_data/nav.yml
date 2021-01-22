@@ -1,0 +1,36 @@
+- title: Getting started
+  pages:
+    - title: Introduction
+    - title: Create your first service
+    - title: Connect to service
+    - title: Publish message
+    - title: Work with Web App
+    - title: Work with Azure Function
+
+- title: Walkthrough
+  pages:
+    - title: Create a WebSocket chat
+
+- title: Samples
+  pages:
+    - title: Simple chat
+    - title: Advanced Chat
+    - title: Whiteboard
+    - title: Integrate with GraphQL
+
+- title: How-to guides
+  pages:
+    - title: Local development
+    - title: Monitor
+    - title: Troubleshoot
+
+- title: Concepts
+  pages:
+    - title: Service Internals
+    - title: Upstream
+    - title: Authentication
+    - title: Events
+    - title: Scale
+    - title: Messages and connections
+    - title: High availability
+    - title: Security
