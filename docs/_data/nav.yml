@@ -26,6 +26,10 @@
 
 - title: Concepts
   pages:
+    - title: Overview
+    - title: Clients
+    - title: Servers
+
     - title: Service Internals
     - title: Upstream
     - title: Authentication
