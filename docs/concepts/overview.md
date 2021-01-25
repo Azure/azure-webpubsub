@@ -9,7 +9,7 @@ toc: true
 
 Azure Web PubSub Service provides an easy way to publish/subscribe messages using simple [WebSocket](https://tools.ietf.org/html/rfc6455) connections.
 1. Client can be written in any language having WebSocket support
-1. Both text and binary messags are supported within one connection
+1. Both text and binary messages are supported within one connection
 1. A simple protocol for clients to do publish directly
 1. The service manages the WebSocket connections for you
 
@@ -38,12 +38,12 @@ Azure Web PubSub Service provides an easy way to publish/subscribe messages usin
 
 * **Client Events**: Events are created during the lifecycle of a client connection. For example, a simple WebSocket client connection creates a `connect` event when it tries to connect to the service, a `send` event when it tries the send messages to the service, and a `disconnect` event when it disconnects from the service. Details about *client events* are illustrated in [Client Protocol](#client_protocol) section.
 
-* **Event Handler**: Event handler contains the logic to handle the client events. Event handler needs to be registered and configured in the service through portal or Azure CLI beforehand. Details are described in [Event Handler](#event_handler) section. The place to host the event handler logic, is generally considered as the server side.
+* **Event Handler**: The event handler contains the logic to handle the client events. Event handler needs to be registered and configured in the service through the portal or Azure CLI beforehand. Details are described in [Event Handler](#event_handler) section. The place to host the event handler logic is generally considered as the server-side.
 
-* **Server**: Server has the ability to handle client events, to manage client connections, to monitor group messages, and to publish messages to groups. Server, comparing to the client, is trustful. Details about **server** are described in [Server Protocol](#server_protocol) section.
+* **Server**: The server can handle client events, manage client connections, monitor group messages, and publish messages to groups. The server, comparing to the client, is trustworthy. Details about **server** are described in [Server Protocol](#server_protocol) section.
 
 <a name="event_handler"></a>
-Service provides two modes for the event handlers to be invoked. One is called `PUSH` mode, that the event handlers expose public endpoints for the service to call, as can be considered as a *webhook*. The other mode is called `LISTEN` mode, that the event handler connects to the `/server` endpoint the service exposes.
+Service provides two modes for the event handlers to be invoked. One is called `PUSH` mode, that the event handlers expose public endpoints for the service to call, as can be considered as a *webhook*. The other mode is called `LISTEN` mode, in which the event handler connects to the `/server` endpoint the service exposes.
 
 <a name="client_protocol"></a>
 
@@ -64,12 +64,12 @@ A simple WebSocket client follows a client<->server architecture, as the below s
 #### Scenarios:
 Such connection can be used in a typical client-server architecture, that the client sends messages to the server, and the server handles incoming messages using [Event Handlers](#event_handler). A typical usage would be [GraphQL Subscriptions](https://dgraph.io/docs/graphql/subscriptions/), and a sample can be found [here](). It can also be used when customers leverage existing [subprotocols](https://www.iana.org/assignments/websocket/websocket.xml) in their application logic, for example, `wamp` subprotocol. A sample usage can be found [here]().
 
-You may have noticed that with such simple WebSocket Connection, the *server* is a MUST HAVE role to handle the events from clients, to do advanced operations for the clients such as join the clients to some groups or to publish messages to the connected clients. We introduced in a simple [command.webpubsub.azure](#command_subprotocol) to empower clients to do publish and subscribe in a more convenient and efficient way.
+You may have noticed that with such a simple WebSocket Connection, the *server* is a MUST HAVE role to handle the events from clients, to do advanced operations for the clients such as join the clients to some groups, or to publish messages to the connected clients. We introduced in a simple [command.webpubsub.azure](#command_subprotocol) to empower clients to do publish and subscribe more conveniently and efficiently.
 
 <a name="command_subprotocol"></a>
 
 ### Client with `command.webpubsub.azure` subprotocol
-As described in earlier section, a simple WebSocket connection always triggers `send` event when it sends messages, and always relies on the server side to process messages and do other operations. With the help of `command.webpubsub.azure` subprotocol, an authorized client can join a group and publish messages to a group directly. It can also route messages to different upstreams (event handlers) by customizing the *event* the message belongs to. 
+As described in the earlier section, a simple WebSocket connection always triggers a `send` event when it sends messages, and always relies on the server-side to process messages and do other operations. With the help of the `command.webpubsub.azure` subprotocol, an authorized client can join a group and publish messages to a group directly. It can also route messages to different upstreams (event handlers) by customizing the *event* the message belongs to. 
 
 protocol: `command.webpubsub.azure`
 
@@ -89,7 +89,7 @@ PUBLISH <group_name> <message>
 
 ```
 
-Send message to the service:
+Send a message to the service:
 ```
 SEND <message>
 ```
@@ -99,14 +99,14 @@ Custom events:
 <event_name> <message>
 ```
 
-There are 5 system preserved events: `connect`, `send`, `disconnect`, `join`, `leave` and `publish`, that should not be used as the custom `event_name`. *Custom* events can register their own event hanlders. 
+There are 6 system preserved events: `connect`, `send`, `disconnect`, `join`, `leave` and `publish`, that should not be used as the custom `event_name`. *Custom* events can register their event handlers. 
 
-These keywords starts the message frame, they can be text for text message frames or UTF8 encoded binaries for binary message frames.
+These keywords start the message frame, they can be `text` format for text message frames or UTF8 encoded binaries for binary message frames.
 
 Service declines the client if the message does not start with any of these keywords.
 
 #### Scenarios:
-Such clients can be used when clients wants to talk to each other. Messages sent from client1 to the service and service delivers the message directly to client2 if the clients are authorized.
+Such clients can be used when clients want to talk to each other. Messages are sent from `client1` to the service and the service delivers the message directly to `client2` if the clients are authorized.
 
 Client1:
 
@@ -143,7 +143,7 @@ client2.onopen = e => {
 <a name="client_message_limit"></a>
 
 ### Client message limit
-The maximum allowed message size for one WebSocket frame is **32KB**. If there is requirements for larger messages, consider use a streaming protocol in application layer.
+The maximum allowed message size for one WebSocket frame is **32KB**. If there are requirements for larger messages, consider using a streaming protocol in the application layer.
 
 <a name="client_auth"></a>
 
@@ -153,9 +153,9 @@ The maximum allowed message size for one WebSocket frame is **32KB**. If there i
 When a client starts a connection to the service, there are 2 ways to do authentication:
 
 1. One way is that the client connects to the service with a JWT token signed by the server. 
-2. The other way is when there is a `connect` event handler registered for this client. The service then redirect the auth workflow to the `connect` event handler. The response of the event handler can specify the `userId` and the `role`s the client has, and can decline the client with 401, [Connect event handler protocol](#event_handler_protocol_connect) contains the details.
+2. The other way is when there is a `connect` event handler registered for this client. The service then redirects the auth workflow to the `connect` event handler. The response of the event handler can specify the `userId` and the `role`s the client has, and can decline the client with 401, [Connect event handler protocol](#event_handler_protocol_connect) contains the details.
 
-Below graph describes the workflow in detail.
+The below graph describes the workflow in detail.
 
 ![Client Connect Workflow](../assets/client_connect_workflow.png)
 
@@ -170,18 +170,18 @@ When the client is authed and connected, the roles of the client determine the a
 | `webpubsub.group.write` | Client can join or leave or publish to any groups if no `join` or `leave` or `publish` event handler is registered
 
 #### Client publish
-Below graph describes the workflow when the client tries to publish messages to group:
+The below graph describes the workflow when the client tries to publish messages to the group:
 
 ![Client Publish Workflow](../assets/client_publish_workflow.png)
 
 When the client tries to publish messages to a group: 
 1. The service checks if the `publish` event is registered for the client,
-2. If not, a client with role `webpubsub.group.write` can publish.
+2. If not, a client with the role `webpubsub.group.write` can publish.
 3. If the event is registered, the service invokes the event handler and respect the response of the event handler to decide if the action is allowed.
 
 When the client tries to join/leave a group, the workflow is similar:
 1. The service checks if the `join` or `leave` event is registered for the client
-2. If not, a client with role `webpubsub.group.read` can join or leave the group.
+2. If not, a client with the role `webpubsub.group.read` can join or leave the group.
 3. If the event is registered, the service invokes the event handler and respect the response of the event handler to decide if the action is allowed.
 
 ## Server Protocol
@@ -195,35 +195,35 @@ In general, server protocol contains three roles:
 
 <a name="event_handler"></a>
 ### Event handler
-Event handler handles the upcoming client events. Event handlers need to be registered and configured in the service through portal or Azure CLI beforehand, so that when a client event is triggered, the service can identify if the event is expected to be handled. 
+The event handler handles the upcoming client events. Event handlers need to be registered and configured in the service through portal or Azure CLI beforehand so that when a client event is triggered, the service can identify if the event is expected to be handled. 
 
 There are two ways for the service to invoke the event handler:
 1. One way is called `PUSH` mode, that the event handler as the server side, exposes public accessible endpoint for the service to invoke when the event is triggered. It acts as similar to a **webhook**. It leverages HTTP protocol and the detailed protocol is described in [webpubsub.event.handler.http](./webpubsub.event.handler.http.md).
-2. The other way is called `LISTEN` mode, that the event handler starts a duplex connection to the service when the event handler is available, so that the service can invoke the event handler through this duplex connection when the event is triggered. The service exposes the `/server` endpoint for the event handler to connect to using a WebSocket connection, following the message protocol defined in [webpubsub.event.handler.proto](./protocols/webpubsub.event.handler.proto).
+2. The other way is called `LISTEN` mode, that the event handler starts a duplex connection to the service when the event handler is available so that the service can invoke the event handler through this duplex connection when the event is triggered. The service exposes the `/server` endpoint for the event handler to connect to using a WebSocket connection, following the message protocol defined in [webpubsub.event.handler.proto](./protocols/webpubsub.event.handler.proto).
 
 <a name="connection_manager"></a>
 ### Connection manager
 
-Server is by natural authorized. With the help of *event handler role*, the server knows the metadata of the clients, for example, `connectionId` and `userId`, so it can:
+The server is by nature an authorized user. With the help of *event handler role*, the server knows the metadata of the clients, for example, `connectionId` and `userId`, so it can:
    1. Close a client connection
    2. Add a client to a group
    3. Add clients authed as the same user to a group
    4. Remove a client from a group
    5. Remove clients authed as the same user from a group
    6. Send messages to a client
-   7. Send messages clients belongs to the same user
+   7. Send messages to clients that belong to the same user
 
 The service also provides two ways for the server to do connection management:
 1. One way is through REST API as defined in [webpubsub.swagger.json](./protocols/webpubsub.swagger.json).
 
-2. Another way is through the WebSocket connection `/server` endpoint. You may have noticed that the *event handler role* handles communication from the service to the server, while *the manager role* handles communication from the server to the service, it is bi-directional and is a perfect fit for the duplex WebSocket connection to `/server` endpoint. The message protocol is defined in [webpubsub.manage.proto](./protocols/webpubsub.manage.proto). 
+2. Another way is through the WebSocket connection `/server` endpoint. You may have noticed that the *event handler role* handles communication from the service to the server while *the manager role* handles communication from the server to the service, it is bi-directional and is a perfect fit for the duplex WebSocket connection to `/server` endpoint. The message protocol is defined in [webpubsub.manage.proto](./protocols/webpubsub.manage.proto). 
 
 <a name="group_manager"></a>
 ### Group Manager
     1. Publish messages to group
     2. Subscribe to group messages
 
-The service provides two ways to publish to group, one is through REST API as defined in [webpubsub.swagger.json](./webpubsub.swagger.json), the other is through the WebSocket connection `/server` endpoint with message protocol defined in [webpubsub.manage.proto](./webpubsub.manage.proto).
+The service provides two ways to publish to the group, one is through REST API as defined in [webpubsub.swagger.json](./webpubsub.swagger.json), the other is through the WebSocket connection `/server` endpoint with message protocol defined in [webpubsub.manage.proto](./webpubsub.manage.proto).
 
 Subscribe to group messages, though, requires a persistent connection from server to service, so that whenever a message publish happens, the server can receive the message immediately. That said, when implementing the server protocol, the implementation can choose to only establish the WebSocket connection when the **Subscribe** feature is used.
 
