@@ -119,8 +119,8 @@ client1.onmessage = e => {
 };
 
 client1.onopen = e => {
-    client1.send("JOIN client2");
-    client1.send("PUBLISH client2 Hello Client2!");
+    client1.send("JOIN group1");
+    client1.send("PUBLISH group2 Hello Client2!");
 };
 ```
 
@@ -135,15 +135,15 @@ client2.onmessage = e => {
 };
 
 client2.onopen = e => {
-    client2.send("JOIN client1");
-    client2.send("PUBLISH client1 Hello Client1!");
+    client2.send("JOIN group2");
+    client2.send("PUBLISH group1 Hello Client1!");
 };
 ```
 
 <a name="client_message_limit"></a>
 
 ### Client message limit
-The maximum allowed message size for one WebSocket frame is **32KB**. If there are requirements for larger messages, consider using a streaming protocol in the application layer.
+The maximum allowed message size for one WebSocket frame is **1MB**. If there are requirements for larger messages, consider using a streaming protocol in the application layer.
 
 <a name="client_auth"></a>
 
@@ -167,7 +167,7 @@ When the client is authed and connected, the roles of the client determine the a
 |---|---|
 | Not specified | Client can `send` messages
 | `webpubsub.group.read` | Client can join or leave groups if no `join` or `leave` event handler is registered
-| `webpubsub.group.write` | Client can join or leave or publish to any groups if no `join` or `leave` or `publish` event handler is registered
+| `webpubsub.group.write` | Client can join or leave to any groups if no `join` or `leave` event handler is registered, and client can publish to the group it **belongs** to.
 
 #### Client publish
 The below graph describes the workflow when the client tries to publish messages to the group:
@@ -179,10 +179,13 @@ When the client tries to publish messages to a group:
 2. If not, a client with the role `webpubsub.group.write` can publish.
 3. If the event is registered, the service invokes the event handler and respect the response of the event handler to decide if the action is allowed.
 
+Please note that **ONLY** **METADATA** for the `Publish` is sent to the event handler, the actual message to be published is not sent to the event handler.
+
 When the client tries to join/leave a group, the workflow is similar:
 1. The service checks if the `join` or `leave` event is registered for the client
 2. If not, a client with the role `webpubsub.group.read` can join or leave the group.
 3. If the event is registered, the service invokes the event handler and respect the response of the event handler to decide if the action is allowed.
+
 
 ## Server Protocol
 
@@ -223,7 +226,7 @@ The service also provides two ways for the server to do connection management:
     1. Publish messages to group
     2. Subscribe to group messages
 
-The service provides two ways to publish to the group, one is through REST API as defined in [webpubsub.swagger.json](./webpubsub.swagger.json), the other is through the WebSocket connection `/server` endpoint with message protocol defined in [webpubsub.manage.proto](./webpubsub.manage.proto).
+The service provides two ways to publish to the group, one is through REST API as defined in [webpubsub.swagger.json](./protocols/webpubsub.swagger.json), the other is through the WebSocket connection `/server` endpoint with message protocol defined in [webpubsub.manage.proto](./protocols/webpubsub.manage.proto).
 
 Subscribe to group messages, though, requires a persistent connection from server to service, so that whenever a message publish happens, the server can receive the message immediately. That said, when implementing the server protocol, the implementation can choose to only establish the WebSocket connection when the **Subscribe** feature is used.
 

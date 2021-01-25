@@ -1,5 +1,20 @@
-            
+---
+layout: docs
+toc: true
+---
+           
 ## Event Handler HTTP Protocol Details
+
+### Ping-Pong 
+The service expects the upstream to accept a `HEAD` `{Upstream Host}/ping` request and response `202` to indicate the `{Upstream Host}` is a valid Url.
+
+#### HEAD
+* `X-ASRS-From`: `xxx.webpubsub.azure.com`
+* `Date`: `Fri, 10 Jan 2020 01:02:03 GMT`
+
+#### Response Status Codes:
+* `202`: Success, the upstream is valid
+* Others: No, the upstream is not valid
 
 ### Connect
 #### Url Parameters:
