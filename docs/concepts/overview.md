@@ -89,15 +89,21 @@ PUBLISH <group_name> <message>
 
 ```
 
+Send message to the service:
+```
+SEND <message>
+```
+
 Custom events:
 ```
-EVENT <event_name> <message>
+<event_name> <message>
 ```
-There are 6 system preserved events: `connect`, `send`, `disconnect`, `join`, `leave` and `publish`, that should not be used as the custom `event_name`. *Custom* events can register their own event hanlders. 
+
+There are 5 system preserved events: `connect`, `send`, `disconnect`, `join`, `leave` and `publish`, that should not be used as the custom `event_name`. *Custom* events can register their own event hanlders. 
 
 These keywords starts the message frame, they can be text for text message frames or UTF8 encoded binaries for binary message frames.
 
-If the message does not start with any of these keywords, it is considered as a normal message and will be routed to the upstream using the default `send` event.
+Service declines the client if the message does not start with any of these keywords.
 
 #### Scenarios:
 Such clients can be used when clients wants to talk to each other. Messages sent from client1 to the service and service delivers the message directly to client2 if the clients are authorized.
