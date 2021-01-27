@@ -2,3 +2,15 @@ syntax = "proto3";
 
 import "webpubsub.server.events.proto";
 import "webpubsub.server.manage.proto";
+
+
+option csharp_namespace = "Microsoft.Azure.WebPubSub";
+
+package azure.webpubsub;
+
+message ServiceMessage {
+    oneof message {
+        ConnectionEventMessage event_message = 1;
+        ServiceManageMessage manage_message = 2;
+    }
+}
