@@ -215,7 +215,7 @@ The event handler handles the upcoming client events. Event handlers need to be 
 
 There are two ways for the service to invoke the event handler:
 1. One way is called `PUSH` mode, that the event handler as the server side, exposes public accessible endpoint for the service to invoke when the event is triggered. It acts as similar to a **webhook**. It leverages HTTP protocol and the detailed protocol is described in [webpubsub.event.handler.http](./webpubsub.event.handler.http.md).
-2. The other way is called `LISTEN` mode, that the event handler starts a duplex connection to the service when the event handler is available so that the service can invoke the event handler through this duplex connection when the event is triggered. The service exposes the `/server` endpoint for the event handler to connect to using a WebSocket connection, following the message protocol defined in [webpubsub.event.handler.proto](./protocols/webpubsub.event.handler.proto).
+2. The other way is called `LISTEN` mode, that the event handler starts a duplex connection to the service when the event handler is available so that the service can invoke the event handler through this duplex connection when the event is triggered. The service exposes the `/server` endpoint for the event handler to connect to using a WebSocket connection, following the message protocol defined in [webpubsub.server.events.proto](./protocols/webpubsub.server.events.proto).
 
 <a name="connection_manager"></a>
 ### Connection manager
@@ -232,7 +232,7 @@ The server is by nature an authorized user. With the help of *event handler role
 The service also provides two ways for the server to do connection management:
 1. One way is through REST API as defined in [WebPubSub Swagger File](./protocols/webpubsub.json).
 
-2. Another way is through the WebSocket connection `/server` endpoint. You may have noticed that the *event handler role* handles communication from the service to the server while *the manager role* handles communication from the server to the service, it is bi-directional and is a perfect fit for the duplex WebSocket connection to `/server` endpoint. The message protocol is defined in [webpubsub.manage.proto](./protocols/webpubsub.manage.proto). 
+2. Another way is through the WebSocket connection `/server` endpoint. You may have noticed that the *event handler role* handles communication from the service to the server while *the manager role* handles communication from the server to the service, it is bi-directional and is a perfect fit for the duplex WebSocket connection to `/server` endpoint. The message protocol is defined in [webpubsub.server.manage.proto](./protocols/webpubsub.server.manage.proto). 
 
 <a name="group_manager"></a>
 ### Group Manager
