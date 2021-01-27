@@ -89,17 +89,12 @@ PUBLISH <group_name> <message>
 
 ```
 
-Send a message to the service:
-```
-SEND <message>
-```
-
 Custom events:
 ```
-<event_name> <message>
+EVENT <event_name> <message>
 ```
 
-There are 6 system preserved events: `connect`, `send`, `disconnect`, `join`, `leave` and `publish`, that should not be used as the custom `event_name`. *Custom* events can register their event handlers. 
+Custom event `<event_name>` will always be handled by the event handler registered. If no such event handler registered, the connection will be declined. Such custom event can be helpful if you want messages to be dispatched to different servers having different event handlers.
 
 These keywords start the message frame, they can be `text` format for text message frames or UTF8 encoded binaries for binary message frames.
 
@@ -140,6 +135,21 @@ client2.onopen = e => {
 };
 ```
 
+***
+
+#### Open Question:
+1. Shall we define a formt for incoming messages, for example, first line as metadata line?
+    ```
+    From Client1
+    <message>
+    ```
+
+    **Concerns**:
+    1. It makes message parser somewhat more difficult
+    2. What to be added as metadata?
+
+***
+
 <a name="client_message_limit"></a>
 
 ### Client message limit
@@ -161,13 +171,17 @@ The below graph describes the workflow in detail.
 
 #### Client roles
 
-When the client is authed and connected, the roles of the client determine the actions the client has permissions to do:
+Client roles only applies for the [`command.webpubsub.azure` subprotocol](#command_subprotocol). When the client is authed and connected, the roles of the client determine the actions the client has permissions to do:
 
 | Role | Permission |
 |---|---|
-| Not specified | Client can `send` messages
-| `webpubsub.group.read` | Client can join or leave groups if no `join` or `leave` event handler is registered
-| `webpubsub.group.write` | Client can join or leave to any groups if no `join` or `leave` event handler is registered, and client can publish to the group it **belongs** to.
+| Not specified | The client can send custom events.
+| `webpubsub.group.join` | The client can join any group
+| `webpubsub.group.leave` | The client can leave its groups
+| `webpubsub.group.write` | The client can publish messages to any group
+| `webpubsub.group.joined.write` | The client can publish messages to groups it is in.
+| `webpubsub.group.pattern.<a*>.join` | The client can join the groups that the group names match pattern `a*`..
+| `webpubsub.group.pattern.<a*>.write` | The client can publish messages to the groups that the group names match pattern `a*`.
 
 #### Client publish
 The below graph describes the workflow when the client tries to publish messages to the group:
@@ -181,11 +195,10 @@ When the client tries to publish messages to a group:
 
 Please note that **ONLY** **METADATA** for the `Publish` is sent to the event handler, the actual message to be published is not sent to the event handler.
 
-When the client tries to join/leave a group, the workflow is similar:
-1. The service checks if the `join` or `leave` event is registered for the client
-2. If not, a client with the role `webpubsub.group.read` can join or leave the group.
+When the client tries to join a group, the workflow is similar:
+1. The service checks if the `join` event is registered for the client
+2. If not, a client with the role `webpubsub.group.join` can join the group.
 3. If the event is registered, the service invokes the event handler and respect the response of the event handler to decide if the action is allowed.
-
 
 ## Server Protocol
 
@@ -217,7 +230,7 @@ The server is by nature an authorized user. With the help of *event handler role
    7. Send messages to clients that belong to the same user
 
 The service also provides two ways for the server to do connection management:
-1. One way is through REST API as defined in [webpubsub.swagger.json](./protocols/webpubsub.swagger.json).
+1. One way is through REST API as defined in [WebPubSub Swagger File](./protocols/webpubsub.json).
 
 2. Another way is through the WebSocket connection `/server` endpoint. You may have noticed that the *event handler role* handles communication from the service to the server while *the manager role* handles communication from the server to the service, it is bi-directional and is a perfect fit for the duplex WebSocket connection to `/server` endpoint. The message protocol is defined in [webpubsub.manage.proto](./protocols/webpubsub.manage.proto). 
 
@@ -226,7 +239,7 @@ The service also provides two ways for the server to do connection management:
     1. Publish messages to group
     2. Subscribe to group messages
 
-The service provides two ways to publish to the group, one is through REST API as defined in [webpubsub.swagger.json](./protocols/webpubsub.swagger.json), the other is through the WebSocket connection `/server` endpoint with message protocol defined in [webpubsub.manage.proto](./protocols/webpubsub.manage.proto).
+The service provides two ways to publish to the group, one is through REST API as defined in [WebPubSub Swagger File](./protocols/webpubsub.json), the other is through the WebSocket connection `/server` endpoint with message protocol defined in [webpubsub.manage.proto](./protocols/webpubsub.manage.proto).
 
 Subscribe to group messages, though, requires a persistent connection from server to service, so that whenever a message publish happens, the server can receive the message immediately. That said, when implementing the server protocol, the implementation can choose to only establish the WebSocket connection when the **Subscribe** feature is used.
 
