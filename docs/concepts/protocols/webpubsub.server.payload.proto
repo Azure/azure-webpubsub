@@ -1,0 +1,23 @@
+syntax = "proto3";
+
+import "google/protobuf/empty.proto";
+import "google/protobuf/wrappers.proto";
+
+option csharp_namespace = "Microsoft.Azure.WebPubSub";
+
+package azure.webpubsub;
+
+message PayloadDetail {
+    PayloadTransferFormat format = 1;
+    bytes content = 2;
+
+    enum PayloadTransferFormat {
+        TEXT = 0;
+        BINARY = 1;
+    }
+}
+
+message ResponseError {
+    int32 code = 1;
+    google.protobuf.StringValue detail = 2;
+}

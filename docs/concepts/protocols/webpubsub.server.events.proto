@@ -1,0 +1,107 @@
+syntax = "proto3";
+
+import "google/protobuf/empty.proto";
+import "google/protobuf/wrappers.proto";
+import "webpubsub.server.payload.proto";
+
+option csharp_namespace = "Microsoft.Azure.WebPubSub";
+
+package azure.webpubsub;
+
+message ConnectionEventMessage {
+    oneof message {
+      ConnectRequest connect_request = 1;
+      DisconnectRequest disconnect_request = 2;
+
+      UserEventRequest user_event_request = 10;
+      PublishRequest publish_request = 20;
+      JoinGroupRequest join_request = 21;
+      LeaveGroupRequest leave_request = 22;
+
+      // Connect response is sepcial as it can contain handshake and auth info, other requests share the same response data structure
+      ConnectResponse connect_response = 30;
+      MessageResponse message_response = 31;
+    }
+}
+
+message ConnectRequest {
+    int32 ack_id = 1;
+    RequestContext context = 2;
+    repeated string sub_protocols = 3;
+    repeated Certificate client_certificates = 4;
+
+    message Certificate {
+        string thumbprint = 1;
+    }
+}
+
+message DisconnectRequest {
+    int32 ack_id = 1;
+    RequestContext context = 2;
+    string error = 3;
+}
+
+message UserEventRequest {
+    int32 ack_id = 1;
+    string event_name = 2;
+    RequestContext context = 3;
+    PayloadDetail payload = 4;
+}   
+
+
+message PublishRequest {
+    int32 ack_id = 1;
+    string group_name = 2;
+    RequestContext context = 3;
+    PayloadMetadata payload_metadata = 4;
+
+    message PayloadMetadata {
+        int32 payload_size = 1;
+    }
+}
+
+message JoinGroupRequest {
+    int32 ack_id = 1;
+    string group_name = 2;
+    RequestContext context = 3;
+}
+
+message LeaveGroupRequest {
+    int32 ack_id = 1;
+    string group_name = 2;
+    RequestContext context = 3;
+}
+
+message ConnectResponse {
+    int32 ack_id = 1;
+
+    oneof response {
+        google.protobuf.Empty empty = 2;
+        PayloadDetail payload = 3;
+        ResponseError error = 4;
+    }
+
+    repeated string groups = 5;
+    google.protobuf.StringValue user_id = 6;
+    google.protobuf.StringValue sub_protocol = 7;
+    map<string, string> headers = 8;
+}
+
+message MessageResponse {
+    int32 ack_id = 1;
+    oneof response {
+        google.protobuf.Empty empty = 2;
+        PayloadDetail payload = 3;
+        ResponseError error = 4;
+    }
+}
+
+message RequestContext {
+    string connection_id = 1;
+    google.protobuf.StringValue user_id = 2;
+    google.protobuf.StringValue hub = 3;
+    repeated string claim_strings = 4;
+    map<string, string> claims = 5;
+    map<string, string> headers = 6;
+    map<string, string> query = 7;
+}
