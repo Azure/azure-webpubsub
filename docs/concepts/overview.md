@@ -49,7 +49,7 @@ Service provides two modes for the event handlers to be invoked. One is called `
 
 ## Client Protocol
 
-A client connection connects to the `/client` endpoint of the service. It can be a [simple WebSocket connection](#simple_client), or a WebSocket connection having [json.webpubsub.azure.v1](#command_subprotocol) subprotocol which enables client to do publish/subscribe directly. 
+A client connection connects to the `/client` endpoint of the service. It can be a [simple WebSocket connection](#simple_client), or a WebSocket connection having [json.webpubsub.azure.v1](#command_subprotocol) subprotocol which enables the client to do publish/subscribe directly. 
 
 <a name="simple_client"></a>
 
@@ -76,26 +76,31 @@ protocol: `json.webpubsub.azure.v1`
 Join a group:
 ```json
 {
-    "event": "_join",
-    "group": "group_name"
+    "type": "join",
+    "group": "group_name",
+    "ack_id" : 1 // optional
 }
 ```
+`ack_id` is an incremental integer for this command message, it is also optional. When the "ack_id" is specified, service sends a [ack response message](#ack_response) back to the client when the command is executed.
 
 Leave a group:
 ```json
 {
-    "event": "_leave",
-    "group": "group_name"
+    "type": "leave",
+    "group": "group_name",
+    "ack_id" : 1 // optional
 }
 ```
+`ack_id` is an incremental integer for this command message, it is also optional. When the "ack_id" is specified, service sends a [ack response message](#ack_response) back to the client when the command is executed.
 
 Publish message to a group:
 
 ```json
 {
-    "event": "_publish",
+    "type": "publish",
     "group": "group_name",
     "data": {},
+    "ack_id" : 1 // optional
 }
 ```
 `data` can be object or array or string.
@@ -103,19 +108,25 @@ Publish message to a group:
 Custom events:
 ```json
 {
+    "type": "event",
     "event": "<event_name>",
     "data": {},
 }
 ```
 `data` can be object or array or string.
+`ack_id` is an incremental integer for this command message, it is also optional. When the "ack_id" is specified, service sends a [ack response message](#ack_response) back to the client when the command is executed.
 
-Custom event `<event_name>` will always be handled by the event handler registered. `<event_name>` should not start with `_`, events starting with `_` are preserved as a system event. If no such event handler registered, the connection will be declined. Such custom event can be helpful if you want messages to be dispatched to different servers having different event handlers.
+Custom event `<event_name>` will always be handled by the event handler registered. If no such event handler registered, the connection will be declined. Such custom event can be helpful if you want messages to be dispatched to different servers having different event handlers.
 
 These keywords start the message frame, they can be `text` format for text message frames or UTF8 encoded binaries for binary message frames.
 
 Service declines the client if the message does not match the described format.
 
-Messages received by the client follows the following format:
+Messages received by the client can be several types
+1. The message is from group publish
+
+2. The message is from server. As described in [server protocol](#server_protocol), the sever has the ability to send messages to a client.
+
 ```json
 
 {
