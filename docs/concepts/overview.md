@@ -142,8 +142,15 @@ client1.onmessage = e => {
 };
 
 client1.onopen = e => {
-    client1.send("JOIN group1");
-    client1.send("PUBLISH group2 Hello Client2!");
+    client1.send(JSON.stringify({
+        event: "_leave",
+        group: "Group1"
+    }));
+    client1.send(JSON.stringify({
+        event: "_publish",
+        group: "Group2",
+        data: "Hello Client2"
+    });
 };
 ```
 
@@ -158,25 +165,17 @@ client2.onmessage = e => {
 };
 
 client2.onopen = e => {
-    client2.send("JOIN group2");
-    client2.send("PUBLISH group1 Hello Client1!");
+    client1.send(JSON.stringify({
+        event: "_leave",
+        group: "Group2"
+    }));
+    client1.send(JSON.stringify({
+        event: "_publish",
+        group: "Group1",
+        data: "Hello Client1"
+    });
 };
 ```
-
-***
-
-#### Open Question:
-1. Shall we define a formt for incoming messages, for example, first line as metadata line?
-    ```
-    From Client1
-    <message>
-    ```
-
-    **Concerns**:
-    1. It makes message parser somewhat more difficult
-    2. What to be added as metadata?
-
-***
 
 <a name="client_message_limit"></a>
 
