@@ -240,6 +240,11 @@ In general, server protocol contains three roles:
 ### Event handler
 The event handler handles the upcoming client events. Event handlers need to be registered and configured in the service through portal or Azure CLI beforehand so that when a client event is triggered, the service can identify if the event is expected to be handled. 
 
+There are two mode for the service to deal with the events those are not registered.
+1. One is `strict` mode: that if the event handler is not configured, the service declines the client triggering the event and declines the service when the service tries to register the event handler through the persistent connection in `Listen` mode described below. This is the recommended mode when the service is running in PRODUCTION.
+2. The other is `loose` mode, that if the event handler is not configured, the service looks if there are connected event handlers. If there exists such event handler, that event handler is triggered. There is a chance that the behavior can be inconsistent when event handlers are disconnected due to network issues. This mode can make development experience much easier that users do not need to configure throught portal when adding or modifying events.
+
+
 There are two ways for the service to invoke the event handler:
 1. One way is called `PUSH` mode, that the event handler as the server side, exposes public accessible endpoint for the service to invoke when the event is triggered. It acts as similar to a **webhook**. It leverages HTTP protocol and the detailed protocol is described in [webpubsub.event.handler.http](./webpubsub.event.handler.http.md).
 2. The other way is called `LISTEN` mode, that the event handler starts a duplex connection to the service when the event handler is available so that the service can invoke the event handler through this duplex connection when the event is triggered. The service exposes the `/server` endpoint for the event handler to connect to using a WebSocket connection, following the message protocol defined in [webpubsub.server.events.proto](./protocols/webpubsub.server.events.proto).
@@ -264,7 +269,7 @@ The service also provides two ways for the server to do connection management:
 <a name="group_manager"></a>
 ### Group Manager
     1. Publish messages to group
-    2. Subscribe to group messages
+    2. Subscribe to group messages [Not ready for Public Preview]
 
 The service provides two ways to publish to the group, one is through REST API as defined in [WebPubSub Swagger File](./protocols/webpubsub.json), the other is through the WebSocket connection `/server` endpoint with message protocol defined in [webpubsub.manage.proto](./protocols/webpubsub.manage.proto).
 
