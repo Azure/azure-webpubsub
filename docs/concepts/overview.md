@@ -18,7 +18,7 @@ Azure Web PubSub Service provides an easy way to publish/subscribe messages usin
 - [Terms](#terms)
 - [Client protocol](#client_protocol)
     - [Simple WebSocket connection](#simple_client)
-    - [Client with `command.webpubsub.azure` subprotocol](#command_subprotocol)
+    - [Client with `json.webpubsub.azure.v1` subprotocol](#command_subprotocol)
     - [Client message limit](#client_message_limit)
     - [Client Auth](#client_auth)
 - [Server protocol](#server_protocol)
@@ -49,7 +49,7 @@ Service provides two modes for the event handlers to be invoked. One is called `
 
 ## Client Protocol
 
-A client connection connects to the `/client` endpoint of the service. It can be a [simple WebSocket connection](#simple_client), or a WebSocket connection having [command.webpubsub.azure](#command_subprotocol) subprotocol which enables client to do publish/subscribe directly. 
+A client connection connects to the `/client` endpoint of the service. It can be a [simple WebSocket connection](#simple_client), or a WebSocket connection having [json.webpubsub.azure.v1](#command_subprotocol) subprotocol which enables client to do publish/subscribe directly. 
 
 <a name="simple_client"></a>
 
@@ -64,41 +64,69 @@ A simple WebSocket client follows a client<->server architecture, as the below s
 #### Scenarios:
 Such connection can be used in a typical client-server architecture, that the client sends messages to the server, and the server handles incoming messages using [Event Handlers](#event_handler). A typical usage would be [GraphQL Subscriptions](https://dgraph.io/docs/graphql/subscriptions/), and a sample can be found [here](). It can also be used when customers leverage existing [subprotocols](https://www.iana.org/assignments/websocket/websocket.xml) in their application logic, for example, `wamp` subprotocol. A sample usage can be found [here]().
 
-You may have noticed that with such a simple WebSocket Connection, the *server* is a MUST HAVE role to handle the events from clients, to do advanced operations for the clients such as join the clients to some groups, or to publish messages to the connected clients. We introduced in a simple [command.webpubsub.azure](#command_subprotocol) to empower clients to do publish and subscribe more conveniently and efficiently.
+You may have noticed that with such a simple WebSocket Connection, the *server* is a MUST HAVE role to handle the events from clients, to do advanced operations for the clients such as join the clients to some groups, or to publish messages to the connected clients. We introduced in a simple [json.webpubsub.azure.v1](#command_subprotocol) to empower clients to do publish and subscribe more conveniently and efficiently.
 
 <a name="command_subprotocol"></a>
 
-### Client with `command.webpubsub.azure` subprotocol
-As described in the earlier section, a simple WebSocket connection always triggers a `send` event when it sends messages, and always relies on the server-side to process messages and do other operations. With the help of the `command.webpubsub.azure` subprotocol, an authorized client can join a group and publish messages to a group directly. It can also route messages to different upstreams (event handlers) by customizing the *event* the message belongs to. 
+### Client with `json.webpubsub.azure.v1` subprotocol
+As described in the earlier section, a simple WebSocket connection always triggers a `send` event when it sends messages, and always relies on the server-side to process messages and do other operations. With the help of the `json.webpubsub.azure.v1` subprotocol, an authorized client can join a group and publish messages to a group directly. It can also route messages to different upstreams (event handlers) by customizing the *event* the message belongs to. 
 
-protocol: `command.webpubsub.azure`
+protocol: `json.webpubsub.azure.v1`
 
 Join a group:
-```
-JOIN <group_name>
+```json
+{
+    "event": "_join",
+    "group": "group_name"
+}
 ```
 
 Leave a group:
-```
-LEAVE <group_name>
+```json
+{
+    "event": "_leave",
+    "group": "group_name"
+}
 ```
 
 Publish message to a group:
-```
-PUBLISH <group_name> <message>
 
+```json
+{
+    "event": "_publish",
+    "group": "group_name",
+    "data": {},
+}
 ```
+`data` can be object or array or string.
 
 Custom events:
+```json
+{
+    "event": "<event_name>",
+    "data": {},
+}
 ```
-EVENT <event_name> <message>
-```
+`data` can be object or array or string.
 
-Custom event `<event_name>` will always be handled by the event handler registered. If no such event handler registered, the connection will be declined. Such custom event can be helpful if you want messages to be dispatched to different servers having different event handlers.
+Custom event `<event_name>` will always be handled by the event handler registered. `<event_name>` should not start with `_`, events starting with `_` are preserved as a system event. If no such event handler registered, the connection will be declined. Such custom event can be helpful if you want messages to be dispatched to different servers having different event handlers.
 
 These keywords start the message frame, they can be `text` format for text message frames or UTF8 encoded binaries for binary message frames.
 
-Service declines the client if the message does not start with any of these keywords.
+Service declines the client if the message does not match the described format.
+
+Messages received by the client follows the following format:
+```json
+
+{
+    "metadata": {
+        "type" : "management|group",
+        "from" : "group_name",
+    },
+    "data": {}
+}
+```
+`data` can be object or array or string.
 
 #### Scenarios:
 Such clients can be used when clients want to talk to each other. Messages are sent from `client1` to the service and the service delivers the message directly to `client2` if the clients are authorized.
@@ -106,7 +134,7 @@ Such clients can be used when clients want to talk to each other. Messages are s
 Client1:
 
 ```js
-var client1 = new WebSocket("wss://xxx.webpubsub.azure.com/client", "command.webpubsub.azure");
+var client1 = new WebSocket("wss://xxx.webpubsub.azure.com/client", "json.webpubsub.azure.v1");
 client1.onmessage = e => {
     if (e.data) {
         console.log(e.data);
@@ -122,7 +150,7 @@ client1.onopen = e => {
 Client2:
 
 ```js
-var client2 = new WebSocket("wss://xxx.webpubsub.azure.com/client", "command.webpubsub.azure");
+var client2 = new WebSocket("wss://xxx.webpubsub.azure.com/client", "json.webpubsub.azure.v1");
 client2.onmessage = e => {
     if (e.data) {
         console.log(e.data);
@@ -171,7 +199,7 @@ The below graph describes the workflow in detail.
 
 #### Client roles
 
-Client roles only applies for the [`command.webpubsub.azure` subprotocol](#command_subprotocol). When the client is authed and connected, the roles of the client determine the actions the client has permissions to do:
+Client roles only applies for the [`json.webpubsub.azure.v1` subprotocol](#command_subprotocol). When the client is authed and connected, the roles of the client determine the actions the client has permissions to do:
 
 | Role | Permission |
 |---|---|
