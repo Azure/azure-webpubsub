@@ -6,7 +6,7 @@ import "webpubsub.server.payload.proto";
 
 option csharp_namespace = "Microsoft.Azure.WebPubSub";
 
-package azure.webpubsub;
+package azure.webpubsub.server;
 
 message ConnectionEventMessage {
     oneof message {
