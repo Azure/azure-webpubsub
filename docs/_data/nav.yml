@@ -1,3 +1,9 @@
+- title: Specs
+  pages:
+    - title: Development Plan
+    - title: Phase 1 Simple WebSocket Client
+    - title: Phase 2 Subprotocol
+    - title: Phase 3 Server Subscribe
 - title: Getting started
   pages:
     - title: Introduction
@@ -26,10 +32,8 @@
 
 - title: Concepts
   pages:
-    - title: Overview
     - title: Clients
     - title: Servers
-
     - title: Service Internals
     - title: Upstream
     - title: Authentication

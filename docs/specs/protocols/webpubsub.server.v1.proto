@@ -8,7 +8,7 @@ option csharp_namespace = "Microsoft.Azure.WebPubSub";
 
 package azure.webpubsub.server;
 
-message ServiceMessage {
+message ServerMessage {
     oneof message {
         ConnectionEventMessage event_message = 1;
         ServiceManageMessage manage_message = 2;
