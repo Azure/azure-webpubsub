@@ -7,7 +7,7 @@ toc: true
 
 ## Azure Web PubSub Service Design Spec [Phase 2]
 
-Based on the concepts and architecture described in [Phase 1](./phase1.md), Phase 2 introduces a new client subprotocol that the service natively supports to enable a more convenient development experience for some typical scenarios. 
+Based on the concepts and architecture described in [Phase 1](./phase-1-simple-websocket-client.md), Phase 2 introduces a new client subprotocol that the service natively supports to enable a more convenient development experience for some typical scenarios. 
 
 Please note that the development of phase 2 does not have many dependencies on phase 1, and can be developed simultaneously.
 
@@ -19,15 +19,15 @@ Please note that the development of phase 2 does not have many dependencies on p
 
 ## Terms
 
-Terms are the same as [Terms in Phase 1](./phase1.md#terms)
+Terms are the same as [Terms in Phase 1](./phase-1-simple-websocket-client.md#terms)
 
 <a name="client_protocol"></a>
 
 ## Client Protocol
 
-A client connection connects to the `/client` endpoint of the service. It can be a [simple WebSocket connection](./phase1.md#simple_client), or a WebSocket connection having [json.webpubsub.azure.v1](#command_subprotocol) subprotocol which enables the client to do publish/subscribe directly. 
+A client connection connects to the `/client` endpoint of the service. It can be a [simple WebSocket connection](./phase-1-simple-websocket-client.md#simple_client), or a WebSocket connection having [json.webpubsub.azure.v1](#command_subprotocol) subprotocol which enables the client to do publish/subscribe directly. 
 
-You may have noticed that with a simple WebSocket Connection [described in phase 1](./phase1.md#simple_client), the *server* is a MUST HAVE role to handle the events from clients, to do advanced operations for the clients such as join the clients to some groups or to publish messages to the connected clients. We introduced in a simple [json.webpubsub.azure.v1](#command_subprotocol) to empower clients to do publish and subscribe more conveniently and efficiently.
+You may have noticed that with a simple WebSocket Connection [described in phase 1](./phase-1-simple-websocket-client.md#simple_client), the *server* is a MUST HAVE role to handle the events from clients, to do advanced operations for the clients such as join the clients to some groups or to publish messages to the connected clients. We introduced in a simple [json.webpubsub.azure.v1](#command_subprotocol) to empower clients to do publish and subscribe more conveniently and efficiently.
 
 <a name="command_subprotocol"></a>
 
@@ -211,7 +211,7 @@ Client roles can be assigned:
 #### Client publish
 The below graph describes the workflow when the client tries to publish messages to the group:
 
-![Client Publish Workflow](../assets/client_publish_workflow.png)
+![Client Publish Workflow](../images/client_publish_workflow.png)
 
 When the client tries to publish messages to a group: 
 1. The service checks if the `publish` event is registered for the client,
