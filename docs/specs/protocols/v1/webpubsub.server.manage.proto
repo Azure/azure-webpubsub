@@ -8,30 +8,7 @@ option csharp_namespace = "Microsoft.Azure.WebPubSub";
 
 package azure.webpubsub.server;
 
-message ServiceManageMessage {
-    oneof message {
-      ClientCloseRequest client_close_request = 1;
-      ClientExistsRequest client_exists_request = 2;
-      ClientSendRequest client_send_request = 3;
-
-      UserExistsRequest user_exists_request = 4;
-      UserSendRequest user_send_request = 5;
-
-      GroupAddClientRequest group_add_client_request = 11;
-      GroupAddUserRequest group_add_user_request = 12;
-      GroupRemoveClientRequest group_remove_client_request = 13;
-      GroupRemoveUserRequest group_remove_user_request = 14;
-      GroupContainsClientRequest group_contains_client_request = 15;
-      GroupContainsUserRequest group_contains_user_request = 16;
-  
-      GroupPublishRequest group_publish_request = 20;
-      GroupSubscribeRequest group_subscribe_request = 21;
-
-      AckMessage ack_message = 100;
-    }
-}
-
-message AckMessage {
+message ServiceAckMessage {
   int32 ack_id = 1;
   AckResult ack_result = 2;
   google.protobuf.StringValue ack_detail = 3;

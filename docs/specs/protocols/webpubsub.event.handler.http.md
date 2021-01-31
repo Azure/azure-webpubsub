@@ -5,16 +5,8 @@ toc: true
            
 ## Event Handler HTTP Protocol Details
 
-### Ping-Pong 
-The service expects the upstream to accept a `HEAD` `{Upstream Host}/ping` request and response `202` to indicate the `{Upstream Host}` is a valid Url.
-
-#### HEAD
-* `X-ASRS-From`: `xxx.webpubsub.azure.com`
-* `Date`: `Fri, 10 Jan 2020 01:02:03 GMT`
-
-#### Response Status Codes:
-* `202`: Success, the upstream is valid
-* Others: No, the upstream is not valid
+### Abuse protection 
+The Webhook abuse protection follows the same behavior as [CloudEvents](https://github.com/cloudevents/spec/blob/v1.0/http-webhook.md#4-abuse-protection).
 
 ### Connect
 #### Url Parameters:
@@ -69,7 +61,7 @@ The service calls the Upstream for every complete WebSocket message.
 
 #### Url Parameters:
 * `category`: `messages`
-* `event`: `message`
+* `event`: `send`
 
 #### Verb: `POST`
 
@@ -79,7 +71,7 @@ The service calls the Upstream for every complete WebSocket message.
 * `X-ASRS-Hub`: `{hubname}`
 * `X-ASRS-Category`: `messages`
 * `X-ASRS-Connection-Id`: `{connection-id}`
-* `X-ASRS-Event`: `message`
+* `X-ASRS-Event`: `send`
 * `X-ASRS-User-Id`: `{user-id}`
 * `X-ASRS-User-Claims`: `{user-claims}`
 * `X-ASRS-Signature`: `sha256={connection-id-hash-primary},sha256={connection-id-hash-secondary}`

@@ -8,22 +8,6 @@ option csharp_namespace = "Microsoft.Azure.WebPubSub";
 
 package azure.webpubsub.server;
 
-message ConnectionEventMessage {
-    oneof message {
-      ConnectRequest connect_request = 1;
-      DisconnectRequest disconnect_request = 2;
-
-      UserEventRequest user_event_request = 10;
-      PublishRequest publish_request = 20;
-      JoinGroupRequest join_request = 21;
-      LeaveGroupRequest leave_request = 22;
-
-      // Connect response is sepcial as it can contain handshake and auth info, other requests share the same response data structure
-      ConnectResponse connect_response = 30;
-      MessageResponse message_response = 31;
-    }
-}
-
 message ConnectRequest {
     int32 ack_id = 1;
     RequestContext context = 2;

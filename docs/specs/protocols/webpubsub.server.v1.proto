@@ -1,16 +1,54 @@
 syntax = "proto3";
 
-import "webpubsub.server.events.proto";
-import "webpubsub.server.manage.proto";
+import "v1/webpubsub.server.events.proto";
+import "v1/webpubsub.server.manage.proto";
 
 
 option csharp_namespace = "Microsoft.Azure.WebPubSub";
 
 package azure.webpubsub.server;
 
-message ServerMessage {
+// from service to server
+message UpstreamMessage {
     oneof message {
-        ConnectionEventMessage event_message = 1;
-        ServiceManageMessage manage_message = 2;
+        // connection event requests
+        ConnectRequest connect_request = 1;
+        DisconnectRequest disconnect_request = 2;
+  
+        UserEventRequest user_event_request = 10;
+        PublishRequest publish_request = 20;
+        JoinGroupRequest join_request = 21;
+        LeaveGroupRequest leave_request = 22;
+
+        // service management request ack
+        ServiceAckMessage ack_message = 100;
+    }
+}
+
+// from server to service
+message DownstreamMessage {
+    oneof message {
+        // service management request
+        ClientCloseRequest client_close_request = 1;
+        ClientExistsRequest client_exists_request = 2;
+        ClientSendRequest client_send_request = 3;
+
+        UserExistsRequest user_exists_request = 4;
+        UserSendRequest user_send_request = 5;
+
+        GroupAddClientRequest group_add_client_request = 11;
+        GroupAddUserRequest group_add_user_request = 12;
+        GroupRemoveClientRequest group_remove_client_request = 13;
+        GroupRemoveUserRequest group_remove_user_request = 14;
+        GroupContainsClientRequest group_contains_client_request = 15;
+        GroupContainsUserRequest group_contains_user_request = 16;
+    
+        GroupPublishRequest group_publish_request = 20;
+
+        // connection events response
+  
+        // Connect response is sepcial as it can contain handshake and auth info, other requests share the same response data structure
+        ConnectResponse connect_response = 100;
+        MessageResponse message_response = 101;
     }
 }

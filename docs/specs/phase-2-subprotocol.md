@@ -233,7 +233,7 @@ To support the subprotocol `json.webpubsub.azure.v1`, the service provides 3 mor
 
  [WebPubSub Swagger File](./protocols/webpubsub.json).
  
- [webpubsub.server.manage.proto](./protocols/webpubsub.server.manage.proto)
+ [webpubsub.server.manage.proto](./protocols/v1/webpubsub.server.manage.proto)
 
 ## Remaining work items
 1. Service: support client subprotocol `json.webpubsub.azure.v1`
