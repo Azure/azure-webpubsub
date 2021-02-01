@@ -29,6 +29,7 @@ For now , we do not support [WebHook-Request-Callback](https://github.com/cloude
 This extension defines attributes used by Web PubSub Service for every event it produces.
 
 #### Attributes
+
 | Name | Type | Description | Example|
 |--|--|--|--|
 | `signature` | `string` | | `sha256={connection-id-hash-primary},sha256={connection-id-hash-secondary}`|
@@ -42,7 +43,8 @@ The `Data` payload contains the properties for the `connect` system event.
 This example shows a typical connect event message:
 
 `structured` format:
-```JSON
+
+```json
 POST /upstream HTTP/1.1
 Host: xxx.webpubsub.azure.com
 Content-Type: application/cloudevents+json; charset=utf-8
@@ -67,6 +69,37 @@ Content-Length: nnnn
             }
         ]
     }
+}
+
+```
+
+`binary` format:
+
+```json
+POST /upstream HTTP/1.1
+Host: xxx.webpubsub.azure.com
+Content-Type: application/json; charset=utf-8
+Content-Length: nnnn
+ce-specversion: 1.0
+ce-type: azure.webpubsub.sys.connect
+ce-source: https://xxx.webpubsub.azure.com/hubs/{hub}/client/{connectionId}
+ce-id: {eventId}
+ce-time: 2021-01-01T00:00:00Z
+ce-datacontenttype: application/json
+ce-signature: sha256={connection-id-hash-primary},sha256={connection-id-hash-secondary}
+ce-userId: {userId}
+ce-dataschema:
+
+DATA:
+{
+    "claims": {},
+    "queries": {},
+    "subprotocols": [],
+    "clientCertificates": [
+        {
+            "thumbprint": "ABC"
+        }
+    ]
 }
 
 ```
@@ -97,19 +130,20 @@ Content-Length: nnnn
 ```
 
 * `subprotocols`
-The `connect` event forwards the subprotocol and authentication information to Upstream from the client. The Azure SignalR Service uses the status code to determine if the request will be upgraded to WebSocket protocol.
 
-If the request contains the `subprotocols` property, the server should return one subprotocol it supports. If the server doesn't want to use any subprotocols, it should **not** send the `subprotocol` property in response. [Sending a blank header is invalid](https://developer.mozilla.org/en-US/docs/Web/API/WebSockets_API/Writing_WebSocket_servers#Subprotocols).
+    The `connect` event forwards the subprotocol and authentication information to Upstream from the client. The Azure SignalR Service uses the status code to determine if the request will be upgraded to WebSocket protocol.
+
+    If the request contains the `subprotocols` property, the server should return one subprotocol it supports. If the server doesn't want to use any subprotocols, it should **not** send the `subprotocol` property in response. [Sending a blank header is invalid](https://developer.mozilla.org/en-US/docs/Web/API/WebSockets_API/Writing_WebSocket_servers#Subprotocols).
 
 * `userId`: `{authed user id}`
 
-As the service allows anonymous connections, it is the `connect` event's responsibility to tell the service the user id of the client connection. The Service will read the user id from the response payload `userId` if it exists. The connection will be dropped if user id cannot be read from the request claims nor the `connect` event's response payload.
+    As the service allows anonymous connections, it is the `connect` event's responsibility to tell the service the user id of the client connection. The Service will read the user id from the response payload `userId` if it exists. The connection will be dropped if user id cannot be read from the request claims nor the `connect` event's response payload.
 
-<a name="connect_response_header_group">
+<a name="connect_response_header_group"></a>
  
 * `groups`: `{groups to join}`
 
-The property provides a convenient way for user to add this connection to one or multiple groups. In this way, there is no need to have an additional call to add this connection to some group.
+    The property provides a convenient way for user to add this connection to one or multiple groups. In this way, there is no need to have an additional call to add this connection to some group.
 
 #### Response Status Codes:
 * `2xx`: Success, the WebSocket connection is going to be established.
@@ -216,4 +250,5 @@ Content-Length: nnnn
 ```
 
 * `reason`
-The `reason` describes the reason the client disconnects.
+
+    The `reason` describes the reason the client disconnects.
