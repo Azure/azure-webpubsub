@@ -197,11 +197,11 @@ Client roles only applies for the [`json.webpubsub.azure.v1` subprotocol](#comma
 | Role | Permission |
 |---|---|
 | Not specified | The client can send events.
-| `wps.group.join` | The client can join/leave any group
-| `wps.group.write` | The client can publish messages to any group
-| `wps.joined.write` | The client can publish messages to groups it already **joined in**.
-| `wps.group.join.<group>` | The client can join/leave the groups that the group name is `<group>`.
-| `wps.group.write.<group>` | The client can publish messages to the groups that the group name is `<group>`.
+| `webpubsub.group.join` | The client can join/leave any group
+| `webpubsub.group.publish` | The client can publish messages to any group
+| `webpubsub.group.joined.publish` | The client can publish messages to groups it already **joined in**.
+| `webpubsub.group.join.<group>` | The client can join/leave the groups that the group name is `<group>`.
+| `webpubsub.group.publish.<group>` | The client can publish messages to the groups that the group name is `<group>`.
 
 Client roles can be assigned:
 1. when the client connects with an auth token, and 
@@ -215,21 +215,24 @@ The below graph describes the workflow when the client tries to publish messages
 
 When the client tries to publish messages to a group: 
 1. The service checks if the `publish` event is registered for the client,
-2. If not, a client with the role `wps.group.write` can publish.
+2. If not, a client with the role `webpubsub.group.publish` can publish.
 3. If the event is registered, the service invokes the event handler and respect the response of the event handler to decide if the action is allowed.
 
 Please note that **ONLY** **METADATA** for the `Publish` is sent to the event handler, the actual message to be published is not sent to the event handler.
 
 When the client tries to join/leave a group, the workflow is similar:
 1. The service checks if the `join`/`leave` event is registered for the client
-2. If not, a client with the role `wps.group.join` can join/leave the group.
+2. If not, a client with the role `webpubsub.group.join` can join/leave the group.
 3. If the event is registered, the service invokes the event handler and respect the response of the event handler to decide if the action is allowed.
 
 ## Server Protocol
 To support the subprotocol `json.webpubsub.azure.v1`, the service provides 3 more functionalities to control client roles dynamically:
 1. Grant [client roles](#client_roles) to a client
 1. Revoke roles from a client
-1. Get current roles of a client
+1. Check if a client has permission to publish to a group, and returns the list of roles allowing the client to publish to the group.
+1. Check if a client has permission to join a group, and returns the list of roles allowing the client to join the group.
+
+A client can have at most 100 roles. 
 
  [WebPubSub Swagger File](./protocols/webpubsub.json).
  
