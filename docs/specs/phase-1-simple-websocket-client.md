@@ -83,10 +83,9 @@ The below graph describes the workflow in detail.
 
 Server protocol provides the functionality for the user to manage the client connections and the groups.
 
-In general, server protocol contains three roles:
+In general, server protocol contains 2 roles:
 1. [Event handler](#event_handler)
 2. [Connection manager](#connection_manager)
-3. [Group manager](#group_manager)
 
 <a name="event_handler"></a>
 

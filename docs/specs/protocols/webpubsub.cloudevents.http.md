@@ -34,6 +34,9 @@ This extension defines attributes used by Web PubSub Service for every event it 
 |--|--|--|--|
 | `signature` | `string` | | `sha256={connection-id-hash-primary},sha256={connection-id-hash-secondary}`|
 | `userId` | `string` | The user the connection authed | |
+| `hub` | `string` | The hub the connection belongs to | |
+| `connectionId` | `string` | The connectionId is unique for the client connection | |
+| `eventName` | `string` | The name of the event without prefix | |
 
 ### Connect
 
@@ -52,13 +55,15 @@ Content-Length: nnnn
 {
     "specversion" : "1.0",
     "type" : "azure.webpubsub.sys.connect",
-    "source" : "https://xxx.webpubsub.azure.com/hubs/{hub}/client/{connectionId}",
+    "source" : "/hubs/{hub}/client/{connectionId}",
     "id" : "{eventId}",
     "time": "2021-01-01T00:00:00Z",
     "datacontenttype" : "application/json",
     "signature": "sha256={connection-id-hash-primary},sha256={connection-id-hash-secondary}",
     "userId": "{userId}",
-    "dataschema": "https://xxx.webpubsub.azure.com/connect.json",
+    "connectionId": "{connectionId}",
+    "hub": "{hub}",
+    "eventName": "connect",
     "data" : {
         "claims": {},
         "queries": {},
@@ -82,18 +87,20 @@ Content-Type: application/json; charset=utf-8
 Content-Length: nnnn
 ce-specversion: 1.0
 ce-type: azure.webpubsub.sys.connect
-ce-source: https://xxx.webpubsub.azure.com/hubs/{hub}/client/{connectionId}
+ce-source: /hubs/{hub}/client/{connectionId}
 ce-id: {eventId}
 ce-time: 2021-01-01T00:00:00Z
 ce-datacontenttype: application/json
 ce-signature: sha256={connection-id-hash-primary},sha256={connection-id-hash-secondary}
 ce-userId: {userId}
-ce-dataschema:
+ce-connectionId: {connectionId}
+ce-hub: {hub}
+ce-eventName: connect
 
 DATA:
 {
     "claims": {},
-    "queries": {},
+    "query": {},
     "subprotocols": [],
     "clientCertificates": [
         {
@@ -113,7 +120,8 @@ Content-Length: nnnn
 {
     "specversion" : "1.0",
     "type" : "azure.webpubsub.sys.connect",
-    "source" : "https://xxx.webpubsub.azure.com/hubs/{hub}/client/{connectionId}",
+    "source" : "/hubs/{hub}/client/{connectionId}",
+    "connectionId": "{connectionId}",
     "id" : "{eventId}",
     "time": "2021-01-01T00:00:00Z",
     "datacontenttype" : "application/json",
@@ -153,7 +161,6 @@ Content-Length: nnnn
 The service calls the Upstream for every complete WebSocket message.
 
 #### Url Parameters:
-* `category`: `messages`
 * `event`: `send`
 
 #### Examples
@@ -168,12 +175,15 @@ Content-Length: nnnn
 {
     "specversion" : "1.0",
     "type" : "azure.webpubsub.user.send",
-    "source" : "https://xxx.webpubsub.azure.com/hubs/{hub}/client/{connectionId}",
+    "source" : "/hubs/{hub}/client/{connectionId}",
     "id" : "{eventId}",
     "time": "2021-01-01T00:00:00Z",
     "datacontenttype" : "application/json",
     "signature": "sha256={connection-id-hash-primary},sha256={connection-id-hash-secondary}",
     "userId": "{userId}",
+    "connectionId": "{connectionId}",
+    "hub": "{hub}",
+    "eventName": "send",
     "datacontenttype" : "`application/octet-stream`(for binary frame)|`text/plain`(for text frame)",
     "data" : "{User Payload}"
 }
@@ -189,9 +199,10 @@ Content-Length: nnnn
 {
     "specversion" : "1.0",
     "type" : "azure.webpubsub.user.send",
-    "source" : "https://xxx.webpubsub.azure.com/hubs/{hub}/client/{connectionId}",
+    "source" : "/hubs/{hub}/client/{connectionId}",
     "id" : "{eventId}",
     "time": "2021-01-01T00:00:00Z",
+    "connectionId": "{connectionId}",
     "datacontenttype" : "`application/octet-stream`(for binary frame)|`text/plain`(for text frame)",
     "data" : "{User Payload}"
 }
@@ -204,7 +215,6 @@ Content-Length: nnnn
 **Disconnect** event will **always** be triggered when the client request completes if the **Connect** event returns `2xx` status code.
 
 #### Url Parameters:
-* `category`: `connections`
 * `event`: `disconnect`
 
 #### Examples
@@ -219,12 +229,15 @@ Content-Length: nnnn
 {
     "specversion" : "1.0",
     "type" : "azure.webpubsub.sys.disconnect",
-    "source" : "https://xxx.webpubsub.azure.com/hubs/{hub}/client/{connectionId}",
+    "source" : "/hubs/{hub}/client/{connectionId}",
     "id" : "{eventId}",
     "time": "2021-01-01T00:00:00Z",
     "datacontenttype" : "application/json",
     "signature": "sha256={connection-id-hash-primary},sha256={connection-id-hash-secondary}",
     "userId": "{userId}",
+    "connectionId": "{connectionId}",
+    "hub": "{hub}",
+    "eventName": "disconnect",
     "datacontenttype" : "`application/json",
     "data" : {
         "reason": "{Reason}"
@@ -242,8 +255,9 @@ Content-Length: nnnn
 {
     "specversion" : "1.0",
     "type" : "azure.webpubsub.sys.disconnect",
-    "source" : "https://xxx.webpubsub.azure.com/hubs/{hub}/client/{connectionId}",
+    "source" : "/hubs/{hub}/client/{connectionId}",
     "id" : "{eventId}",
+    "connectionId": "{connectionId}",
     "time": "2021-01-01T00:00:00Z",
 }
 
