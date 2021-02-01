@@ -3,7 +3,8 @@
     - title: Development Plan
     - title: Phase 1 Simple WebSocket Client
     - title: Phase 2 Subprotocol
-    - title: Phase 3 Server Subscribe
+    - title: Phase 3 Event Handler Websocket
+    - title: Phase 4 Server Subscribe
 - title: Getting started
   pages:
     - title: Introduction
