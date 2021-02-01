@@ -91,7 +91,7 @@ In general, server protocol contains three roles:
 <a name="event_handler"></a>
 
 ### Event handler
-The event handler handles the upcoming client events. Event handlers need to be registered and configured in the service through portal or Azure CLI beforehand so that when a client event is triggered, the service can identify if the event is expected to be handled. In Phase 1, we use `PUSH` mode to invoke the event handler: that the event handler as the server side, exposes public accessible endpoint for the service to invoke when the event is triggered. It acts as a **webhook**. It leverages HTTP protocol and the detailed protocol is described in [webpubsub.event.handler.http](./protocols/webpubsub.event.handler.http.md), for every event, it formulates an HTTP POST request to the registered upstream and expects an HTTP response.
+The event handler handles the upcoming client events. Event handlers need to be registered and configured in the service through portal or Azure CLI beforehand so that when a client event is triggered, the service can identify if the event is expected to be handled. In Phase 1, we use `PUSH` mode to invoke the event handler: that the event handler as the server side, exposes public accessible endpoint for the service to invoke when the event is triggered. It acts as a **webhook**. It leverages [CloudEvents HTTP protocol binding](https://github.com/cloudevents/spec/blob/v1.0.1/http-protocol-binding.md) and the detailed protocol is described in [webpubsub.cloudevents.http](./protocols/webpubsub.cloudevents.http.md), for every event, it formulates an HTTP POST request to the registered upstream and expects an HTTP response.
 ![Event PUSH](../images/event_push.png)
 
 <a name="connection_manager"></a>
@@ -108,7 +108,7 @@ The server is by nature an authorized user. With the help of the *event handler 
    1. Remove clients authed as the same user from a group
    1. Publish messages to a group
 
-In Phase 1, the service provides REST APIs as defined in [WebPubSub Swagger File](./protocols/webpubsub.json) for the server to do connection management:
+In Phase 1, the service provides REST APIs as defined in [WebPubSub Swagger File](./protocols/webpubsub.swagger.md) for the server to do connection management:
 ![Manager REST](../images/manager_rest.png)
 
 You may have noticed that the *event handler role* handles communication from the service to the server while *the manager role* handles communication from the server to the service. So combing the two roles, the data flow between service and server looks as similar to below leveraging HTTP protocol:

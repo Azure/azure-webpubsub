@@ -11,7 +11,7 @@ package azure.webpubsub.server;
 message ConnectRequest {
     int32 ack_id = 1;
     RequestContext context = 2;
-    repeated string sub_protocols = 3;
+    repeated string subprotocols = 3;
     repeated Certificate client_certificates = 4;
 
     message Certificate {
@@ -67,7 +67,7 @@ message ConnectResponse {
 
     repeated string groups = 5;
     google.protobuf.StringValue user_id = 6;
-    google.protobuf.StringValue sub_protocol = 7;
+    google.protobuf.StringValue subprotocol = 7;
     map<string, string> headers = 8;
 }
 

@@ -31,12 +31,12 @@
         }
       }
     },
-    "/api/messages": {
+    "/api/:send": {
       "post": {
         "tags": [
           "webpubsub"
         ],
-        "summary": "Broadcast content inside request body to all the connected to endpoint \"/ws/client\"",
+        "summary": "Broadcast content inside request body to all the connected client connections",
         "operationId": "WebPubSubApi_Broadcast",
         "consumes": [
           "application/octet-stream",
@@ -86,7 +86,7 @@
         }
       }
     },
-    "/api/users/{id}/messages": {
+    "/api/users/{id}/:send": {
       "post": {
         "tags": [
           "webpubsub"
@@ -138,7 +138,7 @@
         }
       }
     },
-    "/api/connections/{connectionId}/messages": {
+    "/api/connections/{connectionId}/:send": {
       "post": {
         "tags": [
           "webpubsub"
@@ -190,7 +190,7 @@
         }
       }
     },
-    "/api/groups/{group}/messages": {
+    "/api/groups/{group}/:send": {
       "post": {
         "tags": [
           "webpubsub"
@@ -329,7 +329,7 @@
           }
         ],
         "responses": {
-          "202": {
+          "200": {
             "description": "Success"
           },
           "default": {
@@ -660,7 +660,7 @@
           }
         ],
         "responses": {
-          "202": {
+          "200": {
             "description": "Success"
           },
           "default": {
@@ -702,9 +702,6 @@
         "responses": {
           "200": {
             "description": "The user is deleted"
-          },
-          "202": {
-            "description": "The delete request is accepted and service is handling the request int the background"
           },
           "default": {
             "description": "Error response",
