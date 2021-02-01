@@ -1,13 +1,13 @@
 ---
 layout: docs
-title: Phase 1 Design Spec
+title: Phase 4 Design Spec
 group: specs
 toc: true
 ---
 
-## Azure Web PubSub Service Design Spec [Phase 3]
+## Azure Web PubSub Service Design Spec [Phase 4]
 
-Phase 3 adds another functionality to the server to enable server-to-server communication:
+Phase 4 adds another functionality to the server to enable server-to-server communication:
 
 1. Subscribe to group messages
 

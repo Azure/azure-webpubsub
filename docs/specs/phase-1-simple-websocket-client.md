@@ -10,7 +10,7 @@ toc: true
 Azure Web PubSub Service provides an easy way to publish/subscribe messages using simple [WebSocket](https://tools.ietf.org/html/rfc6455) connections.
 1. Client can be written in any language having WebSocket support
 1. Both text and binary messages are supported within one connection
-1. A simple protocol for clients to do publish directly
+1. A simple protocol for clients to do publish directly (covered in [Phase 2](./phase-2-subprotocol.md))
 1. The service manages the WebSocket connections for you
 
 ## Table of Content
@@ -89,21 +89,13 @@ In general, server protocol contains three roles:
 3. [Group manager](#group_manager)
 
 <a name="event_handler"></a>
+
 ### Event handler
-The event handler handles the upcoming client events. Event handlers need to be registered and configured in the service through portal or Azure CLI beforehand so that when a client event is triggered, the service can identify if the event is expected to be handled. 
-
-There are two modes for the service to deal with the events that are not registered.
-1. One is the `strict` mode: that if the event handler is not configured, the service declines the client triggering the event and declines the service when the service tries to register the event handler through the persistent connection in `Listen` mode described below. This is the recommended mode when the service is running in PRODUCTION.
-2. The other is the `loose` mode, that if the event handler is not configured, the service checks if there are connected event handlers. If there exists such an event handler, that event handler is triggered. There is a chance that the behavior can be inconsistent when event handlers are disconnected due to network issues. This mode can make the development experience much easier that users do not need to configure through the portal when adding or modifying events.
-
-There are two ways for the service to invoke the event handler:
-1. One way is called `PUSH` mode, that the event handler as the server side, exposes public accessible endpoint for the service to invoke when the event is triggered. It acts as similar to a **webhook**. It It leverages HTTP protocol and the detailed protocol is described in [webpubsub.event.handler.http](./protocols/webpubsub.event.handler.http.md), for every event, it formulates an HTTP POST request to the registered upstream and expects an HTTP response.
+The event handler handles the upcoming client events. Event handlers need to be registered and configured in the service through portal or Azure CLI beforehand so that when a client event is triggered, the service can identify if the event is expected to be handled. In Phase 1, we use `PUSH` mode to invoke the event handler: that the event handler as the server side, exposes public accessible endpoint for the service to invoke when the event is triggered. It acts as a **webhook**. It leverages HTTP protocol and the detailed protocol is described in [webpubsub.event.handler.http](./protocols/webpubsub.event.handler.http.md), for every event, it formulates an HTTP POST request to the registered upstream and expects an HTTP response.
 ![Event PUSH](../images/event_push.png)
 
-2. The other way is called `LISTEN` mode, that the event handler starts a duplex connection to the service when the event handler is available so that the service can invoke the event handler through this duplex connection when the event is triggered. The service exposes the `/server` endpoint for the event handler to connect to using a WebSocket connection, following the message protocol defined in [webpubsub.server.events.proto](./protocols/v1/webpubsub.server.events.proto). The server sends a request message and expects a response message from the duplex connections.
-![Event LISTEN](../images/event_listen.png)
-
 <a name="connection_manager"></a>
+
 ### Connection manager
 
 The server is by nature an authorized user. With the help of the *event handler role*, the server knows the metadata of the clients, for example, `connectionId` and `userId`, so it can:
@@ -116,19 +108,12 @@ The server is by nature an authorized user. With the help of the *event handler 
    1. Remove clients authed as the same user from a group
    1. Publish messages to a group
 
-The service also provides two ways for the server to do connection management:
-1. One way is through REST API as defined in [WebPubSub Swagger File](./protocols/webpubsub.json).
+In Phase 1, the service provides REST APIs as defined in [WebPubSub Swagger File](./protocols/webpubsub.json) for the server to do connection management:
 ![Manager REST](../images/manager_rest.png)
 
-2. Another way is through the WebSocket connection `/server` endpoint. The message protocol is defined in [Protocol Buffers](https://developers.google.com/protocol-buffers/) format as described in [webpubsub.server.manage.proto](./protocols/v1/webpubsub.server.manage.proto). The server implementation can use those available [protobuf serializers](https://developers.google.com/protocol-buffers/docs/tutorials) to send request messages and parse incoming response messages.
-![Manager WebSocket](../images/manager_ws.png)
+You may have noticed that the *event handler role* handles communication from the service to the server while *the manager role* handles communication from the server to the service. So combing the two roles, the data flow between service and server looks as similar to below leveraging HTTP protocol:
 
-You may have noticed that the *event handler role* handles communication from the service to the server while *the manager role* handles communication from the server to the service, it is bi-directional and is a perfect fit for the duplex WebSocket connection to `/server` endpoint. So combing the two roles, the data flow between service and server looks as similar to below:
-1. Through HTTP protocol:
 ![HTTP Protocol](../images/http_service_server.png)
-
-2. Through WebSocket connection and protobuf protocol
-![protobuf Protocol](../images/ws_service_server.png)
 
 ## Remaining work items
 1. Add client message limit for one WebSocket frame
@@ -136,11 +121,4 @@ You may have noticed that the *event handler role* handles communication from th
     1. Portal update
     1. RP Swagger 
     1. RP<->Service data contract
-1. Support `strict` and `loose` mode
-    1. Portal UI
-    1. Configuration
-1. Server protocol
-    1. Server SDK support
-        1. HTTP protocol support targeting 4 languages: C#, JS, Java, and Python
-        2. Protobuf over WebSocket protocol targeting 1 language: C# or JS
-    1. Service: Service protocol converter
+1. [CloudEvents](https://github.com/cloudevents/spec) support for event handlers

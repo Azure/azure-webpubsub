@@ -1,6 +1,6 @@
 ---
 layout: docs
-title: Phase 1 Design Spec
+title: Phase 2 Design Spec
 group: specs
 toc: true
 ---
