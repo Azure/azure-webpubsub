@@ -33,4 +33,4 @@ const server = createServer(async (request: IncomingMessage, response: ServerRes
   }
 });
 
-server.listen(port, () => console.log(`Azure WebPubSub Upstream ready at http://localhost:8000${wpsserver.eventHandlerUrl}`));
+server.listen(port, () => console.log(`Azure WebPubSub Upstream ready at http://localhost:${port}${wpsserver.eventHandlerUrl}`));

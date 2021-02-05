@@ -79,12 +79,14 @@ export class ProtocolParser {
     var context = this.GetContext(receivedEvent);
     // TODO: valid request is a valid cloud event with WebPubSub extension
     if (type === "azure.webpubsub.sys.connect") {
-      var payload = receivedEvent.data as string;
-      if (!payload) {
+      var req = receivedEvent.data as ConnectRequest;
+      if (!req) {
         throw new Error("Data is expected");
       }
-      const request: ConnectRequest = Object.assign(new ConnectRequest(context), JSON.parse(payload));
-      var response = this.eventHandler.onConnect(request);
+
+      console.log(request);
+      req.context = context;
+      var response = this.eventHandler.onConnect(req);
       return {
         body: JSON.stringify(response)
       };
@@ -189,31 +191,17 @@ export interface EventMessageBase {
 }
 
 export interface EventRequestBase extends EventMessageBase {
-
-  success(): EventResponseBase;
-  reject(detail: string): EventResponseBase;
 }
 
 export interface EventResponseBase {
 
 }
 
-export class ConnectRequest implements EventRequestBase {
-  success(): ConnectResponse {
-    throw new Error("Method not implemented.");
-  }
-  reject(detail: string): ConnectResponse {
-    throw new Error("Method not implemented.");
-  }
-  context: ConnectionContext;
-  claims: { [key: string]: string[] } = {};
-  queries: { [key: string]: string[] } = {};
-  subprotocols: string[] = [];
-  clientCertificates: Certificate[] = [];
-  headers: { [key: string]: string[] } = {};
-  constructor(context: ConnectionContext){
-    this.context = context;
-  }
+export interface ConnectRequest extends EventRequestBase {
+  claims: { [key: string]: string[] };
+  queries: { [key: string]: string[] };
+  subprotocols: string[];
+  clientCertificates: Certificate[];
 }
 
 export interface Certificate {
