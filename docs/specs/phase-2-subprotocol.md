@@ -184,13 +184,15 @@ client2.onopen = e => {
 };
 ```
 ### Client events
-These group related actions generate 2 events each accordingly:
-`on-publish`
-`post-publish`
-`on-join`
-`post-join`
-`on-leave`
-`post-leave`
+These group related actions generate the following events:
+* Synchronous events
+    * `publish`
+    * `join`
+    * `leave`
+* Asynchronous events
+    * `published`
+    * `joined`
+    * `left`
 
 <a name="client_auth"></a>
 
@@ -213,7 +215,7 @@ Client roles only applies for the [`json.webpubsub.azure.v1` subprotocol](#comma
 
 Client roles can be assigned:
 1. when the client connects with an auth token, and 
-2. can be granted with the `on-connect` event handler, and also, 
+2. can be granted with the `connect` event handler, and also, 
 3. can be granted through [server protocol](#connection_manager).
 
 #### Client publish
@@ -222,16 +224,16 @@ The below graph describes the workflow when the client tries to publish messages
 ![Client Publish Workflow](../images/client_publish_workflow.png)
 
 When the client tries to publish messages to a group: 
-1. The service checks if the `on-publish` event is registered for the client,
+1. The service checks if the `publish` event is registered for the client,
 2. If not, a client with the role `webpubsub.group.publish` can publish.
 3. If the event is registered, the service invokes the event handler and respect the response of the event handler to decide if the action is allowed.
 4. The service publishes the message to the group
-5. If `post-publish` is registered, the service invokes the `post-publish` event handler.
+5. If `published` is registered, the service invokes the `published` event handler.
 
-Please note that **ONLY** **METADATA** for the `Publish` is sent to the `on-publish` event handler, the actual message to be published is not sent to the event handler.
+Please note that **ONLY** **METADATA** for the `Publish` is sent to the `publish` event handler, the actual message to be published is not sent to the event handler.
 
 When the client tries to join/leave a group, the workflow is similar:
-1. The service checks if the `on-join`/`on-leave` event is registered for the client
+1. The service checks if the `join`/`leave` event is registered for the client
 2. If not, a client with the role `webpubsub.group.join` can join/leave the group.
 3. If the event is registered, the service invokes the event handler and respect the response of the event handler to decide if the action is allowed.
 
