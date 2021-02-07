@@ -14,7 +14,7 @@ async function main() {
   await new Promise(resolve => clients[0].once('open', resolve));
 
   // Prints "Hello!" twice, once for each client.
-  // clients[0].send('Hello!');
+  clients[0].send('Hello!');
 }
 
 main();

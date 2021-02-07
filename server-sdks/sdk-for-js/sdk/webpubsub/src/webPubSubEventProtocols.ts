@@ -65,8 +65,16 @@ export class ProtocolParser {
   }
   
   public async processNodeHttpRequest(request: IncomingMessage): Promise<EventResponse| undefined>  {
-    var response = await this.convertHttpToEvent(request);
-    return this.getResponse(response);
+    try {
+      var response = await this.convertHttpToEvent(request);
+      return this.getResponse(response);
+    } catch (err){
+      console.error(`Error processing request ${request}: ${err}`);
+      return {
+        error: err.message,
+        code: 500,
+      } as ErrorResponse;
+    }
   }
 
   public getResponse(request: EventRequest): EventResponse | undefined {
@@ -84,7 +92,6 @@ export class ProtocolParser {
         throw new Error("Data is expected");
       }
 
-      console.log(request);
       req.context = context;
       var response = this.eventHandler.onConnect(req);
       return {
@@ -173,8 +180,8 @@ export class ProtocolParser {
   }
 }
 
-export interface ErrorResponse {
-  error: string;
+export interface ErrorResponse extends EventResponse {
+  error: string | undefined;
   code: number;
 }
 

@@ -7,7 +7,7 @@
     "@azure/core-http": "^1.2.2",
     "@azure/ms-rest-azure-js": "^2.0.1",
     "@azure/ms-rest-js": "^2.0.4",
-    "cloudevents": "^3.2.0",
+    "cloudevents": "^4.0.0",
     "express": "^4.17.1",
     "jsonwebtoken": "^8.5.1",
     "node-fetch": "^2.6.1",
