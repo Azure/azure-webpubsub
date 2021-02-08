@@ -22,9 +22,9 @@ Azure Web PubSub Service provides an easy way to publish/subscribe messages usin
     - [Client Auth](#client_auth)
 - [Server protocol](#server_protocol)
     - [Event handler](#event_handler)
-        - [CloudEvents HTTP protocol](./protocols/webpubsub.cloudevents.http.md)
+        - [CloudEvents HTTP protocol](./service-to-server-cloudevents.md)
     - [Connection manager](#connection_manager)
-        - [REST API protocol](./protocols/webpubsub.swagger.md)
+        - [REST API protocol](./server-to-service-rest-api.md)
 
 ## Terms
 * **Service**: Azure Web PubSub Service.
@@ -103,7 +103,7 @@ In general, server protocol contains 2 roles:
 <a name="event_handler"></a>
 
 ### Event handler
-The event handler handles the upcoming client events. Event handlers need to be registered and configured in the service through portal or Azure CLI beforehand so that when a client event is triggered, the service can identify if the event is expected to be handled. In Phase 1, we use `PUSH` mode to invoke the event handler: that the event handler as the server side, exposes public accessible endpoint for the service to invoke when the event is triggered. It acts as a **webhook**. It leverages [CloudEvents HTTP protocol binding](https://github.com/cloudevents/spec/blob/v1.0.1/http-protocol-binding.md) and the detailed protocol is described in [WebPubSub CloudEvents Protocol](./protocols/service-to-server-cloudevents.md), for every event, it formulates an HTTP POST request to the registered upstream and expects an HTTP response.
+The event handler handles the upcoming client events. Event handlers need to be registered and configured in the service through portal or Azure CLI beforehand so that when a client event is triggered, the service can identify if the event is expected to be handled. In Phase 1, we use `PUSH` mode to invoke the event handler: that the event handler as the server side, exposes public accessible endpoint for the service to invoke when the event is triggered. It acts as a **webhook**. It leverages [CloudEvents HTTP protocol binding](https://github.com/cloudevents/spec/blob/v1.0.1/http-protocol-binding.md) and the detailed protocol is described in [WebPubSub CloudEvents Protocol](./service-to-server-cloudevents.md), for every event, it formulates an HTTP POST request to the registered upstream and expects an HTTP response.
 ![Event PUSH](../images/event_push.png)
 
 <a name="connection_manager"></a>
@@ -120,7 +120,7 @@ The server is by nature an authorized user. With the help of the *event handler 
    1. Remove clients authed as the same user from a group
    1. Publish messages to a group
 
-In Phase 1, the service provides REST APIs as defined in [WebPubSub Swagger File](./protocols/server-to-service-rerst-api.md) for the server to do connection management:
+In Phase 1, the service provides REST APIs as defined in [WebPubSub Swagger File](./server-to-service-rest-api.md) for the server to do connection management:
 ![Manager REST](../images/manager_rest.png)
 
 You may have noticed that the *event handler role* handles communication from the service to the server while *the manager role* handles communication from the server to the service. So combing the two roles, the data flow between service and server looks as similar to below leveraging HTTP protocol:
