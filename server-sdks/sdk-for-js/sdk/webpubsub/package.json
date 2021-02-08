@@ -12,6 +12,7 @@
     "jsonwebtoken": "^8.5.1",
     "node-fetch": "^2.6.1",
     "tslib": "^1.10.0",
+    "typescript-base64-arraybuffer": "^0.1.0",
     "ws": "^7.4.3"
   },
   "keywords": [

@@ -3,12 +3,16 @@
 
 import { WebPubSubServiceRestClient, WebPubSubServiceRestClientOptions } from "./webPubSubServiceRestClient";
 
-import { EventRequest, EventResponse, ProtocolParser, EventHandlerOptions, DefaultEventHandler } from "./webPubSubEventProtocols"
+import { EventResponse, ProtocolParser, EventHandlerOptions, DefaultEventHandler } from "./webPubSubEventProtocols"
 import { IncomingMessage, ServerResponse } from "http";
 import express from "express";
+import { Message } from "cloudevents";
 
 export interface WebPubSubServerOptions extends WebPubSubServiceRestClientOptions, EventHandlerOptions {
   eventHandlerUrl?: string;
+}
+
+export interface EventRequest extends Message{
 }
 
 /**
@@ -19,7 +23,7 @@ export class WebPubSubServer extends WebPubSubServiceRestClient {
   /**
    * The name of the hub this client is connected to
    */
-  public readonly hub?: string;
+  public readonly hub: string;
   /**
    * The SignalR API version being used by this client
    */
@@ -35,13 +39,13 @@ export class WebPubSubServer extends WebPubSubServiceRestClient {
   private _parser: ProtocolParser;
   constructor(connectionString: string, options?: WebPubSubServerOptions) {
     super(connectionString, options);
-    this.hub = options?.hub;
-    this._parser = new ProtocolParser(new DefaultEventHandler(options));
+    this.hub = options?.hub ?? "_default";
+    this._parser = new ProtocolParser(this.hub, new DefaultEventHandler(options));
     this.eventHandlerUrl = options?.eventHandlerUrl ?? '/api/webpubsub' + (this.hub? `/hubs/${this.hub}` : '');
   }
 
-  public Process(req: EventRequest): EventResponse {
-    var result = this._parser.getResponse(req);
+  public async Process(req: EventRequest): Promise<EventResponse> {
+    var result = await this._parser.getResponse(req);
     if (result === undefined) {
       return { body: undefined };
     }

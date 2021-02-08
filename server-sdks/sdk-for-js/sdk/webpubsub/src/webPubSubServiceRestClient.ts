@@ -37,14 +37,6 @@ export interface WebPubSubServiceRestClientOptions {
   dumpRequest?: boolean;
 }
 
-
-export interface ServiceEndpoint {
-  host: string;
-  audience: string;
-  key: string;
-  wshost: string;
-}
-
 export class ConsoleHttpPipelineLogger implements HttpPipelineLogger {
   /**
    * Create a new ConsoleHttpPipelineLogger.
@@ -76,6 +68,13 @@ export class ConsoleHttpPipelineLogger implements HttpPipelineLogger {
   }
 }
 
+interface ServiceEndpoint {
+  host: string;
+  audience: string;
+  key: string;
+  wshost: string;
+}
+
 /**
  * Client for connecting to a SignalR hub
  */
@@ -92,11 +91,6 @@ export class WebPubSubServiceRestClient {
    * The SignalR API version being used by this client
    */
   public readonly apiVersion: string = "2020-10-01";
-
-  /**
-   * The SignalR endpoint this client is connected to
-   */
-  public endpoint!: string;
 
   constructor(connectionString: string, options?: WebPubSubServiceRestClientOptions) {
     this.hub = options?.hub;

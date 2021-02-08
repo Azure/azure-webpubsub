@@ -12,7 +12,6 @@ export class WebPubSubKeyCredentials implements ServiceClientCredentials {
    *
    * @constructor
    * @param {string} key The key.
-   * @param {string} [authorizationScheme] The authorization scheme.
    */
   constructor(key: string) {
     if (!key) {
@@ -29,11 +28,14 @@ export class WebPubSubKeyCredentials implements ServiceClientCredentials {
    */
   signRequest(webResource: WebResourceLike) {
     if (!webResource.headers) webResource.headers = new HttpHeaders();
+    var url = new URL(webResource.url + webResource.query ?? '');
+    url.port = '';
+    const audience = url.toString();
     webResource.headers.set(
       "Authorization",
       "Bearer " +
         jwt.sign({}, this.key, {
-          audience: webResource.url,
+          audience: audience,
           expiresIn: "1h",
           algorithm: "HS256"
         })

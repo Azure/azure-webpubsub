@@ -3,12 +3,65 @@
 
 import { CloudEvent, Message, HTTP } from "cloudevents";
 import { IncomingMessage } from "http";
+import {decode, encode} from 'typescript-base64-arraybuffer';
 
 export interface EventHandlerOptions {
   onConnect?: (r: ConnectRequest) => ConnectResponse | ErrorResponse | Promise<ConnectResponse> | Promise<ErrorResponse>;
-  onConnected?: (r: ConnectedRequest) => ConnectedResponse | ErrorResponse;
-  onDisconnected?: (r: DisconnectedRequest) => DisconnectedResponse | ErrorResponse;
-  onUserEvent?: (r: UserEventRequest)=> UserEventResponse | ErrorResponse;
+  onUserEvent?: (r: UserEventRequest)=> EventResponse | ErrorResponse | Promise<EventResponse> | Promise<ErrorResponse>;
+  onConnected?: (r: ConnectedRequest) => void;
+  onDisconnected?: (r: DisconnectedRequest) => void;
+}
+
+export interface ConnectResponse {
+  groups?: string[];
+  roles?: string[];
+  userId?: string;
+  subprotocol?: string;
+  headers?: { [key: string]: string[] };
+}
+
+export interface EventResponse {
+  body: string | ArrayBuffer | undefined
+}
+
+export interface ErrorResponse extends EventResponse {
+  error: string | undefined;
+  code: number;
+}
+
+export interface ConnectionContext {
+  signature: string;
+  userId?: string;
+  hub?: string;
+  connectionId: string;
+  eventName: string;
+}
+
+export interface EventRequestBase {
+  context: ConnectionContext,
+}
+
+export interface ConnectRequest extends EventRequestBase {
+  claims: { [key: string]: string[] };
+  queries: { [key: string]: string[] };
+  subprotocols: string[];
+  clientCertificates: Certificate[];
+}
+
+export interface Certificate {
+  thumbprint: string;
+}
+
+export interface ConnectedRequest extends EventRequestBase {
+}
+
+export interface UserEventRequest extends EventRequestBase {
+  eventName: string;
+  data: string | ArrayBuffer;
+}
+
+export interface DisconnectedRequest extends EventRequestBase {
+  reason?: string;
 }
 
 export class DefaultEventHandler {
@@ -17,57 +70,48 @@ export class DefaultEventHandler {
     this.options = options;
   }
   
-  onMessage(r: UserEventRequest): ErrorResponse | UserEventResponse {
+  onMessage(r: UserEventRequest): ErrorResponse | EventResponse| undefined | Promise<EventResponse | ErrorResponse | undefined> {
     if (this.options?.onUserEvent === undefined) {
-      return {}
+      return undefined;
     }
 
     return this.options?.onUserEvent(r);
   }
 
-  onConnect(r: ConnectRequest): ConnectResponse | ErrorResponse | Promise<ConnectResponse> | Promise<ErrorResponse> {
+  onConnect(r: ConnectRequest): ConnectResponse | ErrorResponse | undefined | Promise<ConnectResponse | ErrorResponse | undefined> {
     if (this.options?.onConnect === undefined) {
-      return {}
+      return undefined;
     }
 
     return this.options?.onConnect(r);
   }
 
-  onConnected(r: ConnectedRequest): ConnectedResponse | ErrorResponse{
+  onConnected(r: ConnectedRequest): void {
     
     if (this.options?.onConnected === undefined) {
-      return {}
+      return;
     }
 
-    return this.options?.onConnected(r);
+    this.options?.onConnected(r);
   }
-  onDisconnected(r: DisconnectedRequest): DisconnectedResponse | ErrorResponse{
+  onDisconnected(r: DisconnectedRequest): void {
     
     if (this.options?.onDisconnected === undefined) {
-      return {}
+      return;
     }
 
-    return this.options?.onDisconnected(r);
+    this.options?.onDisconnected(r);
   }
-}
-
-export interface EventResponse {
-  body: string | Blob | undefined
-}
-
-export interface EventRequest extends Message {
 }
 
 export class ProtocolParser {
-  public readonly eventHandler?: DefaultEventHandler;
-  constructor(eventHandler?: DefaultEventHandler) {
-    this.eventHandler = eventHandler;
+  constructor(private hub: string, private eventHandler?: DefaultEventHandler) {
   }
   
-  public async processNodeHttpRequest(request: IncomingMessage): Promise<EventResponse| undefined>  {
+  public async processNodeHttpRequest(request: IncomingMessage): Promise<EventResponse | undefined>  {
     try {
-      var response = await this.convertHttpToEvent(request);
-      return this.getResponse(response);
+      var eventRequest = await this.convertHttpToEvent(request);
+      return this.getResponse(eventRequest);
     } catch (err){
       console.error(`Error processing request ${request}: ${err}`);
       return {
@@ -77,32 +121,70 @@ export class ProtocolParser {
     }
   }
 
-  public getResponse(request: EventRequest): EventResponse | undefined {
+  public async getResponse(request: Message): Promise<EventResponse| undefined>  {
     if (this.eventHandler === undefined) {
       return;
     }
 
     const receivedEvent = HTTP.toEvent(request);
-    var type = receivedEvent.type.toLowerCase();
+      console.log(receivedEvent);
+      var type = receivedEvent.type.toLowerCase();
     var context = this.GetContext(receivedEvent);
+    if (context.hub !== this.hub){
+      console.warn(`Incoming request is for hub '${this.hub}' while the incoming request is for hub '${context.hub}'`);
+      return;
+    }
     // TODO: valid request is a valid cloud event with WebPubSub extension
     if (type === "azure.webpubsub.sys.connect") {
-      var req = receivedEvent.data as ConnectRequest;
-      if (!req) {
+      var connectRequest = receivedEvent.data as ConnectRequest;
+      if (!connectRequest) {
         throw new Error("Data is expected");
       }
 
-      req.context = context;
-      var response = this.eventHandler.onConnect(req);
+      connectRequest.context = context;
+      var connectResponse = await this.eventHandler.onConnect(connectRequest);
       return {
-        body: JSON.stringify(response)
+        body: JSON.stringify(connectResponse)
       };
     } else if (type === "azure.webpubsub.sys.connected") {
+      var connectedRequest = receivedEvent.data as ConnectedRequest;
+      if (!connectedRequest) {
+        throw new Error("Data is expected");
+      }
+
+      connectedRequest.context = context;
+      this.eventHandler.onConnected(connectedRequest);
 
     } else if (type === "azure.webpubsub.sys.disconnected") {
+      var disconnectedRequest = receivedEvent.data as DisconnectedRequest;
+      if (!disconnectedRequest) {
+        throw new Error("Data is expected");
+      }
 
+      disconnectedRequest.context = context;
+      this.eventHandler.onDisconnected(disconnectedRequest);
     } else if (type.startsWith("azure.webpubsub.user")) {
+      console.log(receivedEvent);
+      var data : ArrayBuffer | string;
+      if (receivedEvent.data){
+        data = receivedEvent.data as string;
+      } else if (receivedEvent.data_base64){
+        data = decode(receivedEvent.data_base64);
+      } else{
+        throw new Error("empty data payload");
+      }
+      var userRequest : UserEventRequest = {
+        eventName: context.eventName,
+        context: context,
+        data: data
+      };
+      console.log(userRequest);
+      if (!userRequest) {
+        throw new Error("Data is expected");
+      }
 
+      userRequest.context = context;
+      return await this.eventHandler.onMessage(userRequest);
     }
     /* for subprotocol
     else if (type === "azure.webpubsub.sys.publish") {
@@ -127,18 +209,18 @@ export class ProtocolParser {
   private GetContext(ce: CloudEvent): ConnectionContext {
     var context = {
       signature: ce["signature"] as string,
-      userId: ce["userId"] as string,
+      userId: ce["userid"] as string,
       hub: ce["hub"] as string,
-      connectionId: ce["connectionId"] as string,
-      eventName: ce["eventName"] as string
+      connectionId: ce["connectionid"] as string,
+      eventName: ce["eventname"] as string
     }
 
     // TODO: validation
     return context;
   }
 
-  private async convertHttpToEvent(request: IncomingMessage) : Promise<EventRequest>{
-    const normalized: EventRequest = {
+  private async convertHttpToEvent(request: IncomingMessage) : Promise<Message>{
+    const normalized: Message = {
       headers: {},
       body: ''
     };
@@ -178,70 +260,4 @@ export class ProtocolParser {
       });
     });
   }
-}
-
-export interface ErrorResponse extends EventResponse {
-  error: string | undefined;
-  code: number;
-}
-
-export interface ConnectionContext {
-  signature: string;
-  userId?: string;
-  hub?: string;
-  connectionId: string;
-  eventName: string;
-}
-
-export interface EventMessageBase {
-  context: ConnectionContext,
-}
-
-export interface EventRequestBase extends EventMessageBase {
-}
-
-export interface EventResponseBase {
-
-}
-
-export interface ConnectRequest extends EventRequestBase {
-  claims: { [key: string]: string[] };
-  queries: { [key: string]: string[] };
-  subprotocols: string[];
-  clientCertificates: Certificate[];
-}
-
-export interface Certificate {
-  thumbprint: string;
-}
-
-interface ConnectResponse extends EventResponseBase {
-  groups?: string[];
-  roles?: string[];
-  userId?: string;
-  subprotocol?: string;
-  headers?: { [key: string]: string[] };
-}
-
-export interface ConnectedRequest extends EventRequestBase {
-}
-
-export interface ConnectedResponse extends EventResponseBase {
-
-}
-
-export interface UserEventRequest extends EventRequestBase {
-  eventName: string;
-}
-
-export interface UserEventResponse extends EventResponseBase {
-
-}
-
-export interface DisconnectedRequest extends EventRequestBase {
-
-}
-
-export interface DisconnectedResponse extends EventResponseBase {
-
 }
