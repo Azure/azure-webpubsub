@@ -1,3 +1,6 @@
+---
+group: specs
+---
 # Azure Web PubSub Service REST API
 ## Version: 2020-10-01
 

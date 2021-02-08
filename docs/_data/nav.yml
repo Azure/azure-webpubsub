@@ -5,6 +5,8 @@
     - title: Phase 2 Subprotocol
     - title: Phase 3 Event Handler Websocket
     - title: Phase 4 Server Subscribe
+    - title: Service to server CloudEvents
+    - title: Server to Service REST API
 - title: Getting started
   pages:
     - title: Introduction
