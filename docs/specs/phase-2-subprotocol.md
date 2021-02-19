@@ -41,20 +41,20 @@ Join a group:
 {
     "type": "join",
     "group": "group_name",
-    "ack_id" : 1 // optional
+    "ackId" : 1 // optional
 }
 ```
-`ack_id` is an incremental integer for this command message, it is also optional. When the "ack_id" is specified, the service sends a [ack response message](#ack_response) back to the client when the command is executed.
+`ackId` is an incremental integer for this command message, it is also optional. When the "ackId" is specified, the service sends a [ack response message](#ack_response) back to the client when the command is executed.
 
 Leave a group:
 ```json
 {
     "type": "leave",
     "group": "group_name",
-    "ack_id" : 1 // optional
+    "ackId" : 1 // optional
 }
 ```
-`ack_id` is an incremental integer for this command message, it is also optional. When the "ack_id" is specified, the service sends a [ack response message](#ack_response) back to the client when the command is executed.
+`ackId` is an incremental integer for this command message, it is also optional. When the "ackId" is specified, the service sends a [ack response message](#ack_response) back to the client when the command is executed.
 
 Publish message to a group:
 
@@ -63,7 +63,7 @@ Publish message to a group:
     "type": "publish",
     "group": "<group_name>",
     "data": {}, // or string or array
-    "ack_id" : 1 // optional
+    "ackId" : 1 // optional
 }
 ```
 
@@ -76,7 +76,7 @@ Custom events:
 }
 ```
 
-`ack_id` is an incremental integer for this command message, it is also optional. When the "ack_id" is specified, the service sends a [ack response message](#ack_response) back to the client when the command is executed.
+`ackId` is an incremental integer for this command message, it is also optional. When the "ackId" is specified, the service sends a [ack response message](#ack_response) back to the client when the command is executed.
 
 Custom event `<event_name>` will always be handled by the event handler registered. If no such event handler is registered, the connection will be declined. Such custom events can be helpful if you want messages to be dispatched to different servers having different event handlers.
 
@@ -85,11 +85,11 @@ These keywords start the message frame, they can be `text` format for text messa
 Service declines the client if the message does not match the described format.
 
 Messages received by the client can be several types: `ack`, `message`, and `system`: 
-1. Ack message, if the request contains `ack_id`, the service will return an ack response for this request. The client implementation should handle this ack mechanism, including waiting for the ack response for an `async` `await` operation, and having a timeout check when the ack response is not received during a certain period.
+1. Ack message, if the request contains `ackId`, the service will return an ack response for this request. The client implementation should handle this ack mechanism, including waiting for the ack response for an `async` `await` operation, and having a timeout check when the ack response is not received during a certain period.
     ```json
     {
         "type": "ack",
-        "ack_id": 1, // The ack id for the request to ack
+        "ackId": 1, // The ack id for the request to ack
         "code": 0, // 0 as "success", 1 as "error"
         "error": "<error_detail>"
     }
