@@ -72,7 +72,7 @@ Custom events:
 {
     "type": "event",
     "event": "<event_name>",
-    "data": {}, // or string or array
+    "data": {}, // data can be any type json supported, the service forward the value token to the upstream
 }
 ```
 
@@ -90,11 +90,11 @@ Messages received by the client can be several types: `ack`, `message`, and `sys
     {
         "type": "ack",
         "ackId": 1, // The ack id for the request to ack
-        "code": 0, // 0 as "success", 1 as "error"
+        "success": false, // true or false
         "error": "<error_detail>"
     }
     ```
-    The client implementation should always first check if the `code` is `0` or `1`. Only when `code` is `1` should the client reads from `error`.
+    The client implementation should always first check if the `success` is `true` or `false`. Only when `success` is `false` should the client reads from `error`.
 
 1. When the message is from a group `publish`
     ```json
