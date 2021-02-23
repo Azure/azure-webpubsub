@@ -62,7 +62,7 @@ Publish message to a group:
 {
     "type": "publish",
     "group": "<group_name>",
-    "data": {}, // or string or array
+    "data": {}, // for text format, data can be any type json supproted. for binary format data, it is transformed to the base64 string
     "ackId" : 1 // optional
 }
 ```
@@ -102,7 +102,7 @@ Messages received by the client can be several types: `ack`, `message`, and `sys
         "type": "message",
         "from": "group",
         "group": "<group_name>",
-        "data" : {} // or string or array
+        "data" : {} // for text format, data can be any type json supproted. for binary format data, it is transformed to the base64 string
     }
     ```
 
@@ -111,7 +111,7 @@ Messages received by the client can be several types: `ack`, `message`, and `sys
     {
         "type": "message",
         "from": "server",
-        "data": {} // or string or array
+        "data": {} // for text format, data can be any type json supproted. for binary format data, it is transformed to the base64 string
     }
     ```
 
