@@ -81,7 +81,6 @@ ce-type: azure.webpubsub.sys.connect
 ce-source: /hubs/{hub}/client/{connectionId}
 ce-id: {eventId}
 ce-time: 2021-01-01T00:00:00Z
-ce-datacontenttype: application/json
 ce-signature: sha256={connection-id-hash-primary},sha256={connection-id-hash-secondary}
 ce-userId: {userId}
 ce-connectionId: {connectionId}
@@ -216,7 +215,6 @@ ce-type: azure.webpubsub.sys.disconnected
 ce-source: /hubs/{hub}/client/{connectionId}
 ce-id: {eventId}
 ce-time: 2021-01-01T00:00:00Z
-ce-datacontenttype: application/json
 ce-signature: sha256={connection-id-hash-primary},sha256={connection-id-hash-secondary}
 ce-userId: {userId}
 ce-connectionId: {connectionId}
@@ -270,7 +268,6 @@ ce-type: azure.webpubsub.user.message
 ce-source: /hubs/{hub}/client/{connectionId}
 ce-id: {eventId}
 ce-time: 2021-01-01T00:00:00Z
-ce-datacontenttype: application/json
 ce-signature: sha256={connection-id-hash-primary},sha256={connection-id-hash-secondary}
 ce-userId: {userId}
 ce-connectionId: {connectionId}
@@ -322,7 +319,6 @@ ce-type: azure.webpubsub.user.{customEventName}
 ce-source: /hubs/{hub}/client/{connectionId}
 ce-id: {eventId}
 ce-time: 2021-01-01T00:00:00Z
-ce-datacontenttype: application/json
 ce-signature: sha256={connection-id-hash-primary},sha256={connection-id-hash-secondary}
 ce-userId: {userId}
 ce-connectionId: {connectionId}
@@ -372,7 +368,6 @@ ce-type: azure.webpubsub.sys.publish
 ce-source: /hubs/{hub}/client/{connectionId}
 ce-id: {eventId}
 ce-time: 2021-01-01T00:00:00Z
-ce-datacontenttype: application/json
 ce-signature: sha256={connection-id-hash-primary},sha256={connection-id-hash-secondary}
 ce-userId: {userId}
 ce-connectionId: {connectionId}
