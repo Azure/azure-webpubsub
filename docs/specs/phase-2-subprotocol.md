@@ -36,49 +36,234 @@ As described in the earlier section, a simple WebSocket connection always trigge
 
 protocol: `json.webpubsub.azure.v1`
 
-Join a group:
+#### Join a group:
 ```json
 {
     "type": "join",
-    "group": "group_name",
+    "group": "<group_name>",
     "ackId" : 1 // optional
 }
 ```
-`ackId` is an incremental integer for this command message, it is also optional. When the "ackId" is specified, the service sends a [ack response message](#ack_response) back to the client when the command is executed.
+`ackId` is optional, it is an incremental integer for this command message. When the "ackId" is specified, the service sends a [ack response message](#ack_response) back to the client when the command is executed.
 
-Leave a group:
+#### Leave a group:
 ```json
 {
     "type": "leave",
-    "group": "group_name",
+    "group": "<group_name>",
     "ackId" : 1 // optional
 }
 ```
-`ackId` is an incremental integer for this command message, it is also optional. When the "ackId" is specified, the service sends a [ack response message](#ack_response) back to the client when the command is executed.
+`ackId` is optional, it is an incremental integer for this command message. When the "ackId" is specified, the service sends a [ack response message](#ack_response) back to the client when the command is executed.
 
-Publish message to a group:
+#### Publish message to a group:
 
 ```json
 {
     "type": "publish",
     "group": "<group_name>",
-    "data": {}, // for text format, data can be any type json supproted. for binary format data, it is transformed to the base64 string
-    "ackId" : 1 // optional
+    "ackId" : 1, // optional
+    "dataType" : "text|binary|json",
+    "data": {}, // data can be string or valid json token depending on the dataType 
+}
+```
+`ackId` is optional, it is an incremental integer for this command message. When the "ackId" is specified, the service sends a [ack response message](#ack_response) back to the client when the command is executed.
+
+`dataType` can be one of `text`, `binary` or `json`:
+* `text`: data should be in string format, and the string data will be published; If `dataType` is not specified and data is string, it defaults to `text`.
+* `binary`: data should be in base64 format, and the binary data will be published;
+* `json`: data can be any type json supports and will be published as the what it is; If `dataType` is not specified and data is not string, it defaults to `json`.
+
+##### Case 1: publish text data:
+```json
+{
+    "type": "publish",
+    "group": "<group_name>",
+    "dataType" : "text",
+    "data": "text data" 
 }
 ```
 
-Custom events:
+* What subprotocol client in this group `<group_name>` receives:
+```json
+{
+    "type": "message",
+    "from": "group",
+    "group": "<group_name>",
+    "dataType" : "text",
+    "data" : "text data"
+}
+```
+* What the raw client in this group `<group_name>` receives is string data `text data`.
+
+##### Case 2: publish json data:
+```json
+{
+    "type": "publish",
+    "group": "<group_name>",
+    "dataType" : "json",
+    "data": {
+        "hello": "world"
+    }
+}
+```
+
+* What subprotocol client in this group `<group_name>` receives:
+```json
+{
+    "type": "message",
+    "from": "group",
+    "group": "<group_name>",
+    "dataType" : "json",
+    "data" : {
+        "hello": "world"
+    }
+}
+```
+* What the raw client in this group `<group_name>` receives is serialized string data `{"hello":"world"}`.
+
+
+##### Case 3: publish binary data:
+```json
+{
+    "type": "publish",
+    "group": "<group_name>",
+    "dataType" : "binary",
+    "data": "<base64_binary>"
+}
+```
+
+* What subprotocol client in this group `<group_name>` receives:
+```json
+{
+    "type": "message",
+    "from": "group",
+    "group": "<group_name>",
+    "dataType" : "binary",
+    "data" : "<base64_binary>", 
+}
+```
+* What the raw client in this group `<group_name>` receives is the **binary** data in binary frame.
+
+#### Custom events:
 ```json
 {
     "type": "event",
     "event": "<event_name>",
-    "data": {}, // data can be any type json supported, the service forward the value token to the upstream
+    "ackId" : 1, // optional
+    "dataType" : "text|binary|json",
+    "data": {}, // data can be string or valid json token depending on the dataType 
 }
 ```
 
 `ackId` is an incremental integer for this command message, it is also optional. When the "ackId" is specified, the service sends a [ack response message](#ack_response) back to the client when the command is executed.
 
 Custom event `<event_name>` will always be handled by the event handler registered. If no such event handler is registered, the connection will be declined. Such custom events can be helpful if you want messages to be dispatched to different servers having different event handlers.
+
+`dataType` can be one of `text`, `binary` or `json`:
+* `text`: data should be in string format, and the string data will be published; If `dataType` is not specified and data is string, it defaults to `text`.
+* `binary`: data should be in base64 format, and the binary data will be published;
+* `json`: data can be any type json supports and will be published as the what it is; If `dataType` is not specified and data is not string, it defaults to `json`.
+
+##### Case 1: send event with text data:
+```json
+{
+    "type": "event",
+    "event": "<event_name>",
+    "dataType" : "text",
+    "data": "text data", 
+}
+```
+
+What the upstream event handler receives like below, please note that the `Content-Type` for the CloudEvents HTTP request is `text/plain` for `dataType`=`text`
+
+```HTTP
+POST /upstream HTTP/1.1
+Host: xxx.webpubsub.azure.com
+Content-Type: text/plain
+Content-Length: nnnn
+ce-specversion: 1.0
+ce-type: azure.webpubsub.user.<event_name>
+ce-source: /client/{connectionId}
+ce-id: {eventId}
+ce-time: 2021-01-01T00:00:00Z
+ce-signature: sha256={connection-id-hash-primary},sha256={connection-id-hash-secondary}
+ce-userId: {userId}
+ce-connectionId: {connectionId}
+ce-hub: _default
+ce-eventName: <event_name>
+
+text data
+
+```
+
+##### Case 2: send event with json data:
+```json
+{
+    "type": "event",
+    "event": "<event_name>",
+    "dataType" : "json",
+    "data": {
+        "hello": "world"
+    }, 
+}
+```
+
+What the upstream event handler receives like below, please note that the `Content-Type` for the CloudEvents HTTP request is `application/json` for `dataType`=`json`
+
+```HTTP
+POST /upstream HTTP/1.1
+Host: xxx.webpubsub.azure.com
+Content-Type: application/json
+Content-Length: nnnn
+ce-specversion: 1.0
+ce-type: azure.webpubsub.user.<event_name>
+ce-source: /client/{connectionId}
+ce-id: {eventId}
+ce-time: 2021-01-01T00:00:00Z
+ce-signature: sha256={connection-id-hash-primary},sha256={connection-id-hash-secondary}
+ce-userId: {userId}
+ce-connectionId: {connectionId}
+ce-hub: _default
+ce-eventName: <event_name>
+
+{
+    "hello": "world"
+}
+
+```
+
+##### Case 3: send event with binary data:
+```json
+{
+    "type": "event",
+    "event": "<event_name>",
+    "dataType" : "binary",
+    "data": "base64_binary", 
+}
+```
+
+What the upstream event handler receives like below, please note that the `Content-Type` for the CloudEvents HTTP request is `application/octet-stream` for `dataType`=`binary`
+
+```HTTP
+POST /upstream HTTP/1.1
+Host: xxx.webpubsub.azure.com
+Content-Type: application/octet-stream
+Content-Length: nnnn
+ce-specversion: 1.0
+ce-type: azure.webpubsub.user.<event_name>
+ce-source: /client/{connectionId}
+ce-id: {eventId}
+ce-time: 2021-01-01T00:00:00Z
+ce-signature: sha256={connection-id-hash-primary},sha256={connection-id-hash-secondary}
+ce-userId: {userId}
+ce-connectionId: {connectionId}
+ce-hub: _default
+ce-eventName: <event_name>
+
+binary
+
+```
 
 These keywords start the message frame, they can be `text` format for text message frames or UTF8 encoded binaries for binary message frames.
 
