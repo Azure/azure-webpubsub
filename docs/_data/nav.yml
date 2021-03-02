@@ -4,8 +4,8 @@
     - title: 2. Client Protocols In Detail
     - title: 3. Server Protocols In Detail
     - title: 4. Azure Function Integration
-    - title: [Protocol]CloudEvents
-    - title: [Protocol]REST API
+    - title: Protocol CloudEvents
+    - title: Protocol REST API
 
 - title: Getting started
   pages:
