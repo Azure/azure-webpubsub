@@ -2,6 +2,8 @@
 layout: docs
 title: Azure Web PubSub Service Design Spec [Public Preview]
 group: specs
+redirect_from:
+  - "/specs/"
 toc: true
 ---
 
