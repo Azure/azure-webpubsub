@@ -706,6 +706,231 @@
           }
         }
       }
+    },
+    "/api/hubs/{hub}/permissions/{permission}/connections/{connectionId}": {
+      "put": {
+        "tags": [
+          "webpubsub"
+        ],
+        "summary": "Grant permission to publish to joined group",
+        "operationId": "WebPubSubApi_GrantPublishToJoinedGroupPermission",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "hub",
+            "description": "",
+            "required": true,
+            "type": "string"
+          },
+          {
+            "in": "path",
+            "name": "permission",
+            "description": "The permission",
+            "required": true,
+            "type": "string",
+            "enum": [
+              "publish",
+              "join",
+              "publishToJoined"
+            ]
+          },
+          {
+            "in": "path",
+            "name": "connectionId",
+            "description": "Target connection Id",
+            "required": true,
+            "type": "string"
+          },
+          {
+            "in": "query",
+            "name": "api-version",
+            "type": "string",
+            "default": "2020-10-01"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          },
+          "default": {
+            "description": "Error response",
+            "x-ms-error-response": true
+          }
+        }
+      }
+    },
+    "/api/hubs/{hub}/permissions/{permission}/connections/{connectionId}/groups/{group}": {
+      "put": {
+        "tags": [
+          "webpubsub"
+        ],
+        "summary": "Grant permission to join or publish to the target group",
+        "operationId": "WebPubSubApi_GrantJoinSpecificGroupPermission",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "hub",
+            "description": "",
+            "required": true,
+            "type": "string"
+          },
+          {
+            "in": "path",
+            "name": "permission",
+            "description": "The permission",
+            "required": true,
+            "type": "string",
+            "enum": [
+              "publish",
+              "join"
+            ]
+          },
+          {
+            "in": "path",
+            "name": "connectionId",
+            "description": "Target connection Id",
+            "required": true,
+            "type": "string"
+          },
+          {
+            "in": "path",
+            "name": "group",
+            "description": "",
+            "required": true,
+            "type": "string"
+          },
+          {
+            "in": "query",
+            "name": "api-version",
+            "type": "string",
+            "default": "2020-10-01"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          },
+          "default": {
+            "description": "Error response",
+            "x-ms-error-response": true
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "webpubsub"
+        ],
+        "summary": "Revoke permission to publish to or join a group",
+        "operationId": "WebPubSubApi_RevokePublishToSpecificGroupPermission",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "hub",
+            "description": "",
+            "required": true,
+            "type": "string"
+          },
+          {
+            "in": "path",
+            "name": "permission",
+            "description": "The permission",
+            "required": true,
+            "type": "string",
+            "enum": [
+              "publish",
+              "join"
+            ]
+          },
+          {
+            "in": "path",
+            "name": "connectionId",
+            "description": "Target connection Id",
+            "required": true,
+            "type": "string"
+          },
+          {
+            "in": "path",
+            "name": "group",
+            "description": "",
+            "required": true,
+            "type": "string"
+          },
+          {
+            "in": "query",
+            "name": "api-version",
+            "type": "string",
+            "default": "2020-10-01"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          },
+          "default": {
+            "description": "Error response",
+            "x-ms-error-response": true
+          }
+        }
+      },
+      "head": {
+        "tags": [
+          "webpubsub"
+        ],
+        "summary": "Check if a connection can join or publish to the target group",
+        "operationId": "WebPubSubApi_CheckGroupPermission",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "hub",
+            "description": "",
+            "required": true,
+            "type": "string"
+          },
+          {
+            "in": "path",
+            "name": "permission",
+            "description": "The permission",
+            "required": true,
+            "type": "string",
+            "enum": [
+              "publish",
+              "join"
+            ]
+          },
+          {
+            "in": "path",
+            "name": "connectionId",
+            "description": "Target connection Id",
+            "required": true,
+            "type": "string"
+          },
+          {
+            "in": "path",
+            "name": "group",
+            "description": "",
+            "required": true,
+            "type": "string"
+          },
+          {
+            "in": "query",
+            "name": "api-version",
+            "type": "string",
+            "default": "2020-10-01"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          },
+          "404": {
+            "description": "Not Found"
+          },
+          "default": {
+            "description": "Error response",
+            "x-ms-error-response": true
+          }
+        }
+      }
     }
   }
 }
