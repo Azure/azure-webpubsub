@@ -3,34 +3,45 @@ layout: docs
 toc: true
 group: specs
 ---
-
 # Azure Web PubSub Service REST API
 ## Version: 2020-10-01
 
 ### Available APIs
 
-| API | Path |
-| ---- | ---------- | 
-| [Broadcast content inside request body to all the connected client connections](#post-broadcast-content-inside-request-body-to-all-the-connected-client-connections) | `POST /api/:send` |
-| [Send content inside request body to the specific user.](#post-send-content-inside-request-body-to-the-specific-user) | `POST /api/users/{id}/:send` |
-| [Send content inside request body to the specific connection.](#post-send-content-inside-request-body-to-the-specific-connection) | `POST /api/connections/{connectionId}/:send` |
-| [Send content inside request body to a group of connections.](#post-send-content-inside-request-body-to-a-group-of-connections) | `POST /api/groups/{group}/:send` |
-| [Close the client connection](#delete-close-the-client-connection) | `DELETE /api/connections/{connectionId}` |
-| [Add a connection to the target group.](#put-add-a-connection-to-the-target-group) | `PUT /api/groups/{group}/connections/{connectionId}` |
-| [Remove a connection from the target group.](#delete-remove-a-connection-from-the-target-group) | `DELETE /api/groups/{group}/connections/{connectionId}` |
-| [Add a user to the target group.](#put-add-a-user-to-the-target-group) | `PUT /api/users/{user}/groups/{group}` |
-| [Remove a user from the target group.](#delete-remove-a-user-from-the-target-group) | `DELETE /api/users/{user}/groups/{group}` |
-| [Remove a user from all groups.](#delete-remove-a-user-from-all-groups) | `DELETE /api/users/{user}/groups` |
+| API | Path | Method |
+| ---- | ---------- | ----------- |
+| Get service health status. | /api/health | HEAD |
+| Broadcast content inside request body to all the connected client connections | /api/hubs/{hub}/:send | POST |
+| Check if the connection with the given connectionId exists | /api/hubs/{hub}/connections/{connectionId} | HEAD |
+| Close the client connection | /api/hubs/{hub}/connections/{connectionId} | DELETE |
+| Send content inside request body to the specific connection. | /api/hubs/{hub}/connections/{connectionId}/:send | POST |
+| Check if there are any client connections inside the given group | /api/hubs/{hub}/groups/{group} | HEAD |
+| Send content inside request body to a group of connections. | /api/hubs/{hub}/groups/{group}/:send | POST |
+| Add a connection to the target group. | /api/hubs/{hub}/groups/{group}/connections/{connectionId} | PUT |
+| Remove a connection from the target group. | /api/hubs/{hub}/groups/{group}/connections/{connectionId} | DELETE |
+| Check if there are any client connections connected for the given user | /api/hubs/{hub}/users/{user} | HEAD |
+| Send content inside request body to the specific user. | /api/hubs/{hub}/users/{id}/:send | POST |
+| Check whether a user exists in the target group. | /api/hubs/{hub}/users/{user}/groups/{group} | HEAD |
+| Add a user to the target group. | /api/hubs/{hub}/users/{user}/groups/{group} | PUT |
+| Remove a user from the target group. | /api/hubs/{hub}/users/{user}/groups/{group} | DELETE |
+| Remove a user from all groups. | /api/hubs/{hub}/users/{user}/groups | DELETE |
+| Grant permission to join or publish to the target group | /api/hubs/{hub}/permissions/{permission}/connections/{connectionId} | PUT |
+| Revoke permission to publish to or join a group | /api/hubs/{hub}/permissions/{permission}/connections/{connectionId} | DELETE |
+| Check if a connection can join or publish to the target group | /api/hubs/{hub}/permissions/{permission}/connections/{connectionId} | HEAD |
+### /api/health
 
-<a name="post-broadcast-content-inside-request-body-to-all-the-connected-client-connections"></a>
-### Broadcast content inside request body to all the connected client connections
+### /api/hubs/{hub}/:send
 
-`POST /api/:send`
+#### POST
+##### Summary:
+
+Broadcast content inside request body to all the connected client connections
+
 ##### Parameters
 
 | Name | Located in | Description | Required | Schema |
 | ---- | ---------- | ----------- | -------- | ---- |
-| hub | query | Target hub name, which should start with alphabetic characters and only contain alpha-numeric characters or underscore. When it is not set, it uses the default hub | No | string |
+| hub | path | Target hub name, which should start with alphabetic characters and only contain alpha-numeric characters or underscore. | Yes | string |
 | excluded | query | Excluded connection Ids | No | [ string ] |
 | api-version | query |  | No | string |
 | payloadMessage | body |  | Yes | binary |
@@ -42,77 +53,19 @@ group: specs
 | 202 | Success |
 | default | Error response |
 
-<a name="post-send-content-inside-request-body-to-the-specific-user"></a>
-### Send content inside request body to the specific user.
+### /api/hubs/{hub}/connections/{connectionId}
 
-`POST /api/users/{id}/:send`
+#### DELETE
+##### Summary:
+
+Close the client connection
+
 ##### Parameters
 
 | Name | Located in | Description | Required | Schema |
 | ---- | ---------- | ----------- | -------- | ---- |
-| id | path | The user Id. | Yes | string |
-| hub | query | Target hub name, which should start with alphabetic characters and only contain alpha-numeric characters or underscore. When it is not set, it uses the default hub | No | string |
-| api-version | query |  | No | string |
-| payloadMessage | body |  | Yes | binary |
-
-##### Responses
-
-| Code | Description |
-| ---- | ----------- |
-| 202 | Success |
-| default | Error response |
-
-<a name="post-send-content-inside-request-body-to-the-specific-connection"></a>
-### Send content inside request body to the specific connection.
-
-`POST /api/connections/{connectionId}/:send`
-##### Parameters
-
-| Name | Located in | Description | Required | Schema |
-| ---- | ---------- | ----------- | -------- | ---- |
-| connectionId | path | The connection Id. | Yes | string |
-| hub | query | Target hub name, which should start with alphabetic characters and only contain alpha-numeric characters or underscore. When it is not set, it uses the default hub | No | string |
-| api-version | query |  | No | string |
-| payloadMessage | body |  | Yes | binary |
-
-##### Responses
-
-| Code | Description |
-| ---- | ----------- |
-| 202 | Success |
-| default | Error response |
-
-<a name="post-send-content-inside-request-body-to-a-group-of-connections"></a>
-### Send content inside request body to a group of connections.
-
-`POST /api/groups/{group}/:send`
-##### Parameters
-
-| Name | Located in | Description | Required | Schema |
-| ---- | ---------- | ----------- | -------- | ---- |
-| group | path | Target group name, which length should be greater than 0 and less than 1025. | Yes | string |
-| hub | query | Target hub name, which should start with alphabetic characters and only contain alpha-numeric characters or underscore. When it is not set, it uses the default hub | No | string |
-| excluded | query | Excluded connection Ids | No | [ string ] |
-| api-version | query |  | No | string |
-| payloadMessage | body |  | Yes | binary |
-
-##### Responses
-
-| Code | Description |
-| ---- | ----------- |
-| 202 | Success |
-| default | Error response |
-
-<a name="delete-close-the-client-connection"></a>
-### Close the client connection
-
-`DELETE /api/connections/{connectionId}`
-##### Parameters
-
-| Name | Located in | Description | Required | Schema |
-| ---- | ---------- | ----------- | -------- | ---- |
+| hub | path | Target hub name, which should start with alphabetic characters and only contain alpha-numeric characters or underscore. | Yes | string |
 | connectionId | path | Target connection Id | Yes | string |
-| hub | query | Target hub name, which should start with alphabetic characters and only contain alpha-numeric characters or underscore. When it is not set, it uses the default hub | No | string |
 | reason | query | The reason closing the client connection | No | string |
 | api-version | query |  | No | string |
 
@@ -123,63 +76,21 @@ group: specs
 | 200 | Success |
 | default | Error response |
 
+### /api/hubs/{hub}/connections/{connectionId}/:send
 
+#### POST
+##### Summary:
 
-<a name="put-add-a-connection-to-the-target-group"></a>
-### Add a connection to the target group.
+Send content inside request body to the specific connection.
 
-`PUT /api/groups/{group}/connections/{connectionId}`
 ##### Parameters
 
 | Name | Located in | Description | Required | Schema |
 | ---- | ---------- | ----------- | -------- | ---- |
-| group | path | Target group name, which length should be greater than 0 and less than 1025. | Yes | string |
-| connectionId | path | Target connection Id | Yes | string |
-| hub | query | Target hub name, which should start with alphabetic characters and only contain alpha-numeric characters or underscore. When it is not set, it uses the default hub | No | string |
+| hub | path | Target hub name, which should start with alphabetic characters and only contain alpha-numeric characters or underscore. | Yes | string |
+| connectionId | path | The connection Id. | Yes | string |
 | api-version | query |  | No | string |
-
-##### Responses
-
-| Code | Description |
-| ---- | ----------- |
-| 200 | Success |
-| 404 | Not Found |
-| default | Error response |
-
-<a name="delete-remove-a-connection-from-the-target-group"></a>
-### Remove a connection from the target group.
-
-`DELETE /api/groups/{group}/connections/{connectionId}`
-##### Parameters
-
-| Name | Located in | Description | Required | Schema |
-| ---- | ---------- | ----------- | -------- | ---- |
-| group | path | Target group name, which length should be greater than 0 and less than 1025. | Yes | string |
-| connectionId | path | Target connection Id | Yes | string |
-| hub | query | Target hub name, which should start with alphabetic characters and only contain alpha-numeric characters or underscore. When it is not set, it uses the default hub | No | string |
-| api-version | query |  | No | string |
-
-##### Responses
-
-| Code | Description |
-| ---- | ----------- |
-| 200 | Success |
-| 404 | Not Found |
-| default | Error response |
-
-<a name="put-add-a-user-to-the-target-group"></a>
-### Add a user to the target group.
-
-`PUT /api/users/{user}/groups/{group}`
-##### Parameters
-
-| Name | Located in | Description | Required | Schema |
-| ---- | ---------- | ----------- | -------- | ---- |
-| group | path | Target group name, which length should be greater than 0 and less than 1025. | Yes | string |
-| user | path | Target user Id | Yes | string |
-| hub | query | Target hub name, which should start with alphabetic characters and only contain alpha-numeric characters or underscore. When it is not set, it uses the default hub | No | string |
-| ttl | query | Specifies the seconds that the user exists in the group. If not set, the user lives in the group forever. | No | integer |
-| api-version | query |  | No | string |
+| payloadMessage | body |  | Yes | binary |
 
 ##### Responses
 
@@ -188,17 +99,117 @@ group: specs
 | 202 | Success |
 | default | Error response |
 
-<a name="delete-remove-a-user-from-the-target-group"></a>
-### Remove a user from the target group.
+### /api/hubs/{hub}/groups/{group}
 
-`DELETE /api/users/{user}/groups/{group}`
+### /api/hubs/{hub}/groups/{group}/:send
+
+#### POST
+##### Summary:
+
+Send content inside request body to a group of connections.
+
 ##### Parameters
 
 | Name | Located in | Description | Required | Schema |
 | ---- | ---------- | ----------- | -------- | ---- |
+| hub | path | Target hub name, which should start with alphabetic characters and only contain alpha-numeric characters or underscore. | Yes | string |
+| group | path | Target group name, which length should be greater than 0 and less than 1025. | Yes | string |
+| excluded | query | Excluded connection Ids | No | [ string ] |
+| api-version | query |  | No | string |
+| payloadMessage | body |  | Yes | binary |
+
+##### Responses
+
+| Code | Description |
+| ---- | ----------- |
+| 202 | Success |
+| default | Error response |
+
+### /api/hubs/{hub}/groups/{group}/connections/{connectionId}
+
+#### PUT
+##### Summary:
+
+Add a connection to the target group.
+
+##### Parameters
+
+| Name | Located in | Description | Required | Schema |
+| ---- | ---------- | ----------- | -------- | ---- |
+| hub | path | Target hub name, which should start with alphabetic characters and only contain alpha-numeric characters or underscore. | Yes | string |
+| group | path | Target group name, which length should be greater than 0 and less than 1025. | Yes | string |
+| connectionId | path | Target connection Id | Yes | string |
+| api-version | query |  | No | string |
+
+##### Responses
+
+| Code | Description |
+| ---- | ----------- |
+| 200 | Success |
+| 404 | Not Found |
+| default | Error response |
+
+#### DELETE
+##### Summary:
+
+Remove a connection from the target group.
+
+##### Parameters
+
+| Name | Located in | Description | Required | Schema |
+| ---- | ---------- | ----------- | -------- | ---- |
+| hub | path | Target hub name, which should start with alphabetic characters and only contain alpha-numeric characters or underscore. | Yes | string |
+| group | path | Target group name, which length should be greater than 0 and less than 1025. | Yes | string |
+| connectionId | path | Target connection Id | Yes | string |
+| api-version | query |  | No | string |
+
+##### Responses
+
+| Code | Description |
+| ---- | ----------- |
+| 200 | Success |
+| 404 | Not Found |
+| default | Error response |
+
+### /api/hubs/{hub}/users/{user}
+
+### /api/hubs/{hub}/users/{id}/:send
+
+#### POST
+##### Summary:
+
+Send content inside request body to the specific user.
+
+##### Parameters
+
+| Name | Located in | Description | Required | Schema |
+| ---- | ---------- | ----------- | -------- | ---- |
+| hub | path | Target hub name, which should start with alphabetic characters and only contain alpha-numeric characters or underscore. | Yes | string |
+| id | path | The user Id. | Yes | string |
+| api-version | query |  | No | string |
+| payloadMessage | body |  | Yes | binary |
+
+##### Responses
+
+| Code | Description |
+| ---- | ----------- |
+| 202 | Success |
+| default | Error response |
+
+### /api/hubs/{hub}/users/{user}/groups/{group}
+
+#### PUT
+##### Summary:
+
+Add a user to the target group.
+
+##### Parameters
+
+| Name | Located in | Description | Required | Schema |
+| ---- | ---------- | ----------- | -------- | ---- |
+| hub | path | Target hub name, which should start with alphabetic characters and only contain alpha-numeric characters or underscore. | Yes | string |
 | group | path | Target group name, which length should be greater than 0 and less than 1025. | Yes | string |
 | user | path | Target user Id | Yes | string |
-| hub | query | Target hub name, which should start with alphabetic characters and only contain alpha-numeric characters or underscore. When it is not set, it uses the default hub | No | string |
 | api-version | query |  | No | string |
 
 ##### Responses
@@ -208,16 +219,40 @@ group: specs
 | 200 | Success |
 | default | Error response |
 
-<a name="delete-remove-a-user-from-all-groups"></a>
-### Remove a user from all groups.
+#### DELETE
+##### Summary:
 
-`DELETE /api/users/{user}/groups`
+Remove a user from the target group.
+
 ##### Parameters
 
 | Name | Located in | Description | Required | Schema |
 | ---- | ---------- | ----------- | -------- | ---- |
+| hub | path | Target hub name, which should start with alphabetic characters and only contain alpha-numeric characters or underscore. | Yes | string |
+| group | path | Target group name, which length should be greater than 0 and less than 1025. | Yes | string |
 | user | path | Target user Id | Yes | string |
-| hub | query | Target hub name, which should start with alphabetic characters and only contain alpha-numeric characters or underscore. When it is not set, it uses the default hub | No | string |
+| api-version | query |  | No | string |
+
+##### Responses
+
+| Code | Description |
+| ---- | ----------- |
+| 200 | Success |
+| default | Error response |
+
+### /api/hubs/{hub}/users/{user}/groups
+
+#### DELETE
+##### Summary:
+
+Remove a user from all groups.
+
+##### Parameters
+
+| Name | Located in | Description | Required | Schema |
+| ---- | ---------- | ----------- | -------- | ---- |
+| hub | path | Target hub name, which should start with alphabetic characters and only contain alpha-numeric characters or underscore. | Yes | string |
+| user | path | Target user Id | Yes | string |
 | api-version | query |  | No | string |
 
 ##### Responses
@@ -225,4 +260,50 @@ group: specs
 | Code | Description |
 | ---- | ----------- |
 | 200 | The user is deleted |
+| default | Error response |
+
+### /api/hubs/{hub}/permissions/{permission}/connections/{connectionId}
+
+#### PUT
+##### Summary:
+
+Grant permission to join or publish to the target group
+
+##### Parameters
+
+| Name | Located in | Description | Required | Schema |
+| ---- | ---------- | ----------- | -------- | ---- |
+| hub | path | Target hub name, which should start with alphabetic characters and only contain alpha-numeric characters or underscore. | Yes | string |
+| permission | path | The permission | Yes | string |
+| connectionId | path | Target connection Id | Yes | string |
+| group | query | Optional. If not set, grant the permission to all groups. If set, grant the permission to the specific group. | No | string |
+| api-version | query |  | No | string |
+
+##### Responses
+
+| Code | Description |
+| ---- | ----------- |
+| 200 | Success |
+| default | Error response |
+
+#### DELETE
+##### Summary:
+
+Revoke permission to publish to or join a group
+
+##### Parameters
+
+| Name | Located in | Description | Required | Schema |
+| ---- | ---------- | ----------- | -------- | ---- |
+| hub | path | Target hub name, which should start with alphabetic characters and only contain alpha-numeric characters or underscore. | Yes | string |
+| permission | path | The permission | Yes | string |
+| connectionId | path | Target connection Id | Yes | string |
+| group | query | Optional. If not set, revoke the permission for all groups. If set, revoke the permission for the specific group. | No | string |
+| api-version | query |  | No | string |
+
+##### Responses
+
+| Code | Description |
+| ---- | ----------- |
+| 200 | Success |
 | default | Error response |
