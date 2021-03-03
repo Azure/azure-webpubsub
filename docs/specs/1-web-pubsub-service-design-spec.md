@@ -219,7 +219,6 @@ As you may have noticed when we describe the PubSub WebSocket clients, that a cl
 | Not specified | The client can send events.
 | `webpubsub.group.join` | The client can join/leave any group
 | `webpubsub.group.publish` | The client can publish messages to any group
-| `webpubsub.group.joined.publish` | The client can publish messages to groups it already **joined in**.
 | `webpubsub.group.join.<group>` | The client can join/leave the groups that the group name is `<group>`.
 | `webpubsub.group.publish.<group>` | The client can publish messages to the groups that the group name is `<group>`.
 

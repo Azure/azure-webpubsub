@@ -3,7 +3,6 @@ layout: docs
 toc: true
 group: specs
 ---
-
 # Azure Web PubSub Service REST API
 ## Version: 2020-10-01
 
@@ -14,22 +13,21 @@ group: specs
 | Get service health status. | /api/health | HEAD |
 | Broadcast content inside request body to all the connected client connections | /api/hubs/{hub}/:send | POST |
 | Check if the connection with the given connectionId exists | /api/hubs/{hub}/connections/{connectionId} | HEAD |
-| Check if the connection with the given connectionId exists | /api/hubs/{hub}/connections/{connectionId} | HEAD | Close the client connection | /api/hubs/{hub}/connections/{connectionId} | DELETE |
+| Close the client connection | /api/hubs/{hub}/connections/{connectionId} | DELETE |
 | Send content inside request body to the specific connection. | /api/hubs/{hub}/connections/{connectionId}/:send | POST |
 | Check if there are any client connections inside the given group | /api/hubs/{hub}/groups/{group} | HEAD |
 | Send content inside request body to a group of connections. | /api/hubs/{hub}/groups/{group}/:send | POST |
 | Add a connection to the target group. | /api/hubs/{hub}/groups/{group}/connections/{connectionId} | PUT |
-| Add a connection to the target group. | /api/hubs/{hub}/groups/{group}/connections/{connectionId} | PUT | Remove a connection from the target group. | /api/hubs/{hub}/groups/{group}/connections/{connectionId} | DELETE |
+| Remove a connection from the target group. | /api/hubs/{hub}/groups/{group}/connections/{connectionId} | DELETE |
 | Check if there are any client connections connected for the given user | /api/hubs/{hub}/users/{user} | HEAD |
 | Send content inside request body to the specific user. | /api/hubs/{hub}/users/{id}/:send | POST |
 | Check whether a user exists in the target group. | /api/hubs/{hub}/users/{user}/groups/{group} | HEAD |
-| Check whether a user exists in the target group. | /api/hubs/{hub}/users/{user}/groups/{group} | HEAD | Add a user to the target group. | /api/hubs/{hub}/users/{user}/groups/{group} | PUT |
-| Check whether a user exists in the target group. | /api/hubs/{hub}/users/{user}/groups/{group} | HEAD | Add a user to the target group. | /api/hubs/{hub}/users/{user}/groups/{group} | PUT | Remove a user from the target group. | /api/hubs/{hub}/users/{user}/groups/{group} | DELETE |
+| Add a user to the target group. | /api/hubs/{hub}/users/{user}/groups/{group} | PUT |
+| Remove a user from the target group. | /api/hubs/{hub}/users/{user}/groups/{group} | DELETE |
 | Remove a user from all groups. | /api/hubs/{hub}/users/{user}/groups | DELETE |
-| Grant permission to publish to joined group | /api/hubs/{hub}/permissions/{permission}/connections/{connectionId} | PUT |
-| Grant permission to join or publish to the target group | /api/hubs/{hub}/permissions/{permission}/connections/{connectionId}/groups/{group} | PUT |
-| Grant permission to join or publish to the target group | /api/hubs/{hub}/permissions/{permission}/connections/{connectionId}/groups/{group} | PUT | Revoke permission to publish to or join a group | /api/hubs/{hub}/permissions/{permission}/connections/{connectionId}/groups/{group} | DELETE |
-| Grant permission to join or publish to the target group | /api/hubs/{hub}/permissions/{permission}/connections/{connectionId}/groups/{group} | PUT | Revoke permission to publish to or join a group | /api/hubs/{hub}/permissions/{permission}/connections/{connectionId}/groups/{group} | DELETE | Check if a connection can join or publish to the target group | /api/hubs/{hub}/permissions/{permission}/connections/{connectionId}/groups/{group} | HEAD |
+| Grant permission to join or publish to the target group | /api/hubs/{hub}/permissions/{permission}/connections/{connectionId} | PUT |
+| Revoke permission to publish to or join a group | /api/hubs/{hub}/permissions/{permission}/connections/{connectionId} | DELETE |
+| Check if a connection can join or publish to the target group | /api/hubs/{hub}/permissions/{permission}/connections/{connectionId} | HEAD |
 ### /api/health
 
 ### /api/hubs/{hub}/:send
@@ -269,29 +267,6 @@ Remove a user from all groups.
 #### PUT
 ##### Summary:
 
-Grant permission to publish to joined group
-
-##### Parameters
-
-| Name | Located in | Description | Required | Schema |
-| ---- | ---------- | ----------- | -------- | ---- |
-| hub | path |  | Yes | string |
-| permission | path | The permission | Yes | string |
-| connectionId | path | Target connection Id | Yes | string |
-| api-version | query |  | No | string |
-
-##### Responses
-
-| Code | Description |
-| ---- | ----------- |
-| 200 | Success |
-| default | Error response |
-
-### /api/hubs/{hub}/permissions/{permission}/connections/{connectionId}/groups/{group}
-
-#### PUT
-##### Summary:
-
 Grant permission to join or publish to the target group
 
 ##### Parameters
@@ -301,7 +276,7 @@ Grant permission to join or publish to the target group
 | hub | path |  | Yes | string |
 | permission | path | The permission | Yes | string |
 | connectionId | path | Target connection Id | Yes | string |
-| group | path |  | Yes | string |
+| group | query | Optional. If not set, grant the permission to all groups. If set, grant the permission to the specific group. | No | string |
 | api-version | query |  | No | string |
 
 ##### Responses
@@ -323,7 +298,7 @@ Revoke permission to publish to or join a group
 | hub | path |  | Yes | string |
 | permission | path | The permission | Yes | string |
 | connectionId | path | Target connection Id | Yes | string |
-| group | path |  | Yes | string |
+| group | query | Optional. If not set, revoke the permission for all groups. If set, revoke the permission for the specific group. | No | string |
 | api-version | query |  | No | string |
 
 ##### Responses
