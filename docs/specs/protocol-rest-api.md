@@ -28,6 +28,7 @@ group: specs
 | Grant permission to join or publish to the target group | /api/hubs/{hub}/permissions/{permission}/connections/{connectionId} | PUT |
 | Revoke permission to publish to or join a group | /api/hubs/{hub}/permissions/{permission}/connections/{connectionId} | DELETE |
 | Check if a connection can join or publish to the target group | /api/hubs/{hub}/permissions/{permission}/connections/{connectionId} | HEAD |
+
 ### /api/health
 
 ### /api/hubs/{hub}/:send
