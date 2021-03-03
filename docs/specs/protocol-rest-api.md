@@ -41,7 +41,7 @@ Broadcast content inside request body to all the connected client connections
 
 | Name | Located in | Description | Required | Schema |
 | ---- | ---------- | ----------- | -------- | ---- |
-| hub | path | Target hub name, which should start with alphabetic characters and only contain alpha-numeric characters or underscore. When it is not set, it uses the default hub | Yes | string |
+| hub | path | Target hub name, which should start with alphabetic characters and only contain alpha-numeric characters or underscore. | Yes | string |
 | excluded | query | Excluded connection Ids | No | [ string ] |
 | api-version | query |  | No | string |
 | payloadMessage | body |  | Yes | binary |
@@ -64,7 +64,7 @@ Close the client connection
 
 | Name | Located in | Description | Required | Schema |
 | ---- | ---------- | ----------- | -------- | ---- |
-| hub | path | Target hub name, which should start with alphabetic characters and only contain alpha-numeric characters or underscore. When it is not set, it uses the default hub | Yes | string |
+| hub | path | Target hub name, which should start with alphabetic characters and only contain alpha-numeric characters or underscore. | Yes | string |
 | connectionId | path | Target connection Id | Yes | string |
 | reason | query | The reason closing the client connection | No | string |
 | api-version | query |  | No | string |
@@ -87,7 +87,7 @@ Send content inside request body to the specific connection.
 
 | Name | Located in | Description | Required | Schema |
 | ---- | ---------- | ----------- | -------- | ---- |
-| hub | path | Target hub name, which should start with alphabetic characters and only contain alpha-numeric characters or underscore. When it is not set, it uses the default hub | Yes | string |
+| hub | path | Target hub name, which should start with alphabetic characters and only contain alpha-numeric characters or underscore. | Yes | string |
 | connectionId | path | The connection Id. | Yes | string |
 | api-version | query |  | No | string |
 | payloadMessage | body |  | Yes | binary |
@@ -112,7 +112,7 @@ Send content inside request body to a group of connections.
 
 | Name | Located in | Description | Required | Schema |
 | ---- | ---------- | ----------- | -------- | ---- |
-| hub | path | Target hub name, which should start with alphabetic characters and only contain alpha-numeric characters or underscore. When it is not set, it uses the default hub | Yes | string |
+| hub | path | Target hub name, which should start with alphabetic characters and only contain alpha-numeric characters or underscore. | Yes | string |
 | group | path | Target group name, which length should be greater than 0 and less than 1025. | Yes | string |
 | excluded | query | Excluded connection Ids | No | [ string ] |
 | api-version | query |  | No | string |
@@ -136,7 +136,7 @@ Add a connection to the target group.
 
 | Name | Located in | Description | Required | Schema |
 | ---- | ---------- | ----------- | -------- | ---- |
-| hub | path | Target hub name, which should start with alphabetic characters and only contain alpha-numeric characters or underscore. When it is not set, it uses the default hub | Yes | string |
+| hub | path | Target hub name, which should start with alphabetic characters and only contain alpha-numeric characters or underscore. | Yes | string |
 | group | path | Target group name, which length should be greater than 0 and less than 1025. | Yes | string |
 | connectionId | path | Target connection Id | Yes | string |
 | api-version | query |  | No | string |
@@ -158,7 +158,7 @@ Remove a connection from the target group.
 
 | Name | Located in | Description | Required | Schema |
 | ---- | ---------- | ----------- | -------- | ---- |
-| hub | path | Target hub name, which should start with alphabetic characters and only contain alpha-numeric characters or underscore. When it is not set, it uses the default hub | Yes | string |
+| hub | path | Target hub name, which should start with alphabetic characters and only contain alpha-numeric characters or underscore. | Yes | string |
 | group | path | Target group name, which length should be greater than 0 and less than 1025. | Yes | string |
 | connectionId | path | Target connection Id | Yes | string |
 | api-version | query |  | No | string |
@@ -184,7 +184,7 @@ Send content inside request body to the specific user.
 
 | Name | Located in | Description | Required | Schema |
 | ---- | ---------- | ----------- | -------- | ---- |
-| hub | path | Target hub name, which should start with alphabetic characters and only contain alpha-numeric characters or underscore. When it is not set, it uses the default hub | Yes | string |
+| hub | path | Target hub name, which should start with alphabetic characters and only contain alpha-numeric characters or underscore. | Yes | string |
 | id | path | The user Id. | Yes | string |
 | api-version | query |  | No | string |
 | payloadMessage | body |  | Yes | binary |
@@ -207,7 +207,7 @@ Add a user to the target group.
 
 | Name | Located in | Description | Required | Schema |
 | ---- | ---------- | ----------- | -------- | ---- |
-| hub | path | Target hub name, which should start with alphabetic characters and only contain alpha-numeric characters or underscore. When it is not set, it uses the default hub | Yes | string |
+| hub | path | Target hub name, which should start with alphabetic characters and only contain alpha-numeric characters or underscore. | Yes | string |
 | group | path | Target group name, which length should be greater than 0 and less than 1025. | Yes | string |
 | user | path | Target user Id | Yes | string |
 | api-version | query |  | No | string |
@@ -228,7 +228,7 @@ Remove a user from the target group.
 
 | Name | Located in | Description | Required | Schema |
 | ---- | ---------- | ----------- | -------- | ---- |
-| hub | path | Target hub name, which should start with alphabetic characters and only contain alpha-numeric characters or underscore. When it is not set, it uses the default hub | Yes | string |
+| hub | path | Target hub name, which should start with alphabetic characters and only contain alpha-numeric characters or underscore. | Yes | string |
 | group | path | Target group name, which length should be greater than 0 and less than 1025. | Yes | string |
 | user | path | Target user Id | Yes | string |
 | api-version | query |  | No | string |
@@ -251,7 +251,7 @@ Remove a user from all groups.
 
 | Name | Located in | Description | Required | Schema |
 | ---- | ---------- | ----------- | -------- | ---- |
-| hub | path | Target hub name, which should start with alphabetic characters and only contain alpha-numeric characters or underscore. When it is not set, it uses the default hub | Yes | string |
+| hub | path | Target hub name, which should start with alphabetic characters and only contain alpha-numeric characters or underscore. | Yes | string |
 | user | path | Target user Id | Yes | string |
 | api-version | query |  | No | string |
 
@@ -273,7 +273,7 @@ Grant permission to join or publish to the target group
 
 | Name | Located in | Description | Required | Schema |
 | ---- | ---------- | ----------- | -------- | ---- |
-| hub | path |  | Yes | string |
+| hub | path | Target hub name, which should start with alphabetic characters and only contain alpha-numeric characters or underscore. | Yes | string |
 | permission | path | The permission | Yes | string |
 | connectionId | path | Target connection Id | Yes | string |
 | group | query | Optional. If not set, grant the permission to all groups. If set, grant the permission to the specific group. | No | string |
@@ -295,7 +295,7 @@ Revoke permission to publish to or join a group
 
 | Name | Located in | Description | Required | Schema |
 | ---- | ---------- | ----------- | -------- | ---- |
-| hub | path |  | Yes | string |
+| hub | path | Target hub name, which should start with alphabetic characters and only contain alpha-numeric characters or underscore. | Yes | string |
 | permission | path | The permission | Yes | string |
 | connectionId | path | Target connection Id | Yes | string |
 | group | query | Optional. If not set, revoke the permission for all groups. If set, revoke the permission for the specific group. | No | string |
