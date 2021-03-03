@@ -13,7 +13,8 @@ group: specs
 - [Connection manager](#connection_manager)
     - [Auth](#auth)
     - [REST Protocol In Detail](./protocol-rest-api.md)
-         
+- [Server SDK Design Spec](./server-sdk-design-spec.md)
+
 <a name="event_handler"></a>
 
 ## Event Handler

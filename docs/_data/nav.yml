@@ -4,6 +4,7 @@
     - title: 2. Client Protocols In Detail
     - title: 3. Server Protocols In Detail
     - title: 4. Azure Function Integration
+    - title: 5. Server Sdk Design Spec
     - title: Protocol CloudEvents
     - title: Protocol REST API
 
