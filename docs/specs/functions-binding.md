@@ -11,19 +11,22 @@ These bindings allow Azure Functions to integrate with **Azure Web PubSub Servic
 
 ### Supported scenarios
 
-- Allow clients to connect to a Web PubSub Service hub without requiring an ASP.NET Core backend
+- Allow clients to connect to a Web PubSub Service hub without a self-host server.
 - Use Azure Functions (any language supported by V2) to broadcast messages to all clients connected to a Web PubSub Service hub.
 - Use Azure Functions (any language supported by V2) to send messages to a single user/connection, or all the users/connections in a group.
 - Use Azure Functions (any language supported by V2) to manage group users like add/remove/check a single user/connection in a group.
 - Example scenarios include: broadcast messages to a Web PubSub Service hub on HTTP requests.
 
-### Bindings
+### Bindings and workflow
 
-`WebPubSubConnection` input binding makes it easy to generate websocket url align with access token for clients to initiate a connection to Azure Web PubSub Service.
+#### `WebPubSubConnection` input binding for negotiation (1)-(2)
+Clients use `HttpTrigger` to request functions return `WebPubSubConnection` input binding which provides service websocket url along with access token. Input binding makes it easy to generate required information to setup websocket connections in client side. This step is optional that if clients already configured with service information, it can skip negotiation and direct raise websocket connection request to service and refer to next step.
 
-`WebPubSub` output binding allows sending all kinds of messages to an Azure Web PubSub service.
+#### `WebPubSubTrigger` for websocket requests (3)-(4)
+Clients set up websocket connection to service, and clients can send connect/message/disconnect request through the websocket connection on demand. Service will forward these events to functions by `WebPubSubTrigger` to let function known and do something. Especially, functions can accept/block the request for connect/message(synchronous events), refer to [this](https://github.com/Azure/azure-webpubsub/blob/main/docs/specs/phase-1-simple-websocket-client.md#simple-websocket-connection) for details.
 
-`WebPubSubTrigger` trigger bindings allows responding to all kinds of upstream events to trigger different operations to services.
+#### `WebPubSub` output binding (5)-(6) 
+When function is triggered, it can send any messaging request by `WebPubSub` output bindings to service. And service will accordingly do broadcast or managing groups operation regarding the rest api calls.
 
 ### Development Plan
 
@@ -52,7 +55,7 @@ These bindings allow Azure Functions to integrate with **Azure Web PubSub Servic
 
 In anonymous mode, `UserId` can be used with {headers.userid} or {query.userid} depends on where the userid is assigned in the negotiate call.
 
-Similarly users can set customers generated JWT accesstoken by assign `AccessToken = {query.accesstoken}` where customized claims are built with. 
+__Optional__ Similarly users can set customers generated JWT accesstoken by assign `AccessToken = {query.accesstoken}` in the input binding property on demand where customized claims are built with. 
 
 * csharp usage:
 ```cs
@@ -176,7 +179,7 @@ public static async Task Message(
 {
     await message.AddAsync(new GroupData
     {
-        Action = GroupAction.Add,
+        Action = GroupAction.Join,
         TargetType = TargetType.Users,
         TargetId = context.UserId,
         GroupId = "group1",
