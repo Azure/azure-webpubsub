@@ -12,7 +12,7 @@ toc: true
 Azure Web PubSub Service provides an easy way to publish/subscribe messages using simple [WebSocket](https://tools.ietf.org/html/rfc6455) connections.
 1. Client can be written in any language having WebSocket support
 1. Both text and binary messages are supported within one connection
-1. A simple protocol for clients to do direct client-client message publish (covered in [Client Side Design Spec](./2-client-side-design-spec.md#subprotocol))
+1. A simple protocol for clients to do direct client-client message publish
 1. The service manages the WebSocket connections for you
 
 ## Table of Content
@@ -256,9 +256,9 @@ The server is by nature an authorized user. With the help of the *event handler 
    1. Publish messages to a group
 
 It can also grant or revoke publish/join permissions for a PubSub client:
-   1. Grant/revoke Join/Publish permissions to some specific group or all groups
-   2. Grant/revoke PublishToJoined permission
-   3. Check if the client has permission to Join/Publish to some specific group
+   1. Grant Join/Publish permissions to some specific group or to all groups
+   1. Revoke Join/Publish permissions for some specific group or for all groups
+   3. Check if the client has permission to Join/Publish to some specific group or to all groups
    
 For public preview, the service provides REST APIs for the server to do connection management:
 
