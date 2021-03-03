@@ -19,6 +19,8 @@ These bindings allow Azure Functions to integrate with **Azure Web PubSub Servic
 
 ### Bindings and workflow
 
+![functions workflow](../images/functions_workflow.png)
+
 #### `WebPubSubConnection` input binding for negotiation (1)-(2)
 Clients use `HttpTrigger` to request functions return `WebPubSubConnection` input binding which provides service websocket url along with access token. Input binding makes it easy to generate required information to setup websocket connections in client side. This step is optional that if clients already configured with service information, it can skip negotiation and direct raise websocket connection request to service and refer to next step.
 
