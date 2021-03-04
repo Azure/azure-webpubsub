@@ -24,149 +24,67 @@ export class WebPubSubApi {
 
   /**
    * @summary Broadcast content inside request body to all the connected client connections
+   * @param hub Target hub name, which should start with alphabetic characters and only contain
+   * alpha-numeric characters or underscore.
    * @param payloadMessage
    * @param [options] The optional parameters
    * @returns Promise<msRest.RestResponse>
    */
-  broadcast(payloadMessage: string, options?: Models.WebPubSubApiBroadcastOptionalParams): Promise<msRest.RestResponse>;
+  sendToAll(hub: string, payloadMessage: string, options?: Models.WebPubSubApiSendToAllOptionalParams): Promise<msRest.RestResponse>;
   /**
+   * @param hub Target hub name, which should start with alphabetic characters and only contain
+   * alpha-numeric characters or underscore.
    * @param payloadMessage
    * @param callback The callback
    */
-  broadcast(payloadMessage: string, callback: msRest.ServiceCallback<void>): void;
+  sendToAll(hub: string, payloadMessage: string, callback: msRest.ServiceCallback<void>): void;
   /**
+   * @param hub Target hub name, which should start with alphabetic characters and only contain
+   * alpha-numeric characters or underscore.
    * @param payloadMessage
    * @param options The optional parameters
    * @param callback The callback
    */
-  broadcast(payloadMessage: string, options: Models.WebPubSubApiBroadcastOptionalParams, callback: msRest.ServiceCallback<void>): void;
-  broadcast(payloadMessage: string, options?: Models.WebPubSubApiBroadcastOptionalParams | msRest.ServiceCallback<void>, callback?: msRest.ServiceCallback<void>): Promise<msRest.RestResponse> {
+  sendToAll(hub: string, payloadMessage: string, options: Models.WebPubSubApiSendToAllOptionalParams, callback: msRest.ServiceCallback<void>): void;
+  sendToAll(hub: string, payloadMessage: string, options?: Models.WebPubSubApiSendToAllOptionalParams | msRest.ServiceCallback<void>, callback?: msRest.ServiceCallback<void>): Promise<msRest.RestResponse> {
     return this.client.sendOperationRequest(
       {
+        hub,
         payloadMessage,
         options
       },
-      broadcastOperationSpec,
-      callback);
-  }
-
-  /**
-   * @summary Send content inside request body to the specific user.
-   * @param id The user Id.
-   * @param payloadMessage
-   * @param [options] The optional parameters
-   * @returns Promise<msRest.RestResponse>
-   */
-  sendToUser(id: string, payloadMessage: string, options?: Models.WebPubSubApiSendToUserOptionalParams): Promise<msRest.RestResponse>;
-  /**
-   * @param id The user Id.
-   * @param payloadMessage
-   * @param callback The callback
-   */
-  sendToUser(id: string, payloadMessage: string, callback: msRest.ServiceCallback<void>): void;
-  /**
-   * @param id The user Id.
-   * @param payloadMessage
-   * @param options The optional parameters
-   * @param callback The callback
-   */
-  sendToUser(id: string, payloadMessage: string, options: Models.WebPubSubApiSendToUserOptionalParams, callback: msRest.ServiceCallback<void>): void;
-  sendToUser(id: string, payloadMessage: string, options?: Models.WebPubSubApiSendToUserOptionalParams | msRest.ServiceCallback<void>, callback?: msRest.ServiceCallback<void>): Promise<msRest.RestResponse> {
-    return this.client.sendOperationRequest(
-      {
-        id,
-        payloadMessage,
-        options
-      },
-      sendToUserOperationSpec,
-      callback);
-  }
-
-  /**
-   * @summary Send content inside request body to the specific connection.
-   * @param connectionId The connection Id.
-   * @param payloadMessage
-   * @param [options] The optional parameters
-   * @returns Promise<msRest.RestResponse>
-   */
-  sendToConnection(connectionId: string, payloadMessage: string, options?: Models.WebPubSubApiSendToConnectionOptionalParams): Promise<msRest.RestResponse>;
-  /**
-   * @param connectionId The connection Id.
-   * @param payloadMessage
-   * @param callback The callback
-   */
-  sendToConnection(connectionId: string, payloadMessage: string, callback: msRest.ServiceCallback<void>): void;
-  /**
-   * @param connectionId The connection Id.
-   * @param payloadMessage
-   * @param options The optional parameters
-   * @param callback The callback
-   */
-  sendToConnection(connectionId: string, payloadMessage: string, options: Models.WebPubSubApiSendToConnectionOptionalParams, callback: msRest.ServiceCallback<void>): void;
-  sendToConnection(connectionId: string, payloadMessage: string, options?: Models.WebPubSubApiSendToConnectionOptionalParams | msRest.ServiceCallback<void>, callback?: msRest.ServiceCallback<void>): Promise<msRest.RestResponse> {
-    return this.client.sendOperationRequest(
-      {
-        connectionId,
-        payloadMessage,
-        options
-      },
-      sendToConnectionOperationSpec,
-      callback);
-  }
-
-  /**
-   * @summary Send content inside request body to a group of connections.
-   * @param group Target group name, which length should be greater than 0 and less than 1025.
-   * @param payloadMessage
-   * @param [options] The optional parameters
-   * @returns Promise<msRest.RestResponse>
-   */
-  groupBroadcast(group: string, payloadMessage: string, options?: Models.WebPubSubApiGroupBroadcastOptionalParams): Promise<msRest.RestResponse>;
-  /**
-   * @param group Target group name, which length should be greater than 0 and less than 1025.
-   * @param payloadMessage
-   * @param callback The callback
-   */
-  groupBroadcast(group: string, payloadMessage: string, callback: msRest.ServiceCallback<void>): void;
-  /**
-   * @param group Target group name, which length should be greater than 0 and less than 1025.
-   * @param payloadMessage
-   * @param options The optional parameters
-   * @param callback The callback
-   */
-  groupBroadcast(group: string, payloadMessage: string, options: Models.WebPubSubApiGroupBroadcastOptionalParams, callback: msRest.ServiceCallback<void>): void;
-  groupBroadcast(group: string, payloadMessage: string, options?: Models.WebPubSubApiGroupBroadcastOptionalParams | msRest.ServiceCallback<void>, callback?: msRest.ServiceCallback<void>): Promise<msRest.RestResponse> {
-    return this.client.sendOperationRequest(
-      {
-        group,
-        payloadMessage,
-        options
-      },
-      groupBroadcastOperationSpec,
+      sendToAllOperationSpec,
       callback);
   }
 
   /**
    * @summary Check if the connection with the given connectionId exists
+   * @param hub Target hub name, which should start with alphabetic characters and only contain
+   * alpha-numeric characters or underscore.
    * @param connectionId The connection Id.
    * @param [options] The optional parameters
    * @returns Promise<Models.WebPubSubApiCheckConnectionExistenceResponse>
    */
-  checkConnectionExistence(connectionId: string, options?: Models.WebPubSubApiCheckConnectionExistenceOptionalParams): Promise<Models.WebPubSubApiCheckConnectionExistenceResponse>;
+  checkConnectionExistence(hub: string, connectionId: string, options?: Models.WebPubSubApiCheckConnectionExistenceOptionalParams): Promise<Models.WebPubSubApiCheckConnectionExistenceResponse>;
   /**
+   * @param hub Target hub name, which should start with alphabetic characters and only contain
+   * alpha-numeric characters or underscore.
    * @param connectionId The connection Id.
    * @param callback The callback
    */
-  checkConnectionExistence(connectionId: string, callback: msRest.ServiceCallback<boolean>): void;
+  checkConnectionExistence(hub: string, connectionId: string, callback: msRest.ServiceCallback<boolean>): void;
   /**
+   * @param hub Target hub name, which should start with alphabetic characters and only contain
+   * alpha-numeric characters or underscore.
    * @param connectionId The connection Id.
    * @param options The optional parameters
    * @param callback The callback
    */
-  checkConnectionExistence(connectionId: string, options: Models.WebPubSubApiCheckConnectionExistenceOptionalParams, callback: msRest.ServiceCallback<boolean>): void;
-  checkConnectionExistence(connectionId: string, options?: Models.WebPubSubApiCheckConnectionExistenceOptionalParams | msRest.ServiceCallback<boolean>, callback?: msRest.ServiceCallback<boolean>): Promise<Models.WebPubSubApiCheckConnectionExistenceResponse> {
+  checkConnectionExistence(hub: string, connectionId: string, options: Models.WebPubSubApiCheckConnectionExistenceOptionalParams, callback: msRest.ServiceCallback<boolean>): void;
+  checkConnectionExistence(hub: string, connectionId: string, options?: Models.WebPubSubApiCheckConnectionExistenceOptionalParams | msRest.ServiceCallback<boolean>, callback?: msRest.ServiceCallback<boolean>): Promise<Models.WebPubSubApiCheckConnectionExistenceResponse> {
     return this.client.sendOperationRequest(
       {
+        hub,
         connectionId,
         options
       },
@@ -176,25 +94,32 @@ export class WebPubSubApi {
 
   /**
    * @summary Close the client connection
+   * @param hub Target hub name, which should start with alphabetic characters and only contain
+   * alpha-numeric characters or underscore.
    * @param connectionId Target connection Id
    * @param [options] The optional parameters
    * @returns Promise<msRest.RestResponse>
    */
-  closeClientConnection(connectionId: string, options?: Models.WebPubSubApiCloseClientConnectionOptionalParams): Promise<msRest.RestResponse>;
+  closeClientConnection(hub: string, connectionId: string, options?: Models.WebPubSubApiCloseClientConnectionOptionalParams): Promise<msRest.RestResponse>;
   /**
+   * @param hub Target hub name, which should start with alphabetic characters and only contain
+   * alpha-numeric characters or underscore.
    * @param connectionId Target connection Id
    * @param callback The callback
    */
-  closeClientConnection(connectionId: string, callback: msRest.ServiceCallback<void>): void;
+  closeClientConnection(hub: string, connectionId: string, callback: msRest.ServiceCallback<void>): void;
   /**
+   * @param hub Target hub name, which should start with alphabetic characters and only contain
+   * alpha-numeric characters or underscore.
    * @param connectionId Target connection Id
    * @param options The optional parameters
    * @param callback The callback
    */
-  closeClientConnection(connectionId: string, options: Models.WebPubSubApiCloseClientConnectionOptionalParams, callback: msRest.ServiceCallback<void>): void;
-  closeClientConnection(connectionId: string, options?: Models.WebPubSubApiCloseClientConnectionOptionalParams | msRest.ServiceCallback<void>, callback?: msRest.ServiceCallback<void>): Promise<msRest.RestResponse> {
+  closeClientConnection(hub: string, connectionId: string, options: Models.WebPubSubApiCloseClientConnectionOptionalParams, callback: msRest.ServiceCallback<void>): void;
+  closeClientConnection(hub: string, connectionId: string, options?: Models.WebPubSubApiCloseClientConnectionOptionalParams | msRest.ServiceCallback<void>, callback?: msRest.ServiceCallback<void>): Promise<msRest.RestResponse> {
     return this.client.sendOperationRequest(
       {
+        hub,
         connectionId,
         options
       },
@@ -203,26 +128,72 @@ export class WebPubSubApi {
   }
 
   /**
+   * @summary Send content inside request body to the specific connection.
+   * @param hub Target hub name, which should start with alphabetic characters and only contain
+   * alpha-numeric characters or underscore.
+   * @param connectionId The connection Id.
+   * @param payloadMessage
+   * @param [options] The optional parameters
+   * @returns Promise<msRest.RestResponse>
+   */
+  sendToConnection(hub: string, connectionId: string, payloadMessage: string, options?: Models.WebPubSubApiSendToConnectionOptionalParams): Promise<msRest.RestResponse>;
+  /**
+   * @param hub Target hub name, which should start with alphabetic characters and only contain
+   * alpha-numeric characters or underscore.
+   * @param connectionId The connection Id.
+   * @param payloadMessage
+   * @param callback The callback
+   */
+  sendToConnection(hub: string, connectionId: string, payloadMessage: string, callback: msRest.ServiceCallback<void>): void;
+  /**
+   * @param hub Target hub name, which should start with alphabetic characters and only contain
+   * alpha-numeric characters or underscore.
+   * @param connectionId The connection Id.
+   * @param payloadMessage
+   * @param options The optional parameters
+   * @param callback The callback
+   */
+  sendToConnection(hub: string, connectionId: string, payloadMessage: string, options: Models.WebPubSubApiSendToConnectionOptionalParams, callback: msRest.ServiceCallback<void>): void;
+  sendToConnection(hub: string, connectionId: string, payloadMessage: string, options?: Models.WebPubSubApiSendToConnectionOptionalParams | msRest.ServiceCallback<void>, callback?: msRest.ServiceCallback<void>): Promise<msRest.RestResponse> {
+    return this.client.sendOperationRequest(
+      {
+        hub,
+        connectionId,
+        payloadMessage,
+        options
+      },
+      sendToConnectionOperationSpec,
+      callback);
+  }
+
+  /**
    * @summary Check if there are any client connections inside the given group
+   * @param hub Target hub name, which should start with alphabetic characters and only contain
+   * alpha-numeric characters or underscore.
    * @param group Target group name, which length should be greater than 0 and less than 1025.
    * @param [options] The optional parameters
    * @returns Promise<Models.WebPubSubApiCheckGroupExistenceResponse>
    */
-  checkGroupExistence(group: string, options?: Models.WebPubSubApiCheckGroupExistenceOptionalParams): Promise<Models.WebPubSubApiCheckGroupExistenceResponse>;
+  checkGroupExistence(hub: string, group: string, options?: Models.WebPubSubApiCheckGroupExistenceOptionalParams): Promise<Models.WebPubSubApiCheckGroupExistenceResponse>;
   /**
+   * @param hub Target hub name, which should start with alphabetic characters and only contain
+   * alpha-numeric characters or underscore.
    * @param group Target group name, which length should be greater than 0 and less than 1025.
    * @param callback The callback
    */
-  checkGroupExistence(group: string, callback: msRest.ServiceCallback<boolean>): void;
+  checkGroupExistence(hub: string, group: string, callback: msRest.ServiceCallback<boolean>): void;
   /**
+   * @param hub Target hub name, which should start with alphabetic characters and only contain
+   * alpha-numeric characters or underscore.
    * @param group Target group name, which length should be greater than 0 and less than 1025.
    * @param options The optional parameters
    * @param callback The callback
    */
-  checkGroupExistence(group: string, options: Models.WebPubSubApiCheckGroupExistenceOptionalParams, callback: msRest.ServiceCallback<boolean>): void;
-  checkGroupExistence(group: string, options?: Models.WebPubSubApiCheckGroupExistenceOptionalParams | msRest.ServiceCallback<boolean>, callback?: msRest.ServiceCallback<boolean>): Promise<Models.WebPubSubApiCheckGroupExistenceResponse> {
+  checkGroupExistence(hub: string, group: string, options: Models.WebPubSubApiCheckGroupExistenceOptionalParams, callback: msRest.ServiceCallback<boolean>): void;
+  checkGroupExistence(hub: string, group: string, options?: Models.WebPubSubApiCheckGroupExistenceOptionalParams | msRest.ServiceCallback<boolean>, callback?: msRest.ServiceCallback<boolean>): Promise<Models.WebPubSubApiCheckGroupExistenceResponse> {
     return this.client.sendOperationRequest(
       {
+        hub,
         group,
         options
       },
@@ -231,57 +202,75 @@ export class WebPubSubApi {
   }
 
   /**
-   * @summary Check if there are any client connections connected for the given user
-   * @param user Target user Id
+   * @summary Send content inside request body to a group of connections.
+   * @param hub Target hub name, which should start with alphabetic characters and only contain
+   * alpha-numeric characters or underscore.
+   * @param group Target group name, which length should be greater than 0 and less than 1025.
+   * @param payloadMessage
    * @param [options] The optional parameters
-   * @returns Promise<Models.WebPubSubApiCheckUserExistenceResponse>
+   * @returns Promise<msRest.RestResponse>
    */
-  checkUserExistence(user: string, options?: Models.WebPubSubApiCheckUserExistenceOptionalParams): Promise<Models.WebPubSubApiCheckUserExistenceResponse>;
+  sendToGroup(hub: string, group: string, payloadMessage: string, options?: Models.WebPubSubApiSendToGroupOptionalParams): Promise<msRest.RestResponse>;
   /**
-   * @param user Target user Id
+   * @param hub Target hub name, which should start with alphabetic characters and only contain
+   * alpha-numeric characters or underscore.
+   * @param group Target group name, which length should be greater than 0 and less than 1025.
+   * @param payloadMessage
    * @param callback The callback
    */
-  checkUserExistence(user: string, callback: msRest.ServiceCallback<boolean>): void;
+  sendToGroup(hub: string, group: string, payloadMessage: string, callback: msRest.ServiceCallback<void>): void;
   /**
-   * @param user Target user Id
+   * @param hub Target hub name, which should start with alphabetic characters and only contain
+   * alpha-numeric characters or underscore.
+   * @param group Target group name, which length should be greater than 0 and less than 1025.
+   * @param payloadMessage
    * @param options The optional parameters
    * @param callback The callback
    */
-  checkUserExistence(user: string, options: Models.WebPubSubApiCheckUserExistenceOptionalParams, callback: msRest.ServiceCallback<boolean>): void;
-  checkUserExistence(user: string, options?: Models.WebPubSubApiCheckUserExistenceOptionalParams | msRest.ServiceCallback<boolean>, callback?: msRest.ServiceCallback<boolean>): Promise<Models.WebPubSubApiCheckUserExistenceResponse> {
+  sendToGroup(hub: string, group: string, payloadMessage: string, options: Models.WebPubSubApiSendToGroupOptionalParams, callback: msRest.ServiceCallback<void>): void;
+  sendToGroup(hub: string, group: string, payloadMessage: string, options?: Models.WebPubSubApiSendToGroupOptionalParams | msRest.ServiceCallback<void>, callback?: msRest.ServiceCallback<void>): Promise<msRest.RestResponse> {
     return this.client.sendOperationRequest(
       {
-        user,
+        hub,
+        group,
+        payloadMessage,
         options
       },
-      checkUserExistenceOperationSpec,
-      callback) as Promise<Models.WebPubSubApiCheckUserExistenceResponse>;
+      sendToGroupOperationSpec,
+      callback);
   }
 
   /**
    * @summary Add a connection to the target group.
+   * @param hub Target hub name, which should start with alphabetic characters and only contain
+   * alpha-numeric characters or underscore.
    * @param group Target group name, which length should be greater than 0 and less than 1025.
    * @param connectionId Target connection Id
    * @param [options] The optional parameters
    * @returns Promise<msRest.RestResponse>
    */
-  addConnectionToGroup(group: string, connectionId: string, options?: Models.WebPubSubApiAddConnectionToGroupOptionalParams): Promise<msRest.RestResponse>;
+  addConnectionToGroup(hub: string, group: string, connectionId: string, options?: Models.WebPubSubApiAddConnectionToGroupOptionalParams): Promise<msRest.RestResponse>;
   /**
+   * @param hub Target hub name, which should start with alphabetic characters and only contain
+   * alpha-numeric characters or underscore.
    * @param group Target group name, which length should be greater than 0 and less than 1025.
    * @param connectionId Target connection Id
    * @param callback The callback
    */
-  addConnectionToGroup(group: string, connectionId: string, callback: msRest.ServiceCallback<void>): void;
+  addConnectionToGroup(hub: string, group: string, connectionId: string, callback: msRest.ServiceCallback<void>): void;
   /**
+   * @param hub Target hub name, which should start with alphabetic characters and only contain
+   * alpha-numeric characters or underscore.
    * @param group Target group name, which length should be greater than 0 and less than 1025.
    * @param connectionId Target connection Id
    * @param options The optional parameters
    * @param callback The callback
    */
-  addConnectionToGroup(group: string, connectionId: string, options: Models.WebPubSubApiAddConnectionToGroupOptionalParams, callback: msRest.ServiceCallback<void>): void;
-  addConnectionToGroup(group: string, connectionId: string, options?: Models.WebPubSubApiAddConnectionToGroupOptionalParams | msRest.ServiceCallback<void>, callback?: msRest.ServiceCallback<void>): Promise<msRest.RestResponse> {
+  addConnectionToGroup(hub: string, group: string, connectionId: string, options: Models.WebPubSubApiAddConnectionToGroupOptionalParams, callback: msRest.ServiceCallback<void>): void;
+  addConnectionToGroup(hub: string, group: string, connectionId: string, options?: Models.WebPubSubApiAddConnectionToGroupOptionalParams | msRest.ServiceCallback<void>, callback?: msRest.ServiceCallback<void>): Promise<msRest.RestResponse> {
     return this.client.sendOperationRequest(
       {
+        hub,
         group,
         connectionId,
         options
@@ -292,28 +281,35 @@ export class WebPubSubApi {
 
   /**
    * @summary Remove a connection from the target group.
+   * @param hub Target hub name, which should start with alphabetic characters and only contain
+   * alpha-numeric characters or underscore.
    * @param group Target group name, which length should be greater than 0 and less than 1025.
    * @param connectionId Target connection Id
    * @param [options] The optional parameters
    * @returns Promise<msRest.RestResponse>
    */
-  removeConnectionFromGroup(group: string, connectionId: string, options?: Models.WebPubSubApiRemoveConnectionFromGroupOptionalParams): Promise<msRest.RestResponse>;
+  removeConnectionFromGroup(hub: string, group: string, connectionId: string, options?: Models.WebPubSubApiRemoveConnectionFromGroupOptionalParams): Promise<msRest.RestResponse>;
   /**
+   * @param hub Target hub name, which should start with alphabetic characters and only contain
+   * alpha-numeric characters or underscore.
    * @param group Target group name, which length should be greater than 0 and less than 1025.
    * @param connectionId Target connection Id
    * @param callback The callback
    */
-  removeConnectionFromGroup(group: string, connectionId: string, callback: msRest.ServiceCallback<void>): void;
+  removeConnectionFromGroup(hub: string, group: string, connectionId: string, callback: msRest.ServiceCallback<void>): void;
   /**
+   * @param hub Target hub name, which should start with alphabetic characters and only contain
+   * alpha-numeric characters or underscore.
    * @param group Target group name, which length should be greater than 0 and less than 1025.
    * @param connectionId Target connection Id
    * @param options The optional parameters
    * @param callback The callback
    */
-  removeConnectionFromGroup(group: string, connectionId: string, options: Models.WebPubSubApiRemoveConnectionFromGroupOptionalParams, callback: msRest.ServiceCallback<void>): void;
-  removeConnectionFromGroup(group: string, connectionId: string, options?: Models.WebPubSubApiRemoveConnectionFromGroupOptionalParams | msRest.ServiceCallback<void>, callback?: msRest.ServiceCallback<void>): Promise<msRest.RestResponse> {
+  removeConnectionFromGroup(hub: string, group: string, connectionId: string, options: Models.WebPubSubApiRemoveConnectionFromGroupOptionalParams, callback: msRest.ServiceCallback<void>): void;
+  removeConnectionFromGroup(hub: string, group: string, connectionId: string, options?: Models.WebPubSubApiRemoveConnectionFromGroupOptionalParams | msRest.ServiceCallback<void>, callback?: msRest.ServiceCallback<void>): Promise<msRest.RestResponse> {
     return this.client.sendOperationRequest(
       {
+        hub,
         group,
         connectionId,
         options
@@ -323,29 +319,110 @@ export class WebPubSubApi {
   }
 
   /**
+   * @summary Check if there are any client connections connected for the given user
+   * @param hub Target hub name, which should start with alphabetic characters and only contain
+   * alpha-numeric characters or underscore.
+   * @param user Target user Id
+   * @param [options] The optional parameters
+   * @returns Promise<Models.WebPubSubApiCheckUserExistenceResponse>
+   */
+  checkUserExistence(hub: string, user: string, options?: Models.WebPubSubApiCheckUserExistenceOptionalParams): Promise<Models.WebPubSubApiCheckUserExistenceResponse>;
+  /**
+   * @param hub Target hub name, which should start with alphabetic characters and only contain
+   * alpha-numeric characters or underscore.
+   * @param user Target user Id
+   * @param callback The callback
+   */
+  checkUserExistence(hub: string, user: string, callback: msRest.ServiceCallback<boolean>): void;
+  /**
+   * @param hub Target hub name, which should start with alphabetic characters and only contain
+   * alpha-numeric characters or underscore.
+   * @param user Target user Id
+   * @param options The optional parameters
+   * @param callback The callback
+   */
+  checkUserExistence(hub: string, user: string, options: Models.WebPubSubApiCheckUserExistenceOptionalParams, callback: msRest.ServiceCallback<boolean>): void;
+  checkUserExistence(hub: string, user: string, options?: Models.WebPubSubApiCheckUserExistenceOptionalParams | msRest.ServiceCallback<boolean>, callback?: msRest.ServiceCallback<boolean>): Promise<Models.WebPubSubApiCheckUserExistenceResponse> {
+    return this.client.sendOperationRequest(
+      {
+        hub,
+        user,
+        options
+      },
+      checkUserExistenceOperationSpec,
+      callback) as Promise<Models.WebPubSubApiCheckUserExistenceResponse>;
+  }
+
+  /**
+   * @summary Send content inside request body to the specific user.
+   * @param hub Target hub name, which should start with alphabetic characters and only contain
+   * alpha-numeric characters or underscore.
+   * @param id The user Id.
+   * @param payloadMessage
+   * @param [options] The optional parameters
+   * @returns Promise<msRest.RestResponse>
+   */
+  sendToUser(hub: string, id: string, payloadMessage: string, options?: Models.WebPubSubApiSendToUserOptionalParams): Promise<msRest.RestResponse>;
+  /**
+   * @param hub Target hub name, which should start with alphabetic characters and only contain
+   * alpha-numeric characters or underscore.
+   * @param id The user Id.
+   * @param payloadMessage
+   * @param callback The callback
+   */
+  sendToUser(hub: string, id: string, payloadMessage: string, callback: msRest.ServiceCallback<void>): void;
+  /**
+   * @param hub Target hub name, which should start with alphabetic characters and only contain
+   * alpha-numeric characters or underscore.
+   * @param id The user Id.
+   * @param payloadMessage
+   * @param options The optional parameters
+   * @param callback The callback
+   */
+  sendToUser(hub: string, id: string, payloadMessage: string, options: Models.WebPubSubApiSendToUserOptionalParams, callback: msRest.ServiceCallback<void>): void;
+  sendToUser(hub: string, id: string, payloadMessage: string, options?: Models.WebPubSubApiSendToUserOptionalParams | msRest.ServiceCallback<void>, callback?: msRest.ServiceCallback<void>): Promise<msRest.RestResponse> {
+    return this.client.sendOperationRequest(
+      {
+        hub,
+        id,
+        payloadMessage,
+        options
+      },
+      sendToUserOperationSpec,
+      callback);
+  }
+
+  /**
    * @summary Check whether a user exists in the target group.
+   * @param hub Target hub name, which should start with alphabetic characters and only contain
+   * alpha-numeric characters or underscore.
    * @param group Target group name, which length should be greater than 0 and less than 1025.
    * @param user Target user Id
    * @param [options] The optional parameters
    * @returns Promise<Models.WebPubSubApiCheckUserExistenceInGroupResponse>
    */
-  checkUserExistenceInGroup(group: string, user: string, options?: Models.WebPubSubApiCheckUserExistenceInGroupOptionalParams): Promise<Models.WebPubSubApiCheckUserExistenceInGroupResponse>;
+  checkUserExistenceInGroup(hub: string, group: string, user: string, options?: Models.WebPubSubApiCheckUserExistenceInGroupOptionalParams): Promise<Models.WebPubSubApiCheckUserExistenceInGroupResponse>;
   /**
+   * @param hub Target hub name, which should start with alphabetic characters and only contain
+   * alpha-numeric characters or underscore.
    * @param group Target group name, which length should be greater than 0 and less than 1025.
    * @param user Target user Id
    * @param callback The callback
    */
-  checkUserExistenceInGroup(group: string, user: string, callback: msRest.ServiceCallback<boolean>): void;
+  checkUserExistenceInGroup(hub: string, group: string, user: string, callback: msRest.ServiceCallback<boolean>): void;
   /**
+   * @param hub Target hub name, which should start with alphabetic characters and only contain
+   * alpha-numeric characters or underscore.
    * @param group Target group name, which length should be greater than 0 and less than 1025.
    * @param user Target user Id
    * @param options The optional parameters
    * @param callback The callback
    */
-  checkUserExistenceInGroup(group: string, user: string, options: Models.WebPubSubApiCheckUserExistenceInGroupOptionalParams, callback: msRest.ServiceCallback<boolean>): void;
-  checkUserExistenceInGroup(group: string, user: string, options?: Models.WebPubSubApiCheckUserExistenceInGroupOptionalParams | msRest.ServiceCallback<boolean>, callback?: msRest.ServiceCallback<boolean>): Promise<Models.WebPubSubApiCheckUserExistenceInGroupResponse> {
+  checkUserExistenceInGroup(hub: string, group: string, user: string, options: Models.WebPubSubApiCheckUserExistenceInGroupOptionalParams, callback: msRest.ServiceCallback<boolean>): void;
+  checkUserExistenceInGroup(hub: string, group: string, user: string, options?: Models.WebPubSubApiCheckUserExistenceInGroupOptionalParams | msRest.ServiceCallback<boolean>, callback?: msRest.ServiceCallback<boolean>): Promise<Models.WebPubSubApiCheckUserExistenceInGroupResponse> {
     return this.client.sendOperationRequest(
       {
+        hub,
         group,
         user,
         options
@@ -356,28 +433,35 @@ export class WebPubSubApi {
 
   /**
    * @summary Add a user to the target group.
+   * @param hub Target hub name, which should start with alphabetic characters and only contain
+   * alpha-numeric characters or underscore.
    * @param group Target group name, which length should be greater than 0 and less than 1025.
    * @param user Target user Id
    * @param [options] The optional parameters
    * @returns Promise<msRest.RestResponse>
    */
-  addUserToGroup(group: string, user: string, options?: Models.WebPubSubApiAddUserToGroupOptionalParams): Promise<msRest.RestResponse>;
+  addUserToGroup(hub: string, group: string, user: string, options?: Models.WebPubSubApiAddUserToGroupOptionalParams): Promise<msRest.RestResponse>;
   /**
+   * @param hub Target hub name, which should start with alphabetic characters and only contain
+   * alpha-numeric characters or underscore.
    * @param group Target group name, which length should be greater than 0 and less than 1025.
    * @param user Target user Id
    * @param callback The callback
    */
-  addUserToGroup(group: string, user: string, callback: msRest.ServiceCallback<void>): void;
+  addUserToGroup(hub: string, group: string, user: string, callback: msRest.ServiceCallback<void>): void;
   /**
+   * @param hub Target hub name, which should start with alphabetic characters and only contain
+   * alpha-numeric characters or underscore.
    * @param group Target group name, which length should be greater than 0 and less than 1025.
    * @param user Target user Id
    * @param options The optional parameters
    * @param callback The callback
    */
-  addUserToGroup(group: string, user: string, options: Models.WebPubSubApiAddUserToGroupOptionalParams, callback: msRest.ServiceCallback<void>): void;
-  addUserToGroup(group: string, user: string, options?: Models.WebPubSubApiAddUserToGroupOptionalParams | msRest.ServiceCallback<void>, callback?: msRest.ServiceCallback<void>): Promise<msRest.RestResponse> {
+  addUserToGroup(hub: string, group: string, user: string, options: Models.WebPubSubApiAddUserToGroupOptionalParams, callback: msRest.ServiceCallback<void>): void;
+  addUserToGroup(hub: string, group: string, user: string, options?: Models.WebPubSubApiAddUserToGroupOptionalParams | msRest.ServiceCallback<void>, callback?: msRest.ServiceCallback<void>): Promise<msRest.RestResponse> {
     return this.client.sendOperationRequest(
       {
+        hub,
         group,
         user,
         options
@@ -388,28 +472,35 @@ export class WebPubSubApi {
 
   /**
    * @summary Remove a user from the target group.
+   * @param hub Target hub name, which should start with alphabetic characters and only contain
+   * alpha-numeric characters or underscore.
    * @param group Target group name, which length should be greater than 0 and less than 1025.
    * @param user Target user Id
    * @param [options] The optional parameters
    * @returns Promise<msRest.RestResponse>
    */
-  removeUserFromGroup(group: string, user: string, options?: Models.WebPubSubApiRemoveUserFromGroupOptionalParams): Promise<msRest.RestResponse>;
+  removeUserFromGroup(hub: string, group: string, user: string, options?: Models.WebPubSubApiRemoveUserFromGroupOptionalParams): Promise<msRest.RestResponse>;
   /**
+   * @param hub Target hub name, which should start with alphabetic characters and only contain
+   * alpha-numeric characters or underscore.
    * @param group Target group name, which length should be greater than 0 and less than 1025.
    * @param user Target user Id
    * @param callback The callback
    */
-  removeUserFromGroup(group: string, user: string, callback: msRest.ServiceCallback<void>): void;
+  removeUserFromGroup(hub: string, group: string, user: string, callback: msRest.ServiceCallback<void>): void;
   /**
+   * @param hub Target hub name, which should start with alphabetic characters and only contain
+   * alpha-numeric characters or underscore.
    * @param group Target group name, which length should be greater than 0 and less than 1025.
    * @param user Target user Id
    * @param options The optional parameters
    * @param callback The callback
    */
-  removeUserFromGroup(group: string, user: string, options: Models.WebPubSubApiRemoveUserFromGroupOptionalParams, callback: msRest.ServiceCallback<void>): void;
-  removeUserFromGroup(group: string, user: string, options?: Models.WebPubSubApiRemoveUserFromGroupOptionalParams | msRest.ServiceCallback<void>, callback?: msRest.ServiceCallback<void>): Promise<msRest.RestResponse> {
+  removeUserFromGroup(hub: string, group: string, user: string, options: Models.WebPubSubApiRemoveUserFromGroupOptionalParams, callback: msRest.ServiceCallback<void>): void;
+  removeUserFromGroup(hub: string, group: string, user: string, options?: Models.WebPubSubApiRemoveUserFromGroupOptionalParams | msRest.ServiceCallback<void>, callback?: msRest.ServiceCallback<void>): Promise<msRest.RestResponse> {
     return this.client.sendOperationRequest(
       {
+        hub,
         group,
         user,
         options
@@ -420,140 +511,166 @@ export class WebPubSubApi {
 
   /**
    * @summary Remove a user from all groups.
+   * @param hub Target hub name, which should start with alphabetic characters and only contain
+   * alpha-numeric characters or underscore.
    * @param user Target user Id
    * @param [options] The optional parameters
    * @returns Promise<msRest.RestResponse>
    */
-  removeUserFromAllGroups(user: string, options?: Models.WebPubSubApiRemoveUserFromAllGroupsOptionalParams): Promise<msRest.RestResponse>;
+  removeUserFromAllGroups(hub: string, user: string, options?: Models.WebPubSubApiRemoveUserFromAllGroupsOptionalParams): Promise<msRest.RestResponse>;
   /**
+   * @param hub Target hub name, which should start with alphabetic characters and only contain
+   * alpha-numeric characters or underscore.
    * @param user Target user Id
    * @param callback The callback
    */
-  removeUserFromAllGroups(user: string, callback: msRest.ServiceCallback<void>): void;
+  removeUserFromAllGroups(hub: string, user: string, callback: msRest.ServiceCallback<void>): void;
   /**
+   * @param hub Target hub name, which should start with alphabetic characters and only contain
+   * alpha-numeric characters or underscore.
    * @param user Target user Id
    * @param options The optional parameters
    * @param callback The callback
    */
-  removeUserFromAllGroups(user: string, options: Models.WebPubSubApiRemoveUserFromAllGroupsOptionalParams, callback: msRest.ServiceCallback<void>): void;
-  removeUserFromAllGroups(user: string, options?: Models.WebPubSubApiRemoveUserFromAllGroupsOptionalParams | msRest.ServiceCallback<void>, callback?: msRest.ServiceCallback<void>): Promise<msRest.RestResponse> {
+  removeUserFromAllGroups(hub: string, user: string, options: Models.WebPubSubApiRemoveUserFromAllGroupsOptionalParams, callback: msRest.ServiceCallback<void>): void;
+  removeUserFromAllGroups(hub: string, user: string, options?: Models.WebPubSubApiRemoveUserFromAllGroupsOptionalParams | msRest.ServiceCallback<void>, callback?: msRest.ServiceCallback<void>): Promise<msRest.RestResponse> {
     return this.client.sendOperationRequest(
       {
+        hub,
         user,
         options
       },
       removeUserFromAllGroupsOperationSpec,
       callback);
   }
+
+  /**
+   * @summary Grant permission to join or publish to the target group
+   * @param hub Target hub name, which should start with alphabetic characters and only contain
+   * alpha-numeric characters or underscore.
+   * @param permission The permission. Possible values include: 'publish', 'join'
+   * @param connectionId Target connection Id
+   * @param [options] The optional parameters
+   * @returns Promise<msRest.RestResponse>
+   */
+  grantGroupPermission(hub: string, permission: Models.Permission, connectionId: string, options?: Models.WebPubSubApiGrantGroupPermissionOptionalParams): Promise<msRest.RestResponse>;
+  /**
+   * @param hub Target hub name, which should start with alphabetic characters and only contain
+   * alpha-numeric characters or underscore.
+   * @param permission The permission. Possible values include: 'publish', 'join'
+   * @param connectionId Target connection Id
+   * @param callback The callback
+   */
+  grantGroupPermission(hub: string, permission: Models.Permission, connectionId: string, callback: msRest.ServiceCallback<void>): void;
+  /**
+   * @param hub Target hub name, which should start with alphabetic characters and only contain
+   * alpha-numeric characters or underscore.
+   * @param permission The permission. Possible values include: 'publish', 'join'
+   * @param connectionId Target connection Id
+   * @param options The optional parameters
+   * @param callback The callback
+   */
+  grantGroupPermission(hub: string, permission: Models.Permission, connectionId: string, options: Models.WebPubSubApiGrantGroupPermissionOptionalParams, callback: msRest.ServiceCallback<void>): void;
+  grantGroupPermission(hub: string, permission: Models.Permission, connectionId: string, options?: Models.WebPubSubApiGrantGroupPermissionOptionalParams | msRest.ServiceCallback<void>, callback?: msRest.ServiceCallback<void>): Promise<msRest.RestResponse> {
+    return this.client.sendOperationRequest(
+      {
+        hub,
+        permission,
+        connectionId,
+        options
+      },
+      grantGroupPermissionOperationSpec,
+      callback);
+  }
+
+  /**
+   * @summary Revoke permission to publish to or join a group
+   * @param hub Target hub name, which should start with alphabetic characters and only contain
+   * alpha-numeric characters or underscore.
+   * @param permission The permission. Possible values include: 'publish', 'join'
+   * @param connectionId Target connection Id
+   * @param [options] The optional parameters
+   * @returns Promise<msRest.RestResponse>
+   */
+  revokeGroupPermission(hub: string, permission: Models.Permission1, connectionId: string, options?: Models.WebPubSubApiRevokeGroupPermissionOptionalParams): Promise<msRest.RestResponse>;
+  /**
+   * @param hub Target hub name, which should start with alphabetic characters and only contain
+   * alpha-numeric characters or underscore.
+   * @param permission The permission. Possible values include: 'publish', 'join'
+   * @param connectionId Target connection Id
+   * @param callback The callback
+   */
+  revokeGroupPermission(hub: string, permission: Models.Permission1, connectionId: string, callback: msRest.ServiceCallback<void>): void;
+  /**
+   * @param hub Target hub name, which should start with alphabetic characters and only contain
+   * alpha-numeric characters or underscore.
+   * @param permission The permission. Possible values include: 'publish', 'join'
+   * @param connectionId Target connection Id
+   * @param options The optional parameters
+   * @param callback The callback
+   */
+  revokeGroupPermission(hub: string, permission: Models.Permission1, connectionId: string, options: Models.WebPubSubApiRevokeGroupPermissionOptionalParams, callback: msRest.ServiceCallback<void>): void;
+  revokeGroupPermission(hub: string, permission: Models.Permission1, connectionId: string, options?: Models.WebPubSubApiRevokeGroupPermissionOptionalParams | msRest.ServiceCallback<void>, callback?: msRest.ServiceCallback<void>): Promise<msRest.RestResponse> {
+    return this.client.sendOperationRequest(
+      {
+        hub,
+        permission,
+        connectionId,
+        options
+      },
+      revokeGroupPermissionOperationSpec,
+      callback);
+  }
+
+  /**
+   * @summary Check if a connection can join or publish to the target group
+   * @param hub Target hub name, which should start with alphabetic characters and only contain
+   * alpha-numeric characters or underscore.
+   * @param permission The permission. Possible values include: 'publish', 'join'
+   * @param connectionId Target connection Id
+   * @param [options] The optional parameters
+   * @returns Promise<Models.WebPubSubApiCheckGroupPermissionResponse>
+   */
+  checkGroupPermission(hub: string, permission: Models.Permission2, connectionId: string, options?: Models.WebPubSubApiCheckGroupPermissionOptionalParams): Promise<Models.WebPubSubApiCheckGroupPermissionResponse>;
+  /**
+   * @param hub Target hub name, which should start with alphabetic characters and only contain
+   * alpha-numeric characters or underscore.
+   * @param permission The permission. Possible values include: 'publish', 'join'
+   * @param connectionId Target connection Id
+   * @param callback The callback
+   */
+  checkGroupPermission(hub: string, permission: Models.Permission2, connectionId: string, callback: msRest.ServiceCallback<boolean>): void;
+  /**
+   * @param hub Target hub name, which should start with alphabetic characters and only contain
+   * alpha-numeric characters or underscore.
+   * @param permission The permission. Possible values include: 'publish', 'join'
+   * @param connectionId Target connection Id
+   * @param options The optional parameters
+   * @param callback The callback
+   */
+  checkGroupPermission(hub: string, permission: Models.Permission2, connectionId: string, options: Models.WebPubSubApiCheckGroupPermissionOptionalParams, callback: msRest.ServiceCallback<boolean>): void;
+  checkGroupPermission(hub: string, permission: Models.Permission2, connectionId: string, options?: Models.WebPubSubApiCheckGroupPermissionOptionalParams | msRest.ServiceCallback<boolean>, callback?: msRest.ServiceCallback<boolean>): Promise<Models.WebPubSubApiCheckGroupPermissionResponse> {
+    return this.client.sendOperationRequest(
+      {
+        hub,
+        permission,
+        connectionId,
+        options
+      },
+      checkGroupPermissionOperationSpec,
+      callback) as Promise<Models.WebPubSubApiCheckGroupPermissionResponse>;
+  }
 }
 
 // Operation Specifications
 const serializer = new msRest.Serializer(Mappers);
-const broadcastOperationSpec: msRest.OperationSpec = {
+const sendToAllOperationSpec: msRest.OperationSpec = {
   httpMethod: "POST",
-  path: "api/:send",
-  queryParameters: [
-    Parameters.hub,
-    Parameters.excluded,
-    Parameters.apiVersion
-  ],
-  headerParameters: [
-    Parameters.acceptLanguage
-  ],
-  requestBody: {
-    parameterPath: "payloadMessage",
-    mapper: {
-      required: true,
-      serializedName: "payloadMessage",
-      type: {
-        name: "String"
-      }
-    }
-  },
-  contentType: "application/octet-stream",
-  responses: {
-    202: {},
-    default: {
-      bodyMapper: Mappers.CloudError
-    }
-  },
-  serializer
-};
-
-const sendToUserOperationSpec: msRest.OperationSpec = {
-  httpMethod: "POST",
-  path: "api/users/{id}/:send",
+  path: "api/hubs/{hub}/:send",
   urlParameters: [
-    Parameters.id
+    Parameters.hub
   ],
   queryParameters: [
-    Parameters.hub,
-    Parameters.apiVersion
-  ],
-  headerParameters: [
-    Parameters.acceptLanguage
-  ],
-  requestBody: {
-    parameterPath: "payloadMessage",
-    mapper: {
-      required: true,
-      serializedName: "payloadMessage",
-      type: {
-        name: "String"
-      }
-    }
-  },
-  contentType: "application/octet-stream",
-  responses: {
-    202: {},
-    default: {
-      bodyMapper: Mappers.CloudError
-    }
-  },
-  serializer
-};
-
-const sendToConnectionOperationSpec: msRest.OperationSpec = {
-  httpMethod: "POST",
-  path: "api/connections/{connectionId}/:send",
-  urlParameters: [
-    Parameters.connectionId0
-  ],
-  queryParameters: [
-    Parameters.hub,
-    Parameters.apiVersion
-  ],
-  headerParameters: [
-    Parameters.acceptLanguage
-  ],
-  requestBody: {
-    parameterPath: "payloadMessage",
-    mapper: {
-      required: true,
-      serializedName: "payloadMessage",
-      type: {
-        name: "String"
-      }
-    }
-  },
-  contentType: "application/octet-stream",
-  responses: {
-    202: {},
-    default: {
-      bodyMapper: Mappers.CloudError
-    }
-  },
-  serializer
-};
-
-const groupBroadcastOperationSpec: msRest.OperationSpec = {
-  httpMethod: "POST",
-  path: "api/groups/{group}/:send",
-  urlParameters: [
-    Parameters.group0
-  ],
-  queryParameters: [
-    Parameters.hub,
     Parameters.excluded,
     Parameters.apiVersion
   ],
@@ -582,12 +699,12 @@ const groupBroadcastOperationSpec: msRest.OperationSpec = {
 
 const checkConnectionExistenceOperationSpec: msRest.OperationSpec = {
   httpMethod: "HEAD",
-  path: "api/connections/{connectionId}",
+  path: "api/hubs/{hub}/connections/{connectionId}",
   urlParameters: [
-    Parameters.connectionId1
+    Parameters.hub,
+    Parameters.connectionId
   ],
   queryParameters: [
-    Parameters.hub,
     Parameters.apiVersion
   ],
   headerParameters: [
@@ -605,12 +722,12 @@ const checkConnectionExistenceOperationSpec: msRest.OperationSpec = {
 
 const closeClientConnectionOperationSpec: msRest.OperationSpec = {
   httpMethod: "DELETE",
-  path: "api/connections/{connectionId}",
+  path: "api/hubs/{hub}/connections/{connectionId}",
   urlParameters: [
-    Parameters.connectionId1
+    Parameters.hub,
+    Parameters.connectionId
   ],
   queryParameters: [
-    Parameters.hub,
     Parameters.reason,
     Parameters.apiVersion
   ],
@@ -626,14 +743,47 @@ const closeClientConnectionOperationSpec: msRest.OperationSpec = {
   serializer
 };
 
-const checkGroupExistenceOperationSpec: msRest.OperationSpec = {
-  httpMethod: "HEAD",
-  path: "api/groups/{group}",
+const sendToConnectionOperationSpec: msRest.OperationSpec = {
+  httpMethod: "POST",
+  path: "api/hubs/{hub}/connections/{connectionId}/:send",
   urlParameters: [
-    Parameters.group1
+    Parameters.hub,
+    Parameters.connectionId
   ],
   queryParameters: [
+    Parameters.apiVersion
+  ],
+  headerParameters: [
+    Parameters.acceptLanguage
+  ],
+  requestBody: {
+    parameterPath: "payloadMessage",
+    mapper: {
+      required: true,
+      serializedName: "payloadMessage",
+      type: {
+        name: "String"
+      }
+    }
+  },
+  contentType: "application/octet-stream",
+  responses: {
+    202: {},
+    default: {
+      bodyMapper: Mappers.CloudError
+    }
+  },
+  serializer
+};
+
+const checkGroupExistenceOperationSpec: msRest.OperationSpec = {
+  httpMethod: "HEAD",
+  path: "api/hubs/{hub}/groups/{group}",
+  urlParameters: [
     Parameters.hub,
+    Parameters.group0
+  ],
+  queryParameters: [
     Parameters.apiVersion
   ],
   headerParameters: [
@@ -649,22 +799,33 @@ const checkGroupExistenceOperationSpec: msRest.OperationSpec = {
   serializer
 };
 
-const checkUserExistenceOperationSpec: msRest.OperationSpec = {
-  httpMethod: "HEAD",
-  path: "api/users/{user}",
+const sendToGroupOperationSpec: msRest.OperationSpec = {
+  httpMethod: "POST",
+  path: "api/hubs/{hub}/groups/{group}/:send",
   urlParameters: [
-    Parameters.user0
+    Parameters.hub,
+    Parameters.group0
   ],
   queryParameters: [
-    Parameters.hub,
+    Parameters.excluded,
     Parameters.apiVersion
   ],
   headerParameters: [
     Parameters.acceptLanguage
   ],
+  requestBody: {
+    parameterPath: "payloadMessage",
+    mapper: {
+      required: true,
+      serializedName: "payloadMessage",
+      type: {
+        name: "String"
+      }
+    }
+  },
+  contentType: "application/octet-stream",
   responses: {
-    200: {},
-    404: {},
+    202: {},
     default: {
       bodyMapper: Mappers.CloudError
     }
@@ -674,13 +835,13 @@ const checkUserExistenceOperationSpec: msRest.OperationSpec = {
 
 const addConnectionToGroupOperationSpec: msRest.OperationSpec = {
   httpMethod: "PUT",
-  path: "api/groups/{group}/connections/{connectionId}",
+  path: "api/hubs/{hub}/groups/{group}/connections/{connectionId}",
   urlParameters: [
-    Parameters.group1,
-    Parameters.connectionId0
+    Parameters.hub,
+    Parameters.group0,
+    Parameters.connectionId
   ],
   queryParameters: [
-    Parameters.hub,
     Parameters.apiVersion
   ],
   headerParameters: [
@@ -698,13 +859,13 @@ const addConnectionToGroupOperationSpec: msRest.OperationSpec = {
 
 const removeConnectionFromGroupOperationSpec: msRest.OperationSpec = {
   httpMethod: "DELETE",
-  path: "api/groups/{group}/connections/{connectionId}",
+  path: "api/hubs/{hub}/groups/{group}/connections/{connectionId}",
   urlParameters: [
-    Parameters.group1,
-    Parameters.connectionId0
+    Parameters.hub,
+    Parameters.group0,
+    Parameters.connectionId
   ],
   queryParameters: [
-    Parameters.hub,
     Parameters.apiVersion
   ],
   headerParameters: [
@@ -720,15 +881,71 @@ const removeConnectionFromGroupOperationSpec: msRest.OperationSpec = {
   serializer
 };
 
-const checkUserExistenceInGroupOperationSpec: msRest.OperationSpec = {
+const checkUserExistenceOperationSpec: msRest.OperationSpec = {
   httpMethod: "HEAD",
-  path: "api/users/{user}/groups/{group}",
+  path: "api/hubs/{hub}/users/{user}",
   urlParameters: [
-    Parameters.group1,
-    Parameters.user1
+    Parameters.hub,
+    Parameters.user
   ],
   queryParameters: [
+    Parameters.apiVersion
+  ],
+  headerParameters: [
+    Parameters.acceptLanguage
+  ],
+  responses: {
+    200: {},
+    404: {},
+    default: {
+      bodyMapper: Mappers.CloudError
+    }
+  },
+  serializer
+};
+
+const sendToUserOperationSpec: msRest.OperationSpec = {
+  httpMethod: "POST",
+  path: "api/hubs/{hub}/users/{id}/:send",
+  urlParameters: [
     Parameters.hub,
+    Parameters.id
+  ],
+  queryParameters: [
+    Parameters.apiVersion
+  ],
+  headerParameters: [
+    Parameters.acceptLanguage
+  ],
+  requestBody: {
+    parameterPath: "payloadMessage",
+    mapper: {
+      required: true,
+      serializedName: "payloadMessage",
+      type: {
+        name: "String"
+      }
+    }
+  },
+  contentType: "application/octet-stream",
+  responses: {
+    202: {},
+    default: {
+      bodyMapper: Mappers.CloudError
+    }
+  },
+  serializer
+};
+
+const checkUserExistenceInGroupOperationSpec: msRest.OperationSpec = {
+  httpMethod: "HEAD",
+  path: "api/hubs/{hub}/users/{user}/groups/{group}",
+  urlParameters: [
+    Parameters.hub,
+    Parameters.group0,
+    Parameters.user
+  ],
+  queryParameters: [
     Parameters.apiVersion
   ],
   headerParameters: [
@@ -746,21 +963,20 @@ const checkUserExistenceInGroupOperationSpec: msRest.OperationSpec = {
 
 const addUserToGroupOperationSpec: msRest.OperationSpec = {
   httpMethod: "PUT",
-  path: "api/users/{user}/groups/{group}",
+  path: "api/hubs/{hub}/users/{user}/groups/{group}",
   urlParameters: [
-    Parameters.group1,
-    Parameters.user1
+    Parameters.hub,
+    Parameters.group0,
+    Parameters.user
   ],
   queryParameters: [
-    Parameters.hub,
-    Parameters.ttl,
     Parameters.apiVersion
   ],
   headerParameters: [
     Parameters.acceptLanguage
   ],
   responses: {
-    202: {},
+    200: {},
     default: {
       bodyMapper: Mappers.CloudError
     }
@@ -770,13 +986,13 @@ const addUserToGroupOperationSpec: msRest.OperationSpec = {
 
 const removeUserFromGroupOperationSpec: msRest.OperationSpec = {
   httpMethod: "DELETE",
-  path: "api/users/{user}/groups/{group}",
+  path: "api/hubs/{hub}/users/{user}/groups/{group}",
   urlParameters: [
-    Parameters.group1,
-    Parameters.user1
+    Parameters.hub,
+    Parameters.group0,
+    Parameters.user
   ],
   queryParameters: [
-    Parameters.hub,
     Parameters.apiVersion
   ],
   headerParameters: [
@@ -793,12 +1009,12 @@ const removeUserFromGroupOperationSpec: msRest.OperationSpec = {
 
 const removeUserFromAllGroupsOperationSpec: msRest.OperationSpec = {
   httpMethod: "DELETE",
-  path: "api/users/{user}/groups",
+  path: "api/hubs/{hub}/users/{user}/groups",
   urlParameters: [
-    Parameters.user0
+    Parameters.hub,
+    Parameters.user
   ],
   queryParameters: [
-    Parameters.hub,
     Parameters.apiVersion
   ],
   headerParameters: [
@@ -806,6 +1022,79 @@ const removeUserFromAllGroupsOperationSpec: msRest.OperationSpec = {
   ],
   responses: {
     200: {},
+    default: {
+      bodyMapper: Mappers.CloudError
+    }
+  },
+  serializer
+};
+
+const grantGroupPermissionOperationSpec: msRest.OperationSpec = {
+  httpMethod: "PUT",
+  path: "api/hubs/{hub}/permissions/{permission}/connections/{connectionId}",
+  urlParameters: [
+    Parameters.hub,
+    Parameters.permission,
+    Parameters.connectionId
+  ],
+  queryParameters: [
+    Parameters.group1,
+    Parameters.apiVersion
+  ],
+  headerParameters: [
+    Parameters.acceptLanguage
+  ],
+  responses: {
+    200: {},
+    default: {
+      bodyMapper: Mappers.CloudError
+    }
+  },
+  serializer
+};
+
+const revokeGroupPermissionOperationSpec: msRest.OperationSpec = {
+  httpMethod: "DELETE",
+  path: "api/hubs/{hub}/permissions/{permission}/connections/{connectionId}",
+  urlParameters: [
+    Parameters.hub,
+    Parameters.permission,
+    Parameters.connectionId
+  ],
+  queryParameters: [
+    Parameters.group1,
+    Parameters.apiVersion
+  ],
+  headerParameters: [
+    Parameters.acceptLanguage
+  ],
+  responses: {
+    200: {},
+    default: {
+      bodyMapper: Mappers.CloudError
+    }
+  },
+  serializer
+};
+
+const checkGroupPermissionOperationSpec: msRest.OperationSpec = {
+  httpMethod: "HEAD",
+  path: "api/hubs/{hub}/permissions/{permission}/connections/{connectionId}",
+  urlParameters: [
+    Parameters.hub,
+    Parameters.permission,
+    Parameters.connectionId
+  ],
+  queryParameters: [
+    Parameters.group1,
+    Parameters.apiVersion
+  ],
+  headerParameters: [
+    Parameters.acceptLanguage
+  ],
+  responses: {
+    200: {},
+    404: {},
     default: {
       bodyMapper: Mappers.CloudError
     }

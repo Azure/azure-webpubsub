@@ -29,24 +29,11 @@ export const apiVersion: msRest.OperationQueryParameter = {
     }
   }
 };
-export const connectionId0: msRest.OperationURLParameter = {
+export const connectionId: msRest.OperationURLParameter = {
   parameterPath: "connectionId",
   mapper: {
     required: true,
     serializedName: "connectionId",
-    type: {
-      name: "String"
-    }
-  }
-};
-export const connectionId1: msRest.OperationURLParameter = {
-  parameterPath: "connectionId",
-  mapper: {
-    required: true,
-    serializedName: "connectionId",
-    constraints: {
-      Pattern: /^[A-Za-z][A-Za-z0-9_`,.[\]]{0,127}$/
-    },
     type: {
       name: "String"
     }
@@ -80,25 +67,22 @@ export const group0: msRest.OperationURLParameter = {
     }
   }
 };
-export const group1: msRest.OperationURLParameter = {
-  parameterPath: "group",
+export const group1: msRest.OperationQueryParameter = {
+  parameterPath: [
+    "options",
+    "group"
+  ],
   mapper: {
-    required: true,
     serializedName: "group",
-    constraints: {
-      Pattern: /^[A-Za-z][A-Za-z0-9_`,.[\]]{0,127}$/
-    },
     type: {
       name: "String"
     }
   }
 };
-export const hub: msRest.OperationQueryParameter = {
-  parameterPath: [
-    "options",
-    "hub"
-  ],
+export const hub: msRest.OperationURLParameter = {
+  parameterPath: "hub",
   mapper: {
+    required: true,
     serializedName: "hub",
     type: {
       name: "String"
@@ -110,6 +94,16 @@ export const id: msRest.OperationURLParameter = {
   mapper: {
     required: true,
     serializedName: "id",
+    type: {
+      name: "String"
+    }
+  }
+};
+export const permission: msRest.OperationURLParameter = {
+  parameterPath: "permission",
+  mapper: {
+    required: true,
+    serializedName: "permission",
     type: {
       name: "String"
     }
@@ -127,32 +121,7 @@ export const reason: msRest.OperationQueryParameter = {
     }
   }
 };
-export const ttl: msRest.OperationQueryParameter = {
-  parameterPath: [
-    "options",
-    "ttl"
-  ],
-  mapper: {
-    serializedName: "ttl",
-    type: {
-      name: "Number"
-    }
-  }
-};
-export const user0: msRest.OperationURLParameter = {
-  parameterPath: "user",
-  mapper: {
-    required: true,
-    serializedName: "user",
-    constraints: {
-      Pattern: /^[A-Za-z][A-Za-z0-9_`,.[\]]{0,127}$/
-    },
-    type: {
-      name: "String"
-    }
-  }
-};
-export const user1: msRest.OperationURLParameter = {
+export const user: msRest.OperationURLParameter = {
   parameterPath: "user",
   mapper: {
     required: true,

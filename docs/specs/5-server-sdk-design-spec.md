@@ -18,12 +18,109 @@ group: specs
 The server SDK, providing a convinience way for the users to use the service, should contain the following features:
 1. [Must-have] Service->Server REST API support
 1. [Nice-to-have] Server->Service CloudEvents handler
+    1. `validate` endpoint for [event handler upstream validation](./3-server-protocols-in-detail.md#protection)
     1. Common data structure for Web PubSub Service specific CloudEvents request and response
     1. Helper method to convert HTTP headers and body to Web PubSub Service specific CloudEvents request
     1. Helper method to convert Web PubSub Service specific CloudEvents response to HTTP response headers and body
     1. Middleware for processing Web PubSub Service specific CloudEvents HTTP requests
 1. [Nice-to-have] Client Auth token generator
 
+## Data structure proposal:
+
+### Request
+
+```ts
+// common context for the connection
+interface ConnectionContext {
+  signature: string;
+  hub: string;
+  connectionId: string;
+  eventName: string;
+  userId?: string;
+}
+
+// for `connect` event
+interface ConnectRequest {
+  context: ConnectionContext;
+  claims?: { [key: string]: string[] };
+  queries?: { [key: string]: string[] };
+  subprotocols?: string[];
+  clientCertificates?: Certificate[];
+}
+
+// for `connected` event
+interface ConnectedRequest {
+  context: ConnectionContext;
+}
+
+// for user events, `message` or custom events
+interface UserEventRequest {
+  context: ConnectionContext;
+  eventName: string;
+  data: string | ArrayBuffer;
+}
+
+// for `disconnected` event
+interface DisonnectedRequest {
+  context: ConnectionContext;
+  reason?: string;
+}
+
+interface Certificate {
+  thumbprint: string;
+}
+```
+
+### Response
+
+Only *synchronous* events `event` and user events (`message` or custom events) need responses.
+
+```ts
+
+interface ErrorResponse {
+  code: ErrorCode;
+  detail?: string;
+}
+
+enum ErrorCode {
+  serverError, // Response to service using 500
+  userError, // Response to service using 400
+  unauthorized, // Response to service using 401
+}
+
+interface ConnectResponse {
+  error?: ErrorResponse; // If error is set, we consider this a failed response
+  groups?: string[];
+  roles?: string[];
+  userId?: string;
+  subprotocol?: string;
+}
+
+// for user events, `message` or custom events
+interface EventResponse {
+  error?: ErrorResponse // If error is set, we consider this a failed response
+  body?: string | ArrayBuffer, // Response Content-Type should be `plain/text` for string, and `application/octet-stream` for ArrayBuffer
+}
+
+```
+
+
+## Client auth utility proposal:
+```js
+interface NegotiateResponse{
+  url: string; // the service URL
+  token: string; // the access token to access the service
+}
+
+function negotiate(string userId, { [key: string]: string[] }? claims) : NegotiateResponse;
+```
+
+## Http Middleware
+
+The middleware can contain 3 parts:
+1. Handle client negotiate requests
+2. Handle CloudEvents validation requests
+3. Handle incoming CloudEvents event requests
 
 ## JavaScript SDK proposal
 <a name="js"></a>

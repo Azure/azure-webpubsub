@@ -21,61 +21,7 @@ export interface HealthApiGetHealthStatusOptionalParams extends msRest.RequestOp
 /**
  * Optional Parameters.
  */
-export interface WebPubSubApiBroadcastOptionalParams extends msRest.RequestOptionsBase {
-  /**
-   * Target hub name, which should start with alphabetic characters and only contain alpha-numeric
-   * characters or underscore. When it is not set, it uses the default hub
-   */
-  hub?: string;
-  /**
-   * Excluded connection Ids
-   */
-  excluded?: string[];
-  /**
-   * Default value: '2020-10-01'.
-   */
-  apiVersion?: string;
-}
-
-/**
- * Optional Parameters.
- */
-export interface WebPubSubApiSendToUserOptionalParams extends msRest.RequestOptionsBase {
-  /**
-   * Target hub name, which should start with alphabetic characters and only contain alpha-numeric
-   * characters or underscore. When it is not set, it uses the default hub
-   */
-  hub?: string;
-  /**
-   * Default value: '2020-10-01'.
-   */
-  apiVersion?: string;
-}
-
-/**
- * Optional Parameters.
- */
-export interface WebPubSubApiSendToConnectionOptionalParams extends msRest.RequestOptionsBase {
-  /**
-   * Target hub name, which should start with alphabetic characters and only contain alpha-numeric
-   * characters or underscore. When it is not set, it uses the default hub
-   */
-  hub?: string;
-  /**
-   * Default value: '2020-10-01'.
-   */
-  apiVersion?: string;
-}
-
-/**
- * Optional Parameters.
- */
-export interface WebPubSubApiGroupBroadcastOptionalParams extends msRest.RequestOptionsBase {
-  /**
-   * Target hub name, which should start with alphabetic characters and only contain alpha-numeric
-   * characters or underscore. When it is not set, it uses the default hub
-   */
-  hub?: string;
+export interface WebPubSubApiSendToAllOptionalParams extends msRest.RequestOptionsBase {
   /**
    * Excluded connection Ids
    */
@@ -91,11 +37,6 @@ export interface WebPubSubApiGroupBroadcastOptionalParams extends msRest.Request
  */
 export interface WebPubSubApiCheckConnectionExistenceOptionalParams extends msRest.RequestOptionsBase {
   /**
-   * Target hub name, which should start with alphabetic characters and only contain alpha-numeric
-   * characters or underscore. When it is not set, it uses the default hub
-   */
-  hub?: string;
-  /**
    * Default value: '2020-10-01'.
    */
   apiVersion?: string;
@@ -105,11 +46,6 @@ export interface WebPubSubApiCheckConnectionExistenceOptionalParams extends msRe
  * Optional Parameters.
  */
 export interface WebPubSubApiCloseClientConnectionOptionalParams extends msRest.RequestOptionsBase {
-  /**
-   * Target hub name, which should start with alphabetic characters and only contain alpha-numeric
-   * characters or underscore. When it is not set, it uses the default hub
-   */
-  hub?: string;
   /**
    * The reason closing the client connection
    */
@@ -123,12 +59,7 @@ export interface WebPubSubApiCloseClientConnectionOptionalParams extends msRest.
 /**
  * Optional Parameters.
  */
-export interface WebPubSubApiCheckGroupExistenceOptionalParams extends msRest.RequestOptionsBase {
-  /**
-   * Target hub name, which should start with alphabetic characters and only contain alpha-numeric
-   * characters or underscore. When it is not set, it uses the default hub
-   */
-  hub?: string;
+export interface WebPubSubApiSendToConnectionOptionalParams extends msRest.RequestOptionsBase {
   /**
    * Default value: '2020-10-01'.
    */
@@ -138,12 +69,21 @@ export interface WebPubSubApiCheckGroupExistenceOptionalParams extends msRest.Re
 /**
  * Optional Parameters.
  */
-export interface WebPubSubApiCheckUserExistenceOptionalParams extends msRest.RequestOptionsBase {
+export interface WebPubSubApiCheckGroupExistenceOptionalParams extends msRest.RequestOptionsBase {
   /**
-   * Target hub name, which should start with alphabetic characters and only contain alpha-numeric
-   * characters or underscore. When it is not set, it uses the default hub
+   * Default value: '2020-10-01'.
    */
-  hub?: string;
+  apiVersion?: string;
+}
+
+/**
+ * Optional Parameters.
+ */
+export interface WebPubSubApiSendToGroupOptionalParams extends msRest.RequestOptionsBase {
+  /**
+   * Excluded connection Ids
+   */
+  excluded?: string[];
   /**
    * Default value: '2020-10-01'.
    */
@@ -155,11 +95,6 @@ export interface WebPubSubApiCheckUserExistenceOptionalParams extends msRest.Req
  */
 export interface WebPubSubApiAddConnectionToGroupOptionalParams extends msRest.RequestOptionsBase {
   /**
-   * Target hub name, which should start with alphabetic characters and only contain alpha-numeric
-   * characters or underscore. When it is not set, it uses the default hub
-   */
-  hub?: string;
-  /**
    * Default value: '2020-10-01'.
    */
   apiVersion?: string;
@@ -170,10 +105,25 @@ export interface WebPubSubApiAddConnectionToGroupOptionalParams extends msRest.R
  */
 export interface WebPubSubApiRemoveConnectionFromGroupOptionalParams extends msRest.RequestOptionsBase {
   /**
-   * Target hub name, which should start with alphabetic characters and only contain alpha-numeric
-   * characters or underscore. When it is not set, it uses the default hub
+   * Default value: '2020-10-01'.
    */
-  hub?: string;
+  apiVersion?: string;
+}
+
+/**
+ * Optional Parameters.
+ */
+export interface WebPubSubApiCheckUserExistenceOptionalParams extends msRest.RequestOptionsBase {
+  /**
+   * Default value: '2020-10-01'.
+   */
+  apiVersion?: string;
+}
+
+/**
+ * Optional Parameters.
+ */
+export interface WebPubSubApiSendToUserOptionalParams extends msRest.RequestOptionsBase {
   /**
    * Default value: '2020-10-01'.
    */
@@ -185,11 +135,6 @@ export interface WebPubSubApiRemoveConnectionFromGroupOptionalParams extends msR
  */
 export interface WebPubSubApiCheckUserExistenceInGroupOptionalParams extends msRest.RequestOptionsBase {
   /**
-   * Target hub name, which should start with alphabetic characters and only contain alpha-numeric
-   * characters or underscore. When it is not set, it uses the default hub
-   */
-  hub?: string;
-  /**
    * Default value: '2020-10-01'.
    */
   apiVersion?: string;
@@ -199,16 +144,6 @@ export interface WebPubSubApiCheckUserExistenceInGroupOptionalParams extends msR
  * Optional Parameters.
  */
 export interface WebPubSubApiAddUserToGroupOptionalParams extends msRest.RequestOptionsBase {
-  /**
-   * Target hub name, which should start with alphabetic characters and only contain alpha-numeric
-   * characters or underscore. When it is not set, it uses the default hub
-   */
-  hub?: string;
-  /**
-   * Specifies the seconds that the user exists in the group. If not set, the user lives in the
-   * group forever.
-   */
-  ttl?: number;
   /**
    * Default value: '2020-10-01'.
    */
@@ -220,11 +155,6 @@ export interface WebPubSubApiAddUserToGroupOptionalParams extends msRest.Request
  */
 export interface WebPubSubApiRemoveUserFromGroupOptionalParams extends msRest.RequestOptionsBase {
   /**
-   * Target hub name, which should start with alphabetic characters and only contain alpha-numeric
-   * characters or underscore. When it is not set, it uses the default hub
-   */
-  hub?: string;
-  /**
    * Default value: '2020-10-01'.
    */
   apiVersion?: string;
@@ -235,10 +165,50 @@ export interface WebPubSubApiRemoveUserFromGroupOptionalParams extends msRest.Re
  */
 export interface WebPubSubApiRemoveUserFromAllGroupsOptionalParams extends msRest.RequestOptionsBase {
   /**
-   * Target hub name, which should start with alphabetic characters and only contain alpha-numeric
-   * characters or underscore. When it is not set, it uses the default hub
+   * Default value: '2020-10-01'.
    */
-  hub?: string;
+  apiVersion?: string;
+}
+
+/**
+ * Optional Parameters.
+ */
+export interface WebPubSubApiGrantGroupPermissionOptionalParams extends msRest.RequestOptionsBase {
+  /**
+   * Optional. If not set, grant the permission to all groups. If set, grant the permission to the
+   * specific group.
+   */
+  group?: string;
+  /**
+   * Default value: '2020-10-01'.
+   */
+  apiVersion?: string;
+}
+
+/**
+ * Optional Parameters.
+ */
+export interface WebPubSubApiRevokeGroupPermissionOptionalParams extends msRest.RequestOptionsBase {
+  /**
+   * Optional. If not set, revoke the permission for all groups. If set, revoke the permission for
+   * the specific group.
+   */
+  group?: string;
+  /**
+   * Default value: '2020-10-01'.
+   */
+  apiVersion?: string;
+}
+
+/**
+ * Optional Parameters.
+ */
+export interface WebPubSubApiCheckGroupPermissionOptionalParams extends msRest.RequestOptionsBase {
+  /**
+   * Optional. If not set, get the permission for all groups. If set, get the permission for the
+   * specific group.
+   */
+  group?: string;
   /**
    * Default value: '2020-10-01'.
    */
@@ -251,6 +221,30 @@ export interface WebPubSubApiRemoveUserFromAllGroupsOptionalParams extends msRes
 export interface WebPubSubServiceClientOptions extends AzureServiceClientOptions {
   baseUri?: string;
 }
+
+/**
+ * Defines values for Permission.
+ * Possible values include: 'publish', 'join'
+ * @readonly
+ * @enum {string}
+ */
+export type Permission = 'publish' | 'join';
+
+/**
+ * Defines values for Permission1.
+ * Possible values include: 'publish', 'join'
+ * @readonly
+ * @enum {string}
+ */
+export type Permission1 = 'publish' | 'join';
+
+/**
+ * Defines values for Permission2.
+ * Possible values include: 'publish', 'join'
+ * @readonly
+ * @enum {string}
+ */
+export type Permission2 = 'publish' | 'join';
 
 /**
  * Contains response data for the checkConnectionExistence operation.
@@ -331,6 +325,31 @@ export type WebPubSubApiCheckUserExistenceResponse = {
  * Contains response data for the checkUserExistenceInGroup operation.
  */
 export type WebPubSubApiCheckUserExistenceInGroupResponse = {
+  /**
+   * The parsed response body.
+   */
+  body: boolean;
+
+  /**
+   * The underlying HTTP response.
+   */
+  _response: msRest.HttpResponse & {
+      /**
+       * The response body as text (string format)
+       */
+      bodyAsText: string;
+
+      /**
+       * The response body as parsed JSON or XML
+       */
+      parsedBody: boolean;
+    };
+};
+
+/**
+ * Contains response data for the checkGroupPermission operation.
+ */
+export type WebPubSubApiCheckGroupPermissionResponse = {
   /**
    * The parsed response body.
    */

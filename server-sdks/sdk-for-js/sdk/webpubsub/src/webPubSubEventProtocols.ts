@@ -21,10 +21,11 @@ export interface ConnectResponse {
 }
 
 export interface EventResponse {
-  body: string | ArrayBuffer | undefined
+  body: string | ArrayBuffer | undefined,
+  error: ErrorResponse
 }
 
-export interface ErrorResponse extends EventResponse {
+export interface ErrorResponse {
   error: string | undefined;
   code: number;
 }
