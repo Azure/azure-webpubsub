@@ -216,9 +216,9 @@ public static async Task Message(
 
 > When SDK has better supports, server side could work with server sdk convenience layer methods without output binding data type limited. And method response will have enrich properties.
 > ```cs
-> [FunctionName("chathub-message")]
+> [FunctionName("message")]
 > public static async Task Message(
->     [WebPubSubTrigger] InvocationContext context)
+>     [WebPubSubTrigger(Hub = "simplechat", Event = "message", EventType = EventType.User)] InvocationContext context)
 > {
 >     var server = context.GetWebPubSubServer();
 >     await server.AddToGroupAsync(context.UserId, "group1");
