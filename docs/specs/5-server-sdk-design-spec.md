@@ -136,7 +136,7 @@ handler = WebPubSubHandler(
 )
 ```
 
-### For gunicorn (server)
+### For gunicorn (http server)
 
 ```python
 (handler part)
@@ -147,7 +147,7 @@ def app(environ, start_response):
   return handler.process(environ)
 ```
 
-Command line
+**Command line**
 
 ```bash
 gunicorn app:app
@@ -155,6 +155,8 @@ gunicorn app:app
 
 
 ### For wsgi (middleware)
+
+[PEP 3333](https://www.python.org/dev/peps/pep-3333/#middleware-components-that-play-both-sides)
 
 For example, we use flask as our framework.
 
@@ -169,4 +171,19 @@ app.wsgi_app = handler.middleware(app.wsgi_app)
 
 if __name__ == "__main__":
     app.run('127.0.0.1', '5000', debug=True)
+```
+
+Similar codes for django.
+
+```python
+(handler)
+
+from django.core.wsgi import get_wsgi_application
+
+app = get_wsgi_application()
+app = handler.middleware(app)
+
+if __name__ == "__main__":
+    from django.core.management import execute_from_command_line
+    execute_from_command_line(sys.argv)
 ```
