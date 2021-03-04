@@ -55,7 +55,7 @@ Below patterns are valid:
 
 - `wss://{serviceUrl}/ws/client`
 - `wss://{serviceUrl}/ws/client/hubs/{hub}`
-- `wss://{serviceUrl}/ws/client?hubs={hub}`
+- `wss://{serviceUrl}/ws/client?hub={hub}`
 
 ## Upstream
 
