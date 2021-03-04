@@ -83,12 +83,12 @@ public static WebPubSubConnection GetClientConnection(
 * javascript usage:
 ```js
 {
-      "type": "webpubsubConnection",
-      "name": "connection",
-      "userId": "{query.userid}",
-      "hubName": "chathub",
-      "direction": "in"
-    }
+    "type": "webpubsubConnection",
+    "name": "connection",
+    "userId": "{query.userid}",
+    "hubName": "chathub",
+    "direction": "in"
+}
 ```
 
 ```js
@@ -132,12 +132,12 @@ public static void Connect(
 * javascript usage:
 ```js
 {
-  "type": "webpubsubTrigger",
-  "name": "invocation",
-  "hub": "simplechat",
-  "event": "connect",
-  "eventType", "system"
-  "direction": "in"
+    "type": "webpubsubTrigger",
+    "name": "invocation",
+    "hub": "simplechat",
+    "event": "connect",
+    "eventType", "system"
+    "direction": "in"
 }
 ```
 
@@ -168,18 +168,18 @@ public static MessageData Broadcast(
 * javascript usage:
 ```js
 {
-  "type": "webpubsubTrigger",
-  "name": "invocation",
-  "hub": "simplechat",
-  "event": "message",
-  "eventType": "user",
-  "direction": "in"
+    "type": "webpubsubTrigger",
+    "name": "invocation",
+    "hub": "simplechat",
+    "event": "message",
+    "eventType": "user",
+    "direction": "in"
 },
 {
-  "type": "webpubsub",
-  "name": "messageData",
-  "hubName": "simplechat",
-  "direction": "out"
+    "type": "webpubsub",
+    "name": "messageData",
+    "hubName": "simplechat",
+    "direction": "out"
 }
 ```
 ```js
