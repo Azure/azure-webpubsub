@@ -9,7 +9,7 @@ group: specs
 - [Scope for Public Preview](#scope)
 - [JavaScript](#js)
 - [C#]
-- [Python]
+- [Python](#python)
 - [Java]
 
 ## Scope for Public Preview
@@ -27,6 +27,7 @@ The server SDK, providing a convinience way for the users to use the service, sh
 
 ## JavaScript SDK proposal
 <a name="js"></a>
+
 ### For express
 ```js
 const wpsserver = new WebPubSubServer(process.env.WPS_CONNECTION_STRING!,
@@ -92,4 +93,80 @@ const server = createServer(async (request: IncomingMessage, response: ServerRes
 });
 
 server.listen(port, () => console.log(`Azure WebPubSub Upstream ready at http://localhost:${port}${wpsserver.eventHandlerUrl}`));
+```
+
+## Python SDK proposal
+<a name="python"></a>
+
+### Handler
+
+```python
+import os
+
+from azure.webpubsub import WebPubSubHandler
+
+def _on_connect(handler, req):
+  return {
+    "user_id": "terence",
+  }
+
+
+def _on_connected(handler, req):
+  handler.broadcast("{} connected".format(req.context.connection_id))
+
+
+def _on_user_event(handler, req):
+  return {
+    "body": "Hey ", req.data
+  }
+
+
+def _on_disconnected(handler, req):
+  print("{} disconnected".format(req.context.user_id))
+
+
+handler = WebPubSubHandler(
+  os.getenv("WPS_CONNECTION_STRING"),
+  event_handler_url="/customUrl",
+  hub="chat",
+  on_connect=_on_connect,
+  on_connected=_on_connected,
+  on_disconnected=_on_disconnected,
+  on_user_event=_on_user_event,
+)
+```
+
+### For gunicorn (server)
+
+```python
+(handler part)
+
+def app(environ, start_response):
+  # parse HTTP body and headers from environ
+  # https://wsgi.readthedocs.io/en/latest/definitions.html
+  return handler.process(environ)
+```
+
+Command line
+
+```bash
+gunicorn app:app
+```
+
+
+### For wsgi (middleware)
+
+For example, we use flask as our framework.
+
+```python
+(handler)
+
+from flask import Flask
+
+app = Flask('WebPubSub')
+
+app.wsgi_app = handler.middleware(app.wsgi_app)
+
+if __name__ == "__main__":
+    app.run('127.0.0.1', '5000', debug=True)
 ```
