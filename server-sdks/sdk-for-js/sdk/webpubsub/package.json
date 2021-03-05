@@ -24,8 +24,8 @@
   ],
   "license": "MIT",
   "main": "./dist/webpubsub.js",
-  "module": "./esm/webPubSubServiceClient.js",
-  "types": "./esm/webPubSubServiceClient.d.ts",
+  "module": "./esm/webPubSubServiceRestClient.js",
+  "types": "./esm/webPubSubServiceRestClient.d.ts",
   "devDependencies": {
     "@types/express": "^4.17.11",
     "@types/jsonwebtoken": "^8.5.0",
@@ -60,7 +60,7 @@
     "tsconfig.json"
   ],
   "scripts": {
-    "build": "tsc && rollup -c rollup.config.js && npm run minify",
+    "build": "tsc && rollup -c rollup.config.js",
     "minify": "uglifyjs -c -m --comments --source-map \"content='./dist/webpubsub.js.map'\" -o ./dist/webpubsub.min.js ./dist/webpubsub.js",
     "prepack": "npm install && npm run build"
   },

@@ -41,21 +41,22 @@ export class WebPubSubSendApi {
    * @param [options] The optional parameters
    * @returns Promise<msRest.RestResponse>
    */
-  broadcast(payloadMessage: string | msRest.HttpRequestBody, options?: Models.WebPubSubApiBroadcastOptionalParams): Promise<msRest.RestResponse>;
+  sendToAll(hub: string, payloadMessage: string | msRest.HttpRequestBody, options?: Models.WebPubSubApiSendToAllOptionalParams): Promise<msRest.RestResponse>;
   /**
    * @param payloadMessage
    * @param callback The callback
    */
-  broadcast(payloadMessage: string | msRest.HttpRequestBody, callback: msRest.ServiceCallback<void>): void;
+  sendToAll(hub: string, payloadMessage: string | msRest.HttpRequestBody, callback: msRest.ServiceCallback<void>): void;
   /**
    * @param payloadMessage
    * @param options The optional parameters
    * @param callback The callback
    */
-  broadcast(payloadMessage: string | msRest.HttpRequestBody, options: Models.WebPubSubApiBroadcastOptionalParams, callback: msRest.ServiceCallback<void>): void;
-  broadcast(payloadMessage: string | msRest.HttpRequestBody, options?: Models.WebPubSubApiBroadcastOptionalParams | msRest.ServiceCallback<void>, callback?: msRest.ServiceCallback<void>): Promise<msRest.RestResponse> {
+  sendToAll(hub: string, payloadMessage: string | msRest.HttpRequestBody, options: Models.WebPubSubApiSendToAllOptionalParams, callback: msRest.ServiceCallback<void>): void;
+  sendToAll(hub: string, payloadMessage: string | msRest.HttpRequestBody, options?: Models.WebPubSubApiSendToAllOptionalParams | msRest.ServiceCallback<void>, callback?: msRest.ServiceCallback<void>): Promise<msRest.RestResponse> {
     return this.client.sendOperationRequest(
       {
+        hub,
         payloadMessage,
         options
       },
@@ -70,23 +71,24 @@ export class WebPubSubSendApi {
    * @param [options] The optional parameters
    * @returns Promise<msRest.RestResponse>
    */
-  sendToUser(id: string, payloadMessage: string | msRest.HttpRequestBody, options?: Models.WebPubSubApiSendToUserOptionalParams): Promise<msRest.RestResponse>;
+  sendToUser(hub: string, id: string, payloadMessage: string | msRest.HttpRequestBody, options?: Models.WebPubSubApiSendToUserOptionalParams): Promise<msRest.RestResponse>;
   /**
    * @param id The user Id.
    * @param payloadMessage
    * @param callback The callback
    */
-  sendToUser(id: string, payloadMessage: string | msRest.HttpRequestBody, callback: msRest.ServiceCallback<void>): void;
+  sendToUser(hub: string, id: string, payloadMessage: string | msRest.HttpRequestBody, callback: msRest.ServiceCallback<void>): void;
   /**
    * @param id The user Id.
    * @param payloadMessage
    * @param options The optional parameters
    * @param callback The callback
    */
-  sendToUser(id: string, payloadMessage: string | msRest.HttpRequestBody, options: Models.WebPubSubApiSendToUserOptionalParams, callback: msRest.ServiceCallback<void>): void;
-  sendToUser(id: string, payloadMessage: string | msRest.HttpRequestBody, options?: Models.WebPubSubApiSendToUserOptionalParams | msRest.ServiceCallback<void>, callback?: msRest.ServiceCallback<void>): Promise<msRest.RestResponse> {
+  sendToUser(hub: string, id: string, payloadMessage: string | msRest.HttpRequestBody, options: Models.WebPubSubApiSendToUserOptionalParams, callback: msRest.ServiceCallback<void>): void;
+  sendToUser(hub: string, id: string, payloadMessage: string | msRest.HttpRequestBody, options?: Models.WebPubSubApiSendToUserOptionalParams | msRest.ServiceCallback<void>, callback?: msRest.ServiceCallback<void>): Promise<msRest.RestResponse> {
     return this.client.sendOperationRequest(
       {
+        hub,
         id,
         payloadMessage,
         options
@@ -102,23 +104,24 @@ export class WebPubSubSendApi {
    * @param [options] The optional parameters
    * @returns Promise<msRest.RestResponse>
    */
-  sendToConnection(connectionId: string, payloadMessage: string | msRest.HttpRequestBody, options?: Models.WebPubSubApiSendToConnectionOptionalParams): Promise<msRest.RestResponse>;
+  sendToConnection(hub: string, connectionId: string, payloadMessage: string | msRest.HttpRequestBody, options?: Models.WebPubSubApiSendToConnectionOptionalParams): Promise<msRest.RestResponse>;
   /**
    * @param connectionId The connection Id.
    * @param payloadMessage
    * @param callback The callback
    */
-  sendToConnection(connectionId: string, payloadMessage: string | msRest.HttpRequestBody, callback: msRest.ServiceCallback<void>): void;
+  sendToConnection(hub: string, connectionId: string, payloadMessage: string | msRest.HttpRequestBody, callback: msRest.ServiceCallback<void>): void;
   /**
    * @param connectionId The connection Id.
    * @param payloadMessage
    * @param options The optional parameters
    * @param callback The callback
    */
-  sendToConnection(connectionId: string, payloadMessage: string | msRest.HttpRequestBody, options: Models.WebPubSubApiSendToConnectionOptionalParams, callback: msRest.ServiceCallback<void>): void;
-  sendToConnection(connectionId: string, payloadMessage: string | msRest.HttpRequestBody, options?: Models.WebPubSubApiSendToConnectionOptionalParams | msRest.ServiceCallback<void>, callback?: msRest.ServiceCallback<void>): Promise<msRest.RestResponse> {
+  sendToConnection(hub: string, connectionId: string, payloadMessage: string | msRest.HttpRequestBody, options: Models.WebPubSubApiSendToConnectionOptionalParams, callback: msRest.ServiceCallback<void>): void;
+  sendToConnection(hub: string, connectionId: string, payloadMessage: string | msRest.HttpRequestBody, options?: Models.WebPubSubApiSendToConnectionOptionalParams | msRest.ServiceCallback<void>, callback?: msRest.ServiceCallback<void>): Promise<msRest.RestResponse> {
     return this.client.sendOperationRequest(
       {
+        hub,
         connectionId,
         payloadMessage,
         options
@@ -134,21 +137,21 @@ export class WebPubSubSendApi {
    * @param [options] The optional parameters
    * @returns Promise<msRest.RestResponse>
    */
-  groupBroadcast(group: string, payloadMessage: string | msRest.HttpRequestBody, options?: Models.WebPubSubApiGroupBroadcastOptionalParams): Promise<msRest.RestResponse>;
+  sendToGroup(group: string, payloadMessage: string | msRest.HttpRequestBody, options?: Models.WebPubSubApiSendToGroupOptionalParams): Promise<msRest.RestResponse>;
   /**
    * @param group Target group name, which length should be greater than 0 and less than 1025.
    * @param payloadMessage
    * @param callback The callback
    */
-  groupBroadcast(group: string, payloadMessage: string | msRest.HttpRequestBody, callback: msRest.ServiceCallback<void>): void;
+  sendToGroup(group: string, payloadMessage: string | msRest.HttpRequestBody, callback: msRest.ServiceCallback<void>): void;
   /**
    * @param group Target group name, which length should be greater than 0 and less than 1025.
    * @param payloadMessage
    * @param options The optional parameters
    * @param callback The callback
    */
-  groupBroadcast(group: string, payloadMessage: string | msRest.HttpRequestBody, options: Models.WebPubSubApiGroupBroadcastOptionalParams, callback: msRest.ServiceCallback<void>): void;
-  groupBroadcast(group: string, payloadMessage: string | msRest.HttpRequestBody, options?: Models.WebPubSubApiGroupBroadcastOptionalParams | msRest.ServiceCallback<void>, callback?: msRest.ServiceCallback<void>): Promise<msRest.RestResponse> {
+  sendToGroup(group: string, payloadMessage: string | msRest.HttpRequestBody, options: Models.WebPubSubApiSendToGroupOptionalParams, callback: msRest.ServiceCallback<void>): void;
+  sendToGroup(group: string, payloadMessage: string | msRest.HttpRequestBody, options?: Models.WebPubSubApiSendToGroupOptionalParams | msRest.ServiceCallback<void>, callback?: msRest.ServiceCallback<void>): Promise<msRest.RestResponse> {
     return this.client.sendOperationRequest(
       {
         group,
@@ -164,9 +167,11 @@ export class WebPubSubSendApi {
 const serializer = new msRest.Serializer(Mappers);
 const broadcastOperationSpec: msRest.OperationSpec = {
   httpMethod: "POST",
-  path: "api/:send",
+  path: "api/hubs/{hub}/:send",
+  urlParameters: [
+    Parameters.hub
+  ],
   queryParameters: [
-    Parameters.hub,
     Parameters.excluded,
     Parameters.apiVersion
   ],
@@ -206,12 +211,12 @@ const sendToUserOperationSpec: msRest.OperationSpec = {
 
 const sendToConnectionOperationSpec: msRest.OperationSpec = {
   httpMethod: "POST",
-  path: "api/connections/{connectionId}/:send",
+  path: "api/hubs/{hub}/connections/{connectionId}/:send",
   urlParameters: [
-    Parameters.connectionId0
+    Parameters.hub,
+    Parameters.connectionId
   ],
   queryParameters: [
-    Parameters.hub,
     Parameters.apiVersion
   ],
   headerParameters: [
@@ -228,12 +233,12 @@ const sendToConnectionOperationSpec: msRest.OperationSpec = {
 
 const groupBroadcastOperationSpec: msRest.OperationSpec = {
   httpMethod: "POST",
-  path: "api/groups/{group}/:send",
+  path: "api/hubs/{hub}/groups/{group}/:send",
   urlParameters: [
+    Parameters.hub,
     Parameters.group0
   ],
   queryParameters: [
-    Parameters.hub,
     Parameters.excluded,
     Parameters.apiVersion
   ],
@@ -250,6 +255,8 @@ const groupBroadcastOperationSpec: msRest.OperationSpec = {
 };
 
 function fulfillSpec(payloadMessage: string | msRest.HttpRequestBody, baseSepc: msRest.OperationSpec): msRest.OperationSpec {
+  
+  console.log("fulfill");
   if (typeof payloadMessage === "string") {
     return {
       ...baseSepc,

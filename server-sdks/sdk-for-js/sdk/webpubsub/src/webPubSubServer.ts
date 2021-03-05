@@ -37,9 +37,9 @@ export class WebPubSubServer extends WebPubSubServiceRestClient {
   public endpoint!: string;
 
   private _parser: ProtocolParser;
-  constructor(connectionString: string, options?: WebPubSubServerOptions) {
-    super(connectionString, options);
-    this.hub = options?.hub ?? "_default";
+  constructor(connectionString: string, hub: string, options?: WebPubSubServerOptions) {
+    super(connectionString, hub, options);
+    this.hub = hub;
     this._parser = new ProtocolParser(this.hub, new DefaultEventHandler(options));
     this.eventHandlerUrl = options?.eventHandlerUrl ?? '/api/webpubsub' + (this.hub? `/hubs/${this.hub}` : '');
   }
@@ -62,16 +62,29 @@ export class WebPubSubServer extends WebPubSubServiceRestClient {
     }
 
     var result = await this._parser.processNodeHttpRequest(request);
+    console.log(result);
     response.end(result?.body ?? '');
+    console.log("done");
     return true;
   }
 
   public getMiddleware() : express.Router {
     const router = express.Router();
-    router.use(this.eventHandlerUrl, (req, res, next) => {
-      if (!this.handleNodeRequest(req, res)){
-        return next();
+    router.use(this.eventHandlerUrl, async (req, res) => {
+      if (req.method !== 'POST'){
+        res.status(400).send('Invalid method ' + req.method);
+        return;
       }
+  
+      var result = await this._parser.processNodeHttpRequest(req);
+      if (result?.body){
+        if (typeof(result.body) === 'string'){
+          res.type('text');
+        }
+      }
+      console.log(result);
+      res.end(result?.body ?? '');
+      console.log("done");
     });
     return router;
   }
