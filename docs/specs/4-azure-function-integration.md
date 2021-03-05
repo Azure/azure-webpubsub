@@ -17,10 +17,10 @@ group: specs
   - [Using the WebPubSub output binding](#using-the-webpubsub-output-binding)
   - [Supported object types for Output bindings.](#supported-object-types-for-output-bindings)
     - [WebPubSubEvent](#webpubsubevent)
-    - [MessageData](#messagedata)
-    - [GroupData](#groupdata)
-    - [CloseConnectionData](#closeconnectiondata)
-    - [ExistenceData (Limited)](#existencedata-limited)
+    - [MessageEvent](#messageevent)
+    - [GroupEvent](#groupevent)
+    - [CloseConnectionEvent](#closeconnectionevent)
+    - [ExistenceEvent (Limited)](#existenceevent-limited)
 
 ## Supported scenarios
 
@@ -64,16 +64,14 @@ When function is triggered, it can send any messaging request by `WebPubSub` out
 
 ### Using the WebPubSubConnection input binding
 
-In anonymous mode, `UserId` can be used with {headers.userid} or {query.userid} depends on where the userid is assigned in the negotiate call.
-
-__Optional__ Similarly users can set customers generated JWT accesstoken by assign `AccessToken = {query.accesstoken}` in the input binding property on demand where customized claims are built with. 
+ Customer can set `Hub`, `UserId` and `Claims` in the input binding where values can pass through the request parameters. For example, `UserId` can be used with {headers.userid} or {query.userid} depends on where the userid is assigned in the negotiate call. `Hub` is required in the binding.
 
 * csharp usage:
 ```cs
 [FunctionName("login")]
 public static WebPubSubConnection GetClientConnection(
     [HttpTrigger(AuthorizationLevel.Anonymous, "get", "post")] HttpRequest req,
-    [WebPubSubConnection(HubName = "simplechat", UserId = "{query.userid}")] WebPubSubConnectioconnection,
+    [WebPubSubConnection(HubName = "simplechat", UserId = "{query.userid}", Claims = "{headers.x-claims}")] WebPubSubConnection connection,
     ILogger log)
 {
     return connection;
@@ -100,31 +98,38 @@ module.exports = function (context, req, connection) {
 
 ### Using the WebPubSubTrigger trigger binding
 
-When clients already know Web PubSub service and communication to service, `WebPubSubTrigger` can be used as listener towards all kinds of requests coming from service. Function will use `WebPubSubTrigger` attributes as the **unique** key to map correct function. `EventType` will set to `system` by default.
+When clients already know Web PubSub service and communication to service, `WebPubSubTrigger` can be used as listener towards all kinds of requests coming from service. Function will use `WebPubSubTrigger` attributes as the **UNIQUE** key to map correct function. `EventType` will set to `system` by default. 
 
 EventType|(Allowed) Event
 --|--
 system|connect, connected, disconnect
-user|any, e.g. message or defined in subprotocol
+user|any, e.g. message or user defined in subprotocol
 
-For a connect request, server side has some controls to manager user's authentication before connected. Future on-hold messages can also be used like this. Properties available to set will be opened in `InvocationContext` and function extension will help build correct response to service after user actions are done in function.
+`InvocationContext` is a binding object contains common fields among all request, basically refer to [CloudEvents](protocol-cloudevents.md#events) for available fields. Other optional binding objects differs on the scenarios are used can be bind on-demand, like `Message` and `WebPubSubEventResponse`. Refer to below sample for details. Notice that Response only affect synchronous events of `connect` and `message`. `Error` has higher priority than rest fields that if `Error` is set, service will regard this request as failed and take some actions like drop down client connection and log information in service side. Besides, if user need to send message back to current connection, `DataType` is suggested to set within `MessageResponse` to improve data encode/decode. `DataType` is limited to `text`, `json` and `binary` and default value is `binary`.
+
+Binding Type | Description | Properties
+--|--|--
+`InvocationContext`|Request Information|Type, Event, Hub, ConnectionId, UserId, Headers, Queries, Claims, MediaType
+`Stream`|Request Message|-
+`WebPubSubEventResponse`|Response for user to set and return service|`ConnectResponse` - ConnectionId, Groups, UserId, Error, Subprotocol<br />`MessageResponse` - Error, ConnectionId, DataType, Message<br />
 
 * csharp usage:
 ```cs
 [FunctionName("connect")]
 public static void Connect(
-[WebPubSubTrigger(Hub = "simplechat", Event = "connect", EventType = EventType.System)]ConnectInvocationContext context)
+[WebPubSubTrigger(Hub = "simplechat", EventName = "connect", EventType = "system")]InvocationContext context,
+    ConnectResponse response)
 {
     Console.WriteLine($"{context.ConnectionId}");
     Console.WriteLine("Connect.");
     if (context.UserId == "abc")
     {
         // return error response
-        context.ErrorResponse = new ErrorResponse{ HttpStatusCode = System.Net.HttpStatusCode.Unauthorized, Error = "Invalid User" };
+        response.Error = new Error { Code = ErrorCode.Unauthorized, Error = "Invalid User" };
     }
     else {
         // or set properties for good response
-        context.SuccessReponse  = new SuccessReponse { Roles = new string[] { "Admin" } };
+        response.Roles = new string[] { "Admin" };
     }
 }
 ```
@@ -144,24 +149,29 @@ public static void Connect(
 ```js
 module.exports = function (context, invocation) {
   context.log('Receive event: ${context.bindingData.event} from connection: ${context.bindingData.connectionId}.');
+  context.bindings.response = [{
+      "code": "unauthorized",
+      "error": "Invalid User"
+  }];
   context.done();
 };
 ```
 
 ### Using the WebPubSub output binding
 
-For single message request, customer could bind to a target operation related data type to send the request.
+For a single request, customer can bind to a target operation related event type to send the request. For `MessageEvent`, customer can set `DataType` (allowed `binary`, `text`, `json`) to improve 
 
 * csharp usage:
 ```cs
 [FunctionName("broadcast")]
 [return: WebPubSub]
-public static MessageData Broadcast(
-    [WebPubSubTrigger(Hub = "simplechat", Event = "message", EventType = EventType.User)] InvocationContext context)
+public static MessageEvent Broadcast(
+    [WebPubSubTrigger(Hub = "simplechat", EventName = "message", EventType = "user")] InvocationContext context,
+    Stream message)
 {
-    return new MessageData
+    return new MessageEvent
     {
-        Message = GetString(context.Payload.Span)
+        Message = message
     };
 }
 ```
@@ -171,7 +181,7 @@ public static MessageData Broadcast(
     "type": "webpubsubTrigger",
     "name": "invocation",
     "hub": "simplechat",
-    "event": "message",
+    "eventName": "message",
     "eventType": "user",
     "direction": "in"
 },
@@ -185,31 +195,33 @@ public static MessageData Broadcast(
 ```js
 module.exports = async function (context, invocation) {
     context.bindings.messageData = [{
-        "message": invocation.bindingData.payload
+        "message": context.bindingData.message
+        "dataType": "text"
     }];
     context.
 };
 ```
 
-To send multiple messages, customer need to work with generic `WebPubSubEvent` and do multiple tasks in order.
+To send multiple requests, customer need to work with generic `WebPubSubEvent` and do multiple tasks in order.
 
 * csharp usage:
 ```cs
 [FunctionName("message")]
 public static async Task Message(
-    [WebPubSubTrigger(Hub = "simplechat", Event = "message", EventType = EventType.User)] InvocationContext context,
+    [WebPubSubTrigger(Hub = "simplechat", EventName = "message", EventType = "user")] InvocationContext context,
+    Stream message,
     [WebPubSub] IAsyncCollector<WebPubSubEvent> eventHandler)
 {
-    await message.AddAsync(new GroupData
+    await eventHandler.AddAsync(new GroupEvent
     {
         Action = GroupAction.Join,
         TargetType = TargetType.Users,
         TargetId = context.UserId,
         GroupId = "group1",
     })
-    await message.AddAsync(new MessageData
+    await eventHandler.AddAsync(new MessageEvent
     {
-        Message = GetString(context.Payload.Span)
+        Message = message
     });
 }
 ```
@@ -218,7 +230,7 @@ public static async Task Message(
 > ```cs
 > [FunctionName("message")]
 > public static async Task Message(
->     [WebPubSubTrigger(Hub = "simplechat", Event = "message", EventType = EventType.User)] InvocationContext context)
+>     [WebPubSubTrigger(Hub = "simplechat", EventName = "message", EventType = "user")] InvocationContext context)
 > {
 >     var server = context.GetWebPubSubServer();
 >     await server.AddToGroupAsync(context.UserId, "group1");
@@ -231,26 +243,27 @@ public static async Task Message(
 #### WebPubSubEvent 
 A generic base class to send multiple tasks.
 
-#### MessageData
+#### MessageEvent
 
 1. `TargetType`, supports All, Users, Connections, Groups, default as All
 2. `TargetId`, use with `TagetType`, where target id should be assigned if `TargetType` is not All.
 3. `Excludes`, excludes connection ids
 4. `Message`
+5. `DataType`, supports `binary`, `text`, `json`
 
-#### GroupData
+#### GroupEvent
 
-1. `GroupAction`, supports Add/Remove
+1. `GroupAction`, supports Join/Leave/LeaveAll
 2. `TargetType`, supports Users/Connections
 3. `TargetId`
 4. `GroupId`
 
-#### CloseConnectionData
+#### CloseConnectionEvent
 
 1. `ConnectionId`
 2. `Reason`
 
-#### ExistenceData (Limited)
+#### ExistenceEvent (Limited)
 
 1. `TargetType` supports Users/Connections/Groups
 2. `TargetId`
