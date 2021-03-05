@@ -2,8 +2,7 @@ import { WebPubSubServer } from "../src/webPubSubServer";
 
 import * as dotenv from "dotenv";
 dotenv.config();
-const chatServer = new WebPubSubServer(process.env.WPS_CONNECTION_STRING!, {
-  hub: 'chat',
+const chatServer = new WebPubSubServer(process.env.WPS_CONNECTION_STRING!, 'chat', {
   dumpRequest: false
 });
 

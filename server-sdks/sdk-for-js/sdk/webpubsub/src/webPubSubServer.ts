@@ -37,9 +37,9 @@ export class WebPubSubServer extends WebPubSubServiceRestClient {
   public endpoint!: string;
 
   private _parser: ProtocolParser;
-  constructor(connectionString: string, options?: WebPubSubServerOptions) {
-    super(connectionString, options);
-    this.hub = options?.hub ?? "_default";
+  constructor(connectionString: string, hub: string, options?: WebPubSubServerOptions) {
+    super(connectionString, hub, options);
+    this.hub = hub;
     this._parser = new ProtocolParser(this.hub, new DefaultEventHandler(options));
     this.eventHandlerUrl = options?.eventHandlerUrl ?? '/api/webpubsub' + (this.hub? `/hubs/${this.hub}` : '');
   }
@@ -84,6 +84,7 @@ export class WebPubSubServer extends WebPubSubServiceRestClient {
       }
       console.log(result);
       res.end(result?.body ?? '');
+      console.log("done");
     });
     return router;
   }

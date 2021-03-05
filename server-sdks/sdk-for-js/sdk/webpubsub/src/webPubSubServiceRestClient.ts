@@ -33,7 +33,6 @@ export interface HubBroadcastOptions extends OperationOptions {
 }
 
 export interface WebPubSubServiceRestClientOptions {
-  hub?: string;
   dumpRequest?: boolean;
 }
 
@@ -86,14 +85,14 @@ export class WebPubSubServiceRestClient {
   /**
    * The name of the hub this client is connected to
    */
-  public readonly hub?: string;
+  public readonly hub: string;
   /**
    * The SignalR API version being used by this client
    */
   public readonly apiVersion: string = "2020-10-01";
 
-  constructor(connectionString: string, options?: WebPubSubServiceRestClientOptions) {
-    this.hub = options?.hub;
+  constructor(connectionString: string, hub: string, options?: WebPubSubServiceRestClientOptions) {
+    this.hub = hub;
 
     var endpoint = this.parseConnectionString(connectionString);
     if (endpoint === null) {
@@ -160,24 +159,24 @@ export class WebPubSubServiceRestClient {
    * @param message The message to send
    * @param options Additional options
    */
-  public async broadcast(message: string, options?: HubBroadcastOptions): Promise<boolean>;
+  public async sendToAll(message: string, options?: HubBroadcastOptions): Promise<boolean>;
   /**
    * Broadcast a binary message to all connections on this hub.
    *
    * @param message The message to send
    * @param options Additional options
    */
-  public async broadcast(
+  public async sendToAll(
     message: Blob | ArrayBuffer | ArrayBufferView,
     options?: HubBroadcastOptions
   ): Promise<boolean>;
 
-  public async broadcast(
+  public async sendToAll(
     message: string | HttpRequestBody,
     options: HubBroadcastOptions = {}
   ): Promise<boolean> {
     try {
-      var res = await this.sender.broadcast(message, {
+      var res = await this.sender.sendToAll(this.hub, message, {
         apiVersion: options.apiVersion,
         hub: this.hub,
         excluded: options.excludedConnections
@@ -218,7 +217,7 @@ export class WebPubSubServiceRestClient {
     options: OperationOptions = {}
   ): Promise<boolean> {
     try {
-      var res = await this.sender.sendToUser(username, message, {
+      var res = await this.sender.sendToUser(this.hub, username, message, {
         apiVersion: options.apiVersion,
         hub: this.hub
       });
@@ -257,7 +256,7 @@ export class WebPubSubServiceRestClient {
     options: OperationOptions = {}
   ): Promise<boolean> {
     try {
-      var res = await this.sender.sendToConnection(connectionId, message, {
+      var res = await this.sender.sendToConnection(this.hub, connectionId, message, {
         apiVersion: options.apiVersion,
         hub: this.hub
       });
@@ -277,11 +276,10 @@ export class WebPubSubServiceRestClient {
     options: OperationOptions = {}
   ): Promise<boolean> {
     try {
-      const res = await this.client.webPubSubApi.checkConnectionExistence(
+      const res = await this.client.webPubSubApi.checkConnectionExistence(this.hub,
         connectionId,
         {
           apiVersion: options.apiVersion,
-          hub: this.hub
         }
       );
       return this.verifyResponse(res, 200, 404);
@@ -300,7 +298,7 @@ export class WebPubSubServiceRestClient {
     options: CloseConnectionOptions = {}
   ): Promise<boolean> {
     try {
-      var res = await this.client.webPubSubApi.closeClientConnection(
+      var res = await this.client.webPubSubApi.closeClientConnection(this.hub,
         connectionId,
         {
           apiVersion: options.apiVersion,
@@ -323,7 +321,7 @@ export class WebPubSubServiceRestClient {
     options: CloseConnectionOptions = {}
   ): Promise<boolean> {
     try {
-      var res = await this.client.webPubSubApi.removeUserFromAllGroups(
+      var res = await this.client.webPubSubApi.removeUserFromAllGroups(this.hub,
         userId,
         {
           apiVersion: options.apiVersion,
@@ -345,7 +343,7 @@ export class WebPubSubServiceRestClient {
    */
   public async hasGroup(groupName: string, options: OperationOptions = {}): Promise<boolean> {
     try {
-      const res = await this.client.webPubSubApi.checkGroupExistence(
+      const res = await this.client.webPubSubApi.checkGroupExistence(this.hub,
         groupName,
         {
           apiVersion: options.apiVersion,
@@ -366,7 +364,7 @@ export class WebPubSubServiceRestClient {
    */
   public async hasUser(username: string, options: OperationOptions = {}): Promise<boolean> {
     try {
-      const res = await this.client.webPubSubApi.checkUserExistence(
+      const res = await this.client.webPubSubApi.checkUserExistence(this.hub,
         username,
         {
           apiVersion: options.apiVersion,
@@ -389,7 +387,7 @@ export class WebPubSubServiceRestClient {
     options: OperationOptions = {}
   ): Promise<boolean> {
     try {
-      const res = await this.client.webPubSubApi.addConnectionToGroup(
+      const res = await this.client.webPubSubApi.addConnectionToGroup(this.hub,
         groupName, connectionId,
         {
           apiVersion: options.apiVersion,
@@ -412,7 +410,7 @@ export class WebPubSubServiceRestClient {
     options: OperationOptions = {}
   ): Promise<boolean> {
     try {
-      const res = await this.client.webPubSubApi.removeConnectionFromGroup(
+      const res = await this.client.webPubSubApi.removeConnectionFromGroup(this.hub,
         groupName, connectionId,
         {
           apiVersion: options.apiVersion,
@@ -433,7 +431,7 @@ export class WebPubSubServiceRestClient {
    */
   public async addUserToGroup(groupName: string, username: string, options: OperationOptions = {}): Promise<boolean> {
     try {
-      var res = await this.client.webPubSubApi.addUserToGroup(
+      var res = await this.client.webPubSubApi.addUserToGroup(this.hub,
         groupName,
         username,
         {
@@ -457,7 +455,7 @@ export class WebPubSubServiceRestClient {
   public async hasUserInGroup(groupName: string, username: string, options: OperationOptions = {}): Promise<boolean> {
 
     try {
-      const res = await this.client.webPubSubApi.checkUserExistenceInGroup(
+      const res = await this.client.webPubSubApi.checkUserExistenceInGroup(this.hub,
         groupName,
         username,
 
@@ -482,7 +480,7 @@ export class WebPubSubServiceRestClient {
   public async removeUserFromGroup(groupName: string, username: string, options: OperationOptions = {}): Promise<boolean> {
 
     try {
-      var res = await this.client.webPubSubApi.removeUserFromGroup(
+      var res = await this.client.webPubSubApi.removeUserFromGroup(this.hub,
         groupName,
         username,
         {
@@ -523,7 +521,7 @@ export class WebPubSubServiceRestClient {
   ): Promise<boolean> {
 
     try {
-      var res = await this.sender.groupBroadcast(
+      var res = await this.sender.sendToGroup(
         groupName,
         message,
         {

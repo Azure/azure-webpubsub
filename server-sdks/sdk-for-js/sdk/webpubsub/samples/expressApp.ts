@@ -4,8 +4,8 @@ import express from "express";
 dotenv.config();
 
 const wpsserver = new WebPubSubServer(process.env.WPS_CONNECTION_STRING!,
+  'chat',
   {
-    hub: 'chat',
     onConnect: async connectRequest => {
       // success with client joining group1
       // await wpsserver.broadcast(connectRequest.context.connectionId);
@@ -16,7 +16,7 @@ const wpsserver = new WebPubSubServer(process.env.WPS_CONNECTION_STRING!,
     },
     onConnected: async connectedRequest =>{
       try{
-        await wpsserver.broadcast(connectedRequest.context.connectionId + " connected");
+        await wpsserver.sendToAll(connectedRequest.context.connectionId + " connected");
       }catch(err){
         console.error(err);
       }

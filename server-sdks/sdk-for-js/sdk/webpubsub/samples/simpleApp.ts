@@ -5,10 +5,9 @@ import { createServer, IncomingMessage, ServerResponse } from 'http';
 
 dotenv.config();
 
-const wpsserver = new WebPubSubServer(process.env.WPS_CONNECTION_STRING!,
+const wpsserver = new WebPubSubServer(process.env.WPS_CONNECTION_STRING!, 'chat',
   {
     eventHandlerUrl: "/customUrl", // optional
-    hub: "chat", // optional
     onConnect: async connectRequest => {
       // success with client joining group1
       // await wpsserver.broadcast(connectRequest.context.connectionId);
@@ -18,7 +17,7 @@ const wpsserver = new WebPubSubServer(process.env.WPS_CONNECTION_STRING!,
       }; // or connectRequest.fail(); to 401 the request
     },
     onConnected: async connectedRequest =>{
-      await wpsserver.broadcast(connectedRequest.context.connectionId + " connected");
+      await wpsserver.sendToAll(connectedRequest.context.connectionId + " connected");
     },
     onUserEvent: async userRequest => {
       return {
