@@ -3,7 +3,7 @@ const {WebPubSubServiceEndpoint} = require('./../dist/webpubsub');
  
 async function main() {
 
-   var se = new WebPubSubServiceEndpoint("{connstring}");
+   var se = new WebPubSubServiceEndpoint("Endpoint=http://localhost;AccessKey=ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789ABCDEFGH;Port=8080;Version=1.0;");
    var clientResponse = se.clientNegotiate('chat', {
      userId: "vicancy",
      roles: ["webpubsub.group.join"],

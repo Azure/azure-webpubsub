@@ -1632,6 +1632,7 @@
                     console.warn(`Incoming request is for hub '${this.hub}' while the incoming request is for hub '${context.hub}'`);
                     return;
                 }
+                console.log(JSON.stringify(receivedEvent.data));
                 // TODO: valid request is a valid cloud event with WebPubSub extension
                 if (type === "azure.webpubsub.sys.connect") {
                     var connectRequest = receivedEvent.data;

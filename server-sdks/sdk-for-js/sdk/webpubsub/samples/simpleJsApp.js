@@ -15,7 +15,7 @@ const wpsserver = new WebPubSubServer(process.env.WPS_CONNECTION_STRING, 'chat',
         userId: "vicancy"
       }; // or connectRequest.fail(); to 401 the request
     },
-    onConnected: async connectedRequest =>{
+    onConnected: async connectedRequest => {
       await wpsserver.sendToAll(connectedRequest.context.connectionId + " connected");
     },
     onUserEvent: async userRequest => {
@@ -32,10 +32,10 @@ const wpsserver = new WebPubSubServer(process.env.WPS_CONNECTION_STRING, 'chat',
 const port = 3000;
 
 const server = http.createServer(async (request, response) => {
-  if (await wpsserver.handleNodeRequest(request, response)){
+  if (await wpsserver.handleNodeRequest(request, response)) {
     console.log(`Processed ${request.url}`);
   }
-  else{
+  else {
     console.log(`${request.url} for others to process`);
     response.statusCode = 404;
     response.end();
