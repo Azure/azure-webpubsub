@@ -1,7 +1,10 @@
 import { WebPubSubServer } from "../src/webPubSubServer";
-
+import { WebPubSubServiceEndpoint } from "../src/webPubSubServiceEndpoint";
 import * as dotenv from "dotenv";
 dotenv.config();
+
+const se = new WebPubSubServiceEndpoint(process.env.WPS_CONNECTION_STRING!);
+console.log(se.clientNegotiate('chat'));
 
 const chatServer = new WebPubSubServer(process.env.WPS_CONNECTION_STRING!, 'chat');
 
@@ -9,7 +12,7 @@ async function main() {
   try{
 
   // send a text message directly to a user
-  await chatServer.sendToConnection("c", "bterlson Hi there!");
+  await chatServer.sendToAll("c bterlson Hi there!");
 
   }catch (err){
     console.error(err);

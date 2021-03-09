@@ -10,9 +10,7 @@ const wpsserver = new WebPubSubServer(process.env.WPS_CONNECTION_STRING!,
       // success with client joining group1
       // await wpsserver.broadcast(connectRequest.context.connectionId);
       console.log(connectRequest.context.connectionId);
-        return {
-        userId: "vicancy"
-      }; // or connectRequest.fail(); to 401 the request
+        return {};
     },
     onConnected: async connectedRequest =>{
       try{

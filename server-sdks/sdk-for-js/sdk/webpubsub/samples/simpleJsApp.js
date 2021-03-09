@@ -1,11 +1,10 @@
-import { WebPubSubServer } from "../src/webPubSubServer";
-import * as dotenv from "dotenv";
-
-import { createServer, IncomingMessage, ServerResponse } from 'http';
+const { WebPubSubServer } = require('./../dist/webpubsub')
+const dotenv = require('dotenv');
+const http = require('http');
 
 dotenv.config();
 
-const wpsserver = new WebPubSubServer(process.env.WPS_CONNECTION_STRING!, 'chat',
+const wpsserver = new WebPubSubServer(process.env.WPS_CONNECTION_STRING, 'chat',
   {
     // eventHandlerUrl: "/customUrl", // optional
     onConnect: async connectRequest => {
@@ -32,7 +31,7 @@ const wpsserver = new WebPubSubServer(process.env.WPS_CONNECTION_STRING!, 'chat'
 
 const port = 3000;
 
-const server = createServer(async (request: IncomingMessage, response: ServerResponse) => {
+const server = http.createServer(async (request, response) => {
   if (await wpsserver.handleNodeRequest(request, response)){
     console.log(`Processed ${request.url}`);
   }

@@ -6,7 +6,7 @@ import { ServiceClientCredentials, RestResponse, RestError, HttpRequestBody, Htt
 
 import { WebPubSubSendApi } from "./webPubSubApiExtensions";
 import { WebPubSubKeyCredentials } from "./webPubSubKeyCredentials";
-import { URL } from "url";
+import { WebPubSubServiceEndpoint } from "./webPubSubServiceEndpoint";
 
 export interface OperationOptions {
   apiVersion?: string;
@@ -67,13 +67,6 @@ export class ConsoleHttpPipelineLogger implements HttpPipelineLogger {
   }
 }
 
-interface ServiceEndpoint {
-  host: string;
-  audience: string;
-  key: string;
-  wshost: string;
-}
-
 /**
  * Client for connecting to a SignalR hub
  */
@@ -94,15 +87,12 @@ export class WebPubSubServiceRestClient {
   constructor(connectionString: string, hub: string, options?: WebPubSubServiceRestClientOptions) {
     this.hub = hub;
 
-    var endpoint = this.parseConnectionString(connectionString);
-    if (endpoint === null) {
-      throw new RestError("Invalid connection string: " + connectionString);
-    }
+    var endpoint = new WebPubSubServiceEndpoint(connectionString);
 
-    this.credential = new WebPubSubKeyCredentials(endpoint.key);
+    this.credential = new WebPubSubKeyCredentials(endpoint.endpoint.key);
     this.client = new GeneratedClient(this.credential, {
       //httpPipelineLogger: options?.dumpRequest ? new ConsoleHttpPipelineLogger(HttpPipelineLogLevel.INFO) : undefined,
-      baseUri: endpoint.host,
+      baseUri: endpoint.endpoint.host,
       requestPolicyFactories: options?.dumpRequest ? this.getFactoryWithLogPolicy : undefined,
     });
     this.sender = new WebPubSubSendApi(this.client);
@@ -111,29 +101,6 @@ export class WebPubSubServiceRestClient {
   private getFactoryWithLogPolicy(defaultRequestPolicyFactories: RequestPolicyFactory[]): void {
     logPolicy
     defaultRequestPolicyFactories.push(logPolicy());
-  }
-
-  private parseConnectionString(conn: string): ServiceEndpoint | null {
-    const em = /Endpoint=(.*?)(;|$)/g.exec(conn);
-    if (!em) return null;
-    const endpoint = em[1];
-    const km = /AccessKey=(.*?)(;|$)/g.exec(conn);
-    if (!km) return null;
-    const key = km[1];
-    if (!endpoint || !key) return null;
-    const pm = /Port=(.*?)(;|$)/g.exec(conn);
-    const port = pm == null ? '' : pm[1];
-    var url = new URL(endpoint);
-    url.port = port;
-    const host = url.toString();
-    url.port = '';
-    const audience = url.toString();
-    return {
-      host: host,
-      audience: audience,
-      key: key,
-      wshost: host.replace('https://', 'wss://').replace('http://', 'ws://')
-    };
   }
 
   /**

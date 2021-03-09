@@ -3,38 +3,45 @@
 
 import { CloudEvent, Message, HTTP } from "cloudevents";
 import { IncomingMessage } from "http";
-import {decode, encode} from 'typescript-base64-arraybuffer';
+import { decode } from 'typescript-base64-arraybuffer';
 
 export interface EventHandlerOptions {
-  onConnect?: (r: ConnectRequest) => ConnectResponse | ErrorResponse | Promise<ConnectResponse> | Promise<ErrorResponse>;
-  onUserEvent?: (r: UserEventRequest)=> EventResponse | ErrorResponse | Promise<EventResponse> | Promise<ErrorResponse>;
-  onConnected?: (r: ConnectedRequest) => void;
-  onDisconnected?: (r: DisconnectedRequest) => void;
+  onConnect?: (r: ConnectRequest) => ConnectResponse | Promise<ConnectResponse>
+  onUserEvent?: (r: UserEventRequest) => UserEventResponse | Promise<UserEventResponse>
+  onConnected?: (r: ConnectedRequest) => void | Promise<void>;
+  onDisconnected?: (r: DisconnectedRequest) => void | Promise<void>;
+}
+
+export interface ErrorResponse {
+  code: ErrorCode;
+  detail?: string;
+}
+
+export enum ErrorCode {
+  serverError, // Response to service using 500
+  userError, // Response to service using 400
+  unauthorized, // Response to service using 401
 }
 
 export interface ConnectResponse {
+  error?: ErrorResponse; // If error is set, we consider this a failed response
   groups?: string[];
   roles?: string[];
   userId?: string;
   subprotocol?: string;
-  headers?: { [key: string]: string[] };
 }
 
-export interface EventResponse {
-  body: string | ArrayBuffer | undefined
-}
-
-export interface ErrorResponse extends EventResponse {
-  error: string | undefined;
-  code: number;
+export interface UserEventResponse {
+  error?: ErrorResponse // If error is set, we consider this a failed response
+  body?: string | ArrayBuffer, // Response Content-Type should be `plain/text` for string, and `application/octet-stream` for ArrayBuffer
 }
 
 export interface ConnectionContext {
   signature: string;
-  userId?: string;
-  hub?: string;
+  hub: string;
   connectionId: string;
   eventName: string;
+  userId?: string;
 }
 
 export interface EventRequestBase {
@@ -42,10 +49,10 @@ export interface EventRequestBase {
 }
 
 export interface ConnectRequest extends EventRequestBase {
-  claims: { [key: string]: string[] };
-  queries: { [key: string]: string[] };
-  subprotocols: string[];
-  clientCertificates: Certificate[];
+  claims?: { [key: string]: string[] };
+  queries?: { [key: string]: string[] };
+  subprotocols?: string[];
+  clientCertificates?: Certificate[];
 }
 
 export interface Certificate {
@@ -66,11 +73,11 @@ export interface DisconnectedRequest extends EventRequestBase {
 
 export class DefaultEventHandler {
   private options?: EventHandlerOptions;
-  constructor(options?: EventHandlerOptions){
+  constructor(options?: EventHandlerOptions) {
     this.options = options;
   }
-  
-  onMessage(r: UserEventRequest): ErrorResponse | EventResponse| undefined | Promise<EventResponse | ErrorResponse | undefined> {
+
+  onMessage(r: UserEventRequest): UserEventResponse | undefined | Promise<UserEventResponse | undefined> {
     if (this.options?.onUserEvent === undefined) {
       return undefined;
     }
@@ -78,7 +85,7 @@ export class DefaultEventHandler {
     return this.options?.onUserEvent(r);
   }
 
-  onConnect(r: ConnectRequest): ConnectResponse | ErrorResponse | undefined | Promise<ConnectResponse | ErrorResponse | undefined> {
+  onConnect(r: ConnectRequest): ConnectResponse | undefined | Promise<ConnectResponse | undefined> {
     if (this.options?.onConnect === undefined) {
       return undefined;
     }
@@ -87,7 +94,7 @@ export class DefaultEventHandler {
   }
 
   onConnected(r: ConnectedRequest): void {
-    
+
     if (this.options?.onConnected === undefined) {
       return;
     }
@@ -95,7 +102,7 @@ export class DefaultEventHandler {
     this.options?.onConnected(r);
   }
   onDisconnected(r: DisconnectedRequest): void {
-    
+
     if (this.options?.onDisconnected === undefined) {
       return;
     }
@@ -105,35 +112,42 @@ export class DefaultEventHandler {
 }
 
 export class ProtocolParser {
-  constructor(private hub: string, private eventHandler?: DefaultEventHandler) {
+  constructor(private hub: string, private eventHandler?: DefaultEventHandler, private dumpRequest?: boolean) {
   }
-  
-  public async processNodeHttpRequest(request: IncomingMessage): Promise<EventResponse | undefined>  {
+
+  public async processNodeHttpRequest(request: IncomingMessage): Promise<UserEventResponse | undefined> {
     try {
       var eventRequest = await this.convertHttpToEvent(request);
       return this.getResponse(eventRequest);
-    } catch (err){
+    } catch (err) {
       console.error(`Error processing request ${request}: ${err}`);
       return {
-        error: err.message,
-        code: 500,
-      } as ErrorResponse;
+        error: {
+          code: ErrorCode.serverError,
+          detail: err.message,
+        }
+      };
     }
   }
 
-  public async getResponse(request: Message): Promise<EventResponse| undefined>  {
+  public async getResponse(request: Message): Promise<UserEventResponse | undefined> {
     if (this.eventHandler === undefined) {
       return;
     }
 
     const receivedEvent = HTTP.toEvent(request);
+
+    if (this.dumpRequest === true) {
       console.log(receivedEvent);
-      var type = receivedEvent.type.toLowerCase();
+    }
+
+    var type = receivedEvent.type.toLowerCase();
     var context = this.GetContext(receivedEvent);
-    if (context.hub !== this.hub){
+    if (context.hub !== this.hub) {
       console.warn(`Incoming request is for hub '${this.hub}' while the incoming request is for hub '${context.hub}'`);
       return;
     }
+
     // TODO: valid request is a valid cloud event with WebPubSub extension
     if (type === "azure.webpubsub.sys.connect") {
       var connectRequest = receivedEvent.data as ConnectRequest;
@@ -143,9 +157,13 @@ export class ProtocolParser {
 
       connectRequest.context = context;
       var connectResponse = await this.eventHandler.onConnect(connectRequest);
-      return {
-        body: JSON.stringify(connectResponse)
-      };
+      if (connectRequest) {
+        return {
+          body: JSON.stringify(connectResponse)
+        };
+      } else {
+        return;
+      }
     } else if (type === "azure.webpubsub.sys.connected") {
       var connectedRequest = receivedEvent.data as ConnectedRequest;
       if (!connectedRequest) {
@@ -154,7 +172,6 @@ export class ProtocolParser {
 
       connectedRequest.context = context;
       this.eventHandler.onConnected(connectedRequest);
-
     } else if (type === "azure.webpubsub.sys.disconnected") {
       var disconnectedRequest = receivedEvent.data as DisconnectedRequest;
       if (!disconnectedRequest) {
@@ -165,15 +182,15 @@ export class ProtocolParser {
       this.eventHandler.onDisconnected(disconnectedRequest);
     } else if (type.startsWith("azure.webpubsub.user")) {
       console.log(receivedEvent);
-      var data : ArrayBuffer | string;
-      if (receivedEvent.data){
+      var data: ArrayBuffer | string;
+      if (receivedEvent.data) {
         data = receivedEvent.data as string;
-      } else if (receivedEvent.data_base64){
+      } else if (receivedEvent.data_base64) {
         data = decode(receivedEvent.data_base64);
-      } else{
+      } else {
         throw new Error("empty data payload");
       }
-      var userRequest : UserEventRequest = {
+      var userRequest: UserEventRequest = {
         eventName: context.eventName,
         context: context,
         data: data
@@ -219,7 +236,7 @@ export class ProtocolParser {
     return context;
   }
 
-  private async convertHttpToEvent(request: IncomingMessage) : Promise<Message>{
+  private async convertHttpToEvent(request: IncomingMessage): Promise<Message> {
     const normalized: Message = {
       headers: {},
       body: ''
@@ -239,11 +256,11 @@ export class ProtocolParser {
         }
       }
     }
-  
+
     normalized.body = await this.readRequestBody(request);
     return normalized;
   }
-  
+
   private readRequestBody(req: IncomingMessage): Promise<string> {
     return new Promise(function (resolve, reject) {
       var body = "";

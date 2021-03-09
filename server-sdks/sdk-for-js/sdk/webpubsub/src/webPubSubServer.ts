@@ -3,7 +3,7 @@
 
 import { WebPubSubServiceRestClient, WebPubSubServiceRestClientOptions } from "./webPubSubServiceRestClient";
 
-import { EventResponse, ProtocolParser, EventHandlerOptions, DefaultEventHandler } from "./webPubSubEventProtocols"
+import { UserEventResponse, ProtocolParser, EventHandlerOptions, DefaultEventHandler } from "./webPubSubEventProtocols"
 import { IncomingMessage, ServerResponse } from "http";
 import express from "express";
 import { Message } from "cloudevents";
@@ -12,7 +12,7 @@ export interface WebPubSubServerOptions extends WebPubSubServiceRestClientOption
   eventHandlerUrl?: string;
 }
 
-export interface EventRequest extends Message{
+export interface EventRequest extends Message {
 }
 
 /**
@@ -40,11 +40,11 @@ export class WebPubSubServer extends WebPubSubServiceRestClient {
   constructor(connectionString: string, hub: string, options?: WebPubSubServerOptions) {
     super(connectionString, hub, options);
     this.hub = hub;
-    this._parser = new ProtocolParser(this.hub, new DefaultEventHandler(options));
-    this.eventHandlerUrl = options?.eventHandlerUrl ?? '/api/webpubsub' + (this.hub? `/hubs/${this.hub}` : '');
+    this._parser = new ProtocolParser(this.hub, new DefaultEventHandler(options), options?.dumpRequest);
+    this.eventHandlerUrl = options?.eventHandlerUrl ?? `/api/webpubsub/hubs/${this.hub}`;
   }
 
-  public async Process(req: EventRequest): Promise<EventResponse> {
+  public async Process(req: EventRequest): Promise<UserEventResponse> {
     var result = await this._parser.getResponse(req);
     if (result === undefined) {
       return { body: undefined };
@@ -52,39 +52,40 @@ export class WebPubSubServer extends WebPubSubServiceRestClient {
     return result;
   }
 
-  public async handleNodeRequest(request: IncomingMessage, response: ServerResponse) : Promise<boolean>{
-    if (request.method !== 'POST'){
+  public async handleNodeRequest(request: IncomingMessage, response: ServerResponse): Promise<boolean> {
+    if (request.method !== 'POST') {
       return false;
     }
 
-    if (request.url?.toLowerCase() !== this.eventHandlerUrl.toLowerCase() ){
+    if (request.url?.toLowerCase() !== this.eventHandlerUrl.toLowerCase()) {
       return false;
     }
 
     var result = await this._parser.processNodeHttpRequest(request);
-    console.log(result);
+    if (result?.body) {
+      if (typeof (result.body) === 'string') {
+        response.setHeader("Content-Type", "text/plain");
+      }
+    }
     response.end(result?.body ?? '');
-    console.log("done");
     return true;
   }
 
-  public getMiddleware() : express.Router {
+  public getMiddleware(): express.Router {
     const router = express.Router();
     router.use(this.eventHandlerUrl, async (req, res) => {
-      if (req.method !== 'POST'){
+      if (req.method !== 'POST') {
         res.status(400).send('Invalid method ' + req.method);
         return;
       }
-  
+
       var result = await this._parser.processNodeHttpRequest(req);
-      if (result?.body){
-        if (typeof(result.body) === 'string'){
+      if (result?.body) {
+        if (typeof (result.body) === 'string') {
           res.type('text');
         }
       }
-      console.log(result);
       res.end(result?.body ?? '');
-      console.log("done");
     });
     return router;
   }

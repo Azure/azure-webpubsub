@@ -189,12 +189,12 @@ const broadcastOperationSpec: msRest.OperationSpec = {
 
 const sendToUserOperationSpec: msRest.OperationSpec = {
   httpMethod: "POST",
-  path: "api/users/{id}/:send",
+  path: "api/hubs/{hub}/users/{id}/:send",
   urlParameters: [
+    Parameters.hub,
     Parameters.id
   ],
   queryParameters: [
-    Parameters.hub,
     Parameters.apiVersion
   ],
   headerParameters: [
@@ -256,7 +256,6 @@ const groupBroadcastOperationSpec: msRest.OperationSpec = {
 
 function fulfillSpec(payloadMessage: string | msRest.HttpRequestBody, baseSepc: msRest.OperationSpec): msRest.OperationSpec {
   
-  console.log("fulfill");
   if (typeof payloadMessage === "string") {
     return {
       ...baseSepc,

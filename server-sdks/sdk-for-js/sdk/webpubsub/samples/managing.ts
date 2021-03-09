@@ -1,27 +1,29 @@
-import { WebPubSubServer } from "../src/webPubSubServer";
+import { WebPubSubServer } from "../src/index";
 
 import * as dotenv from "dotenv";
 dotenv.config();
 const chatServer = new WebPubSubServer(process.env.WPS_CONNECTION_STRING!, 'chat', {
-  dumpRequest: false
+  dumpRequest: true
 });
 
 async function main() {
   // adding and removing users
   const group = "group1";
   const user = "vicancy";
-  var exists = await chatServer.addUserToGroup(group, user);
-  console.log(exists); // true
-  exists = await chatServer.hasUserInGroup(group, user)
-  console.log(exists); // true
-  exists = await chatServer.hasUser(user);
-  console.log(exists); // false
+  //var exists = await chatServer.addUserToGroup(group, user);
+  //console.log(exists); // true
+  //exists = await chatServer.hasUserInGroup(group, user)
+  //console.log(exists); // true
+  //exists = await chatServer.hasUser(user);
+  //console.log(exists); // false
 
-  exists = await chatServer.hasGroup(group);
-  console.log(exists); // false
+  await chatServer.sendToUser(user, "hello");
 
-  exists = await chatServer.hasConnection("random");
-  console.log(exists); // false
+  //exists = await chatServer.hasGroup(group);
+  //console.log(exists); // false
+
+  //exists = await chatServer.hasConnection("random");
+  //console.log(exists); // false
 
   /* For now it expects 200 while service return 202
   exists =await chatHub.removeUserFromGroup(group, "xirzec");
