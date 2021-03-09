@@ -10,10 +10,10 @@ export interface NegotiateResponse {
 }
 
 interface ServiceEndpoint {
-  host: string;
+  serviceUrl: URL;
+  websocketHost: string;
   audience: string;
   key: string;
-  wshost: string;
 }
 
 interface NegotiateOptions {
@@ -38,10 +38,8 @@ export class WebPubSubServiceEndpoint {
   }
 
   clientNegotiate(hub: string, options?: NegotiateOptions): NegotiateResponse {
-    var clientUrl = `${this.endpoint.wshost}client/hubs/${hub}`;
-    var url = new URL(clientUrl);
-    url.port = '';
-    const audience = url.toString();
+    var clientUrl = `${this.endpoint.websocketHost}client/hubs/${hub}`;
+    const audience = `${this.endpoint.audience}client/hubs/${hub}`;
     var key = this.endpoint.key;
     var payload = options?.claims ?? {};
     if (options?.roles) {
@@ -83,15 +81,17 @@ export class WebPubSubServiceEndpoint {
     const pm = /Port=(.*?)(;|$)/g.exec(conn);
     const port = pm == null ? '' : pm[1];
     var url = new URL(endpoint);
-    url.port = port;
-    const host = url.toString();
-    url.port = '';
+    var originalProtocol = url.protocol;
+    url.protocol = originalProtocol === 'http:' ? 'ws:' : 'wss:';
     const audience = url.toString();
+    url.port = port;
+    var websocketHost = url.toString();
+    url.protocol = originalProtocol;
     return {
-      host: host,
+      websocketHost: websocketHost, 
+      serviceUrl: url,
       audience: audience,
       key: key,
-      wshost: host.replace('https://', 'wss://').replace('http://', 'ws://')
     };
   }
 }

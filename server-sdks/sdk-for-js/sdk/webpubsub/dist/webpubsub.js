@@ -1082,10 +1082,8 @@
         }
         clientNegotiate(hub, options) {
             var _a;
-            var clientUrl = `${this.endpoint.wshost}client/hubs/${hub}`;
-            var url$1 = new url.URL(clientUrl);
-            url$1.port = '';
-            const audience = url$1.toString();
+            var clientUrl = `${this.endpoint.websocketHost}client/hubs/${hub}`;
+            const audience = `${this.endpoint.audience}client/hubs/${hub}`;
             var key = this.endpoint.key;
             var payload = (_a = options === null || options === void 0 ? void 0 : options.claims) !== null && _a !== void 0 ? _a : {};
             if (options === null || options === void 0 ? void 0 : options.roles) {
@@ -1106,6 +1104,7 @@
         }
         getServiceEndpoint(conn) {
             var endpoint = this.parseConnectionString(conn);
+            console.log(endpoint);
             if (!endpoint) {
                 throw new Error("Invalid connection string: " + conn);
             }
@@ -1125,15 +1124,17 @@
             const pm = /Port=(.*?)(;|$)/g.exec(conn);
             const port = pm == null ? '' : pm[1];
             var url$1 = new url.URL(endpoint);
-            url$1.port = port;
-            const host = url$1.toString();
-            url$1.port = '';
+            var originalProtocol = url$1.protocol;
+            url$1.protocol = originalProtocol === 'http:' ? 'ws:' : 'wss:';
             const audience = url$1.toString();
+            url$1.port = port;
+            var websocketHost = url$1.toString();
+            url$1.protocol = originalProtocol;
             return {
-                host: host,
+                websocketHost: websocketHost,
+                serviceUrl: url$1,
                 audience: audience,
                 key: key,
-                wshost: host.replace('https://', 'wss://').replace('http://', 'ws://')
             };
         }
     }
@@ -1178,10 +1179,11 @@
             this.apiVersion = "2020-10-01";
             this.hub = hub;
             var endpoint = new WebPubSubServiceEndpoint(connectionString);
+            this.serviceUrl = endpoint.endpoint.serviceUrl;
             this.credential = new WebPubSubKeyCredentials(endpoint.endpoint.key);
             this.client = new WebPubSubServiceClient(this.credential, {
                 //httpPipelineLogger: options?.dumpRequest ? new ConsoleHttpPipelineLogger(HttpPipelineLogLevel.INFO) : undefined,
-                baseUri: endpoint.endpoint.host,
+                baseUri: endpoint.endpoint.serviceUrl.href,
                 requestPolicyFactories: (options === null || options === void 0 ? void 0 : options.dumpRequest) ? this.getFactoryWithLogPolicy : undefined,
             });
             this.sender = new WebPubSubSendApi(this.client);
@@ -1632,7 +1634,6 @@
                     console.warn(`Incoming request is for hub '${this.hub}' while the incoming request is for hub '${context.hub}'`);
                     return;
                 }
-                console.log(JSON.stringify(receivedEvent.data));
                 // TODO: valid request is a valid cloud event with WebPubSub extension
                 if (type === "azure.webpubsub.sys.connect") {
                     var connectRequest = receivedEvent.data;
@@ -1773,11 +1774,9 @@
         constructor(connectionString, hub, options) {
             var _a;
             super(connectionString, hub, options);
-            /**
-             * The SignalR API version being used by this client
-             */
             this.apiVersion = "2020-10-01";
             this.hub = hub;
+            this._serviceHost = this.serviceUrl.host;
             this._parser = new ProtocolParser(this.hub, new DefaultEventHandler(options), options === null || options === void 0 ? void 0 : options.dumpRequest);
             this.eventHandlerUrl = (_a = options === null || options === void 0 ? void 0 : options.eventHandlerUrl) !== null && _a !== void 0 ? _a : `/api/webpubsub/hubs/${this.hub}`;
         }
@@ -1793,6 +1792,12 @@
         handleNodeRequest(request, response) {
             var _a, _b;
             return __awaiter(this, void 0, void 0, function* () {
+                var abuseHost = this.tryHandleAbuseProtectionRequest(request);
+                if (abuseHost) {
+                    response.setHeader("WebHook-Allowed-Origin", abuseHost);
+                    response.end();
+                    return true;
+                }
                 if (request.method !== 'POST') {
                     return false;
                 }
@@ -1813,6 +1818,12 @@
             const router = express.Router();
             router.use(this.eventHandlerUrl, (req, res) => __awaiter(this, void 0, void 0, function* () {
                 var _a;
+                var abuseHost = this.tryHandleAbuseProtectionRequest(req);
+                if (abuseHost) {
+                    res.setHeader("WebHook-Allowed-Origin", abuseHost);
+                    res.end();
+                    return;
+                }
                 if (req.method !== 'POST') {
                     res.status(400).send('Invalid method ' + req.method);
                     return;
@@ -1826,6 +1837,14 @@
                 res.end((_a = result === null || result === void 0 ? void 0 : result.body) !== null && _a !== void 0 ? _a : '');
             }));
             return router;
+        }
+        tryHandleAbuseProtectionRequest(req) {
+            if (req.method === 'OPTIONS') {
+                if (req.headers['WebHook-Request-Origin'] === this._serviceHost) {
+                    return this._serviceHost;
+                }
+            }
+            return undefined;
         }
     }
 

@@ -84,15 +84,20 @@ export class WebPubSubServiceRestClient {
    */
   public readonly apiVersion: string = "2020-10-01";
 
+  /**
+   * The endpoint this client is connected to
+   */
+  public serviceUrl!: URL;
+
   constructor(connectionString: string, hub: string, options?: WebPubSubServiceRestClientOptions) {
     this.hub = hub;
 
-    var endpoint = new WebPubSubServiceEndpoint(connectionString);
-
+    var endpoint =  new WebPubSubServiceEndpoint(connectionString);
+    this.serviceUrl = endpoint.endpoint.serviceUrl;
     this.credential = new WebPubSubKeyCredentials(endpoint.endpoint.key);
     this.client = new GeneratedClient(this.credential, {
       //httpPipelineLogger: options?.dumpRequest ? new ConsoleHttpPipelineLogger(HttpPipelineLogLevel.INFO) : undefined,
-      baseUri: endpoint.endpoint.host,
+      baseUri: endpoint.endpoint.serviceUrl.href,
       requestPolicyFactories: options?.dumpRequest ? this.getFactoryWithLogPolicy : undefined,
     });
     this.sender = new WebPubSubSendApi(this.client);

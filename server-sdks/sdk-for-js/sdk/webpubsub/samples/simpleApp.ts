@@ -2,8 +2,12 @@ import { WebPubSubServer } from "../src/webPubSubServer";
 import * as dotenv from "dotenv";
 
 import { createServer, IncomingMessage, ServerResponse } from 'http';
+import { WebPubSubServiceEndpoint } from "../src";
 
 dotenv.config();
+
+const client = new WebPubSubServiceEndpoint(process.env.WPS_CONNECTION_STRING!);
+console.log(client.clientNegotiate('hub'));
 
 const wpsserver = new WebPubSubServer(process.env.WPS_CONNECTION_STRING!, 'chat',
   {
