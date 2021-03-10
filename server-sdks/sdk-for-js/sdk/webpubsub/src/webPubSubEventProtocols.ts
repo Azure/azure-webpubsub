@@ -32,23 +32,19 @@ export interface ConnectResponse {
 }
 
 export interface UserEventResponse {
-  error?: ErrorResponse // If error is set, we consider this a failed response
-  body?: string | ArrayBuffer, // Response Content-Type should be `plain/text` for string, and `application/octet-stream` for ArrayBuffer
+  error?: ErrorResponse, // If error is set, we consider this a failed response
+  payload?: PayloadData;
 }
 
 export interface ConnectionContext {
-  signature: string;
   hub: string;
   connectionId: string;
   eventName: string;
   userId?: string;
 }
 
-export interface EventRequestBase {
+export interface ConnectRequest {
   context: ConnectionContext,
-}
-
-export interface ConnectRequest extends EventRequestBase {
   claims?: { [key: string]: string[] };
   queries?: { [key: string]: string[] };
   subprotocols?: string[];
@@ -59,15 +55,29 @@ export interface Certificate {
   thumbprint: string;
 }
 
-export interface ConnectedRequest extends EventRequestBase {
+export interface ConnectedRequest {
+  context: ConnectionContext,
 }
 
-export interface UserEventRequest extends EventRequestBase {
+export interface UserEventRequest {
+  context: ConnectionContext,
   eventName: string;
-  data: string | ArrayBuffer;
+  payload: PayloadData;
 }
 
-export interface DisconnectedRequest extends EventRequestBase {
+export interface PayloadData {
+  data: string | ArrayBuffer;
+  dataType: PayloadDataType;
+}
+
+enum PayloadDataType {
+  binary,
+  text,
+  json,
+}
+
+export interface DisconnectedRequest {
+  context: ConnectionContext,
   reason?: string;
 }
 
@@ -159,7 +169,10 @@ export class ProtocolParser {
       var connectResponse = await this.eventHandler.onConnect(connectRequest);
       if (connectRequest) {
         return {
-          body: JSON.stringify(connectResponse)
+          payload:{
+            data: JSON.stringify(connectResponse),
+            dataType: PayloadDataType.json
+          } 
         };
       } else {
         return;
@@ -181,10 +194,11 @@ export class ProtocolParser {
       disconnectedRequest.context = context;
       this.eventHandler.onDisconnected(disconnectedRequest);
     } else if (type.startsWith("azure.webpubsub.user")) {
-      console.log(receivedEvent);
       var data: ArrayBuffer | string;
+      var dataType = PayloadDataType.binary;
       if (receivedEvent.data) {
         data = receivedEvent.data as string;
+        dataType = receivedEvent.datacontenttype === 'application/json' ? PayloadDataType.json : PayloadDataType.text;
       } else if (receivedEvent.data_base64) {
         data = decode(receivedEvent.data_base64);
       } else {
@@ -193,7 +207,10 @@ export class ProtocolParser {
       var userRequest: UserEventRequest = {
         eventName: context.eventName,
         context: context,
-        data: data
+          payload:{
+            data: data,
+            dataType: dataType
+          }
       };
       console.log(userRequest);
       if (!userRequest) {

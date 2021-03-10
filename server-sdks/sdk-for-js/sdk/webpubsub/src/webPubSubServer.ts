@@ -22,9 +22,6 @@ export interface EventRequest extends Message {
  */
 export class WebPubSubServer extends WebPubSubServiceRestClient {
 
-  /**
-   * The name of the hub this client is connected to
-   */
   public readonly hub: string;
   public readonly apiVersion: string = "2020-10-01";
 
@@ -41,15 +38,8 @@ export class WebPubSubServer extends WebPubSubServiceRestClient {
     this.eventHandlerUrl = options?.eventHandlerUrl ?? `/api/webpubsub/hubs/${this.hub}`;
   }
 
-  public async Process(req: EventRequest): Promise<UserEventResponse> {
-    var result = await this._parser.getResponse(req);
-    if (result === undefined) {
-      return { body: undefined };
-    }
-    return result;
-  }
-
   public async handleNodeRequest(request: IncomingMessage, response: ServerResponse): Promise<boolean> {
+    // TODO: negotiate middleware
     var abuseHost = this.tryHandleAbuseProtectionRequest(request);
     if (abuseHost){
       response.setHeader("WebHook-Allowed-Origin", abuseHost);

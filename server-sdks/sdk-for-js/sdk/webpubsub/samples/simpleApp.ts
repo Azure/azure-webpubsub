@@ -1,13 +1,14 @@
-import { WebPubSubServer } from "../src/webPubSubServer";
 import * as dotenv from "dotenv";
 
 import { createServer, IncomingMessage, ServerResponse } from 'http';
-import { WebPubSubServiceEndpoint } from "../src";
+import { WebPubSubServiceEndpoint, WebPubSubServiceRestClient, WebPubSubServer } from "../src";
 
 dotenv.config();
 
 const client = new WebPubSubServiceEndpoint(process.env.WPS_CONNECTION_STRING!);
 console.log(client.clientNegotiate('hub'));
+
+var rest = new WebPubSubServiceRestClient(process.env.WPS_CONNECTION_STRING!, 'chat');
 
 const wpsserver = new WebPubSubServer(process.env.WPS_CONNECTION_STRING!, 'chat',
   {
@@ -20,12 +21,15 @@ const wpsserver = new WebPubSubServer(process.env.WPS_CONNECTION_STRING!, 'chat'
         userId: "vicancy"
       }; // or connectRequest.fail(); to 401 the request
     },
-    onConnected: async connectedRequest =>{
+    onConnected: async connectedRequest => {
       await wpsserver.sendToAll(connectedRequest.context.connectionId + " connected");
     },
     onUserEvent: async userRequest => {
       return {
-        body: "Hey " + userRequest.data,
+        payload: {
+          data: "Hey " + userRequest.payload.data,
+          dataType: userRequest.payload.dataType
+        }
       };
     },
     onDisconnected: async disconnectRequest => {

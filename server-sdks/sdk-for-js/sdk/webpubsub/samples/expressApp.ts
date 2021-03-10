@@ -8,9 +8,6 @@ const wpsserver = new WebPubSubServer(process.env.WPS_CONNECTION_STRING!,
   {
     dumpRequest: false,
     onConnect: async connectRequest => {
-      // success with client joining group1
-      // await wpsserver.broadcast(connectRequest.context.connectionId);
-
       console.log(JSON.stringify(connectRequest));
         return {};
     },
@@ -25,7 +22,10 @@ const wpsserver = new WebPubSubServer(process.env.WPS_CONNECTION_STRING!,
     onUserEvent: async userRequest => {
       console.log(JSON.stringify(userRequest));
       return {
-        body: "Hey " + userRequest.data,
+        payload: {
+          data: "Hey " + userRequest.payload.data,
+          dataType: userRequest.payload.dataType
+        }
       };
     },
   }

@@ -42,7 +42,6 @@ This extension defines attributes used by Web PubSub Service for every event it 
 
 | Name | Type | Description | Example|
 |--|--|--|--|
-| `signature` | `string` | | `sha256={connection-id-hash-primary},sha256={connection-id-hash-secondary}`|
 | `userId` | `string` | The user the connection authed | |
 | `hub` | `string` | The hub the connection belongs to | |
 | `connectionId` | `string` | The connectionId is unique for the client connection | |
