@@ -67,9 +67,7 @@ interface ConnectedRequest {
 // for user events, `message` or custom events
 interface UserEventRequest {
   context: ConnectionContext;
-  eventName: string;
-  dataType: PayloadDataType;
-  data: string | ArrayBuffer; // Can we differ the dataType through the type of the data?
+  payload: PayloadData;
 }
 
 // for `disconnected` event
@@ -80,6 +78,11 @@ interface DisonnectedRequest {
 
 interface ClientCertificate {
   thumbprint: string;
+}
+
+interface PayloadData {
+  dataType: PayloadDataType; // Response Content-Type should be `plain/text` for PayloadDataType.text, and `application/octet-stream` for PayloadDataType.binary, and `application/json` for PayloadDataType.json
+  data: string | ArrayBuffer, 
 }
 
 enum PayloadDataType {
@@ -115,11 +118,15 @@ interface ConnectResponse {
   subprotocol?: string;
 }
 
+interface PayloadData {
+  dataType: PayloadDataType; // Response Content-Type should be `plain/text` for PayloadDataType.text, and `application/octet-stream` for PayloadDataType.binary, and `application/json` for PayloadDataType.json
+  data: string | ArrayBuffer, 
+}
+
 // for user events, `message` or custom events
 interface UserEventResponse {
   error?: ErrorResponse // If error is set, we consider this a failed response
-  dataType: PayloadDataType; // Response Content-Type should be `plain/text` for PayloadDataType.text, and `application/octet-stream` for PayloadDataType.binary, and `application/json` for PayloadDataType.json
-  data?: string | ArrayBuffer, 
+  payload?: PayloadData
 }
 
 enum PayloadDataType {
@@ -282,11 +289,7 @@ public class ConnectRequest
 public class UserEventRequest
 {
     public ConnectionContext Context { get; set; }
-    public string EventName { get; set; }
-
-    public Stream Data { get; set; }
-
-    public PayloadDataType DataType { get; set; }
+    public PayloadData Payload { get; set; }
 }
 
 public class DisconnectedRequest
@@ -358,7 +361,13 @@ public class UserEventResponse
     [AllowNull]
     public ErrorResponse Error { get; set; }
 
-    public Stream Data { get; set; }
+    [AllowNull]
+    public PayloadData Payload { get; set; }
+}
+
+public class PayloadData
+{
+    public ReadOnlySequence<byte> Data { get; set; }
 
     public PayloadDataType DataType { get; set; }
 }

@@ -19,7 +19,6 @@ interface ServiceEndpoint {
 interface NegotiateOptions {
   userId?: string;
   claims?: { [key: string]: string[] };
-  roles?: string[];
 }
 
 export class WebPubSubServiceEndpoint {
@@ -42,9 +41,6 @@ export class WebPubSubServiceEndpoint {
     const audience = `${this.endpoint.audience}client/hubs/${hub}`;
     var key = this.endpoint.key;
     var payload = options?.claims ?? {};
-    if (options?.roles) {
-      payload.role = options.roles;
-    }
     var signOptions: jwt.SignOptions = {
       audience: audience,
       expiresIn: "1h",

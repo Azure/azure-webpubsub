@@ -20,7 +20,10 @@ const wpsserver = new WebPubSubServer(process.env.WPS_CONNECTION_STRING, 'chat',
     },
     onUserEvent: async userRequest => {
       return {
-        body: "Hey " + userRequest.data,
+        payload: {
+          data: "Hey " + userRequest.payload.data,
+          dataType: userRequest.payload.dataType
+        }
       };
     },
     onDisconnected: async disconnectRequest => {
