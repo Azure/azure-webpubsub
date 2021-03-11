@@ -1,23 +1,18 @@
-import { WebPubSubServer } from "../src/webPubSubServer";
+import { WebPubSubCloudEventsHandler } from "../src/webPubSubServer";
 import * as dotenv from "dotenv";
 import express from "express";
 dotenv.config();
 
-const wpsserver = new WebPubSubServer(process.env.WPS_CONNECTION_STRING!,
+const wpsserver = new WebPubSubCloudEventsHandler(process.env.WPS_CONNECTION_STRING!,
   'chat',
   {
     dumpRequest: false,
     onConnect: async connectRequest => {
       console.log(JSON.stringify(connectRequest));
-        return {};
+      return {};
     },
-    onConnected: async connectedRequest =>{
+    onConnected: async connectedRequest => {
       console.log(JSON.stringify(connectedRequest));
-      try{
-        await wpsserver.sendToAll(connectedRequest.context.connectionId + " connected");
-      }catch(err){
-        console.error(err);
-      }
     },
     onUserEvent: async userRequest => {
       console.log(JSON.stringify(userRequest));
@@ -35,4 +30,4 @@ const app = express();
 
 app.use(wpsserver.getMiddleware())
 
-app.listen(3000, () => console.log(`Azure WebPubSub Upstream ready at http://localhost:3000${wpsserver.eventHandlerUrl}`));
+app.listen(3000, () => console.log(`Azure WebPubSub Upstream ready at http://localhost:3000${wpsserver.path}`));

@@ -1,48 +1,42 @@
 import * as dotenv from "dotenv";
 
 import { createServer, IncomingMessage, ServerResponse } from 'http';
-import { WebPubSubServiceEndpoint, WebPubSubServiceRestClient, WebPubSubServer } from "../src";
+import { WebPubSubServer} from "../src";
 
 dotenv.config();
 
-const client = new WebPubSubServiceEndpoint(process.env.WPS_CONNECTION_STRING!);
-console.log(client.clientNegotiate('hub'));
+const wpsserver = new WebPubSubServer(process.env.WPS_CONNECTION_STRING!, 'chat');
 
-var rest = new WebPubSubServiceRestClient(process.env.WPS_CONNECTION_STRING!, 'chat');
+const serviceClient = wpsserver.createServiceClient();
 
-const wpsserver = new WebPubSubServer(process.env.WPS_CONNECTION_STRING!, 'chat',
+console.log(wpsserver.endpoint.clientNegotiate('chat', {
+  userId: "vicancy",
+  claims: {
+    hey: ["w"],
+    role: ["webpubsub.group.join"],
+ }
+}));
+
+const handler = wpsserver.createCloudEventsHandler(
   {
-    // eventHandlerUrl: "/customUrl", // optional
+    path: "/customUrl", // optional
     onConnect: async connectRequest => {
       // success with client joining group1
-      // await wpsserver.broadcast(connectRequest.context.connectionId);
       console.log(connectRequest.context);
       return {
         userId: "vicancy"
-      }; // or connectRequest.fail(); to 401 the request
-    },
-    onConnected: async connectedRequest => {
-      await wpsserver.sendToAll(connectedRequest.context.connectionId + " connected");
-    },
-    onUserEvent: async userRequest => {
-      return {
-        payload: {
-          data: "Hey " + userRequest.payload.data,
-          dataType: userRequest.payload.dataType
-        }
       };
     },
-    onDisconnected: async disconnectRequest => {
-      console.log(disconnectRequest.context.userId + " disconnected");
-    }
+    onConnected: async connectedRequest => {
+      await serviceClient.sendToAll(connectedRequest.context.connectionId + " connected");
+    },
   }
 );
 
 const port = 3000;
 
 const server = createServer(async (request: IncomingMessage, response: ServerResponse) => {
-  if (await wpsserver.handleNodeRequest(request, response)){
-    console.log(`Processed ${request.url}`);
+  if (await handler.handleRequest(request, response)){
   }
   else{
     console.log(`${request.url} for others to process`);
@@ -51,4 +45,4 @@ const server = createServer(async (request: IncomingMessage, response: ServerRes
   }
 });
 
-server.listen(port, () => console.log(`Azure WebPubSub Upstream ready at http://localhost:${port}${wpsserver.eventHandlerUrl}`));
+server.listen(port, () => console.log(`Azure WebPubSub Upstream ready at http://localhost:${port}${handler.path}`));

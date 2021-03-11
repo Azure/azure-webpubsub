@@ -1,13 +1,14 @@
 import { WebPubSubServer } from "../src/webPubSubServer";
-import { WebPubSubServiceEndpoint } from "../src/webPubSubServiceEndpoint";
 import * as dotenv from "dotenv";
 dotenv.config();
 
-const se = new WebPubSubServiceEndpoint(process.env.WPS_CONNECTION_STRING!);
-console.log(se.clientNegotiate('chat'));
+const server = new WebPubSubServer(process.env.WPS_CONNECTION_STRING!, 'chat');
 
-const chatServer = new WebPubSubServer(process.env.WPS_CONNECTION_STRING!, 'chat');
 
+const endpoint = server.endpoint;
+console.log(endpoint.clientNegotiate('chat'));
+
+const chatServer = server.createServiceClient();
 async function main() {
   try{
 

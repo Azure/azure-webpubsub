@@ -79,6 +79,7 @@ export class WebPubSubServiceRestClient {
    * The name of the hub this client is connected to
    */
   public readonly hub: string;
+
   /**
    * The SignalR API version being used by this client
    */
@@ -89,20 +90,27 @@ export class WebPubSubServiceRestClient {
    */
   public serviceUrl!: URL;
 
-  constructor(connectionString: string, hub: string, options?: WebPubSubServiceRestClientOptions) {
+  private _endpoint: WebPubSubServiceEndpoint;
+
+  constructor(connectionStringOrEndpoint: string | WebPubSubServiceEndpoint, hub: string, options?: WebPubSubServiceRestClientOptions) {
+    if (typeof connectionStringOrEndpoint === 'string'){
+      this._endpoint = new WebPubSubServiceEndpoint(connectionStringOrEndpoint);
+    } else {
+      this._endpoint = connectionStringOrEndpoint;
+    }
+
     this.hub = hub;
 
-    var endpoint =  new WebPubSubServiceEndpoint(connectionString);
-    this.serviceUrl = endpoint.endpoint.serviceUrl;
-    this.credential = new WebPubSubKeyCredentials(endpoint.endpoint.key);
+    this.serviceUrl = this._endpoint.endpoint.serviceUrl;
+    this.credential = new WebPubSubKeyCredentials(this._endpoint.endpoint.key);
     this.client = new GeneratedClient(this.credential, {
       //httpPipelineLogger: options?.dumpRequest ? new ConsoleHttpPipelineLogger(HttpPipelineLogLevel.INFO) : undefined,
-      baseUri: endpoint.endpoint.serviceUrl.href,
+      baseUri: this._endpoint.endpoint.serviceUrl.href,
       requestPolicyFactories: options?.dumpRequest ? this.getFactoryWithLogPolicy : undefined,
     });
     this.sender = new WebPubSubSendApi(this.client);
   }
-
+  
   private getFactoryWithLogPolicy(defaultRequestPolicyFactories: RequestPolicyFactory[]): void {
     logPolicy
     defaultRequestPolicyFactories.push(logPolicy());
