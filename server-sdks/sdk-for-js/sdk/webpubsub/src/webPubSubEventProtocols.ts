@@ -38,7 +38,7 @@ export interface ConnectionContext {
 }
 
 export interface ConnectRequest {
-  connection: ConnectionContext,
+  context: ConnectionContext,
   claims?: { [key: string]: string[] };
   queries?: { [key: string]: string[] };
   subprotocols?: string[];
@@ -50,11 +50,11 @@ export interface Certificate {
 }
 
 export interface ConnectedRequest {
-  connection: ConnectionContext,
+  context: ConnectionContext,
 }
 
 export interface UserEventRequest {
-  connection: ConnectionContext,
+  context: ConnectionContext,
   eventName: string;
   payload: PayloadData;
 }
@@ -71,10 +71,11 @@ enum PayloadDataType {
 }
 
 export interface DisconnectedRequest {
-  connection: ConnectionContext,
+  context: ConnectionContext,
   reason?: string;
 }
-export interface ProtocolParserEventHandler {
+
+export interface WebPubSubEventHandler {
   onConnect?: (r: ConnectRequest) => Promise<ConnectResponse>
   onUserEvent?: (r: UserEventRequest) => Promise<UserEventResponse>
   onConnected?: (r: ConnectedRequest) => Promise<void>;
@@ -82,7 +83,7 @@ export interface ProtocolParserEventHandler {
 }
 
 export class ProtocolParser {
-  constructor(private hub: string, private eventHandler?: ProtocolParserEventHandler, private dumpRequest?: boolean) {
+  constructor(private hub: string, private eventHandler?: WebPubSubEventHandler, private dumpRequest?: boolean) {
   }
 
   public async processNodeHttpRequest(request: IncomingMessage, response: ServerResponse): Promise<void> {
@@ -149,13 +150,16 @@ export class ProtocolParser {
     }
 
     // TODO: valid request is a valid cloud event with WebPubSub extension
-    if (type === "azure.webpubsub.sys.connect" && this.eventHandler?.onConnect) {
+    if (type === "azure.webpubsub.sys.connect") {
+      if (!this.eventHandler?.onConnect){
+        return;
+      }
       var connectRequest = receivedEvent.data as ConnectRequest;
       if (!connectRequest) {
         throw new Error("Data is expected");
       }
 
-      connectRequest.connection = context;
+      connectRequest.context = context;
       var connectResponse = await this.eventHandler.onConnect(connectRequest);
       if (connectRequest) {
         return {
@@ -167,23 +171,34 @@ export class ProtocolParser {
       } else {
         return;
       }
-    } else if (type === "azure.webpubsub.sys.connected" && this.eventHandler?.onConnected) {
+    } else if (type === "azure.webpubsub.sys.connected") {
+      if (!this.eventHandler?.onConnected){
+        return;
+      }
+
       var connectedRequest = receivedEvent.data as ConnectedRequest;
       if (!connectedRequest) {
         throw new Error("Data is expected");
       }
 
-      connectedRequest.connection = context;
+      connectedRequest.context = context;
       this.eventHandler.onConnected(connectedRequest);
-    } else if (type === "azure.webpubsub.sys.disconnected" && this.eventHandler?.onDisconnected) {
+    } else if (type === "azure.webpubsub.sys.disconnected") {
+      if (!this.eventHandler?.onDisconnected){
+        return;
+      }
+
       var disconnectedRequest = receivedEvent.data as DisconnectedRequest;
       if (!disconnectedRequest) {
         throw new Error("Data is expected");
       }
 
-      disconnectedRequest.connection = context;
+      disconnectedRequest.context = context;
       this.eventHandler.onDisconnected(disconnectedRequest);
-    } else if (type.startsWith("azure.webpubsub.user") && this.eventHandler?.onUserEvent) {
+    } else if (type.startsWith("azure.webpubsub.user")) {
+      if (!this.eventHandler?.onUserEvent){
+        return;
+      }
       var data: ArrayBuffer | string;
       var dataType = PayloadDataType.binary;
       if (receivedEvent.data) {
@@ -196,7 +211,7 @@ export class ProtocolParser {
       }
       var userRequest: UserEventRequest = {
         eventName: context.eventName,
-        connection: context,
+        context: context,
         payload: {
           data: data,
           dataType: dataType
@@ -207,7 +222,7 @@ export class ProtocolParser {
         throw new Error("Data is expected");
       }
 
-      userRequest.connection = context;
+      userRequest.context = context;
       return await this.eventHandler.onUserEvent(userRequest);
     }
     else {

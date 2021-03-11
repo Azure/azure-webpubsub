@@ -1,71 +1,63 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT license.
 
-import { WebPubSubHubConnectionManager, WebPubSubServiceRestClient, WebPubSubServiceRestClientOptions } from "./webPubSubServiceRestClient";
 import { WebPubSubServiceEndpoint } from "./webPubSubServiceEndpoint";
 
-import { ProtocolParser, ConnectRequest, ConnectResponse, UserEventResponse, UserEventRequest, ConnectedRequest, DisconnectedRequest, ProtocolParserEventHandler } from "./webPubSubEventProtocols"
+import { ProtocolParser, WebPubSubEventHandler } from "./webPubSubEventProtocols"
 import { IncomingMessage, ServerResponse } from "http";
 import express from "express";
 import { Message } from "cloudevents";
+import { WebPubSubServiceRestClient, WebPubSubServiceRestClientOptions } from "./webPubSubServiceRestClient";
 
-export interface WebPubSubHubContext {
-  manager: WebPubSubHubConnectionManager;
-}
-
-export interface WebPubSubEventProcessor {
-  onConnect?: (r: ConnectRequest, context: WebPubSubHubContext) => Promise<ConnectResponse>
-  onUserEvent?: (r: UserEventRequest, context: WebPubSubHubContext) => Promise<UserEventResponse>
-  onConnected?: (r: ConnectedRequest, context: WebPubSubHubContext) => Promise<void>;
-  onDisconnected?: (r: DisconnectedRequest, context: WebPubSubHubContext) => Promise<void>;
-}
-
-export interface WebPubSubServerOptions extends WebPubSubServiceRestClientOptions {
-  eventHandlerUrl?: string;
+export interface WebPubSubEventHandlerOptions extends WebPubSubEventHandler {
+  path?: string;
+  dumpRequest?: boolean;
 }
 
 export interface EventRequest extends Message {
 }
 
-/**
- * Client for connecting to a SignalR hub
- */
-export class WebPubSubHttpProtocolHandler {
+export class WebPubSubServer {
+  public endpoint: WebPubSubServiceEndpoint;
+  constructor(conn: string, private hub: string) {
+    this.endpoint = new WebPubSubServiceEndpoint(conn);
+  }
+
+  public createCloudEventsHandler(options?: WebPubSubEventHandlerOptions): WebPubSubCloudEventsHandler {
+    return new WebPubSubCloudEventsHandler(this.endpoint, this.hub, options);
+  }
+
+  public createServiceClient(options?: WebPubSubServiceRestClientOptions): WebPubSubServiceRestClient {
+    return new WebPubSubServiceRestClient(this.endpoint, this.hub, options);
+  }
+}
+
+export class WebPubSubCloudEventsHandler {
 
   public readonly path: string;
 
-  private _serverToServiceHandler: WebPubSubServiceRestClient;
-  private _serviceToServerHandler: ProtocolParser;
+  private _cloudEventsHandler: ProtocolParser;
 
   private _serviceHost: string;
   private _endpoint: WebPubSubServiceEndpoint;
 
-  constructor(connectionString: string, private hub: string, eventProcessor?: WebPubSubEventProcessor, options?: WebPubSubServerOptions) {
-    this._endpoint = new WebPubSubServiceEndpoint(connectionString);
-    this._serverToServiceHandler = new WebPubSubServiceRestClient(this._endpoint, hub, options);
-    this.path = (options?.eventHandlerUrl ?? `/api/webpubsub/hubs/${hub}`).toLowerCase();
+  constructor(connectionStringOrEndpoint: string | WebPubSubServiceEndpoint, private hub: string, options?: WebPubSubEventHandlerOptions) {
+    if (typeof connectionStringOrEndpoint === 'string') {
+      this._endpoint = new WebPubSubServiceEndpoint(connectionStringOrEndpoint);
+    } else {
+      this._endpoint = connectionStringOrEndpoint;
+    }
+
+    this.path = (options?.path ?? `/api/webpubsub/hubs/${hub}`).toLowerCase();
     this.hub = hub;
 
 
-    this._serviceHost = this._serverToServiceHandler.serviceUrl.host;
+    this._serviceHost = this._endpoint.endpoint.serviceUrl.hostname;
 
-    this._serviceToServerHandler = new ProtocolParser(this.hub, this.getCloudEventHandler(eventProcessor), options?.dumpRequest);
+    this._cloudEventsHandler = new ProtocolParser(this.hub, options, options?.dumpRequest);
   }
 
-  private getCloudEventHandler(eventProcessor?: WebPubSubEventProcessor): ProtocolParserEventHandler {
-    const context: WebPubSubHubContext = {
-      manager: this._serverToServiceHandler
-    };
-    return {
-      onConnect: eventProcessor?.onConnect !== undefined ? r => eventProcessor.onConnect!(r, context) : undefined,
-      onUserEvent: eventProcessor?.onUserEvent !== undefined ? r => eventProcessor.onUserEvent!(r, context) : undefined,
-      onConnected: eventProcessor?.onConnected !== undefined ? r => eventProcessor.onConnected!(r, context) : undefined,
-      onDisconnected: eventProcessor?.onDisconnected !== undefined ? r => eventProcessor.onDisconnected!(r, context) : undefined,
-    }
-  }
-
-
-  public async handleNodeRequest(request: IncomingMessage, response: ServerResponse): Promise<boolean> {
+  public async handleRequest(request: IncomingMessage, response: ServerResponse): Promise<boolean> {
     var normalizedUrl = request.url?.toLowerCase();
     if (!normalizedUrl) {
       throw new Error("invalid url");
@@ -99,9 +91,10 @@ export class WebPubSubHttpProtocolHandler {
     if (url !== this.path || request.method !== 'OPTIONS') {
       return false;
     }
-    if (request.headers['WebHook-Request-Origin'] === this._serviceHost) {
+    if (request.headers['webhook-request-origin'] === this._serviceHost) {
       response.setHeader("WebHook-Allowed-Origin", this._serviceHost);
     } else {
+      console.log(`Invalid abuse protection request ${request}`);
       response.statusCode = 400
     }
     response.end();
@@ -109,8 +102,8 @@ export class WebPubSubHttpProtocolHandler {
   }
 
   private async tryHandleCloudEvents(request: IncomingMessage, response: ServerResponse, url: string): Promise<boolean> {
-    console.log(url);
     if (url !== this.path) {
+      console.warn(`Url ${url} does not match ${this.path}`);
       return false;
     }
     if (request.method !== 'POST') {
@@ -118,7 +111,7 @@ export class WebPubSubHttpProtocolHandler {
       response.end();
       return true;
     }
-    await this._serviceToServerHandler.processNodeHttpRequest(request, response);
+    await this._cloudEventsHandler.processNodeHttpRequest(request, response);
     return true;
   }
 }

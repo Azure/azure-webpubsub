@@ -1,22 +1,18 @@
-import { WebPubSubHttpProtocolHandler } from "../src/webPubSubServer";
+import { WebPubSubCloudEventsHandler } from "../src/webPubSubServer";
 import * as dotenv from "dotenv";
 import express from "express";
 dotenv.config();
 
-const wpsserver = new WebPubSubHttpProtocolHandler(process.env.WPS_CONNECTION_STRING!,
+const wpsserver = new WebPubSubCloudEventsHandler(process.env.WPS_CONNECTION_STRING!,
   'chat',
   {
+    dumpRequest: false,
     onConnect: async connectRequest => {
       console.log(JSON.stringify(connectRequest));
       return {};
     },
-    onConnected: async (connectedRequest, context) => {
+    onConnected: async connectedRequest => {
       console.log(JSON.stringify(connectedRequest));
-      try {
-        await context.manager.sendToAll(connectedRequest.connection.connectionId + " connected");
-      } catch (err) {
-        console.error(err);
-      }
     },
     onUserEvent: async userRequest => {
       console.log(JSON.stringify(userRequest));
@@ -27,9 +23,6 @@ const wpsserver = new WebPubSubHttpProtocolHandler(process.env.WPS_CONNECTION_ST
         }
       };
     },
-  },
-  {
-    dumpRequest: false,
   }
 );
 

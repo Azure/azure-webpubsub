@@ -22,7 +22,6 @@ interface NegotiateOptions {
 }
 
 export class WebPubSubServiceEndpoint {
-  conn: string;
   endpoint: ServiceEndpoint;
 
   /**
@@ -30,9 +29,9 @@ export class WebPubSubServiceEndpoint {
    *
    * @constructor
    * @param {string} conn The Connection String.
+   * @param {string} hub The Hub
    */
   constructor(conn: string) {
-    this.conn = conn;
     this.endpoint = this.getServiceEndpoint(conn);
   }
 

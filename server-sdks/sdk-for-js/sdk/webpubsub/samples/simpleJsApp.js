@@ -4,21 +4,33 @@ const http = require('http');
 
 dotenv.config();
 
-const wpsserver = new WebPubSubServer(process.env.WPS_CONNECTION_STRING, 'chat',
+const wpsserver = new WebPubSubServer(
+  'Endpoint=http://localhost;AccessKey=ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789ABCDEFGH;Port=8080;Version=1.0;'
+  , 'chat');
+const serviceClient = wpsserver.createServiceClient();
+const handler = wpsserver.createCloudEventsHandler(
   {
-    // eventHandlerUrl: "/customUrl", // optional
+    //path: "/customUrl", // optional
     onConnect: async connectRequest => {
-      // success with client joining group1
-      // await wpsserver.broadcast(connectRequest.context.connectionId);
-      console.log(connectRequest.context);
       return {
         userId: "vicancy"
-      }; // or connectRequest.fail(); to 401 the request
+      };
     },
     onConnected: async connectedRequest => {
-      await wpsserver.sendToAll(connectedRequest.context.connectionId + " connected");
+      await serviceClient.sendToAll(connectedRequest.context.connectionId + " connected");
     },
     onUserEvent: async userRequest => {
+      console.log(`Received user request data: ${userRequest.payload.data}`);
+      if (userRequest.payload.data === 'abort') {
+        return {
+          error: {
+            detail: "aborted"
+          }
+        };
+      }
+      if (userRequest.payload.data === 'error') {
+        throw new Error("error from inside the event");
+      }
       return {
         payload: {
           data: "Hey " + userRequest.payload.data,
@@ -35,14 +47,11 @@ const wpsserver = new WebPubSubServer(process.env.WPS_CONNECTION_STRING, 'chat',
 const port = 3000;
 
 const server = http.createServer(async (request, response) => {
-  if (await wpsserver.handleNodeRequest(request, response)) {
-    console.log(`Processed ${request.url}`);
-  }
-  else {
+  if (!await handler.handleRequest(request, response)) {
     console.log(`${request.url} for others to process`);
     response.statusCode = 404;
     response.end();
   }
 });
 
-server.listen(port, () => console.log(`Azure WebPubSub Upstream ready at http://localhost:${port}${wpsserver.eventHandlerUrl}`));
+server.listen(port, () => console.log(`Azure WebPubSub Upstream ready at http://localhost:${port}${handler.path}`));

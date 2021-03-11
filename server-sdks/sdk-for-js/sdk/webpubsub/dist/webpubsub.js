@@ -3,10 +3,10 @@
  * Changes may cause incorrect behavior and will be lost if the code is regenerated.
  */
 (function (global, factory) {
-    typeof exports === 'object' && typeof module !== 'undefined' ? factory(exports, require('@azure/ms-rest-azure-js'), require('@azure/ms-rest-js'), require('jsonwebtoken'), require('url'), require('cloudevents'), require('express')) :
-    typeof define === 'function' && define.amd ? define(['exports', '@azure/ms-rest-azure-js', '@azure/ms-rest-js', 'jsonwebtoken', 'url', 'cloudevents', 'express'], factory) :
-    (global = global || self, factory((global.Azure = global.Azure || {}, global.Azure.WebPubSub = {}), global.msRestAzure, global.msRest, global.jwt, global.url, global.cloudevents, global.express));
-}(this, (function (exports, msRestAzure, msRest, jwt, url, cloudevents, express) { 'use strict';
+    typeof exports === 'object' && typeof module !== 'undefined' ? factory(exports, require('jsonwebtoken'), require('url'), require('cloudevents'), require('express'), require('@azure/ms-rest-azure-js'), require('@azure/ms-rest-js')) :
+    typeof define === 'function' && define.amd ? define(['exports', 'jsonwebtoken', 'url', 'cloudevents', 'express', '@azure/ms-rest-azure-js', '@azure/ms-rest-js'], factory) :
+    (global = global || self, factory((global.Azure = global.Azure || {}, global.Azure.WebPubSub = {}), global.jwt, global.url, global.cloudevents, global.express, global.msRestAzure, global.msRest));
+}(this, (function (exports, jwt, url, cloudevents, express, msRestAzure, msRest) { 'use strict';
 
     jwt = jwt && Object.prototype.hasOwnProperty.call(jwt, 'default') ? jwt['default'] : jwt;
     express = express && Object.prototype.hasOwnProperty.call(express, 'default') ? express['default'] : express;
@@ -34,6 +34,376 @@
             function step(result) { result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected); }
             step((generator = generator.apply(thisArg, _arguments || [])).next());
         });
+    }
+
+    // Copyright (c) Microsoft Corporation.
+    class WebPubSubServiceEndpoint {
+        /**
+         * Creates a new WebPubSubServiceEndpoint object.
+         *
+         * @constructor
+         * @param {string} conn The Connection String.
+         * @param {string} hub The Hub
+         */
+        constructor(conn) {
+            this.endpoint = this.getServiceEndpoint(conn);
+        }
+        clientNegotiate(hub, options) {
+            var _a;
+            var clientUrl = `${this.endpoint.websocketHost}client/hubs/${hub}`;
+            const audience = `${this.endpoint.audience}client/hubs/${hub}`;
+            var key = this.endpoint.key;
+            var payload = (_a = options === null || options === void 0 ? void 0 : options.claims) !== null && _a !== void 0 ? _a : {};
+            var signOptions = {
+                audience: audience,
+                expiresIn: "1h",
+                algorithm: "HS256",
+            };
+            if (options === null || options === void 0 ? void 0 : options.userId) {
+                signOptions.subject = options === null || options === void 0 ? void 0 : options.userId;
+            }
+            return {
+                url: clientUrl,
+                token: jwt.sign(payload, key, signOptions),
+            };
+        }
+        getServiceEndpoint(conn) {
+            var endpoint = this.parseConnectionString(conn);
+            if (!endpoint) {
+                throw new Error("Invalid connection string: " + conn);
+            }
+            return endpoint;
+        }
+        parseConnectionString(conn) {
+            const em = /Endpoint=(.*?)(;|$)/g.exec(conn);
+            if (!em)
+                return null;
+            const endpoint = em[1];
+            const km = /AccessKey=(.*?)(;|$)/g.exec(conn);
+            if (!km)
+                return null;
+            const key = km[1];
+            if (!endpoint || !key)
+                return null;
+            const pm = /Port=(.*?)(;|$)/g.exec(conn);
+            const port = pm == null ? '' : pm[1];
+            var url$1 = new url.URL(endpoint);
+            var originalProtocol = url$1.protocol;
+            url$1.protocol = originalProtocol === 'http:' ? 'ws:' : 'wss:';
+            const audience = url$1.toString();
+            url$1.port = port;
+            var websocketHost = url$1.toString();
+            url$1.protocol = originalProtocol;
+            return {
+                websocketHost: websocketHost,
+                serviceUrl: url$1,
+                audience: audience,
+                key: key,
+            };
+        }
+    }
+
+    // For the base64 encoding pieces.
+    var alphabet = [
+        'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H',
+        'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P',
+        'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X',
+        'Y', 'Z', 'a', 'b', 'c', 'd', 'e', 'f',
+        'g', 'h', 'i', 'j', 'k', 'l', 'm', 'n',
+        'o', 'p', 'q', 'r', 's', 't', 'u', 'v',
+        'w', 'x', 'y', 'z', '0', '1', '2', '3',
+        '4', '5', '6', '7', '8', '9', '+', '/'
+    ];
+    var values = {};
+    for (var /** @type {?} */ i = 0; i < 64; ++i) {
+        values[alphabet[i]] = i;
+    }
+    /**
+     * @param {?} string
+     * @return {?}
+     */
+    function decode(string) {
+        var /** @type {?} */ size = string.length;
+        if (size === 0) {
+            return new Uint8Array(new ArrayBuffer(0));
+        }
+        if (size % 4 !== 0) {
+            throw new Error('Bad length: ' + size);
+        }
+        if (!string.match(/^[a-zA-Z0-9+/]+={0,2}$/)) {
+            throw new Error('Invalid base64 encoded value');
+        }
+        // Every 4 base64 chars = 24 bits = 3 bytes. But, we also need to figure out
+        // padding, if any.
+        var /** @type {?} */ bytes = 3 * (size / 4);
+        var /** @type {?} */ numPad = 0;
+        if (string.charAt(size - 1) === '=') {
+            numPad++;
+            bytes--;
+        }
+        if (string.charAt(size - 2) === '=') {
+            numPad++;
+            bytes--;
+        }
+        var /** @type {?} */ buffer = new Uint8Array(new ArrayBuffer(bytes));
+        var /** @type {?} */ index = 0;
+        var /** @type {?} */ bufferIndex = 0;
+        var /** @type {?} */ quantum;
+        if (numPad > 0) {
+            size -= 4; // handle the last one specially
+        }
+        /* tslint:disable:no-bitwise */
+        while (index < size) {
+            quantum = 0;
+            for (var /** @type {?} */ i = 0; i < 4; ++i) {
+                quantum = (quantum << 6) | values[string.charAt(index + i)];
+            }
+            // quantum is now a 24-bit value.
+            buffer[bufferIndex++] = (quantum >> 16) & 0xff;
+            buffer[bufferIndex++] = (quantum >> 8) & 0xff;
+            buffer[bufferIndex++] = quantum & 0xff;
+            index += 4;
+        }
+        if (numPad > 0) {
+            // if numPad == 1, there is one =, and we have 18 bits with 2 0s at end.
+            // if numPad == 2, there is two ==, and we have 12 bits with 4 0s at end.
+            // First, grab my quantum.
+            quantum = 0;
+            for (var /** @type {?} */ i = 0; i < 4 - numPad; ++i) {
+                quantum = (quantum << 6) | values[string.charAt(index + i)];
+            }
+            if (numPad === 1) {
+                // quantum is 18 bits, but really represents two bytes.
+                quantum = quantum >> 2;
+                buffer[bufferIndex++] = (quantum >> 8) & 0xff;
+                buffer[bufferIndex++] = quantum & 0xff;
+            }
+            else {
+                // quantum is 12 bits, but really represents only one byte.
+                quantum = quantum >> 4;
+                buffer[bufferIndex++] = quantum & 0xff;
+            }
+        }
+        /* tslint:enable:no-bitwise */
+        return buffer;
+    }
+
+    // Copyright (c) Microsoft Corporation.
+    var ErrorCode;
+    (function (ErrorCode) {
+        ErrorCode[ErrorCode["serverError"] = 0] = "serverError";
+        ErrorCode[ErrorCode["userError"] = 1] = "userError";
+        ErrorCode[ErrorCode["unauthorized"] = 2] = "unauthorized";
+    })(ErrorCode || (ErrorCode = {}));
+    var PayloadDataType;
+    (function (PayloadDataType) {
+        PayloadDataType[PayloadDataType["binary"] = 0] = "binary";
+        PayloadDataType[PayloadDataType["text"] = 1] = "text";
+        PayloadDataType[PayloadDataType["json"] = 2] = "json";
+    })(PayloadDataType || (PayloadDataType = {}));
+    class ProtocolParser {
+        constructor(hub, eventHandler, dumpRequest) {
+            this.hub = hub;
+            this.eventHandler = eventHandler;
+            this.dumpRequest = dumpRequest;
+        }
+        processNodeHttpRequest(request, response) {
+            var _a, _b, _c;
+            return __awaiter(this, void 0, void 0, function* () {
+                if (!this.eventHandler) {
+                    response.end();
+                    return;
+                }
+                try {
+                    var eventRequest = yield this.convertHttpToEvent(request);
+                    var eventResponse = yield this.getResponse(eventRequest);
+                    if (!eventResponse) {
+                        // we consider no response as 200 valid response
+                        response.end();
+                        return;
+                    }
+                    if (eventResponse.error) {
+                        switch (eventResponse.error.code) {
+                            case ErrorCode.userError:
+                                response.statusCode = 400;
+                                break;
+                            case ErrorCode.unauthorized:
+                                response.statusCode = 402;
+                                break;
+                            default:
+                                response.statusCode = 500;
+                                break;
+                        }
+                        response.end((_a = eventResponse.error.detail) !== null && _a !== void 0 ? _a : '');
+                        return;
+                    }
+                    if (eventResponse === null || eventResponse === void 0 ? void 0 : eventResponse.payload) {
+                        if (eventResponse.payload.dataType === PayloadDataType.binary) {
+                            response.setHeader("Content-Type", "application/octet-stream");
+                        }
+                        else if (eventResponse.payload.dataType === PayloadDataType.json) {
+                            response.setHeader("Content-Type", "application/json");
+                        }
+                        else {
+                            response.setHeader("Content-Type", "text/plain; charset=utf-8");
+                        }
+                        response.end((_c = (_b = eventResponse.payload) === null || _b === void 0 ? void 0 : _b.data) !== null && _c !== void 0 ? _c : '');
+                    }
+                }
+                catch (err) {
+                    console.error(`Error processing request ${request}: ${err}`);
+                    response.statusCode = 500;
+                    response.end(err.message);
+                }
+            });
+        }
+        getResponse(request) {
+            var _a, _b, _c, _d;
+            return __awaiter(this, void 0, void 0, function* () {
+                const receivedEvent = cloudevents.HTTP.toEvent(request);
+                if (this.dumpRequest === true) {
+                    console.log(receivedEvent);
+                }
+                var type = receivedEvent.type.toLowerCase();
+                var context = this.GetContext(receivedEvent);
+                if (context.hub !== this.hub) {
+                    // it is possible when multiple hubs share the same handler
+                    console.info(`Incoming request is for hub '${this.hub}' while the incoming request is for hub '${context.hub}'`);
+                    return;
+                }
+                // TODO: valid request is a valid cloud event with WebPubSub extension
+                if (type === "azure.webpubsub.sys.connect") {
+                    if (!((_a = this.eventHandler) === null || _a === void 0 ? void 0 : _a.onConnect)) {
+                        return;
+                    }
+                    var connectRequest = receivedEvent.data;
+                    if (!connectRequest) {
+                        throw new Error("Data is expected");
+                    }
+                    connectRequest.context = context;
+                    var connectResponse = yield this.eventHandler.onConnect(connectRequest);
+                    if (connectRequest) {
+                        return {
+                            payload: {
+                                data: JSON.stringify(connectResponse),
+                                dataType: PayloadDataType.json
+                            }
+                        };
+                    }
+                    else {
+                        return;
+                    }
+                }
+                else if (type === "azure.webpubsub.sys.connected") {
+                    if (!((_b = this.eventHandler) === null || _b === void 0 ? void 0 : _b.onConnected)) {
+                        return;
+                    }
+                    var connectedRequest = receivedEvent.data;
+                    if (!connectedRequest) {
+                        throw new Error("Data is expected");
+                    }
+                    connectedRequest.context = context;
+                    this.eventHandler.onConnected(connectedRequest);
+                }
+                else if (type === "azure.webpubsub.sys.disconnected") {
+                    if (!((_c = this.eventHandler) === null || _c === void 0 ? void 0 : _c.onDisconnected)) {
+                        return;
+                    }
+                    var disconnectedRequest = receivedEvent.data;
+                    if (!disconnectedRequest) {
+                        throw new Error("Data is expected");
+                    }
+                    disconnectedRequest.context = context;
+                    this.eventHandler.onDisconnected(disconnectedRequest);
+                }
+                else if (type.startsWith("azure.webpubsub.user")) {
+                    if (!((_d = this.eventHandler) === null || _d === void 0 ? void 0 : _d.onUserEvent)) {
+                        return;
+                    }
+                    var data;
+                    var dataType = PayloadDataType.binary;
+                    if (receivedEvent.data) {
+                        data = receivedEvent.data;
+                        dataType = receivedEvent.datacontenttype === 'application/json' ? PayloadDataType.json : PayloadDataType.text;
+                    }
+                    else if (receivedEvent.data_base64) {
+                        data = decode(receivedEvent.data_base64);
+                    }
+                    else {
+                        throw new Error("empty data payload");
+                    }
+                    var userRequest = {
+                        eventName: context.eventName,
+                        context: context,
+                        payload: {
+                            data: data,
+                            dataType: dataType
+                        }
+                    };
+                    if (!userRequest) {
+                        throw new Error("Data is expected");
+                    }
+                    userRequest.context = context;
+                    return yield this.eventHandler.onUserEvent(userRequest);
+                }
+                else {
+                    throw new Error("Not supported event: " + type);
+                }
+            });
+        }
+        GetContext(ce) {
+            var context = {
+                signature: ce["signature"],
+                userId: ce["userid"],
+                hub: ce["hub"],
+                connectionId: ce["connectionid"],
+                eventName: ce["eventname"]
+            };
+            // TODO: validation
+            return context;
+        }
+        convertHttpToEvent(request) {
+            return __awaiter(this, void 0, void 0, function* () {
+                const normalized = {
+                    headers: {},
+                    body: ''
+                };
+                if (request.headers) {
+                    for (const key in request.headers) {
+                        if (Object.prototype.hasOwnProperty.call(request.headers, key)) {
+                            const element = request.headers[key];
+                            if (element === undefined) {
+                                continue;
+                            }
+                            if (typeof element === 'string') {
+                                normalized.headers[key] = element;
+                            }
+                            else {
+                                normalized.headers[key] = element.join(',');
+                            }
+                        }
+                    }
+                }
+                normalized.body = yield this.readRequestBody(request);
+                return normalized;
+            });
+        }
+        readRequestBody(req) {
+            return new Promise(function (resolve, reject) {
+                var body = "";
+                req.on('data', function (chunk) {
+                    body += chunk;
+                });
+                req.on('end', function () {
+                    resolve(body);
+                });
+                // reject on request error
+                req.on('error', function (err) {
+                    // This is not a "Second reject", just a different sort of failure
+                    reject(err);
+                });
+            });
+        }
     }
 
     /*
@@ -1069,77 +1439,6 @@
     }
 
     // Copyright (c) Microsoft Corporation.
-    class WebPubSubServiceEndpoint {
-        /**
-         * Creates a new WebPubSubServiceEndpoint object.
-         *
-         * @constructor
-         * @param {string} conn The Connection String.
-         */
-        constructor(conn) {
-            this.conn = conn;
-            this.endpoint = this.getServiceEndpoint(conn);
-        }
-        clientNegotiate(hub, options) {
-            var _a;
-            var clientUrl = `${this.endpoint.websocketHost}client/hubs/${hub}`;
-            const audience = `${this.endpoint.audience}client/hubs/${hub}`;
-            var key = this.endpoint.key;
-            var payload = (_a = options === null || options === void 0 ? void 0 : options.claims) !== null && _a !== void 0 ? _a : {};
-            if (options === null || options === void 0 ? void 0 : options.roles) {
-                payload.role = options.roles;
-            }
-            var signOptions = {
-                audience: audience,
-                expiresIn: "1h",
-                algorithm: "HS256",
-            };
-            if (options === null || options === void 0 ? void 0 : options.userId) {
-                signOptions.subject = options === null || options === void 0 ? void 0 : options.userId;
-            }
-            return {
-                url: clientUrl,
-                token: jwt.sign(payload, key, signOptions),
-            };
-        }
-        getServiceEndpoint(conn) {
-            var endpoint = this.parseConnectionString(conn);
-            console.log(endpoint);
-            if (!endpoint) {
-                throw new Error("Invalid connection string: " + conn);
-            }
-            return endpoint;
-        }
-        parseConnectionString(conn) {
-            const em = /Endpoint=(.*?)(;|$)/g.exec(conn);
-            if (!em)
-                return null;
-            const endpoint = em[1];
-            const km = /AccessKey=(.*?)(;|$)/g.exec(conn);
-            if (!km)
-                return null;
-            const key = km[1];
-            if (!endpoint || !key)
-                return null;
-            const pm = /Port=(.*?)(;|$)/g.exec(conn);
-            const port = pm == null ? '' : pm[1];
-            var url$1 = new url.URL(endpoint);
-            var originalProtocol = url$1.protocol;
-            url$1.protocol = originalProtocol === 'http:' ? 'ws:' : 'wss:';
-            const audience = url$1.toString();
-            url$1.port = port;
-            var websocketHost = url$1.toString();
-            url$1.protocol = originalProtocol;
-            return {
-                websocketHost: websocketHost,
-                serviceUrl: url$1,
-                audience: audience,
-                key: key,
-            };
-        }
-    }
-
-    // Copyright (c) Microsoft Corporation.
     class ConsoleHttpPipelineLogger {
         /**
          * Create a new ConsoleHttpPipelineLogger.
@@ -1172,18 +1471,23 @@
      * Client for connecting to a SignalR hub
      */
     class WebPubSubServiceRestClient {
-        constructor(connectionString, hub, options) {
+        constructor(connectionStringOrEndpoint, hub, options) {
             /**
              * The SignalR API version being used by this client
              */
             this.apiVersion = "2020-10-01";
+            if (typeof connectionStringOrEndpoint === 'string') {
+                this._endpoint = new WebPubSubServiceEndpoint(connectionStringOrEndpoint);
+            }
+            else {
+                this._endpoint = connectionStringOrEndpoint;
+            }
             this.hub = hub;
-            var endpoint = new WebPubSubServiceEndpoint(connectionString);
-            this.serviceUrl = endpoint.endpoint.serviceUrl;
-            this.credential = new WebPubSubKeyCredentials(endpoint.endpoint.key);
+            this.serviceUrl = this._endpoint.endpoint.serviceUrl;
+            this.credential = new WebPubSubKeyCredentials(this._endpoint.endpoint.key);
             this.client = new WebPubSubServiceClient(this.credential, {
                 //httpPipelineLogger: options?.dumpRequest ? new ConsoleHttpPipelineLogger(HttpPipelineLogLevel.INFO) : undefined,
-                baseUri: endpoint.endpoint.serviceUrl.href,
+                baseUri: this._endpoint.endpoint.serviceUrl.href,
                 requestPolicyFactories: (options === null || options === void 0 ? void 0 : options.dumpRequest) ? this.getFactoryWithLogPolicy : undefined,
             });
             this.sender = new WebPubSubSendApi(this.client);
@@ -1471,384 +1775,94 @@
         }
     }
 
-    // For the base64 encoding pieces.
-    var alphabet = [
-        'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H',
-        'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P',
-        'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X',
-        'Y', 'Z', 'a', 'b', 'c', 'd', 'e', 'f',
-        'g', 'h', 'i', 'j', 'k', 'l', 'm', 'n',
-        'o', 'p', 'q', 'r', 's', 't', 'u', 'v',
-        'w', 'x', 'y', 'z', '0', '1', '2', '3',
-        '4', '5', '6', '7', '8', '9', '+', '/'
-    ];
-    var values = {};
-    for (var /** @type {?} */ i = 0; i < 64; ++i) {
-        values[alphabet[i]] = i;
+    // Copyright (c) Microsoft Corporation.
+    class WebPubSubServer {
+        constructor(conn, hub) {
+            this.hub = hub;
+            this.endpoint = new WebPubSubServiceEndpoint(conn);
+        }
+        createCloudEventsHandler(options) {
+            return new WebPubSubCloudEventsHandler(this.endpoint, this.hub, options);
+        }
+        createServiceClient(options) {
+            return new WebPubSubServiceRestClient(this.endpoint, this.hub, options);
+        }
     }
-    /**
-     * @param {?} string
-     * @return {?}
-     */
-    function decode(string) {
-        var /** @type {?} */ size = string.length;
-        if (size === 0) {
-            return new Uint8Array(new ArrayBuffer(0));
-        }
-        if (size % 4 !== 0) {
-            throw new Error('Bad length: ' + size);
-        }
-        if (!string.match(/^[a-zA-Z0-9+/]+={0,2}$/)) {
-            throw new Error('Invalid base64 encoded value');
-        }
-        // Every 4 base64 chars = 24 bits = 3 bytes. But, we also need to figure out
-        // padding, if any.
-        var /** @type {?} */ bytes = 3 * (size / 4);
-        var /** @type {?} */ numPad = 0;
-        if (string.charAt(size - 1) === '=') {
-            numPad++;
-            bytes--;
-        }
-        if (string.charAt(size - 2) === '=') {
-            numPad++;
-            bytes--;
-        }
-        var /** @type {?} */ buffer = new Uint8Array(new ArrayBuffer(bytes));
-        var /** @type {?} */ index = 0;
-        var /** @type {?} */ bufferIndex = 0;
-        var /** @type {?} */ quantum;
-        if (numPad > 0) {
-            size -= 4; // handle the last one specially
-        }
-        /* tslint:disable:no-bitwise */
-        while (index < size) {
-            quantum = 0;
-            for (var /** @type {?} */ i = 0; i < 4; ++i) {
-                quantum = (quantum << 6) | values[string.charAt(index + i)];
-            }
-            // quantum is now a 24-bit value.
-            buffer[bufferIndex++] = (quantum >> 16) & 0xff;
-            buffer[bufferIndex++] = (quantum >> 8) & 0xff;
-            buffer[bufferIndex++] = quantum & 0xff;
-            index += 4;
-        }
-        if (numPad > 0) {
-            // if numPad == 1, there is one =, and we have 18 bits with 2 0s at end.
-            // if numPad == 2, there is two ==, and we have 12 bits with 4 0s at end.
-            // First, grab my quantum.
-            quantum = 0;
-            for (var /** @type {?} */ i = 0; i < 4 - numPad; ++i) {
-                quantum = (quantum << 6) | values[string.charAt(index + i)];
-            }
-            if (numPad === 1) {
-                // quantum is 18 bits, but really represents two bytes.
-                quantum = quantum >> 2;
-                buffer[bufferIndex++] = (quantum >> 8) & 0xff;
-                buffer[bufferIndex++] = quantum & 0xff;
+    class WebPubSubCloudEventsHandler {
+        constructor(connectionStringOrEndpoint, hub, options) {
+            var _a;
+            this.hub = hub;
+            if (typeof connectionStringOrEndpoint === 'string') {
+                this._endpoint = new WebPubSubServiceEndpoint(connectionStringOrEndpoint);
             }
             else {
-                // quantum is 12 bits, but really represents only one byte.
-                quantum = quantum >> 4;
-                buffer[bufferIndex++] = quantum & 0xff;
+                this._endpoint = connectionStringOrEndpoint;
             }
-        }
-        /* tslint:enable:no-bitwise */
-        return buffer;
-    }
-
-    // Copyright (c) Microsoft Corporation.
-    var ErrorCode;
-    (function (ErrorCode) {
-        ErrorCode[ErrorCode["serverError"] = 0] = "serverError";
-        ErrorCode[ErrorCode["userError"] = 1] = "userError";
-        ErrorCode[ErrorCode["unauthorized"] = 2] = "unauthorized";
-    })(ErrorCode || (ErrorCode = {}));
-    class DefaultEventHandler {
-        constructor(options) {
-            this.options = options;
-        }
-        onMessage(r) {
-            var _a, _b;
-            if (((_a = this.options) === null || _a === void 0 ? void 0 : _a.onUserEvent) === undefined) {
-                return undefined;
-            }
-            return (_b = this.options) === null || _b === void 0 ? void 0 : _b.onUserEvent(r);
-        }
-        onConnect(r) {
-            var _a, _b;
-            if (((_a = this.options) === null || _a === void 0 ? void 0 : _a.onConnect) === undefined) {
-                return undefined;
-            }
-            return (_b = this.options) === null || _b === void 0 ? void 0 : _b.onConnect(r);
-        }
-        onConnected(r) {
-            var _a, _b;
-            if (((_a = this.options) === null || _a === void 0 ? void 0 : _a.onConnected) === undefined) {
-                return;
-            }
-            (_b = this.options) === null || _b === void 0 ? void 0 : _b.onConnected(r);
-        }
-        onDisconnected(r) {
-            var _a, _b;
-            if (((_a = this.options) === null || _a === void 0 ? void 0 : _a.onDisconnected) === undefined) {
-                return;
-            }
-            (_b = this.options) === null || _b === void 0 ? void 0 : _b.onDisconnected(r);
-        }
-    }
-    class ProtocolParser {
-        constructor(hub, eventHandler, dumpRequest) {
+            this.path = ((_a = options === null || options === void 0 ? void 0 : options.path) !== null && _a !== void 0 ? _a : `/api/webpubsub/hubs/${hub}`).toLowerCase();
             this.hub = hub;
-            this.eventHandler = eventHandler;
-            this.dumpRequest = dumpRequest;
+            this._serviceHost = this._endpoint.endpoint.serviceUrl.hostname;
+            this._cloudEventsHandler = new ProtocolParser(this.hub, options, options === null || options === void 0 ? void 0 : options.dumpRequest);
         }
-        processNodeHttpRequest(request) {
-            return __awaiter(this, void 0, void 0, function* () {
-                try {
-                    var eventRequest = yield this.convertHttpToEvent(request);
-                    return this.getResponse(eventRequest);
-                }
-                catch (err) {
-                    console.error(`Error processing request ${request}: ${err}`);
-                    return {
-                        error: {
-                            code: ErrorCode.serverError,
-                            detail: err.message,
-                        }
-                    };
-                }
-            });
-        }
-        getResponse(request) {
-            return __awaiter(this, void 0, void 0, function* () {
-                if (this.eventHandler === undefined) {
-                    return;
-                }
-                const receivedEvent = cloudevents.HTTP.toEvent(request);
-                if (this.dumpRequest === true) {
-                    console.log(receivedEvent);
-                }
-                var type = receivedEvent.type.toLowerCase();
-                var context = this.GetContext(receivedEvent);
-                if (context.hub !== this.hub) {
-                    console.warn(`Incoming request is for hub '${this.hub}' while the incoming request is for hub '${context.hub}'`);
-                    return;
-                }
-                // TODO: valid request is a valid cloud event with WebPubSub extension
-                if (type === "azure.webpubsub.sys.connect") {
-                    var connectRequest = receivedEvent.data;
-                    if (!connectRequest) {
-                        throw new Error("Data is expected");
-                    }
-                    connectRequest.context = context;
-                    var connectResponse = yield this.eventHandler.onConnect(connectRequest);
-                    if (connectRequest) {
-                        return {
-                            body: JSON.stringify(connectResponse)
-                        };
-                    }
-                    else {
-                        return;
-                    }
-                }
-                else if (type === "azure.webpubsub.sys.connected") {
-                    var connectedRequest = receivedEvent.data;
-                    if (!connectedRequest) {
-                        throw new Error("Data is expected");
-                    }
-                    connectedRequest.context = context;
-                    this.eventHandler.onConnected(connectedRequest);
-                }
-                else if (type === "azure.webpubsub.sys.disconnected") {
-                    var disconnectedRequest = receivedEvent.data;
-                    if (!disconnectedRequest) {
-                        throw new Error("Data is expected");
-                    }
-                    disconnectedRequest.context = context;
-                    this.eventHandler.onDisconnected(disconnectedRequest);
-                }
-                else if (type.startsWith("azure.webpubsub.user")) {
-                    console.log(receivedEvent);
-                    var data;
-                    if (receivedEvent.data) {
-                        data = receivedEvent.data;
-                    }
-                    else if (receivedEvent.data_base64) {
-                        data = decode(receivedEvent.data_base64);
-                    }
-                    else {
-                        throw new Error("empty data payload");
-                    }
-                    var userRequest = {
-                        eventName: context.eventName,
-                        context: context,
-                        data: data
-                    };
-                    console.log(userRequest);
-                    if (!userRequest) {
-                        throw new Error("Data is expected");
-                    }
-                    userRequest.context = context;
-                    return yield this.eventHandler.onMessage(userRequest);
-                }
-                /* for subprotocol
-                else if (type === "azure.webpubsub.sys.publish") {
-            
-                }  else if (type === "azure.webpubsub.sys.published") {
-            
-                }  else if (type === "azure.webpubsub.sys.join") {
-            
-                } else if (type === "azure.webpubsub.sys.joined") {
-            
-                }  else if (type === "azure.webpubsub.sys.leave") {
-            
-                } else if (type === "azure.webpubsub.sys.left") {
-            
-                }
-                */
-                else {
-                    throw new Error("Not supported event: " + type);
-                }
-            });
-        }
-        GetContext(ce) {
-            var context = {
-                signature: ce["signature"],
-                userId: ce["userid"],
-                hub: ce["hub"],
-                connectionId: ce["connectionid"],
-                eventName: ce["eventname"]
-            };
-            // TODO: validation
-            return context;
-        }
-        convertHttpToEvent(request) {
-            return __awaiter(this, void 0, void 0, function* () {
-                const normalized = {
-                    headers: {},
-                    body: ''
-                };
-                if (request.headers) {
-                    for (const key in request.headers) {
-                        if (Object.prototype.hasOwnProperty.call(request.headers, key)) {
-                            const element = request.headers[key];
-                            if (element === undefined) {
-                                continue;
-                            }
-                            if (typeof element === 'string') {
-                                normalized.headers[key] = element;
-                            }
-                            else {
-                                normalized.headers[key] = element.join(',');
-                            }
-                        }
-                    }
-                }
-                normalized.body = yield this.readRequestBody(request);
-                return normalized;
-            });
-        }
-        readRequestBody(req) {
-            return new Promise(function (resolve, reject) {
-                var body = "";
-                req.on('data', function (chunk) {
-                    body += chunk;
-                });
-                req.on('end', function () {
-                    resolve(body);
-                });
-                // reject on request error
-                req.on('error', function (err) {
-                    // This is not a "Second reject", just a different sort of failure
-                    reject(err);
-                });
-            });
-        }
-    }
-
-    // Copyright (c) Microsoft Corporation.
-    /**
-     * Client for connecting to a SignalR hub
-     */
-    class WebPubSubServer extends WebPubSubServiceRestClient {
-        constructor(connectionString, hub, options) {
+        handleRequest(request, response) {
             var _a;
-            super(connectionString, hub, options);
-            this.apiVersion = "2020-10-01";
-            this.hub = hub;
-            this._serviceHost = this.serviceUrl.host;
-            this._parser = new ProtocolParser(this.hub, new DefaultEventHandler(options), options === null || options === void 0 ? void 0 : options.dumpRequest);
-            this.eventHandlerUrl = (_a = options === null || options === void 0 ? void 0 : options.eventHandlerUrl) !== null && _a !== void 0 ? _a : `/api/webpubsub/hubs/${this.hub}`;
-        }
-        Process(req) {
             return __awaiter(this, void 0, void 0, function* () {
-                var result = yield this._parser.getResponse(req);
-                if (result === undefined) {
-                    return { body: undefined };
+                var normalizedUrl = (_a = request.url) === null || _a === void 0 ? void 0 : _a.toLowerCase();
+                if (!normalizedUrl) {
+                    throw new Error("invalid url");
                 }
-                return result;
-            });
-        }
-        handleNodeRequest(request, response) {
-            var _a, _b;
-            return __awaiter(this, void 0, void 0, function* () {
-                var abuseHost = this.tryHandleAbuseProtectionRequest(request);
-                if (abuseHost) {
-                    response.setHeader("WebHook-Allowed-Origin", abuseHost);
-                    response.end();
+                if (!(normalizedUrl === this.path || normalizedUrl.startsWith(this.path))) {
+                    return false;
+                }
+                if (this.tryHandleAbuseProtectionRequests(request, response, normalizedUrl)) {
                     return true;
                 }
-                if (request.method !== 'POST') {
-                    return false;
-                }
-                if (((_a = request.url) === null || _a === void 0 ? void 0 : _a.toLowerCase()) !== this.eventHandlerUrl.toLowerCase()) {
-                    return false;
-                }
-                var result = yield this._parser.processNodeHttpRequest(request);
-                if (result === null || result === void 0 ? void 0 : result.body) {
-                    if (typeof (result.body) === 'string') {
-                        response.setHeader("Content-Type", "text/plain");
-                    }
-                }
-                response.end((_b = result === null || result === void 0 ? void 0 : result.body) !== null && _b !== void 0 ? _b : '');
-                return true;
+                return yield this.tryHandleCloudEvents(request, response, normalizedUrl);
             });
         }
         getMiddleware() {
             const router = express.Router();
-            router.use(this.eventHandlerUrl, (req, res) => __awaiter(this, void 0, void 0, function* () {
-                var _a;
-                var abuseHost = this.tryHandleAbuseProtectionRequest(req);
-                if (abuseHost) {
-                    res.setHeader("WebHook-Allowed-Origin", abuseHost);
-                    res.end();
-                    return;
+            router.use(this.path, (request, response) => __awaiter(this, void 0, void 0, function* () {
+                var normalizedUrl = (this.path + request.url).toLowerCase();
+                if (this.tryHandleAbuseProtectionRequests(request, response, normalizedUrl)) {
+                    return true;
                 }
-                if (req.method !== 'POST') {
-                    res.status(400).send('Invalid method ' + req.method);
-                    return;
-                }
-                var result = yield this._parser.processNodeHttpRequest(req);
-                if (result === null || result === void 0 ? void 0 : result.body) {
-                    if (typeof (result.body) === 'string') {
-                        res.type('text');
-                    }
-                }
-                res.end((_a = result === null || result === void 0 ? void 0 : result.body) !== null && _a !== void 0 ? _a : '');
+                yield this.tryHandleCloudEvents(request, response, normalizedUrl);
             }));
             return router;
         }
-        tryHandleAbuseProtectionRequest(req) {
-            if (req.method === 'OPTIONS') {
-                if (req.headers['WebHook-Request-Origin'] === this._serviceHost) {
-                    return this._serviceHost;
-                }
+        tryHandleAbuseProtectionRequests(request, response, url) {
+            if (url !== this.path || request.method !== 'OPTIONS') {
+                return false;
             }
-            return undefined;
+            if (request.headers['webhook-request-origin'] === this._serviceHost) {
+                response.setHeader("WebHook-Allowed-Origin", this._serviceHost);
+            }
+            else {
+                console.log(`Invalid abuse protection request ${request}`);
+                response.statusCode = 400;
+            }
+            response.end();
+            return true;
+        }
+        tryHandleCloudEvents(request, response, url) {
+            return __awaiter(this, void 0, void 0, function* () {
+                if (url !== this.path) {
+                    console.warn(`Url ${url} does not match ${this.path}`);
+                    return false;
+                }
+                if (request.method !== 'POST') {
+                    response.statusCode = 400;
+                    response.end();
+                    return true;
+                }
+                yield this._cloudEventsHandler.processNodeHttpRequest(request, response);
+                return true;
+            });
         }
     }
 
     exports.ConsoleHttpPipelineLogger = ConsoleHttpPipelineLogger;
+    exports.WebPubSubCloudEventsHandler = WebPubSubCloudEventsHandler;
     exports.WebPubSubServer = WebPubSubServer;
     exports.WebPubSubServiceEndpoint = WebPubSubServiceEndpoint;
     exports.WebPubSubServiceRestClient = WebPubSubServiceRestClient;

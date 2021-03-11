@@ -18,8 +18,7 @@ group: specs
 The server SDK, providing a convinience way for the users to use the service, should contain the following features:
 1. [All 4] Service->Server REST API support
 1. [C#, JS] Client Auth token generator
-1. [C#, JS] Provide HTTP middleware for handle:
-    1. Client negotiate requests
+1. [C#, JS] Provide CloudEvents middleware to handle:
     1. CloudEvents validation requests
     1. CloudEvents event requests
 
@@ -27,7 +26,7 @@ The server SDK, providing a convinience way for the users to use the service, sh
 SDK is to provide an easy way for customers to use our service, we'd like the SDK to:
 1. Cover the end-to-end workflow of our service (there is a complete story to share)
 2. Straight-forward and easy to use
-3. SDK can later support WebSocket protocol with user having least effort to apply
+3. SDK can later support WebSocket protocol with user having least effort to apply, and with the least confusion
 
 ## JavaScript SDK Design
 <a name="js"></a>
@@ -36,10 +35,9 @@ SDK is to provide an easy way for customers to use our service, we'd like the SD
 1. Package1: `azure-webpubsub` (name TBD)
     * To provide the REST APIs invoking the Web PubSub service
     * To provide utility functions for client negotiate
-    * This can be used in Azure Function for advanced message senders
+    - This can be used in Azure Function for advanced message senders
 2. Package2: `azure-webpubsub-node` (name TBD)
     * To provide node/express middleware for handle:
-        * client negotiate requests
         * CloudEvents validation requests
         * CloudEvents event requests
 
@@ -58,7 +56,7 @@ interface ConnectionContext {
 
 // for `connect` event
 interface ConnectRequest {
-  connection: ConnectionContext;
+  context: ConnectionContext;
   claims?: { [key: string]: string[] };
   queries?: { [key: string]: string[] };
   subprotocols?: string[];
@@ -67,18 +65,18 @@ interface ConnectRequest {
 
 // for `connected` event
 interface ConnectedRequest {
-  connection: ConnectionContext;
+  context: ConnectionContext;
 }
 
 // for user events, `message` or custom events
 interface UserEventRequest {
-  connection: ConnectionContext;
+  context: ConnectionContext;
   payload: PayloadData;
 }
 
 // for `disconnected` event
 interface DisonnectedRequest {
-  connection: ConnectionContext;
+  context: ConnectionContext;
   reason?: string;
 }
 
@@ -87,7 +85,7 @@ interface ClientCertificate {
 }
 
 interface PayloadData {
-  dataType: PayloadDataType; // Response Content-Type should be `plain/text` for PayloadDataType.text, and `application/octet-stream` for PayloadDataType.binary, and `application/json` for PayloadDataType.json
+  dataType: PayloadDataType;
   data: string | ArrayBuffer, 
 }
 
@@ -143,6 +141,10 @@ enum PayloadDataType {
 
 ```
 
+**Note that**:
+* For payload, Response `Content-Type` should be `plain/text` for `PayloadDataType.text`, and `application/octet-stream` for `PayloadDataType.binary`, and `application/json` for `PayloadDataType.json`
+* When error is set, we always consider the response as error response
+
 ### API
 
 1. Client negotiate utility function
@@ -157,54 +159,48 @@ enum PayloadDataType {
             [key: string]: string[];
         };
     }
-    export declare class WebPubSubServiceHubContext {
-        constructor(conn: string, hub: string);
-        clientNegotiate(options?: NegotiateOptions): NegotiateResponse;
+    export declare class WebPubSubServiceEndpoint {
+        constructor(conn: string);
+        clientNegotiate(hub: string, options?: NegotiateOptions): NegotiateResponse;
     }
     ```
     * This can be used in Azure Function for advanced message senders
 
 2. To provide node/express middleware for handle incoming requests
     ```js
-    export interface WebPubSubEventProcessor {
-      onConnect?: (r: ConnectRequest, context: WebPubSubHubContext) => Promise<ConnectResponse>
-      onUserEvent?: (r: UserEventRequest, context: WebPubSubHubContext) => Promise<UserEventResponse>
-      onConnected?: (r: ConnectedRequest, context: WebPubSubHubContext) => Promise<void>;
-      onDisconnected?: (r: DisconnectedRequest, context: WebPubSubHubContext) => Promise<void>;
+    export interface WebPubSubEventHandlerOptions {
+      path?: string;
+      dumpRequest?: boolean;
+      onConnect?: (r: ConnectRequest) => Promise<ConnectResponse>
+      onUserEvent?: (r: UserEventRequest) => Promise<UserEventResponse>
+      onConnected?: (r: ConnectedRequest) => Promise<void>;
+      onDisconnected?: (r: DisconnectedRequest) => Promise<void>;
     }
 
-    export interface WebPubSubHubContext {
-      manager: WebPubSubHubConnectionManager;
-    }
-
-    export interface WebPubSubServerOptions extends WebPubSubServiceRestClientOptions {
-      eventHandlerUrl?: string;
-    }
-
-    export interface WebPubSubHubConnectionManager {
-      sendToAll(message: string, options?: HubBroadcastOptions): Promise<boolean>;
-      sendToAll(message: Blob | ArrayBuffer | ArrayBufferView, options?: HubBroadcastOptions): Promise<boolean>;
-      sendToUser(username: string, message: string, options?: OperationOptions): Promise<boolean>;
-      sendToConnection(connectionId: string, message: string, options?: OperationOptions): Promise<boolean>;
-    }
-
-    export declare class WebPubSubHandler {
-        public readonly path: string;
-        constructor(connectionString: string, private hub: string, eventProcessor?: WebPubSubEventProcessor, options?: WebPubSubServerOptions) {
-
-        handleNodeRequest(request: IncomingMessage, response: ServerResponse): Promise<boolean>;
+    export declare class WebPubSubCloudEventsHandler {
+        readonly path: string;
+        constructor(connectionStringOrEndpoint: string | WebPubSubServiceEndpoint, hub: string, options?: WebPubSubEventHandlerOptions);
+    
+        handleRequest(request: IncomingMessage, response: ServerResponse): Promise<boolean>;
         getMiddleware(): express.Router;
+    }
+    ```
+3. A general class containing all the functionalities:
+    ```js
+    export declare class WebPubSubServer {
+        endpoint: WebPubSubServiceEndpoint;
+        constructor(conn: string, hub: string);
+        createCloudEventsHandler(options?: WebPubSubEventHandlerOptions): WebPubSubCloudEventsHandler;
+        createServiceClient(options?: WebPubSubServiceRestClientOptions): WebPubSubServiceRestClient;
     }
     ```
 
 ### Sample usage
 #### For express
 ```js
-const handler = new WebPubSubHandler(process.env.WPS_CONNECTION_STRING!,
+const handler = new WebPubSubCloudEventsHandler(process.env.WPS_CONNECTION_STRING!,
   {
     onConnect: async (connectRequest, context) => {
-      await context.manager.sendToAll("hello");
-      console.log(connectRequest.connection.connectionId);
       return {
         userId: "vicancy"
       }; 
@@ -221,12 +217,13 @@ app.listen(3000, () => console.log(`Azure WebPubSub Upstream ready at http://loc
 
 #### For raw node
 ```js
-const handler = new WebPubSubHandler(process.env.WPS_CONNECTION_STRING!,
+const wpsserver = new WebPubSubServer(process.env.WPS_CONNECTION_STRING!, 'chat');
+const serviceClient = wpsserver.createServiceClient();
+const handler = wpsserver.createCloudEventsHandler(
   {
     eventHandlerUrl: "/customUrl", // optional
     hub: "chat",
     onConnect: async connectRequest => {
-      console.log(connectRequest.context);
       return {
         userId: "vicancy"
       }; // or connectRequest.fail(); to 401 the request
@@ -237,7 +234,7 @@ const handler = new WebPubSubHandler(process.env.WPS_CONNECTION_STRING!,
       };
     },
     onDisconnected: async disconnectRequest => {
-      console.log(disconnectRequest.context.userId + " disconnected");
+      await serviceClient.sendToAll(disconnectRequest.context.userId + " disconnected");
     }
   }
 );
@@ -265,10 +262,9 @@ server.listen(port, () => console.log(`Azure WebPubSub Upstream ready at http://
 1. Package1: `Azure.WebPubSub.Common` (name TBD)
     * To provide the REST APIs invoking the Web PubSub service
     * To provide utility functions for client negotiate
-    * This can be used in Azure Function for advanced message senders
+    - This can be used in Azure Function for advanced message senders
 2. Package2: `Azure.WebPubSub.AspNetCore` (name TBD)
     * To provide aspnetcore middleware for handle:
-        * To handle client negotiate requests
         * To handle CloudEvents validation requests
         * To handle CloudEvents event requests
 
@@ -323,7 +319,6 @@ public class DisconnectedRequest
 public class ConnectedRequest
 {
     public ConnectionContext Context { get; set; }
-
 }
 
 public enum PayloadDataType
@@ -412,9 +407,9 @@ public class PayloadData
 
     public class WebPubSubServiceHubContext
     {
-        public WebPubSubServiceHubContext(string conn, string hub);
+        public WebPubSubServiceHubContext(string conn);
 
-        public Task<NegotiateResponse> ClientNegotiateAsync(NegotiateOptions options, CancellationToken cancellationToken);
+        public Task<NegotiateResponse> ClientNegotiateAsync(string hub, NegotiateOptions options, CancellationToken cancellationToken);
     }
     ```
     * This can be used in Azure Function for advanced message senders
@@ -461,7 +456,7 @@ def _on_connect(handler, req):
 
 
 def _on_connected(handler, req):
-  handler.broadcast("{} connected".format(req.context.connection_id))
+  handler.sendToAll("{} connected".format(req.context.connection_id))
 
 
 def _on_user_event(handler, req):
