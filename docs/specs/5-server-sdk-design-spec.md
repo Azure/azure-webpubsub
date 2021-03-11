@@ -405,9 +405,9 @@ public class PayloadData
         public IList<Claim> Claims { get; set; }
     }
 
-    public class WebPubSubServiceHubContext
+    public class WebPubSubServiceEndpoint
     {
-        public WebPubSubServiceHubContext(string conn);
+        public WebPubSubServiceEndpoint(string conn);
 
         public Task<NegotiateResponse> ClientNegotiateAsync(string hub, NegotiateOptions options, CancellationToken cancellationToken);
     }
@@ -415,19 +415,19 @@ public class PayloadData
     * This can be used in Azure Function for advanced message senders
 2. To provide ASPNETCore middleware for handle incoming requests
     ```cs
-    public class WebPubSubHandlerOptions
+    public interface IWebPubSubCloudEventsHandler
     {
-        Func<ConnectRequest, Task<ConnectResponse>> OnConnectAsync { get; set; }
-        Func<UserEventRequest, Task<UserEventResponse>> OnUserEventAsync { get; set; }
-        Func<ConnectedRequest, Task> OnConnectedAsync { get; set; }
-        Func<DisconnectedRequest, Task> OnDisconnectedAsync { get; set; }
+        Task<ConnectResponse> OnConnectAsync(ConnectRequest request);
+        Task<UserEventResponse> OnUserEventAsync(ConnectRequest request);
+        Task OnConnectedAsync(ConnectedRequest request);
+        Task OnDisconnectedAsync(DisconnectedRequest request);
+
     }
 
     public static class StartupExtension
     {
-        public static IApplicationBuilder UseWebPubSubHandler(this IApplicationBuilder app);
-        public static IApplicationBuilder UseWebPubSubHandler(this IApplicationBuilder app, PathString path);
-        public static IApplicationBuilder UseWebPubSubHandler(this IApplicationBuilder app, PathString path, WebPubSubHandlerOptions options);
+        public static IApplicationBuilder UseWebPubSubHandler<IWebPubSubCloudEventsHandler>(this IApplicationBuilder app);
+        public static IApplicationBuilder UseWebPubSubHandler<IWebPubSubCloudEventsHandler>(this IApplicationBuilder app, PathString path);
     }
     ```
 
@@ -435,7 +435,7 @@ public class PayloadData
 ```cs
 public void Configure(IApplicationBuilder app, IWebHostEnvironment env)
 {
-    app.UseWebPubSubHandler();
+    app.UseWebPubSubHandler<MyHandler>();
 }
 ```
 
