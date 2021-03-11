@@ -67,10 +67,17 @@ export class ConsoleHttpPipelineLogger implements HttpPipelineLogger {
   }
 }
 
+export interface WebPubSubHubConnectionManager {
+  sendToAll(message: string, options?: HubBroadcastOptions): Promise<boolean>;
+  sendToAll(message: Blob | ArrayBuffer | ArrayBufferView, options?: HubBroadcastOptions): Promise<boolean>;
+  sendToUser(username: string, message: string, options?: OperationOptions): Promise<boolean>;
+  sendToConnection(connectionId: string, message: string, options?: OperationOptions): Promise<boolean>;
+}
+
 /**
  * Client for connecting to a SignalR hub
  */
-export class WebPubSubServiceRestClient {
+export class WebPubSubServiceRestClient implements WebPubSubHubConnectionManager {
   private readonly client: GeneratedClient;
   private readonly sender: WebPubSubSendApi;
   private credential!: ServiceClientCredentials;
@@ -89,10 +96,9 @@ export class WebPubSubServiceRestClient {
    */
   public serviceUrl!: URL;
 
-  constructor(connectionString: string, hub: string, options?: WebPubSubServiceRestClientOptions) {
+  constructor(endpoint: WebPubSubServiceEndpoint, hub: string, options?: WebPubSubServiceRestClientOptions) {
     this.hub = hub;
 
-    var endpoint =  new WebPubSubServiceEndpoint(connectionString);
     this.serviceUrl = endpoint.endpoint.serviceUrl;
     this.credential = new WebPubSubKeyCredentials(endpoint.endpoint.key);
     this.client = new GeneratedClient(this.credential, {
@@ -102,7 +108,7 @@ export class WebPubSubServiceRestClient {
     });
     this.sender = new WebPubSubSendApi(this.client);
   }
-
+  
   private getFactoryWithLogPolicy(defaultRequestPolicyFactories: RequestPolicyFactory[]): void {
     logPolicy
     defaultRequestPolicyFactories.push(logPolicy());

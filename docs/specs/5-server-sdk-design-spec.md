@@ -23,6 +23,12 @@ The server SDK, providing a convinience way for the users to use the service, sh
     1. CloudEvents validation requests
     1. CloudEvents event requests
 
+## Principles
+SDK is to provide an easy way for customers to use our service, we'd like the SDK to:
+1. Cover the end-to-end workflow of our service (there is a complete story to share)
+2. Straight-forward and easy to use
+3. SDK can later support WebSocket protocol with user having least effort to apply
+
 ## JavaScript SDK Design
 <a name="js"></a>
 
@@ -52,7 +58,7 @@ interface ConnectionContext {
 
 // for `connect` event
 interface ConnectRequest {
-  context: ConnectionContext;
+  connection: ConnectionContext;
   claims?: { [key: string]: string[] };
   queries?: { [key: string]: string[] };
   subprotocols?: string[];
@@ -61,18 +67,18 @@ interface ConnectRequest {
 
 // for `connected` event
 interface ConnectedRequest {
-  context: ConnectionContext;
+  connection: ConnectionContext;
 }
 
 // for user events, `message` or custom events
 interface UserEventRequest {
-  context: ConnectionContext;
+  connection: ConnectionContext;
   payload: PayloadData;
 }
 
 // for `disconnected` event
 interface DisonnectedRequest {
-  context: ConnectionContext;
+  connection: ConnectionContext;
   reason?: string;
 }
 
@@ -160,19 +166,32 @@ enum PayloadDataType {
 
 2. To provide node/express middleware for handle incoming requests
     ```js
-    export interface WebPubSubHandlerOptions {
-      onConnect?: (r: ConnectRequest) => ConnectResponse | Promise<ConnectResponse>
-      onUserEvent?: (r: UserEventRequest) => UserEventResponse | Promise<UserEventResponse>
-      onConnected?: (r: ConnectedRequest) => void | Promise<void>;
-      onDisconnected?: (r: DisconnectedRequest) => void | Promise<void>;
+    export interface WebPubSubEventProcessor {
+      onConnect?: (r: ConnectRequest, context: WebPubSubHubContext) => Promise<ConnectResponse>
+      onUserEvent?: (r: UserEventRequest, context: WebPubSubHubContext) => Promise<UserEventResponse>
+      onConnected?: (r: ConnectedRequest, context: WebPubSubHubContext) => Promise<void>;
+      onDisconnected?: (r: DisconnectedRequest, context: WebPubSubHubContext) => Promise<void>;
+    }
+
+    export interface WebPubSubHubContext {
+      manager: WebPubSubHubConnectionManager;
+    }
+
+    export interface WebPubSubServerOptions extends WebPubSubServiceRestClientOptions {
+      eventHandlerUrl?: string;
+    }
+
+    export interface WebPubSubHubConnectionManager {
+      sendToAll(message: string, options?: HubBroadcastOptions): Promise<boolean>;
+      sendToAll(message: Blob | ArrayBuffer | ArrayBufferView, options?: HubBroadcastOptions): Promise<boolean>;
+      sendToUser(username: string, message: string, options?: OperationOptions): Promise<boolean>;
+      sendToConnection(connectionId: string, message: string, options?: OperationOptions): Promise<boolean>;
     }
 
     export declare class WebPubSubHandler {
-        /**
-         * The name of the hub this client is connected to
-        */
-        readonly eventHandlerUrl: string;
-        constructor(connectionString: string, hub: string, options?: WebPubSubHandlerOptions);
+        public readonly path: string;
+        constructor(connectionString: string, private hub: string, eventProcessor?: WebPubSubEventProcessor, options?: WebPubSubServerOptions) {
+
         handleNodeRequest(request: IncomingMessage, response: ServerResponse): Promise<boolean>;
         getMiddleware(): express.Router;
     }
@@ -183,8 +202,9 @@ enum PayloadDataType {
 ```js
 const handler = new WebPubSubHandler(process.env.WPS_CONNECTION_STRING!,
   {
-    onConnect: async connectRequest => {
-      console.log(connectRequest.context.connectionId);
+    onConnect: async (connectRequest, context) => {
+      await context.manager.sendToAll("hello");
+      console.log(connectRequest.connection.connectionId);
       return {
         userId: "vicancy"
       }; 

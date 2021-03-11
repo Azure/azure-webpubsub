@@ -1,8 +1,8 @@
-import { WebPubSubServer } from "../src/index";
+import { WebPubSubServiceRestClient } from "../src/index";
 
 import * as dotenv from "dotenv";
 dotenv.config();
-const chatServer = new WebPubSubServer(process.env.WPS_CONNECTION_STRING!, 'chat', {
+const chatServer = new WebPubSubHttpProtocolHandler(process.env.WPS_CONNECTION_STRING!, 'chat', null, {
   dumpRequest: true
 });
 

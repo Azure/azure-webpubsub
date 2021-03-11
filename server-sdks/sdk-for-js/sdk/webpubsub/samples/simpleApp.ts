@@ -1,7 +1,7 @@
 import * as dotenv from "dotenv";
 
 import { createServer, IncomingMessage, ServerResponse } from 'http';
-import { WebPubSubServiceEndpoint, WebPubSubServiceRestClient, WebPubSubServer } from "../src";
+import { WebPubSubServiceEndpoint, WebPubSubServiceRestClient, WebPubSubHttpProtocolHandler } from "../src";
 
 dotenv.config();
 
@@ -10,31 +10,20 @@ console.log(client.clientNegotiate('hub'));
 
 var rest = new WebPubSubServiceRestClient(process.env.WPS_CONNECTION_STRING!, 'chat');
 
-const wpsserver = new WebPubSubServer(process.env.WPS_CONNECTION_STRING!, 'chat',
+const wpsserver = new WebPubSubHttpProtocolHandler(process.env.WPS_CONNECTION_STRING!, 'chat',
   {
     // eventHandlerUrl: "/customUrl", // optional
-    onConnect: async connectRequest => {
+    onConnect: async (connectRequest, context) => {
       // success with client joining group1
       // await wpsserver.broadcast(connectRequest.context.connectionId);
-      console.log(connectRequest.context);
+      console.log(connectRequest.connection);
       return {
         userId: "vicancy"
       }; // or connectRequest.fail(); to 401 the request
     },
-    onConnected: async connectedRequest => {
-      await wpsserver.sendToAll(connectedRequest.context.connectionId + " connected");
+    onConnected: async (connectedRequest, context) => {
+      await context.manager.sendToAll(connectedRequest.connection.connectionId + " connected");
     },
-    onUserEvent: async userRequest => {
-      return {
-        payload: {
-          data: "Hey " + userRequest.payload.data,
-          dataType: userRequest.payload.dataType
-        }
-      };
-    },
-    onDisconnected: async disconnectRequest => {
-      console.log(disconnectRequest.context.userId + " disconnected");
-    }
   }
 );
 
@@ -51,4 +40,4 @@ const server = createServer(async (request: IncomingMessage, response: ServerRes
   }
 });
 
-server.listen(port, () => console.log(`Azure WebPubSub Upstream ready at http://localhost:${port}${wpsserver.eventHandlerUrl}`));
+server.listen(port, () => console.log(`Azure WebPubSub Upstream ready at http://localhost:${port}${wpsserver.path}`));

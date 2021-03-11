@@ -2,15 +2,9 @@
 // Licensed under the MIT license.
 
 import { CloudEvent, Message, HTTP } from "cloudevents";
-import { IncomingMessage } from "http";
+import { IncomingMessage, ServerResponse } from "http";
 import { decode } from 'typescript-base64-arraybuffer';
 
-export interface EventHandlerOptions {
-  onConnect?: (r: ConnectRequest) => ConnectResponse | Promise<ConnectResponse>
-  onUserEvent?: (r: UserEventRequest) => UserEventResponse | Promise<UserEventResponse>
-  onConnected?: (r: ConnectedRequest) => void | Promise<void>;
-  onDisconnected?: (r: DisconnectedRequest) => void | Promise<void>;
-}
 
 export interface ErrorResponse {
   code: ErrorCode;
@@ -44,7 +38,7 @@ export interface ConnectionContext {
 }
 
 export interface ConnectRequest {
-  context: ConnectionContext,
+  connection: ConnectionContext,
   claims?: { [key: string]: string[] };
   queries?: { [key: string]: string[] };
   subprotocols?: string[];
@@ -56,11 +50,11 @@ export interface Certificate {
 }
 
 export interface ConnectedRequest {
-  context: ConnectionContext,
+  connection: ConnectionContext,
 }
 
 export interface UserEventRequest {
-  context: ConnectionContext,
+  connection: ConnectionContext,
   eventName: string;
   payload: PayloadData;
 }
@@ -77,74 +71,69 @@ enum PayloadDataType {
 }
 
 export interface DisconnectedRequest {
-  context: ConnectionContext,
+  connection: ConnectionContext,
   reason?: string;
 }
-
-export class DefaultEventHandler {
-  private options?: EventHandlerOptions;
-  constructor(options?: EventHandlerOptions) {
-    this.options = options;
-  }
-
-  onMessage(r: UserEventRequest): UserEventResponse | undefined | Promise<UserEventResponse | undefined> {
-    if (this.options?.onUserEvent === undefined) {
-      return undefined;
-    }
-
-    return this.options?.onUserEvent(r);
-  }
-
-  onConnect(r: ConnectRequest): ConnectResponse | undefined | Promise<ConnectResponse | undefined> {
-    if (this.options?.onConnect === undefined) {
-      return undefined;
-    }
-
-    return this.options?.onConnect(r);
-  }
-
-  onConnected(r: ConnectedRequest): void {
-
-    if (this.options?.onConnected === undefined) {
-      return;
-    }
-
-    this.options?.onConnected(r);
-  }
-  onDisconnected(r: DisconnectedRequest): void {
-
-    if (this.options?.onDisconnected === undefined) {
-      return;
-    }
-
-    this.options?.onDisconnected(r);
-  }
+export interface ProtocolParserEventHandler {
+  onConnect?: (r: ConnectRequest) => Promise<ConnectResponse>
+  onUserEvent?: (r: UserEventRequest) => Promise<UserEventResponse>
+  onConnected?: (r: ConnectedRequest) => Promise<void>;
+  onDisconnected?: (r: DisconnectedRequest) => Promise<void>;
 }
 
 export class ProtocolParser {
-  constructor(private hub: string, private eventHandler?: DefaultEventHandler, private dumpRequest?: boolean) {
+  constructor(private hub: string, private eventHandler?: ProtocolParserEventHandler, private dumpRequest?: boolean) {
   }
 
-  public async processNodeHttpRequest(request: IncomingMessage): Promise<UserEventResponse | undefined> {
-    try {
-      var eventRequest = await this.convertHttpToEvent(request);
-      return this.getResponse(eventRequest);
-    } catch (err) {
-      console.error(`Error processing request ${request}: ${err}`);
-      return {
-        error: {
-          code: ErrorCode.serverError,
-          detail: err.message,
-        }
-      };
-    }
-  }
-
-  public async getResponse(request: Message): Promise<UserEventResponse | undefined> {
-    if (this.eventHandler === undefined) {
+  public async processNodeHttpRequest(request: IncomingMessage, response: ServerResponse): Promise<void> {
+    if (!this.eventHandler) {
+      response.end();
       return;
     }
+    try {
+      var eventRequest = await this.convertHttpToEvent(request);
+      var eventResponse = await this.getResponse(eventRequest);
+      if (!eventResponse) {
+        // we consider no response as 200 valid response
+        response.end();
+        return;
+      }
+      if (eventResponse.error) {
+        switch (eventResponse.error.code) {
+          case ErrorCode.userError:
+            response.statusCode = 400;
+            break;
+          case ErrorCode.unauthorized:
+            response.statusCode = 402;
+            break;
+          default:
+            response.statusCode = 500;
+            break;
+        }
+        response.end(eventResponse.error.detail ?? '');
+        return;
+      }
 
+      if (eventResponse?.payload) {
+        if (eventResponse.payload.dataType === PayloadDataType.binary) {
+          response.setHeader("Content-Type", "application/octet-stream");
+
+        } else if (eventResponse.payload.dataType === PayloadDataType.json) {
+          response.setHeader("Content-Type", "application/json");
+
+        } else {
+          response.setHeader("Content-Type", "text/plain; charset=utf-8");
+        }
+        response.end(eventResponse.payload?.data ?? '');
+      }
+    } catch (err) {
+      console.error(`Error processing request ${request}: ${err}`);
+      response.statusCode = 500;
+      response.end(err.message);
+    }
+  }
+
+  private async getResponse(request: Message): Promise<UserEventResponse | undefined> {
     const receivedEvent = HTTP.toEvent(request);
 
     if (this.dumpRequest === true) {
@@ -154,46 +143,47 @@ export class ProtocolParser {
     var type = receivedEvent.type.toLowerCase();
     var context = this.GetContext(receivedEvent);
     if (context.hub !== this.hub) {
-      console.warn(`Incoming request is for hub '${this.hub}' while the incoming request is for hub '${context.hub}'`);
+      // it is possible when multiple hubs share the same handler
+      console.info(`Incoming request is for hub '${this.hub}' while the incoming request is for hub '${context.hub}'`);
       return;
     }
 
     // TODO: valid request is a valid cloud event with WebPubSub extension
-    if (type === "azure.webpubsub.sys.connect") {
+    if (type === "azure.webpubsub.sys.connect" && this.eventHandler?.onConnect) {
       var connectRequest = receivedEvent.data as ConnectRequest;
       if (!connectRequest) {
         throw new Error("Data is expected");
       }
 
-      connectRequest.context = context;
+      connectRequest.connection = context;
       var connectResponse = await this.eventHandler.onConnect(connectRequest);
       if (connectRequest) {
         return {
-          payload:{
+          payload: {
             data: JSON.stringify(connectResponse),
             dataType: PayloadDataType.json
-          } 
+          }
         };
       } else {
         return;
       }
-    } else if (type === "azure.webpubsub.sys.connected") {
+    } else if (type === "azure.webpubsub.sys.connected" && this.eventHandler?.onConnected) {
       var connectedRequest = receivedEvent.data as ConnectedRequest;
       if (!connectedRequest) {
         throw new Error("Data is expected");
       }
 
-      connectedRequest.context = context;
+      connectedRequest.connection = context;
       this.eventHandler.onConnected(connectedRequest);
-    } else if (type === "azure.webpubsub.sys.disconnected") {
+    } else if (type === "azure.webpubsub.sys.disconnected" && this.eventHandler?.onDisconnected) {
       var disconnectedRequest = receivedEvent.data as DisconnectedRequest;
       if (!disconnectedRequest) {
         throw new Error("Data is expected");
       }
 
-      disconnectedRequest.context = context;
+      disconnectedRequest.connection = context;
       this.eventHandler.onDisconnected(disconnectedRequest);
-    } else if (type.startsWith("azure.webpubsub.user")) {
+    } else if (type.startsWith("azure.webpubsub.user") && this.eventHandler?.onUserEvent) {
       var data: ArrayBuffer | string;
       var dataType = PayloadDataType.binary;
       if (receivedEvent.data) {
@@ -206,35 +196,20 @@ export class ProtocolParser {
       }
       var userRequest: UserEventRequest = {
         eventName: context.eventName,
-        context: context,
-          payload:{
-            data: data,
-            dataType: dataType
-          }
+        connection: context,
+        payload: {
+          data: data,
+          dataType: dataType
+        }
       };
-      console.log(userRequest);
+
       if (!userRequest) {
         throw new Error("Data is expected");
       }
 
-      userRequest.context = context;
-      return await this.eventHandler.onMessage(userRequest);
+      userRequest.connection = context;
+      return await this.eventHandler.onUserEvent(userRequest);
     }
-    /* for subprotocol
-    else if (type === "azure.webpubsub.sys.publish") {
-
-    }  else if (type === "azure.webpubsub.sys.published") {
-
-    }  else if (type === "azure.webpubsub.sys.join") {
-
-    } else if (type === "azure.webpubsub.sys.joined") {
-
-    }  else if (type === "azure.webpubsub.sys.leave") {
-
-    } else if (type === "azure.webpubsub.sys.left") {
-
-    } 
-    */
     else {
       throw new Error("Not supported event: " + type);
     }

@@ -1,21 +1,20 @@
-import { WebPubSubServer } from "../src/webPubSubServer";
+import { WebPubSubHttpProtocolHandler } from "../src/webPubSubServer";
 import * as dotenv from "dotenv";
 import express from "express";
 dotenv.config();
 
-const wpsserver = new WebPubSubServer(process.env.WPS_CONNECTION_STRING!,
+const wpsserver = new WebPubSubHttpProtocolHandler(process.env.WPS_CONNECTION_STRING!,
   'chat',
   {
-    dumpRequest: false,
     onConnect: async connectRequest => {
       console.log(JSON.stringify(connectRequest));
-        return {};
+      return {};
     },
-    onConnected: async connectedRequest =>{
+    onConnected: async (connectedRequest, context) => {
       console.log(JSON.stringify(connectedRequest));
-      try{
-        await wpsserver.sendToAll(connectedRequest.context.connectionId + " connected");
-      }catch(err){
+      try {
+        await context.manager.sendToAll(connectedRequest.connection.connectionId + " connected");
+      } catch (err) {
         console.error(err);
       }
     },
@@ -28,6 +27,9 @@ const wpsserver = new WebPubSubServer(process.env.WPS_CONNECTION_STRING!,
         }
       };
     },
+  },
+  {
+    dumpRequest: false,
   }
 );
 
@@ -35,4 +37,4 @@ const app = express();
 
 app.use(wpsserver.getMiddleware())
 
-app.listen(3000, () => console.log(`Azure WebPubSub Upstream ready at http://localhost:3000${wpsserver.eventHandlerUrl}`));
+app.listen(3000, () => console.log(`Azure WebPubSub Upstream ready at http://localhost:3000${wpsserver.path}`));
