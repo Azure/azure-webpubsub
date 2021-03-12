@@ -33,7 +33,7 @@ In Azure Web PubSub you can connect to the service and subscribe to messages thr
     const { WebPubSubServiceEndpoint } = require('azure-websockets/webpubsub');
 
     let endpoint = new WebPubSubServiceEndpoint('<CONNECTION_STRING>');
-    let { url, token } = endpoint.signClient('my_hub');
+    let { url, token } = endpoint.clientNegotiate('my_hub');
     let ws = new WebSocket(`${url}?access_token=${token}`);
 
     ws.on('open', () => console.log('connected'));
