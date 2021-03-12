@@ -221,8 +221,7 @@ const wpsserver = new WebPubSubServer(process.env.WPS_CONNECTION_STRING!, 'chat'
 const serviceClient = wpsserver.createServiceClient();
 const handler = wpsserver.createCloudEventsHandler(
   {
-    eventHandlerUrl: "/customUrl", // optional
-    hub: "chat",
+    path: "/customUrl", // optional
     onConnect: async connectRequest => {
       return {
         userId: "vicancy"
