@@ -12,7 +12,7 @@ In this tutorial you'll learn how to publish messages and subscribe them using A
 ## Prerequisites
 
 1. [Node.js](https://nodejs.org)
-1. Create an Azure Web PubSub resource
+2. Create an Azure Web PubSub resource
 
 ## Setup subscriber
 
@@ -62,3 +62,5 @@ serviceClient.sendToAll('Hello World');
 The `sendToAll()` call simply sends a message to all connected clients in "my_hub" hub. Run the code above (also remember to set the connection string) and you'll see a "Hello World" message printed out in the subscriber.
 
 Since the message is sent to all clients, you can open multiple subscribers at the same time and all of them will receive the same message.
+
+The complete code sample of this tutorial can be found [here](pubsub/).
