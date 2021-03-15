@@ -7,6 +7,7 @@ import { ServiceClientCredentials, RestResponse, RestError, HttpRequestBody, Htt
 import { WebPubSubSendApi } from "./webPubSubApiExtensions";
 import { WebPubSubKeyCredentials } from "./webPubSubKeyCredentials";
 import { WebPubSubServiceEndpoint } from "./webPubSubServiceEndpoint";
+import jwt from "jsonwebtoken";
 
 export interface OperationOptions {
   apiVersion?: string;
@@ -20,6 +21,16 @@ export interface CloseConnectionOptions extends OperationOptions {
    * Reason the connection is being closed.
    */
   reason?: string;
+}
+
+export interface ClientAuthOptions {
+  userId?: string;
+  claims?: { [key: string]: string[] };
+}
+
+export interface ClientAuthResponse {
+  url: string;
+  token: string;
 }
 
 /**
@@ -111,6 +122,30 @@ export class WebPubSubServiceRestClient {
     this.sender = new WebPubSubSendApi(this.client);
   }
   
+  public async authClient(options?: ClientAuthOptions): Promise<ClientAuthResponse> {
+    const url = this._endpoint.endpoint.serviceUrl.toString();
+    const endpoint = url.endsWith('/') ? url : url + '/';
+    const key = this._endpoint.endpoint.key;
+    const hub = this.hub;
+    var clientEndpoint = endpoint.replace(/(http)(s?:\/\/)/gi, "ws$2");
+    var clientUrl = `${clientEndpoint}client/hubs/${hub}`;
+    const audience = `${endpoint}client/hubs/${hub}`;
+    var payload = options?.claims ?? {};
+    var signOptions: jwt.SignOptions = {
+      audience: audience,
+      expiresIn: "1h",
+      algorithm: "HS256",
+    };
+    if (options?.userId) {
+      signOptions.subject = options?.userId;
+    }
+
+    return {
+      url: clientUrl,
+      token: jwt.sign(payload, key, signOptions),
+    };
+  }
+
   private getFactoryWithLogPolicy(defaultRequestPolicyFactories: RequestPolicyFactory[]): void {
     logPolicy
     defaultRequestPolicyFactories.push(logPolicy());

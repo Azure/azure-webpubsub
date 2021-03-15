@@ -25,9 +25,9 @@ group: specs
 | Add a user to the target group. | /api/hubs/{hub}/users/{user}/groups/{group} | PUT |
 | Remove a user from the target group. | /api/hubs/{hub}/users/{user}/groups/{group} | DELETE |
 | Remove a user from all groups. | /api/hubs/{hub}/users/{user}/groups | DELETE |
-| Grant permission to join or publish to the target group | /api/hubs/{hub}/permissions/{permission}/connections/{connectionId} | PUT |
-| Revoke permission to publish to or join a group | /api/hubs/{hub}/permissions/{permission}/connections/{connectionId} | DELETE |
-| Check if a connection can join or publish to the target group | /api/hubs/{hub}/permissions/{permission}/connections/{connectionId} | HEAD |
+| Grant permission for the connection | /api/hubs/{hub}/permissions/{permission}/connections/{connectionId} | PUT |
+| Revoke permission for the connection | /api/hubs/{hub}/permissions/{permission}/connections/{connectionId} | DELETE |
+| Check if a connection have permission to the specific action | /api/hubs/{hub}/permissions/{permission}/connections/{connectionId} | HEAD |
 
 ### /api/health
 
@@ -268,14 +268,14 @@ Remove a user from all groups.
 #### PUT
 ##### Summary:
 
-Grant permission to join or publish to the target group
+Grant permission to the connection
 
 ##### Parameters
 
 | Name | Located in | Description | Required | Schema |
 | ---- | ---------- | ----------- | -------- | ---- |
 | hub | path | Target hub name, which should start with alphabetic characters and only contain alpha-numeric characters or underscore. | Yes | string |
-| permission | path | The permission | Yes | string |
+| permission | path | The permission, current supported actions are `joinLeaveGroup` and `sendToGroup`. | Yes | string |
 | connectionId | path | Target connection Id | Yes | string |
 | group | query | Optional. If not set, grant the permission to all groups. If set, grant the permission to the specific group. | No | string |
 | api-version | query |  | No | string |
@@ -290,14 +290,14 @@ Grant permission to join or publish to the target group
 #### DELETE
 ##### Summary:
 
-Revoke permission to publish to or join a group
+Revoke permission for the connection
 
 ##### Parameters
 
 | Name | Located in | Description | Required | Schema |
 | ---- | ---------- | ----------- | -------- | ---- |
 | hub | path | Target hub name, which should start with alphabetic characters and only contain alpha-numeric characters or underscore. | Yes | string |
-| permission | path | The permission | Yes | string |
+| permission | path | The permission, current supported actions are `joinLeaveGroup` and `sendToGroup`. | Yes | string |
 | connectionId | path | Target connection Id | Yes | string |
 | group | query | Optional. If not set, revoke the permission for all groups. If set, revoke the permission for the specific group. | No | string |
 | api-version | query |  | No | string |

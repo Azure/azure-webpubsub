@@ -8,6 +8,7 @@ dotenv.config();
 const wpsserver = new WebPubSubServer(process.env.WPS_CONNECTION_STRING!, 'chat');
 
 const serviceClient = wpsserver.createServiceClient();
+console.log(serviceClient.authClient({}));
 
 console.log(wpsserver.endpoint.clientNegotiate('chat', {
   userId: "vicancy",

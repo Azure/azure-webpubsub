@@ -40,7 +40,8 @@
         "operationId": "WebPubSubApi_SendToAll",
         "consumes": [
           "application/octet-stream",
-          "text/plain"
+          "text/plain",
+          "application/json"
         ],
         "parameters": [
           {
@@ -183,7 +184,8 @@
         "operationId": "WebPubSubApi_SendToConnection",
         "consumes": [
           "application/octet-stream",
-          "text/plain"
+          "text/plain",
+          "application/json"
         ],
         "parameters": [
           {
@@ -279,7 +281,8 @@
         "operationId": "WebPubSubApi_SendToGroup",
         "consumes": [
           "application/octet-stream",
-          "text/plain"
+          "text/plain",
+          "application/json"
         ],
         "parameters": [
           {
@@ -483,7 +486,8 @@
         "operationId": "WebPubSubApi_SendToUser",
         "consumes": [
           "application/octet-stream",
-          "text/plain"
+          "text/plain",
+          "application/json"
         ],
         "parameters": [
           {
@@ -712,8 +716,8 @@
         "tags": [
           "webpubsub"
         ],
-        "summary": "Grant permission to join or publish to the target group",
-        "operationId": "WebPubSubApi_GrantGroupPermission",
+        "summary": "Grant permission to the connection",
+        "operationId": "WebPubSubApi_GrantPermission",
         "parameters": [
           {
             "in": "path",
@@ -725,12 +729,12 @@
           {
             "in": "path",
             "name": "permission",
-            "description": "The permission",
+            "description": "The permission: current supported actions are joinLeaveGroup and sendToGroup",
             "required": true,
             "type": "string",
             "enum": [
-              "publish",
-              "join"
+              "sendToGroup",
+              "joinLeaveGroup"
             ]
           },
           {
@@ -742,8 +746,8 @@
           },
           {
             "in": "query",
-            "name": "group",
-            "description": "Optional. If not set, grant the permission to all groups. If set, grant the permission to the specific group.",
+            "name": "targetName",
+            "description": "Optional. If not set, grant the permission to all the targets. If set, grant the permission to the specific target. The meaning of the target depends on the specific permission.",
             "type": "string"
           },
           {
@@ -767,8 +771,8 @@
         "tags": [
           "webpubsub"
         ],
-        "summary": "Revoke permission to publish to or join a group",
-        "operationId": "WebPubSubApi_RevokeGroupPermission",
+        "summary": "Revoke permission for the connection",
+        "operationId": "WebPubSubApi_RevokePermission",
         "parameters": [
           {
             "in": "path",
@@ -780,12 +784,12 @@
           {
             "in": "path",
             "name": "permission",
-            "description": "The permission",
+            "description": "The permission: current supported actions are joinLeaveGroup and sendToGroup",
             "required": true,
             "type": "string",
             "enum": [
-              "publish",
-              "join"
+              "sendToGroup",
+              "joinLeaveGroup"
             ]
           },
           {
@@ -797,8 +801,8 @@
           },
           {
             "in": "query",
-            "name": "group",
-            "description": "Optional. If not set, revoke the permission for all groups. If set, revoke the permission for the specific group.",
+            "name": "targetName",
+            "description": "Optional. If not set, revoke the permission for all targets. If set, revoke the permission for the specific target. The meaning of the target depends on the specific permission.",
             "type": "string"
           },
           {
@@ -822,8 +826,8 @@
         "tags": [
           "webpubsub"
         ],
-        "summary": "Check if a connection can join or publish to the target group",
-        "operationId": "WebPubSubApi_CheckGroupPermission",
+        "summary": "Check if a connection have permission to the specific action",
+        "operationId": "WebPubSubApi_CheckPermission",
         "parameters": [
           {
             "in": "path",
@@ -835,12 +839,12 @@
           {
             "in": "path",
             "name": "permission",
-            "description": "The permission",
+            "description": "The permission: current supported actions are joinLeaveGroup and sendToGroup",
             "required": true,
             "type": "string",
             "enum": [
-              "publish",
-              "join"
+              "sendToGroup",
+              "joinLeaveGroup"
             ]
           },
           {
@@ -852,8 +856,8 @@
           },
           {
             "in": "query",
-            "name": "group",
-            "description": "Optional. If not set, get the permission for all groups. If set, get the permission for the specific group.",
+            "name": "targetName",
+            "description": "Optional. If not set, get the permission for all targets. If set, get the permission for the specific target. The meaning of the target depends on the specific permission.",
             "type": "string"
           },
           {
