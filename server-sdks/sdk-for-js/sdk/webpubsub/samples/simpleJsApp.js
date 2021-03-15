@@ -4,9 +4,7 @@ const http = require('http');
 
 dotenv.config();
 
-const wpsserver = new WebPubSubServer(
-  'Endpoint=http://localhost;AccessKey=ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789ABCDEFGH;Port=8080;Version=1.0;'
-  , 'chat');
+const wpsserver = new WebPubSubServer(process.env.WPS_CONNECTION_STRING, 'chat');
 const serviceClient = wpsserver.createServiceClient();
 const handler = wpsserver.createCloudEventsHandler(
   {

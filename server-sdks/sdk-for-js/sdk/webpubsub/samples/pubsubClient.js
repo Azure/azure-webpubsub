@@ -21,11 +21,11 @@ async function main() {
     event: "hey"
   }));
   clients[0].send(JSON.stringify({
-    type: "join",
+    type: "joinGroup",
     group: "group1",
   }));
   clients[0].send(JSON.stringify({
-    type: "publish",
+    type: "sendToGroup",
     group: "group1",
     data: {
       "msg1": "Hello world"

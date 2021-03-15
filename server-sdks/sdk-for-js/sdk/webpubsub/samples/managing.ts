@@ -2,7 +2,7 @@ import { WebPubSubServiceRestClient } from "../src/index";
 
 import * as dotenv from "dotenv";
 dotenv.config();
-const chatServer = new WebPubSubServiceRestClient(process.env.WPS_CONNECTION_STRING!, 'chat');
+const chatServer = new WebPubSubServiceRestClient('Endpoint=https://wanl-wps-3.webpubsubdev.azure.com;AccessKey=sLUSBawb8QY74ZTId9YdkUndCWCaVkoo9sLTk7YaEG0=;Version=1.0;', 'chat');
 
 async function main() {
   // adding and removing users
@@ -16,7 +16,6 @@ async function main() {
   //console.log(exists); // false
 
   await chatServer.sendToUser(user, "hello");
-
   //exists = await chatServer.hasGroup(group);
   //console.log(exists); // false
 

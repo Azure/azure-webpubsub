@@ -87,7 +87,7 @@ Format:
 
 ```json
 {
-    "type": "join",
+    "type": "joinGroup",
     "group": "<group_name>",
     "ackId" : 1 // optional
 }
@@ -104,7 +104,7 @@ Format:
 
 ```json
 {
-    "type": "leave",
+    "type": "leaveGroup",
     "group": "<group_name>",
     "ackId" : 1 // optional
 }
@@ -120,7 +120,7 @@ Format:
 
 ```json
 {
-    "type": "publish",
+    "type": "sendToGroup",
     "group": "<group_name>",
     "ackId" : 1, // optional
     "dataType" : "text|binary|json",
@@ -138,7 +138,7 @@ Format:
 ##### Case 1: publish text data:
 ```json
 {
-    "type": "publish",
+    "type": "sendToGroup",
     "group": "<group_name>",
     "dataType" : "text",
     "data": "text data" 
@@ -160,7 +160,7 @@ Format:
 ##### Case 2: publish json data:
 ```json
 {
-    "type": "publish",
+    "type": "sendToGroup",
     "group": "<group_name>",
     "dataType" : "json",
     "data": {
@@ -187,7 +187,7 @@ Format:
 ##### Case 3: publish binary data:
 ```json
 {
-    "type": "publish",
+    "type": "sendToGroup",
     "group": "<group_name>",
     "dataType" : "binary",
     "data": "<base64_binary>"

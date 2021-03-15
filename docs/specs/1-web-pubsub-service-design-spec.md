@@ -118,21 +118,21 @@ A PubSub WebSocket client has the ability to :
 * Join a group, for example:
     ```json
     {
-        "type": "join",
+        "type": "joinGroup",
         "group": "<group_name>"
     }
     ```
 * Leave a group, for example:
     ```json
     {
-        "type": "leave",
+        "type": "leaveGroup",
         "group": "<group_name>"
     }
     ```
 * Publish messages to a group, for example:
     ```json
     {
-        "type": "publish",
+        "type": "sendToGroup",
         "group": "<group_name>",
         "data": { "hello": "world" }
     }
@@ -171,7 +171,7 @@ client1.onmessage = e => {
 
 client1.onopen = e => {
     client1.send(JSON.stringify({
-        type: "join",
+        type: "joinGroup",
         group: "Group1"
     }));
 };
@@ -183,7 +183,7 @@ Client2:
 var client2 = new WebSocket("wss://xxx.webpubsub.azure.com/client/hubs/hub1", "json.webpubsub.azure.v1");
 client2.onopen = e => {
     client2.send(JSON.stringify({
-        type: "publish",
+        type: "sendToGroup",
         group: "Group1",
         data: "Hello Client1"
     });
@@ -217,10 +217,10 @@ As you may have noticed when we describe the PubSub WebSocket clients, that a cl
 | Role | Permission |
 |---|---|
 | Not specified | The client can send events.
-| `webpubsub.group.join` | The client can join/leave any group
-| `webpubsub.group.publish` | The client can publish messages to any group
-| `webpubsub.group.join.<group>` | The client can join/leave the groups that the group name is `<group>`.
-| `webpubsub.group.publish.<group>` | The client can publish messages to the groups that the group name is `<group>`.
+| `webpubsub.joinLeaveGroup` | The client can join/leave any group
+| `webpubsub.sendToGroup` | The client can publish messages to any group
+| `webpubsub.joinLeaveGroup.<group>` | The client can join/leave the groups that the group name is `<group>`.
+| `webpubsub.sendToGroup.<group>` | The client can publish messages to the groups that the group name is `<group>`.
 
 The server-side can also grant or revoke permissions of the client dynamically through [server protocol](#connection_manager) as to be illustrated in a later section.
 
