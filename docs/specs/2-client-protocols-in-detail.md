@@ -385,7 +385,43 @@ Clients can receive messages published from one group the client joined, or from
     "data" : {} // The data format is based on the dataType
 }
 ```
+##### Case 1: Sending data `Hello World` to the connection through REST API with `Content-Type`=`text/plain` 
+* What a simple WebSocket client receives is a text WebSocket frame with data: `Hello World`;
+* What a PubSub WebSocket client receives is as follows:
+    ```json
+    {
+        "type": "message",
+        "from": "server",
+        "dataType" : "text",
+        "data": "Hello World", 
+    }
+    ```
+##### Case 2: Sending data `{ "Hello" : "World"}` to the connection through REST API with `Content-Type`=`application/json`
+* What a simple WebSocket client receives is a text WebSocket frame with stringified data: `{ "Hello" : "World"}`;
+* What a PubSub WebSocket client receives is as follows:
+    ```json
+    {
+        "type": "message",
+        "from": "server",
+        "dataType" : "json",
+        "data": {
+            "Hello": "World"
+        }
+    }
+    ```
+Please NOTE that if the REST API is sending a string `Hello World` using `application/json` content type, what the simple WebSocket client receives is a JSON string, which is `"Hello World"` that wrapps the string with `"`.
 
+##### Case 3:  Sending binary data to the connection through REST API with `Content-Type`=`application/octet-stream`
+* What a simple WebSocket client receives is a binary WebSocket frame with the bianry data.
+* What a PubSub WebSocket client receives is as follows:
+    ```json
+    {
+        "type": "message",
+        "from": "server",
+        "dataType" : "binary",
+        "data": "<base64_binary>"
+    }
+    ```
 <a name="system"></a>
 
 #### System response
