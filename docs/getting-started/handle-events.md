@@ -176,7 +176,7 @@ Besides system events like connected or disconnected, client can also send messa
 
     <body>
       <h1>Azure Web PubSub Chat</h1>
-      Type to chat <input id="message"></input>
+      <input id="message" placeholder="Type to chat..."></input>
       <div id="messages"></div>
       <script>
         (async function () {
@@ -220,4 +220,4 @@ Besides system events like connected or disconnected, client can also send messa
 
 Now run the server and open multiple browser instances, then you can chat with each other.
 
-The complete code sample of this tutorial can be found [here](chatapp/).
+The complete code sample of this tutorial can be found [here](samples/chatapp/).

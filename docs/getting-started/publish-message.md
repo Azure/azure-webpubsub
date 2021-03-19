@@ -63,4 +63,4 @@ The `sendToAll()` call simply sends a message to all connected clients in "my_hu
 
 Since the message is sent to all clients, you can open multiple subscribers at the same time and all of them will receive the same message.
 
-The complete code sample of this tutorial can be found [here](pubsub/).
+The complete code sample of this tutorial can be found [here](samples/pubsub/).
