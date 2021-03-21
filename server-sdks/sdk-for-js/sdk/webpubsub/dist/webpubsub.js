@@ -3,13 +3,13 @@
  * Changes may cause incorrect behavior and will be lost if the code is regenerated.
  */
 (function (global, factory) {
-    typeof exports === 'object' && typeof module !== 'undefined' ? factory(exports, require('jsonwebtoken'), require('url'), require('cloudevents'), require('express'), require('@azure/ms-rest-azure-js'), require('@azure/ms-rest-js')) :
-    typeof define === 'function' && define.amd ? define(['exports', 'jsonwebtoken', 'url', 'cloudevents', 'express', '@azure/ms-rest-azure-js', '@azure/ms-rest-js'], factory) :
-    (global = global || self, factory((global.Azure = global.Azure || {}, global.Azure.WebPubSub = {}), global.jwt, global.url, global.cloudevents, global.express, global.msRestAzure, global.msRest));
-}(this, (function (exports, jwt, url, cloudevents, express, msRestAzure, msRest) { 'use strict';
+    typeof exports === 'object' && typeof module !== 'undefined' ? factory(exports, require('url'), require('cloudevents'), require('express'), require('@azure/ms-rest-azure-js'), require('@azure/core-http'), require('jsonwebtoken')) :
+    typeof define === 'function' && define.amd ? define(['exports', 'url', 'cloudevents', 'express', '@azure/ms-rest-azure-js', '@azure/core-http', 'jsonwebtoken'], factory) :
+    (global = global || self, factory((global.Azure = global.Azure || {}, global.Azure.WebPubSub = {}), global.url, global.cloudevents, global.express, global.msRestAzure, global.coreHttp, global.jwt));
+}(this, (function (exports, url, cloudevents, express, msRestAzureJs, coreHttp, jwt) { 'use strict';
 
-    jwt = jwt && Object.prototype.hasOwnProperty.call(jwt, 'default') ? jwt['default'] : jwt;
     express = express && Object.prototype.hasOwnProperty.call(express, 'default') ? express['default'] : express;
+    jwt = jwt && Object.prototype.hasOwnProperty.call(jwt, 'default') ? jwt['default'] : jwt;
 
     /*! *****************************************************************************
     Copyright (c) Microsoft Corporation.
@@ -34,73 +34,6 @@
             function step(result) { result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected); }
             step((generator = generator.apply(thisArg, _arguments || [])).next());
         });
-    }
-
-    // Copyright (c) Microsoft Corporation.
-    class WebPubSubServiceEndpoint {
-        /**
-         * Creates a new WebPubSubServiceEndpoint object.
-         *
-         * @constructor
-         * @param {string} conn The Connection String.
-         * @param {string} hub The Hub
-         */
-        constructor(conn) {
-            this.endpoint = this.getServiceEndpoint(conn);
-        }
-        clientNegotiate(hub, options) {
-            var _a;
-            var clientUrl = `${this.endpoint.websocketHost}client/hubs/${hub}`;
-            const audience = `${this.endpoint.audience}client/hubs/${hub}`;
-            var key = this.endpoint.key;
-            var payload = (_a = options === null || options === void 0 ? void 0 : options.claims) !== null && _a !== void 0 ? _a : {};
-            var signOptions = {
-                audience: audience,
-                expiresIn: "1h",
-                algorithm: "HS256",
-            };
-            if (options === null || options === void 0 ? void 0 : options.userId) {
-                signOptions.subject = options === null || options === void 0 ? void 0 : options.userId;
-            }
-            return {
-                url: clientUrl,
-                token: jwt.sign(payload, key, signOptions),
-            };
-        }
-        getServiceEndpoint(conn) {
-            var endpoint = this.parseConnectionString(conn);
-            if (!endpoint) {
-                throw new Error("Invalid connection string: " + conn);
-            }
-            return endpoint;
-        }
-        parseConnectionString(conn) {
-            const em = /Endpoint=(.*?)(;|$)/g.exec(conn);
-            if (!em)
-                return null;
-            const endpoint = em[1];
-            const km = /AccessKey=(.*?)(;|$)/g.exec(conn);
-            if (!km)
-                return null;
-            const key = km[1];
-            if (!endpoint || !key)
-                return null;
-            const pm = /Port=(.*?)(;|$)/g.exec(conn);
-            const port = pm == null ? '' : pm[1];
-            var url$1 = new url.URL(endpoint);
-            var originalProtocol = url$1.protocol;
-            url$1.protocol = originalProtocol === 'http:' ? 'ws:' : 'wss:';
-            const audience = url$1.toString();
-            url$1.port = port;
-            var websocketHost = url$1.toString();
-            url$1.protocol = originalProtocol;
-            return {
-                websocketHost: websocketHost,
-                serviceUrl: url$1,
-                audience: audience,
-                key: key,
-            };
-        }
     }
 
     // For the base64 encoding pieces.
@@ -189,25 +122,43 @@
     }
 
     // Copyright (c) Microsoft Corporation.
-    var ErrorCode;
     (function (ErrorCode) {
-        ErrorCode[ErrorCode["serverError"] = 0] = "serverError";
-        ErrorCode[ErrorCode["userError"] = 1] = "userError";
-        ErrorCode[ErrorCode["unauthorized"] = 2] = "unauthorized";
-    })(ErrorCode || (ErrorCode = {}));
-    var PayloadDataType;
+        /**
+         * Unauthorized response to service using 401.
+         */
+        ErrorCode[ErrorCode["unauthorized"] = 401] = "unauthorized";
+        /**
+         * Server error response to service using 500.
+         */
+        ErrorCode[ErrorCode["serverError"] = 500] = "serverError";
+        /**
+         * User error response to service using 400.
+         */
+        ErrorCode[ErrorCode["userError"] = 400] = "userError";
+    })(exports.ErrorCode || (exports.ErrorCode = {}));
     (function (PayloadDataType) {
+        /**
+         * The binary format.
+         */
         PayloadDataType[PayloadDataType["binary"] = 0] = "binary";
+        /**
+         * The plain text format.
+         */
         PayloadDataType[PayloadDataType["text"] = 1] = "text";
+        /**
+         * The JSON format.
+         */
         PayloadDataType[PayloadDataType["json"] = 2] = "json";
-    })(PayloadDataType || (PayloadDataType = {}));
-    class ProtocolParser {
+    })(exports.PayloadDataType || (exports.PayloadDataType = {}));
+
+    // Copyright (c) Microsoft Corporation.
+    class CloudEventsDispatcher {
         constructor(hub, eventHandler, dumpRequest) {
             this.hub = hub;
             this.eventHandler = eventHandler;
             this.dumpRequest = dumpRequest;
         }
-        processNodeHttpRequest(request, response) {
+        processRequest(request, response) {
             var _a, _b, _c;
             return __awaiter(this, void 0, void 0, function* () {
                 if (!this.eventHandler) {
@@ -224,30 +175,30 @@
                     }
                     if (eventResponse.error) {
                         switch (eventResponse.error.code) {
-                            case ErrorCode.userError:
+                            case exports.ErrorCode.userError:
                                 response.statusCode = 400;
                                 break;
-                            case ErrorCode.unauthorized:
-                                response.statusCode = 402;
+                            case exports.ErrorCode.unauthorized:
+                                response.statusCode = 401;
                                 break;
                             default:
                                 response.statusCode = 500;
                                 break;
                         }
-                        response.end((_a = eventResponse.error.detail) !== null && _a !== void 0 ? _a : '');
+                        response.end((_a = eventResponse.error.detail) !== null && _a !== void 0 ? _a : "");
                         return;
                     }
                     if (eventResponse === null || eventResponse === void 0 ? void 0 : eventResponse.payload) {
-                        if (eventResponse.payload.dataType === PayloadDataType.binary) {
+                        if (eventResponse.payload.dataType === exports.PayloadDataType.binary) {
                             response.setHeader("Content-Type", "application/octet-stream");
                         }
-                        else if (eventResponse.payload.dataType === PayloadDataType.json) {
+                        else if (eventResponse.payload.dataType === exports.PayloadDataType.json) {
                             response.setHeader("Content-Type", "application/json");
                         }
                         else {
                             response.setHeader("Content-Type", "text/plain; charset=utf-8");
                         }
-                        response.end((_c = (_b = eventResponse.payload) === null || _b === void 0 ? void 0 : _b.data) !== null && _c !== void 0 ? _c : '');
+                        response.end((_c = (_b = eventResponse.payload) === null || _b === void 0 ? void 0 : _b.data) !== null && _c !== void 0 ? _c : "");
                     }
                 }
                 catch (err) {
@@ -265,7 +216,7 @@
                     console.log(receivedEvent);
                 }
                 var type = receivedEvent.type.toLowerCase();
-                var context = this.GetContext(receivedEvent);
+                var context = this.GetContext(receivedEvent, request.headers.host);
                 if (context.hub !== this.hub) {
                     // it is possible when multiple hubs share the same handler
                     console.info(`Incoming request is for hub '${this.hub}' while the incoming request is for hub '${context.hub}'`);
@@ -274,7 +225,12 @@
                 // TODO: valid request is a valid cloud event with WebPubSub extension
                 if (type === "azure.webpubsub.sys.connect") {
                     if (!((_a = this.eventHandler) === null || _a === void 0 ? void 0 : _a.onConnect)) {
-                        return;
+                        // 401 if onConnect is not configured
+                        return {
+                            error: {
+                                code: exports.ErrorCode.unauthorized
+                            }
+                        };
                     }
                     var connectRequest = receivedEvent.data;
                     if (!connectRequest) {
@@ -286,12 +242,18 @@
                         return {
                             payload: {
                                 data: JSON.stringify(connectResponse),
-                                dataType: PayloadDataType.json
+                                dataType: exports.PayloadDataType.json
                             }
                         };
                     }
                     else {
-                        return;
+                        // what is the differnce between not configure and not return? there is no such definition in C#..
+                        // 401 if onConnect is not configured
+                        return {
+                            error: {
+                                code: exports.ErrorCode.unauthorized
+                            }
+                        };
                     }
                 }
                 else if (type === "azure.webpubsub.sys.connected") {
@@ -321,10 +283,13 @@
                         return;
                     }
                     var data;
-                    var dataType = PayloadDataType.binary;
+                    var dataType = exports.PayloadDataType.binary;
                     if (receivedEvent.data) {
                         data = receivedEvent.data;
-                        dataType = receivedEvent.datacontenttype === 'application/json' ? PayloadDataType.json : PayloadDataType.text;
+                        dataType =
+                            receivedEvent.datacontenttype === "application/json"
+                                ? exports.PayloadDataType.json
+                                : exports.PayloadDataType.text;
                     }
                     else if (receivedEvent.data_base64) {
                         data = decode(receivedEvent.data_base64);
@@ -333,7 +298,6 @@
                         throw new Error("empty data payload");
                     }
                     var userRequest = {
-                        eventName: context.eventName,
                         context: context,
                         payload: {
                             data: data,
@@ -349,15 +313,17 @@
                 else {
                     throw new Error("Not supported event: " + type);
                 }
+                return;
             });
         }
-        GetContext(ce) {
+        GetContext(ce, host) {
             var context = {
                 signature: ce["signature"],
                 userId: ce["userid"],
                 hub: ce["hub"],
                 connectionId: ce["connectionid"],
-                eventName: ce["eventname"]
+                eventName: ce["eventname"],
+                host: host
             };
             // TODO: validation
             return context;
@@ -366,7 +332,7 @@
             return __awaiter(this, void 0, void 0, function* () {
                 const normalized = {
                     headers: {},
-                    body: ''
+                    body: ""
                 };
                 if (request.headers) {
                     for (const key in request.headers) {
@@ -375,11 +341,11 @@
                             if (element === undefined) {
                                 continue;
                             }
-                            if (typeof element === 'string') {
+                            if (typeof element === "string") {
                                 normalized.headers[key] = element;
                             }
                             else {
-                                normalized.headers[key] = element.join(',');
+                                normalized.headers[key] = element.join(",");
                             }
                         }
                     }
@@ -391,14 +357,14 @@
         readRequestBody(req) {
             return new Promise(function (resolve, reject) {
                 var body = "";
-                req.on('data', function (chunk) {
+                req.on("data", function (chunk) {
                     body += chunk;
                 });
-                req.on('end', function () {
+                req.on("end", function () {
                     resolve(body);
                 });
                 // reject on request error
-                req.on('error', function (err) {
+                req.on("error", function (err) {
                     // This is not a "Second reject", just a different sort of failure
                     reject(err);
                 });
@@ -406,65 +372,171 @@
         }
     }
 
-    /*
-     * Code generated by Microsoft (R) AutoRest Code Generator.
-     * Changes may cause incorrect behavior and will be lost if the code is regenerated.
+    // Copyright (c) Microsoft Corporation.
+    /**
+     * The handler to handle incoming CloudEvents messages
      */
-    const CloudError = msRestAzure.CloudErrorMapper;
+    class WebPubSubCloudEventsHandler {
+        /**
+         * Creates an instance of a WebPubSubCloudEventsHandler for handling incoming CloudEvents messages.
+         *
+         * Example usage:
+         * ```ts
+         * import express from "express";
+         * import { WebPubSubCloudEventsHandler } from "@azure/web-pubsub-express";
+         * const endpoint = "https://xxxx.webpubsubdev.azure.com"
+         * const handler = new WebPubSubCloudEventsHandler('chat', [ endpoint ] {
+         *   onConnect: async connectRequest => {
+         *     console.log(JSON.stringify(connectRequest));
+         *     return {};
+         *   },
+         *   onConnected: async connectedRequest => {
+         *     console.log(JSON.stringify(connectedRequest));
+         *   },
+         *   onUserEvent: async userRequest => {
+         *     console.log(JSON.stringify(userRequest));
+         *     return {
+         *      payload: {
+         *        data: "Hey " + userRequest.payload.data,
+         *        dataType: userRequest.payload.dataType
+         *      }
+         *    };
+         *  },
+         * });
+         * ```
+         *
+         * @param hub The name of the hub to listen to
+         * @param allowedEndpoints The allowed endpoints for the incoming CloudEvents request
+         * @param options Options to configure the event handler
+         */
+        constructor(hub, allowedEndpoints, options) {
+            var _a;
+            this.hub = hub;
+            const path = (_a = options === null || options === void 0 ? void 0 : options.path) !== null && _a !== void 0 ? _a : `/api/webpubsub/hubs/${hub}`;
+            this.path = path.endsWith("/") ? path : path + "/";
+            this._allowedOrigins = allowedEndpoints.map((endpoint) => endpoint === "*" ? "*" : (new url.URL(endpoint).host));
+            this._cloudEventsHandler = new CloudEventsDispatcher(this.hub, options, options === null || options === void 0 ? void 0 : options.dumpRequest);
+        }
+        /**
+         * Get the middleware to be used in express
+         */
+        getMiddleware() {
+            const router = express.Router();
+            router.options(this.path, (request, response) => this.handleAbuseProtectionRequests(request, response));
+            router.post(this.path, (request, response) => this._cloudEventsHandler.processRequest(request, response));
+            return router;
+        }
+        handleAbuseProtectionRequests(request, response) {
+            console.log(request.headers);
+            if (request.headers["webhook-request-origin"]) {
+                response.setHeader("WebHook-Allowed-Origin", this._allowedOrigins);
+            }
+            else {
+                console.log(`Invalid abuse protection request ${request}`);
+                response.statusCode = 400;
+            }
+            response.end();
+            return true;
+        }
+    }
 
-    /*
-     * Code generated by Microsoft (R) AutoRest Code Generator.
-     * Changes may cause incorrect behavior and will be lost if the code is regenerated.
-     */
-
-    var Mappers = /*#__PURE__*/Object.freeze({
-        __proto__: null,
-        CloudError: CloudError
-    });
-
-    /*
-     * Code generated by Microsoft (R) AutoRest Code Generator.
-     * Changes may cause incorrect behavior and will be lost if the code is
-     * regenerated.
-     */
-    const acceptLanguage = {
-        parameterPath: "acceptLanguage",
+    const $host = {
+        parameterPath: "$host",
         mapper: {
-            serializedName: "accept-language",
-            defaultValue: 'en-US',
+            serializedName: "$host",
+            required: true,
             type: {
                 name: "String"
             }
-        }
+        },
+        skipEncoding: true
     };
     const apiVersion = {
-        parameterPath: [
-            "options",
-            "apiVersion"
-        ],
+        parameterPath: "apiVersion",
         mapper: {
+            defaultValue: "2020-10-01",
+            isConstant: true,
             serializedName: "api-version",
-            defaultValue: '2020-10-01',
             type: {
                 name: "String"
             }
         }
     };
-    const connectionId = {
-        parameterPath: "connectionId",
+    const contentType = {
+        parameterPath: "contentType",
         mapper: {
+            defaultValue: "application/octet-stream",
+            isConstant: true,
+            serializedName: "Content-Type",
+            type: {
+                name: "String"
+            }
+        }
+    };
+    const payloadMessage = {
+        parameterPath: "payloadMessage",
+        mapper: {
+            serializedName: "payloadMessage",
             required: true,
-            serializedName: "connectionId",
+            type: {
+                name: "Stream"
+            }
+        }
+    };
+    const contentType1 = {
+        parameterPath: "contentType",
+        mapper: {
+            defaultValue: "text/plain",
+            isConstant: true,
+            serializedName: "Content-Type",
+            type: {
+                name: "String"
+            }
+        }
+    };
+    const payloadMessage1 = {
+        parameterPath: "payloadMessage",
+        mapper: {
+            serializedName: "payloadMessage",
+            required: true,
+            type: {
+                name: "String"
+            }
+        }
+    };
+    const contentType2 = {
+        parameterPath: "contentType",
+        mapper: {
+            defaultValue: "application/json",
+            isConstant: true,
+            serializedName: "Content-Type",
+            type: {
+                name: "String"
+            }
+        }
+    };
+    const payloadMessage2 = {
+        parameterPath: "payloadMessage",
+        mapper: {
+            serializedName: "payloadMessage",
+            required: true,
+            type: {
+                name: "Stream"
+            }
+        }
+    };
+    const hub = {
+        parameterPath: "hub",
+        mapper: {
+            serializedName: "hub",
+            required: true,
             type: {
                 name: "String"
             }
         }
     };
     const excluded = {
-        parameterPath: [
-            "options",
-            "excluded"
-        ],
+        parameterPath: ["options", "excluded"],
         mapper: {
             serializedName: "excluded",
             type: {
@@ -476,45 +548,42 @@
                 }
             }
         },
-        collectionFormat: msRest.QueryCollectionFormat.Multi
+        collectionFormat: coreHttp.QueryCollectionFormat.Multi
     };
-    const group0 = {
+    const connectionId = {
+        parameterPath: "connectionId",
+        mapper: {
+            serializedName: "connectionId",
+            required: true,
+            type: {
+                name: "String"
+            }
+        }
+    };
+    const reason = {
+        parameterPath: ["options", "reason"],
+        mapper: {
+            serializedName: "reason",
+            type: {
+                name: "String"
+            }
+        }
+    };
+    const group = {
         parameterPath: "group",
         mapper: {
-            required: true,
             serializedName: "group",
-            type: {
-                name: "String"
-            }
-        }
-    };
-    const group1 = {
-        parameterPath: [
-            "options",
-            "group"
-        ],
-        mapper: {
-            serializedName: "group",
-            type: {
-                name: "String"
-            }
-        }
-    };
-    const hub = {
-        parameterPath: "hub",
-        mapper: {
             required: true,
-            serializedName: "hub",
             type: {
                 name: "String"
             }
         }
     };
-    const id = {
-        parameterPath: "id",
+    const userId = {
+        parameterPath: "userId",
         mapper: {
+            serializedName: "userId",
             required: true,
-            serializedName: "id",
             type: {
                 name: "String"
             }
@@ -523,691 +592,712 @@
     const permission = {
         parameterPath: "permission",
         mapper: {
-            required: true,
             serializedName: "permission",
-            type: {
-                name: "String"
-            }
-        }
-    };
-    const reason = {
-        parameterPath: [
-            "options",
-            "reason"
-        ],
-        mapper: {
-            serializedName: "reason",
-            type: {
-                name: "String"
-            }
-        }
-    };
-    const user = {
-        parameterPath: "user",
-        mapper: {
             required: true,
-            serializedName: "user",
+            type: {
+                name: "String"
+            }
+        }
+    };
+    const targetName = {
+        parameterPath: ["options", "targetName"],
+        mapper: {
+            serializedName: "targetName",
+            type: {
+                name: "String"
+            }
+        }
+    };
+    const permission1 = {
+        parameterPath: "permission",
+        mapper: {
+            serializedName: "permission",
+            required: true,
+            type: {
+                name: "String"
+            }
+        }
+    };
+    const permission2 = {
+        parameterPath: "permission",
+        mapper: {
+            serializedName: "permission",
+            required: true,
             type: {
                 name: "String"
             }
         }
     };
 
-    /*
-     * Code generated by Microsoft (R) AutoRest Code Generator.
-     * Changes may cause incorrect behavior and will be lost if the code is
-     * regenerated.
+    /**
+     * Class representing a HealthApi.
      */
-    /** Class representing a HealthApi. */
     class HealthApi {
         /**
-         * Create a HealthApi.
-         * @param {WebPubSubServiceClientContext} client Reference to the service client.
+         * Initialize a new instance of the class HealthApi class.
+         * @param client Reference to the service client
          */
         constructor(client) {
             this.client = client;
         }
-        getHealthStatus(options, callback) {
-            return this.client.sendOperationRequest({
-                options
-            }, getHealthStatusOperationSpec, callback);
+        /**
+         * Get service health status.
+         * @param options The options parameters.
+         */
+        getHealthStatus(options) {
+            const operationOptions = coreHttp.operationOptionsToRequestOptionsBase(options || {});
+            return this.client.sendOperationRequest({ options: operationOptions }, getHealthStatusOperationSpec);
         }
     }
     // Operation Specifications
-    const serializer = new msRest.Serializer(Mappers);
+    const serializer = new coreHttp.Serializer({}, /* isXml */ false);
     const getHealthStatusOperationSpec = {
+        path: "/api/health",
         httpMethod: "HEAD",
-        path: "api/health",
-        queryParameters: [
-            apiVersion
-        ],
-        headerParameters: [
-            acceptLanguage
-        ],
-        responses: {
-            200: {},
-            default: {
-                bodyMapper: CloudError
-            }
-        },
+        responses: { 200: {}, default: {} },
+        queryParameters: [apiVersion],
+        urlParameters: [$host],
         serializer
     };
 
-    /*
-     * Code generated by Microsoft (R) AutoRest Code Generator.
-     * Changes may cause incorrect behavior and will be lost if the code is regenerated.
+    /**
+     * Class representing a WebPubSub.
      */
-
-    var Mappers$1 = /*#__PURE__*/Object.freeze({
-        __proto__: null,
-        CloudError: CloudError
-    });
-
-    /*
-     * Code generated by Microsoft (R) AutoRest Code Generator.
-     * Changes may cause incorrect behavior and will be lost if the code is
-     * regenerated.
-     */
-    /** Class representing a WebPubSubApi. */
-    class WebPubSubApi {
+    class WebPubSub {
         /**
-         * Create a WebPubSubApi.
-         * @param {WebPubSubServiceClientContext} client Reference to the service client.
+         * Initialize a new instance of the class WebPubSub class.
+         * @param client Reference to the service client
          */
         constructor(client) {
             this.client = client;
         }
-        sendToAll(hub, payloadMessage, options, callback) {
-            return this.client.sendOperationRequest({
-                hub,
-                payloadMessage,
-                options
-            }, sendToAllOperationSpec, callback);
+        /**
+         * Broadcast content inside request body to all the connected client connections.
+         * @param args Includes all the parameters for this operation.
+         */
+        sendToAll(...args) {
+            let operationSpec;
+            let operationArguments;
+            if (args[1] === "application/octet-stream") {
+                operationSpec = sendToAll$binaryOperationSpec;
+                operationArguments = {
+                    hub: args[0],
+                    contentType: args[1],
+                    payloadMessage: args[2],
+                    options: args[3]
+                };
+            }
+            else if (args[1] === "text/plain") {
+                operationSpec = sendToAll$textOperationSpec;
+                operationArguments = {
+                    hub: args[0],
+                    contentType: args[1],
+                    payloadMessage: args[2],
+                    options: args[3]
+                };
+            }
+            else if (args[1] === "application/json") {
+                operationSpec = sendToAll$jsonOperationSpec;
+                operationArguments = {
+                    hub: args[0],
+                    contentType: args[1],
+                    payloadMessage: args[2],
+                    options: args[3]
+                };
+            }
+            else {
+                throw new TypeError(`"contentType" must be a valid value but instead was "${args[1]}".`);
+            }
+            return this.client.sendOperationRequest(operationArguments, operationSpec);
         }
-        checkConnectionExistence(hub, connectionId, options, callback) {
-            return this.client.sendOperationRequest({
-                hub,
-                connectionId,
-                options
-            }, checkConnectionExistenceOperationSpec, callback);
+        /**
+         * Check if the connection with the given connectionId exists.
+         * @param hub Target hub name, which should start with alphabetic characters and only contain
+         *            alpha-numeric characters or underscore.
+         * @param connectionId The connection Id.
+         * @param options The options parameters.
+         */
+        checkConnectionExistence(hub, connectionId, options) {
+            const operationOptions = coreHttp.operationOptionsToRequestOptionsBase(options || {});
+            return this.client.sendOperationRequest({ hub, connectionId, options: operationOptions }, checkConnectionExistenceOperationSpec);
         }
-        closeClientConnection(hub, connectionId, options, callback) {
-            return this.client.sendOperationRequest({
-                hub,
-                connectionId,
-                options
-            }, closeClientConnectionOperationSpec, callback);
+        /**
+         * Close the client connection.
+         * @param hub Target hub name, which should start with alphabetic characters and only contain
+         *            alpha-numeric characters or underscore.
+         * @param connectionId Target connection Id.
+         * @param options The options parameters.
+         */
+        closeClientConnection(hub, connectionId, options) {
+            const operationOptions = coreHttp.operationOptionsToRequestOptionsBase(options || {});
+            return this.client.sendOperationRequest({ hub, connectionId, options: operationOptions }, closeClientConnectionOperationSpec);
         }
-        sendToConnection(hub, connectionId, payloadMessage, options, callback) {
-            return this.client.sendOperationRequest({
-                hub,
-                connectionId,
-                payloadMessage,
-                options
-            }, sendToConnectionOperationSpec, callback);
+        /**
+         * Send content inside request body to the specific connection.
+         * @param args Includes all the parameters for this operation.
+         */
+        sendToConnection(...args) {
+            let operationSpec;
+            let operationArguments;
+            if (args[2] === "application/octet-stream") {
+                operationSpec = sendToConnection$binaryOperationSpec;
+                operationArguments = {
+                    hub: args[0],
+                    connectionId: args[1],
+                    contentType: args[2],
+                    payloadMessage: args[3],
+                    options: args[4]
+                };
+            }
+            else if (args[2] === "text/plain") {
+                operationSpec = sendToConnection$textOperationSpec;
+                operationArguments = {
+                    hub: args[0],
+                    connectionId: args[1],
+                    contentType: args[2],
+                    payloadMessage: args[3],
+                    options: args[4]
+                };
+            }
+            else if (args[2] === "application/json") {
+                operationSpec = sendToConnection$jsonOperationSpec;
+                operationArguments = {
+                    hub: args[0],
+                    connectionId: args[1],
+                    contentType: args[2],
+                    payloadMessage: args[3],
+                    options: args[4]
+                };
+            }
+            else {
+                throw new TypeError(`"contentType" must be a valid value but instead was "${args[2]}".`);
+            }
+            return this.client.sendOperationRequest(operationArguments, operationSpec);
         }
-        checkGroupExistence(hub, group, options, callback) {
-            return this.client.sendOperationRequest({
-                hub,
-                group,
-                options
-            }, checkGroupExistenceOperationSpec, callback);
+        /**
+         * Check if there are any client connections inside the given group
+         * @param hub Target hub name, which should start with alphabetic characters and only contain
+         *            alpha-numeric characters or underscore.
+         * @param group Target group name, which length should be greater than 0 and less than 1025.
+         * @param options The options parameters.
+         */
+        checkGroupExistence(hub, group, options) {
+            const operationOptions = coreHttp.operationOptionsToRequestOptionsBase(options || {});
+            return this.client.sendOperationRequest({ hub, group, options: operationOptions }, checkGroupExistenceOperationSpec);
         }
-        sendToGroup(hub, group, payloadMessage, options, callback) {
-            return this.client.sendOperationRequest({
-                hub,
-                group,
-                payloadMessage,
-                options
-            }, sendToGroupOperationSpec, callback);
+        /**
+         * Send content inside request body to a group of connections.
+         * @param args Includes all the parameters for this operation.
+         */
+        sendToGroup(...args) {
+            let operationSpec;
+            let operationArguments;
+            if (args[2] === "application/octet-stream") {
+                operationSpec = sendToGroup$binaryOperationSpec;
+                operationArguments = {
+                    hub: args[0],
+                    group: args[1],
+                    contentType: args[2],
+                    payloadMessage: args[3],
+                    options: args[4]
+                };
+            }
+            else if (args[2] === "text/plain") {
+                operationSpec = sendToGroup$textOperationSpec;
+                operationArguments = {
+                    hub: args[0],
+                    group: args[1],
+                    contentType: args[2],
+                    payloadMessage: args[3],
+                    options: args[4]
+                };
+            }
+            else if (args[2] === "application/json") {
+                operationSpec = sendToGroup$jsonOperationSpec;
+                operationArguments = {
+                    hub: args[0],
+                    group: args[1],
+                    contentType: args[2],
+                    payloadMessage: args[3],
+                    options: args[4]
+                };
+            }
+            else {
+                throw new TypeError(`"contentType" must be a valid value but instead was "${args[2]}".`);
+            }
+            return this.client.sendOperationRequest(operationArguments, operationSpec);
         }
-        addConnectionToGroup(hub, group, connectionId, options, callback) {
-            return this.client.sendOperationRequest({
-                hub,
-                group,
-                connectionId,
-                options
-            }, addConnectionToGroupOperationSpec, callback);
+        /**
+         * Add a connection to the target group.
+         * @param hub Target hub name, which should start with alphabetic characters and only contain
+         *            alpha-numeric characters or underscore.
+         * @param group Target group name, which length should be greater than 0 and less than 1025.
+         * @param connectionId Target connection Id
+         * @param options The options parameters.
+         */
+        addConnectionToGroup(hub, group, connectionId, options) {
+            const operationOptions = coreHttp.operationOptionsToRequestOptionsBase(options || {});
+            return this.client.sendOperationRequest({ hub, group, connectionId, options: operationOptions }, addConnectionToGroupOperationSpec);
         }
-        removeConnectionFromGroup(hub, group, connectionId, options, callback) {
-            return this.client.sendOperationRequest({
-                hub,
-                group,
-                connectionId,
-                options
-            }, removeConnectionFromGroupOperationSpec, callback);
+        /**
+         * Remove a connection from the target group.
+         * @param hub Target hub name, which should start with alphabetic characters and only contain
+         *            alpha-numeric characters or underscore.
+         * @param group Target group name, which length should be greater than 0 and less than 1025.
+         * @param connectionId Target connection Id.
+         * @param options The options parameters.
+         */
+        removeConnectionFromGroup(hub, group, connectionId, options) {
+            const operationOptions = coreHttp.operationOptionsToRequestOptionsBase(options || {});
+            return this.client.sendOperationRequest({ hub, group, connectionId, options: operationOptions }, removeConnectionFromGroupOperationSpec);
         }
-        checkUserExistence(hub, user, options, callback) {
-            return this.client.sendOperationRequest({
-                hub,
-                user,
-                options
-            }, checkUserExistenceOperationSpec, callback);
+        /**
+         * Check if there are any client connections connected for the given user.
+         * @param hub Target hub name, which should start with alphabetic characters and only contain
+         *            alpha-numeric characters or underscore.
+         * @param userId Target user Id.
+         * @param options The options parameters.
+         */
+        checkUserExistence(hub, userId, options) {
+            const operationOptions = coreHttp.operationOptionsToRequestOptionsBase(options || {});
+            return this.client.sendOperationRequest({ hub, userId, options: operationOptions }, checkUserExistenceOperationSpec);
         }
-        sendToUser(hub, id, payloadMessage, options, callback) {
-            return this.client.sendOperationRequest({
-                hub,
-                id,
-                payloadMessage,
-                options
-            }, sendToUserOperationSpec, callback);
+        /**
+         * Send content inside request body to the specific user.
+         * @param args Includes all the parameters for this operation.
+         */
+        sendToUser(...args) {
+            let operationSpec;
+            let operationArguments;
+            if (args[2] === "application/octet-stream") {
+                operationSpec = sendToUser$binaryOperationSpec;
+                operationArguments = {
+                    hub: args[0],
+                    userId: args[1],
+                    contentType: args[2],
+                    payloadMessage: args[3],
+                    options: args[4]
+                };
+            }
+            else if (args[2] === "text/plain") {
+                operationSpec = sendToUser$textOperationSpec;
+                operationArguments = {
+                    hub: args[0],
+                    userId: args[1],
+                    contentType: args[2],
+                    payloadMessage: args[3],
+                    options: args[4]
+                };
+            }
+            else if (args[2] === "application/json") {
+                operationSpec = sendToUser$jsonOperationSpec;
+                operationArguments = {
+                    hub: args[0],
+                    userId: args[1],
+                    contentType: args[2],
+                    payloadMessage: args[3],
+                    options: args[4]
+                };
+            }
+            else {
+                throw new TypeError(`"contentType" must be a valid value but instead was "${args[2]}".`);
+            }
+            return this.client.sendOperationRequest(operationArguments, operationSpec);
         }
-        checkUserExistenceInGroup(hub, group, user, options, callback) {
-            return this.client.sendOperationRequest({
-                hub,
-                group,
-                user,
-                options
-            }, checkUserExistenceInGroupOperationSpec, callback);
+        /**
+         * Check whether a user exists in the target group.
+         * @param hub Target hub name, which should start with alphabetic characters and only contain
+         *            alpha-numeric characters or underscore.
+         * @param group Target group name, which length should be greater than 0 and less than 1025.
+         * @param userId Target user Id.
+         * @param options The options parameters.
+         */
+        checkUserExistenceInGroup(hub, group, userId, options) {
+            const operationOptions = coreHttp.operationOptionsToRequestOptionsBase(options || {});
+            return this.client.sendOperationRequest({ hub, group, userId, options: operationOptions }, checkUserExistenceInGroupOperationSpec);
         }
-        addUserToGroup(hub, group, user, options, callback) {
-            return this.client.sendOperationRequest({
-                hub,
-                group,
-                user,
-                options
-            }, addUserToGroupOperationSpec, callback);
+        /**
+         * Add a user to the target group.
+         * @param hub Target hub name, which should start with alphabetic characters and only contain
+         *            alpha-numeric characters or underscore.
+         * @param group Target group name, which length should be greater than 0 and less than 1025.
+         * @param userId Target user Id.
+         * @param options The options parameters.
+         */
+        addUserToGroup(hub, group, userId, options) {
+            const operationOptions = coreHttp.operationOptionsToRequestOptionsBase(options || {});
+            return this.client.sendOperationRequest({ hub, group, userId, options: operationOptions }, addUserToGroupOperationSpec);
         }
-        removeUserFromGroup(hub, group, user, options, callback) {
-            return this.client.sendOperationRequest({
-                hub,
-                group,
-                user,
-                options
-            }, removeUserFromGroupOperationSpec, callback);
+        /**
+         * Remove a user from the target group.
+         * @param hub Target hub name, which should start with alphabetic characters and only contain
+         *            alpha-numeric characters or underscore.
+         * @param group Target group name, which length should be greater than 0 and less than 1025.
+         * @param userId Target user Id.
+         * @param options The options parameters.
+         */
+        removeUserFromGroup(hub, group, userId, options) {
+            const operationOptions = coreHttp.operationOptionsToRequestOptionsBase(options || {});
+            return this.client.sendOperationRequest({ hub, group, userId, options: operationOptions }, removeUserFromGroupOperationSpec);
         }
-        removeUserFromAllGroups(hub, user, options, callback) {
-            return this.client.sendOperationRequest({
-                hub,
-                user,
-                options
-            }, removeUserFromAllGroupsOperationSpec, callback);
+        /**
+         * Remove a user from all groups.
+         * @param hub Target hub name, which should start with alphabetic characters and only contain
+         *            alpha-numeric characters or underscore.
+         * @param userId Target user Id.
+         * @param options The options parameters.
+         */
+        removeUserFromAllGroups(hub, userId, options) {
+            const operationOptions = coreHttp.operationOptionsToRequestOptionsBase(options || {});
+            return this.client.sendOperationRequest({ hub, userId, options: operationOptions }, removeUserFromAllGroupsOperationSpec);
         }
-        grantGroupPermission(hub, permission, connectionId, options, callback) {
-            return this.client.sendOperationRequest({
-                hub,
-                permission,
-                connectionId,
-                options
-            }, grantGroupPermissionOperationSpec, callback);
+        /**
+         * Grant permission to the connection.
+         * @param hub Target hub name, which should start with alphabetic characters and only contain
+         *            alpha-numeric characters or underscore.
+         * @param permission The permission: current supported actions are joinLeaveGroup and sendToGroup.
+         * @param connectionId Target connection Id.
+         * @param options The options parameters.
+         */
+        grantPermission(hub, permission, connectionId, options) {
+            const operationOptions = coreHttp.operationOptionsToRequestOptionsBase(options || {});
+            return this.client.sendOperationRequest({ hub, permission, connectionId, options: operationOptions }, grantPermissionOperationSpec);
         }
-        revokeGroupPermission(hub, permission, connectionId, options, callback) {
-            return this.client.sendOperationRequest({
-                hub,
-                permission,
-                connectionId,
-                options
-            }, revokeGroupPermissionOperationSpec, callback);
+        /**
+         * Revoke permission for the connection.
+         * @param hub Target hub name, which should start with alphabetic characters and only contain
+         *            alpha-numeric characters or underscore.
+         * @param permission The permission: current supported actions are joinLeaveGroup and sendToGroup.
+         * @param connectionId Target connection Id.
+         * @param options The options parameters.
+         */
+        revokePermission(hub, permission, connectionId, options) {
+            const operationOptions = coreHttp.operationOptionsToRequestOptionsBase(options || {});
+            return this.client.sendOperationRequest({ hub, permission, connectionId, options: operationOptions }, revokePermissionOperationSpec);
         }
-        checkGroupPermission(hub, permission, connectionId, options, callback) {
-            return this.client.sendOperationRequest({
-                hub,
-                permission,
-                connectionId,
-                options
-            }, checkGroupPermissionOperationSpec, callback);
+        /**
+         * Check if a connection have permission to the specific action.
+         * @param hub Target hub name, which should start with alphabetic characters and only contain
+         *            alpha-numeric characters or underscore.
+         * @param permission The permission: current supported actions are joinLeaveGroup and sendToGroup.
+         * @param connectionId Target connection Id.
+         * @param options The options parameters.
+         */
+        checkPermission(hub, permission, connectionId, options) {
+            const operationOptions = coreHttp.operationOptionsToRequestOptionsBase(options || {});
+            return this.client.sendOperationRequest({ hub, permission, connectionId, options: operationOptions }, checkPermissionOperationSpec);
         }
     }
     // Operation Specifications
-    const serializer$1 = new msRest.Serializer(Mappers$1);
-    const sendToAllOperationSpec = {
+    const serializer$1 = new coreHttp.Serializer({}, /* isXml */ false);
+    const sendToAll$binaryOperationSpec = {
+        path: "/api/hubs/{hub}/:send",
         httpMethod: "POST",
-        path: "api/hubs/{hub}/:send",
-        urlParameters: [
-            hub
-        ],
-        queryParameters: [
-            excluded,
-            apiVersion
-        ],
-        headerParameters: [
-            acceptLanguage
-        ],
-        requestBody: {
-            parameterPath: "payloadMessage",
-            mapper: {
-                required: true,
-                serializedName: "payloadMessage",
-                type: {
-                    name: "String"
-                }
-            }
-        },
-        contentType: "application/octet-stream",
-        responses: {
-            202: {},
-            default: {
-                bodyMapper: CloudError
-            }
-        },
+        responses: { 202: {}, default: {} },
+        requestBody: payloadMessage,
+        queryParameters: [apiVersion, excluded],
+        urlParameters: [$host, hub],
+        headerParameters: [contentType],
+        mediaType: "binary",
+        serializer: serializer$1
+    };
+    const sendToAll$textOperationSpec = {
+        path: "/api/hubs/{hub}/:send",
+        httpMethod: "POST",
+        responses: { 202: {}, default: {} },
+        requestBody: payloadMessage1,
+        queryParameters: [apiVersion, excluded],
+        urlParameters: [$host, hub],
+        headerParameters: [contentType1],
+        mediaType: "text",
+        serializer: serializer$1
+    };
+    const sendToAll$jsonOperationSpec = {
+        path: "/api/hubs/{hub}/:send",
+        httpMethod: "POST",
+        responses: { 202: {}, default: {} },
+        requestBody: payloadMessage2,
+        queryParameters: [apiVersion, excluded],
+        urlParameters: [$host, hub],
+        headerParameters: [contentType2],
+        mediaType: "json",
         serializer: serializer$1
     };
     const checkConnectionExistenceOperationSpec = {
+        path: "/api/hubs/{hub}/connections/{connectionId}",
         httpMethod: "HEAD",
-        path: "api/hubs/{hub}/connections/{connectionId}",
-        urlParameters: [
-            hub,
-            connectionId
-        ],
-        queryParameters: [
-            apiVersion
-        ],
-        headerParameters: [
-            acceptLanguage
-        ],
-        responses: {
-            200: {},
-            404: {},
-            default: {
-                bodyMapper: CloudError
-            }
-        },
+        responses: { 200: {}, 404: {}, default: {} },
+        queryParameters: [apiVersion],
+        urlParameters: [$host, hub, connectionId],
         serializer: serializer$1
     };
     const closeClientConnectionOperationSpec = {
+        path: "/api/hubs/{hub}/connections/{connectionId}",
         httpMethod: "DELETE",
-        path: "api/hubs/{hub}/connections/{connectionId}",
-        urlParameters: [
-            hub,
-            connectionId
-        ],
-        queryParameters: [
-            reason,
-            apiVersion
-        ],
-        headerParameters: [
-            acceptLanguage
-        ],
-        responses: {
-            200: {},
-            default: {
-                bodyMapper: CloudError
-            }
-        },
+        responses: { 200: {}, default: {} },
+        queryParameters: [apiVersion, reason],
+        urlParameters: [$host, hub, connectionId],
         serializer: serializer$1
     };
-    const sendToConnectionOperationSpec = {
+    const sendToConnection$binaryOperationSpec = {
+        path: "/api/hubs/{hub}/connections/{connectionId}/:send",
         httpMethod: "POST",
-        path: "api/hubs/{hub}/connections/{connectionId}/:send",
-        urlParameters: [
-            hub,
-            connectionId
-        ],
-        queryParameters: [
-            apiVersion
-        ],
-        headerParameters: [
-            acceptLanguage
-        ],
-        requestBody: {
-            parameterPath: "payloadMessage",
-            mapper: {
-                required: true,
-                serializedName: "payloadMessage",
-                type: {
-                    name: "String"
-                }
-            }
-        },
-        contentType: "application/octet-stream",
-        responses: {
-            202: {},
-            default: {
-                bodyMapper: CloudError
-            }
-        },
+        responses: { 202: {}, default: {} },
+        requestBody: payloadMessage,
+        queryParameters: [apiVersion],
+        urlParameters: [$host, hub, connectionId],
+        headerParameters: [contentType],
+        mediaType: "binary",
+        serializer: serializer$1
+    };
+    const sendToConnection$textOperationSpec = {
+        path: "/api/hubs/{hub}/connections/{connectionId}/:send",
+        httpMethod: "POST",
+        responses: { 202: {}, default: {} },
+        requestBody: payloadMessage1,
+        queryParameters: [apiVersion],
+        urlParameters: [$host, hub, connectionId],
+        headerParameters: [contentType1],
+        mediaType: "text",
+        serializer: serializer$1
+    };
+    const sendToConnection$jsonOperationSpec = {
+        path: "/api/hubs/{hub}/connections/{connectionId}/:send",
+        httpMethod: "POST",
+        responses: { 202: {}, default: {} },
+        requestBody: payloadMessage2,
+        queryParameters: [apiVersion],
+        urlParameters: [$host, hub, connectionId],
+        headerParameters: [contentType2],
+        mediaType: "json",
         serializer: serializer$1
     };
     const checkGroupExistenceOperationSpec = {
+        path: "/api/hubs/{hub}/groups/{group}",
         httpMethod: "HEAD",
-        path: "api/hubs/{hub}/groups/{group}",
-        urlParameters: [
-            hub,
-            group0
-        ],
-        queryParameters: [
-            apiVersion
-        ],
-        headerParameters: [
-            acceptLanguage
-        ],
-        responses: {
-            200: {},
-            404: {},
-            default: {
-                bodyMapper: CloudError
-            }
-        },
+        responses: { 200: {}, 404: {}, default: {} },
+        queryParameters: [apiVersion],
+        urlParameters: [$host, hub, group],
         serializer: serializer$1
     };
-    const sendToGroupOperationSpec = {
+    const sendToGroup$binaryOperationSpec = {
+        path: "/api/hubs/{hub}/groups/{group}/:send",
         httpMethod: "POST",
-        path: "api/hubs/{hub}/groups/{group}/:send",
-        urlParameters: [
-            hub,
-            group0
-        ],
-        queryParameters: [
-            excluded,
-            apiVersion
-        ],
-        headerParameters: [
-            acceptLanguage
-        ],
-        requestBody: {
-            parameterPath: "payloadMessage",
-            mapper: {
-                required: true,
-                serializedName: "payloadMessage",
-                type: {
-                    name: "String"
-                }
-            }
-        },
-        contentType: "application/octet-stream",
-        responses: {
-            202: {},
-            default: {
-                bodyMapper: CloudError
-            }
-        },
+        responses: { 202: {}, default: {} },
+        requestBody: payloadMessage,
+        queryParameters: [apiVersion, excluded],
+        urlParameters: [$host, hub, group],
+        headerParameters: [contentType],
+        mediaType: "binary",
+        serializer: serializer$1
+    };
+    const sendToGroup$textOperationSpec = {
+        path: "/api/hubs/{hub}/groups/{group}/:send",
+        httpMethod: "POST",
+        responses: { 202: {}, default: {} },
+        requestBody: payloadMessage1,
+        queryParameters: [apiVersion, excluded],
+        urlParameters: [$host, hub, group],
+        headerParameters: [contentType1],
+        mediaType: "text",
+        serializer: serializer$1
+    };
+    const sendToGroup$jsonOperationSpec = {
+        path: "/api/hubs/{hub}/groups/{group}/:send",
+        httpMethod: "POST",
+        responses: { 202: {}, default: {} },
+        requestBody: payloadMessage2,
+        queryParameters: [apiVersion, excluded],
+        urlParameters: [$host, hub, group],
+        headerParameters: [contentType2],
+        mediaType: "json",
         serializer: serializer$1
     };
     const addConnectionToGroupOperationSpec = {
+        path: "/api/hubs/{hub}/groups/{group}/connections/{connectionId}",
         httpMethod: "PUT",
-        path: "api/hubs/{hub}/groups/{group}/connections/{connectionId}",
+        responses: { 200: {}, 404: {}, default: {} },
+        queryParameters: [apiVersion],
         urlParameters: [
+            $host,
             hub,
-            group0,
-            connectionId
+            connectionId,
+            group
         ],
-        queryParameters: [
-            apiVersion
-        ],
-        headerParameters: [
-            acceptLanguage
-        ],
-        responses: {
-            200: {},
-            404: {},
-            default: {
-                bodyMapper: CloudError
-            }
-        },
         serializer: serializer$1
     };
     const removeConnectionFromGroupOperationSpec = {
+        path: "/api/hubs/{hub}/groups/{group}/connections/{connectionId}",
         httpMethod: "DELETE",
-        path: "api/hubs/{hub}/groups/{group}/connections/{connectionId}",
+        responses: { 200: {}, 404: {}, default: {} },
+        queryParameters: [apiVersion],
         urlParameters: [
+            $host,
             hub,
-            group0,
-            connectionId
+            connectionId,
+            group
         ],
-        queryParameters: [
-            apiVersion
-        ],
-        headerParameters: [
-            acceptLanguage
-        ],
-        responses: {
-            200: {},
-            404: {},
-            default: {
-                bodyMapper: CloudError
-            }
-        },
         serializer: serializer$1
     };
     const checkUserExistenceOperationSpec = {
+        path: "/api/hubs/{hub}/users/{userId}",
         httpMethod: "HEAD",
-        path: "api/hubs/{hub}/users/{user}",
-        urlParameters: [
-            hub,
-            user
-        ],
-        queryParameters: [
-            apiVersion
-        ],
-        headerParameters: [
-            acceptLanguage
-        ],
-        responses: {
-            200: {},
-            404: {},
-            default: {
-                bodyMapper: CloudError
-            }
-        },
+        responses: { 200: {}, 404: {}, default: {} },
+        queryParameters: [apiVersion],
+        urlParameters: [$host, hub, userId],
         serializer: serializer$1
     };
-    const sendToUserOperationSpec = {
+    const sendToUser$binaryOperationSpec = {
+        path: "/api/hubs/{hub}/users/{userId}/:send",
         httpMethod: "POST",
-        path: "api/hubs/{hub}/users/{id}/:send",
-        urlParameters: [
-            hub,
-            id
-        ],
-        queryParameters: [
-            apiVersion
-        ],
-        headerParameters: [
-            acceptLanguage
-        ],
-        requestBody: {
-            parameterPath: "payloadMessage",
-            mapper: {
-                required: true,
-                serializedName: "payloadMessage",
-                type: {
-                    name: "String"
-                }
-            }
-        },
-        contentType: "application/octet-stream",
-        responses: {
-            202: {},
-            default: {
-                bodyMapper: CloudError
-            }
-        },
+        responses: { 202: {}, default: {} },
+        requestBody: payloadMessage,
+        queryParameters: [apiVersion],
+        urlParameters: [$host, hub, userId],
+        headerParameters: [contentType],
+        mediaType: "binary",
+        serializer: serializer$1
+    };
+    const sendToUser$textOperationSpec = {
+        path: "/api/hubs/{hub}/users/{userId}/:send",
+        httpMethod: "POST",
+        responses: { 202: {}, default: {} },
+        requestBody: payloadMessage1,
+        queryParameters: [apiVersion],
+        urlParameters: [$host, hub, userId],
+        headerParameters: [contentType1],
+        mediaType: "text",
+        serializer: serializer$1
+    };
+    const sendToUser$jsonOperationSpec = {
+        path: "/api/hubs/{hub}/users/{userId}/:send",
+        httpMethod: "POST",
+        responses: { 202: {}, default: {} },
+        requestBody: payloadMessage2,
+        queryParameters: [apiVersion],
+        urlParameters: [$host, hub, userId],
+        headerParameters: [contentType2],
+        mediaType: "json",
         serializer: serializer$1
     };
     const checkUserExistenceInGroupOperationSpec = {
+        path: "/api/hubs/{hub}/users/{userId}/groups/{group}",
         httpMethod: "HEAD",
-        path: "api/hubs/{hub}/users/{user}/groups/{group}",
+        responses: { 200: {}, 404: {}, default: {} },
+        queryParameters: [apiVersion],
         urlParameters: [
+            $host,
             hub,
-            group0,
-            user
+            group,
+            userId
         ],
-        queryParameters: [
-            apiVersion
-        ],
-        headerParameters: [
-            acceptLanguage
-        ],
-        responses: {
-            200: {},
-            404: {},
-            default: {
-                bodyMapper: CloudError
-            }
-        },
         serializer: serializer$1
     };
     const addUserToGroupOperationSpec = {
+        path: "/api/hubs/{hub}/users/{userId}/groups/{group}",
         httpMethod: "PUT",
-        path: "api/hubs/{hub}/users/{user}/groups/{group}",
+        responses: { 200: {}, default: {} },
+        queryParameters: [apiVersion],
         urlParameters: [
+            $host,
             hub,
-            group0,
-            user
+            group,
+            userId
         ],
-        queryParameters: [
-            apiVersion
-        ],
-        headerParameters: [
-            acceptLanguage
-        ],
-        responses: {
-            200: {},
-            default: {
-                bodyMapper: CloudError
-            }
-        },
         serializer: serializer$1
     };
     const removeUserFromGroupOperationSpec = {
+        path: "/api/hubs/{hub}/users/{userId}/groups/{group}",
         httpMethod: "DELETE",
-        path: "api/hubs/{hub}/users/{user}/groups/{group}",
+        responses: { 200: {}, default: {} },
+        queryParameters: [apiVersion],
         urlParameters: [
+            $host,
             hub,
-            group0,
-            user
+            group,
+            userId
         ],
-        queryParameters: [
-            apiVersion
-        ],
-        headerParameters: [
-            acceptLanguage
-        ],
-        responses: {
-            200: {},
-            default: {
-                bodyMapper: CloudError
-            }
-        },
         serializer: serializer$1
     };
     const removeUserFromAllGroupsOperationSpec = {
+        path: "/api/hubs/{hub}/users/{userId}/groups",
         httpMethod: "DELETE",
-        path: "api/hubs/{hub}/users/{user}/groups",
-        urlParameters: [
-            hub,
-            user
-        ],
-        queryParameters: [
-            apiVersion
-        ],
-        headerParameters: [
-            acceptLanguage
-        ],
-        responses: {
-            200: {},
-            default: {
-                bodyMapper: CloudError
-            }
-        },
+        responses: { 200: {}, default: {} },
+        queryParameters: [apiVersion],
+        urlParameters: [$host, hub, userId],
         serializer: serializer$1
     };
-    const grantGroupPermissionOperationSpec = {
+    const grantPermissionOperationSpec = {
+        path: "/api/hubs/{hub}/permissions/{permission}/connections/{connectionId}",
         httpMethod: "PUT",
-        path: "api/hubs/{hub}/permissions/{permission}/connections/{connectionId}",
+        responses: { 200: {}, default: {} },
+        queryParameters: [apiVersion, targetName],
         urlParameters: [
+            $host,
             hub,
-            permission,
-            connectionId
+            connectionId,
+            permission
         ],
-        queryParameters: [
-            group1,
-            apiVersion
-        ],
-        headerParameters: [
-            acceptLanguage
-        ],
-        responses: {
-            200: {},
-            default: {
-                bodyMapper: CloudError
-            }
-        },
         serializer: serializer$1
     };
-    const revokeGroupPermissionOperationSpec = {
+    const revokePermissionOperationSpec = {
+        path: "/api/hubs/{hub}/permissions/{permission}/connections/{connectionId}",
         httpMethod: "DELETE",
-        path: "api/hubs/{hub}/permissions/{permission}/connections/{connectionId}",
+        responses: { 200: {}, default: {} },
+        queryParameters: [apiVersion, targetName],
         urlParameters: [
+            $host,
             hub,
-            permission,
-            connectionId
+            connectionId,
+            permission1
         ],
-        queryParameters: [
-            group1,
-            apiVersion
-        ],
-        headerParameters: [
-            acceptLanguage
-        ],
-        responses: {
-            200: {},
-            default: {
-                bodyMapper: CloudError
-            }
-        },
         serializer: serializer$1
     };
-    const checkGroupPermissionOperationSpec = {
+    const checkPermissionOperationSpec = {
+        path: "/api/hubs/{hub}/permissions/{permission}/connections/{connectionId}",
         httpMethod: "HEAD",
-        path: "api/hubs/{hub}/permissions/{permission}/connections/{connectionId}",
+        responses: { 200: {}, 404: {}, default: {} },
+        queryParameters: [apiVersion, targetName],
         urlParameters: [
+            $host,
             hub,
-            permission,
-            connectionId
+            connectionId,
+            permission2
         ],
-        queryParameters: [
-            group1,
-            apiVersion
-        ],
-        headerParameters: [
-            acceptLanguage
-        ],
-        responses: {
-            200: {},
-            404: {},
-            default: {
-                bodyMapper: CloudError
-            }
-        },
         serializer: serializer$1
     };
 
-    /*
-     * Code generated by Microsoft (R) AutoRest Code Generator.
-     * Changes may cause incorrect behavior and will be lost if the code is
-     * regenerated.
-     */
     const packageName = "@azure/webpubsub";
     const packageVersion = "1.0.0";
-    class WebPubSubServiceClientContext extends msRestAzure.AzureServiceClient {
+    class WebPubSubServiceClientContext extends coreHttp.ServiceClient {
         /**
-         * Initializes a new instance of the WebPubSubServiceClient class.
-         * @param credentials Credentials needed for the client to connect to Azure.
-         * @param [options] The parameter options
+         * Initializes a new instance of the WebPubSubServiceClientContext class.
+         * @param credentials Subscription credentials which uniquely identify client subscription.
+         * @param $host server parameter
+         * @param options The parameter options
          */
-        constructor(credentials, options) {
-            if (credentials == undefined) {
-                throw new Error('\'credentials\' cannot be null.');
+        constructor(credentials, $host, options) {
+            if (credentials === undefined) {
+                throw new Error("'credentials' cannot be null");
             }
+            if ($host === undefined) {
+                throw new Error("'$host' cannot be null");
+            }
+            // Initializing default values for options
             if (!options) {
                 options = {};
             }
             if (!options.userAgent) {
-                const defaultUserAgent = msRestAzure.getDefaultUserAgentValue();
+                const defaultUserAgent = coreHttp.getDefaultUserAgentValue();
                 options.userAgent = `${packageName}/${packageVersion} ${defaultUserAgent}`;
             }
             super(credentials, options);
-            this.acceptLanguage = 'en-US';
-            this.longRunningOperationRetryTimeout = 30;
-            this.baseUri = options.baseUri || this.baseUri || "http://localhost";
             this.requestContentType = "application/json; charset=utf-8";
-            this.credentials = credentials;
-            if (options.acceptLanguage !== null && options.acceptLanguage !== undefined) {
-                this.acceptLanguage = options.acceptLanguage;
-            }
-            if (options.longRunningOperationRetryTimeout !== null && options.longRunningOperationRetryTimeout !== undefined) {
-                this.longRunningOperationRetryTimeout = options.longRunningOperationRetryTimeout;
-            }
+            this.baseUri = options.endpoint || "{$host}";
+            // Parameter assignments
+            this.$host = $host;
+            // Assigning values to Constant parameters
+            this.apiVersion = options.apiVersion || "2020-10-01";
         }
     }
 
@@ -1222,182 +1312,10 @@
          * @param credentials Credentials needed for the client to connect to Azure.
          * @param [options] The parameter options
          */
-        constructor(credentials, options) {
-            super(credentials, options);
+        constructor(credentials, host, options) {
+            super(credentials, host, options);
             this.healthApi = new HealthApi(this);
-            this.webPubSubApi = new WebPubSubApi(this);
-        }
-    }
-
-    /*
-     AutoRest has issue generating code from :
-     "consumes": [
-              "application/octet-stream",
-              "text/plain"
-            ],
-            "parameters": [
-              {
-                "in": "body",
-                "name": "payloadMessage",
-                "required": true,
-                "schema": {
-                  "format": "binary",
-                  "type": "string"
-                }
-              }
-
-    */
-    /** Class representing a WebPubSubApi. */
-    class WebPubSubSendApi {
-        /**
-         * Create a WebPubSubApi.
-         * @param {WebPubSubServiceClientContext} client Reference to the service client.
-         */
-        constructor(client) {
-            this.client = client;
-        }
-        sendToAll(hub, payloadMessage, options, callback) {
-            return this.client.sendOperationRequest({
-                hub,
-                payloadMessage,
-                options
-            }, fulfillSpec(payloadMessage, broadcastOperationSpec), callback);
-        }
-        sendToUser(hub, id, payloadMessage, options, callback) {
-            return this.client.sendOperationRequest({
-                hub,
-                id,
-                payloadMessage,
-                options
-            }, fulfillSpec(payloadMessage, sendToUserOperationSpec$1), callback);
-        }
-        sendToConnection(hub, connectionId, payloadMessage, options, callback) {
-            return this.client.sendOperationRequest({
-                hub,
-                connectionId,
-                payloadMessage,
-                options
-            }, fulfillSpec(payloadMessage, sendToConnectionOperationSpec$1), callback);
-        }
-        sendToGroup(group, payloadMessage, options, callback) {
-            return this.client.sendOperationRequest({
-                group,
-                payloadMessage,
-                options
-            }, fulfillSpec(payloadMessage, groupBroadcastOperationSpec), callback);
-        }
-    }
-    // Operation Specifications
-    const serializer$2 = new msRest.Serializer(Mappers$1);
-    const broadcastOperationSpec = {
-        httpMethod: "POST",
-        path: "api/hubs/{hub}/:send",
-        urlParameters: [
-            hub
-        ],
-        queryParameters: [
-            excluded,
-            apiVersion
-        ],
-        headerParameters: [
-            acceptLanguage
-        ],
-        responses: {
-            202: {},
-            default: {
-                bodyMapper: CloudError
-            }
-        },
-        serializer: serializer$2
-    };
-    const sendToUserOperationSpec$1 = {
-        httpMethod: "POST",
-        path: "api/hubs/{hub}/users/{id}/:send",
-        urlParameters: [
-            hub,
-            id
-        ],
-        queryParameters: [
-            apiVersion
-        ],
-        headerParameters: [
-            acceptLanguage
-        ],
-        responses: {
-            202: {},
-            default: {
-                bodyMapper: CloudError
-            }
-        },
-        serializer: serializer$2
-    };
-    const sendToConnectionOperationSpec$1 = {
-        httpMethod: "POST",
-        path: "api/hubs/{hub}/connections/{connectionId}/:send",
-        urlParameters: [
-            hub,
-            connectionId
-        ],
-        queryParameters: [
-            apiVersion
-        ],
-        headerParameters: [
-            acceptLanguage
-        ],
-        responses: {
-            202: {},
-            default: {
-                bodyMapper: CloudError
-            }
-        },
-        serializer: serializer$2
-    };
-    const groupBroadcastOperationSpec = {
-        httpMethod: "POST",
-        path: "api/hubs/{hub}/groups/{group}/:send",
-        urlParameters: [
-            hub,
-            group0
-        ],
-        queryParameters: [
-            excluded,
-            apiVersion
-        ],
-        headerParameters: [
-            acceptLanguage
-        ],
-        responses: {
-            202: {},
-            default: {
-                bodyMapper: CloudError
-            }
-        },
-        serializer: serializer$2
-    };
-    function fulfillSpec(payloadMessage, baseSepc) {
-        if (typeof payloadMessage === "string") {
-            return Object.assign(Object.assign({}, baseSepc), { requestBody: {
-                    parameterPath: "payloadMessage",
-                    mapper: {
-                        required: true,
-                        serializedName: "payloadMessage",
-                        type: {
-                            name: "String"
-                        }
-                    }
-                }, contentType: "text/plain" });
-        }
-        else {
-            return Object.assign(Object.assign({}, baseSepc), { requestBody: {
-                    parameterPath: "payloadMessage",
-                    mapper: {
-                        required: true,
-                        serializedName: "payloadMessage",
-                        type: {
-                            name: "Stream"
-                        }
-                    }
-                }, contentType: "application/octet-stream" });
+            this.webPubSubApi = new WebPubSub(this);
         }
     }
 
@@ -1410,10 +1328,10 @@
          * @param {string} key The key.
          */
         constructor(key) {
+            this.key = key;
             if (!key) {
                 throw new Error("token cannot be null or undefined.");
             }
-            this.key = key;
         }
         /**
          * Signs a request with the Authentication header.
@@ -1424,7 +1342,7 @@
         signRequest(webResource) {
             var _a;
             if (!webResource.headers)
-                webResource.headers = new msRest.HttpHeaders();
+                webResource.headers = new coreHttp.HttpHeaders();
             var url = new URL((_a = webResource.url + webResource.query) !== null && _a !== void 0 ? _a : '');
             url.port = '';
             const audience = url.toString();
@@ -1435,6 +1353,73 @@
                     algorithm: "HS256"
                 }));
             return Promise.resolve(webResource);
+        }
+    }
+
+    // Copyright (c) Microsoft Corporation.
+    class WebPubSubServiceEndpoint {
+        /**
+         * Creates a new WebPubSubServiceEndpoint object.
+         *
+         * @constructor
+         * @param {string} conn The Connection String.
+         * @param {string} hub The Hub
+         */
+        constructor(conn) {
+            this.endpoint = this.getServiceEndpoint(conn);
+        }
+        clientNegotiate(hub, options) {
+            var _a;
+            var clientUrl = `${this.endpoint.websocketHost}client/hubs/${hub}`;
+            const audience = `${this.endpoint.audience}client/hubs/${hub}`;
+            var key = this.endpoint.key;
+            var payload = (_a = options === null || options === void 0 ? void 0 : options.claims) !== null && _a !== void 0 ? _a : {};
+            var signOptions = {
+                audience: audience,
+                expiresIn: "1h",
+                algorithm: "HS256",
+            };
+            if (options === null || options === void 0 ? void 0 : options.userId) {
+                signOptions.subject = options === null || options === void 0 ? void 0 : options.userId;
+            }
+            return {
+                url: clientUrl,
+                token: jwt.sign(payload, key, signOptions),
+            };
+        }
+        getServiceEndpoint(conn) {
+            var endpoint = this.parseConnectionString(conn);
+            if (!endpoint) {
+                throw new Error("Invalid connection string: " + conn);
+            }
+            return endpoint;
+        }
+        parseConnectionString(conn) {
+            const em = /Endpoint=(.*?)(;|$)/g.exec(conn);
+            if (!em)
+                return null;
+            const endpoint = em[1];
+            const km = /AccessKey=(.*?)(;|$)/g.exec(conn);
+            if (!km)
+                return null;
+            const key = km[1];
+            if (!endpoint || !key)
+                return null;
+            const pm = /Port=(.*?)(;|$)/g.exec(conn);
+            const port = pm == null ? '' : pm[1];
+            var url$1 = new url.URL(endpoint);
+            var originalProtocol = url$1.protocol;
+            url$1.protocol = originalProtocol === 'http:' ? 'ws:' : 'wss:';
+            const audience = url$1.toString();
+            url$1.port = port;
+            var websocketHost = url$1.toString();
+            url$1.protocol = originalProtocol;
+            return {
+                websocketHost: websocketHost,
+                serviceUrl: url$1,
+                audience: audience,
+                key: key,
+            };
         }
     }
 
@@ -1453,15 +1438,15 @@
          * @param message The message to log.
          */
         log(logLevel, message) {
-            const logMessage = `${msRest.HttpPipelineLogLevel[logLevel]}: ${message}`;
+            const logMessage = `${coreHttp.HttpPipelineLogLevel[logLevel]}: ${message}`;
             switch (logLevel) {
-                case msRest.HttpPipelineLogLevel.ERROR:
+                case coreHttp.HttpPipelineLogLevel.ERROR:
                     console.error(logMessage);
                     break;
-                case msRest.HttpPipelineLogLevel.WARNING:
+                case coreHttp.HttpPipelineLogLevel.WARNING:
                     console.warn(logMessage);
                     break;
-                case msRest.HttpPipelineLogLevel.INFO:
+                case coreHttp.HttpPipelineLogLevel.INFO:
                     console.log(logMessage);
                     break;
             }
@@ -1485,15 +1470,46 @@
             this.hub = hub;
             this.serviceUrl = this._endpoint.endpoint.serviceUrl;
             this.credential = new WebPubSubKeyCredentials(this._endpoint.endpoint.key);
-            this.client = new WebPubSubServiceClient(this.credential, {
+            this.client = new WebPubSubServiceClient(this.credential, this._endpoint.endpoint.serviceUrl.href, {
                 //httpPipelineLogger: options?.dumpRequest ? new ConsoleHttpPipelineLogger(HttpPipelineLogLevel.INFO) : undefined,
-                baseUri: this._endpoint.endpoint.serviceUrl.href,
                 requestPolicyFactories: (options === null || options === void 0 ? void 0 : options.dumpRequest) ? this.getFactoryWithLogPolicy : undefined,
             });
-            this.sender = new WebPubSubSendApi(this.client);
+            this.sender = new WebPubSub(this.client);
+            this._servicePath = this.serviceUrl.toString();
+        }
+        /**
+         * Auth the client connection with userId and custom claims if any
+         * @param options The options that the client has
+         */
+        getAuthenticationToken(options) {
+            var _a;
+            return __awaiter(this, void 0, void 0, function* () {
+                const endpoint = this._servicePath.endsWith("/") ? this._servicePath : this._servicePath + "/";
+                const key = this.credential.key;
+                const hub = this.hub;
+                var clientEndpoint = endpoint.replace(/(http)(s?:\/\/)/gi, "ws$2");
+                var clientUrl = `${clientEndpoint}client/hubs/${hub}`;
+                const audience = `${endpoint}client/hubs/${hub}`;
+                var payload = (_a = options === null || options === void 0 ? void 0 : options.claims) !== null && _a !== void 0 ? _a : {};
+                var signOptions = {
+                    audience: audience,
+                    expiresIn: "1h",
+                    algorithm: "HS256"
+                };
+                if (options === null || options === void 0 ? void 0 : options.userId) {
+                    signOptions.subject = options === null || options === void 0 ? void 0 : options.userId;
+                }
+                const token = jwt.sign(payload, key, signOptions);
+                const url = `${clientUrl}?access_token=${token}`;
+                return {
+                    baseUrl: clientUrl,
+                    token: jwt.sign(payload, key, signOptions),
+                    url: url
+                };
+            });
         }
         getFactoryWithLogPolicy(defaultRequestPolicyFactories) {
-            defaultRequestPolicyFactories.push(msRest.logPolicy());
+            defaultRequestPolicyFactories.push(coreHttp.logPolicy());
         }
         /**
          * Check if the service is healthy
@@ -1503,9 +1519,7 @@
         serviceIsHealthy(options = {}) {
             return __awaiter(this, void 0, void 0, function* () {
                 try {
-                    yield this.client.healthApi.getHealthStatus({
-                        apiVersion: options.apiVersion
-                    });
+                    yield this.client.healthApi.getHealthStatus({});
                     return true;
                 }
                 catch (_a) {
@@ -1518,9 +1532,7 @@
         sendToAll(message, options = {}) {
             return __awaiter(this, void 0, void 0, function* () {
                 try {
-                    var res = yield this.sender.sendToAll(this.hub, message, {
-                        apiVersion: options.apiVersion,
-                        hub: this.hub,
+                    var res = yield this.sender.sendToAll(this.hub, "application/octet-stream", message, {
                         excluded: options.excludedConnections
                     });
                     return this.verifyResponse(res, 202);
@@ -1532,10 +1544,7 @@
         sendToUser(username, message, options = {}) {
             return __awaiter(this, void 0, void 0, function* () {
                 try {
-                    var res = yield this.sender.sendToUser(this.hub, username, message, {
-                        apiVersion: options.apiVersion,
-                        hub: this.hub
-                    });
+                    var res = yield this.sender.sendToUser(this.hub, username, "application/octet-stream", message, {});
                     return this.verifyResponse(res, 202);
                 }
                 finally {
@@ -1545,10 +1554,7 @@
         sendToConnection(connectionId, message, options = {}) {
             return __awaiter(this, void 0, void 0, function* () {
                 try {
-                    var res = yield this.sender.sendToConnection(this.hub, connectionId, message, {
-                        apiVersion: options.apiVersion,
-                        hub: this.hub
-                    });
+                    var res = yield this.sender.sendToConnection(this.hub, connectionId, "application/octet-stream", message, {});
                     return this.verifyResponse(res, 202);
                 }
                 finally {
@@ -1564,9 +1570,7 @@
         hasConnection(connectionId, options = {}) {
             return __awaiter(this, void 0, void 0, function* () {
                 try {
-                    const res = yield this.client.webPubSubApi.checkConnectionExistence(this.hub, connectionId, {
-                        apiVersion: options.apiVersion,
-                    });
+                    const res = yield this.client.webPubSubApi.checkConnectionExistence(this.hub, connectionId, {});
                     return this.verifyResponse(res, 200, 404);
                 }
                 finally {
@@ -1583,8 +1587,6 @@
             return __awaiter(this, void 0, void 0, function* () {
                 try {
                     var res = yield this.client.webPubSubApi.closeClientConnection(this.hub, connectionId, {
-                        apiVersion: options.apiVersion,
-                        hub: this.hub,
                         reason: options.reason
                     });
                     return this.verifyResponse(res, 200);
@@ -1601,10 +1603,7 @@
         removeUserFromAllGroups(userId, options = {}) {
             return __awaiter(this, void 0, void 0, function* () {
                 try {
-                    var res = yield this.client.webPubSubApi.removeUserFromAllGroups(this.hub, userId, {
-                        apiVersion: options.apiVersion,
-                        hub: this.hub,
-                    });
+                    var res = yield this.client.webPubSubApi.removeUserFromAllGroups(this.hub, userId, {});
                     return this.verifyResponse(res, 202);
                 }
                 finally {
@@ -1620,10 +1619,7 @@
         hasGroup(groupName, options = {}) {
             return __awaiter(this, void 0, void 0, function* () {
                 try {
-                    const res = yield this.client.webPubSubApi.checkGroupExistence(this.hub, groupName, {
-                        apiVersion: options.apiVersion,
-                        hub: this.hub,
-                    });
+                    const res = yield this.client.webPubSubApi.checkGroupExistence(this.hub, groupName, {});
                     return this.verifyResponse(res, 200, 404);
                 }
                 finally {
@@ -1639,10 +1635,7 @@
         hasUser(username, options = {}) {
             return __awaiter(this, void 0, void 0, function* () {
                 try {
-                    const res = yield this.client.webPubSubApi.checkUserExistence(this.hub, username, {
-                        apiVersion: options.apiVersion,
-                        hub: this.hub,
-                    });
+                    const res = yield this.client.webPubSubApi.checkUserExistence(this.hub, username, {});
                     return this.verifyResponse(res, 200, 404);
                 }
                 finally {
@@ -1658,10 +1651,7 @@
         addConnectionToGroup(groupName, connectionId, options = {}) {
             return __awaiter(this, void 0, void 0, function* () {
                 try {
-                    const res = yield this.client.webPubSubApi.addConnectionToGroup(this.hub, groupName, connectionId, {
-                        apiVersion: options.apiVersion,
-                        hub: this.hub
-                    });
+                    const res = yield this.client.webPubSubApi.addConnectionToGroup(this.hub, groupName, connectionId, {});
                     return this.verifyResponse(res, 202);
                 }
                 finally {
@@ -1677,10 +1667,7 @@
         removeConnectionFromGroup(groupName, connectionId, options = {}) {
             return __awaiter(this, void 0, void 0, function* () {
                 try {
-                    const res = yield this.client.webPubSubApi.removeConnectionFromGroup(this.hub, groupName, connectionId, {
-                        apiVersion: options.apiVersion,
-                        hub: this.hub
-                    });
+                    const res = yield this.client.webPubSubApi.removeConnectionFromGroup(this.hub, groupName, connectionId, {});
                     return this.verifyResponse(res, 202);
                 }
                 finally {
@@ -1696,10 +1683,7 @@
         addUserToGroup(groupName, username, options = {}) {
             return __awaiter(this, void 0, void 0, function* () {
                 try {
-                    var res = yield this.client.webPubSubApi.addUserToGroup(this.hub, groupName, username, {
-                        apiVersion: options.apiVersion,
-                        hub: this.hub
-                    });
+                    var res = yield this.client.webPubSubApi.addUserToGroup(this.hub, groupName, username, {});
                     return this.verifyResponse(res, 202);
                 }
                 finally {
@@ -1716,10 +1700,7 @@
         hasUserInGroup(groupName, username, options = {}) {
             return __awaiter(this, void 0, void 0, function* () {
                 try {
-                    const res = yield this.client.webPubSubApi.checkUserExistenceInGroup(this.hub, groupName, username, {
-                        apiVersion: options.apiVersion,
-                        hub: this.hub
-                    });
+                    const res = yield this.client.webPubSubApi.checkUserExistenceInGroup(this.hub, groupName, username, {});
                     return this.verifyResponse(res, 200, 404);
                 }
                 finally {
@@ -1736,10 +1717,7 @@
         removeUserFromGroup(groupName, username, options = {}) {
             return __awaiter(this, void 0, void 0, function* () {
                 try {
-                    var res = yield this.client.webPubSubApi.removeUserFromGroup(this.hub, groupName, username, {
-                        apiVersion: options.apiVersion,
-                        hub: this.hub
-                    });
+                    var res = yield this.client.webPubSubApi.removeUserFromGroup(this.hub, groupName, username, {});
                     // FOR now it is still 202, we are changing the service to support 200 soon
                     return this.verifyResponse(res, 200, 404);
                 }
@@ -1750,9 +1728,7 @@
         publish(groupName, message, options = {}) {
             return __awaiter(this, void 0, void 0, function* () {
                 try {
-                    var res = yield this.sender.sendToGroup(groupName, message, {
-                        apiVersion: options.apiVersion,
-                        hub: this.hub,
+                    var res = yield this.sender.sendToGroup(this.hub, groupName, "application/octet-stream", message, {
                         excluded: options.excludedConnections
                     });
                     return this.verifyResponse(res, 200);
@@ -1770,101 +1746,13 @@
             }
             else {
                 // this is sad - wish this was handled by autorest.
-                throw new msRest.RestError(res._response.bodyAsText, undefined, res._response.status, res._response.request, res._response);
+                throw new coreHttp.RestError(res._response.bodyAsText, undefined, res._response.status, res._response.request, res._response);
             }
-        }
-    }
-
-    // Copyright (c) Microsoft Corporation.
-    class WebPubSubServer {
-        constructor(conn, hub) {
-            this.hub = hub;
-            this.endpoint = new WebPubSubServiceEndpoint(conn);
-        }
-        createCloudEventsHandler(options) {
-            return new WebPubSubCloudEventsHandler(this.endpoint, this.hub, options);
-        }
-        createServiceClient(options) {
-            return new WebPubSubServiceRestClient(this.endpoint, this.hub, options);
-        }
-    }
-    class WebPubSubCloudEventsHandler {
-        constructor(connectionStringOrEndpoint, hub, options) {
-            var _a;
-            this.hub = hub;
-            if (typeof connectionStringOrEndpoint === 'string') {
-                this._endpoint = new WebPubSubServiceEndpoint(connectionStringOrEndpoint);
-            }
-            else {
-                this._endpoint = connectionStringOrEndpoint;
-            }
-            this.path = ((_a = options === null || options === void 0 ? void 0 : options.path) !== null && _a !== void 0 ? _a : `/api/webpubsub/hubs/${hub}`).toLowerCase();
-            this.hub = hub;
-            this._serviceHost = this._endpoint.endpoint.serviceUrl.hostname;
-            this._cloudEventsHandler = new ProtocolParser(this.hub, options, options === null || options === void 0 ? void 0 : options.dumpRequest);
-        }
-        handleRequest(request, response) {
-            var _a;
-            return __awaiter(this, void 0, void 0, function* () {
-                var normalizedUrl = (_a = request.url) === null || _a === void 0 ? void 0 : _a.toLowerCase();
-                if (!normalizedUrl) {
-                    throw new Error("invalid url");
-                }
-                if (!(normalizedUrl === this.path || normalizedUrl.startsWith(this.path))) {
-                    return false;
-                }
-                if (this.tryHandleAbuseProtectionRequests(request, response, normalizedUrl)) {
-                    return true;
-                }
-                return yield this.tryHandleCloudEvents(request, response, normalizedUrl);
-            });
-        }
-        getMiddleware() {
-            const router = express.Router();
-            router.use(this.path, (request, response) => __awaiter(this, void 0, void 0, function* () {
-                var normalizedUrl = (this.path + request.url).toLowerCase();
-                if (this.tryHandleAbuseProtectionRequests(request, response, normalizedUrl)) {
-                    return true;
-                }
-                yield this.tryHandleCloudEvents(request, response, normalizedUrl);
-            }));
-            return router;
-        }
-        tryHandleAbuseProtectionRequests(request, response, url) {
-            if (url !== this.path || request.method !== 'OPTIONS') {
-                return false;
-            }
-            if (request.headers['webhook-request-origin'] === this._serviceHost) {
-                response.setHeader("WebHook-Allowed-Origin", this._serviceHost);
-            }
-            else {
-                console.log(`Invalid abuse protection request ${request}`);
-                response.statusCode = 400;
-            }
-            response.end();
-            return true;
-        }
-        tryHandleCloudEvents(request, response, url) {
-            return __awaiter(this, void 0, void 0, function* () {
-                if (url !== this.path) {
-                    console.warn(`Url ${url} does not match ${this.path}`);
-                    return false;
-                }
-                if (request.method !== 'POST') {
-                    response.statusCode = 400;
-                    response.end();
-                    return true;
-                }
-                yield this._cloudEventsHandler.processNodeHttpRequest(request, response);
-                return true;
-            });
         }
     }
 
     exports.ConsoleHttpPipelineLogger = ConsoleHttpPipelineLogger;
     exports.WebPubSubCloudEventsHandler = WebPubSubCloudEventsHandler;
-    exports.WebPubSubServer = WebPubSubServer;
-    exports.WebPubSubServiceEndpoint = WebPubSubServiceEndpoint;
     exports.WebPubSubServiceRestClient = WebPubSubServiceRestClient;
 
     Object.defineProperty(exports, '__esModule', { value: true });

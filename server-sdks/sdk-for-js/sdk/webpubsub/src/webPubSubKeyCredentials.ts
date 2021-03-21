@@ -1,23 +1,20 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT license.
 
-import { HttpHeaders, WebResourceLike, ServiceClientCredentials } from "@azure/ms-rest-js";
 import jwt from "jsonwebtoken";
+import * as coreHttp from "@azure/core-http";
 
-export class WebPubSubKeyCredentials implements ServiceClientCredentials {
-  key: string;
-  
+export class WebPubSubKeyCredentials implements coreHttp.ServiceClientCredentials {
   /**
    * Creates a new TokenCredentials object.
    *
    * @constructor
    * @param {string} key The key.
    */
-  constructor(key: string) {
+  constructor(public key: string) {
     if (!key) {
       throw new Error("token cannot be null or undefined.");
     }
-    this.key = key;
   }
 
   /**
@@ -26,8 +23,8 @@ export class WebPubSubKeyCredentials implements ServiceClientCredentials {
    * @param {WebResourceLike} webResource The WebResourceLike to be signed.
    * @return {Promise<WebResourceLike>} The signed request object.
    */
-  signRequest(webResource: WebResourceLike) {
-    if (!webResource.headers) webResource.headers = new HttpHeaders();
+  signRequest(webResource: coreHttp.WebResourceLike) {
+    if (!webResource.headers) webResource.headers = new coreHttp.HttpHeaders();
     var url = new URL(webResource.url + webResource.query ?? '');
     url.port = '';
     const audience = url.toString();

@@ -3,90 +3,37 @@
 
 import { CloudEvent, Message, HTTP } from "cloudevents";
 import { IncomingMessage, ServerResponse } from "http";
-import { decode } from 'typescript-base64-arraybuffer';
+import { decode } from "typescript-base64-arraybuffer";
+import {
+  ConnectRequest,
+  ConnectResponse,
+  UserEventRequest,
+  UserEventResponse,
+  DisconnectedRequest,
+  ConnectedRequest,
+  ConnectionContext,
+  ErrorCode,
+  PayloadDataType
+} from "./webPubSubCloudEventsProtocols";
 
-
-export interface ErrorResponse {
-  code: ErrorCode;
-  detail?: string;
-}
-
-export enum ErrorCode {
-  serverError, // Response to service using 500
-  userError, // Response to service using 400
-  unauthorized, // Response to service using 401
-}
-
-export interface ConnectResponse {
-  error?: ErrorResponse; // If error is set, we consider this a failed response
-  groups?: string[];
-  roles?: string[];
-  userId?: string;
-  subprotocol?: string;
-}
-
-export interface UserEventResponse {
-  error?: ErrorResponse, // If error is set, we consider this a failed response
-  payload?: PayloadData;
-}
-
-export interface ConnectionContext {
-  hub: string;
-  connectionId: string;
-  eventName: string;
-  userId?: string;
-}
-
-export interface ConnectRequest {
-  context: ConnectionContext,
-  claims?: { [key: string]: string[] };
-  queries?: { [key: string]: string[] };
-  subprotocols?: string[];
-  clientCertificates?: Certificate[];
-}
-
-export interface Certificate {
-  thumbprint: string;
-}
-
-export interface ConnectedRequest {
-  context: ConnectionContext,
-}
-
-export interface UserEventRequest {
-  context: ConnectionContext,
-  eventName: string;
-  payload: PayloadData;
-}
-
-export interface PayloadData {
-  data: string | ArrayBuffer;
-  dataType: PayloadDataType;
-}
-
-enum PayloadDataType {
-  binary,
-  text,
-  json,
-}
-
-export interface DisconnectedRequest {
-  context: ConnectionContext,
-  reason?: string;
-}
-
+/**
+ * Options to define the event handlers for each event
+ */
 export interface WebPubSubEventHandler {
-  onConnect?: (r: ConnectRequest) => Promise<ConnectResponse>
-  onUserEvent?: (r: UserEventRequest) => Promise<UserEventResponse>
+  onConnect?: (r: ConnectRequest) => Promise<ConnectResponse>;
+  onUserEvent?: (r: UserEventRequest) => Promise<UserEventResponse>;
   onConnected?: (r: ConnectedRequest) => Promise<void>;
   onDisconnected?: (r: DisconnectedRequest) => Promise<void>;
 }
 
-export class ProtocolParser {
-  constructor(private hub: string, private eventHandler?: WebPubSubEventHandler, private dumpRequest?: boolean) {
-  }
+export class CloudEventsDispatcher {
+  constructor(
+    private hub: string,
+    private eventHandler?: WebPubSubEventHandler,
+    private dumpRequest?: boolean
+  ) {}
 
-  public async processNodeHttpRequest(request: IncomingMessage, response: ServerResponse): Promise<void> {
+  public async processRequest(request: IncomingMessage, response: ServerResponse): Promise<void> {
     if (!this.eventHandler) {
       response.end();
       return;
@@ -105,27 +52,25 @@ export class ProtocolParser {
             response.statusCode = 400;
             break;
           case ErrorCode.unauthorized:
-            response.statusCode = 402;
+            response.statusCode = 401;
             break;
           default:
             response.statusCode = 500;
             break;
         }
-        response.end(eventResponse.error.detail ?? '');
+        response.end(eventResponse.error.detail ?? "");
         return;
       }
 
       if (eventResponse?.payload) {
         if (eventResponse.payload.dataType === PayloadDataType.binary) {
           response.setHeader("Content-Type", "application/octet-stream");
-
         } else if (eventResponse.payload.dataType === PayloadDataType.json) {
           response.setHeader("Content-Type", "application/json");
-
         } else {
           response.setHeader("Content-Type", "text/plain; charset=utf-8");
         }
-        response.end(eventResponse.payload?.data ?? '');
+        response.end(eventResponse.payload?.data ?? "");
       }
     } catch (err) {
       console.error(`Error processing request ${request}: ${err}`);
@@ -142,17 +87,24 @@ export class ProtocolParser {
     }
 
     var type = receivedEvent.type.toLowerCase();
-    var context = this.GetContext(receivedEvent);
+    var context = this.GetContext(receivedEvent, request.headers.host!);
     if (context.hub !== this.hub) {
       // it is possible when multiple hubs share the same handler
-      console.info(`Incoming request is for hub '${this.hub}' while the incoming request is for hub '${context.hub}'`);
+      console.info(
+        `Incoming request is for hub '${this.hub}' while the incoming request is for hub '${context.hub}'`
+      );
       return;
     }
 
     // TODO: valid request is a valid cloud event with WebPubSub extension
     if (type === "azure.webpubsub.sys.connect") {
-      if (!this.eventHandler?.onConnect){
-        return;
+      if (!this.eventHandler?.onConnect) {
+        // 401 if onConnect is not configured
+        return {
+          error: {
+            code: ErrorCode.unauthorized
+          }
+        };
       }
       var connectRequest = receivedEvent.data as ConnectRequest;
       if (!connectRequest) {
@@ -169,10 +121,16 @@ export class ProtocolParser {
           }
         };
       } else {
-        return;
+        // what is the differnce between not configure and not return? there is no such definition in C#..
+        // 401 if onConnect is not configured
+        return {
+          error: {
+            code: ErrorCode.unauthorized
+          }
+        };
       }
     } else if (type === "azure.webpubsub.sys.connected") {
-      if (!this.eventHandler?.onConnected){
+      if (!this.eventHandler?.onConnected) {
         return;
       }
 
@@ -184,7 +142,7 @@ export class ProtocolParser {
       connectedRequest.context = context;
       this.eventHandler.onConnected(connectedRequest);
     } else if (type === "azure.webpubsub.sys.disconnected") {
-      if (!this.eventHandler?.onDisconnected){
+      if (!this.eventHandler?.onDisconnected) {
         return;
       }
 
@@ -196,21 +154,23 @@ export class ProtocolParser {
       disconnectedRequest.context = context;
       this.eventHandler.onDisconnected(disconnectedRequest);
     } else if (type.startsWith("azure.webpubsub.user")) {
-      if (!this.eventHandler?.onUserEvent){
+      if (!this.eventHandler?.onUserEvent) {
         return;
       }
       var data: ArrayBuffer | string;
       var dataType = PayloadDataType.binary;
       if (receivedEvent.data) {
         data = receivedEvent.data as string;
-        dataType = receivedEvent.datacontenttype === 'application/json' ? PayloadDataType.json : PayloadDataType.text;
+        dataType =
+          receivedEvent.datacontenttype === "application/json"
+            ? PayloadDataType.json
+            : PayloadDataType.text;
       } else if (receivedEvent.data_base64) {
         data = decode(receivedEvent.data_base64);
       } else {
         throw new Error("empty data payload");
       }
       var userRequest: UserEventRequest = {
-        eventName: context.eventName,
         context: context,
         payload: {
           data: data,
@@ -224,20 +184,21 @@ export class ProtocolParser {
 
       userRequest.context = context;
       return await this.eventHandler.onUserEvent(userRequest);
-    }
-    else {
+    } else {
       throw new Error("Not supported event: " + type);
     }
+    return;
   }
 
-  private GetContext(ce: CloudEvent): ConnectionContext {
+  private GetContext(ce: CloudEvent, host: string): ConnectionContext {
     var context = {
       signature: ce["signature"] as string,
       userId: ce["userid"] as string,
       hub: ce["hub"] as string,
       connectionId: ce["connectionid"] as string,
-      eventName: ce["eventname"] as string
-    }
+      eventName: ce["eventname"] as string,
+      host: host
+    };
 
     // TODO: validation
     return context;
@@ -246,7 +207,7 @@ export class ProtocolParser {
   private async convertHttpToEvent(request: IncomingMessage): Promise<Message> {
     const normalized: Message = {
       headers: {},
-      body: ''
+      body: ""
     };
     if (request.headers) {
       for (const key in request.headers) {
@@ -255,10 +216,10 @@ export class ProtocolParser {
           if (element === undefined) {
             continue;
           }
-          if (typeof element === 'string') {
+          if (typeof element === "string") {
             normalized.headers[key] = element;
           } else {
-            normalized.headers[key] = element.join(',');
+            normalized.headers[key] = element.join(",");
           }
         }
       }
@@ -269,16 +230,16 @@ export class ProtocolParser {
   }
 
   private readRequestBody(req: IncomingMessage): Promise<string> {
-    return new Promise(function (resolve, reject) {
+    return new Promise(function(resolve, reject) {
       var body = "";
-      req.on('data', function (chunk) {
+      req.on("data", function(chunk) {
         body += chunk;
       });
-      req.on('end', function () {
+      req.on("end", function() {
         resolve(body);
       });
       // reject on request error
-      req.on('error', function (err) {
+      req.on("error", function(err) {
         // This is not a "Second reject", just a different sort of failure
         reject(err);
       });

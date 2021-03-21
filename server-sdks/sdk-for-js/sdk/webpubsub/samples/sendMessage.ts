@@ -1,21 +1,23 @@
-import { WebPubSubServer } from "../src/webPubSubServer";
+import { WebPubSubServiceRestClient } from "../src";
 import * as dotenv from "dotenv";
 dotenv.config();
 
-const server = new WebPubSubServer(process.env.WPS_CONNECTION_STRING!, 'chat');
+const client = new WebPubSubServiceRestClient(process.env.WPS_CONNECTION_STRING!, 'chat');
 
 
-const endpoint = server.endpoint;
-console.log(endpoint.clientNegotiate('chat'));
-
-const chatServer = server.createServiceClient();
 async function main() {
-  try{
-
-  // send a text message directly to a user
-  await chatServer.sendToAll("c bterlson Hi there!");
-
-  }catch (err){
+  console.log(await client.getAuthenticationToken({
+    userId: "vicancy",
+    claims: {
+      hey: ["w"],
+      role: ["webpubsub.joinLeaveGroup"],
+   }
+  }));
+  try {
+    // send a text message directly to a user
+    await client.sendToAll("c bterlson Hi there!");
+    await client.sendToUser("a", "b");
+  } catch (err) {
     console.error(err);
   }
   // // send a text message to a specific connection
