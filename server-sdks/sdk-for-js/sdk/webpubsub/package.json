@@ -24,8 +24,8 @@
   ],
   "license": "MIT",
   "main": "./dist/webpubsub.js",
-  "module": "./esm/webPubSubServiceRestClient.js",
-  "types": "./esm/webPubSubServiceRestClient.d.ts",
+  "module": "./esm/index.js",
+  "types": "./esm/index.d.ts",
   "devDependencies": {
     "@types/express": "^4.17.11",
     "@types/jsonwebtoken": "^8.5.0",

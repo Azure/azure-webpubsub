@@ -75,7 +75,7 @@ export interface HubBroadcastOptions extends OperationOptions {
   excludedConnections?: string[];
 }
 
-export interface WebPubSubServiceRestClientOptions {
+export interface WebPubSubServiceClientOptions {
   dumpRequest?: boolean;
 }
 
@@ -135,7 +135,7 @@ export class WebPubSubServiceClient {
 
   private _endpoint: string;
 
-  constructor(conn: string, hub: string, options?: WebPubSubServiceRestClientOptions) {
+  constructor(conn: string, hub: string, options?: WebPubSubServiceClientOptions) {
     const parsedCs = parseConnectionString(conn);
     this._endpoint = parsedCs.endpoint;
     this.credential = parsedCs.credential;
