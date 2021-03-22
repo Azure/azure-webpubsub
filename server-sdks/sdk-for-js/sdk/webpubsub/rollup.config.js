@@ -11,6 +11,7 @@ const config = {
   ],
   external: [
     "@azure/ms-rest-js",
+    "@azure/core-http",
     "jsonwebtoken",
     "@azure/ms-rest-azure-js",
     "cloudevents",

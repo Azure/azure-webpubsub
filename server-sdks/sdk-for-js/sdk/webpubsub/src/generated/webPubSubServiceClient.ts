@@ -10,21 +10,22 @@ import * as Mappers from "./models/mappers";
 import * as operations from "./operations";
 import { WebPubSubServiceClientContext } from "./webPubSubServiceClientContext";
 
+import * as coreHttp from "@azure/core-http";
 
 class WebPubSubServiceClient extends WebPubSubServiceClientContext {
   // Operation groups
   healthApi: operations.HealthApi;
-  webPubSubApi: operations.WebPubSubApi;
+  webPubSubApi: operations.WebPubSub;
 
   /**
    * Initializes a new instance of the WebPubSubServiceClient class.
    * @param credentials Credentials needed for the client to connect to Azure.
    * @param [options] The parameter options
    */
-  constructor(credentials: msRest.ServiceClientCredentials, options?: Models.WebPubSubServiceClientOptions) {
-    super(credentials, options);
+  constructor(credentials: coreHttp.ServiceClientCredentials, host: string, options?: Models.WebPubSubServiceClientOptionalParams) {
+    super(credentials, host, options);
     this.healthApi = new operations.HealthApi(this);
-    this.webPubSubApi = new operations.WebPubSubApi(this);
+    this.webPubSubApi = new operations.WebPubSub(this);
   }
 }
 

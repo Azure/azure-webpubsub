@@ -29,7 +29,7 @@
   "devDependencies": {
     "@types/express": "^4.17.11",
     "@types/jsonwebtoken": "^8.5.0",
-    "@types/node": "^14.14.25",
+    "@types/node": "^14.14.35",
     "dotenv": "^8.2.0",
     "rollup": "^1.18.0",
     "rollup-plugin-node-resolve": "^5.2.0",

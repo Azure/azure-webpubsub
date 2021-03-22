@@ -14,7 +14,6 @@ async function main() {
 
   // Prints "Hello!" twice, once for each client.
    clients[0].send('Hello!');
-   clients[0].send('abort');
 }
 
 main();

@@ -2,7 +2,7 @@ import { WebPubSubServiceRestClient } from "../src/index";
 
 import * as dotenv from "dotenv";
 dotenv.config();
-const chatServer = new WebPubSubServiceRestClient('Endpoint=https://wanl-wps-3.webpubsubdev.azure.com;AccessKey=sLUSBawb8QY74ZTId9YdkUndCWCaVkoo9sLTk7YaEG0=;Version=1.0;', 'chat');
+const chatServer = new WebPubSubServiceRestClient('', 'chat');
 
 async function main() {
   // adding and removing users

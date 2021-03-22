@@ -36,8 +36,8 @@
         "tags": [
           "webpubsub"
         ],
-        "summary": "Broadcast content inside request body to all the connected client connections",
-        "operationId": "WebPubSubApi_SendToAll",
+        "summary": "Broadcast content inside request body to all the connected client connections.",
+        "operationId": "WebPubSub_SendToAll",
         "consumes": [
           "application/octet-stream",
           "text/plain",
@@ -54,7 +54,7 @@
           {
             "in": "query",
             "name": "excluded",
-            "description": "Excluded connection Ids",
+            "description": "Excluded connection Ids.",
             "type": "array",
             "items": {
               "type": "string"
@@ -70,6 +70,7 @@
           {
             "in": "body",
             "name": "payloadMessage",
+            "description": "The payload body.",
             "required": true,
             "schema": {
               "format": "binary",
@@ -93,8 +94,8 @@
         "tags": [
           "webpubsub"
         ],
-        "summary": "Check if the connection with the given connectionId exists",
-        "operationId": "WebPubSubApi_CheckConnectionExistence",
+        "summary": "Check if the connection with the given connectionId exists.",
+        "operationId": "WebPubSub_CheckConnectionExistence",
         "parameters": [
           {
             "in": "path",
@@ -134,8 +135,8 @@
         "tags": [
           "webpubsub"
         ],
-        "summary": "Close the client connection",
-        "operationId": "WebPubSubApi_CloseClientConnection",
+        "summary": "Close the client connection.",
+        "operationId": "WebPubSub_CloseClientConnection",
         "parameters": [
           {
             "in": "path",
@@ -147,14 +148,14 @@
           {
             "in": "path",
             "name": "connectionId",
-            "description": "Target connection Id",
+            "description": "Target connection Id.",
             "required": true,
             "type": "string"
           },
           {
             "in": "query",
             "name": "reason",
-            "description": "The reason closing the client connection",
+            "description": "The reason closing the client connection.",
             "type": "string"
           },
           {
@@ -181,7 +182,7 @@
           "webpubsub"
         ],
         "summary": "Send content inside request body to the specific connection.",
-        "operationId": "WebPubSubApi_SendToConnection",
+        "operationId": "WebPubSub_SendToConnection",
         "consumes": [
           "application/octet-stream",
           "text/plain",
@@ -211,6 +212,7 @@
           {
             "in": "body",
             "name": "payloadMessage",
+            "description": "The payload body.",
             "required": true,
             "schema": {
               "format": "binary",
@@ -235,7 +237,7 @@
           "webpubsub"
         ],
         "summary": "Check if there are any client connections inside the given group",
-        "operationId": "WebPubSubApi_CheckGroupExistence",
+        "operationId": "WebPubSub_CheckGroupExistence",
         "parameters": [
           {
             "in": "path",
@@ -278,7 +280,7 @@
           "webpubsub"
         ],
         "summary": "Send content inside request body to a group of connections.",
-        "operationId": "WebPubSubApi_SendToGroup",
+        "operationId": "WebPubSub_SendToGroup",
         "consumes": [
           "application/octet-stream",
           "text/plain",
@@ -318,6 +320,7 @@
           {
             "in": "body",
             "name": "payloadMessage",
+            "description": "The payload body.",
             "required": true,
             "schema": {
               "format": "binary",
@@ -342,7 +345,7 @@
           "webpubsub"
         ],
         "summary": "Add a connection to the target group.",
-        "operationId": "WebPubSubApi_AddConnectionToGroup",
+        "operationId": "WebPubSub_AddConnectionToGroup",
         "parameters": [
           {
             "in": "path",
@@ -390,7 +393,7 @@
           "webpubsub"
         ],
         "summary": "Remove a connection from the target group.",
-        "operationId": "WebPubSubApi_RemoveConnectionFromGroup",
+        "operationId": "WebPubSub_RemoveConnectionFromGroup",
         "parameters": [
           {
             "in": "path",
@@ -409,7 +412,7 @@
           {
             "in": "path",
             "name": "connectionId",
-            "description": "Target connection Id",
+            "description": "Target connection Id.",
             "required": true,
             "type": "string"
           },
@@ -434,13 +437,13 @@
         }
       }
     },
-    "/api/hubs/{hub}/users/{user}": {
+    "/api/hubs/{hub}/users/{userId}": {
       "head": {
         "tags": [
           "webpubsub"
         ],
-        "summary": "Check if there are any client connections connected for the given user",
-        "operationId": "WebPubSubApi_CheckUserExistence",
+        "summary": "Check if there are any client connections connected for the given user.",
+        "operationId": "WebPubSub_CheckUserExistence",
         "parameters": [
           {
             "in": "path",
@@ -451,8 +454,8 @@
           },
           {
             "in": "path",
-            "name": "user",
-            "description": "Target user Id",
+            "name": "userId",
+            "description": "Target user Id.",
             "required": true,
             "type": "string"
           },
@@ -477,13 +480,13 @@
         }
       }
     },
-    "/api/hubs/{hub}/users/{id}/:send": {
+    "/api/hubs/{hub}/users/{userId}/:send": {
       "post": {
         "tags": [
           "webpubsub"
         ],
         "summary": "Send content inside request body to the specific user.",
-        "operationId": "WebPubSubApi_SendToUser",
+        "operationId": "WebPubSub_SendToUser",
         "consumes": [
           "application/octet-stream",
           "text/plain",
@@ -499,7 +502,7 @@
           },
           {
             "in": "path",
-            "name": "id",
+            "name": "userId",
             "description": "The user Id.",
             "required": true,
             "type": "string"
@@ -513,6 +516,7 @@
           {
             "in": "body",
             "name": "payloadMessage",
+            "description": "The payload body.",
             "required": true,
             "schema": {
               "format": "binary",
@@ -531,13 +535,13 @@
         }
       }
     },
-    "/api/hubs/{hub}/users/{user}/groups/{group}": {
+    "/api/hubs/{hub}/users/{userId}/groups/{group}": {
       "head": {
         "tags": [
           "webpubsub"
         ],
         "summary": "Check whether a user exists in the target group.",
-        "operationId": "WebPubSubApi_CheckUserExistenceInGroup",
+        "operationId": "WebPubSub_CheckUserExistenceInGroup",
         "parameters": [
           {
             "in": "path",
@@ -555,8 +559,8 @@
           },
           {
             "in": "path",
-            "name": "user",
-            "description": "Target user Id",
+            "name": "userId",
+            "description": "Target user Id.",
             "required": true,
             "type": "string"
           },
@@ -585,7 +589,7 @@
           "webpubsub"
         ],
         "summary": "Add a user to the target group.",
-        "operationId": "WebPubSubApi_AddUserToGroup",
+        "operationId": "WebPubSub_AddUserToGroup",
         "parameters": [
           {
             "in": "path",
@@ -603,8 +607,8 @@
           },
           {
             "in": "path",
-            "name": "user",
-            "description": "Target user Id",
+            "name": "userId",
+            "description": "Target user Id.",
             "required": true,
             "type": "string"
           },
@@ -630,7 +634,7 @@
           "webpubsub"
         ],
         "summary": "Remove a user from the target group.",
-        "operationId": "WebPubSubApi_RemoveUserFromGroup",
+        "operationId": "WebPubSub_RemoveUserFromGroup",
         "parameters": [
           {
             "in": "path",
@@ -648,8 +652,8 @@
           },
           {
             "in": "path",
-            "name": "user",
-            "description": "Target user Id",
+            "name": "userId",
+            "description": "Target user Id.",
             "required": true,
             "type": "string"
           },
@@ -671,13 +675,13 @@
         }
       }
     },
-    "/api/hubs/{hub}/users/{user}/groups": {
+    "/api/hubs/{hub}/users/{userId}/groups": {
       "delete": {
         "tags": [
           "webpubsub"
         ],
         "summary": "Remove a user from all groups.",
-        "operationId": "WebPubSubApi_RemoveUserFromAllGroups",
+        "operationId": "WebPubSub_RemoveUserFromAllGroups",
         "parameters": [
           {
             "in": "path",
@@ -688,8 +692,8 @@
           },
           {
             "in": "path",
-            "name": "user",
-            "description": "Target user Id",
+            "name": "userId",
+            "description": "Target user Id.",
             "required": true,
             "type": "string"
           },
@@ -702,7 +706,7 @@
         ],
         "responses": {
           "200": {
-            "description": "The user is deleted"
+            "description": "The user is deleted."
           },
           "default": {
             "description": "Error response",
@@ -716,8 +720,8 @@
         "tags": [
           "webpubsub"
         ],
-        "summary": "Grant permission to the connection",
-        "operationId": "WebPubSubApi_GrantPermission",
+        "summary": "Grant permission to the connection.",
+        "operationId": "WebPubSub_GrantPermission",
         "parameters": [
           {
             "in": "path",
@@ -729,7 +733,7 @@
           {
             "in": "path",
             "name": "permission",
-            "description": "The permission: current supported actions are joinLeaveGroup and sendToGroup",
+            "description": "The permission: current supported actions are joinLeaveGroup and sendToGroup.",
             "required": true,
             "type": "string",
             "enum": [
@@ -740,7 +744,7 @@
           {
             "in": "path",
             "name": "connectionId",
-            "description": "Target connection Id",
+            "description": "Target connection Id.",
             "required": true,
             "type": "string"
           },
@@ -771,8 +775,8 @@
         "tags": [
           "webpubsub"
         ],
-        "summary": "Revoke permission for the connection",
-        "operationId": "WebPubSubApi_RevokePermission",
+        "summary": "Revoke permission for the connection.",
+        "operationId": "WebPubSub_RevokePermission",
         "parameters": [
           {
             "in": "path",
@@ -784,7 +788,7 @@
           {
             "in": "path",
             "name": "permission",
-            "description": "The permission: current supported actions are joinLeaveGroup and sendToGroup",
+            "description": "The permission: current supported actions are joinLeaveGroup and sendToGroup.",
             "required": true,
             "type": "string",
             "enum": [
@@ -795,7 +799,7 @@
           {
             "in": "path",
             "name": "connectionId",
-            "description": "Target connection Id",
+            "description": "Target connection Id.",
             "required": true,
             "type": "string"
           },
@@ -826,8 +830,8 @@
         "tags": [
           "webpubsub"
         ],
-        "summary": "Check if a connection have permission to the specific action",
-        "operationId": "WebPubSubApi_CheckPermission",
+        "summary": "Check if a connection have permission to the specific action.",
+        "operationId": "WebPubSub_CheckPermission",
         "parameters": [
           {
             "in": "path",
@@ -839,7 +843,7 @@
           {
             "in": "path",
             "name": "permission",
-            "description": "The permission: current supported actions are joinLeaveGroup and sendToGroup",
+            "description": "The permission: current supported actions are joinLeaveGroup and sendToGroup.",
             "required": true,
             "type": "string",
             "enum": [
@@ -850,7 +854,7 @@
           {
             "in": "path",
             "name": "connectionId",
-            "description": "Target connection Id",
+            "description": "Target connection Id.",
             "required": true,
             "type": "string"
           },

@@ -1,16 +1,48 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT license.
 
-import { WebPubSubServiceClient as GeneratedClient } from "./generated/webPubSubServiceClient";
-import { ServiceClientCredentials, RestResponse, RestError, HttpRequestBody, HttpPipelineLogLevel, HttpPipelineLogger, RequestPolicyFactory, logPolicy } from "@azure/ms-rest-js";
-
-import { WebPubSubSendApi } from "./webPubSubApiExtensions";
+import { WebPubSub, WebPubSubServiceClient as GeneratedClient } from "./generated/webPubSubServiceClient";
 import { WebPubSubKeyCredentials } from "./webPubSubKeyCredentials";
-import { WebPubSubServiceEndpoint } from "./webPubSubServiceEndpoint";
 import jwt from "jsonwebtoken";
+import { ServiceClientCredentials, RestError, RestResponse, HttpRequestBody, HttpPipelineLogLevel, HttpPipelineLogger, RequestPolicyFactory, logPolicy } from "@azure/core-http";
+
+/**
+ * Options for auth a client
+ */
+export interface GetAuthenticationTokenOptions {
+  /**
+   * The userId for the client
+   */
+  userId?: string;
+  /**
+   * The custom claims for the client, e.g. role
+   */
+  claims?: { [key: string]: string[] };
+}
+
+/**
+ * Response for the authed client, including the url and the jwt token
+ */
+export interface GetAuthenticationTokenResponse {
+  /**
+   * The URL client connects to
+   */
+  baseUrl: string;
+
+  /**
+   * The JWT token the client uses to connect
+   */
+  token: string;
+
+  /**
+   * The URL client connects to with access_token query string
+   */
+  url: string;
+}
 
 export interface OperationOptions {
   apiVersion?: string;
+  plainText?: boolean;
 }
 
 /**
@@ -83,8 +115,8 @@ export class ConsoleHttpPipelineLogger implements HttpPipelineLogger {
  */
 export class WebPubSubServiceRestClient {
   private readonly client: GeneratedClient;
-  private readonly sender: WebPubSubSendApi;
-  private credential!: ServiceClientCredentials;
+  private readonly sender: WebPubSub;
+  private credential!: WebPubSubKeyCredentials;
 
   /**
    * The name of the hub this client is connected to
@@ -101,31 +133,30 @@ export class WebPubSubServiceRestClient {
    */
   public serviceUrl!: URL;
 
-  private _endpoint: WebPubSubServiceEndpoint;
+  private _endpoint: string;
 
-  constructor(connectionStringOrEndpoint: string | WebPubSubServiceEndpoint, hub: string, options?: WebPubSubServiceRestClientOptions) {
-    if (typeof connectionStringOrEndpoint === 'string'){
-      this._endpoint = new WebPubSubServiceEndpoint(connectionStringOrEndpoint);
-    } else {
-      this._endpoint = connectionStringOrEndpoint;
-    }
+  constructor(conn: string, hub: string, options?: WebPubSubServiceRestClientOptions) {
+    const parsedCs = parseConnectionString(conn);
+    this._endpoint = parsedCs.endpoint;
+    this.credential = parsedCs.credential;
 
     this.hub = hub;
-
-    this.serviceUrl = this._endpoint.endpoint.serviceUrl;
-    this.credential = new WebPubSubKeyCredentials(this._endpoint.endpoint.key);
-    this.client = new GeneratedClient(this.credential, {
+    this.client = new GeneratedClient(this.credential, this._endpoint, {
       //httpPipelineLogger: options?.dumpRequest ? new ConsoleHttpPipelineLogger(HttpPipelineLogLevel.INFO) : undefined,
-      baseUri: this._endpoint.endpoint.serviceUrl.href,
       requestPolicyFactories: options?.dumpRequest ? this.getFactoryWithLogPolicy : undefined,
     });
-    this.sender = new WebPubSubSendApi(this.client);
+    this.sender = new WebPubSub(this.client);
   }
-  
-  public async authClient(options?: ClientAuthOptions): Promise<ClientAuthResponse> {
-    const url = this._endpoint.endpoint.serviceUrl.toString();
-    const endpoint = url.endsWith('/') ? url : url + '/';
-    const key = this._endpoint.endpoint.key;
+
+  /**
+   * Auth the client connection with userId and custom claims if any
+   * @param options The options that the client has
+   */
+  public async getAuthenticationToken(
+    options?: GetAuthenticationTokenOptions
+  ): Promise<GetAuthenticationTokenResponse> {
+    const endpoint = this._endpoint.endsWith("/") ? this._endpoint : this._endpoint + "/";
+    const key = this.credential.key;
     const hub = this.hub;
     var clientEndpoint = endpoint.replace(/(http)(s?:\/\/)/gi, "ws$2");
     var clientUrl = `${clientEndpoint}client/hubs/${hub}`;
@@ -134,17 +165,20 @@ export class WebPubSubServiceRestClient {
     var signOptions: jwt.SignOptions = {
       audience: audience,
       expiresIn: "1h",
-      algorithm: "HS256",
+      algorithm: "HS256"
     };
     if (options?.userId) {
       signOptions.subject = options?.userId;
     }
-
+    const token = jwt.sign(payload, key, signOptions);
+    const url = `${clientUrl}?access_token=${token}`;
     return {
-      url: clientUrl,
+      baseUrl: clientUrl,
       token: jwt.sign(payload, key, signOptions),
+      url: url
     };
   }
+
 
   private getFactoryWithLogPolicy(defaultRequestPolicyFactories: RequestPolicyFactory[]): void {
     logPolicy
@@ -159,7 +193,6 @@ export class WebPubSubServiceRestClient {
   public async serviceIsHealthy(options: OperationOptions = {}): Promise<boolean> {
     try {
       await this.client.healthApi.getHealthStatus({
-        apiVersion: options.apiVersion
       });
       return true;
     } catch {
@@ -191,11 +224,17 @@ export class WebPubSubServiceRestClient {
     options: HubBroadcastOptions = {}
   ): Promise<boolean> {
     try {
-      var res = await this.sender.sendToAll(this.hub, message, {
-        apiVersion: options.apiVersion,
-        hub: this.hub,
-        excluded: options.excludedConnections
-      });
+      var res = typeof message === "string" ?
+      (options.plainText ?
+        await this.sender.sendToAll(this.hub, "text/plain", message, {
+          excluded: options.excludedConnections
+        })  : 
+        await this.sender.sendToAll(this.hub, "application/json", message, {
+          excluded: options.excludedConnections
+        }) ):
+        await this.sender.sendToAll(this.hub, "application/octet-stream", message, {
+          excluded: options.excludedConnections
+        });
       return this.verifyResponse(res, 202);
     } finally {
     }
@@ -232,10 +271,14 @@ export class WebPubSubServiceRestClient {
     options: OperationOptions = {}
   ): Promise<boolean> {
     try {
-      var res = await this.sender.sendToUser(this.hub, username, message, {
-        apiVersion: options.apiVersion,
-        hub: this.hub
-      });
+      var res = typeof message === "string" ?
+       (options.plainText ?
+        await this.sender.sendToUser(this.hub, username, "text/plain", message, {
+        }) : await this.sender.sendToUser(this.hub, username, "application/json", message, {
+        }))
+        :
+        await this.sender.sendToUser(this.hub, username, "application/octet-stream", message, {
+        });
       return this.verifyResponse(res, 202);
     } finally {
     };
@@ -271,10 +314,14 @@ export class WebPubSubServiceRestClient {
     options: OperationOptions = {}
   ): Promise<boolean> {
     try {
-      var res = await this.sender.sendToConnection(this.hub, connectionId, message, {
-        apiVersion: options.apiVersion,
-        hub: this.hub
-      });
+      
+      var res = typeof message === "string" ?
+      (options.plainText ?
+       await this.sender.sendToConnection(this.hub, connectionId, "text/plain", message, {
+       }) : await this.sender.sendToConnection(this.hub, connectionId, "application/json", message, {
+       })):
+        await this.sender.sendToConnection(this.hub, connectionId, "application/octet-stream", message, {
+        });
       return this.verifyResponse(res, 202);
     } finally {
     }
@@ -294,7 +341,6 @@ export class WebPubSubServiceRestClient {
       const res = await this.client.webPubSubApi.checkConnectionExistence(this.hub,
         connectionId,
         {
-          apiVersion: options.apiVersion,
         }
       );
       return this.verifyResponse(res, 200, 404);
@@ -316,8 +362,6 @@ export class WebPubSubServiceRestClient {
       var res = await this.client.webPubSubApi.closeClientConnection(this.hub,
         connectionId,
         {
-          apiVersion: options.apiVersion,
-          hub: this.hub,
           reason: options.reason
         }
       );
@@ -339,8 +383,6 @@ export class WebPubSubServiceRestClient {
       var res = await this.client.webPubSubApi.removeUserFromAllGroups(this.hub,
         userId,
         {
-          apiVersion: options.apiVersion,
-          hub: this.hub,
         }
       );
 
@@ -361,8 +403,6 @@ export class WebPubSubServiceRestClient {
       const res = await this.client.webPubSubApi.checkGroupExistence(this.hub,
         groupName,
         {
-          apiVersion: options.apiVersion,
-          hub: this.hub,
         }
       );
       return this.verifyResponse(res, 200, 404);
@@ -382,8 +422,6 @@ export class WebPubSubServiceRestClient {
       const res = await this.client.webPubSubApi.checkUserExistence(this.hub,
         username,
         {
-          apiVersion: options.apiVersion,
-          hub: this.hub,
         }
       );
       return this.verifyResponse(res, 200, 404);
@@ -405,8 +443,6 @@ export class WebPubSubServiceRestClient {
       const res = await this.client.webPubSubApi.addConnectionToGroup(this.hub,
         groupName, connectionId,
         {
-          apiVersion: options.apiVersion,
-          hub: this.hub
         }
       );
       return this.verifyResponse(res, 202);
@@ -428,8 +464,6 @@ export class WebPubSubServiceRestClient {
       const res = await this.client.webPubSubApi.removeConnectionFromGroup(this.hub,
         groupName, connectionId,
         {
-          apiVersion: options.apiVersion,
-          hub: this.hub
         }
       );
       return this.verifyResponse(res, 202);
@@ -450,8 +484,6 @@ export class WebPubSubServiceRestClient {
         groupName,
         username,
         {
-          apiVersion: options.apiVersion,
-          hub: this.hub
         }
       );
 
@@ -475,8 +507,6 @@ export class WebPubSubServiceRestClient {
         username,
 
         {
-          apiVersion: options.apiVersion,
-          hub: this.hub
         }
       );
       return this.verifyResponse(res, 200, 404);
@@ -499,8 +529,6 @@ export class WebPubSubServiceRestClient {
         groupName,
         username,
         {
-          apiVersion: options.apiVersion,
-          hub: this.hub
         }
       );
 
@@ -537,11 +565,11 @@ export class WebPubSubServiceRestClient {
 
     try {
       var res = await this.sender.sendToGroup(
+        this.hub,
         groupName,
+        "application/octet-stream",
         message,
         {
-          apiVersion: options.apiVersion,
-          hub: this.hub,
           excluded: options.excludedConnections
         }
       );
@@ -570,4 +598,28 @@ export class WebPubSubServiceRestClient {
       );
     }
   }
+}
+
+interface ParsedConnectionString {
+  credential: WebPubSubKeyCredentials;
+  endpoint: string;
+}
+function parseConnectionString(conn: string): ParsedConnectionString {
+  const em = /Endpoint=(.*?)(;|$)/g.exec(conn);
+  if (!em) throw new TypeError("connection string missing endpoint");
+  const endpointPart = em[1];
+  const km = /AccessKey=(.*?)(;|$)/g.exec(conn);
+  if (!km) throw new Error("connection string missing access key");
+  const key = km[1];
+  const credential = new WebPubSubKeyCredentials(key);
+  const pm = /Port=(.*?)(;|$)/g.exec(conn);
+  const port = pm == null ? "" : pm[1];
+  const url = new URL(endpointPart);
+  url.port = port;
+  const endpoint = url.toString();
+  url.port = "";
+  // todo: Support PORT with audience n stuff.
+  // this.audience = url.toString();
+
+  return { credential, endpoint: (endpoint.endsWith("/") ? endpoint : endpoint + "/") };
 }
