@@ -8,4 +8,4 @@ export {
 // export { WebPubSubEventHandler } from "./webPubSubCloudEventsDispatcher";
 export * from "./webPubSubCloudEventsProtocols";
 
- export * from "./webPubSubServiceRestClient";
+export * from "./webPubSubServiceClient";

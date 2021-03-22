@@ -1,11 +1,11 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT license.
 
-import { WebPubSub, WebPubSubServiceClient as GeneratedClient } from "./generated/webPubSubServiceClient";
+import { WebPubSub, WebPubSubServiceClient as GeneratedClient} from "./generated/webPubSubServiceClient";
 import { WebPubSubKeyCredentials } from "./webPubSubKeyCredentials";
+import { Enum0 as Permission } from "./generated/index";
 import jwt from "jsonwebtoken";
 import { ServiceClientCredentials, RestError, RestResponse, HttpRequestBody, HttpPipelineLogLevel, HttpPipelineLogger, RequestPolicyFactory, logPolicy } from "@azure/core-http";
-
 /**
  * Options for auth a client
  */
@@ -113,7 +113,7 @@ export class ConsoleHttpPipelineLogger implements HttpPipelineLogger {
 /**
  * Client for connecting to a SignalR hub
  */
-export class WebPubSubServiceRestClient {
+export class WebPubSubServiceClient {
   private readonly client: GeneratedClient;
   private readonly sender: WebPubSub;
   private credential!: WebPubSubKeyCredentials;
@@ -197,6 +197,48 @@ export class WebPubSubServiceRestClient {
       return true;
     } catch {
       return false;
+    } finally {
+    }
+  }
+
+  public async hasPermission(connectionId: string, permission: Permission, group?: string, options: OperationOptions = {}): Promise<boolean> {
+    try {
+      const res = await this.client.webPubSubApi.checkPermission(this.hub,
+        permission, 
+        connectionId,
+        {
+          targetName: group
+        }
+      );
+      return this.verifyResponse(res, 200, 404);
+    } finally {
+    }
+  }
+
+  public async grantPermission(connectionId: string, permission: Permission, group?: string, options: OperationOptions = {}): Promise<boolean> {
+    try {
+      const res = await this.client.webPubSubApi.grantPermission(this.hub,
+        permission, 
+        connectionId,
+        {
+          targetName: group
+        }
+      );
+      return this.verifyResponse(res, 200);
+    } finally {
+    }
+  }
+
+  public async revokePermission(connectionId: string, permission: Permission, group?: string, options: OperationOptions = {}): Promise<boolean> {
+    try {
+      const res = await this.client.webPubSubApi.revokePermission(this.hub,
+        permission, 
+        connectionId,
+        {
+          targetName: group
+        }
+      );
+      return this.verifyResponse(res, 200);
     } finally {
     }
   }

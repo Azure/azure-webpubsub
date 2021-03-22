@@ -1,17 +1,18 @@
-import { WebPubSubCloudEventsHandler, WebPubSubServiceRestClient } from "../src";
+import { WebPubSubCloudEventsHandler, WebPubSubServiceClient } from "../src";
 
 import * as dotenv from "dotenv";
 import express from "express";
 dotenv.config();
+
 const hub = 'chat';
-const client = new WebPubSubServiceRestClient(process.env.WPS_CONNECTION_STRING!, hub);
+const client = new WebPubSubServiceClient(process.env.WPS_CONNECTION_STRING!, hub);
 const wpsserver = new WebPubSubCloudEventsHandler(
   'chat', ["*"],
   {
     dumpRequest: false,
     onConnect: async connectRequest => {
       return {
-        userId: "Ken",
+        userId: "vic",
         groups: [
           "group3"
         ],
@@ -25,7 +26,7 @@ const wpsserver = new WebPubSubCloudEventsHandler(
     },
     onUserEvent: async userRequest => {
       if (await client.hasUser("Ken")){
-        await client.sendToUser("Ken", "Hi Ken: " + userRequest.payload.data);
+        await client.sendToUser("Ken", "Hi Ken: " + userRequest.payload.data, {plainText: true});
       } else{
         console.log("Ken is not yet online");
       }

@@ -427,7 +427,6 @@
             return router;
         }
         handleAbuseProtectionRequests(request, response) {
-            console.log(request.headers);
             if (request.headers["webhook-request-origin"]) {
                 response.setHeader("WebHook-Allowed-Origin", this._allowedOrigins);
             }
@@ -1357,73 +1356,6 @@
     }
 
     // Copyright (c) Microsoft Corporation.
-    class WebPubSubServiceEndpoint {
-        /**
-         * Creates a new WebPubSubServiceEndpoint object.
-         *
-         * @constructor
-         * @param {string} conn The Connection String.
-         * @param {string} hub The Hub
-         */
-        constructor(conn) {
-            this.endpoint = this.getServiceEndpoint(conn);
-        }
-        clientNegotiate(hub, options) {
-            var _a;
-            var clientUrl = `${this.endpoint.websocketHost}client/hubs/${hub}`;
-            const audience = `${this.endpoint.audience}client/hubs/${hub}`;
-            var key = this.endpoint.key;
-            var payload = (_a = options === null || options === void 0 ? void 0 : options.claims) !== null && _a !== void 0 ? _a : {};
-            var signOptions = {
-                audience: audience,
-                expiresIn: "1h",
-                algorithm: "HS256",
-            };
-            if (options === null || options === void 0 ? void 0 : options.userId) {
-                signOptions.subject = options === null || options === void 0 ? void 0 : options.userId;
-            }
-            return {
-                url: clientUrl,
-                token: jwt.sign(payload, key, signOptions),
-            };
-        }
-        getServiceEndpoint(conn) {
-            var endpoint = this.parseConnectionString(conn);
-            if (!endpoint) {
-                throw new Error("Invalid connection string: " + conn);
-            }
-            return endpoint;
-        }
-        parseConnectionString(conn) {
-            const em = /Endpoint=(.*?)(;|$)/g.exec(conn);
-            if (!em)
-                return null;
-            const endpoint = em[1];
-            const km = /AccessKey=(.*?)(;|$)/g.exec(conn);
-            if (!km)
-                return null;
-            const key = km[1];
-            if (!endpoint || !key)
-                return null;
-            const pm = /Port=(.*?)(;|$)/g.exec(conn);
-            const port = pm == null ? '' : pm[1];
-            var url$1 = new url.URL(endpoint);
-            var originalProtocol = url$1.protocol;
-            url$1.protocol = originalProtocol === 'http:' ? 'ws:' : 'wss:';
-            const audience = url$1.toString();
-            url$1.port = port;
-            var websocketHost = url$1.toString();
-            url$1.protocol = originalProtocol;
-            return {
-                websocketHost: websocketHost,
-                serviceUrl: url$1,
-                audience: audience,
-                key: key,
-            };
-        }
-    }
-
-    // Copyright (c) Microsoft Corporation.
     class ConsoleHttpPipelineLogger {
         /**
          * Create a new ConsoleHttpPipelineLogger.
@@ -1455,27 +1387,21 @@
     /**
      * Client for connecting to a SignalR hub
      */
-    class WebPubSubServiceRestClient {
-        constructor(connectionStringOrEndpoint, hub, options) {
+    class WebPubSubServiceClient$1 {
+        constructor(conn, hub, options) {
             /**
              * The SignalR API version being used by this client
              */
             this.apiVersion = "2020-10-01";
-            if (typeof connectionStringOrEndpoint === 'string') {
-                this._endpoint = new WebPubSubServiceEndpoint(connectionStringOrEndpoint);
-            }
-            else {
-                this._endpoint = connectionStringOrEndpoint;
-            }
+            const parsedCs = parseConnectionString(conn);
+            this._endpoint = parsedCs.endpoint;
+            this.credential = parsedCs.credential;
             this.hub = hub;
-            this.serviceUrl = this._endpoint.endpoint.serviceUrl;
-            this.credential = new WebPubSubKeyCredentials(this._endpoint.endpoint.key);
-            this.client = new WebPubSubServiceClient(this.credential, this._endpoint.endpoint.serviceUrl.href, {
+            this.client = new WebPubSubServiceClient(this.credential, this._endpoint, {
                 //httpPipelineLogger: options?.dumpRequest ? new ConsoleHttpPipelineLogger(HttpPipelineLogLevel.INFO) : undefined,
                 requestPolicyFactories: (options === null || options === void 0 ? void 0 : options.dumpRequest) ? this.getFactoryWithLogPolicy : undefined,
             });
             this.sender = new WebPubSub(this.client);
-            this._servicePath = this.serviceUrl.toString();
         }
         /**
          * Auth the client connection with userId and custom claims if any
@@ -1484,7 +1410,7 @@
         getAuthenticationToken(options) {
             var _a;
             return __awaiter(this, void 0, void 0, function* () {
-                const endpoint = this._servicePath.endsWith("/") ? this._servicePath : this._servicePath + "/";
+                const endpoint = this._endpoint.endsWith("/") ? this._endpoint : this._endpoint + "/";
                 const key = this.credential.key;
                 const hub = this.hub;
                 var clientEndpoint = endpoint.replace(/(http)(s?:\/\/)/gi, "ws$2");
@@ -1529,12 +1455,56 @@
                 }
             });
         }
+        hasPermission(connectionId, permission, group, options = {}) {
+            return __awaiter(this, void 0, void 0, function* () {
+                try {
+                    const res = yield this.client.webPubSubApi.checkPermission(this.hub, permission, connectionId, {
+                        targetName: group
+                    });
+                    return this.verifyResponse(res, 200, 404);
+                }
+                finally {
+                }
+            });
+        }
+        grantPermission(connectionId, permission, group, options = {}) {
+            return __awaiter(this, void 0, void 0, function* () {
+                try {
+                    const res = yield this.client.webPubSubApi.grantPermission(this.hub, permission, connectionId, {
+                        targetName: group
+                    });
+                    return this.verifyResponse(res, 200);
+                }
+                finally {
+                }
+            });
+        }
+        revokePermission(connectionId, permission, group, options = {}) {
+            return __awaiter(this, void 0, void 0, function* () {
+                try {
+                    const res = yield this.client.webPubSubApi.revokePermission(this.hub, permission, connectionId, {
+                        targetName: group
+                    });
+                    return this.verifyResponse(res, 200);
+                }
+                finally {
+                }
+            });
+        }
         sendToAll(message, options = {}) {
             return __awaiter(this, void 0, void 0, function* () {
                 try {
-                    var res = yield this.sender.sendToAll(this.hub, "application/octet-stream", message, {
-                        excluded: options.excludedConnections
-                    });
+                    var res = typeof message === "string" ?
+                        (options.plainText ?
+                            yield this.sender.sendToAll(this.hub, "text/plain", message, {
+                                excluded: options.excludedConnections
+                            }) :
+                            yield this.sender.sendToAll(this.hub, "application/json", message, {
+                                excluded: options.excludedConnections
+                            })) :
+                        yield this.sender.sendToAll(this.hub, "application/octet-stream", message, {
+                            excluded: options.excludedConnections
+                        });
                     return this.verifyResponse(res, 202);
                 }
                 finally {
@@ -1544,7 +1514,11 @@
         sendToUser(username, message, options = {}) {
             return __awaiter(this, void 0, void 0, function* () {
                 try {
-                    var res = yield this.sender.sendToUser(this.hub, username, "application/octet-stream", message, {});
+                    var res = typeof message === "string" ?
+                        (options.plainText ?
+                            yield this.sender.sendToUser(this.hub, username, "text/plain", message, {}) : yield this.sender.sendToUser(this.hub, username, "application/json", message, {}))
+                        :
+                            yield this.sender.sendToUser(this.hub, username, "application/octet-stream", message, {});
                     return this.verifyResponse(res, 202);
                 }
                 finally {
@@ -1554,7 +1528,10 @@
         sendToConnection(connectionId, message, options = {}) {
             return __awaiter(this, void 0, void 0, function* () {
                 try {
-                    var res = yield this.sender.sendToConnection(this.hub, connectionId, "application/octet-stream", message, {});
+                    var res = typeof message === "string" ?
+                        (options.plainText ?
+                            yield this.sender.sendToConnection(this.hub, connectionId, "text/plain", message, {}) : yield this.sender.sendToConnection(this.hub, connectionId, "application/json", message, {})) :
+                        yield this.sender.sendToConnection(this.hub, connectionId, "application/octet-stream", message, {});
                     return this.verifyResponse(res, 202);
                 }
                 finally {
@@ -1750,10 +1727,30 @@
             }
         }
     }
+    function parseConnectionString(conn) {
+        const em = /Endpoint=(.*?)(;|$)/g.exec(conn);
+        if (!em)
+            throw new TypeError("connection string missing endpoint");
+        const endpointPart = em[1];
+        const km = /AccessKey=(.*?)(;|$)/g.exec(conn);
+        if (!km)
+            throw new Error("connection string missing access key");
+        const key = km[1];
+        const credential = new WebPubSubKeyCredentials(key);
+        const pm = /Port=(.*?)(;|$)/g.exec(conn);
+        const port = pm == null ? "" : pm[1];
+        const url = new URL(endpointPart);
+        url.port = port;
+        const endpoint = url.toString();
+        url.port = "";
+        // todo: Support PORT with audience n stuff.
+        // this.audience = url.toString();
+        return { credential, endpoint: (endpoint.endsWith("/") ? endpoint : endpoint + "/") };
+    }
 
     exports.ConsoleHttpPipelineLogger = ConsoleHttpPipelineLogger;
     exports.WebPubSubCloudEventsHandler = WebPubSubCloudEventsHandler;
-    exports.WebPubSubServiceRestClient = WebPubSubServiceRestClient;
+    exports.WebPubSubServiceClient = WebPubSubServiceClient$1;
 
     Object.defineProperty(exports, '__esModule', { value: true });
 
