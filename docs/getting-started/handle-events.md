@@ -64,20 +64,21 @@ You may remember in last tutorial the subscriber uses an API in Web PubSub SDK t
 
     ```javascript
     const express = require('express');
-    const { WebPubSubServer } = require('azure-websockets/webpubsub');
+    const { WebPubSubServiceClient, WebPubSubCloudEventsHandler, PayloadDataType } = require('azure-websockets/webpubsub');
 
-    const server = new WebPubSubServer('<CONNECTION_STRING>', 'chat');
+    const server = new WebPubSubServiceClient('<CONNECTION_STRING>', 'chat');
     const app = express();
 
-    app.get('/negotiate', (req, res) => {
+    app.get('/negotiate', async (req, res) => {
       let id = req.query.id;
       if (!id) {
         res.status(400).send('missing user id');
         return;
       }
-      let { url, token } = server.endpoint.clientNegotiate('chat', { userId: id });
+
+      const { url } = await serviceClient.getAuthenticationToken({ userId: id });
       res.send({
-        url: `${url}?access_token=${token}`
+        url: url
       });
     });
 
@@ -116,7 +117,7 @@ Azure Web PubSub follows [CloudEvents](https://cloudevents.io/) to describe even
 Add the following code to expose a REST API at `/eventhandler` (which is done by the express middleware provided by Web PubSub SDK) to handle the client connected event:
 
 ```javascript
-let handler = server.createCloudEventsHandler({
+const handler = new WebPubSubCloudEventsHandler(hub, ['*'], {
   path: '/eventhandler',
   onConnected: async req => {
     console.log(`${req.context.userId} connected`);
@@ -153,14 +154,26 @@ Besides system events like connected or disconnected, client can also send messa
 1. Add a new `onUserEvent` handler
 
     ```javascript
-    let serviceClient = server.createServiceClient();
-    let handler = server.createCloudEventsHandler({
+    let serviceClient = new WebPubSubServiceClient('<CONNECTION_STRING>', hub);
+    
+    const handler = new WebPubSubCloudEventsHandler(hub, ['*'], {
       path: '/eventhandler',
+      onConnect: async req => {
+        return {};
+      },
       onConnected: async req => {
         ...
       },
       onUserEvent: async req => {
-        if (req.eventName === 'message') await serviceClient.sendToAll(`[${req.context.userId}] ${req.payload.data}`);
+        if (req.context.eventName === 'message') {
+          await serviceClient.sendToAll(`[${req.context.userId}] ${req.payload.data}`, { plainText: true });
+        }
+        return {
+          payload: {
+            data: "received",
+            dataType: PayloadDataType.text
+          }
+        }
       }
     });
     ```
@@ -208,11 +221,11 @@ Besides system events like connected or disconnected, client can also send messa
 4.  Finally let's also update the `onConnected` handler to broadcast the connected event to all clients so they can see who joined the chat room.
 
     ```javascript
-    let handler = server.createCloudEventsHandler({
+    const handler = new WebPubSubCloudEventsHandler(hub, ['*'], {
       path: '/eventhandler',
       onConnected: async req => {
         console.log(`${req.context.userId} connected`);
-        await serviceClient.sendToAll(`[SYSTEM] ${req.context.userId} joined`);
+        await serviceClient.sendToAll(`[SYSTEM] ${req.context.userId} joined`, { plainText: true });
       },
       ...
     });

@@ -11,7 +11,7 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
-    "azure-websockets": "git+https://github.com/vicancy/azure-websockets.git",
+    "@azure/webpubsub": "git+https://github.com/vicancy/azure-websockets.git",
     "express": "^4.17.1"
   }
 }
