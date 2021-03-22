@@ -46,6 +46,7 @@ This extension defines attributes used by Web PubSub Service for every event it 
 | `hub` | `string` | The hub the connection belongs to | |
 | `connectionId` | `string` | The connectionId is unique for the client connection | |
 | `eventName` | `string` | The name of the event without prefix | |
+| `subprotocol` | `string` | The subprotocol the client is using if any | |
 
 ## Events
 
@@ -165,6 +166,7 @@ ce-userId: {userId}
 ce-connectionId: {connectionId}
 ce-hub: {hub}
 ce-eventName: connect
+ce-subprotocol: abc
 
 {}
 
@@ -213,6 +215,7 @@ ce-userId: {userId}
 ce-connectionId: {connectionId}
 ce-hub: {hub}
 ce-eventName: disconnect
+ce-subprotocol: abc
 
 {
     "reason": "{Reason}"
@@ -332,6 +335,7 @@ ce-userId: {userId}
 ce-connectionId: {connectionId}
 ce-hub: {hub_name}
 ce-eventName: <event_name>
+ce-subprotocol: json.webpubsub.azure.v1
 
 text data
 
@@ -366,6 +370,7 @@ ce-userId: {userId}
 ce-connectionId: {connectionId}
 ce-hub: {hub_name}
 ce-eventName: <event_name>
+ce-subprotocol: json.webpubsub.azure.v1
 
 {
     "hello": "world"
@@ -400,6 +405,7 @@ ce-userId: {userId}
 ce-connectionId: {connectionId}
 ce-hub: {hub_name}
 ce-eventName: <event_name>
+ce-subprotocol: json.webpubsub.azure.v1
 
 0110100001100101011011000110110001101111001000000111011101101111011100100110110001100100
 
@@ -421,6 +427,7 @@ ce-userId: {userId}
 ce-connectionId: {connectionId}
 ce-hub: {hub_name}
 ce-eventName: <event_name>
+ce-subprotocol: json.webpubsub.azure.v1
 
 UserResponsePayload
 ```
