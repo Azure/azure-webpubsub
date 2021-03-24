@@ -42,7 +42,7 @@ export interface GetAuthenticationTokenResponse {
 
 export interface OperationOptions {
   apiVersion?: string;
-  plainText?: boolean;
+  dataType?: 'binary' | 'text' | 'json';
 }
 
 /**
@@ -267,7 +267,7 @@ export class WebPubSubServiceClient {
   ): Promise<boolean> {
     try {
       var res = typeof message === "string" ?
-      (options.plainText ?
+      (options.dataType === 'text' ?
         await this.sender.sendToAll(this.hub, "text/plain", message, {
           excluded: options.excludedConnections
         })  : 
@@ -314,7 +314,7 @@ export class WebPubSubServiceClient {
   ): Promise<boolean> {
     try {
       var res = typeof message === "string" ?
-       (options.plainText ?
+      (options.dataType === 'text' ?
         await this.sender.sendToUser(this.hub, username, "text/plain", message, {
         }) : await this.sender.sendToUser(this.hub, username, "application/json", message, {
         }))
@@ -356,9 +356,8 @@ export class WebPubSubServiceClient {
     options: OperationOptions = {}
   ): Promise<boolean> {
     try {
-      
       var res = typeof message === "string" ?
-      (options.plainText ?
+      (options.dataType === 'text' ?
        await this.sender.sendToConnection(this.hub, connectionId, "text/plain", message, {
        }) : await this.sender.sendToConnection(this.hub, connectionId, "application/json", message, {
        })):

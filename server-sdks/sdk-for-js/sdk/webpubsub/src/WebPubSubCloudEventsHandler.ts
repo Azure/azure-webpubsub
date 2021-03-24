@@ -82,8 +82,20 @@ export class WebPubSubCloudEventsHandler {
    */
   public getMiddleware(): express.Router {
     const router = express.Router();
-    router.options(this.path, (request, response)=> this.handleAbuseProtectionRequests(request, response));
-    router.post(this.path, (request, response)=> this._cloudEventsHandler.processRequest(request, response));
+    router.options(this.path, (request, response, next) => {
+      if (!this.handleAbuseProtectionRequests(request, response)) {
+        next();
+      }
+    });
+    router.post(this.path, async (request, response, next) => {
+      try {
+        if (!await this._cloudEventsHandler.processRequest(request, response)) {
+          next();
+        }
+      } catch (err) {
+        next(err);
+      }
+    });
     return router;
   }
 
@@ -93,11 +105,9 @@ export class WebPubSubCloudEventsHandler {
   ): boolean {
     if (request.headers["webhook-request-origin"]) {
       response.setHeader("WebHook-Allowed-Origin", this._allowedOrigins);
-    } else {
-      console.log(`Invalid abuse protection request ${request}`);
-      response.statusCode = 400;
+      response.end();
+      return true;
     }
-    response.end();
-    return true;
+    return false;
   }
 }

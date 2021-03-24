@@ -10,8 +10,8 @@ const wpsserver = new WebPubSubCloudEventsHandler(
   'chat', ["*"],
   {
     dumpRequest: false,
-    onConnect: async connectRequest => {
-      return {
+    handleConnect: async (connectRequest, connectResponse) => {
+      connectResponse.success({
         userId: "vic",
         groups: [
           "group3"
@@ -19,24 +19,22 @@ const wpsserver = new WebPubSubCloudEventsHandler(
         roles: [
           "webpubsub.sendToGroup",
         ]
-      };
+      });
     },
-    onConnected: async connectedRequest => {
-      await client.sendToAll("Hello I am here", {plainText: true});
-    },
-    onUserEvent: async userRequest => {
+    handleUserEvent: async (userEventRequest, userEventResponse) => {
+      userEventResponse.success("Echo " + userEventRequest.data, userEventRequest.dataType);
       if (await client.hasUser("Ken")){
-        await client.sendToUser("Ken", "Hi Ken: " + userRequest.payload.data, {plainText: true});
+        await client.sendToUser("Ken", "Hi Ken: " + userEventRequest.data, {dataType: userEventRequest.dataType});
       } else{
         console.log("Ken is not yet online");
       }
-      return {
-        payload: {
-          data: "Echo " + userRequest.payload.data,
-          dataType: userRequest.payload.dataType
-        }
-      };
     },
+    onConnected: async _ => {
+      await client.sendToAll("Hello I am here", {dataType: 'text'});
+    },
+    onDisconnected: async req => {
+      console.log(req.context.connectionId + "disconnected.");
+    }
   }
 );
 

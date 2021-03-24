@@ -2,46 +2,9 @@
 // Licensed under the MIT license.
 
 /**
- * Error response.
- */
-export interface ErrorResponse {
-  /**
-   * Error code.
-   */
-  code: ErrorCode;
-  /**
-   * Error detail.
-   */
-  detail?: string;
-}
-
-/**
- * Error code for the response
- */
-export enum ErrorCode {
-  /**
-   * Unauthorized response to service using 401.
-   */
-  unauthorized = 401,
-  /**
-   * Server error response to service using 500.
-   */
-  serverError = 500,
-  /**
-   * User error response to service using 400.
-   */
-  userError = 400
-}
-
-/**
  * Response of the connect event.
  */
-export interface ConnectResponse {
-  /**
-   * If error is set, we consider this as a failed response.
-   */
-  error?: ErrorResponse;
-  /**
+export interface ConnectResponse {  /**
    * Set the groups the connection would like to join.
    */
   groups?: string[];
@@ -57,20 +20,6 @@ export interface ConnectResponse {
    * Set the subprotocol for the connection to complete WebSocket handshake.
    */
   subprotocol?: string;
-}
-
-/**
- * Response of the user event.
- */
-export interface UserEventResponse {
-  /**
-   * Error response. If error is set, we consider this as a failed response.
-   */
-  error?: ErrorResponse;
-  /**
-   * Payload data to send back to the client.
-   */
-  payload?: PayloadData;
 }
 
 /**
@@ -152,15 +101,11 @@ export interface ConnectedRequest {
 /**
  * Request for the user event.
  */
-export interface UserEventRequest {
+export interface UserEventRequest extends PayloadData {
   /**
    * The context of current CloudEvents request.
    */
   context: ConnectionContext;
-  /**
-   * The payload body of the user event request.
-   */
-  payload: PayloadData;
 }
 
 /**
@@ -174,25 +119,7 @@ export interface PayloadData {
   /**
    * The type of the data.
    */
-  dataType: PayloadDataType;
-}
-
-/**
- * The data type of the payload data.
- */
-export enum PayloadDataType {
-  /**
-   * The binary format.
-   */
-  binary,
-  /**
-   * The plain text format.
-   */
-  text,
-  /**
-   * The JSON format.
-   */
-  json
+  dataType: 'binary' | 'text' | 'json';
 }
 
 /**
