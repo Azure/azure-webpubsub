@@ -64,7 +64,7 @@ You may remember in last tutorial the subscriber uses an API in Web PubSub SDK t
 
     ```javascript
     const express = require('express');
-    const { WebPubSubServiceClient, WebPubSubCloudEventsHandler, PayloadDataType } = require('azure-websockets/webpubsub');
+    const { WebPubSubServiceClient, WebPubSubCloudEventsHandler } = require('azure-websockets/webpubsub');
 
     const serviceClient = new WebPubSubServiceClient('<CONNECTION_STRING>', 'chat');
     const app = express();
