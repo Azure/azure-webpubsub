@@ -17,8 +17,8 @@ group: specs
 
 The server SDK, providing a convinience way for the users to use the service, should contain the following features:
 1. [All 4] Service->Server REST API support
-1. [C#, JS] Client Auth token generator
-1. [C#, JS] Provide CloudEvents middleware to handle:
+1. [All 4] Client Auth token generator
+1. [JS] Provide CloudEvents middleware to handle:
     1. CloudEvents validation requests
     1. CloudEvents event requests
 
@@ -32,11 +32,11 @@ SDK is to provide an easy way for customers to use our service, we'd like the SD
 <a name="js"></a>
 
 ### Packages
-1. Package1: `azure-webpubsub` (name TBD)
+1. Package1: `@azure/webpubsub`
     * To provide the REST APIs invoking the Web PubSub service
     * To provide utility functions for client negotiate
     - This can be used in Azure Function for advanced message senders
-2. Package2: `azure-webpubsub-node` (name TBD)
+2. Package2: `@azure/webpubsub-express`
     * To provide node/express middleware for handle:
         * CloudEvents validation requests
         * CloudEvents event requests
