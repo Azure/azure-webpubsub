@@ -16,15 +16,37 @@ import {
 class ConnectResponseHandler {
   constructor(private response: ServerResponse) { }
   public success(response?: ConnectResponse): void {
-
+    this.response.statusCode = 200;
+    this.response.setHeader("Content-Type", "application/json");
+    this.response.end(JSON.stringify(response));
   }
-  public fail(code: 400 | 401 | 500, detail?: string): void { }
+  public fail(code: 400 | 401 | 500, detail?: string): void {
+    this.response.statusCode = code;
+    this.response.end(detail ?? "");
+  }
 }
 
 class UserEventResponseHandler {
   constructor(private response: ServerResponse) { }
-  public success(data?: string | ArrayBuffer, dataType?: 'binary' | 'text' | 'json'): void { }
-  public fail(code: 400 | 401 | 500, detail?: string): void { }
+  public success(data?: string | ArrayBuffer, dataType?: 'binary' | 'text' | 'json'): void {
+    this.response.statusCode = 200;
+    switch (dataType) {
+      case 'json':
+        this.response.setHeader("Content-Type", "application/json;charset=utf-8");
+        break;
+      case 'text':
+        this.response.setHeader("Content-Type", "text/plain; charset=utf-8");
+        break;
+      default:
+        this.response.setHeader("Content-Type", "application/octet-stream");
+        break;
+    }
+    this.response.end(data ?? "");
+  }
+  public fail(code: 400 | 401 | 500, detail?: string): void {
+    this.response.statusCode = code;
+    this.response.end(detail ?? "");
+  }
 }
 
 /**

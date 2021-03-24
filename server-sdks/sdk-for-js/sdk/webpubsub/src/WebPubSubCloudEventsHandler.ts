@@ -43,20 +43,16 @@ export class WebPubSubCloudEventsHandler {
    * import { WebPubSubCloudEventsHandler } from "@azure/web-pubsub-express";
    * const endpoint = "https://xxxx.webpubsubdev.azure.com"
    * const handler = new WebPubSubCloudEventsHandler('chat', [ endpoint ] {
-   *   onConnect: async connectRequest => {
-   *     console.log(JSON.stringify(connectRequest));
+   *   handleConnect: async (req, res) => {
+   *     console.log(JSON.stringify(req));
    *     return {};
    *   },
-   *   onConnected: async connectedRequest => {
-   *     console.log(JSON.stringify(connectedRequest));
+   *   onConnected: async req => {
+   *     console.log(JSON.stringify(req));
    *   },
-   *   onUserEvent: async userRequest => {
-   *     console.log(JSON.stringify(userRequest));
-   *     return {
-   *      payload: {
-   *        data: "Hey " + userRequest.payload.data,
-   *        dataType: userRequest.payload.dataType
-   *      }
+   *   handleUserEvent: async (req, res) => {
+   *     console.log(JSON.stringify(req));
+   *     res.success("Hey " + userRequest.payload.data, req.dataType);
    *    };
    *  },
    * });
@@ -90,7 +86,7 @@ export class WebPubSubCloudEventsHandler {
     router.post(this.path, async (request, response, next) => {
       try {
         if (!await this._cloudEventsHandler.processRequest(request, response)) {
-          next();
+        next();
         }
       } catch (err) {
         next(err);

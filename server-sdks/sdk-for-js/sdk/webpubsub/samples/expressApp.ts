@@ -22,7 +22,7 @@ const wpsserver = new WebPubSubCloudEventsHandler(
       });
     },
     handleUserEvent: async (userEventRequest, userEventResponse) => {
-      userEventResponse.success("Echo " + userEventRequest.data, userEventRequest.dataType);
+      userEventResponse.success("false", userEventRequest.dataType);
       if (await client.hasUser("Ken")){
         await client.sendToUser("Ken", "Hi Ken: " + userEventRequest.data, {dataType: userEventRequest.dataType});
       } else{
@@ -33,7 +33,7 @@ const wpsserver = new WebPubSubCloudEventsHandler(
       await client.sendToAll("Hello I am here", {dataType: 'text'});
     },
     onDisconnected: async req => {
-      console.log(req.context.connectionId + "disconnected.");
+      console.log(req.context.connectionId + " disconnected.");
     }
   }
 );
