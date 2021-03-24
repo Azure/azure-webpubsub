@@ -1,9 +1,8 @@
-import { WebPubSubServiceRestClient } from "../src";
+import { WebPubSubServiceClient } from "../src";
 import * as dotenv from "dotenv";
 dotenv.config();
 
-const client = new WebPubSubServiceRestClient(process.env.WPS_CONNECTION_STRING!, 'chat');
-
+const client = new WebPubSubServiceClient(process.env.WPS_CONNECTION_STRING!, 'chat');
 
 async function main() {
   console.log(await client.getAuthenticationToken({
@@ -15,8 +14,8 @@ async function main() {
   }));
   try {
     // send a text message directly to a user
-    await client.sendToAll("c bterlson Hi there!");
-    await client.sendToUser("a", "b");
+    await client.sendToAll("c bterlson Hi there!", { dataType: 'text'});
+    await client.sendToUser("a", "b", { dataType: 'text'});
   } catch (err) {
     console.error(err);
   }

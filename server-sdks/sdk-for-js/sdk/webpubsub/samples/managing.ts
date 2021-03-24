@@ -1,8 +1,8 @@
-import { WebPubSubServiceRestClient } from "../src/index";
+import { WebPubSubServiceClient } from "../src";
 
 import * as dotenv from "dotenv";
 dotenv.config();
-const chatServer = new WebPubSubServiceRestClient('', 'chat');
+const chatServer = new WebPubSubServiceClient('', 'chat');
 
 async function main() {
   // adding and removing users

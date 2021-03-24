@@ -122,36 +122,44 @@
     }
 
     // Copyright (c) Microsoft Corporation.
-    (function (ErrorCode) {
-        /**
-         * Unauthorized response to service using 401.
-         */
-        ErrorCode[ErrorCode["unauthorized"] = 401] = "unauthorized";
-        /**
-         * Server error response to service using 500.
-         */
-        ErrorCode[ErrorCode["serverError"] = 500] = "serverError";
-        /**
-         * User error response to service using 400.
-         */
-        ErrorCode[ErrorCode["userError"] = 400] = "userError";
-    })(exports.ErrorCode || (exports.ErrorCode = {}));
-    (function (PayloadDataType) {
-        /**
-         * The binary format.
-         */
-        PayloadDataType[PayloadDataType["binary"] = 0] = "binary";
-        /**
-         * The plain text format.
-         */
-        PayloadDataType[PayloadDataType["text"] = 1] = "text";
-        /**
-         * The JSON format.
-         */
-        PayloadDataType[PayloadDataType["json"] = 2] = "json";
-    })(exports.PayloadDataType || (exports.PayloadDataType = {}));
-
-    // Copyright (c) Microsoft Corporation.
+    class ConnectResponseHandler {
+        constructor(response) {
+            this.response = response;
+        }
+        success(response) {
+            this.response.statusCode = 200;
+            this.response.setHeader("Content-Type", "application/json");
+            this.response.end(JSON.stringify(response));
+        }
+        fail(code, detail) {
+            this.response.statusCode = code;
+            this.response.end(detail !== null && detail !== void 0 ? detail : "");
+        }
+    }
+    class UserEventResponseHandler {
+        constructor(response) {
+            this.response = response;
+        }
+        success(data, dataType) {
+            this.response.statusCode = 200;
+            switch (dataType) {
+                case 'json':
+                    this.response.setHeader("Content-Type", "application/json;charset=utf-8");
+                    break;
+                case 'text':
+                    this.response.setHeader("Content-Type", "text/plain; charset=utf-8");
+                    break;
+                default:
+                    this.response.setHeader("Content-Type", "application/octet-stream");
+                    break;
+            }
+            this.response.end(data !== null && data !== void 0 ? data : "");
+        }
+        fail(code, detail) {
+            this.response.statusCode = code;
+            this.response.end(detail !== null && detail !== void 0 ? detail : "");
+        }
+    }
     class CloudEventsDispatcher {
         constructor(hub, eventHandler, dumpRequest) {
             this.hub = hub;
@@ -159,161 +167,81 @@
             this.dumpRequest = dumpRequest;
         }
         processRequest(request, response) {
-            var _a, _b, _c;
-            return __awaiter(this, void 0, void 0, function* () {
-                if (!this.eventHandler) {
-                    response.end();
-                    return;
-                }
-                try {
-                    var eventRequest = yield this.convertHttpToEvent(request);
-                    var eventResponse = yield this.getResponse(eventRequest);
-                    if (!eventResponse) {
-                        // we consider no response as 200 valid response
-                        response.end();
-                        return;
-                    }
-                    if (eventResponse.error) {
-                        switch (eventResponse.error.code) {
-                            case exports.ErrorCode.userError:
-                                response.statusCode = 400;
-                                break;
-                            case exports.ErrorCode.unauthorized:
-                                response.statusCode = 401;
-                                break;
-                            default:
-                                response.statusCode = 500;
-                                break;
-                        }
-                        response.end((_a = eventResponse.error.detail) !== null && _a !== void 0 ? _a : "");
-                        return;
-                    }
-                    if (eventResponse === null || eventResponse === void 0 ? void 0 : eventResponse.payload) {
-                        if (eventResponse.payload.dataType === exports.PayloadDataType.binary) {
-                            response.setHeader("Content-Type", "application/octet-stream");
-                        }
-                        else if (eventResponse.payload.dataType === exports.PayloadDataType.json) {
-                            response.setHeader("Content-Type", "application/json");
-                        }
-                        else {
-                            response.setHeader("Content-Type", "text/plain; charset=utf-8");
-                        }
-                        response.end((_c = (_b = eventResponse.payload) === null || _b === void 0 ? void 0 : _b.data) !== null && _c !== void 0 ? _c : "");
-                    }
-                }
-                catch (err) {
-                    console.error(`Error processing request ${request}: ${err}`);
-                    response.statusCode = 500;
-                    response.end(err.message);
-                }
-            });
-        }
-        getResponse(request) {
             var _a, _b, _c, _d;
             return __awaiter(this, void 0, void 0, function* () {
-                const receivedEvent = cloudevents.HTTP.toEvent(request);
+                // check if hub matches
+                if (!this.eventHandler || request.headers["ce-hub"] !== this.hub) {
+                    return false;
+                }
+                var eventRequest = yield this.convertHttpToEvent(request);
+                const receivedEvent = cloudevents.HTTP.toEvent(eventRequest);
                 if (this.dumpRequest === true) {
                     console.log(receivedEvent);
                 }
                 var type = receivedEvent.type.toLowerCase();
-                var context = this.GetContext(receivedEvent, request.headers.host);
-                if (context.hub !== this.hub) {
-                    // it is possible when multiple hubs share the same handler
-                    console.info(`Incoming request is for hub '${this.hub}' while the incoming request is for hub '${context.hub}'`);
-                    return;
-                }
-                // TODO: valid request is a valid cloud event with WebPubSub extension
-                if (type === "azure.webpubsub.sys.connect") {
-                    if (!((_a = this.eventHandler) === null || _a === void 0 ? void 0 : _a.onConnect)) {
-                        // 401 if onConnect is not configured
-                        return {
-                            error: {
-                                code: exports.ErrorCode.unauthorized
-                            }
-                        };
-                    }
-                    var connectRequest = receivedEvent.data;
-                    if (!connectRequest) {
-                        throw new Error("Data is expected");
-                    }
-                    connectRequest.context = context;
-                    var connectResponse = yield this.eventHandler.onConnect(connectRequest);
-                    if (connectRequest) {
-                        return {
-                            payload: {
-                                data: JSON.stringify(connectResponse),
-                                dataType: exports.PayloadDataType.json
-                            }
-                        };
-                    }
-                    else {
-                        // what is the differnce between not configure and not return? there is no such definition in C#..
-                        // 401 if onConnect is not configured
-                        return {
-                            error: {
-                                code: exports.ErrorCode.unauthorized
-                            }
-                        };
-                    }
-                }
-                else if (type === "azure.webpubsub.sys.connected") {
-                    if (!((_b = this.eventHandler) === null || _b === void 0 ? void 0 : _b.onConnected)) {
-                        return;
-                    }
-                    var connectedRequest = receivedEvent.data;
-                    if (!connectedRequest) {
-                        throw new Error("Data is expected");
-                    }
-                    connectedRequest.context = context;
-                    this.eventHandler.onConnected(connectedRequest);
-                }
-                else if (type === "azure.webpubsub.sys.disconnected") {
-                    if (!((_c = this.eventHandler) === null || _c === void 0 ? void 0 : _c.onDisconnected)) {
-                        return;
-                    }
-                    var disconnectedRequest = receivedEvent.data;
-                    if (!disconnectedRequest) {
-                        throw new Error("Data is expected");
-                    }
-                    disconnectedRequest.context = context;
-                    this.eventHandler.onDisconnected(disconnectedRequest);
-                }
-                else if (type.startsWith("azure.webpubsub.user")) {
-                    if (!((_d = this.eventHandler) === null || _d === void 0 ? void 0 : _d.onUserEvent)) {
-                        return;
-                    }
-                    var data;
-                    var dataType = exports.PayloadDataType.binary;
-                    if (receivedEvent.data) {
-                        data = receivedEvent.data;
-                        dataType =
-                            receivedEvent.datacontenttype === "application/json"
-                                ? exports.PayloadDataType.json
-                                : exports.PayloadDataType.text;
-                    }
-                    else if (receivedEvent.data_base64) {
-                        data = decode(receivedEvent.data_base64);
-                    }
-                    else {
-                        throw new Error("empty data payload");
-                    }
-                    var userRequest = {
-                        context: context,
-                        payload: {
-                            data: data,
-                            dataType: dataType
+                switch (type) {
+                    case "azure.webpubsub.sys.connect": {
+                        var handler = new ConnectResponseHandler(response);
+                        if (!((_a = this.eventHandler) === null || _a === void 0 ? void 0 : _a.handleConnect)) {
+                            handler.fail(401);
+                            return true;
                         }
-                    };
-                    if (!userRequest) {
-                        throw new Error("Data is expected");
+                        var connectRequest = receivedEvent.data;
+                        connectRequest.context = this.GetContext(receivedEvent, request.headers.host);
+                        this.eventHandler.handleConnect(connectRequest, handler);
+                        return true;
                     }
-                    userRequest.context = context;
-                    return yield this.eventHandler.onUserEvent(userRequest);
+                    case "azure.webpubsub.sys.connected": {
+                        if ((_b = this.eventHandler) === null || _b === void 0 ? void 0 : _b.onConnected) {
+                            var connectedRequest = receivedEvent.data;
+                            connectedRequest.context = this.GetContext(receivedEvent, request.headers.host);
+                            this.eventHandler.onConnected(connectedRequest);
+                        }
+                        return true;
+                    }
+                    case "azure.webpubsub.sys.disconnected": {
+                        if ((_c = this.eventHandler) === null || _c === void 0 ? void 0 : _c.onDisconnected) {
+                            var disconnectedRequest = receivedEvent.data;
+                            disconnectedRequest.context = this.GetContext(receivedEvent, request.headers.host);
+                            this.eventHandler.onDisconnected(disconnectedRequest);
+                        }
+                        return true;
+                    }
+                    default:
+                        if (type.startsWith("azure.webpubsub.user")) {
+                            var eventHandler = new UserEventResponseHandler(response);
+                            if (!((_d = this.eventHandler) === null || _d === void 0 ? void 0 : _d.handleUserEvent)) {
+                                eventHandler.success();
+                                return true;
+                            }
+                            var data;
+                            var dataType = 'binary';
+                            if (receivedEvent.data) {
+                                data = receivedEvent.data;
+                                dataType =
+                                    receivedEvent.datacontenttype === "application/json"
+                                        ? 'json'
+                                        : 'text';
+                            }
+                            else if (receivedEvent.data_base64) {
+                                data = decode(receivedEvent.data_base64);
+                            }
+                            else {
+                                throw new Error("empty data payload");
+                            }
+                            var userRequest = {
+                                context: this.GetContext(receivedEvent, request.headers.host),
+                                data: data,
+                                dataType: dataType
+                            };
+                            this.eventHandler.handleUserEvent(userRequest, eventHandler);
+                            return true;
+                        }
+                        else {
+                            // unknown cloud events
+                            return false;
+                        }
                 }
-                else {
-                    throw new Error("Not supported event: " + type);
-                }
-                return;
             });
         }
         GetContext(ce, host) {
@@ -386,20 +314,16 @@
          * import { WebPubSubCloudEventsHandler } from "@azure/web-pubsub-express";
          * const endpoint = "https://xxxx.webpubsubdev.azure.com"
          * const handler = new WebPubSubCloudEventsHandler('chat', [ endpoint ] {
-         *   onConnect: async connectRequest => {
-         *     console.log(JSON.stringify(connectRequest));
+         *   handleConnect: async (req, res) => {
+         *     console.log(JSON.stringify(req));
          *     return {};
          *   },
-         *   onConnected: async connectedRequest => {
-         *     console.log(JSON.stringify(connectedRequest));
+         *   onConnected: async req => {
+         *     console.log(JSON.stringify(req));
          *   },
-         *   onUserEvent: async userRequest => {
-         *     console.log(JSON.stringify(userRequest));
-         *     return {
-         *      payload: {
-         *        data: "Hey " + userRequest.payload.data,
-         *        dataType: userRequest.payload.dataType
-         *      }
+         *   handleUserEvent: async (req, res) => {
+         *     console.log(JSON.stringify(req));
+         *     res.success("Hey " + userRequest.payload.data, req.dataType);
          *    };
          *  },
          * });
@@ -422,20 +346,30 @@
          */
         getMiddleware() {
             const router = express.Router();
-            router.options(this.path, (request, response) => this.handleAbuseProtectionRequests(request, response));
-            router.post(this.path, (request, response) => this._cloudEventsHandler.processRequest(request, response));
+            router.options(this.path, (request, response, next) => {
+                if (!this.handleAbuseProtectionRequests(request, response)) {
+                    next();
+                }
+            });
+            router.post(this.path, (request, response, next) => __awaiter(this, void 0, void 0, function* () {
+                try {
+                    if (!(yield this._cloudEventsHandler.processRequest(request, response))) {
+                        next();
+                    }
+                }
+                catch (err) {
+                    next(err);
+                }
+            }));
             return router;
         }
         handleAbuseProtectionRequests(request, response) {
             if (request.headers["webhook-request-origin"]) {
                 response.setHeader("WebHook-Allowed-Origin", this._allowedOrigins);
+                response.end();
+                return true;
             }
-            else {
-                console.log(`Invalid abuse protection request ${request}`);
-                response.statusCode = 400;
-            }
-            response.end();
-            return true;
+            return false;
         }
     }
 
@@ -1495,7 +1429,7 @@
             return __awaiter(this, void 0, void 0, function* () {
                 try {
                     var res = typeof message === "string" ?
-                        (options.plainText ?
+                        (options.dataType === 'text' ?
                             yield this.sender.sendToAll(this.hub, "text/plain", message, {
                                 excluded: options.excludedConnections
                             }) :
@@ -1515,7 +1449,7 @@
             return __awaiter(this, void 0, void 0, function* () {
                 try {
                     var res = typeof message === "string" ?
-                        (options.plainText ?
+                        (options.dataType === 'text' ?
                             yield this.sender.sendToUser(this.hub, username, "text/plain", message, {}) : yield this.sender.sendToUser(this.hub, username, "application/json", message, {}))
                         :
                             yield this.sender.sendToUser(this.hub, username, "application/octet-stream", message, {});
@@ -1529,7 +1463,7 @@
             return __awaiter(this, void 0, void 0, function* () {
                 try {
                     var res = typeof message === "string" ?
-                        (options.plainText ?
+                        (options.dataType === 'text' ?
                             yield this.sender.sendToConnection(this.hub, connectionId, "text/plain", message, {}) : yield this.sender.sendToConnection(this.hub, connectionId, "application/json", message, {})) :
                         yield this.sender.sendToConnection(this.hub, connectionId, "application/octet-stream", message, {});
                     return this.verifyResponse(res, 202);

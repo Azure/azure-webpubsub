@@ -43,20 +43,16 @@ export class WebPubSubCloudEventsHandler {
    * import { WebPubSubCloudEventsHandler } from "@azure/web-pubsub-express";
    * const endpoint = "https://xxxx.webpubsubdev.azure.com"
    * const handler = new WebPubSubCloudEventsHandler('chat', [ endpoint ] {
-   *   onConnect: async connectRequest => {
-   *     console.log(JSON.stringify(connectRequest));
+   *   handleConnect: async (req, res) => {
+   *     console.log(JSON.stringify(req));
    *     return {};
    *   },
-   *   onConnected: async connectedRequest => {
-   *     console.log(JSON.stringify(connectedRequest));
+   *   onConnected: async req => {
+   *     console.log(JSON.stringify(req));
    *   },
-   *   onUserEvent: async userRequest => {
-   *     console.log(JSON.stringify(userRequest));
-   *     return {
-   *      payload: {
-   *        data: "Hey " + userRequest.payload.data,
-   *        dataType: userRequest.payload.dataType
-   *      }
+   *   handleUserEvent: async (req, res) => {
+   *     console.log(JSON.stringify(req));
+   *     res.success("Hey " + userRequest.payload.data, req.dataType);
    *    };
    *  },
    * });
@@ -82,8 +78,20 @@ export class WebPubSubCloudEventsHandler {
    */
   public getMiddleware(): express.Router {
     const router = express.Router();
-    router.options(this.path, (request, response)=> this.handleAbuseProtectionRequests(request, response));
-    router.post(this.path, (request, response)=> this._cloudEventsHandler.processRequest(request, response));
+    router.options(this.path, (request, response, next) => {
+      if (!this.handleAbuseProtectionRequests(request, response)) {
+        next();
+      }
+    });
+    router.post(this.path, async (request, response, next) => {
+      try {
+        if (!await this._cloudEventsHandler.processRequest(request, response)) {
+        next();
+        }
+      } catch (err) {
+        next(err);
+      }
+    });
     return router;
   }
 
@@ -93,11 +101,9 @@ export class WebPubSubCloudEventsHandler {
   ): boolean {
     if (request.headers["webhook-request-origin"]) {
       response.setHeader("WebHook-Allowed-Origin", this._allowedOrigins);
-    } else {
-      console.log(`Invalid abuse protection request ${request}`);
-      response.statusCode = 400;
+      response.end();
+      return true;
     }
-    response.end();
-    return true;
+    return false;
   }
 }
