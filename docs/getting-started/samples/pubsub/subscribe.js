@@ -1,9 +1,9 @@
 const WebSocket = require('ws');
-const { WebPubSubServiceEndpoint } = require('azure-websockets/webpubsub');
+const { WebPubSubServiceClient } = require('@azure/webpubsub');
 
-let endpoint = new WebPubSubServiceEndpoint('<CONNECTION_STRING>');
-let { url, token } = endpoint.clientNegotiate('my_hub');
-let ws = new WebSocket(`${url}?access_token=${token}`);
+let endpoint = new WebPubSubServiceClient('<CONNECTION_STRING>', 'my_hub');
+let token = endpoint.getAuthenticationToken();
+let ws = new WebSocket(token.url);
 
 ws.on('open', () => console.log('connected'));
 ws.on('message', data => console.log(data));;

@@ -1,27 +1,20 @@
 const express = require('express');
-const { WebPubSubServiceClient, WebPubSubCloudEventsHandler, PayloadDataType } = require('@azure/webpubsub')
+const { WebPubSubServiceClient, WebPubSubCloudEventsHandler} = require('@azure/webpubsub')
 
 const hub = 'chat';
 const serviceClient = new WebPubSubServiceClient('<CONNECTION_STRING>', hub);
 const app = express();
 
 const handler = new WebPubSubCloudEventsHandler(hub, ['*'], {
-  onConnect: async req => {
-    return {};
-  },
+  path: '/eventhandler',
   onConnected: async req => {
     console.log(`${req.context.userId} connected`);
-    await serviceClient.sendToAll(`[SYSTEM] ${req.context.userId} joined`, { plainText: true });
+    await serviceClient.sendToAll(`[SYSTEM] ${req.context.userId} joined`, { dataType: 'text' });
   },
-  onUserEvent: async req => {
+  onUserEvent: async (req, res) => {
+    res.success("Received", 'text');
     if (req.context.eventName === 'message') {
-      await serviceClient.sendToAll(`[${req.context.userId}] ${req.payload.data}`, { plainText: true });
-    }
-    return {
-      payload: {
-        data: "received",
-        dataType: PayloadDataType.text
-      }
+      await serviceClient.sendToAll(`[${req.context.userId}] ${req.payload.data}`, { dataType: 'text' });
     }
   }
 });

@@ -30,11 +30,11 @@ In Azure Web PubSub you can connect to the service and subscribe to messages thr
 
     ```javascript
     const WebSocket = require('ws');
-    const { WebPubSubServiceEndpoint } = require('azure-websockets/webpubsub');
+    const { WebPubSubServiceClient } = require('@azure/webpubsub');
 
-    let endpoint = new WebPubSubServiceEndpoint('<CONNECTION_STRING>');
-    let { url, token } = endpoint.clientNegotiate('my_hub');
-    let ws = new WebSocket(`${url}?access_token=${token}`);
+    let endpoint = new WebPubSubServiceClient('<CONNECTION_STRING>', 'my_hub');
+    let token = endpoint.getAuthenticationToken();
+    let ws = new WebSocket(token.url);
 
     ws.on('open', () => console.log('connected'));
     ws.on('message', data => console.log(data));;
@@ -42,7 +42,7 @@ In Azure Web PubSub you can connect to the service and subscribe to messages thr
 
 The code above creates a WebSocket connection to connect to a hub called "my_hub". Hub is a logical unit in Azure Web PubSub where you can publish messages to a group of clients.
 
-Azure Web PubSub by default doesn't allow anonymous connection. So in the code sample we use `WebPubSubServiceEndpoint.signClient()` in Web PubSub SDK to generate an access token and pass it to the service through a query string.
+Azure Web PubSub by default doesn't allow anonymous connection. So in the code sample we use `WebPubSubServiceClient.getAuthenticationToken()` in Web PubSub SDK to generate an access token and pass it to the service through a query string.
 
 After connection is established, you will receive messages through the WebSocket connection. So in the last line of code we use `WebSocket.on('message', ...)` to listen to incoming messages.
 
@@ -53,10 +53,10 @@ Now replace `<CONNECTION_STRING>` with the connection string of your Web PubSub 
 Now let's use Azure Web PubSub SDK to publish a message to the service:
 
 ```javascript
-const { WebPubSubServiceRestClient } = require('azure-websockets/webpubsub');
+const { WebPubSubServiceClient } = require('@azure/webpubsub');
 
-let serviceClient = new WebPubSubServiceRestClient('<CONNECTION_STRING>', 'my_hub');
-serviceClient.sendToAll('Hello World');
+let serviceClient = new WebPubSubServiceClient('<CONNECTION_STRING>', 'my_hub');
+serviceClient.sendToAll('Hello World', { dataType: 'text'});
 ```
 
 The `sendToAll()` call simply sends a message to all connected clients in "my_hub" hub. Run the code above (also remember to set the connection string) and you'll see a "Hello World" message printed out in the subscriber.

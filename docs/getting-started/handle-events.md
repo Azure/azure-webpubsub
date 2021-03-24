@@ -66,7 +66,7 @@ You may remember in last tutorial the subscriber uses an API in Web PubSub SDK t
     const express = require('express');
     const { WebPubSubServiceClient, WebPubSubCloudEventsHandler, PayloadDataType } = require('azure-websockets/webpubsub');
 
-    const server = new WebPubSubServiceClient('<CONNECTION_STRING>', 'chat');
+    const serviceClient = new WebPubSubServiceClient('<CONNECTION_STRING>', 'chat');
     const app = express();
 
     app.get('/negotiate', async (req, res) => {
@@ -158,21 +158,13 @@ Besides system events like connected or disconnected, client can also send messa
     
     const handler = new WebPubSubCloudEventsHandler(hub, ['*'], {
       path: '/eventhandler',
-      onConnect: async req => {
-        return {};
-      },
       onConnected: async req => {
         ...
       },
-      onUserEvent: async req => {
+      onUserEvent: async (req, res) => {
+        res.success("Received", 'text');
         if (req.context.eventName === 'message') {
-          await serviceClient.sendToAll(`[${req.context.userId}] ${req.payload.data}`, { plainText: true });
-        }
-        return {
-          payload: {
-            data: "received",
-            dataType: PayloadDataType.text
-          }
+          await serviceClient.sendToAll(`[${req.context.userId}] ${req.payload.data}`, { dataType: 'text' });
         }
       }
     });
@@ -225,7 +217,7 @@ Besides system events like connected or disconnected, client can also send messa
       path: '/eventhandler',
       onConnected: async req => {
         console.log(`${req.context.userId} connected`);
-        await serviceClient.sendToAll(`[SYSTEM] ${req.context.userId} joined`, { plainText: true });
+        await serviceClient.sendToAll(`[SYSTEM] ${req.context.userId} joined`, { dataType: 'text' });
       },
       ...
     });
