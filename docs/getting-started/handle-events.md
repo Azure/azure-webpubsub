@@ -164,7 +164,7 @@ Besides system events like connected or disconnected, client can also send messa
       handleUserEvent: async (req, res) => {
         res.success("Received", 'text');
         if (req.context.eventName === 'message') {
-          await serviceClient.sendToAll(`[${req.context.userId}] ${req.payload.data}`, { dataType: 'text' });
+          await serviceClient.sendToAll(`[${req.context.userId}] ${req.data}`, { dataType: 'text' });
         }
       }
     });
