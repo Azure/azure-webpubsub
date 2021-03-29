@@ -47,6 +47,7 @@ This extension defines attributes used by Web PubSub Service for every event it 
 | `connectionId` | `string` | The connectionId is unique for the client connection | |
 | `eventName` | `string` | The name of the event without prefix | |
 | `subprotocol` | `string` | The subprotocol the client is using if any | |
+| `signature` | `string` | The signature for the upstream webhook to validate if the incoming request is from the expected origin. The service calcuates the value using both primary access key and secondary access key as the HMAC key: `Hex_encoded(HMAC_SHA256(accessKey, connectionId))`. The upstream should check if the request is valid before processing it. | |
 
 ## Events
 
