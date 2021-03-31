@@ -30,36 +30,51 @@ In Azure Web PubSub you can connect to the service and subscribe to messages thr
 
     ```javascript
     const WebSocket = require('ws');
-    const { WebPubSubServiceEndpoint } = require('azure-websockets/webpubsub');
+    const { WebPubSubServiceClient } = require('@azure/webpubsub');
 
-    let endpoint = new WebPubSubServiceEndpoint('<CONNECTION_STRING>');
-    let { url, token } = endpoint.clientNegotiate('my_hub');
-    let ws = new WebSocket(`${url}?access_token=${token}`);
+    async function main() {
+      if (process.argv.length !== 4) {
+        console.log('Usage: node subscribe <connection-string> <hub-name>');
+        return 1;
+      }
 
-    ws.on('open', () => console.log('connected'));
-    ws.on('message', data => console.log(data));;
+      let serviceClient = new WebPubSubServiceClient(process.argv[2], process.argv[3]);
+      let token = await serviceClient.getAuthenticationToken();
+      let ws = new WebSocket(token.url);
+      ws.on('open', () => console.log('connected'));
+      ws.on('message', data => console.log(data));;
+    }
+
+    main();
     ```
 
-The code above creates a WebSocket connection to connect to a hub called "my_hub". Hub is a logical unit in Azure Web PubSub where you can publish messages to a group of clients.
+The code above creates a WebSocket connection to connect to a hub in Azure Web PubSub. Hub is a logical unit in Azure Web PubSub where you can publish messages to a group of clients.
 
-Azure Web PubSub by default doesn't allow anonymous connection. So in the code sample we use `WebPubSubServiceEndpoint.signClient()` in Web PubSub SDK to generate an access token and pass it to the service through a query string.
+Azure Web PubSub by default doesn't allow anonymous connection, so in the code sample we use `WebPubSubServiceClient.getAuthenticationToken()` in Web PubSub SDK to generate a url to the service that contains an access token and hub name.
 
-After connection is established, you will receive messages through the WebSocket connection. So in the last line of code we use `WebSocket.on('message', ...)` to listen to incoming messages.
+After connection is established, you will receive messages through the WebSocket connection. So we use `WebSocket.on('message', ...)` to listen to incoming messages.
 
-Now replace `<CONNECTION_STRING>` with the connection string of your Web PubSub resource (you can find it in "Keys" tab in Azure portal) and run the code, you'll see a `connected` message printed out, indicating that you have successfully connected to the service.
+Now save the code above as `subscribe.js` and run it using `node subscribe "<connection-string>" <hub-name>` (`<connection-string>` can be found in "Keys" tab in Azure portal, `<hub-name>` can be any alphabetical string you like), you'll see a `connected` message printed out, indicating that you have successfully connected to the service.
+
+> Make sure your connection string is enclosed by quotes ("") in Linux as connection string contains semicolon.
 
 ## Setup publisher
 
 Now let's use Azure Web PubSub SDK to publish a message to the service:
 
 ```javascript
-const { WebPubSubServiceRestClient } = require('azure-websockets/webpubsub');
+const { WebPubSubServiceClient } = require('@azure/webpubsub');
 
-let serviceClient = new WebPubSubServiceRestClient('<CONNECTION_STRING>', 'my_hub');
-serviceClient.sendToAll('Hello World');
+if (process.argv.length !== 5) {
+  console.log('Usage: node publish <connection-string> <hub-name> <message>');
+  return 1;
+}
+
+let serviceClient = new WebPubSubServiceClient(process.argv[2], process.argv[3]);
+serviceClient.sendToAll(process.argv[4], { dataType: 'text' });
 ```
 
-The `sendToAll()` call simply sends a message to all connected clients in "my_hub" hub. Run the code above (also remember to set the connection string) and you'll see a "Hello World" message printed out in the subscriber.
+The `sendToAll()` call simply sends a message to all connected clients in a hub. Save the code above as `publish.js` and run `node publish "<connection-string>" <hub-name> <message>` with the same connection string and hub name you used in subscriber, you'll see the message printed out in the subscriber.
 
 Since the message is sent to all clients, you can open multiple subscribers at the same time and all of them will receive the same message.
 

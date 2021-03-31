@@ -1,0 +1,42 @@
+<html>
+
+<head>
+  <style>
+    #output {
+      white-space: pre;
+      font-family: monospace;
+    }
+  </style>
+</head>
+
+<body>
+  <div id="output"></div>
+  <script>
+    (async function () {
+      let res = await fetch('/negotiate')
+      let data = await res.json();
+      let ws = new WebSocket(data.url, 'json.webpubsub.azure.v1');
+      ws.onopen = () => {
+        console.log('connected');
+        ws.send(JSON.stringify({
+          type: 'joinGroup',
+          group: 'stream'
+        }));
+      };
+
+      let output = document.querySelector('#output');
+      ws.onmessage = event => {
+        let message = JSON.parse(event.data);
+        if (message.type === 'message' && message.group === 'stream') {
+          let d = document.createElement('span');
+          let text = message.data.replace(/\\n/g, '\n'); // workaround for a runtime bug
+          d.innerText = text;
+          output.appendChild(d);
+          window.scrollTo(0, document.body.scrollHeight);
+        }
+      };
+    })();
+  </script>
+</body>
+
+</html>

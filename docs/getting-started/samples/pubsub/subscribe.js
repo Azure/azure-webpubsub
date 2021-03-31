@@ -1,9 +1,17 @@
 const WebSocket = require('ws');
-const { WebPubSubServiceEndpoint } = require('azure-websockets/webpubsub');
+const { WebPubSubServiceClient } = require('@azure/webpubsub');
 
-let endpoint = new WebPubSubServiceEndpoint('<CONNECTION_STRING>');
-let { url, token } = endpoint.clientNegotiate('my_hub');
-let ws = new WebSocket(`${url}?access_token=${token}`);
+async function main() {
+  if (process.argv.length !== 4) {
+    console.log('Usage: node subscribe <connection-string> <hub-name>');
+    return 1;
+  }
 
-ws.on('open', () => console.log('connected'));
-ws.on('message', data => console.log(data));;
+  let serviceClient = new WebPubSubServiceClient(process.argv[2], process.argv[3]);
+  let token = await serviceClient.getAuthenticationToken();
+  let ws = new WebSocket(token.url);
+  ws.on('open', () => console.log('connected'));
+  ws.on('message', data => console.log(data));;
+}
+
+main();

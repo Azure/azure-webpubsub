@@ -1,6 +1,6 @@
 # Work with subprotocols
 
-In previous tutorials you have learned how to use WebSocket APIs to send and receive data with Azure Web PubSub. You can see there is no protocol needed when client is communicating with the service. For example, you can use `WebSocket.send()` to send any data and server will receive the data as is. This is easy to use, but functionality is also limited. You cannot, for example, specify the event name when sending the event to server, or publish message to other clients instead of sending it to server. In this tutorial you will learn how to use subprotocol to extend the functionality of client.
+In previous tutorials you have learned how to use WebSocket APIs to send and receive data with Azure Web PubSub. You can see there is no protocol needed when client is communicating with the service. For example, you can use `WebSocket.send()` to send any data and server will receive the data as is. This is easy to use, but the functionality is also limited. You cannot, for example, specify the event name when sending the event to server, or publish message to other clients instead of sending it to server. In this tutorial you will learn how to use subprotocol to extend the functionality of client.
 
 ## Using a subprotocol
 
@@ -14,55 +14,177 @@ Currently Azure Web PubSub only supports one subprotocol: `json.webpubsub.azure.
 
 > If you use other protocol names, they will be ignored by the service and passthrough to server in the connect event handler, so you can build your own protocols.
 
-Now let's update the chat app to use this subprotocol.
+Now let's create a simple web application using the subprotocol.
 
-First update the WebSocket constructor to use the subprotocol:
+1.  Install dependencies
 
-```javascript
-let ws = new WebSocket(data.url, 'json.webpubsub.azure.v1');
+    ```bash
+    npm init -y
+    npm install --save express
+    npm install --save ws
+    npm install --save node-fetch
+    npm install --save https://github.com/vicancy/azure-websockets.git
+    ```
+
+2.  Create a `server.js` to host the `/negotiate` API and web page.
+
+    ```javascript
+    const express = require('express');
+    const { WebPubSubServiceClient } = require('@azure/webpubsub');
+
+    let endpoint = new WebPubSubServiceClient(process.argv[2], 'stream');
+    const app = express();
+
+    app.get('/negotiate', async (req, res) => {
+      let token = await endpoint.getAuthenticationToken();
+      res.send({
+        url: token.url
+      });
+    });
+
+    app.use(express.static('public'));
+    app.listen(8080, () => console.log('server started'));
+    ```
+
+3.  Create an html page and save it as `public/index.html`.
+
+    ```html
+    <html>
+
+    <body>
+      <div id="output"></div>
+      <script>
+        (async function () {
+          let res = await fetch('/negotiate')
+          let data = await res.json();
+          let ws = new WebSocket(data.url, 'json.webpubsub.azure.v1');
+          ws.onopen = () => {
+            console.log('connected');
+          };
+
+          let output = document.querySelector('#output');
+          ws.onmessage = event => {
+            let message = JSON.parse(event.data);
+            let d = document.createElement('span');
+            d.innerText = text;
+            output.appendChild(d);
+          };
+        })();
+      </script>
+    </body>
+
+    </html>
+    ```
+
+    It just connects to the service and print any message received to the page. The main change here is we specify the subprotocol when creating the WebSocket connection.
+
+Now run `node server "<conneciton-string>"` and open `http://localhost:8080` in browser, you can see the WebSocket connection is established as before.
+
+Then you can send a message to the server using the publisher app in our first tutorial:
+
+```bash
+node publish "<connection-string>" stream <message>
 ```
 
-Then start the server and open your browser, type your username, you'll see the joined message is now different:
+You can see the message is received in client and it's a bit different than before:
 
 ```json
-{"type":"message","from":"server","dataType":"text","data":"\"[SYSTEM] <username> joined\""}
+{"type":"message","from":"server","dataType":"text","data":"<message>"}
 ```
 
-Instead of a plain text of "someone joined", client now receives a json message that contains more information, like what's the message type and where it is from. So you can use this information to do additional processing to the message (for example, display the message in a different style if it's from a different source).
+Instead of a plain text, client now receives a json message that contains more information, like what's the message type and where it is from. So you can use this information to do additional processing to the message (for example, display the message in a different style if it's from a different source).
 
-Now if you try to send something to others, you'll receive an error message and the connection will be closed.
+## Publish messages from client
 
-```json
-{"type":"system","event":"close","message":"Failed to process invalid incoming payload."}
+In last tutorial, when client sends a message through WebSocket connection, it will trigger a user event at server side. With subprotocol, client will have more functionalities by sending a JSON message. For example, you can publish message directly from client to other clients.
+
+This will be useful if you want to stream a large amount of data to other clients in real time. Let's use this feature to build a log streaming application, which can stream console logs to browser in real time.
+
+1.  Create a `stream.js` with the following content.
+
+    ```javascript
+    const WebSocket = require('ws');
+    const fetch = require('node-fetch');
+
+    async function main() {
+      let res = await fetch(`http://localhost:8080/negotiate`);
+      let data = await res.json();
+      let ws = new WebSocket(data.url, 'json.webpubsub.azure.v1');
+      ws.on('open', () => {
+        process.stdin.on('data', data => {
+          ws.send(JSON.stringify({
+            type: 'sendToGroup',
+            group: 'stream',
+            dataType: 'text',
+            data: data.toString()
+          }));
+          process.stdout.write(data);
+        });
+      });
+      process.stdin.on('close', () => ws.close());
+    }
+
+    main();
+    ```
+
+    The code above creates a WebSocket connection to the service and then whenever it receives some data it uses `ws.send()` to publish the data. In order to publish to others, you just need to set `type` to `sendToGroup` and specify a group name in the message.
+
+    You can see there is a new concept "group" here. Group is logical concept in a hub where you can publish message to a group of connections. In a hub you can have multiple groups and one client can subscribe to multiple groups at the same time. When using subprotocol, you can only publish to a group instead of broadcasting to the whole hub.
+
+2.  Since we use group here, we also need to update the web page to join the group.
+
+    ```javascript
+    ws.onopen = () => {
+      console.log('connected');
+      ws.send(JSON.stringify({
+        type: 'joinGroup',
+        group: 'stream'
+      }));
+    };
+
+    let output = document.querySelector('#output');
+    ws.onmessage = event => {
+      let message = JSON.parse(event.data);
+      if (message.type === 'message' && message.group === 'stream') {
+        let d = document.createElement('span');
+        d.innerText = text;
+        output.appendChild(d);
+        window.scrollTo(0, document.body.scrollHeight);
+      }
+    };
+    ```
+
+    You can see client joins the group by sending a message in `joinGroup` type.
+
+    You can also see we changed the code when message is received to parse the message and get the data from json format.
+
+3.  Finally also apply some style to the output so it displays nicely.
+
+    ```html
+    <html>
+
+    <head>
+      <style>
+        #output {
+          white-space: pre;
+          font-family: monospace;
+        }
+      </style>
+    </head>
+    ```
+
+Now you can run `node stream`, type any text and they will be displayed in the browser in real time.
+
+Or you can also use this app pipe any output from another console app and stream it to the browser. For example:
+
+```bash
+ls -R | node stream
 ```
 
-This is because service now expects a message in json format that follows the subprotocol but we're sending a plain text. So let's change the send part to send a json message:
+Or you make it slower so you can see the data is streamed to browser in real time:
 
-```javascript
-message.addEventListener('keypress', e => {
-  if (e.charCode !== 13) return;
-  ws.send(JSON.stringify({
-    type: 'event',
-    event: 'message',
-    dataType: 'text',
-    data: message.value
-  }));
-  message.value = '';
-});
+```bash
+for i in $(ls -R); do echo $i; sleep 0.1; done | node stream
 ```
 
-You can see you need to specify message type, event type and data type together with the message body. This means you can also send other message or event type if you want, which is not possible if you're not using subprotocol.
-
-Also change the receive part to show the message text instead of the json:
-
-```javascript
-ws.onmessage = event => {
-  let m = document.createElement('p');
-  m.innerText = JSON.parse(event.data).data;
-  messages.appendChild(m);
-};
-```
-
-Here we simply parse the json message and get the message body from it.
-
-Now rerun the app you'll see it's working as before.
+The complete code sample of this tutorial can be found [here](samples/logstream/).
