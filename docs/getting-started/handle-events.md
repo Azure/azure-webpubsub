@@ -64,20 +64,22 @@ You may remember in last tutorial the subscriber uses an API in Web PubSub SDK t
 
     ```javascript
     const express = require('express');
-    const { WebPubSubServer } = require('azure-websockets/webpubsub');
+    const { WebPubSubServiceClient } = require('@azure/webpubsub');
 
-    const server = new WebPubSubServer('<CONNECTION_STRING>', 'chat');
     const app = express();
+    const hubName = 'chat';
 
-    app.get('/negotiate', (req, res) => {
+    let serviceClient = new WebPubSubServiceClient(process.argv[2], hubName);
+
+    app.get('/negotiate', async (req, res) => {
       let id = req.query.id;
       if (!id) {
         res.status(400).send('missing user id');
         return;
       }
-      let { url, token } = server.endpoint.clientNegotiate('chat', { userId: id });
+      let token = await serviceClient.getAuthenticationToken({ userId: id });
       res.send({
-        url: `${url}?access_token=${token}`
+        url: token.url
       });
     });
 
@@ -85,7 +87,7 @@ You may remember in last tutorial the subscriber uses an API in Web PubSub SDK t
     app.listen(8080, () => console.log('server started'));
     ```
 
-    This token generation code is very similar to the one we used in the last tutorial, except we pass one more argument (`userId`) when generating the token. User ID can be used to identify the identity of client so when you receive a message you know where is message is coming from.
+    This token generation code is very similar to the one we used in the last tutorial, except we pass one more argument (`userId`) when generating the token. User ID can be used to identify the identity of client so when you receive a message you know where the message is coming from.
 
     You can test this API by accessing `http://localhost:8080/negotiate?id=<user-id>` and it will give you the full url of the Azure Web PubSub with an access token.
 
@@ -115,8 +117,14 @@ Azure Web PubSub follows [CloudEvents](https://cloudevents.io/) to describe even
 
 Add the following code to expose a REST API at `/eventhandler` (which is done by the express middleware provided by Web PubSub SDK) to handle the client connected event:
 
+```bash
+npm install --save https://www.myget.org/F/azure-webpubsub-dev/npm/@azure/web-pubsub-express/-/1.0.0-preview.1
+```
+
 ```javascript
-let handler = server.createCloudEventsHandler({
+const { WebPubSubCloudEventsHandler } = require('@azure/web-pubsub-express');
+
+let handler = new WebPubSubCloudEventsHandler(hubName, ['*'], {
   path: '/eventhandler',
   onConnected: async req => {
     console.log(`${req.context.userId} connected`);
@@ -142,7 +150,7 @@ Then open Azure portal and go to the settings tab to configure the event handler
 
 1. Type the hub name (chat) and click "Add".
 
-2. Set URL Pattern to `https://<domain-name>.ngrok.io/eventhandler` and Event Pattern to `connected`, click "Save".
+2. Set URL Pattern to `https://<domain-name>.ngrok.io/eventhandler` and check "connected" in System Event Pattern, click "Save".
 
 After the save is completed, open the home page, input your user name, you'll see the connected message printed out in the server console.
 
@@ -153,21 +161,23 @@ Besides system events like connected or disconnected, client can also send messa
 1. Add a new `onUserEvent` handler
 
     ```javascript
-    let serviceClient = server.createServiceClient();
-    let handler = server.createCloudEventsHandler({
+    let handler = new WebPubSubCloudEventsHandler(hubName, ['*'], {
       path: '/eventhandler',
       onConnected: async req => {
         ...
       },
-      onUserEvent: async req => {
-        if (req.eventName === 'message') await serviceClient.sendToAll(`[${req.context.userId}] ${req.payload.data}`);
+      handleUserEvent: async (req, res) => {
+        if (req.context.eventName === 'message') await serviceClient.sendToAll(`[${req.context.userId}] ${req.data}`, { dataType: 'text' });
+        res.success();
       }
     });
     ```
 
     This event handler uses `WebPubSubServiceRestClient.sendToAll()` to broadcast the received message to all clients.
 
-2.  Then go to the event handler settings in Azure portal and add `message` to Event Pattern, and save.
+    You can see `handleUserEvent` also has a `res` object where you can send message back to the event sender. Here we simply call `res.success()` to make the WebHook return 200 (please note this is required even you don't want to return anything back to client, otherwise the WebHook will never return and client connection will be closed).
+
+2.  Then go to the event handler settings in Azure portal and add `message` to User Event Pattern, and save.
 
 3.  Update `index.html` to add the logic to send message from user to server and display received messages in the page.
 

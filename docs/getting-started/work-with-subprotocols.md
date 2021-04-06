@@ -147,7 +147,7 @@ This will be useful if you want to stream a large amount of data to other client
       let message = JSON.parse(event.data);
       if (message.type === 'message' && message.group === 'stream') {
         let d = document.createElement('span');
-        d.innerText = text;
+        d.innerText = message.data;
         output.appendChild(d);
         window.scrollTo(0, document.body.scrollHeight);
       }

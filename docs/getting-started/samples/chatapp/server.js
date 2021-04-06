@@ -1,31 +1,33 @@
 const express = require('express');
-const { WebPubSubServer } = require('azure-websockets/webpubsub');
+const { WebPubSubServiceClient } = require('@azure/webpubsub');
+const { WebPubSubCloudEventsHandler } = require('@azure/web-pubsub-express');
 
-const server = new WebPubSubServer('<CONNECTION_STRING>', 'chat');
 const app = express();
+const hubName = 'chat';
 
-let serviceClient = server.createServiceClient();
-let handler = server.createCloudEventsHandler({
+let serviceClient = new WebPubSubServiceClient(process.argv[2], hubName);
+let handler = new WebPubSubCloudEventsHandler(hubName, ['*'], {
   path: '/eventhandler',
   onConnected: async req => {
     console.log(`${req.context.userId} connected`);
-    await serviceClient.sendToAll(`[SYSTEM] ${req.context.userId} joined`);
+    await serviceClient.sendToAll(`[SYSTEM] ${req.context.userId} joined`, { dataType: 'text' });
   },
-  onUserEvent: async req => {
-    if (req.eventName === 'message') await serviceClient.sendToAll(`[${req.context.userId}] ${req.payload.data}`);
+  handleUserEvent: async (req, res) => {
+    if (req.context.eventName === 'message') await serviceClient.sendToAll(`[${req.context.userId}] ${req.data}`, { dataType: 'text' });
+    res.success();
   }
 });
 
 app.use(handler.getMiddleware());
-app.get('/negotiate', (req, res) => {
+app.get('/negotiate', async (req, res) => {
   let id = req.query.id;
   if (!id) {
     res.status(400).send('missing user id');
     return;
   }
-  let { url, token } = server.endpoint.clientNegotiate('chat', { userId: id });
+  let token = await serviceClient.getAuthenticationToken({ userId: id });
   res.send({
-    url: `${url}?access_token=${token}`
+    url: token.url
   });
 });
 

@@ -29,8 +29,7 @@
         let message = JSON.parse(event.data);
         if (message.type === 'message' && message.group === 'stream') {
           let d = document.createElement('span');
-          let text = message.data.replace(/\\n/g, '\n'); // workaround for a runtime bug
-          d.innerText = text;
+          d.innerText = message.data;
           output.appendChild(d);
           window.scrollTo(0, document.body.scrollHeight);
         }
