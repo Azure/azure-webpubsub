@@ -2,10 +2,10 @@ import { WebPubSubServiceClient } from "../src";
 
 import * as dotenv from "dotenv";
 dotenv.config();
-const chatServer = new WebPubSubServiceClient('', 'chat');
-
+const chatServer = new WebPubSubServiceClient(process.env.WPS_CONNECTION_STRING!, 'chat');
 async function main() {
-  // adding and removing users
+  console.log(await chatServer.getAuthenticationToken({userId: "hey"}));
+// adding and removing users
   const group = "group1";
   const user = "vicancy";
   //var exists = await chatServer.addUserToGroup(group, user);

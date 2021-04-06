@@ -2,7 +2,7 @@ const WebSocket = require('ws');
  
 async function main() {
   let clients = [
-    new WebSocket("ws://localhost:8080/client/hubs/chat")
+    new WebSocket("{client_url_from_portal}")
   ];
 
   clients.map(client => {
