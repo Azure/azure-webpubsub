@@ -28,9 +28,7 @@ The service provides 2 types of endpoints for the clients to connect to:
 `{hub}` is a mandatory parameter that acts as isolation for different applications. It can be set either in the path or in the query.
 
 ## Auth
-The service provides 2 ways of auth workflow:
 1. Client connects to the service with JWT token
-2. Client anonymously connects to the service first, and service calls `connect` upstream webhook to auth the client
 
 ### 1. The client connects using the JWT token
 
@@ -40,15 +38,6 @@ A general workflow is:
 1. Client negotiates with your application server. The application server has Auth middleware to handle the client request and sign a JWT token for the client to connect to the service.
 2. The application server returns the JWT token and the service URL to the client
 3. The client tries to connect to the Web PubSub service using the URL and JWT token returned from the application server
-
-### 2. Client connect anonymously
-
-A general workflow is:
-1. A `connect` event handler webhook is registered in the Web PubSub Service portal beforehand
-1. Client connects to the Web PubSub Service
-1. Web PubSub Service forward the `connect` request to the webhook upstream using CloudEvents format
-1. The upstream event handler auth the incoming `connect` request
-1. The client is now authed and connected to the service
 
 <a name="simple_client"></a>
 

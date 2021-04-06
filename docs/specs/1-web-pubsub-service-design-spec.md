@@ -202,10 +202,8 @@ The maximum allowed message size for one WebSocket frame is **1MB**.
 ### Client Auth
 
 #### Auth workflow
-When a client starts a connection to the service, there are 2 ways to do authentication:
 
-1. One way is that the client connects to the service with a JWT token signed by the server. 
-2. The other way is when there is a `connect` event handler registered for this client. The service then redirects the auth workflow to the `connect` event handler. The event handler can auth the client by specifying the `userId` and the `role`s the client has in the webhook response, or decline the client with 401. [Event handler](#event_handler) section describes it in detail.
+Client uses a signed JWT token to connect to the service. The upstream can also reject the client when it is `connect` event handler of the incoming client. The event handler can auth the client by specifying the `userId` and the `role`s the client has in the webhook response, or decline the client with 401. [Event handler](#event_handler) section describes it in detail.
 
 The below graph describes the workflow:
 
