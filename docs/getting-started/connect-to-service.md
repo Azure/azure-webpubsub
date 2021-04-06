@@ -22,9 +22,9 @@ toc: true
     - [CSharp](#csharp)
     - [Python](#python)
 - Server SDK
-    - [JavaScript](#javascript)
-    - [CSharp](#csharp)
-    - [Python](#python)
+    - [JavaScript](#javascript-1)
+    - [CSharp](#csharp-1)
+    - [Python](#python-1)
 
 ## Clients
 ### JavaScript
