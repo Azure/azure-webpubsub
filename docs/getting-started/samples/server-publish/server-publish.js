@@ -1,4 +1,4 @@
-const { WebPubSubServiceClient } = require('@azure/webpubsub');
+const { WebPubSubServiceClient } = require('@azure/web-pubsub');
 async function printToken() {
     let serviceClient = new WebPubSubServiceClient("{ConnectionString}", 'chat');
     try {
@@ -11,8 +11,9 @@ async function printToken() {
 
 async function publish() {
     let serviceClient = new WebPubSubServiceClient("{ConnectionString}", 'chat');
-    await serviceClient.sendToAll("Hello", { dataType: 'text'});
-    await serviceClient.sendToUser("user1", "{'Hello': 'world'}", {dataType: 'json'});
+    // supports object input
+    await serviceClient.sendToAll({'Hello': 'world'});
+    await serviceClient.sendToUser("user1", {'Hello': 'world'});
 }
 
 // print token

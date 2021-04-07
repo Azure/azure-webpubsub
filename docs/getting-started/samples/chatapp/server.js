@@ -1,5 +1,5 @@
 const express = require('express');
-const { WebPubSubServiceClient } = require('@azure/webpubsub');
+const { WebPubSubServiceClient } = require('@azure/web-pubsub');
 const { WebPubSubCloudEventsHandler } = require('@azure/web-pubsub-express');
 
 const app = express();
@@ -10,10 +10,12 @@ let handler = new WebPubSubCloudEventsHandler(hubName, ['*'], {
   path: '/eventhandler',
   onConnected: async req => {
     console.log(`${req.context.userId} connected`);
-    await serviceClient.sendToAll(`[SYSTEM] ${req.context.userId} joined`, { dataType: 'text' });
+    await serviceClient.sendToAll(`[SYSTEM] ${req.context.userId} joined`, {contentType: "text/plain"});
   },
   handleUserEvent: async (req, res) => {
-    if (req.context.eventName === 'message') await serviceClient.sendToAll(`[${req.context.userId}] ${req.data}`, { dataType: 'text' });
+    if (req.context.eventName === 'message') {
+      await serviceClient.sendToAll(`[${req.context.userId}] ${req.data}`, {contentType: "text/plain"});
+    }
     res.success();
   }
 });

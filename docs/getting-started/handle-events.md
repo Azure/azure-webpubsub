@@ -57,14 +57,14 @@ You may remember in last tutorial the subscriber uses an API in Web PubSub SDK t
 1.  Install Azure Web PubSub SDK
 
     ```bash
-    npm install --save https://github.com/vicancy/azure-websockets.git
+    npm install --save https://www.myget.org/F/azure-webpubsub-dev/npm/@azure/web-pubsub/-/1.0.0-preview.2
     ```
 
 2.  Add a `/negotiate` API to the server to generate the token
 
     ```javascript
     const express = require('express');
-    const { WebPubSubServiceClient } = require('@azure/webpubsub');
+    const { WebPubSubServiceClient } = require('@azure/web-pubsub');
 
     const app = express();
     const hubName = 'chat';
@@ -118,7 +118,7 @@ Azure Web PubSub follows [CloudEvents](https://cloudevents.io/) to describe even
 Add the following code to expose a REST API at `/eventhandler` (which is done by the express middleware provided by Web PubSub SDK) to handle the client connected event:
 
 ```bash
-npm install --save https://www.myget.org/F/azure-webpubsub-dev/npm/@azure/web-pubsub-express/-/1.0.0-preview.1
+npm install --save https://www.myget.org/F/azure-webpubsub-dev/npm/@azure/web-pubsub-express/-/1.0.0-preview.2
 ```
 
 ```javascript
@@ -167,7 +167,7 @@ Besides system events like connected or disconnected, client can also send messa
         ...
       },
       handleUserEvent: async (req, res) => {
-        if (req.context.eventName === 'message') await serviceClient.sendToAll(`[${req.context.userId}] ${req.data}`, { dataType: 'text' });
+        if (req.context.eventName === 'message') await serviceClient.sendToAll(`[${req.context.userId}] ${req.data}`, {contentType: "text/plain"});
         res.success();
       }
     });
