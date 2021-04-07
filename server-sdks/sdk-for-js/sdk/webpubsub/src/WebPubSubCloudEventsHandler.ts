@@ -85,6 +85,7 @@ export class WebPubSubCloudEventsHandler {
     });
     router.post(this.path, async (request, response, next) => {
       try {
+        console.log("post: " + this.path)
         if (!await this._cloudEventsHandler.processRequest(request, response)) {
         next();
         }
@@ -99,6 +100,7 @@ export class WebPubSubCloudEventsHandler {
     request: IncomingMessage,
     response: ServerResponse
   ): boolean {
+    console.log("process")
     if (request.headers["webhook-request-origin"]) {
       response.setHeader("WebHook-Allowed-Origin", this._allowedOrigins);
       response.end();

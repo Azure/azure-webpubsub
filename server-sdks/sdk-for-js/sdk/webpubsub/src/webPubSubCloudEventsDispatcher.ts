@@ -67,6 +67,10 @@ export class CloudEventsDispatcher {
   ) { }
 
   public async processRequest(request: IncomingMessage, response: ServerResponse): Promise<boolean> {
+    console.log("process request")
+
+    console.log(request.headers)
+
     // check if hub matches
     if (!this.eventHandler || request.headers["ce-hub"] !== this.hub) {
       return false;
