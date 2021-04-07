@@ -1,5 +1,5 @@
 const WebSocket = require('ws');
-const { WebPubSubServiceClient } = require('@azure/webpubsub');
+const { WebPubSubServiceClient } = require('@azure/web-pubsub');
 
 async function main() {
   if (process.argv.length !== 4) {

@@ -23,14 +23,14 @@ Now let's create a simple web application using the subprotocol.
     npm install --save express
     npm install --save ws
     npm install --save node-fetch
-    npm install --save https://github.com/vicancy/azure-websockets.git
+    npm install --save https://www.myget.org/F/azure-webpubsub-dev/npm/@azure/web-pubsub/-/1.0.0-preview.2
     ```
 
 2.  Create a `server.js` to host the `/negotiate` API and web page.
 
     ```javascript
     const express = require('express');
-    const { WebPubSubServiceClient } = require('@azure/webpubsub');
+    const { WebPubSubServiceClient } = require('@azure/web-pubsub');
 
     let endpoint = new WebPubSubServiceClient(process.argv[2], 'stream');
     const app = express();

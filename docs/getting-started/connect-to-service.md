@@ -25,6 +25,7 @@ toc: true
     - [JavaScript](#javascript-1)
     - [CSharp](#csharp-1)
     - [Python](#python-1)
+    - [Java](#java)
 
 ## Clients
 ### JavaScript
@@ -163,19 +164,19 @@ namespace subscriber
 
 ### JavaScript
 #### Get Client URL + REST API
-* Package: https://github.com/vicancy/azure-websockets.git
-* Source code: 
+* Package: https://www.myget.org/feed/azure-webpubsub-dev/package/npm/@azure/web-pubsub
+* Source code: https://github.com/bterlson/azure-sdk-for-js-pr/tree/add-signalr/sdk/web-pubsub/web-pubsub
 
 * Install
     ```cmd
-    npm install --save https://github.com/vicancy/azure-websockets.git
+    npm install --save https://www.myget.org/F/azure-webpubsub-dev/npm/@azure/web-pubsub/-/1.0.0-preview.2
     ```
 
 * Get Client URL Usage
 
   Sample [here](./samples/server-publish/server-publish.js)
     ```js
-    const { WebPubSubServiceClient } = require('@azure/webpubsub');
+    const { WebPubSubServiceClient } = require('@azure/web-pubsub');
     let serviceClient = new WebPubSubServiceClient("{ConnectionString}", 'chat');
     let token = await serviceClient.getAuthenticationToken({ userId: id });
     console.log(token);
@@ -186,7 +187,10 @@ namespace subscriber
     ```js
     const { WebPubSubServiceClient } = require('@azure/webpubsub');
     let serviceClient = new WebPubSubServiceClient("{ConnectionString}", 'chat');
-    await serviceClient.sendToAll("Hello", { dataType: 'text'});
+    await serviceClient.sendToAll("Hello", { contentType: 'text/plain'});
+    // or send the object as JSON
+    await serviceClient.sendToAll({"hello": "world"});
+
     ```
 
 ### Express Middleware
@@ -291,4 +295,34 @@ namespace publisher
     >>> response = client.send_request(request)
     >>> response
     <RequestsTransportResponse: 202 Accepted>
+    ```
+
+### Java
+#### REST API Pacakge
+* Source code: https://github.com/Azure/azure-sdk-for-java-pr/tree/master/sdk/webpubsub
+* Package： https://www.myget.org/feed/azure-webpubsub-dev/package/maven/com.azure/azure-messaging-webpubsub
+
+* Usage: 
+    https://github.com/Azure/azure-sdk-for-java-pr/blob/master/sdk/webpubsub/azure-messaging-webpubsub/src/test/java/com/azure/messaging/webpubsub/WebPubSubServiceClientTests.java
+
+    ```java
+    WebPubSubClientBuilder webPubSubClientBuilder = new WebPubSubClientBuilder()
+        .connectionString(CONNECTION_STRING)
+        .httpClient(HttpClient.createDefault())
+        .hub("test");
+
+    WebPubSubServiceClient client = webPubSubClientBuilder
+        .buildClient();
+    WebPubSubGroup groupClient = client.getGroup("test_group");
+
+    // Send plain text
+    client.sendToAllWithResponse(
+            "Hello World - Broadcast test!",
+            WebPubSubContentType.TEXT_PLAIN);
+
+    // Send JSON text
+    client.sendToAllWithResponse("{\"boolvalue\": true}");
+
+    // Group related
+    groupClient.checkUserExists("user1");
     ```
