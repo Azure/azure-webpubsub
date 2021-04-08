@@ -319,7 +319,7 @@ The service calls the event handler webhook for every valid custom event message
     "type": "event",
     "event": "<event_name>",
     "dataType" : "text",
-    "data": "text data", 
+    "data": "text data"
 }
 ```
 
@@ -391,7 +391,7 @@ ce-subprotocol: json.webpubsub.azure.v1
     "type": "event",
     "event": "<event_name>",
     "dataType" : "binary",
-    "data": "aGVsbG8gd29ybGQ=", // base64 encoded binary
+    "data": "aGVsbG8gd29ybGQ=" // base64 encoded binary
 }
 ```
 
@@ -415,7 +415,7 @@ ce-hub: {hub_name}
 ce-eventName: <event_name>
 ce-subprotocol: json.webpubsub.azure.v1
 
-0110100001100101011011000110110001101111001000000111011101101111011100100110110001100100
+<binary data>
 
 ```
 
