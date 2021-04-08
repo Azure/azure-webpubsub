@@ -23,7 +23,7 @@ In Azure Web PubSub you can connect to the service and subscribe to messages thr
     ```bash
     npm init -y
     npm install --save ws
-    npm install --save https://github.com/vicancy/azure-websockets.git
+    npm install --save https://www.myget.org/F/azure-webpubsub-dev/npm/@azure/web-pubsub/-/1.0.0-preview.2
 
     ```
 
@@ -31,7 +31,7 @@ In Azure Web PubSub you can connect to the service and subscribe to messages thr
 
     ```javascript
     const WebSocket = require('ws');
-    const { WebPubSubServiceClient } = require('@azure/webpubsub');
+    const { WebPubSubServiceClient } = require('@azure/web-pubsub');
 
     async function main() {
       if (process.argv.length !== 4) {
@@ -64,7 +64,7 @@ Now save the code above as `subscribe.js` and run it using `node subscribe "<con
 Now let's use Azure Web PubSub SDK to publish a message to the service:
 
 ```javascript
-const { WebPubSubServiceClient } = require('@azure/webpubsub');
+const { WebPubSubServiceClient } = require('@azure/web-pubsub');
 
 if (process.argv.length !== 5) {
   console.log('Usage: node publish <connection-string> <hub-name> <message>');
@@ -72,7 +72,9 @@ if (process.argv.length !== 5) {
 }
 
 let serviceClient = new WebPubSubServiceClient(process.argv[2], process.argv[3]);
-serviceClient.sendToAll(process.argv[4], { dataType: 'text' });
+
+// by default it uses `application/json`, specify contentType as `text/plain` if you want plain-text
+serviceClient.sendToAll(process.argv[4], { contentType: "text/plain" });
 ```
 
 The `sendToAll()` call simply sends a message to all connected clients in a hub. Save the code above as `publish.js` and run `node publish "<connection-string>" <hub-name> <message>` with the same connection string and hub name you used in subscriber, you'll see the message printed out in the subscriber.

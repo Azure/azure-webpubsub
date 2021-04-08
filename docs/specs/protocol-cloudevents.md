@@ -42,11 +42,12 @@ This extension defines attributes used by Web PubSub Service for every event it 
 
 | Name | Type | Description | Example|
 |--|--|--|--|
-| `signature` | `string` | | `sha256={connection-id-hash-primary},sha256={connection-id-hash-secondary}`|
 | `userId` | `string` | The user the connection authed | |
 | `hub` | `string` | The hub the connection belongs to | |
 | `connectionId` | `string` | The connectionId is unique for the client connection | |
 | `eventName` | `string` | The name of the event without prefix | |
+| `subprotocol` | `string` | The subprotocol the client is using if any | |
+| `signature` | `string` | The signature for the upstream webhook to validate if the incoming request is from the expected origin. The service calcuates the value using both primary access key and secondary access key as the HMAC key: `Hex_encoded(HMAC_SHA256(accessKey, connectionId))`. The upstream should check if the request is valid before processing it. | |
 
 ## Events
 
@@ -60,7 +61,8 @@ This extension defines attributes used by Web PubSub Service for every event it 
 
 ```HTTP
 POST /upstream HTTP/1.1
-Host: xxx.webpubsub.azure.com
+Host: xxxxxx
+WebHook-Request-Origin: xxx.webpubsub.azure.com
 Content-Type: application/json; charset=utf-8
 Content-Length: nnnn
 ce-specversion: 1.0
@@ -153,7 +155,8 @@ Request body is empty JSON.
 
 ```HTTP
 POST /upstream HTTP/1.1
-Host: xxx.webpubsub.azure.com
+Host: xxxxxx
+WebHook-Request-Origin: xxx.webpubsub.azure.com
 Content-Type: application/json; charset=utf-8
 Content-Length: nnnn
 ce-specversion: 1.0
@@ -166,6 +169,7 @@ ce-userId: {userId}
 ce-connectionId: {connectionId}
 ce-hub: {hub}
 ce-eventName: connect
+ce-subprotocol: abc
 
 {}
 
@@ -201,7 +205,8 @@ ce-time: 2021-01-01T00:00:00Z
 
 ```HTTP
 POST /upstream HTTP/1.1
-Host: xxx.webpubsub.azure.com
+Host: xxxxxx
+WebHook-Request-Origin: xxx.webpubsub.azure.com
 Content-Type: application/json; charset=utf-8
 Content-Length: nnnn
 ce-specversion: 1.0
@@ -214,6 +219,7 @@ ce-userId: {userId}
 ce-connectionId: {connectionId}
 ce-hub: {hub}
 ce-eventName: disconnect
+ce-subprotocol: abc
 
 {
     "reason": "{Reason}"
@@ -249,7 +255,7 @@ ce-time: 2021-01-01T00:00:00Z
 <a name="message"></a>
 The service invokes the event handler upstream for every WebSocket message frame.
 
-* `ce-type`: `azure.webpubsub.sys.disconnected`
+* `ce-type`: `azure.webpubsub.user.message`
 * `Content-Type`: `application/octet-stream` for binary frame; `text/plain` for text frame; 
 
 UserPayload is what the client sends.
@@ -258,7 +264,8 @@ UserPayload is what the client sends.
 
 ```HTTP
 POST /upstream HTTP/1.1
-Host: xxx.webpubsub.azure.com
+Host: xxxxxx
+WebHook-Request-Origin: xxx.webpubsub.azure.com
 Content-Type: application/octet-stream | text/plain | application/json
 Content-Length: nnnn
 ce-specversion: 1.0
@@ -312,7 +319,7 @@ The service calls the event handler webhook for every valid custom event message
     "type": "event",
     "event": "<event_name>",
     "dataType" : "text",
-    "data": "text data", 
+    "data": "text data"
 }
 ```
 
@@ -320,7 +327,8 @@ What the upstream event handler receives like below, please note that the `Conte
 
 ```HTTP
 POST /upstream HTTP/1.1
-Host: xxx.webpubsub.azure.com
+Host: xxxxxx
+WebHook-Request-Origin: xxx.webpubsub.azure.com
 Content-Type: text/plain
 Content-Length: nnnn
 ce-specversion: 1.0
@@ -333,6 +341,7 @@ ce-userId: {userId}
 ce-connectionId: {connectionId}
 ce-hub: {hub_name}
 ce-eventName: <event_name>
+ce-subprotocol: json.webpubsub.azure.v1
 
 text data
 
@@ -354,7 +363,8 @@ What the upstream event handler receives like below, please note that the `Conte
 
 ```HTTP
 POST /upstream HTTP/1.1
-Host: xxx.webpubsub.azure.com
+Host: xxxxxx
+WebHook-Request-Origin: xxx.webpubsub.azure.com
 Content-Type: application/json
 Content-Length: nnnn
 ce-specversion: 1.0
@@ -367,6 +377,7 @@ ce-userId: {userId}
 ce-connectionId: {connectionId}
 ce-hub: {hub_name}
 ce-eventName: <event_name>
+ce-subprotocol: json.webpubsub.azure.v1
 
 {
     "hello": "world"
@@ -380,7 +391,7 @@ ce-eventName: <event_name>
     "type": "event",
     "event": "<event_name>",
     "dataType" : "binary",
-    "data": "aGVsbG8gd29ybGQ=", // base64 encoded binary
+    "data": "aGVsbG8gd29ybGQ=" // base64 encoded binary
 }
 ```
 
@@ -388,7 +399,8 @@ What the upstream event handler receives like below, please note that the `Conte
 
 ```HTTP
 POST /upstream HTTP/1.1
-Host: xxx.webpubsub.azure.com
+Host: xxxxxx
+WebHook-Request-Origin: xxx.webpubsub.azure.com
 Content-Type: application/octet-stream
 Content-Length: nnnn
 ce-specversion: 1.0
@@ -401,8 +413,9 @@ ce-userId: {userId}
 ce-connectionId: {connectionId}
 ce-hub: {hub_name}
 ce-eventName: <event_name>
+ce-subprotocol: json.webpubsub.azure.v1
 
-0110100001100101011011000110110001101111001000000111011101101111011100100110110001100100
+<binary data>
 
 ```
 
@@ -422,6 +435,7 @@ ce-userId: {userId}
 ce-connectionId: {connectionId}
 ce-hub: {hub_name}
 ce-eventName: <event_name>
+ce-subprotocol: json.webpubsub.azure.v1
 
 UserResponsePayload
 ```

@@ -8,7 +8,7 @@ group: specs
 ## Table of Content
 - [Scope for Public Preview](#scope)
 - [JavaScript](#js)
-- [C#]
+- [C#](#csharp)
 - [Python](#python)
 - [Java]
 
@@ -16,57 +16,216 @@ group: specs
 <a name="scope"></a>
 
 The server SDK, providing a convinience way for the users to use the service, should contain the following features:
-1. [Must-have] Service->Server REST API support
-1. [Nice-to-have] Server->Service CloudEvents handler
-    1. Common data structure for Web PubSub Service specific CloudEvents request and response
-    1. Helper method to convert HTTP headers and body to Web PubSub Service specific CloudEvents request
-    1. Helper method to convert Web PubSub Service specific CloudEvents response to HTTP response headers and body
-    1. Middleware for processing Web PubSub Service specific CloudEvents HTTP requests
-1. [Nice-to-have] Client Auth token generator
+1. [All 4] Service->Server REST API support
+1. [All 4] Client Auth token generator
+1. [JS] Provide CloudEvents middleware to handle:
+    1. CloudEvents validation requests
+    1. CloudEvents event requests
 
+## Principles
+SDK is to provide an easy way for customers to use our service, we'd like the SDK to:
+1. Cover the end-to-end workflow of our service (there is a complete story to share)
+2. Straight-forward and easy to use
+3. SDK can later support WebSocket protocol with user having least effort to apply, and with the least confusion
 
-## JavaScript SDK proposal
+## JavaScript SDK Design
 <a name="js"></a>
 
-### For express
+### Packages
+1. Package1: `@azure/webpubsub`
+    * To provide the REST APIs invoking the Web PubSub service
+    * To provide utility functions for client negotiate
+    - This can be used in Azure Function for advanced message senders
+2. Package2: `@azure/webpubsub-express`
+    * To provide node/express middleware for handle:
+        * CloudEvents validation requests
+        * CloudEvents event requests
+
+### Data structure
+
+#### Request
+
+```ts
+// common context for the connection
+interface ConnectionContext {
+  hub: string;
+  connectionId: string;
+  eventName: string;
+  userId?: string;
+}
+
+// for `connect` event
+interface ConnectRequest {
+  context: ConnectionContext;
+  claims?: { [key: string]: string[] };
+  queries?: { [key: string]: string[] };
+  subprotocols?: string[];
+  clientCertificates?: ClientCertificate[];
+}
+
+// for `connected` event
+interface ConnectedRequest {
+  context: ConnectionContext;
+}
+
+// for user events, `message` or custom events
+interface UserEventRequest {
+  context: ConnectionContext;
+  payload: PayloadData;
+}
+
+// for `disconnected` event
+interface DisonnectedRequest {
+  context: ConnectionContext;
+  reason?: string;
+}
+
+interface ClientCertificate {
+  thumbprint: string;
+}
+
+interface PayloadData {
+  dataType: PayloadDataType;
+  data: string | ArrayBuffer, 
+}
+
+enum PayloadDataType {
+  binary,
+  text,
+  json,
+}
+```
+
+
+#### Response
+
+Only *synchronous* events `event` and user events (`message` or custom events) need responses.
+
+```ts
+
+interface ErrorResponse {
+  code: ErrorCode;
+  detail?: string;
+}
+
+enum ErrorCode {
+  serverError, // Response to service using 500
+  userError, // Response to service using 400
+  unauthorized, // Response to service using 401
+}
+
+interface ConnectResponse {
+  error?: ErrorResponse; // If error is set, we consider this a failed response
+  groups?: string[];
+  roles?: string[];
+  userId?: string;
+  subprotocol?: string;
+}
+
+interface PayloadData {
+  dataType: PayloadDataType; // Response Content-Type should be `plain/text` for PayloadDataType.text, and `application/octet-stream` for PayloadDataType.binary, and `application/json` for PayloadDataType.json
+  data: string | ArrayBuffer, 
+}
+
+// for user events, `message` or custom events
+interface UserEventResponse {
+  error?: ErrorResponse // If error is set, we consider this a failed response
+  payload?: PayloadData
+}
+
+enum PayloadDataType {
+  binary,
+  text,
+  json,
+}
+
+```
+
+**Note that**:
+* For payload, Response `Content-Type` should be `plain/text` for `PayloadDataType.text`, and `application/octet-stream` for `PayloadDataType.binary`, and `application/json` for `PayloadDataType.json`
+* When error is set, we always consider the response as error response
+
+### API
+
+1. Client negotiate utility function
+    ```ts
+    export interface NegotiateResponse {
+      url: string;
+      token: string;
+    }
+    interface NegotiateOptions {
+        userId?: string;
+        claims?: {
+            [key: string]: string[];
+        };
+    }
+    export declare class WebPubSubServiceEndpoint {
+        constructor(conn: string);
+        clientNegotiate(hub: string, options?: NegotiateOptions): NegotiateResponse;
+    }
+    ```
+    * This can be used in Azure Function for advanced message senders
+
+2. To provide node/express middleware for handle incoming requests
+    ```js
+    export interface WebPubSubEventHandlerOptions {
+      path?: string;
+      dumpRequest?: boolean;
+      onConnect?: (r: ConnectRequest) => Promise<ConnectResponse>
+      onUserEvent?: (r: UserEventRequest) => Promise<UserEventResponse>
+      onConnected?: (r: ConnectedRequest) => Promise<void>;
+      onDisconnected?: (r: DisconnectedRequest) => Promise<void>;
+    }
+
+    export declare class WebPubSubCloudEventsHandler {
+        readonly path: string;
+        constructor(connectionStringOrEndpoint: string | WebPubSubServiceEndpoint, hub: string, options?: WebPubSubEventHandlerOptions);
+    
+        handleRequest(request: IncomingMessage, response: ServerResponse): Promise<boolean>;
+        getMiddleware(): express.Router;
+    }
+    ```
+3. A general class containing all the functionalities:
+    ```js
+    export declare class WebPubSubServer {
+        endpoint: WebPubSubServiceEndpoint;
+        constructor(conn: string, hub: string);
+        createCloudEventsHandler(options?: WebPubSubEventHandlerOptions): WebPubSubCloudEventsHandler;
+        createServiceClient(options?: WebPubSubServiceRestClientOptions): WebPubSubServiceRestClient;
+    }
+    ```
+
+### Sample usage
+#### For express
 ```js
-const wpsserver = new WebPubSubServer(process.env.WPS_CONNECTION_STRING!,
+const handler = new WebPubSubCloudEventsHandler(process.env.WPS_CONNECTION_STRING!,
   {
-    onConnect: async connectRequest => {
-      // success with client joining group1
-      // await wpsserver.broadcast(connectRequest.context.connectionId);
-      console.log(connectRequest.context.connectionId);
+    onConnect: async (connectRequest, context) => {
       return {
         userId: "vicancy"
-      }; // or connectRequest.fail(); to 401 the request
+      }; 
     }
   }
 );
 
 const app = express();
 
-app.use(wpsserver.getMiddleware())
+app.use(handler.getMiddleware())
 
-app.listen(3000, () => console.log(`Azure WebPubSub Upstream ready at http://localhost:3000${wpsserver.eventHandlerUrl}`));
+app.listen(3000, () => console.log(`Azure WebPubSub Upstream ready at http://localhost:3000${handler.eventHandlerUrl}`));
 ```
 
-### For raw node
+#### For raw node
 ```js
-
-const wpsserver = new WebPubSubServer(process.env.WPS_CONNECTION_STRING!,
+const wpsserver = new WebPubSubServer(process.env.WPS_CONNECTION_STRING!, 'chat');
+const serviceClient = wpsserver.createServiceClient();
+const handler = wpsserver.createCloudEventsHandler(
   {
-    eventHandlerUrl: "/customUrl", // optional
-    hub: "chat", // optional
+    path: "/customUrl", // optional
     onConnect: async connectRequest => {
-      // success with client joining group1
-      // await wpsserver.broadcast(connectRequest.context.connectionId);
-      console.log(connectRequest.context);
       return {
         userId: "vicancy"
       }; // or connectRequest.fail(); to 401 the request
-    },
-    onConnected: async connectedRequest =>{
-      await wpsserver.broadcast(connectedRequest.context.connectionId + " connected");
     },
     onUserEvent: async userRequest => {
       return {
@@ -74,7 +233,7 @@ const wpsserver = new WebPubSubServer(process.env.WPS_CONNECTION_STRING!,
       };
     },
     onDisconnected: async disconnectRequest => {
-      console.log(disconnectRequest.context.userId + " disconnected");
+      await serviceClient.sendToAll(disconnectRequest.context.userId + " disconnected");
     }
   }
 );
@@ -82,7 +241,7 @@ const wpsserver = new WebPubSubServer(process.env.WPS_CONNECTION_STRING!,
 const port = 5555;
 
 const server = createServer(async (request: IncomingMessage, response: ServerResponse) => {
-  if (await wpsserver.handleNodeRequest(request, response)){
+  if (await handler.handleNodeRequest(request, response)){
     console.log(`Processed ${request.url}`);
   }
   else{
@@ -92,7 +251,191 @@ const server = createServer(async (request: IncomingMessage, response: ServerRes
   }
 });
 
-server.listen(port, () => console.log(`Azure WebPubSub Upstream ready at http://localhost:${port}${wpsserver.eventHandlerUrl}`));
+server.listen(port, () => console.log(`Azure WebPubSub Upstream ready at http://localhost:${port}${handler.eventHandlerUrl}`));
+```
+
+## C# SDK Design
+<a name="csharp"></a>
+
+### Packages
+1. Package1: `Azure.WebPubSub.Common` (name TBD)
+    * To provide the REST APIs invoking the Web PubSub service
+    * To provide utility functions for client negotiate
+    - This can be used in Azure Function for advanced message senders
+2. Package2: `Azure.WebPubSub.AspNetCore` (name TBD)
+    * To provide aspnetcore middleware for handle:
+        * To handle CloudEvents validation requests
+        * To handle CloudEvents event requests
+
+### Data structure
+
+#### Request
+
+```cs
+public class ConnectionContext
+{
+    public string Hub { get; set; }
+
+    public string ConnectionId { get; set; }
+
+    public string EventName { get; set; }
+
+    [AllowNull]
+    public string UserId { get; set; }
+}
+
+public class ConnectRequest
+{
+    public ConnectionContext Context { get; set; }
+
+    [AllowNull]
+    public Dictionary<string, string[]> Claims { get; set; }
+
+    [AllowNull]
+    public Dictionary<string, string[]> queries { get; set; }
+
+    [AllowNull]
+    public string[] Subprotocols { get; set; }
+
+    [AllowNull]
+    public ClientCertificate[] ClientCertificates { get; set; }
+}
+
+public class UserEventRequest
+{
+    public ConnectionContext Context { get; set; }
+    public PayloadData Payload { get; set; }
+}
+
+public class DisconnectedRequest
+{
+    public ConnectionContext Context { get; set; }
+
+    [AllowNull]
+    public string Reason { get; set; }
+}
+
+public class ConnectedRequest
+{
+    public ConnectionContext Context { get; set; }
+}
+
+public enum PayloadDataType
+{
+    Binary,
+    Text,
+    Json
+}
+
+public class ClientCertificate
+{
+    public string Thumbprint { get; set; }
+}
+```
+
+#### Response
+
+Only *synchronous* events `event` and user events (`message` or custom events) need responses.
+
+```cs
+public enum ResponseErrorCode
+{
+    ServerError,
+    UserError,
+    Unauthorized,
+}
+
+public class ErrorResponse
+{
+    public ResponseErrorCode Code { get; set; }
+
+    public string Detail { get; set; }
+}
+
+public class ConnectResponse
+{
+    [AllowNull]
+    public ErrorResponse Error { get; set; }
+
+    [AllowNull]
+    public string[] Groups { get; set; }
+
+    [AllowNull]
+    public string[] Roles { get; set; }
+
+    [AllowNull]
+    public string UserId { get; set; }
+
+    [AllowNull]
+    public string Subprotocol { get; set; }
+}
+
+public class UserEventResponse
+{
+    [AllowNull]
+    public ErrorResponse Error { get; set; }
+
+    [AllowNull]
+    public PayloadData Payload { get; set; }
+}
+
+public class PayloadData
+{
+    public ReadOnlySequence<byte> Data { get; set; }
+
+    public PayloadDataType DataType { get; set; }
+}
+```
+
+#### API
+
+1. Client negotiate utility function
+    ```cs
+    public class NegotiateResponse
+    {
+        public string Url { get; set; }
+        public string AccessToken { get; set; }
+    }
+    
+    public class NegotiateOptions
+    {
+        public string UserId { get; set; }
+
+        public IList<Claim> Claims { get; set; }
+    }
+
+    public class WebPubSubServiceEndpoint
+    {
+        public WebPubSubServiceEndpoint(string conn);
+
+        public Task<NegotiateResponse> ClientNegotiateAsync(string hub, NegotiateOptions options, CancellationToken cancellationToken);
+    }
+    ```
+    * This can be used in Azure Function for advanced message senders
+2. To provide ASPNETCore middleware for handle incoming requests
+    ```cs
+    public interface IWebPubSubCloudEventsHandler
+    {
+        Task<ConnectResponse> OnConnectAsync(ConnectRequest request);
+        Task<UserEventResponse> OnUserEventAsync(ConnectRequest request);
+        Task OnConnectedAsync(ConnectedRequest request);
+        Task OnDisconnectedAsync(DisconnectedRequest request);
+
+    }
+
+    public static class StartupExtension
+    {
+        public static IApplicationBuilder UseWebPubSubHandler<IWebPubSubCloudEventsHandler>(this IApplicationBuilder app);
+        public static IApplicationBuilder UseWebPubSubHandler<IWebPubSubCloudEventsHandler>(this IApplicationBuilder app, PathString path);
+    }
+    ```
+
+### Sample usage
+```cs
+public void Configure(IApplicationBuilder app, IWebHostEnvironment env)
+{
+    app.UseWebPubSubHandler<MyHandler>();
+}
 ```
 
 ## Python SDK proposal
@@ -112,7 +455,7 @@ def _on_connect(handler, req):
 
 
 def _on_connected(handler, req):
-  handler.broadcast("{} connected".format(req.context.connection_id))
+  handler.sendToAll("{} connected".format(req.context.connection_id))
 
 
 def _on_user_event(handler, req):

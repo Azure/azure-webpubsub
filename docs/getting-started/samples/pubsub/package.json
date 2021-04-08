@@ -10,7 +10,7 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
-    "@azure/webpubsub": "git+https://github.com/vicancy/azure-websockets.git",
+    "@azure/web-pubsub": "https://www.myget.org/F/azure-webpubsub-dev/npm/@azure/web-pubsub/-/1.0.0-preview.2",
     "ws": "^7.4.4"
   }
 }

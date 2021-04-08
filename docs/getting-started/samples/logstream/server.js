@@ -1,5 +1,5 @@
 const express = require('express');
-const { WebPubSubServiceClient } = require('@azure/webpubsub');
+const { WebPubSubServiceClient } = require('@azure/web-pubsub');
 
 let endpoint = new WebPubSubServiceClient(process.argv[2], 'stream');
 const app = express();

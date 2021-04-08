@@ -28,9 +28,7 @@ The service provides 2 types of endpoints for the clients to connect to:
 `{hub}` is a mandatory parameter that acts as isolation for different applications. It can be set either in the path or in the query.
 
 ## Auth
-The service provides 2 ways of auth workflow:
 1. Client connects to the service with JWT token
-2. Client anonymously connects to the service first, and service calls `connect` upstream webhook to auth the client
 
 ### 1. The client connects using the JWT token
 
@@ -40,15 +38,6 @@ A general workflow is:
 1. Client negotiates with your application server. The application server has Auth middleware to handle the client request and sign a JWT token for the client to connect to the service.
 2. The application server returns the JWT token and the service URL to the client
 3. The client tries to connect to the Web PubSub service using the URL and JWT token returned from the application server
-
-### 2. Client connect anonymously
-
-A general workflow is:
-1. A `connect` event handler webhook is registered in the Web PubSub Service portal beforehand
-1. Client connects to the Web PubSub Service
-1. Web PubSub Service forward the `connect` request to the webhook upstream using CloudEvents format
-1. The upstream event handler auth the incoming `connect` request
-1. The client is now authed and connected to the service
 
 <a name="simple_client"></a>
 
@@ -87,7 +76,7 @@ Format:
 
 ```json
 {
-    "type": "join",
+    "type": "joinGroup",
     "group": "<group_name>",
     "ackId" : 1 // optional
 }
@@ -104,7 +93,7 @@ Format:
 
 ```json
 {
-    "type": "leave",
+    "type": "leaveGroup",
     "group": "<group_name>",
     "ackId" : 1 // optional
 }
@@ -120,25 +109,25 @@ Format:
 
 ```json
 {
-    "type": "publish",
+    "type": "sendToGroup",
     "group": "<group_name>",
     "ackId" : 1, // optional
-    "dataType" : "text|binary|json",
+    "dataType" : "json|text|binary",
     "data": {}, // data can be string or valid json token depending on the dataType 
 }
 ```
 
 * `ackId` is optional, it is an incremental integer for this command message. When the `ackId` is specified, the service sends a [ack response message](#ack) back to the client when the command is executed.
 
-`dataType` can be one of `text`, `binary` or `json`:
-* `text`: data should be in string format, and the string data will be published; If `dataType` is not specified and data is a string, it defaults to `text`.
-* `binary`: data should be in base64 format, and the binary data will be published;
-* `json`: data can be any type json supports and will be published as what it is; If `dataType` is not specified and data is not a string, it defaults to `json`.
+`dataType` can be one of `json`, `text`, or `binary`:
+* `json`: `data` can be any type that JSON supports and will be published as what it is; If `dataType` is not specified, it defaults to `json`.
+* `text`: `data` should be in string format, and the string data will be published;
+* `binary`: `data` should be in base64 format, and the binary data will be published;
 
 ##### Case 1: publish text data:
 ```json
 {
-    "type": "publish",
+    "type": "sendToGroup",
     "group": "<group_name>",
     "dataType" : "text",
     "data": "text data" 
@@ -160,7 +149,7 @@ Format:
 ##### Case 2: publish json data:
 ```json
 {
-    "type": "publish",
+    "type": "sendToGroup",
     "group": "<group_name>",
     "dataType" : "json",
     "data": {
@@ -187,7 +176,7 @@ Format:
 ##### Case 3: publish binary data:
 ```json
 {
-    "type": "publish",
+    "type": "sendToGroup",
     "group": "<group_name>",
     "dataType" : "binary",
     "data": "<base64_binary>"
@@ -218,7 +207,7 @@ Format:
     "type": "event",
     "event": "<event_name>",
     "ackId" : 1, // optional
-    "dataType" : "text|binary|json",
+    "dataType" : "json|text|binary",
     "data": {}, // data can be string or valid json token depending on the dataType 
 }
 ```
@@ -226,9 +215,9 @@ Format:
 * `ackId` is optional, it is an incremental integer for this command message. When the `ackId` is specified, the service sends a [ack response message](#ack) back to the client when the command is executed.
 
 `dataType` can be one of `text`, `binary` or `json`:
-* `text`: data should be in string format, and the string data will be published; If `dataType` is not specified and data is a string, it defaults to `text`.
+* `json`: data can be any type json supports and will be published as what it is; If `dataType` is not specified, it defaults to `json`.
+* `text`: data should be in string format, and the string data will be published;
 * `binary`: data should be in base64 format, and the binary data will be published;
-* `json`: data can be any type json supports and will be published as what it is; If `dataType` is not specified and data is not a string, it defaults to `json`.
 
 ##### Case 1: send event with text data:
 ```json
@@ -244,7 +233,8 @@ What the upstream event handler receives like below, please note that the `Conte
 
 ```HTTP
 POST /upstream HTTP/1.1
-Host: xxx.webpubsub.azure.com
+Host: xxxxxx
+WebHook-Request-Origin: xxx.webpubsub.azure.com
 Content-Type: text/plain
 Content-Length: nnnn
 ce-specversion: 1.0
@@ -278,7 +268,8 @@ What the upstream event handler receives like below, please note that the `Conte
 
 ```HTTP
 POST /upstream HTTP/1.1
-Host: xxx.webpubsub.azure.com
+Host: xxxxxx
+WebHook-Request-Origin: xxx.webpubsub.azure.com
 Content-Type: application/json
 Content-Length: nnnn
 ce-specversion: 1.0
@@ -312,7 +303,8 @@ What the upstream event handler receives like below, please note that the `Conte
 
 ```HTTP
 POST /upstream HTTP/1.1
-Host: xxx.webpubsub.azure.com
+Host: xxxxxx
+WebHook-Request-Origin: xxx.webpubsub.azure.com
 Content-Type: application/octet-stream
 Content-Length: nnnn
 ce-specversion: 1.0
@@ -370,7 +362,7 @@ Clients can receive messages published from one group the client joined, or from
     "type": "message",
     "from": "group",
     "group": "<group_name>",
-    "dataType": "text|binary|json",
+    "dataType": "json|text|binary",
     "data" : {} // The data format is based on the dataType
 }
 ```
@@ -381,11 +373,47 @@ Clients can receive messages published from one group the client joined, or from
 {
     "type": "message",
     "from": "server",
-    "dataType": "text|binary|json",
+    "dataType": "json|text|binary",
     "data" : {} // The data format is based on the dataType
 }
 ```
+##### Case 1: Sending data `Hello World` to the connection through REST API with `Content-Type`=`text/plain` 
+* What a simple WebSocket client receives is a text WebSocket frame with data: `Hello World`;
+* What a PubSub WebSocket client receives is as follows:
+    ```json
+    {
+        "type": "message",
+        "from": "server",
+        "dataType" : "text",
+        "data": "Hello World", 
+    }
+    ```
+##### Case 2: Sending data `{ "Hello" : "World"}` to the connection through REST API with `Content-Type`=`application/json`
+* What a simple WebSocket client receives is a text WebSocket frame with stringified data: `{ "Hello" : "World"}`;
+* What a PubSub WebSocket client receives is as follows:
+    ```json
+    {
+        "type": "message",
+        "from": "server",
+        "dataType" : "json",
+        "data": {
+            "Hello": "World"
+        }
+    }
+    ```
+Please NOTE that if the REST API is sending a string `Hello World` using `application/json` content type, what the simple WebSocket client receives is a JSON string, which is `"Hello World"` that wrapps the string with `"`.
 
+##### Case 3:  Sending binary data to the connection through REST API with `Content-Type`=`application/octet-stream`
+* What a simple WebSocket client receives is a binary WebSocket frame with the bianry data.
+* What a PubSub WebSocket client receives is as follows:
+    ```json
+    {
+        "type": "message",
+        "from": "server",
+        "dataType" : "binary",
+        "data": "<base64_binary>"
+    }
+    ```
 <a name="system"></a>
 
 #### System response

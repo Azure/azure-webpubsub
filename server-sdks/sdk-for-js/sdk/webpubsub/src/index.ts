@@ -1,3 +1,11 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT license.
-export * from "./webPubSubServer";
+export {
+  WebPubSubCloudEventsHandler,
+  WebPubSubEventHandlerOptions
+} from "./WebPubSubCloudEventsHandler";
+
+// export { WebPubSubEventHandler } from "./webPubSubCloudEventsDispatcher";
+export * from "./webPubSubCloudEventsProtocols";
+
+export * from "./webPubSubServiceClient";

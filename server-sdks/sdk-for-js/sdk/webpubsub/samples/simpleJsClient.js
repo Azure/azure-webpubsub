@@ -1,9 +1,8 @@
 const WebSocket = require('ws');
-
+ 
 async function main() {
-
   let clients = [
-    new WebSocket('ws://localhost:8080/client/hubs/chat')
+    new WebSocket("{client_url_from_portal}")
   ];
 
   clients.map(client => {
@@ -14,7 +13,7 @@ async function main() {
   await new Promise(resolve => clients[0].once('open', resolve));
 
   // Prints "Hello!" twice, once for each client.
-  clients[0].send('Hello!');
+   clients[0].send('Hello!');
 }
 
 main();
