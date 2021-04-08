@@ -61,7 +61,8 @@ This extension defines attributes used by Web PubSub Service for every event it 
 
 ```HTTP
 POST /upstream HTTP/1.1
-Host: xxx.webpubsub.azure.com
+Host: xxxxxx
+WebHook-Request-Origin: xxx.webpubsub.azure.com
 Content-Type: application/json; charset=utf-8
 Content-Length: nnnn
 ce-specversion: 1.0
@@ -154,7 +155,8 @@ Request body is empty JSON.
 
 ```HTTP
 POST /upstream HTTP/1.1
-Host: xxx.webpubsub.azure.com
+Host: xxxxxx
+WebHook-Request-Origin: xxx.webpubsub.azure.com
 Content-Type: application/json; charset=utf-8
 Content-Length: nnnn
 ce-specversion: 1.0
@@ -203,7 +205,8 @@ ce-time: 2021-01-01T00:00:00Z
 
 ```HTTP
 POST /upstream HTTP/1.1
-Host: xxx.webpubsub.azure.com
+Host: xxxxxx
+WebHook-Request-Origin: xxx.webpubsub.azure.com
 Content-Type: application/json; charset=utf-8
 Content-Length: nnnn
 ce-specversion: 1.0
@@ -252,7 +255,7 @@ ce-time: 2021-01-01T00:00:00Z
 <a name="message"></a>
 The service invokes the event handler upstream for every WebSocket message frame.
 
-* `ce-type`: `azure.webpubsub.sys.disconnected`
+* `ce-type`: `azure.webpubsub.user.message`
 * `Content-Type`: `application/octet-stream` for binary frame; `text/plain` for text frame; 
 
 UserPayload is what the client sends.
@@ -261,7 +264,8 @@ UserPayload is what the client sends.
 
 ```HTTP
 POST /upstream HTTP/1.1
-Host: xxx.webpubsub.azure.com
+Host: xxxxxx
+WebHook-Request-Origin: xxx.webpubsub.azure.com
 Content-Type: application/octet-stream | text/plain | application/json
 Content-Length: nnnn
 ce-specversion: 1.0
@@ -323,7 +327,8 @@ What the upstream event handler receives like below, please note that the `Conte
 
 ```HTTP
 POST /upstream HTTP/1.1
-Host: xxx.webpubsub.azure.com
+Host: xxxxxx
+WebHook-Request-Origin: xxx.webpubsub.azure.com
 Content-Type: text/plain
 Content-Length: nnnn
 ce-specversion: 1.0
@@ -358,7 +363,8 @@ What the upstream event handler receives like below, please note that the `Conte
 
 ```HTTP
 POST /upstream HTTP/1.1
-Host: xxx.webpubsub.azure.com
+Host: xxxxxx
+WebHook-Request-Origin: xxx.webpubsub.azure.com
 Content-Type: application/json
 Content-Length: nnnn
 ce-specversion: 1.0
@@ -393,7 +399,8 @@ What the upstream event handler receives like below, please note that the `Conte
 
 ```HTTP
 POST /upstream HTTP/1.1
-Host: xxx.webpubsub.azure.com
+Host: xxxxxx
+WebHook-Request-Origin: xxx.webpubsub.azure.com
 Content-Type: application/octet-stream
 Content-Length: nnnn
 ce-specversion: 1.0

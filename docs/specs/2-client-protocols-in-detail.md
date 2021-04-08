@@ -233,7 +233,8 @@ What the upstream event handler receives like below, please note that the `Conte
 
 ```HTTP
 POST /upstream HTTP/1.1
-Host: xxx.webpubsub.azure.com
+Host: xxxxxx
+WebHook-Request-Origin: xxx.webpubsub.azure.com
 Content-Type: text/plain
 Content-Length: nnnn
 ce-specversion: 1.0
@@ -267,7 +268,8 @@ What the upstream event handler receives like below, please note that the `Conte
 
 ```HTTP
 POST /upstream HTTP/1.1
-Host: xxx.webpubsub.azure.com
+Host: xxxxxx
+WebHook-Request-Origin: xxx.webpubsub.azure.com
 Content-Type: application/json
 Content-Length: nnnn
 ce-specversion: 1.0
@@ -301,7 +303,8 @@ What the upstream event handler receives like below, please note that the `Conte
 
 ```HTTP
 POST /upstream HTTP/1.1
-Host: xxx.webpubsub.azure.com
+Host: xxxxxx
+WebHook-Request-Origin: xxx.webpubsub.azure.com
 Content-Type: application/octet-stream
 Content-Length: nnnn
 ce-specversion: 1.0
