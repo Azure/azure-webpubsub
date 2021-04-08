@@ -25,6 +25,7 @@ First let's create an empty express app.
 1.  Install express.js
 
     ```bash
+    npm init -y
     npm install --save express
     ```
 
@@ -50,7 +51,7 @@ First let's create an empty express app.
     </html>
     ```
 
-You can test the server by running `node server.js` and access `http://localhost:8080` in browser.
+You can test the server by running `node server` and access `http://localhost:8080` in browser.
 
 You may remember in last tutorial the subscriber uses an API in Web PubSub SDK to generate an access token from connection string and use it to connect to the service. This is usually not safe in a real world application as connection string has high privilege to do any operation to the service so you don't want to share it with any client. Let's change this access token generation process to a REST API at server side, so client can call this API to request an access token every time it needs to connect, without need to hold the connection string.
 
@@ -89,7 +90,7 @@ You may remember in last tutorial the subscriber uses an API in Web PubSub SDK t
 
     This token generation code is very similar to the one we used in the last tutorial, except we pass one more argument (`userId`) when generating the token. User ID can be used to identify the identity of client so when you receive a message you know where the message is coming from.
 
-    You can test this API by accessing `http://localhost:8080/negotiate?id=<user-id>` and it will give you the full url of the Azure Web PubSub with an access token.
+    You can test this API by running `node server "<connection-string>"` and accessing `http://localhost:8080/negotiate?id=<user-id>` and it will give you the full url of the Azure Web PubSub with an access token.
 
 3.  Then update `index.html` with the following script to get the token from server and connect to service
  

@@ -5,7 +5,11 @@ let endpoint = new WebPubSubServiceClient(process.argv[2], 'stream');
 const app = express();
 
 app.get('/negotiate', async (req, res) => {
-  let token = await endpoint.getAuthenticationToken();
+  let token = await endpoint.getAuthenticationToken({
+    claims: {
+      role: ['webpubsub.sendToGroup', 'webpubsub.joinLeaveGroup']
+    }
+  });
   res.send({
     url: token.url
   });

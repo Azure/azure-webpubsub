@@ -21,6 +21,7 @@ In Azure Web PubSub you can connect to the service and subscribe to messages thr
 1.  First install required dependencies:
 
     ```bash
+    npm init -y
     npm install --save ws
     npm install --save https://github.com/vicancy/azure-websockets.git
 
