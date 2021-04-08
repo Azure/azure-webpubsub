@@ -5,6 +5,5 @@ group: how-to-guides
 toc: true
 ---
 
-## Overview
-
-## Setup
+<a name="user-content-restart_connection"></a>
+## Client disconnect when scaling the service
