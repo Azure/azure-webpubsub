@@ -23,7 +23,9 @@ namespace subscriber
             var hub = args[2];
             // Either generate the token or fetch it from server or fetch a temp one from the portal
             var serviceClient = new WebPubSubServiceClient(new Uri(endpoint), hub, new Azure.AzureKeyCredential(key));
-            var url = serviceClient.GetClientAccessUri(TimeSpan.FromHours(1));
+            var url = serviceClient.GetClientAccessUri(claims: new System.Security.Claims.Claim[]{
+                new System.Security.Claims.Claim("sub", "userId")
+            });
             // start the connection
             Console.WriteLine(url);
             await webSocket.ConnectAsync(url, default);

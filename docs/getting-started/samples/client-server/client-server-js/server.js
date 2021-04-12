@@ -33,8 +33,8 @@ async function main(){
     let group = serviceClient.group("group1");
     
     // await group.addUser("user1");
-    await group.sendToAll("text from group to all", {contentType: "text/plain"});
-    await group.sendToAll("json from group to all");
+    await group.sendToAll("text from server to group", {contentType: "text/plain"});
+    await group.sendToAll("json from server to group");
 }
 
 main().catch(err=>console.log(err));
