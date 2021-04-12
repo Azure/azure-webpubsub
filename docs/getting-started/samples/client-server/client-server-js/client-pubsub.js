@@ -1,8 +1,24 @@
 const WebSocket = require('ws');
+const { WebPubSubServiceClient } = require('@azure/web-pubsub');
 
 async function main() {
-  const subscriber = new WebSocket("{Client_URL}", "json.webpubsub.azure.v1");
-  const publisher = new WebSocket("{Client_URL}", "json.webpubsub.azure.v1");
+  if (process.argv.length !== 4) {
+    console.log('Usage: node client-subprotocol <connection-string> <hub-name>');
+    return 1;
+  }
+
+  let serviceClient = new WebPubSubServiceClient(process.argv[2], process.argv[3]);
+  let token = await serviceClient.getAuthenticationToken({
+    userId: "user1",
+    claims: {
+        role: [
+            "webpubsub.joinLeaveGroup",
+            "webpubsub.sendToGroup"
+        ]
+    }
+});
+  const subscriber = new WebSocket(token.url, "json.webpubsub.azure.v1");
+  const publisher = new WebSocket(token.url, "json.webpubsub.azure.v1");
 
   publisher.on('message', msg => {
     console.log(msg);

@@ -12,7 +12,7 @@ toc: true
 2. Copy the *Client URL* from the portal, "Keys" blade
 ![Get URL](./../images/portal_client_url.png)
 
-3. Connect to the service using simple WebSocket API. Samples on using WebSocket Client API can be found [here](./samples/client-connect)
+3. Connect to the service using simple WebSocket API. Samples on using WebSocket Client API can be found [here](./samples/client-server)
 
 4. Use Server SDK to send messages to clients or manage the clients
 
@@ -38,7 +38,7 @@ toc: true
 2. For browser, `WebSocket` is natively supported.
 
 #### Simple WebSocket Client
-Sample code [here](./samples/client-connect/simple-client.js)
+Sample code [here](./samples/client-server/client-simple.js)
 
 ```js
 const WebSocket = require('ws');
@@ -54,7 +54,7 @@ client.on('open', () => {
 
 ![Client Role](./../images/portal_client_roles.png)
 
-Sample code [here](./samples/client-connect/pubsub-client.js)
+Sample code [here](./samples/client-server/client-pubsub.js)
 
 ```js
 const WebSocket = require('ws');
@@ -169,12 +169,12 @@ namespace subscriber
 
 * Install
     ```cmd
-    npm install --save https://www.myget.org/F/azure-webpubsub-dev/npm/@azure/web-pubsub/-/1.0.0-preview.2
+    npm install --save https://www.myget.org/F/azure-webpubsub-dev/npm/@azure/web-pubsub/-/1.0.0-preview.3
     ```
 
 * Get Client URL Usage
 
-  Sample [here](./samples/server-publish/server-publish.js)
+  Sample [here](./samples/server-server/server.js)
     ```js
     const { WebPubSubServiceClient } = require('@azure/web-pubsub');
     let serviceClient = new WebPubSubServiceClient("{ConnectionString}", 'chat');

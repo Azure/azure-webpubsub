@@ -1,5 +1,6 @@
 ﻿using System;
 using System.IO;
+using System.Net;
 using System.Net.WebSockets;
 using System.Text;
 using System.Threading.Tasks;
@@ -11,6 +12,8 @@ namespace subscriber
         static async Task Main(string[] args)
         {
             using var webSocket = new ClientWebSocket();
+            webSocket.Options.AddSubProtocol("json.webpubsub.azure.v1");
+
             if (args.Length != 3) {
                 Console.WriteLine("Usage: subscriber <endpoint> <key> <hub>");
                 return;
@@ -18,14 +21,21 @@ namespace subscriber
             var endpoint = args[0];
             var key = args[1];
             var hub = args[2];
-            
             // Either generate the token or fetch it from server or fetch a temp one from the portal
             var serviceClient = new WebPubSubServiceClient(new Uri(endpoint), hub, new Azure.AzureKeyCredential(key));
-            var url = serviceClient.GetClientAccessUri(TimeSpan.FromHours(1));
-            
+            var url = serviceClient.GetClientAccessUri(claims: new System.Security.Claims.Claim[]{
+                new System.Security.Claims.Claim("sub", "userId")
+            });
             // start the connection
+            Console.WriteLine(url);
             await webSocket.ConnectAsync(url, default);
             Console.WriteLine("Connected");
+            var message = new{
+                type = "joinGroup",
+                group = "group1",
+                ackId = 1
+            };
+            await webSocket.SendAsync(System.Text.Json.JsonSerializer.SerializeToUtf8Bytes(message), WebSocketMessageType.Text, true, default);
             var ms = new MemoryStream();
             Memory<byte> buffer = new byte[1024];
             // receive loop
