@@ -93,7 +93,10 @@ namespace Microsoft.Azure.WebJobs.Extensions.WebPubSub
                 return BuildErrorResponse(response.Error);
             }
 
-            result.Content = new StreamContent(response.Message.GetStream());
+            if (response.Message.Body != null)
+            {
+                result.Content = new StreamContent(response.Message.Body.ToStream());
+            }
             result.Content.Headers.ContentType = GetMediaType(response.Message.DataType);
 
             return result;

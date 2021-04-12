@@ -6,8 +6,6 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Net.Http;
 using System.Net.Http.Headers;
-using System.Reflection;
-using System.Runtime.InteropServices;
 using System.Security.Claims;
 using System.Threading.Tasks;
 
@@ -167,7 +165,7 @@ namespace Microsoft.Azure.WebJobs.Extensions.WebPubSub
 
             if (message != null && message.Body != null)
             {
-                request.Content = new StreamContent(message.GetStream());
+                request.Content = new StreamContent(message.Body.ToStream());
                 request.Content.Headers.ContentType = Utilities.GetMediaType(message.DataType);
             }
             return _httpClient.SendAsync(request);

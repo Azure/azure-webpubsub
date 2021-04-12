@@ -13,7 +13,6 @@ namespace Microsoft.Azure.WebJobs.Extensions.WebPubSub
     public class WebPubSubEvent
     {
         [Required]
-        [JsonRequired, JsonConverter(typeof(StringEnumConverter))]
         public WebPubSubOperation Operation { get; set; }
 
         public string GroupId { get; set; }
@@ -28,7 +27,6 @@ namespace Microsoft.Azure.WebJobs.Extensions.WebPubSub
 
         public string Permission { get; set; }
 
-        [JsonConverter(typeof(WebPubSubMessageJsonConverter))]
         public WebPubSubMessage Message { get; set; }
     }
 }
