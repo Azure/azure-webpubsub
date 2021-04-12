@@ -13,7 +13,6 @@
   "dependencies": {
     "@azure/web-pubsub": "https://www.myget.org/F/azure-webpubsub-dev/npm/@azure/web-pubsub/-/1.0.0-preview.2",
     "@azure/web-pubsub-express": "https://www.myget.org/F/azure-webpubsub-dev/npm/@azure/web-pubsub-express/-/1.0.0-preview.1",
-    "@azure/webpubsub": "git+https://github.com/vicancy/azure-websockets.git",
     "express": "^4.17.1"
   }
 }

@@ -158,7 +158,21 @@ This will be useful if you want to stream a large amount of data to other client
 
     You can also see we changed the code when message is received to parse the message and get the data from json format.
 
-3.  Finally also apply some style to the output so it displays nicely.
+3.  For security consideration, by default a client cannot publish or subscribe to a group by itself. We also need to update the token generation code to grant client such permissions:
+
+    ```javascript
+    app.get('/negotiate', async (req, res) => {
+      let token = await endpoint.getAuthenticationToken({
+        claims: {
+          role: ['webpubsub.sendToGroup', 'webpubsub.joinLeaveGroup']
+        }
+      });
+      ...
+    });
+    
+    ```
+
+4.  Finally also apply some style to the output so it displays nicely.
 
     ```html
     <html>

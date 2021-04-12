@@ -6,8 +6,5 @@ if (process.argv.length !== 5) {
 }
 
 let serviceClient = new WebPubSubServiceClient(process.argv[2], process.argv[3]);
-// will send with plain/text
-serviceClient.sendToAll(process.argv[4], {contentType: "text/plain"});
-
-// will send with application/json
-// serviceClient.sendToAll({"hello": "world"});
+// by default it uses `application/json`, specify contentType as `text/plain` if you want plain-text
+serviceClient.sendToAll(process.argv[4], { contentType: "text/plain" });
