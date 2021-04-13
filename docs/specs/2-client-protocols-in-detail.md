@@ -433,14 +433,14 @@ When the connection connects to service.
 }
 ```
 
-##### Close
+##### Disconnected
 
 When the server closes the connection, or when the service declines the client.
 
 ```json
 {
     "type": "system",
-    "event": "close",
+    "event": "disconnected",
     "message": "reason"
 }
 ```
