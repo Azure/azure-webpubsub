@@ -418,7 +418,24 @@ Please NOTE that if the REST API is sending a string `Hello World` using `applic
 
 #### System response
 
-The Web PubSub service can also send system-related responses to the client. For example, when the server closes the connection, or when the service declines the client.
+The Web PubSub service can also send system-related responses to the client. 
+
+##### Connected
+
+When the connection connects to service.
+
+```json
+{
+    "type": "system",
+    "event": "connected",
+    "userId": "user1",
+    "connectionId": "abcdefghijklmnop",
+}
+```
+
+##### Close
+
+When the server closes the connection, or when the service declines the client.
 
 ```json
 {
