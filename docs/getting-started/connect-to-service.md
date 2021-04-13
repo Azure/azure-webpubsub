@@ -18,16 +18,69 @@ toc: true
 
 ## Code samples
 - Clients
-    - [JavaScript](#javascript)
+    - [HTML Page](#html)
+    - [Node.js](#javascript)
     - [CSharp](#csharp)
     - [Python](#python)
+    - [Java](#java)
 - Server SDK
-    - [JavaScript](#javascript-1)
+    - [Node.js](#javascript-1)
     - [CSharp](#csharp-1)
     - [Python](#python-1)
-    - [Java](#java)
+    - [Java](#java-1)
 
 ## Clients
+
+<a name="html"></a>
+
+### HTML Page
+1. Create a simple index.html:
+    ```html
+    <html>
+        <head>
+            <title>Simple Web Demo for client Pub/Sub</title>
+        </head>
+        <body>
+            <div id="output"></div>
+            <script>
+            </script>
+        </body>
+    </html>
+    ```
+2. Create a WebSocket connection to the service using the URL copied from the portal, inside the `<script>` block, replace `<URL_COPIED_FROM_PORTAL>` with the URL copied from portal.
+    ```html
+    <script>
+        let ws = new WebSocket("<URL_COPIED_FROM_PORTAL>", 'json.webpubsub.azure.v1');
+        ws.onopen = () => {
+            ws.send(JSON.stringify({
+            type: 'joinGroup',
+            group: 'group1',
+            ackId: 1 // when ackId is sent, the service returns ack response
+            }));
+        };
+
+        ws.onmessage = event => {
+            let message = JSON.parse(event.data);
+            // when ack response for joining group is received, we publish a message to the group, the client should receive the message
+            if (message.type === 'ack' && message.ackId === 1 && message.success) {
+                ws.send(JSON.stringify({
+                type: 'sendToGroup',
+                group: 'group1',
+                data: "Hello World",
+            }));
+            }
+            if (message.type === 'message' && message.group === 'group1') {
+                let d = document.createElement('span');
+                d.innerText = message.data;
+                document.querySelector('#output').appendChild(d);
+                window.scrollTo(0, document.body.scrollHeight);
+            }
+        };
+    </script>
+    ```
+3. Open the index.html and you can see "Hello World" printed in the page.
+    Sample index.html can be found [here](./samples/client-server/client-html/index.html)
+
 ### JavaScript
 
 #### Dependency
@@ -108,10 +161,10 @@ main();
 ### CSharp
 
 #### Dependency
-1. .NET 5
+1. .NET 3.1
 
 #### Simple WebSocket Client
-Sample code [here](./samples/client-connect/simple-client-csharp/subscriber)
+Sample code [here](./samples/client-server/client-server-csharp/client.simple)
 
 ```csharp
 using System;

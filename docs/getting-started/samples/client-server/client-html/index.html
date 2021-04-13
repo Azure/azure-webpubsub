@@ -1,0 +1,40 @@
+<html>
+
+<head>
+  <title>Simple Web Demo for client Pub/Sub</title>
+</head>
+
+<body>
+  <div id="output"></div>
+  <script>
+      let ws = new WebSocket("<URL_COPIED_FROM_PORTAL>", 'json.webpubsub.azure.v1');
+      ws.onopen = () => {
+        console.log('connected');
+        ws.send(JSON.stringify({
+          type: 'joinGroup',
+          group: 'group1',
+          ackId: 1 // when ackId is sent, the service returns ack response
+        }));
+      };
+
+      ws.onmessage = event => {
+        let message = JSON.parse(event.data);
+        // when ack response for joining group is received, we publish a message to the group, the client should receive the message
+        if (message.type === 'ack' && message.ackId === 1 && message.success) {
+            ws.send(JSON.stringify({
+              type: 'sendToGroup',
+              group: 'group1',
+              data: "Hello World",
+          }));
+        }
+        if (message.type === 'message' && message.group === 'group1') {
+          let d = document.createElement('span');
+          d.innerText = message.data;
+          document.querySelector('#output').appendChild(d);
+          window.scrollTo(0, document.body.scrollHeight);
+        }
+      };
+  </script>
+</body>
+
+</html>
