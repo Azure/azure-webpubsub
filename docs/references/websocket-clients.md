@@ -324,15 +324,38 @@ public final class SubprotocolClient {
 ### Python
 
 #### Dependency
-* [Python 2.7 or above](https://www.python.org/downloads/) 
+* [Python 3.6 or above](https://www.python.org/downloads/)
+* `pip install websockets`
 
 #### Simple WebSocket Client
 
 ```python
+import asyncio
+import websockets
+
+async def hello():
+    uri = '<Client_URL_From_Portal>'
+    async with websockets.connect(uri) as ws:
+        while True:
+            await ws.send('hello')
+            greeting = await ws.recv()
+            print(greeting)
+
+asyncio.get_event_loop().run_until_complete(hello())
 ```
 
 
 #### PubSub WebSocket Client
 
 ```python
+import asyncio
+import websockets
+
+async def join_group():
+    uri = '<Client_URL_From_Portal>'
+    async with websockets.connect(uri, subprotocols=['json.webpubsub.azure.v1']) as ws:
+        await ws.send('{"type":"joinGroup","ackId":1,"group":"group1"}')
+        return await ws.recv()
+
+print(asyncio.get_event_loop().run_until_complete(join_group()))
 ```
