@@ -10,6 +10,7 @@
     - title: PubSub WebSocket Subprotocol
     - title: Protocol CloudEvents
     - title: Protocol Rest API
+    - title: Functions Bindings
 - title: Getting started
   pages:
     - title: Introduction

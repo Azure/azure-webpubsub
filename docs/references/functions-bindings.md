@@ -99,7 +99,7 @@ In non-csharp like javascript, `name` in `function.json` will be used to bind th
 
 | Binding Name | Binding Type | Description | Properties |
 |---------|---------|---------|---------|
-|connectionContext|`ConnectionContext`|Common request information| Type, Event, Hub, ConnectionId, UserId, Headers, Queries, Claims, MediaType|
+|connectionContext|`ConnectionContext`|Common request information| EventType, EventName, Hub, ConnectionId, UserId, Headers, Signature |
 |message|`Message`,`string`,`Stream`,`byte[]`|Request message content of `BinaryData` type| -|
 |dataType|`MessageDataType`| Request message dataType | -|
 |claims|`IDictionary<string, string[]>`|User Claims in `connect` request | -|
