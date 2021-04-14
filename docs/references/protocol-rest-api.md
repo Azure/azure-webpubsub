@@ -1,8 +1,9 @@
 ---
 layout: docs
 toc: true
-group: specs
+group: references
 ---
+
 # Azure Web PubSub Service REST API
 ## Version: 2020-10-01
 

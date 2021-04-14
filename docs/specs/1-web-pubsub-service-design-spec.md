@@ -26,9 +26,9 @@ Azure Web PubSub Service provides an easy way to publish/subscribe messages usin
     - [Client Auth](#client_auth)
 - [Server protocol](#server_protocol)
     - [Event handler](#event_handler)
-        - [CloudEvents HTTP protocol](./protocol-cloudevents.md)
+        - [CloudEvents HTTP protocol](./../references/protocol-cloudevents.md)
     - [Connection manager](#connection_manager)
-        - [REST API protocol](./protocol-rest-api.md)
+        - [REST API protocol](./../references/protocol-rest-api.md)
 - [Client Protocols in Detail](./2-client-protocols-in-detail.md)
 - [Server Protocols in Detail](./3-server-protocols-in-detail.md)
 

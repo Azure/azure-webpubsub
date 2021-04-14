@@ -9,10 +9,10 @@ group: specs
 - [Event handler](#event_handler)
     - [Upstream Validation](#protection)
     - [Web PubSub Service Atrribute Extension](#extension)
-    - [CloudEvents Protocol In Detail](./protocol-cloudevents.md)
+    - [CloudEvents Protocol In Detail](./../references/protocol-cloudevents.md)
 - [Connection manager](#connection_manager)
     - [Auth](#auth)
-    - [REST Protocol In Detail](./protocol-rest-api.md)
+    - [REST Protocol In Detail](./../references/protocol-rest-api.md)
 - [Server SDK Design Spec](./5-server-sdk-design-spec.md)
 
 <a name="event_handler"></a>

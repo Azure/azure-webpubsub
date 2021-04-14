@@ -1,7 +1,7 @@
 ---
 layout: docs
 toc: true
-group: specs
+group: references
 ---
          
 ## Overview

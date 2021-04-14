@@ -9,7 +9,7 @@ import java.net.http.WebSocket;
 import java.util.concurrent.CompletionStage;
 
 /**
- * A simple WebSocket Client.
+ * A Subprotocol WebSocket Client.
  *
  */
 public final class SubprotocolClient {
@@ -17,7 +17,7 @@ public final class SubprotocolClient {
     }
 
     /**
-     * Starts a simple WebSocket connection.
+     * Starts a subprotocol WebSocket connection.
      * @param args The arguments of the program.
      */
     public static void main(String[] args) throws Exception {
