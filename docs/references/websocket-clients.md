@@ -348,4 +348,14 @@ asyncio.get_event_loop().run_until_complete(hello())
 #### PubSub WebSocket Client
 
 ```python
+import asyncio
+import websockets
+
+async def join_group():
+    uri = '<Client_URL_From_Portal>'
+    async with websockets.connect(uri, subprotocols=['json.webpubsub.azure.v1']) as ws:
+        await ws.send('{"type":"joinGroup","ackId":1,"group":"group1"}')
+        return await ws.recv()
+
+print(asyncio.get_event_loop().run_until_complete(join_group()))
 ```
