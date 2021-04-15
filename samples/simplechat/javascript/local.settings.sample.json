@@ -1,0 +1,11 @@
+{
+    "IsEncrypted": false,
+    "Values": {
+        "WebPubSubConnectionString": "<webpubsub-connection-string>",
+        "FUNCTIONS_WORKER_RUNTIME": "node"
+    },
+    "Host": {
+        "LocalHttpPort": 7071,
+        "CORS": "*"
+    }
+}
