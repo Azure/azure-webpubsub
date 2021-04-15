@@ -3,7 +3,9 @@
 
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Reflection;
+using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -46,7 +48,7 @@ namespace Microsoft.Azure.WebJobs.Extensions.WebPubSub
 
                 return Task.FromResult<ITriggerData>(new TriggerData(new WebPubSubTriggerValueProvider(_parameterInfo, triggerEvent), bindingData)
                 {
-                    ReturnValueProvider = triggerEvent.TaskCompletionSource == null ? null : new TriggerReturnValueProvider(triggerEvent.TaskCompletionSource),
+                    ReturnValueProvider = new TriggerReturnValueProvider(triggerEvent.TaskCompletionSource),
                 });
             }
 
@@ -83,7 +85,8 @@ namespace Microsoft.Azure.WebJobs.Extensions.WebPubSub
         private void AddBindingData(Dictionary<string, object> bindingData, WebPubSubTriggerEvent triggerEvent)
         {
             bindingData.Add(nameof(triggerEvent.ConnectionContext), triggerEvent.ConnectionContext);
-            bindingData.Add(nameof(triggerEvent.Message), triggerEvent.Message != null ? triggerEvent.Message : null);
+            bindingData.Add(nameof(triggerEvent.Message), triggerEvent.Message);
+            bindingData.Add(nameof(triggerEvent.DataType), triggerEvent.DataType);
             bindingData.Add(nameof(triggerEvent.Claims), triggerEvent.Claims);
             bindingData.Add(nameof(triggerEvent.Query), triggerEvent.Query);
             bindingData.Add(nameof(triggerEvent.Reason), triggerEvent.Reason);
@@ -109,7 +112,7 @@ namespace Microsoft.Azure.WebJobs.Extensions.WebPubSub
         /// <summary>
         /// A provider that responsible for providing value in various type to be bond to function method parameter.
         /// </summary>
-        private class WebPubSubTriggerValueProvider : IValueBinder
+        internal class WebPubSubTriggerValueProvider : IValueBinder
         {
             private readonly ParameterInfo _parameter;
             private readonly WebPubSubTriggerEvent _triggerEvent;
@@ -122,20 +125,14 @@ namespace Microsoft.Azure.WebJobs.Extensions.WebPubSub
 
             public Task<object> GetValueAsync()
             {
-                // Bind un-restrict name to default ConnectionContext
+                // Bind un-restrict name to default ConnectionContext with type recognized.
                 if (_parameter.ParameterType == typeof(ConnectionContext))
                 {
                     return Task.FromResult<object>(_triggerEvent.ConnectionContext);
                 }
-                // Bind default ConnectionContext in non-csharp for trigger
-                // User get rest metadata from context.bindingData.<name>
-                if (_parameter.ParameterType == typeof(object) ||
-                         _parameter.ParameterType == typeof(JObject))
-                {
-                    return Task.FromResult<object>(JObject.FromObject(_triggerEvent.ConnectionContext));
-                }
-                // Bind rest with naming restricted.
-                return Task.FromResult(GetValueByName(_parameter.Name));
+
+                // Bind rest with name and type repected.
+                return Task.FromResult(GetValueByName(_parameter.Name, _parameter.ParameterType));
             }
 
             public string ToInvokeString()
@@ -143,7 +140,7 @@ namespace Microsoft.Azure.WebJobs.Extensions.WebPubSub
                 return _parameter.Name;
             }
 
-            public Type Type => GetType(_parameter.Name);
+            public Type Type => _parameter.ParameterType;
 
             // No use here
             public Task SetValueAsync(object value, CancellationToken cancellationToken)
@@ -151,31 +148,51 @@ namespace Microsoft.Azure.WebJobs.Extensions.WebPubSub
                 return Task.CompletedTask;
             }
 
-            private object GetValueByName(string parameterName)
+            private object GetValueByName(string parameterName, Type targetType)
             {
                 var property = Utilities.GetProperty(typeof(WebPubSubTriggerEvent), parameterName);
                 if (property != null)
                 {
-                    return property.GetValue(_triggerEvent);
+                    var value = property.GetValue(_triggerEvent);
+                    if (value == null || value.GetType() == targetType)
+                    {
+                        return value;
+                    }
+                    return ConvertTypeIfPossible(value, targetType);
                 }
-                throw new ArgumentException($"Invalid parameter name: {parameterName}, supported names are: {string.Join(",", Utilities.GetTypeNames(typeof(WebPubSubTriggerEvent)))}");
+                return null;
             }
 
-            private Type GetType(string parameterName)
+            private object ConvertTypeIfPossible(object source, Type target)
             {
-                var property = Utilities.GetProperty(typeof(WebPubSubTriggerEvent), parameterName);
-                if (property != null)
+                if (source is WebPubSubMessage message)
                 {
-                    return property.PropertyType;
+                    return message.Convert(target);
                 }
-                return typeof(object).MakeByRefType();
+                if (target == typeof(JObject))
+                {
+                    return JToken.FromObject(source);
+                }
+                if (target == typeof(string))
+                {
+                    return JToken.FromObject(source).ToString();
+                }
+                if (target == typeof(byte[]))
+                {
+                    return Encoding.UTF8.GetBytes(JToken.FromObject(source).ToString());
+                }
+                if (target == typeof(Stream))
+                {
+                    return new MemoryStream(Encoding.UTF8.GetBytes(JToken.FromObject(source).ToString()));
+                }
+                return null;
             }
         }
 
         /// <summary>
         /// A provider to handle return value.
         /// </summary>
-        private class TriggerReturnValueProvider : IValueBinder
+        internal class TriggerReturnValueProvider : IValueBinder
         {
             private readonly TaskCompletionSource<object> _tcs;
 
@@ -200,8 +217,44 @@ namespace Microsoft.Azure.WebJobs.Extensions.WebPubSub
 
             public Task SetValueAsync(object value, CancellationToken cancellationToken)
             {
-                _tcs.TrySetResult(value);
+                if (value is string strValue)
+                {
+                    var converted = ConvertToResponseIfPossible(JObject.Parse(strValue));
+                    _tcs.TrySetResult(converted);
+                }
+                else if (value is JObject jValue)
+                {
+                    var converted = ConvertToResponseIfPossible(jValue);
+                    _tcs.TrySetResult(converted);
+                }
+                else
+                {
+                    _tcs.TrySetResult(value);
+                }
                 return Task.CompletedTask;
+            }
+
+            internal static object ConvertToResponseIfPossible(JObject value)
+            {
+                // try cast by required field in order.
+                if (value["code"] != null)
+                {
+                    return value.ToObject<ErrorResponse>();
+                }
+
+                if (value["message"] != null)
+                {
+                    return value.ToObject<MessageResponse>();
+                }
+
+                var connect = value.ToObject<ConnectResponse>();
+                if (connect != null)
+                {
+                    return connect;
+                }
+
+                // return null and not supported response will be ignored.
+                return null;
             }
         }
     }

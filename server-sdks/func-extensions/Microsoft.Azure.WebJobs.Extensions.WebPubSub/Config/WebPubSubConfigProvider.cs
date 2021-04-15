@@ -63,18 +63,20 @@ namespace Microsoft.Azure.WebJobs.Extensions.WebPubSub
                 _nameResolver.Resolve(Constants.AllowedHostsName).Split(',').Select(x => _options.AllowedHosts.Add(x));
             }
 
+#pragma warning disable CS0618 // Type or member is obsolete
             var url = context.GetWebhookHandler();
+#pragma warning restore CS0618 // Type or member is obsolete
             _logger.LogInformation($"Registered Web PubSub negotiate Endpoint = {url?.GetLeftPart(UriPartial.Path)}");
 
             // bindings
             context
                 .AddConverter<WebPubSubConnection, JObject>(JObject.FromObject)
-                .AddOpenConverter<JObject, OpenType.Poco>(typeof(JObjectToPocoConverter<>))
-                .AddOpenConverter<JObject, OpenType.Poco[]>(typeof(JObjectToPocoConverter<>));
+                .AddConverter<JObject, WebPubSubEvent>(ConvertFromJObject<WebPubSubEvent>)
+                .AddConverter<JObject, WebPubSubEvent[]>(ConvertFromJObject<WebPubSubEvent[]>);
 
             // Trigger binding
             context.AddBindingRule<WebPubSubTriggerAttribute>()
-                .BindToTrigger<JObject>(new WebPubSubTriggerBindingProvider(_dispatcher, _options));
+                .BindToTrigger(new WebPubSubTriggerBindingProvider(_dispatcher, _options));
 
             var webpubsubConnectionAttributeRule = context.AddBindingRule<WebPubSubConnectionAttribute>();
             webpubsubConnectionAttributeRule.AddValidator(ValidateWebPubSubConnectionAttributeBinding);
@@ -142,10 +144,15 @@ namespace Microsoft.Azure.WebJobs.Extensions.WebPubSub
         {
             if (!string.IsNullOrEmpty(connectionString))
             {
-                var item = Utilities.ParseConnectionString(connectionString);
-                _options.AllowedHosts.Add(new Uri(item.EndPoint).Host);
+                var item = new ServiceConfigParser(connectionString);
+                _options.AllowedHosts.Add(new Uri(item.Endpoint).Host);
                 _options.AccessKeys.Add(item.AccessKey);
             }
+        }
+
+        private T ConvertFromJObject<T>(JObject input)
+        {
+            return input.ToObject<T>();
         }
 
         private sealed class JObjectToPocoConverter<T> : IConverter<JObject, T>

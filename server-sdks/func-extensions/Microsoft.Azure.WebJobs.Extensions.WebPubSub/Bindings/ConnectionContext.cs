@@ -18,9 +18,9 @@ namespace Microsoft.Azure.WebJobs.Extensions.WebPubSub
         public string EventType { get; internal set; }
 
         /// <summary>
-        /// The event of the message.
+        /// The event name of the message.
         /// </summary>
-        public string Event { get; internal set; }
+        public string EventName { get; internal set; }
 
         /// <summary>
         /// The hub which message belongs to.

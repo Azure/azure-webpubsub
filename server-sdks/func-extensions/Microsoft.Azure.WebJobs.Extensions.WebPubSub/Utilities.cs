@@ -12,7 +12,6 @@ using System.Reflection;
 using System.Runtime.InteropServices;
 using System.Security.Claims;
 using System.Text;
-using System.Text.RegularExpressions;
 
 using Microsoft.IdentityModel.Tokens;
 using Newtonsoft.Json;
@@ -26,14 +25,16 @@ namespace Microsoft.Azure.WebJobs.Extensions.WebPubSub
 
         private static readonly JwtSecurityTokenHandler JwtTokenHandler = new JwtSecurityTokenHandler();
 
-        public static MediaTypeHeaderValue GetMediaType(MessageDataType dataType) =>
+        public static MediaTypeHeaderValue GetMediaType(MessageDataType dataType) => new MediaTypeHeaderValue(GetContentType(dataType));
+
+        public static string GetContentType(MessageDataType dataType) =>
             dataType switch
             {
-                MessageDataType.Binary => new MediaTypeHeaderValue(Constants.ContentTypes.BinaryContentType),
-                MessageDataType.Text => new MediaTypeHeaderValue(Constants.ContentTypes.PlainTextContentType),
-                MessageDataType.Json => new MediaTypeHeaderValue(Constants.ContentTypes.JsonContentType),
+                MessageDataType.Binary => Constants.ContentTypes.BinaryContentType,
+                MessageDataType.Text => Constants.ContentTypes.PlainTextContentType,
+                MessageDataType.Json => Constants.ContentTypes.JsonContentType,
                 // Default set binary type to align with service side logic
-                _ => new MediaTypeHeaderValue(Constants.ContentTypes.BinaryContentType)
+                _ => Constants.ContentTypes.BinaryContentType
             };
 
         public static MessageDataType GetDataType(string mediaType) =>
@@ -56,48 +57,15 @@ namespace Microsoft.Azure.WebJobs.Extensions.WebPubSub
             => eventType.Equals(Constants.EventTypes.User) ||
             (eventType.Equals(Constants.EventTypes.System) && eventName.Equals(Constants.Events.ConnectEvent));
 
-        public static (string EndPoint, string AccessKey, string Version, string Port) ParseConnectionString(string connectionString)
-        {
-            if (string.IsNullOrEmpty(connectionString))
-            {
-                throw new ArgumentException("Web PubSub Service connection string is empty");
-            }
-
-            var endpointMatch = Regex.Match(connectionString, @"endpoint=([^;]+)", RegexOptions.IgnoreCase);
-            if (!endpointMatch.Success)
-            {
-                throw new ArgumentException("No endpoint present in Web PubSub Service connection string");
-            }
-            var accessKeyMatch = Regex.Match(connectionString, @"accesskey=([^;]+)", RegexOptions.IgnoreCase);
-            if (!accessKeyMatch.Success)
-            {
-                throw new ArgumentException("No access key present in Web PubSub Service connection string");
-            }
-            var versionKeyMatch = Regex.Match(connectionString, @"version=([^;]+)", RegexOptions.IgnoreCase);
-            if (versionKeyMatch.Success && !System.Version.TryParse(versionKeyMatch.Groups[1].Value, out var version))
-            {
-                throw new ArgumentException("Invalid version format in Web PubSub Service connection string");
-            }
-            var portKeyMatch = Regex.Match(connectionString, @"port=([^;]+)", RegexOptions.IgnoreCase);
-            var port = portKeyMatch.Success ? portKeyMatch.Groups[1].Value : string.Empty;
-
-            return (endpointMatch.Groups[1].Value, accessKeyMatch.Groups[1].Value, versionKeyMatch.Groups[1].Value, port);
-        }
-
         public static HttpResponseMessage BuildResponse(MessageResponse response)
         {
             HttpResponseMessage result = new HttpResponseMessage();
 
-            if (response.Error != null)
+            if (response.Message != null)
             {
-                return BuildErrorResponse(response.Error);
+                result.Content = new StreamContent(response.Message.ToStream());
             }
-
-            if (response.Message.Body != null)
-            {
-                result.Content = new StreamContent(response.Message.Body.ToStream());
-            }
-            result.Content.Headers.ContentType = GetMediaType(response.Message.DataType);
+            result.Content.Headers.ContentType = GetMediaType(response.DataType);
 
             return result;
         }
@@ -105,11 +73,6 @@ namespace Microsoft.Azure.WebJobs.Extensions.WebPubSub
         public static HttpResponseMessage BuildResponse(ConnectResponse response)
         {
             HttpResponseMessage result = new HttpResponseMessage();
-
-            if (response.Error != null)
-            {
-                return BuildErrorResponse(response.Error);
-            }
 
             var connectEvent = new ConnectEventResponse
             {
@@ -123,21 +86,21 @@ namespace Microsoft.Azure.WebJobs.Extensions.WebPubSub
             return result;
         }
 
-        public static HttpResponseMessage BuildErrorResponse(Error error)
+        public static HttpResponseMessage BuildErrorResponse(ErrorResponse error)
         {
             HttpResponseMessage result = new HttpResponseMessage();
 
             result.StatusCode = GetStatusCode(error.Code);
-            result.Content = new StringContent(error.Message);
+            result.Content = new StringContent(error.ErrorMessage);
             return result;
         }
 
-        public static HttpStatusCode GetStatusCode(ErrorCode errorCode) =>
+        public static HttpStatusCode GetStatusCode(WebPubSubErrorCode errorCode) =>
             errorCode switch
             {
-                ErrorCode.UserError => HttpStatusCode.BadRequest,
-                ErrorCode.Unauthorized => HttpStatusCode.Unauthorized,
-                ErrorCode.ServerError => HttpStatusCode.InternalServerError,
+                WebPubSubErrorCode.UserError => HttpStatusCode.BadRequest,
+                WebPubSubErrorCode.Unauthorized => HttpStatusCode.Unauthorized,
+                WebPubSubErrorCode.ServerError => HttpStatusCode.InternalServerError,
                 _ => HttpStatusCode.InternalServerError
             };
 
@@ -247,6 +210,23 @@ namespace Microsoft.Azure.WebJobs.Extensions.WebPubSub
             var processorArchitecture = RuntimeInformation.ProcessArchitecture.ToString().Trim();
 
             return $"{packageId}/{version} ({runtime}; {operatingSystem}; {processorArchitecture})";
+        }
+
+        public static RequestType GetRequestType(string eventType, string eventName)
+        {
+            if (eventType.Equals(Constants.EventTypes.User))
+            {
+                return RequestType.User;
+            }
+            if (eventName.Equals(Constants.Events.ConnectEvent))
+            {
+                return RequestType.Connect;
+            }
+            if (eventName.Equals(Constants.Events.DisconnectedEvent))
+            {
+                return RequestType.Disconnect;
+            }
+            return RequestType.Ignored;
         }
     }
 }

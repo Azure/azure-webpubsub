@@ -3,54 +3,83 @@
 
 using System;
 using System.IO;
-using System.Text;
 
 using Newtonsoft.Json;
-using Newtonsoft.Json.Converters;
+using Newtonsoft.Json.Linq;
 using Newtonsoft.Json.Serialization;
 
 namespace Microsoft.Azure.WebJobs.Extensions.WebPubSub
 {
+    /// <summary>
+    /// Message to communicate with service
+    /// </summary>
     [JsonObject(NamingStrategyType = typeof(CamelCaseNamingStrategy))]
-    [JsonConverter(typeof(WebPubSubMessageJsonConverter))]
+    [JsonConverter(typeof(MessageJsonConverter))]
     public class WebPubSubMessage
     {
-        /// <summary>
-        /// Web PubSub data message
-        /// </summary>
-        public BinaryData Body { get; }
+        private readonly BinaryData _body;
 
-        /// <summary>
-        /// DataType of the message.
-        /// </summary>
-        public MessageDataType DataType { get; }
-
-        /// <summary>
-        /// Constructor for string/json typed message
-        /// </summary>
-        [JsonConstructor]
-        public WebPubSubMessage(string message, MessageDataType dataType = MessageDataType.Text)
+        public WebPubSubMessage(Stream message)
         {
-            Body = BinaryData.FromString(message);
-            DataType = dataType;
+            _body = BinaryData.FromStream(message);
         }
 
-        /// <summary>
-        /// Constructor for stream type message
-        /// </summary>
-        public WebPubSubMessage(Stream message, MessageDataType dataType)
+        public WebPubSubMessage(string message)
         {
-            Body = BinaryData.FromStream(message);
-            DataType = dataType;
+            _body = BinaryData.FromString(message);
         }
 
-        /// <summary>
-        /// Constructor for binary type message
-        /// </summary>
-        public WebPubSubMessage(byte[] message, MessageDataType dataType)
+        public WebPubSubMessage(byte[] message)
         {
-            Body = BinaryData.FromBytes(message);
-            DataType = dataType;
+            _body = BinaryData.FromBytes(message);
+        }
+
+        public byte[] ToArray()
+        {
+            return _body.ToArray();
+        }
+
+        public override string ToString()
+        {
+            return _body.ToString();
+        }
+
+        public Stream ToStream()
+        {
+            return _body.ToStream();
+        }
+
+        public BinaryData ToBinaryData()
+        {
+            return _body;
+        }
+    }
+
+    internal static class MessageExtensions
+    {
+        public static object Convert(this WebPubSubMessage message, Type targetType)
+        {
+            if (targetType == typeof(JObject))
+            {
+                return JObject.FromObject(message.ToArray());
+            }
+
+            if (targetType == typeof(Stream))
+            {
+                return message.ToStream();
+            }
+
+            if (targetType == typeof(byte[]))
+            {
+                return message.ToArray();
+            }
+
+            if (targetType == typeof(string))
+            {
+                return message.ToString();
+            }
+
+            return null;
         }
     }
 }

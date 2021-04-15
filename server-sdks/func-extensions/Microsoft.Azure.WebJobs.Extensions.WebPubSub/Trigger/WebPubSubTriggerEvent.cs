@@ -15,6 +15,8 @@ namespace Microsoft.Azure.WebJobs.Extensions.WebPubSub
 
         public WebPubSubMessage Message { get; set; }
 
+        public MessageDataType DataType { get; set; }
+
         public string[] Subprotocols { get; set; }
 
         public IDictionary<string, string[]> Claims { get; set; }

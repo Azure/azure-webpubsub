@@ -3,19 +3,24 @@
 
 using System.ComponentModel.DataAnnotations;
 
+using Azure.Messaging.WebPubSub;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Converters;
 using Newtonsoft.Json.Serialization;
 
 namespace Microsoft.Azure.WebJobs.Extensions.WebPubSub
 {
+    /// <summary>
+    /// Output binding object to invoke rest calls to services
+    /// </summary>
     [JsonObject(NamingStrategyType = typeof(CamelCaseNamingStrategy))]
     public class WebPubSubEvent
     {
         [Required]
+        [JsonRequired]
         public WebPubSubOperation Operation { get; set; }
 
-        public string GroupId { get; set; }
+        public string Group { get; set; }
 
         public string UserId { get; set; }
 
@@ -25,8 +30,11 @@ namespace Microsoft.Azure.WebJobs.Extensions.WebPubSub
 
         public string Reason { get; set; }
 
-        public string Permission { get; set; }
+        [JsonConverter(typeof(StringEnumConverter))]
+        public WebPubSubPermission Permission { get; set; }
 
         public WebPubSubMessage Message { get; set; }
+
+        public MessageDataType DataType { get; set; } = MessageDataType.Text;
     }
 }

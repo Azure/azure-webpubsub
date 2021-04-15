@@ -2,10 +2,13 @@
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
 using System.Collections.Generic;
+using Microsoft.Azure.WebJobs.Hosting;
+using Newtonsoft.Json.Linq;
+using Newtonsoft.Json;
 
 namespace Microsoft.Azure.WebJobs.Extensions.WebPubSub
 {
-    public class WebPubSubOptions
+    public class WebPubSubOptions : IOptionsFormatter
     {
         public string ConnectionString { get; set; }
 
@@ -18,5 +21,26 @@ namespace Microsoft.Azure.WebJobs.Extensions.WebPubSub
         public HashSet<string> AllowedHosts { get; set; } = new HashSet<string>();
 
         internal HashSet<string> AccessKeys { get; set; } = new HashSet<string>();
+
+        /// <summary>
+        /// Formats the options as JSON objects for display.
+        /// </summary>
+        /// <returns>Options formatted as JSON.</returns>
+        public string Format()
+        {
+            JArray allowedHosts = null;
+            if (AllowedHosts.Count > 0)
+            {
+                allowedHosts = new JArray(AllowedHosts);
+            }
+
+            JObject options = new JObject
+            {
+                { nameof(Hub), Hub },
+                { nameof(AllowedHosts), allowedHosts }
+            };
+
+            return options.ToString(Formatting.Indented);
+        }
     }
 }

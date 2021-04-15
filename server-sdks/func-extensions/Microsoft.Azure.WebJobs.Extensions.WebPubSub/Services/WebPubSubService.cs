@@ -4,201 +4,108 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Net.Http;
-using System.Net.Http.Headers;
 using System.Security.Claims;
 using System.Threading.Tasks;
+
+using Azure;
+using Azure.Core;
+using Azure.Messaging.WebPubSub;
 
 namespace Microsoft.Azure.WebJobs.Extensions.WebPubSub
 {
     internal class WebPubSubService : IWebPubSubService
     {
-        private static readonly HttpClient _httpClient = new HttpClient();
+        private readonly WebPubSubServiceClient _client;
+        private readonly ServiceConfigParser _serviceConfig;
 
-        private readonly string _baseEndpoint;
-        private readonly string _accessKey;
-        private readonly string _version;
-        private readonly string _port;
-
-        public string HubName { get; } = string.Empty;
-
-        private readonly string _hubPath;
-
-        internal WebPubSubService(string connectionString, string hubName)
+        public WebPubSubService(string connectionString, string hubName)
         {
-            (_baseEndpoint, _accessKey, _version, _port) = Utilities.ParseConnectionString(connectionString);
-            _port = string.IsNullOrEmpty(_port) ? string.Empty : $":{_port}";
-            HubName = hubName;
-            _hubPath = !string.IsNullOrEmpty(hubName) ? 
-                $"/hubs/{hubName}" : throw new ArgumentNullException("Hub name should be configured in either attribute or appsettings.");
+            _serviceConfig = new ServiceConfigParser(connectionString);
+            var url = !string.IsNullOrEmpty(_serviceConfig.Port) ? $"{_serviceConfig.Endpoint}:{_serviceConfig.Port}" : _serviceConfig.Endpoint;
+            _client = new WebPubSubServiceClient(new Uri(url), hubName, new AzureKeyCredential(_serviceConfig.AccessKey));
         }
 
         internal WebPubSubConnection GetClientConnection(IEnumerable<Claim> claims = null)
         {
-            var subPath = "?";
-            if (!string.IsNullOrEmpty(HubName))
+            var url = _client.GetClientAccessUri(default, claims?.ToArray());
+
+            #region TODO: Remove after SDK fix.
+            if (!_serviceConfig.Endpoint.StartsWith("https", StringComparison.OrdinalIgnoreCase))
             {
-                subPath += $"hub={HubName}";
+                var replaced = url.AbsoluteUri.Replace("wss", "ws");
+                url = new Uri(replaced);
             }
-            var hubUrl = $"{_baseEndpoint}/client/{subPath}";
-            var baseEndpoint = new Uri(_baseEndpoint);
-            var scheme = baseEndpoint.Scheme == "http" ? "ws" : "wss";
-            var token = Utilities.GenerateJwtBearer(null, hubUrl, claims, DateTime.UtcNow.AddMinutes(30), _accessKey);
-            return new WebPubSubConnection
-            {
-                Url = $"{scheme}://{baseEndpoint.Authority}{_port}/client{subPath}&access_token={token}",
-                AccessToken = token
-            };
+            #endregion
+
+            return new WebPubSubConnection(url);
         }
 
-        internal WebPubSubConnection GetServerConnection(string additionalPath = "")
+        public async Task AddConnectionToGroup(WebPubSubEvent webPubSubEvent)
         {
-            var audienceUrl = $"{_baseEndpoint}/api{_hubPath}{additionalPath}";
-            var token = Utilities.GenerateJwtBearer(null, audienceUrl, null, DateTime.UtcNow.AddMinutes(30), _accessKey);
-            return new WebPubSubConnection
-            {
-                Url = $"{_baseEndpoint}{_port}/api{_hubPath}{additionalPath}",
-                AccessToken = token
-            };
+            await _client.AddConnectionToGroupAsync(webPubSubEvent.Group, webPubSubEvent.ConnectionId).ConfigureAwait(false);
         }
 
-        public Task SendToAll(WebPubSubEvent webPubSubEvent)
+        public async Task AddUserToGroup(WebPubSubEvent webPubSubEvent)
         {
-            var subPath = GetAdditionalPath(WebPubSubOperation.SendToAll, GetQueryForMultipleValues("excluded", webPubSubEvent.Excluded));
-
-            var connection = GetServerConnection(subPath);
-            return RequestAsync(connection, HttpMethod.Post, webPubSubEvent.Message);
+            await _client.AddUserToGroupAsync(webPubSubEvent.Group, webPubSubEvent.UserId).ConfigureAwait(false);
         }
 
-        public Task CloseClientConnection(WebPubSubEvent webPubSubEvent)
+        public async Task CloseClientConnection(WebPubSubEvent webPubSubEvent)
         {
-            var subPath = GetAdditionalPath(WebPubSubOperation.CloseClientConnection, webPubSubEvent.ConnectionId, webPubSubEvent.Reason);
-            var connection = GetServerConnection(subPath);
-            return RequestAsync(connection, HttpMethod.Delete);
+            await _client.CloseClientConnectionAsync(webPubSubEvent.ConnectionId, webPubSubEvent.Reason).ConfigureAwait(false);
         }
 
-        public Task SendToConnection(WebPubSubEvent webPubSubEvent)
+        public async Task GrantGroupPermission(WebPubSubEvent webPubSubEvent)
         {
-            var subPath = GetAdditionalPath(WebPubSubOperation.SendToConnection, webPubSubEvent.ConnectionId);
-            var connection = GetServerConnection(subPath);
-            return RequestAsync(connection, HttpMethod.Post, webPubSubEvent.Message);
+            await _client.GrantPermissionAsync(webPubSubEvent.Permission, webPubSubEvent.ConnectionId).ConfigureAwait(false);
         }
 
-        public Task SendToGroup(WebPubSubEvent webPubSubEvent)
+        public async Task RemoveConnectionFromGroup(WebPubSubEvent webPubSubEvent)
         {
-            var subPath = GetAdditionalPath(WebPubSubOperation.SendToGroup, webPubSubEvent.GroupId, GetQueryForMultipleValues("excluded", webPubSubEvent.Excluded));
-            var connection = GetServerConnection(subPath);
-            return RequestAsync(connection, HttpMethod.Post, webPubSubEvent.Message);
+            await _client.RemoveConnectionFromGroupAsync(webPubSubEvent.Group, webPubSubEvent.ConnectionId).ConfigureAwait(false);
         }
 
-        public Task AddConnectionToGroup(WebPubSubEvent webPubSubEvent)
+        public async Task RemoveUserFromAllGroups(WebPubSubEvent webPubSubEvent)
         {
-            var subPath = GetAdditionalPath(WebPubSubOperation.AddConnectionToGroup, webPubSubEvent.GroupId, webPubSubEvent.ConnectionId);
-            var connection = GetServerConnection(subPath);
-            return RequestAsync(connection, HttpMethod.Put);
+            await _client.RemoveUserFromAllGroupsAsync(webPubSubEvent.UserId).ConfigureAwait(false);
         }
 
-        public Task RemoveConnectionFromGroup(WebPubSubEvent webPubSubEvent)
+        public async Task RemoveUserFromGroup(WebPubSubEvent webPubSubEvent)
         {
-            var subPath = GetAdditionalPath(WebPubSubOperation.RemoveConnectionFromGroup, webPubSubEvent.GroupId, webPubSubEvent.ConnectionId);
-            var connection = GetServerConnection(subPath);
-            return RequestAsync(connection, HttpMethod.Delete);
+            await _client.RemoveUserFromGroupAsync(webPubSubEvent.Group, webPubSubEvent.UserId).ConfigureAwait(false);
         }
 
-        public Task SendToUser(WebPubSubEvent webPubSubEvent)
+        public async Task RevokeGroupPermission(WebPubSubEvent webPubSubEvent)
         {
-            var subPath = GetAdditionalPath(WebPubSubOperation.SendToUser, webPubSubEvent.UserId);
-            var connection = GetServerConnection(subPath);
-            return RequestAsync(connection, HttpMethod.Post, webPubSubEvent.Message);
+            await _client.RevokePermissionAsync(webPubSubEvent.Permission, webPubSubEvent.ConnectionId).ConfigureAwait(false);
         }
 
-        public Task AddUserToGroup(WebPubSubEvent webPubSubEvent)
+        public async Task SendToAll(WebPubSubEvent webPubSubEvent)
         {
-            var subPath = GetAdditionalPath(WebPubSubOperation.AddUserToGroup, webPubSubEvent.UserId, webPubSubEvent.GroupId);
-            var connection = GetServerConnection(subPath);
-            return RequestAsync(connection, HttpMethod.Put);
+            var content = RequestContent.Create(webPubSubEvent.Message);
+            var contentType = Utilities.GetContentType(webPubSubEvent.DataType);
+            await _client.SendToAllAsync(content, contentType, webPubSubEvent.Excluded).ConfigureAwait(false);
         }
 
-        public Task RemoveUserFromGroup(WebPubSubEvent webPubSubEvent)
+        public async Task SendToConnection(WebPubSubEvent webPubSubEvent)
         {
-            var subPath = GetAdditionalPath(WebPubSubOperation.RemoveUserFromGroup, webPubSubEvent.UserId, webPubSubEvent.GroupId);
-            var connection = GetServerConnection(subPath);
-            return RequestAsync(connection, HttpMethod.Delete);
+            var content = RequestContent.Create(webPubSubEvent.Message.ToBinaryData());
+            var contentType = Utilities.GetContentType(webPubSubEvent.DataType);
+            await _client.SendToConnectionAsync(webPubSubEvent.ConnectionId, content, contentType).ConfigureAwait(false);
         }
 
-        public Task RemoveUserFromAllGroups(WebPubSubEvent webPubSubEvent)
+        public async Task SendToGroup(WebPubSubEvent webPubSubEvent)
         {
-            var subPath = GetAdditionalPath(WebPubSubOperation.RemoveUserFromAllGroups, webPubSubEvent.UserId);
-            var connection = GetServerConnection(subPath);
-            return RequestAsync(connection, HttpMethod.Delete);
+            var content = RequestContent.Create(webPubSubEvent.Message.ToBinaryData());
+            var contentType = Utilities.GetContentType(webPubSubEvent.DataType);
+            await _client.SendToGroupAsync(webPubSubEvent.Group, content, contentType, webPubSubEvent.Excluded).ConfigureAwait(false);
         }
 
-        public Task GrantGroupPermission(WebPubSubEvent webPubSubEvent)
+        public async Task SendToUser(WebPubSubEvent webPubSubEvent)
         {
-            var subPath = GetAdditionalPath(WebPubSubOperation.GrantGroupPermission, webPubSubEvent.Permission, webPubSubEvent.ConnectionId);
-            var connection = GetServerConnection(subPath);
-            return RequestAsync(connection, HttpMethod.Put);
+            var content = RequestContent.Create(webPubSubEvent.Message.ToBinaryData());
+            var contentType = Utilities.GetContentType(webPubSubEvent.DataType);
+            await _client.SendToUserAsync(webPubSubEvent.UserId, content, contentType).ConfigureAwait(false);
         }
-
-        public Task RevokeGroupPermission(WebPubSubEvent webPubSubEvent)
-        {
-            var subPath = GetAdditionalPath(WebPubSubOperation.RevokeGroupPermission, webPubSubEvent.Permission, webPubSubEvent.ConnectionId);
-            var connection = GetServerConnection(subPath);
-            return RequestAsync(connection, HttpMethod.Delete);
-        }
-
-        #region private methods
-        private Task<HttpResponseMessage> RequestAsync(WebPubSubConnection connection, HttpMethod httpMethod, WebPubSubMessage message = null)
-        {
-            var request = new HttpRequestMessage
-            {
-                Method = httpMethod,
-                RequestUri = new Uri(connection.Url)
-            };
-
-            request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", connection.AccessToken);
-            request.Headers.Accept.Clear();
-            request.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("*/*"));
-            request.Headers.AcceptCharset.Clear();
-            request.Headers.AcceptCharset.Add(new StringWithQualityHeaderValue("UTF-8"));
-            request.Headers.Add("Awps-User-Agent", Utilities.GetProductInfo());
-
-            if (message != null && message.Body != null)
-            {
-                request.Content = new StreamContent(message.Body.ToStream());
-                request.Content.Headers.ContentType = Utilities.GetMediaType(message.DataType);
-            }
-            return _httpClient.SendAsync(request);
-        }
-
-        private static string GetAdditionalPath(WebPubSubOperation operation, params object[] parameters) =>
-            operation switch
-            {
-                WebPubSubOperation.SendToAll => $"/:send{parameters[0]}",
-                WebPubSubOperation.CloseClientConnection => $"/connections/{parameters[0]}?reason={parameters[1]}",
-                WebPubSubOperation.SendToConnection => $"/connections/{parameters[0]}/:send",
-                WebPubSubOperation.SendToGroup => $"/groups/{parameters[0]}/:send{parameters[1]}",
-                WebPubSubOperation.AddConnectionToGroup => $"/groups/{parameters[0]}/connections/{parameters[1]}",
-                WebPubSubOperation.RemoveConnectionFromGroup => $"/groups/{parameters[0]}/connections/{parameters[1]}",
-                WebPubSubOperation.SendToUser => $"/users/{parameters[0]}/:send",
-                WebPubSubOperation.AddUserToGroup => $"/users/{parameters[0]}/groups/{parameters[1]}",
-                WebPubSubOperation.RemoveUserFromGroup => $"/users/{parameters[0]}/groups/{parameters[1]}",
-                WebPubSubOperation.RemoveUserFromAllGroups => $"/users/{parameters[0]}/groups",
-                WebPubSubOperation.GrantGroupPermission => $"/permissions/{parameters[0]}/connections/{parameters[1]}",
-                WebPubSubOperation.RevokeGroupPermission => $"/permissions/{parameters[0]}/connections/{parameters[1]}",
-                _ => throw new ArgumentException($"Not supported operation: {operation}")
-            };
-
-        private static string GetQueryForMultipleValues(string key, string[] values)
-        {
-            // works for multiple parameter in query, format: ?key=value[0]&key=value[1]&key=value[2]
-            if (values != null && values.Length > 0)
-            {
-                var query = string.Join("&", values.Select(x => $"{key}={x}"));
-                return $"?{query}";
-            }
-            return string.Empty;
-        }
-        #endregion
     }
 }
