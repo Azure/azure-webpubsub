@@ -1,16 +1,4 @@
-- title: Specs
-  pages:
-    - title: 1. Web PubSub Service Design Spec
-    - title: 2. Client Protocols In Detail
-    - title: 3. Server Protocols In Detail
-    - title: 4. Azure Function Integration
-- title: References
-  pages:
-    - title: WebSocket Clients
-    - title: PubSub WebSocket Subprotocol
-    - title: Protocol CloudEvents
-    - title: Protocol Rest API
-    - title: Functions Bindings
+
 - title: Getting started
   pages:
     - title: Introduction
@@ -47,3 +35,17 @@
     - title: Messages and connections
     - title: High availability
     - title: Security
+    
+- title: Specs
+  pages:
+    - title: 1. Web PubSub Service Design Spec
+    - title: 2. Client Protocols In Detail
+    - title: 3. Server Protocols In Detail
+    - title: 4. Azure Function Integration
+- title: References
+  pages:
+    - title: WebSocket Clients
+    - title: PubSub WebSocket Subprotocol
+    - title: Protocol CloudEvents
+    - title: Protocol Rest API
+    - title: Functions Bindings
