@@ -37,7 +37,7 @@ Now let's create a simple web application using the subprotocol.
 
     app.get('/negotiate', async (req, res) => {
       let token = await endpoint.getAuthenticationToken();
-      res.send({
+      res.json({
         url: token.url
       });
     });

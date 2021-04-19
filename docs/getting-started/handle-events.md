@@ -79,7 +79,7 @@ You may remember in last tutorial the subscriber uses an API in Web PubSub SDK t
         return;
       }
       let token = await serviceClient.getAuthenticationToken({ userId: id });
-      res.send({
+      res.json({
         url: token.url
       });
     });
@@ -159,7 +159,7 @@ After the save is completed, open the home page, input your user name, you'll se
 
 Besides system events like connected or disconnected, client can also send messages through the WebSocket connection and these messages will be delivered to server as a special type of event called message event. We can use this event to receive messages from one client and broadcast them to all clients so they can talk to each other.
 
-1. Add a new `onUserEvent` handler
+1. Add a new `handleUserEvent` handler
 
     ```javascript
     let handler = new WebPubSubCloudEventsHandler(hubName, ['*'], {
@@ -174,7 +174,7 @@ Besides system events like connected or disconnected, client can also send messa
     });
     ```
 
-    This event handler uses `WebPubSubServiceRestClient.sendToAll()` to broadcast the received message to all clients.
+    This event handler uses `WebPubSubServiceClient.sendToAll()` to broadcast the received message to all clients.
 
     You can see `handleUserEvent` also has a `res` object where you can send message back to the event sender. Here we simply call `res.success()` to make the WebHook return 200 (please note this is required even you don't want to return anything back to client, otherwise the WebHook will never return and client connection will be closed).
 
