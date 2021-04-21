@@ -1,0 +1,96 @@
+syntax = "proto3";
+
+import "google/protobuf/empty.proto";
+import "google/protobuf/wrappers.proto";
+import "webpubsub.server.payload.proto";
+
+option csharp_namespace = "Microsoft.Azure.WebPubSub";
+
+package azure.webpubsub.server;
+
+message ServiceAckMessage {
+  int32 ack_id = 1;
+  AckResult ack_result = 2;
+  google.protobuf.StringValue ack_detail = 3;
+
+  enum AckResult {
+      Success = 0;
+      Failure = 1;
+      Timeout = 2;
+  }
+}
+
+message ClientCloseRequest {
+  int32 ack_id = 1;
+  string connection_Id = 2;
+  google.protobuf.StringValue error_message = 3;
+}
+
+message ClientExistsRequest {
+  int32 ack_id = 1;
+  string connection_Id = 2;
+}
+
+message ClientSendRequest {
+  int32 ack_id = 1;
+  string connection_Id = 2;
+  PayloadDetail payload = 3;
+}
+
+message UserExistsRequest {
+  int32 ack_id = 1;
+  string user_id = 2;
+}
+
+message UserSendRequest {
+  int32 ack_id = 1;
+  string user_id = 2;
+  PayloadDetail payload = 3;
+}
+
+message GroupAddClientRequest {
+  int32 ack_id = 1;
+  string connection_id = 2;
+  string group_name = 3;
+}
+
+message GroupAddUserRequest {
+  int32 ack_id = 1;
+  string user_id = 2;
+  string group_name = 3;
+}
+
+message GroupRemoveClientRequest {
+  int32 ack_id = 1;
+  string connection_id = 2;
+  string group_name = 3;
+}
+
+message GroupRemoveUserRequest {
+  int32 ack_id = 1;
+  string user_id = 2;
+  string group_name = 3;
+}
+
+message GroupContainsClientRequest {
+  int32 ack_id = 1;
+  string connection_id = 2;
+  string group_name = 3;
+}
+
+message GroupContainsUserRequest {
+  int32 ack_id = 1;
+  string user_id = 2;
+  string group_name = 3;
+}
+
+message GroupPublishRequest {
+  int32 ack_id = 1;
+  string group_name = 2;
+  PayloadDetail payload = 3;
+}
+
+message GroupSubscribeRequest {
+  int32 ack_id = 1;
+  string group_name = 2;
+}

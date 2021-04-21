@@ -1,0 +1,11 @@
+theme: jekyll-theme-cayman
+title: Azure Web PubSub Service 
+description: The Azure Web PubSub Service for real-time pub/sub using simple WebSocket connections.
+authors:  "lianwei"
+repo: https://github.com/Azure/azure-webpubsub
+
+
+plugins:
+  - jekyll-redirect-from
+  - jekyll-sitemap
+  - jekyll-toc

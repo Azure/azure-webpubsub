@@ -1,0 +1,85 @@
+---
+layout: home
+body_class: "text-center"
+include_js: false
+---
+
+<main class="bd-masthead" id="content" role="main">
+  <div class="container">
+    <div class="row">
+      <div class="col-6 mx-auto col-md-6 order-md-2">
+        {% include icons/main.svg class="img-fluid mb-3 mb-md-0" %}
+      </div>
+      <div class="col-md-6 order-md-1 text-center text-md-left pr-md-5">
+        <h1 class="mb-3 bd-text-purple-bright">Azure Web PubSub Service</h1>
+
+        <p class="text-muted mb-0">
+          Public Preview
+        </p>
+        <p class="lead">
+          Welcome to the Web PubSub Service. Use the service to build your <b>REAL-TIME</b> messaging applications using WebSocket APIs and the publish-subscribe pattern.
+        </p>
+        <p class="lead mb-4">
+          Any platform supporting WebSocket APIs(web pages, mobile apps, edge devices, etc) can connect to the service easily.
+          The service manages the WebSocket connections for you and allows up to 100K <b>concurrent</b> connections. 
+          It provide powerful APIs for you to manage these clients and deliver real-time messages.
+        </p>
+        <div class="row mx-n2">
+          <div class="col-md px-2">
+            <a href="{{ site.baseurl }}/getting-started" class="btn btn-lg btn-bd-primary w-100 mb-3">Get started</a>
+          </div>
+          <div class="col-md px-2">
+            <a href="{{ site.baseurl }}/demos/chat" class="btn btn-lg btn-outline-secondary w-100 mb-3">Demos</a>
+          </div>
+        </div>
+      </div>
+    </div>
+    <br>
+    <section class="row mb-5 mt-5 pb-md-4 align-items-center">
+
+      <div class="col-md-5">
+        <h2 class="display-5 fw-normal">Light-weighted</h2>
+        <p class="lead fw-normal">
+          Clients directly use WebSocket APIs to connect and send messages.
+        </p>
+      </div>
+      <div class="col-md-7">
+        <p class="code js">
+          var <span class="text-success">simpleClient</span> = new WebSocket(<span class="text-info">"wss://xxx.webpubsub.azure.com"</span>);
+        </p>
+        <p class="code js">
+          var <span class="text-success">subprotocolClient</span> = new WebSocket(<span class="text-info">"wss://xxx.webpubsub.azure.com"</span>, <span class="text-info">"json.webpubsub.azure.v1"</span>);
+        </p>
+      </div>
+    </section>
+    <section class="row mb-5 mt-5 pb-md-4 align-items-center">
+
+      <div class="col-md-5">
+        <h2 class="display-5 fw-normal">Everywhere</h2>
+        <p class="lead fw-normal">
+          A wide variety of programming languages with WebSocket APIs are supported to build the cross platform clients
+        </p>
+      </div>
+      <div class="col-md-7">
+        <p>
+         <span class="text-muted">C#</span>
+         <span class="text-success">JavaScript</span>
+         <span class="text-info">Java</span>
+         <span class="text-dark">Python</span>
+        </p>
+        <p>
+         <span class="text-primary">Edge devices</span>
+         <span class="text-secondary">Mobile Apps</span>
+        </p>
+      </div>
+    </section>
+    <section class="row mb-5 pb-md-4 align-items-center">
+      <div class="col-md-5">
+        <h2 class="display-5 fw-normal">Real-time</h2>
+        <p class="lead fw-normal">
+          Publish messages and subscribed clients receive the messages in real-time.
+        </p>
+      </div>
+    </section>
+  </div>
+</main>

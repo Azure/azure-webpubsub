@@ -1,0 +1,18 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    {% include header.html %}
+  </head>
+  <body>
+    {% include docs-navbar.html %}
+
+    <main id="content" role="main" class="bd-masthead" >
+        <div class="container">
+          {{ content }}
+        </div>
+      </main>
+
+    {% include footer.html %}
+    {% include scripts.html %}
+  </body>
+</html>

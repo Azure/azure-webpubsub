@@ -1,0 +1,55 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    {% include header.html %}
+    <style>
+      .iframe-class {
+        height: calc(100% - 120px);
+        width: 100%;
+      }
+    </style>
+  </head>
+  <body>
+    {% include docs-navbar.html %}
+
+    <div class="container-fluid">
+      <div class="row flex-xl-nowrap">
+        <div class="col-md-3 col-xl-2 bd-sidebar">
+          <nav class="collapse bd-links" id="bd-docs-nav" aria-label="Main navigation">
+            <div class="bd-toc-item active">
+                <span class="bd-toc-link">
+                  Demos
+                </span>
+
+                <ul class="nav bd-sidenav">
+                  {%- for doc in site.data.demos -%}
+                    {%- assign active = '' -%}
+                    {%- assign filename = page.name | split: '.' | first  -%}
+                    {%- if doc.name == filename -%}
+                      {%- assign active = 'active bd-sidenav-active' -%}
+                    {%- endif -%}
+
+                    <li class="{{ active }}">
+                      <a href="{{ site.baseurl }}/demos/{{doc.name}}">
+                        {{ doc.title }}
+                      </a>
+                    </li>
+                  {%- endfor -%}
+                </ul>
+              </div>
+          </nav>
+
+        </div>
+
+        <main class="col-md-9 col-xl-8 py-md-3 pl-md-5 bd-content" role="main">
+          {{ content }}
+          
+          <a href="{{ page.demolink}}" target="_blank">{{ page.demolink }}</a>
+          <iframe src="{{ page.demolink}}" scrolling="no" class="iframe-class" frameborder="0"></iframe>
+        </main>
+      </div>
+    </div>
+
+    {% include scripts.html %}
+  </body>
+</html>

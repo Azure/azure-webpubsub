@@ -1,0 +1,18 @@
+{
+  "name": "logstream",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "@azure/web-pubsub": "https://www.myget.org/F/azure-webpubsub-dev/npm/@azure/web-pubsub/-/1.0.0-preview.2",
+    "express": "^4.17.1",
+    "node-fetch": "^2.6.1",
+    "ws": "^7.4.4"
+  }
+}
