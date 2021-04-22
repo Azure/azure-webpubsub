@@ -74,7 +74,7 @@ if (process.argv.length !== 5) {
 let serviceClient = new WebPubSubServiceClient(process.argv[2], process.argv[3]);
 
 // by default it uses `application/json`, specify contentType as `text/plain` if you want plain-text
-serviceClient.sendToAll(process.argv[4], { contentType: "text/plain" });
+serviceClient.sendToAll(process.argv[4], { contentType: 'text/plain' });
 ```
 
 The `sendToAll()` call simply sends a message to all connected clients in a hub. Save the code above as `publish.js` and run `node publish "<connection-string>" <hub-name> <message>` with the same connection string and hub name you used in subscriber, you'll see the message printed out in the subscriber.

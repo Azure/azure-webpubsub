@@ -10,11 +10,11 @@ let handler = new WebPubSubCloudEventsHandler(hubName, ['*'], {
   path: '/eventhandler',
   onConnected: async req => {
     console.log(`${req.context.userId} connected`);
-    await serviceClient.sendToAll(`[SYSTEM] ${req.context.userId} joined`, { contentType: "text/plain" });
+    await serviceClient.sendToAll(`[SYSTEM] ${req.context.userId} joined`, { contentType: 'text/plain' });
   },
   handleUserEvent: async (req, res) => {
     if (req.context.eventName === 'message') {
-      await serviceClient.sendToAll(`[${req.context.userId}] ${req.data}`, { contentType: "text/plain" });
+      await serviceClient.sendToAll(`[${req.context.userId}] ${req.data}`, { contentType: 'text/plain' });
     }
     res.success();
   }
@@ -28,7 +28,7 @@ app.get('/negotiate', async (req, res) => {
     return;
   }
   let token = await serviceClient.getAuthenticationToken({ userId: id });
-  res.send({
+  res.json({
     url: token.url
   });
 });
