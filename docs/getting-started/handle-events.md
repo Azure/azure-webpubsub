@@ -231,4 +231,4 @@ Besides system events like connected or disconnected, client can also send messa
 
 Now run the server and open multiple browser instances, then you can chat with each other.
 
-The complete code sample of this tutorial can be found [here](samples/chatapp/).
+The complete code sample of this tutorial can be found [here](https://github.com/Azure/azure-webpubsub/tree/main/samples/javascript/chatapp/).

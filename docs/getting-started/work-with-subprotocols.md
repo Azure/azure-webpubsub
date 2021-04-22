@@ -201,4 +201,4 @@ Or you make it slower so you can see the data is streamed to browser in real tim
 for i in $(ls -R); do echo $i; sleep 0.1; done | node stream
 ```
 
-The complete code sample of this tutorial can be found [here](samples/logstream/).
+The complete code sample of this tutorial can be found [here](https://github.com/Azure/azure-webpubsub/tree/main/samples/javascript/logstream/).

@@ -81,4 +81,4 @@ The `sendToAll()` call simply sends a message to all connected clients in a hub.
 
 Since the message is sent to all clients, you can open multiple subscribers at the same time and all of them will receive the same message.
 
-The complete code sample of this tutorial can be found [here](samples/pubsub/).
+The complete code sample of this tutorial can be found [here](https://github.com/Azure/azure-webpubsub/tree/main/samples/javascript/pubsub/).
