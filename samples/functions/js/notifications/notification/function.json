@@ -1,0 +1,16 @@
+{
+  "bindings": [
+    {
+      "name": "myTimer",
+      "type": "timerTrigger",
+      "direction": "in",
+      "schedule": "*/10 * * * * *"
+    },
+    {
+      "type": "webPubSub",
+      "name": "webPubSubEvent",
+      "hub": "notification",
+      "direction": "out"
+    }
+  ]
+}
