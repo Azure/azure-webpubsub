@@ -1,11 +1,10 @@
 ---
 layout: docs
-title: "Handle events"
 group: getting-started
 toc: true
 ---
 
-# Handle events
+# [JavaScript] Handle events
 
 In last tutorial you have learned the basics of publishing and subscribing messages with Azure Web PubSub. In this tutorial you'll learn the event system of Azure Web PubSub so use it to build a complete web application with real time communication functionality.
 

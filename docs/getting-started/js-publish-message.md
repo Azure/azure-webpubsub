@@ -1,11 +1,10 @@
 ---
 layout: docs
-title: "Quick start: publish and subscribe messages in Azure Web PubSub"
 group: getting-started
 toc: true
 ---
 
-# Quick start: publish and subscribe messages in Azure Web PubSub
+# [JavaScript] Quick start: publish and subscribe messages in Azure Web PubSub
 
 In this tutorial you'll learn how to publish messages and subscribe them using Azure Web PubSub.
 

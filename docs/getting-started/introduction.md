@@ -1,16 +1,15 @@
 ---
 layout: docs
-title: Introduction
-description: What is Azure Web PubSub Service
 group: getting-started
 redirect_from:
   - "/getting-started/"
 toc: true
 ---
 
+# Azure Web PubSub
 ## Overview
 
-The Azure Web PubSub Service enables you to build real-time messaging web applications using WebSockets and the publish-subscribe pattern. Any platform supporting WebSocket APIs can connect to the service easily, e.g. web pages, mobile applications, edge devices, etc. The service manages the WebSocket connections for you and allows up to 100K **concurrent* connections. It provides powerful APIs for you to manage these clients and deliver real-time messages.
+Azure Web PubSub enables you to build real-time messaging web applications using WebSockets and the publish-subscribe pattern. Any platform supporting WebSocket APIs can connect to the service easily, e.g. web pages, mobile applications, edge devices, etc. The service manages the WebSocket connections for you and allows up to 100K **concurrent* connections. It provides powerful APIs for you to manage these clients and deliver real-time messages.
 
 ## Scenarios
 
@@ -37,11 +36,21 @@ Get your connection string under the "Keys" blade.
 ## Try A Live Demo
 A client-side chat sample
 
-## Run the Demo locally
-```batch
-git clone
-cd
-npm install
-npm run
-```
-Visit http://localhost:8080 
+## Getting Started
+
+- Publish messages to WebSocket connections 
+    - [JavaScript](./js-publish-message)
+    - [C#](./csharp-publish-message)
+- Using PubSub WebSocket subprotocol
+    - [JavaScript](./js-work-with-subprotocols)
+- Create a chat app
+    - [JavaScript](./js-handle-events)
+
+## Integrate with Azure Function
+- [Work with Azure Function](./work-with-azure-function)
+- [Function bindings](./../references/functions-bindings)
+
+## References
+- [Establish WebSocket connections to the service](./../references/websocket-clients)
+- [WebSocket PubSub Subprotocol in detail](./../references/pubsub-websocket-subprotocol)
+- [Web PubSub CloudEvents in detail](./../references/protocol-cloudevents)

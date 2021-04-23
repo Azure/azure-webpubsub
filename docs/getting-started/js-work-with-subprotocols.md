@@ -1,4 +1,10 @@
-# Work with subprotocols
+---
+layout: docs
+group: getting-started
+toc: true
+---
+
+# [JavaScript] Work with subprotocols
 
 In previous tutorials you have learned how to use WebSocket APIs to send and receive data with Azure Web PubSub. You can see there is no protocol needed when client is communicating with the service. For example, you can use `WebSocket.send()` to send any data and server will receive the data as is. This is easy to use, but the functionality is also limited. You cannot, for example, specify the event name when sending the event to server, or publish message to other clients instead of sending it to server. In this tutorial you will learn how to use subprotocol to extend the functionality of client.
 

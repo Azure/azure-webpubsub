@@ -1,8 +1,8 @@
 ---
 layout: docs
-title: Work with Azure Function
 group: getting-started
 toc: true
 ---
 
+# Work with Azure Function
 ## Overview
