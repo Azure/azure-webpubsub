@@ -39,12 +39,12 @@ A client-side chat sample
 ## Getting Started
 
 - Publish messages to WebSocket connections 
-    - [JavaScript](./js-publish-message)
-    - [C#](./csharp-publish-message)
+    - [JavaScript](./publish-messsages/js-publish-message)
+    - [C#](./publish-messsages/csharp-publish-message)
 - Using PubSub WebSocket subprotocol
-    - [JavaScript](./js-work-with-subprotocols)
+    - [JavaScript](./using-pubsub-subprotocol/js-work-with-subprotocols)
 - Create a chat app
-    - [JavaScript](./js-handle-events)
+    - [JavaScript](./create-a-chat-app/js-handle-events)
 
 ## Integrate with Azure Function
 - [Work with Azure Function](./work-with-azure-function)
