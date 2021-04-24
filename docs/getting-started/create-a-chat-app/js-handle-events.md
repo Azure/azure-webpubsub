@@ -1,6 +1,7 @@
 ---
 layout: docs
 group: getting-started
+subgroup: create-a-chat-app
 toc: true
 ---
 

@@ -10,7 +10,7 @@
           id: js-publish-message
         - title: C#
           id: csharp-publish-message
-    - title: Using subprotocol
+    - title: Using PubSub subprotocol
       pages:
         - title: JavaScript
           id: js-work-with-subprotocols
@@ -19,7 +19,6 @@
         - title: JavaScript
           id: js-handle-events
     - title: Work with Azure Function
-      id: work-with-azure-function
 - title: Samples
   pages:
     - title: Simple chat

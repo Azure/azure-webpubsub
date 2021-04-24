@@ -1,6 +1,7 @@
 ---
 layout: docs
 group: getting-started
+subgroup: using-pubsub-subprotocol
 toc: true
 ---
 

@@ -19,19 +19,22 @@
       {%- for doc in group.pages -%}
       {%- assign firstDocLink = nil -%}
       {%- assign doc_slug = doc.id | default: doc.title | slugify -%}
+      {%- assign doclink = doc_slug -%}
       {%- if doc.pages -%}
       {%- assign firstDoc = doc.pages | first -%}
-      {%- assign firstDocLink = firstDoc.id | default: firstDoc.title -%}
-      {%- assign doc_slug = firstDocLink | slugify -%}
+      {%- assign firstDocLink = firstDoc.id | default: firstDoc.title | slugify -%}
+      {%- assign doclink = doc_slug | append: "/" | append: firstDocLink -%}
       {%- endif -%}
       {%- assign active = nil -%}
 
       {%- if page.group == group_slug and page_slug == doc_slug -%}
       {%- assign active = 'active bd-sidenav-active' -%}
       {%- endif -%}
-
+      {%- if page.group == group_slug and page.subgroup == doc_slug -%}
+      {%- assign active = 'active bd-sidenav-active' -%}
+      {%- endif -%}
       <li{% unless active==nil %} class="{{ active }} bd-toc-item m-0" {% endunless %}>
-        <a class="{{page_slug}} {{doc_slug}}" href="{{ site.baseurl }}/{{ group_slug }}/{{ doc_slug }}">
+        <a href="{{ site.baseurl }}/{{ group_slug }}/{{ doclink }}">
           {{ doc.title }}
         </a>
         {%- if doc.pages -%}
@@ -44,8 +47,8 @@
           {%- assign active = 'active bd-sidenav-active' -%}
           {%- endif -%}
 
-          <li{% unless active==nil %} class="{{ active }} bd-toc-item  m-0 px-1 font-italic" {% endunless %}>
-            <a href="{{ site.baseurl }}/{{ group_slug }}/{{ subpage_slug }}">
+          <li class="{{ active }} bd-toc-item m-0 px-1 font-italic" >
+            <a href="{{ site.baseurl }}/{{ group_slug }}/{{ doc_slug }}/{{ subpage_slug }}">
               {{ subpage.title }}
             </a>
             </li>
