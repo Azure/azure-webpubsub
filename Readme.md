@@ -1,11 +1,3 @@
----
-layout: docs
-group: getting-started
-redirect_from:
-  - "/getting-started/"
-toc: true
----
-
 # Azure Web PubSub
 ## Overview
 
@@ -30,16 +22,16 @@ We list some examples that are good to use Azure Web PubSub service:
 
 ## Quickstart
 
-Eager to get started? Check [Quickstart](./quickstart.md) to get started!
+Eager to get started? Check [Quickstart](./docs/getting-started/quickstart.md) to get started!
 
 ## Step-by-step tutorials
 - Publish messages to WebSocket connections 
-    - [JavaScript](./publish-messages/js-publish-message.md)
-    - [C#](./publish-messages/csharp-publish-message.md)
+    - [JavaScript](./docs/getting-started/publish-messages/js-publish-message.md)
+    - [C#](./docs/getting-started/publish-messages/csharp-publish-message.md)
 - Create a chat app
-    - [JavaScript](./create-a-chat-app/js-handle-events.md)
+    - [JavaScript](./docs/getting-started/create-a-chat-app/js-handle-events.md)
 - Using PubSub WebSocket subprotocol
-    - [JavaScript](./using-pubsub-subprotocol/js-work-with-subprotocols.md)
+    - [JavaScript](./docs/getting-started/using-pubsub-subprotocol/js-work-with-subprotocols.md)
 
 ## Server SDKs
 - JavaScript
@@ -51,12 +43,12 @@ Eager to get started? Check [Quickstart](./quickstart.md) to get started!
     - [Service client](https://github.com/Azure/azure-sdk-for-java/tree/master/sdk/webpubsub/azure-messaging-webpubsub)
 - Python
     - [Service client](https://github.com/johanste/azure-sdk-for-python/tree/webpubsub/sdk/signalr/azure-messaging-webpubsubservice)
-    
+
 ## Integrate with Azure Function
-- [Work with Azure Function](./work-with-azure-function.md)
-- [Function bindings](./../references/functions-bindings.md)
+- [Work with Azure Function](./docs/getting-started/work-with-azure-function.md)
+- [Function bindings](./docs/references/functions-bindings.md)
 
 ## References
-- [Establish WebSocket connections to the service](./../references/websocket-clients.md)
-- [WebSocket PubSub Subprotocol in detail](./../references/pubsub-websocket-subprotocol.md)
-- [Web PubSub CloudEvents in detail](./../references/protocol-cloudevents.md)
+- [Establish WebSocket connections to the service](./docs/references/websocket-clients.md)
+- [WebSocket PubSub Subprotocol in detail](./docs/references/pubsub-websocket-subprotocol.md)
+- [Web PubSub CloudEvents in detail](./docs/references/protocol-cloudevents.md)

@@ -7,7 +7,9 @@ toc: true
 
 # Handle events
 
-In last tutorial you have learned the basics of publishing and subscribing messages with Azure Web PubSub. In this tutorial you'll learn the event system of Azure Web PubSub so use it to build a complete web application with real time communication functionality.
+In last tutorial you have learned the basics of publishing and subscribing messages with Azure Web PubSub. In this tutorial you'll learn the event system of Azure Web PubSub so use it to build a complete web application with real time communication functionality. 
+
+The complete code sample of this tutorial can be found [here][code]
 
 ## Prerequisites
 
@@ -231,4 +233,6 @@ Besides system events like connected or disconnected, client can also send messa
 
 Now run the server and open multiple browser instances, then you can chat with each other.
 
-The complete code sample of this tutorial can be found [here](https://github.com/Azure/azure-webpubsub/tree/main/samples/javascript/chatapp/).
+The complete code sample of this tutorial can be found [here][code].
+
+[code]: https://github.com/Azure/azure-webpubsub/tree/main/samples/javascript/chatapp/
