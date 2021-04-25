@@ -1,9 +1,8 @@
 - title: Simple Chat
   name: chat
-  demolink: /demos/clientchat
 - title: Code Streaming
   name: code-streaming
-  demolink: https://serverless-ws-chat-demo.azurewebsites.net/?code=LJ0EgrwWYSkm5MXGAe2AvPKVRGTaYpqQ/pxzJaFpVvyCY4j53s055Q==
+  demolink: https://awps-demo-code-streaming.azurewebsites.net/
 - title: Whiteboard
   name: whiteboard
   demolink: https://kenchentest0420.azurewebsites.net/

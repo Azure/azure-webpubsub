@@ -41,11 +41,12 @@
 
         </div>
 
-        <main class="col-md-9 col-xl-8 py-md-3 pl-md-5 bd-content" role="main">
+        <main class="col-md-9 col-xl-10 py-md-3 pl-md-5 bd-content" role="main">
           {{ content }}
-          
+          {%- if page.demolink -%}
           <a href="{{ page.demolink}}" target="_blank">{{ page.demolink }}</a>
           <iframe src="{{ page.demolink}}" scrolling="no" class="iframe-class" frameborder="0"></iframe>
+          {%- endif -%}
         </main>
       </div>
     </div>
