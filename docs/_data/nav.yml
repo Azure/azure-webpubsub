@@ -28,13 +28,6 @@
 - title: Concepts
   pages:
     - title: Service Internals
-    - title: Upstream
-    - title: Authentication
-    - title: Events
-    - title: Scale
-    - title: Messages and connections
-    - title: High availability
-    - title: Security
   
 - title: Specs
   pages:

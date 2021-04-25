@@ -55,3 +55,7 @@ Eager to get started? Check [Quickstart](./docs/getting-started/quickstart.md) t
 - [Establish WebSocket connections to the service](./docs/references/websocket-clients.md)
 - [WebSocket PubSub Subprotocol in detail](./docs/references/pubsub-websocket-subprotocol.md)
 - [Web PubSub CloudEvents in detail](./docs/references/protocol-cloudevents.md)
+- [Web PubSub REST API][rest]
+
+
+[rest]: https://review.docs.microsoft.com/en-us/rest/api/documentation-preview/webpubsub?view=azure-rest-preview&branch=result_openapiHub_production_138700d9fb80
