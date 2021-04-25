@@ -29,7 +29,7 @@
     - title: Messages and connections
     - title: High availability
     - title: Security
-    
+  
 - title: Specs
   pages:
     - title: 1. Web PubSub Service Design Spec

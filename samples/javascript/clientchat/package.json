@@ -1,0 +1,16 @@
+{
+  "name": "codestream",
+  "version": "1.0.0",
+  "description": "",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "@azure/web-pubsub": "https://www.myget.org/F/azure-webpubsub-dev/npm/@azure/web-pubsub/-/1.0.0-beta.1",
+    "express": "^4.17.1"
+  }
+}
