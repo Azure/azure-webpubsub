@@ -43,8 +43,9 @@ You can also try different **User ID** when generating the **Client URL** to see
     - [JavaScript](./using-pubsub-subprotocol/js-work-with-subprotocols.md)
 
 ## Integrate with Azure Function
-- [Work with Azure Function](./work-with-azure-function.md)
-- [Function bindings](./../references/functions-bindings.md)
+- Work with Azure Function
+    - [JavaScript](./work-with-azure-function/js-work-with-azure-function.md)
+    - [C#](./work-with-azure-function/csharp-work-with-azure-function.md)
 
 ## References
 - [Establish WebSocket connections to the service](./../references/websocket-clients.md)

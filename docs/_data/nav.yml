@@ -24,6 +24,11 @@
         - title: JavaScript
           id: js-auth-and-permissions
     - title: Work with Azure Function
+      pages:
+        - title: JavaScript
+          id: js-work-with-azure-function
+        - title: C#
+          id: csharp-work-with-azure-function
 
 - title: Concepts
   pages:

@@ -36,7 +36,7 @@ func start
 ngrok http 7071
 ```
 
-6. Update event handler settings in **Azure Portal** to enable service route events to current function app.
+6. Update event handler settings in **Azure Portal** -> **Settings** to enable service route events to current function app.
 
 Property|Value
 --|--

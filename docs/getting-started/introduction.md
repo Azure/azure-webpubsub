@@ -53,7 +53,9 @@ Eager to get started? Check [Quickstart](./quickstart.md) to get started!
     - [Service client](https://github.com/johanste/azure-sdk-for-python/tree/webpubsub/sdk/signalr/azure-messaging-webpubsubservice)
     
 ## Integrate with Azure Function
-- [Work with Azure Function](./work-with-azure-function.md)
+- Work with Azure Function
+    - [JavaScript](./work-with-azure-function/js-work-with-azure-function.md)
+    - [C#](./work-with-azure-function/csharp-work-with-azure-function.md)
 - [Function bindings](./../references/functions-bindings.md)
 
 ## Troubleshooting Guidance
