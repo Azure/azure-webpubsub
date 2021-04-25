@@ -18,7 +18,7 @@ In this tutorial you'll learn how to publish messages and subscribe them using A
 
 In Azure Web PubSub you can connect to the service and subscribe to messages through WebSocket connections. WebSocket is a full-duplex communication channel so service can push messages to your client in real time. You can use any API/library that supports WebSocket to do so. For this sample, we use package [Websocket.Client](https://github.com/Marfusios/websocket-client):
 
-1.  First create a console app and add neccessory dependencies:
+1.  First create a console app and add necessary dependencies:
 
     ```bash
     mkdir subscriber

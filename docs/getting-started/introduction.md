@@ -39,6 +39,7 @@ Eager to get started? Check [Quickstart](./quickstart.md) to get started!
     - [Python](./publish-messages/python-publish-message.md)
 - Create a chat app
     - [JavaScript](./create-a-chat-app/js-handle-events.md)
+    - [C#](./create-a-chat-app/csharp-handle-events.md)
 - Using PubSub WebSocket subprotocol
     - [JavaScript](./using-pubsub-subprotocol/js-work-with-subprotocols.md)
 
