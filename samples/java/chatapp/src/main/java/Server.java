@@ -12,7 +12,7 @@ public class Server {
     public static String connectedEvent = "azure.webpubsub.sys.connected";
     public static String messageEvent = "azure.webpubsub.user.message";
     public static String eventHandler = "/eventhandler/";
-    public static String connectionString = "<Your_ConnectionString>";
+    public static String connectionString = "<connection-string>";
 
     public static void main(String[] args) {
         WebPubSubServiceClient client = new WebPubSubClientBuilder()
