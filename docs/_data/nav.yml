@@ -28,14 +28,7 @@
 - title: Concepts
   pages:
     - title: Service Internals
-  
-- title: Specs
-  pages:
-    - title: 1. Web PubSub Service Design Spec
-    - title: 2. Client Protocols In Detail
-    - title: 3. Server Protocols In Detail
-    - title: 4. Azure Function Integration
-
+    
 - title: References
   pages:
     - title: WebSocket Clients
