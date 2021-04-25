@@ -13,9 +13,9 @@ The complete code sample of this tutorial can be found [here][code].
 
 ## Prerequisites
 
-1. [Node.js](https://nodejs.org)
-2. Create an Azure Web PubSub resource
-3. [Azure Function Core Tools(v3)](https://www.npmjs.com/package/azure-functions-core-tools)
+1. [.NET Core 3.1 or above](https://dotnet.microsoft.com/download)
+2. [Azure Function Core Tools(v3)](https://www.npmjs.com/package/azure-functions-core-tools)
+3. Create an Azure Web PubSub resource
 
 ## Setup publisher
 
