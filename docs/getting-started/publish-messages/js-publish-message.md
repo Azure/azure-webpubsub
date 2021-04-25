@@ -9,7 +9,7 @@ toc: true
 
 In this tutorial you'll learn how to publish messages and subscribe them using Azure Web PubSub with JavaScript SDK.
 
-The complete code sample of this tutorial can be found [here](https://github.com/Azure/azure-webpubsub/tree/main/samples/javascript/pubsub/).
+The complete code sample of this tutorial can be found [here][code].
 
 ## Prerequisites
 
@@ -83,4 +83,6 @@ The `sendToAll()` call simply sends a message to all connected clients in a hub.
 
 Since the message is sent to all clients, you can open multiple subscribers at the same time and all of them will receive the same message.
 
-The complete code sample of this tutorial can be found [here](https://github.com/Azure/azure-webpubsub/tree/main/samples/javascript/pubsub/).
+The complete code sample of this tutorial can be found [here][code].
+
+[code]: https://github.com/Azure/azure-webpubsub/tree/main/samples/javascript/pubsub/

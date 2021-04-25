@@ -7,11 +7,11 @@ toc: true
 
 # Quick start: publish and subscribe messages in Azure Web PubSub
 
-In this tutorial you'll learn how to publish messages and subscribe them using Azure Web PubSub.
+In this tutorial you'll learn how to publish messages and subscribe them using Azure Web PubSub with CSharp.
 
 ## Prerequisites
 
-1. [Node.js](https://nodejs.org)
+1. [.NETCore 3.0 or above]](https://nodejs.org)
 2. Create an Azure Web PubSub resource
 
 ## Setup subscriber

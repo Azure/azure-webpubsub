@@ -60,7 +60,7 @@ You may remember in last tutorial the subscriber uses an API in Web PubSub SDK t
 1.  Install Azure Web PubSub SDK
 
     ```bash
-    npm install --save https://www.myget.org/F/azure-webpubsub-dev/npm/@azure/web-pubsub/-/1.0.0-preview.2
+    npm install --save https://www.myget.org/F/azure-webpubsub-dev/npm/@azure/web-pubsub/-/1.0.0-beta.1
     ```
 
 2.  Add a `/negotiate` API to the server to generate the token
@@ -121,13 +121,13 @@ Azure Web PubSub follows [CloudEvents](https://cloudevents.io/) to describe even
 Add the following code to expose a REST API at `/eventhandler` (which is done by the express middleware provided by Web PubSub SDK) to handle the client connected event:
 
 ```bash
-npm install --save https://www.myget.org/F/azure-webpubsub-dev/npm/@azure/web-pubsub-express/-/1.0.0-preview.2
+npm install --save https://www.myget.org/F/azure-webpubsub-dev/npm/@azure/web-pubsub-express/-/1.0.0-beta.1
 ```
 
 ```javascript
 const { WebPubSubCloudEventsHandler } = require('@azure/web-pubsub-express');
 
-let handler = new WebPubSubCloudEventsHandler(hubName, ['*'], {
+let handler = new WebPubSubEventHandler(hubName, ['*'], {
   path: '/eventhandler',
   onConnected: async req => {
     console.log(`${req.context.userId} connected`);
@@ -155,6 +155,8 @@ Then open Azure portal and go to the settings tab to configure the event handler
 
 2. Set URL Pattern to `https://<domain-name>.ngrok.io/eventhandler` and check "connected" in System Event Pattern, click "Save".
 
+![Event Handler](./../../images/portal_event_handler.png)
+
 After the save is completed, open the home page, input your user name, you'll see the connected message printed out in the server console.
 
 ### Message events
@@ -164,7 +166,7 @@ Besides system events like connected or disconnected, client can also send messa
 1. Add a new `onUserEvent` handler
 
     ```javascript
-    let handler = new WebPubSubCloudEventsHandler(hubName, ['*'], {
+    let handler = new WebPubSubEventHandler(hubName, ['*'], {
       path: '/eventhandler',
       onConnected: async req => {
         ...
@@ -221,7 +223,7 @@ Besides system events like connected or disconnected, client can also send messa
 4.  Finally let's also update the `onConnected` handler to broadcast the connected event to all clients so they can see who joined the chat room.
 
     ```javascript
-    let handler = server.createCloudEventsHandler({
+    let handler = new WebPubSubEventHandler(hubName, ['*'], {
       path: '/eventhandler',
       onConnected: async req => {
         console.log(`${req.context.userId} connected`);
