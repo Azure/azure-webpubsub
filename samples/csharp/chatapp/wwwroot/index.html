@@ -1,0 +1,33 @@
+<html>
+
+<body>
+  <h1>Azure Web PubSub Chat</h1>
+  <input id="message" placeholder="Type to chat..."></input>
+  <div id="messages"></div>
+  <script>
+    (async function () {
+      let messages = document.querySelector('#messages');
+      let id = prompt('Please input your user name');
+      let res = await fetch(`/negotiate?id=${id}`);
+      let url = await res.text();
+      let ws = new WebSocket(url);
+      ws.onopen = () => console.log('connected');
+
+      ws.onmessage = event => {
+        let m = document.createElement('p');
+        m.innerText = event.data;
+        messages.appendChild(m);
+      };
+
+      let message = document.querySelector('#message');
+      let send = document.querySelector('#send');
+      message.addEventListener('keypress', e => {
+        if (e.charCode !== 13) return;
+        ws.send(message.value);
+        message.value = '';
+      });
+    })();
+  </script>
+</body>
+
+</html>
