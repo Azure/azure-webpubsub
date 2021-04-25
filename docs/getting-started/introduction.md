@@ -28,29 +28,24 @@ We list some examples that are good to use Azure Web PubSub service:
 * **IoT and connected devices:** real-time IoT metrics, remote control, real-time status, and location tracking.
 * **Automation:** real-time trigger from upstream events.
 
-## Create Your First Instance
+## Quickstart
 
-Go to Azure Portal and search **Web PubSub** Service. Create your service with several clicks.
-Get your connection string under the "Keys" blade.
+Eager to get started? Check [Quickstart](./quickstart.md) to get started!
 
-## Try A Live Demo
-A client-side chat sample
-
-## Getting Started
-
+## Step-by-step tutorials
 - Publish messages to WebSocket connections 
-    - [JavaScript](./publish-messsages/js-publish-message)
-    - [C#](./publish-messsages/csharp-publish-message)
-- Using PubSub WebSocket subprotocol
-    - [JavaScript](./using-pubsub-subprotocol/js-work-with-subprotocols)
+    - [JavaScript](./publish-messsages/js-publish-message.md)
+    - [C#](./publish-messsages/csharp-publish-message.md)
 - Create a chat app
-    - [JavaScript](./create-a-chat-app/js-handle-events)
+    - [JavaScript](./create-a-chat-app/js-handle-events.md)
+- Using PubSub WebSocket subprotocol
+    - [JavaScript](./using-pubsub-subprotocol/js-work-with-subprotocols.md)
 
 ## Integrate with Azure Function
-- [Work with Azure Function](./work-with-azure-function)
-- [Function bindings](./../references/functions-bindings)
+- [Work with Azure Function](./work-with-azure-function.md)
+- [Function bindings](./../references/functions-bindings.md)
 
 ## References
-- [Establish WebSocket connections to the service](./../references/websocket-clients)
-- [WebSocket PubSub Subprotocol in detail](./../references/pubsub-websocket-subprotocol)
-- [Web PubSub CloudEvents in detail](./../references/protocol-cloudevents)
+- [Establish WebSocket connections to the service](./../references/websocket-clients.md)
+- [WebSocket PubSub Subprotocol in detail](./../references/pubsub-websocket-subprotocol.md)
+- [Web PubSub CloudEvents in detail](./../references/protocol-cloudevents.md)

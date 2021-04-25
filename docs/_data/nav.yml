@@ -2,8 +2,7 @@
 - title: Getting started
   pages:
     - title: Introduction
-    - title: Create your first Web PubSub
-      id: create-your-first-service
+    - title: Quickstart
     - title: Publish messages 
       pages:
         - title: JavaScript
