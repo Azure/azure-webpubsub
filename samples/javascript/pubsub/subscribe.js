@@ -9,6 +9,7 @@ async function main() {
 
   let serviceClient = new WebPubSubServiceClient(process.argv[2], process.argv[3]);
   let token = await serviceClient.getAuthenticationToken();
+  console.log(token.url);
   let ws = new WebSocket(token.url);
   ws.on('open', () => console.log('connected'));
   ws.on('message', data => console.log(data));;
