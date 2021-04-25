@@ -10,6 +10,7 @@ from azure.messaging.webpubsubservice import (
 
 async def connect(url):
     async with websockets.connect(url) as ws:
+        print('connected')
         while True:
             print(await ws.recv())
 
