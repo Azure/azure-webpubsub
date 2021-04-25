@@ -37,6 +37,7 @@ You can also try different **User ID** when generating the **Client URL** to see
 - Publish messages to WebSocket connections 
     - [JavaScript](./publish-messages/js-publish-message.md)
     - [C#](./publish-messages/csharp-publish-message.md)
+    - [Python](./publish-messages/python-publish-message.md)
 - Create a chat app
     - [JavaScript](./create-a-chat-app/js-handle-events.md)
 - Using PubSub WebSocket subprotocol

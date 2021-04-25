@@ -1,9 +1,6 @@
 - title: Simple Chat
   name: chat
-  demolink: https://awps-demos-client-chat.azurewebsites.net/
 - title: Code Streaming
   name: code-streaming
-  demolink: https://awps-demos-codestream.azurewebsites.net/
 - title: Whiteboard
   name: whiteboard
-  demolink: https://kenchentest0420.azurewebsites.net/
