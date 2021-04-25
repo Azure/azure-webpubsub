@@ -22,11 +22,15 @@ The data sending from service to server is always in CloudEvents `binary` format
 ## Validation
 <a name="protection"></a>
 
-The Webhook validation follows the same behavior as [CloudEvents](https://github.com/cloudevents/spec/blob/v1.0/http-webhook.md#4-abuse-protection).
+The Webhook validation follows the same behavior as [CloudEvents](https://github.com/cloudevents/spec/blob/v1.0/http-webhook.md#4-abuse-protection). The request always contains `WebHook-Request-Origin: xxx.webpubsub.azure.com` in the header.
 
-`WebHook-Request-Origin: xxx.webpubsub.azure.com`
+If and only if the delivery target does allow delivery of the events, it MUST reply to the request by including `WebHook-Allowed-Origin` header, e.g.
 
-If and only if the delivery target does allow delivery of the events, it MUST reply to the request by including the `WebHook-Allowed-Origin` header.
+`WebHook-Allowed-Origin: *`
+
+Or:
+
+`WebHook-Allowed-Origin: xxx.webpubsub.azure.com`
 
 For now , we do not support [WebHook-Request-Rate](https://github.com/cloudevents/spec/blob/v1.0/http-webhook.md#414-webhook-request-rate) and [WebHook-Request-Callback](https://github.com/cloudevents/spec/blob/v1.0/http-webhook.md#413-webhook-request-callback).
 
