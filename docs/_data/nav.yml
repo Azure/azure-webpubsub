@@ -19,12 +19,6 @@
           id: js-handle-events
     - title: Work with Azure Function
 
-- title: How-to guides
-  pages:
-    - title: Local development
-    - title: Monitor
-    - title: Troubleshoot
-
 - title: Concepts
   pages:
     - title: Service Internals
