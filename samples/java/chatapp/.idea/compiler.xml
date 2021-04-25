@@ -6,6 +6,7 @@
         <sourceOutputDir name="target/generated-sources/annotations" />
         <sourceTestOutputDir name="target/generated-test-sources/test-annotations" />
         <outputRelativeToContentRoot value="true" />
+        <module name="microsoft.azure.webpubsub.samples.java.chatapp" />
         <module name="java" />
       </profile>
     </annotationProcessing>
