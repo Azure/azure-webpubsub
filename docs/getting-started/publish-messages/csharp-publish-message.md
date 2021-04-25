@@ -30,7 +30,8 @@ In Azure Web PubSub you can connect to the service and subscribe to messages thr
 
 2.  Update `Program.cs` to use `WebsocketClient` to connect to the service
 
-    ```csharpusing System;
+    ```csharp
+    using System;
     using System.Threading.Tasks;
     using Azure.Messaging.WebPubSub;
     using Websocket.Client;
