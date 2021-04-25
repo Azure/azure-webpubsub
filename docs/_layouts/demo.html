@@ -42,13 +42,15 @@
         </div>
 
         <main class="col-md-9 col-xl-10 py-md-3 pl-md-5 bd-content" role="main">
-          {{ content }}
+          <h5><abbr title="{{page.details}}">{{page.title}}</abbr>
+          </h5>
+          {%- if page.demolink -%}
+          <small><a href="{{ page.demolink}}" target="_blank">{{ page.demolink}}</a></small>
           
           {%- if page.sourcecode -%}
-          <a href="{{ page.sourcecode}}" target="_blank">[View Source Code]</a><span> | </span>
+          <small class="float-right"><a href="{{ page.sourcecode}}" target="_blank">[View Source Code]</a></small>
           {%- endif -%}
-          {%- if page.demolink -%}
-          <a href="{{ page.demolink}}" target="_blank">[Open In New Page]</a>
+          <hr/>
           <iframe src="{{ page.demolink}}" scrolling="no" class="iframe-class" frameborder="0"></iframe>
           {%- endif -%}
         </main>

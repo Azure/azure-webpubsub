@@ -5,7 +5,7 @@ group: references
 toc: true
 ---
 
-## Overview
+## WebSocket Clients connecting to the service
 
 Clients connect to the Web PubSub service (in below sections we refer it as the service) using [WebSocket](https://tools.ietf.org/html/rfc6455) protocol. So languages having WebSocket client support can be used to write a client for the service. In below sections we show several WebSocket client samples in different languages.
 

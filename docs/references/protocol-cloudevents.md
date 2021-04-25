@@ -4,7 +4,7 @@ toc: true
 group: references
 ---
          
-## Overview
+## Web PubSub CloudEvents protocol
 
 Service delivers client events to the upstream webhook using the [CloudEvents HTTP protocol](https://github.com/cloudevents/spec/blob/v1.0.1/http-protocol-binding.md).
 

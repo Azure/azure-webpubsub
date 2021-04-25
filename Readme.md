@@ -28,6 +28,7 @@ Eager to get started? Check [Quickstart](./docs/getting-started/quickstart.md) t
 - Publish messages to WebSocket connections 
     - [JavaScript](./docs/getting-started/publish-messages/js-publish-message.md)
     - [C#](./docs/getting-started/publish-messages/csharp-publish-message.md)
+    - [Python](./docs/getting-started/publish-messages/python-publish-message.md)
 - Create a chat app
     - [JavaScript](./docs/getting-started/create-a-chat-app/js-handle-events.md)
 - Using PubSub WebSocket subprotocol
