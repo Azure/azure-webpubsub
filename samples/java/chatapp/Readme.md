@@ -20,7 +20,7 @@ Run the script `ngrok http 8080`, then copy the URL above the red line.
 
 ## Start server
 
-1. Copy **Connection String** from **Keys** blade of the created Azure Web PubSub service, and replace the `<connection-string>` (in [Server.java](src\main\java\Server.java#L15)) below with the value of your **Connection String**.
+1. Copy **Connection String** from **Keys** blade of the created Azure Web PubSub service, and replace the `<connection-string>` (in [Server.java](src/main/java/Server.java#L15)) below with the value of your **Connection String**.
 ![connection string](../../../docs/images/portal_conn.png)
 2. Run the project.
 
