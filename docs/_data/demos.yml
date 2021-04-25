@@ -1,9 +1,9 @@
 - title: Simple Chat
   name: chat
-  demolink: https://wssimpledemo.z13.web.core.windows.net/
-- title: Advanced Chat
-  name: achat
+  demolink: /demos/clientchat
+- title: Code Streaming
+  name: code-streaming
   demolink: https://serverless-ws-chat-demo.azurewebsites.net/?code=LJ0EgrwWYSkm5MXGAe2AvPKVRGTaYpqQ/pxzJaFpVvyCY4j53s055Q==
 - title: Whiteboard
   name: whiteboard
-  demolink: https://ws-whiteboard.azurewebsites.net/
+  demolink: https://kenchentest0420.azurewebsites.net/

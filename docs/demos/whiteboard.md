@@ -1,7 +1,7 @@
 ---
 layout: demo
 permalink: /demos/whiteboard
-demolink: https://ws-whiteboard.azurewebsites.net/
+demolink: https://kenchentest0420.azurewebsites.net/
 ---
 
 ## Whiteboard
