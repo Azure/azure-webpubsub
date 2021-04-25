@@ -5,9 +5,11 @@ subgroup: publish-messages
 toc: true
 ---
 
-# [JavaScript] Quick start: publish and subscribe messages in Azure Web PubSub
+# Quick start: publish and subscribe messages in Azure Web PubSub
 
-In this tutorial you'll learn how to publish messages and subscribe them using Azure Web PubSub.
+In this tutorial you'll learn how to publish messages and subscribe them using Azure Web PubSub with JavaScript SDK.
+
+The complete code sample of this tutorial can be found [here][code].
 
 ## Prerequisites
 
@@ -23,7 +25,7 @@ In Azure Web PubSub you can connect to the service and subscribe to messages thr
     ```bash
     npm init -y
     npm install --save ws
-    npm install --save https://www.myget.org/F/azure-webpubsub-dev/npm/@azure/web-pubsub/-/1.0.0-preview.2
+    npm install --save https://www.myget.org/F/azure-webpubsub-dev/npm/@azure/web-pubsub/-/1.0.0-beta.1
 
     ```
 
@@ -81,4 +83,6 @@ The `sendToAll()` call simply sends a message to all connected clients in a hub.
 
 Since the message is sent to all clients, you can open multiple subscribers at the same time and all of them will receive the same message.
 
-The complete code sample of this tutorial can be found [here](https://github.com/Azure/azure-webpubsub/tree/main/samples/javascript/pubsub/).
+The complete code sample of this tutorial can be found [here][code].
+
+[code]: https://github.com/Azure/azure-webpubsub/tree/main/samples/javascript/pubsub/

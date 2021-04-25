@@ -5,9 +5,11 @@ subgroup: using-pubsub-subprotocol
 toc: true
 ---
 
-# [JavaScript] Work with subprotocols
+# Work with subprotocols
 
 In previous tutorials you have learned how to use WebSocket APIs to send and receive data with Azure Web PubSub. You can see there is no protocol needed when client is communicating with the service. For example, you can use `WebSocket.send()` to send any data and server will receive the data as is. This is easy to use, but the functionality is also limited. You cannot, for example, specify the event name when sending the event to server, or publish message to other clients instead of sending it to server. In this tutorial you will learn how to use subprotocol to extend the functionality of client.
+
+The complete code sample of this tutorial can be found [here][code].
 
 ## Using a subprotocol
 
@@ -30,7 +32,7 @@ Now let's create a simple web application using the subprotocol.
     npm install --save express
     npm install --save ws
     npm install --save node-fetch
-    npm install --save https://www.myget.org/F/azure-webpubsub-dev/npm/@azure/web-pubsub/-/1.0.0-preview.2
+    npm install --save https://www.myget.org/F/azure-webpubsub-dev/npm/@azure/web-pubsub/-/1.0.0-beta.1
     ```
 
 2.  Create a `server.js` to host the `/negotiate` API and web page.
@@ -171,7 +173,7 @@ This will be useful if you want to stream a large amount of data to other client
     app.get('/negotiate', async (req, res) => {
       let token = await endpoint.getAuthenticationToken({
         claims: {
-          role: ['webpubsub.sendToGroup', 'webpubsub.joinLeaveGroup']
+          role: ['webpubsub.sendToGroup.stream', 'webpubsub.joinLeaveGroup.stream']
         }
       });
       ...
@@ -208,4 +210,6 @@ Or you make it slower so you can see the data is streamed to browser in real tim
 for i in $(ls -R); do echo $i; sleep 0.1; done | node stream
 ```
 
-The complete code sample of this tutorial can be found [here](https://github.com/Azure/azure-webpubsub/tree/main/samples/javascript/logstream/).
+The complete code sample of this tutorial can be found [here][code].
+
+[code]: https://github.com/Azure/azure-webpubsub/tree/main/samples/javascript/logstream/

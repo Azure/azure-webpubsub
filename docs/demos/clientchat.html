@@ -85,7 +85,7 @@
 
         <main role="main" class="col p-md-4 p-2">
             <div class="d-flex flex-column flex-nowrap p-2">
-                <span>Go to Keys blade in portal, check Roles, and get a temp <b>Client Access Url</b>:
+                <span>Go to <b>Keys</b> blade in portal, check Roles, and get a temp <b>Client Access Url</b>:
                 </span>
 
                 <form v-on:submit.prevent="connect(client)" class="py-2">
@@ -101,6 +101,10 @@
                         <div class="col-md row" style="display: inline-block;">
                             <div v-if="message.type =='system'"
                                 class="font-italic text-warning text-center font-weight-light" role="alert">
+                                {{message.content}}
+                            </div>
+                            <div v-else-if="message.type =='error'"
+                                class="font-italic text-danger text-center font-weight-light" role="alert">
                                 {{message.content}}
                             </div>
                             <div v-else-if="message.type == 'self'" class="alert alert-success float-right" role="text">
@@ -156,7 +160,8 @@
                 connected: false,
                 logs: [],
                 userId: null,
-                connectionId: null
+                connectionId: null,
+                ackId: 0,
             },
         };
 
@@ -165,12 +170,13 @@
             owner.push(item);
         }
 
-        function connect(client, endpoint, onMessage) {
+        function connect(client, endpoint, onConnected, onMessage) {
             addItem("Connecting..", client.logs);
             try {
                 var websocket = client.connection = new WebSocket(endpoint, 'json.webpubsub.azure.v1');
                 websocket.onopen = e => {
                     addItem("Client WebSocket opened.", client.logs);
+                    if (onConnected) onConnected(client);
                 }
                 websocket.onclose = e => {
                     this.connected = false;
@@ -194,7 +200,18 @@
                 connect: function (client) {
                     // close the previous connection if any and start a new connection
                     if (client.connection) client.connection.close();
-                    connect(client, client.endpoint, (client, msg) => {
+                    connect(client, client.endpoint, 
+                    client => {
+                        // when connected    
+                        client.connection.send(JSON.stringify(
+                            {
+                                type: "joinGroup",
+                                group: "public",
+                                ackId: ++client.ackId // ackId is optional, use ackId to make sure this action is executed
+                            }
+                        ));
+                    },
+                    (client, msg) => {
                         let response = JSON.parse(msg.data);
                         if (response.type === "system") {
                             if (response.event === "connected") {
@@ -204,7 +221,12 @@
                                 addItem({ type: "system", content: `${response.userId}:${response.connectionId} connected.` }, client.chat.messages);
                             }
                             else if (response.event === "disconnected")
-                                addItem({ type: "system", content: `Disconnected. ${response.reason}` }, client.chat.messages);
+                                addItem({ type: "system", content: `Disconnected. ${response.message}` }, client.chat.messages);
+                        }
+                        else if (response.type === "ack") {
+                            if (!response.success) {
+                                addItem({ type: "error", content: response.error.message }, client.chat.messages);
+                            }
                         }
                         else if (response.type === "message") {
                             let content = response.data;
@@ -218,19 +240,14 @@
                 send: function (client) {
                     client.connection.send(JSON.stringify(
                         {
-                            type: "joinGroup",
-                            group: "public"
-                        }
-                    ));
-                    client.connection.send(JSON.stringify(
-                        {
                             type: "sendToGroup",
                             group: "public",
                             data: {
                                 userId: client.userId,
                                 connectionId: client.connectionId,
                                 content: client.newMessage
-                            }
+                            },
+                            ackId: ++client.ackId // ackId is optional, use ackId to make sure this action is executed
                         }
                     ))
                     client.newMessage = '';
