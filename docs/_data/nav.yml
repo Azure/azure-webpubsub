@@ -18,11 +18,6 @@
         - title: JavaScript
           id: js-handle-events
     - title: Work with Azure Function
-- title: Samples
-  pages:
-    - title: Simple chat
-    - title: Advanced Chat
-    - title: Whiteboard
 
 - title: How-to guides
   pages:

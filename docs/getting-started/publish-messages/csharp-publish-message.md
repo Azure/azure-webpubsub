@@ -5,7 +5,7 @@ subgroup: publish-messages
 toc: true
 ---
 
-# [CSharp] Quick start: publish and subscribe messages in Azure Web PubSub
+# Quick start: publish and subscribe messages in Azure Web PubSub
 
 In this tutorial you'll learn how to publish messages and subscribe them using Azure Web PubSub.
 

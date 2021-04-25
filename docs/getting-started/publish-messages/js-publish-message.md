@@ -5,9 +5,9 @@ subgroup: publish-messages
 toc: true
 ---
 
-# [JavaScript] Quick start: publish and subscribe messages in Azure Web PubSub
+# Quick start: publish and subscribe messages in Azure Web PubSub
 
-In this tutorial you'll learn how to publish messages and subscribe them using Azure Web PubSub.
+In this tutorial you'll learn how to publish messages and subscribe them using Azure Web PubSub with JavaScript SDK.
 
 ## Prerequisites
 
@@ -23,7 +23,7 @@ In Azure Web PubSub you can connect to the service and subscribe to messages thr
     ```bash
     npm init -y
     npm install --save ws
-    npm install --save https://www.myget.org/F/azure-webpubsub-dev/npm/@azure/web-pubsub/-/1.0.0-preview.2
+    npm install --save https://www.myget.org/F/azure-webpubsub-dev/npm/@azure/web-pubsub/-/1.0.0-beta.1
 
     ```
 
