@@ -8,7 +8,7 @@
     },
     {
       "type": "webPubSub",
-      "name": "webPubSubEvent",
+      "name": "webPubSubOperation",
       "hub": "notification",
       "direction": "out"
     }

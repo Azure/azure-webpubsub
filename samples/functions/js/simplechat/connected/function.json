@@ -11,7 +11,7 @@
     },
     {
       "type": "webPubSub",
-      "name": "webPubSubEvent",
+      "name": "webPubSubOperation",
       "hub": "simplechat",
       "direction": "out"
     }

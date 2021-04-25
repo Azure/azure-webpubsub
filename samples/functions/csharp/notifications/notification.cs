@@ -11,11 +11,10 @@ namespace notifications
     {
         [FunctionName("notification")]
         public static async Task Run([TimerTrigger("*/10 * * * * *")]TimerInfo myTimer, ILogger log,
-            [WebPubSub(Hub = "notification")] IAsyncCollector<WebPubSubEvent> webpubsubEvent)
+            [WebPubSub(Hub = "notification")] IAsyncCollector<WebPubSubOperation> operations)
         {
-           await webpubsubEvent.AddAsync(new WebPubSubEvent
+           await operations.AddAsync(new SendToAll
             {
-                Operation = WebPubSubOperation.SendToAll,
                 Message = new WebPubSubMessage($"DateTime: {DateTime.Now}], MSFT stock price: {GetStockPrice()}"),
                 DataType = MessageDataType.Text
             });
