@@ -49,15 +49,15 @@ Use the function trigger to handle request from Azure Web PubSub service. For in
 public static async Task<MessageResponse> Run(
     [WebPubSubTrigger("message", EventType.User)] 
     ConnectionContext context,
-    Message message,
+    string message,
     MessageDataType dataType)
 {
     Console.WriteLine($"Request from: {context.userId}");
-    Console.WriteLine($"Request message: {message.Body.ToString()}");
+    Console.WriteLine($"Request message: {message}");
     Console.WriteLine($"Request message DataType: {dataType}");
     return new MessageResponse
     {
-        Message = new WebPubSubMessage("ack"),
+        Message = BinaryData.FromString("ack"),
     };
 }
 ```
@@ -100,8 +100,8 @@ In non-csharp like javascript, `name` in `function.json` will be used to bind th
 | Binding Name | Binding Type | Description | Properties |
 |---------|---------|---------|---------|
 |connectionContext|`ConnectionContext`|Common request information| EventType, EventName, Hub, ConnectionId, UserId, Headers, Signature |
-|message|`Message`,`string`,`Stream`,`byte[]`|Request message content of `BinaryData` type| -|
-|dataType|`MessageDataType`| Request message dataType | -|
+|message|`BinaryData`,`string`,`Stream`,`byte[]`| Request message from client | -|
+|dataType|`MessageDataType`| Request message dataType, supports `binary`, `text`, `json` | -|
 |claims|`IDictionary<string, string[]>`|User Claims in `connect` request | -|
 |subprotocols|`string[]`|Available subprotocols in `connect` request | -|
 |clientCertificates|`ClientCertificate[]`|A list of certificate thumbprint from clients in `connect` request|-|
@@ -116,6 +116,7 @@ In non-csharp like javascript, `name` in `function.json` will be used to bind th
 |`ConnectResponse`| Response for `connect` event | Groups, Roles, UserId, Subprotocol |
 |`MessageResponse`| Response for user event | DataType, Message |
 |`ErrorResponse`| Error response for the sync event | Code, ErrorMessage |
+|`ServiceResponse`| Base response type of the supported ones used for uncertain return cases | - |
 
 ## Input binding
 
@@ -186,32 +187,34 @@ For information on setup and configuration details, see the overview.
 [FunctionName("broadcast")]
 public static async Task Broadcast(
     [HttpTrigger(AuthorizationLevel.Anonymous, "get", "post")] HttpRequest req,
-    [WebPubSub(Hub = "simplechat")] IAsyncCollector<WebPubSubEvent> webpubsubEvent)
+    [WebPubSub(Hub = "simplechat")] IAsyncCollector<WebPubSubOperation> operations)
 {
-    await webpubsubEvent.AddAsync(new WebPubSubEvent
+    await operations.AddAsync(new SendToAll
     {
-        Operation = Operation.SendToAll,
-        Message = new Message("Hello Web PubSub"),
+        Message = BinaryData.FromString("Hello Web PubSub"),
         DataType = MessageDataType.Text
     });
 }
 ```
 
-### WebPubSubEvent 
+### WebPubSubOperation 
 
-`WebPubSubEvent` is the the object contains all the properties user can set to invoke rest calls to service. Among the properties, `Operation` is required which matches rest api method names in swagger file. `Operation`s listed below are supported. Rest fields should be set depends on the operation type, and will fail if missed or with wrong values.
+`WebPubSubOperation` is the base abstract type of output bindings. The derived types represents the operation server want to services to invoke. In type-less language like `javascript`, `OperationKind` is the key parameter to resolve the type. And under strong type language like `csharp`, user can new the target operation type directly and `OperationKind` would be ignored.
 
-Name|Type|IsRequired|Description
---|--|--|--
-Operation|`Operation`|True|SendToAll</br>CloseClientCOnnection</br>SendToConnection</br>SendTOGroup</br>AddConnectionToGroup</br>RemoveConnectionFromGroup</br>SendToUser</br>AddUserToGroup</br>RemoveUserFromGroup</br>RemoveUserFromAllGroups</br>GrantGroupPermission</br>RevokeGroupPermission</br>
-Group|`string`|False|Group in operations related to groups
-UserId|`string`|False|User id in operations related to user
-ConnectionId|`string`|False|Connection id in operations related to connection
-Excluded|`string[]`|False|List of connection to exlude in operations like SendToAll and SendToGroup
-Reason|`string`|False|Optional reason when function need to close connection
-Permission|`WebPubSubPermission`|False|Permission need to grant/revoke, supports `SendToGroup` and `JoinLeaveGroup`
-Message|`Message`|False|Message to send in the send operations
-DataType|`MessageDataType`|False|Message data type
+Derived Class|Properties
+--|--
+`SendToAll`|Message, DataType, Excluded
+`SendToGroup`|Group, Message, DataType, Excluded
+`SendToUser`|UserId, Message, DataType
+`SendToConnection`|ConnectionId, Message, DataType
+`AddUserToGroup`|UserId, Group
+`RemoveUserFromGroup`|UserId, Group
+`RemoveUserFromAllGroups`|UserId
+`AddConnectionToGroup`|ConnectionId, Group
+`RemoveConnectionFromGroup`|ConnectionId, Group
+`CloseClientConnection`|ConncectionId, Reason
+`GrantGroupPermission`|ConnectionId, Group, Permission
+`RevokeGroupPermission`|ConnectionId, Group, Permission
 
 ### Configuration
 
@@ -226,4 +229,3 @@ The following table explains the binding configuration properties that you set i
 | **name** | n/a | Variable name used in function code for output binding object. |
 | **hub** | Hub | The value must be set to the name of the Web PubSub hub for the function to be triggered. We support set the value in attribute as higher priority, or it can be set in app settings as a global value. |
 | **connectionStringSetting** | ConnectionStringSetting | The name of the app setting that contains the Web PubSub Service connection string (defaults to "WebPubSubConnectionString") |
-
