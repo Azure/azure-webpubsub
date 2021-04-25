@@ -11,6 +11,8 @@ In previous tutorials for simplicity all samples do not require any authenticati
 
 In a real world application it's very common that you want user to login first before they can use your application to protect it from being abused. In this tutorial you'll learn how to integrate Azure Web PubSub with the authentication/authorization system of your application to make it more secure.
 
+The complete code sample of this tutorial can be found [here][code].
+
 ## Add authentication to the chat room app
 
 In this tutorial we will reuse the [chat room application](../create-a-chat-app/js-handle-events.md) to show how to integrate authentication with Azure Web PubSub.
@@ -275,4 +277,6 @@ ws.onmessage = event => {
 
 Now rerun server and login as a different user, you'll see an error message when trying to send system message.
 
-The complete code sample of this tutorial can be found [here](samples/githubchat/).
+The complete code sample of this tutorial can be found [here][code].
+
+[code]: https://github.com/Azure/azure-webpubsub/tree/main/samples/javascript/githubchat/

@@ -9,6 +9,8 @@
           id: js-publish-message
         - title: C#
           id: csharp-publish-message
+        - title: Python
+          id: python-publish-message
     - title: Using PubSub subprotocol
       pages:
         - title: JavaScript
@@ -17,6 +19,10 @@
       pages:
         - title: JavaScript
           id: js-handle-events
+    - title: Auth and permissions
+      pages:
+        - title: JavaScript
+          id: js-auth-and-permissions
     - title: Work with Azure Function
 
 - title: Concepts
