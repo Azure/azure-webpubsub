@@ -56,7 +56,14 @@ Eager to get started? Check [Quickstart](./quickstart.md) to get started!
 - [Work with Azure Function](./work-with-azure-function.md)
 - [Function bindings](./../references/functions-bindings.md)
 
+## Troubleshooting Guidance
+[Here](https://github.com/MicrosoftDocs/azure-docs-pr/blob/release-azure-web-pubsub/articles/azure-web-pubsub/howto-troubleshoot-diagnostic-logs.md) contains the details.
+
 ## References
 - [Establish WebSocket connections to the service](./../references/websocket-clients.md)
 - [WebSocket PubSub Subprotocol in detail](./../references/pubsub-websocket-subprotocol.md)
 - [Web PubSub CloudEvents in detail](./../references/protocol-cloudevents.md)
+- [Web PubSub REST API][rest]
+
+
+[rest]: https://review.docs.microsoft.com/en-us/rest/api/documentation-preview/webpubsub?view=azure-rest-preview&branch=result_openapiHub_production_138700d9fb80

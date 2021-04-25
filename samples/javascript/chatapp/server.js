@@ -28,7 +28,7 @@ app.get('/negotiate', async (req, res) => {
     return;
   }
   let token = await serviceClient.getAuthenticationToken({ userId: id });
-  res.send({
+  res.json({
     url: token.url
   });
 });

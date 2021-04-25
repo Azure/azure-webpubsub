@@ -239,6 +239,13 @@ The event handler handles the upcoming client events. Event handlers need to be 
 
 ![Event PUSH](../images/event_push.png)
 
+#### Authentication between service and webhook
+1. Anonymous mode
+1. Simple Auth that `code` is provided through the configured Webhook URL.
+1. AAD Auth. 
+   1. Add a client secret in AAD's [App Registrations] and provide the [client secret] to Azure Web PubSub through portal/cli.
+   2. Provide the [Identity](https://docs.microsoft.com/en-us/azure/app-service/overview-managed-identity?tabs=dotnet) to Azure Web PubSub through portal/cli
+
 <a name="connection_manager"></a>
 
 ### Connection manager

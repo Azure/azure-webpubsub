@@ -10,7 +10,7 @@ app.get('/negotiate', async (req, res) => {
       role: ['webpubsub.sendToGroup.stream', 'webpubsub.joinLeaveGroup.stream']
     }
   });
-  res.send({
+  res.json({
     url: token.url
   });
 });

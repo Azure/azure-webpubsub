@@ -11,73 +11,113 @@ In this tutorial you'll learn how to publish messages and subscribe them using A
 
 ## Prerequisites
 
-1. [.NETCore 3.0 or above]](https://nodejs.org)
+1. [.NET Core 3.1 or above](https://dotnet.microsoft.com/download)
 2. Create an Azure Web PubSub resource
 
 ## Setup subscriber
 
-In Azure Web PubSub you can connect to the service and subscribe to messages through WebSocket connections. WebSocket is a full-duplex communication channel so service can push messages to your client in real time. You can use any API/library that supports WebSocket to do so. Here is an example in node.js:
+In Azure Web PubSub you can connect to the service and subscribe to messages through WebSocket connections. WebSocket is a full-duplex communication channel so service can push messages to your client in real time. You can use any API/library that supports WebSocket to do so. For this sample, we use package [Websocket.Client](https://github.com/Marfusios/websocket-client):
 
-1.  First install required dependencies:
+1.  First create a console app and add neccessory dependencies:
 
     ```bash
-    npm init -y
-    npm install --save ws
-    npm install --save https://www.myget.org/F/azure-webpubsub-dev/npm/@azure/web-pubsub/-/1.0.0-preview.2
-
+    mkdir subscriber
+    cd subscriber
+    dotnet new console
+    dotnet add package Websocket.Client --version 4.3.30
+    dotnet add package Azure.Messaging.WebPubSub --version 1.0.0-beta.1 --source https://www.myget.org/F/azure-webpubsub-dev/api/v3/index.json
     ```
 
-2.  Then use WebSocket API to connect to service
+2.  Update `Program.cs` to use `WebsocketClient` to connect to the service
 
-    ```javascript
-    const WebSocket = require('ws');
-    const { WebPubSubServiceClient } = require('@azure/web-pubsub');
+    ```csharpusing System;
+    using System.Threading.Tasks;
+    using Azure.Messaging.WebPubSub;
+    using Websocket.Client;
 
-    async function main() {
-      if (process.argv.length !== 4) {
-        console.log('Usage: node subscribe <connection-string> <hub-name>');
-        return 1;
-      }
+    namespace subscriber
+    {
+        class Program
+        {
+            static async Task Main(string[] args)
+            {
+                if (args.Length != 2)
+                {
+                    Console.WriteLine("Usage: subscriber <connectionString> <hub>");
+                    return;
+                }
+                var connectionString = args[0];
+                var hub = args[1];
 
-      let serviceClient = new WebPubSubServiceClient(process.argv[2], process.argv[3]);
-      let token = await serviceClient.getAuthenticationToken();
-      let ws = new WebSocket(token.url);
-      ws.on('open', () => console.log('connected'));
-      ws.on('message', data => console.log(data));;
+                // Either generate the URL or fetch it from server or fetch a temp one from the portal
+                var serviceClient = new WebPubSubServiceClient(connectionString, hub);
+                var url = serviceClient.GetClientAccessUri();
+
+                using (var client = new WebsocketClient(url))
+                {
+                    client.MessageReceived.Subscribe(msg => Console.WriteLine($"Message received: {msg}"));
+                    await client.Start();
+                    Console.WriteLine("Connected.");
+                }
+
+                Console.Read();
+            }
+        }
     }
 
-    main();
     ```
 
 The code above creates a WebSocket connection to connect to a hub in Azure Web PubSub. Hub is a logical unit in Azure Web PubSub where you can publish messages to a group of clients.
 
-Azure Web PubSub by default doesn't allow anonymous connection, so in the code sample we use `WebPubSubServiceClient.getAuthenticationToken()` in Web PubSub SDK to generate a url to the service that contains an access token and hub name.
+Azure Web PubSub by default doesn't allow anonymous connection, so in the code sample we use `WebPubSubServiceClient.GetClientAccessUri()` in Web PubSub SDK to generate a url to the service that contains the full URL with a valid access token.
 
-After connection is established, you will receive messages through the WebSocket connection. So we use `WebSocket.on('message', ...)` to listen to incoming messages.
+After connection is established, you will receive messages through the WebSocket connection. So we use `client.MessageReceived.Subscribe(msg => ...));` to listen to incoming messages.
 
-Now save the code above as `subscribe.js` and run it using `node subscribe "<connection-string>" <hub-name>` (`<connection-string>` can be found in "Keys" tab in Azure portal, `<hub-name>` can be any alphabetical string you like), you'll see a `connected` message printed out, indicating that you have successfully connected to the service.
+Now save the code above and run it using `dotnet run "<connection-string>" <hub-name>` (`<connection-string>` can be found in "Keys" tab in Azure portal, `<hub-name>` can be any alphabetical string you like), you'll see a `connected` message printed out, indicating that you have successfully connected to the service.
 
 > Make sure your connection string is enclosed by quotes ("") in Linux as connection string contains semicolon.
 
 ## Setup publisher
 
-Now let's use Azure Web PubSub SDK to publish a message to the service:
+Now let's use Azure Web PubSub SDK to publish a message to the service. First let's create a publisher project:
+```bash
 
-```javascript
-const { WebPubSubServiceClient } = require('@azure/web-pubsub');
+mkdir publisher
+cd publisher
+dotnet new console
+dotnet add package Azure.Messaging.WebPubSub --version 1.0.0-beta.1 --source https://www.myget.org/F/azure-webpubsub-dev/api/v3/index.json
 
-if (process.argv.length !== 5) {
-  console.log('Usage: node publish <connection-string> <hub-name> <message>');
-  return 1;
-}
-
-let serviceClient = new WebPubSubServiceClient(process.argv[2], process.argv[3]);
-
-// by default it uses `application/json`, specify contentType as `text/plain` if you want plain-text
-serviceClient.sendToAll(process.argv[4], { contentType: "text/plain" });
 ```
 
-The `sendToAll()` call simply sends a message to all connected clients in a hub. Save the code above as `publish.js` and run `node publish "<connection-string>" <hub-name> <message>` with the same connection string and hub name you used in subscriber, you'll see the message printed out in the subscriber.
+```csharp
+using System;
+using System.Linq;
+using Azure.Messaging.WebPubSub;
+
+namespace publisher
+{
+    class Program
+    {
+        static void Main(string[] args)
+        {
+            if (args.Length != 2) {
+                Console.WriteLine("Usage: <connectionString> <hub> <message");
+                return;
+            }
+            var connectionString = args[0];
+            var hub = args[1];
+            var message = args[2];
+            
+            // Either generate the token or fetch it from server or fetch a temp one from the portal
+            var serviceClient = new WebPubSubServiceClient(connectionString, hub);
+            serviceClient.SendToAll(message);
+        }
+    }
+}
+
+```
+
+The `sendToAll()` call simply sends a message to all connected clients in a hub. Save the code above and run `dotnet "<connection-string>" <hub-name> <message>` with the same connection string and hub name you used in subscriber, you'll see the message printed out in the subscriber.
 
 Since the message is sent to all clients, you can open multiple subscribers at the same time and all of them will receive the same message.
 
