@@ -48,7 +48,7 @@ You can also try uncheck **Roles** when generating the **Client URL** to see how
 ## References
 - [Client WebSocket APIs](./../references/client-websocket-apis/)
 - [Client PubSub Subprotocol](./../references/pubsub-websocket-subprotocol.md)
-- [Server SDKs](./../references/server-sdks/)
+- [Server SDKs](./../references/server-sdks/index.md)
 - [Server CloudEvents protocol](./../references/protocol-cloudevents.md)
 - [Server REST API][rest]
 
