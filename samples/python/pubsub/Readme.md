@@ -15,6 +15,7 @@ python -m venv env
 ./env/Scripts/activate
 
 # pip install
+pip install --index-url https://www.myget.org/F/azure-webpubsub-dev/python azure-messaging-webpubsubservice
 pip install -r requirements.txt
 ```
 
@@ -35,6 +36,9 @@ The subscriber is then connected.
 Replace the `<connection-string>` below with the value of your **Connection String**:
 
 ```bash
+# Open a new console and ensure venv active 
+./env/Scripts/activate
+
 python publish.py <connection-string> pubsub Hello,world
 ```
 
