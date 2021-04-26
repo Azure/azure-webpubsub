@@ -15,7 +15,8 @@
 
       ws.onmessage = event => {
         let m = document.createElement('p');
-        m.innerText = event.data;
+        let data = JSON.parse(event.data);
+        m.innerText = `[${data.type || ''}${data.from || ''}] ${data.message}`;
         messages.appendChild(m);
       };
 

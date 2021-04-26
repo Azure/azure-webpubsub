@@ -220,17 +220,38 @@ Besides system events like connected or disconnected, client can also send messa
 
     You can see in the above code we use `WebSocket.send()` to send message and `WebSocket.onmessage` to listen to message from service.
 
-4.  Finally let's also update the `onConnected` handler to broadcast the connected event to all clients so they can see who joined the chat room.
+4. `sendToAll` accepts object as an input and send JSON text to the clients. In real scenarios, we probably need complex object to carry more information about the message. Finally let's also update the handlers to broadcast JSON objects to all clients: .
 
     ```javascript
     let handler = new WebPubSubEventHandler(hubName, ['*'], {
       path: '/eventhandler',
       onConnected: async req => {
         console.log(`${req.context.userId} connected`);
-        await serviceClient.sendToAll(`[SYSTEM] ${req.context.userId} joined`, { contentType: "text/plain" });
+        await serviceClient.sendToAll({
+          type: "system",
+          message: `${req.context.userId} joined`
+        });
       },
-      ...
+      handleUserEvent: async (req, res) => {
+        if (req.context.eventName === 'message') {
+          await serviceClient.sendToAll({
+            from: req.context.userId,
+            message: req.data
+          });
+        }
+        res.success();
+      }
     });
+    ```
+
+5. And update the client to parse JSON data:
+    ```javascript
+    ws.onmessage = event => {
+      let m = document.createElement('p');
+      let data = JSON.parse(event.data);
+      m.innerText = `[${data.type || ''}${data.from || ''}] ${data.message}`;
+      messages.appendChild(m);
+    };
     ```
 
 Now run the server and open multiple browser instances, then you can chat with each other.

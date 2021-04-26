@@ -10,11 +10,17 @@ let handler = new WebPubSubEventHandler(hubName, ['*'], {
   path: '/eventhandler',
   onConnected: async req => {
     console.log(`${req.context.userId} connected`);
-    await serviceClient.sendToAll(`[SYSTEM] ${req.context.userId} joined`, { contentType: "text/plain" });
+    await serviceClient.sendToAll({
+      type: "system",
+      message: `${req.context.userId} joined`
+    });
   },
   handleUserEvent: async (req, res) => {
     if (req.context.eventName === 'message') {
-      await serviceClient.sendToAll(`[${req.context.userId}] ${req.data}`, { contentType: "text/plain" });
+      await serviceClient.sendToAll({
+        from: req.context.userId,
+        message: req.data
+      });
     }
     res.success();
   }

@@ -47,3 +47,8 @@ Go to the **Settings** blade to configure the event handler for this `chat` hub:
 Open http://localhost:8080, input your user name, and send messages.
 
 You can see in the ngrok command window that there are requests coming in with every message sent from the page.
+
+## Client using `json.webpubsub.azure.v1` subprotocol
+Besides the simple WebSocket client we show in [index.html](./public/index.html), [fancy.html](./public/fancy.html) shows a client using `json.webpubsub.azure.v1` achieving the same by sending `message` event to the service. With the help of the subprotocol, the client can get `connected` and `disconnected` messages containing some metadata of the connection.
+
+You can open both http://localhost:8080/index.html and http://localhost:8080/fancy.html to see messages received by both clients.
