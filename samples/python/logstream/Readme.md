@@ -33,6 +33,9 @@ The server is then started. Open `http://localhost:8080` in browser. If you use 
 ## Start the log streamer
 Run:
 ```bash
+# Open a new console and ensure venv active 
+./env/Scripts/activate
+
 python stream.py
 ```
 

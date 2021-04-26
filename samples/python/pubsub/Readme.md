@@ -35,6 +35,9 @@ The subscriber is then connected.
 Replace the `<connection-string>` below with the value of your **Connection String**:
 
 ```bash
+# Open a new console and ensure venv active 
+./env/Scripts/activate
+
 python publish.py <connection-string> pubsub Hello,world
 ```
 
