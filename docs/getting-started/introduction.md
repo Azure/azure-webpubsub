@@ -43,31 +43,21 @@ Eager to get started? Check [Quickstart](./quickstart.md) to get started!
 - Using PubSub WebSocket subprotocol
     - [JavaScript](./using-pubsub-subprotocol/js-work-with-subprotocols.md)
 
-## Server SDKs
-- JavaScript
-    - [Service client](https://github.com/Azure/azure-sdk-for-js/tree/master/sdk/web-pubsub/web-pubsub)
-    - [Express middleware](https://github.com/Azure/azure-sdk-for-js/tree/master/sdk/web-pubsub/web-pubsub-express)
-- CSharp
-    - [Service client](https://github.com/Azure/azure-sdk-for-net/tree/master/sdk/webpubsub/Azure.Messaging.WebPubSub)
-- Java
-    - [Service client](https://github.com/Azure/azure-sdk-for-java/tree/master/sdk/webpubsub/azure-messaging-webpubsub)
-- Python
-    - [Service client](https://github.com/johanste/azure-sdk-for-python/tree/webpubsub/sdk/signalr/azure-messaging-webpubsubservice)
-    
 ## Integrate with Azure Function
 - Work with Azure Function
     - [JavaScript](./work-with-azure-function/js-work-with-azure-function.md)
     - [C#](./work-with-azure-function/csharp-work-with-azure-function.md)
 - [Function bindings](./../references/functions-bindings.md)
 
+## References
+- [Client WebSocket APIs](./../references/client-websocket-apis/)
+- [Client PubSub Subprotocol](./../references/pubsub-websocket-subprotocol.md)
+- [Server SDKs](./../references/server-sdks/)
+- [Server CloudEvents protocol](./../references/protocol-cloudevents.md)
+- [Server REST API][rest]
+
 ## Troubleshooting Guidance
 [Here](https://github.com/MicrosoftDocs/azure-docs-pr/blob/release-azure-web-pubsub/articles/azure-web-pubsub/howto-troubleshoot-diagnostic-logs.md) contains the details.
-
-## References
-- [Establish WebSocket connections to the service](./../references/websocket-clients.md)
-- [WebSocket PubSub Subprotocol in detail](./../references/pubsub-websocket-subprotocol.md)
-- [Web PubSub CloudEvents in detail](./../references/protocol-cloudevents.md)
-- [Web PubSub REST API][rest]
 
 
 [rest]: https://review.docs.microsoft.com/en-us/rest/api/documentation-preview/webpubsub?view=azure-rest-preview&branch=result_openapiHub_production_138700d9fb80

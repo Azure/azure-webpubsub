@@ -46,10 +46,11 @@ You can also try uncheck **Roles** when generating the **Client URL** to see how
     - [C#](./work-with-azure-function/csharp-work-with-azure-function.md)
 
 ## References
-- [Establish WebSocket connections to the service](./../references/websocket-clients.md)
-- [WebSocket PubSub Subprotocol in detail](./../references/pubsub-websocket-subprotocol.md)
-- [Web PubSub CloudEvents in detail](./../references/protocol-cloudevents.md)
-- [Web PubSub REST API][rest]
+- [Client WebSocket APIs](./../references/client-websocket-apis/)
+- [Client PubSub Subprotocol](./../references/pubsub-websocket-subprotocol.md)
+- [Server SDKs](./../references/server-sdks/)
+- [Server CloudEvents protocol](./../references/protocol-cloudevents.md)
+- [Server REST API][rest]
 
 
 [rest]: https://review.docs.microsoft.com/en-us/rest/api/documentation-preview/webpubsub?view=azure-rest-preview&branch=result_openapiHub_production_138700d9fb80
