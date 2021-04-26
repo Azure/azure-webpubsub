@@ -10,6 +10,8 @@ This document describes the subprotocol `json.webpubsub.azure.v1`.
 
 When the client is using this subprotocol, both outgoing data frame and incoming data frame are expected to be **JSON** payloads.
 
+- [Overview](#overview)
+- [Permissions](#permissions)
 - [Requests](#requests)
     - [Join Group Request](#join)
     - [Leave Group Request](#leave)
@@ -19,6 +21,31 @@ When the client is using this subprotocol, both outgoing data frame and incoming
     - [Ack Response](#ack)
     - [Message Response](#message)
     - [Service Response](#service)
+
+### Overview
+
+Subprotocol `json.webpubsub.azure.v1` empowers the clients to do publish/subscribe directly instead of a round trip to the upstream server. We call the WebSocket connection with `json.webpubsub.azure.v1` subprotocol a PubSub WebSocket client.
+
+For example, in JS, a PubSub WebSocket client can be created using:
+```js
+// PubSub WebSocket client
+var pubsub = new WebSocket('wss://test.webpubsub.azure.com/client/hubs/hub1', 'json.webpubsub.azure.v1');
+```
+For a simple WebSocket client, the *server* is a MUST HAVE role to handle the events from clients. A simple WebSocket connection always triggers a `message` event when it sends messages, and always relies on the server-side to process messages and do other operations. With the help of the `json.webpubsub.azure.v1` subprotocol, an authorized client can join a group using [join requests](#join) and publish messages to a group using [publish requests](#publish) directly. It can also route messages to different upstreams (event handlers) by customizing the *event* the message belongs using [event requests](#events). 
+
+### Permissions
+
+As you may have noticed when we describe the PubSub WebSocket clients, that a client can publish to other clients only when it is *authorized* to. The `role`s of the client determines the *initial* permissions the client have:
+
+| Role | Permission |
+|---|---|
+| Not specified | The client can send event requests.
+| `webpubsub.joinLeaveGroup` | The client can join/leave any group
+| `webpubsub.sendToGroup` | The client can publish messages to any group
+| `webpubsub.joinLeaveGroup.<group>` | The client can join/leave the groups that the group name is `<group>`.
+| `webpubsub.sendToGroup.<group>` | The client can publish messages to the groups that the group name is `<group>`.
+
+The server-side can also grant or revoke permissions of the client dynamically through REST APIs or server SDKs.
 
 ### Requests
 
