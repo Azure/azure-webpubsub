@@ -3,6 +3,7 @@
   pages:
     - title: Introduction
     - title: Quickstart
+    - title: Troubleshoot
     - title: Publish messages 
       pages:
         - title: JavaScript

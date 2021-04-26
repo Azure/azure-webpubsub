@@ -57,7 +57,7 @@ Eager to get started? Check [Quickstart](./quickstart.md) to get started!
 - [Server REST API][rest]
 
 ## Troubleshooting Guidance
-[Here](https://github.com/MicrosoftDocs/azure-docs-pr/blob/release-azure-web-pubsub/articles/azure-web-pubsub/howto-troubleshoot-diagnostic-logs.md) contains the details.
+[Here](./troubleshoot.md) contains the details.
 
 
 [rest]: https://review.docs.microsoft.com/en-us/rest/api/documentation-preview/webpubsub?view=azure-rest-preview&branch=result_openapiHub_production_138700d9fb80

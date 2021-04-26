@@ -40,7 +40,7 @@ Eager to get started? Check [Quickstart](./docs/getting-started/quickstart.md) t
 - [Function bindings](./docs/references/functions-bindings.md)
 
 ## Troubleshooting Guidance
-[Here](https://github.com/MicrosoftDocs/azure-docs-pr/blob/release-azure-web-pubsub/articles/azure-web-pubsub/howto-troubleshoot-diagnostic-logs.md) contains the details.
+[Here](./docs/getting-started/troubleshoot.md) contains the details.
 
 ## References
 - [Client WebSocket APIs](./docs/references/client-websocket-apis/)
