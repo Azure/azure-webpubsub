@@ -25,13 +25,9 @@ Go to Azure Portal and search **Web PubSub** Service. Create your service with s
 ## Try A Live Demo
 Check the roles of **Send To Groups** and **Join/Leave Groups**, and copy the **Client Access URL**.
 
-Open <a href="../demos/clientchat.html" target="_blank">Client Chat</a>, paste the **Client Access URL** and **Connect**. Now you are ready to chat.
+Open <a href="../demos/clientpubsub.html" target="_blank">Client Pub/Sub Demo</a>, paste the **Client Access URL** and **Connect**. Try different groups to join and different groups to send messages to, and see what messages are received.
 
-Open another <a href="../demos/clientchat.html" target="_blank">Client Chat</a>, paste the **Client Access URL** and **Connect**. Send messages and you can see the other page receives the messages.
-
-You can also try different **User ID** when generating the **Client URL** to see how it goes.
-
-![Client Chat](./../images/client_chat.png)
+You can also try uncheck **Roles** when generating the **Client URL** to see how sending messages to groups with that goes.
 
 ## More samples to try
 - Publish messages to WebSocket connections 
@@ -40,6 +36,7 @@ You can also try different **User ID** when generating the **Client URL** to see
     - [Python](./publish-messages/python-publish-message.md)
 - Create a chat app
     - [JavaScript](./create-a-chat-app/js-handle-events.md)
+    - [C#](./create-a-chat-app/csharp-handle-events.md)
 - Using PubSub WebSocket subprotocol
     - [JavaScript](./using-pubsub-subprotocol/js-work-with-subprotocols.md)
 
