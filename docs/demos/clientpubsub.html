@@ -198,7 +198,6 @@
         }
 
         function connect(client, endpoint, onConnected, onMessage) {
-            addItem("Connecting..", client.logs);
             try {
                 var websocket = client.connection = new WebSocket(endpoint, 'json.webpubsub.azure.v1');
                 websocket.onopen = e => {
@@ -230,7 +229,7 @@
                             ackId: ++client.ackId // ackId is optional, use ackId to make sure this action is executed
                         }
                     ));
-                    addItem({ type: "system", content: `Join group ${client.groupToJoin}` }, client.joinlogs);
+                    addItem(`Join group ${client.groupToJoin}`, client.joinlogs);
                     
                     client.groupToJoin = '';
                 },
@@ -238,16 +237,12 @@
                     client.connection.send(JSON.stringify(
                         {
                             type: "sendToGroup",
-                            group: groupToPublish,
-                            data: {
-                                userId: client.userId,
-                                connectionId: client.connectionId,
-                                content: client.newMessage
-                            },
+                            group: client.groupToPublish,
+                            data: client.newMessage,
                             ackId: ++client.ackId // ackId is optional, use ackId to make sure this action is executed
                         }
                     ));
-                    addItem({ type: "system", content: `Send to group ${client.groupToPublish}` }, client.publishlogs);
+                    addItem(`Send to group ${client.groupToPublish}`, client.publishlogs);
                     client.groupToPublish = '';
                     client.newMessage = '';
                 },
@@ -274,7 +269,7 @@
                         }
                         else if (response.type === "message") {
                             let content = response.data;
-                            addItem( { from: content.from, content: response.data}, client.chat.messages);
+                            addItem( { from: `Group ${response.group}`, content: content}, client.chat.messages);
                         }
                     });
                 },
