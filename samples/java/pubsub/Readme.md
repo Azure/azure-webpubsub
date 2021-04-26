@@ -13,4 +13,5 @@
 4. You will see the message is published, e.g. `2021/04/26 12:43:03: Publish message "message" to hub [pubsub].`.
 4. Later you will see the message get received, e.g. `2021/04/26 12:43:09: Received message "message" from hub [pubsub]`.
 6. Press `Q` to leave.
+
 ![chat room](../../../docs/images/sample-java-pubsub-console.png)
