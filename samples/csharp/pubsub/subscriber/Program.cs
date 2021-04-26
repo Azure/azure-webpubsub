@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Net.WebSockets;
 using System.Threading.Tasks;
 
 using Azure.Messaging.WebPubSub;
@@ -23,7 +24,12 @@ namespace subscriber
             var serviceClient = new WebPubSubServiceClient(connectionString, hub);
             var url = serviceClient.GetClientAccessUri();
 
-            using (var client = new WebsocketClient(url))
+            using (var client = new WebsocketClient(url, () =>
+            {
+                var inner = new ClientWebSocket();
+                inner.Options.AddSubProtocol("json.webpubsub.azure.v1");
+                return inner;
+            }))
             {
                 client.MessageReceived.Subscribe(msg => Console.WriteLine($"Message received: {msg}"));
                 await client.Start();
