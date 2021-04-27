@@ -8,8 +8,8 @@ namespace publisher
     {
         static void Main(string[] args)
         {
-            if (args.Length != 2) {
-                Console.WriteLine("Usage: <connectionString> <hub> <message");
+            if (args.Length != 3) {
+                Console.WriteLine("Usage: publisher <connectionString> <hub> <message>");
                 return;
             }
             var connectionString = args[0];
