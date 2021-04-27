@@ -59,9 +59,8 @@ In Azure Web PubSub you can connect to the service and subscribe to messages thr
                     client.MessageReceived.Subscribe(msg => Console.WriteLine($"Message received: {msg}"));
                     await client.Start();
                     Console.WriteLine("Connected.");
+                    Console.Read();
                 }
-
-                Console.Read();
             }
         }
     }
