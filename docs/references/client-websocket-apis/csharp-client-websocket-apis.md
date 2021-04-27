@@ -50,9 +50,8 @@ namespace subscriber
                 client.MessageReceived.Subscribe(msg => Console.WriteLine($"Message received: {msg}"));
                 await client.Start();
                 Console.WriteLine("Connected.");
+                Console.Read();
             }
-
-            Console.Read();
         }
     }
 }
@@ -83,9 +82,8 @@ namespace subscriber
                 client.MessageReceived.Subscribe(msg => Console.WriteLine($"Message received: {msg}"));
                 await client.Start();
                 Console.WriteLine("Connected.");
+                Console.Read();
             }
-            
-            Console.Read();
         }
     }
 }

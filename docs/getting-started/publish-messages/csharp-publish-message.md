@@ -59,9 +59,8 @@ In Azure Web PubSub you can connect to the service and subscribe to messages thr
                     client.MessageReceived.Subscribe(msg => Console.WriteLine($"Message received: {msg}"));
                     await client.Start();
                     Console.WriteLine("Connected.");
+                    Console.Read();
                 }
-
-                Console.Read();
             }
         }
     }
@@ -101,8 +100,8 @@ namespace publisher
     {
         static void Main(string[] args)
         {
-            if (args.Length != 2) {
-                Console.WriteLine("Usage: <connectionString> <hub> <message");
+            if (args.Length != 3) {
+                Console.WriteLine("Usage: publisher <connectionString> <hub> <message>");
                 return;
             }
             var connectionString = args[0];
@@ -118,7 +117,7 @@ namespace publisher
 
 ```
 
-The `sendToAll()` call simply sends a message to all connected clients in a hub. Save the code above and run `dotnet "<connection-string>" <hub-name> <message>` with the same connection string and hub name you used in subscriber, you'll see the message printed out in the subscriber.
+The `sendToAll()` call simply sends a message to all connected clients in a hub. Save the code above and run `dotnet run "<connection-string>" <hub-name> <message>` with the same connection string and hub name you used in subscriber, you'll see the message printed out in the subscriber.
 
 Since the message is sent to all clients, you can open multiple subscribers at the same time and all of them will receive the same message.
 
