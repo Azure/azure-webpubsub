@@ -207,6 +207,7 @@ After the save is completed, open the home page, input your user name, you'll se
 Besides system events like `connected` or `disconnected`, client can also send messages through the WebSocket connection and these messages will be delivered to server as a special type of event called `message` event. We can use this event to receive messages from one client and broadcast them to all clients so they can talk to each other. The `ce-type` of `message` event is always `azure.webpubsub.user.message`, details please see [Event message](./../references/protocol-cloudevents.md#message).
 
 1. Handle message event
+
     ```csharp
     app.UseEndpoints(endpoints =>
     {
@@ -239,6 +240,7 @@ Besides system events like `connected` or `disconnected`, client can also send m
             }
         });
     });
+    ```
 
     This event handler uses `WebPubSubServiceClient.sendToAll()` to broadcast the received message to all clients.
 
