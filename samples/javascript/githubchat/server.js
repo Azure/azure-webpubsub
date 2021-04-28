@@ -76,7 +76,7 @@ app.get('/negotiate', async (req, res) => {
   let options = {
     userId: req.user.username
   };
-  if (req.user.username === process.argv[5]) options.claims = { role: ['webpubsub.sendToGroup.system'] };
+  if (req.user.username === process.argv[5]) options.roles = ['webpubsub.sendToGroup.system'];
   let token = await serviceClient.getAuthenticationToken(options);
   res.json({
     url: token.url

@@ -25,7 +25,7 @@ In Azure Web PubSub you can connect to the service and subscribe to messages thr
     cd subscriber
     dotnet new console
     dotnet add package Websocket.Client --version 4.3.30
-    dotnet add package Azure.Messaging.WebPubSub --version 1.0.0-beta.1 --source https://www.myget.org/F/azure-webpubsub-dev/api/v3/index.json
+    dotnet add package Azure.Messaging.WebPubSub --prerelease
     ```
 
 2.  Update `Program.cs` to use `WebsocketClient` to connect to the service
@@ -85,7 +85,7 @@ Now let's use Azure Web PubSub SDK to publish a message to the service. First le
 mkdir publisher
 cd publisher
 dotnet new console
-dotnet add package Azure.Messaging.WebPubSub --version 1.0.0-beta.1 --source https://www.myget.org/F/azure-webpubsub-dev/api/v3/index.json
+dotnet add package Azure.Messaging.WebPubSub --prerelease
 
 ```
 

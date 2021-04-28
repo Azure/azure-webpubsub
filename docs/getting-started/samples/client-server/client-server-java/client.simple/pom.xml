@@ -3,12 +3,6 @@
   <groupId>webpubsub.sample.client.simple</groupId>
   <artifactId>webpubsub.sample.client.simple</artifactId>
   <version>1.0</version>
-  <repositories>
-    <repository>
-      <id>MyGet</id>
-      <url>https://www.myget.org/F/azure-webpubsub-dev/maven</url>
-    </repository>
-  </repositories>
   <properties>
     <maven.compiler.source>1.8</maven.compiler.source>
     <maven.compiler.target>1.8</maven.compiler.target>
@@ -29,7 +23,6 @@
     <jacoco.unit-tests.limit.method-complexity>5</jacoco.unit-tests.limit.method-complexity>
   </properties>
   <dependencies>
-    <!-- https://www.myget.org/F/azure-webpubsub-dev/maven/com.azure/azure-messaging-webpubsub/1.0.0-beta.1/azure-messaging-webpubsub-1.0.0-beta.1.jar -->
     <dependency>
       <groupId>com.azure</groupId>
       <artifactId>azure-messaging-webpubsub</artifactId>
