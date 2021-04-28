@@ -282,6 +282,8 @@ For public preview, the service provides REST APIs for the server to do connecti
 
 ![Manager REST](../images/manager_rest.png)
 
+The detailed REST API protocol is defined [here][rest].
+
 ### Summary
 You may have noticed that the *event handler role* handles communication from the service to the server while *the manager role* handles communication from the server to the service. So combing the two roles, the data flow between service and server looks as similar to below, leveraging HTTP protocol:
 

@@ -15,7 +15,7 @@ Use the library to:
 - Close connections
 - Grant/revoke/check permissions for an existing connection
 
-[Source code][source_code] | [Product Documentation][product_documentation] | [Samples][samples_readme]
+[Source code][source_code] | [API Reference Documentation][api] | [Product Documentation][product_documentation] | [Samples][samples_readme]
 
 ## Getting started
 
@@ -148,3 +148,4 @@ reduce the dependency size, refer to the [performance tuning][performance_tuning
 [samples_readme]: https://github.com/Azure/azure-webpubsub/tree/main/samples/java
 [log_levels]: https://github.com/Azure/azure-sdk-for-java/blob/master/sdk/core/azure-core/src/main/java/com/azure/core/util/logging/ClientLogger.java
 [performance_tuning]: https://github.com/Azure/azure-sdk-for-java/wiki/Performance-Tuning
+[api]: https://docs.microsoft.com/java/api/com.azure.messaging.webpubsub
