@@ -10,13 +10,11 @@ async function main() {
   let serviceClient = new WebPubSubServiceClient(process.argv[2], process.argv[3]);
   let token = await serviceClient.getAuthenticationToken({
     userId: "user1",
-    claims: {
-        role: [
-            "webpubsub.joinLeaveGroup",
-            "webpubsub.sendToGroup"
-        ]
-    }
-});
+    roles: [
+      "webpubsub.joinLeaveGroup",
+      "webpubsub.sendToGroup"
+    ]
+  });
   const subscriber = new WebSocket(token.url, "json.webpubsub.azure.v1");
   const publisher = new WebSocket(token.url, "json.webpubsub.azure.v1");
 

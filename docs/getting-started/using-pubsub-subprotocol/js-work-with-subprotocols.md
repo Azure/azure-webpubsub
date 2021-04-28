@@ -32,7 +32,7 @@ Now let's create a simple web application using the subprotocol.
     npm install --save express
     npm install --save ws
     npm install --save node-fetch
-    npm install --save https://www.myget.org/F/azure-webpubsub-dev/npm/@azure/web-pubsub/-/1.0.0-beta.1
+    npm install --save @azure/web-pubsub
     ```
 
 2.  Create a `server.js` to host the `/negotiate` API and web page.
@@ -172,9 +172,7 @@ This will be useful if you want to stream a large amount of data to other client
     ```javascript
     app.get('/negotiate', async (req, res) => {
       let token = await endpoint.getAuthenticationToken({
-        claims: {
-          role: ['webpubsub.sendToGroup.stream', 'webpubsub.joinLeaveGroup.stream']
-        }
+        roles: ['webpubsub.sendToGroup.stream', 'webpubsub.joinLeaveGroup.stream']
       });
       ...
     });

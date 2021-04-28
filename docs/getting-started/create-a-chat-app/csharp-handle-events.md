@@ -28,7 +28,7 @@ First let's create an empty ASP.NET Core app.
 
     ```bash
     dotnet new web
-    dotnet add package Azure.Messaging.WebPubSub --version 1.0.0-beta.1 --source https://www.myget.org/F/azure-webpubsub-dev/api/v3/index.json
+    dotnet add package Azure.Messaging.WebPubSub --prerelease
     ```
 
 2.  Then add `app.UseStaticFiles();` before `app.UseRouting();` in `Startup.cs` to support static files. Remove the default `endpoints.MapGet` inside `app.UseEndpoints`.

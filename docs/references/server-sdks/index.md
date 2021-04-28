@@ -1,6 +1,5 @@
 ---
 layout: docs
-title: WebSocket Clients
 group: references
 subgroup: server-sdks
 redirect-from:

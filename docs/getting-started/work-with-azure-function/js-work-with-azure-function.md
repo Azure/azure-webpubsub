@@ -26,7 +26,7 @@ In Azure Web PubSub you can connect to the service and subscribe to messages thr
     ```bash
     npm init -y
     npm install --save ws
-    npm install --save https://www.myget.org/F/azure-webpubsub-dev/npm/@azure/web-pubsub/-/1.0.0-beta.1
+    npm install --save @azure/web-pubsub
     ```
 
 2.  Then use WebSocket API to connect to service
@@ -88,7 +88,7 @@ Now save the code above as `subscribe.js` and run it using `node subscribe "<con
 3.  Install Azure Web PubSub function extensions
    
     ```bash
-    func extensions install --package Microsoft.Azure.WebJobs.Extensions.WebPubSub --version 1.0.0-alpha.20210425.1 --source https://www.myget.org/F/azure-webpubsub-dev/api/v3/index.json
+    func extensions install --package Microsoft.Azure.WebJobs.Extensions.WebPubSub --preview
     ```
 
 4.  Update `function.json` to add `WebPubSub` output binding and shorten the default timer interval.

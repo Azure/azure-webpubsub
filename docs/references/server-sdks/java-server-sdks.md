@@ -1,12 +1,19 @@
 ---
 layout: docs
-title: WebSocket Clients
 group: references
 subgroup: server-sdks
 toc: true
 ---
 
 # Azure Web PubSub service client library for Java
+
+Use the library to:
+
+- Send messages to hubs and groups.
+- Send messages to particular users and connections.
+- Organize users and connections into groups.
+- Close connections
+- Grant/revoke/check permissions for an existing connection
 
 [Source code][source_code] | [Product Documentation][product_documentation] | [Samples][samples_readme]
 

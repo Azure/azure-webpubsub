@@ -25,7 +25,7 @@ In Azure Web PubSub you can connect to the service and subscribe to messages thr
     ```bash
     npm init -y
     npm install --save ws
-    npm install --save https://www.myget.org/F/azure-webpubsub-dev/npm/@azure/web-pubsub/-/1.0.0-beta.1
+    npm install --save @azure/web-pubsub
 
     ```
 
