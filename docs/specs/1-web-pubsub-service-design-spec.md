@@ -215,10 +215,10 @@ As you may have noticed when we describe the PubSub WebSocket clients, that a cl
 | Role | Permission |
 |---|---|
 | Not specified | The client can send events.
-| `webpubsub.joinLeaveGroup` | The client can join/leave any group
-| `webpubsub.sendToGroup` | The client can publish messages to any group
-| `webpubsub.joinLeaveGroup.<group>` | The client can join/leave the groups that the group name is `<group>`.
-| `webpubsub.sendToGroup.<group>` | The client can publish messages to the groups that the group name is `<group>`.
+| `webpubsub.joinLeaveGroup` | The client can join/leave any group.
+| `webpubsub.sendToGroup` | The client can publish messages to any group.
+| `webpubsub.joinLeaveGroup.<group>` | The client can join/leave group `<group>`.
+| `webpubsub.sendToGroup.<group>` | The client can publish messages to group `<group>`.
 
 The server-side can also grant or revoke permissions of the client dynamically through [server protocol](#connection_manager) as to be illustrated in a later section.
 
@@ -226,7 +226,7 @@ The server-side can also grant or revoke permissions of the client dynamically t
 
 ## Server Protocol
 
-Server protocol provides the functionality for the user to manage the client connections and the groups.
+Server protocol provides the functionality for the server to manage the client connections and the groups.
 
 In general, server protocol contains 2 roles:
 1. [Event handler](#event_handler)
@@ -235,7 +235,7 @@ In general, server protocol contains 2 roles:
 <a name="event_handler"></a>
 
 ### Event handler
-The event handler handles the upcoming client events. Event handlers need to be registered and configured in the service through portal or Azure CLI beforehand so that when a client event is triggered, the service can identify if the event is expected to be handled or not. For public preview, we use `PUSH` mode to invoke the event handler: that the event handler as the server side, exposes public accessible endpoint for the service to invoke when the event is triggered. It acts as a **webhook**. It leverages [CloudEvents HTTP protocol binding](https://github.com/cloudevents/spec/blob/v1.0.1/http-protocol-binding.md) and the detailed protocol is described in [WebPubSub CloudEvents Protocol](./service-to-server-cloudevents.md), for every event, it formulates an HTTP POST request to the registered upstream and expects an HTTP response.
+The event handler handles the incoming client events. Event handlers need to be registered and configured in the service through portal or Azure CLI beforehand so that when a client event is triggered, the service can identify if the event is expected to be handled or not. For public preview, we use `PUSH` mode to invoke the event handler: that the event handler as the server side, exposes public accessible endpoint for the service to invoke when the event is triggered. It acts as a **webhook**. It leverages [CloudEvents HTTP protocol binding](https://github.com/cloudevents/spec/blob/v1.0.1/http-protocol-binding.md) and the detailed protocol is described in [WebPubSub CloudEvents Protocol](./service-to-server-cloudevents.md), for every event, it formulates an HTTP POST request to the registered upstream and expects an HTTP response.
 
 ![Event PUSH](../images/event_push.png)
 
