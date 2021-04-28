@@ -57,7 +57,7 @@ Azure Web PubSub by default doesn't allow anonymous connection, so in the code s
 
 After connection is established, you will receive messages through the WebSocket connection. So we use `WebSocket.on('message', ...)` to listen to incoming messages.
 
-Now save the code above as `subscribe.js` and run it using `node subscribe "<connection-string>" <hub-name>` (`<connection-string>` can be found in "Keys" tab in Azure portal, `<hub-name>` can be any alphabetical string you like), you'll see a `connected` message printed out, indicating that you have successfully connected to the service.
+Now save the code above as `subscribe.js` and run it using `node subscribe "<connection-string>"` (`<connection-string>` can be found in "Keys" tab in Azure portal), you'll see a `connected` message printed out, indicating that you have successfully connected to the service.
 
 > Make sure your connection string is enclosed by quotes ("") in Linux as connection string contains semicolon.
 

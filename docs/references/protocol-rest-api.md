@@ -9,4 +9,4 @@ group: references
 [Web PubSub REST API][rest]
 
 
-[rest]: https://review.docs.microsoft.com/en-us/rest/api/documentation-preview/webpubsub?view=azure-rest-preview&branch=result_openapiHub_production_138700d9fb80
+[rest]: https://docs.microsoft.com/rest/api/webpubsub/
