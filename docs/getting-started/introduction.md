@@ -9,7 +9,7 @@ toc: true
 # Azure Web PubSub
 ## Overview
 
-Azure Web PubSub enables you to build real-time messaging web applications using WebSockets and the publish-subscribe pattern. Any platform supporting WebSocket APIs can connect to the service easily, e.g. web pages, mobile applications, edge devices, etc. The service manages the WebSocket connections for you and allows up to 100K **concurrent* connections. It provides powerful APIs for you to manage these clients and deliver real-time messages.
+Azure Web PubSub enables you to build real-time messaging web applications using WebSockets and the publish-subscribe pattern. Any platform supporting WebSocket APIs can connect to the service easily, e.g. web pages, mobile applications, edge devices, etc. The service manages the WebSocket connections for you and allows up to 100K *concurrent* connections. It provides powerful APIs for you to manage these clients and deliver real-time messages.
 
 ## Scenarios
 
@@ -60,4 +60,4 @@ Eager to get started? Check [Quickstart](./quickstart.md) to get started!
 [Here](./troubleshoot.md) contains the details.
 
 
-[rest]: https://review.docs.microsoft.com/en-us/rest/api/documentation-preview/webpubsub?view=azure-rest-preview&branch=result_openapiHub_production_138700d9fb80
+[rest]: https://docs.microsoft.com/rest/api/webpubsub/

@@ -8,7 +8,7 @@
 
 ## Setup azure function
 
-1. Copy **Connection String** from **Keys** blade of the created Azure Web PubSub service, and replace the `<connection-string>` below with the value of your **Connection String** in `local.settings.json`.
+1. Copy **Connection String** from **Keys** tab of the created Azure Web PubSub service, and replace the `<connection-string>` below with the value of your **Connection String** in `local.settings.json`.
 
 ![Connection String](./../../../../docs/images/portal_conn.png)
 

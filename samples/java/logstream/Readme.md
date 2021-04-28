@@ -6,7 +6,7 @@
 3. Create an Azure Web PubSub resource
 
 ## Run PubSub sample
-1. Copy **Connection String** from **Keys** blade of the created Azure Web PubSub service, and replace the `<connection-string>` (in [Sample.java](src/main/java/microsoft/azure/webpubsub/samples/java/logstream/Sample.java#L7)) below with the value of your **Connection String**.
+1. Copy **Connection String** from **Keys** tab of the created Azure Web PubSub service, and replace the `<connection-string>` (in [Sample.java](src/main/java/microsoft/azure/webpubsub/samples/java/logstream/Sample.java#L7)) below with the value of your **Connection String**.
 ![connection string](../../../docs/images/portal_conn.png)
 2. Run the project.
 3. You can see a GUI window is pop up.

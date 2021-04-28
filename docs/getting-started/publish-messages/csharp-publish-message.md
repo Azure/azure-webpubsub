@@ -11,7 +11,7 @@ In this tutorial you'll learn how to publish messages and subscribe them using A
 
 ## Prerequisites
 
-1. [.NET Core 3.1 or above](https://dotnet.microsoft.com/download)
+1. [.NET Core 2.1 or above](https://dotnet.microsoft.com/download)
 2. Create an Azure Web PubSub resource
 
 ## Setup subscriber
@@ -121,4 +121,4 @@ The `sendToAll()` call simply sends a message to all connected clients in a hub.
 
 Since the message is sent to all clients, you can open multiple subscribers at the same time and all of them will receive the same message.
 
-The complete code sample of this tutorial can be found [here](https://github.com/Azure/azure-webpubsub/tree/main/samples/javascript/pubsub/).
+The complete code sample of this tutorial can be found [here](https://github.com/Azure/azure-webpubsub/tree/main/samples/csharp/pubsub/).
