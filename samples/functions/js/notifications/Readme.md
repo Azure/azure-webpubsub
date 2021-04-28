@@ -10,19 +10,13 @@
 
 ![Connection String](./../../../../docs/images/portal_conn.png)
 
-2. Add preview version of package sources
-
-```bash
-dotnet nuget add source https://www.myget.org/F/azure-webpubsub-dev/api/v3/index.json -n awps-dev
-```
-
-3. Install function extensions
+2. Install function extensions
 
 ```bash
 func extensions install
 ```
 
-4. Start app
+3. Start app
 
 ```bash
 func start
