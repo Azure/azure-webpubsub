@@ -1,18 +1,25 @@
 const WebSocket = require('ws');
-const { WebPubSubServiceClient } = require('@azure/web-pubsub');
+const axios = require('axios');
 
 async function main() {
-  if (process.argv.length !== 3) {
-    console.log('Usage: node subscribe <connection-string>');
-    return 1;
+  let funcUrl = 'http://localhost:7071';
+  if (process.argv.length == 2) {
+    console.log(`Use local function endpoint: ${funcUrl}`);
+  }
+  else if (process.argv.length == 3)
+  {
+    funcUrl = process.argv[2];
   }
 
-  let serviceClient = new WebPubSubServiceClient(process.argv[2], "notification");
-  let token = await serviceClient.getAuthenticationToken();
-  console.log(token.url);
-  let ws = new WebSocket(token.url);
-  ws.on('open', () => console.log('connected'));
-  ws.on('message', data => console.log(data));;
+  axios.get(`${funcUrl}/api/login`)
+    .then(resp => resp.data)
+    .then(info => {
+      return info.url;
+    }).then(url => {
+      let ws = new WebSocket(url);
+      ws.on('open', () => console.log('connected'));
+      ws.on('message', data => console.log(data));
+    });
 }
 
 main();
