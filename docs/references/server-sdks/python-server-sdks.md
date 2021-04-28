@@ -110,7 +110,6 @@ Please take a look at the
 [samples][samples_ref]
 directory for detailed examples on how to use this library.
 
-<!-- LINKS -->
 [webpubsubservice_docs]: https://aka.ms/awps/doc
 [azure_cli]: https://docs.microsoft.com/cli/azure
 [azure_sub]: https://azure.microsoft.com/free/
