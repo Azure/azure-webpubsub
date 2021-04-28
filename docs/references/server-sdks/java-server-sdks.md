@@ -1,12 +1,19 @@
 ---
 layout: docs
-title: WebSocket Clients
 group: references
 subgroup: server-sdks
 toc: true
 ---
 
 # Azure Web PubSub service client library for Java
+
+Use the library to:
+
+- Send messages to hubs and groups.
+- Send messages to particular users and connections.
+- Organize users and connections into groups.
+- Close connections
+- Grant/revoke/check permissions for an existing connection
 
 [Source code][source_code] | [Product Documentation][product_documentation] | [Samples][samples_readme]
 
@@ -33,7 +40,6 @@ toc: true
 
 ### Create a Web PubSub client using connection string
 
-<!-- embedme ./src/samples/java/com/azure/messaging/webpubsub/ReadmeSamples.java#L21-L24 -->
 ```java
 WebPubSubServiceClient webPubSubServiceClient = new WebPubSubClientBuilder()
     .connectionString("{connection-string}")
@@ -43,7 +49,6 @@ WebPubSubServiceClient webPubSubServiceClient = new WebPubSubClientBuilder()
 
 ### Create a Web PubSub client using access key
 
-<!-- embedme ./src/samples/java/com/azure/messaging/webpubsub/ReadmeSamples.java#L31-L35 -->
 ```java
 WebPubSubServiceClient webPubSubServiceClient = new WebPubSubClientBuilder()
     .credential(new AzureKeyCredential("{access-key}"))
@@ -53,7 +58,6 @@ WebPubSubServiceClient webPubSubServiceClient = new WebPubSubClientBuilder()
 ```
 
 ### Create a Web PubSub Group client
-<!-- embedme ./src/samples/java/com/azure/messaging/webpubsub/ReadmeSamples.java#L42-L46 -->
 ```java
 WebPubSubServiceClient webPubSubServiceClient = new WebPubSubClientBuilder()
     .credential(new AzureKeyCredential("{access-key}"))
@@ -93,14 +97,12 @@ Using this library, you can send messages to the client connections. A message c
 
 ### Broadcast message to entire hub
 
-<!-- embedme ./src/samples/java/com/azure/messaging/webpubsub/ReadmeSamples.java#L58-L58 -->
 ```java
 webPubSubServiceClient.sendToAll("Hello world!");
 ```
 
 ### Broadcast message to a group
 
-<!-- embedme ./src/samples/java/com/azure/messaging/webpubsub/ReadmeSamples.java#L70-L71 -->
 ```java
 WebPubSubGroup javaGroup = webPubSubServiceClient.getGroup("Java");
 javaGroup.sendToAll("Hello Java!");
@@ -108,13 +110,11 @@ javaGroup.sendToAll("Hello Java!");
 
 ### Send message to a connection
 
-<!-- embedme ./src/samples/java/com/azure/messaging/webpubsub/ReadmeSamples.java#L83-L83 -->
 ```java
 webPubSubServiceClient.sendToConnection("myconnectionid", "Hello connection!");
 ```
 
 ### Send message to a user
-<!-- embedme ./src/samples/java/com/azure/messaging/webpubsub/ReadmeSamples.java#L95-L95 -->
 ```java
 webPubSubServiceClient.sendToUser("Andy", "Hello Andy!");
 ```
@@ -140,8 +140,6 @@ reduce the dependency size, refer to the [performance tuning][performance_tuning
 ## Next steps
 
 - Samples are explained in detail [here][samples_readme].
-
-<!-- LINKS -->
 
 [azure_subscription]: https://azure.microsoft.com/free
 [jdk_link]: https://docs.microsoft.com/java/azure/jdk/?view=azure-java-stable

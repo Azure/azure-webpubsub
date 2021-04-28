@@ -1,6 +1,5 @@
 ---
 layout: docs
-title: WebSocket Clients
 group: references
 subgroup: client-websocket-apis
 toc: true
