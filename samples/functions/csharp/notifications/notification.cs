@@ -15,7 +15,7 @@ namespace notifications
         {
            await operations.AddAsync(new SendToAll
             {
-                Message = BinaryData.FromString($"DateTime: {DateTime.Now}], MSFT stock price: {GetStockPrice()}"),
+                Message = BinaryData.FromString($"[DateTime: {DateTime.Now}], MSFT stock price: {GetStockPrice()}"),
                 DataType = MessageDataType.Text
             });
         }
