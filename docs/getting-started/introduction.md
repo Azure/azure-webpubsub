@@ -56,7 +56,6 @@ Eager to get started? Check [Quickstart](./quickstart.md) to get started!
 - [Server-side]
     - [Server SDKs](./../references/server-sdks/index.md)
     - [Server CloudEvents protocol](./../references/protocol-cloudevents.md)
-    - [Server REST API][rest]
 
 ## Troubleshooting Guidance
 [Here](./troubleshoot.md) contains the details.
