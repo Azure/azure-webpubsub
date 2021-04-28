@@ -43,11 +43,13 @@ Eager to get started? Check [Quickstart](./docs/getting-started/quickstart.md) t
 [Here](./docs/getting-started/troubleshoot.md) contains the details.
 
 ## References
-- [Client WebSocket APIs](./docs/references/client-websocket-apis/)
-- [Client PubSub Subprotocol](./docs/references/pubsub-websocket-subprotocol.md)
-- [Server SDKs](./docs/references/server-sdks/index.md)
-- [Server CloudEvents protocol](./docs/references/protocol-cloudevents.md)
-- [Server REST API][rest]
+- [Client-side]
+    - [Client WebSocket APIs](./docs/references/client-websocket-apis/)
+    - [Client PubSub Subprotocol](./docs/references/pubsub-websocket-subprotocol.md)
+- [Serve-side]
+    - [Server SDKs](./docs/references/server-sdks/index.md)
+    - [Server CloudEvents protocol](./docs/references/protocol-cloudevents.md)
+    - [Server REST API][rest]
 
 
 [rest]: https://docs.microsoft.com/rest/api/webpubsub/

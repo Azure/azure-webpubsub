@@ -50,11 +50,13 @@ Eager to get started? Check [Quickstart](./quickstart.md) to get started!
 - [Function bindings](./../references/functions-bindings.md)
 
 ## References
-- [Client WebSocket APIs](./../references/client-websocket-apis/)
-- [Client PubSub Subprotocol](./../references/pubsub-websocket-subprotocol.md)
-- [Server SDKs](./../references/server-sdks/index.md)
-- [Server CloudEvents protocol](./../references/protocol-cloudevents.md)
-- [Server REST API][rest]
+- [Client-side]
+    - [Client WebSocket APIs](./../references/client-websocket-apis/)
+    - [Client PubSub Subprotocol](./../references/pubsub-websocket-subprotocol.md)
+- [Server-side]
+    - [Server SDKs](./../references/server-sdks/index.md)
+    - [Server CloudEvents protocol](./../references/protocol-cloudevents.md)
+    - [Server REST API][rest]
 
 ## Troubleshooting Guidance
 [Here](./troubleshoot.md) contains the details.
