@@ -88,7 +88,7 @@ Now save the code above as `subscribe.js` and run it using `node subscribe "<con
 3.  Install Azure Web PubSub function extensions
    
     ```bash
-    func extensions install --package Microsoft.Azure.WebJobs.Extensions.WebPubSub --version 1.0.0-alpha.20210425.1 --source https://www.myget.org/F/azure-webpubsub-dev/api/v3/index.json
+    func extensions install --package Microsoft.Azure.WebJobs.Extensions.WebPubSub --preview
     ```
 
 4.  Update `function.json` to add `WebPubSub` output binding and shorten the default timer interval.
