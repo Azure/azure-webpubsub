@@ -46,10 +46,10 @@ You can also try uncheck **Roles** when generating the **Client URL** to see how
     - [C#](./work-with-azure-function/csharp-work-with-azure-function.md)
 
 ## References
-- [Client-side]
+- Client-side
     - [Client WebSocket APIs](./../references/client-websocket-apis/)
     - [Client PubSub Subprotocol](./../references/pubsub-websocket-subprotocol.md)
-- [Server-side]
+- Server-side
     - [Server SDKs](./../references/server-sdks/index.md)
     - [Server CloudEvents protocol](./../references/protocol-cloudevents.md)
 

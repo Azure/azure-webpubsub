@@ -50,10 +50,10 @@ Eager to get started? Check [Quickstart](./quickstart.md) to get started!
 - [Function bindings](./../references/functions-bindings.md)
 
 ## References
-- [Client-side]
+- Client-side
     - [Client WebSocket APIs](./../references/client-websocket-apis/)
     - [Client PubSub Subprotocol](./../references/pubsub-websocket-subprotocol.md)
-- [Server-side]
+- Server-side
     - [Server SDKs](./../references/server-sdks/index.md)
     - [Server CloudEvents protocol](./../references/protocol-cloudevents.md)
 

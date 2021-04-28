@@ -43,10 +43,10 @@ Eager to get started? Check [Quickstart](./docs/getting-started/quickstart.md) t
 [Here](./docs/getting-started/troubleshoot.md) contains the details.
 
 ## References
-- [Client-side]
+- Client-side
     - [Client WebSocket APIs](./docs/references/client-websocket-apis/)
     - [Client PubSub Subprotocol](./docs/references/pubsub-websocket-subprotocol.md)
-- [Serve-side]
+- Serve-side
     - [Server SDKs](./docs/references/server-sdks/index.md)
     - [Server CloudEvents protocol](./docs/references/protocol-cloudevents.md)
 
