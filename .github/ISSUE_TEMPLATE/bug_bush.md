@@ -1,6 +1,6 @@
 ---
-name: 🐞 Bug Bash
-about: Create a report about the bugs you find in Bug Bash
+name: 🐞 Bug
+about: Create a bug you find in the service
 ---
 
 ### Description
