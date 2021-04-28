@@ -52,6 +52,7 @@ You can also try uncheck **Roles** when generating the **Client URL** to see how
 - Server-side
     - [Server SDKs](./../references/server-sdks/index.md)
     - [Server CloudEvents protocol](./../references/protocol-cloudevents.md)
+    - [Server REST API][rest]
 
 
 [rest]: https://docs.microsoft.com/rest/api/webpubsub/
