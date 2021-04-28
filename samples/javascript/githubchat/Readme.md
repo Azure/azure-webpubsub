@@ -20,7 +20,7 @@ npm install
 4. After the application is registered, copy the **Client ID** and click "Generate a new client secret" to generate a new **client secret**
 
 ## Start the app
-Copy **Connection String** from **Keys** blade of the created Azure Web PubSub service, and replace the `<connection-string>` below with the value of your **Connection String**.
+Copy **Connection String** from **Keys** tab of the created Azure Web PubSub service, and replace the `<connection-string>` below with the value of your **Connection String**.
 
 ![Connection String](./../../../docs/images/portal_conn.png)
 
@@ -40,7 +40,7 @@ ngrok http 8080
 
 ## Configure the event handler
 
-Go to the **Settings** blade to configure the event handler for this `chat` hub:
+Go to the **Settings** tab to configure the event handler for this `chat` hub:
 
 1. Type the hub name (chat) and click "Add".
 

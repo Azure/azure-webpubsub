@@ -85,7 +85,7 @@
 
         <main role="main" class="col p-md-4 p-2">
             <div class="p-2">
-                <span>Go to <b>Keys</b> blade in portal, check Roles, and get a temp <b>Client Access Url</b>:
+                <span>Go to <b>Keys</b> tab in portal, check Roles, and get a temp <b>Client Access Url</b>:
                 </span>
 
                 <form v-on:submit.prevent="connect(client)" class="py-2">
@@ -197,18 +197,18 @@
             try {
                 var websocket = client.connection = new WebSocket(endpoint, 'json.webpubsub.azure.v1');
                 websocket.onopen = e => {
-                    console.log("Client WebSocket opened.");
+                    addItem({ type: "system", content: `Client WebSocket opened.` }, client.chat.messages);
                     if (onConnected) onConnected(client);
                 };
                 websocket.onclose = e => {
                     this.connected = false;
-                    console.log("Client WebSocket closed: " + e);
+                    addItem({ type: "system", content: `Client WebSocket closed. Type: ${e.type}, code: ${e.code}, reason: ${e.reason}, wasClean: ${e.wasClean}.` }, client.chat.messages);
                 };
                 websocket.onmessage = e => {
                     if (onMessage) onMessage(client, e);
                 }
             } catch (err) {
-                console.log("Error: " + err);
+                addItem({ type: "error", content: `Error: ${err}` }, client.chat.messages);
             }
         }
 

@@ -40,10 +40,10 @@ As you may have noticed when we describe the PubSub WebSocket clients, that a cl
 | Role | Permission |
 |---|---|
 | Not specified | The client can send event requests.
-| `webpubsub.joinLeaveGroup` | The client can join/leave any group
-| `webpubsub.sendToGroup` | The client can publish messages to any group
-| `webpubsub.joinLeaveGroup.<group>` | The client can join/leave the groups that the group name is `<group>`.
-| `webpubsub.sendToGroup.<group>` | The client can publish messages to the groups that the group name is `<group>`.
+| `webpubsub.joinLeaveGroup` | The client can join/leave any group.
+| `webpubsub.sendToGroup` | The client can publish messages to any group.
+| `webpubsub.joinLeaveGroup.<group>` | The client can join/leave group `<group>`.
+| `webpubsub.sendToGroup.<group>` | The client can publish messages to group `<group>`.
 
 The server-side can also grant or revoke permissions of the client dynamically through REST APIs or server SDKs.
 
