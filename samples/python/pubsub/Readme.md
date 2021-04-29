@@ -35,9 +35,10 @@ The subscriber is then connected.
 Replace the `<connection-string>` below with the value of your **Connection String**:
 
 ```bash
-# Open a new console and ensure venv active 
+# 1. Start a new terminal or console. Navigate to the folder
+# 2. Active venv
 ./env/Scripts/activate
-
+# 3. Replace the <connection-string> below with the value of your Connection String:
 python publish.py <connection-string> pubsub Hello,world
 ```
 
