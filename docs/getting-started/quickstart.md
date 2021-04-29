@@ -34,6 +34,7 @@ You can also try uncheck **Roles** when generating the **Client URL** to see how
     - [JavaScript](./publish-messages/js-publish-message.md)
     - [C#](./publish-messages/csharp-publish-message.md)
     - [Python](./publish-messages/python-publish-message.md)
+    - [Java](./publish-messages/java-publish-message.md)
 - Create a chat app
     - [JavaScript](./create-a-chat-app/js-handle-events.md)
     - [C#](./create-a-chat-app/csharp-handle-events.md)
