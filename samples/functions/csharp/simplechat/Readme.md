@@ -43,8 +43,4 @@ Property|Value
 
 ## Start client
 
-Navigate to [Simple Chat](./../../client/) and run command below to start the client. Then you can open the local hosted client to start chat.
-
-```bash
-http-server
-```
+Open to function hosted static page `http://localhost:7071/api/index` to start chat.

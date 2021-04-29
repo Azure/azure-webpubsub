@@ -1,15 +1,27 @@
 using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.Azure.WebJobs;
 using Microsoft.Azure.WebJobs.Extensions.Http;
 using Microsoft.Azure.WebJobs.Extensions.WebPubSub;
 using Newtonsoft.Json;
 using System;
+using System.IO;
 using System.Threading.Tasks;
 
 namespace SimpleChat
 {
     public static class Functions
     {
+        [FunctionName("index")]
+        public static IActionResult Home([HttpTrigger(AuthorizationLevel.Anonymous)]HttpRequest req)
+        {
+            return new ContentResult
+            {
+                Content = File.ReadAllText("index.html"),
+                ContentType = "text/html",
+            };
+        }
+
         [FunctionName("login")]
         public static WebPubSubConnection GetClientConnection(
             [HttpTrigger(AuthorizationLevel.Anonymous, "get", "post")] HttpRequest req,
