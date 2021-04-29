@@ -190,7 +190,7 @@ In Azure Web PubSub you can connect to the service and subscribe to messages thr
 
 The code above first create a rest call to Azure Function `login` to retrieve client url. Then use the url to establish a websocket connection to service. After the connection is established, it'll listen and receive the messages coming from service connection.
 
-Run the client by command `node subscribe` if you are using default local function endpoint `localhost:7071`. Otherwise, you can run with `node subscribe <function-endpoint>`.
+If you are using default local function endpoint `localhost:7071`, run the client by command `node subscribe`. Otherwise, you can run with `node subscribe <function-endpoint>` to point to your function.
 
 > Make sure your connection string is enclosed by quotes ("") in Linux as connection string contains semicolon.
 
