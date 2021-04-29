@@ -44,7 +44,7 @@ The complete code sample of this tutorial can be found [here][code].
 3.  Install Azure Web PubSub function extensions
    
     ```bash
-    func extensions install --package Microsoft.Azure.WebJobs.Extensions.WebPubSub --version 1.0.0-alpha.20210425.1 --source https://www.myget.org/F/azure-webpubsub-dev/api/v3/index.json
+    func extensions install --package Microsoft.Azure.WebJobs.Extensions.WebPubSub --preview
     ```
 
 4.  Update `notificaions.cs` to below

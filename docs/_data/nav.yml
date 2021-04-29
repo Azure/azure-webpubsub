@@ -12,6 +12,8 @@
           id: csharp-publish-message
         - title: Python
           id: python-publish-message
+        - title: Java
+          id: java-publish-message
     - title: Using PubSub subprotocol
       pages:
         - title: JavaScript
