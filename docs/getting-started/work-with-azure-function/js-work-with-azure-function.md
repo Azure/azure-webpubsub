@@ -141,7 +141,7 @@ The complete code sample of this tutorial can be found [here][code].
     }
     ```
 
-10. Run the funcion.
+10. Run the function.
    
     ```bash
     func start

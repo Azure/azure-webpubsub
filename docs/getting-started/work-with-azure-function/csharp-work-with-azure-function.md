@@ -47,7 +47,7 @@ The complete code sample of this tutorial can be found [here][code].
     func extensions install --package Microsoft.Azure.WebJobs.Extensions.WebPubSub --version 1.0.0-alpha.20210425.1 --source https://www.myget.org/F/azure-webpubsub-dev/api/v3/index.json
     ```
 
-4.  Update `notificaions.cs` to below
+4.  Update `notifications.cs` to below
     
     ```csharp
     using Microsoft.Azure.WebJobs.Extensions.WebPubSub;
@@ -60,7 +60,7 @@ The complete code sample of this tutorial can be found [here][code].
         {
            await operations.AddAsync(new SendToAll
             {
-                Message = BinaryData.FromString($"DateTime: {DateTime.Now}], MSFT stock price: {GetStockPrice()}"),
+                Message = BinaryData.FromString($"[DateTime: {DateTime.Now}], MSFT stock price: {GetStockPrice()}"),
                 DataType = MessageDataType.Text
             });
         }
@@ -112,7 +112,7 @@ The complete code sample of this tutorial can be found [here][code].
     }
     ```
 
-8.  Run the funcion.
+8.  Run the function.
    
     ```bash
     func start
