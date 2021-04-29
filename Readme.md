@@ -29,6 +29,7 @@ Eager to get started? Check [Quickstart](./docs/getting-started/quickstart.md) t
     - [JavaScript](./docs/getting-started/publish-messages/js-publish-message.md)
     - [C#](./docs/getting-started/publish-messages/csharp-publish-message.md)
     - [Python](./docs/getting-started/publish-messages/python-publish-message.md)
+    - [Java](./docs/getting-started/publish-messages/java-publish-message.md)
 - Create a chat app
     - [JavaScript](./docs/getting-started/create-a-chat-app/js-handle-events.md)
     - [C#](./docs/getting-started/create-a-chat-app/csharp-handle-events.md)
