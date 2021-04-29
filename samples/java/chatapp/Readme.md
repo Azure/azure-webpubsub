@@ -6,7 +6,7 @@
 2. [ngrok](https://ngrok.com/)
 3. Create an Azure Web PubSub resource
 
-## use ngrok to make the local server publicly available
+## Use ngrok to make the local server publicly available
 Run the script `ngrok http 8080`, then copy the URL above the red line.
 ![ngrok](../../../docs/images/ngrok-sample.png)
 

@@ -170,9 +170,9 @@ public class Publisher {
 }
 ```
 
-The `sendToAll()` call simply sends a message to all connected clients in a hub. 
+The `sendToAll()` call simply sends a message to all connected clients in a hub.
 
-### Complete and run the sample 
+### Complete the sample
 
 Create `PubSub.java` to make the _subscriber_ connects to Web PubSub service and listen to the message sent to the hub _pubsub_, and _publisher_ send the anything you type in the console to hub _pubsub_ in the service.
 
@@ -204,9 +204,17 @@ public class PubSub {
 }
 ```
 
-Change the `<connection-string>` with your own (`<connection-string>` can be found in "Keys" tab in Azure portal, `<hub-name>` can be any alphabetical string you like). Click the green triangle on the left of the `main` function in `PubSub.java` to run the sample.
+### Run sample
 
-You can see message `[Time]: Publish message "message" to hub [pubsub].` once you press enter to send message. You will see `[Time]: Received message "message" from hub [pubsub]` in super short time which means the _subscriber_ receives messages.
+1. Copy **Connection String** from **Keys** tab of the created Azure Web PubSub service, and replace the `<connection-string>` (in `PubSub.java`) below with the value of your **Connection String**.
+![connection string](../../../docs/images/portal_conn.png)
+2. Run the project.
+3. Input anything to publish the message.
+4. You will see the message is published, e.g. `2021/04/26 12:43:03: Publish message "message" to hub [pubsub].`.
+4. Later you will see the message get received, e.g. `2021/04/26 12:43:09: Received message "message" from hub [pubsub]`.
+6. Press `Q` to leave.
+
+![chat room](../../../docs/images/sample-java-pubsub-console.png)
 
 Since the message is sent to all clients, you can use multiple subscribers at the same time and all of them will receive the same message.
 
