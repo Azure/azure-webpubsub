@@ -29,7 +29,7 @@ In Azure Web PubSub you can connect to the service and subscribe to messages thr
     # Active venv
     ./env/Scripts/activate
 
-    pip install --index-url https://www.myget.org/F/azure-webpubsub-dev/python azure-messaging-webpubsubservice
+    pip install azure-messaging-webpubsubservice
     pip install websockets
 
     ```

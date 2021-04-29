@@ -43,11 +43,27 @@ Eager to get started? Check [Quickstart](./docs/getting-started/quickstart.md) t
 [Here](./docs/getting-started/troubleshoot.md) contains the details.
 
 ## References
-- [Client WebSocket APIs](./docs/references/client-websocket-apis/)
-- [Client PubSub Subprotocol](./docs/references/pubsub-websocket-subprotocol.md)
-- [Server SDKs](./docs/references/server-sdks/index.md)
-- [Server CloudEvents protocol](./docs/references/protocol-cloudevents.md)
-- [Server REST API][rest]
+- Client-side
+    - [Client WebSocket APIs](./docs/references/client-websocket-apis/)
+    - [Client PubSub Subprotocol](./docs/references/pubsub-websocket-subprotocol.md)
+- Serve-side
+    - [Server SDKs](./docs/references/server-sdks/index.md)
+    - [Server CloudEvents protocol](./docs/references/protocol-cloudevents.md)
+    - [Server REST API][rest]
 
 
-[rest]: https://review.docs.microsoft.com/en-us/rest/api/documentation-preview/webpubsub?view=azure-rest-preview&branch=result_openapiHub_production_138700d9fb80
+## Contributing
+
+This project welcomes contributions and suggestions.  Most contributions require you to agree to a
+Contributor License Agreement (CLA) declaring that you have the right to, and actually do, grant us
+the rights to use your contribution. For details, visit https://cla.microsoft.com.
+
+When you submit a pull request, a CLA-bot will automatically determine whether you need to provide
+a CLA and decorate the PR appropriately (e.g., label, comment). Simply follow the instructions
+provided by the bot. You will only need to do this once across all repos using our CLA.
+
+This project has adopted the [Microsoft Open Source Code of Conduct](https://opensource.microsoft.com/codeofconduct/).
+For more information see the [Code of Conduct FAQ](https://opensource.microsoft.com/codeofconduct/faq/) or
+contact [opencode@microsoft.com](mailto:opencode@microsoft.com) with any additional questions or comments.
+
+[rest]: https://docs.microsoft.com/rest/api/webpubsub/

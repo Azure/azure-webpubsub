@@ -39,18 +39,6 @@
     
 - title: References
   pages:
-    - title: Client WebSocket APIs
-      pages:
-        - title: JavaScript
-          id: js-client-websocket-apis
-        - title: C#
-          id: csharp-client-websocket-apis
-        - title: Python
-          id: python-client-websocket-apis
-        - title: Java
-          id: java-client-websocket-apis
-    - title: Client PubSub Subprotocol
-      id: pubsub-websocket-subprotocol
     - title: Server SDKs
       pages:
         - title: JavaScript
@@ -66,3 +54,15 @@
     - title: Server REST API
       id: protocol-rest-api
     - title: Functions Bindings
+    - title: Client WebSocket APIs
+      pages:
+        - title: JavaScript
+          id: js-client-websocket-apis
+        - title: C#
+          id: csharp-client-websocket-apis
+        - title: Python
+          id: python-client-websocket-apis
+        - title: Java
+          id: java-client-websocket-apis
+    - title: Client PubSub Subprotocol
+      id: pubsub-websocket-subprotocol

@@ -60,7 +60,7 @@ You may remember in last tutorial the subscriber uses an API in Web PubSub SDK t
 1.  Install Azure Web PubSub SDK
 
     ```bash
-    npm install --save https://www.myget.org/F/azure-webpubsub-dev/npm/@azure/web-pubsub/-/1.0.0-beta.1
+    npm install --save @azure/web-pubsub
     ```
 
 2.  Add a `/negotiate` API to the server to generate the token
@@ -121,7 +121,7 @@ Azure Web PubSub follows [CloudEvents](https://cloudevents.io/) to describe even
 Add the following code to expose a REST API at `/eventhandler` (which is done by the express middleware provided by Web PubSub SDK) to handle the client connected event:
 
 ```bash
-npm install --save https://www.myget.org/F/azure-webpubsub-dev/npm/@azure/web-pubsub-express/-/1.0.0-beta.1
+npm install --save @azure/web-pubsub-express
 ```
 
 ```javascript

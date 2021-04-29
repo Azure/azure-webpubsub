@@ -6,9 +6,7 @@ const app = express();
 
 app.get('/negotiate', async (req, res) => {
   let token = await endpoint.getAuthenticationToken({
-    claims: {
-      role: ['webpubsub.sendToGroup.stream', 'webpubsub.joinLeaveGroup.stream']
-    }
+    roles: ['webpubsub.sendToGroup.stream', 'webpubsub.joinLeaveGroup.stream']
   });
   res.json({
     url: token.url

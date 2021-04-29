@@ -15,13 +15,12 @@ python -m venv env
 ./env/Scripts/activate
 
 # pip install
-pip install --index-url https://www.myget.org/F/azure-webpubsub-dev/python azure-messaging-webpubsubservice
 pip install -r requirements.txt
 ```
 
 ## Start subscriber
 
-Copy **Connection String** from **Keys** blade of the created Azure Web PubSub service, and replace the `<connection-string>` below with the value of your **Connection String**.
+Copy **Connection String** from **Keys** tab of the created Azure Web PubSub service, and replace the `<connection-string>` below with the value of your **Connection String**.
 
 ![Connection String](./../../../docs/images/portal_conn.png)
 

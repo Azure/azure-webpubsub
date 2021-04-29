@@ -11,7 +11,7 @@ In this tutorial you'll learn how to publish messages and subscribe them using A
 
 ## Prerequisites
 
-1. [.NET Core 3.1 or above](https://dotnet.microsoft.com/download)
+1. [.NET Core 2.1 or above](https://dotnet.microsoft.com/download)
 2. Create an Azure Web PubSub resource
 
 ## Setup subscriber
@@ -25,7 +25,7 @@ In Azure Web PubSub you can connect to the service and subscribe to messages thr
     cd subscriber
     dotnet new console
     dotnet add package Websocket.Client --version 4.3.30
-    dotnet add package Azure.Messaging.WebPubSub --version 1.0.0-beta.1 --source https://www.myget.org/F/azure-webpubsub-dev/api/v3/index.json
+    dotnet add package Azure.Messaging.WebPubSub --prerelease
     ```
 
 2.  Update `Program.cs` to use `WebsocketClient` to connect to the service
@@ -59,9 +59,8 @@ In Azure Web PubSub you can connect to the service and subscribe to messages thr
                     client.MessageReceived.Subscribe(msg => Console.WriteLine($"Message received: {msg}"));
                     await client.Start();
                     Console.WriteLine("Connected.");
+                    Console.Read();
                 }
-
-                Console.Read();
             }
         }
     }
@@ -86,7 +85,7 @@ Now let's use Azure Web PubSub SDK to publish a message to the service. First le
 mkdir publisher
 cd publisher
 dotnet new console
-dotnet add package Azure.Messaging.WebPubSub --version 1.0.0-beta.1 --source https://www.myget.org/F/azure-webpubsub-dev/api/v3/index.json
+dotnet add package Azure.Messaging.WebPubSub --prerelease
 
 ```
 
@@ -101,8 +100,8 @@ namespace publisher
     {
         static void Main(string[] args)
         {
-            if (args.Length != 2) {
-                Console.WriteLine("Usage: <connectionString> <hub> <message");
+            if (args.Length != 3) {
+                Console.WriteLine("Usage: publisher <connectionString> <hub> <message>");
                 return;
             }
             var connectionString = args[0];
@@ -118,8 +117,8 @@ namespace publisher
 
 ```
 
-The `sendToAll()` call simply sends a message to all connected clients in a hub. Save the code above and run `dotnet "<connection-string>" <hub-name> <message>` with the same connection string and hub name you used in subscriber, you'll see the message printed out in the subscriber.
+The `sendToAll()` call simply sends a message to all connected clients in a hub. Save the code above and run `dotnet run "<connection-string>" <hub-name> <message>` with the same connection string and hub name you used in subscriber, you'll see the message printed out in the subscriber.
 
 Since the message is sent to all clients, you can open multiple subscribers at the same time and all of them will receive the same message.
 
-The complete code sample of this tutorial can be found [here](https://github.com/Azure/azure-webpubsub/tree/main/samples/javascript/pubsub/).
+The complete code sample of this tutorial can be found [here](https://github.com/Azure/azure-webpubsub/tree/main/samples/csharp/pubsub/).

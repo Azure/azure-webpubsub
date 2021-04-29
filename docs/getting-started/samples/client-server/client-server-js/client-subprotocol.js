@@ -9,12 +9,10 @@ async function main() {
 
   let serviceClient = new WebPubSubServiceClient(process.argv[2], process.argv[3]);
   let token = await serviceClient.getAuthenticationToken({
-      userId: "user1",
-      claims: {
-          role: [
-              "webpubsub.joinLeaveGroup"
-          ]
-      }
+    userId: "user1",
+    roles: [
+      "webpubsub.joinLeaveGroup"
+    ]
   });
   console.log(token);
   let ws = new WebSocket(token.url, 'json.webpubsub.azure.v1');
@@ -25,7 +23,7 @@ async function main() {
       group: "group1"
     }));
   }
-    );
+  );
   ws.on('message', data => console.log(data));;
 }
 

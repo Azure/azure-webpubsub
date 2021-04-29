@@ -24,7 +24,7 @@ include_js: false
         </p>
         <p class="lead mb-2">
           <ul>
-            <li>Connect to the service using WebSocket API from web pages, mobile app, edge devices, etc</li>
+            <li>Connect to the service using WebSocket API from web pages, mobile apps, edge devices, etc</li>
             <li>Allows up to 100K <b>concurrent</b> connections</li>
             <li>Provide powerful APIs for you to manage these clients and deliver real-time messages</li>
           </ul>
@@ -34,7 +34,7 @@ include_js: false
             <a href="{{ site.baseurl }}/getting-started" class="btn btn-lg btn-bd-primary w-100 mb-3">Get Started</a>
           </div>
           <div class="col-md px-2">
-            <a href="{{ site.baseurl }}/demos/chat" class="btn btn-lg btn-primary w-100 mb-3">Try Demos</a>
+            <a href="{{ site.baseurl }}/demos/whiteboard" class="btn btn-lg btn-primary w-100 mb-3">Try Demos</a>
           </div>
         </div>
       </div>
@@ -43,7 +43,7 @@ include_js: false
     <section class="row mb-5 mt-5 pb-md-4 align-items-center">
 
       <div class="col-md-5">
-        <h2 class="display-5 fw-normal">Light-weighted</h2>
+        <h2 class="display-5 fw-normal">Lightweight</h2>
         <p class="lead fw-normal">
           Clients directly use WebSocket APIs to connect and send messages.
         </p>
@@ -67,14 +67,14 @@ include_js: false
       </div>
       <div class="col-md-7">
         <p>
-         <span class="text-muted">C#</span>
-         <span class="text-success">JavaScript</span>
-         <span class="text-info">Java</span>
-         <span class="text-dark">Python</span>
+         <a class="text-dark m-2" href="./references/server-sdks/csharp-server-sdks"><u>C#</u></a>
+         <a class="text-success m-2" href="./references/server-sdks/js-server-sdks"><u>JavaScript</u></a>
+         <a class="text-info m-2" href="./references/server-sdks/java-server-sdks"><u>Java</u></a>
+         <a class="text-primary m-2" href="./references/server-sdks/python-server-sdks"><u>Python</u></a>
         </p>
         <p>
-         <span class="text-primary">Edge devices</span>
-         <span class="text-secondary">Mobile Apps</span>
+         <span class="text-success font-italic m-2">✔ Mobile Apps</span>
+         <span class="text-info font-italic m-2">✔ Edge devices</span>
         </p>
       </div>
     </section>
@@ -82,7 +82,12 @@ include_js: false
       <div class="col-md-5">
         <h2 class="display-5 fw-normal">Real-time</h2>
         <p class="lead fw-normal">
-          Publish messages and subscribed clients receive the messages in real-time.
+          Publish messages to subscribed clients in real-time.
+        </p>
+      </div>
+      <div class="col-md-7">
+        <p>
+         <span class="text-success"><a href="./getting-started/publish-messages/js-publish-message">Try Samples</a></span>
         </p>
       </div>
     </section>

@@ -85,7 +85,7 @@
 
         <main role="main" class="col p-md-4 p-2">
             <div class="p-2">
-                <span>Go to <b>Keys</b> blade in portal, check Roles, and get a temp <b>Client Access Url</b>:
+                <span>Go to <b>Keys</b> tab in portal, check Roles, and get a temp <b>Client Access Url</b>:
                 </span>
 
                 <form v-on:submit.prevent="connect(client)" class="py-2">
@@ -109,11 +109,9 @@
                             </div>
                         </form>
                         <div style="background-color: black; color: blanchedalmond; height: 150px; overflow: auto;">
-                            <ul>
-                                <li v-for="l in client.joinlogs.slice().reverse()" :key="l.id">
-                                    {{ l }}
-                                </li>
-                            </ul>
+                                <div v-for="l in client.joinlogs.slice().reverse()" :key="l.id">
+                                   [{{l.time}}] {{ l.log }}: {{l.status}}
+                                </div>
                         </div>
                     </div>
                     <div class="col-md-6 p-1">
@@ -129,32 +127,30 @@
                             </div>
                         </form>
                         <div style="background-color: black; color: blanchedalmond; height: 150px; overflow: auto;">
-                            <ul>
-                                <li v-for="l in client.publishlogs.slice().reverse()" :key="l.id">
-                                    {{ l }}
-                                </li>
-                            </ul>
+                                <div v-for="l in client.publishlogs.slice().reverse()" :key="l.id">
+                                   [{{l.time}}] {{ l.log }}: {{l.status}}
+                                </div>
                         </div>
                     </div>
                 </div>
                     <b>Receives:</b>
                     <div class="bg-light chat" v-bind:scrollTop="$attrs.scrollHeight">
-                    <div class="m-2" v-for="message in client.chat.messages" v-bind:key="message.id">
+                    <div class="m-2 lead" v-for="message in client.chat.messages" v-bind:key="message.id">
                         <div class="col-md row" style="display: inline-block;">
                             <div v-if="message.type =='system'"
-                                class="font-italic text-warning text-center font-weight-light" role="alert">
+                                class="text-success text-center" role="alert">
                                 {{message.content}}
                             </div>
                             <div v-else-if="message.type =='error'"
-                                class="font-italic text-danger text-center font-weight-light" role="alert">
+                                class="text-danger text-center " role="alert">
                                 {{message.content}}
                             </div>
                             <div v-else-if="message.type == 'self'" class="alert alert-success float-right" role="text">
                                 {{message.content}}
                             </div>
                             <div v-else class="float-left" role="text">
-                                <small class="text-muted font-weight-light">From {{message.from}}</small>
-                                <p class="alert alert-primary text-break ">{{message.content}}</p>
+                                <span>From <i>{{message.from}}</i>: </span>
+                                <span class="font-weight-bold text-break ">{{message.content}}</span>
                             </div>
                         </div>
                     </div>
@@ -201,19 +197,28 @@
             try {
                 var websocket = client.connection = new WebSocket(endpoint, 'json.webpubsub.azure.v1');
                 websocket.onopen = e => {
-                    console.log("Client WebSocket opened.");
+                    addItem({ type: "system", content: `Client WebSocket opened.` }, client.chat.messages);
                     if (onConnected) onConnected(client);
                 };
                 websocket.onclose = e => {
                     this.connected = false;
-                    console.log("Client WebSocket closed: " + e);
+                    addItem({ type: "system", content: `Client WebSocket closed. Type: ${e.type}, code: ${e.code}, reason: ${e.reason}, wasClean: ${e.wasClean}.` }, client.chat.messages);
                 };
                 websocket.onmessage = e => {
                     if (onMessage) onMessage(client, e);
                 }
             } catch (err) {
-                console.log("Error: " + err);
+                addItem({ type: "error", content: `Error: ${err}` }, client.chat.messages);
             }
+        }
+
+        function ack(toAck, ackId, status){
+            var item = toAck.find(i => i.ackId === ackId);
+            if (item) {
+                item.status = status.success ? "succeeded." : "error: " + status.error.name;
+                return true;
+            }
+            return false;
         }
 
         const app = new Vue({
@@ -221,29 +226,40 @@
             data: data,
             methods: {
                 join: function (client) {
-                    // when connected    
+                    // when connected
+                    const ackId = ++client.ackId;
                     client.connection.send(JSON.stringify(
                         {
                             type: "joinGroup",
                             group: client.groupToJoin,
-                            ackId: ++client.ackId // ackId is optional, use ackId to make sure this action is executed
+                            ackId: ackId // ackId is optional, use ackId to make sure this action is executed
                         }
                     ));
-                    addItem(`Join group ${client.groupToJoin}`, client.joinlogs);
+                    addItem({
+                        time: new Date().toISOString(),
+                        ackId: ackId,
+                        log: `Joining group ${client.groupToJoin}`,
+                        status: "requested.",
+                    }, client.joinlogs);
                     
                     client.groupToJoin = '';
                 },
                 publish: function (client) {
+                    const ackId = ++client.ackId;
                     client.connection.send(JSON.stringify(
                         {
                             type: "sendToGroup",
                             group: client.groupToPublish,
                             data: client.newMessage,
-                            ackId: ++client.ackId // ackId is optional, use ackId to make sure this action is executed
+                            ackId: ackId // ackId is optional, use ackId to make sure this action is executed
                         }
                     ));
-                    addItem(`Send to group ${client.groupToPublish}`, client.publishlogs);
-                    client.groupToPublish = '';
+                    addItem({
+                        time: new Date().toISOString(),
+                        ackId: ackId,
+                        log: `Sending message to group ${client.groupToPublish}`,
+                        status: "requested",
+                    }, client.publishlogs);
                     client.newMessage = '';
                 },
                 connect: function (client) {
@@ -257,12 +273,14 @@
                                 client.userId = response.userId;
                                 client.connectionId = response.connectionId;
                                 client.connected = true;
-                                addItem({ type: "system", content: `${response.userId}:${response.connectionId} connected.` }, client.chat.messages);
+                                addItem({ type: "system", content: `${response.userId || ''}:${response.connectionId} connected.` }, client.chat.messages);
                             }
                             else if (response.event === "disconnected")
                                 addItem({ type: "system", content: `Disconnected. ${response.message}` }, client.chat.messages);
                         }
                         else if (response.type === "ack") {
+                            if (!ack(client.joinlogs, response.ackId, response))
+                                ack(client.publishlogs, response.ackId, response);
                             if (!response.success) {
                                 addItem({ type: "error", content: response.error.message }, client.chat.messages);
                             }

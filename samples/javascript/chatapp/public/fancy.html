@@ -97,7 +97,7 @@
                     <div class="m-2" v-for="message in client.chat.messages" v-bind:key="message.id">
                         <div class="col-md row" style="display: inline-block;">
                             <div v-if="message.type =='system'"
-                                class="font-italic text-warning text-center font-weight-light" role="alert">
+                                class="font-italic text-info text-center font-weight-light" role="alert">
                                 {{message.content}}
                             </div>
                             <div v-else-if="message.type =='error'"
@@ -174,15 +174,15 @@
             try {
                 var websocket = client.connection = new WebSocket(data.url, 'json.webpubsub.azure.v1');
                 websocket.onopen = e => {
-                    addItem("Client WebSocket opened.", client.logs);
+                    addItem(`[${new Date().toISOString()}] Client WebSocket opened.`, client.logs);
                     if (onConnected) onConnected(client);
                 }
                 websocket.onclose = e => {
                     this.connected = false;
-                    addItem("Client WebSocket closed: " + e, client.logs);
+                    addItem(`[${new Date().toISOString()}] Client WebSocket closed: ` + e, client.logs);
                 }
                 websocket.onerror = e => {
-                    addItem("Client WebSocket error, check the Console window for details: " + e, client.logs);
+                    addItem(`[${new Date().toISOString()}] Client WebSocket error, check the Console window for details: ` + e, client.logs);
                 }
                 websocket.onmessage = e => {
                     if (onMessage) onMessage(client, e);
@@ -210,10 +210,10 @@
                                     client.userId = response.userId;
                                     client.connectionId = response.connectionId;
                                     client.connected = true;
-                                    addItem(`${response.userId}:${response.connectionId} connected.`, client.logs);
+                                    addItem(`[${new Date().toISOString()}] ${response.userId}:${response.connectionId} connected.`, client.logs);
                                 }
                                 else if (response.event === "disconnected")
-                                    addItem(`Disconnected. ${response.message}`, client.logs);
+                                    addItem(`[${new Date().toISOString()}] Disconnected. ${response.message}`, client.logs);
                             }
                             else if (response.type === "message") {
                                 let content = response.data;
