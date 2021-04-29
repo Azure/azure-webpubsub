@@ -24,10 +24,10 @@ def handle_event():
             res.status_code = 200
             return res
     elif request.method == 'POST':
-        user_id = request.headers.get('Ce-Userid')
-        if request.headers.get('Ce-Type') == 'azure.webpubsub.sys.connected':
+        user_id = request.headers.get('ce-userid')
+        if request.headers.get('ce-type') == 'azure.webpubsub.sys.connected':
             return user_id + ' connected', 200
-        elif request.headers.get('Ce-Type') == 'azure.webpubsub.user.message':
+        elif request.headers.get('ce-type') == 'azure.webpubsub.user.message':
             client = WebPubSubServiceClient.from_connection_string(sys.argv[1])
             client.send_request(build_send_to_all_request(hub_name, json={
                 'from': user_id,
