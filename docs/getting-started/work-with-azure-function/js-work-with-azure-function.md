@@ -168,28 +168,29 @@ In Azure Web PubSub you can connect to the service and subscribe to messages thr
     async function main() {
     let funcUrl = 'http://localhost:7071';
     if (process.argv.length == 2) {
-        console.log(`Use local function endpoint: ${funcUrl}`);
+        console.log(`Use default local function endpoint: ${funcUrl}`);
     }
     else if (process.argv.length == 3)
     {
         funcUrl = process.argv[2];
+        console.log(`Use function endpoint: ${funcUrl}`);
     }
 
     axios.get(`${funcUrl}/api/login`)
-        .then(resp => resp.data)
-        .then(info => {
-        return info.url;
-        }).then(url => {
-        let ws = new WebSocket(url);
-        ws.on('open', () => console.log('connected'));
-        ws.on('message', data => console.log(data));
+        .then(resp => 
+            let url = resp.data.url;
+            let ws = new WebSocket(url);
+            ws.on('open', () => console.log('connected'));
+            ws.on('message', data => console.log(data));
         });
     }
 
     main();
     ```
 
-The code above first create a rest call to Azure Function `login` to retrieve client url. Then use the url to establish a websocket connection to service. After the connection is established, you'll able to receive server side messages.
+The code above first create a rest call to Azure Function `login` to retrieve client url. Then use the url to establish a websocket connection to service. After the connection is established, it'll listen and receive the messages coming from service connection.
+
+Run the client by command `node subscribe` if you are using default local function endpoint `localhost:7071`. Otherwise, you can run with `node subscribe <function-endpoint>`.
 
 > Make sure your connection string is enclosed by quotes ("") in Linux as connection string contains semicolon.
 
