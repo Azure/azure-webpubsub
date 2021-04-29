@@ -38,6 +38,7 @@ You can also try uncheck **Roles** when generating the **Client URL** to see how
 - Create a chat app
     - [JavaScript](./create-a-chat-app/js-handle-events.md)
     - [C#](./create-a-chat-app/csharp-handle-events.md)
+    - [Java](./create-a-chat-app/java-handle-events.md)
 - Using PubSub WebSocket subprotocol
     - [JavaScript](./using-pubsub-subprotocol/js-work-with-subprotocols.md)
 

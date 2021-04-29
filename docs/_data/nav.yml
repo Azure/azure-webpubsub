@@ -24,6 +24,8 @@
           id: js-handle-events
         - title: C#
           id: csharp-handle-events
+        - title: Java
+          id: java-handle-events
     - title: Auth and permissions
       pages:
         - title: JavaScript

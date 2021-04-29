@@ -33,6 +33,7 @@ Eager to get started? Check [Quickstart](./docs/getting-started/quickstart.md) t
 - Create a chat app
     - [JavaScript](./docs/getting-started/create-a-chat-app/js-handle-events.md)
     - [C#](./docs/getting-started/create-a-chat-app/csharp-handle-events.md)
+    - [Java](./docs/getting-started/create-a-chat-app/java-handle-events.md)
 - Using PubSub WebSocket subprotocol
     - [JavaScript](./docs/getting-started/using-pubsub-subprotocol/js-work-with-subprotocols.md)
 
