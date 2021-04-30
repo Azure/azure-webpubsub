@@ -19,7 +19,7 @@ The complete code sample of this tutorial can be found [here][code].
 
 ## Setup publisher
 
-1.  New a timer trigger. Select *node* -> *javascript* -> *Timer Trigger* -> *notifications* following prompt messages. 
+1.  New a timer trigger. After run below command, select *node* -> *javascript* -> *Timer Trigger* -> *notifications* following prompt messages. 
 
     ```bash
     func new
@@ -44,7 +44,7 @@ The complete code sample of this tutorial can be found [here][code].
 3.  Install Azure Web PubSub function extensions
    
     ```bash
-    func extensions install --package Microsoft.Azure.WebJobs.Extensions.WebPubSub --preview
+    func extensions install --package Microsoft.Azure.WebJobs.Extensions.WebPubSub --version 1.0.0-beta.1
     ```
 
 4.  Update `function.json` to add `WebPubSub` output binding and shorten the default timer interval.
@@ -71,18 +71,21 @@ The complete code sample of this tutorial can be found [here][code].
 5.  Update `index.js` to enable function broadcast messages to subscribers.
    
     ```js
-    module.exports = async function (context, myTimer) {
-        var message = 260 + (Math.random() - 0.5) * 20;
+    module.exports = function (context, myTimer) {
         context.bindings.webPubSubOperation = {
             "operationKind": "sendToAll",
-            "message": `MSFT price: ${message}`,
+            "message": `[DateTime: ${new Date()}] Temperature: ${getValue(22, 1)}\xB0C, Humility: ${getValue(40, 2)}%`,
             "dataType": "text"
         }
         context.done();
     };
+
+    function getValue(baseNum, floatNum) {
+        return (baseNum + 2 * floatNum * (Math.random() - 0.5)).toFixed(3);
+    }
     ```
 
-6.  New a `Http Trigger` function to generate service access url for clients. Select and enter *Http Trigger* -> *login*.
+6.  New a `Http Trigger` function to help generate service access url for clients. After run below command, select and enter *Http Trigger* -> *login*.
 
     ```bash
     func new
@@ -188,7 +191,7 @@ In Azure Web PubSub you can connect to the service and subscribe to messages thr
     main();
     ```
 
-The code above first create a rest call to Azure Function `login` to retrieve client url. Then use the url to establish a websocket connection to service. After the connection is established, it'll listen and receive the messages coming from service connection.
+The code above first create a rest call to Azure Function `login` to retrieve service connection url for client. Then use the url to establish a websocket connection to service. After the connection is established, you'll be able to receive server side messages.
 
 If you are using default local function endpoint `localhost:7071`, run the client by command `node subscribe`. Otherwise, you can run with `node subscribe <function-endpoint>` to point to your function.
 

@@ -19,7 +19,7 @@ The complete code sample of this tutorial can be found [here][code].
 
 ## Setup publisher
 
-1.  New a timer trigger. Select *dotnet* -> *Timer Trigger* -> *notifications* following prompt messages. 
+1.  New a timer trigger. After run below command, select *dotnet* -> *Timer Trigger* -> *notifications* following prompt messages. 
 
     ```bash
     func new
@@ -44,13 +44,17 @@ The complete code sample of this tutorial can be found [here][code].
 3.  Install Azure Web PubSub function extensions
    
     ```bash
-    func extensions install --package Microsoft.Azure.WebJobs.Extensions.WebPubSub --version 1.0.0-alpha.20210425.1 --source https://www.myget.org/F/azure-webpubsub-dev/api/v3/index.json
+    func extensions install --package Microsoft.Azure.WebJobs.Extensions.WebPubSub --version 1.0.0-beta.1
     ```
 
 4.  Update `notifications.cs` to below
     
     ```csharp
+    using System;
+    using System.Threading.Tasks;
+    using Microsoft.Azure.WebJobs;
     using Microsoft.Azure.WebJobs.Extensions.WebPubSub;
+    using Microsoft.Extensions.Logging;
 
     public static class notification
     {
@@ -58,22 +62,23 @@ The complete code sample of this tutorial can be found [here][code].
         public static async Task Run([TimerTrigger("*/10 * * * * *")]TimerInfo myTimer, ILogger log,
             [WebPubSub(Hub = "notification")] IAsyncCollector<WebPubSubOperation> operations)
         {
-           await operations.AddAsync(new SendToAll
+            await operations.AddAsync(new SendToAll
             {
-                Message = BinaryData.FromString($"[DateTime: {DateTime.Now}], MSFT stock price: {GetStockPrice()}"),
+                Message = BinaryData.FromString($"[DateTime: {DateTime.Now}] Temperature: {GetValue(23, 1)}{'\xB0'}C, Humidity: {GetValue(40, 2)}%"),
                 DataType = MessageDataType.Text
             });
         }
 
-        private static double GetStockPrice()
+        private static string GetValue(double baseNum, double floatNum)
         {
             var rng = new Random();
-            return 260 + 1.0 / 100 * rng.Next(-500, 500);
+            var value = baseNum + floatNum * 2 * (rng.NextDouble() - 0.5);
+            return value.ToString("0.000");
         }
     }
     ```
 
-5.  New a `Http Trigger` function to generate service access url for clients. Select and enter *Http Trigger* -> *login*.
+5.  New a `Http Trigger` function to help generate service access url for clients. After run below command, select and enter *Http Trigger* -> *login*.
 
     ```bash
     func new
@@ -82,7 +87,11 @@ The complete code sample of this tutorial can be found [here][code].
 6.  Update `login.cs` as below:
     
     ```cs
+    using Microsoft.AspNetCore.Http;
+    using Microsoft.Azure.WebJobs;
+    using Microsoft.Azure.WebJobs.Extensions.Http;
     using Microsoft.Azure.WebJobs.Extensions.WebPubSub;
+    using Microsoft.Extensions.Logging;
 
     [FunctionName("login")]
     public static WebPubSubConnection Run(
@@ -95,7 +104,7 @@ The complete code sample of this tutorial can be found [here][code].
     }
     ```
 
-7.  Update `local.settings.json` to insert service connection string get from **Azure Portal** -> **Keys**. And set **CORS** to allow all.
+7.  Update `local.settings.json` to use service connection string get from **Azure Portal** -> **Keys**. And set **CORS** to allow all for local testing purpose.
    
     ```json
     {
@@ -168,7 +177,7 @@ In Azure Web PubSub you can connect to the service and subscribe to messages thr
     }
     ```
 
-The code above first create a rest call to Azure Function `login` to retrieve client url. Then use the url to establish a websocket connection to service. After the connection is established, you'll able to receive server side messages.
+The code above first create a rest call to Azure Function `login` to retrieve service connection url for client. Then use the url to establish a websocket connection to service. After the connection is established, you'll be able to receive server side messages.
 
 # Further: Set up chat app for a bi-redirection communication
 
