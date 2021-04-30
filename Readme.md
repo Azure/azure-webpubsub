@@ -39,7 +39,9 @@ Eager to get started? Check [Quickstart](./docs/getting-started/quickstart.md) t
     - [Java](./docs/getting-started/using-pubsub-subprotocol/java-work-with-subprotocols.md)
 
 ## Integrate with Azure Function
-- [Work with Azure Function](./docs/getting-started/work-with-azure-function.md)
+- Work with Azure Function
+  - [C#](./docs/getting-started/work-with-azure-function/csharp-work-with-azure-function.md)
+  - [JavaScript](./docs/getting-started/work-with-azure-function/js-work-with-azure-function.md)
 - [Function bindings](./docs/references/functions-bindings.md)
 
 ## Troubleshooting Guidance
