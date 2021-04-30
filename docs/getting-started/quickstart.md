@@ -25,7 +25,7 @@ Go to Azure Portal and search **Web PubSub** Service. Create your service with s
 ## Try A Live Demo
 Check the roles of **Send To Groups** and **Join/Leave Groups**, and copy the **Client Access URL**.
 
-Open <a href="../demos/clientpubsub.html" target="_blank">Client Pub/Sub Demo</a>, paste the **Client Access URL** and **Connect**. Try different groups to join and different groups to send messages to, and see what messages are received.
+Open <a href="https://azure.github.io/azure-webpubsub/demos/clientpubsub" target="_blank">Client Pub/Sub Demo</a>, paste the **Client Access URL** and **Connect**. Try different groups to join and different groups to send messages to, and see what messages are received.
 
 You can also try uncheck **Roles** when generating the **Client URL** to see how sending messages to groups with that goes.
 
@@ -34,11 +34,14 @@ You can also try uncheck **Roles** when generating the **Client URL** to see how
     - [JavaScript](./publish-messages/js-publish-message.md)
     - [C#](./publish-messages/csharp-publish-message.md)
     - [Python](./publish-messages/python-publish-message.md)
+    - [Java](./publish-messages/java-publish-message.md)
 - Create a chat app
     - [JavaScript](./create-a-chat-app/js-handle-events.md)
     - [C#](./create-a-chat-app/csharp-handle-events.md)
+    - [Java](./create-a-chat-app/java-handle-events.md)
 - Using PubSub WebSocket subprotocol
     - [JavaScript](./using-pubsub-subprotocol/js-work-with-subprotocols.md)
+    - [Java](./using-pubsub-subprotocol/java-work-with-subprotocols.md)
 
 ## Integrate with Azure Function
 - Work with Azure Function
@@ -46,10 +49,10 @@ You can also try uncheck **Roles** when generating the **Client URL** to see how
     - [C#](./work-with-azure-function/csharp-work-with-azure-function.md)
 
 ## References
-- [Client-side]
+- Client-side
     - [Client WebSocket APIs](./../references/client-websocket-apis/)
     - [Client PubSub Subprotocol](./../references/pubsub-websocket-subprotocol.md)
-- [Server-side]
+- Server-side
     - [Server SDKs](./../references/server-sdks/index.md)
     - [Server CloudEvents protocol](./../references/protocol-cloudevents.md)
     - [Server REST API][rest]

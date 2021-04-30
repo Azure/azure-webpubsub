@@ -60,7 +60,7 @@ namespace chatapp
                     var serviceClient = context.RequestServices.GetRequiredService<WebPubSubServiceClient>();
                     if (context.Request.Method == "OPTIONS")
                     {
-                        if (context.Request.Headers["WebHook-Allowed-Origin"].Count > 0)
+                        if (context.Request.Headers["WebHook-Request-Origin"].Count > 0)
                         {
                             context.Response.Headers["WebHook-Allowed-Origin"] = "*";
                             context.Response.StatusCode = 200;

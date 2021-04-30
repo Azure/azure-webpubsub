@@ -12,16 +12,22 @@
           id: csharp-publish-message
         - title: Python
           id: python-publish-message
+        - title: Java
+          id: java-publish-message
     - title: Using PubSub subprotocol
       pages:
         - title: JavaScript
           id: js-work-with-subprotocols
+        - title: Java
+          id: java-work-with-subprotocols
     - title: Create a chat app
       pages:
         - title: JavaScript
           id: js-handle-events
         - title: C#
           id: csharp-handle-events
+        - title: Java
+          id: java-handle-events
     - title: Auth and permissions
       pages:
         - title: JavaScript
