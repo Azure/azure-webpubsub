@@ -17,53 +17,9 @@ The complete code sample of this tutorial can be found [here][code].
 2. [Azure Function Core Tools(v3)](https://www.npmjs.com/package/azure-functions-core-tools)
 3. Create an Azure Web PubSub resource
 
-## Setup subscriber
-
-In Azure Web PubSub you can connect to the service and subscribe to messages through WebSocket connections. WebSocket is a full-duplex communication channel so service can push messages to your client in real time. You can use any API/library that supports WebSocket to do so. Here is an example in node.js:
-
-1.  First install required dependencies:
-
-    ```bash
-    npm init -y
-    npm install --save ws
-    npm install --save @azure/web-pubsub
-    ```
-
-2.  Then use WebSocket API to connect to service
-
-    ```javascript
-    const WebSocket = require('ws');
-    const { WebPubSubServiceClient } = require('@azure/web-pubsub');
-
-    async function main() {
-      if (process.argv.length !== 3) {
-        console.log('Usage: node subscribe <connection-string>');
-        return 1;
-      }
-
-      let serviceClient = new WebPubSubServiceClient(process.argv[2], "notification");
-      let token = await serviceClient.getAuthenticationToken();
-      let ws = new WebSocket(token.url);
-      ws.on('open', () => console.log('connected'));
-      ws.on('message', data => console.log(data));;
-    }
-
-    main();
-    ```
-
-The code above creates a WebSocket connection to connect to a hub in Azure Web PubSub. Hub is a logical unit in Azure Web PubSub where you can publish messages to a group of clients.
-
-Azure Web PubSub by default doesn't allow anonymous connection, so in the code sample we use `WebPubSubServiceClient.getAuthenticationToken()` in Web PubSub SDK to generate a url to the service that contains an access token and hub name.
-
-After connection is established, you will receive messages through the WebSocket connection. So we use `WebSocket.on('message', ...)` to listen to incoming messages.
-
-Now save the code above as `subscribe.js` and run it using `node subscribe "<connection-string>"` (`<connection-string>` can be found in "Keys" tab in Azure portal), you'll see a `connected` message printed out, indicating that you have successfully connected to the service.
-
-> Make sure your connection string is enclosed by quotes ("") in Linux as connection string contains semicolon.
-
 ## Setup publisher
 
-1.  New a timer trigger. Select *node* -> *javascript* -> *Timer Trigger* -> *notifications* following prompt messages. 
+1.  New a timer trigger. After run below command, select *node* -> *javascript* -> *Timer Trigger* -> *notifications* following prompt messages. 
 
     ```bash
     func new
@@ -88,7 +44,7 @@ Now save the code above as `subscribe.js` and run it using `node subscribe "<con
 3.  Install Azure Web PubSub function extensions
    
     ```bash
-    func extensions install --package Microsoft.Azure.WebJobs.Extensions.WebPubSub --preview
+    func extensions install --package Microsoft.Azure.WebJobs.Extensions.WebPubSub --version 1.0.0-beta.1
     ```
 
 4.  Update `function.json` to add `WebPubSub` output binding and shorten the default timer interval.
@@ -115,18 +71,63 @@ Now save the code above as `subscribe.js` and run it using `node subscribe "<con
 5.  Update `index.js` to enable function broadcast messages to subscribers.
    
     ```js
-    module.exports = async function (context, myTimer) {
-        var message = 260 + (Math.random() - 0.5) * 20;
+    module.exports = function (context, myTimer) {
         context.bindings.webPubSubOperation = {
             "operationKind": "sendToAll",
-            "message": `MSFT price: ${message}`,
+            "message": `[DateTime: ${new Date()}] Temperature: ${getValue(22, 1)}\xB0C, Humility: ${getValue(40, 2)}%`,
             "dataType": "text"
         }
         context.done();
     };
+
+    function getValue(baseNum, floatNum) {
+        return (baseNum + 2 * floatNum * (Math.random() - 0.5)).toFixed(3);
+    }
     ```
 
-6.  Update `local.settings.json` to insert service connection string get from **Azure Portal** -> **Keys**. And set **CORS** to allow all.
+6.  New a `Http Trigger` function to help generate service access url for clients. After run below command, select and enter *Http Trigger* -> *login*.
+
+    ```bash
+    func new
+    ```
+
+7.  Update `function.json` to add Web PubSub input binding.
+
+    ```json
+    {
+        "disabled": false,
+        "bindings": [
+            {
+            "authLevel": "anonymous",
+            "type": "httpTrigger",
+            "direction": "in",
+            "name": "req"
+            },
+            {
+            "type": "http",
+            "direction": "out",
+            "name": "res"
+            },
+            {
+            "type": "webPubSubConnection",
+            "name": "connection",
+            "hub": "notification",
+            "direction": "in"
+            }
+        ]
+    }
+    ```
+
+8.  Update `index.js` as below:
+
+    ```js
+    module.exports = function (context, req, connection) {
+        context.res = { body: connection };
+        context.done();
+    };
+    ```
+
+9.  Update `local.settings.json` to insert service connection string get from **Azure Portal** -> **Keys**. And set **CORS** to allow all.
    
     ```json
     {
@@ -143,11 +144,58 @@ Now save the code above as `subscribe.js` and run it using `node subscribe "<con
     }
     ```
 
-7.  Run the funcion.
+10. Run the function.
    
     ```bash
     func start
     ```
+
+## Setup subscriber
+
+In Azure Web PubSub you can connect to the service and subscribe to messages through WebSocket connections. WebSocket is a full-duplex communication channel so service can push messages to your client in real time. You can use any API/library that supports WebSocket to do so. Here is an example in node.js:
+
+1.  First install required dependencies:
+
+    ```bash
+    npm init -y
+    npm install --save ws
+    npm install --save axios
+    ```
+
+2.  Then use WebSocket API to connect to service
+
+    ```javascript
+    const WebSocket = require('ws');
+    const axios = require('axios');
+
+    async function main() {
+    let funcUrl = 'http://localhost:7071';
+    if (process.argv.length == 2) {
+        console.log(`Use default local function endpoint: ${funcUrl}`);
+    }
+    else if (process.argv.length == 3)
+    {
+        funcUrl = process.argv[2];
+        console.log(`Use function endpoint: ${funcUrl}`);
+    }
+
+    axios.get(`${funcUrl}/api/login`)
+        .then(resp => 
+            let url = resp.data.url;
+            let ws = new WebSocket(url);
+            ws.on('open', () => console.log('connected'));
+            ws.on('message', data => console.log(data));
+        });
+    }
+
+    main();
+    ```
+
+The code above first create a rest call to Azure Function `login` to retrieve service connection url for client. Then use the url to establish a websocket connection to service. After the connection is established, you'll be able to receive server side messages.
+
+If you are using default local function endpoint `localhost:7071`, run the client by command `node subscribe`. Otherwise, you can run with `node subscribe <function-endpoint>` to point to your function.
+
+> Make sure your connection string is enclosed by quotes ("") in Linux as connection string contains semicolon.
 
 # Further: Set up chat app for a bi-redirection communication
 

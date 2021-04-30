@@ -3,10 +3,9 @@
 ## Prerequisites
 1. [Azure Function Core Tools(v3)](https://www.npmjs.com/package/azure-functions-core-tools)
 2. [Azure Storage Emulator](https://go.microsoft.com/fwlink/?linkid=717179&clcid=0x409) or valid Azure Storage connection string.
-3. [ngork](https://ngrok.com/download) to expose local function app
-4. [http-server](https://www.npmjs.com/package/http-server) to host a simple static client page.
+3. [ngork](https://ngrok.com/download) to expose local function app.
 
-## Setup azure function
+## Setup and Run
 
 1. Copy **Connection String** from **Keys** tab of the created Azure Web PubSub service, and replace the `<connection-string>` below with the value of your **Connection String** in `local.settings.json`.
 
@@ -41,10 +40,4 @@ Property|Value
 
 ![Event Handler](./../../../../docs/images/portal_event_handler.png)
 
-## Start client
-
-Navigate to [Simple Chat](./../../client/) and run command below to start the client. Then you can open the local hosted client to start chat.
-
-```bash
-http-server
-```
+6. Open function hosted page `http://localhost:7071/api/index` to start chat.
