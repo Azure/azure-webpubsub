@@ -74,8 +74,8 @@ Now let's create a simple web application using the subprotocol.
           let output = document.querySelector('#output');
           ws.onmessage = event => {
             let message = JSON.parse(event.data);
-            let d = document.createElement('span');
-            d.innerText = text;
+            let d = document.createElement('p');
+            d.innerText = message.text;
             output.appendChild(d);
           };
         })();
