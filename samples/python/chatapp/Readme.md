@@ -18,7 +18,7 @@ python -m venv env
 # pip install
 pip install -r requirements.txt
 ```
-
+on Mac/Linux use `source ./env/bin/activate` to activate venv.
 ## Start the app
 
 Copy **Connection String** from **Keys** tab of the created Azure Web PubSub service, and replace the `<connection-string>` below with the value of your **Connection String**.
@@ -26,7 +26,7 @@ Copy **Connection String** from **Keys** tab of the created Azure Web PubSub ser
 ![Connection String](./../../../docs/images/portal_conn.png)
 
 ```bash
-python ./server.py <connection-string>
+python ./server.py "<connection-string>"
 ```
 
 The web app is listening to request at `http://localhost:8080/eventhandler`.
