@@ -1,13 +1,15 @@
 ---
 layout: docs
 group: getting-started
-subgroup: publish-messages
+subgroup: create-a-chat-app
 toc: true
 ---
 
-# Quick start: publish and subscribe messages in Azure Web PubSub
+# Handle events
 
-In this tutorial you'll learn how to create a sample to publish messages and subscribe them using Azure Web PubSub with Java.
+In last tutorial you have learned the basics of publishing and subscribing messages with Azure Web PubSub. In this tutorial you'll learn the event system of Azure Web PubSub so use it to build a complete web application with real time communication functionality. 
+
+![chat room](../../../docs/images/chat-room-java.png)
 
 ## Prerequisites
 

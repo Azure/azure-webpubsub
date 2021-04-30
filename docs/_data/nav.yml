@@ -18,6 +18,8 @@
       pages:
         - title: JavaScript
           id: js-work-with-subprotocols
+        - title: Java
+          id: java-work-with-subprotocols
     - title: Create a chat app
       pages:
         - title: JavaScript

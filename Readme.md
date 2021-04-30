@@ -36,6 +36,7 @@ Eager to get started? Check [Quickstart](./docs/getting-started/quickstart.md) t
     - [Java](./docs/getting-started/create-a-chat-app/java-handle-events.md)
 - Using PubSub WebSocket subprotocol
     - [JavaScript](./docs/getting-started/using-pubsub-subprotocol/js-work-with-subprotocols.md)
+    - [Java](./docs/getting-started/using-pubsub-subprotocol/java-work-with-subprotocols.md)
 
 ## Integrate with Azure Function
 - [Work with Azure Function](./docs/getting-started/work-with-azure-function.md)

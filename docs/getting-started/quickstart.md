@@ -41,6 +41,7 @@ You can also try uncheck **Roles** when generating the **Client URL** to see how
     - [Java](./create-a-chat-app/java-handle-events.md)
 - Using PubSub WebSocket subprotocol
     - [JavaScript](./using-pubsub-subprotocol/js-work-with-subprotocols.md)
+    - [Java](./using-pubsub-subprotocol/java-work-with-subprotocols.md)
 
 ## Integrate with Azure Function
 - Work with Azure Function
