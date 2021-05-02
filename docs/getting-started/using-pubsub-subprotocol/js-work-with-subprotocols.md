@@ -72,12 +72,18 @@ Now let's create a simple web application using the subprotocol.
           };
 
           let output = document.querySelector('#output');
-          ws.onmessage = event => {
-            let message = JSON.parse(event.data);
-            let d = document.createElement('p');
-            d.innerText = message.text;
-            output.appendChild(d);
-          };
+          ws.onmessage = (event) => {
+            let message = JSON.parse(event.data)
+            let text = ""
+            if (message.type === "system") {
+              text = `System message: ${message.event}`
+            } else {
+              text = message.data
+            }
+            let d = document.createElement("p")
+            d.innerText = text
+            output.appendChild(d)
+        }
         })();
       </script>
     </body>
