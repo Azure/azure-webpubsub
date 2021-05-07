@@ -191,7 +191,7 @@ Besides system events like connected or disconnected, client can also send messa
 
     <body>
       <h1>Azure Web PubSub Chat</h1>
-      <input id="message" placeholder="Type to chat..."></input>
+      <input id="message" placeholder="Type to chat...">
       <div id="messages"></div>
       <script>
         (async function () {
@@ -205,7 +205,6 @@ Besides system events like connected or disconnected, client can also send messa
           };
 
           let message = document.querySelector('#message');
-          let send = document.querySelector('#send');
           message.addEventListener('keypress', e => {
             if (e.charCode !== 13) return;
             ws.send(message.value);
