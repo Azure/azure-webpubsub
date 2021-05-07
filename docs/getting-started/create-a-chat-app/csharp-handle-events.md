@@ -196,7 +196,7 @@ Then open Azure portal and go to the settings tab to configure the event handler
 
 1. Type the hub name (chat) and click "Add".
 
-2. Set URL Pattern to `https://<domain-name>.ngrok.io/eventhandler` and check "connected" in System Event Pattern, click "Save".
+2. Set URL Pattern to `https://<domain-name>.ngrok.io/eventhandler` and check "connected" in System Events, click "Save".
 
 ![Event Handler](./../../images/portal_event_handler.png)
 
