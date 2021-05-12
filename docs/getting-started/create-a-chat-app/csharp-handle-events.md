@@ -9,7 +9,7 @@ toc: true
 
 In last tutorial you have learned the basics of publishing and subscribing messages with Azure Web PubSub. In this tutorial you'll learn the event system of Azure Web PubSub so use it to build a complete web application with real time communication functionality. 
 
-The complete code sample of this tutorial can be found [here][code]
+We're going to build the chat application incrementally, but the complete code sample of this tutorial can be found [here][code].
 
 ## Prerequisites
 
@@ -66,11 +66,10 @@ You can test the server by running `dotnet run` and access `http://localhost:500
 
 You may remember in last tutorial the subscriber uses an API in Web PubSub SDK to generate an access token from connection string and use it to connect to the service. This is usually not safe in a real world application as connection string has high privilege to do any operation to the service so you don't want to share it with any client. Let's change this access token generation process to a REST API at server side, so client can call this API to request an access token every time it needs to connect, without need to hold the connection string.
 
-1.  Install Azure Web PubSub SDK
+1.  Install Microsoft.Extensions.Azure
 
     ```bash
     dotnet add package Microsoft.Extensions.Azure
-    dotnet add package Azure.Messaging.WebPubSub --version 1.0.0-beta.1 --source https://www.myget.org/F/azure-webpubsub-dev/api/v3/index.json
     ```
 2. DI the service client inside `ConfigureServices` and don't forget to replace `<connection_string>` with the one of your service.
 
@@ -187,18 +186,18 @@ Then we need to set the Webhook url in the service so it can know where to call 
 1.  First download ngrok from https://ngrok.com/download, extract the executable to your local folder or your system bin folder.
 2.  Start ngrok
     ```bash
-    ngrok http 8080
+    ngrok http 5000
     ```
 
 nrgok will print out an url (`https://<domain-name>.ngrok.io`) that can be accessed from internet.
 
 Then open Azure portal and go to the settings tab to configure the event handler.
 
-1. Type the hub name (chat) and click "Add".
+1. Type the hub name `chat` and click "Add".
 
 2. Set URL Pattern to `https://<domain-name>.ngrok.io/eventhandler` and check "connected" in System Events, click "Save".
 
-![Event Handler](./../../images/portal_event_handler.png)
+![Event Handler](./../../images/eventhandler-settings-sample.png)
 
 After the save is completed, open the home page, input your user name, you'll see the connected message printed out in the server console.
 
@@ -233,7 +232,7 @@ Besides system events like `connected` or `disconnected`, client can also send m
                 else if (context.Request.Headers["ce-type"] == "azure.webpubsub.user.message")
                 {
                     using var stream = new StreamReader(context.Request.Body);
-                    await serviceClient.SendToAllAsync($"[{userId}] {stream.ReadToEnd()}");
+                    await serviceClient.SendToAllAsync($"[{userId}] {await stream.ReadToEndAsync()}");
                     context.Response.StatusCode = 200;
                     return;
                 }
@@ -242,9 +241,9 @@ Besides system events like `connected` or `disconnected`, client can also send m
     });
     ```
 
-    This event handler uses `WebPubSubServiceClient.sendToAll()` to broadcast the received message to all clients.
+    This event handler uses `WebPubSubServiceClient.SendToAllAsync()` to broadcast the received message to all clients.
 
-2.  Then go to the event handler settings in Azure portal and add `message` to User Event Pattern, and save.
+2.  Then go to the event handler settings in the Azure portal and add `message` to User Event Pattern (if you didn't leave it `*`), and save.
 
 3.  Update `index.html` to add the logic to send message from user to server and display received messages in the page.
 
