@@ -81,7 +81,7 @@ namespace chatapp
                         else if (context.Request.Headers["ce-type"] == "azure.webpubsub.user.message")
                         {
                             using var stream = new StreamReader(context.Request.Body);
-                            await serviceClient.SendToAllAsync($"[{userId}] {stream.ReadToEnd()}");
+                            await serviceClient.SendToAllAsync($"[{userId}] {await stream.ReadToEndAsync()}");
                             context.Response.StatusCode = 200;
                             return;
                         }
