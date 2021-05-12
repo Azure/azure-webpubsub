@@ -128,7 +128,7 @@ In Azure Web PubSub, when there are certain activities happening at client side 
 
 Events are delivered to server in the form of Webhook. Webhook is a set of REST APIs exposed by server and registered at service side, so service will callback these APIs whenever an event happens.
 
-Azure Web PubSub follows [CloudEvents](https://cloudevents.io/) to describe event data. The format of the Web PubSub CloudEvents events follow exactly the [Web PubSub CloudEvents protocol](../references/protocol-cloudevents.md). For now, you need to implement the event handler by your own in C#, the steps are pretty straight forward following the protocol spec as well as illustrated below.
+Azure Web PubSub follows [CloudEvents](https://cloudevents.io/) to describe event data. The format of the Web PubSub CloudEvents events follow exactly the [Web PubSub CloudEvents protocol](../../references/protocol-cloudevents.md). For now, you need to implement the event handler by your own in C#, the steps are pretty straight forward following the protocol spec as well as illustrated below.
 
 1. Add event handlers inside `UseEndpoints`. Specify the endpoint path for the events, let's say `/eventhandler`. 
 
@@ -195,7 +195,7 @@ Then open Azure portal and go to the settings tab to configure the event handler
 
 1. Type the hub name `chat` and click "Add".
 
-2. Set URL Pattern to `https://<domain-name>.ngrok.io/eventhandler` and check "connected" in System Event Pattern, click "Save".
+2. Set URL Pattern to `https://<domain-name>.ngrok.io/eventhandler` and check "connected" in System Events, click "Save".
 
 ![Event Handler](./../../images/eventhandler-settings-sample.png)
 
@@ -252,7 +252,7 @@ Besides system events like `connected` or `disconnected`, client can also send m
 
     <body>
       <h1>Azure Web PubSub Chat</h1>
-      <input id="message" placeholder="Type to chat..."></input>
+      <input id="message" placeholder="Type to chat...">
       <div id="messages"></div>
       <script>
         (async function () {
@@ -266,7 +266,6 @@ Besides system events like `connected` or `disconnected`, client can also send m
           };
 
           let message = document.querySelector('#message');
-          let send = document.querySelector('#send');
           message.addEventListener('keypress', e => {
             if (e.charCode !== 13) return;
             ws.send(message.value);
