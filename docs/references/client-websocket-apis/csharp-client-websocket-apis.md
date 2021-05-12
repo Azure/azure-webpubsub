@@ -44,7 +44,7 @@ namespace subscriber
     {
         static async Task Main(string[] args)
         {
-            using (var client = new WebsocketClient("<Client_URL_From_Portal>"))
+            using (var client = new WebsocketClient(new Uri("<Client_URL_From_Portal>")))
             {
                 client.MessageReceived.Subscribe(msg => Console.WriteLine($"Message received: {msg}"));
                 await client.Start();
@@ -71,7 +71,7 @@ namespace subscriber
     {
         static async Task Main(string[] args)
         {
-            using (var client = new WebsocketClient("<Client_URL_From_Portal>", () =>
+            using (var client = new WebsocketClient(new Uri("<Client_URL_From_Portal>"), () =>
             {
                 var inner = new ClientWebSocket();
                 inner.Options.AddSubProtocol("json.webpubsub.azure.v1");
