@@ -16,7 +16,6 @@ let serviceClient = new WebPubSubServiceClient(process.argv[2] || process.env.We
 let handler = new WebPubSubEventHandler(hubName, ['*'], {
   path: '/eventhandler',
   onConnected: async req => {
-    let res = [];
     for (let i in diagram.shapes)
       await serviceClient.sendToConnection(req.context.connectionId, {
         name: 'shapeUpdated',
@@ -44,6 +43,7 @@ let handler = new WebPubSubEventHandler(hubName, ['*'], {
     switch (message.name) {
       case 'patchShape': {
         let [author, id, data] = message.data;
+        if (!diagram.shapes[id]) break;
         diagram.shapes[id].data = diagram.shapes[id].data.concat(data);
         await serviceClient.sendToAll({
           name: 'shapePatched',
