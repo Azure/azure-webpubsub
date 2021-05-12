@@ -197,7 +197,6 @@ ws.onmessage = event => {
 };
 
 let message = document.querySelector('#message');
-let send = document.querySelector('#send');
 message.addEventListener('keypress', e => {
   if (e.charCode !== 13) return;
   ws.send(JSON.stringify({
