@@ -252,7 +252,7 @@ Besides system events like `connected` or `disconnected`, client can also send m
 
     <body>
       <h1>Azure Web PubSub Chat</h1>
-      <input id="message" placeholder="Type to chat...">
+      <input id="message" placeholder="Type to chat..." />
       <div id="messages"></div>
       <script>
         (async function () {
