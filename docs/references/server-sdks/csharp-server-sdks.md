@@ -74,16 +74,23 @@ Using this library, you can send messages to the client connections. A message c
 
 ```csharp
 var serviceClient = new WebPubSubServiceClient(new Uri("<endpoint>"), "<hub>", new AzureKeyCredential("<access-key>"));
+// async version
 await serviceClient.SendToAllAsync("Hello world!");
+// as well as sync version
+serviceClient.SendToAll("Hello world!");
 ```
 
 ### Broadcast a JSON message to all clients
 
 ```csharp
 var serviceClient = new WebPubSubServiceClient(new Uri("<endpoint>"), "<hub>", new AzureKeyCredential("<access-key>"));
+// async version
 await serviceClient.SendToAllAsync(
+// as well as sync version
+serviceClient.SendToAll(
     RequestContent.Create(
-        new {
+        new
+        {
             Foo = "Hello World!",
             Bar = 42
         }));
@@ -94,10 +101,16 @@ await serviceClient.SendToAllAsync(
 ```csharp
 var serviceClient = new WebPubSubServiceClient(new Uri("<endpoint>"), "<hub>", new AzureKeyCredential("<access-key>"));
 
+// async version
 await serviceClient.SendToAllAsync(
     RequestContent.Create(new byte[] {0x1, 0x2, 0x3}), 
     HttpHeader.Common.OctetStreamContentType.Value
 );
+// as well as sync version
+Stream stream = BinaryData.FromString("Hello World!").ToStream();
+serviceClient.SendToAll(
+    RequestContent.Create(stream),
+    HttpHeader.Common.OctetStreamContentType.Value);
 ```
 
 ## Troubleshooting
