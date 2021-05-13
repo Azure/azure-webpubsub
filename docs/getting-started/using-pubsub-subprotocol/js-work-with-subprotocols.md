@@ -73,9 +73,8 @@ Now let's create a simple web application using the subprotocol.
 
           let output = document.querySelector('#output');
           ws.onmessage = event => {
-            let message = JSON.parse(event.data);
             let d = document.createElement('p');
-            d.innerText = message.text;
+            d.innerText = event.data;
             output.appendChild(d);
           };
         })();
@@ -87,9 +86,13 @@ Now let's create a simple web application using the subprotocol.
 
     It just connects to the service and print any message received to the page. The main change here is we specify the subprotocol when creating the WebSocket connection.
 
-Now run `node server "<conneciton-string>"` and open `http://localhost:8080` in browser, you can see the WebSocket connection is established as before.
+Now run `node server "<connection-string>"` and open `http://localhost:8080` in browser, you can see the WebSocket connection is established as before, with below `connected` event message received in client. You can see that you can get the `connectionId` generated for this client. You can also get the `userId` if when `getAuthenticationToken` you specify the `userId` for this client.
 
-Then you can send a message to the server using the publisher app in our first tutorial:
+```json
+{"type":"system","event":"connected","userId":null,"connectionId":"<the_connection_id>"}
+```
+
+Then you can send a message to the server using the publisher app created in the [publish and subscribe messages](../publish-messages/js-publish-message.md) tutorial:
 
 ```bash
 node publish "<connection-string>" stream <message>
@@ -105,7 +108,7 @@ Instead of a plain text, client now receives a json message that contains more i
 
 ## Publish messages from client
 
-In last tutorial, when client sends a message through WebSocket connection, it will trigger a user event at server side. With subprotocol, client will have more functionalities by sending a JSON message. For example, you can publish message directly from client to other clients.
+In the [create a chat app](../create-a-chat-app/js-handle-events.md) tutorial, when client sends a message through WebSocket connection, it will trigger a user event at server side. With subprotocol, client will have more functionalities by sending a JSON message. For example, you can publish message directly from client to other clients.
 
 This will be useful if you want to stream a large amount of data to other clients in real time. Let's use this feature to build a log streaming application, which can stream console logs to browser in real time.
 
@@ -140,7 +143,7 @@ This will be useful if you want to stream a large amount of data to other client
 
     You can see there is a new concept "group" here. Group is logical concept in a hub where you can publish message to a group of connections. In a hub you can have multiple groups and one client can subscribe to multiple groups at the same time. When using subprotocol, you can only publish to a group instead of broadcasting to the whole hub.
 
-2.  Since we use group here, we also need to update the web page to join the group.
+2.  Since we use group here, we also need to update the web page `public\index.html` to join the group when the WebSocket connection is established inside `ws.onopen` callback.
 
     ```javascript
     ws.onopen = () => {
@@ -150,8 +153,13 @@ This will be useful if you want to stream a large amount of data to other client
         group: 'stream'
       }));
     };
+    ```
 
-    let output = document.querySelector('#output');
+    You can see client joins the group by sending a message in `joinGroup` type.
+
+3.  Let's also update the `ws.onmessage` callback logic a little bit to parse the JSON response and print out the messages only from `stream` group so that it acts as live stream printer.
+
+    ```javascript
     ws.onmessage = event => {
       let message = JSON.parse(event.data);
       if (message.type === 'message' && message.group === 'stream') {
@@ -163,11 +171,7 @@ This will be useful if you want to stream a large amount of data to other client
     };
     ```
 
-    You can see client joins the group by sending a message in `joinGroup` type.
-
-    You can also see we changed the code when message is received to parse the message and get the data from json format.
-
-3.  For security consideration, by default a client cannot publish or subscribe to a group by itself. We also need to update the token generation code to grant client such permissions:
+4.  For security consideration, by default a client cannot publish or subscribe to a group by itself. We also need to update the token generation code to give client such `roles` when `getAuthenticationToken` in `server.js`:
 
     ```javascript
     app.get('/negotiate', async (req, res) => {
@@ -179,19 +183,19 @@ This will be useful if you want to stream a large amount of data to other client
     
     ```
 
-4.  Finally also apply some style to the output so it displays nicely.
+5.  Finally also apply some style to the output so it displays nicely.
 
     ```html
     <html>
 
-    <head>
-      <style>
-        #output {
-          white-space: pre;
-          font-family: monospace;
-        }
-      </style>
-    </head>
+      <head>
+        <style>
+          #output {
+            white-space: pre;
+            font-family: monospace;
+          }
+        </style>
+      </head>
     ```
 
 Now you can run `node stream`, type any text and they will be displayed in the browser in real time.
