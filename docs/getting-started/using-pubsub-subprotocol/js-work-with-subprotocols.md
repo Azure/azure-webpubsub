@@ -89,7 +89,7 @@ Now let's create a simple web application using the subprotocol.
 Now run `node server "<connection-string>"` and open `http://localhost:8080` in browser, you can see the WebSocket connection is established as before, with below `connected` event message received in client:
 
 ```json
-{"type":"system","event":"connected","userId":null,"connectionId":"b_AH6qt8DPYPujEQv4ytoAc82b04d71"}
+{"type":"system","event":"connected","userId":null,"connectionId":"<the_connection_id>"}
 ```
 
 Then you can send a message to the server using the publisher app created in the [publish and subscribe messages](../publish-messages/js-publish-message.md) tutorial:
