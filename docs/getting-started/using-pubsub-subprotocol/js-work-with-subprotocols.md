@@ -86,7 +86,7 @@ Now let's create a simple web application using the subprotocol.
 
     It just connects to the service and print any message received to the page. The main change here is we specify the subprotocol when creating the WebSocket connection.
 
-Now run `node server "<connection-string>"` and open `http://localhost:8080` in browser, you can see the WebSocket connection is established as before, with below `connected` event message received in client:
+Now run `node server "<connection-string>"` and open `http://localhost:8080` in browser, you can see the WebSocket connection is established as before, with below `connected` event message received in client. You can see that you can get the `connectionId` generated for this client. You can also get the `userId` if when `getAuthenticationToken` you specify the `userId` for this client.
 
 ```json
 {"type":"system","event":"connected","userId":null,"connectionId":"<the_connection_id>"}
