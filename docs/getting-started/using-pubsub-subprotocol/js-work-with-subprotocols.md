@@ -171,7 +171,7 @@ This will be useful if you want to stream a large amount of data to other client
     };
     ```
 
-3.  For security consideration, by default a client cannot publish or subscribe to a group by itself. We also need to update the token generation code to give client such `roles` when `getAuthenticationToken` in `server.js`:
+4.  For security consideration, by default a client cannot publish or subscribe to a group by itself. We also need to update the token generation code to give client such `roles` when `getAuthenticationToken` in `server.js`:
 
     ```javascript
     app.get('/negotiate', async (req, res) => {
@@ -183,7 +183,7 @@ This will be useful if you want to stream a large amount of data to other client
     
     ```
 
-4.  Finally also apply some style to the output so it displays nicely.
+5.  Finally also apply some style to the output so it displays nicely.
 
     ```html
     <html>
