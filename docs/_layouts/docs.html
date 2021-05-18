@@ -22,10 +22,14 @@
           <!-- <h1 class="bd-title" id="content">{{ page.title | smartify }}</h1>
           <p class="bd-lead">{{ page.description | smartify }}</p> -->
           {{ content }}
+          <p>
+            <span>Find an issue? <a href="{{ site.repo }}/issues/new/choose" target="_blank">Please report it here.</a></span>
+            <span>Your feedback is highly appreciated! <a href="https://feedback.azure.com/forums/934191-azure-web-pubsub-service" target="_blank">Provide it via Azure Feedback Forum.</a></span></p>
         </main>
       </div>
     </div>
 
+    {% include footer.html %}
     {% include scripts.html %}
   </body>
 </html>
