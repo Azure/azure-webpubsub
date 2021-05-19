@@ -22,8 +22,7 @@ In previous tutorials you have learned how to use [WebSocketClient APIs](https:/
 ### Create a Maven project
 1. Open _InteliJ IDEA_, click _File/New/Project..._ in the menu, select _Maven_, then type your _GroupId_ and _ArtifactId_, and setup other options to cerate a Maven project.
 2. add dependencies to the `pom.xml`
-```
-
+    ```xml
     <dependencies>
         <dependency>
             <groupId>com.azure</groupId>
@@ -63,15 +62,14 @@ In previous tutorials you have learned how to use [WebSocketClient APIs](https:/
         </dependency>
 
     </dependencies>
+    ```
 
-```
-
->    * azure-messaging-webpubsub: Web PubSub service SDK for Java
->    * Java-WebSocket: WebSocket client SDK for Java
->    * slf4j-simple: Logger for Java
->    * javalin: simple web framework for Java
->    * fastjson: json library for Java
->    * jfoenix: GUI library for Java
+    * azure-messaging-webpubsub: Web PubSub service SDK for Java
+    * Java-WebSocket: WebSocket client SDK for Java
+    * slf4j-simple: Logger for Java
+    * javalin: simple web framework for Java
+    * fastjson: json library for Java
+    * jfoenix: GUI library for Java
 
 ## Using a subprotocol to handle events
 
