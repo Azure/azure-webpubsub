@@ -14,7 +14,12 @@
 
         {% if page.toc %}
           <nav class="d-none d-xl-block col-xl-2 bd-toc" aria-label="Secondary navigation">
-           <!-- {{ content | toc_only }} -->
+            <div class="mx-2">
+              <span class="btn btn-link"><a href="{{site.repo}}/edit/main/docs/{{page.path}}" target="_blank">✏Edit</a></span>
+              <span class="btn btn-link"><a href="https://feedback.azure.com/forums/934191-azure-web-pubsub-service" target="_blank">💬Feedback</a></span>
+              <hr class="my-0">
+            </div>
+            {{ content | toc_only }}
           </nav>
         {% endif %}
 
@@ -29,7 +34,6 @@
       </div>
     </div>
 
-    {% include footer.html %}
     {% include scripts.html %}
   </body>
 </html>
