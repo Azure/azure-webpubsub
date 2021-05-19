@@ -247,7 +247,7 @@ Define input bindings in `function.json`.
 Define function in `index.js`.
 
 ```js
-module.exports = function (context, connection) {
+module.exports = function (context, req, connection) {
   context.res = { body: connection };
   context.done();
 };
