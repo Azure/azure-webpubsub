@@ -220,4 +220,6 @@ public class PubSub {
 
 Since the message is sent to all clients, you can use multiple subscribers at the same time and all of them will receive the same message.
 
-The complete code sample of this tutorial can be found [here](../../../samples/java/pubsub/Readme.md).
+The complete code sample of this tutorial can be found [here][code].
+
+[code]: https://github.com/Azure/azure-webpubsub/tree/main/samples/java/pubsub/Readme.md
