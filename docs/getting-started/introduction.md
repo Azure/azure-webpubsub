@@ -45,6 +45,7 @@ Eager to get started? Check [Quickstart](./quickstart.md) to get started!
 - Using PubSub WebSocket subprotocol
     - [JavaScript](./using-pubsub-subprotocol/js-work-with-subprotocols.md)
     - [Java](./using-pubsub-subprotocol/java-work-with-subprotocols.md)
+    - [Python](./using-pubsub-subprotocol/python-work-with-subprotocols.md)
 
 ## Integrate with Azure Function
 - Work with Azure Function
