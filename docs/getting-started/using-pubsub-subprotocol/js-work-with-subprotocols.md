@@ -91,20 +91,9 @@ Now run `node server "<connection-string>"` and open `http://localhost:8080` in 
 ```json
 {"type":"system","event":"connected","userId":null,"connectionId":"<the_connection_id>"}
 ```
+You can see that with the help of subprotocol, you can get some metadata of the connection when the connection is `connected`.
 
-Then you can send a message to the server using the publisher app created in the [publish and subscribe messages](../publish-messages/js-publish-message.md) tutorial:
-
-```bash
-node publish "<connection-string>" stream <message>
-```
-
-You can see the message is received in client and it's a bit different than before:
-
-```json
-{"type":"message","from":"server","dataType":"text","data":"<message>"}
-```
-
-Instead of a plain text, client now receives a json message that contains more information, like what's the message type and where it is from. So you can use this information to do additional processing to the message (for example, display the message in a different style if it's from a different source).
+Please also note that, instead of a plain text, client now receives a json message that contains more information, like what's the message type and where it is from. So you can use this information to do additional processing to the message (for example, display the message in a different style if it's from a different source), which you can find in later sections.
 
 ## Publish messages from client
 
