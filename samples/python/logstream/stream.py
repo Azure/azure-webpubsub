@@ -24,7 +24,7 @@ async def connect(url):
             await ws.send(json.dumps(payload))
             await ws.recv()
 
-res = requests.get('http://localhost:8081/negotiate').json()
+res = requests.get('http://localhost:8080/negotiate').json()
 
 try:
     asyncio.get_event_loop().run_until_complete(connect(res['url']))
