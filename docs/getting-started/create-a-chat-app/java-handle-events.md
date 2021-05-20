@@ -9,7 +9,7 @@ toc: true
 
 In last tutorial you have learned the basics of publishing and subscribing messages with Azure Web PubSub. In this tutorial you'll learn the event system of Azure Web PubSub so use it to build a complete web application with real time communication functionality. 
 
-![chat room](../../../docs/images/chat-room-java.png)
+![chat room](../../images/chat-room-java.png)
 
 ## Prerequisites
 
@@ -23,7 +23,8 @@ In last tutorial you have learned the basics of publishing and subscribing messa
 ### Create a Maven project
 1. Open _InteliJ IDEA_, click _File/New/Project..._ in the menu, select _Maven_, then type your _GroupId_ and _ArtifactId_, and setup other options to cerate a Maven project.
 2. add dependencies to the `pom.xml`
-```
+
+    ```xml
     <dependencies>
         <dependency>
             <groupId>com.azure</groupId>
@@ -44,16 +45,16 @@ In last tutorial you have learned the basics of publishing and subscribing messa
             <version>1.7.30</version>
         </dependency>
     </dependencies>
-```
+    ```
 
->    * azure-messaging-webpubsub: Web PubSub service SDK for Java
->    * Java-WebSocket: WebSocket client SDK for Java
->    * slf4j-simple: Logger for Java
->    * javalin: simple web framework for Java
+    * azure-messaging-webpubsub: Web PubSub service SDK for Java
+    * Java-WebSocket: WebSocket client SDK for Java
+    * slf4j-simple: Logger for Java
+    * javalin: simple web framework for Java
 
 ### Use ngrok to make the local server publicly available
 Run the script `ngrok http 8080`, then copy the URL above the red line.
-![ngrok](../../../docs/images/ngrok-sample.png)
+![ngrok](../../images/ngrok-sample.png)
 
 ## Setup event handler settings
 1. Navigate to `settings` in portal.
@@ -61,7 +62,7 @@ Run the script `ngrok http 8080`, then copy the URL above the red line.
 3. Fill in the URL copied from the previous step to `URL template`.
 4. Fill in `*` to `User Event Pattern` and select all the system events.
 5. Click `Save` button to update the settings, wait until the settings are updated successfully.
-![event handler settings](../../../docs/images/eventhandler-settings-sample.png)
+![event handler settings](../../images/eventhandler-settings-sample.png)
 
 ### Server
 
@@ -179,35 +180,36 @@ public class Server {
 
     1) First we'd like to handle the abuse protection OPTIONS requests, we check if the header contains `WebHook-Request-Origin` header, and we return the header `WebHook-Allowed-Origin`. For simplicity for demo purpose, we return `*` to allow all the origins.
 
-        ```java
-        // validation: https://azure.github.io/azure-webpubsub/references/protocol-cloudevents#validation
-        app.options(eventHandler, ctx -> {
-            ctx.header("WebHook-Allowed-Origin", "*");
-        });
-        ```
+    ```java
+    // validation: https://azure.github.io/azure-webpubsub/references/protocol-cloudevents#validation
+    app.options(eventHandler, ctx -> {
+        ctx.header("WebHook-Allowed-Origin", "*");
+    });
+    ```
 
     2) Then we'd like to check if the incoming requests are the events we expects. Let's say we now cares about the system `connected` event, which should contains the header `ce-type` as `azure.webpubsub.sys.connected`. We add the logic after abuse protection:
 
-        ```java
-        // handle events: https://azure.github.io/azure-webpubsub/references/protocol-cloudevents#events
-        app.post(eventHandler, ctx -> {
-            String event = ctx.header("ce-type");
-            if (connectedEvent.equals(event)) {
-                String id = ctx.header("ce-userId");
-                client.sendToAll(String.format("[SYSTEM] %s joined", id), WebPubSubContentType.TEXT_PLAIN);
-            } else if (messageEvent.equals(event)) {
-                String id = ctx.header("ce-userId");
-                String message = ctx.body();
-                client.sendToAll(String.format("[%s] %s", id, message), WebPubSubContentType.TEXT_PLAIN);
-            }
-            ctx.status(200);
-        });
-        ```
-        In the above code we broadcast a message that new client is joined when a client is connected. You can see we use `context.Request.Headers["ce-userId"]` so we can see the identity of the connected client.
+    ```java
+    // handle events: https://azure.github.io/azure-webpubsub/references/protocol-cloudevents#events
+    app.post(eventHandler, ctx -> {
+        String event = ctx.header("ce-type");
+        if (connectedEvent.equals(event)) {
+            String id = ctx.header("ce-userId");
+            client.sendToAll(String.format("[SYSTEM] %s joined", id), WebPubSubContentType.TEXT_PLAIN);
+        } else if (messageEvent.equals(event)) {
+            String id = ctx.header("ce-userId");
+            String message = ctx.body();
+            client.sendToAll(String.format("[%s] %s", id, message), WebPubSubContentType.TEXT_PLAIN);
+        }
+        ctx.status(200);
+    });
+    ```
 
-        Besides system events like `connected` or `disconnected`, client can also send messages through the WebSocket connection and these messages will be delivered to server as a special type of event called `message` event. We can use this event to receive messages from one client and broadcast them to all clients so they can talk to each other. The `ce-type` of `message` event is always `azure.webpubsub.user.message`, details please see [Event message](../../references/protocol-cloudevents.md#message).
+    In the above code we broadcast a message that new client is joined when a client is connected. You can see we use `context.Request.Headers["ce-userId"]` so we can see the identity of the connected client.
 
-        This event handler uses `WebPubSubServiceClient.sendToAll()` to broadcast the received message to all clients.
+    Besides system events like `connected` or `disconnected`, client can also send messages through the WebSocket connection and these messages will be delivered to server as a special type of event called `message` event. We can use this event to receive messages from one client and broadcast them to all clients so they can talk to each other. The `ce-type` of `message` event is always `azure.webpubsub.user.message`, details please see [Event message](../../references/protocol-cloudevents.md#message).
+
+    This event handler uses `WebPubSubServiceClient.sendToAll()` to broadcast the received message to all clients.
 
 ### Client
 
@@ -245,6 +247,7 @@ Create `/public/index.html` in `resources` folder, to add the logic to send mess
 </body>
 </html>
 ```
+
 You can see in the above code we use `WebSocket.send()` to send message and `WebSocket.onmessage` to listen to message from service.
 
 
@@ -257,8 +260,10 @@ You can see in the above code we use `WebSocket.send()` to send message and `Web
 5. Input a message to send, press `Enter` key to publish. 
 6. You will see the message in the chat room.
 7. Repeat the above steps in a window, you can see messages broadcast to all the windows.
-![chat room](../../../docs/images/chat-room-java.png)
+![chat room](../../../chat-room-java.png)
 
 Since the message is sent to all clients, you can open multiple browser instances, then you can chat with each other.
 
-The complete code sample of this tutorial can be found [here](../../../samples/java/chatapp/Readme.md).
+The complete code sample of this tutorial can be found [here][code].
+
+[code]: https://github.com/Azure/azure-webpubsub/tree/main/samples/java/chatapp/Readme.md

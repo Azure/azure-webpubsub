@@ -20,7 +20,7 @@ When the client is using this subprotocol, both outgoing data frame and incoming
 - [Responses](#responses)
     - [Ack Response](#ack)
     - [Message Response](#message)
-    - [Service Response](#service)
+    - [System Response](#system)
 
 ### Overview
 
@@ -180,20 +180,16 @@ Format:
 
 #### Send Custom Events
 
-
 Format:
 
 ```json
 {
     "type": "event",
     "event": "<event_name>",
-    "ackId" : 1, // optional
     "dataType" : "json|text|binary",
     "data": {}, // data can be string or valid json token depending on the dataType 
 }
 ```
-
-* `ackId` is optional, it is an incremental integer for this command message. When the `ackId` is specified, the service sends a [ack response message](#ack) back to the client when the command is executed.
 
 `dataType` can be one of `text`, `binary` or `json`:
 * `json`: data can be any type json supports and will be published as what it is; If `dataType` is not specified, it defaults to `json`.
@@ -341,26 +337,27 @@ Clients can receive messages published from one group the client joined, or from
 
 1. When the message is from a group
 
-```json
-{
-    "type": "message",
-    "from": "group",
-    "group": "<group_name>",
-    "dataType": "json|text|binary",
-    "data" : {} // The data format is based on the dataType
-}
-```
+    ```json
+    {
+        "type": "message",
+        "from": "group",
+        "group": "<group_name>",
+        "dataType": "json|text|binary",
+        "data" : {} // The data format is based on the dataType
+    }
+    ```
 
 1. When The message is from the server.
 
-```json
-{
-    "type": "message",
-    "from": "server",
-    "dataType": "json|text|binary",
-    "data" : {} // The data format is based on the dataType
-}
-```
+    ```json
+    {
+        "type": "message",
+        "from": "server",
+        "dataType": "json|text|binary",
+        "data" : {} // The data format is based on the dataType
+    }
+    ```
+
 ##### Case 1: Sending data `Hello World` to the connection through REST API with `Content-Type`=`text/plain` 
 * What a simple WebSocket client receives is a text WebSocket frame with data: `Hello World`;
 * What a PubSub WebSocket client receives is as follows:
@@ -372,6 +369,7 @@ Clients can receive messages published from one group the client joined, or from
         "data": "Hello World", 
     }
     ```
+
 ##### Case 2: Sending data `{ "Hello" : "World"}` to the connection through REST API with `Content-Type`=`application/json`
 * What a simple WebSocket client receives is a text WebSocket frame with stringified data: `{ "Hello" : "World"}`;
 * What a PubSub WebSocket client receives is as follows:
@@ -385,6 +383,7 @@ Clients can receive messages published from one group the client joined, or from
         }
     }
     ```
+
 Please NOTE that if the REST API is sending a string `Hello World` using `application/json` content type, what the simple WebSocket client receives is a JSON string, which is `"Hello World"` that wrapps the string with `"`.
 
 ##### Case 3:  Sending binary data to the connection through REST API with `Content-Type`=`application/octet-stream`

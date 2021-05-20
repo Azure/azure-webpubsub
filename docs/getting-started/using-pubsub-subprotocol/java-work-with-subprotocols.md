@@ -9,7 +9,7 @@ toc: true
 
 In previous tutorials you have learned how to use [WebSocketClient APIs](https://github.com/TooTallNate/Java-WebSocket) to send and receive data with Azure Web PubSub. You can see there is no protocol needed when client is communicating with the service. For example, you can use `WebSocketClient.send()` to send any data and server will receive the data as is. This is easy to use, but the functionality is also limited. You cannot, for example, specify the event name when sending the event to server, or publish message to other clients instead of sending it to server. In this tutorial you will learn how to use subprotocol to extend the functionality of client.
 
-![log stream](../../../docs/images/sample-java-logstream-gui.png)
+![log stream](../../images/sample-java-logstream-gui.png)
 
 ## Prerequisites
 
@@ -22,8 +22,7 @@ In previous tutorials you have learned how to use [WebSocketClient APIs](https:/
 ### Create a Maven project
 1. Open _InteliJ IDEA_, click _File/New/Project..._ in the menu, select _Maven_, then type your _GroupId_ and _ArtifactId_, and setup other options to cerate a Maven project.
 2. add dependencies to the `pom.xml`
-```
-
+    ```xml
     <dependencies>
         <dependency>
             <groupId>com.azure</groupId>
@@ -63,15 +62,14 @@ In previous tutorials you have learned how to use [WebSocketClient APIs](https:/
         </dependency>
 
     </dependencies>
+    ```
 
-```
-
->    * azure-messaging-webpubsub: Web PubSub service SDK for Java
->    * Java-WebSocket: WebSocket client SDK for Java
->    * slf4j-simple: Logger for Java
->    * javalin: simple web framework for Java
->    * fastjson: json library for Java
->    * jfoenix: GUI library for Java
+    * azure-messaging-webpubsub: Web PubSub service SDK for Java
+    * Java-WebSocket: WebSocket client SDK for Java
+    * slf4j-simple: Logger for Java
+    * javalin: simple web framework for Java
+    * fastjson: json library for Java
+    * jfoenix: GUI library for Java
 
 ## Using a subprotocol to handle events
 
