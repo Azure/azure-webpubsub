@@ -113,70 +113,87 @@ async function initialize() {
     let res = await fetch('/negotiate');
     let data = await res.json();
     return data.url;
-  }, 5000);
+  }, 'json.webpubsub.azure.v1', 5000);
 
-  ws.onopen = () => {
+  ws.onopen = async () => {
     appData.connected = true;
     diagram.removeAll();
+    let res = await fetch('/diagram');
+    let data = await res.json();
+    for (let i in data.shapes)
+      diagram.updateShape(i, data.shapes[i]);
+    if (data.background)
+      diagram.updateBackground('/background/' + data.background);
   };
   ws.onclose = () => appData.connected = false;
   ws.onmessage = event => {
-    let data = JSON.parse(event.data);
-    switch (data.name) {
-      case 'clear': {
-        let a = data.data;
-        if (author !== a) diagram.removeAll();
-        break;
+    let message = JSON.parse(event.data);
+    if (message.type !== 'message') return;
+    let data = message.data;
+    if (message.from === 'group' && message.group === 'draw') {
+      switch (data.name) {
+        case 'clear': {
+          let a = data.data;
+          if (author !== a) diagram.removeAll();
+          break;
+        }
+        case 'updateShape': {
+          let [a, i, m] = data.data;
+          if (author !== a) diagram.updateShape(i, m);
+          break;
+        }
+        case 'patchShape': {
+          let [a, i, d] = data.data;
+          if (author !== a) diagram.patchShape(i, d);
+          break;
+        }
+        case 'removeShape': {
+          let [a, i] = data.data;
+          if (author !== a) diagram.removeShape(i);
+          break;
+        }
+        case 'newMessage': {
+          let [a, n, m] = data.data;
+          if (author !== a) appData.messages.push({ name: n, message: m });
+          break;
+        }
+        case 'updateUser': {
+          let n = data.data;
+          appData.totalUsers = n;
+          break;
+        }
       }
-      case 'shapeUpdated': {
-        let [a, i, m] = data.data;
-        if (author !== a) diagram.updateShape(i, m);
-        break;
-      }
-      case 'shapePatched': {
-        let [a, i, d] = data.data;
-        if (author !== a) diagram.patchShape(i, d);
-        break;
-      }
-      case 'shapeRemoved': {
-        let [a, i] = data.data;
-        if (author !== a) diagram.removeShape(i);
-        break;
-      }
-      case 'backgroundUpdated': {
-        let i = data.data;
-        diagram.updateBackground('/background/' + i);
-        break;
-      }
-      case 'newMessage': {
-        let [a, n, m] = data.data;
-        if (author !== a) appData.messages.push({ name: n, message: m });
-        break;
-      }
-      case 'userUpdated': {
-        let n = data.data;
-        appData.totalUsers = n;
-        break;
+    } else if (message.from === 'server') {
+      switch (data.name) {
+        case 'updateBackground': {
+          let i = data.data;
+          diagram.updateBackground('/background/' + i);
+          break;
+        }
       }
     }
   };
 
-  diagram.onShapeUpdate((i, m) => ws.send(JSON.stringify({
+  diagram.onShapeUpdate((i, m) => ws.sendToGroup('draw', {
     name: 'updateShape',
     data: [author, i, m]
-  })));
-  diagram.onShapeRemove(i => ws.send(JSON.stringify({
-    name: 'removeShape',
-    data: [author, i]
-  })));
-  diagram.onShapePatch((i, d) => ws.send(JSON.stringify({
+  }));
+  diagram.onShapePatch((i, d) => ws.sendToGroup('draw', {
     name: 'patchShape',
     data: [author, i, d]
-  })));
-  diagram.onClear(() => ws.send(JSON.stringify({
-    name: 'clear',
-    data: author
-  })));
+  }));
+  diagram.onShapeAdd((i, m) => ws.sendEvent({
+    name: 'addShape',
+    data: [i, m]
+  }));
+  diagram.onShapeRemove(i => {
+    ws.sendEvent({ name: 'removeShape', data: i });
+    ws.sendToGroup('draw', { name: 'removeShape', data: [author, i] });
+  });
+  diagram.onClear(() => {
+    ws.sendEvent({ name: 'clear' });
+    ws.sendToGroup('draw', { name: 'clear', data: author });
+  });
   diagram.onHistoryChange((p, f) => [appData.hasUndo, appData.hasRedo] = [p, f]);
 
   let app = new Vue({
@@ -201,10 +218,10 @@ async function initialize() {
       sendMessage: function () {
         if (!this.draft) return;
         this.messages.push({ name: this.name, message: this.draft });
-        ws.send(JSON.stringify({
-          name: 'sendMessage',
+        ws.sendToGroup('draw', {
+          name: 'newMessage',
           data: [author, this.name, this.draft]
-        }));
+        });
         this.draft = '';
       },
       setName: function () { if (this.name) $('#inputName').modal('toggle'); },
