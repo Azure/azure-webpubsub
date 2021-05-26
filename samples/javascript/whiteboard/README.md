@@ -46,7 +46,7 @@ This application is based on the following technologies:
    
    * URL Template: `https://<your-ngrok-name>.ngrok/eventhandler`
    * User Event Pattern: `message`
-   * System Events: `connected`, `disconnected`
+   * System Events: `connect`, `connected`, `disconnected`
 
 Now open http://localhost:8080 in your browser to use the whiteboard.
 

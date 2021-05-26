@@ -10,7 +10,7 @@ function Diagram(element, tools) {
   this._background = null;
   this._scale = 1;
   this._offset = [0, 0];
-  this._shapeUpdateCallback = this._shapePatchCallback = this._shapeRemoveCallback = this._clearCallback = this._historyChangeCallback = () => { };
+  this._shapeUpdateCallback = this._shapePatchCallback = this._shapeRemoveCallback = this._shapeAddCallback = this._clearCallback = this._historyChangeCallback = () => { };
 }
 
 function generateId() {
@@ -70,6 +70,7 @@ Diagram.prototype.endShape = function () {
     this._shapePatchCallback(this._id, this._buffer);
     this._buffer = [];
   } else this._shapeUpdateCallback(this._id, this._shapes[this._id].model);
+  this._shapeAddCallback(this._id, this._shapes[this._id].model);
   this._id = null;
 }
 
@@ -141,11 +142,13 @@ Diagram.prototype.redo = function () {
   let i = generateId();
   this.updateShape(i, m);
   this._shapeUpdateCallback(i, m);
+  this._shapeAddCallback(i, m);
   this._past.push(i);
   this._historyChange();
 }
 
 Diagram.prototype.onShapeUpdate = function (c) { this._shapeUpdateCallback = c };
+Diagram.prototype.onShapeAdd = function (c) { this._shapeAddCallback = c };
 Diagram.prototype.onShapeRemove = function (c) { this._shapeRemoveCallback = c };
 Diagram.prototype.onShapePatch = function (c) { this._shapePatchCallback = c };
 Diagram.prototype.onClear = function (c) { this._clearCallback = c };
