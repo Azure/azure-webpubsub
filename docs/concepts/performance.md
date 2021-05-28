@@ -132,7 +132,7 @@ The routing cost is significant for sending message to many small groups. Curren
 | Outbound bandwidth | 8 MBps   | 16 MBps | 40 MBps   | 80 MBps    | 160 MBps  | 300 MBps | 300 MBps |
 
 ### Triggering Cloud Event 
-Service delivers client events to the upstream webhook using the [CloudEvents HTTP protocol](https://github.com/cloudevents/spec/blob/v1.0.1/http-protocol-binding.md).
+Service delivers client events to the upstream webhook using the [CloudEvents HTTP protocol](../references/protocol-cloudevents.md).
 
 <img src="../images/upstream.png" alt="upstream" style="zoom:60%;" />
 
