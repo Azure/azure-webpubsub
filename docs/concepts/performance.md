@@ -139,7 +139,7 @@ Service delivers client events to the upstream webhook using the [CloudEvents HT
 For every event, it formulates an HTTP POST request to the registered upstream and expects an HTTP response. 
 
 > [!NOTE]
-> Web Pub Sub also supports HTTP 2.0 for upstream events delivering. The below result is tested using HTTP 1.1 . If your app server supports HTTP 2.0, the performance will be better. 
+> Web PubSub also supports HTTP 2.0 for upstream events delivering. The below result is tested using HTTP 1.1. If your app server supports HTTP 2.0, the performance will be better. 
 
 #### Echo
 
