@@ -61,7 +61,7 @@ In summary, the following factors affect the inbound and outbound capacity:
 
 -   Message send rate
 
-- Use-case scenario (routing cost)
+-   Use-case scenario (routing cost)
 
 
 ### Finding a proper SKU
