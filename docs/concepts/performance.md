@@ -90,7 +90,7 @@ The following sections go through 3 typical use cases: **send to groups through 
 In all use cases, the default message size is 2,048 bytes, and the message send interval is 1 second.
 
 ### Send to groups through Web PubSub subprotocol
-The service supports a specific subprotocol called json.webpubsub.azure.v1 which empowers the clients to do publish/subscribe directly instead of a round trip to the upstream server. This scenario is quite efficient as no server is involved and all traffic goes through websocket.
+The service supports a specific subprotocol called `json.webpubsub.azure.v1` which empowers the clients to do publish/subscribe directly instead of a round trip to the upstream server. This scenario is quite efficient as no server is involved and all traffic goes through the client-service WebSocket connection.
 
 <img src="../images/wps-group.png" alt="wps-group" style="zoom:60%;" />
 
