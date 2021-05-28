@@ -79,7 +79,7 @@ Every tier has its own maximum inbound bandwidth and outbound bandwidth. A smoot
 - *outboundConnections*: The number of connections receiving the message.
 - *messageSize*: The size of a single message (average value). A small message that's less than 1,024 bytes has a performance impact that's similar to a 1,024-byte message.
 - *sendInterval*: The interval for sending messages. For example, 1 second means sending one message every second. A smaller interval means sending more messages in a time period. For example, 0.5 seconds means sending two messages every second.
-- *Connections*: The committed maximum threshold for Azure Web PubSub Service for every tier. If the connection number is increased further, it will suffer from connection throttling.
+- *Connections*: The committed maximum threshold for Azure Web PubSub Service for every tier. Connections that exceed the threshold get throttled.
 
 Assume that the upstream is powerful enough and is not the performance bottleneck. Then, check the maximum inbound and outbound bandwidth for every tier.
 
