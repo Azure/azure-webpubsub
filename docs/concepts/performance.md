@@ -47,9 +47,9 @@ This section describes the performance evaluation methodologies, and then lists 
 
 Theoretically, Azure Web PubSub Service capacity is limited by computation resources: CPU, memory, and network. For example, more connections to Azure Web PubSub Service cause the service to use more memory. For larger message traffic (for example, every message is larger than 2,048 bytes), Azure Web PubSub Service needs to spend more CPU cycles to process traffic.
 
-The message routing cost also limits performance. Azure Web PubSub Service plays a role as a message router, which routes the message among a set of clients. A different scenario or API requires a different routing policy. 
+The message routing cost also limits performance. Azure Web PubSub Service plays a role as a message broker, which routes the message among a set of clients. A different scenario or API requires a different routing policy. 
 
-For **echo**, the client sends a message to itself, and the routing destination is also itself. This pattern has the lowest routing cost. But for **broadcast**, **send to group**, and **send to connection**, Azure Web PubSub Service needs to look up the target connections through the internal distributed data structure. This extra processing uses more CPU, memory, and network bandwidth. As a result, performance is slower.
+For **echo**, the client sends a message to the upstream, and upstream echos the message back to the client. This pattern has the lowest routing cost. But for **broadcast**, **send to group**, and **send to connection**, Azure Web PubSub Service needs to look up the target connections through the internal distributed data structure. This extra processing uses more CPU, memory, and network bandwidth. As a result, performance is slower.
 
 In summary, the following factors affect the inbound and outbound capacity:
 
@@ -115,7 +115,7 @@ For **send to big group**, the outbound bandwidth becomes the bottleneck before 
 | Inbound messages per second  | 30      | 30      | 30      | 30    | 30    | 30   | 30     |
 | Inbound bandwidth  | 60 KBps | 60 KBps  | 60 KBps   | 60 KBps  | 60 KBps   | 60 KBps    | 60 KBps    |
 | Outbound messages per second | 3,000 | 6,000 | 15,000 | 30,000 | 60,000 | 150,000 | 300,000 |
-| Outbound bandwidth | 6 MBps   | 12 MBps  | 30 MBps  | 60 MBps  | 120 MBps  | 300 MBps   | 600 MBps   |
+| Outbound bandwidth | **6 MBps** | **12 MBps** | **30 MBps** | **60 MBps** | **120 MBps** | **300 MBps** | **600 MBps** |
 
 ##### Small group
 
@@ -129,7 +129,7 @@ The routing cost is significant for sending message to many small groups. Curren
 | Inbound messages per second  | 400 | 800  | 2,000 | 4,000 | 8,000 | 15,000 | 15,000 |
 | Inbound bandwidth  | 800 KBps | 1.6 MBps | 4 MBps    | 8 MBps    | 16 MBps   | 30 MBps  | 30 MBps   |
 | Outbound messages per second | 4,000 | 8,000 | 20,000 | 40,000 | 80,000 | 150,000 | 150,000 |
-| Outbound bandwidth | 8 MBps   | 16 MBps | 40 MBps   | 80 MBps    | 160 MBps  | 300 MBps | 300 MBps |
+| Outbound bandwidth | **8 MBps** | **16 MBps** | **40 MBps** | **80 MBps** | **160 MBps** | **300 MBps** | **300 MBps** |
 
 ### Triggering Cloud Event 
 Service delivers client events to the upstream webhook using the [CloudEvents HTTP protocol](../references/protocol-cloudevents.md).
@@ -149,13 +149,13 @@ In this case, the app server writes back the original message back in the http r
 |-----------------------------------|-------|-------|-------|--------|--------|--------|---------|
 | Connections                       | 1,000 | 2,000 | 5,000 | 10,000 | 20,000 | 50,000 | 100,000 |
 | Inbound/outbound messages per second | 500 | 1,000 | 2,500 | 5,000 | 10,000 | 25,000 | 50,000 |
-| Inbound/outbound bandwidth | 1 MBps  | 2 MBps  | 5 MBps | 10 MBps  | 20 MBps  | 50 MBps | 100 MBps  |
+| Inbound/outbound bandwidth | **1 MBps** | **2 MBps** | **5 MBps** | **10 MBps** | **20 MBps** | **50 MBps** | **100 MBps** |
 
 
 
 ### Rest API
 
-Sending high-density messages through the REST API is not as efficient as using WebSocket. 
+Azure Web PubSub provides powerful [APIs](https://docs.microsoft.com/en-us/rest/api/webpubsub/) to manage clients and deliver real-time messages.
 
 <img src="../images/restapi.png" alt="restapi" style="zoom:60%;" />
 
@@ -165,10 +165,8 @@ The benchmark assigns usernames to all of the clients before they start connecti
 |   Send to user through REST API | Unit1 | Unit2 | Unit5  | Unit10 | Unit20 | Unit50  | Unit100 |
 |---------------------------|-------|-------|--------|--------|--------|---------|---------|
 | Connections               | 1,000 | 2,000 | 5,000  | 10,000 | 20,000 | 50,000  | 100,000 |
-| Inbound messages per second  | 180 | 360 | 900    | 1,800 | 3,600 | 9,000 | 18,000  |
-| Outbound messages per second | 180 | 360 | 900    | 1,800 | 3,600 | 9,000 | 18,000 |
-| Inbound bandwidth  | 360 KBps | 720 KBps | 1.8 MBps   | 3.6 MBps  | 7.2 MBps  | 18 MBps    | 36 MBps    |
-| Outbound bandwidth | 360 KBps | 720 KBps | 1.8 MBps   | 3.6 MBps  | 7.2 MBps  | 18 MBps    | 36 MBps    |
+| Inbound/outbound messages per second | 180 | 360 | 900    | 1,800 | 3,600 | 9,000 | 18,000  |
+| Inbound/outbound bandwidth           | **360 KBps** | **720 KBps** | **1.8 MBps** | **3.6 MBps** | **7.2 MBps** | **18 MBps** | **36 MBps** |
 
 #### Broadcast through REST API
 The bandwidth limit is the same as that for **send to big group**.
@@ -179,4 +177,4 @@ The bandwidth limit is the same as that for **send to big group**.
 | Inbound messages per second  | 3    | 3    | 3     | 3     | 3     | 3      | 3      |
 | Outbound messages per second | 3,000 | 6,000 | 15,000 | 30,000 | 60,000 | 150,000 | 300,000 |
 | Inbound bandwidth  | 6 KBps   | 6 KBps   | 6 KBps    | 6 KBps    | 6 KBps    | 6 KBps     | 6 KBps     |
-| Outbound bandwidth | 6 MBps   | 12 MBps | 30 MBps   | 60 MBps   | 120 MBps  | 300 MBps   | 600 MBps   |
+| Outbound bandwidth | **6 MBps** | **12 MBps** | **30 MBps** | **60 MBps** | **120 MBps** | **300 MBps** | **600 MBps** |
