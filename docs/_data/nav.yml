@@ -44,6 +44,8 @@
 - title: Concepts
   pages:
     - title: Service Internals
+    - title: Performance Doc
+      id: performance
     
 - title: References
   pages:
