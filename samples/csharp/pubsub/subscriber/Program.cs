@@ -31,6 +31,8 @@ namespace subscriber
                 return inner;
             }))
             {
+                // Disable the auto disconnect and reconnect because the sample would like the client to stay online even no data comes in
+                client.ReconnectTimeout = null;
                 client.MessageReceived.Subscribe(msg => Console.WriteLine($"Message received: {msg}"));
                 await client.Start();
                 Console.WriteLine("Connected.");
