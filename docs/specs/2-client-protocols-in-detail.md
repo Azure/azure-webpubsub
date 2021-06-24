@@ -66,4 +66,6 @@ var pubsub = new WebSocket('wss://test.webpubsub.azure.com/client/hubs/hub1', 'j
 
 When the client is using this subprotocol, both outgoing data frame and incoming data frame are expected to be JSON payloads.
 
-Details of the subprotocol is described in [./../references/pubsub-websocket-subprotocol.md].
+Details of the json subprotocol is described in [./../references/pubsub-websocket-subprotocol.md].
+
+Details of the protobuf subprotocol is described in [./../references/pubsub-websocket-protobuf-subprotocol.md].

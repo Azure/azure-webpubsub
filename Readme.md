@@ -51,7 +51,8 @@ Eager to get started? Check [Quickstart](./docs/getting-started/quickstart.md) t
 ## References
 - Client-side
     - [Client WebSocket APIs](./docs/references/client-websocket-apis/)
-    - [Client PubSub Subprotocol](./docs/references/pubsub-websocket-subprotocol.md)
+    - [Client Json PubSub Subprotocol](./docs/references/pubsub-websocket-subprotocol.md)
+    - [Client Protobuf PubSub Subprotocol](./docs/references/pubsub-websocket-protobuf-subprotocol.md)
 - Serve-side
     - [Server SDKs](./docs/references/server-sdks/index.md)
     - [Server CloudEvents protocol](./docs/references/protocol-cloudevents.md)

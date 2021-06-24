@@ -74,5 +74,7 @@
           id: python-client-websocket-apis
         - title: Java
           id: java-client-websocket-apis
-    - title: Client PubSub Subprotocol
+    - title: Client Json PubSub Subprotocol
       id: pubsub-websocket-subprotocol
+    - title: Client Protobuf PubSub Subprotocol
+      id: pubsub-websocket-protobuf-subprotocol
