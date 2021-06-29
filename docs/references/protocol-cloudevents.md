@@ -10,7 +10,7 @@ Service delivers client events to the upstream webhook using the [CloudEvents HT
 
 The data sending from service to server is always in CloudEvents `binary` format.
 
-- [Validation](#protection)
+- [Preflight check](#protection)
 - [Web PubSub Service Atrribute Extension](#extension)
 - [Events](#events)
     - [connect](#connect)
@@ -19,10 +19,10 @@ The data sending from service to server is always in CloudEvents `binary` format
     - [message for simple WebSocket clients](#message)
     - [Custom event for PubSub WebSocket clients](#custom_event)
 
-## Validation
+## Preflight check
 <a name="protection"></a>
 
-The Webhook validation follows the same behavior as [CloudEvents](https://github.com/cloudevents/spec/blob/v1.0/http-webhook.md#4-abuse-protection). The request always contains `WebHook-Request-Origin: xxx.webpubsub.azure.com` in the header.
+The Webhook Preflight check follows the same behavior as [CloudEvents](https://github.com/cloudevents/spec/blob/v1.0/http-webhook.md#4-abuse-protection). The request always contains `WebHook-Request-Origin: xxx.webpubsub.azure.com` in the header.
 
 If and only if the delivery target does allow delivery of the events, it MUST reply to the request by including `WebHook-Allowed-Origin` header, e.g.
 
