@@ -5,6 +5,7 @@
     - title: Quickstart
     - title: Troubleshoot
     - title: Walk-through&#58; publish messages 
+      id: publish-messages
       pages:
         - title: JavaScript
           id: js-publish-message
@@ -15,6 +16,7 @@
         - title: Java
           id: java-publish-message
     - title: Walk-through&#58; Create a chat app
+      id: handle-events
       pages:
         - title: JavaScript
           id: js-handle-events
@@ -23,6 +25,7 @@
         - title: Java
           id: java-handle-events
     - title: Walk-through&#58; Client Pub/Sub using subprotocol
+      id: work-with-subprotocols
       pages:
         - title: JavaScript
           id: js-work-with-subprotocols
@@ -31,6 +34,7 @@
         - title: Python
           id: python-work-with-subprotocols
     - title: Walk-through&#58; Add authentication and permissions
+      id: auth-and-permissions
       pages:
         - title: JavaScript
           id: js-auth-and-permissions
