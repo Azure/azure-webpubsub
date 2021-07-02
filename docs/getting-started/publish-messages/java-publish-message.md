@@ -9,7 +9,7 @@ toc: true
 
 In this tutorial you'll learn how to create a sample to publish messages and subscribe them using Azure Web PubSub with Java.
 
-![pub sub](../../../docs/images/sample-java-pubsub-console.png)
+![pub sub](../../images/sample-java-pubsub-console.png)
 
 ## Prerequisites
 

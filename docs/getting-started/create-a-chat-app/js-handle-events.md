@@ -11,6 +11,8 @@ In [last tutorial](../publish-messages/js-publish-message.md) you have learned t
 
 The complete code sample of this tutorial can be found [here][code]
 
+![chat room](../../images/simple-chat-room.png)
+
 ## Prerequisites
 
 1. [Node.js](https://nodejs.org)

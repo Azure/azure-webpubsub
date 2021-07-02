@@ -11,6 +11,8 @@ In [last tutorial](../publish-messages/csharp-publish-message.md) you have learn
 
 We're going to build the chat application incrementally, but the complete code sample of this tutorial can be found [here][code].
 
+![chat room](../../images/simple-chat-room.png)
+
 ## Prerequisites
 
 1. [ASP.NET Core 3.1 or above](https://docs.microsoft.com/en-us/aspnet/core)

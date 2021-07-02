@@ -16,7 +16,7 @@
         - title: Java
           id: java-publish-message
     - title: Walk-through&#58; Create a chat app
-      id: handle-events
+      id: create-a-chat-app
       pages:
         - title: JavaScript
           id: js-handle-events
@@ -25,7 +25,7 @@
         - title: Java
           id: java-handle-events
     - title: Walk-through&#58; Client Pub/Sub using subprotocol
-      id: work-with-subprotocols
+      id: using-pubsub-subprotocol
       pages:
         - title: JavaScript
           id: js-work-with-subprotocols
