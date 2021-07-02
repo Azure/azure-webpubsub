@@ -5,9 +5,9 @@ subgroup: create-a-chat-app
 toc: true
 ---
 
-# Handle events
+# Walk-through&#58; Create a chat app
 
-In last tutorial you have learned the basics of publishing and subscribing messages with Azure Web PubSub. In this tutorial you'll learn the event system of Azure Web PubSub so use it to build a complete web application with real time communication functionality. 
+In [last tutorial](../publish-messages/js-publish-message.md) you have learned the basics of publishing and subscribing messages with Azure Web PubSub. In this tutorial you'll learn the event system of Azure Web PubSub so use it to build a complete web application with real time communication functionality. 
 
 The complete code sample of this tutorial can be found [here][code]
 

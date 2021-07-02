@@ -4,7 +4,7 @@
     - title: Introduction
     - title: Quickstart
     - title: Troubleshoot
-    - title: Publish messages 
+    - title: Walk-through&#58; publish messages 
       pages:
         - title: JavaScript
           id: js-publish-message
@@ -14,15 +14,7 @@
           id: python-publish-message
         - title: Java
           id: java-publish-message
-    - title: Using PubSub subprotocol
-      pages:
-        - title: JavaScript
-          id: js-work-with-subprotocols
-        - title: Java
-          id: java-work-with-subprotocols
-        - title: Python
-          id: python-work-with-subprotocols
-    - title: Create a chat app
+    - title: Walk-through&#58; Create a chat app
       pages:
         - title: JavaScript
           id: js-handle-events
@@ -30,7 +22,15 @@
           id: csharp-handle-events
         - title: Java
           id: java-handle-events
-    - title: Auth and permissions
+    - title: Walk-through&#58; Client Pub/Sub using subprotocol
+      pages:
+        - title: JavaScript
+          id: js-work-with-subprotocols
+        - title: Java
+          id: java-work-with-subprotocols
+        - title: Python
+          id: python-work-with-subprotocols
+    - title: Walk-through&#58; Add authentication and permissions
       pages:
         - title: JavaScript
           id: js-auth-and-permissions

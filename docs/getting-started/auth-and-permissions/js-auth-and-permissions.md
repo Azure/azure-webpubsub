@@ -5,7 +5,7 @@ subgroup: auth-and-permissions
 toc: true
 ---
 
-# Authentication and permissions
+# Walk-through: Add authentication and permissions
 
 In previous tutorials for simplicity all samples do not require any authentication. Though Azure Web PubSub requires access token to be connected, the `negotiate` API we used in the samples to generate access token doesn't need authentication, so anyone can call this API to get an access token.
 
