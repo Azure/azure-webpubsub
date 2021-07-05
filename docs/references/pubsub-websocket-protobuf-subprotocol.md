@@ -58,12 +58,23 @@ syntax = "proto3";
 
 import "google/protobuf/any.proto";
 
-message RequestMessage {
+message UpstreamMessage {
     oneof message {
-        JoinGroupMessage join_group_message = 1;
-        LeaveGroupMessage leave_group_message = 2;
-        SendToGroupMessage send_to_group_message = 3;
-        EventMessage event_message = 4;
+        SendToGroupMessage send_to_group_message = 1;
+        EventMessage event_message = 5;
+        JoinGroupMessage join_group_message = 6;
+        LeaveGroupMessage leave_group_message = 7;
+    }
+
+    message SendToGroupMessage {
+        string group = 1;
+        optional int32 ack_id = 2;
+        MessageData data = 3;
+    }
+
+    message EventMessage {
+        string event = 1;
+        MessageData data = 2;
     }
     
     message JoinGroupMessage {
@@ -75,24 +86,13 @@ message RequestMessage {
         string group = 1;
         optional int32 ack_id = 2;
     }
+}
 
-    message SendToGroupMessage {
-        string group = 1;
-        optional int32 ack_id = 2;
-        oneof data_type {
-            string text_data = 3;
-            bytes binary_data = 4;
-            google.protobuf.Any protobuf_data = 5;
-        }
-    }
-
-    message EventMessage {
-        string event = 1;
-        oneof data_type {
-            string text_data = 3;
-            bytes binary_data = 4;
-            google.protobuf.Any protobuf_data = 5;
-        }
+message MessageData {
+    oneof data {
+        string text_data = 1;
+        bytes binary_data = 2;
+        google.protobuf.Any protobuf_data = 3;
     }
 }
 ```
@@ -120,17 +120,17 @@ message RequestMessage {
 
 * `ackId` is optional, it is an incremental integer for this command message. When the `ackId` is specified, the service sends a [ack response message](#ack) back to the client when the command is executed.
 
-There's a implicit `dataType` which can be one of `protobuf`, `text`, or `binary`, base on the dataType you set. The receiver clients can leverage the `dataType` to handle the content correctly.
+There's a implicit `dataType` which can be one of `protobuf`, `text`, or `binary`, base on the `data` in `MessageData` you set. The receiver clients can leverage the `dataType` to handle the content correctly.
 
-* `protobuf`: If you set `send_to_group_message.protobuf_data`, the implicit is `protobuf`. `send_to_group_message.protobuf_data` can be any supported protobuf type. All other clients will receive protobuf encoded binary which can be deserialized by any protobuf SDK. In clients that only support text based content(`json.webpubsub.azure.v1`), they will receive base64 encoded binary;
+* `protobuf`: If you set `send_to_group_message.data.protobuf_data`, the implicit is `protobuf`. `protobuf_data` can be in [Any](https://developers.google.com/protocol-buffers/docs/proto3#any) type. All other clients will receive protobuf encoded binary which can be deserialized by protobuf SDK. In clients that only support text based content(e.g. `json.webpubsub.azure.v1`), they will receive base64 encoded binary;
 
-* `text`: If you set `send_to_group_message.text_data`, the implicit is `text`. `send_to_group_message.text_data` should be a string. All clients with other protocol will receive a UTF-8 encoded string;
+* `text`: If you set `send_to_group_message.data.text_data`, the implicit is `text`. `text_data` should be a string. All clients with other protocol will receive a UTF-8 encoded string;
 
-* `binary`: If you set `send_to_group_message.binary_data`, the implicit is `binary`. `send_to_group_message.binary_data` should be a byte array. All clients with other protocol will receive a raw binary without protobuf encoded. In clients that only support text based content(`json.webpubsub.azure.v1`), they will receive base64 encoded binary;
+* `binary`: If you set `send_to_group_message.data.binary_data`, the implicit is `binary`. `binary_data` should be a byte array. All clients with other protocol will receive a raw binary without protobuf encoded. In clients that only support text based content(e.g. `json.webpubsub.azure.v1`), they will receive base64 encoded binary;
 
 ##### Case 1: publish text data:
 
-Set `send_to_group_message.group` to `group` and `send_to_group_message.text_data` to `"text data"`.
+Set `send_to_group_message.group` to `group` and `send_to_group_message.data.text_data` to `"text data"`.
 
 * what protobuf subprotocol client in this group `group` receives the binary frame and can use the [response](#responses) proto to deserialize.
 
@@ -158,7 +158,7 @@ message MyMessage {
 }
 ```
 
-Set `send_to_group_message.group` to `group` and `send_to_group_message.protobuf_data` to `MyMessage` with `value = 1`
+Set `send_to_group_message.group` to `group` and `send_to_group_message.data.protobuf_data` to `Any.pack(MyMessage)` with `value = 1`
 
 * what protobuf subprotocol client in this group `group` receives the binary frame and can use the [response](#responses) proto to deserialize.
 
@@ -170,11 +170,11 @@ Set `send_to_group_message.group` to `group` and `send_to_group_message.protobuf
         "from": "group",
         "group": "G",
         "dataType" : "protobuf",
-        "data" : "CAE=" // Base64 encoded [8,1]
+        "data" : "Ci90eXBlLmdvb2dsZWFwaXMuY29tL2F6dXJlLndlYnB1YnN1Yi5UZXN0TWVzc2FnZRICCAE=" // Base64 encoded bytes
     }
     ```
 
-    Note the data is a base64 encoded deserializeable protobuf binary. You can use the following proto to deserialize it:
+    Note the data is a base64 encoded deserializeable protobuf binary. You can use the following proto and use `Any.unpack()` to deserialize it:
 
     ```protobuf
     syntax = "proto3";
@@ -188,12 +188,12 @@ Set `send_to_group_message.group` to `group` and `send_to_group_message.protobuf
 
     ```
     # Show in Hex
-    08 01
+    0A 2F 74 79 70 65 2E 67 6F 6F 67 6C 65 61 70 69 73 2E 63 6F 6D 2F 61 7A 75 72 65 2E 77 65 62 70 75 62 73 75 62 2E 54 65 73 74 4D 65 73 73 61 67 65 12 02 08 01
     ```
 
 ##### Case 3: publish binary data:
 
-Set `send_to_group_message.group` to `group` and `send_to_group_message.binary_data` to `[1, 2, 3]`.
+Set `send_to_group_message.group` to `group` and `send_to_group_message.data.binary_data` to `[1, 2, 3]`.
 
 * what protobuf subprotocol client in this group `group` receives the binary frame and can use the [response](#responses) proto to deserialize.
 
@@ -224,15 +224,15 @@ Set `send_to_group_message.group` to `group` and `send_to_group_message.binary_d
 
 There's a implicit `dataType` which can be one of `protobuf`, `text`, or `binary`, base on the dataType you set. The receiver clients can leverage the `dataType` to handle the content correctly.
 
-* `protobuf`: If you set `send_to_group_message.protobuf_data`, the implicit is `protobuf`. `send_to_group_message.protobuf_data` can be any supported protobuf type. Event handler will receive protobuf encoded binary which can be deserialized by any protobuf SDK.
+* `protobuf`: If you set `event_message.data.protobuf_data`, the implicit is `protobuf`. `protobuf_data` can be any supported protobuf type. Event handler will receive protobuf encoded binary which can be deserialized by any protobuf SDK.
 
-* `text`: If you set `send_to_group_message.text_data`, the implicit is `text`. `send_to_group_message.text_data` should be a string. Event handler will receive a UTF-8 encoded string;
+* `text`: If you set `event_message.data.text_data`, the implicit is `text`. `text_data` should be a string. Event handler will receive a UTF-8 encoded string;
 
-* `binary`: If you set `send_to_group_message.binary_data`, the implicit is `binary`. `send_to_group_message.binary_data` should be a byte array. Event handler will receive raw binary frame
+* `binary`: If you set `event_message.data.binary_data`, the implicit is `binary`. `binary_data` should be a byte array. Event handler will receive raw binary frame
 
 ##### Case 1: send event with text data:
 
-Set `event_message.text_data` to `"text data"`.
+Set `event_message.data.text_data` to `"text data"`.
 
 What the upstream event handler receives like below, please note that the `Content-Type` for the CloudEvents HTTP request is `text/plain` for `dataType`=`text`
 
@@ -267,7 +267,7 @@ message MyMessage {
 }
 ```
 
-Set `event_message.protobuf_data` to `MyMessage` with `value = 1`
+Set `event_message.data.protobuf_data` to `any.pack(MyMessage)` with `value = 1`
 
 What the upstream event handler receives like below, please note that the `Content-Type` for the CloudEvents HTTP request is `application/x-protobuf` for `dataType`=`protobuf`
 
@@ -288,10 +288,10 @@ ce-connectionId: {connectionId}
 ce-hub: {hub_name}
 ce-eventName: <event_name>
 
-08 01 // Just show in hex, you need to read as binary
+0A 2F 74 79 70 65 2E 67 6F 6F 67 6C 65 61 70 69 73 2E 63 6F 6D 2F 61 7A 75 72 65 2E 77 65 62 70 75 62 73 75 62 2E 54 65 73 74 4D 65 73 73 61 67 65 12 02 08 01 // Just show in hex, you need to read as binary
 ```
 
-The data is a valid protobuf binary. You can use the following proto to deserialize it:
+The data is a valid protobuf binary. You can use the following proto and `any.unpack()` to deserialize it:
 
 ```protobuf
 syntax = "proto3";
@@ -337,15 +337,14 @@ Service declines the client if the message does not match the described format.
 All response message follow the following protobuf format:
 
 ```
-message ResponseMessage {
+message DownstreamMessage {
     oneof message {
-        AckResponseMessage ack_response_message = 1;
-        MessageResponseMessage message_response_message = 2;
-        ConnectedMessage connected_message = 3;
-        DisconnectedMessage disconnected_message = 4;
+        AckMessage ack_message = 1;
+        DataMessage data_message = 2;
+        SystemMessage system_message = 3;
     }
     
-    message AckResponseMessage {
+    message AckMessage {
         int32 ack_id = 1;
         bool success = 2;
         optional ErrorMessage error = 3;
@@ -356,30 +355,32 @@ message ResponseMessage {
         }
     }
 
-    message MessageResponseMessage {
+    message DataMessage {
         string from = 1;
         optional string group = 2;
-        oneof data_type {
-            string text_data = 3;
-            bytes binary_data = 4;
-            google.protobuf.Any protobuf_data = 5;
+        MessageData data = 3;
+    }
+
+    message SystemMessage {
+        oneof message {
+            ConnectedMessage connected_message = 1;
+            DisconnectedMessage disconnected_message = 2;
         }
-    }
+    
+        message ConnectedMessage {
+            string connection_id = 1;
+            string user_id = 2;
+        }
 
-    message ConnectedMessage {
-        string event = 1;
-        string user_id = 2;
-        string connection_id = 3;
-    }
-
-    message DisconnectedMessage {
-        string event = 1;
-        string message = 2;
+        message DisconnectedMessage {
+            string connection_id = 1;
+            string reason = 2;
+        }
     }
 }
 ```
 
-Messages received by the client can be several types: `ack`, `message`, and `system`: 
+Messages received by the client can be several types: `ack`, `data`, and `system`: 
 
 <a name="ack"></a>
 
@@ -391,7 +392,7 @@ The client implementation should always first check if the `success` is `true` o
 
 <a name="message"></a>
 
-#### Message response
+#### Data response
 
 Clients can receive messages published from one group the client joined, or from the server management role that the server sends messages to the specific client or the specific user.
 
@@ -399,7 +400,7 @@ Clients can receive messages published from one group the client joined, or from
 
 * When the message is from a group, `group` will be the group name.
 
-* The sender's `dateType` will cause in one of the message being set. If `dateType` is `text`, you should use `message_response_message.text_data`. If `dateType` is `binary`, you should use `message_response_message.binary_data`. If `dateType` is `protobuf`, you should use `message_response_message.protobuf_data`. If `dateType` is `json`, you should use `message_response_message.text_data` and the content is serialized json string.
+* The sender's `dateType` will cause in one of the message being set. If `dateType` is `text`, you should use `message_response_message.data.text_data`. If `dateType` is `binary`, you should use `message_response_message.data.binary_data`. If `dateType` is `protobuf`, you should use `message_response_message.data.protobuf_data`. If `dateType` is `json`, you should use `message_response_message.data.text_data` and the content is serialized json string.
 
 <a name="system"></a>
 
