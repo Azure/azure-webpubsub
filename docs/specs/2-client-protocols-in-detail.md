@@ -56,12 +56,15 @@ var client2 = new WebSocket('wss://test.webpubsub.azure.com/client/hubs/hub1', '
 
 ## The PubSub WebSocket client
 
-The PubSub WebSocket client connects with subprotocol `json.webpubsub.azure.v1`.
+The PubSub WebSocket client connects with built in subprotocol `json.webpubsub.azure.v1` or `protobuf.webpubsub.azure.v1`
 
 For example, in JS, a PubSub WebSocket client can be created using:
 ```js
-// PubSub WebSocket client
+// Json PubSub WebSocket client
 var pubsub = new WebSocket('wss://test.webpubsub.azure.com/client/hubs/hub1', 'json.webpubsub.azure.v1');
+
+// Protobuf PubSub WebSocket Client
+var pubsub = new WebSocket('wss://test.webpubsub.azure.com/client/hubs/hub1', 'protobuf.webpubsub.azure.v1');
 ```
 
 When the client is using this subprotocol, both outgoing data frame and incoming data frame are expected to be JSON payloads.
