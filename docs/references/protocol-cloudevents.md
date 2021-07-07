@@ -109,11 +109,11 @@ ce-eventName: connect
 * Status code:
     * `204`: Success, with no content.
     * `200`: Success, the content SHOULD be a JSON format, with following properties allowed:
-* Header `ce-connectionState`: If this header exists, the connection state is updated with the response header. The value of this header **MUST** be a valid JSON object string. Please note that only *blocking* events can update the connection state.
+* Header `ce-connectionState`: If this header exists, the connection state is updated with the response header. The value of this header **MUST** be a valid base64 encoded JSON object string. Please note that only *blocking* events can update the connection state.
 
 ```HTTP
 HTTP/1.1 200 OK
-ce-connectionState: {"metadata1":"string","metadata2":{"sub1":1,"sub2":true}}
+ce-connectionState: eyJtZXRhZGF0YTEiOiJzdHJpbmciLCJtZXRhZGF0YTIiOnsic3ViMSI6MSwic3ViMiI6dHJ1ZX19
 
 {
     "groups": [],
@@ -158,7 +158,7 @@ The service calls the Upstream when the client completes WebSocket handshake and
 
 * `ce-type`: `azure.webpubsub.sys.connected`
 * `Content-Type`: `application/json`
-* `ce-connectionState`: `{"metadata1":"string","metadata2":{"sub1":1,"sub2":true}}`
+* `ce-connectionState`: `eyJtZXRhZGF0YTEiOiJzdHJpbmciLCJtZXRhZGF0YTIiOnsic3ViMSI6MSwic3ViMiI6dHJ1ZX19`
 
 Request body is empty JSON.
 
@@ -181,7 +181,7 @@ ce-connectionId: {connectionId}
 ce-hub: {hub}
 ce-eventName: connect
 ce-subprotocol: abc
-ce-connectionState: {"metadata1":"string","metadata2":{"sub1":1,"sub2":true}}
+ce-connectionState: eyJtZXRhZGF0YTEiOiJzdHJpbmciLCJtZXRhZGF0YTIiOnsic3ViMSI6MSwic3ViMiI6dHJ1ZX19
 
 {}
 
@@ -224,7 +224,7 @@ ce-connectionId: {connectionId}
 ce-hub: {hub}
 ce-eventName: disconnect
 ce-subprotocol: abc
-ce-connectionState: {"metadata1":"string","metadata2":{"sub1":1,"sub2":true}}
+ce-connectionState: eyJtZXRhZGF0YTEiOiJzdHJpbmciLCJtZXRhZGF0YTIiOnsic3ViMSI6MSwic3ViMiI6dHJ1ZX19
 
 {
     "reason": "{Reason}"
@@ -274,7 +274,7 @@ ce-userId: {userId}
 ce-connectionId: {connectionId}
 ce-hub: {hub}
 ce-eventName: message
-ce-connectionState: {"metadata1":"string","metadata2":{"sub1":1,"sub2":true}}
+ce-connectionState: eyJtZXRhZGF0YTEiOiJzdHJpbmciLCJtZXRhZGF0YTIiOnsic3ViMSI6MSwic3ViMiI6dHJ1ZX19
 
 UserPayload
 
@@ -286,7 +286,7 @@ UserPayload
     * `204`: Success, with no content.
     * `200`: Success, the format of the `UserResponsePayload` depends on the `Content-Type` of the response.
 * Header `Content-Type`: `application/octet-stream` for binary frame; `text/plain` for text frame; 
-* Header `ce-connectionState`: If this header exists, the connection state is updated with the response header. The value of this header **MUST** be a valid JSON object string. Please note that only *blocking* events can update the connection state.
+* Header `ce-connectionState`: If this header exists, the connection state is updated with the response header. The value of this header **MUST** be a valid base64 encoded JSON object string. Please note that only *blocking* events can update the connection state.
 
 When the `Content-Type` is `application/octet-stream`, the service sends `UserResponsePayload` to the client using `binary` WebSocket frame. When the `Content-Type` is `text/plain`, the service sends `UserResponsePayload` to the client using `text` WebSocket frame. 
 
@@ -294,7 +294,7 @@ When the `Content-Type` is `application/octet-stream`, the service sends `UserRe
 HTTP/1.1 200 OK
 Content-Type: application/octet-stream (for binary frame) or text/plain (for text frame)
 Content-Length: nnnn
-ce-connectionState: {"metadata1":"string","metadata2":{"sub1":1,"sub2":true}}
+ce-connectionState: eyJtZXRhZGF0YTEiOiJzdHJpbmciLCJtZXRhZGF0YTIiOnsic3ViMSI6MSwic3ViMiI6dHJ1ZX19
 
 UserResponsePayload
 ```
@@ -336,7 +336,7 @@ ce-connectionId: {connectionId}
 ce-hub: {hub_name}
 ce-eventName: <event_name>
 ce-subprotocol: json.webpubsub.azure.v1
-ce-connectionState: {"metadata1":"string","metadata2":{"sub1":1,"sub2":true}}
+ce-connectionState: eyJtZXRhZGF0YTEiOiJzdHJpbmciLCJtZXRhZGF0YTIiOnsic3ViMSI6MSwic3ViMiI6dHJ1ZX19
 
 text data
 
@@ -420,7 +420,7 @@ ce-subprotocol: json.webpubsub.azure.v1
 HTTP/1.1 200 OK
 Content-Type: application/octet-stream | text/plain | application/json
 Content-Length: nnnn
-ce-connectionState: {"metadata1":"string","metadata2":{"sub1":1,"sub2":true}}
+ce-connectionState: eyJtZXRhZGF0YTEiOiJzdHJpbmciLCJtZXRhZGF0YTIiOnsic3ViMSI6MSwic3ViMiI6dHJ1ZX19
 
 UserResponsePayload
 ```
@@ -428,7 +428,7 @@ UserResponsePayload
     * `204`: Success, with no content.
     * `200`: Success, data sending to the PubSub WebSocket client depends on the `Content-Type`; 
 
-* Header `ce-connectionState`: If this header exists, the connection state is updated with the response header. The value of this header **MUST** be a valid JSON object string. Please note that only *blocking* events can update the connection state.
+* Header `ce-connectionState`: If this header exists, the connection state is updated with the response header. The value of this header **MUST** be a valid base64 encoded JSON object string. Please note that only *blocking* events can update the connection state.
 
 * When Header `Content-Type` is `application/octet-stream`, the service sends `UserResponsePayload` back to the client using `dataType` as `binary` with payload base64 encoded. A sample response:
     ```json
