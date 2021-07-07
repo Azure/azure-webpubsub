@@ -10,19 +10,20 @@ Service delivers client events to the upstream webhook using the [CloudEvents HT
 
 The data sending from service to server is always in CloudEvents `binary` format.
 
-- [Validation](#protection)
-- [Web PubSub Service Atrribute Extension](#extension)
+- [Webhook Validation](#protection)
+- [Web PubSub CloudEvents Attribute Extension](#extension)
 - [Events](#events)
-    - [connect](#connect)
-    - [connected](#connected)
-    - [disconnected](#disconnected)
-    - [message for simple WebSocket clients](#message)
-    - [Custom event for PubSub WebSocket clients](#custom_event)
+    - Blocking events
+        - [System `connect` event](#connect)
+        - [User events](#message)
+    - Unblocking events
+        - [System `connected` event](#connected)
+        - [System `disconnected` event](#disconnected)
 
-## Validation
+## Webhook Validation
 <a name="protection"></a>
 
-The Webhook validation follows the same behavior as [CloudEvents](https://github.com/cloudevents/spec/blob/v1.0/http-webhook.md#4-abuse-protection). The request always contains `WebHook-Request-Origin: xxx.webpubsub.azure.com` in the header.
+The Webhook validation follows [CloudEvents](https://github.com/cloudevents/spec/blob/v1.0/http-webhook.md#4-abuse-protection). The request always contains `WebHook-Request-Origin: xxx.webpubsub.azure.com` in the header.
 
 If and only if the delivery target does allow delivery of the events, it MUST reply to the request by including `WebHook-Allowed-Origin` header, e.g.
 
@@ -35,12 +36,12 @@ Or:
 For now , we do not support [WebHook-Request-Rate](https://github.com/cloudevents/spec/blob/v1.0/http-webhook.md#414-webhook-request-rate) and [WebHook-Request-Callback](https://github.com/cloudevents/spec/blob/v1.0/http-webhook.md#413-webhook-request-callback).
 
 
-## Web PubSub Service Atrribute Extension
+## Web PubSub CloudEvents Attribute Extension
 <a name="extension"></a>
 
 > It was also noted that the HTTP specification is now following a similar pattern by no longer suggesting that extension HTTP headers be prefixed with X-.
 
-This extension defines attributes used by Web PubSub Service for every event it produces.
+This extension defines attributes used by Web PubSub for every event it produces.
 
 ### Attributes
 
@@ -55,7 +56,16 @@ This extension defines attributes used by Web PubSub Service for every event it 
 
 ## Events
 
-### Event `connect`
+There are two types of events, one is *blocking* events that the service waits for the response of the event to continue. One is *unblocking* events that the service does not waiting for the response of such event before processing the next message.
+
+- Blocking events
+    - [System `connect` event](#connect)
+    - [User events](#message)
+- Unblocking events
+    - [System `connected` event](#connected)
+    - [System `disconnected` event](#disconnected)
+
+### System `connect` event
 <a name="connect"></a>
 
 * `ce-type`: `azure.webpubsub.sys.connect`
@@ -101,13 +111,6 @@ ce-eventName: connect
 
 ```HTTP
 HTTP/1.1 200 OK
-Content-Type: application/json; charset=utf-8
-Content-Length: nnnn
-ce-specversion: 1.0
-ce-type: azure.webpubsub.sys.connect
-ce-source: /hubs/{hub}/client/{connectionId}
-ce-id: {eventId}
-ce-time: 2021-01-01T00:00:00Z
 
 {
     "groups": [],
@@ -146,9 +149,9 @@ ce-time: 2021-01-01T00:00:00Z
 HTTP/1.1 401 Unauthorized
 ```
 
-### Event `connected`
+### System `connected` event
 <a name="connected"></a>
-The service calls the Upstream when the client completed WebSocket handshake and successfully connected.
+The service calls the Upstream when the client completes WebSocket handshake and is successfully connected.
 
 * `ce-type`: `azure.webpubsub.sys.connected`
 * `Content-Type`: `application/json`
@@ -187,18 +190,10 @@ ce-subprotocol: abc
 
 ```HTTP
 HTTP/1.1 200 OK
-Content-Type: application/json; charset=utf-8
-Content-Length: nnnn
-ce-specversion: 1.0
-ce-type: azure.webpubsub.sys.connected
-ce-source: /hubs/{hub}/client/{connectionId}
-ce-id: {eventId}
-ce-time: 2021-01-01T00:00:00Z
-
 ```
 
 
-### Event `disconnected`
+### System `disconnected` event
 <a name="disconnected"></a>
 `disconnected` event is **always** triggered when the client request completes if the **connect** event returns `2xx` status code.
 
@@ -244,18 +239,10 @@ ce-subprotocol: abc
 
 ```HTTP
 HTTP/1.1 200 OK
-Content-Type: application/json; charset=utf-8
-Content-Length: nnnn
-ce-specversion: 1.0
-ce-type: azure.webpubsub.sys.disconnected
-ce-source: /hubs/{hub}/client/{connectionId}
-ce-id: {eventId}
-ce-time: 2021-01-01T00:00:00Z
-
 ```
 
 
-### Event `message` for the simple WebSocket clients
+### User event `message` for the simple WebSocket clients
 <a name="message"></a>
 The service invokes the event handler upstream for every WebSocket message frame.
 
@@ -300,11 +287,6 @@ When the `Content-Type` is `application/octet-stream`, the service sends `UserRe
 HTTP/1.1 200 OK
 Content-Type: application/octet-stream (for binary frame) or text/plain (for text frame)
 Content-Length: nnnn
-ce-specversion: 1.0
-ce-type: azure.webpubsub.user.message
-ce-source: /hubs/{hub}/client/{connectionId}
-ce-id: {eventId}
-ce-time: 2021-01-01T00:00:00Z
 
 UserResponsePayload
 ```
@@ -312,7 +294,7 @@ UserResponsePayload
 #### Error Response Format
 When the status code is not success, it is considered to be error response. The connection would be **dropped** if the `message` response status code is not success.
 
-### Event `{custom_event}` for the PubSub WebSocket Client
+### User custom event `{custom_event}` for the PubSub WebSocket Client
 <a name="custom_event"></a>
 
 The service calls the event handler webhook for every valid custom event message.
@@ -429,17 +411,6 @@ ce-subprotocol: json.webpubsub.azure.v1
 HTTP/1.1 200 OK
 Content-Type: application/octet-stream | text/plain | application/json
 Content-Length: nnnn
-ce-specversion: 1.0
-ce-type: azure.webpubsub.user.<event_name>
-ce-source: /client/{connectionId}
-ce-id: {eventId}
-ce-time: 2021-01-01T00:00:00Z
-ce-signature: sha256={connection-id-hash-primary},sha256={connection-id-hash-secondary}
-ce-userId: {userId}
-ce-connectionId: {connectionId}
-ce-hub: {hub_name}
-ce-eventName: <event_name>
-ce-subprotocol: json.webpubsub.azure.v1
 
 UserResponsePayload
 ```
