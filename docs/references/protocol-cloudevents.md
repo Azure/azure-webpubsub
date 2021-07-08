@@ -52,7 +52,7 @@ This extension defines attributes used by Web PubSub for every event it produces
 | `connectionId` | `string` | The connectionId is unique for the client connection | |
 | `eventName` | `string` | The name of the event without prefix | |
 | `subprotocol` | `string` | The subprotocol the client is using if any | |
-| `connectionState-{key}` | `string` | Defines the state for the specific `key` for the connection| |
+| `connectionState` | `string` | Defines the state for the connection. Format: `{key}={value}`. We always consider the string before the first `=` as the `key`, and the remaining ones as the `value`. You can use response header to reset the value of the state or clear the state. Multiple `connectionState` headers are allowed.| |
 | `signature` | `string` | The signature for the upstream webhook to validate if the incoming request is from the expected origin. The service calcuates the value using both primary access key and secondary access key as the HMAC key: `Hex_encoded(HMAC_SHA256(accessKey, connectionId))`. The upstream should check if the request is valid before processing it. | |
 
 ## Events
@@ -109,13 +109,12 @@ ce-eventName: connect
 * Status code:
     * `204`: Success, with no content.
     * `200`: Success, the content SHOULD be a JSON format, with following properties allowed:
-* Header `ce-connectionState-{key}`: If this header exists, the connection state for the specific key is updated with the response header. Please note that only *blocking* events can update the connection state.
+* Header `ce-connectionState`: If this header exists, the connection state for the specific key is updated with the response header. Please note that only *blocking* events can update the connection state.
 
 ```HTTP
 HTTP/1.1 200 OK
-ce-connectionState-key1: value-1
-ce-connectionState-key1: value-another
-ce-connectionState-key2: value-2
+ce-connectionState: key1=value-1
+ce-connectionState: key2=value-2
 
 {
     "groups": [],
@@ -160,7 +159,7 @@ The service calls the Upstream when the client completes WebSocket handshake and
 
 * `ce-type`: `azure.webpubsub.sys.connected`
 * `Content-Type`: `application/json`
-* `ce-connectionState-{key1}`: `value1`
+* `ce-connectionState`: `key1=value1`
 
 Request body is empty JSON.
 
@@ -183,9 +182,8 @@ ce-connectionId: {connectionId}
 ce-hub: {hub}
 ce-eventName: connect
 ce-subprotocol: abc
-ce-connectionState-key1: value-1
-ce-connectionState-key1: value-another
-ce-connectionState-key2: value-2
+ce-connectionState: key1=value-1
+ce-connectionState: key2=value-2
 
 {}
 
@@ -228,9 +226,8 @@ ce-connectionId: {connectionId}
 ce-hub: {hub}
 ce-eventName: disconnect
 ce-subprotocol: abc
-ce-connectionState-key1: value-1
-ce-connectionState-key1: value-another
-ce-connectionState-key2: value-2
+ce-connectionState: key1=value-1
+ce-connectionState: key2=value-2
 
 {
     "reason": "{Reason}"
@@ -280,9 +277,8 @@ ce-userId: {userId}
 ce-connectionId: {connectionId}
 ce-hub: {hub}
 ce-eventName: message
-ce-connectionState-key1: value-1
-ce-connectionState-key1: value-another
-ce-connectionState-key2: value-2
+ce-connectionState: key1=value-1
+ce-connectionState: key2=value-2
 
 UserPayload
 
@@ -294,7 +290,7 @@ UserPayload
     * `204`: Success, with no content.
     * `200`: Success, the format of the `UserResponsePayload` depends on the `Content-Type` of the response.
 * Header `Content-Type`: `application/octet-stream` for binary frame; `text/plain` for text frame; 
-* Header `ce-connectionState-{key}`: If this header exists, the connection state for the specific key is updated with the response header. Please note that only *blocking* events can update the connection state.
+* Header `ce-connectionState`: If this header exists, the connection state for the specific key is updated with the response header. Please note that only *blocking* events can update the connection state.
 
 When the `Content-Type` is `application/octet-stream`, the service sends `UserResponsePayload` to the client using `binary` WebSocket frame. When the `Content-Type` is `text/plain`, the service sends `UserResponsePayload` to the client using `text` WebSocket frame. 
 
@@ -302,9 +298,8 @@ When the `Content-Type` is `application/octet-stream`, the service sends `UserRe
 HTTP/1.1 200 OK
 Content-Type: application/octet-stream (for binary frame) or text/plain (for text frame)
 Content-Length: nnnn
-ce-connectionState-key1: value-1
-ce-connectionState-key1: value-another
-ce-connectionState-key2: value-2
+ce-connectionState: key1=value-1
+ce-connectionState: key2=value-2
 
 UserResponsePayload
 ```
@@ -346,9 +341,8 @@ ce-connectionId: {connectionId}
 ce-hub: {hub_name}
 ce-eventName: <event_name>
 ce-subprotocol: json.webpubsub.azure.v1
-ce-connectionState-key1: value-1
-ce-connectionState-key1: value-another
-ce-connectionState-key2: value-2
+ce-connectionState: key1=value-1
+ce-connectionState: key2=value-2
 
 text data
 
@@ -432,17 +426,15 @@ ce-subprotocol: json.webpubsub.azure.v1
 HTTP/1.1 200 OK
 Content-Type: application/octet-stream | text/plain | application/json
 Content-Length: nnnn
-ce-connectionState-key1: value-1
-ce-connectionState-key1: value-another
-ce-connectionState-key2: value-2
+ce-connectionState: key1=value-1
+ce-connectionState: key2=value-2
 
 UserResponsePayload
 ```
 * Status code
     * `204`: Success, with no content.
     * `200`: Success, data sending to the PubSub WebSocket client depends on the `Content-Type`; 
-
-* Header `ce-connectionState-{key}`: If this header exists, the connection state for the specific key is updated with the response header. Please note that only *blocking* events can update the connection state.
+* Header `ce-connectionState`: If this header exists, the connection state for the specific key is updated with the response header. Please note that only *blocking* events can update the connection state.
 
 * When Header `Content-Type` is `application/octet-stream`, the service sends `UserResponsePayload` back to the client using `dataType` as `binary` with payload base64 encoded. A sample response:
     ```json
