@@ -52,7 +52,7 @@ This extension defines attributes used by Web PubSub for every event it produces
 | `connectionId` | `string` | The connectionId is unique for the client connection | |
 | `eventName` | `string` | The name of the event without prefix | |
 | `subprotocol` | `string` | The subprotocol the client is using if any | |
-| `connectionState` | `string` | Defines the state for the connection. Format: `{key}={value}`. We always consider the string before the first `=` as the `key`, and the remaining ones as the `value`. You can use response header to reset the value of the state or clear the state. Multiple `connectionState` headers are allowed.| |
+| `connectionState` | `string` | Defines the state for the connection. Format: `{key}={value}`. We always consider the string before the first `=` as the `key`, and the remaining ones as the `value`. You can use response header to reset the value of the state or clear the state using `{key}=`. Multiple `connectionState` headers are allowed. If the same key is set mulitple times, the last one takes effect.| |
 | `signature` | `string` | The signature for the upstream webhook to validate if the incoming request is from the expected origin. The service calcuates the value using both primary access key and secondary access key as the HMAC key: `Hex_encoded(HMAC_SHA256(accessKey, connectionId))`. The upstream should check if the request is valid before processing it. | |
 
 ## Events
