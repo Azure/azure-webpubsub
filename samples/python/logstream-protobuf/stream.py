@@ -1,10 +1,6 @@
 import asyncio
-import sys
-import threading
-import time
 import websockets
 import requests
-import json
 from pubsub_pb2 import UpstreamMessage
 
 

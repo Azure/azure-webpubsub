@@ -70,7 +70,6 @@ message DownstreamMessage {
         }
 
         message DisconnectedMessage {
-            string connection_id = 1;
             string reason = 2;
         }
     }
