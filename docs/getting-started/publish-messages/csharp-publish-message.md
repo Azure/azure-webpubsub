@@ -52,7 +52,7 @@ In Azure Web PubSub you can connect to the service and subscribe to messages thr
 
                 // Either generate the URL or fetch it from server or fetch a temp one from the portal
                 var serviceClient = new WebPubSubServiceClient(connectionString, hub);
-                var url = serviceClient.GetClientAccessUri();
+                var url = serviceClient.GenerateClientAccessUri();
 
                 using (var client = new WebsocketClient(url))
                 {
@@ -71,7 +71,7 @@ In Azure Web PubSub you can connect to the service and subscribe to messages thr
 
 The code above creates a WebSocket connection to connect to a hub in Azure Web PubSub. Hub is a logical unit in Azure Web PubSub where you can publish messages to a group of clients.
 
-Azure Web PubSub by default doesn't allow anonymous connection, so in the code sample we use `WebPubSubServiceClient.GetClientAccessUri()` in Web PubSub SDK to generate a url to the service that contains the full URL with a valid access token.
+Azure Web PubSub by default doesn't allow anonymous connection, so in the code sample we use `WebPubSubServiceClient.GenerateClientAccessUri()` in Web PubSub SDK to generate a url to the service that contains the full URL with a valid access token.
 
 After connection is established, you will receive messages through the WebSocket connection. So we use `client.MessageReceived.Subscribe(msg => ...));` to listen to incoming messages.
 
