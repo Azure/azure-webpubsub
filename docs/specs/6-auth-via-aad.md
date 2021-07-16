@@ -23,7 +23,7 @@ Though the `AccessKey` can be regenerated, different service principals share th
 
 The JWT token signed by _Azure Active Directory_, which could help the service to identify the app server and see if it had permissions to access certain resources.
 
-### `AccessToken (ClientToken)`
+### `AccessToken`
 
 The JWT token signed by _app server_, which could help the service to authenticate if the request came from an authorized client.
 
@@ -96,7 +96,7 @@ var token = await credential.GetTokenAsync(context);
 ## Websocket connection
 
 For short, instead of generating an `AccessToken` with `AccessKey` while processing negotiation requests,
-the server could request an `AccessToken (ClientToken)` from the Web PubSub service with an `AadToken`.
+the server could request an `AccessToken` from the Web PubSub service with an `AadToken`.
 
 ### Workflow
 
@@ -110,7 +110,7 @@ the server could request an `AccessToken (ClientToken)` from the Web PubSub serv
 
     _The ADD Token contains identity info of the service principal such as objectId, tenantId, groups._
 
-4. **App calls GET `AccessToken` API, align with the `AadToken`.**
+4. **App calls `GenerateToken` API, align with the `AadToken`.**
 
 5. Service sends a request to Azure resource manager endpoint _(rbac)_.
 
@@ -130,27 +130,27 @@ the server could request an `AccessToken (ClientToken)` from the Web PubSub serv
 
 12. Client receive 101 or 401 response.
 
-### REST API design (ClientToken)
+### REST API design 
 
-#### GET /auth/clientToken
+#### POST /hub/{hub}/:generateToken
 
 ##### URL
 
-`https://<service endpoint>/api/v1/auth/clientToken`
+`https://<service endpoint>/api/v1/hub/{hub}/:generateToken`
 
 ##### Request
 
 | Name | Type | Required | Sample | Description |
 |---|---|---|---|---|
-| `hub` | string | \* | chat | The hub name |
-| `userId` | string | | foo | The userId for the client |
-| `roles` | string | | webpubsub.joinLeaveGroup,webpubsub.sendToGroup | The roles that the client will have, separated by comma. |
-| `ttl` | integer | | 5 | The time-to-live minutes for the access token. If not set, the default value is 60 minutes. |
+| `hub` | string | Yes | chat | The hub name |
+| `userId` | string | No | foo | The userId for the client |
+| `roles` | string[] | No | webpubsub.joinLeaveGroup | The roles that the client will have. |
+| `minutesToExpire` | integer | No | 5 | The time-to-live minutes for the access token. If not set, the default value is 60 minutes. |
 
 ##### Request Sample
 
 ```url
-GET https://<endpoint>/api/v1/auth/clientToken?hub=chat&userId=foo&roles=webpubsub.joinLeaveGroup,webpubsub.sendToGroup
+GET https://<endpoint>/api/hub/chatroom/:generateToken?hub=chat&userId=foo&roles=webpubsub.joinLeaveGroup&roles=webpubsub.sendToGroup&minutesToExpire=5
 ```
 
 ##### Response
@@ -159,10 +159,10 @@ Response will be a json object, which contains following properties.
 
 ```json
 {
-    "AccessToken": "<JWT Token>, see https://jwt.io for detailed information.",
+    "Token": "<JWT Token>, see https://jwt.io for detailed information.",
 }
 ```
 
 | Name | Description |
 |---|---|
-| `AccessToken` | The client token that can be used to connect to Web PubSub service. |
+| `Token` | The access token that can be used to connect to Web PubSub service. |
