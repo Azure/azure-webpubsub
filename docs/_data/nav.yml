@@ -29,6 +29,8 @@
       pages:
         - title: JavaScript
           id: js-work-with-subprotocols
+        - title: C#
+          id: csharp-work-with-subprotocols
         - title: Java
           id: java-work-with-subprotocols
         - title: Python
