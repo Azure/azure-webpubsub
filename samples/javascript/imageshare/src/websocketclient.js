@@ -1,0 +1,65 @@
+var pb = require('./proto/pubsub_pb');
+
+function WebSocketClient(urlFactory, userName, reconnectInterval) {
+  this._userName = userName;
+  this._urlFactory = urlFactory;
+  this._protocol = 'protobuf.webpubsub.azure.v1';
+  this._reconnectInterval = reconnectInterval;
+  this._webSocket = null;
+  this.onopen = this.onclose = this.onData = null;
+  this._connect();
+}
+
+WebSocketClient.prototype._connect = async function () {
+  let url = await this._urlFactory();
+  let ws = this._webSocket = new WebSocket(url, this._protocol);
+
+  ws.onopen = () => {
+    console.log('WebSocket connected');
+
+    var upstreamMessage = new proto.video.UpstreamMessage();
+    var joinGroupMessage = new proto.video.UpstreamMessage.JoinGroupMessage();
+    joinGroupMessage.setGroup(`${this._userName}_control`);
+    upstreamMessage.setJoinGroupMessage(joinGroupMessage);
+    this._webSocket.send(upstreamMessage.serializeBinary());
+
+    joinGroupMessage.setGroup(`${this._userName}_data`);
+    this._webSocket.send(upstreamMessage.serializeBinary());
+    if (this.onopen) this.onopen();
+  };
+  ws.onclose = () => {
+    console.log('WebSocket disconnected');
+    if (this.onclose) this.onclose();
+    if (this._reconnectInterval > 0) {
+      console.log(`Reconnect in ${this._reconnectInterval} ms`);
+      setTimeout(() => this._connect(), this._reconnectInterval);
+    }
+  };
+  ws.onmessage = message => {
+    if (this.onData) {
+      let upstreamMessage = proto.imageShare.UpstreamMessage.deserializeBinary(message);
+      if (upstreamMessage.hasSendToGroupMessage()) {
+        let groupMessage = upstreamMessage.getSendToGroupMessage();
+        if (groupMessage.hasData() && groupMessage.getData().hasBinaryData()) {
+          this.onData(groupMessage.getData().getBinaryData());
+        }
+      }
+    }
+  };
+}
+
+WebSocketClient.prototype.sendImage = function (group, data) {
+  const messageData = new proto.video.MessageData();
+  messageData.setBinaryData("aasdfasd")
+
+  const sendToGroupMessage = new proto.video.UpstreamMessage.SendToGroupMessage();
+  sendToGroupMessage.setGroup(group);
+  sendToGroupMessage.setData(messageData)
+
+  const upstreamMessage = new proto.video.UpstreamMessage();
+  upstreamMessage.setSendToGroupMessage(sendToGroupMessage)
+
+  this._webSocket.send(upstreamMessage.serializeBinary());
+}
+
+export default WebSocketClient;
