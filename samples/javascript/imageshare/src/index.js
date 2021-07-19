@@ -1,6 +1,8 @@
 import WebSocketClient from './websocketclient';
 
-export function shareVideo(userName, receiver) {
+export async function shareVideo(userName, receiver) {
+  await new Promise(r => setTimeout(r, 5000));
+
   const receiverGroup = `${receiver}_data`
   let ws = new WebSocketClient(async function () {
     let res = await fetch('/negotiate');
@@ -11,29 +13,53 @@ export function shareVideo(userName, receiver) {
   var video = document.querySelector("#videoElement");
 
   if (navigator.mediaDevices.getUserMedia) {
-    navigator.mediaDevices.getUserMedia({ video: true })
-      .then(function (stream) {
-        stream.onaddtrack = event => {
-          ws.sendImage(receiverGroup, event);
-        }
-        // video.srcObject = stream;
-      })
-      .catch(function (error) {
-        console.log("Something went wrong!" + error);
-      });
+    try {
+      let stream = await navigator.mediaDevices.getUserMedia({ video: true });
+      let recorder = new MediaRecorder(stream, { mimeType: 'video/webm; codecs=vp8' })
+      recorder.ondataavailable = async event => {
+        let data = await event.data.arrayBuffer();
+        ws.sendImage(receiverGroup, data);
+      }
+      setInterval(() => recorder.requestData(), 200);
+      recorder.start();
+
+      video.srcObject = stream;
+    } catch (error) {
+      console.log("Something went wrong!" + error);
+    }
   }
 }
 
-export function viewVideo(userName) {
+export async function viewVideo(userName) {
   let ws = new WebSocketClient(async function () {
     let res = await fetch('/negotiate');
     let data = await res.json();
     return data.url;
   }, userName, 5000);
   
-  var video = document.querySelector("#videoElement");
-  
-  ws.onData = (data) => {
-    video.srcObject = data;
+  let sourceBuffer;
+  let queue = [];
+  let mediaSource = new MediaSource();
+  mediaSource.onsourceopen = e => {
+    sourceBuffer = mediaSource.addSourceBuffer('video/webm; codecs=vp8');
+    sourceBuffer.onupdateend = () => {
+      if (queue.length > 0) {
+        sourceBuffer.appendBuffer(queue[0]);
+        queue = queue.slice(1);
+      }
+    }
+    sourceBuffer.mode = 'sequence';
+    Initialize();
+  }
+
+  var video = document.querySelector("#receiveVideoElement");
+  video.src = URL.createObjectURL(mediaSource);
+
+  async function Initialize() {
+    let i = 0;
+    ws.onData = (data) => {
+      if (sourceBuffer.updating === false && queue.length === 0) sourceBuffer.appendBuffer(data);
+      else queue.push(data);
+    }
   }
 }

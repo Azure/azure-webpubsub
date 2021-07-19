@@ -35,13 +35,14 @@ WebSocketClient.prototype._connect = async function () {
       setTimeout(() => this._connect(), this._reconnectInterval);
     }
   };
-  ws.onmessage = message => {
+  ws.onmessage = async message => {
     if (this.onData) {
-      let upstreamMessage = proto.imageShare.UpstreamMessage.deserializeBinary(message);
-      if (upstreamMessage.hasSendToGroupMessage()) {
-        let groupMessage = upstreamMessage.getSendToGroupMessage();
-        if (groupMessage.hasData() && groupMessage.getData().hasBinaryData()) {
-          this.onData(groupMessage.getData().getBinaryData());
+      var d = await message.data.arrayBuffer()
+      let downstreamMessage = proto.video.DownstreamMessage.deserializeBinary(d);
+      if (downstreamMessage.hasDataMessage()) {
+        let dataMessage = downstreamMessage.getDataMessage();
+        if (dataMessage.hasData() && dataMessage.getData().hasBinaryData()) {
+          this.onData(dataMessage.getData().getBinaryData());
         }
       }
     }
@@ -50,7 +51,7 @@ WebSocketClient.prototype._connect = async function () {
 
 WebSocketClient.prototype.sendImage = function (group, data) {
   const messageData = new proto.video.MessageData();
-  messageData.setBinaryData("aasdfasd")
+  messageData.setBinaryData(data)
 
   const sendToGroupMessage = new proto.video.UpstreamMessage.SendToGroupMessage();
   sendToGroupMessage.setGroup(group);
