@@ -92,4 +92,7 @@ message CameraControl {
 
 message CameraControlAck {
   string share_id = 1;
+  bool approved = 2;
+  string sender = 3;
+  string reciver = 4;
 }

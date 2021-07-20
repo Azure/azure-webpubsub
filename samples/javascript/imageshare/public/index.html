@@ -82,7 +82,7 @@
       <div class="input-group">
         <input type="text" class="form-control" v-model="client.userId" id="userIdInput"
           aria-describedby="endpointHelp" placeholder="Type Your User Name Here">
-        <button type="submit" class="btn btn-primary" style="width: 100px;" :disabled="!client.userId">Connect</button>
+        <button type="submit" class="btn btn-primary" style="width: 100px;" :disabled="!client.userId || client.connected">Connect</button>
       </div>
     </form>
 
@@ -107,11 +107,11 @@
       </li>
     </lu>
 
-    <form v-on:submit.prevent="call(client)" class="py-2">
+    <form v-on:submit.prevent="requestCall(client)" class="py-2">
       <div class="input-group">
         <input type="text" class="form-control" v-model="client.targetUserId" id="targetUserIdInput"
           aria-describedby="endpointHelp" placeholder="Type User You Want To Call Here">
-        <button type="submit" class="btn btn-primary" style="width: 100px;" :disabled="!client.targetUserId">Call</button>
+        <button type="submit" class="btn btn-primary" style="width: 100px;" :disabled="!client.targetUserId || client.sharing">Call</button>
       </div>
     </form>
 
@@ -141,12 +141,15 @@
       client: {
         connection: null,
         connected: false,
+        sharing: false,
         logs: [],
         userId: null,
         targetUserId: null,
         ackId: 0,
         userDescription: null,
         targetUserDescription: null,
+        sender: null,
+        receiver: null,
       },
     };
 
@@ -167,23 +170,49 @@
           if (client.userId) {
             client.connection = await video.connect(client.userId, log);
             client.connected = true;
+            client.sender = client.userId;
           }
           else
           {
             log("[Error] Type in user name first");
           }
         },
-        call: async function (client) {
+        requestCall: async function (client) {
           if (client.connection == null) {
             log("[Error] Connect first");
           } else {
             if (client.targetUserId) {
-              await video.shareVideo(client.connection, client.targetUserId, log)
-              client.userDescription = `Video from ${client.userId}`
-              client.targetUserDescription = `Video from ${client.targetUserId}`
+              await video.callRequest(client.connection, client.userId, client.targetUserId, log);
             } else {
               log("[Error] Type in target user name first");
             }
+          }
+        },
+        shareVideo: async function (client) {
+          if (client.connection == null) {
+            log("[Error] Connect first");
+          } else {
+            if (client.receiver) {
+              await video.shareVideo(client.connection, client.receiver, log)
+              client.sharing = true;
+              client.userDescription = `Video from ${client.sender}`
+              client.targetUserDescription = `Video from ${client.receiver}`
+            } else {
+              log("[Error] Type in target user name first");
+            }
+          }
+        },
+        receiveCall: async function (client, sender, receiver) {
+          if (receiver == client.sender) {
+            client.receiver = sender;
+            await video.ackRequest(client.connection, client.sender, client.receiver)
+            this.shareVideo(data.client);
+          }
+        },
+        receiveAck: async function (client, sender, receiver) {
+          if (receiver == client.sender) {
+            client.receiver = sender;
+            this.shareVideo(data.client);
           }
         },
         accept: function (client) {

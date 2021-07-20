@@ -7,7 +7,7 @@ function WebSocketClient(urlFactory, userName, reconnectInterval, log) {
   this._reconnectInterval = reconnectInterval;
   this._webSocket = null;
   this._log = log;
-  this.onopen = this.onclose = this.onData = null;
+  this.onopen = this.onclose = this.onData = this.onProtobufData = null;
   this._connect();
 }
 
@@ -39,13 +39,16 @@ WebSocketClient.prototype._connect = async function () {
   };
 
   ws.onmessage = async message => {
-    if (this.onData) {
-      var d = await message.data.arrayBuffer()
-      let downstreamMessage = proto.video.DownstreamMessage.deserializeBinary(d);
-      if (downstreamMessage.hasDataMessage()) {
-        let dataMessage = downstreamMessage.getDataMessage();
-        if (dataMessage.hasData() && dataMessage.getData().hasBinaryData()) {
-          this.onData(dataMessage.getData().getBinaryData());
+    var d = await message.data.arrayBuffer()
+    let downstreamMessage = proto.video.DownstreamMessage.deserializeBinary(d);
+    if (downstreamMessage.hasDataMessage()) {
+      let dataMessage = downstreamMessage.getDataMessage();
+      if (dataMessage.hasData()) {
+        let data = dataMessage.getData();
+        if (data.hasBinaryData() && this.onData) {
+          this.onData(data.getBinaryData());
+        } else if (data.hasProtobufData() && this.onProtobufData) {
+          this.onProtobufData(data.getProtobufData())
         }
       }
     }
@@ -55,6 +58,23 @@ WebSocketClient.prototype._connect = async function () {
 WebSocketClient.prototype.sendData = function (group, data) {
   const messageData = new proto.video.MessageData();
   messageData.setBinaryData(data)
+
+  const sendToGroupMessage = new proto.video.UpstreamMessage.SendToGroupMessage();
+  sendToGroupMessage.setGroup(group);
+  sendToGroupMessage.setData(messageData)
+
+  const upstreamMessage = new proto.video.UpstreamMessage();
+  upstreamMessage.setSendToGroupMessage(sendToGroupMessage)
+
+  this._webSocket.send(upstreamMessage.serializeBinary());
+}
+
+WebSocketClient.prototype.sendProtobufData = function (group, data, typeName) {
+  const any = new proto.google.protobuf.Any();
+  any.pack(data, typeName)
+
+  const messageData = new proto.video.MessageData();
+  messageData.setProtobufData(any)
 
   const sendToGroupMessage = new proto.video.UpstreamMessage.SendToGroupMessage();
   sendToGroupMessage.setGroup(group);

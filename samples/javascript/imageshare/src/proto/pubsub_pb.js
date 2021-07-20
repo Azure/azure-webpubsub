@@ -3397,7 +3397,10 @@ proto.video.CameraControlAck.prototype.toObject = function(opt_includeInstance) 
  */
 proto.video.CameraControlAck.toObject = function(includeInstance, msg) {
   var f, obj = {
-    shareId: jspb.Message.getFieldWithDefault(msg, 1, "")
+    shareId: jspb.Message.getFieldWithDefault(msg, 1, ""),
+    approved: jspb.Message.getBooleanFieldWithDefault(msg, 2, false),
+    sender: jspb.Message.getFieldWithDefault(msg, 3, ""),
+    reciver: jspb.Message.getFieldWithDefault(msg, 4, "")
   };
 
   if (includeInstance) {
@@ -3438,6 +3441,18 @@ proto.video.CameraControlAck.deserializeBinaryFromReader = function(msg, reader)
       var value = /** @type {string} */ (reader.readString());
       msg.setShareId(value);
       break;
+    case 2:
+      var value = /** @type {boolean} */ (reader.readBool());
+      msg.setApproved(value);
+      break;
+    case 3:
+      var value = /** @type {string} */ (reader.readString());
+      msg.setSender(value);
+      break;
+    case 4:
+      var value = /** @type {string} */ (reader.readString());
+      msg.setReciver(value);
+      break;
     default:
       reader.skipField();
       break;
@@ -3474,6 +3489,27 @@ proto.video.CameraControlAck.serializeBinaryToWriter = function(message, writer)
       f
     );
   }
+  f = message.getApproved();
+  if (f) {
+    writer.writeBool(
+      2,
+      f
+    );
+  }
+  f = message.getSender();
+  if (f.length > 0) {
+    writer.writeString(
+      3,
+      f
+    );
+  }
+  f = message.getReciver();
+  if (f.length > 0) {
+    writer.writeString(
+      4,
+      f
+    );
+  }
 };
 
 
@@ -3492,6 +3528,60 @@ proto.video.CameraControlAck.prototype.getShareId = function() {
  */
 proto.video.CameraControlAck.prototype.setShareId = function(value) {
   return jspb.Message.setProto3StringField(this, 1, value);
+};
+
+
+/**
+ * optional bool approved = 2;
+ * @return {boolean}
+ */
+proto.video.CameraControlAck.prototype.getApproved = function() {
+  return /** @type {boolean} */ (jspb.Message.getBooleanFieldWithDefault(this, 2, false));
+};
+
+
+/**
+ * @param {boolean} value
+ * @return {!proto.video.CameraControlAck} returns this
+ */
+proto.video.CameraControlAck.prototype.setApproved = function(value) {
+  return jspb.Message.setProto3BooleanField(this, 2, value);
+};
+
+
+/**
+ * optional string sender = 3;
+ * @return {string}
+ */
+proto.video.CameraControlAck.prototype.getSender = function() {
+  return /** @type {string} */ (jspb.Message.getFieldWithDefault(this, 3, ""));
+};
+
+
+/**
+ * @param {string} value
+ * @return {!proto.video.CameraControlAck} returns this
+ */
+proto.video.CameraControlAck.prototype.setSender = function(value) {
+  return jspb.Message.setProto3StringField(this, 3, value);
+};
+
+
+/**
+ * optional string reciver = 4;
+ * @return {string}
+ */
+proto.video.CameraControlAck.prototype.getReciver = function() {
+  return /** @type {string} */ (jspb.Message.getFieldWithDefault(this, 4, ""));
+};
+
+
+/**
+ * @param {string} value
+ * @return {!proto.video.CameraControlAck} returns this
+ */
+proto.video.CameraControlAck.prototype.setReciver = function(value) {
+  return jspb.Message.setProto3StringField(this, 4, value);
 };
 
 
