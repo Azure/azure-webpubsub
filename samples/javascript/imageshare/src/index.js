@@ -38,7 +38,7 @@ export async function connect(userName, log) {
         app.receiveCall(data.client, controlData.getSender(), controlData.getReciver());
       } else if (type == 'video.CameraControlAck') {
         let ackData = any.unpack(proto.video.CameraControlAck.deserializeBinary, 'video.CameraControlAck');
-        app.receiveAck(data.client, ackData.getSender(), ackData.getReciver());
+        app.receiveAck(data.client, ackData.getApproved(), ackData.getSender(), ackData.getReciver());
       }
     }
   }
@@ -78,12 +78,12 @@ export async function callRequest(ws, user, receiver, log) {
   ws.sendProtobufData(receiverGroup, request.serializeBinary(), 'video.CameraControl')
 }
 
-export async function ackRequest(ws, user, receiver, log) {
+export async function ackRequest(ws, approved, user, receiver, log) {
   const receiverGroup = `${receiver}_control`
 
   const request = new proto.video.CameraControlAck();
   request.setSender(user);
   request.setReciver(receiver);
-  request.setApproved(true);
+  request.setApproved(approved);
   ws.sendProtobufData(receiverGroup, request.serializeBinary(), 'video.CameraControlAck')
 }

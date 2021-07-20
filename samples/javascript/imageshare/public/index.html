@@ -204,20 +204,22 @@
         },
         receiveCall: async function (client, sender, receiver) {
           if (receiver == client.sender) {
-            client.receiver = sender;
-            await video.ackRequest(client.connection, client.sender, client.receiver)
-            this.shareVideo(data.client);
+            this.accept(client, sender, receiver);
           }
         },
-        receiveAck: async function (client, sender, receiver) {
-          if (receiver == client.sender) {
+        receiveAck: async function (client, approved, sender, receiver) {
+          if (receiver == client.sender && approved === true) {
             client.receiver = sender;
             this.shareVideo(data.client);
           }
         },
-        accept: function (client) {
+        accept: async function (client, sender, receiver) {
+          client.receiver = sender;
+          await video.ackRequest(client.connection, true, client.sender, client.receiver)
+          this.shareVideo(data.client);
         },
-        deny: function (client) {
+        deny: async function (clientclient, sender, receiver) {
+          await video.ackRequest(client.connection, false, client.sender)
         },
       }
     });
