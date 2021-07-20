@@ -1,4 +1,4 @@
-# Notifications
+# Simple Chat
 
 ## Prerequisites
 1. [Azure Function Core Tools(v3)](https://www.npmjs.com/package/azure-functions-core-tools)
@@ -40,6 +40,23 @@ Property|Value
 
 ![Event Handler](./../../../../docs/images/portal_event_handler.png)
 
-## Start client
-
 6. Open function hosted page `http://localhost:7071/api/index` to start chat.
+
+
+## Deploy Functions to Azure
+
+Now you've been able to run with Web PubSub service in local function. And next you can deploy the function to Azure for a complete cloud environment.
+
+1. Open the VS Code command palette(`F1`) and search and find: **Azure Functions: Deploy to Function App**. Ensure you've installed extensions: [**Azure Functions**](https://marketplace.visualstudio.com/items?itemName=ms-azuretools.vscode-azurefunctions).
+
+2. When prompted, select/create resource accordingly.
+
+3. Different from local functions, Azure Function App requires to access with valid keys when using webhook. So the event handler settings need an additional query part. First navigate to **Azure Portal** and find the function app you just created. Then go to **Functions** -> **App keys** -> **System keys**. Copy out the value for webpubsub_extension.
+
+![Function App Keys](./../../../../docs/images/functions_appkeys.png)
+
+4. Update event handler settings for your Web PubSub service in **Azure Portal** -> **Settings**, and replace function app name and code following below pattern.
+
+```
+https://{function-app}.azurewebsites.net/runtime/webhooks/webpubsub?Code={code}
+```
