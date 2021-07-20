@@ -1,44 +1,198 @@
 <!DOCTYPE html>
 <html>
+
 <head>
-<meta charset="utf-8">
-<title>Display Webcam Stream</title>
- 
-<style>
-#container {
-	margin: 0px auto;
-	width: 500px;
-	height: 375px;
-	border: 10px #333 solid;
-}
-#videoElement {
-	width: 500px;
-	height: 375px;
-	background-color: #666;
-}
-#receiveVideoElement {
-	width: 500px;
-	height: 375px;
-	background-color: #666;
-}
-</style>
+  <meta charset="utf-8">
+  <title>Display Webcam Stream</title>
+
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@4.1.3/dist/css/bootstrap.min.css">
+  <style>
+    #container {
+      margin: 0px auto;
+      width: 500px;
+      height: 375px;
+      border: 1fpx #333 solid;
+    }
+
+    #videoElement {
+      width: 500px;
+      height: 375px;
+      /* background-color: #666; */
+    }
+
+    #receiveVideoElement {
+      width: 500px;
+      height: 375px;
+      /* background-color: #666; */
+    }
+
+    .navbar-brand {
+      padding-top: .75rem;
+      padding-bottom: .75rem;
+      font-size: 1rem;
+      background-color: rgba(0, 0, 0, .25);
+      box-shadow: inset -1px 0 0 rgba(0, 0, 0, .25);
+    }
+
+    .navbar .form-control {
+      padding: .75rem 1rem;
+      border-width: 0;
+      border-radius: 0;
+    }
+
+    .form-control-dark {
+      color: #fff;
+      background-color: rgba(255, 255, 255, .1);
+      border-color: rgba(255, 255, 255, .1);
+    }
+
+    .form-control-dark:focus {
+      border-color: transparent;
+      box-shadow: 0 0 0 3px rgba(255, 25zd5, 255, .25);
+    }
+
+    #video-body li {
+      float:left;     
+      display:inline; 
+      width:600px;    
+    }
+  </style>
 </head>
 
 <body>
-  <div id="container">
-    <video autoplay="true" id="videoElement">
-    </video>
+  <div id="app">
+    <nav class="navbar navbar-dark bg-dark flex-md-nowrap p-0 shadow">
+      <a class="navbar-brand col-sm-3 col-md-2 mr-0" href="#">Video Share</a>
+      <div class="m-3">
+          <span class="text-light">Welcome <a href="#"></a></span>
+          <template v-if="client.connected">
+              <svg width="16" height="16">
+                  <circle cx="8" cy="8" r="8" fill="#168c46" />
+              </svg>
+          </template>
+          <template v-else>
+              <svg width="16" height="16">
+                  <circle cx="8" cy="8" r="8" fill="#a12323" />
+              </svg>
+          </template>
+      </div>
+    </nav>
+
+    <form v-on:submit.prevent="connect(client)" class="py-2">
+      <div class="input-group">
+        <input type="text" class="form-control" v-model="client.userId" id="userIdInput"
+          aria-describedby="endpointHelp" placeholder="Type Your User Name Here">
+        <button type="submit" class="btn btn-primary" style="width: 100px;" :disabled="!client.userId">Connect</button>
+      </div>
+    </form>
+
+    <lu id="video-body">
+      <li>
+        <div id="container" class="bg-light chat">
+          <video autoplay="true" id="videoElement">
+          </video>
+        </div>
+        <p style="text-align:center;">
+          {{ client.userDescription }}
+        </p>
+      </li>
+      <li>
+        <div id="container" class="bg-light chat">
+          <video autoplay="true" id="receiveVideoElement">
+          </video>
+        </div>
+        <p style="text-align:center;">
+          {{ client.targetUserDescription }}
+        </p>
+      </li>
+    </lu>
+
+    <form v-on:submit.prevent="call(client)" class="py-2">
+      <div class="input-group">
+        <input type="text" class="form-control" v-model="client.targetUserId" id="targetUserIdInput"
+          aria-describedby="endpointHelp" placeholder="Type User You Want To Call Here">
+        <button type="submit" class="btn btn-primary" style="width: 100px;" :disabled="!client.targetUserId">Call</button>
+      </div>
+    </form>
+
+    <footer style="background-color: black; color: blanchedalmond; height: 100px; overflow: auto;">
+      <ul>
+        <li v-for="l in client.logs.slice().reverse()" :key="l.id">
+          {{ l }}
+        </li>
+      </ul>
+    </footer>
   </div>
-  <div id="container">
-    <video autoplay="true" id="receiveVideoElement">
-    </video>
-  </div>
+
+  <script src="https://code.jquery.com/jquery-3.3.1.slim.min.js"
+    integrity="sha384-q8i/X+965DzO0rT7abK41JStQIAqVgRVzpbzo5smXKp4YfRvH+8abtTE1Pi6jizo"
+    crossorigin="anonymous"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.14.7/umd/popper.min.js"
+    integrity="sha384-UO2eT0CpHqdSJQ6hJty5KVphtPhzWj9WO1clHTMGa3JDZwrnQq4sF86dIHNDz0W1"
+    crossorigin="anonymous"></script>
+  <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/js/bootstrap.min.js"
+    integrity="sha384-JjSmVgyd0p3pXB1rRibZUAYoIIy6OrQ6VrjIEaFf/nJGzIxFDsf4x0xIM+B07jRM"
+    crossorigin="anonymous"></script>
+
+  <script src="https://cdn.jsdelivr.net/npm/vue@2.5.17/dist/vue.min.js"></script>
   <script src="video.js"></script>
-  <script type='text/javascript'>
-    var userName = prompt("Type in your user name:");
-    var receiver = prompt("Type in your receiver's user name:");
-    video.viewVideo(receiver);
-    video.shareVideo(userName, receiver)
+  <script>
+    const data = {
+      client: {
+        connection: null,
+        connected: false,
+        logs: [],
+        userId: null,
+        targetUserId: null,
+        ackId: 0,
+        userDescription: null,
+        targetUserDescription: null,
+      },
+    };
+
+    function addItem(item, owner) {
+      item.id = owner.length;
+      owner.push(item);
+    }
+
+    function log(message) {
+      addItem(message, data.client.logs)
+    }
+
+    const app = new Vue({
+      el: '#app',
+      data: data,
+      methods: {
+        connect: async function (client) {
+          if (client.userId) {
+            client.connection = await video.connect(client.userId, log);
+            client.connected = true;
+          }
+          else
+          {
+            log("[Error] Type in user name first");
+          }
+        },
+        call: async function (client) {
+          if (client.connection == null) {
+            log("[Error] Connect first");
+          } else {
+            if (client.targetUserId) {
+              await video.shareVideo(client.connection, client.targetUserId, log)
+              client.userDescription = `Video from ${client.userId}`
+              client.targetUserDescription = `Video from ${client.targetUserId}`
+            } else {
+              log("[Error] Type in target user name first");
+            }
+          }
+        },
+        accept: function (client) {
+        },
+        deny: function (client) {
+        },
+      }
+    });
   </script>
 </body>
+
 </html>

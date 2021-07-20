@@ -1,11 +1,12 @@
 var pb = require('./proto/pubsub_pb');
 
-function WebSocketClient(urlFactory, userName, reconnectInterval) {
+function WebSocketClient(urlFactory, userName, reconnectInterval, log) {
   this._userName = userName;
   this._urlFactory = urlFactory;
   this._protocol = 'protobuf.webpubsub.azure.v1';
   this._reconnectInterval = reconnectInterval;
   this._webSocket = null;
+  this._log = log;
   this.onopen = this.onclose = this.onData = null;
   this._connect();
 }
@@ -15,7 +16,7 @@ WebSocketClient.prototype._connect = async function () {
   let ws = this._webSocket = new WebSocket(url, this._protocol);
 
   ws.onopen = () => {
-    console.log('WebSocket connected');
+    this._log('WebSocket connected');
 
     var upstreamMessage = new proto.video.UpstreamMessage();
     var joinGroupMessage = new proto.video.UpstreamMessage.JoinGroupMessage();
@@ -27,14 +28,16 @@ WebSocketClient.prototype._connect = async function () {
     this._webSocket.send(upstreamMessage.serializeBinary());
     if (this.onopen) this.onopen();
   };
+
   ws.onclose = () => {
-    console.log('WebSocket disconnected');
+    this._log('WebSocket disconnected');
     if (this.onclose) this.onclose();
     if (this._reconnectInterval > 0) {
-      console.log(`Reconnect in ${this._reconnectInterval} ms`);
+      this._log(`Reconnect in ${this._reconnectInterval} ms`);
       setTimeout(() => this._connect(), this._reconnectInterval);
     }
   };
+
   ws.onmessage = async message => {
     if (this.onData) {
       var d = await message.data.arrayBuffer()
@@ -49,7 +52,7 @@ WebSocketClient.prototype._connect = async function () {
   };
 }
 
-WebSocketClient.prototype.sendImage = function (group, data) {
+WebSocketClient.prototype.sendData = function (group, data) {
   const messageData = new proto.video.MessageData();
   messageData.setBinaryData(data)
 
