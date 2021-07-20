@@ -52,12 +52,12 @@ Now you've been able to run with Web PubSub service in local function. And next 
 
 3. Different from local functions, Azure Function App requires to access with valid keys when using webhook. So the event handler settings need an additional query part. 
 
-    First navigate to **Azure Portal** and find the function app you just created. Then go to **Functions** -> **App keys** -> **System keys**. Copy out the value for webpubsub_extension.
+    First navigate to **Azure Portal** and find the function app you just created. Then go to **Functions** -> **App keys** -> **System keys**. Copy out the `API_KEY` value for webpubsub_extension.
 
     ![Function App Keys](./../../../../docs/images/functions_appkeys.png)
 
-    Update event handler settings for your Web PubSub service in **Azure Portal** -> **Settings**, and replace function app name and code following below pattern.
+    Update event handler settings for your Web PubSub service in **Azure Portal** -> **Settings**, and replace function app name and `API_KEY` following below pattern.
 
     ```
-    https://{function-app}.azurewebsites.net/runtime/webhooks/webpubsub?Code={code}
+    https://{function-app}.azurewebsites.net/runtime/webhooks/webpubsub?Code={API_KEY}
     ```
