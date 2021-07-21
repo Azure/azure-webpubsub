@@ -54,11 +54,19 @@ func extensions install --package Microsoft.Azure.WebJobs.Extensions.WebPubSub -
 
 ## Key concepts
 
+![function-workflow](./../images/functions_workflow.png)
+
+(1)-(2) `WebPubSubConnection` input binding with HttpTrigger to generate client connection.
+
+(3)-(4) `WebPubSubTrigger` trigger binding or `WebPubSubRequest` input binding with HttpTrigger to handle service request.
+
+(5)-(6) `WebPubSub` output binding to request service do something.
+
 ### Trigger binding
 
 Use the function trigger to handle requests from Azure Web PubSub service. For information on setup and configuration details, see the [Get started](#getting-started). 
 
-When use `WebPubSubTrigger`, the function exposed url pattern would be like below. The url is needed when there's bi-directional communication between function and service. The query part `code=<API_KEY>` is **REQUIRED** when you're using Azure Function App for [security](https://docs.microsoft.com/azure/azure-functions/security-concepts#system-key) reasons. The key can be found in **Azure Portal**. Find your function app resource and navigate to **Functions** -> **App Keys** -> **System Keys** -> **webpubsub_extension**. While this is not needed when you're working with local functions.
+`WebPubSubTrigger` is used when you need to handle requests from service side. The trigger endpoint pattern would be like below which should be set in Web PubSub service side (Portal: settings -> event handler -> URL Template). In the endpoint pattern, the query part `code=<API_KEY>` is **REQUIRED** when you're using Azure Function App for [security](https://docs.microsoft.com/azure/azure-functions/security-concepts#system-key) reasons. The key can be found in **Azure Portal**. Find your function app resource and navigate to **Functions** -> **App Keys** -> **System Keys** -> **webpubsub_extension** after you deploy the function app to Azure. Though, this is not needed when you're working with local functions.
 
 ```
 <Function_App_Url>/runtime/webhooks/webpubsub?code=<API_KEY>
