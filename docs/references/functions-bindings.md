@@ -19,7 +19,7 @@ Web PubSub is an Azure-managed service that helps developers easily build web ap
 
 [Source code](https://github.com/Azure/azure-sdk-for-net/blob/master/sdk/webpubsub/) |
 [Package](https://www.nuget.org/packages/Microsoft.Azure.WebJobs.Extensions.WebPubSub) |
-API reference documentation |
+[API reference documentation](https://github.com/Azure/azure-sdk-for-net/blob/main/sdk/webpubsub/Microsoft.Azure.WebJobs.Extensions.WebPubSub/api/Microsoft.Azure.WebJobs.Extensions.WebPubSub.netstandard2.0.cs) |
 [Product documentation](https://aka.ms/awps/doc) |
 [Samples][samples_ref]
 
@@ -385,7 +385,7 @@ The following table explains the binding configuration properties that you set i
 |---------|---------|---------|
 | **type** | n/a | Must be set to `webPubSubRequest` |
 | **direction** | n/a | Must be set to `in` |
-| **name** | n/a | Variable name used in function code for input connection binding object. |
+| **name** | n/a | Variable name used in function code for input Web PubSub request. |
 
 #### Usage
 
