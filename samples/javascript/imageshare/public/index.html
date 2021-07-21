@@ -86,13 +86,27 @@
       </div>
     </form>
 
+    <div class="modal fade" id="acceptDialog" tabindex="-1" role="dialog">
+      <div class="modal-dialog" role="document">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title" id="exampleModalLabel"></h5>
+          </div>
+          <div class="modal-footer">
+            <button id="acceptButton" type="button" class="btn btn-primary" data-dismiss="modal">Accept</button>
+            <button id="denyButton" type="button" class="btn btn-primary" data-dismiss="modal">Deny</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
     <lu id="video-body">
       <li>
         <div id="container" class="bg-light chat">
           <video autoplay="true" id="videoElement">
           </video>
         </div>
-        <p style="text-align:center;">
+        <p style="text-align:center;" class="text-muted">
           {{ client.userDescription }}
         </p>
       </li>
@@ -101,7 +115,7 @@
           <video autoplay="true" id="receiveVideoElement">
           </video>
         </div>
-        <p style="text-align:center;">
+        <p style="text-align:center;" class="text-muted">
           {{ client.targetUserDescription }}
         </p>
       </li>
@@ -183,6 +197,7 @@
           } else {
             if (client.targetUserId) {
               await video.callRequest(client.connection, client.userId, client.targetUserId, log);
+              log(`Sent call request to ${client.targetUserId} and waiting for response...`)
             } else {
               log("[Error] Type in target user name first");
             }
@@ -195,8 +210,8 @@
             if (client.receiver) {
               await video.shareVideo(client.connection, client.receiver, log)
               client.sharing = true;
-              client.userDescription = `Video from ${client.sender}`
-              client.targetUserDescription = `Video from ${client.receiver}`
+              client.userDescription = `Video from user: ${client.sender}`
+              client.targetUserDescription = `Video from user: ${client.receiver}`
             } else {
               log("[Error] Type in target user name first");
             }
@@ -204,13 +219,19 @@
         },
         receiveCall: async function (client, sender, receiver) {
           if (receiver == client.sender) {
-            this.accept(client, sender, receiver);
+            document.getElementById('exampleModalLabel').innerHTML = `Do you Accept call request from user ${sender}?`
+            $('#acceptDialog').modal('toggle');
+            document.getElementById('acceptButton').onclick = () => this.accept(client, sender, receiver);
+            document.getElementById('denyButton').onclick = () => this.deny(client, sender, receiver);
           }
         },
         receiveAck: async function (client, approved, sender, receiver) {
           if (receiver == client.sender && approved === true) {
+            log(`${sender} has accepted call request.`)
             client.receiver = sender;
             this.shareVideo(data.client);
+          } else if (receiver == client.sender && approved === false) {
+            log(`${sender} has denied call request.`)
           }
         },
         accept: async function (client, sender, receiver) {
@@ -218,7 +239,7 @@
           await video.ackRequest(client.connection, true, client.sender, client.receiver)
           this.shareVideo(data.client);
         },
-        deny: async function (clientclient, sender, receiver) {
+        deny: async function (client, sender, receiver) {
           await video.ackRequest(client.connection, false, client.sender)
         },
       }
