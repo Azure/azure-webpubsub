@@ -59,7 +59,7 @@ export async function shareVideo(ws, receiver, log) {
         let data = await event.data.arrayBuffer();
         ws.sendData(receiverGroup, data);
       }
-      setInterval(() => recorder.requestData(), 50);
+      setInterval(() => recorder.requestData(), 100);
       recorder.start();
 
       video.srcObject = stream;
