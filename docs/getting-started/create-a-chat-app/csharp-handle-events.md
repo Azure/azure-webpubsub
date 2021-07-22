@@ -99,7 +99,7 @@ You may remember in last tutorial the subscriber uses an API in Web PubSub SDK t
                 return;
             }
             var serviceClient = context.RequestServices.GetRequiredService<WebPubSubServiceClient>();
-            await context.Response.WriteAsync(serviceClient.GetClientAccessUri(id).AbsoluteUri);
+            await context.Response.WriteAsync(serviceClient.GenerateClientAccessUri(userId: id).AbsoluteUri);
         });
     });
     ```

@@ -72,46 +72,35 @@ Using this library, you can send messages to the client connections. A message c
 
 ### Broadcast a text message to all clients
 
-```csharp
-var serviceClient = new WebPubSubServiceClient(new Uri("<endpoint>"), "<hub>", new AzureKeyCredential("<access-key>"));
-// async version
-await serviceClient.SendToAllAsync("Hello world!");
-// as well as sync version
-serviceClient.SendToAll("Hello world!");
+```C# Snippet:WebPubSubHelloWorld
+var serviceClient = new WebPubSubServiceClient(new Uri(endpoint), "some_hub", new AzureKeyCredential(key));
+
+serviceClient.SendToAll("Hello World!");
 ```
 
 ### Broadcast a JSON message to all clients
 
-```csharp
-var serviceClient = new WebPubSubServiceClient(new Uri("<endpoint>"), "<hub>", new AzureKeyCredential("<access-key>"));
-// async version
-await serviceClient.SendToAllAsync(
-// as well as sync version
-serviceClient.SendToAll(
-    RequestContent.Create(
+```C# Snippet:WebPubSubSendJson
+var serviceClient = new WebPubSubServiceClient(new Uri(endpoint), "some_hub", new AzureKeyCredential(key));
+
+serviceClient.SendToAll(RequestContent.Create(
         new
         {
             Foo = "Hello World!",
             Bar = 42
-        }));
+        }),
+        ContentType.ApplicationJson);
 ```
 
 ### Broadcast a binary message to all clients
 
-```csharp
-var serviceClient = new WebPubSubServiceClient(new Uri("<endpoint>"), "<hub>", new AzureKeyCredential("<access-key>"));
+```C# Snippet:WebPubSubSendBinary
+var serviceClient = new WebPubSubServiceClient(new Uri(endpoint), "some_hub", new AzureKeyCredential(key));
 
-// async version
-await serviceClient.SendToAllAsync(
-    RequestContent.Create(new byte[] {0x1, 0x2, 0x3}), 
-    HttpHeader.Common.OctetStreamContentType.Value
-);
-// as well as sync version
 Stream stream = BinaryData.FromString("Hello World!").ToStream();
-serviceClient.SendToAll(
-    RequestContent.Create(stream),
-    HttpHeader.Common.OctetStreamContentType.Value);
+serviceClient.SendToAll(RequestContent.Create(stream), ContentType.ApplicationOctetStream);
 ```
+``
 
 ## Troubleshooting
 

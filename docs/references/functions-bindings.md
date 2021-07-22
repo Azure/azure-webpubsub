@@ -19,7 +19,7 @@ Web PubSub is an Azure-managed service that helps developers easily build web ap
 
 [Source code](https://github.com/Azure/azure-sdk-for-net/blob/master/sdk/webpubsub/) |
 [Package](https://www.nuget.org/packages/Microsoft.Azure.WebJobs.Extensions.WebPubSub) |
-API reference documentation |
+[API reference documentation](https://github.com/Azure/azure-sdk-for-net/blob/main/sdk/webpubsub/Microsoft.Azure.WebJobs.Extensions.WebPubSub/api/Microsoft.Azure.WebJobs.Extensions.WebPubSub.netstandard2.0.cs) |
 [Product documentation](https://aka.ms/awps/doc) |
 [Samples][samples_ref]
 
@@ -54,9 +54,23 @@ func extensions install --package Microsoft.Azure.WebJobs.Extensions.WebPubSub -
 
 ## Key concepts
 
+![function-workflow](./../images/functions_workflow.png)
+
+(1)-(2) `WebPubSubConnection` input binding with HttpTrigger to generate client connection.
+
+(3)-(4) `WebPubSubTrigger` trigger binding or `WebPubSubRequest` input binding with HttpTrigger to handle service request.
+
+(5)-(6) `WebPubSub` output binding to request service do something.
+
 ### Trigger binding
 
-Use the function trigger to handle request from Azure Web PubSub service. For information on setup and configuration details, see the [Get started](#getting-started).
+Use the function trigger to handle requests from Azure Web PubSub service. For information on setup and configuration details, see the [Get started](#getting-started). 
+
+`WebPubSubTrigger` is used when you need to handle requests from service side. The trigger endpoint pattern would be like below which should be set in Web PubSub service side (Portal: settings -> event handler -> URL Template). In the endpoint pattern, the query part `code=<API_KEY>` is **REQUIRED** when you're using Azure Function App for [security](https://docs.microsoft.com/azure/azure-functions/security-concepts#system-key) reasons. The key can be found in **Azure Portal**. Find your function app resource and navigate to **Functions** -> **App Keys** -> **System Keys** -> **webpubsub_extension** after you deploy the function app to Azure. Though, this is not needed when you're working with local functions.
+
+```
+<Function_App_Url>/runtime/webhooks/webpubsub?code=<API_KEY>
+```
 
 #### Example
 
@@ -195,19 +209,28 @@ In type-less language like javascript, `name` in `function.json` will be used to
 
 ### Input binding
 
-In order to let a client connect to Azure Web PubSub Service, it must know the service endpoint URL and a valid access token. The `WebPubSubConnection` input binding produces required information so client doesn't need to handle this themselves. Because the token is time-limited and can be used to authenticate a specific user to a connection, you should not cache the token or share it between clients. An HTTP trigger working with this input binding can be used for clients to retrieve the connection information.
+Our extension provides 2 input binding targeting different needs.
 
-#### Example
+- `WebPubSubConnection`
+
+  In order to let a client connect to Azure Web PubSub Service, it must know the service endpoint URL and a valid access token. The `WebPubSubConnection` input binding produces required information, so client doesn't need to handle this itself. Because the token is time-limited and can be used to authenticate a specific user to a connection, you should not cache the token or share it between clients. An HTTP trigger working with this input binding can be used for clients to retrieve the connection information.
+
+- `WebPubSubRequest`
+
+  When using is Static Web Apps, `HttpTrigger` is the only supported trigger and under Web PubSub scenario, we provide the `WebPubSubRequest` input binding helps users deserialize upstream http request from service side under Web PubSub protocols. So customers can get similar results comparing to `WebPubSubTrigger` to easy handle in functions. See [examples](#example---webpubsubrequest) in below.
+  When use with `HttpTrigger`, customer requires to configure the HttpTrigger exposed url in upstream accordingly.
+
+#### Example - `WebPubSubConnection`
 
 The following example shows a C# function that acquires Web PubSub connection information using the input binding and returns it over HTTP.
 
 ##### C#
 
 ```cs
-[FunctionName("WebPubSubInputBinding")]
+[FunctionName("WebPubSubConnectionInputBinding")]
 public static WebPubSubConnection Run(
     [HttpTrigger(AuthorizationLevel.Anonymous, "get", "post")] HttpRequest req,
-    [WebPubSubConnection(Hub = "simplechat", UserId = "{query.userid}")] WebPubSubConnection connection)
+    [WebPubSubConnection(Hub = "<hub>", UserId = "{query.userid}")] WebPubSubConnection connection)
 {
     Console.WriteLine("login");
     return connection;
@@ -237,7 +260,7 @@ Define input bindings in `function.json`.
       "type": "webPubSubConnection",
       "name": "connection",
       "userId": "{query.userid}",
-      "hub": "simplechat",
+      "hub": "<hub>",
       "direction": "in"
     }
   ]
@@ -262,15 +285,83 @@ App Service Authentication sets HTTP headers named `x-ms-client-principal-id` an
 You can set the UserId property of the binding to the value from either header using a binding expression: `{headers.x-ms-client-principal-id}` or `{headers.x-ms-client-principal-name}`.
 
 ```cs
-[FunctionName("WebPubSubInputBinding")]
+[FunctionName("WebPubSubConnectionInputBinding")]
 public static WebPubSubConnection Run(
     [HttpTrigger(AuthorizationLevel.Anonymous, "get", "post")] HttpRequest req,
-    [WebPubSubConnection(Hub = "simplechat", UserId = "{headers.x-ms-client-principal-name}")] WebPubSubConnection connection)
+    [WebPubSubConnection(Hub = "<hub>", UserId = "{headers.x-ms-client-principal-name}")] WebPubSubConnection connection)
 {
     Console.WriteLine("login");
     return connection;
 }
 ```
+
+#### Example - `WebPubSubRequest`
+
+The following example shows a C# function that acquires Web PubSub Request information using the input binding under connect event type and returns it over HTTP.
+
+##### C#
+
+```cs
+[FunctionName("WebPubSubRequestInputBinding")]
+public static object Run(
+    [HttpTrigger(AuthorizationLevel.Anonymous, "get", "post")] HttpRequest req,
+    [WebPubSubRequest] WebPubSubRequest wpsReq)
+{
+    if (wpsReq.Request.IsValidationRequest || !wpsReq.Request.Valid)
+    {
+        return wpsReq.Response;
+    }
+    var request = wpsReq.Request as ConnectEventRequest;
+    var response = new ConnectResponse
+    {
+        UserId = wpsReq.ConnectionContext.UserId
+    };
+    return response;
+}
+```
+##### Javascript
+
+Define input bindings in `function.json`.
+
+```json
+{
+  "disabled": false,
+  "bindings": [
+    {
+      "authLevel": "anonymous",
+      "type": "httpTrigger",
+      "direction": "in",
+      "name": "req",
+      "methods": ["get", "post"]
+    },
+    {
+      "type": "http",
+      "direction": "out",
+      "name": "$return"
+    },
+    {
+      "type": "webPubSubRequest",
+      "name": "wpsReq",
+      "direction": "in"
+    }
+  ]
+}
+```
+
+Define function in `index.js`.
+
+```js
+module.exports = async function (context, req, wpsReq) {
+  if (!wpsReq.request.valid || wpsReq.request.isValidationRequest)
+  {
+    console.log(`invalid request: ${wpsReq.response.message}.`);
+    return wpsReq.response;
+  }
+  console.log(`user: ${context.bindings.wpsReq.connectionContext.userId} is connecting.`);
+  return { body: {"userId": context.bindings.wpsReq.connectionContext.userId} };
+};
+```
+
 #### Configuration
 
 ##### WebPubSubConnection
@@ -279,12 +370,55 @@ The following table explains the binding configuration properties that you set i
 
 | function.json property | Attribute property | Description |
 |---------|---------|---------|
-| **type** | n/a | Must be set to `webPubSub` |
-| **direction** | n/a | Must be set to `out` |
+| **type** | n/a | Must be set to `webPubSubConnection` |
+| **direction** | n/a | Must be set to `in` |
 | **name** | n/a | Variable name used in function code for input connection binding object. |
 | **hub** | Hub | The value must be set to the name of the Web PubSub hub for the function to be triggered. We support set the value in attribute as higher priority, or it can be set in app settings as a global value. |
 | **userId** | UserId | Optional - the value of the user identifier claim to be set in the access key token. |
 | **connectionStringSetting** | ConnectionStringSetting | The name of the app setting that contains the Web PubSub Service connection string (defaults to "WebPubSubConnectionString") |
+
+##### WebPubSubRequest
+
+The following table explains the binding configuration properties that you set in the functions.json file and the `WebPubSubRequest` attribute.
+
+| function.json property | Attribute property | Description |
+|---------|---------|---------|
+| **type** | n/a | Must be set to `webPubSubRequest` |
+| **direction** | n/a | Must be set to `in` |
+| **name** | n/a | Variable name used in function code for input Web PubSub request. |
+
+#### Usage
+
+##### WebPubSubConnection
+
+`WebPubSubConnection` provides below properties.
+
+Binding Name | Binding Type | Description
+---------|---------|---------
+BaseUrl | string | Web PubSub client connection url
+Url | string | Absolute Uri of the Web PubSub connection, contains `AccessToken` generated base on the request
+AccessToken | string | Generated `AccessToken` based on request UserId and service information
+
+##### WebPubSubRequest
+
+`WebPubSubRequest` provides below properties.
+
+Binding Name | Binding Type | Description | Properties
+---------|---------|---------|---------
+connectionContext | `ConnectionContext` | Common request information| EventType, EventName, Hub, ConnectionId, UserId, Headers, Signature
+request | `ServiceRequest` | Request from client, see below table for details | IsValidationRequest, Valid, Unauthorized, BadRequest, ErrorMessage, Name, etc.
+response | `HttpResponseMessage` | Extension build response mainly for `AbuseProtection` and errors cases | -
+
+For `ServiceRequest`, it is deserialized to different classes which provides different information regarding the request scenario. For `ValidationRequest` or `InvalidRequest`, it's suggested to return system build response `WebPubSubRequest.Response` directly, or customer can log errors in need. In different scenarios, customer can read the request properties as below.
+
+Derived Class | Description | Properties
+--|--|--
+`ValidationRequest` | Use in `AbuseProtection` when `IsValidationRequest` is **true** | -
+`ConnectEventRequest` | Used in `Connect` event type | Claims, Query, Subprotocols, ClientCertificates
+`ConnectedEventRequest` | Use in `Connected` event type | -
+`MessageEventRequest` | Use in user event type | Message, DataType
+`DisconnectedEventRequest` | Use in `Disconnected` event type | Reason
+`InvalidRequest` | Use when the request is invalid | -
 
 ### Output binding
 
@@ -292,8 +426,9 @@ Use the Web PubSub output binding to send one or more messages using Azure Web P
 
 * All connected clients
 * Connected clients authenticated to a specific user
+* Connected clients joined in a specific group
 
-The output binding also allows you to manage groups.
+The output binding also allows you to manage groups and grant/revoke permissions targeting specific connectionId with group.
 
 For information on setup and configuration details, see the overview.
 
@@ -305,7 +440,7 @@ For information on setup and configuration details, see the overview.
 [FunctionName("WebPubSubOutputBinding")]
 public static async Task RunAsync(
     [HttpTrigger(AuthorizationLevel.Anonymous, "get", "post")] HttpRequest req,
-    [WebPubSub(Hub = "simplechat")] IAsyncCollector<WebPubSubOperation> operations)
+    [WebPubSub(Hub = "<hub>")] IAsyncCollector<WebPubSubOperation> operations)
 {
     await operations.AddAsync(new SendToAll
     {
@@ -326,7 +461,7 @@ Define bindings in `functions.json`.
     {
       "type": "webPubSub",
       "name": "webPubSubOperation",
-      "hub": "simplechat",
+      "hub": "<hub>",
       "direction": "out"
     }
   ]
