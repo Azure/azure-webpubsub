@@ -25,11 +25,13 @@
         html,
         body,
         main,
-        main>div,
-        .chat {
+        main>div
+        {
             height: 100%;
         }
-
+        .chat {
+            height: calc(100% - 240px)
+        }
         body {
             font-size: .875rem;
         }
@@ -105,7 +107,7 @@
                             :disabled="!client.endpoint">Connect</button>
                     </div>
                 </form>
-                <div v-show="client.connected">
+                <div v-show="!client.connected">
                     <hr>
                     <h4>Hints</h4>
                     <p><strong>Keys</strong> tab contains the <strong>Connection String</strong> for the service, as
@@ -139,11 +141,11 @@
 
                 <div style="background-color: black; color: blanchedalmond; height: 150px; overflow: auto;">
                     <div v-for="l in client.logs" :key="l.id">
-                        [{{l.time}}] {{ l.log }}: {{l.status}}
+                        [{{l.time}}] {{ l.log }}
                     </div>
                 </div>
                 <hr>
-                <div v-show="!client.connected" class="chat my-4">
+                <div v-show="client.connected" class="chat my-4">
                     <form v-on:submit.prevent="join(client)" class="my-2">
                         <div class="input-group row g-3 align-items-center">
                             <div class="col-3">
@@ -154,7 +156,7 @@
                                     class="form-control" placeholder="Group Name">
                             </div>
                             <div class="col-auto">
-                                <button type="submit" class="btn btn-outline-secondary" style="width:60px"
+                                <button type="submit" class="btn btn-success" style="width:60px"
                                     :disabled="!client.connected || !client.groupToJoin">Join</button>
                             </div>
                         </div>
@@ -170,11 +172,11 @@
                                     placeholder="Group Name">
                             </div>
                             <div class="col-10">
-                                <input type="text" v-model="client.newMessage" class="form-control"
+                                <input type="text" v-model="client.newMessage" class="form-control" id="sendGroupLabel1"
                                     placeholder="Type messages to publish">
                             </div>
                             <div class="col-auto">
-                                <button type="submit" class="btn btn-outline-secondary" style="width:60px"
+                                <button type="submit" class="btn btn-success" style="width:60px"
                                     :disabled="!client.connected || !client.newMessage || !client.groupToPublish">Send</button>
                             </div>
                         </div>
@@ -182,7 +184,7 @@
                     <hr>
 
                     <b>Messages:</b>
-                    <div class="bg-light chat" v-bind:scrollTop="$attrs.scrollHeight">
+                    <div class="bg-light chat" style="overflow: auto;" v-bind:scrollTop="$attrs.scrollHeight">
                         <div class="m-2 lead" v-for="message in client.chat.messages" v-bind:key="message.id">
                             <div class="col-md row" style="display: inline-block;">
                                 <div v-if="message.type =='system'" class="text-success text-center" role="alert">
@@ -228,8 +230,7 @@
                 groupToPublish: 'Group1',
                 chat: { messages: [] },
                 connected: false,
-                joinlogs: [],
-                publishlogs: [],
+                acks: [],
                 logs: [],
                 userId: null,
                 connectionId: null,
@@ -239,35 +240,58 @@
 
         function addItem(item, owner) {
             item.id = owner.length;
-            owner.push(item);
+            owner.unshift(item);
         }
 
         function connect(client, endpoint, onConnected, onMessage) {
             try {
                 var websocket = client.connection = new WebSocket(endpoint, 'json.webpubsub.azure.v1');
                 websocket.onopen = e => {
-                    addItem({ type: "system", content: `Client WebSocket opened.` }, client.chat.messages);
+                    addItem({
+                        time: new Date().toISOString(),
+                        log: `Client WebSocket opened.`,
+                    }, client.logs);
                     if (onConnected) onConnected(client);
                 };
                 websocket.onclose = e => {
                     this.connected = false;
-                    addItem({ type: "system", content: `Client WebSocket closed. Type: ${e.type}, code: ${e.code}, reason: ${e.reason}, wasClean: ${e.wasClean}.` }, client.chat.messages);
+                    addItem({
+                        time: new Date().toISOString(),
+                        log: `Client WebSocket closed. Type: ${e.type}, code: ${e.code}, reason: ${e.reason}, wasClean: ${e.wasClean}.`,
+                    }, client.logs);
                 };
                 websocket.onmessage = e => {
                     if (onMessage) onMessage(client, e);
                 }
             } catch (err) {
-                addItem({ type: "error", content: `Error: ${err}` }, client.chat.messages);
+                addItem({
+                        time: new Date().toISOString(),
+                        log: `Error: ${err}`,
+                    }, client.logs);
             }
         }
 
+        function addAckLog(ack, client){
+            addItem({
+                        time: ack.time,
+                        log: `${ack.log}(ackId=${ack.ackId}) ${ack.status}`,
+                    }, client.logs);
+        }
+
+        function addAck(ack, client){
+            addItem(ack, client.acks);
+            addAckLog(ack, client);
+        }
+
         function ack(toAck, ackId, status) {
-            var item = toAck.find(i => i.ackId === ackId);
-            if (item) {
+            var index = toAck.findIndex(i => i.ackId === ackId);
+            if (index > -1) {
+                var item = toAck[index];
+                toAck.splice(index, 1);
                 item.status = status.success ? "succeeded." : "error: " + status.error.name;
-                return true;
+                return item;
             }
-            return false;
+            return undefined;
         }
 
         const app = new Vue({
@@ -284,14 +308,12 @@
                             ackId: ackId // ackId is optional, use ackId to make sure this action is executed
                         }
                     ));
-                    addItem({
+                    addAck({
                         time: new Date().toISOString(),
                         ackId: ackId,
                         log: `Joining group ${client.groupToJoin}`,
                         status: "requested.",
-                    }, client.joinlogs);
-
-                    client.groupToJoin = '';
+                    }, client);
                 },
                 publish: function (client) {
                     const ackId = ++client.ackId;
@@ -303,13 +325,12 @@
                             ackId: ackId // ackId is optional, use ackId to make sure this action is executed
                         }
                     ));
-                    addItem({
+                    addAck({
                         time: new Date().toISOString(),
                         ackId: ackId,
                         log: `Sending message to group ${client.groupToPublish}`,
                         status: "requested",
-                    }, client.publishlogs);
-                    client.newMessage = '';
+                    }, client);
                 },
                 connect: function (client) {
                     // close the previous connection if any and start a new connection
@@ -335,10 +356,12 @@
                                     }, client.logs);
                             }
                             else if (response.type === "ack") {
-                                if (!ack(client.joinlogs, response.ackId, response))
-                                    ack(client.publishlogs, response.ackId, response);
-                                if (!response.success) {
+                                var toAck = ack(client.acks, response.ackId, response)
+                                if (toAck){
+                                    addAckLog(toAck, client);
+                                }
 
+                                if (!response.success) {
                                     addItem({
                                         time: new Date().toISOString(),
                                         log: `Error: ${response.error.message}`,
