@@ -35,10 +35,6 @@
         body {
             font-size: .875rem;
         }
-        .hints {
-            position: fixed;
-            background-color: #fff;
-        }
         /* Login */
         .login {
             display: flex;
@@ -110,8 +106,14 @@
                             :disabled="!client.endpoint">Connect</button>
                     </div>
                 </form>
-                <div v-show="!client.connected" class="hints">
-                    <hr>
+
+                <div v-show="client.connecting" style="background-color: black; color: blanchedalmond; height: 150px; overflow: auto;">
+                    <div v-for="l in client.logs" :key="l.id">
+                        [{{l.time}}] {{ l.log }}
+                    </div>
+                </div>
+                <hr>
+                <div v-show="!client.connected">
                     <h4>Hints</h4>
                     <p>Create your instance from the <a href="https://portal.azure.com/" target="_blank">Azure portal</a>, and go the <strong>Keys</strong> tab of the instance from the portal.</p>
                     <p><strong>Keys</strong> tab contains a
@@ -138,13 +140,6 @@
                         </li>
                     </ul>
                 </div>
-
-                <div style="background-color: black; color: blanchedalmond; height: 150px; overflow: auto;">
-                    <div v-for="l in client.logs" :key="l.id">
-                        [{{l.time}}] {{ l.log }}
-                    </div>
-                </div>
-                <hr>
                 <div v-show="client.connected" class="chat my-4">
                     <form v-on:submit.prevent="join(client)" class="my-2">
                         <div class="input-group row g-3 align-items-center">
@@ -229,6 +224,7 @@
                 groupToJoin: 'Group1',
                 groupToPublish: 'Group1',
                 chat: { messages: [] },
+                connecting: false,
                 connected: false,
                 acks: [],
                 logs: [],
@@ -244,6 +240,7 @@
         }
 
         function connect(client, endpoint, onConnected, onMessage) {
+            client.connecting = true;
             try {
                 var websocket = client.connection = new WebSocket(endpoint, 'json.webpubsub.azure.v1');
                 websocket.onopen = e => {
