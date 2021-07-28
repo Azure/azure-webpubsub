@@ -38,7 +38,7 @@ Working with the trigger and bindings requires that you reference the appropriat
 Install the client library from [NuGet](https://www.nuget.org/) with specified package and version.
 
 ```bash
-func extensions install --package Microsoft.Azure.WebJobs.Extensions.WebPubSub --version 1.0.0-beta.1
+func extensions install --package Microsoft.Azure.WebJobs.Extensions.WebPubSub --version 1.0.0-beta.3
 ```
 
 [NuGet package]: https://www.nuget.org/packages/Microsoft.Azure.WebJobs.Extensions.WebPubSub
