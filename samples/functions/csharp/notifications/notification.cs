@@ -1,3 +1,4 @@
+using Azure.Messaging.WebPubSub;
 using Microsoft.Azure.WebJobs;
 using Microsoft.Azure.WebJobs.Extensions.WebPubSub;
 using Microsoft.Extensions.Logging;

@@ -4,7 +4,7 @@
     <AzureFunctionsVersion>v3</AzureFunctionsVersion>
   </PropertyGroup>
   <ItemGroup>
-    <PackageReference Include="Microsoft.Azure.WebJobs.Extensions.WebPubSub" Version="1.0.0-beta.2" />
+    <PackageReference Include="Microsoft.Azure.WebJobs.Extensions.WebPubSub" Version="1.0.0-beta.3" />
     <PackageReference Include="Microsoft.NET.Sdk.Functions" Version="3.0.7" />
   </ItemGroup>
   <ItemGroup>
