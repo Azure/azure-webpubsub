@@ -1,0 +1,67 @@
+{
+  "name": "web-pubsub-graphql-subscribe",
+  "version": "1.0.1",
+  "description": "use Azure WebPub service in GraphQL subscriptions",
+  "main": "dist/index.js",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/xingsy97/webpubsub-graphql-subscribe.git"
+  },
+  "keywords": [
+    "graphql",
+    "webpubsub",
+    "azure",
+    "apollo",
+    "subscriptions"
+  ],
+  "author": "xingsy97",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/xingsy97/webpubsub-graphql-subscribe/issues"
+  },
+  "homepage": "https://github.com/xingsy97/webpubsub-graphql-subscribe",
+  "contributors": [
+    {
+      "name": "xingsy97",
+      "email": "xingsy97@hotmail.com"
+    }
+  ],
+  "scripts": {
+    "watch": "tsc -w",
+    "compile": "tsc",
+    "demo": "mocha --reporter spec --full-trace ./dist/demos/demo.js",
+    "naive": "mocha --reporter spec --full-trace ./dist/demos/demo-without-webpubsub.js",
+    "posttest": "npm run lint",
+    "lint": "tslint --project ./tsconfig.json ./src/**/*.ts"
+  },
+  "dependencies": {
+    "@azure/web-pubsub": "^1.0.0-beta.3",
+    "@azure/web-pubsub-express": "^1.0.0-beta.1",
+    "@graphql-tools/schema": "^7.1.5",
+    "apollo-server": "^2.21.1",
+    "express": "^4.17.1",
+    "graphql": "^15.5.0",
+    "graphql-subscriptions": "^1.1.0",
+    "http": "0.0.1-security",
+    "iterall": "^1.2.2",
+    "nodemon": "^2.0.7",
+    "subscriptions-transport-ws": "^0.9.19",
+    "uuid": "^8.3.2",
+    "ws": "^7.5.2"
+  },
+  "devDependencies": {
+    "@types/chai": "^4.1.4",
+    "@types/chai-as-promised": "^7.1.0",
+    "@types/mocha": "^5.2.5",
+    "@types/node": "^10.17.60",
+    "@types/simple-mock": "^0.8.0",
+    "@types/uuid": "^8.3.1",
+    "chai": "^4.2.0",
+    "chai-as-promised": "^7.1.1",
+    "graphql": "^0.13.0",
+    "mocha": "^6.2.2",
+    "simple-mock": "^0.8.0",
+    "tslint": "^5.16.0",
+    "typescript": "^3.4.5"
+  }
+}
