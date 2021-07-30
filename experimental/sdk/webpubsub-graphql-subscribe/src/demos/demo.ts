@@ -1,14 +1,21 @@
 // Modified From https://github.com/apollographql/docs-examples/blob/7105d77acfc67d6cb4097cc27a7956051ec0c1b5/server-subscriptions-as3/index.js
 import {create_webpubsub_subscribe_server} from '../WpsWebSocketServer'
-import {WpsPubSub} from '../azure-wps-pubsub'
+import { WpsPubSub } from '../azure-wps-pubsub';
 import { ApolloServer, gql } from "apollo-server-express";
 import { makeExecutableSchema } from "@graphql-tools/schema";
+import { SubscriptionServer } from 'subscriptions-transport-ws';
+import { PubSub } from "graphql-subscriptions";
 import { createServer } from "http";
+import { execute, subscribe } from "graphql";
 import express from 'express';
 import {config} from "../utils"
 
-const webpubsub_conn_string = "<webpubsub-connection-string>"
-const pubsub = new WpsPubSub(webpubsub_conn_string);
+const webpubsub_conn_string = "<web-pubsub-connection-string>";
+
+// when useWPS = false, subscription server will be launched without Azure WebPub support
+const useWPS = true;
+
+const pubsub = useWPS ? new WpsPubSub(webpubsub_conn_string) : new PubSub();
 
 let currentNumber = 0;
 
@@ -48,13 +55,20 @@ async function main() {
 	await apolloServer.start();
 	app.use(apolloServer.getMiddleware());
 
-	await create_webpubsub_subscribe_server(apolloServer, schema, pubsub, webpubsub_conn_string);
-	
+	// Create a Subscription Server
+	if (useWPS) {
+		await create_webpubsub_subscribe_server(apolloServer, schema, pubsub as WpsPubSub, webpubsub_conn_string);
+	} else {
+		SubscriptionServer.create(
+			{ schema, execute, subscribe },
+			{ server: httpServer, path: apolloServer.graphqlPath }
+		);
+	}
+
 	// start the http server
 	httpServer.listen(config.DEFAULT_SERVER_PORT, () => {
 		console.log(`🚀 Query endpoint ready at http://localhost:${config.DEFAULT_SERVER_PORT}${apolloServer.graphqlPath}`);
-		console.log(`🚀 Subscription endpoint ready at ws://localhost:${config.DEFAULT_SERVER_PORT}${apolloServer.graphqlPath}`
-		);
+		console.log("🚀 Subscription endpoint ready at "  + (useWPS ? apolloServer.subscriptionsPath : `ws://localhost:${config.DEFAULT_SERVER_PORT}${apolloServer.graphqlPath}`));
 	});
 
 	incrementNumber();

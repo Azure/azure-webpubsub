@@ -1,6 +1,7 @@
 import { WebPubSubServiceClient } from '@azure/web-pubsub';
 import { EventEmitter } from 'events';
-import { PubSubEngine } from './graphql-pubsub-common/pubsub-engine';
+import { PubSubEngine } from 'graphql-subscriptions'
+
 import { LOG , log, config} from './utils';
 import { v4 as uuidv4 } from 'uuid';
 const WebSocket = require('ws');
@@ -102,80 +103,3 @@ export class WpsPubSub extends PubSubEngine {
 		this.ws.removeListener(WpsPubSub.get_eventName(eventName), onMessage);
 	}
 }
-
-/* ---------------------------- Original pubsub.ts ----------------------------
-import { EventEmitter } from 'events';
-import { PubSubEngine } from './pubsub-engine';
-
-export interface PubSubOptions {
-  eventEmitter?: EventEmitter;
-}
-
-export class PubSub extends PubSubEngine {
-  protected ee: EventEmitter;
-  private subscriptions: { [key: string]: [string, (...args: any[]) => void] };
-  private subIdCounter: number;
-
-  constructor(options: PubSubOptions = {}) {
-    super();
-    this.ee = options.eventEmitter || new EventEmitter();
-    this.subscriptions = {};
-    this.subIdCounter = 0;
-  }
-
-  public publish(triggerName: string, payload: any): Promise<void> {
-    this.ee.emit(triggerName, payload);
-    return Promise.resolve();
-  }
-
-  public subscribe(triggerName: string, onMessage: (...args: any[]) => void): Promise<number> {
-    this.ee.addListener(triggerName, onMessage);
-    this.subIdCounter = this.subIdCounter + 1;
-    this.subscriptions[this.subIdCounter] = [triggerName, onMessage];
-
-    return Promise.resolve(this.subIdCounter);
-  }
-
-  public unsubscribe(subId: number) {
-    const [triggerName, onMessage] = this.subscriptions[subId];
-    delete this.subscriptions[subId];
-    this.ee.removeListener(triggerName, onMessage);
-  }
-}
-*/
-
-/*
-constructor(app: any) {
-	super();
-	this.subscriptions = {};
-	this.subIdCounter = 0;
-	
-	this.serviceClient = new WebPubSubServiceClient(config.DEFAULT_WPS_CONN_STRING, config.DEFAULT_WPS_PUBSUB_PUB);
-	this.wps_userId = `pubsubEngine-${uuidv4()}`;
-	this.ws = undefined;
-	this.ackId = 1;
-
-	let handler = new WebPubSubEventHandler(config.DEFAULT_WPS_PUBSUB_PUB, ['*'], {
-		path: config.DEFAULT_PUBSUB_ENGINE_HANDLER_URL,
-		handleConnect: (req, res) => {
-			log("handleConnect req.context = ", req.context)
-			res.success({groups: ['pubsub-users'],	subprotocol: "json.webpubsub.azure.v1"});
-		},
-
-		onConnected: async req => {
-			log(`onConnected`);
-		}, 
-
-		handleUserEvent: async (req, res) => {
-			log("handleUserEvent", req.data);
-			res.success();
-		},
-
-		onDisconnected: async req => {
-			log(`[onDisconnected] ${req.context.userId}`);
-		}
-	});
-	app.use(handler.getMiddleware());
-}
-}
-*/
