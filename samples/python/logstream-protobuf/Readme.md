@@ -13,15 +13,19 @@
 python -m venv env
 
 # Active venv
+# on Mac/Linux use `source ./env/bin/activate` to activate venv.
 ./env/Scripts/activate
 
 # pip install
 pip install -r requirements.txt
-
-# Generate protobuf
-protoc --python_out=./ --mypy_out=./ ./pubsub.proto
 ```
-on Mac/Linux use `source ./env/bin/activate` to activate venv.
+
+If you makes some changes to `proto/pubsub.proto` you need to re-generate client from `.proto` file
+
+```bash
+protoc --proto_path==./proto --python_out=./ --mypy_out=./ pubsub.proto
+```
+
 ## Start the server
 
 Copy **Connection String** from **Keys** tab of the created Azure Web PubSub service, and replace the `<connection-string>` below with the value of your **Connection String**.
@@ -37,11 +41,11 @@ The server is then started. Open `http://localhost:8080` in browser. If you use 
 ## Start the log streamer
 Run:
 ```bash
-# Open a new console and ensure venv active 
+# Open a new console and ensure venv active
+# on Mac/Linux use `source ./env/bin/activate` to activate venv.
 ./env/Scripts/activate
 
 python stream.py
 ```
-on Mac/Linux use `source ./env/bin/activate` to activate venv.
 
 Start typing messages and you can see these messages are transfered to the browser in real-time.

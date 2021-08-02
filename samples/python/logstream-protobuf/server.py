@@ -24,6 +24,6 @@ if __name__ == '__main__':
         print('Usage: python server.py <connection-string>')
         exit(1)
 
-    server = HTTPServer(('localhost', 8081), Resquest)
+    server = HTTPServer(('localhost', 8080), Resquest)
     print('server started')
     server.serve_forever()
