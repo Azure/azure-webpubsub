@@ -102,9 +102,9 @@ Such connection can be used in a typical client-server architecture, that the cl
 <a name="pubsub_client"></a>
 
 ### The PubSub WebSocket client
-The service also supports a specific subprotocol called `json.webpubsub.azure.v1` which empowers the clients to do publish/subscribe directly instead of a round trip to the upstream server. We call the WebSocket connection with `json.webpubsub.azure.v1` subprotocol a PubSub WebSocket client.
+The service also supports a list of specific subprotocol includes `json.webpubsub.azure.v1` and `protobuf.webpubsub.azure.v1` which empowers the clients to do publish/subscribe directly instead of a round trip to the upstream server. We call the WebSocket connection with these subprotocol a PubSub WebSocket client.
 
-For example, in JS, a PubSub WebSocket client can be created using:
+For example, in JS, a PubSub WebSocket client using `json.webpubsub.azure.v1` can be created using:
 ```js
 // PubSub WebSocket client
 var pubsub = new WebSocket('wss://test.webpubsub.azure.com/client/hubs/hub1', 'json.webpubsub.azure.v1');
@@ -143,9 +143,9 @@ A PubSub WebSocket client has the ability to :
     }
     ```
 
-[PubSub WebSocket Subprotocol](./../references/pubsub-websocket-subprotocol.md) contains the details of the `json.webpubsub.azure.v1` subprotocol. And [PubSub WebSocket Subprotocol](./../references/pubsub-websocket-protobuf-subprotocol.md) contains the details of the `protobuf.webpubsub.azure.v1` subprotocol
+[PubSub WebSocket Subprotocol](./../references/pubsub-websocket-subprotocol.md) contains the details of the `json.webpubsub.azure.v1` subprotocol. And [Protobuf PubSub WebSocket Subprotocol](./../references/pubsub-websocket-protobuf-subprotocol.md) contains the details of the `protobuf.webpubsub.azure.v1` subprotocol
 
-You may have noticed that for a [simple WebSocket client](#simple_client), the *server* is a MUST HAVE role to handle the events from clients. A simple WebSocket connection always triggers a `message` event when it sends messages, and always relies on the server-side to process messages and do other operations. With the help of the `json.webpubsub.azure.v1` subprotocol, an authorized client can join a group and publish messages to a group directly. It can also route messages to different upstreams (event handlers) by customizing the *event* the message belongs. 
+You may have noticed that for a [simple WebSocket client](#simple_client), the *server* is a MUST HAVE role to handle the events from clients. A simple WebSocket connection always triggers a `message` event when it sends messages, and always relies on the server-side to process messages and do other operations. With the help of the `json.webpubsub.azure.v1` or `protobuf.webpubsub.azure.v1` subprotocol, an authorized client can join a group and publish messages to a group directly. It can also route messages to different upstreams (event handlers) by customizing the *event* the message belongs. 
 
 #### Scenarios:
 Such clients can be used when clients want to talk to each other. Messages are sent from `client1` to the service and the service delivers the message directly to `client2` if the clients are authorized to do so.
