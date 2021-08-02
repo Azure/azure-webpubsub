@@ -26,6 +26,14 @@ export async function connect(userName, log) {
   video.src = URL.createObjectURL(mediaSource);
 
   async function Initialize() {
+    ws.onopen = () => {
+      data.client.connected = true;
+    }
+
+    ws.onclose = () => {
+      data.client.connected = false;
+    }
+
     ws.onData = data => {
       if (sourceBuffer.updating === false && queue.length === 0) sourceBuffer.appendBuffer(data);
       else queue.push(data);
@@ -41,6 +49,8 @@ export async function connect(userName, log) {
         app.receiveAck(data.client, ackData.getApproved(), ackData.getSender(), ackData.getReciver());
       }
     }
+
+    ws.connect();
   }
 
   return ws;

@@ -10,7 +10,7 @@ This application is based on the following technologies:
 
 ## Build and run locally
 
-1. Generate protobuf client
+1. Generate protobuf client if you update `proto/pubsub.proto` or you can skip this step.
    ```bash
    protoc --js_out=import_style=commonjs,binary:src proto/pubsub.proto
    ```

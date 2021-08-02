@@ -8,10 +8,9 @@ function WebSocketClient(urlFactory, userName, reconnectInterval, log) {
   this._webSocket = null;
   this._log = log;
   this.onopen = this.onclose = this.onData = this.onProtobufData = null;
-  this._connect();
 }
 
-WebSocketClient.prototype._connect = async function () {
+WebSocketClient.prototype.connect = async function () {
   let url = await this._urlFactory();
   let ws = this._webSocket = new WebSocket(url, this._protocol);
 

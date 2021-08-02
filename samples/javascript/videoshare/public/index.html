@@ -125,7 +125,7 @@
       <div class="input-group">
         <input type="text" class="form-control" v-model="client.targetUserId" id="targetUserIdInput"
           aria-describedby="endpointHelp" placeholder="Type User You Want To Call Here">
-        <button type="submit" class="btn btn-primary" style="width: 100px;" :disabled="!client.targetUserId || client.sharing">Call</button>
+        <button type="submit" class="btn btn-primary" style="width: 100px;" :disabled="!client.connected || !client.targetUserId || client.sharing">Call</button>
       </div>
     </form>
 
@@ -183,7 +183,6 @@
         connect: async function (client) {
           if (client.userId) {
             client.connection = await video.connect(client.userId, log);
-            client.connected = true;
             client.sender = client.userId;
           }
           else
@@ -219,10 +218,15 @@
         },
         receiveCall: async function (client, sender, receiver) {
           if (receiver == client.sender) {
-            document.getElementById('exampleModalLabel').innerHTML = `Do you Accept call request from user ${sender}?`
-            $('#acceptDialog').modal('toggle');
-            document.getElementById('acceptButton').onclick = () => this.accept(client, sender, receiver);
-            document.getElementById('denyButton').onclick = () => this.deny(client, sender, receiver);
+            if (client.sharing === true) {
+              log(`You're in sharing, auto deny new call from ${sender}`)
+              this.deny(client, sender, receiver)
+            } else {
+              document.getElementById('exampleModalLabel').innerHTML = `Do you Accept call request from user ${sender}?`
+              $('#acceptDialog').modal('toggle');
+              document.getElementById('acceptButton').onclick = () => this.accept(client, sender, receiver);
+              document.getElementById('denyButton').onclick = () => this.deny(client, sender, receiver);
+            }
           }
         },
         receiveAck: async function (client, approved, sender, receiver) {
@@ -240,7 +244,7 @@
           this.shareVideo(data.client);
         },
         deny: async function (client, sender, receiver) {
-          await video.ackRequest(client.connection, false, client.sender)
+          await video.ackRequest(client.connection, false, client.sender, sender)
         },
       }
     });
