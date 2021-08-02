@@ -1,4 +1,3 @@
-
 import { WebPubSubServiceClient } from "@azure/web-pubsub";
 import { WebPubSubEventHandler } from "@azure/web-pubsub-express";
 import { ApolloServer} from "apollo-server-express";
@@ -7,7 +6,7 @@ import { SubscriptionServer } from 'subscriptions-transport-ws';
 import express from 'express';
 import WebSocket from "ws";
 import { WpsPubSub } from "./azure-wps-pubsub";
-import {LOG, log, config} from "./utils"
+import {config} from "./utils"
 
 /**
   * a virtual WebSocket.Server without real server
@@ -35,8 +34,7 @@ class SubWpsWebSocketServer extends VirtualWebSocketServer{
 		this.connectionId = connectionId;
 	}
 
-	@LOG("[send] [SubWsServer]")
-	send(data: any) { this.serviceClient.sendToConnection(this.connectionId, JSON.parse(data)); }
+	send(data: any) { this.serviceClient.sendToConnection(this.connectionId, data, { contentType: "text/plain" }); }
 }
 
 /** 
@@ -58,7 +56,6 @@ class WpsWebSocketServer extends VirtualWebSocketServer {
 		let handler = new WebPubSubEventHandler(hub_name, ['*'], {
 			path: config.DEFAULT_WPS_MAIN_HANDLER_URL,
 			handleConnect: (req, res) => {
-				log(`[begin] handleConnect`);
 				let connectionId = req.context.connectionId;
 				this.connectionId_to_ws[connectionId] = new SubWpsWebSocketServer(this.serviceClient, connectionId);
 				this.emit("connection", this.connectionId_to_ws[connectionId], req);
@@ -67,33 +64,27 @@ class WpsWebSocketServer extends VirtualWebSocketServer {
 					subprotocol: "graphql-ws"
 				});
 				this.readyState = WebSocket.OPEN;
-				log(`[ end ] handleConnect`);
 			},
 
 			onConnected: async req => {
-				log(`[onConnected] ${req.context.userId}`);
 			}, 
 
 			handleUserEvent: async (req, res) => {
-				log(`[begin] handleUserEvent = ${req.context.eventName}`);
 				if (req.context.eventName === 'message') {	// connection ? message ? 
 					this.connectionId_to_ws[req.context.connectionId].emit("message", req.data);
 			  	}
 			  	res.success();
-				log(`[ end ] handleUserEvent = ${req.context.eventName}`);
 			},
 
 			onDisconnected: async req => {
 				if (req.context.connectionId in Object.keys(this.connectionId_to_ws)) {
 					this.connectionId_to_ws[req.context.connectionId].readyState = WebSocket.CLOSED;
-					log(`[onDisconnected] ${req.context.userId}`);
 				}
 			}, 
 		});
 		this.app.use(handler.getMiddleware());
 		this.app.get('/', (req:any, res:any) => { res.send("WpsWebSocketServer"); });
 		this.app.listen(wps_http_port, () => {
-			log(`Web PubSub EventHandler HTTP Server started at http://localhost:${wps_http_port}`);
 		});
 	}
 	

@@ -1,14 +1,13 @@
 // Modified From https://github.com/apollographql/docs-examples/blob/7105d77acfc67d6cb4097cc27a7956051ec0c1b5/server-subscriptions-as3/index.js
-import {create_webpubsub_subscribe_server} from '../WpsWebSocketServer'
-import { WpsPubSub } from '../azure-wps-pubsub';
+import { create_webpubsub_subscribe_server, WpsPubSub } from '../index';
 import { ApolloServer, gql } from "apollo-server-express";
 import { makeExecutableSchema } from "@graphql-tools/schema";
 import { SubscriptionServer } from 'subscriptions-transport-ws';
 import { PubSub } from "graphql-subscriptions";
 import { createServer } from "http";
 import { execute, subscribe } from "graphql";
-import express from 'express';
 import {config} from "../utils"
+import express from 'express';
 
 const webpubsub_conn_string = "<web-pubsub-connection-string>";
 
