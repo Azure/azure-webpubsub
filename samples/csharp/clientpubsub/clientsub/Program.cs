@@ -1,12 +1,13 @@
 ﻿using System;
 using System.Net.WebSockets;
+using System.Text.Json;
 using System.Threading.Tasks;
 
 using Azure.Messaging.WebPubSub;
 
 using Websocket.Client;
 
-namespace subscriber
+namespace clientsub
 {
     class Program
     {
@@ -14,7 +15,7 @@ namespace subscriber
         {
             if (args.Length != 2)
             {
-                Console.WriteLine("Usage: subscriber <connectionString> <hub>");
+                Console.WriteLine("Usage: clientsub <connectionString> <hub>");
                 return;
             }
             var connectionString = args[0];
@@ -22,7 +23,7 @@ namespace subscriber
 
             // Either generate the URL or fetch it from server or fetch a temp one from the portal
             var serviceClient = new WebPubSubServiceClient(connectionString, hub);
-            var url = serviceClient.GenerateClientAccessUri();
+            var url = serviceClient.GenerateClientAccessUri(userId: "user1", roles: new string[] {"webpubsub.joinLeaveGroup.demogroup", "webpubsub.sendToGroup.demogroup"});
 
             using (var client = new WebsocketClient(url, () =>
             {
@@ -36,6 +37,12 @@ namespace subscriber
                 client.MessageReceived.Subscribe(msg => Console.WriteLine($"Message received: {msg}"));
                 await client.Start();
                 Console.WriteLine("Connected.");
+                client.Send(JsonSerializer.Serialize(new
+                {
+                    type = "joinGroup",
+                    group = "demogroup",
+                    ackId = 1
+                }));
                 Console.Read();
             }
         }

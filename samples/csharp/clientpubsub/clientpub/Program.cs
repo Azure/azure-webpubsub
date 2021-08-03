@@ -1,12 +1,14 @@
 ﻿using System;
+using System.IO;
 using System.Net.WebSockets;
+using System.Text.Json;
 using System.Threading.Tasks;
 
 using Azure.Messaging.WebPubSub;
 
 using Websocket.Client;
 
-namespace subscriber
+namespace clientpub
 {
     class Program
     {
@@ -14,7 +16,7 @@ namespace subscriber
         {
             if (args.Length != 2)
             {
-                Console.WriteLine("Usage: subscriber <connectionString> <hub>");
+                Console.WriteLine("Usage: clientpub <connectionString> <hub>");
                 return;
             }
             var connectionString = args[0];
@@ -22,7 +24,7 @@ namespace subscriber
 
             // Either generate the URL or fetch it from server or fetch a temp one from the portal
             var serviceClient = new WebPubSubServiceClient(connectionString, hub);
-            var url = serviceClient.GenerateClientAccessUri();
+            var url = serviceClient.GenerateClientAccessUri(userId: "user1", roles: new string[] {"webpubsub.joinLeaveGroup.demogroup", "webpubsub.sendToGroup.demogroup"});
 
             using (var client = new WebsocketClient(url, () =>
             {
@@ -36,7 +38,24 @@ namespace subscriber
                 client.MessageReceived.Subscribe(msg => Console.WriteLine($"Message received: {msg}"));
                 await client.Start();
                 Console.WriteLine("Connected.");
-                Console.Read();
+                /* Send to group `demogroup` */
+                int ackId = 1;
+                var streaming = Console.ReadLine();
+                while (streaming != null)
+                {
+                    client.Send(JsonSerializer.Serialize(new
+                    {
+                        type = "sendToGroup",
+                        group = "demogroup",
+                        dataType = "text",
+                        data = streaming,
+                        ackId = ackId++
+                    }));
+                    streaming = Console.ReadLine();
+                }
+
+                Console.WriteLine("done");
+                /*  ------------  */
             }
         }
     }

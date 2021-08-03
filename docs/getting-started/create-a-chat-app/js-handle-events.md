@@ -5,11 +5,13 @@ subgroup: create-a-chat-app
 toc: true
 ---
 
-# Handle events
+# Walk-through&#58; Create a chat app
 
-In last tutorial you have learned the basics of publishing and subscribing messages with Azure Web PubSub. In this tutorial you'll learn the event system of Azure Web PubSub so use it to build a complete web application with real time communication functionality. 
+In [last tutorial](../publish-messages/js-publish-message.md) you have learned the basics of publishing and subscribing messages with Azure Web PubSub. In this tutorial you'll learn the event system of Azure Web PubSub so use it to build a complete web application with real time communication functionality. 
 
 The complete code sample of this tutorial can be found [here][code]
+
+![chat room](../../images/simple-chat-room.png)
 
 ## Prerequisites
 
@@ -153,7 +155,7 @@ Then open Azure portal and go to the settings tab to configure the event handler
 
 1. Type the hub name (chat) and click "Add".
 
-2. Set URL Pattern to `https://<domain-name>.ngrok.io/eventhandler` and check "connected" in System Event Pattern, click "Save".
+2. Set URL Pattern to `https://<domain-name>.ngrok.io/eventhandler/{event}` and check "connected" in System Event Pattern, click "Save". `{event}` is a pattern supported by the service that the service will help replace with the actual event name.
 
 ![Event Handler](./../../images/portal_event_handler.png)
 

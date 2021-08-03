@@ -5,11 +5,13 @@ subgroup: create-a-chat-app
 toc: true
 ---
 
-# Handle events
+# Walk-through&#58; Create a chat app
 
-In last tutorial you have learned the basics of publishing and subscribing messages with Azure Web PubSub. In this tutorial you'll learn the event system of Azure Web PubSub so use it to build a complete web application with real time communication functionality. 
+In [last tutorial](../publish-messages/csharp-publish-message.md) you have learned the basics of publishing and subscribing messages with Azure Web PubSub. In this tutorial you'll learn the event system of Azure Web PubSub so use it to build a complete web application with real time communication functionality. 
 
 We're going to build the chat application incrementally, but the complete code sample of this tutorial can be found [here][code].
+
+![chat room](../../images/simple-chat-room.png)
 
 ## Prerequisites
 
@@ -97,7 +99,7 @@ You may remember in last tutorial the subscriber uses an API in Web PubSub SDK t
                 return;
             }
             var serviceClient = context.RequestServices.GetRequiredService<WebPubSubServiceClient>();
-            await context.Response.WriteAsync(serviceClient.GetClientAccessUri(id).AbsoluteUri);
+            await context.Response.WriteAsync(serviceClient.GenerateClientAccessUri(userId: id).AbsoluteUri);
         });
     });
     ```

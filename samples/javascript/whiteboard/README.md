@@ -44,7 +44,7 @@ This application is based on the following technologies:
 
    Now you can see a public endpoint created by ngrok (something like https://abc.ngrok.io). Go to your Azure Web PubSub resource in Azure portal, open settings tab, create a new hub called `draw`, set the following:
    
-   * URL Template: `https://<your-ngrok-name>.ngrok/eventhandler`
+   * URL Template: `https://<your-ngrok-name>.ngrok/eventhandler/{event}`
    * User Event Pattern: `message`
    * System Events: `connect`, `connected`, `disconnected`
 
