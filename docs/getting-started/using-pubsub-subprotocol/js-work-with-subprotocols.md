@@ -19,7 +19,7 @@ To specify a subprotocol, you just need to use the [protocol](https://developer.
 let ws = new WebSocket(url, protocol);
 ```
 
-Currently Azure Web PubSub supports subprotocol: `json.webpubsub.azure.v1` and `protobuf.webpubsub.azure.v1`.
+Currently Azure Web PubSub supports subprotocols: `json.webpubsub.azure.v1` and `protobuf.webpubsub.azure.v1`.
 
 > If you use other protocol names, they will be ignored by the service and passthrough to server in the connect event handler, so you can build your own protocols.
 

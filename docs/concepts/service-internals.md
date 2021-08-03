@@ -102,7 +102,7 @@ Such connection can be used in a typical client-server architecture, that the cl
 <a name="pubsub_client"></a>
 
 ### The PubSub WebSocket client
-The service also supports a list of specific subprotocol includes `json.webpubsub.azure.v1` and `protobuf.webpubsub.azure.v1` which empowers the clients to do publish/subscribe directly instead of a round trip to the upstream server. We call the WebSocket connection with these subprotocol a PubSub WebSocket client.
+The service also supports a list of specific subprotocols including `json.webpubsub.azure.v1` and `protobuf.webpubsub.azure.v1` which empowers the clients to do publish/subscribe directly instead of a round trip to the upstream server. We call WebSocket connections with these subprotocols PubSub WebSocket clients.
 
 For example, in JS, a PubSub WebSocket client using `json.webpubsub.azure.v1` can be created using:
 ```js
