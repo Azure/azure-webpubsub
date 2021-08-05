@@ -1,20 +1,20 @@
 // Modified From https://github.com/apollographql/docs-examples/blob/7105d77acfc67d6cb4097cc27a7956051ec0c1b5/server-subscriptions-as3/index.js
-import { create_webpubsub_subscribe_server, WpsPubSub } from '../index';
+import { getWebPubSubServerOptions, WpsPubSub } from '../index';
 import { ApolloServer, gql } from "apollo-server-express";
 import { makeExecutableSchema } from "@graphql-tools/schema";
 import { SubscriptionServer } from 'subscriptions-transport-ws';
 import { PubSub } from "graphql-subscriptions";
 import { createServer } from "http";
 import { execute, subscribe } from "graphql";
-import {config} from "../utils"
+import { DEFAULT_OPTIONS } from '../utils';
 import express from 'express';
 
-const webpubsub_conn_string = "<web-pubsub-connection-string>";
+const webpubsub_conn_string = "<webpubsub-connection-string>";
 
 // when useWPS = false, subscription server will be launched without Azure WebPub support
-const useWPS = true;
+const useWPS = false;
 
-const pubsub = useWPS ? new WpsPubSub(webpubsub_conn_string) : new PubSub();
+const pubsub = useWPS ? new WpsPubSub(webpubsub_conn_string, DEFAULT_OPTIONS.pubsubOptions) : new PubSub();
 
 let currentNumber = 0;
 
@@ -45,29 +45,35 @@ function incrementNumber() {
 }
 
 async function main() {
-	// Create a HTTP server
+	// --------------------		Step 1 : Create an Apollo HTTP server		---------------------
+
+	// a. Create an Express application
 	const app = express();
-	const httpServer = createServer(app);	// http.createServer
 	
-	// Create and instlal Apollo Server
+	// b. Create an Apollo Server and apply it to the Express application
 	const apolloServer = new ApolloServer({schema});
 	await apolloServer.start();
 	app.use(apolloServer.getMiddleware());
 
-	// Create a Subscription Server
-	if (useWPS) {
-		await create_webpubsub_subscribe_server(apolloServer, schema, pubsub as WpsPubSub, webpubsub_conn_string);
-	} else {
-		SubscriptionServer.create(
-			{ schema, execute, subscribe },
-			{ server: httpServer, path: apolloServer.graphqlPath }
-		);
-	}
+	// c. Create a HTTP server with the Express application
+	const httpServer = createServer(app);	// http.createServer
 
-	// start the http server
-	httpServer.listen(config.DEFAULT_SERVER_PORT, () => {
-		console.log(`🚀 Query endpoint ready at http://localhost:${config.DEFAULT_SERVER_PORT}${apolloServer.graphqlPath}`);
-		console.log("🚀 Subscription endpoint ready at "  + (useWPS ? apolloServer.subscriptionsPath : `ws://localhost:${config.DEFAULT_SERVER_PORT}${apolloServer.graphqlPath}`));
+
+	// --------------------		Step 2 : Create an Subscription Server		---------------------
+	var createOptions = useWPS 
+					? await getWebPubSubServerOptions(apolloServer, pubsub as WpsPubSub, webpubsub_conn_string, DEFAULT_OPTIONS.subscribeServerOptions)
+					: { server: httpServer, path: apolloServer.graphqlPath }
+
+	SubscriptionServer.create( 
+		{ schema, execute, subscribe, }, 
+		createOptions,
+	);
+
+
+	// --------------------		Step 3 : Launch the httpServer				---------------------
+	httpServer.listen(DEFAULT_OPTIONS.apolloPort, () => {
+		console.log(`🚀 Query endpoint ready at http://localhost:${DEFAULT_OPTIONS.apolloPort}${apolloServer.graphqlPath}`);
+		console.log("🚀 Subscription endpoint ready at "  + (useWPS ? apolloServer.subscriptionsPath : `ws://localhost:${DEFAULT_OPTIONS.apolloPort}${apolloServer.graphqlPath}`));
 	});
 
 	incrementNumber();

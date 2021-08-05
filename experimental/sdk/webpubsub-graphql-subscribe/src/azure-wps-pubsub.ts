@@ -1,7 +1,6 @@
 import { WebPubSubServiceClient } from '@azure/web-pubsub';
 import { EventEmitter } from 'events';
 import { PubSubEngine } from 'graphql-subscriptions'
-import { config} from './utils';
 import { v4 as uuidv4 } from 'uuid';
 const WebSocket = require('ws');
 
@@ -23,9 +22,9 @@ export class WpsPubSub extends PubSubEngine {
 	wpsUserId: string;
 	ws: any;
 	
-	constructor(webpubsub_conn_string: string) {
+	constructor(wpsConnString: string, options: any) {
 		super();
-		this.serviceClient = new WebPubSubServiceClient(webpubsub_conn_string, config.DEFAULT_WPS_PUBSUB_PUB);
+		this.serviceClient = new WebPubSubServiceClient(wpsConnString, options.hubName);
 		this.wpsUserId = `pubsubEngine-${uuidv4()}`;
 		this.ws = undefined;
 	}
