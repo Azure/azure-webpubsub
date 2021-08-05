@@ -242,7 +242,8 @@
         function connect(client, endpoint, onConnected, onMessage) {
             client.connecting = true;
             try {
-                var websocket = client.connection = new WebSocket(endpoint, 'json.webpubsub.azure.v1');
+                var markedEndpoint = endpoint.indexOf('?') > -1 ? endpoint + "&awps-live-demo=true" : endpoint + "?awps-live-demo=true"
+                var websocket = client.connection = new WebSocket(markedEndpoint, 'json.webpubsub.azure.v1');
                 websocket.onopen = e => {
                     addItem({
                         time: new Date().toISOString(),
