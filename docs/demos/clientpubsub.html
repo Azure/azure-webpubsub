@@ -242,6 +242,9 @@
         function connect(client, endpoint, onConnected, onMessage) {
             client.connecting = true;
             try {
+                gtag('event', 'user_activity', {
+                    method, 'connect'
+                });
                 var markedEndpoint = endpoint.indexOf('?') > -1 ? endpoint + "&awps-live-demo=true" : endpoint + "?awps-live-demo=true"
                 var websocket = client.connection = new WebSocket(markedEndpoint, 'json.webpubsub.azure.v1');
                 websocket.onopen = e => {
@@ -250,6 +253,9 @@
                         log: `Client WebSocket opened.`,
                     }, client.logs);
                     if (onConnected) onConnected(client);
+                    gtag('event', 'user_activity', {
+                        method, 'connected'
+                    });
                 };
                 websocket.onclose = e => {
                     this.connected = false;
@@ -262,6 +268,10 @@
                     if (onMessage) onMessage(client, e);
                 }
             } catch (err) {
+                gtag('event', 'exception', {
+                    description, err,
+                    fatal: true
+                });
                 addItem({
                         time: new Date().toISOString(),
                         log: `Error: ${err}`,
@@ -306,6 +316,9 @@
                             ackId: ackId // ackId is optional, use ackId to make sure this action is executed
                         }
                     ));
+                    gtag('event', 'user_activity', {
+                        method, 'joinGroup'
+                    });
                     addAck({
                         time: new Date().toISOString(),
                         ackId: ackId,
@@ -323,6 +336,9 @@
                             ackId: ackId // ackId is optional, use ackId to make sure this action is executed
                         }
                     ));
+                    gtag('event', 'user_activity', {
+                        method, 'sendToGroup'
+                    });
                     addAck({
                         time: new Date().toISOString(),
                         ackId: ackId,
