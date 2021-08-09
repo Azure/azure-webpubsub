@@ -242,11 +242,11 @@
         function connect(client, endpoint, onConnected, onMessage) {
             client.connecting = true;
             try {
-                gtag('event', 'user_activity', {
-                    method, 'connect'
-                });
                 var markedEndpoint = endpoint.indexOf('?') > -1 ? endpoint + "&awps-live-demo=true" : endpoint + "?awps-live-demo=true"
                 var websocket = client.connection = new WebSocket(markedEndpoint, 'json.webpubsub.azure.v1');
+                gtag('event', 'user_activity', {
+                    method: 'connect'
+                });
                 websocket.onopen = e => {
                     addItem({
                         time: new Date().toISOString(),
@@ -254,7 +254,7 @@
                     }, client.logs);
                     if (onConnected) onConnected(client);
                     gtag('event', 'user_activity', {
-                        method, 'connected'
+                        method: 'connected'
                     });
                 };
                 websocket.onclose = e => {
@@ -317,7 +317,7 @@
                         }
                     ));
                     gtag('event', 'user_activity', {
-                        method, 'joinGroup'
+                        method: 'joinGroup'
                     });
                     addAck({
                         time: new Date().toISOString(),
@@ -337,7 +337,7 @@
                         }
                     ));
                     gtag('event', 'user_activity', {
-                        method, 'sendToGroup'
+                        method: 'sendToGroup'
                     });
                     addAck({
                         time: new Date().toISOString(),
