@@ -259,6 +259,10 @@
                 };
                 websocket.onclose = e => {
                     this.connected = false;
+                    gtag('event', 'exception', {
+                        description, `Client WebSocket closed. Type: ${e.type}, code: ${e.code}, reason: ${e.reason}, wasClean: ${e.wasClean}.`,
+                        fatal: true
+                    });
                     addItem({
                         time: new Date().toISOString(),
                         log: `Client WebSocket closed. Type: ${e.type}, code: ${e.code}, reason: ${e.reason}, wasClean: ${e.wasClean}.`,
