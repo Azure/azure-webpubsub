@@ -273,7 +273,7 @@
                 }
             } catch (err) {
                 gtag('event', 'exception', {
-                    description, err,
+                    description: err,
                     fatal: true
                 });
                 addItem({
