@@ -15,7 +15,7 @@ We're going to build the chat application incrementally, but the complete code s
 
 ## Prerequisites
 
-1. [ASP.NET Core 3.1 or above](https://docs.microsoft.com/en-us/aspnet/core)
+1. [ASP.NET Core 3.1 or above](https://docs.microsoft.com/aspnet/core)
 2. Create an Azure Web PubSub resource
 
 ## Create a server
