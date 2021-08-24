@@ -142,37 +142,31 @@
                 </div>
                 <div v-show="client.connected" class="chat my-4">
                     <form v-on:submit.prevent="join(client)" class="my-2">
-                        <div class="input-group row g-3 align-items-center">
-                            <div class="col-3">
-                                <label for="joinGroupLabel1"><b>Join Group:</b></label>
+                        <div class="input-group row">
+                            <div class="col-3 my-3">
+                                <label for="sendGroupLabel1"><b>Join and Send to Group: </b></label>
+                                <br>
+                                <span class="font-weight-light">Join group first to receive message in this group.</span>
                             </div>
-                            <div class="col-auto" >
-                                <input id="joinGroupLabel1" type="text" v-model="client.groupToJoin"
-                                    class="form-control" placeholder="Group Name">
+                            <div class="col-auto my-2">
+                                <input type="text" v-model="client.group" class="form-control"
+                                    placeholder="Group Name" v-on:change="groupchanged(client)">
                             </div>
-                            <div class="col-auto">
+                            <div class="col-auto my-2">
                                 <button type="submit" class="btn btn-success" style="width:60px"
-                                    :disabled="!client.connected || !client.groupToJoin">Join</button>
+                                    :disabled="!client.connected || !client.group">Join</button>
                             </div>
                         </div>
                     </form>
-                    <hr>
                     <form v-on:submit.prevent="publish(client)" class="my-2">
-                        <div class="input-group row">
-                            <div class="col-3 my-3">
-                                <label for="sendGroupLabel1"><b>Publish to Group: </b></label>
-                            </div>
-                            <div class="col-auto my-2">
-                                <input type="text" v-model="client.groupToPublish" class="form-control"
-                                    placeholder="Group Name">
-                            </div>
+                        <div class="inpug-group row">
                             <div class="col-10">
                                 <input type="text" v-model="client.newMessage" class="form-control" id="sendGroupLabel1"
                                     placeholder="Type messages to publish">
                             </div>
                             <div class="col-auto">
                                 <button type="submit" class="btn btn-success" style="width:60px"
-                                    :disabled="!client.connected || !client.newMessage || !client.groupToPublish">Send</button>
+                                    :disabled="!client.connected || !client.newMessage || !client.group || !client.groupjoined">Send</button>
                             </div>
                         </div>
                     </form>
@@ -193,7 +187,7 @@
                                     {{message.content}}
                                 </div>
                                 <div v-else class="float-left" role="text">
-                                    <span>From <i>{{message.from}}</i>: </span>
+                                    <span>[From Group] <i>{{message.from}}</i>: </span>
                                     <span class="font-weight-bold text-break ">{{message.content}}</span>
                                 </div>
                             </div>
@@ -221,11 +215,11 @@
                 connection: null,
                 id: 1,
                 newMessage: 'Hello World',
-                groupToJoin: 'Group1',
-                groupToPublish: 'Group1',
+                group: 'Group1',
                 chat: { messages: [] },
                 connecting: false,
                 connected: false,
+                groupjoined: false,
                 acks: [],
                 logs: [],
                 userId: null,
@@ -316,17 +310,18 @@
                     client.connection.send(JSON.stringify(
                         {
                             type: "joinGroup",
-                            group: client.groupToJoin,
+                            group: client.group,
                             ackId: ackId // ackId is optional, use ackId to make sure this action is executed
                         }
                     ));
+                    client.groupjoined = true;
                     gtag('event', 'user_activity', {
                         method: 'joinGroup'
                     });
                     addAck({
                         time: new Date().toISOString(),
                         ackId: ackId,
-                        log: `Joining group ${client.groupToJoin}`,
+                        log: `Joining group ${client.group}`,
                         status: "requested.",
                     }, client);
                 },
@@ -335,7 +330,7 @@
                     client.connection.send(JSON.stringify(
                         {
                             type: "sendToGroup",
-                            group: client.groupToPublish,
+                            group: client.group,
                             data: client.newMessage,
                             ackId: ackId // ackId is optional, use ackId to make sure this action is executed
                         }
@@ -346,7 +341,7 @@
                     addAck({
                         time: new Date().toISOString(),
                         ackId: ackId,
-                        log: `Sending message to group ${client.groupToPublish}`,
+                        log: `Sending message to group ${client.group}`,
                         status: "requested",
                     }, client);
                 },
@@ -388,10 +383,13 @@
                             }
                             else if (response.type === "message") {
                                 let content = response.data;
-                                addItem({ from: `Group ${response.group}`, content: content }, client.chat.messages);
+                                addItem({ from: `${response.group}`, content: content }, client.chat.messages);
                             }
                         });
                 },
+                groupchanged: function(client) {
+                    client.groupjoined = false;
+                }
             }
         });
     </script>
