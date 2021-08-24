@@ -29,4 +29,4 @@ Run:
 node stream
 ```
 
-Start typing messages and you can see these messages are transfered to the browser in real-time.
+Start typing messages and you can see these messages are transferred to the browser in real-time.

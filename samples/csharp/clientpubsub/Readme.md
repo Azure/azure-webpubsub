@@ -2,7 +2,7 @@
 
 ## Prerequisites
 
-1. [dotnet](https://nodejs.org)
+1. [ASP.NET Core 3.1 or above](https://docs.microsoft.com/aspnet/core)
 2. Create an Azure Web PubSub resource
 
 ## Setup
@@ -23,4 +23,4 @@ cd clientpub
 dotnet run "ConnectionString>" pubsubhub
 ```
 
-Start typing messages and you can see these messages are transfered to the client subscriber in real-time.
+Start typing messages and you can see these messages are transferred to the client subscriber in real-time.
