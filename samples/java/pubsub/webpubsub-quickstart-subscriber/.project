@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <projectDescription>
-	<name>webpubsub-tutorial-chat</name>
+	<name>webpubsub-quickstart-subscriber</name>
 	<comment></comment>
 	<projects>
 	</projects>
@@ -22,7 +22,7 @@
 	</natures>
 	<filteredResources>
 		<filter>
-			<id>1629874089704</id>
+			<id>1629884770284</id>
 			<name></name>
 			<type>30</type>
 			<matcher>
