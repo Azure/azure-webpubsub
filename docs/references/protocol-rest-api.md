@@ -1,4 +1,5 @@
 ---
+redirect_to: https://docs.microsoft.com/rest/api/webpubsub/
 layout: docs
 toc: true
 group: references

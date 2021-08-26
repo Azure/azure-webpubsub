@@ -1,4 +1,5 @@
 ---
+redirect_to: https://docs.microsoft.com/azure/azure-web-pubsub/tutorial-subprotocol?tabs=python
 layout: docs
 group: getting-started
 subgroup: using-pubsub-subprotocol
@@ -15,7 +16,7 @@ The complete code sample of this tutorial can be found [here][code].
 
 To specify a subprotocol, you just need to use the [protocol](https://developer.mozilla.org/en-US/docs/Web/API/WebSocket/WebSocket#parameters) parameter in the constructor:
 
-```javascript
+```python
 websockets.connect(url, subprotocols=[protocol])
 ```
 

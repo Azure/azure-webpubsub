@@ -1,4 +1,5 @@
 ---
+redirect_to: https://docs.microsoft.com/azure/azure-web-pubsub/concept-client-protocols
 layout: docs
 group: references
 toc: true
