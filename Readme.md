@@ -7,56 +7,32 @@ Azure Web PubSub enables you to build real-time messaging web applications using
 
 Any scenario that requires real-time publish-subscribe messaging between server and clients or among clients, can use Azure Web PubSub service. Traditional real-time features that often require polling from server or submitting HTTP requests, can also use Azure Web PubSub service.
 
-We list some examples that are good to use Azure Web PubSub service:
-
-* **High frequency data updates:** gaming, voting, polling, auction.
-* **Live dashboards and monitoring:** company dashboard, financial market data, instant sales update, multi-player game leader board, and IoT monitoring.
-* **Cross-platform live chat:** live chat room, chat bot, on-line customer support, real-time shopping assistant, messenger, in-game chat, and so on.
-* **Real-time location on map:** logistic tracking, delivery status tracking, transportation status updates, GPS apps.
-* **Real-time targeted ads:** personalized real-time push ads and offers, interactive ads.
-* **Collaborative apps:** coauthoring, whiteboard apps and team meeting software.
-* **Push instant notifications:** social network, email, game, travel alert.
-* **Real-time broadcasting:** live audio/video broadcasting, live captioning, translating, events/news broadcasting.
-* **IoT and connected devices:** real-time IoT metrics, remote control, real-time status, and location tracking.
-* **Automation:** real-time trigger from upstream events.
-
 ## Quickstart
 
-Eager to get started? Check [Quickstart](./docs/getting-started/quickstart.md) to get started!
+Eager to get started? Check [Quickstart](https://docs.microsoft.com/azure/azure-web-pubsub/howto-develop-create-instance) to get started!
 
 ## Step-by-step tutorials
-- Publish messages to WebSocket connections 
-    - [JavaScript](./docs/getting-started/publish-messages/js-publish-message.md)
-    - [C#](./docs/getting-started/publish-messages/csharp-publish-message.md)
-    - [Python](./docs/getting-started/publish-messages/python-publish-message.md)
-    - [Java](./docs/getting-started/publish-messages/java-publish-message.md)
-- Create a chat app
-    - [JavaScript](./docs/getting-started/create-a-chat-app/js-handle-events.md)
-    - [C#](./docs/getting-started/create-a-chat-app/csharp-handle-events.md)
-    - [Java](./docs/getting-started/create-a-chat-app/java-handle-events.md)
-- Using PubSub WebSocket subprotocol
-    - [JavaScript](./docs/getting-started/using-pubsub-subprotocol/js-work-with-subprotocols.md)
-    - [Java](./docs/getting-started/using-pubsub-subprotocol/java-work-with-subprotocols.md)
-    - [Python](./docs/getting-started/using-pubsub-subprotocol/python-work-with-subprotocols.md)
+- [Publish and subscribe messages](https://docs.microsoft.com/azure/azure-web-pubsub/tutorial-pub-sub-messages)
+- [Create a chat app](https://docs.microsoft.com/azure/azure-web-pubsub/tutorial-build-chat)
+- [Publish and subscribe messages between WebSocket clients using subprotocol](https://docs.microsoft.com/azure/azure-web-pubsub/tutorial-subprotocol)
 
 ## Integrate with Azure Function
-- Work with Azure Function
-  - [C#](./docs/getting-started/work-with-azure-function/csharp-work-with-azure-function.md)
-  - [JavaScript](./docs/getting-started/work-with-azure-function/js-work-with-azure-function.md)
-- [Function bindings](./docs/references/functions-bindings.md)
+- [Tutorial: Create a serverless notification app with Azure Functions](https://docs.microsoft.com/azure/azure-web-pubsub/tutorial-serverless-notification)
+- [Tutorial: Create a serverless chat with Azure Functions](https://docs.microsoft.com/azure/azure-web-pubsub/quickstart-serverless)
+- [Function bindings](https://docs.microsoft.com/azure/azure-web-pubsub/reference-functions-bindings)
 
 ## Troubleshooting Guidance
-[Here](./docs/getting-started/troubleshoot.md) contains the details.
+[Here](https://docs.microsoft.com/azure/azure-web-pubsub/howto-troubleshoot-diagnostic-logs) contains the details.
 
 ## References
 - Client-side
-    - [Client WebSocket APIs](./docs/references/client-websocket-apis/)
-    - [Client PubSub Subprotocol](./docs/references/pubsub-websocket-subprotocol.md)
+    - [Client WebSocket APIs](https://docs.microsoft.com/azure/azure-web-pubsub/concept-client-protocols)
+    - [Client PubSub Subprotocol](https://docs.microsoft.com/azure/azure-web-pubsub/concept-client-protocols)
 - Serve-side
-    - [Server SDKs](./docs/references/server-sdks/index.md)
-    - [Server CloudEvents protocol](./docs/references/protocol-cloudevents.md)
+    - [Server SDKs](https://docs.microsoft.com/azure/azure-web-pubsub/reference-server-sdk-csharp)
+    - [Server CloudEvents protocol](https://docs.microsoft.com/azure/azure-web-pubsub/reference-cloud-events)
     - [Server REST API][rest]
-
+- [Service Internals](https://docs.microsoft.com/azure/azure-web-pubsub/concept-service-internals)
 
 ## Contributing
 
