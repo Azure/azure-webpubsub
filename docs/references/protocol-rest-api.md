@@ -5,9 +5,4 @@ toc: true
 group: references
 ---
 
-# Azure Web PubSub Service REST API
-
-[Web PubSub REST API][rest]
-
-
-[rest]: https://docs.microsoft.com/rest/api/webpubsub/
+Click [here](https://docs.microsoft.com/rest/api/webpubsub/) for the latest docs.
