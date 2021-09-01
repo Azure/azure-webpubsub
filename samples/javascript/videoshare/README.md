@@ -33,7 +33,7 @@ This application is based on the following technologies:
    npm start
    ```
 
-Now open http://localhost:8080 in your browser to use the whiteboard.
+Now open http://localhost:8080 in your browser to use the video share.
 
 ## Deploy to Azure
 
@@ -59,4 +59,4 @@ az webapp config appsettings set --resource-group <resource-group-name> --name <
 
 Also update corresponding URL template in settings tab in Azure portal.
 
-Now your whiteboard is running in Azure at `https://<app-name>.azurewebsites.net`. Enjoy!
+Now your video share is running in Azure at `https://<app-name>.azurewebsites.net`. Enjoy!
