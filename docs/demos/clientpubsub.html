@@ -14,26 +14,27 @@
     <!-- Global site tag (gtag.js) - Google Analytics -->
     <script async src="https://www.googletagmanager.com/gtag/js?id=G-5LSB8YMW7Y"></script>
     <script>
-      window.dataLayer = window.dataLayer || [];
-      function gtag(){dataLayer.push(arguments);}
-      gtag('js', new Date());
+        window.dataLayer = window.dataLayer || [];
+        function gtag() { dataLayer.push(arguments); }
+        gtag('js', new Date());
 
-      gtag('config', 'G-5LSB8YMW7Y');
+        gtag('config', 'G-5LSB8YMW7Y');
     </script>
     <!-- Custom styles for this template -->
     <style>
         html,
         body,
         main,
-        main>div,
-        .chat {
+        main>div
+        {
             height: 100%;
         }
-
+        .chat {
+            height: calc(100% - 240px)
+        }
         body {
             font-size: .875rem;
         }
-
         /* Login */
         .login {
             display: flex;
@@ -105,61 +106,90 @@
                             :disabled="!client.endpoint">Connect</button>
                     </div>
                 </form>
-                
-                <div class="d-flex flex-row flex-nowrap p-0">
-                    <div class="col-md-6 p-1">
-                        <b>Join Group:</b>
-                        <form v-on:submit.prevent="join(client)">
-                            <div class="input-group">
-                                <input type="text" v-model="client.groupToJoin" class="form-control"
-                                    placeholder="Group to join">
-                                <button type="submit" class="btn btn-outline-secondary" style="width:60px"
-                                    :disabled="!client.connected || !client.groupToJoin">Join</button>
-                            </div>
-                        </form>
-                        <div style="background-color: black; color: blanchedalmond; height: 150px; overflow: auto;">
-                                <div v-for="l in client.joinlogs.slice().reverse()" :key="l.id">
-                                   [{{l.time}}] {{ l.log }}: {{l.status}}
-                                </div>
-                        </div>
-                    </div>
-                    <div class="col-md-6 p-1">
-                        <b>Publish to Group:</b>
-                        <form v-on:submit.prevent="publish(client)">
-                            <div class="input-group">
-                                <input class="col-md-4" type="text" v-model="client.groupToPublish" class="form-control"
-                                    placeholder="Group to send">
-                                <input type="text" v-model="client.newMessage" class="form-control"
-                                    placeholder="Message to publish">
-                                <button type="submit" class="btn btn-outline-secondary" style="width:60px"
-                                    :disabled="!client.connected || !client.newMessage || !client.groupToPublish">Send</button>
-                            </div>
-                        </form>
-                        <div style="background-color: black; color: blanchedalmond; height: 150px; overflow: auto;">
-                                <div v-for="l in client.publishlogs.slice().reverse()" :key="l.id">
-                                   [{{l.time}}] {{ l.log }}: {{l.status}}
-                                </div>
-                        </div>
+
+                <div v-show="client.connecting" style="background-color: black; color: blanchedalmond; height: 150px; overflow: auto;">
+                    <div v-for="l in client.logs" :key="l.id">
+                        [{{l.time}}] {{ l.log }}
                     </div>
                 </div>
-                    <b>Receives:</b>
-                    <div class="bg-light chat" v-bind:scrollTop="$attrs.scrollHeight">
-                    <div class="m-2 lead" v-for="message in client.chat.messages" v-bind:key="message.id">
-                        <div class="col-md row" style="display: inline-block;">
-                            <div v-if="message.type =='system'"
-                                class="text-success text-center" role="alert">
-                                {{message.content}}
+                <hr>
+                <div v-show="!client.connected">
+                    <h4>Hints</h4>
+                    <p>Create your instance from the <a href="https://portal.azure.com/" target="_blank">Azure portal</a>, and go the <strong>Keys</strong> tab of the instance from the portal.</p>
+                    <p><strong>Keys</strong> tab contains a
+                        <strong>Client URL Generator</strong> for quick test purpose, and in this quick start demo we will use the temp Client URL generated from this generator. In
+                        real-world applications, SDKs are provided to generate the client URLs from <strong>Connection
+                            String</strong> provided in this <b>Keys</b> tab.
+                    </p>
+
+                    <p><img src="images/portal_client_url.png" alt="Client URL"></p>
+
+                    <ul>
+                        <li><strong>Connection</strong>: connection stands for a WebSocket client connection.</li>
+                        <li><strong>Hub</strong>: hub is the logical isolation for connections. Connections always
+                            connect to a hub,
+                            connections can only send to those within the same hub.</li>
+                        <li><strong>User ID</strong>: A connection can belong to a user when it is auth-ed.</li>
+                        <li><strong>Token Lifetime</strong>: Specifies the lifetime of this client URL’s token. When the
+                            token expires,
+                            you get 401 Unauthorized when connecting to the service with this URL.</li>
+                        <li><strong>Roles</strong>: Specifies the roles for the connection. It can be used when the
+                            connection connects
+                            with <code class="language-plaintext highlighter-rouge">json.webpubsub.azure.v1</code>
+                            subprotocol that empowers the client to join/leave/send to groups.
+                        </li>
+                    </ul>
+                </div>
+                <div v-show="client.connected" class="chat my-4">
+                    <form v-on:submit.prevent="join(client)" class="my-2">
+                        <div class="input-group row">
+                            <div class="col-3 my-3">
+                                <label for="sendGroupLabel1"><b>Join and Send to Group: </b></label>
+                                <br>
+                                <span class="font-weight-light">Join group first to receive message in this group.</span>
                             </div>
-                            <div v-else-if="message.type =='error'"
-                                class="text-danger text-center " role="alert">
-                                {{message.content}}
+                            <div class="col-auto my-2">
+                                <input type="text" v-model="client.group" class="form-control"
+                                    placeholder="Group Name" v-on:change="groupchanged(client)">
                             </div>
-                            <div v-else-if="message.type == 'self'" class="alert alert-success float-right" role="text">
-                                {{message.content}}
+                            <div class="col-auto my-2">
+                                <button type="submit" class="btn btn-success" style="width:60px"
+                                    :disabled="!client.connected || !client.group">Join</button>
                             </div>
-                            <div v-else class="float-left" role="text">
-                                <span>From <i>{{message.from}}</i>: </span>
-                                <span class="font-weight-bold text-break ">{{message.content}}</span>
+                        </div>
+                    </form>
+                    <form v-on:submit.prevent="publish(client)" class="my-2">
+                        <div class="input-group row">
+                            <div class="col-10">
+                                <input type="text" v-model="client.newMessage" class="form-control" id="sendGroupLabel1"
+                                    placeholder="Type messages to publish">
+                            </div>
+                            <div class="col-auto">
+                                <button type="submit" class="btn btn-success" style="width:60px"
+                                    :disabled="!client.connected || !client.newMessage || !client.group || !client.groupjoined">Send</button>
+                            </div>
+                        </div>
+                    </form>
+                    <hr>
+
+                    <b>Messages:</b>
+                    <div class="bg-light chat" style="overflow: auto;" v-bind:scrollTop="$attrs.scrollHeight">
+                        <div class="m-2 lead" v-for="message in client.chat.messages" v-bind:key="message.id">
+                            <div class="col-md row" style="display: inline-block;">
+                                <div v-if="message.type =='system'" class="text-success text-center" role="alert">
+                                    {{message.content}}
+                                </div>
+                                <div v-else-if="message.type =='error'" class="text-danger text-center " role="alert">
+                                    {{message.content}}
+                                </div>
+                                <div v-else-if="message.type == 'self'" class="alert alert-success float-right"
+                                    role="text">
+                                    {{message.content}}
+                                </div>
+                                <div v-else class="float-left" role="text">
+                                    <span>[From Group] <i>{{message.from}}</i>: </span>
+                                    <span class="font-weight-bold text-break ">{{message.content}}</span>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -184,13 +214,14 @@
                 endpoint: '',
                 connection: null,
                 id: 1,
-                newMessage: '',
-                groupToJoin: null,
-                groupToPublish: null,
+                newMessage: 'Hello World',
+                group: 'Group1',
                 chat: { messages: [] },
+                connecting: false,
                 connected: false,
-                joinlogs: [],
-                publishlogs: [],
+                groupjoined: false,
+                acks: [],
+                logs: [],
                 userId: null,
                 connectionId: null,
                 ackId: 0,
@@ -199,35 +230,74 @@
 
         function addItem(item, owner) {
             item.id = owner.length;
-            owner.push(item);
+            owner.unshift(item);
         }
 
         function connect(client, endpoint, onConnected, onMessage) {
+            client.connecting = true;
             try {
-                var websocket = client.connection = new WebSocket(endpoint, 'json.webpubsub.azure.v1');
+                var markedEndpoint = endpoint.indexOf('?') > -1 ? endpoint + "&awps-live-demo=true" : endpoint + "?awps-live-demo=true"
+                var websocket = client.connection = new WebSocket(markedEndpoint, 'json.webpubsub.azure.v1');
+                gtag('event', 'user_activity', {
+                    method: 'connect'
+                });
                 websocket.onopen = e => {
-                    addItem({ type: "system", content: `Client WebSocket opened.` }, client.chat.messages);
+                    addItem({
+                        time: new Date().toISOString(),
+                        log: `Client WebSocket opened.`,
+                    }, client.logs);
                     if (onConnected) onConnected(client);
+                    gtag('event', 'user_activity', {
+                        method: 'connected'
+                    });
                 };
                 websocket.onclose = e => {
                     this.connected = false;
-                    addItem({ type: "system", content: `Client WebSocket closed. Type: ${e.type}, code: ${e.code}, reason: ${e.reason}, wasClean: ${e.wasClean}.` }, client.chat.messages);
+                    gtag('event', 'exception', {
+                        description: `Client WebSocket closed. Type: ${e.type}, code: ${e.code}, reason: ${e.reason}, wasClean: ${e.wasClean}.`,
+                        fatal: true
+                    });
+                    addItem({
+                        time: new Date().toISOString(),
+                        log: `Client WebSocket closed. Type: ${e.type}, code: ${e.code}, reason: ${e.reason}, wasClean: ${e.wasClean}.`,
+                    }, client.logs);
                 };
                 websocket.onmessage = e => {
                     if (onMessage) onMessage(client, e);
                 }
             } catch (err) {
-                addItem({ type: "error", content: `Error: ${err}` }, client.chat.messages);
+                gtag('event', 'exception', {
+                    description: err,
+                    fatal: true
+                });
+                addItem({
+                        time: new Date().toISOString(),
+                        log: `Error: ${err}`,
+                    }, client.logs);
             }
         }
 
-        function ack(toAck, ackId, status){
-            var item = toAck.find(i => i.ackId === ackId);
-            if (item) {
+        function addAckLog(ack, client){
+            addItem({
+                        time: ack.time,
+                        log: `${ack.log}(ackId=${ack.ackId}) ${ack.status}`,
+                    }, client.logs);
+        }
+
+        function addAck(ack, client){
+            addItem(ack, client.acks);
+            addAckLog(ack, client);
+        }
+
+        function ack(toAck, ackId, status) {
+            var index = toAck.findIndex(i => i.ackId === ackId);
+            if (index > -1) {
+                var item = toAck[index];
+                toAck.splice(index, 1);
                 item.status = status.success ? "succeeded." : "error: " + status.error.name;
-                return true;
+                return item;
             }
-            return false;
+            return undefined;
         }
 
         const app = new Vue({
@@ -240,66 +310,86 @@
                     client.connection.send(JSON.stringify(
                         {
                             type: "joinGroup",
-                            group: client.groupToJoin,
+                            group: client.group,
                             ackId: ackId // ackId is optional, use ackId to make sure this action is executed
                         }
                     ));
-                    addItem({
+                    client.groupjoined = true;
+                    gtag('event', 'user_activity', {
+                        method: 'joinGroup'
+                    });
+                    addAck({
                         time: new Date().toISOString(),
                         ackId: ackId,
-                        log: `Joining group ${client.groupToJoin}`,
+                        log: `Joining group ${client.group}`,
                         status: "requested.",
-                    }, client.joinlogs);
-                    
-                    client.groupToJoin = '';
+                    }, client);
                 },
                 publish: function (client) {
                     const ackId = ++client.ackId;
                     client.connection.send(JSON.stringify(
                         {
                             type: "sendToGroup",
-                            group: client.groupToPublish,
+                            group: client.group,
                             data: client.newMessage,
                             ackId: ackId // ackId is optional, use ackId to make sure this action is executed
                         }
                     ));
-                    addItem({
+                    gtag('event', 'user_activity', {
+                        method: 'sendToGroup'
+                    });
+                    addAck({
                         time: new Date().toISOString(),
                         ackId: ackId,
-                        log: `Sending message to group ${client.groupToPublish}`,
+                        log: `Sending message to group ${client.group}`,
                         status: "requested",
-                    }, client.publishlogs);
-                    client.newMessage = '';
+                    }, client);
                 },
                 connect: function (client) {
                     // close the previous connection if any and start a new connection
                     if (client.connection) client.connection.close();
                     connect(client, client.endpoint, null,
-                    (client, msg) => {
-                        let response = JSON.parse(msg.data);
-                        if (response.type === "system") {
-                            if (response.event === "connected") {
-                                client.userId = response.userId;
-                                client.connectionId = response.connectionId;
-                                client.connected = true;
-                                addItem({ type: "system", content: `${response.userId || ''}:${response.connectionId} connected.` }, client.chat.messages);
+                        (client, msg) => {
+                            let response = JSON.parse(msg.data);
+                            if (response.type === "system") {
+                                if (response.event === "connected") {
+                                    client.userId = response.userId;
+                                    client.connectionId = response.connectionId;
+                                    client.connected = true;
+                                    addItem({
+                                        time: new Date().toISOString(),
+                                        log: `${response.userId || ''}:${response.connectionId} connected.`,
+                                    }, client.logs);
+                                }
+                                else if (response.event === "disconnected")
+
+                                    addItem({
+                                        time: new Date().toISOString(),
+                                        log: `Disconnected. ${response.message}`,
+                                    }, client.logs);
                             }
-                            else if (response.event === "disconnected")
-                                addItem({ type: "system", content: `Disconnected. ${response.message}` }, client.chat.messages);
-                        }
-                        else if (response.type === "ack") {
-                            if (!ack(client.joinlogs, response.ackId, response))
-                                ack(client.publishlogs, response.ackId, response);
-                            if (!response.success) {
-                                addItem({ type: "error", content: response.error.message }, client.chat.messages);
+                            else if (response.type === "ack") {
+                                var toAck = ack(client.acks, response.ackId, response)
+                                if (toAck){
+                                    addAckLog(toAck, client);
+                                }
+
+                                if (!response.success) {
+                                    addItem({
+                                        time: new Date().toISOString(),
+                                        log: `Error: ${response.error.message}`,
+                                    }, client.logs);
+                                }
                             }
-                        }
-                        else if (response.type === "message") {
-                            let content = response.data;
-                            addItem( { from: `Group ${response.group}`, content: content}, client.chat.messages);
-                        }
-                    });
+                            else if (response.type === "message") {
+                                let content = response.data;
+                                addItem({ from: `${response.group}`, content: content }, client.chat.messages);
+                            }
+                        });
                 },
+                groupchanged: function(client) {
+                    client.groupjoined = false;
+                }
             }
         });
     </script>

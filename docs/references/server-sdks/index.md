@@ -5,11 +5,7 @@ subgroup: server-sdks
 redirect-from:
     - "/references/server-sdks/"
 toc: true
+redirect-to: https://docs.microsoft.com/azure/azure-web-pubsub/reference-server-sdk-csharp
 ---
 
-## Server SDKs
-
-- [JavaScript](./js-server-sdks.md)
-- [C#](./csharp-server-sdks.md)
-- [Python](./python-server-sdks.md)
-- [Java](./java-server-sdks.md)
+Click [here](https://docs.microsoft.com/azure/azure-web-pubsub/reference-server-sdk-csharp) for the latest docs.
