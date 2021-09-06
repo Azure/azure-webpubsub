@@ -20,7 +20,7 @@ DESCRIPTOR = _descriptor.FileDescriptor(
   syntax='proto3',
   serialized_options=None,
   create_key=_descriptor._internal_create_key,
-  serialized_pb=b'\n\x0cpubsub.proto\x12\x0f\x61zure.webpubsub\x1a\x19google/protobuf/any.proto\"\xa1\x05\n\x0fUpstreamMessage\x12T\n\x15send_to_group_message\x18\x01 \x01(\x0b\x32\x33.azure.webpubsub.UpstreamMessage.SendToGroupMessageH\x00\x12\x46\n\revent_message\x18\x05 \x01(\x0b\x32-.azure.webpubsub.UpstreamMessage.EventMessageH\x00\x12O\n\x12join_group_message\x18\x06 \x01(\x0b\x32\x31.azure.webpubsub.UpstreamMessage.JoinGroupMessageH\x00\x12Q\n\x13leave_group_message\x18\x07 \x01(\x0b\x32\x32.azure.webpubsub.UpstreamMessage.LeaveGroupMessageH\x00\x1ao\n\x12SendToGroupMessage\x12\r\n\x05group\x18\x01 \x01(\t\x12\x13\n\x06\x61\x63k_id\x18\x02 \x01(\x05H\x00\x88\x01\x01\x12*\n\x04\x64\x61ta\x18\x03 \x01(\x0b\x32\x1c.azure.webpubsub.MessageDataB\t\n\x07_ack_id\x1aI\n\x0c\x45ventMessage\x12\r\n\x05\x65vent\x18\x01 \x01(\t\x12*\n\x04\x64\x61ta\x18\x02 \x01(\x0b\x32\x1c.azure.webpubsub.MessageData\x1a\x41\n\x10JoinGroupMessage\x12\r\n\x05group\x18\x01 \x01(\t\x12\x13\n\x06\x61\x63k_id\x18\x02 \x01(\x05H\x00\x88\x01\x01\x42\t\n\x07_ack_id\x1a\x42\n\x11LeaveGroupMessage\x12\r\n\x05group\x18\x01 \x01(\t\x12\x13\n\x06\x61\x63k_id\x18\x02 \x01(\x05H\x00\x88\x01\x01\x42\t\n\x07_ack_idB\t\n\x07message\"\xf5\x06\n\x11\x44ownstreamMessage\x12\x44\n\x0b\x61\x63k_message\x18\x01 \x01(\x0b\x32-.azure.webpubsub.DownstreamMessage.AckMessageH\x00\x12\x46\n\x0c\x64\x61ta_message\x18\x02 \x01(\x0b\x32..azure.webpubsub.DownstreamMessage.DataMessageH\x00\x12J\n\x0esystem_message\x18\x03 \x01(\x0b\x32\x30.azure.webpubsub.DownstreamMessage.SystemMessageH\x00\x1a\xb6\x01\n\nAckMessage\x12\x0e\n\x06\x61\x63k_id\x18\x01 \x01(\x05\x12\x0f\n\x07success\x18\x02 \x01(\x08\x12N\n\x05\x65rror\x18\x03 \x01(\x0b\x32:.azure.webpubsub.DownstreamMessage.AckMessage.ErrorMessageH\x00\x88\x01\x01\x1a-\n\x0c\x45rrorMessage\x12\x0c\n\x04name\x18\x01 \x01(\t\x12\x0f\n\x07message\x18\x02 \x01(\tB\x08\n\x06_error\x1a\x65\n\x0b\x44\x61taMessage\x12\x0c\n\x04\x66rom\x18\x01 \x01(\t\x12\x12\n\x05group\x18\x02 \x01(\tH\x00\x88\x01\x01\x12*\n\x04\x64\x61ta\x18\x03 \x01(\x0b\x32\x1c.azure.webpubsub.MessageDataB\x08\n\x06_group\x1a\xda\x02\n\rSystemMessage\x12^\n\x11\x63onnected_message\x18\x01 \x01(\x0b\x32\x41.azure.webpubsub.DownstreamMessage.SystemMessage.ConnectedMessageH\x00\x12\x64\n\x14\x64isconnected_message\x18\x02 \x01(\x0b\x32\x44.azure.webpubsub.DownstreamMessage.SystemMessage.DisconnectedMessageH\x00\x1a:\n\x10\x43onnectedMessage\x12\x15\n\rconnection_id\x18\x01 \x01(\t\x12\x0f\n\x07user_id\x18\x02 \x01(\t\x1a<\n\x13\x44isconnectedMessage\x12\x15\n\rconnection_id\x18\x01 \x01(\t\x12\x0e\n\x06reason\x18\x02 \x01(\tB\t\n\x07messageB\t\n\x07message\"p\n\x0bMessageData\x12\x13\n\ttext_data\x18\x01 \x01(\tH\x00\x12\x15\n\x0b\x62inary_data\x18\x02 \x01(\x0cH\x00\x12-\n\rprotobuf_data\x18\x03 \x01(\x0b\x32\x14.google.protobuf.AnyH\x00\x42\x06\n\x04\x64\x61tab\x06proto3'
+  serialized_pb=b'\n\x0cpubsub.proto\x12\x0f\x61zure.webpubsub\x1a\x19google/protobuf/any.proto\"\xa1\x05\n\x0fUpstreamMessage\x12T\n\x15send_to_group_message\x18\x01 \x01(\x0b\x32\x33.azure.webpubsub.UpstreamMessage.SendToGroupMessageH\x00\x12\x46\n\revent_message\x18\x05 \x01(\x0b\x32-.azure.webpubsub.UpstreamMessage.EventMessageH\x00\x12O\n\x12join_group_message\x18\x06 \x01(\x0b\x32\x31.azure.webpubsub.UpstreamMessage.JoinGroupMessageH\x00\x12Q\n\x13leave_group_message\x18\x07 \x01(\x0b\x32\x32.azure.webpubsub.UpstreamMessage.LeaveGroupMessageH\x00\x1ao\n\x12SendToGroupMessage\x12\r\n\x05group\x18\x01 \x01(\t\x12\x13\n\x06\x61\x63k_id\x18\x02 \x01(\x05H\x00\x88\x01\x01\x12*\n\x04\x64\x61ta\x18\x03 \x01(\x0b\x32\x1c.azure.webpubsub.MessageDataB\t\n\x07_ack_id\x1aI\n\x0c\x45ventMessage\x12\r\n\x05\x65vent\x18\x01 \x01(\t\x12*\n\x04\x64\x61ta\x18\x02 \x01(\x0b\x32\x1c.azure.webpubsub.MessageData\x1a\x41\n\x10JoinGroupMessage\x12\r\n\x05group\x18\x01 \x01(\t\x12\x13\n\x06\x61\x63k_id\x18\x02 \x01(\x05H\x00\x88\x01\x01\x42\t\n\x07_ack_id\x1a\x42\n\x11LeaveGroupMessage\x12\r\n\x05group\x18\x01 \x01(\t\x12\x13\n\x06\x61\x63k_id\x18\x02 \x01(\x05H\x00\x88\x01\x01\x42\t\n\x07_ack_idB\t\n\x07message\"\xde\x06\n\x11\x44ownstreamMessage\x12\x44\n\x0b\x61\x63k_message\x18\x01 \x01(\x0b\x32-.azure.webpubsub.DownstreamMessage.AckMessageH\x00\x12\x46\n\x0c\x64\x61ta_message\x18\x02 \x01(\x0b\x32..azure.webpubsub.DownstreamMessage.DataMessageH\x00\x12J\n\x0esystem_message\x18\x03 \x01(\x0b\x32\x30.azure.webpubsub.DownstreamMessage.SystemMessageH\x00\x1a\xb6\x01\n\nAckMessage\x12\x0e\n\x06\x61\x63k_id\x18\x01 \x01(\x05\x12\x0f\n\x07success\x18\x02 \x01(\x08\x12N\n\x05\x65rror\x18\x03 \x01(\x0b\x32:.azure.webpubsub.DownstreamMessage.AckMessage.ErrorMessageH\x00\x88\x01\x01\x1a-\n\x0c\x45rrorMessage\x12\x0c\n\x04name\x18\x01 \x01(\t\x12\x0f\n\x07message\x18\x02 \x01(\tB\x08\n\x06_error\x1a\x65\n\x0b\x44\x61taMessage\x12\x0c\n\x04\x66rom\x18\x01 \x01(\t\x12\x12\n\x05group\x18\x02 \x01(\tH\x00\x88\x01\x01\x12*\n\x04\x64\x61ta\x18\x03 \x01(\x0b\x32\x1c.azure.webpubsub.MessageDataB\x08\n\x06_group\x1a\xc3\x02\n\rSystemMessage\x12^\n\x11\x63onnected_message\x18\x01 \x01(\x0b\x32\x41.azure.webpubsub.DownstreamMessage.SystemMessage.ConnectedMessageH\x00\x12\x64\n\x14\x64isconnected_message\x18\x02 \x01(\x0b\x32\x44.azure.webpubsub.DownstreamMessage.SystemMessage.DisconnectedMessageH\x00\x1a:\n\x10\x43onnectedMessage\x12\x15\n\rconnection_id\x18\x01 \x01(\t\x12\x0f\n\x07user_id\x18\x02 \x01(\t\x1a%\n\x13\x44isconnectedMessage\x12\x0e\n\x06reason\x18\x02 \x01(\tB\t\n\x07messageB\t\n\x07message\"p\n\x0bMessageData\x12\x13\n\ttext_data\x18\x01 \x01(\tH\x00\x12\x15\n\x0b\x62inary_data\x18\x02 \x01(\x0cH\x00\x12-\n\rprotobuf_data\x18\x03 \x01(\x0b\x32\x14.google.protobuf.AnyH\x00\x42\x06\n\x04\x64\x61tab\x06proto3'
   ,
   dependencies=[google_dot_protobuf_dot_any__pb2.DESCRIPTOR,])
 
@@ -444,14 +444,7 @@ _DOWNSTREAMMESSAGE_SYSTEMMESSAGE_DISCONNECTEDMESSAGE = _descriptor.Descriptor(
   create_key=_descriptor._internal_create_key,
   fields=[
     _descriptor.FieldDescriptor(
-      name='connection_id', full_name='azure.webpubsub.DownstreamMessage.SystemMessage.DisconnectedMessage.connection_id', index=0,
-      number=1, type=9, cpp_type=9, label=1,
-      has_default_value=False, default_value=b"".decode('utf-8'),
-      message_type=None, enum_type=None, containing_type=None,
-      is_extension=False, extension_scope=None,
-      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
-    _descriptor.FieldDescriptor(
-      name='reason', full_name='azure.webpubsub.DownstreamMessage.SystemMessage.DisconnectedMessage.reason', index=1,
+      name='reason', full_name='azure.webpubsub.DownstreamMessage.SystemMessage.DisconnectedMessage.reason', index=0,
       number=2, type=9, cpp_type=9, label=1,
       has_default_value=False, default_value=b"".decode('utf-8'),
       message_type=None, enum_type=None, containing_type=None,
@@ -470,7 +463,7 @@ _DOWNSTREAMMESSAGE_SYSTEMMESSAGE_DISCONNECTEDMESSAGE = _descriptor.Descriptor(
   oneofs=[
   ],
   serialized_start=1540,
-  serialized_end=1600,
+  serialized_end=1577,
 )
 
 _DOWNSTREAMMESSAGE_SYSTEMMESSAGE = _descriptor.Descriptor(
@@ -513,7 +506,7 @@ _DOWNSTREAMMESSAGE_SYSTEMMESSAGE = _descriptor.Descriptor(
     fields=[]),
   ],
   serialized_start=1265,
-  serialized_end=1611,
+  serialized_end=1588,
 )
 
 _DOWNSTREAMMESSAGE = _descriptor.Descriptor(
@@ -563,7 +556,7 @@ _DOWNSTREAMMESSAGE = _descriptor.Descriptor(
     fields=[]),
   ],
   serialized_start=737,
-  serialized_end=1622,
+  serialized_end=1599,
 )
 
 
@@ -613,8 +606,8 @@ _MESSAGEDATA = _descriptor.Descriptor(
       create_key=_descriptor._internal_create_key,
     fields=[]),
   ],
-  serialized_start=1624,
-  serialized_end=1736,
+  serialized_start=1601,
+  serialized_end=1713,
 )
 
 _UPSTREAMMESSAGE_SENDTOGROUPMESSAGE.fields_by_name['data'].message_type = _MESSAGEDATA
