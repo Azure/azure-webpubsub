@@ -22,7 +22,7 @@ namespace subscriber
 
             // Either generate the URL or fetch it from server or fetch a temp one from the portal
             var serviceClient = new WebPubSubServiceClient(connectionString, hub);
-            var url = serviceClient.GetClientAccessUri();
+            var url = serviceClient.GenerateClientAccessUri();
 
             using (var client = new WebsocketClient(url, () =>
             {

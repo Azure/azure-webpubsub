@@ -2,9 +2,10 @@
 
 ## Prerequisites
 
-1. [IntelliJ IDEA](https://www.jetbrains.com/idea/)
-2. [ngrok](https://ngrok.com/)
-3. Create an Azure Web PubSub resource
+- [Java Development Kit (JDK)](/java/azure/jdk/) version 8 or above
+- [Apache Maven](https://maven.apache.org/download.cgi)
+- Create an Azure Web PubSub resource
+- [ngrok](https://ngrok.com/download) to expose localhost endpoint
 
 ## Use ngrok to make the local server publicly available
 Run the script `ngrok http 8080`, then copy the URL above the red line.
@@ -20,16 +21,20 @@ Run the script `ngrok http 8080`, then copy the URL above the red line.
 
 ## Start server
 
-1. Copy **Connection String** from **Keys** tab of the created Azure Web PubSub service, and replace the `<connection-string>` (in [Server.java](src/main/java/Server.java#L15)) below with the value of your **Connection String**.
+1. Copy **Connection String** from **Keys** tab of the created Azure Web PubSub service, run the below command with the `<connection-string>` replaced by your **Connection String**:
+
+```console
+mvn compile & mvn package & mvn exec:java -Dexec.mainClass="com.webpubsub.tutorial.App" -Dexec.cleanupDaemonThreads=false -Dexec.args="'<connection_string>'"
+```
+
 ![connection string](../../../docs/images/portal_conn.png)
-2. Run the project.
 
 ## Send Messages in chat room
-1. Open a browser in and visit `http:localhost:8080`.
+1. Open a browser in and visit http://localhost:8080.
 2. Input your user name, and click `OK` button to attend the chat.
 
 3. You will get welcome message `[SYSTEM] <user-name> is joined`.
 4. Input a message to send, press `Enter` key to publish. 
 5. You will see the message in the chat room.
 6. Repeat the above steps in a window, you can see messages broadcast to all the windows.
-![chat room](../../../docs/images/chat-room-java.png)
+![chat room](../../../docs/images/simple-chat-room.png)

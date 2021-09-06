@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <projectDescription>
-	<name>microsoft.azure.webpubsub.samples.java.chatapp</name>
+	<name>webpubsub-tutorial-chat</name>
 	<comment></comment>
 	<projects>
 	</projects>
@@ -22,7 +22,7 @@
 	</natures>
 	<filteredResources>
 		<filter>
-			<id>1619587556126</id>
+			<id>1629874089704</id>
 			<name></name>
 			<type>30</type>
 			<matcher>

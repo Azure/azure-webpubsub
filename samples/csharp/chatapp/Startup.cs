@@ -51,7 +51,7 @@ namespace chatapp
                         return;
                     }
                     var serviceClient = context.RequestServices.GetRequiredService<WebPubSubServiceClient>();
-                    await context.Response.WriteAsync(serviceClient.GetClientAccessUri(id).AbsoluteUri);
+                    await context.Response.WriteAsync(serviceClient.GenerateClientAccessUri(userId: id).AbsoluteUri);
                 });
 
                 // abuse protection

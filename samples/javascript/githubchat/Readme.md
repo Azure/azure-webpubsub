@@ -28,7 +28,7 @@ Copy **Connection String** from **Keys** tab of the created Azure Web PubSub ser
 node server "<connection-string>" <client-id> <client-secret>
 ```
 
-The web app is listening to request at `http://localhost:8080/eventhandler`.
+The web app is listening to request at `http://localhost:8080/eventhandler/`.
 
 ## Use ngrok to expose localhost
 
@@ -44,7 +44,7 @@ Go to the **Settings** tab to configure the event handler for this `chat` hub:
 
 1. Type the hub name (chat) and click "Add".
 
-2. Set URL Pattern to `https://<domain-name>.ngrok.io/eventhandler` and check `connected` in System Event Pattern, click "Save".
+2. Set URL Pattern to `https://<domain-name>.ngrok.io/eventhandler/{event}` and check `connected` in System Event Pattern, click "Save".
 
 ![Event Handler](./../../../docs/images/portal_event_handler.png)
 
