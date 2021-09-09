@@ -1,0 +1,11 @@
+{
+    "$schema": "./../webpubsub.v1.response.json",
+    "type": "message",
+    "from": "group",
+    "fromUserId": "user1",
+    "group": "group1",
+    "dataType": "json",
+    "data" : {
+        "hello": "world"
+    }
+}
