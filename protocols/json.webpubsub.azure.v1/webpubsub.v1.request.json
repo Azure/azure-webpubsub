@@ -56,12 +56,11 @@
               "title": "The group name",
               "description": "The name of the group to send message to."
             },
-            "echo": {
+            "noEcho": {
               "type": "boolean",
               "title": "Defines whether or not echo the message back to the same connection",
-              "description": "If false, this message is not echoed back to the same connection. If not set, the default value is true.",
-              "default": true,
-              "examples": [false]
+              "description": "If set to true, this message is not echoed back to the same connection.",
+              "default": false
             },
             "ackId": {
               "type": "integer",
