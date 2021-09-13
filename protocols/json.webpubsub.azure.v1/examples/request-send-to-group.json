@@ -3,7 +3,7 @@
     "type": "sendToGroup",
     "group": "group1",
     "ackId" : 1,
-    "echo": false,
+    "noEcho": true,
     "dataType": "text",
     "data": "Hello"
 }
