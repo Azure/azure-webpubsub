@@ -1,0 +1,8 @@
+{
+    "$schema": "./../webpubsub.v1.request.json",
+    "type": "event",
+    "event": "message",
+    "data": {
+        "Hello": "world"
+    }
+}

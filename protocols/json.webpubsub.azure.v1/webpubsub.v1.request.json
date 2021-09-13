@@ -1,0 +1,157 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema",
+  "$id": "http://webpubsub.azure.com/webpubsub.v1.schema.json",
+  "type": "object",
+  "title": "The schema for json.webpubsub.azure.v1 requests",
+  "description": "The schema for json.webpubsub.azure.v1 requests.",
+  "examples": [
+    {
+      "type": "joinGroup",
+      "group": "group1",
+      "ackId": 1
+    }
+  ],
+  "oneOf": [
+    { "$ref": "#/$defs/joinLeaveGroupRequest" },
+    { "$ref": "#/$defs/sendToGroupRequest" },
+    { "$ref": "#/$defs/sendEventRequest" }
+  ],
+  "$defs": {
+    "joinLeaveGroupRequest": {
+      "type": "object",
+      "required": ["type", "group"],
+      "properties": {
+        "type": {
+          "type": "string",
+          "title": "The type of the request",
+          "description": "The type of the request.",
+          "enum": ["joinGroup", "leaveGroup"]
+        },
+        "group": {
+          "type": "string",
+          "title": "The group name",
+          "description": "The name of the group."
+        },
+        "ackId": {
+          "type": "integer",
+          "title": "The ackId of the message",
+          "description": "It's an incremental integer for this message. When the ackId is specified, the service sends an ack response message back to the client when the command is successfully executed."
+        }
+      }
+    },
+    "sendToGroupRequest": {
+      "type": "object",
+      "required": ["type", "group"],
+      "allOf": [
+        {
+          "properties": {
+            "type": {
+              "type": "string",
+              "title": "The type of the request",
+              "description": "The type of the request.",
+              "const": "sendToGroup"
+            },
+            "group": {
+              "type": "string",
+              "title": "The group name",
+              "description": "The name of the group to send message to."
+            },
+            "noEcho": {
+              "type": "boolean",
+              "title": "Defines whether or not echo the message back to the same connection",
+              "description": "If set to true, this message is not echoed back to the same connection.",
+              "default": false
+            },
+            "ackId": {
+              "type": "integer",
+              "title": "The ackId of the message",
+              "description": "It's an incremental integer for this message. When the ackId is specified, the service sends an ack response message back to the client when the command is successfully executed."
+            }
+          }
+        },
+        {
+          "oneOf": [
+            { "$ref": "#/$defs/textPayload" },
+            { "$ref": "#/$defs/binaryPayload" },
+            { "$ref": "#/$defs/jsonPayload" }
+          ]
+        }
+      ]
+    },
+    "sendEventRequest": {
+      "type": "object",
+      "required": ["type", "event"],
+      "allOf": [
+        {
+          "properties": {
+            "type": {
+              "type": "string",
+              "title": "The type of the request",
+              "description": "The type of the request.",
+              "const": "event"
+            },
+            "event": {
+              "type": "string",
+              "title": "The event name",
+              "description": "The name of the event.",
+              "examples": ["message"]
+            }
+          }
+        },
+        {
+          "oneOf": [
+            { "$ref": "#/$defs/textPayload" },
+            { "$ref": "#/$defs/binaryPayload" },
+            { "$ref": "#/$defs/jsonPayload" }
+          ]
+        }
+      ]
+    },
+    "textPayload": {
+      "type": "object",
+      "required": ["data", "dataType"],
+      "properties": {
+        "dataType": {
+          "type": "string",
+          "title": "The dataType of the payload",
+          "const": "text"
+        },
+        "data": {
+          "type": "string",
+          "title": "The data payload"
+        }
+      }
+    },
+    "binaryPayload": {
+      "type": "object",
+      "required": ["data", "dataType"],
+      "properties": {
+        "dataType": {
+          "type": "string",
+          "title": "The dataType of the payload",
+          "const": "binary"
+        },
+        "data": {
+          "type": "string",
+          "title": "The base64 format binary data payload"
+        }
+      }
+    },
+    "jsonPayload": {
+      "type": "object",
+      "required": ["data"],
+      "properties": {
+        "dataType": {
+          "type": "string",
+          "title": "The dataType of the payload",
+          "const": "json"
+        },
+        "data": {
+          "type": "object",
+          "title": "The data payload"
+        }
+      }
+    },
+    "additionalProperties": true
+  }
+}

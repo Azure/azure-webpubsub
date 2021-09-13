@@ -1,0 +1,11 @@
+{
+    "$schema": "./../webpubsub.v1.response.json",
+    "type": "ack",
+    "ackId": 1,
+    "success": false,
+    "error": {
+        "name": "Forbidden",
+        "message": "The client has no permission to send message to group 'group1'."
+    }
+
+}

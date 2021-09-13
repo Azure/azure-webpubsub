@@ -1,0 +1,7 @@
+{
+    "$schema": "./../webpubsub.v1.response.json",
+    "type": "system",
+    "event": "connected",
+    "connectionId": "connection123",
+    "userId": "user1"
+}
