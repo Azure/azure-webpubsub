@@ -6,7 +6,7 @@
       "direction": "in",
       "name": "request",
       "hub": "simplechat",
-      "eventName": "connected",
+      "eventName": "disconnected",
       "eventType": "system"
     },
     {

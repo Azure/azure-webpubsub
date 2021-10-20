@@ -2,12 +2,16 @@
   "disabled": false,
   "bindings": [
     {
-      "type": "webPubSubTrigger",
+      "authLevel": "anonymous",
+      "type": "httpTrigger",
       "direction": "in",
-      "name": "request",
-      "hub": "simplechat",
-      "eventName": "connected",
-      "eventType": "system"
+      "name": "req",
+      "methods": ["post"]
+    },
+    {
+      "type": "webPubSubContext",
+      "name": "wpsReq",
+      "direction": "in"
     },
     {
       "type": "webPubSub",

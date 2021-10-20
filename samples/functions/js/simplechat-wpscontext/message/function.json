@@ -1,0 +1,27 @@
+{
+  "disabled": false,
+  "bindings": [
+    {
+      "authLevel": "anonymous",
+      "type": "httpTrigger",
+      "direction": "in",
+      "name": "req"
+    },
+    {
+      "type": "http",
+      "direction": "out",
+      "name": "$return"
+    },
+    {
+      "type": "webPubSubContext",
+      "name": "wpsReq",
+      "direction": "in"
+    },
+    {
+      "type": "webPubSub",
+      "name": "webPubSubEvent",
+      "hub": "simplechat",
+      "direction": "out"
+    }
+  ]
+}

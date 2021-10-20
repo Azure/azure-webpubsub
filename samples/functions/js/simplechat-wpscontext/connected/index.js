@@ -1,20 +1,20 @@
 // Copyright (c) Microsoft. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
-module.exports = function (context, request) {
+module.exports = function (context, req) {
   context.bindings.webPubSubEvent = [];
   context.bindings.webPubSubEvent.push({
     "operationKind": "sendToAll",
     "message": JSON.stringify({
         from: '[System]',
-        content: `${context.bindingData.connectionContext.userId} connected.`
+        content: `${context.bindings.wpsReq.request.connectionContext.userId} connected.`
       }),
     "dataType" : "json"
   });
 
   context.bindings.webPubSubEvent.push({
     "operationKind": "addUserToGroup",
-    "userId": `${context.bindingData.connectionContext.userId}`,
+    "userId": `${context.bindings.wpsReq.request.connectionContext.userId}`,
     "group": "group1"
   });
 
@@ -22,7 +22,7 @@ module.exports = function (context, request) {
     "operationKind": "sendToAll",
     "message": JSON.stringify({
           from: '[System]',
-          content: `${context.bindingData.connectionContext.userId} joined group: group1.`
+          content: `${context.bindings.wpsReq.request.connectionContext.userId} joined group: group1.`
       }),
     "dataType": "json"
   });
