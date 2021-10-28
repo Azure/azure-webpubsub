@@ -42,22 +42,70 @@ SubscriptionServer.create({ schema, execute, subscribe }, serverAdapter);
 
 Compare [subscription demo using Azure Web PubSub](./demos/client-websockets/demo-awps.ts) with the [original subscription demo](./demos/client-websockets/demo-without-awps.ts) to see the complete code changes.
 
-## Run the demo locally
+## Run the demo locally and use Azure Web PubSub
 
-### Use ngrok to expose your local port
+### 1. Create a Azure Web PubSub service
 
-### Create and configure Azure Web PubSub instance
+Follow the [instruction](https://docs.microsoft.com/en-us/azure/azure-web-pubsub/quickstart-cli-create) to create an Azure Web PubSub service.
 
-### Run the demo
+Get the ConnectionString of the service for later use:
+
+```azurecli
+az webpubsub key show --name "<your-unique-resource-name>" --resource-group "myResourceGroup" --query primaryConnectionString
+```
+
+Copy the fetched ConnectionString and it will be used later in this article as the value of `<connection_string>`.
+
+### 2. Run the local demo
+
+Run the below command with `<connection_string>` replaced by the value fetched in the above step:
+
+```cmd
+SET WebPubSubConnectionString=<connection_string>
+npm install
+npm run demo:client
+```
+
+The console log shows that the exposed endpoint for Azure Web PubSub event handlers is `http://localhost:4000/graphql_subscription/`. Let's expose this local endpoint to public so that the Azure Web PubSub can redirect traffic to your localhost.
+
+### Use ngrok to expose your local endpoint
+
+```
+ngrok http 4000 
+```
+
+Then you'll get a forwarding endpoint `http://{ngrok-id}.ngrok.io` like `http://e27c-167-220-255-102.ngrok.io`
+
+### Configure event handlers
+
+Since GraphQL has its own Authentication logic, `graphql_subscription` hub can allow anonymous connect and delegate all the event handling to the upstream. Setting the event handler through Azure CLI with below command:
+
+```azurecli
+az webpubsub hub create --hub-name graphql_subscription --name "<your-unique-resource-name>" --resource-group "myResourceGroup" --allow-anonymous --event-handler url-template=http://{ngrok-id}.ngrok.io/{hub}/{event} user-event-pattern=* system-event=connect system-event=disconnected system-event=connected
+```
 
 ### Open GraphQL Explorer and update the subscription URL
 
+1. Open http://localhost:4000/graphql and click **Query your server**, click the top settings gear, and update the subscription URL to the Web PubSub endpoint `wss://demo1.webpubsub.azure.com/client/hubs/graphql_subscription`. 
 
-## Authentication
+![Set the subscription URL to use the Web PubSub endpoint.](images/graphql-explorer.png)
 
-GraphQL Subscription has its own Authentication mechanism, so we [allow anonymous] WebSocket connect to the Azure Web PubSub service and configure `connect` event handler to delegate the auth process to the upstream GraphQL server.
+2. Update the operations to query the incremental number and run:
+
+```graphql
+subscription IncrementingNumber {
+  numberIncremented
+}
+```
+
+You can see that the subscription updates are consistently pushed to the GraphQL clients through the WebSocket connection.
+
+![Run the subscription operation to use the Web PubSub endpoint.](images/graphql-explorer-run.png)
 
 
+<!-- TODO: Add PubSub part
 ## Next step
 
 In this article, we show how to use Azure Web PubSub to host and manage GraphQL Subscription WebSocket connections. Actually Web PubSub can also be used as a Pub/Sub backend engine to sync data between GraphQL servers. [Use Azure Web PubSub for GraphQL Pub/Sub]() describes how to.
+
+ -->

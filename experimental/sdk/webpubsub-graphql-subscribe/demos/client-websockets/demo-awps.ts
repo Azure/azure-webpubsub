@@ -7,7 +7,7 @@ const { ApolloServer, gql } = require("apollo-server-express");
 const { PubSub } = require("graphql-subscriptions");
 const { SubscriptionServer } = require("subscriptions-transport-ws");
 const { makeExecutableSchema } = require("@graphql-tools/schema");
-import { WebPubSubServerAdapter } from "../WebPubSubServerAdapter";
+import { WebPubSubServerAdapter } from "../../src/index";
 
 (async () => {
   const PORT = 4000;

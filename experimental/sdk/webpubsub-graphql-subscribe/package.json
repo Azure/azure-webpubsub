@@ -1,5 +1,5 @@
 {
-  "name": "webpubsub-apollo-experimental",
+  "name": "webpubsub-apollo-subscription",
   "version": "1.0.0-beta-1",
   "description": "use Azure Web PubSub service in GraphQL subscriptions",
   "main": "dist/index.js",
@@ -29,7 +29,7 @@
   "scripts": {
     "watch": "tsc -w",
     "compile": "tsc",
-    "demows": "tsc && mocha --reporter spec --full-trace ./dist/demos/demo-websocket.js",
+    "demo:client": "tsc && mocha --reporter spec --full-trace ./dist/demos/client-websockets/demo-awps.js",
     "posttest": "npm run lint",
     "lint": "tslint --project ./tsconfig.json ./src/**/*.ts"
   },

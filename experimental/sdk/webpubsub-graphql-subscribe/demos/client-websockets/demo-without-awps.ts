@@ -1,5 +1,5 @@
-// Modified From https://github.com/apollographql/docs-examples/tree/50808f11c5cfeaf029422dee3a3b324a6e93783e/apollo-server/v3/subscriptions
-
+// From https://github.com/apollographql/docs-examples/blob/50808f11c5cfeaf029422dee3a3b324a6e93783e/apollo-server/v3/subscriptions/index.js
+// @ts-check
 const { createServer } = require("http");
 const express = require("express");
 const { execute, subscribe } = require("graphql");
@@ -7,7 +7,6 @@ const { ApolloServer, gql } = require("apollo-server-express");
 const { PubSub } = require("graphql-subscriptions");
 const { SubscriptionServer } = require("subscriptions-transport-ws");
 const { makeExecutableSchema } = require("@graphql-tools/schema");
-import { WebPubSubServerAdapter } from "../WebPubSubServerAdapter";
 
 (async () => {
   const PORT = 4000;
@@ -46,28 +45,20 @@ import { WebPubSubServerAdapter } from "../WebPubSubServerAdapter";
     schema,
   });
   await server.start();
-
-  const serverAdapter = new WebPubSubServerAdapter(
-    {
-      connectionString: process.env.WebPubSubConnectionString,
-      hub: "graphql_subscription",
-      path: "/graphql_subscription",
-    },
-    app
-  );
   server.applyMiddleware({ app });
-  SubscriptionServer.create({ schema, execute, subscribe }, serverAdapter);
+
+  SubscriptionServer.create(
+    { schema, execute, subscribe },
+    { server: httpServer, path: server.graphqlPath }
+  );
 
   httpServer.listen(PORT, () => {
     console.log(
       `🚀 Query endpoint ready at http://localhost:${PORT}${server.graphqlPath}`
     );
-    serverAdapter.getSubscriptionPath().then((v) => {
-      console.log(`🚀 Subscription endpoint ready at ${v}`);
-      console.log(
-        `🚀 Event handler listens at http://localhost:${PORT}${serverAdapter.path}`
-      );
-    });
+    console.log(
+      `🚀 Subscription endpoint ready at ws://localhost:${PORT}${server.graphqlPath}`
+    );
   });
 
   let currentNumber = 0;
