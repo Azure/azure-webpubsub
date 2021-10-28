@@ -8,6 +8,7 @@ using Microsoft.Azure.WebJobs.Extensions.Http;
 using Microsoft.AspNetCore.Http;
 using Newtonsoft.Json;
 using Microsoft.Azure.WebJobs.Extensions.WebPubSub;
+using Microsoft.Azure.WebJobs.Extensions.WebPubSub.Operations;
 using Microsoft.Azure.WebPubSub.Common;
 
 namespace SimpleChat_Input
@@ -48,7 +49,7 @@ namespace SimpleChat_Input
             [HttpTrigger(AuthorizationLevel.Anonymous, "post")] HttpRequest req,
             [WebPubSubContext] WebPubSubContext wpsReq)
         {
-            if (wpsReq.Request is ValidationRequest || wpsReq.ErrorMessage != null)
+            if (wpsReq.Request is PreflightRequest || wpsReq.ErrorMessage != null)
             {
                 return wpsReq.Response;
             }
@@ -63,7 +64,7 @@ namespace SimpleChat_Input
             [WebPubSubContext] WebPubSubContext wpsReq,
             [WebPubSub(Hub = "%WebPubSubHub%")] IAsyncCollector<WebPubSubOperation> operations)
         {
-            if (wpsReq.Request is ValidationRequest || wpsReq.ErrorMessage != null)
+            if (wpsReq.Request is PreflightRequest || wpsReq.ErrorMessage != null)
             {
                 return wpsReq.Response;
             }

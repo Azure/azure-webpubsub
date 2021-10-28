@@ -1,6 +1,7 @@
-using Azure.Messaging.WebPubSub;
+using Microsoft.Azure.WebPubSub.Common;
 using Microsoft.Azure.WebJobs;
 using Microsoft.Azure.WebJobs.Extensions.WebPubSub;
+using Microsoft.Azure.WebJobs.Extensions.WebPubSub.Operations;
 using Microsoft.Extensions.Logging;
 using System;
 using System.Threading.Tasks;

@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.Azure.WebJobs;
 using Microsoft.Azure.WebJobs.Extensions.Http;
 using Microsoft.Azure.WebJobs.Extensions.WebPubSub;
+using Microsoft.Azure.WebJobs.Extensions.WebPubSub.Operations;
 using Microsoft.Azure.WebPubSub.Common;
 using Newtonsoft.Json;
 using System;
@@ -73,7 +74,7 @@ namespace SimpleChat
         // single message sample
         [FunctionName("broadcast")]
         public static async Task<WebPubSubEventResponse> Broadcast(
-            [WebPubSubTrigger("%WebPubSubHub%", WebPubSubEventType.User, "message", "Endpoint=http://localhost;Port=8080;AccessKey=ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789ABCDEFGE;Version=1.0;")]
+            [WebPubSubTrigger("%WebPubSubHub%", WebPubSubEventType.User, "message")]
             UserEventRequest request,
             WebPubSubConnectionContext connectionContext,
             BinaryData message,
