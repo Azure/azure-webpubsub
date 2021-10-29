@@ -61,7 +61,7 @@ export class WebPubSubServerAdapter extends VirtualWebSocketServer {
       options.hub, 
       { allowInsecureConnection: true }
     );
-    let handler = new WebPubSubEventHandler(options.hub, ["*"], {
+    let handler = new WebPubSubEventHandler(options.hub, {
       path: options.path,
       handleConnect: (req, res) => {
         let connectionId = req.context.connectionId;
@@ -99,7 +99,7 @@ export class WebPubSubServerAdapter extends VirtualWebSocketServer {
   }
 
   async getSubscriptionPath() {
-    let token = await this.serviceClient.getAuthenticationToken();
+    let token = await this.serviceClient.getClientAccessToken();
     return token.baseUrl;
   }
 }
