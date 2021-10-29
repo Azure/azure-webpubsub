@@ -1,6 +1,6 @@
 {
   "name": "webpubsub-apollo-subscription",
-  "version": "1.0.0-beta-1",
+  "version": "1.0.0-beta-2",
   "description": "use Azure Web PubSub service in GraphQL subscriptions",
   "main": "dist/index.js",
   "repository": {
