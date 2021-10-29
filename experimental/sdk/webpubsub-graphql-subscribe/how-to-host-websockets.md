@@ -74,19 +74,19 @@ The console log shows that the exposed endpoint for Azure Web PubSub event handl
 ngrok http 4000 
 ```
 
-Then you'll get a forwarding endpoint `http://{ngrok-id}.ngrok.io` like `http://e27c-167-220-255-102.ngrok.io`
+Then you'll get a forwarding endpoint `http://<your-ngrok-id>.ngrok.io` like `http://e27c-167-220-255-102.ngrok.io`
 
 ### Configure event handlers
 
-Since GraphQL has its own Authentication logic, `graphql_subscription` hub can allow anonymous connect and delegate all the event handling to the upstream. Setting the event handler through Azure CLI with below command:
+Since GraphQL has its own Authentication logic, `graphql_subscription` hub can allow anonymous connect and delegate all the event handling to the upstream. Setting the event handler through Azure CLI with below command (don't forget to replace `<your-unique-resource-name>` and `<your-ngrok-id>` with your own one):
 
 ```azurecli
-az webpubsub hub create --hub-name graphql_subscription --name "<your-unique-resource-name>" --resource-group "myResourceGroup" --allow-anonymous --event-handler url-template=http://{ngrok-id}.ngrok.io/{hub}/{event} user-event-pattern=* system-event=connect system-event=disconnected system-event=connected
+az webpubsub hub create --hub-name graphql_subscription --name "<your-unique-resource-name>" --resource-group "myResourceGroup" --allow-anonymous --event-handler url-template=http://<your-ngrok-id>.ngrok.io/{hub}/{event} user-event-pattern=* system-event=connect system-event=disconnected system-event=connected
 ```
 
 ### Open GraphQL Explorer and update the subscription URL
 
-1. Open http://localhost:4000/graphql and click **Query your server**, click the top settings gear, and update the subscription URL to the Web PubSub endpoint `wss://demo1.webpubsub.azure.com/client/hubs/graphql_subscription`. 
+1. Open http://localhost:4000/graphql and click **Query your server**, click the top settings gear, and update the subscription URL to the Web PubSub endpoint `wss://<your-unique-resource-name>.webpubsub.azure.com/client/hubs/graphql_subscription`. 
 
 ![Set the subscription URL to use the Web PubSub endpoint.](images/graphql-explorer.png)
 

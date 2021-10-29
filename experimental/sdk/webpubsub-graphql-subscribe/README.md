@@ -9,12 +9,135 @@ This package helps developers use Microsoft Azure WebPub service to avoid server
 
 <!-- TO ADD
 Secondly, this package provides a replacement for `PubSub` using Azure Web PubSub service. [PubSub](https://www.apollographql.com/docs/apollo-server/data/subscriptions/#the-pubsub-class) is an in-memory event-publishing system provided by [Apollo server](https://www.apollographql.com/docs/apollo-server/data/subscriptions/).
+-->
 
-You can also install this package via npm:
+Let's show how to apply the package into [the subscription sample provided by Apollo GraphQL](https://github.com/apollographql/docs-examples/tree/50808f11c5cfeaf029422dee3a3b324a6e93783e/apollo-server/v3/subscriptions).
+
+## Get the subscription sample
+
+> [!NOTE]
+>
+> Please Note that this document is based on [sample commit 50808f11c5](https://github.com/apollographql/docs-examples/tree/50808f11c5cfeaf029422dee3a3b324a6e93783e/apollo-server/v3/subscriptions), the latest version as of the time of writing the document.
+
+```batch
+git clone https://github.com/apollographql/docs-examples
+cd docs-examples
+git checkout 50808f11c5cfeaf02
+cd apollo-server/v3/subscriptions
+yarn install
+```
+
+## Add the `webpubsub-apollo-subscription` package
+
+Since the original sample uses yarn, to keep consistency, we use `yarn` to add the package.
+
+```batch
+yarn add webpubsub-apollo-subscription
+```
+
+## Update `index.js` to use the package
+
+1. import `WebPubSubServerAdapter`:
+
+  ```javascript
+  const { WebPubSubServerAdapter } = require("webpubsub-apollo-subscription");
+  ```
+
+2. Update `SubscriptionServer.create` to use a `WebPubSubServerAdapter` instance
+    Note that we read the connection string from environment. Connection string is used to connect to Azure Web PubSub and we will get the value in later steps.
+    
+    ```javascript
+    const serverAdapter = new WebPubSubServerAdapter(
+      {
+        connectionString: process.env.WebPubSubConnectionString,
+        hub: "graphql_subscription",
+        path: "/graphql_subscription",
+      },
+      app
+    );
+    SubscriptionServer.create({ schema, execute, subscribe }, serverAdapter);
+    ```
+
+3. Also print out subscription endpoint and event handler endpoint
+    Add the logs after httpServer starts. These endpoints will be used in later setup.
+    
+    ```javascript
+    serverAdapter.getSubscriptionPath().then((v) => {
+      console.log(`🚀 Subscription endpoint ready at ${v}`);
+      console.log(
+        `🚀 Event handler listens at http://localhost:${PORT}${serverAdapter.path}`
+      );
+    });
+    ```
+
+The complete code change can be found [here](./demos/client-websockets/demo-awps.ts).
+
+## Setup the Azure Web PubSub resource and configurations
+
+### 1. Create a Azure Web PubSub service
+
+Follow the [instruction](https://docs.microsoft.com/en-us/azure/azure-web-pubsub/quickstart-cli-create) to create an Azure Web PubSub service.
+
+Get the ConnectionString of the service for later use:
+
+```azurecli
+az webpubsub key show --name "<your-unique-resource-name>" --resource-group "myResourceGroup" --query primaryConnectionString
+```
+
+Copy the fetched ConnectionString and it will be used later in this article as the value of `<connection_string>`.
+
+### 2. Run the local demo
+
+Run the below command with `<connection_string>` replaced by the value fetched in the above step:
 
 ```cmd
-npm install webpubsub-apollo-subscription
+SET WebPubSubConnectionString=<connection_string>
+yarn start
 ```
- -->
 
+The console log shows the exposed endpoints:
+
+```
+🚀 Query endpoint ready at http://localhost:4000/graphql
+🚀 Subscription endpoint ready at wss://<your-unique-resource-name>.webpubsub.azure.com/client/hubs/graphql_subscription
+🚀 Event handler listens at http://localhost:4000/graphql_subscription/
+```
+
+The console log shows that the exposed endpoint for Azure Web PubSub event handlers is `http://localhost:4000/graphql_subscription/`. Let's expose this local endpoint to public so that the Azure Web PubSub can redirect traffic to your localhost.
+
+### Use ngrok to expose your local endpoint
+
+```
+ngrok http 4000 
+```
+
+Then you'll get a forwarding endpoint `http://<your-ngrok-id>.ngrok.io` like `http://e27c-167-220-255-102.ngrok.io`
+
+### Configure event handlers
+
+Since GraphQL has its own Authentication logic, `graphql_subscription` hub can allow anonymous connect and delegate all the event handling to the upstream. Setting the event handler through Azure CLI with below command:
+
+```azurecli
+az webpubsub hub create --hub-name graphql_subscription --name "<your-unique-resource-name>" --resource-group "myResourceGroup" --allow-anonymous --event-handler url-template=http://<your-ngrok-id>.ngrok.io/{hub}/{event} user-event-pattern=* system-event=connect system-event=disconnected system-event=connected
+```
+
+### Open GraphQL Explorer and update the subscription URL
+
+1. Open http://localhost:4000/graphql and click **Query your server**, click the top settings gear, and update the subscription URL to the Web PubSub endpoint `wss://<your-unique-resource-name>.webpubsub.azure.com/client/hubs/graphql_subscription`. 
+
+![Set the subscription URL to use the Web PubSub endpoint.](images/graphql-explorer.png)
+
+2. Update the operations to query the incremental number and run:
+
+```graphql
+subscription IncrementingNumber {
+  numberIncremented
+}
+```
+
+You can see that the subscription updates are consistently pushed to the GraphQL clients through the WebSocket connection.
+
+![Run the subscription operation to use the Web PubSub endpoint.](images/graphql-explorer-run.png)
+
+Check the internals of the package here:
 * [Use Web PubSub to host WebSocket connections for GraphQL subscription](./how-to-host-websockets.md)
