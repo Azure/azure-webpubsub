@@ -17,7 +17,7 @@ async def connect(url):
                 'type': 'sendToGroup',
                 'group': 'stream',
                 'dataType': 'text',
-                'data': str(data),
+                'data': str(data + '\n'),
                 'ackId': id
             }
             id = id + 1

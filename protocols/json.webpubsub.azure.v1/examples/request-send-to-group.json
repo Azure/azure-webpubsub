@@ -1,0 +1,9 @@
+{
+    "$schema": "./../webpubsub.v1.request.json",
+    "type": "sendToGroup",
+    "group": "group1",
+    "ackId" : 1,
+    "noEcho": true,
+    "dataType": "text",
+    "data": "Hello"
+}

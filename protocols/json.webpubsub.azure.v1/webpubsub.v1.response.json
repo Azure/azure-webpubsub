@@ -1,0 +1,254 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema",
+  "$id": "http://webpubsub.azure.com/webpubsub.v1.schema.json",
+  "type": "object",
+  "title": "The schema for json.webpubsub.azure.v1 response",
+  "description": "The schema for json.webpubsub.azure.v1 responses.",
+  "oneOf": [
+    { "$ref": "#/$defs/ackResponse" },
+    { "$ref": "#/$defs/groupMessageResponse" },
+    { "$ref": "#/$defs/serverMessageResponse" },
+    { "$ref": "#/$defs/systemResponse" }
+  ],
+  "$defs": {
+    "ackResponse": {
+      "type": "object",
+      "required": ["type", "ackId"],
+      "allOf": [
+        {
+          "properties": {
+            "type": {
+              "type": "string",
+              "title": "The type of the request",
+              "description": "The type of the request.",
+              "const": "ack"
+            },
+            "ackId": {
+              "type": "integer",
+              "title": "The ackId of the message",
+              "description": "The ackId matches the value of the corresponding request message."
+            }
+          }
+        },
+        {
+          "oneOf": [
+            { "$ref": "#/$defs/successAck" },
+            { "$ref": "#/$defs/errorAck" }
+          ]
+        }
+      ]
+    },
+    "groupMessageResponse": {
+      "type": "object",
+      "required": ["type", "from", "group"],
+      "allOf": [
+        {
+          "properties": {
+            "type": {
+              "type": "string",
+              "title": "The message response",
+              "const": "message"
+            },
+            "from": {
+              "type": "string",
+              "title": "The message is sent from a group",
+              "description": "Indicates that the message is sent from the group, it could be from client pub/sub or from the sendToGroup REST API call.",
+              "const": "group"
+            },
+            "group": {
+              "type": "string",
+              "title": "The group name",
+              "description": "The name of the group that receives the message."
+            },
+            "fromUserId": {
+              "type": "string",
+              "title": "The userId of the message sender"
+            }
+          }
+        },
+        {
+          "oneOf": [
+            { "$ref": "#/$defs/textPayload" },
+            { "$ref": "#/$defs/binaryPayload" },
+            { "$ref": "#/$defs/jsonPayload" }
+          ]
+        }
+      ]
+    },
+    "serverMessageResponse": {
+      "type": "object",
+      "required": ["type", "from"],
+      "allOf": [
+        {
+          "properties": {
+            "type": {
+              "type": "string",
+              "title": "The message response",
+              "const": "message"
+            },
+            "from": {
+              "type": "string",
+              "title": "The message is sent from server side",
+              "description": "Indicates that the message is sent from server side, for example, the response of the upstream, or through REST API provided by the service.",
+              "const": "server"
+            }
+          }
+        },
+        {
+          "oneOf": [
+            { "$ref": "#/$defs/textPayload" },
+            { "$ref": "#/$defs/binaryPayload" },
+            { "$ref": "#/$defs/jsonPayload" }
+          ]
+        }
+      ]
+    },
+    "systemResponse": {
+      "type": "object",
+      "required": ["type", "event"],
+      "allOf": [
+        {
+          "properties": {
+            "type": {
+              "type": "string",
+              "title": "The system response",
+              "const": "system"
+            }
+          }
+        },
+        {
+          "oneOf": [
+            { "$ref": "#/$defs/connectedResponse" },
+            { "$ref": "#/$defs/disconnectedResponse" }
+          ]
+        }
+      ]
+    },
+    "textPayload": {
+      "type": "object",
+      "required": ["data", "dataType"],
+      "properties": {
+        "dataType": {
+          "type": "string",
+          "title": "The dataType of the payload",
+          "enum": ["text"]
+        },
+        "data": {
+          "type": "string",
+          "title": "The data payload"
+        }
+      }
+    },
+    "binaryPayload": {
+      "type": "object",
+      "required": ["data", "dataType"],
+      "properties": {
+        "dataType": {
+          "type": "string",
+          "title": "The dataType of the payload",
+          "enum": ["binary"]
+        },
+        "data": {
+          "type": "string",
+          "title": "The base64 format binary data payload"
+        }
+      }
+    },
+    "jsonPayload": {
+      "type": "object",
+      "required": ["data"],
+      "properties": {
+        "dataType": {
+          "type": "string",
+          "title": "The dataType of the payload",
+          "enum": ["json"]
+        },
+        "data": {
+          "type": "object",
+          "title": "The data payload"
+        }
+      }
+    },
+    "successAck": {
+      "type": "object",
+      "required": ["success"],
+      "properties": {
+        "success": {
+          "type": "boolean",
+          "title": "Indicates if the corresponding request succeeds or not",
+          "const": true
+        }
+      },
+      "additionalProperties": false
+    },
+    "errorAck": {
+      "type": "object",
+      "required": ["success"],
+      "properties": {
+        "success": {
+          "type": "boolean",
+          "title": "Indicates if the corresponding request succeeds or not",
+          "const": false
+        },
+        "error": {
+          "type": "object",
+          "title": "The error detail",
+          "required": ["name"],
+          "properties": {
+            "name": {
+              "type": "string",
+              "title": "The name of the error",
+              "enum": [
+                "NotFound",
+                "Forbidden",
+                "Timeout",
+                "InternalServerError"
+              ]
+            },
+            "message": {
+              "type": "string",
+              "title": "The error detail"
+            }
+          }
+        }
+      }
+    },
+    "connectedResponse": {
+      "type": "object",
+      "required": ["event", "connectionId"],
+      "properties": {
+        "event": {
+          "type": "string",
+          "title": "The connected system response",
+          "const": "connected"
+        },
+        "connectionId": {
+          "type": "string",
+          "title": "The connectionId for the client connection",
+          "description": "The globally unique connectionId for the client connection that is assigned by the service once it is connected."
+        },
+        "userId": {
+          "type": "string",
+          "title": "The userId of the connection",
+          "description": "The userId of the connection if any."
+        }
+      }
+    },
+    "disconnectedResponse": {
+      "type": "object",
+      "required": ["event"],
+      "properties": {
+        "event": {
+          "type": "string",
+          "title": "The disconnected system response",
+          "const": "disconnected"
+        },
+        "message": {
+          "type": "string",
+          "title": "The reason for the disconnect if any"
+        }
+      }
+    },
+    "additionalProperties": true
+  }
+}

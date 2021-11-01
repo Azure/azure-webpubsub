@@ -2,16 +2,29 @@
 
 ## Prerequisites
 
-1. [IntelliJ IDEA](https://www.jetbrains.com/idea/)
-3. Create an Azure Web PubSub resource
+- [Java Development Kit (JDK)](/java/azure/jdk/) version 8 or above
+- [Apache Maven](https://maven.apache.org/download.cgi)
+- Create an Azure Web PubSub resource
+- [ngrok](https://ngrok.com/download) to expose localhost endpoint
 
-## Run PubSub sample
+## Copy the ConnectionString from portal
+
 1. Copy **Connection String** from **Keys** tab of the created Azure Web PubSub service, and replace the `<connection-string>` (in [PubSub.java](src/main/java/PubSub.java#L7)) below with the value of your **Connection String**.
 ![connection string](../../../docs/images/portal_conn.png)
-2. Run the project.
-3. Input anything to publish the message.
-4. You will see the message is published, e.g. `2021/04/26 12:43:03: Publish message "message" to hub [pubsub].`.
-4. Later you will see the message get received, e.g. `2021/04/26 12:43:09: Received message "message" from hub [pubsub]`.
-6. Press `Q` to leave.
 
-![chat room](../../../docs/images/sample-java-pubsub-console.png)
+## Run the subscriber
+
+1. Open a new terminal window, copy **Connection String** from **Keys** tab of the created Azure Web PubSub service, run the below command with the `<connection-string>` replaced by your **Connection String**:
+    ```console
+    cd webpubsub-quickstart-subscriber
+    mvn compile & mvn package & mvn exec:java -Dexec.mainClass="com.webpubsub.quickstart.App" -Dexec.cleanupDaemonThreads=false -Dexec.args="'<connection_string>' 'myHub1'"
+    ```
+
+## Run the publisher
+1. Open a new terminal window, copy **Connection String** from **Keys** tab of the created Azure Web PubSub service, run the below command with the `<connection-string>` replaced by your **Connection String**:
+    ```console
+    cd webpubsub-quickstart-publisher
+    mvn compile & mvn package & mvn exec:java -Dexec.mainClass="com.webpubsub.quickstart.App" -Dexec.cleanupDaemonThreads=false -Dexec.args="'<connection_string>' 'myHub1' 'Hello World'"
+    ```
+
+![Pub Sub](../../../docs/images/sample-java-pubsub-console.png)
