@@ -1,11 +1,8 @@
 import asyncio
 import sys
-import threading
-import time
 import websockets
-from azure.messaging.webpubsubservice import (
-    WebPubSubServiceClient
-)
+
+from azure.messaging.webpubsubservice import WebPubSubServiceClient
 
 
 async def connect(url):
@@ -14,17 +11,19 @@ async def connect(url):
         while True:
             print(await ws.recv())
 
-if len(sys.argv) != 3:
-    print('Usage: python subscribe.py <connection-string> <hub-name>')
-    exit(1)
+if __name__ == '__main__':
 
-connection_string = sys.argv[1]
-hub_name = sys.argv[2]
+    if len(sys.argv) != 3:
+        print('Usage: python subscribe.py <connection-string> <hub-name>')
+        exit(1)
 
-client = WebPubSubServiceClient.from_connection_string(connection_string)
-token = client.get_client_access_token(hub_name)
+    connection_string = sys.argv[1]
+    hub_name = sys.argv[2]
 
-try:
-    asyncio.get_event_loop().run_until_complete(connect(token['url']))
-except KeyboardInterrupt:
-    pass
+    client = WebPubSubServiceClient.from_connection_string(connection_string)
+    token = client.get_client_access_token(hub_name)
+
+    try:
+        asyncio.get_event_loop().run_until_complete(connect(token['url']))
+    except KeyboardInterrupt:
+        pass

@@ -1,4 +1,6 @@
--i https://www.myget.org/F/azure-webpubsub-dev/python
+azure-core==1.19.1
+protobuf==3.19.1
+websockets==9.1
+
+-i https://www.myget.org/F/azure-webpubsub-dev/python/ 
 azure-messaging-webpubsubservice==1.0.0b6
-protobuf
-websockets==8.1
