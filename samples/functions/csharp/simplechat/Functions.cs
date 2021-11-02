@@ -5,6 +5,7 @@ using Microsoft.Azure.WebJobs.Extensions.Http;
 using Microsoft.Azure.WebJobs.Extensions.WebPubSub;
 using Microsoft.Azure.WebJobs.Extensions.WebPubSub.Operations;
 using Microsoft.Azure.WebPubSub.Common;
+using Microsoft.Extensions.Logging;
 using Newtonsoft.Json;
 using System;
 using System.IO;
@@ -15,11 +16,18 @@ namespace SimpleChat
     public static class Functions
     {
         [FunctionName("index")]
-        public static IActionResult Home([HttpTrigger(AuthorizationLevel.Anonymous)] HttpRequest req)
+        public static IActionResult Home([HttpTrigger(AuthorizationLevel.Anonymous)] HttpRequest req, ILogger log)
         {
+            string indexFile = "index.html";
+            // detect Azure env.
+            if (Environment.GetEnvironmentVariable("HOME") != null)
+            {
+                indexFile = Path.Join(Environment.GetEnvironmentVariable("HOME"), "site", "wwwroot", indexFile);
+            }
+            log.LogInformation($"index.html path: {indexFile}.");
             return new ContentResult
             {
-                Content = File.ReadAllText("index.html"),
+                Content = File.ReadAllText(indexFile),
                 ContentType = "text/html",
             };
         }
@@ -74,7 +82,7 @@ namespace SimpleChat
         // single message sample
         [FunctionName("broadcast")]
         public static async Task<WebPubSubEventResponse> Broadcast(
-            [WebPubSubTrigger("%WebPubSubHub%", WebPubSubEventType.User, "message")]
+            [WebPubSubTrigger("%WebPubSubHub%", WebPubSubEventType.User, "message")] // another way to resolve Hub name from settings.
             UserEventRequest request,
             WebPubSubConnectionContext connectionContext,
             BinaryData message,
