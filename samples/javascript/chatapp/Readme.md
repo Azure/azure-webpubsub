@@ -23,7 +23,7 @@ export WebPubSubConnectionString="<connection-string>"
 node server
 ```
 
-The web app is listening to request at `http://localhost:8080/eventhandler`.
+The web app is listening to event handler requests at `http://localhost:8080/eventhandler`.
 
 ## Use ngrok to expose localhost
 
@@ -35,7 +35,7 @@ ngrok http 8080
 
 ## Configure the event handler
 
-Event handler can be set from portal or through Azure CLI, here contains the detailed [instructions](https://docs.microsoft.com/azure/azure-web-pubsub/howto-develop-eventhandler#configure-through-azure-cli) for how to.
+Event handler can be set from portal or through Azure CLI, here contains the detailed [instructions](https://docs.microsoft.com/azure/azure-web-pubsub/howto-develop-eventhandler) for how to.
 
 Go to the **Settings** tab to configure the event handler for this `chat` hub:
 

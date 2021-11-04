@@ -10,6 +10,7 @@ using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Azure;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 
@@ -17,13 +18,18 @@ namespace chatapp
 {
     public class Startup
     {
-        // This method gets called by the runtime. Use this method to add services to the container.
-        // For more information on how to configure your application, visit https://go.microsoft.com/fwlink/?LinkID=398940
+        public Startup(IConfiguration configuration)
+        {
+            Configuration = configuration;
+        }
+
+        public IConfiguration Configuration { get; }
+        
         public void ConfigureServices(IServiceCollection services)
         {
             services.AddAzureClients(builder =>
             {
-                builder.AddWebPubSubServiceClient("<connection_string>", "chat");
+                builder.AddWebPubSubServiceClient(Configuration["Azure:WebPubSub:ConnectionString"], "chat");
             });
         }
 
@@ -54,10 +60,10 @@ namespace chatapp
                     await context.Response.WriteAsync(serviceClient.GenerateClientAccessUri(userId: id).AbsoluteUri);
                 });
 
-                // abuse protection
-                endpoints.Map("/eventhandler", async context =>
+                endpoints.Map("/eventhandler/{*path}", async context =>
                 {
                     var serviceClient = context.RequestServices.GetRequiredService<WebPubSubServiceClient>();
+                    // abuse protection
                     if (context.Request.Method == "OPTIONS")
                     {
                         if (context.Request.Headers["WebHook-Request-Origin"].Count > 0)
