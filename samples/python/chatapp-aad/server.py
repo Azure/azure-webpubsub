@@ -8,15 +8,18 @@ from flask import (
     send_from_directory,
 )
 
-from azure.messaging.webpubsubservice import (
-    WebPubSubServiceClient
+from azure.messaging.webpubsubservice import WebPubSubServiceClient
+
+from azure.identity import (
+    DefaultAzureCredential
 )
 
 hub_name = 'chat'
 
 app = Flask(__name__)
 
-client = WebPubSubServiceClient.from_connection_string(sys.argv[1])
+credential = DefaultAzureCredential()
+client = WebPubSubServiceClient(sys.argv[1], credential)
 
 
 @app.route('/<path:filename>')
@@ -33,7 +36,6 @@ def handle_event():
             res.status_code = 200
             return res
     elif request.method == 'POST':
-        print(request.headers)
         user_id = request.headers.get('ce-userid')
         if request.headers.get('ce-type') == 'azure.webpubsub.sys.connected':
             return user_id + ' connected', 200
@@ -55,7 +57,6 @@ def negotiate():
         return 'missing user id', 400
 
     token = client.get_client_access_token(hub_name, user_id=id)
-    print(token)
     return {
         'url': token['url']
     }, 200
@@ -63,6 +64,6 @@ def negotiate():
 
 if __name__ == '__main__':
     if len(sys.argv) != 2:
-        print('Usage: python server.py <connection-string>')
+        print('Usage: python server.py <endpoint>')
         exit(1)
     app.run(port=8080)
