@@ -13,7 +13,7 @@ class Resquest(SimpleHTTPRequestHandler):
             self.path = 'public/index.html'
             return SimpleHTTPRequestHandler.do_GET(self)
         elif self.path == '/negotiate':
-            token = client.get_client_access_token('stream', role=['webpubsub.sendToGroup.stream', 'webpubsub.joinLeaveGroup.stream'])
+            token = client.get_client_access_token('stream', roles=['webpubsub.sendToGroup.stream', 'webpubsub.joinLeaveGroup.stream'])
             print(token)
             self.send_response(200)
             self.send_header('Content-Type', 'application/json')
