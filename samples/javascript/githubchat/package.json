@@ -11,8 +11,8 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
-    "@azure/web-pubsub": "1.0.0-beta.3",
-    "@azure/web-pubsub-express": "1.0.0-beta.3",
+    "@azure/web-pubsub": "1.0.0-alpha.20211102.4",
+    "@azure/web-pubsub-express": "1.0.0-alpha.20211102.4",
     "cookie-parser": "^1.4.5",
     "express": "^4.17.1",
     "express-session": "^1.17.1",

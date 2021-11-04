@@ -1,23 +1,4 @@
-azure-core==1.13.0
-azure-messaging-webpubsubservice==1.0.0b1
-certifi==2020.12.5
-cffi==1.14.5
-chardet==4.0.0
-click==7.1.2
-cryptography==3.4.7
-Flask==1.1.2
-idna==2.10
-isodate==0.6.0
-itsdangerous==1.1.0
-Jinja2==2.11.3
-MarkupSafe==1.1.1
-msrest==0.6.21
-oauthlib==3.1.0
-pycparser==2.20
-PyJWT==2.1.0
-requests==2.25.1
-requests-oauthlib==1.3.0
-six==1.15.0
-urllib3==1.26.4
-websocket-client==0.58.0
-Werkzeug==1.0.1
+flask
+
+-i https://www.myget.org/F/azure-webpubsub-dev/python/ 
+azure-messaging-webpubsubservice==1.0.0b6

@@ -1,0 +1,68 @@
+{
+  "name": "webpubsub-apollo-subscription",
+  "version": "1.0.0-beta-2",
+  "description": "use Azure Web PubSub service in GraphQL subscriptions",
+  "main": "dist/index.js",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Azure/azure-webpubsub.git"
+  },
+  "keywords": [
+    "graphql",
+    "webpubsub",
+    "azure",
+    "apollo",
+    "subscriptions"
+  ],
+  "author": "Microsoft",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/Azure/azure-webpubsub/issues"
+  },
+  "homepage": "https://github.com/Azure/azure-webpubsub",
+  "contributors": [
+    {
+      "name": "xingsy97",
+      "email": "xingsy97@hotmail.com"
+    },
+    {
+      "name": "vicancy",
+      "email": "lianwei@microsoft.com"
+    }
+  ],
+  "scripts": {
+    "watch": "tsc -w",
+    "compile": "tsc",
+    "demo:client": "tsc && mocha --reporter spec --full-trace ./dist/demos/client-websockets/demo-awps.js",
+    "posttest": "npm run lint",
+    "lint": "tslint --project ./tsconfig.json ./src/**/*.ts"
+  },
+  "dependencies": {
+    "@azure/web-pubsub": "^1.0.0-alpha.20211028.3",
+    "@azure/web-pubsub-express": "^1.0.0-alpha.20211027.1",
+    "@graphql-tools/schema": "^7.1.5",
+    "apollo-server-express": "3.1.2",
+    "express": "^4.17.1",
+    "graphql": "^15.5.1",
+    "graphql-subscriptions": "^1.2.1",
+    "nodemon": "^2.0.12",
+    "subscriptions-transport-ws": "^0.9.19",
+    "ws": "^8.2.3"
+  },
+  "devDependencies": {
+    "@types/chai": "^4.1.4",
+    "@types/chai-as-promised": "^7.1.0",
+    "@types/mocha": "^5.2.5",
+    "@types/node": "^10.17.60",
+    "@types/simple-mock": "^0.8.0",
+    "@types/uuid": "^8.3.1",
+    "@types/ws": "^8.2.0",
+    "chai": "^4.2.0",
+    "chai-as-promised": "^7.1.1",
+    "graphql": "^0.13.0",
+    "mocha": "^6.2.2",
+    "simple-mock": "^0.8.0",
+    "tslint": "^5.16.0",
+    "typescript": "^3.4.5"
+  }
+}
