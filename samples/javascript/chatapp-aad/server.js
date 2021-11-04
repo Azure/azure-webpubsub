@@ -6,7 +6,7 @@ const { DefaultAzureCredential } = require('@azure/identity')
 const app = express();
 const hubName = 'chat';
 
-let serviceClient = new WebPubSubServiceClient(argv[2], new DefaultAzureCredential(), hubName);
+let serviceClient = new WebPubSubServiceClient(process.argv[2], new DefaultAzureCredential(), hubName);
 
 let handler = new WebPubSubEventHandler(hubName, {
   path: '/eventhandler',
