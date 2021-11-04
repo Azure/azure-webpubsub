@@ -4,7 +4,7 @@ import threading
 import time
 import websockets
 from azure.messaging.webpubsubservice import (
-    build_authentication_token
+    WebPubSubServiceClient
 )
 
 
@@ -21,7 +21,8 @@ if len(sys.argv) != 3:
 connection_string = sys.argv[1]
 hub_name = sys.argv[2]
 
-token = build_authentication_token(connection_string, hub_name)
+client = WebPubSubServiceClient.from_connection_string(connection_string)
+token = client.get_client_access_token(hub_name)
 
 try:
     asyncio.get_event_loop().run_until_complete(connect(token['url']))
