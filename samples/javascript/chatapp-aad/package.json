@@ -12,7 +12,7 @@
   "license": "ISC",
   "dependencies": {
     "@azure/identity": "^2.0.1",
-    "@azure/web-pubsub": "^1.0.0-alpha.20211028.3",
+    "@azure/web-pubsub": "^1.0.0-alpha.20211102.4",
     "@azure/web-pubsub-express": "^1.0.0-alpha.20211027.1",
     "express": "^4.17.1"
   }
