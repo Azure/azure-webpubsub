@@ -18,7 +18,8 @@ Copy **Connection String** from **Keys** tab of the created Azure Web PubSub ser
 ![Connection String](./../../../docs/images/portal_conn.png)
 
 ```bash
-node server "<connection-string>"
+export WebPubSubConnectionString="<connection-string>"
+node server
 ```
 
 The server is then started. Open `http://localhost:8080` in browser. If you use F12 to view the Network you can see the WebSocket connection is established.
