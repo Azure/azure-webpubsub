@@ -7,11 +7,11 @@ using System.Threading.Tasks;
 
 namespace chatapp
 {
-    public class SampleHub : WebPubSubHub
+    public class SampleChatHub : WebPubSubHub
     {
         private readonly WebPubSubServiceClient _serviceClient;
 
-        public SampleHub(WebPubSubServiceClient serviceClient)
+        public SampleChatHub(WebPubSubServiceClient serviceClient)
         {
             _serviceClient = serviceClient;
         }

@@ -33,7 +33,7 @@ namespace chatapp
             services.AddWebPubSub(o => o.ValidationOptions.Add(Configuration["Azure:WebPubSub:ConnectionString"]))
                 .AddAzureClients(builder =>
                 {
-                    builder.AddWebPubSubServiceClient(Configuration["Azure:WebPubSub:ConnectionString"], "samplehub");
+                    builder.AddWebPubSubServiceClient(Configuration["Azure:WebPubSub:ConnectionString"], nameof(SampleChatHub));
                 });
         }
 
@@ -51,7 +51,7 @@ namespace chatapp
 
             app.UseEndpoints(endpoints =>
             {
-                endpoints.MapWebPubSubHub<SampleHub>("/api/{event}");
+                endpoints.MapWebPubSubHub<SampleChatHub>("/api/{event}");
 
                 endpoints.MapGet("/negotiate", async context =>
                 {

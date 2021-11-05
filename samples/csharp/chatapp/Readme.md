@@ -34,9 +34,9 @@ ngrok http 8080
 
 Event handler can be set from portal or through Azure CLI, here contains the detailed [instructions](https://docs.microsoft.com/azure/azure-web-pubsub/howto-develop-eventhandler) for how to.
 
-Go to the **Settings** tab to configure the event handler for this `chat` hub:
+Go to the **Settings** tab to configure the event handler for this `samplechathub` hub:
 
-1. Type the hub name (chat) and click "Add".
+1. Type the hub name (samplechathub) and click "Add".
 
 2. Set URL Pattern to `https://<domain-name>.ngrok.io/eventhandler/{event}` and check `connected` in System Event Pattern, click "Save".
 
