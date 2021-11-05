@@ -4,8 +4,7 @@ This sample is to help you create a chat app with aad auth method.
 
 ## Prerequisites
 
-1. [Java Development Kit (JDK)](/java/azure/jdk/) version 8 or above
-1. [Apache Maven](https://maven.apache.org/download.cgi)
+1. [ASP.NET Core 3.1 or above](https://docs.microsoft.com/aspnet/core)
 2. Create an [Azure Web PubSub](https://ms.portal.azure.com/#blade/HubsExtension/BrowseResource/resourceType/Microsoft.SignalRService%2FWebPubSub) resource on Azure Portal
 3. [ngrok](https://ngrok.com/download) to expose our localhost to internet
 4. [Azure CLI](https://docs.microsoft.com/cli/azure/) or [Azure Powershell](https://docs.microsoft.com/powershell/azure/)
@@ -15,9 +14,10 @@ This sample is to help you create a chat app with aad auth method.
 ### 1. Compile and build your java project.
 
 ```bash
-mvn compile
-mvn package
+dotnet restore
 ```
+
+For OSX/Linux user, use `source ./.venv/bin/activate` to activate the virtualenv.
 
 ### 2. Login Azure account in your terminal
 
@@ -75,8 +75,9 @@ Copy the URL `http://<name>.ngrok.io` in one of the **Forwarding** row.
 
 ### 6. Start your server
 
-```java
-mvn exec:java -Dexec.mainClass="com.webpubsub.tutorial.App" -Dexec.cleanupDaemonThreads=false -Dexec.args="<endpoint>"
+```csharp
+dotnet user-secrets set Azure:WebPubSub:Endpoint "<endpoint>"
+dotnet run --urls http://localhost:8080
 ```
 
 Open http://localhost:8080/index.html, input your user name, and send messages.
