@@ -15,7 +15,6 @@ from azure.messaging.webpubsubservice import (
 hub_name = 'chat'
 
 app = Flask(__name__)
-client = WebPubSubServiceClient.from_connection_string(sys.argv[1])
 
 client = WebPubSubServiceClient.from_connection_string(sys.argv[1])
 
