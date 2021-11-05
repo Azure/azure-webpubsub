@@ -1,40 +1,88 @@
-# Publish and subscribe messages
+# Create a chat app with aad auth
+
+This sample is to help you create a chat app with aad auth method.
 
 ## Prerequisites
 
-- [Java Development Kit (JDK)](/java/azure/jdk/) version 8 or above
-- [Apache Maven](https://maven.apache.org/download.cgi)
-- Create an Azure Web PubSub resource
-- [ngrok](https://ngrok.com/download) to expose localhost endpoint
+1. [Java Development Kit (JDK)](/java/azure/jdk/) version 8 or above
+1. [Apache Maven](https://maven.apache.org/download.cgi)
+2. Create an [Azure Web PubSub](https://ms.portal.azure.com/#blade/HubsExtension/BrowseResource/resourceType/Microsoft.SignalRService%2FWebPubSub) resource on Azure Portal
+3. [ngrok](https://ngrok.com/download) to expose our localhost to internet
+4. [Azure CLI](https://docs.microsoft.com/cli/azure/) or [Azure Powershell](https://docs.microsoft.com/powershell/azure/)
 
-## Use ngrok to make the local server publicly available
-Run the script `ngrok http 8080`, then copy the URL above the red line.
-![ngrok](../../../docs/images/ngrok-sample.png)
+## Getting started
+   
+### 1. Compile and build your java project.
 
-## Setup event handler settings
-1. Navigate to `settings` in portal.
-2. Make a new hub setting for `chat`.
-3. Fill in the URL copied from the previous step to `URL template`.
-4. Fill in `*` to `User Event Pattern` and select all the system events.
-5. Click `Save` button to update the settings, wait until the settings are updated successfully.
-![event handler settings](../../../docs/images/eventhandler-settings-sample.png)
-
-## Start server
-
-1. Copy **Connection String** from **Keys** tab of the created Azure Web PubSub service, run the below command with the `<connection-string>` replaced by your **Connection String**:
-
-```console
-mvn compile & mvn package & mvn exec:java -Dexec.mainClass="com.webpubsub.tutorial.App" -Dexec.cleanupDaemonThreads=false -Dexec.args="'<connection_string>'"
+```bash
+mvn compile
+mvn package
 ```
 
-![connection string](../../../docs/images/portal_conn.png)
+For OSX/Linux user, use `source ./.venv/bin/activate` to activate the virtualenv.
 
-## Send Messages in chat room
-1. Open a browser in and visit http://localhost:8080.
-2. Input your user name, and click `OK` button to attend the chat.
+### 2. Login Azure account in your terminal
 
-3. You will get welcome message `[SYSTEM] <user-name> is joined`.
-4. Input a message to send, press `Enter` key to publish. 
-5. You will see the message in the chat room.
-6. Repeat the above steps in a window, you can see messages broadcast to all the windows.
-![chat room](../../../docs/images/simple-chat-room.png)
+```bash
+az login
+```
+
+### 3. Use ngrok to expose your localhost to internet
+
+```bash
+ngrok http 8080
+```
+
+This is a sample echo results from `ngrok`
+
+```bash
+ngrok by @inconshreveable
+                                                                                                                                                                                           
+Session Status                online                                                                                                                                                       
+Session Expires               57 minutes                                                                                                                                                   
+Version                       2.3.40                                                                                                                                                       
+Region                        United States (us)                                                                                                                                           
+Web Interface                 http://127.0.0.1:4040                                                                                                                                        
+Forwarding                    http://***********.ngrok.io -> http://localhost:8080                                                                                                 
+Forwarding                    https://**********.ngrok.io -> http://localhost:8080     
+```
+
+Copy the URL `http://<name>.ngrok.io` in one of the **Forwarding** row.
+
+### 4. Configure an event handler on Azure portal.
+
+1. Open [Azure Portal](https://ms.portal.azure.com/), search for and select your `Azure Web PubSub` resource.
+2. Under **Settings** section, click **Settings**.
+3. Click **Add**.
+3. Enter `chat` as **Hub name**.
+4. Set **URL template** to `https://<name>.ngrok.io/eventhandler`
+5. Click **System events**, then select **connected** to let AWPS send connected events.
+   ![Screenshot of Edit Hub Settings](./media/edit-hub-settings.png)
+1. Click **Save** to confirm the change.
+
+### 5. Configure Role-Based Access Control (RBAC)
+1. Open [Azure Portal](https://ms.portal.azure.com/), search for and select your `Azure Web PubSub` resource.
+1. Select **Access control (IAM)**.
+1. Click **Add > Add role assignment**.
+1. On **Role** tab, select **Web PubSubServiceOwner**.
+1. Click **Next**.
+   ![Screenshot of Select Roles](./media/add-role-assignment-roles.png)
+1. On **Members** tab, select **User, group, or service principal**, then click **Select members**.
+1. Search for and select yourself. Don't forget to click **Select** to confirm selection.
+1. Click **Next**.
+   ![Screenshot of Select Members](./media/add-role-assignment-members.png)
+1. On **Review + assign** tab, click **Review + assign** to confirm the assignment.
+
+> Azure role assignments may take up to 30 minutes to propagate.
+
+### 6. Start your server
+
+```java
+mvn exec:java -Dexec.mainClass="com.webpubsub.tutorial.App" -Dexec.cleanupDaemonThreads=false -Dexec.args="<endpoint>"
+```
+
+Open http://localhost:8080/index.html, input your user name, and send messages.
+
+## Next steps
+
+TODO

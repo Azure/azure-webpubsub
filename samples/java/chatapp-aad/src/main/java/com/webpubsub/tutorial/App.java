@@ -1,6 +1,8 @@
 
 package com.webpubsub.tutorial;
 
+import com.azure.core.credential.TokenCredential;
+import com.azure.identity.DefaultAzureCredentialBuilder;
 import com.azure.messaging.webpubsub.WebPubSubServiceClient;
 import com.azure.messaging.webpubsub.WebPubSubServiceClientBuilder;
 import com.azure.messaging.webpubsub.models.GetClientAccessTokenOptions;
@@ -17,9 +19,11 @@ public class App {
             return;
         }
 
+        TokenCredential credential = new DefaultAzureCredentialBuilder().build();
+
         // create the service client
         WebPubSubServiceClient client = new WebPubSubServiceClientBuilder()
-                .connectionString(args[0])
+                .credential(credential)
                 .hub("chat")
                 .buildClient();
 
