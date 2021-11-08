@@ -1,12 +1,27 @@
 const express = require('express');
 const { WebPubSubServiceClient } = require('@azure/web-pubsub');
 const { WebPubSubEventHandler } = require('@azure/web-pubsub-express');
-const { DefaultAzureCredential } = require('@azure/identity')
+const { DefaultAzureCredential, ClientSecretCredential, VisualStudioCodeCredential, AzureCliCredential, ClientCertificateCredential } = require('@azure/identity')
 
 const app = express();
 const hubName = 'chat';
 
-let serviceClient = new WebPubSubServiceClient(process.argv[2], new DefaultAzureCredential(), hubName);
+let endpoint = process.argv[2] // sample: https://<name>.webpubsub.azure.com
+
+let credential = new DefaultAzureCredential();
+
+// For Azure application, use:
+// let credential = new ClientSecretCredential("<tenantId>", "<clientId>", "<clientSecret>");
+// or
+// let credential = new ClientCertificateCredential("<tenantId>", "<clientId>", "<pathToCert>");
+
+// For Visual Studio Code user, use:
+// let credential = new VisualStudioCodeCredential();
+
+// For command line user, use:
+// let credential = new AzureCliCredential();
+
+let serviceClient = new WebPubSubServiceClient(endpoint, credential, hubName);
 
 let handler = new WebPubSubEventHandler(hubName, {
   path: '/eventhandler',
