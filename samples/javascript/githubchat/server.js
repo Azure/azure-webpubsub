@@ -44,7 +44,8 @@ app.get('/auth/github/callback', passport.authenticate('github', { successRedire
 // initialize web pubsub event handlers
 const hubName = 'chat';
 
-let serviceClient = new WebPubSubServiceClient(process.env.WebPubSubConnectionString, hubName);
+let connectionString = process.argv[2] || process.env.WebPubSubConnectionString;
+let serviceClient = new WebPubSubServiceClient(connectionString, hubName);
 let handler = new WebPubSubEventHandler(hubName, {
   path: '/eventhandler',
   handleConnect: (req, res) => {
