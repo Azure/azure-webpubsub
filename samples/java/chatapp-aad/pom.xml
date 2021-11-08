@@ -8,7 +8,7 @@
   <artifactId>webpubsub-tutorial-chat</artifactId>
   <version>1.0-SNAPSHOT</version>
 
-  <name>webpubsub-tutorial-chat</name>
+  <name>webpubsub-tutorial-chat-aad</name>
   <!-- FIXME change it to the project's website -->
   <url>http://www.example.com</url>
 
@@ -29,6 +29,11 @@
         <groupId>com.azure</groupId>
         <artifactId>azure-messaging-webpubsub</artifactId>
         <version>1.0.0-beta.5</version>
+    </dependency>
+    <dependency>
+        <groupId>com.azure</groupId>
+        <artifactId>azure-identity</artifactId>
+        <version>1.3.7</version>
     </dependency>
 
     <!-- https://mvnrepository.com/artifact/io.javalin/javalin -->
