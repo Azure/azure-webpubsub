@@ -16,10 +16,10 @@ namespace chatapp
             _serviceClient = serviceClient;
         }
 
-        public override ValueTask<WebPubSubEventResponse> OnConnectAsync(ConnectEventRequest request, CancellationToken cancellationToken)
+        public override ValueTask<ConnectEventResponse> OnConnectAsync(ConnectEventRequest request, CancellationToken cancellationToken)
         {
             // not register event will never be triggered.
-            throw new NotImplementedException();
+            return base.OnConnectAsync(request, cancellationToken);
         }
 
         public override async Task OnConnectedAsync(ConnectedEventRequest request)
@@ -27,12 +27,10 @@ namespace chatapp
             await _serviceClient.SendToAllAsync($"[SYSTEM] {request.ConnectionContext.UserId} joined.");
         }
 
-        public override async ValueTask<WebPubSubEventResponse> OnMessageReceivedAsync(UserEventRequest request, CancellationToken cancellationToken)
+        public override async ValueTask<UserEventResponse> OnMessageReceivedAsync(UserEventRequest request, CancellationToken cancellationToken)
         {
             await _serviceClient.SendToAllAsync($"[{request.ConnectionContext.UserId}] {request.Message}");
-            return null; 
-            // Or return <UserEventResponse> as a direct message to caller.
-            // return request.CreateResponse("ack");
+            return request.CreateResponse("ack");
         }
     }
 }
