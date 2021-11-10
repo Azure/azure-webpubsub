@@ -17,7 +17,7 @@ public class App
             return;
         }
 
-        WebPubSubServiceClient client = new WebPubSubClientBuilder()
+        WebPubSubServiceClient client = new WebPubSubServiceClientBuilder()
             .connectionString(args[0])
             .hub(args[1])
             .buildClient();
