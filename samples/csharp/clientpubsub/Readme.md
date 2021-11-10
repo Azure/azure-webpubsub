@@ -2,7 +2,7 @@
 
 ## Prerequisites
 
-1. [ASP.NET Core 3.1 or above](https://docs.microsoft.com/aspnet/core)
+1. [NET Core 2.1 or above](https://docs.microsoft.com/dotnet)
 2. Create an Azure Web PubSub resource
 
 ## Setup
