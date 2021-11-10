@@ -83,9 +83,3 @@ Copy the URL `http://<name>.ngrok.io` in one of the **Forwarding** row.
 ```python
 python server.py <endpoint> # endpoint is the value of Endpoint=<value> in the connection string
 ```
-
-Open http://localhost:8080/index.html, input your user name, and send messages.
-
-## Next steps
-
-TODO

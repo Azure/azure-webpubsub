@@ -1,5 +1,5 @@
-flask
-azure-identity
+azure-identity==1.7.0
+flask==2.0.2
 
 -i https://www.myget.org/F/azure-webpubsub-dev/python/ 
 azure-messaging-webpubsubservice==1.0.0b6

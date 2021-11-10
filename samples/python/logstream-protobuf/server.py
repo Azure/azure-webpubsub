@@ -1,9 +1,9 @@
 import json
 import sys
+
 from http.server import HTTPServer, SimpleHTTPRequestHandler
-from azure.messaging.webpubsubservice import (
-    WebPubSubServiceClient
-)
+
+from azure.messaging.webpubsubservice import WebPubSubServiceClient
 
 client = WebPubSubServiceClient.from_connection_string(sys.argv[1])
 
@@ -13,13 +13,16 @@ class Resquest(SimpleHTTPRequestHandler):
             self.path = 'public/index.html'
             return SimpleHTTPRequestHandler.do_GET(self)
         elif self.path == '/negotiate':
-            token = client.get_client_access_token('stream', roles=['webpubsub.sendToGroup.stream', 'webpubsub.joinLeaveGroup.stream'])
+            roles = ['webpubsub.sendToGroup.stream',
+                     'webpubsub.joinLeaveGroup.stream']
+            token = client.get_client_access_token('stream', roles=roles)
             self.send_response(200)
             self.send_header('Content-Type', 'application/json')
             self.end_headers()
             self.wfile.write(json.dumps({
                 'url': token['url']
             }).encode())
+
 
 if __name__ == '__main__':
     if len(sys.argv) != 2:
