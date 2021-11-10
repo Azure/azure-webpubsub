@@ -37,12 +37,11 @@ def handle_event():
         if request.headers.get('ce-type') == 'azure.webpubsub.sys.connected':
             return user_id + ' connected', 200
         elif request.headers.get('ce-type') == 'azure.webpubsub.user.message':
-            client.send_to_all(hub_name, content_type="application/json", message=json.dumps({
+            client.send_to_all(hub_name, content_type="application/json", message={
                 'from': user_id,
                 'message': request.data.decode('UTF-8')
-            })
-            res = Response(content_type='text/plain', status=200)
-            return res
+            }
+            return 200
         else:
             return 'Not found', 404
 
