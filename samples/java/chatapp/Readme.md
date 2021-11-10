@@ -15,9 +15,9 @@ Run the script `ngrok http 8080`, then copy the URL above the red line.
 ## Setup event handler settings
 
 1. Navigate to `settings` in portal.
-2. Make a new hub setting for `chat`.
+2. Click **Add** to add setting for hub `chat`.
 3. Fill in the URL copied from the previous step to `URL template`.
-4. Fill in `*` to `User Event Pattern` and select all the system events.
+4. Fill in `*` to `User event pattern` and **Select all** the system events.
 5. Click `Save` button to update the settings, wait until the settings are updated successfully.
 ![event handler settings](../../../docs/images/eventhandler-settings-sample.png)
 

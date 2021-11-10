@@ -60,7 +60,7 @@ Copy the URL `http://<name>.ngrok.io` in one of the **Forwarding** row.
 3. Enter `chat` as **Hub name**.
 4. Set **URL template** to `https://<name>.ngrok.io/eventhandler`
 5. Click **System events**, then select **connected** to let AWPS send connected events.
-   ![Screenshot of Edit Hub Settings](./media/edit-hub-settings.png)
+    ![Event Handler](./../../../docs/images/portal_event_handler.png)
 1. Click **Save** to confirm the change.
 
 ### 5. Configure Role-Based Access Control (RBAC)
