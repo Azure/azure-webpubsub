@@ -12,12 +12,12 @@
 python -m venv env
 
 # Active venv
-./env/Scripts/activate
+source ./env/bin/activate
 
 # pip install
 pip install -r requirements.txt
 ```
-on Mac/Linux use `source ./env/bin/activate` to activate venv.
+
 ## Start subscriber
 
 Copy **Connection String** from **Keys** tab of the created Azure Web PubSub service, and replace the `<connection-string>` below with the value of your **Connection String**.
@@ -35,9 +35,9 @@ The subscriber is then connected.
 Replace the `<connection-string>` below with the value of your **Connection String**:
 
 ```bash
-# 1. Start a new terminal or console. Navigate to the folder
+# 1. Start a new terminal. Navigate to the folder
 # 2. Active venv
-./env/Scripts/activate
+source ./env/bin/activate
 # 3. Replace the <connection-string> below with the value of your Connection String:
 python publish.py "<connection-string>" pubsub Hello,world
 ```
