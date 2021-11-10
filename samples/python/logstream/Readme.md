@@ -1,4 +1,4 @@
-# Publish and subscribe messages
+# Streaming logs using `json.webpubsub.azure.v1` subprotocol
 
 ## Prerequisites
 
@@ -10,36 +10,31 @@
 ```bash
 # Create venv
 python -m venv env
-
 # Active venv
 source ./env/bin/activate
-
 # pip install
 pip install -r requirements.txt
 ```
 
-## Start subscriber
+## Start the server
 
 Copy **Connection String** from **Keys** tab of the created Azure Web PubSub service, and replace the `<connection-string>` below with the value of your **Connection String**.
 
 ![Connection String](./../../../docs/images/portal_conn.png)
 
 ```bash
-python subscribe.py "<connection-string>" pubsub
+python server.py "<connection-string>"
 ```
 
-The subscriber is then connected.
+The server is then started. Open `http://localhost:8080` in browser. If you use F12 to view the Network you can see the WebSocket connection is established.
 
-## Start publisher
+## Start the log streamer
 
-Replace the `<connection-string>` below with the value of your **Connection String**:
+Run:
 
 ```bash
-# 1. Start a new terminal. Navigate to the folder
-# 2. Active venv
 source ./env/bin/activate
-# 3. Replace the <connection-string> below with the value of your Connection String:
-python publish.py "<connection-string>" pubsub Hello,world
+python stream.py
 ```
 
-You can see that the client receives message `Hello,world`.
+Start typing messages and you can see these messages are transferred to the browser in real-time.

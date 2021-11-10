@@ -33,17 +33,15 @@ def handle_event():
             res.status_code = 200
             return res
     elif request.method == 'POST':
-        print(request.headers)
         user_id = request.headers.get('ce-userid')
         if request.headers.get('ce-type') == 'azure.webpubsub.sys.connected':
             return user_id + ' connected', 200
         elif request.headers.get('ce-type') == 'azure.webpubsub.user.message':
-            client.send_to_all(hub_name, json.dumps({
+            client.send_to_all(hub_name, content_type="application/json", message={
                 'from': user_id,
                 'message': request.data.decode('UTF-8')
-            }))
-            res = Response(content_type='text/plain', status=200)
-            return res
+            }
+            return 200
         else:
             return 'Not found', 404
 
@@ -55,7 +53,6 @@ def negotiate():
         return 'missing user id', 400
 
     token = client.get_client_access_token(hub_name, user_id=id)
-    print(token)
     return {
         'url': token['url']
     }, 200
