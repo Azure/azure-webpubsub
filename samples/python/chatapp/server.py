@@ -40,7 +40,7 @@ def handle_event():
             client.send_to_all(hub_name, content_type="application/json", message=json.dumps({
                 'from': user_id,
                 'message': request.data.decode('UTF-8')
-            }))
+            })
             res = Response(content_type='text/plain', status=200)
             return res
         else:

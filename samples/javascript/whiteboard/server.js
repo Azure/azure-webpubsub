@@ -60,7 +60,7 @@ app.use(fileUpload());
 app.use(handler.getMiddleware());
 app
   .get('/negotiate', async (req, res) => {
-    let token = await serviceClient.getAuthenticationToken({
+    let token = await serviceClient.getClientAccessToken({
       roles: ['webpubsub.sendToGroup.draw']
     });
     res.json({

@@ -18,13 +18,11 @@ This sample is to help you create a chat app with aad auth method.
 python -m venv .venv
 
 # Active venv
-./.venv/Scripts/activate
+source ./env/bin/activate
 
 # pip install
 pip install -r requirements.txt
 ```
-
-For OSX/Linux user, use `source ./.venv/bin/activate` to activate the virtualenv.
 
 ### 2. Login Azure account in your terminal
 

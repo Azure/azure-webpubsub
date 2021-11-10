@@ -1,3 +1,3 @@
 -i https://www.myget.org/F/azure-webpubsub-dev/python
-azure-messaging-webpubsubservice==1.0.0b6
+azure-messaging-webpubsubservice==1.0.0
 websockets==8.1

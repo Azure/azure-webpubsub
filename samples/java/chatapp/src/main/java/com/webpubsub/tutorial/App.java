@@ -1,10 +1,10 @@
 
 package com.webpubsub.tutorial;
 
-import com.azure.messaging.webpubsub.WebPubSubClientBuilder;
 import com.azure.messaging.webpubsub.WebPubSubServiceClient;
-import com.azure.messaging.webpubsub.models.GetAuthenticationTokenOptions;
-import com.azure.messaging.webpubsub.models.WebPubSubAuthenticationToken;
+import com.azure.messaging.webpubsub.WebPubSubServiceClientBuilder;
+import com.azure.messaging.webpubsub.models.GetClientAccessTokenOptions;
+import com.azure.messaging.webpubsub.models.WebPubSubClientAccessToken;
 import com.azure.messaging.webpubsub.models.WebPubSubContentType;
 
 import io.javalin.Javalin;
@@ -18,7 +18,7 @@ public class App {
         }
 
         // create the service client
-        WebPubSubServiceClient client = new WebPubSubClientBuilder()
+        WebPubSubServiceClient client = new WebPubSubServiceClientBuilder()
                 .connectionString(args[0])
                 .hub("chat")
                 .buildClient();
@@ -37,9 +37,10 @@ public class App {
                 ctx.result("missing user id");
                 return;
             }
-            GetAuthenticationTokenOptions option = new GetAuthenticationTokenOptions();
+            GetClientAccessTokenOptions option = new GetClientAccessTokenOptions();
             option.setUserId(id);
-            WebPubSubAuthenticationToken token = client.getAuthenticationToken(option);
+            WebPubSubClientAccessToken token = client.getClientAccessToken(option);
+
             ctx.result(token.getUrl());
             return;
         });
