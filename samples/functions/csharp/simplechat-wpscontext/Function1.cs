@@ -8,7 +8,6 @@ using Microsoft.Azure.WebJobs.Extensions.Http;
 using Microsoft.AspNetCore.Http;
 using Newtonsoft.Json;
 using Microsoft.Azure.WebJobs.Extensions.WebPubSub;
-using Microsoft.Azure.WebJobs.Extensions.WebPubSub.Operations;
 using Microsoft.Azure.WebPubSub.Common;
 using Microsoft.Extensions.Logging;
 
@@ -70,7 +69,7 @@ namespace SimpleChat_Input
         public static async Task<object> Broadcast(
             [HttpTrigger(AuthorizationLevel.Anonymous, "post")] HttpRequest req,
             [WebPubSubContext] WebPubSubContext wpsReq,
-            [WebPubSub(Hub = "%WebPubSubHub%")] IAsyncCollector<WebPubSubOperation> operations)
+            [WebPubSub(Hub = "%WebPubSubHub%")] IAsyncCollector<WebPubSubAction> actions)
         {
             if (wpsReq.Request is PreflightRequest || wpsReq.ErrorMessage != null)
             {
@@ -78,11 +77,7 @@ namespace SimpleChat_Input
             }
             if (wpsReq.Request is UserEventRequest request)
             {
-                await operations.AddAsync(new SendToAll
-                {
-                    Message = request.Message,
-                    DataType = request.DataType
-                });
+                await actions.AddAsync(WebPubSubAction.CreateSendToAllAction(request.Data, request.DataType));
             }
 
             return new ClientContent("ack").ToString();
@@ -92,39 +87,35 @@ namespace SimpleChat_Input
         public static async Task Connected(
             [HttpTrigger(AuthorizationLevel.Anonymous, "post")] HttpRequest req,
             [WebPubSubContext] WebPubSubContext wpsReq,
-            [WebPubSub] IAsyncCollector<WebPubSubOperation> webpubsubOperation)
+            [WebPubSub] IAsyncCollector<WebPubSubAction> actions)
         {
             Console.WriteLine("Connected.");
-            await webpubsubOperation.AddAsync(new SendToAll
+            await actions.AddAsync(new SendToAllAction
             {
-                Message = BinaryData.FromString(new ClientContent($"{wpsReq.Request.ConnectionContext.UserId} connected.").ToString()),
-                DataType = MessageDataType.Json
+                Data = BinaryData.FromString(new ClientContent($"{wpsReq.Request.ConnectionContext.UserId} connected.").ToString()),
+                DataType = WebPubSubDataType.Json
             });
 
-            await webpubsubOperation.AddAsync(new AddUserToGroup
+            await actions.AddAsync(WebPubSubAction.CreateAddUserToGroupAction(wpsReq.Request.ConnectionContext.UserId, "group1"));
+            await actions.AddAsync(new SendToUserAction
             {
                 UserId = wpsReq.Request.ConnectionContext.UserId,
-                Group = "group1"
-            });
-            await webpubsubOperation.AddAsync(new SendToUser
-            {
-                UserId = wpsReq.Request.ConnectionContext.UserId,
-                Message = BinaryData.FromString(new ClientContent($"{wpsReq.Request.ConnectionContext.UserId} joined group: group1.").ToString()),
-                DataType = MessageDataType.Json
+                Data = BinaryData.FromString(new ClientContent($"{wpsReq.Request.ConnectionContext.UserId} joined group: group1.").ToString()),
+                DataType = WebPubSubDataType.Json
             });
         }
 
         [FunctionName("disconnected")]
         [return: WebPubSub(Hub = "simplechat")]
-        public static WebPubSubOperation Disconnect(
+        public static WebPubSubAction Disconnect(
             [HttpTrigger(AuthorizationLevel.Anonymous, "post")] HttpRequest req,
             [WebPubSubContext] WebPubSubContext wpsReq)
         {
             Console.WriteLine("Disconnected.");
-            return new SendToAll
+            return new SendToAllAction
             {
-                Message = BinaryData.FromString(new ClientContent($"{wpsReq.Request.ConnectionContext.UserId} disconnect.").ToString()),
-                DataType = MessageDataType.Text
+                Data = BinaryData.FromString(new ClientContent($"{wpsReq.Request.ConnectionContext.UserId} disconnect.").ToString()),
+                DataType = WebPubSubDataType.Text
             };
         }
 

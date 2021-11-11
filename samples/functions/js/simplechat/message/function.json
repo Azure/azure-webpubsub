@@ -12,7 +12,7 @@
     },
     {
       "type": "webPubSub",
-      "name": "webPubSubEvent",
+      "name": "actions",
       "hub": "simplechat",
       "direction": "out"
     }
