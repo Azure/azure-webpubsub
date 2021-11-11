@@ -11,25 +11,19 @@
 
 ![Connection String](./../../../../docs/images/portal_conn.png)
 
-2. Install function extensions
-
-```bash
-func extensions install
-```
-
-3. Start app
+2. Start app
 
 ```bash
 func start
 ```
 
-4. Run `ngrok` to expose local function to public network, e.g. https://*{random-id}*.ngrok.io -> http://localhost:7071
+3. Run `ngrok` to expose local function to public network, e.g. https://*{random-id}*.ngrok.io -> http://localhost:7071
 
 ```bash
 ngrok http 7071
 ```
 
-5. Update event handler settings in **Azure Portal** -> **Settings** to enable service route events to current function app.
+4. Update event handler settings in **Azure Portal** -> **Settings** to enable service route events to current function app.
 
 Property|Value
 --|--
