@@ -5,7 +5,7 @@ from http.server import HTTPServer, SimpleHTTPRequestHandler
 
 from azure.messaging.webpubsubservice import WebPubSubServiceClient
 
-client = WebPubSubServiceClient.from_connection_string(sys.argv[1])
+client = WebPubSubServiceClient.from_connection_string(sys.argv[1], hub='stream')
 
 class Resquest(SimpleHTTPRequestHandler):
     def do_GET(self):
@@ -15,7 +15,7 @@ class Resquest(SimpleHTTPRequestHandler):
         elif self.path == '/negotiate':
             roles = ['webpubsub.sendToGroup.stream',
                      'webpubsub.joinLeaveGroup.stream']
-            token = client.get_client_access_token('stream', roles=roles)
+            token = client.get_client_access_token(roles=roles)
             self.send_response(200)
             self.send_header('Content-Type', 'application/json')
             self.end_headers()

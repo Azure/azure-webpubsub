@@ -27,7 +27,6 @@ async def connect(url):
 
 if __name__ == '__main__':
     res = requests.get('http://localhost:8080/negotiate').json()
-    print(res)
 
     try:
         asyncio.get_event_loop().run_until_complete(connect(res['url']))
