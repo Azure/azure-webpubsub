@@ -20,8 +20,8 @@ if __name__ == '__main__':
     connection_string = sys.argv[1]
     hub_name = sys.argv[2]
 
-    client = WebPubSubServiceClient.from_connection_string(connection_string)
-    token = client.get_client_access_token(hub_name)
+    client = WebPubSubServiceClient.from_connection_string(connection_string, hub=hub_name)
+    token = client.get_client_access_token()
 
     try:
         asyncio.get_event_loop().run_until_complete(connect(token['url']))

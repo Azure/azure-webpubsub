@@ -29,7 +29,7 @@
             }
           }
         } else if (data.type == "message") {
-          msg = JSON.parse(data.data)
+          msg = data.data
           m.innerText = `[${data.type || ''} from ${msg.from || ''}] ${msg.message}`;
           messages.appendChild(m);
         }

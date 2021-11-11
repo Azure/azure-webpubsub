@@ -12,6 +12,6 @@ if __name__ == '__main__':
     hub_name = sys.argv[2]
     message = sys.argv[3]
 
-    client = WebPubSubServiceClient.from_connection_string(connection_string)
-    res = client.send_to_all(hub_name, message, content_type='text/plain')
+    client = WebPubSubServiceClient.from_connection_string(connection_string, hub=hub_name)
+    res = client.send_to_all(message, content_type='text/plain')
     print(res)
