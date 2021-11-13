@@ -28,13 +28,13 @@ ngrok http 7071
 Property|Value
 --|--
 `HubName`| simplechat
-`URL Template`| https://*{random-id}*.ngrok.io/runtime/webhooks/webpubsub
+`URL Template`| https://*{random-id}*.ngrok.io/api/{event}
 `User Event Pattern`| *
 `System Events`| connect, connected, disconnected
 
 ![Event Handler](./../../../../docs/images/portal_event_handler.png)
 
-5. Open function hosted page `http://localhost:7071/api/index` to start chat.
+1. Open function hosted page `http://localhost:7071/api/index` to start chat.
 
 ## Deploy Functions to Azure
 

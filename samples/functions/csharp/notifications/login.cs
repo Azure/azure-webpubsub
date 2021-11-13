@@ -10,7 +10,7 @@ namespace notifications
     {
         [FunctionName("login")]
         public static WebPubSubConnection Run(
-            [HttpTrigger(AuthorizationLevel.Function, "get", "post", Route = null)] HttpRequest req,
+            [HttpTrigger(AuthorizationLevel.Anonymous, "get", "post", Route = null)] HttpRequest req,
             [WebPubSubConnection(Hub = "notification")] WebPubSubConnection connection,
             ILogger log)
         {
