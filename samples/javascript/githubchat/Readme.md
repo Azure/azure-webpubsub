@@ -25,7 +25,10 @@ Copy **Connection String** from **Keys** tab of the created Azure Web PubSub ser
 ![Connection String](./../../../docs/images/portal_conn.png)
 
 ```bash
-node server "<connection-string>" <client-id> <client-secret>
+export WebPubSubConnectionString="<connection-string>"
+export GitHubClientId="<client-id>"
+export GitHubClientSecret="<client-secret>"
+node server
 ```
 
 The web app is listening to request at `http://localhost:8080/eventhandler/`.

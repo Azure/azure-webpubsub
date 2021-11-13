@@ -10,20 +10,49 @@
       let id = prompt('Please input your user name');
       let res = await fetch(`/negotiate?id=${id}`);
       let data = await res.json();
-      let ws = new WebSocket(data.url);
+      let ws = new WebSocket(data.url, protocols='json.webpubsub.azure.v1');
+      let sentMessages = {};
+      let ackId = 1;
       ws.onopen = () => console.log('connected');
 
       ws.onmessage = event => {
         let m = document.createElement('p');
         let data = JSON.parse(event.data);
-        m.innerText = `[${data.type || ''}${data.from || ''}] ${data.message}`;
-        messages.appendChild(m);
+
+        if (data.type === "ack") {
+          var sentMessage = sentMessages[data.ackId];
+          if (sentMessage) {
+            if (data.success == true) {
+              sentMessage.innerText += ' Success'
+            } else {
+              sentMessage.innerText += ` Failed: ${data.error.message}`
+            }
+          }
+        } else if (data.type == "message") {
+          msg = data.data
+          m.innerText = `[${data.type || ''} from ${msg.from || ''}] ${msg.message}`;
+          messages.appendChild(m);
+        }
       };
 
       let message = document.querySelector('#message');
       message.addEventListener('keypress', e => {
         if (e.charCode !== 13) return;
-        ws.send(message.value);
+        var newMessage = {
+          "type": "event",
+          "event": "message",
+          "dataType": "text",
+          "data": message.value,
+          "ackId": ackId,
+        }
+        ackId = ackId + 1;
+
+        var m = document.createElement('p');
+        m.innerText = `Sending message '${message.value}' ..... `;
+        sentMessages[newMessage.ackId] = m;
+        messages.appendChild(m);
+
+        ws.send(JSON.stringify(newMessage));
         message.value = '';
       });
     })();

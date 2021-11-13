@@ -16,11 +16,13 @@
       let res = await fetch('/negotiate')
       let data = await res.json();
       let ws = new WebSocket(data.url, 'json.webpubsub.azure.v1');
+      let ackId = 0;
       ws.onopen = () => {
         console.log('connected');
         ws.send(JSON.stringify({
           type: 'joinGroup',
-          group: 'stream'
+          group: 'stream',
+          ackId: ++ackId,
         }));
       };
 

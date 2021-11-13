@@ -24,12 +24,7 @@ namespace subscriber
             var serviceClient = new WebPubSubServiceClient(connectionString, hub);
             var url = serviceClient.GenerateClientAccessUri();
 
-            using (var client = new WebsocketClient(url, () =>
-            {
-                var inner = new ClientWebSocket();
-                inner.Options.AddSubProtocol("json.webpubsub.azure.v1");
-                return inner;
-            }))
+            using (var client = new WebsocketClient(url))
             {
                 // Disable the auto disconnect and reconnect because the sample would like the client to stay online even no data comes in
                 client.ReconnectTimeout = null;
