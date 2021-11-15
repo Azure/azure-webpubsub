@@ -43,7 +43,7 @@ let handler = new WebPubSubEventHandler(hubName, {
     }
     res.success();
   },
-  allowedEndpoints: ['*']
+  allowedEndpoints: [ endpoint ]
 });
 
 app.use(handler.getMiddleware());
