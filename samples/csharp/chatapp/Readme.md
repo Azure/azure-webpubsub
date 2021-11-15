@@ -3,7 +3,7 @@
 ## Prerequisites
 
 1. [ASP.NET Core 3.1 or above](https://docs.microsoft.com/aspnet/core)
-2. Create an Azure Web PubSub resource
+2. Create an [Azure Web PubSub](https://ms.portal.azure.com/#blade/HubsExtension/BrowseResource/resourceType/Microsoft.SignalRService%2FWebPubSub) resource on Azure Portal
 3. [ngrok](https://ngrok.com/download) to expose our localhost to internet
 
 ## Start the server
