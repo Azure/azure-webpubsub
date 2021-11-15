@@ -22,7 +22,7 @@ export WebPubSubConnectionString="<connection-string>"
 node server
 ```
 
-The server is then started. Open `http://localhost:8080` in browser. If you use F12 to view the Network you can see the WebSocket connection is established.
+The server is then started. Open http://localhost:8080/index.html in the browser. If you use F12 to view the Network you can see the WebSocket connection is established.
 
 ## Start the log streamer
 Run:

@@ -60,7 +60,7 @@ Copy the URL `http://<name>.ngrok.io` in one of the **Forwarding** row.
 1. Open [Azure Portal](https://ms.portal.azure.com/), search for and select your `Azure Web PubSub` resource.
 1. Select **Access control (IAM)**.
 1. Click **Add > Add role assignment**.
-1. On **Role** tab, select **Web PubSubServiceOwner**.
+1. On **Role** tab, select **Web PubSub Service Owner**.
 1. Click **Next**.
    ![Screenshot of Select Roles](./media/add-role-assignment-roles.png)
 1. On **Members** tab, select **User, group, or service principal**, then click **Select members**.
@@ -77,7 +77,7 @@ Copy the URL `http://<name>.ngrok.io` in one of the **Forwarding** row.
 node server <endpoint> # endpoint is the value of Endpoint=<value> in the connection string
 ```
 
-Open http://localhost:8080, input your user name, and send messages.
+Open http://localhost:8080/index.html, input your user name, and send messages.
 
 ## Next steps
 

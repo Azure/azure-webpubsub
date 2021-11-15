@@ -47,7 +47,7 @@ Go to the **Settings** tab to configure the event handler for this `chat` hub:
 
 ## Start the chat
 
-Open http://localhost:8080, input your user name, and send messages.
+Open http://localhost:8080/index.html, input your user name, and send messages.
 
 You can see in the ngrok command window that there are requests coming in with every message sent from the page.
 
