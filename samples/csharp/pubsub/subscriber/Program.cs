@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Net.WebSockets;
 using System.Threading.Tasks;
 
 using Azure.Messaging.WebPubSub;
