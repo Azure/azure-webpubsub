@@ -5,10 +5,10 @@
   <modelVersion>4.0.0</modelVersion>
 
   <groupId>com.webpubsub.tutorial</groupId>
-  <artifactId>webpubsub-tutorial-chat</artifactId>
+  <artifactId>logstream-webserver</artifactId>
   <version>1.0-SNAPSHOT</version>
 
-  <name>webpubsub-tutorial-chat</name>
+  <name>logstream-webserver</name>
   <!-- FIXME change it to the project's website -->
   <url>http://www.example.com</url>
 
@@ -20,27 +20,27 @@
 
   <dependencies>
     <dependency>
-      <groupId>junit</groupId>
-      <artifactId>junit</artifactId>
-      <version>4.11</version>
-      <scope>test</scope>
-    </dependency>
-    <dependency>
         <groupId>com.azure</groupId>
         <artifactId>azure-messaging-webpubsub</artifactId>
         <version>1.0.0-beta.6</version>
     </dependency>
-
     <!-- https://mvnrepository.com/artifact/io.javalin/javalin -->
     <dependency>
         <groupId>io.javalin</groupId>
         <artifactId>javalin</artifactId>
         <version>3.13.6</version>
     </dependency>
+
     <dependency>
         <groupId>org.slf4j</groupId>
         <artifactId>slf4j-simple</artifactId>
         <version>1.7.30</version>
+    </dependency>
+    <dependency>
+      <groupId>junit</groupId>
+      <artifactId>junit</artifactId>
+      <version>4.11</version>
+      <scope>test</scope>
     </dependency>
   </dependencies>
 

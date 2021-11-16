@@ -23,12 +23,12 @@ public class App
             return;
         }
 
-        WebPubSubServiceClient client = new WebPubSubServiceClientBuilder()
+        WebPubSubServiceClient service = new WebPubSubServiceClientBuilder()
             .connectionString(args[0])
             .hub(args[1])
             .buildClient();
 
-         WebPubSubClientAccessToken token = client.getClientAccessToken(new GetClientAccessTokenOptions());
+         WebPubSubClientAccessToken token = service.getClientAccessToken(new GetClientAccessTokenOptions());
 
         WebSocketClient webSocketClient = new WebSocketClient(new URI(token.getUrl())) {
             @Override
