@@ -84,13 +84,24 @@ namespace SimpleChat
             WebPubSubDataType dataType,
             [WebPubSub(Hub = "simplechat")] IAsyncCollector<WebPubSubAction> actions)
         {
+            var msgCounter = 1;
+
             await actions.AddAsync(new SendToAllAction
             {
                 Data = request.Data,
                 DataType = request.DataType
             });
 
-            return request.CreateResponse(BinaryData.FromString(new ClientContent("ack").ToString()), WebPubSubDataType.Json);
+            // retrieve counter from states.
+            if (connectionContext.States != null && connectionContext.States.ContainsKey("counter"))
+            {
+                msgCounter = int.Parse(connectionContext.States["counter"].ToString());
+                msgCounter++;
+            }
+            var response = request.CreateResponse(BinaryData.FromString(new ClientContent($"ack, connection message counter: {msgCounter}").ToString()), WebPubSubDataType.Json);
+            response.SetState("counter", msgCounter);
+
+            return response;
         }
 
         [FunctionName("disconnect")]

@@ -7,9 +7,22 @@ module.exports = async function (context, message) {
     "data": message,
     "dataType": context.bindingData.dataType
   };
+
+  var msgCounter = 0;
+  if (context.bindingData.request.connectionContext.states != null && context.bindingData.request.connectionContext.states.counter != null)
+  {
+    msgCounter = parseInt(context.bindingData.request.connectionContext.states.counter);
+    msgCounter++;
+  }
   var response = { 
-    "data": message,
-    "dataType" : context.bindingData.dataType
+    "data": JSON.stringify({
+      from: "[System]",
+      content: `ack, connection message counter: ${msgCounter}.`
+    }),
+    "dataType" : "json",
+    "states": {
+      "counter": msgCounter
+    }
   };
   return response;
 };
