@@ -84,8 +84,6 @@ namespace SimpleChat
             WebPubSubDataType dataType,
             [WebPubSub(Hub = "simplechat")] IAsyncCollector<WebPubSubAction> actions)
         {
-            var msgCounter = 1;
-
             await actions.AddAsync(new SendToAllAction
             {
                 Data = request.Data,
@@ -93,13 +91,16 @@ namespace SimpleChat
             });
 
             // retrieve counter from states.
-            if (connectionContext.States != null && connectionContext.States.ContainsKey("counter"))
+            var states = new ConnectionState(1);
+            var idle = 0.0;
+            if (connectionContext.States != null)
             {
-                msgCounter = int.Parse(connectionContext.States["counter"].ToString());
-                msgCounter++;
+                states = JsonConvert.DeserializeObject<ConnectionState>(connectionContext.States["connectionState"] as string);
+                idle = (DateTime.Now - states.Timestamp).TotalSeconds;
+                states.Update();
             }
-            var response = request.CreateResponse(BinaryData.FromString(new ClientContent($"ack, connection message counter: {msgCounter}").ToString()), WebPubSubDataType.Json);
-            response.SetState("counter", msgCounter);
+            var response = request.CreateResponse(BinaryData.FromString(new ClientContent($"ack, idle: {idle}s, connection message counter: {states.Counter}").ToString()), WebPubSubDataType.Json);
+            response.SetState("connectionState", states);
 
             return response;
         }
@@ -120,7 +121,7 @@ namespace SimpleChat
         #endregion
 
         [JsonObject]
-        public sealed class ClientContent
+        private sealed class ClientContent
         {
             [JsonProperty("from")]
             public string From { get; set; }
@@ -142,6 +143,27 @@ namespace SimpleChat
             public override string ToString()
             {
                 return JsonConvert.SerializeObject(this);
+            }
+        }
+
+        [JsonObject]
+        private sealed class ConnectionState
+        {
+            [JsonProperty("timestamp")]
+            public DateTime Timestamp { get; set; }
+            [JsonProperty("counter")]
+            public int Counter { get; set; }
+
+            public ConnectionState(int counter)
+            {
+                Counter = counter;
+                Timestamp = DateTime.Now;
+            }
+
+            public void Update()
+            {
+                Timestamp = DateTime.Now;
+                Counter++;
             }
         }
     }

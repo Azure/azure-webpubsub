@@ -1,27 +1,33 @@
 // Copyright (c) Microsoft. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
-module.exports = async function (context, message) {
+module.exports = async function (context, data) {
   context.bindings.actions = {
     "actionName": "sendToAll",
-    "data": message,
+    "data": data,
     "dataType": context.bindingData.dataType
   };
 
   var msgCounter = 1;
-  if (context.bindingData.request.connectionContext.states != null && context.bindingData.request.connectionContext.states.counter != null)
+  var time = Date.now();
+  var lastTime = time;
+  if (context.bindingData.request.connectionContext.states != null)
   {
-    msgCounter = parseInt(context.bindingData.request.connectionContext.states.counter);
-    msgCounter++;
+    var metadata = JSON.parse(context.bindingData.request.connectionContext.states.metadata);
+    msgCounter = ++metadata.counter;
+    lastTime = metadata.time;
   }
   var response = { 
     "data": JSON.stringify({
       from: "[System]",
-      content: `ack, connection message counter: ${msgCounter}.`
+      content: `ack, idle: ${(time - lastTime)/1000}s, connection message counter: ${msgCounter}.`
     }),
     "dataType" : "json",
     "states": {
-      "counter": msgCounter
+      "metadata": {
+        counter: msgCounter,
+        time : time
+      }
     }
   };
   return response;
