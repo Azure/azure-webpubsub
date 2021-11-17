@@ -95,12 +95,12 @@ namespace SimpleChat
             var idle = 0.0;
             if (connectionContext.States != null)
             {
-                states = JsonConvert.DeserializeObject<ConnectionState>(connectionContext.States["connectionState"] as string);
+                states = JsonConvert.DeserializeObject<ConnectionState>(connectionContext.States["counterState"] as string);
                 idle = (DateTime.Now - states.Timestamp).TotalSeconds;
                 states.Update();
             }
             var response = request.CreateResponse(BinaryData.FromString(new ClientContent($"ack, idle: {idle}s, connection message counter: {states.Counter}").ToString()), WebPubSubDataType.Json);
-            response.SetState("connectionState", states);
+            response.SetState("counterState", JsonConvert.SerializeObject(states));
 
             return response;
         }

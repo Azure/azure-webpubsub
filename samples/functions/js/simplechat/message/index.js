@@ -13,9 +13,9 @@ module.exports = async function (context, data) {
   var lastTime = time;
   if (context.bindingData.request.connectionContext.states != null)
   {
-    var metadata = JSON.parse(context.bindingData.request.connectionContext.states.metadata);
-    msgCounter = ++metadata.counter;
-    lastTime = metadata.time;
+    var counterState = JSON.parse(context.bindingData.request.connectionContext.states.counterState);
+    msgCounter = ++counterState.counter;
+    lastTime = counterState.time;
   }
   var response = { 
     "data": JSON.stringify({
@@ -24,10 +24,10 @@ module.exports = async function (context, data) {
     }),
     "dataType" : "json",
     "states": {
-      "metadata": {
+      "counterState": JSON.stringify({
         counter: msgCounter,
         time : time
-      }
+      })
     }
   };
   return response;
