@@ -8,7 +8,7 @@ module.exports = async function (context, message) {
     "dataType": context.bindingData.dataType
   };
 
-  var msgCounter = 0;
+  var msgCounter = 1;
   if (context.bindingData.request.connectionContext.states != null && context.bindingData.request.connectionContext.states.counter != null)
   {
     msgCounter = parseInt(context.bindingData.request.connectionContext.states.counter);
