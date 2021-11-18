@@ -91,16 +91,16 @@ namespace SimpleChat
             });
 
             // retrieve counter from states.
-            var states = new ConnectionState(1);
+            var states = new CounterState(1);
             var idle = 0.0;
             if (connectionContext.States != null)
             {
-                states = JsonConvert.DeserializeObject<ConnectionState>(connectionContext.States["counterState"] as string);
+                states = JsonConvert.DeserializeObject<CounterState>(connectionContext.States[nameof(CounterState)] as string);
                 idle = (DateTime.Now - states.Timestamp).TotalSeconds;
                 states.Update();
             }
             var response = request.CreateResponse(BinaryData.FromString(new ClientContent($"ack, idle: {idle}s, connection message counter: {states.Counter}").ToString()), WebPubSubDataType.Json);
-            response.SetState("counterState", JsonConvert.SerializeObject(states));
+            response.SetState(nameof(CounterState), JsonConvert.SerializeObject(states));
 
             return response;
         }
@@ -147,14 +147,14 @@ namespace SimpleChat
         }
 
         [JsonObject]
-        private sealed class ConnectionState
+        private sealed class CounterState
         {
             [JsonProperty("timestamp")]
             public DateTime Timestamp { get; set; }
             [JsonProperty("counter")]
             public int Counter { get; set; }
 
-            public ConnectionState(int counter)
+            public CounterState(int counter)
             {
                 Counter = counter;
                 Timestamp = DateTime.Now;
