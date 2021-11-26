@@ -1,4 +1,6 @@
 ﻿using System;
+using System.IO.Pipelines;
+using System.Linq;
 using System.Net.WebSockets;
 using System.Text.Json;
 using System.Threading.Tasks;
@@ -13,14 +15,22 @@ namespace clientsub
     {
         static async Task Main(string[] args)
         {
+            //var pipe = new Pipe();
+            //pipe.Reader.Complete(new InvalidOperationException("aaa"));
+            //await pipe.Writer.WriteAsync(new ReadOnlyMemory<byte>());
             //if (args.Length != 2)
             //{
             //    Console.WriteLine("Usage: clientsub <connectionString> <hub>");
             //    return;
             //}
+            bool needAck = false;
+            if (args.Contains("ack"))
+            {
+                needAck = true;
+            }
             var connectionString = "Endpoint=http://localhost:8080;AccessKey=ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789ABCDEFGH;Version=1.0;";
-            //var connectionString = "";
-            var hub = "hub";
+            
+            var hub = "signalrbench";
 
             // Either generate the URL or fetch it from server or fetch a temp one from the portal
             var serviceClient = new WebPubSubServiceClient(connectionString, hub);
@@ -35,7 +45,33 @@ namespace clientsub
                     ws.ConnectionId = connected.connectionId;
                     ws.ReconnectToken = connected.reconnectionToken;
                 }
-                Console.WriteLine($"Message received: {msg}");
+
+                var seqIdMessage = JsonSerializer.Deserialize<SequenceIdMessage>(msg.Text);
+                if (seqIdMessage != null && seqIdMessage.sequenceId != null)
+                {
+                    if (ws.IsDuplicate(seqIdMessage.sequenceId.Value))
+                    {
+                        Console.WriteLine($"Duplicated message received: sequence id: {seqIdMessage.sequenceId}");
+                    }
+                    else
+                    {
+                        Console.WriteLine($"Message received: {msg}");
+                    }
+
+                    if (needAck)
+                    {
+                        Console.WriteLine($"Ack: {seqIdMessage.sequenceId.Value}");
+                        _ = ws.SendAsync(JsonSerializer.Serialize(new
+                        {
+                            type = "ack",
+                            sequenceId = seqIdMessage.sequenceId.Value,
+                        }));
+                    }
+                }
+                else
+                {
+                    Console.WriteLine($"Message received: {msg}");
+                }
             });
 
             await ws.StartAsync();
@@ -50,8 +86,11 @@ namespace clientsub
             
             while(true)
             {
-                await Task.Delay(5000);
+                //await Task.Delay(5000);
+                Console.ReadLine();
                 ws.Abort();
+                Console.ReadLine();
+                await ws.Reconnect();
             }
             
             //using (var client = new WebsocketClient(url, () =>
@@ -90,5 +129,10 @@ namespace clientsub
         public string connectionId {  get; set; }
 
         public string reconnectionToken { get; set; }
+    }
+
+    public class SequenceIdMessage
+    {
+        public ulong? sequenceId { get; set; }
     }
 }

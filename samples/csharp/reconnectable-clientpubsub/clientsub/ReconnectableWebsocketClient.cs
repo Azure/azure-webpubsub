@@ -21,6 +21,7 @@ namespace clientsub
 
         private bool _isStarted = false;
         private volatile ClientWebSocket _clientWebSocket;
+        private ulong _lastSeqId = 0;
 
         private readonly Subject<ResponseMessage> _messageReceivedSubject = new Subject<ResponseMessage>();
 
@@ -29,6 +30,17 @@ namespace clientsub
         public string ConnectionId { get; set; }
 
         public string ReconnectToken { get; set; }
+
+        public bool IsDuplicate(ulong seqId)
+        {
+            if (seqId <= _lastSeqId)
+            {
+                return true;
+            }
+
+            _lastSeqId = seqId;
+            return false;
+        }
 
         public WebPubSubServiceWebsocketClient(Uri uri, string protocol)
         {
@@ -114,7 +126,7 @@ namespace clientsub
                         if (webSocketReceiveResult.MessageType == WebSocketMessageType.Close)
                         {
                             await _clientWebSocket.CloseOutputAsync(webSocketReceiveResult.CloseStatus ?? WebSocketCloseStatus.NormalClosure, null, default);
-                            Reconnect();
+                            //Reconnect();
 
                             return;
                         }
@@ -152,16 +164,17 @@ namespace clientsub
                 causedException = ex4;
             }
 
-            _ = Reconnect();
+            Console.WriteLine("Disconnected");
+            //_ = Reconnect();
         }
 
-        private Task Reconnect()
+        public Task Reconnect()
         {
             if (!string.IsNullOrEmpty(ConnectionId) &&
                 !string.IsNullOrEmpty(ReconnectToken))
             {
                 var builder = new UriBuilder(_baseUri);
-                builder.Query = $"id={ConnectionId}&reconnection-token={ReconnectToken}";
+                builder.Query = $"awps_connection_id={ConnectionId}&awps_reconnection_token={ReconnectToken}";
                 var reconnectUri = builder.Uri;
                 return StartInternal(reconnectUri, _protocol);
             }
@@ -179,7 +192,7 @@ namespace clientsub
             try
             {
                 await _clientWebSocket.ConnectAsync(uri, default);
-
+                Console.WriteLine("Connected");
                 _ = Task.Run(() => Listen(_clientWebSocket, default));
             }
             catch (Exception ex)

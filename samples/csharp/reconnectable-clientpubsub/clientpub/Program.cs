@@ -20,8 +20,8 @@ namespace clientpub
             //    return;
             //}
             var connectionString = "Endpoint=http://localhost:8080;AccessKey=ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789ABCDEFGH;Version=1.0;";
-            //var connectionString = "";
-            var hub = "hub";
+            
+            var hub = "signalrbench";
 
             // Either generate the URL or fetch it from server or fetch a temp one from the portal
             var serviceClient = new WebPubSubServiceClient(connectionString, hub);
@@ -43,11 +43,13 @@ namespace clientpub
                 int ackId = 1;
                 while (true)
                 {
+                    //var message = Console.ReadLine();
                     client.Send(JsonSerializer.Serialize(new
                     {
                         type = "sendToGroup",
                         group = "demogroup",
                         dataType = "text",
+                        //data = message,
                         data = ackId.ToString(),
                         ackId = ackId
                     }));
