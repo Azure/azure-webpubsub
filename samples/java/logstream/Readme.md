@@ -18,7 +18,7 @@ Open a new terminal window, copy **Connection String** from **Keys** tab of the 
 
 ```console
 cd logstream-webserver
-mvn compile & mvn package & mvn exec:java -Dexec.mainClass="com.webpubsub.quickstart.App" -Dexec.cleanupDaemonThreads=false -Dexec.args="'<connection_string>'"
+mvn compile & mvn package & mvn exec:java -Dexec.mainClass="com.webpubsub.tutorial.App" -Dexec.cleanupDaemonThreads=false -Dexec.args="'<connection_string>'"
 ```
 
 Now open http://localhost:8080 in browser. If you are using Chrome, you can press F12 or right-click -> **Inspect** -> **Developer Tools**, and select the **Network** tab. Load the web page, and you can see the WebSocket connection is established. Click to inspect the WebSocket connection, you can see below `connected` event message is received in client. You can see that you can get the `connectionId` generated for this client.
