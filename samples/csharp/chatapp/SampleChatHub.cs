@@ -2,6 +2,7 @@
 using Microsoft.Azure.WebPubSub.AspNetCore;
 using Microsoft.Azure.WebPubSub.Common;
 using System;
+using System.Runtime.Serialization;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -29,8 +30,46 @@ namespace chatapp
 
         public override async ValueTask<UserEventResponse> OnMessageReceivedAsync(UserEventRequest request, CancellationToken cancellationToken)
         {
-            await _serviceClient.SendToAllAsync($"[{request.ConnectionContext.UserId}] {request.Message}");
-            return request.CreateResponse("ack");
+            await _serviceClient.SendToAllAsync($"[{request.ConnectionContext.UserId}] {request.Data}");
+
+            // retrieve counter from states.
+            var states = new CounterState(1);
+            var idle = 0.0;
+            if (request.ConnectionContext.ConnectionStates.TryGetValue(nameof(CounterState), out var counterValue))
+            {
+                states = counterValue.ToObjectFromJson<CounterState>();
+                idle = (DateTime.Now - states.Timestamp).TotalSeconds;
+                states.Update();
+            }
+            var response = request.CreateResponse(BinaryData.FromString($"[SYSTEM] ack, idle: {idle}s, connection message counter: {states.Counter}").ToString(), WebPubSubDataType.Json);
+            response.SetState(nameof(CounterState), BinaryData.FromObjectAsJson(states));
+
+            return response;
+        }
+
+
+        [DataContract]
+        private sealed class CounterState
+        {
+            [DataMember(Name = "timestamp")]
+            public DateTime Timestamp { get; set; }
+            [DataMember(Name = "counter")]
+            public int Counter { get; set; }
+
+            public CounterState()
+            { }
+
+            public CounterState(int counter)
+            {
+                Counter = counter;
+                Timestamp = DateTime.Now;
+            }
+
+            public void Update()
+            {
+                Timestamp = DateTime.Now;
+                Counter++;
+            }
         }
     }
 }
