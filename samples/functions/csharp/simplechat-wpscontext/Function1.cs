@@ -10,6 +10,9 @@ using Newtonsoft.Json;
 using Microsoft.Azure.WebJobs.Extensions.WebPubSub;
 using Microsoft.Azure.WebPubSub.Common;
 using Microsoft.Extensions.Logging;
+using System.Text;
+using System.Collections.Generic;
+using System.Linq;
 
 namespace SimpleChat_Input
 {
@@ -66,7 +69,7 @@ namespace SimpleChat_Input
 
         // Http Trigger Message
         [FunctionName("message")]
-        public static async Task<object> Broadcast(
+        public static async Task<HttpResponseMessage> Broadcast(
             [HttpTrigger(AuthorizationLevel.Anonymous, "post")] HttpRequest req,
             [WebPubSubContext] WebPubSubContext wpsReq,
             [WebPubSub(Hub = "%WebPubSubHub%")] IAsyncCollector<WebPubSubAction> actions)
@@ -80,7 +83,21 @@ namespace SimpleChat_Input
                 await actions.AddAsync(WebPubSubAction.CreateSendToAllAction(request.Data, request.DataType));
             }
 
-            return new ClientContent("ack").ToString();
+            // retrieve counter from states.
+            var states = new CounterState(1);
+            var idle = 0.0;
+            if (wpsReq.Request.ConnectionContext.Headers.TryGetValue("ce-connectionState", out var counterValue))
+            {
+                states = JsonConvert.DeserializeObject<CounterState>(Encoding.UTF8.GetString(Convert.FromBase64String(counterValue.SingleOrDefault())));
+                idle = (DateTime.Now - states.Timestamp).TotalSeconds;
+                states.Update();
+            }
+
+            var response = new HttpResponseMessage();
+            response.Content = new StringContent(new ClientContent($"ack, idle: {idle}s, connection message counter: {states.Counter}").ToString());
+            response.Headers.Add("ce-connectionState", Convert.ToBase64String(Encoding.UTF8.GetBytes(JsonConvert.SerializeObject(states))));
+
+            return response;
         }
 
         [FunctionName("connected")]
@@ -143,6 +160,30 @@ namespace SimpleChat_Input
             public override string ToString()
             {
                 return JsonConvert.SerializeObject(this);
+            }
+        }
+
+        [JsonObject]
+        private sealed class CounterState
+        {
+            [JsonProperty("timestamp")]
+            public DateTime Timestamp { get; set; }
+            [JsonProperty("counter")]
+            public int Counter { get; set; }
+
+            public CounterState()
+            { }
+
+            public CounterState(int counter)
+            {
+                Counter = counter;
+                Timestamp = DateTime.Now;
+            }
+
+            public void Update()
+            {
+                Timestamp = DateTime.Now;
+                Counter++;
             }
         }
     }

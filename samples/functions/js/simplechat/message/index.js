@@ -11,9 +11,9 @@ module.exports = async function (context, data) {
   var msgCounter = 1;
   var time = Date.now();
   var lastTime = time;
-  if (context.bindingData.request.connectionContext.states != null)
+  if (context.bindingData.request.connectionContext.states.counterState != null)
   {
-    var counterState = JSON.parse(context.bindingData.request.connectionContext.states.counterState);
+    var counterState = context.bindingData.request.connectionContext.states.counterState;
     msgCounter = ++counterState.counter;
     lastTime = counterState.time;
   }
@@ -24,10 +24,10 @@ module.exports = async function (context, data) {
     }),
     "dataType" : "json",
     "states": {
-      "counterState": JSON.stringify({
+      "counterState": {
         counter: msgCounter,
         time : time
-      })
+      }
     }
   };
   return response;
