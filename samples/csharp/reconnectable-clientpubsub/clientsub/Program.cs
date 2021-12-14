@@ -6,8 +6,7 @@ using System.Text.Json;
 using System.Threading.Tasks;
 
 using Azure.Messaging.WebPubSub;
-
-using Websocket.Client;
+using ClientPubSub;
 
 namespace clientsub
 {
@@ -15,19 +14,13 @@ namespace clientsub
     {
         static async Task Main(string[] args)
         {
-            //var pipe = new Pipe();
-            //pipe.Reader.Complete(new InvalidOperationException("aaa"));
-            //await pipe.Writer.WriteAsync(new ReadOnlyMemory<byte>());
-            //if (args.Length != 2)
-            //{
-            //    Console.WriteLine("Usage: clientsub <connectionString> <hub>");
-            //    return;
-            //}
-           
-            var connectionString = "Endpoint=http://localhost:8080;AccessKey=ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789ABCDEFGH;Version=1.0;";
-
-
-            var hub = "signalrbench";
+            if (args.Length != 2)
+            {
+                Console.WriteLine("Usage: clientpub <connectionString> <hub>");
+                return;
+            }
+            var connectionString = args[0];
+            var hub = args[1];
 
             // Either generate the URL or fetch it from server or fetch a temp one from the portal
             var serviceClient = new WebPubSubServiceClient(connectionString, hub);

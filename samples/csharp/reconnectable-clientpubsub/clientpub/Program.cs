@@ -5,8 +5,7 @@ using System.Text.Json;
 using System.Threading.Tasks;
 
 using Azure.Messaging.WebPubSub;
-using clientsub;
-using Websocket.Client;
+using ClientPubSub;
 
 namespace clientpub
 {
@@ -14,14 +13,13 @@ namespace clientpub
     {
         static async Task Main(string[] args)
         {
-            //if (args.Length != 2)
-            //{
-            //    Console.WriteLine("Usage: clientpub <connectionString> <hub>");
-            //    return;
-            //}
-            // var connectionString = "Endpoint=http://localhost:8080;AccessKey=ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789ABCDEFGH;Version=1.0;";
-            
-            var hub = "signalrbench";
+            if (args.Length != 2)
+            {
+                Console.WriteLine("Usage: clientpub <connectionString> <hub>");
+                return;
+            }
+            var connectionString = args[0];
+            var hub = args[1];
 
             // Either generate the URL or fetch it from server or fetch a temp one from the portal
             var serviceClient = new WebPubSubServiceClient(connectionString, hub);
@@ -29,7 +27,7 @@ namespace clientpub
 
             client.MessageReceived.Subscribe(msg => 
             {
-                Console.WriteLine($"Message received: {msg}");
+                Console.WriteLine($"{DateTime.Now}: Message received: {msg}");
                 var ack = JsonSerializer.Deserialize<AckMessage>(msg.Text);
                 if (ack.type == "ack")
                 {
@@ -45,7 +43,7 @@ namespace clientpub
                 //var message = Console.ReadLine();
                 await SendMessage(client, ackId);
                 ackId++;
-                await Task.Delay(100);
+                //await Task.Delay(100);
             }
 
             Console.WriteLine("done");
@@ -65,12 +63,13 @@ namespace clientpub
             {
                 try
                 {
+                    Console.WriteLine($"{DateTime.Now}: Sending message with ackId: {ackId}");
                     await client.SendAsync(ackId, message);
                     return;
                 }
                 catch (Exception ex)
                 {
-                    Console.WriteLine($"Retring message with ackId: {ackId}");
+                    Console.WriteLine($"{DateTime.Now}: Retring message with ackId: {ackId}");
                 }
             }
         }

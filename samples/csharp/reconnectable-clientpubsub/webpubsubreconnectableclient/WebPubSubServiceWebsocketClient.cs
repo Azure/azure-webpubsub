@@ -13,7 +13,7 @@ using System.Threading.Tasks;
 using Websocket.Client;
 using Websocket.Client.Models;
 
-namespace clientsub
+namespace ClientPubSub
 {
     public class WebPubSubServiceWebsocketClient
     {
@@ -90,7 +90,7 @@ namespace clientsub
             private readonly AckHandler _ackHandler;
 
             private ulong _latestSequenceId = 0;
-            private ClientWebSocket _clientWebSocket;
+            private volatile ClientWebSocket _clientWebSocket;
             private ConnectionContext _connectionContext = default;
             private volatile bool _initialized = false;
             private volatile bool _disableReconnection = false;
@@ -145,12 +145,12 @@ namespace clientsub
 
             private async Task ConnectCoreAsync(Uri uri)
             {
-                _clientWebSocket = new ClientWebSocket();
-                _clientWebSocket.Options.AddSubProtocol(_protocol);
-
+                var client = new ClientWebSocket();
+                client.Options.AddSubProtocol(_protocol);
+                _clientWebSocket = client;
                 try
                 {
-                    await _clientWebSocket.ConnectAsync(uri, default);
+                    await client.ConnectAsync(uri, default);
                     Console.WriteLine("Connected");
                 }
                 catch (Exception ex)
@@ -365,7 +365,7 @@ namespace clientsub
                     {
                         foreach(var entity in _cache)
                         {
-                            if (entity.Value.ExpireTime > DateTime.UtcNow)
+                            if (entity.Value.ExpireTime < DateTime.UtcNow)
                             {
                                 if (_cache.TryRemove(entity.Key, out var dEntity))
                                 {
