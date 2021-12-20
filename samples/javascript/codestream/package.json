@@ -2,7 +2,7 @@
   "name": "codestream",
   "version": "1.0.0",
   "description": "",
-  "main": "server.js",
+  "main": "server.ts",
   "scripts": {
     "start": "node server"
   },
@@ -10,8 +10,15 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
-    "@azure/web-pubsub": "^1.0.0-alpha.20211102.4",
-    "@azure/web-pubsub-express": "^1.0.0-alpha.20211102.4",
-    "express": "^4.17.1"
+    "@azure/msal-node": "^1.5.0",
+    "@azure/web-pubsub": "^1.0.0",
+    "@azure/web-pubsub-express": "^1.0.0",
+    "@types/cors": "^2.8.12",
+    "@types/express": "^4.17.13",
+    "@types/jsonwebtoken": "^8.5.6",
+    "@types/request": "^2.48.8",
+    "cors": "^2.8.5",
+    "express": "^4.17.2",
+    "request": "^2.88.2"
   }
 }
