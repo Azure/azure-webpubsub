@@ -1,18 +1,17 @@
-﻿using Azure.Messaging.WebPubSub;
-using Microsoft.Azure.WebPubSub.AspNetCore;
-using Microsoft.Azure.WebPubSub.Common;
-using System;
+﻿using System;
 using System.Runtime.Serialization;
 using System.Threading;
 using System.Threading.Tasks;
+using Microsoft.Azure.WebPubSub.AspNetCore;
+using Microsoft.Azure.WebPubSub.Common;
 
 namespace chatapp
 {
     public class SampleChatHub : WebPubSubHub
     {
-        private readonly WebPubSubServiceClient _serviceClient;
+        private readonly WebPubSubServiceClient<SampleChatHub> _serviceClient;
 
-        public SampleChatHub(WebPubSubServiceClient serviceClient)
+        public SampleChatHub(WebPubSubServiceClient<SampleChatHub> serviceClient)
         {
             _serviceClient = serviceClient;
         }

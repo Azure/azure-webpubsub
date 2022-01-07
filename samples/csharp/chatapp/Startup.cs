@@ -1,10 +1,4 @@
-using System;
-using System.Collections.Generic;
 using System.IO;
-using System.Linq;
-using System.Threading.Tasks;
-
-using Azure.Messaging.WebPubSub;
 
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
@@ -30,11 +24,8 @@ namespace chatapp
         // For more information on how to configure your application, visit https://go.microsoft.com/fwlink/?LinkID=398940
         public void ConfigureServices(IServiceCollection services)
         {
-            services.AddWebPubSub(o => o.ValidationOptions.Add(Configuration["Azure:WebPubSub:ConnectionString"]))
-                .AddAzureClients(builder =>
-                {
-                    builder.AddWebPubSubServiceClient(Configuration["Azure:WebPubSub:ConnectionString"], nameof(SampleChatHub));
-                });
+            services.AddWebPubSub(o => o.ServiceEndpoint = new ServiceEndpoint(Configuration["Azure:WebPubSub:ConnectionString"]))
+                .AddWebPubSubServiceClient<SampleChatHub>();
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
@@ -62,7 +53,7 @@ namespace chatapp
                         await context.Response.WriteAsync("missing user id");
                         return;
                     }
-                    var serviceClient = context.RequestServices.GetRequiredService<WebPubSubServiceClient>();
+                    var serviceClient = context.RequestServices.GetRequiredService<WebPubSubServiceClient<SampleChatHub>>();
                     await context.Response.WriteAsync(serviceClient.GetClientAccessUri(userId: id).AbsoluteUri);
                 });
             });
