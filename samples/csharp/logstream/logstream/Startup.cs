@@ -45,7 +45,7 @@ namespace logstream
                     var serviceClient = context.RequestServices.GetRequiredService<WebPubSubServiceClient>();
                     var response = new
                     {
-                        url = serviceClient.GenerateClientAccessUri(roles: new string[] { "webpubsub.sendToGroup.stream", "webpubsub.joinLeaveGroup.stream" }).AbsoluteUri
+                        url = serviceClient.GetClientAccessUri(roles: new string[] { "webpubsub.sendToGroup.stream", "webpubsub.joinLeaveGroup.stream" }).AbsoluteUri
                     };
                     await context.Response.WriteAsJsonAsync(response);
                 });

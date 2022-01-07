@@ -1,10 +1,10 @@
 
 package com.webpubsub.tutorial;
 
-import com.azure.messaging.webpubsub.WebPubSubClientBuilder;
 import com.azure.messaging.webpubsub.WebPubSubServiceClient;
-import com.azure.messaging.webpubsub.models.GetAuthenticationTokenOptions;
-import com.azure.messaging.webpubsub.models.WebPubSubAuthenticationToken;
+import com.azure.messaging.webpubsub.WebPubSubServiceClientBuilder;
+import com.azure.messaging.webpubsub.models.GetClientAccessTokenOptions;
+import com.azure.messaging.webpubsub.models.WebPubSubClientAccessToken;
 import com.azure.messaging.webpubsub.models.WebPubSubContentType;
 
 import io.javalin.Javalin;
@@ -18,7 +18,7 @@ public class App {
         }
 
         // create the service client
-        WebPubSubServiceClient client = new WebPubSubClientBuilder()
+        WebPubSubServiceClient service = new WebPubSubServiceClientBuilder()
                 .connectionString(args[0])
                 .hub("chat")
                 .buildClient();
@@ -37,9 +37,10 @@ public class App {
                 ctx.result("missing user id");
                 return;
             }
-            GetAuthenticationTokenOptions option = new GetAuthenticationTokenOptions();
+            GetClientAccessTokenOptions option = new GetClientAccessTokenOptions();
             option.setUserId(id);
-            WebPubSubAuthenticationToken token = client.getAuthenticationToken(option);
+            WebPubSubClientAccessToken token = service.getClientAccessToken(option);
+
             ctx.result(token.getUrl());
             return;
         });
@@ -54,11 +55,11 @@ public class App {
             String event = ctx.header("ce-type");
             if ("azure.webpubsub.sys.connected".equals(event)) {
                 String id = ctx.header("ce-userId");
-                client.sendToAll(String.format("[SYSTEM] %s joined", id), WebPubSubContentType.TEXT_PLAIN);
+                service.sendToAll(String.format("[SYSTEM] %s joined", id), WebPubSubContentType.TEXT_PLAIN);
             } else if ("azure.webpubsub.user.message".equals(event)) {
                 String id = ctx.header("ce-userId");
                 String message = ctx.body();
-                client.sendToAll(String.format("[%s] %s", id, message), WebPubSubContentType.TEXT_PLAIN);
+                service.sendToAll(String.format("[%s] %s", id, message), WebPubSubContentType.TEXT_PLAIN);
             }
             ctx.status(200);
         });

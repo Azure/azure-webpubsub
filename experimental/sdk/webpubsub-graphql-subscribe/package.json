@@ -50,6 +50,7 @@
     "ws": "^8.2.3"
   },
   "devDependencies": {
+    "ansi-regex": ">=5.0.1",
     "@types/chai": "^4.1.4",
     "@types/chai-as-promised": "^7.1.0",
     "@types/mocha": "^5.2.5",

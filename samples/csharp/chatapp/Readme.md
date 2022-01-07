@@ -3,7 +3,7 @@
 ## Prerequisites
 
 1. [ASP.NET Core 3.1 or above](https://docs.microsoft.com/aspnet/core)
-2. Create an Azure Web PubSub resource
+2. Create an [Azure Web PubSub](https://ms.portal.azure.com/#blade/HubsExtension/BrowseResource/resourceType/Microsoft.SignalRService%2FWebPubSub) resource on Azure Portal
 3. [ngrok](https://ngrok.com/download) to expose our localhost to internet
 
 ## Start the server
@@ -34,11 +34,11 @@ ngrok http 8080
 
 Event handler can be set from portal or through Azure CLI, here contains the detailed [instructions](https://docs.microsoft.com/azure/azure-web-pubsub/howto-develop-eventhandler) for how to.
 
-Go to the **Settings** tab to configure the event handler for this `samplechathub` hub:
+Go to the **Settings** tab to configure the event handler for this `chat` hub:
 
-1. Type the hub name (samplechathub) and click "Add".
+1. Click **Add** to add setting for hub `chat`.
 
-2. Set URL Pattern to `https://<domain-name>.ngrok.io/eventhandler/{event}` and check `connected` in System Event Pattern, click "Save".
+2. Set Url template to `https://<domain-name>.ngrok.io/eventhandler` and check `connected` system event, click "Save".
 
     ![Event Handler](./../../../docs/images/portal_event_handler.png)
 

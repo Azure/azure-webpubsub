@@ -1,12 +1,12 @@
 ﻿using System;
-using System.Linq;
+using System.Threading.Tasks;
 using Azure.Messaging.WebPubSub;
 
 namespace publisher
 {
     class Program
     {
-        static void Main(string[] args)
+        static async Task Main(string[] args)
         {
             if (args.Length != 3) {
                 Console.WriteLine("Usage: publisher <connectionString> <hub> <message>");
@@ -18,7 +18,7 @@ namespace publisher
             
             // Either generate the token or fetch it from server or fetch a temp one from the portal
             var serviceClient = new WebPubSubServiceClient(connectionString, hub);
-            serviceClient.SendToAll(message);
+            await serviceClient.SendToAllAsync(message);
         }
     }
 }

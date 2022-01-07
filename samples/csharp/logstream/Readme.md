@@ -13,7 +13,7 @@ Copy **Connection String** from **Keys** tab of the created Azure Web PubSub ser
 
 ```bash
 cd logstream
-dotnet restore
+dotnet restore 
 dotnet user-secrets set Azure:WebPubSub:ConnectionString "<connection-string>"
 dotnet run
 ```

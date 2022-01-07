@@ -39,15 +39,15 @@ Event handler can be set from portal or through Azure CLI, here contains the det
 
 Go to the **Settings** tab to configure the event handler for this `chat` hub:
 
-1. Type the hub name (chat) and click "Add".
+1. Click "Add" to add settings for hub `chat`.
 
-2. Set URL Pattern to `https://<domain-name>.ngrok.io/eventhandler/{event}` and check `connected` in System Event Pattern, click "Save".
+2. Set URL Pattern to `https://<domain-name>.ngrok.io/eventhandler` and check `connected` in System Event Pattern, click "Save".
 
     ![Event Handler](./../../../docs/images/portal_event_handler.png)
 
 ## Start the chat
 
-Open http://localhost:8080, input your user name, and send messages.
+Open http://localhost:8080/index.html, input your user name, and send messages.
 
 You can see in the ngrok command window that there are requests coming in with every message sent from the page.
 

@@ -6,7 +6,8 @@ const app = express();
 const hubName = 'chat';
 const port = 8080;
 
-let serviceClient = new WebPubSubServiceClient(process.env.WebPubSubConnectionString, hubName);
+let connectionString = process.argv[2] || process.env.WebPubSubConnectionString;
+let serviceClient = new WebPubSubServiceClient(connectionString, hubName);
 let handler = new WebPubSubEventHandler(hubName, {
   path: '/eventhandler',
   onConnected: async req => {

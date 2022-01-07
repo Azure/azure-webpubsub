@@ -1,5 +1,5 @@
-import sys
 import json
+import sys
 
 from flask import (
     Flask, 
@@ -19,7 +19,7 @@ hub_name = 'chat'
 app = Flask(__name__)
 
 credential = DefaultAzureCredential()
-client = WebPubSubServiceClient(sys.argv[1], credential)
+service = WebPubSubServiceClient(hub=hub_name, endpoint=sys.argv[1], credential=credential)
 
 
 @app.route('/<path:filename>')
@@ -40,10 +40,10 @@ def handle_event():
         if request.headers.get('ce-type') == 'azure.webpubsub.sys.connected':
             return user_id + ' connected', 200
         elif request.headers.get('ce-type') == 'azure.webpubsub.user.message':
-            client.send_to_all(hub_name, json.dumps({
+            service.send_to_all(content_type="application/json", message={
                 'from': user_id,
                 'message': request.data.decode('UTF-8')
-            }))
+            })
             res = Response(content_type='text/plain', status=200)
             return res
         else:
@@ -56,7 +56,7 @@ def negotiate():
     if not id:
         return 'missing user id', 400
 
-    token = client.get_client_access_token(hub_name, user_id=id)
+    token = service.get_client_access_token(user_id=id)
     return {
         'url': token['url']
     }, 200

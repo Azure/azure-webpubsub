@@ -18,13 +18,11 @@ This sample is to help you create a chat app with aad auth method.
 python -m venv .venv
 
 # Active venv
-./.venv/Scripts/activate
+source ./env/bin/activate
 
 # pip install
 pip install -r requirements.txt
 ```
-
-For OSX/Linux user, use `source ./.venv/bin/activate` to activate the virtualenv.
 
 ### 2. Login Azure account in your terminal
 
@@ -61,8 +59,8 @@ Copy the URL `http://<name>.ngrok.io` in one of the **Forwarding** row.
 3. Click **Add**.
 3. Enter `chat` as **Hub name**.
 4. Set **URL template** to `https://<name>.ngrok.io/eventhandler`
-5. Click **System events**, then select **connected** to let AWPS send connected events.
-   ![Screenshot of Edit Hub Settings](./media/edit-hub-settings.png)
+5. Click **System events**, then select **connected** to let the service send `connected` events to the upstream server.
+    ![Event Handler](./../../../docs/images/portal_event_handler.png)
 1. Click **Save** to confirm the change.
 
 ### 5. Configure Role-Based Access Control (RBAC)
@@ -85,9 +83,3 @@ Copy the URL `http://<name>.ngrok.io` in one of the **Forwarding** row.
 ```python
 python server.py <endpoint> # endpoint is the value of Endpoint=<value> in the connection string
 ```
-
-Open http://localhost:8080/index.html, input your user name, and send messages.
-
-## Next steps
-
-TODO

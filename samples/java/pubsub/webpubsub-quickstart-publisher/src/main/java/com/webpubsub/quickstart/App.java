@@ -17,10 +17,10 @@ public class App
             return;
         }
 
-        WebPubSubServiceClient client = new WebPubSubClientBuilder()
+        WebPubSubServiceClient service = new WebPubSubServiceClientBuilder()
             .connectionString(args[0])
             .hub(args[1])
             .buildClient();
-        client.sendToAll(args[2], WebPubSubContentType.TEXT_PLAIN);
+        service.sendToAll(args[2], WebPubSubContentType.TEXT_PLAIN);
     }
 }
