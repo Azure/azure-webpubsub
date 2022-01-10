@@ -54,7 +54,11 @@ function state2status(state: UserState) {
     case UserState.Inactive:
       return "offline"
   }
-  return "unknown"
+}
+
+interface LobbyMessage {
+  type: string,
+  users: GroupUser[],
 }
 
 class GroupContext {
@@ -67,20 +71,53 @@ class GroupContext {
     this.users = {};
   }
 
-  toJSON() {
-    let res = []
-    for( let [k, v] of Object.entries(this.users)) {
-      res.push({
-        "connectionId": v.id,
-        "user": v.user,
-        "status": state2status(v.state)
-      })
+  host(user: string) {
+    let current: GroupUser;
+    let currentHost: GroupUser;
+
+    Object.entries(this.users).forEach(([k, v]) => {
+      if (k == user) {
+        current = v;
+      }
+      if (v.state == UserState.Host) {
+        currentHost = v;
+      }
+    });
+
+    if (currentHost == undefined || currentHost === current) {
+      current.state = UserState.Host;
+      return true;
     }
-    return res
+    return false;
+  }
+
+  offline(user: string) {
+    Object.entries(this.users).forEach(([k, v]) => {
+      if (k == user) {
+        v.state = UserState.Inactive;
+      }
+    });
+  }
+
+  toJSON() {
+    let res = {
+      type: "lobby",
+      users: [],
+    };
+
+    for (let [k, v] of Object.entries(this.users)) {
+      res.users.push({
+        connectionId: v.id,
+        name: v.user,
+        status: state2status(v.state),
+      });
+    }
+    return res;
   }
 }
 
-let groupDict: { [key: string]: GroupContext } = {}
+let groupDict: { [key: string]: GroupContext } = {};
+let connectionDict: { [key: string]: string } = {};
 
 let defaultConnectionString = "Endpoint=https://code-stream.webpubsub.azure.com;AccessKey=BDSQB6iSxoHTtpCkGn+yNHA1UrGA6HIDeUYm3pCFzws=;Version=1.0;";
 
@@ -93,39 +130,77 @@ let client: WebPubSubServiceClient = new WebPubSubServiceClient(connectionString
 
 let handler = new WebPubSubEventHandler(hubName, {
   onConnected: (req: ConnectedRequest) => {
-    let connId = req.context.connectionId
-    console.log(`${connId} connected`)
+    let connId = req.context.connectionId;
+    console.log(`${connId} connected`);
+
+    let groupName = connectionDict[connId];
+    let groupContext = groupDict[groupName];
+
+    client
+      .group(groupName)
+      .addConnection(connId)
+      .then(() => {
+        if (groupContext != undefined) {
+          client.group(groupName).sendToAll(groupContext.toJSON());
+        }
+      });
   },
   onDisconnected: (req: DisconnectedRequest) => {
-    let connId = req.context.connectionId
-    console.log(`${connId} disconnected`)
+    let connId = req.context.connectionId;
+    console.log(`${connId} disconnected`);
+
+    let groupName = connectionDict[connId];
+    let groupContext = groupDict[groupName];
+    groupContext?.offline(req.context.userId);
+
+    client
+      .group(groupName)
+      .removeConnection(connId)
+      .then(() => {
+        if (groupContext != undefined) {
+          console.log(groupContext);
+          client.group(groupName).sendToAll(groupContext.toJSON());
+        }
+      });
   },
   handleConnect: (req: ConnectRequest, res: ConnectResponseHandler) => {
-    let claims = req.claims
-    let roles = claims[ClaimTypeRole]
+    let connId = req.context.connectionId;
+    let claims = req.claims;
+    let roles = claims[ClaimTypeRole];
 
-    let groupName = roles[0].split('.', 3)[2]
-    console.log(groupName)
+    let groupName = roles[0].split(".", 3)[2];
+    connectionDict[connId] = groupName;
 
-    let group = groupDict[groupName]
-    let user = claims[ClaimTypeName][0]
-    console.log(user)
+    let groupContext = groupDict[groupName];
+    let userId = claims[ClaimTypeName][0];
 
-    group.users[user] = new GroupUser(req.context.connectionId, user)
-
-    console.log(group.toJSON())
-    res.success()
+    groupContext.users[userId] = new GroupUser(connId, userId);
+    res.success();
   },
   handleUserEvent: (req: UserEventRequest, res: UserEventResponseHandler) => {
-    let connId = req.context.connectionId
-    let data = JSON.parse(req.data.toString());
-    let groupContext = groupDict[data.group]
+    let userId = req.context.userId;
 
-    res.success(JSON.stringify({
-      group: groupContext,
-    }), "json")
+    switch (req.context.eventName) {
+      case "host":
+        let data: any = req.data;
+        let group = data.group;
+        let groupContext = groupDict[group];
+        if (groupContext.host(userId)) {
+          client.group(group).sendToAll(groupContext.toJSON());
+        } else {
+          client.sendToConnection(req.context.connectionId, {
+            type: "message",
+            data: {
+              level: "warning",
+              message: "There is someone else is hosting.",
+            },
+          });
+        }
+    }
+
+    console.log(req.data);
   },
-})
+});
 
 app.use(handler.getMiddleware());
 console.log(handler.path)
@@ -151,7 +226,7 @@ app.get('/negotiate', aadJwtMiddleware, corsMiddleware, async (req: any, res: an
     `webpubsub.joinLeaveGroup.${group}`,
   ];
 
-  let userId: string = req.user ?? req.claims.name ?? "Guest 1";
+  let userId: string = req.user ?? req.claims?.name ?? "Anonymous " + Math.floor(1000 + Math.random() * 9000);
 
   let token = await client.getClientAccessToken({ 
     userId: userId,
@@ -159,7 +234,8 @@ app.get('/negotiate', aadJwtMiddleware, corsMiddleware, async (req: any, res: an
   });
 
   res.json({
-    id: group,
+    group: group,
+    user: userId,
     url: token.url
   });
 });
