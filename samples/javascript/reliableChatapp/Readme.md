@@ -1,10 +1,13 @@
-# Create a Chat app
+# Create a Chat app with reliable subprotocol
 
 ## Prerequisites
 
 1. [Node.js](https://nodejs.org)
 2. Create an Azure Web PubSub resource
-3. [ngrok](https://ngrok.com/download) to expose our localhost to internet
+
+## Overview
+
+When using reliable subprotocol, the client can handle intermittent network issue. It's important for a chat app when the connection drops by network issue, you can recover the connection with all group info and unreceived message. The sample demonstrate how to use reliable json subprotocol to build a chat app.
 
 ## Setup
 
@@ -22,33 +25,13 @@ Copy **Connection String** from **Keys** tab of the created Azure Web PubSub ser
 node server <connection-string>
 ```
 
-The web app is listening to request at `http://localhost:8080/eventhandler`.
+The web app is listening to request at `http://localhost:8080`.
 
-## Use ngrok to expose localhost
-
-```bash
-ngrok http 8080
-```
-
-`nrgok` will print out an url (`https://<domain-name>.ngrok.io`) that can be accessed from internet, e.g. `http://xxx.ngrok.io`.
-
-## Configure the event handler
-
-Go to the **Settings** tab to configure the event handler for this `chat` hub:
-
-1. Type the hub name (chat) and click "Add".
-
-2. Set URL Pattern to `https://<domain-name>.ngrok.io/eventhandler/{event}` and check `connected` in System Event Pattern, click "Save".
-
-    ![Event Handler](./../../../docs/images/portal_event_handler.png)
 
 ## Start the chat
 
 Open http://localhost:8080, input your user name, and send messages.
 
-You can see in the ngrok command window that there are requests coming in with every message sent from the page.
+## Recover from network issue
 
-## Client using `json.webpubsub.azure.v1` subprotocol
-Besides the simple WebSocket client we show in [index.html](./public/index.html), [fancy.html](./public/fancy.html) shows a client using `json.webpubsub.azure.v1` achieving the same by sending `message` event to the service. With the help of the subprotocol, the client can get `connected` and `disconnected` messages containing some metadata of the connection.
-
-You can open both http://localhost:8080/index.html and http://localhost:8080/fancy.html to see messages received by both clients.
+You can try to disable and enable LTE network or switch from LTE to Wifi to simulate network issue. The client can recover from network issue and resume all unreceived messages.
