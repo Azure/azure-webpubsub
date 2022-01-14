@@ -1,8 +1,8 @@
 // Copyright (c) Microsoft. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
-module.exports = async function (context, connectionContext) {
-  if (connectionContext.userId == "attacker")
+module.exports = async function (context, request) {
+  if (request.connectionContext.userId == "attacker")
   {
     var connectResponse = {
       "code": "unauthorized",
@@ -12,7 +12,7 @@ module.exports = async function (context, connectionContext) {
   else 
   {
     var connectResponse = {
-      "userId": connectionContext.userId
+      "userId": request.connectionContext.userId
     };
   }
   return connectResponse;

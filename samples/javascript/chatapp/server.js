@@ -4,9 +4,11 @@ const { WebPubSubEventHandler } = require('@azure/web-pubsub-express');
 
 const app = express();
 const hubName = 'chat';
+const port = 8080;
 
-let serviceClient = new WebPubSubServiceClient(process.argv[2], hubName);
-let handler = new WebPubSubEventHandler(hubName, ['*'], {
+let connectionString = process.argv[2] || process.env.WebPubSubConnectionString;
+let serviceClient = new WebPubSubServiceClient(connectionString, hubName);
+let handler = new WebPubSubEventHandler(hubName, {
   path: '/eventhandler',
   onConnected: async req => {
     console.log(`${req.context.userId} connected`);
@@ -33,11 +35,11 @@ app.get('/negotiate', async (req, res) => {
     res.status(400).send('missing user id');
     return;
   }
-  let token = await serviceClient.getAuthenticationToken({ userId: id });
+  let token = await serviceClient.getClientAccessToken({ userId: id });
   res.json({
     url: token.url
   });
 });
 
 app.use(express.static('public'));
-app.listen(8080, () => console.log('server started'));
+app.listen(port, () => console.log(`Event handler listening at http://localhost:${port}${handler.path}`));
