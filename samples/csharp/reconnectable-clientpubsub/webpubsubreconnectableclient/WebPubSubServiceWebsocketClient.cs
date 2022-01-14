@@ -156,13 +156,6 @@ namespace ClientPubSub
                 catch (Exception ex)
                 {
                     Console.WriteLine(ex);
-                    if (ex is WebSocketException wsEx)
-                    {
-                        if (wsEx.Message.Contains("404"))
-                        {
-                            _disableReconnection = true;
-                        }
-                    }
                     _ = Task.Run(() => HandleReconnectionAsync());
                     return;
                 }
@@ -310,6 +303,10 @@ namespace ClientPubSub
                 }
                 finally
                 {
+                    if (client.CloseStatus == WebSocketCloseStatus.PolicyViolation)
+                    {
+                        _disableReconnection = true;
+                    }
                     _ = Task.Run(() => HandleReconnectionAsync());
                 }
             }

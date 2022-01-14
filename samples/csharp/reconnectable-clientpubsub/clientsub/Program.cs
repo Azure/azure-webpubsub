@@ -25,7 +25,7 @@ namespace clientsub
             // Either generate the URL or fetch it from server or fetch a temp one from the portal
             var serviceClient = new WebPubSubServiceClient(connectionString, hub);
             var ws = new WebPubSubServiceWebsocketClient(() => serviceClient.GenerateClientAccessUri(userId: "user1", roles: new string[] { "webpubsub.joinLeaveGroup.demogroup", "webpubsub.sendToGroup.demogroup" }),
-                "json.webpubsub.azure.v1");
+                "json.reliable.webpubsub.azure.v1");
 
             ws.MessageReceived.Subscribe(async msg => 
             {
