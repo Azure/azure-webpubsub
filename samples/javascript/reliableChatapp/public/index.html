@@ -1,0 +1,256 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+    <meta name="description" content="A reliable Azure Web PubSub Chat">
+
+    <title>A Reliable Azure Web PubSub Chat</title>
+    <link rel="icon" type="image/svg+xml" sizes="any" href="favicon.svg">
+
+    <!-- Bootstrap core CSS -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@4.1.3/dist/css/bootstrap.min.css">
+    <!-- Custom styles for this template -->
+    <style>
+        html,
+        body,
+        main,
+        main>div,
+        .chat {
+            height: 100%;
+        }
+
+        body {
+            font-size: .875rem;
+        }
+
+        /* Login */
+        .login {
+            display: flex;
+            align-items: center;
+            flex-direction: column;
+            justify-content: center;
+            width: 100%;
+            min-height: 100%;
+            padding: 20px;
+        }
+
+        /* Navbar */
+        .navbar-brand {
+            padding-top: .75rem;
+            padding-bottom: .75rem;
+            font-size: 1rem;
+            background-color: rgba(0, 0, 0, .25);
+            box-shadow: inset -1px 0 0 rgba(0, 0, 0, .25);
+        }
+
+        .navbar .form-control {
+            padding: .75rem 1rem;
+            border-width: 0;
+            border-radius: 0;
+        }
+
+        .form-control-dark {
+            color: #fff;
+            background-color: rgba(255, 255, 255, .1);
+            border-color: rgba(255, 255, 255, .1);
+        }
+
+        .form-control-dark:focus {
+            border-color: transparent;
+            box-shadow: 0 0 0 3px rgba(255, 25zd5, 255, .25);
+        }
+    </style>
+</head>
+
+<body>
+    <div id="app" class="container-fluid h-100 d-flex flex-column flex-nowrap p-0">
+        <nav class="navbar navbar-dark bg-dark flex-md-nowrap p-0 shadow">
+            <a class="navbar-brand col-sm-3 col-md-2 mr-0" href="#">Reliable WebSocket Chat</a>
+            <div class="m-3">
+                <span class="text-light">Welcome <a href="#"></a></span>
+                <template v-if="isConnected(client)">
+                    <svg width="16" height="16">
+                        <circle cx="8" cy="8" r="8" fill="#168c46" />
+                    </svg>
+                </template>
+                <template v-else>
+                    <svg width="16" height="16">
+                        <circle cx="8" cy="8" r="8" fill="#a12323" />
+                    </svg>
+                </template>
+            </div>
+        </nav>
+
+        <main role="main" class="col p-md-4 p-2">
+            <div class="d-flex flex-column flex-nowrap p-2">
+                <form v-on:submit.prevent="connect(client)" class="py-2">
+                    <div class="input-group">
+                        <input type="text" class="form-control" v-model="client.userName" id="endpointInput"
+                            aria-describedby="endpointHelp" placeholder="Type Your User Name Here">
+                        <button type="submit" class="btn btn-primary" style="width: 100px;"
+                            :disabled="!client.userName">Connect</button>
+                    </div>
+                </form>
+                <div class="bg-light chat" style="overflow-y: scroll;" v-bind:scrollTop="$attrs.scrollHeight">
+                    <div class="m-2" v-for="message in client.chat.messages" v-bind:key="message.id">
+                        <div class="col-md row" style="display: inline-block;">
+                            <div v-if="message.type =='system'"
+                                class="font-italic text-info text-center font-weight-light" role="alert">
+                                {{message.content}}
+                            </div>
+                            <div v-else-if="message.type =='error'"
+                                class="font-italic text-danger text-center font-weight-light" role="alert">
+                                {{message.content}}
+                            </div>
+                            <div v-else-if="message.type == 'self'" class="float-right" role="text">
+                                <small v-if="message.status != 'failed'" class="text-muted font-weight-light">{{message.status}}</small>
+                                <small v-else style="color: red">{{message.status}}</small>
+                                <p class="alert alert-success"> {{message.content}}</p>
+                            </div>
+                            <div v-else class="float-left" role="text">
+                                <small class="text-muted font-weight-light">From {{message.from}}</small>
+                                <p class="alert alert-primary text-break ">{{message.content}}</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div>
+                    <br />
+                    <form v-on:submit.prevent="send(client)">
+                        <div class="input-group">
+                            <input type="text" v-model="client.newMessage" class="form-control"
+                                placeholder="Send a message">
+                            <button type="submit" class="btn btn-outline-secondary" style="width: 100px;"
+                                :disabled="!client.newMessage || !isConnected(client)">Send</button>
+                        </div>
+                    </form>
+                </div>
+                <div style="background-color: black; color: blanchedalmond; height: 100px; overflow: auto;">
+                    <ul>
+                        <li v-for="l in client.logs.slice().reverse()" :key="l.id">
+                            {{ l }}
+                        </li>
+                    </ul>
+                </div>
+            </div>
+        </main>
+    </div>
+    <script src="https://code.jquery.com/jquery-3.3.1.slim.min.js"
+        integrity="sha384-q8i/X+965DzO0rT7abK41JStQIAqVgRVzpbzo5smXKp4YfRvH+8abtTE1Pi6jizo"
+        crossorigin="anonymous"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.14.7/umd/popper.min.js"
+        integrity="sha384-UO2eT0CpHqdSJQ6hJty5KVphtPhzWj9WO1clHTMGa3JDZwrnQq4sF86dIHNDz0W1"
+        crossorigin="anonymous"></script>
+    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/js/bootstrap.min.js"
+        integrity="sha384-JjSmVgyd0p3pXB1rRibZUAYoIIy6OrQ6VrjIEaFf/nJGzIxFDsf4x0xIM+B07jRM"
+        crossorigin="anonymous"></script>
+
+    <script src="https://cdn.jsdelivr.net/npm/vue@2.5.17/dist/vue.min.js"></script>
+    <script src="client.js"></script>
+    <script>
+        const group = "reliableChat:.";
+        const data = {
+            client: {
+                userName: '',
+                reconnectEndpoint: null,
+                websocket: null,
+                id: 1,
+                newMessage: '',
+                chat: { messages: [] },
+                logs: [],
+                ackId: 0,
+            },
+        };
+
+        function addItem(item, owner) {
+            item.id = owner.length;
+            owner.push(item);
+        }
+
+        const app = new Vue({
+            el: '#app',
+            data: data,
+            methods: {
+                connect: function (client) {
+                    // close the previous connection if any and start a new connection
+                    if (client.websocket) {
+                        var connectionId = client.websocket.connectionId;
+                        var userName = client.websocket.userName;
+                        client.websocket.close();
+                        client.websocket = null;
+                        addItem(`${userName}:${connectionId} disconnected.`, client.logs);
+                    }
+
+                    client.websocket = new WebsocketClient(client.userName, client.logs, (downstream, onConnected) => {
+                        if (downstream.type === "system") {
+                            if (downstream.event === "connected") {
+                                onConnected(downstream.connectionId, downstream.reconnectionToken);
+                                client.websocket.send(JSON.stringify(
+                                    {
+                                        type: "joinGroup",
+                                        group: group,
+                                    }
+                                ));
+                                addItem(`[${new Date().toISOString()}] ${downstream.userId}:${downstream.connectionId} connected.`, client.logs);
+                            }
+                            else if (downstream.event === "disconnected") {
+                                addItem(`[${new Date().toISOString()}] Disconnected. ${downstream.message}`, client.logs);
+                            }
+                        } else if (downstream.type === "message") {
+                            addItem({ from: downstream.fromUserId, content: downstream.data }, client.chat.messages);
+                        } else if (downstream.type === "ack") {
+                            client.websocket.handleAck(downstream);
+                        }
+                    });
+
+                    client.websocket.connect();
+                },
+                reconnect: function(client) {
+                    client.websocket.abort();
+                },
+                send: function (client) {
+                    var ackId = client.ackId;
+                    client.ackId = ackId + 1;
+                    var message = client.newMessage
+                    client.newMessage = '';
+
+                    var data = JSON.stringify(
+                    {
+                        type: "sendToGroup",
+                        group: group,
+                        dataType: "text",
+                        data: message,
+                        ackId: ackId,
+                        noEcho: true,
+                    });
+                    
+                    var item = { type: "self", content: message, status: "sending", ackId: ackId, retry: 0 };
+                    addItem(item, client.chat.messages);
+                    
+                    var sendMessage = () => {
+                        client.websocket.invoke(data, ackId).then(msg => {
+                            item.status = "succeed";
+                        }).catch(e => {
+                            if (item.retry < 3) {
+                                item.retry++;
+                                item.status = `resending...${item.retry}`;
+                                sendMessage();
+                                return;
+                            }
+                            item.status = "failed";
+                        })
+                    }
+
+                    sendMessage();
+                },
+                isConnected: function (client) {
+                    return client.websocket !== null && client.websocket.connected;
+                },
+            }
+        });
+    </script>
+</body>
+
+</html>
