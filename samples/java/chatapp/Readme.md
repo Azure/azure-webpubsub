@@ -1,4 +1,4 @@
-# Publish and subscribe messages
+# Create a Chat app
 
 ## Prerequisites
 
@@ -8,16 +8,18 @@
 - [ngrok](https://ngrok.com/download) to expose localhost endpoint
 
 ## Use ngrok to make the local server publicly available
+
 Run the script `ngrok http 8080`, then copy the URL above the red line.
 ![ngrok](../../../docs/images/ngrok-sample.png)
 
 ## Setup event handler settings
+
 1. Navigate to `settings` in portal.
-2. Make a new hub setting for `chat`.
-3. Fill in the URL copied from the previous step to `URL template`.
-4. Fill in `*` to `User Event Pattern` and select all the system events.
-5. Click `Save` button to update the settings, wait until the settings are updated successfully.
-![event handler settings](../../../docs/images/eventhandler-settings-sample.png)
+1. Click **Add** to add setting for hub `chat`.
+1. Fill in the URL copied from the previous step to `URL template`.
+1. Set URL Pattern to `https://<domain-name>.ngrok.io/eventhandler` and check `connected` in System Event Pattern, click "Save".
+1. Click `Save` button to update the settings, wait until the settings are updated successfully.
+    ![Event Handler](./../../../docs/images/portal_event_handler.png)
 
 ## Start server
 
@@ -30,6 +32,7 @@ mvn compile & mvn package & mvn exec:java -Dexec.mainClass="com.webpubsub.tutori
 ![connection string](../../../docs/images/portal_conn.png)
 
 ## Send Messages in chat room
+
 1. Open a browser in and visit http://localhost:8080.
 2. Input your user name, and click `OK` button to attend the chat.
 

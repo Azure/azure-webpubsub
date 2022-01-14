@@ -1,4 +1,4 @@
-using Azure.Messaging.WebPubSub;
+using Microsoft.Azure.WebPubSub.Common;
 using Microsoft.Azure.WebJobs;
 using Microsoft.Azure.WebJobs.Extensions.WebPubSub;
 using Microsoft.Extensions.Logging;
@@ -11,12 +11,12 @@ namespace notifications
     {
         [FunctionName("notification")]
         public static async Task Run([TimerTrigger("*/10 * * * * *")]TimerInfo myTimer, ILogger log,
-            [WebPubSub(Hub = "notification")] IAsyncCollector<WebPubSubOperation> operations)
+            [WebPubSub(Hub = "notification")] IAsyncCollector<WebPubSubAction> actions)
         {
-            await operations.AddAsync(new SendToAll
+            await actions.AddAsync(new SendToAllAction
             {
-                Message = BinaryData.FromString($"[DateTime: {DateTime.Now}] Temperature: {GetValue(23, 1)}{'\xB0'}C, Humidity: {GetValue(40, 2)}%"),
-                DataType = MessageDataType.Text
+                Data = BinaryData.FromString($"[DateTime: {DateTime.Now}] Temperature: {GetValue(23, 1)}{'\xB0'}C, Humidity: {GetValue(40, 2)}%"),
+                DataType = WebPubSubDataType.Text
             });
         }
 
