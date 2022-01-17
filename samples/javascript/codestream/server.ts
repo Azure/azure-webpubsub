@@ -34,12 +34,12 @@ enum UserState {
 };
 
 class GroupUser {
-  id: string
+  connId: string
   state: UserState
   user: string
 
-  constructor(id: string, user: string) {
-    this.id = id;
+  constructor(connId: string, user: string) {
+    this.connId = connId;
     this.user = user;
     this.state = UserState.Active;
   }
@@ -54,11 +54,6 @@ function state2status(state: UserState) {
     case UserState.Inactive:
       return "offline"
   }
-}
-
-interface LobbyMessage {
-  type: string,
-  users: GroupUser[],
 }
 
 class GroupContext {
@@ -91,9 +86,9 @@ class GroupContext {
     return false;
   }
 
-  offline(user: string) {
+  offline(user: string, connId: string) {
     Object.entries(this.users).forEach(([k, v]) => {
-      if (k == user) {
+      if (k == user && v.connId == connId) {
         v.state = UserState.Inactive;
       }
     });
@@ -107,7 +102,7 @@ class GroupContext {
 
     for (let [k, v] of Object.entries(this.users)) {
       res.users.push({
-        connectionId: v.id,
+        connectionId: v.connId,
         name: v.user,
         status: state2status(v.state),
       });
@@ -151,7 +146,7 @@ let handler = new WebPubSubEventHandler(hubName, {
 
     let groupName = connectionDict[connId];
     let groupContext = groupDict[groupName];
-    groupContext?.offline(req.context.userId);
+    groupContext?.offline(req.context.userId, req.context.connectionId);
 
     client
       .group(groupName)
@@ -168,7 +163,9 @@ let handler = new WebPubSubEventHandler(hubName, {
     let claims = req.claims;
     let roles = claims[ClaimTypeRole];
 
+    console.log(roles[0])
     let groupName = roles[0].split(".", 3)[2];
+    console.log(groupName)
     connectionDict[connId] = groupName;
 
     let groupContext = groupDict[groupName];
@@ -197,8 +194,7 @@ let handler = new WebPubSubEventHandler(hubName, {
           });
         }
     }
-
-    console.log(req.data);
+    res.success();
   },
 });
 
