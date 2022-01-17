@@ -13,7 +13,7 @@ let diagram = {
 
 const hubName = 'draw';
 let serviceClient = new WebPubSubServiceClient(process.argv[2] || process.env.Web_PubSub_ConnectionString, hubName);
-let handler = new WebPubSubEventHandler(hubName, ['*'], {
+let handler = new WebPubSubEventHandler(hubName, {
   path: '/eventhandler',
   handleConnect: async (req, res) => {
     res.success({
