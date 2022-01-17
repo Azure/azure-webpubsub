@@ -70,9 +70,14 @@
             <a class="navbar-brand col-sm-3 col-md-2 mr-0" href="#">Reliable WebSocket Chat</a>
             <div class="m-3">
                 <span class="text-light">Welcome <a href="#"></a></span>
-                <template v-if="isConnected(client)">
+                <template v-if="connectionStatus(client) === ConnectionStatus.Connected">
                     <svg width="16" height="16">
                         <circle cx="8" cy="8" r="8" fill="#168c46" />
+                    </svg>
+                </template>
+                <template v-else-if="connectionStatus(client) === ConnectionStatus.Connecting || connectionStatus(client) === ConnectionStatus.Reconnecting">
+                    <svg width="16" height="16">
+                        <circle cx="8" cy="8" r="8" fill="#ffc107" />
                     </svg>
                 </template>
                 <template v-else>
@@ -106,7 +111,7 @@
                             </div>
                             <div v-else-if="message.type == 'self'" class="float-right" role="text">
                                 <small v-if="message.status != 'failed'" class="text-muted font-weight-light">{{message.status}}</small>
-                                <small v-else style="color: red">{{message.status}}</small>
+                                <small v-else style="color: rgb(122, 62, 62)">{{message.status}}</small>
                                 <p class="alert alert-success"> {{message.content}}</p>
                             </div>
                             <div v-else class="float-left" role="text">
@@ -123,7 +128,7 @@
                             <input type="text" v-model="client.newMessage" class="form-control"
                                 placeholder="Send a message">
                             <button type="submit" class="btn btn-outline-secondary" style="width: 100px;"
-                                :disabled="!client.newMessage || !isConnected(client)">Send</button>
+                                :disabled="!client.newMessage || connectionStatus(client) === ConnectionStatus.Disconnected">Send</button>
                         </div>
                     </form>
                 </div>
@@ -180,32 +185,25 @@
                         var userName = client.websocket.userName;
                         client.websocket.close();
                         client.websocket = null;
-                        addItem(`${userName}:${connectionId} disconnected.`, client.logs);
+                        addItem(`[${new Date().toISOString()}] Client ${connectionId} Closed.`, client.logs);
                     }
 
-                    client.websocket = new WebsocketClient(client.userName, client.logs, (downstream, onConnected) => {
-                        if (downstream.type === "system") {
-                            if (downstream.event === "connected") {
-                                onConnected(downstream.connectionId, downstream.reconnectionToken);
-                                client.websocket.send(JSON.stringify(
-                                    {
-                                        type: "joinGroup",
-                                        group: group,
-                                    }
-                                ));
-                                addItem(`[${new Date().toISOString()}] ${downstream.userId}:${downstream.connectionId} connected.`, client.logs);
-                            }
-                            else if (downstream.event === "disconnected") {
-                                addItem(`[${new Date().toISOString()}] Disconnected. ${downstream.message}`, client.logs);
-                            }
-                        } else if (downstream.type === "message") {
-                            addItem({ from: downstream.fromUserId, content: downstream.data }, client.chat.messages);
-                        } else if (downstream.type === "ack") {
-                            client.websocket.handleAck(downstream);
-                        }
-                    });
+                    client.websocket = new ReliableWebSocketClient("/negotiate", client.userName, message => {
+                        addItem({ from: message.fromUserId, content: message.data }, client.chat.messages);
+                    }, message => {
+                        client.websocket.send(JSON.stringify(
+                        {
+                            type: "joinGroup",
+                            group: group,
+                        }));
+                        addItem(`[${new Date().toISOString()}] Client ${client.websocket.connectionId} Connected.`, client.logs);
+                    }, message => {
+                        addItem(`[${new Date().toISOString()}] Client ${client.websocket.connectionId} Disconnected.`, client.logs);
+                    }, msg => addItem(msg, client.logs));
 
-                    client.websocket.connect();
+                    client.websocket.connect().catch(err => {
+                        addItem(`[${new Date().toISOString()}] ${err}`, client.logs);
+                    });
                 },
                 reconnect: function(client) {
                     client.websocket.abort();
@@ -245,8 +243,8 @@
 
                     sendMessage();
                 },
-                isConnected: function (client) {
-                    return client.websocket !== null && client.websocket.connected;
+                connectionStatus: function (client) {
+                    return client.websocket === null ? ConnectionStatus.Disconnected : client.websocket.connectionStatus;
                 },
             }
         });

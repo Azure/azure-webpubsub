@@ -1,20 +1,40 @@
-class WebsocketClient {
+class ReliableWebSocketClient {
+    endpoint;
     userName;
     connection = null;
     lastReceivedSequenceId = 0;
     ackHandler = {};
     onMessage;
+    onConnected;
+    onDisconnected;
     connectionId;
     reconnectionToken;
     reconnectionEndpoint;
     log;
-    connected = false;
+    connectionStatus = ConnectionStatus.Disconnected;
     timer;
+    closed = false;
 
-    constructor(userName, log, onMessage) {
+    refreshInterval = 1000;
+    messageTimeout = 5000;
+
+    constructor(endpoint, userName, onMessage, onConnected, onDisconnected, log, options) {
+        this.endpoint = endpoint;
         this.userName = userName;
         this.onMessage = onMessage;
+        this.onConnected = onConnected;
+        this.onDisconnected = onDisconnected;
         this.log = log;
+
+
+        if (options?.refreshInterval) {
+            this.refreshInterval = options.refreshInterval;
+        }
+
+        if (options?.messageTimeout) {
+            this.messageTimeout = options.messageTimeout;
+        }
+
         this.timer = setInterval(() => {
             var ackHandler = this.ackHandler;
             for (const key in ackHandler) {
@@ -24,10 +44,11 @@ class WebsocketClient {
                     delete ackHandler[key];
                 }
             }
-        }, 1000);
+        }, this.refreshInterval);
     }
 
     close() {
+        this.closed = true;
         var ackHandler = this.ackHandler;
         for (const key in ackHandler) {
             var value = ackHandler[key]
@@ -41,28 +62,28 @@ class WebsocketClient {
     }
 
     async connect() {
-        let res = await fetch(`/negotiate?id=${this.userName}`);
+        this.log(`[${new Date().toISOString()}] WebSocket connecting.`);
+        let res = await fetch(`${this.endpoint}?id=${this.userName}`);
         let data = await res.json();
         this.reconnectionEndpoint = new URL(data.url);
-        addItem("Connecting..", this.log);
+        this.connectionStatus = ConnectionStatus.Connecting;
 
         try {
             this.connectCore(data.url);
         } catch (err) {
-            addItem("Error: " + err, this.log);
+          this.log(`[${new Date().toISOString()}] Error: ${err}`);
         }
     }
 
     reconnect() {
         if (this.connectionId !== null && this.reconnectionToken !== null) {
-            addItem("Reconnecting..", this.log);
+            this.log(`[${new Date().toISOString()}] Client ${this.connectionId} Reconnecting.`);
             this.reconnectionEndpoint.search = `?awps_connection_id=${this.connectionId}&awps_reconnection_token=${this.reconnectionToken}`;
     
             try {
                 this.connectCore(this.reconnectionEndpoint.href);
             } catch (err) {
-                this.connected = false;
-                addItem("Error: " + err, this.log);
+                this.log(`[${new Date().toISOString()}] Error: ` + err);
                 delay(1000).then(() => this.reconnect());
             }
         } else {
@@ -74,21 +95,24 @@ class WebsocketClient {
     {
         var websocket = this.connection = new WebSocket(url, 'json.reliable.webpubsub.azure.v1');
         websocket.onopen = e => {
-            this.connected = true;
-            addItem(`[${new Date().toISOString()}] Client WebSocket opened.`, this.log);
+            if (this.connectionStatus == ConnectionStatus.Reconnecting) this.connectionStatus = ConnectionStatus.Connected;
+            this.log(`[${new Date().toISOString()}] WebSocket opened.`);
         }
         websocket.onclose = e => {
-            this.connected = false;
-            addItem(`[${new Date().toISOString()}] Client WebSocket closed.`, this.log);
+            this.log(`[${new Date().toISOString()}] WebSocket closed.`);
 
-            if (e.code != 1008) {
+            if (!this.closed && e.code != 1008) {
+                this.connectionStatus = ConnectionStatus.Reconnecting;
                 delay(1000).then(() => this.reconnect());
+            } else {
+                this.connectionStatus = ConnectionStatus.Disconnected;
             }
         }
         websocket.onerror = e => {
-            addItem(`[${new Date().toISOString()}] Client WebSocket error, check the Console window for details: ` + e, this.log);
+          this.log(`[${new Date().toISOString()}] WebSocket error, check the Console window for details.`);
         }
         websocket.onmessage = e => {
+            
             var data = JSON.parse(e.data);
             // sequence ack for every messages
             var sequenceId = data.sequenceId
@@ -102,10 +126,34 @@ class WebsocketClient {
                 }
             ));
 
-            if (this.onMessage) this.onMessage(data, (connectionId, reconnectionToken) => {
-                this.connectionId = connectionId;
-                this.reconnectionToken = reconnectionToken;
-            });
+            if (data.type === "system") {
+                if (data.event === "connected") {
+                    this.connectionStatus = ConnectionStatus.Connected;
+                    this.connectionId = data.connectionId;
+                    this.reconnectionToken = data.reconnectionToken;
+                    if (this.onConnected) this.onConnected(data);
+                }
+                if (data.event === "disconnected") {
+                    if (this.onDisconnected) this.onDisconnected(data);
+                }
+            } else if (data.type === "ack") {
+                var handleAck = ackMessage => {
+                    var item = this.ackHandler[ackMessage.ackId];
+                    if (item !== null) {
+                        if (ackMessage.success === true || ackMessage.error.name === "Duplicate") {
+                            item.deferred.resolve(ackMessage);
+                        } else {
+                            item.deferred.reject(ackMessage)
+                        }
+                        
+                        delete this.ackHandler[ackMessage.ackId];
+                    }
+                };
+
+                handleAck(data);
+            } else if (data.type === "message") {
+                if (this.onMessage) this.onMessage(data);
+            }
         }
     }
 
@@ -117,7 +165,7 @@ class WebsocketClient {
         var deferred = new Deferred();
         this.ackHandler[ackId] = {
             data: data,
-            expireAt: new Date().getTime() + 5000,
+            expireAt: new Date().getTime() + this.messageTimeout,
             deferred: deferred,
         };
         
@@ -132,19 +180,6 @@ class WebsocketClient {
 
     send(data) {
         this.connection.send(data);
-    }
-
-    handleAck(ackMessage) {
-        var item = this.ackHandler[ackMessage.ackId];
-        if (item !== null) {
-            if (ackMessage.success === true || ackMessage.error.name === "Duplicate") {
-                item.deferred.resolve(ackMessage);
-            } else {
-                item.deferred.reject(ackMessage)
-            }
-            
-            delete this.ackHandler[ackMessage.ackId];
-        }
     }
 }
 
@@ -163,3 +198,10 @@ function Deferred() {
 function delay(time) {
     return new Promise(resolve => setTimeout(resolve, time));
 }
+
+const ConnectionStatus = {
+    Disconnected: 'Disconnected',
+    Connecting: 'Connecting',
+    Reconnecting: 'Reconnecting',
+    Connected: 'Connected',
+};
