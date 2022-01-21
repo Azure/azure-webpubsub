@@ -355,4 +355,4 @@ MigrationBackup/
 # venv
 env/
 
-samples/javascript/scoreboard/.git/
+samples/javascript/scoreboard/.git-live-demo/
