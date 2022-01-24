@@ -9,11 +9,9 @@ import utils from '../common/utils'
 import { MatchTeams } from '../models/MatchTeams'
 import path from 'path'
 
-const appRoot = require('app-root-path')
-
 // environment
 const port = process.env.port || process.env.PORT || 5050
-const staticRoot = path.join(appRoot.path,(process.env.NODE_ENV == 'production' ? 'dist/dist-client' : 'public'))
+const staticRoot = path.join(__dirname, 'public')
 const connectionString = process.env.CONN_STR as string
 const hubName = process.env.NODE_ENV === 'production' ? 'scoreboard' : 'dev_scoreboard'
 
@@ -62,7 +60,7 @@ app.use(express.static(staticRoot))
 app.use(handler.getMiddleware())
 
 app.get('/', function(req, res) {
-    res.sendFile(path.join(path.join(appRoot.path, staticRoot, '/index.html')));
+    res.sendFile(path.join(path.join(staticRoot, '/index.html')));
   });
 
 app.get('/negotiate', async (req, res) => {

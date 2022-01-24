@@ -16,17 +16,6 @@
         "paths": { "@/*": ["src/*"] }
     },
 
-    "include": [
-        "src/**/*.ts",
-        "src/**/*.tsx",
-        "src/**/*.vue",
-        "../common/**/*.ts",
-        "../models/**/*.ts",
-        "../common/*.ts",
-        "../models/*.ts",
-        "../common/utils.ts",
-        "tests/**/*.ts",
-        "tests/**/*.tsx"
-    ],
+    "include": ["src/**/*.ts", "src/**/*.d.ts", "src/**/*.vue"],
     "exclude": ["node_modules"]
 }

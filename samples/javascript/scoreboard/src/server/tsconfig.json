@@ -2,7 +2,7 @@
     "compilerOptions": {
         "module": "commonjs",
         "target": "es6",
-        "outDir": "../../dist/dist-server",
+        // "outDir": "../../dist/dist-server",
         "strict": true,
         "importHelpers": true,
         "moduleResolution": "node",

@@ -10,6 +10,7 @@ module.exports = {
     "@vue/prettier",
     "@vue/prettier/@typescript-eslint",
   ],
+  ignorePatterns: ["./webpack.config.js"],
   parserOptions: {
     ecmaVersion: 2020,
   },
