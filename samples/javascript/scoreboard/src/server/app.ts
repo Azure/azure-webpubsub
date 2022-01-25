@@ -24,44 +24,48 @@ const handler = new WebPubSubEventHandler(hubName, {
         console.log(`${req.context.userId} connected`)
     },
     handleUserEvent: async (req: UserEventRequest, res: UserEventResponseHandler) => {
-        const user = req.context.userId as string
-        switch (req.context.eventName) {
-            // reply live match list for the user event 'getLiveMatchList'
-            case constants.eventNames.getLiveMatchList:
-                await serviceClient.sendToUser(user, <MatchSummaryListPayload>{
-                    event: constants.eventNames.getLiveMatchList,
-                    list: matchGenerator.liveMatchList.map(m => m.getSummary()),
-                })
-                break
-            // reply past match list for the user event 'getPastMatchList'
-            case constants.eventNames.getPastMatchList:
-                await serviceClient.sendToUser(user, <MatchSummaryListPayload>{
-                    event: constants.eventNames.getPastMatchList,
-                    list: matchGenerator.pastMatchList.map(m => m.getSummary()),
-                })
-                break
-            case constants.eventNames.realtimeMatchDetails: {
-                const teams: MatchTeams = req.data as any
-                const liveMatches = matchGenerator.liveMatchList.filter(m => utils.getId(m.teams) === utils.getId(teams))
-                if (liveMatches.length > 0) {
-                    const payload = matchRunner.getCurrentMatchDetails(teams)
-                    await serviceClient.sendToUser(user, payload)
+        try {
+            const user = req.context.userId as string
+            switch (req.context.eventName) {
+                // reply live match list for the user event 'getLiveMatchList'
+                case constants.eventNames.getLiveMatchList:
+                    await serviceClient.sendToUser(user, <MatchSummaryListPayload>{
+                        event: constants.eventNames.getLiveMatchList,
+                        list: matchGenerator.liveMatchList.map(m => m.getSummary()),
+                    })
+                    break
+                // reply past match list for the user event 'getPastMatchList'
+                case constants.eventNames.getPastMatchList:
+                    await serviceClient.sendToUser(user, <MatchSummaryListPayload>{
+                        event: constants.eventNames.getPastMatchList,
+                        list: matchGenerator.pastMatchList.map(m => m.getSummary()),
+                    })
+                    break
+                case constants.eventNames.realtimeMatchDetails: {
+                    const teams: MatchTeams = req.data as any
+                    const liveMatches = matchGenerator.liveMatchList.filter(m => utils.getId(m.teams) === utils.getId(teams))
+                    if (liveMatches.length > 0) {
+                        const payload = matchRunner.getCurrentMatchDetails(teams)
+                        await serviceClient.sendToUser(user, payload)
+                    }
+                    break
                 }
-                break
+                default:
+                    break
             }
-            default:
-                break
+            res.success()
+        } catch {
+            res.fail(500)
         }
-        res.success()
     },
 })
 
 app.use(express.static(staticRoot))
 app.use(handler.getMiddleware())
 
-app.get('/', function(req, res) {
-    res.sendFile(path.join(path.join(staticRoot, '/index.html')));
-  });
+app.get('/', function (req, res) {
+    res.sendFile(path.join(path.join(staticRoot, '/index.html')))
+})
 
 app.get('/negotiate', async (req, res) => {
     const id = req.query.id as string
