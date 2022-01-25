@@ -45,7 +45,7 @@ const handler = new WebPubSubEventHandler(hubName, {
                     break
                 // reply real time match details for the user event 'realtimeMatchDetails'
                 case constants.eventNames.realtimeMatchDetails: {
-                    const teams: MatchTeams = req.data as any
+                    const teams: MatchTeams = req.data as MatchTeams
                     const liveMatches = matchRunner.liveMatchList.filter(m => utils.getId(m.teams) === utils.getId(teams))
                     if (liveMatches.length > 0) {
                         const payload = matchRunner.getCurrentMatchDetails(teams)
