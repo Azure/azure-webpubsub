@@ -15,7 +15,7 @@ const staticRoot = path.join(__dirname, 'public')
 const connectionString = process.env.CONN_STR as string
 const hubName = process.env.NODE_ENV === 'production' ? 'scoreboard' : 'dev_scoreboard'
 
-// start simulation matches
+// setup simulation matches
 const serviceClient = new WebPubSubServiceClient(connectionString, hubName, { allowInsecureConnection: true })
 const matchRunner = new MatchRunner(matchGenerator, serviceClient)
 
