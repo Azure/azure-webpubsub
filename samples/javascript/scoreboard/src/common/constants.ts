@@ -9,7 +9,9 @@ export default {
         scoreboard: 'scoreboard',
     },
     clients: {
-        roles: ['webpubsub.joinLeaveGroup', 'webpubsub.sendToGroup'],
+        roles: {
+            joinLeaveGroup: 'webpubsub.joinLeaveGroup',
+        },
         protocol: 'json.webpubsub.azure.v1',
     },
     server: {

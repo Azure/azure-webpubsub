@@ -74,12 +74,13 @@ app.get('/', function (req, res) {
 
 // return negotiate response to redirect websocket client to Azure Web PubSub service
 app.get('/negotiate', async (req, res) => {
-    const id = req.query.id as string
-    if (!id) {
+    const userId = req.query.id as string
+    if (!userId) {
         res.status(400).send('missing user id')
         return
     }
-    const token = await serviceClient.getClientAccessToken({ userId: id, roles: constants.clients.roles })
+    const roles = matchRunner.liveMatchList.map(m => `${constants.clients.roles.joinLeaveGroup}.${utils.getId(m.teams)}`)
+    const token = await serviceClient.getClientAccessToken({ userId, roles })
     res.json({
         url: token.url,
     })
