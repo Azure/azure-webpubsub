@@ -2,6 +2,7 @@ import { MatchTeams } from '../models/MatchTeams'
 
 export default {
     getId: (teams: MatchTeams): string => {
-        return teams.teamL + '-' + teams.teamR
+        if (teams.teamL < teams.teamR) return teams.teamL + '-' + teams.teamR
+        return teams.teamR + '-' + teams.teamL
     },
 }
