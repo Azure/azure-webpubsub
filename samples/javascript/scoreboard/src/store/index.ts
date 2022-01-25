@@ -3,11 +3,14 @@ import { ScoreboardSourceOptions } from '@/ScoreboardSourceOptions'
 import { MatchTeams } from '@/models/MatchTeams'
 import { ScoreSource } from '@/ScoreSource'
 
+const options = <ScoreboardSourceOptions>{}
+options.onGettingRealtimeMatchDetailsScore = []
+
 export default createStore({
     state: {
         source: {
             options: {
-                value: <ScoreboardSourceOptions>{},
+                value: options,
             },
             instance: { value: null as ScoreSource | null },
         },

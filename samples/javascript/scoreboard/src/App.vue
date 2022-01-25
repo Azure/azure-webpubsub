@@ -19,20 +19,18 @@
 </template>
 
 <script lang="ts" setup>
+import { onMounted } from 'vue'
+import { useStore } from 'vuex'
+
+import { ScoreSource } from '@/ScoreSource'
+
 import LiveMatches from '@/components/LiveMatches.vue'
 import PastMatches from '@/components/PastMatches.vue'
 import MatchDetails from '@/components/MatchDetails.vue'
 import LiveHeader from '@/components/LiveHeader.vue'
-import { onMounted } from 'vue'
-import { useStore } from 'vuex'
-import { ScoreSource } from '@/ScoreSource'
-import { ScoreboardSourceOptions } from '@/ScoreboardSourceOptions'
-
-const store = useStore()
-const opt = store.state.source.options.value as ScoreboardSourceOptions
-opt.onGettingRealtimeMatchDetailsScore = []
 
 onMounted(() => {
+    const store = useStore()
     const scoreSource = new ScoreSource(store.state.source.options.value)
     store.state.source.instance = scoreSource
 })

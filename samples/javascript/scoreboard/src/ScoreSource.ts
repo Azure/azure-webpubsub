@@ -59,7 +59,7 @@ export class ScoreSource {
     }
 
     private async connect(): Promise<void> {
-        if (!isOptionsValid(this.options)) return
+        if (!isOptionsValid(this.options)) throw 'Invalid options for score source!'
         axios({
             method: 'get',
             url: '/negotiate',
