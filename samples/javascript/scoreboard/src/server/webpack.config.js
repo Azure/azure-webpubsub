@@ -7,7 +7,7 @@ module.exports = {
     target: 'node',
     entry: './app.ts',
     output: {
-        path: path.resolve(__dirname, '../../dist'),
+        path: path.resolve(__dirname, '../../deploy/dist'),
         filename: 'app.js',
     },
     resolve: {

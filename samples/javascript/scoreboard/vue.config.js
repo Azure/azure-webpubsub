@@ -1,6 +1,6 @@
 module.exports = {
     transpileDependencies: ['element-plus'],
-    outputDir: 'dist/public',
+    outputDir: 'deploy/dist/public',
     devServer: {
         proxy: 'http://localhost:5050',
         watchOptions: {
