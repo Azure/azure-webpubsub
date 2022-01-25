@@ -33,20 +33,20 @@ const handler = new WebPubSubEventHandler(hubName, {
                 case constants.eventNames.getLiveMatchList:
                     await serviceClient.sendToUser(user, <MatchSummaryListPayload>{
                         event: constants.eventNames.getLiveMatchList,
-                        list: matchGenerator.liveMatchList.map(m => m.getSummary()),
+                        list: matchRunner.liveMatchList.map(m => m.getSummary()),
                     })
                     break
                 // reply past match list for the user event 'getPastMatchList'
                 case constants.eventNames.getPastMatchList:
                     await serviceClient.sendToUser(user, <MatchSummaryListPayload>{
                         event: constants.eventNames.getPastMatchList,
-                        list: matchGenerator.pastMatchList.map(m => m.getSummary()),
+                        list: matchRunner.pastMatchList.map(m => m.getSummary()),
                     })
                     break
                 // reply real time match details for the user event 'realtimeMatchDetails'
                 case constants.eventNames.realtimeMatchDetails: {
                     const teams: MatchTeams = req.data as any
-                    const liveMatches = matchGenerator.liveMatchList.filter(m => utils.getId(m.teams) === utils.getId(teams))
+                    const liveMatches = matchRunner.liveMatchList.filter(m => utils.getId(m.teams) === utils.getId(teams))
                     if (liveMatches.length > 0) {
                         const payload = matchRunner.getCurrentMatchDetails(teams)
                         await serviceClient.sendToUser(user, payload)
