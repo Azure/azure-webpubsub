@@ -6,28 +6,29 @@ import constants from '../../common/constants'
 import { RealtimeScore } from '../../models/RealtimeScore'
 import { MatchTeams } from '../../models/MatchTeams'
 
-const maxQuarter = 4
-
 export class MatchRunner {
-    private matchList: Array<MatchDetails>
     private serviceClient: WebPubSubServiceClient
     private timelineIndexMap: { [key: string]: number }
 
-    constructor(matchList: Array<MatchDetails>, serviceClient: WebPubSubServiceClient) {
-        this.matchList = matchList
+    liveMatchList: Array<MatchDetails>
+    pastMatchList: Array<MatchDetails>
+
+    constructor(generator: { liveMatchList: Array<MatchDetails>; pastMatchList: Array<MatchDetails> }, serviceClient: WebPubSubServiceClient) {
+        this.liveMatchList = generator.liveMatchList
+        this.pastMatchList = generator.pastMatchList
         this.serviceClient = serviceClient
         this.timelineIndexMap = {}
-        this.matchList.forEach(m => (this.timelineIndexMap[utils.getId(m.teams)] = 0))
+        this.liveMatchList.forEach(m => (this.timelineIndexMap[utils.getId(m.teams)] = 0))
     }
 
     run(): void {
-        this.matchList.forEach(m => this.runCore(m))
+        this.liveMatchList.forEach(m => this.runCore(m))
     }
 
     getCurrentMatchDetails(teams: MatchTeams): RealtimeMatchDetailsPayload {
         const id = utils.getId(teams)
         const index = this.timelineIndexMap[id]
-        const match = this.matchList.filter(m => utils.getId(m.teams) === utils.getId(teams))[0]
+        const match = this.liveMatchList.filter(m => utils.getId(m.teams) === utils.getId(teams))[0]
         const quarters = this.getQuarterScores(index, match.timeline)
         return <RealtimeMatchDetailsPayload>{
             teams,

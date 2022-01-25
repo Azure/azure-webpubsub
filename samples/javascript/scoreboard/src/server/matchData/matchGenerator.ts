@@ -55,9 +55,4 @@ function getRandomInt(max: number, min = 1): number {
     return Math.floor(Math.random() * (max - min) + min)
 }
 
-export default {
-    liveMatchList,
-    pastMatchList,
-}
-
-// todo: rename: matchStore
+export default { liveMatchList, pastMatchList }
