@@ -1,0 +1,43 @@
+{
+    "name": "scoreboard",
+    "version": "0.1.0",
+    "private": true,
+    "main": "dist/app.js",
+    "scripts": {
+        "dev": "vue-cli-service serve --port 3000",
+        "release": "vue-cli-service build"
+    },
+    "dependencies": {
+        "@element-plus/icons-vue": "^0.2.4",
+        "@maybecode/vue-next-animejs": "^1.0.5",
+        "axios": "^0.24.0",
+        "core-js": "^3.6.5",
+        "element-plus": "^1.3.0-beta.7",
+        "js-guid": "^1.0.0",
+        "vue": "^3.0.0",
+        "vue-axios": "^3.4.0",
+        "vuex": "^4.0.0-0",
+        "ws": "^7.4.4"
+    },
+    "devDependencies": {
+        "@types/ws": "^8.2.2",
+        "@typescript-eslint/eslint-plugin": "^4.18.0",
+        "@typescript-eslint/parser": "^4.18.0",
+        "@vue/cli-plugin-babel": "^4.5.15",
+        "@vue/cli-plugin-eslint": "^4.5.15",
+        "@vue/cli-plugin-typescript": "~4.5.0",
+        "@vue/cli-plugin-vuex": "~4.5.0",
+        "@vue/cli-service": "^4.5.15",
+        "@vue/compiler-sfc": "^3.0.0",
+        "@vue/eslint-config-prettier": "^6.0.0",
+        "@vue/eslint-config-typescript": "^7.0.0",
+        "eslint": "^6.7.2",
+        "eslint-plugin-prettier": "^3.3.1",
+        "eslint-plugin-vue": "^7.0.0",
+        "nodemon": "^2.0.15",
+        "prettier": "^2.2.1",
+        "sass": "^1.26.5",
+        "sass-loader": "^8.0.2",
+        "typescript": "~4.1.5"
+    }
+}
