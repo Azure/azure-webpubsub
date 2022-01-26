@@ -9,16 +9,16 @@ const maxIntervalMs = 1000
 const minIntervalMs = 400
 
 const pastMatchList: Array<MatchDetails> = [
-    new MatchDetails(new MatchTeams('Patriots', 'Raiders')),
-    new MatchDetails(new MatchTeams('SF', 'Arizona')),
-    new MatchDetails(new MatchTeams('Eagles', 'Jaguar')),
-    new MatchDetails(new MatchTeams('Panthers', 'Cincinnati Bengals')),
+    new MatchDetails(new MatchTeams('Bear', 'Thunders')),
+    new MatchDetails(new MatchTeams('Ax', 'Hawks')),
+    new MatchDetails(new MatchTeams('Shark', 'Bold')),
+    new MatchDetails(new MatchTeams('Wolf', 'Jzer')),
 ]
 
 const liveMatchList: Array<MatchDetails> = [
-    new MatchDetails(new MatchTeams('Arizona', 'SF')),
-    new MatchDetails(new MatchTeams('Denver', 'Eagles')),
-    new MatchDetails(new MatchTeams('Jaguar', 'Panthers')),
+    new MatchDetails(new MatchTeams('Hawks', 'Ax')),
+    new MatchDetails(new MatchTeams('Badger', 'Shark')),
+    new MatchDetails(new MatchTeams('Bold', 'Wolf')),
 ]
 
 pastMatchList.forEach(m => (m.timeline = generateRandomTimeline()))

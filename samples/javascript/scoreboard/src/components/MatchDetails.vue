@@ -6,7 +6,7 @@
             </el-col>
             <el-col :span="12" :offset="4" class="horizontal-center vertical-center">
                 <img class="title-logo" :src="titleLogo" />
-                <div class="title">National Football League</div>
+                <div class="title">World Q League</div>
             </el-col>
         </el-row>
         <el-divider></el-divider>
@@ -61,7 +61,7 @@ const scores = ref([0, 0] as [number, number])
 const logoL = ref('')
 const logoR = ref('')
 const titleLogo = ref('')
-utils.updateImage('images/titles/nfl.png', titleLogo)
+utils.updateImage('images/titles/wql.png', titleLogo)
 
 const store = useStore()
 const options = store.state.source.options.value as ScoreboardSourceOptions
