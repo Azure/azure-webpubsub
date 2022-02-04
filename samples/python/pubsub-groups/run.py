@@ -1,7 +1,5 @@
 import asyncio
 import sys
-import websockets
-import asyncio
 import threading
 import queue
 from groups import WebPubSubGroup
@@ -27,7 +25,10 @@ async def read_input(bus):
     # console input has to be in a separate thread otherwise it somehow
     # blocks all asyncio, including the bus.listen and bus.consume tasks.
     input_queue = queue.Queue()
-    input_thread = threading.Thread(target=add_input, daemon=True, args=(input_queue,))
+    input_thread = threading.Thread(
+        target=add_input,
+        daemon=True,
+        args=(input_queue,))
     input_thread.start()
     while True:
         if not input_queue.empty():
@@ -52,7 +53,8 @@ async def run(webpubsub_constr, hub_name, user_name, group_name):
 
 if __name__ == '__main__':
     if len(sys.argv) != 5:
-        print('Usage: python run.py <connection-string> <hub-name> <user-name> <group-name>')
+        print('Usage: python run.py <connection-string> <hub-name> <user-name> \
+<group-name>')
         exit(1)
 
     connection_string = sys.argv[1]

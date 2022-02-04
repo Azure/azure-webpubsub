@@ -2,7 +2,6 @@
 # Licensed under the MIT license.
 
 import json
-import os
 import asyncio
 import websockets
 from azure.messaging.webpubsubservice import WebPubSubServiceClient
@@ -16,7 +15,6 @@ class WebPubSubGroup:
         self.client = None
         self.listeners = []
         self.closed = True
-        self.stopped = False
         self.user_name = user_name
         self.hub_name = hub_name
         self.group_name = group_name
@@ -28,14 +26,16 @@ class WebPubSubGroup:
         self.listeners += [handler]
 
     async def connect(self):
-        self.client = WebPubSubServiceClient.from_connection_string(connection_string=self.webpubsub_constr, hub=self.hub_name)
-        self.closed = False  # assume it will succeed so we don't try again until we know for sure.
-        self.stopped = False
-        token = self.client.get_client_access_token(user_id=self.user_name, roles=[
-            f"webpubsub.joinLeaveGroup.{self.group_name}",
-            f"webpubsub.sendToGroup.{self.group_name}"])
+        self.client = WebPubSubServiceClient.from_connection_string(
+            connection_string=self.webpubsub_constr, hub=self.hub_name)
+        self.closed = False
+        token = self.client.get_client_access_token(
+            user_id=self.user_name,
+            roles=[f"webpubsub.joinLeaveGroup.{self.group_name}",
+                   f"webpubsub.sendToGroup.{self.group_name}"])
         uri = token['url']
-        self.web_socket = await websockets.connect(uri, subprotocols=['json.webpubsub.azure.v1'])
+        self.web_socket = await websockets.connect(
+            uri, subprotocols=['json.webpubsub.azure.v1'])
         response = await self._send_receive({
             "type": "joinGroup",
             "ackId": self.ack_id,
@@ -59,7 +59,7 @@ class WebPubSubGroup:
         self.send_queue.put(groupMessage)
 
     async def consume(self):
-        while self.client:
+        while not self.closed:
             if not self.send_queue.empty():
                 message = self.send_queue.get()
                 if message:
@@ -71,8 +71,8 @@ class WebPubSubGroup:
         if self.web_socket:
             try:
                 await self.web_socket.close()
-            except:
-                pass
+            except Exception as e:
+                print(e)
 
     async def listen(self):
         print("Listening for messages from WebSocket...")
@@ -101,7 +101,6 @@ class WebPubSubGroup:
         if self.client:
             try:
                 self.client.close()
-            except:
-                pass
-        self.client = None
-        self.stopped = True
+            except Exception as e:
+                print(e)
+        self.closed = True
