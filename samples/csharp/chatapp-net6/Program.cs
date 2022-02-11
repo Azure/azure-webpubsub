@@ -19,7 +19,7 @@ app.UseRouting();
 
 app.UseEndpoints(endpoints =>
 {    
-    endpoints.MapGet("/negotiate", async  (WebPubSubServiceClient<SampleChatHub> serviceClient, HttpContext context) =>
+    endpoints.MapGet("/negotiate", async (WebPubSubServiceClient<SampleChatHub> serviceClient, HttpContext context) =>
     {
         var id = context.Request.Query["id"];
         if (id.Count != 1)
