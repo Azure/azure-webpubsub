@@ -1,0 +1,15 @@
+﻿<Project Sdk="Microsoft.NET.Sdk.Web">
+
+  <PropertyGroup>
+    <TargetFramework>net6.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <RootNamespace>chatapp</RootNamespace>
+    <UserSecretsId>da41a775-7c51-46f4-ad20-bb797943464b</UserSecretsId>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.Azure.WebPubSub.AspNetCore" Version="1.0.0-beta.3" />
+  </ItemGroup>
+
+</Project>
