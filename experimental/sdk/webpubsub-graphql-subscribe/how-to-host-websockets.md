@@ -60,8 +60,18 @@ Copy the fetched ConnectionString and it will be used later in this article as t
 
 Run the below command with `<connection_string>` replaced by the value fetched in the above step:
 
-```batch
+Linux:
+
+```bash
 export WebPubSubConnectionString="<connection_string>"
+npm install
+npm run demo:client
+```
+
+Windows:
+
+```cmd
+SET WebPubSubConnectionString=<connection_string>
 npm install
 npm run demo:client
 ```
