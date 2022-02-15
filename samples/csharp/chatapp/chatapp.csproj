@@ -2,10 +2,10 @@
 
   <PropertyGroup>
     <TargetFramework>net5.0</TargetFramework>
-    <UserSecretsId>a9ce8186-c6aa-4ca5-bd07-c16d5cd5cbd2</UserSecretsId>
   </PropertyGroup>
 
   <ItemGroup>
+    <PackageReference Include="Microsoft.Azure.WebPubSub.AspNetCore" Version="1.0.0-beta.3" />
     <PackageReference Include="Azure.Messaging.WebPubSub" Version="1.0.0" />
     <PackageReference Include="Microsoft.Extensions.Azure" Version="1.0.0" />
   </ItemGroup>
