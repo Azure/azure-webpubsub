@@ -6,13 +6,13 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.Azure.WebJobs;
 using Microsoft.Azure.WebJobs.Extensions.Http;
 using Microsoft.AspNetCore.Http;
-using Newtonsoft.Json;
 using Microsoft.Azure.WebJobs.Extensions.WebPubSub;
 using Microsoft.Azure.WebPubSub.Common;
 using Microsoft.Extensions.Logging;
 using System.Text;
-using System.Collections.Generic;
+using System.Text.Json;
 using System.Linq;
+using System.Text.Json.Serialization;
 
 namespace SimpleChat_Input
 {
@@ -91,7 +91,7 @@ namespace SimpleChat_Input
             if (wpsReq.Request.ConnectionContext.Headers.TryGetValue("ce-connectionState", out var counterValue))
             {
                 // Get states.
-                states = JsonConvert.DeserializeObject<CounterState>(Encoding.UTF8.GetString(Convert.FromBase64String(counterValue.SingleOrDefault())));
+                states = JsonSerializer.Deserialize<CounterState>(Encoding.UTF8.GetString(Convert.FromBase64String(counterValue.SingleOrDefault())));
                 idle = (DateTime.Now - states.Timestamp).TotalSeconds;
                 states.Update();
             }
@@ -99,7 +99,7 @@ namespace SimpleChat_Input
             var response = new HttpResponseMessage();
             response.Content = new StringContent(new ClientContent($"ack, idle: {idle}s, connection message counter: {states.Counter}").ToString());
             // Set states.
-            response.Headers.Add("ce-connectionState", Convert.ToBase64String(Encoding.UTF8.GetBytes(JsonConvert.SerializeObject(states))));
+            response.Headers.Add("ce-connectionState", Convert.ToBase64String(JsonSerializer.SerializeToUtf8Bytes(states)));
 
             return response;
         }
@@ -140,13 +140,11 @@ namespace SimpleChat_Input
             };
         }
 
-
-        [JsonObject]
         public sealed class ClientContent
         {
-            [JsonProperty("from")]
+            [JsonPropertyName("from")]
             public string From { get; set; }
-            [JsonProperty("content")]
+            [JsonPropertyName("content")]
             public string Content { get; set; }
 
             public ClientContent(string message)
@@ -163,16 +161,15 @@ namespace SimpleChat_Input
 
             public override string ToString()
             {
-                return JsonConvert.SerializeObject(this);
+                return JsonSerializer.Serialize(this);
             }
         }
 
-        [JsonObject]
         private sealed class CounterState
         {
-            [JsonProperty("timestamp")]
+            [JsonPropertyName("timestamp")]
             public DateTime Timestamp { get; set; }
-            [JsonProperty("counter")]
+            [JsonPropertyName("counter")]
             public int Counter { get; set; }
 
             public CounterState()
