@@ -16,8 +16,12 @@ module.exports = async function (context, req, wpsReq) {
     var msgCounter = 1;
     var time = Date.now();
     var lastTime = time;
+
+    // Input binding has limitation to help user build service required response, so user has to build themselves.
+    // Example below shows how to get/set connection-state from header["ce-connectionState"].
     if (wpsReq.request.connectionContext.headers["ce-connectionState"] != null)
     {
+      // Get states.
       var existHeader = JSON.parse((Buffer.from(wpsReq.request.connectionContext.headers["ce-connectionState"][0], 'base64')).toString());
       if (existHeader != null)
       {
@@ -35,6 +39,7 @@ module.exports = async function (context, req, wpsReq) {
     };
     return { 
       body: { from: '[System]', content: `ack, idle: ${(time - lastTime)/1000}s, connection message counter: ${msgCounter}.`}, 
+      // Set states.
       headers: { "ce-connectionState": Buffer.from(JSON.stringify(stateHeader)).toString('base64')} 
     };
   }
