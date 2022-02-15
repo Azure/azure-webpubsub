@@ -91,7 +91,7 @@ namespace SimpleChat_Input
             if (wpsReq.Request.ConnectionContext.Headers.TryGetValue("ce-connectionState", out var counterValue))
             {
                 // Get states.
-                states = JsonSerializer.Deserialize<CounterState>(Encoding.UTF8.GetString(Convert.FromBase64String(counterValue.SingleOrDefault())));
+                states = JsonSerializer.Deserialize<CounterState>(Convert.FromBase64String(counterValue.SingleOrDefault()));
                 idle = (DateTime.Now - states.Timestamp).TotalSeconds;
                 states.Update();
             }
