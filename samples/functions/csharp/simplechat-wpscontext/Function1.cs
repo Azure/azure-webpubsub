@@ -84,8 +84,8 @@ namespace SimpleChat_Input
             }
 
             // Retrieve counter from states.
-            // Input binding has limitation in the return type. So user has to get and set the states directly from WebPubSubContext.Request.ConnectionContext.Headers["ce-connectionstate"]
-            // See example below of how to get/set connection state correctly.
+            // Input binding has limitation to help users build service required responses. So users have to do this themselves.
+            // See example below of how to get/set connection state correctly from WebPubSubContext.Request.ConnectionContext.Headers["ce-connectionstate"].
             var states = new CounterState(1);
             var idle = 0.0;
             if (wpsReq.Request.ConnectionContext.Headers.TryGetValue("ce-connectionState", out var counterValue))

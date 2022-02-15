@@ -17,7 +17,7 @@ module.exports = async function (context, req, wpsReq) {
     var time = Date.now();
     var lastTime = time;
 
-    // Input binding has limitation to help user build service required response, so user has to build themselves.
+    // Input binding has limitation to help user build service required response, so users have to build it themselves.
     // Example below shows how to get/set connection-state from header["ce-connectionState"].
     if (wpsReq.request.connectionContext.headers["ce-connectionState"] != null)
     {
