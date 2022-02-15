@@ -83,11 +83,14 @@ namespace SimpleChat_Input
                 await actions.AddAsync(WebPubSubAction.CreateSendToAllAction(request.Data, request.DataType));
             }
 
-            // retrieve counter from states.
+            // Retrieve counter from states.
+            // Input binding has limitation in the return type. So user has to get and set the states directly from WebPubSubContext.Request.ConnectionContext.Headers["ce-connectionstate"]
+            // See example below of how to get/set connection state correctly.
             var states = new CounterState(1);
             var idle = 0.0;
             if (wpsReq.Request.ConnectionContext.Headers.TryGetValue("ce-connectionState", out var counterValue))
             {
+                // Get states.
                 states = JsonConvert.DeserializeObject<CounterState>(Encoding.UTF8.GetString(Convert.FromBase64String(counterValue.SingleOrDefault())));
                 idle = (DateTime.Now - states.Timestamp).TotalSeconds;
                 states.Update();
@@ -95,6 +98,7 @@ namespace SimpleChat_Input
 
             var response = new HttpResponseMessage();
             response.Content = new StringContent(new ClientContent($"ack, idle: {idle}s, connection message counter: {states.Counter}").ToString());
+            // Set states.
             response.Headers.Add("ce-connectionState", Convert.ToBase64String(Encoding.UTF8.GetBytes(JsonConvert.SerializeObject(states))));
 
             return response;
