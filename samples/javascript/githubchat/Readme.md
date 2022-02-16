@@ -24,10 +24,21 @@ Copy **Connection String** from **Keys** tab of the created Azure Web PubSub ser
 
 ![Connection String](./../../../docs/images/portal_conn.png)
 
+Linux:
+
 ```bash
-export WebPubSubConnectionString="<connection-string>"
+export WebPubSubConnectionString="<connection_string>"
 export GitHubClientId="<client-id>"
 export GitHubClientSecret="<client-secret>"
+node server
+```
+
+Windows:
+
+```cmd
+SET WebPubSubConnectionString=<connection_string>
+SET GitHubClientId=<client-id>
+SET GitHubClientSecret=<client-secret>
 node server
 ```
 
