@@ -90,8 +90,17 @@ Copy the fetched ConnectionString and it will be used later in this article as t
 
 Run the below command with `<connection_string>` replaced by the value fetched in the above step:
 
-```batch
+Linux:
+
+```bash
 export WebPubSubConnectionString="<connection_string>"
+yarn start
+```
+
+Windows:
+
+```cmd
+SET WebPubSubConnectionString=<connection_string>
 yarn start
 ```
 

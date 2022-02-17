@@ -17,8 +17,17 @@ Copy **Connection String** from **Keys** tab of the created Azure Web PubSub ser
 
 ![Connection String](./../../../docs/images/portal_conn.png)
 
+Linux:
+
 ```bash
-export WebPubSubConnectionString="<connection-string>"
+export WebPubSubConnectionString="<connection_string>"
+node server
+```
+
+Windows:
+
+```cmd
+SET WebPubSubConnectionString=<connection_string>
 node server
 ```
 
