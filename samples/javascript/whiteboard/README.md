@@ -32,8 +32,17 @@ This application is based on the following technologies:
 
    You can also set connection string as an environment variable:
 
+   Linux:
+   
+   ```bash
+   export Web_PubSub_ConnectionString="<connection_string>"
+   npm start
    ```
-   export Web_PubSub_ConnectionString="<azure-web-pubsub-connection-string>"
+   
+   Windows:
+   
+   ```cmd
+   SET Web_PubSub_ConnectionString=<connection_string>
    npm start
    ```
 
