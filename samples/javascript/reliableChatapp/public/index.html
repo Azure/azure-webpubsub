@@ -234,7 +234,8 @@
                             if (item.retry < 3) {
                                 item.retry++;
                                 item.status = `resending...${item.retry}`;
-                                sendMessage();
+
+                                delay(1000).then(() => sendMessage());
                                 return;
                             }
                             item.status = "failed";

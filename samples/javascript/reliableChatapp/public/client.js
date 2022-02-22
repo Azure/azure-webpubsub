@@ -12,11 +12,7 @@ class ReliableWebSocketClient {
     reconnectionEndpoint;
     log;
     connectionStatus = ConnectionStatus.Disconnected;
-    timer;
     closed = false;
-
-    refreshInterval = 1000;
-    messageTimeout = 5000;
 
     constructor(endpoint, userName, onMessage, onConnected, onDisconnected, log, options) {
         this.endpoint = endpoint;
@@ -25,36 +21,11 @@ class ReliableWebSocketClient {
         this.onConnected = onConnected;
         this.onDisconnected = onDisconnected;
         this.log = log;
-
-
-        if (options?.refreshInterval) {
-            this.refreshInterval = options.refreshInterval;
-        }
-
-        if (options?.messageTimeout) {
-            this.messageTimeout = options.messageTimeout;
-        }
-
-        this.timer = setInterval(() => {
-            var ackHandler = this.ackHandler;
-            for (const key in ackHandler) {
-                var value = ackHandler[key]
-                if (value.expireAt < new Date().getTime()) {
-                    value.deferred.reject({ackId: parseInt(key), success: false, error: {name: 'Timeout'}});
-                    delete ackHandler[key];
-                }
-            }
-        }, this.refreshInterval);
     }
 
     close() {
         this.closed = true;
-        var ackHandler = this.ackHandler;
-        for (const key in ackHandler) {
-            var value = ackHandler[key]
-            value.deferred.reject({ackId: parseInt(key), success: false, error: {name: 'Timeout'}})
-            delete ackHandler[key];
-        }
+        this.cleanupAck()
 
         if (this.connection) {
             this.connection.close();
@@ -100,31 +71,32 @@ class ReliableWebSocketClient {
         }
         websocket.onclose = e => {
             this.log(`[${new Date().toISOString()}] WebSocket closed.`);
+            this.cleanupAck()
 
             if (!this.closed && e.code != 1008) {
                 this.connectionStatus = ConnectionStatus.Reconnecting;
                 delay(1000).then(() => this.reconnect());
             } else {
                 this.connectionStatus = ConnectionStatus.Disconnected;
+                this.log(`[${new Date().toISOString()}] Connection ${this.connectionId} disconnected.`);
             }
         }
         websocket.onerror = e => {
           this.log(`[${new Date().toISOString()}] WebSocket error, check the Console window for details.`);
         }
         websocket.onmessage = e => {
-            
             var data = JSON.parse(e.data);
             // sequence ack for every messages
-            var sequenceId = data.sequenceId
-            if (sequenceId > this.lastReceivedSequenceId) {
-                this.lastReceivedSequenceId = sequenceId;
-            }
-            this.send(JSON.stringify(
-                {
-                    type: "ack",
-                    sequenceId: this.lastReceivedSequenceId,
+            if (data.sequenceId) {
+                var sequenceId = data.sequenceId
+                if (sequenceId > this.lastReceivedSequenceId) {
+                    this.lastReceivedSequenceId = sequenceId;
                 }
-            ));
+                this.send(JSON.stringify({
+                    type: "sequenceAck",
+                    sequenceId: this.lastReceivedSequenceId,
+                }));
+            }
 
             if (data.type === "system") {
                 if (data.event === "connected") {
@@ -165,14 +137,18 @@ class ReliableWebSocketClient {
         var deferred = new Deferred();
         this.ackHandler[ackId] = {
             data: data,
-            expireAt: new Date().getTime() + this.messageTimeout,
             deferred: deferred,
         };
         
         try {
-            this.connection.send(data);
+            if (this.connection.readyState === this.connection.OPEN) {
+                this.connection.send(data)
+            } else {
+                deferred.reject({ackId: ackId, success: false, error: {name: 'Failed'}})
+            }
         } catch (error) {
             console.log(error);
+            deferred.reject({ackId: ackId, success: false, error: {name: 'Failed'}})
         }
         
         return deferred.promise;
@@ -180,6 +156,15 @@ class ReliableWebSocketClient {
 
     send(data) {
         this.connection.send(data);
+    }
+
+    cleanupAck() {
+        var ackHandler = this.ackHandler;
+        for (const key in ackHandler) {
+            var value = ackHandler[key]
+            value.deferred.reject({ackId: parseInt(key), success: false, error: {name: 'Timeout'}})
+            delete ackHandler[key];
+        }
     }
 }
 
