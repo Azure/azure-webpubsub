@@ -48,7 +48,6 @@ namespace ClientPubSub
         public async Task StartAsync()
         {
             Console.WriteLine("Starting a new client");
-            Console.WriteLine($"{_connectionId}, {_reconnectionToken}");
             var uri = _uri;
             if (_connectionId != null && _reconnectionToken != null)
             {
