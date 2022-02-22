@@ -6,10 +6,13 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.Azure.WebJobs;
 using Microsoft.Azure.WebJobs.Extensions.Http;
 using Microsoft.AspNetCore.Http;
-using Newtonsoft.Json;
 using Microsoft.Azure.WebJobs.Extensions.WebPubSub;
 using Microsoft.Azure.WebPubSub.Common;
 using Microsoft.Extensions.Logging;
+using System.Text;
+using System.Text.Json;
+using System.Linq;
+using System.Text.Json.Serialization;
 
 namespace SimpleChat_Input
 {
@@ -66,7 +69,7 @@ namespace SimpleChat_Input
 
         // Http Trigger Message
         [FunctionName("message")]
-        public static async Task<object> Broadcast(
+        public static async Task<HttpResponseMessage> Broadcast(
             [HttpTrigger(AuthorizationLevel.Anonymous, "post")] HttpRequest req,
             [WebPubSubContext] WebPubSubContext wpsReq,
             [WebPubSub(Hub = "%WebPubSubHub%")] IAsyncCollector<WebPubSubAction> actions)
@@ -80,7 +83,25 @@ namespace SimpleChat_Input
                 await actions.AddAsync(WebPubSubAction.CreateSendToAllAction(request.Data, request.DataType));
             }
 
-            return new ClientContent("ack").ToString();
+            // Retrieve counter from states.
+            // Input binding has limitation to help users build service required responses. So users have to do this themselves.
+            // See example below of how to get/set connection state correctly from WebPubSubContext.Request.ConnectionContext.Headers["ce-connectionstate"].
+            var states = new CounterState(1);
+            var idle = 0.0;
+            if (wpsReq.Request.ConnectionContext.Headers.TryGetValue("ce-connectionState", out var counterValue))
+            {
+                // Get states.
+                states = JsonSerializer.Deserialize<CounterState>(Convert.FromBase64String(counterValue.SingleOrDefault()));
+                idle = (DateTime.Now - states.Timestamp).TotalSeconds;
+                states.Update();
+            }
+
+            var response = new HttpResponseMessage();
+            response.Content = new StringContent(new ClientContent($"ack, idle: {idle}s, connection message counter: {states.Counter}").ToString());
+            // Set states.
+            response.Headers.Add("ce-connectionState", Convert.ToBase64String(JsonSerializer.SerializeToUtf8Bytes(states)));
+
+            return response;
         }
 
         [FunctionName("connected")]
@@ -119,13 +140,11 @@ namespace SimpleChat_Input
             };
         }
 
-
-        [JsonObject]
         public sealed class ClientContent
         {
-            [JsonProperty("from")]
+            [JsonPropertyName("from")]
             public string From { get; set; }
-            [JsonProperty("content")]
+            [JsonPropertyName("content")]
             public string Content { get; set; }
 
             public ClientContent(string message)
@@ -142,7 +161,30 @@ namespace SimpleChat_Input
 
             public override string ToString()
             {
-                return JsonConvert.SerializeObject(this);
+                return JsonSerializer.Serialize(this);
+            }
+        }
+
+        private sealed class CounterState
+        {
+            [JsonPropertyName("timestamp")]
+            public DateTime Timestamp { get; set; }
+            [JsonPropertyName("counter")]
+            public int Counter { get; set; }
+
+            public CounterState()
+            { }
+
+            public CounterState(int counter)
+            {
+                Counter = counter;
+                Timestamp = DateTime.Now;
+            }
+
+            public void Update()
+            {
+                Timestamp = DateTime.Now;
+                Counter++;
             }
         }
     }
