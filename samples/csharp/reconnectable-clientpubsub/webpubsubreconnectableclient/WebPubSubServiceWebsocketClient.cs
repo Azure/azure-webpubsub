@@ -8,6 +8,7 @@ using System.Reactive.Linq;
 using System.Reactive.Subjects;
 using System.Text;
 using System.Text.Json;
+using System.Text.Json.Nodes;
 using System.Threading;
 using System.Threading.Tasks;
 using Websocket.Client;
@@ -17,418 +18,299 @@ namespace ClientPubSub
 {
     public class WebPubSubServiceWebsocketClient
     {
-        private volatile bool _stopped = false;
-        private volatile ReconnectableWebPubSubClient _client;
+        private volatile ClientWebSocket _clientWebSocket;
+        private volatile bool _disableReconnection = false;
+        private volatile bool _initialized = false;
+        private ulong _latestSequenceId = 0;
         private string _protocol;
 
         private readonly Subject<ResponseMessage> _messageReceivedSubject = new Subject<ResponseMessage>();
 
         public IObservable<ResponseMessage> MessageReceived => _messageReceivedSubject.AsObservable();
 
-        private readonly Func<Uri> _uriFunc;
+        private readonly Uri _uri;
+        private readonly string _baseUri;
+        private readonly ConcurrentDictionary<ulong, AckEntity> _cache = new();
+
+        private string _connectionId;
+        private string _reconnectionToken;
+        
 
         public WebPubSubServiceWebsocketClient(Func<Uri> uriFactory, string protocol)
         {
-            _uriFunc = uriFactory;
+            _uri = uriFactory.Invoke();
+            var builder = new UriBuilder(_uri);
+            builder.Query = null;
+            _baseUri = builder.Uri.AbsoluteUri;
             _protocol = protocol;
         }
 
-        public Task StartAsync()
+        public async Task StartAsync()
         {
             Console.WriteLine("Starting a new client");
-            var client = new ReconnectableWebPubSubClient(_uriFunc.Invoke(), _protocol);
-            client.OnDisconnected = () =>
+            Console.WriteLine($"{_connectionId}, {_reconnectionToken}");
+            var uri = _uri;
+            if (_connectionId != null && _reconnectionToken != null)
             {
-                Console.WriteLine("Client disconnected");
-                if (!_stopped)
-                {
-                    _ = StartAsync();
-                }
-            };
-            client.MessageReceived.Subscribe(msg => _messageReceivedSubject.OnNext(msg));
-            _client = client;
-            return _client.ConnectAsync();
+                uri = BuildReconnectionUri();
+            }
+
+            await ConnectCoreAsync(uri);
+            _ = Task.Run(() => Listen(_clientWebSocket, default));
         }
 
-        public Task SendAsync(string message)
+        public async Task SendAsync(string message)
         {
-            return _client.SendAsync(message);
+            byte[] bytes = Encoding.UTF8.GetBytes(message);
+            ArraySegment<byte> buffer = new ArraySegment<byte>(bytes);
+
+            await _clientWebSocket.SendAsync(buffer, WebSocketMessageType.Text, endOfMessage: true, default).ConfigureAwait(continueOnCapturedContext: false);
         }
 
-        public Task<AckMessage> SendAsync(ulong ackId, string message)
+        public async Task<AckMessage> SendAsync(ulong ackId, string message)
         {
-            return _client.SendAsync(ackId, message);
+            var ack = CreateAckEntity(ackId);
+            try
+            {
+                await SendAsync(message);
+            }
+            catch (Exception ex)
+            {
+                ack.SetException(ex);
+            }
+
+            return await ack.Task;
         }
 
         public void HandleAck(AckMessage message)
         {
-            _client.HandleAck(message);
+            if (_cache.TryRemove(message.AckId, out var entity))
+            {
+                entity.SetResult(message);
+            }
         }
 
         public void Stop()
         {
-            _stopped = true;
-            _client.Dispose();
+            _disableReconnection = true;
+            _clientWebSocket?.Dispose();
         }
 
         public void Abort()
         {
-            _client.Abort();
+            _clientWebSocket.Abort();
         }
 
-        public sealed class ReconnectableWebPubSubClient : IDisposable
+        private Uri BuildReconnectionUri()
+        { 
+            if (_connectionId != null && _reconnectionToken != null)
+            {
+                var builder = new UriBuilder(_baseUri);
+                builder.Query = $"awps_connection_id={_connectionId}&awps_reconnection_token={_reconnectionToken}";
+                return builder.Uri;
+            }
+            return _uri;
+        }
+
+        private async Task ConnectCoreAsync(Uri uri)
         {
-            public string ConnectionId => _connectionContext.ConnectionId;
-            public string ReconnectionToken => _connectionContext.ReconnectionToken;
-            public Action OnDisconnected { get; set; }
-            public IObservable<ResponseMessage> MessageReceived => _messageReceivedSubject.AsObservable();
-
-            private readonly Uri _uri;
-            private readonly string _protocol;
-            private readonly string _baseUri;
-            private readonly Subject<ResponseMessage> _messageReceivedSubject = new Subject<ResponseMessage>();
-            private readonly AckHandler _ackHandler;
-
-            private ulong _latestSequenceId = 0;
-            private volatile ClientWebSocket _clientWebSocket;
-            private ConnectionContext _connectionContext = default;
-            private volatile bool _initialized = false;
-            private volatile bool _disableReconnection = false;
-
-            public ReconnectableWebPubSubClient(Uri uri, string protocol)
+            var client = new ClientWebSocket();
+            client.Options.AddSubProtocol(_protocol);
+            try
             {
-                _uri = uri;
-                _protocol = protocol;
-                var builder = new UriBuilder(uri);
-                builder.Query = null;
-                _baseUri = builder.Uri.AbsoluteUri;
-                _ackHandler = new AckHandler();
-            }
-
-            public Task ConnectAsync()
-            {
-                return ConnectCoreAsync(_uri);
-            }
-
-            public async Task SendAsync(string message)
-            {
-                byte[] bytes = Encoding.UTF8.GetBytes(message);
-                ArraySegment<byte> buffer = new ArraySegment<byte>(bytes);
-
-                await _clientWebSocket.SendAsync(buffer, WebSocketMessageType.Text, endOfMessage: true, default).ConfigureAwait(continueOnCapturedContext: false);
-            }
-
-            public async Task<AckMessage> SendAsync(ulong ackId, string message)
-            {
-                var ack = _ackHandler.Create(ackId);
-                try
-                {
-                    await SendAsync(message);
-                }
-                catch (Exception ex)
-                {
-                    ack.SetException(ex);
-                }
-
-                return await ack.Task;
-            }
-
-            public void HandleAck(AckMessage message)
-            {
-                _ackHandler.Ack(message);
-            }
-
-            public void Abort()
-            {
-                _clientWebSocket.Abort();
-            }
-
-            private async Task ConnectCoreAsync(Uri uri)
-            {
-                var client = new ClientWebSocket();
-                client.Options.AddSubProtocol(_protocol);
+                await client.ConnectAsync(uri, default);
                 _clientWebSocket = client;
-                try
-                {
-                    await client.ConnectAsync(uri, default);
-                    Console.WriteLine("Connected");
-                }
-                catch (Exception ex)
-                {
-                    Console.WriteLine(ex);
-                    _ = Task.Run(() => HandleReconnectionAsync());
-                    return;
-                }
+                Console.WriteLine("Connected");
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine(ex);
+                throw;
+            }
+        }
 
-                _ = Task.Run(() => Listen(_clientWebSocket, default));
+        private AckEntity CreateAckEntity(ulong ackId)
+        {
+            return _cache.AddOrUpdate(ackId, new AckEntity(), (_, _) => new AckEntity());
+        }
+
+        private async Task HandleReconnectionAsync()
+        {
+            foreach(var entity in _cache)
+            {
+                if (_cache.TryRemove(entity))
+                {
+                    entity.Value.SetCancelled();
+                }
             }
 
-            private async Task Listen(ClientWebSocket client, CancellationToken token)
+            var uri = BuildReconnectionUri();
+            if (!_disableReconnection)
             {
-                Exception causedException = null;
-                try
+                while (true)
                 {
-                    ArraySegment<byte> buffer = new ArraySegment<byte>(new byte[4096]);
-                    do
+                    try
                     {
-                        byte[] resultArrayWithTrailing = null;
-                        int resultArraySize = 0;
-                        bool isResultArrayCloned = false;
-                        MemoryStream ms = null;
-                        WebSocketReceiveResult webSocketReceiveResult;
-                        while (true)
+                        await Task.Delay(1000);
+                        Console.WriteLine("Reconnecting");
+                        await ConnectCoreAsync(uri);
+                        _ = Task.Run(() => Listen(_clientWebSocket, default));
+                        return;
+                    }
+                    catch(Exception ex)
+                    {
+                        Console.WriteLine(ex);
+                    }
+                }
+            }
+        }
+
+        private async Task Listen(ClientWebSocket client, CancellationToken token)
+        {
+            Exception causedException = null;
+            try
+            {
+                ArraySegment<byte> buffer = new ArraySegment<byte>(new byte[4096]);
+                do
+                {
+                    byte[] resultArrayWithTrailing = null;
+                    int resultArraySize = 0;
+                    bool isResultArrayCloned = false;
+                    MemoryStream ms = null;
+                    WebSocketReceiveResult webSocketReceiveResult;
+                    while (true)
+                    {
+                        webSocketReceiveResult = await client.ReceiveAsync(buffer, token);
+                        byte[] array = buffer.Array;
+                        int count = webSocketReceiveResult.Count;
+                        if (resultArrayWithTrailing == null)
                         {
-                            webSocketReceiveResult = await client.ReceiveAsync(buffer, token);
-                            byte[] array = buffer.Array;
-                            int count = webSocketReceiveResult.Count;
-                            if (resultArrayWithTrailing == null)
+                            resultArraySize += count;
+                            resultArrayWithTrailing = array;
+                            isResultArrayCloned = false;
+                        }
+                        else if (array != null)
+                        {
+                            if (ms == null)
                             {
-                                resultArraySize += count;
-                                resultArrayWithTrailing = array;
-                                isResultArrayCloned = false;
-                            }
-                            else if (array != null)
-                            {
-                                if (ms == null)
-                                {
-                                    ms = new MemoryStream();
-                                    ms.Write(resultArrayWithTrailing, 0, resultArraySize);
-                                }
-
-                                ms.Write(array, buffer.Offset, count);
+                                ms = new MemoryStream();
+                                ms.Write(resultArrayWithTrailing, 0, resultArraySize);
                             }
 
-                            if (webSocketReceiveResult.EndOfMessage)
-                            {
-                                break;
-                            }
-
-                            if (!isResultArrayCloned)
-                            {
-                                resultArrayWithTrailing = resultArrayWithTrailing?.ToArray();
-                                isResultArrayCloned = true;
-                            }
+                            ms.Write(array, buffer.Offset, count);
                         }
 
-                        ms?.Seek(0L, SeekOrigin.Begin);
-                        ResponseMessage responseMessage;
-                        if (webSocketReceiveResult.MessageType == WebSocketMessageType.Text)
+                        if (webSocketReceiveResult.EndOfMessage)
                         {
-                            responseMessage = ResponseMessage.TextMessage((ms != null) ? Encoding.UTF8.GetString(ms.ToArray()) : ((resultArrayWithTrailing != null) ? Encoding.UTF8.GetString(resultArrayWithTrailing, 0, resultArraySize) : null));
+                            break;
+                        }
+
+                        if (!isResultArrayCloned)
+                        {
+                            resultArrayWithTrailing = resultArrayWithTrailing?.ToArray();
+                            isResultArrayCloned = true;
+                        }
+                    }
+
+                    ms?.Seek(0L, SeekOrigin.Begin);
+                    ResponseMessage responseMessage;
+                    if (webSocketReceiveResult.MessageType == WebSocketMessageType.Text)
+                    {
+                        responseMessage = ResponseMessage.TextMessage((ms != null) ? Encoding.UTF8.GetString(ms.ToArray()) : ((resultArrayWithTrailing != null) ? Encoding.UTF8.GetString(resultArrayWithTrailing, 0, resultArraySize) : null));
+                    }
+                    else
+                    {
+                        if (webSocketReceiveResult.MessageType == WebSocketMessageType.Close)
+                        {
+                            await _clientWebSocket.CloseOutputAsync(webSocketReceiveResult.CloseStatus ?? WebSocketCloseStatus.EndpointUnavailable, null, default);
+                            Console.WriteLine($"Close with code: {webSocketReceiveResult.CloseStatus}");
+
+                            return;
+                        }
+
+                        if (ms != null)
+                        {
+                            responseMessage = ResponseMessage.BinaryMessage(ms.ToArray());
                         }
                         else
                         {
-                            if (webSocketReceiveResult.MessageType == WebSocketMessageType.Close)
-                            {
-                                await _clientWebSocket.CloseOutputAsync(webSocketReceiveResult.CloseStatus ?? WebSocketCloseStatus.EndpointUnavailable, null, default);
-                                Console.WriteLine($"Close with code: {webSocketReceiveResult.CloseStatus}");
-                                if (webSocketReceiveResult.CloseStatus == WebSocketCloseStatus.NormalClosure)
-                                {
-                                    _disableReconnection = true;
-                                }
-
-                                return;
-                            }
-
-                            if (ms != null)
-                            {
-                                responseMessage = ResponseMessage.BinaryMessage(ms.ToArray());
-                            }
-                            else
-                            {
-                                Array.Resize(ref resultArrayWithTrailing, resultArraySize);
-                                responseMessage = ResponseMessage.BinaryMessage(resultArrayWithTrailing);
-                            }
+                            Array.Resize(ref resultArrayWithTrailing, resultArraySize);
+                            responseMessage = ResponseMessage.BinaryMessage(resultArrayWithTrailing);
                         }
+                    }
 
-                        ms?.Dispose();
+                    ms?.Dispose();
 
-                        // Read connection token
-                        if (!_initialized)
+                    // Read connection token
+                    var jobject = JsonObject.Parse(responseMessage.Text);
+                    if (!_initialized)
+                    {
+                        if (jobject["type"].ToString() == "system" && jobject["event"].ToString() == "connected")
                         {
-                            var connected = JsonSerializer.Deserialize<Connected>(responseMessage.Text);
-                            _connectionContext = new ConnectionContext(connected.connectionId, connected.reconnectionToken);
+                            _connectionId = jobject["connectionId"].ToString();
+                            _reconnectionToken = jobject["reconnectionToken"].ToString();
                             _initialized = true;
                         }
+                    }
 
-                        // Squence Ack
-                        var duplicated = false;
-                        var seqMsg = JsonSerializer.Deserialize<SequenceIdMessage>(responseMessage.Text);
-                        if (seqMsg != null && seqMsg.sequenceId != null)
+                    // Squence Ack
+                    var duplicated = false;
+                    if (jobject["sequenceId"] != null)
+                    {
+                        var sequenceId = jobject["sequenceId"].GetValue<ulong>();
+
+                        if (_latestSequenceId < sequenceId)
                         {
-                            if (_latestSequenceId < seqMsg.sequenceId.Value)
-                            {
-                                _latestSequenceId = seqMsg.sequenceId.Value;
-                            }
-                            else
-                            {
-                                duplicated = true;
-                            }
-
-                            try
-                            {
-                                _ = SendAsync(JsonSerializer.Serialize(new
-                                {
-                                    type = "ack",
-                                    sequenceId = _latestSequenceId,
-                                }));
-                            }
-                            catch
-                            {
-                            }
+                            _latestSequenceId = sequenceId;
+                        }
+                        else
+                        {
+                            duplicated = true;
                         }
 
-                        if (!duplicated)
+                        try
                         {
-                            _messageReceivedSubject.OnNext(responseMessage);
+                            _ = SendAsync(JsonSerializer.Serialize(new SequenceAckMessage { sequenceId = _latestSequenceId }));
+                        }
+                        catch
+                        {
                         }
                     }
-                    while (client.State == WebSocketState.Open && !token.IsCancellationRequested);
-                }
-                catch (TaskCanceledException ex)
-                {
-                    causedException = ex;
-                }
-                catch (OperationCanceledException ex2)
-                {
-                    causedException = ex2;
-                }
-                catch (ObjectDisposedException ex3)
-                {
-                    causedException = ex3;
-                }
-                catch (Exception ex4)
-                {
-                    causedException = ex4;
-                }
-                finally
-                {
-                    if (client.CloseStatus == WebSocketCloseStatus.PolicyViolation)
+
+                    if (!duplicated)
                     {
-                        _disableReconnection = true;
-                    }
-                    _ = Task.Run(() => HandleReconnectionAsync());
-                }
-            }
-
-            private async Task HandleReconnectionAsync()
-            {
-                var uri = BuildReconnectionUri();
-                if (_disableReconnection)
-                {
-                    OnDisconnected?.Invoke();
-                }
-                else
-                {
-                    Console.WriteLine("Reconnecting");
-                    await Task.Delay(1000);
-                    await ConnectCoreAsync(uri);
-                }
-            }
-
-            private Uri BuildReconnectionUri()
-            {
-                var connectionContext = _connectionContext;
-                if (connectionContext.ConnectionId != null && connectionContext.ReconnectionToken != null)
-                {
-                    var builder = new UriBuilder(_baseUri);
-                    builder.Query = $"awps_connection_id={connectionContext.ConnectionId}&awps_reconnection_token={connectionContext.ReconnectionToken}";
-                    return builder.Uri;
-                }
-                return _uri;
-            }
-
-            public void Dispose()
-            {
-                _disableReconnection = true;
-                _ackHandler.Dispose();
-                _clientWebSocket?.Dispose();
-            }
-
-            private enum ClientState
-            {
-                NotInitialized = 0,
-                Connected = 1,
-                Disconnected = 2,
-                NotReconnectableDisconnected = 3,
-            }
-
-            private sealed class AckHandler : IDisposable
-            {
-                private readonly Timer _timer;
-                public AckHandler()
-                {
-                    _timer = new Timer(_ =>
-                    {
-                        foreach(var entity in _cache)
-                        {
-                            if (entity.Value.ExpireTime < DateTime.UtcNow)
-                            {
-                                if (_cache.TryRemove(entity.Key, out var dEntity))
-                                {
-                                    dEntity.SetTimeout();
-                                }
-                            }
-                        }
-                    }, null, 3000, 2000);
-                }
-
-                private ConcurrentDictionary<ulong, AckEntity> _cache = new();
-
-                public AckEntity Create(ulong ackId)
-                {
-                    return _cache.AddOrUpdate(ackId, new AckEntity(), (_, _) => new AckEntity());
-                }
-
-                public void Ack(AckMessage message)
-                {
-                    if (_cache.TryRemove(message.AckId, out var entity))
-                    {
-                        entity.SetResult(message);
+                        _messageReceivedSubject.OnNext(responseMessage);
                     }
                 }
-
-                public void Dispose()
-                {
-                    _timer.Dispose();
-                }
-
-                public class AckEntity
-                {
-                    private TaskCompletionSource<AckMessage> _tcs = new TaskCompletionSource<AckMessage>(TaskCreationOptions.RunContinuationsAsynchronously);
-                    public void SetResult(AckMessage message) => _tcs.TrySetResult(message);
-                    public void SetTimeout() => _tcs.TrySetException(new TimeoutException());
-                    public void SetException(Exception ex) => _tcs.TrySetException(ex);
-                    public Task<AckMessage> Task => _tcs.Task;
-                    public DateTime ExpireTime = DateTime.UtcNow + TimeSpan.FromSeconds(5);
-                }
+                while (client.State == WebSocketState.Open && !token.IsCancellationRequested);
             }
-        }
-        public class SequenceIdMessage
-        {
-            public ulong? sequenceId { get; set; }
-        }
-
-        public class Connected
-        {
-            public string @event { get; set; }
-
-            public string connectionId { get; set; }
-
-            public string reconnectionToken { get; set; }
-        }
-
-        public struct ConnectionContext
-        {
-            public string ConnectionId { get; }
-
-            public string ReconnectionToken { get; }
-
-            public ConnectionContext(string connectionId, string reconnectionToken)
+            catch (Exception ex4)
             {
-                ConnectionId = connectionId;
-                ReconnectionToken = reconnectionToken;
+                causedException = ex4;
             }
+            finally
+            {
+                if (client.CloseStatus == WebSocketCloseStatus.PolicyViolation)
+                {
+                    _disableReconnection = true;
+                }
+                _ = Task.Run(() => HandleReconnectionAsync());
+            }
+        }
+
+        public class AckEntity
+        {
+            private TaskCompletionSource<AckMessage> _tcs = new TaskCompletionSource<AckMessage>(TaskCreationOptions.RunContinuationsAsynchronously);
+            public void SetResult(AckMessage message) => _tcs.TrySetResult(message);
+            public void SetCancelled() => _tcs.TrySetException(new OperationCanceledException());
+            public void SetException(Exception ex) => _tcs.TrySetException(ex);
+            public Task<AckMessage> Task => _tcs.Task;
+        }
+
+        public class SequenceAckMessage
+        {
+            public string type => "sequenceAck";
+            public ulong sequenceId { get; set; }
         }
 
         public class AckMessage
@@ -443,6 +325,5 @@ namespace ClientPubSub
                 Success = success;
             }
         }
-
     }
 }

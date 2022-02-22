@@ -36,20 +36,27 @@ namespace clientpub
             });
 
             await client.StartAsync();
-            /* Send to group `demogroup` */
-            ulong ackId = 1;
+            Console.WriteLine("Press Enter to simulate an networt abort...");
+
+            _ = Task.Run(async () =>
+            {
+                ulong ackId = 1;
+                while (true)
+                {
+                    await SafeSendMessage(client, ackId);
+                    ackId++;
+                    await Task.Delay(100);
+                }
+            });
+
             while (true)
             {
-                //var message = Console.ReadLine();
-                await SendMessage(client, ackId);
-                ackId++;
-                //await Task.Delay(100);
+                Console.ReadLine();
+                client.Abort();
             }
-
-            Console.WriteLine("done");
         }
 
-        private static async Task SendMessage(WebPubSubServiceWebsocketClient client, ulong ackId)
+        private static async Task SafeSendMessage(WebPubSubServiceWebsocketClient client, ulong ackId)
         {
             var message = JsonSerializer.Serialize(new
             {
@@ -70,6 +77,10 @@ namespace clientpub
                 catch (Exception ex)
                 {
                     Console.WriteLine($"{DateTime.Now}: Retring message with ackId: {ackId}");
+                }
+                finally
+                {
+                    await Task.Delay(100);
                 }
             }
         }

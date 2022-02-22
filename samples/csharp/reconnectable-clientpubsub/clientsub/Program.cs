@@ -52,7 +52,8 @@ namespace clientsub
             });
 
             await ws.StartAsync();
-            
+
+            Console.WriteLine("Press Enter to simulate an networt abort...");
             while(true)
             {
                 Console.ReadLine();
@@ -79,10 +80,5 @@ namespace clientsub
     {
         public ulong ackId { get; set; }
         public bool success { get; set; }
-    }
-
-    public class SequenceIdMessage
-    {
-        public ulong? sequenceId { get; set; }
     }
 }
