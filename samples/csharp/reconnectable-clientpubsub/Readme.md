@@ -23,4 +23,6 @@ cd clientpub
 dotnet run "ConnectionString>" pubsubhub
 ```
 
-Start typing messages and you can see these messages are transferred to the client subscriber in real-time.
+3. Simulate the Network issue
+For both publisher and subscriber, you can press **Enter** to simulate a network issue. For publisher, you can see message resending and for subscriber, you can find there's no duplicated messages.
+
