@@ -13,7 +13,18 @@ Copy **Connection String** from **Keys** tab of the created Azure Web PubSub ser
 
 ![Connection String](./../../../docs/images/portal_conn.png)
 
+Linux:
+
+```bash
+cd src/server
+npm install
+export WebPubSubConnectionString="<connection_string>"
+npm run dev
 ```
+
+Windows:
+
+```cmd
 cd src\server
 npm install
 SET WebPubSubConnectionString=<connection_string>
