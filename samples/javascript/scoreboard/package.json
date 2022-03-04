@@ -5,7 +5,7 @@
     "main": "dist/app.js",
     "scripts": {
         "dev": "vue-cli-service serve --port 3000",
-        "release": "vue-cli-service build"
+        "build": "vue-cli-service build"
     },
     "dependencies": {
         "@element-plus/icons-vue": "^0.2.4",
