@@ -1,4 +1,4 @@
-# wps-demo
+# A Scoreboard
 
 ## Start the client
 
