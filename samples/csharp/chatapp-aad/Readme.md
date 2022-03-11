@@ -10,14 +10,12 @@ This sample is to help you create a chat app with aad auth method.
 4. [Azure CLI](https://docs.microsoft.com/cli/azure/) or [Azure Powershell](https://docs.microsoft.com/powershell/azure/)
 
 ## Getting started
-   
-### 1. Compile and build your java project.
+
+### 1. Compile and build your project
 
 ```bash
 dotnet restore
 ```
-
-For OSX/Linux user, use `source ./.venv/bin/activate` to activate the virtualenv.
 
 ### 2. Login Azure account in your terminal
 
@@ -47,41 +45,56 @@ curl https://<domain-name>.loca.lt/eventhandler -X OPTIONS -H "WebHook-Request-O
 Check if the response header contains `webhook-allowed-origin: *`. This curl command actually checks if the WebHook [abuse protection request](https://docs.microsoft.com/azure/azure-web-pubsub/reference-cloud-events#webhook-validation) can response with the expected header.
 
 
-### 4. Configure an event handler on Azure portal.
+### 4. Configure an event handler
 
 1. Open [Azure Portal](https://ms.portal.azure.com/), search for and select your `Azure Web PubSub` resource.
-2. Under **Settings** section, click **Settings**.
-3. Click **Add**.
-3. Enter `chat` as **Hub name**.
-4. Set **URL template** to `https://<name>.loca.lt/eventhandler`
-5. Click **System events**, then select **connected** to let the service sends `connected` events to your upstream server.
-    ![Event Handler](./../../../docs/images/portal_event_handler.png)
-1. Click **Save** to confirm the change.
+1. Open `Settings` panel.
+1. Click `Add` to add a hub setting.
+1. Enter `chat` as `Hub name`.
+1. Set `URL template` to `https://<name>.loca.lt/eventhandler`
+1. Click `System events`, then select `connected` to let the service sends `connected` events to your upstream server.
+    ![Event Handler](./images/hub-settings.png)
+1. Click `Save` to confirm the change.
 
 ### 5. Configure Role-Based Access Control (RBAC)
+
 1. Open [Azure Portal](https://ms.portal.azure.com/), search for and select your `Azure Web PubSub` resource.
-1. Select **Access control (IAM)**.
-1. Click **Add > Add role assignment**.
-1. On **Role** tab, select **Web PubSubServiceOwner**.
-1. Click **Next**.
-   ![Screenshot of Select Roles](./media/add-role-assignment-roles.png)
-1. On **Members** tab, select **User, group, or service principal**, then click **Select members**.
-1. Search for and select yourself. Don't forget to click **Select** to confirm selection.
-1. Click **Next**.
-   ![Screenshot of Select Members](./media/add-role-assignment-members.png)
-1. On **Review + assign** tab, click **Review + assign** to confirm the assignment.
+1. Open `Access control (IAM)` panel.
+1. Click `Add > Add role assignment`.
+1. On `Role` tab, select `Web PubSub Service Owner (Preview)`.
+1. Click `Next`.
+   ![Screenshot of Select Roles](./images/select-role.png)
+1. On `Members` tab, choose `User, group, or service principal`, then click `Select members`.
+1. Search for and select yourself. Don't forget to click `Select` to confirm selection.
+1. Click `Next`.
+   ![Screenshot of Select Members](./images/select-members.png)
+1. On `Review + assign` tab, click `Review + assign` to confirm the assignment.
 
 > Azure role assignments may take up to 30 minutes to propagate.
 
 ### 6. Start your server
 
-```csharp
+```bash
 dotnet user-secrets set Azure:WebPubSub:Endpoint "<endpoint>"
 dotnet run --urls http://localhost:8080
 ```
 
-Open http://localhost:8080/index.html, input your user name, and send messages.
+Open http://localhost:8080/index.html, input your user name, and try sending messages.
 
-## Next steps
+## Questions
 
-TODO
+1. Q: Why I got a 401 (Unauthorized) error response?
+
+   Please check if you have assigned `Web PubSub Service Owner` role to yourself first.
+
+   If you did, please also check if there was environment variables such as:
+
+   - AZURE_TENANT_ID
+   - AZURE_CLIENT_ID
+   - AZURE_CLIENT_SECRET
+   - AZURE_USERNAME
+   - AZURE_PASSWORD
+
+   If there was, remove them and try again.
+
+   By default our sample will use `DefaultAzureCredential` to acquire Azure Ad token, it will try using environment variables as its first priority, which always represents an Azure application. Our service will response 401 unauthorized since this application doesn't have `Web PubSub Service Owner` role.
