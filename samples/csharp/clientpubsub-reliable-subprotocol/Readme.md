@@ -1,8 +1,8 @@
-# Streaming logs using `json.webpubsub.azure.v1` subprotocol
+# Client PubSub with reliable subprotocol `json.reliable.webpubsub.azure.v1`
 
 ## Prerequisites
 
-1. [ASP.NET Core 3.1 or above](https://docs.microsoft.com/aspnet/core)
+1. [ASP.NET 6 or above](https://docs.microsoft.com/aspnet/core)
 2. Create an Azure Web PubSub resource
 
 ## Setup
