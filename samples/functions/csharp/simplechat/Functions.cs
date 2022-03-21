@@ -90,7 +90,19 @@ namespace SimpleChat
                 DataType = request.DataType
             });
 
-            return request.CreateResponse(BinaryData.FromString(new ClientContent("ack").ToString()), WebPubSubDataType.Json);
+            // retrieve counter from states.
+            var states = new CounterState(1);
+            var idle = 0.0;
+            if (connectionContext.ConnectionStates.TryGetValue(nameof(CounterState), out var counterValue))
+            {
+                states = counterValue.ToObjectFromJson<CounterState>();
+                idle = (DateTime.Now - states.Timestamp).TotalSeconds;
+                states.Update();
+            }
+            var response = request.CreateResponse(BinaryData.FromString(new ClientContent($"ack, idle: {idle}s, connection message counter: {states.Counter}").ToString()), WebPubSubDataType.Json);
+            response.SetState(nameof(CounterState), BinaryData.FromObjectAsJson(states));
+
+            return response;
         }
 
         [FunctionName("disconnect")]
@@ -109,7 +121,7 @@ namespace SimpleChat
         #endregion
 
         [JsonObject]
-        public sealed class ClientContent
+        private sealed class ClientContent
         {
             [JsonProperty("from")]
             public string From { get; set; }
@@ -131,6 +143,30 @@ namespace SimpleChat
             public override string ToString()
             {
                 return JsonConvert.SerializeObject(this);
+            }
+        }
+
+        [JsonObject]
+        private sealed class CounterState
+        {
+            [JsonProperty("timestamp")]
+            public DateTime Timestamp { get; set; }
+            [JsonProperty("counter")]
+            public int Counter { get; set; }
+
+            public CounterState()
+            { }
+
+            public CounterState(int counter)
+            {
+                Counter = counter;
+                Timestamp = DateTime.Now;
+            }
+
+            public void Update()
+            {
+                Timestamp = DateTime.Now;
+                Counter++;
             }
         }
     }
