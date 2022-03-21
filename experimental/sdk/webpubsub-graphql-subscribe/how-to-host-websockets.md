@@ -78,20 +78,34 @@ npm run demo:client
 
 The console log shows that the exposed endpoint for Azure Web PubSub event handlers is `http://localhost:4000/graphql_subscription/`. Let's expose this local endpoint to public so that the Azure Web PubSub can redirect traffic to your localhost.
 
-### Use ngrok to expose your local endpoint
+### Use localtunnel to expose localhost
 
-```
-ngrok http 4000 
+[localtunnel](https://github.com/localtunnel/localtunnel) is an open-source project that help expose your localhost to public. [Install the tool](https://github.com/localtunnel/localtunnel#installation) and run:
+
+```bash
+lt --port 4000 --print-requests
 ```
 
-Then you'll get a forwarding endpoint `http://<your-ngrok-id>.ngrok.io` like `http://e27c-167-220-255-102.ngrok.io`
+localtunnel will print out an url (`https://<domain-name>.loca.lt`) that can be accessed from internet, e.g. `https://xxx.loca.lt`.
+
+> Tip:
+> There is one known issue that [localtunnel goes offline when the server restarts](https://github.com/localtunnel/localtunnel/issues/466) and [here is the workaround](https://github.com/localtunnel/localtunnel/issues/466#issuecomment-1030599216)  
+
+There are also other tools to choose when debugging the webhook locally, for example, [ngrok](​https://ngrok.com/), [loophole](https://loophole.cloud/docs/), [TunnelRelay](https://github.com/OfficeDev/microsoft-teams-tunnelrelay) or so. Some tools might have issue returning response headers correctly. Try the following command to see if the tool is working properly:
+
+```bash
+curl https://<domain-name>.loca.lt/graphql_subscription/validate -X OPTIONS -H "WebHook-Request-Origin: *" -H "ce-awpsversion: 1.0" --ssl-no-revoke -i
+```
+
+Check if the response header contains `webhook-allowed-origin: *`. This curl command actually checks if the WebHook [abuse protection request](https://docs.microsoft.com/azure/azure-web-pubsub/reference-cloud-events#webhook-validation) can response with the expected header.
+
 
 ### Configure event handlers
 
-Since GraphQL has its own Authentication logic, `graphql_subscription` hub can allow anonymous connect and delegate all the event handling to the upstream. Setting the event handler through Azure CLI with below command (don't forget to replace `<your-unique-resource-name>` and `<your-ngrok-id>` with your own one):
+Since GraphQL has its own Authentication logic, `graphql_subscription` hub can allow anonymous connect and delegate all the event handling to the upstream. Setting the event handler through Azure CLI with below command (don't forget to replace `<your-unique-resource-name>` and `<your-localtunnel-id>` with your own one):
 
 ```azurecli
-az webpubsub hub create --hub-name graphql_subscription --name "<your-unique-resource-name>" --resource-group "myResourceGroup" --allow-anonymous --event-handler url-template=http://<your-ngrok-id>.ngrok.io/{hub}/{event} user-event-pattern=* system-event=connect system-event=disconnected system-event=connected
+az webpubsub hub create --hub-name graphql_subscription --name "<your-unique-resource-name>" --resource-group "myResourceGroup" --allow-anonymous --event-handler url-template=http://<your-localtunnel-id>.loca.lt/{hub}/{event} user-event-pattern=* system-event=connect system-event=disconnected system-event=connected
 ```
 
 ### Open GraphQL Explorer and update the subscription URL

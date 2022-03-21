@@ -12,7 +12,7 @@ import path from 'path'
 // environment
 const port = process.env.port || process.env.PORT || 5050
 const staticRoot = path.join(__dirname, 'public')
-const connectionString = process.env.CONN_STR as string
+const connectionString = process.env.WebPubSubConnectionString as string
 const hubName = process.env.NODE_ENV === 'production' ? 'scoreboard' : 'dev_scoreboard'
 
 // setup simulation matches
@@ -90,4 +90,4 @@ app.get('/negotiate', async (req, res) => {
 matchRunner.run()
 
 // start server
-app.listen(port, () => console.log(`Event handler listening at http://localhost:${port}${handler.path} at ${process.env.NODE_ENV} mode.`))
+app.listen(port, () => console.log(`Event handler listening at http://localhost:${port}${handler.path} for hub ${hubName}.`))
