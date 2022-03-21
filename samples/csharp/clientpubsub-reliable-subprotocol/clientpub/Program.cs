@@ -23,7 +23,7 @@ namespace clientpub
 
             // Either generate the URL or fetch it from server or fetch a temp one from the portal
             var serviceClient = new WebPubSubServiceClient(connectionString, hub);
-            var client = new WebPubSubServiceWebsocketClient(() => serviceClient.GenerateClientAccessUri(userId: "user1", roles: new string[] { "webpubsub.joinLeaveGroup.demogroup", "webpubsub.sendToGroup.demogroup" }), "json.reliable.webpubsub.azure.v1");
+            var client = new WebPubSubServiceWebsocketClient(() => serviceClient.GenerateClientAccessUri(userId: "user1", roles: new string[] { "webpubsub.joinLeaveGroup.reliableChat", "webpubsub.sendToGroup.reliableChat" }), "json.reliable.webpubsub.azure.v1");
 
             client.MessageReceived.Subscribe(msg => 
             {
@@ -61,7 +61,7 @@ namespace clientpub
             var message = JsonSerializer.Serialize(new
             {
                 type = "sendToGroup",
-                group = "demogroup",
+                group = "reliableChat",
                 dataType = "text",
                 data = ackId.ToString(),
                 ackId = ackId
