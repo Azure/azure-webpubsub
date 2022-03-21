@@ -12,7 +12,7 @@ app.get('/negotiate', async (req, res) => {
     res.status(400).send('missing user id');
     return;
   }
-  let token = await serviceClient.getClientAccessToken({ userId: id, roles: ['webpubsub.sendToGroup', 'webpubsub.joinLeaveGroup'] });
+  let token = await serviceClient.getClientAccessToken({ userId: id, roles: ['webpubsub.sendToGroup.reliableChat', 'webpubsub.joinLeaveGroup.reliableChat'] });
   res.json({
     url: token.url
   });

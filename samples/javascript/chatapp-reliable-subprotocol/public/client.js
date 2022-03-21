@@ -1,3 +1,7 @@
+/**
+ * Client for connecting to a Web PubSub hub with reliable subprotocol
+ * Handling reconnection, sending with acknowledgement and message deduplication inside.
+ */
 class ReliableWebSocketClient {
     endpoint;
     userName;
