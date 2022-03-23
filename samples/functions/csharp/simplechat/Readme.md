@@ -43,7 +43,7 @@ Check if the response header contains `webhook-allowed-origin: *`. This curl com
 
 Property|Value
 --|--
-`HubName`| simplechat
+`HubName`| awpssamplefuncchat
 `URL Template`| https://*{random-id}*.loca.lt/runtime/webhooks/webpubsub
 `User Event Pattern`| *
 `System Events`| connect, connected, disconnected

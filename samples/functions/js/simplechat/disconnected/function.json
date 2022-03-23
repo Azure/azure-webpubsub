@@ -5,14 +5,14 @@
       "type": "webPubSubTrigger",
       "direction": "in",
       "name": "request",
-      "hub": "simplechat",
+      "hub": "awpssamplefuncchat",
       "eventName": "disconnected",
       "eventType": "system"
     },
     {
       "type": "webPubSub",
       "name": "actions",
-      "hub": "simplechat",
+      "hub": "awpssamplefuncchat",
       "direction": "out"
     }
   ]

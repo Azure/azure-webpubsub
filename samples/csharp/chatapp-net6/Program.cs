@@ -5,7 +5,7 @@ var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddWebPubSub(
     o => o.ServiceEndpoint = new ServiceEndpoint(builder.Configuration["Azure:WebPubSub:ConnectionString"]))
-    .AddWebPubSubServiceClient<SampleChatHub>();
+    .AddWebPubSubServiceClient<AwpsSampleChatApp>();
 
 var app = builder.Build();
 
@@ -19,7 +19,7 @@ app.UseRouting();
 
 app.UseEndpoints(endpoints =>
 {    
-    endpoints.MapGet("/negotiate", async (WebPubSubServiceClient<SampleChatHub> serviceClient, HttpContext context) =>
+    endpoints.MapGet("/negotiate", async (WebPubSubServiceClient<AwpsSampleChatApp> serviceClient, HttpContext context) =>
     {
         var id = context.Request.Query["id"];
         if (id.Count != 1)
@@ -31,16 +31,16 @@ app.UseEndpoints(endpoints =>
         await context.Response.WriteAsync(serviceClient.GetClientAccessUri(userId: id).AbsoluteUri);
     });
 
-    endpoints.MapWebPubSubHub<SampleChatHub>("/eventhandler/{*path}");
+    endpoints.MapWebPubSubHub<AwpsSampleChatApp>("/eventhandler/{*path}");
 });
 
 app.Run();
 
-sealed class SampleChatHub : WebPubSubHub
+sealed class AwpsSampleChatApp : WebPubSubHub
 {
-    private readonly WebPubSubServiceClient<SampleChatHub> _serviceClient;
+    private readonly WebPubSubServiceClient<AwpsSampleChatApp> _serviceClient;
 
-    public SampleChatHub(WebPubSubServiceClient<SampleChatHub> serviceClient)
+    public AwpsSampleChatApp(WebPubSubServiceClient<AwpsSampleChatApp> serviceClient)
     {
         _serviceClient = serviceClient;
     }

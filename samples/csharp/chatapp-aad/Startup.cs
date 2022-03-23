@@ -28,7 +28,7 @@ namespace chatapp
             services.AddAzureClients(builder =>
             {
                 var credential = new DefaultAzureCredential();
-                builder.AddWebPubSubServiceClient(new Uri(Configuration["Azure:WebPubSub:Endpoint"]), "chat", credential);
+                builder.AddWebPubSubServiceClient(new Uri(Configuration["Azure:WebPubSub:Endpoint"]), "AwpsSampleAadChatApp", credential);
             });
         }
 

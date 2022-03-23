@@ -11,7 +11,7 @@ namespace notifications
     {
         [FunctionName("notification")]
         public static async Task Run([TimerTrigger("*/10 * * * * *")]TimerInfo myTimer, ILogger log,
-            [WebPubSub(Hub = "notification")] IAsyncCollector<WebPubSubAction> actions)
+            [WebPubSub(Hub = "awpssamplenotification")] IAsyncCollector<WebPubSubAction> actions)
         {
             await actions.AddAsync(new SendToAllAction
             {

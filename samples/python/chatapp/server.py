@@ -12,7 +12,7 @@ from azure.messaging.webpubsubservice import (
     WebPubSubServiceClient
 )
 
-hub_name = 'chat'
+hub_name = 'awpssamplechat'
 
 app = Flask(__name__)
 

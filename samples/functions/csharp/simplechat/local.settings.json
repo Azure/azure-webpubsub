@@ -3,7 +3,7 @@
   "Values": {
     "AzureWebJobsStorage": "UseDevelopmentStorage=true",
     "FUNCTIONS_WORKER_RUNTIME": "dotnet",
-    "WebPubSubHub": "simplechat",
+    "WebPubSubHub": "awpssamplefuncchat",
     "WebPubSubConnectionString": "<connection-string>"
   },
   "Host": {

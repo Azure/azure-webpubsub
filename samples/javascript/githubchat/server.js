@@ -42,7 +42,7 @@ app.get('/auth/github', passport.authenticate('github', { scope: ['user:email'] 
 app.get('/auth/github/callback', passport.authenticate('github', { successRedirect: '/' }));
 
 // initialize web pubsub event handlers
-const hubName = 'chat';
+const hubName = 'awpssamplegithubchat';
 
 let connectionString = process.argv[2] || process.env.WebPubSubConnectionString;
 let serviceClient = new WebPubSubServiceClient(connectionString, hubName);

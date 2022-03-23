@@ -5,7 +5,7 @@
       "type": "webPubSubTrigger",
       "name": "request",
       "direction": "in",
-      "hub": "simplechat",
+      "hub": "awpssamplefuncchat",
       "eventName": "connect",
       "eventType": "system"
     }
