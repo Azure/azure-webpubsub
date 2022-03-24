@@ -2,7 +2,7 @@ const express = require('express');
 const { WebPubSubServiceClient } = require('@azure/web-pubsub');
 
 const app = express();
-const hubName = 'chat';
+const hubName = 'sample_chat';
 
 let serviceClient = new WebPubSubServiceClient(process.argv[2], hubName);
 

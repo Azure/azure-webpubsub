@@ -39,7 +39,7 @@ namespace SimpleChat_Input
         [FunctionName("login")]
         public static WebPubSubConnection GetClientConnection(
             [HttpTrigger(AuthorizationLevel.Anonymous, "get", "post")] HttpRequest req,
-            [WebPubSubConnection(UserId = "{query.userid}", Hub = "simplechat")] WebPubSubConnection connection)
+            [WebPubSubConnection(UserId = "{query.userid}", Hub = "sample_funcchat")] WebPubSubConnection connection)
         {
             Console.WriteLine("login");
             return connection;
@@ -127,7 +127,7 @@ namespace SimpleChat_Input
         }
 
         [FunctionName("disconnected")]
-        [return: WebPubSub(Hub = "simplechat")]
+        [return: WebPubSub(Hub = "sample_funcchat")]
         public static WebPubSubAction Disconnect(
             [HttpTrigger(AuthorizationLevel.Anonymous, "post")] HttpRequest req,
             [WebPubSubContext] WebPubSubContext wpsReq)

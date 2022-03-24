@@ -9,7 +9,7 @@
     {
       "type": "webPubSub",
       "name": "actions",
-      "hub": "notification",
+      "hub": "sample_notification",
       "direction": "out"
     }
   ]

@@ -54,9 +54,9 @@ Check if the response header contains `webhook-allowed-origin: *`. This curl com
 
 ## Configure the event handler
 
-Go to the **Settings** blade to configure the event handler for this `chat` hub:
+Go to the **Settings** blade to configure the event handler for this `sample_chat` hub:
 
-1. Type the hub name (chat) and click "Add".
+1. Type the hub name `sample_chat` and click "Add".
 
 2. Set URL Pattern to `https://<domain-name>.loca.lt/eventhandler` and check `connected` in System Event Pattern, click "Save".
 

@@ -11,7 +11,7 @@ namespace notifications
         [FunctionName("login")]
         public static WebPubSubConnection Run(
             [HttpTrigger(AuthorizationLevel.Anonymous, "get", "post", Route = null)] HttpRequest req,
-            [WebPubSubConnection(Hub = "notification")] WebPubSubConnection connection,
+            [WebPubSubConnection(Hub = "sample_notification")] WebPubSubConnection connection,
             ILogger log)
         {
             log.LogInformation("Connecting...");

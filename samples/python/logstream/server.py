@@ -5,7 +5,7 @@ from http.server import HTTPServer, SimpleHTTPRequestHandler
 
 from azure.messaging.webpubsubservice import WebPubSubServiceClient
 
-service = WebPubSubServiceClient.from_connection_string(sys.argv[1], hub='stream')
+service = WebPubSubServiceClient.from_connection_string(sys.argv[1], hub='sample_stream')
 
 
 class Resquest(SimpleHTTPRequestHandler):

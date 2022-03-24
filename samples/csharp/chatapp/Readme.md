@@ -47,9 +47,9 @@ Check if the response header contains `webhook-allowed-origin: *`. This curl com
 
 Event handler can be set from portal or through Azure CLI, here contains the detailed [instructions](https://docs.microsoft.com/azure/azure-web-pubsub/howto-develop-eventhandler) for how to.
 
-Go to the **Settings** tab to configure the event handler for this `chat` hub:
+Go to the **Settings** tab to configure the event handler for this `Sample_ChatApp` hub:
 
-1. Click **Add** to add setting for hub `chat`.
+1. Click **Add** to add setting for hub `Sample_ChatApp`.
 
 2. Set Url template to `https://<domain-name>.loca.lt/eventhandler` and check `connected` system event, click "Save".
 

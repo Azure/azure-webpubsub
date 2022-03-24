@@ -20,7 +20,7 @@ public class App {
         // create the service client
         WebPubSubServiceClient service = new WebPubSubServiceClientBuilder()
                 .connectionString(args[0])
-                .hub("chat")
+                .hub("sample_chat")
                 .buildClient();
 
         // start a server

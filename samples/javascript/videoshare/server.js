@@ -4,7 +4,7 @@ const { WebPubSubServiceClient } = require('@azure/web-pubsub');
 
 const app = express();
 
-const hubName = 'video';
+const hubName = 'sample_video';
 let connectionString = process.argv[2] || process.env.WebPubSubConnectionString;
 let serviceClient = new WebPubSubServiceClient(connectionString, hubName);
 

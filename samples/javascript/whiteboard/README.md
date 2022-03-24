@@ -67,7 +67,7 @@ This application is based on the following technologies:
 
    Check if the response header contains `webhook-allowed-origin: *`. This curl command actually checks if the WebHook [abuse protection request](https://docs.microsoft.com/azure/azure-web-pubsub/reference-cloud-events#webhook-validation) can response with the expected header.
 
-   Now you can see a public endpoint created by localtunnel (something like https://abc.loca.lt). Go to your Azure Web PubSub resource in Azure portal, open settings tab, create a new hub called `draw`, set the following:
+   Now you can see a public endpoint created by localtunnel (something like https://abc.loca.lt). Go to your Azure Web PubSub resource in Azure portal, open settings tab, create a new hub called `sample_draw`, set the following:
    
    * URL Template: `https://<your-domain-name>.loca.lt/eventhandler/{event}`
    * User Event Pattern: `message`

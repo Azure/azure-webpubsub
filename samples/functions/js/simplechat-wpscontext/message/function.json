@@ -20,7 +20,7 @@
     {
       "type": "webPubSub",
       "name": "actions",
-      "hub": "simplechat",
+      "hub": "sample_funcchat",
       "direction": "out"
     }
   ]

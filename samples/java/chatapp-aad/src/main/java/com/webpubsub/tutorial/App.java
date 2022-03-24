@@ -24,7 +24,7 @@ public class App {
         // create the service client
         WebPubSubServiceClient service = new WebPubSubServiceClientBuilder()
                 .credential(credential)
-                .hub("chat")
+                .hub("sample_aadchat")
                 .buildClient();
 
         // start a server

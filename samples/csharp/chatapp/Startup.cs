@@ -29,7 +29,7 @@ namespace chatapp
         public void ConfigureServices(IServiceCollection services)
         {
             services.AddWebPubSub(o => o.ServiceEndpoint = new ServiceEndpoint(Configuration["Azure:WebPubSub:ConnectionString"]))
-                .AddWebPubSubServiceClient<SampleChatHub>();
+                .AddWebPubSubServiceClient<Sample_ChatApp>();
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
@@ -46,7 +46,7 @@ namespace chatapp
 
             app.UseEndpoints(endpoints =>
             {
-                endpoints.MapWebPubSubHub<SampleChatHub>("/eventhandler/{*path}");
+                endpoints.MapWebPubSubHub<Sample_ChatApp>("/eventhandler/{*path}");
 
                 endpoints.MapGet("/negotiate", async context =>
                 {
@@ -57,17 +57,17 @@ namespace chatapp
                         await context.Response.WriteAsync("missing user id");
                         return;
                     }
-                    var serviceClient = context.RequestServices.GetRequiredService<WebPubSubServiceClient<SampleChatHub>>();
+                    var serviceClient = context.RequestServices.GetRequiredService<WebPubSubServiceClient<Sample_ChatApp>>();
                     await context.Response.WriteAsync(serviceClient.GetClientAccessUri(userId: id).AbsoluteUri);
                 });
             });
         }
 
-        private sealed class SampleChatHub : WebPubSubHub
+        private sealed class Sample_ChatApp : WebPubSubHub
         {
-            private readonly WebPubSubServiceClient<SampleChatHub> _serviceClient;
+            private readonly WebPubSubServiceClient<Sample_ChatApp> _serviceClient;
 
-            public SampleChatHub(WebPubSubServiceClient<SampleChatHub> serviceClient)
+            public Sample_ChatApp(WebPubSubServiceClient<Sample_ChatApp> serviceClient)
             {
                 _serviceClient = serviceClient;
             }

@@ -57,11 +57,11 @@ Check if the response header contains `webhook-allowed-origin: *`. This curl com
 1. Open [Azure Portal](https://ms.portal.azure.com/), search for and select your `Azure Web PubSub` resource.
 2. Under **Settings** section, click **Settings**.
 3. Click **Add**.
-3. Enter `chat` as **Hub name**.
-4. Set **URL template** to `https://<name>.loca.lt/eventhandler`
-5. Click **System events**, then select **connected** to let the service send `connected` events to the upstream server.
+4. Enter `sample_aadchat` as **Hub name**.
+5. Set **URL template** to `https://<name>.loca.lt/eventhandler`
+6. Click **System events**, then select **connected** to let the service send `connected` events to the upstream server.
     ![Event Handler](./../../../docs/images/portal_event_handler.png)
-1. Click **Save** to confirm the change.
+7. Click **Save** to confirm the change.
 
 ### 5. Configure Role-Based Access Control (RBAC)
 1. Open [Azure Portal](https://ms.portal.azure.com/), search for and select your `Azure Web PubSub` resource.

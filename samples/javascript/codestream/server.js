@@ -3,7 +3,7 @@ const { WebPubSubServiceClient } = require('@azure/web-pubsub');
 
 const app = express();
 let connectionString = process.argv[2] || process.env.WebPubSubConnectionString;
-let endpoint = new WebPubSubServiceClient(connectionString, 'codestream');
+let endpoint = new WebPubSubServiceClient(connectionString, 'sample_codestream');
 
 app.get('/negotiate', async (req, res) => {
     let id = req.query.id || Math.random().toString(36).slice(2, 7);
