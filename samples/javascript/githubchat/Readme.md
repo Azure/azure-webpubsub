@@ -68,7 +68,7 @@ Check if the response header contains `webhook-allowed-origin: *`. This curl com
 
 ## Configure the event handler
 
-Go to the **Settings** tab to configure the event handler for this `awpssamplegithubchat` hub:
+Go to the **Settings** tab to configure the event handler for this `sample_githubchat` hub:
 
 1. Type the hub name (chat) and click "Add".
 

@@ -6,14 +6,14 @@
       "direction": "in",
       "name": "data",
       "dataType": "binary",
-      "hub": "awpssamplefuncchat",
+      "hub": "sample_funcchat",
       "eventName": "message",
       "eventType": "user"
     },
     {
       "type": "webPubSub",
       "name": "actions",
-      "hub": "awpssamplefuncchat",
+      "hub": "sample_funcchat",
       "direction": "out"
     }
   ]

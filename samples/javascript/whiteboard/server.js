@@ -11,7 +11,7 @@ let diagram = {
   users: 0
 };
 
-const hubName = 'awpssampledraw';
+const hubName = 'sample_draw';
 let serviceClient = new WebPubSubServiceClient(process.argv[2] || process.env.Web_PubSub_ConnectionString, hubName);
 let handler = new WebPubSubEventHandler(hubName, {
   path: '/eventhandler',

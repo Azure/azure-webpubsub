@@ -34,7 +34,7 @@ namespace SimpleChat
         [FunctionName("login")]
         public static WebPubSubConnection GetClientConnection(
             [HttpTrigger(AuthorizationLevel.Anonymous, "get", "post")] HttpRequest req,
-            [WebPubSubConnection(UserId = "{query.userid}", Hub = "awpssamplefuncchat")] WebPubSubConnection connection)
+            [WebPubSubConnection(UserId = "{query.userid}", Hub = "sample_funcchat")] WebPubSubConnection connection)
         {
             Console.WriteLine("login");
             return connection;
@@ -43,7 +43,7 @@ namespace SimpleChat
         #region Work with WebPubSubTrigger
         [FunctionName("connect")]
         public static WebPubSubEventResponse Connect(
-            [WebPubSubTrigger("awpssamplefuncchat", WebPubSubEventType.System, "connect")] ConnectEventRequest request)
+            [WebPubSubTrigger("sample_funcchat", WebPubSubEventType.System, "connect")] ConnectEventRequest request)
         {
             Console.WriteLine($"Received client connect with connectionId: {request.ConnectionContext.ConnectionId}");
             if (request.ConnectionContext.UserId == "attacker")
@@ -82,7 +82,7 @@ namespace SimpleChat
             WebPubSubConnectionContext connectionContext,
             BinaryData data,
             WebPubSubDataType dataType,
-            [WebPubSub(Hub = "awpssamplefuncchat")] IAsyncCollector<WebPubSubAction> actions)
+            [WebPubSub(Hub = "sample_funcchat")] IAsyncCollector<WebPubSubAction> actions)
         {
             await actions.AddAsync(new SendToAllAction
             {
@@ -108,7 +108,7 @@ namespace SimpleChat
         [FunctionName("disconnect")]
         [return: WebPubSub(Hub = "%WebPubSubHub%")]
         public static WebPubSubAction Disconnect(
-            [WebPubSubTrigger("awpssamplefuncchat", WebPubSubEventType.System, "disconnected")] WebPubSubConnectionContext connectionContext)
+            [WebPubSubTrigger("sample_funcchat", WebPubSubEventType.System, "disconnected")] WebPubSubConnectionContext connectionContext)
         {
             Console.WriteLine("Disconnect.");
             return new SendToAllAction

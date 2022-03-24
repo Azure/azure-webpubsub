@@ -16,7 +16,7 @@
       "type": "webPubSubConnection",
       "name": "connection",
       "userId": "{query.userid}",
-      "hub": "awpssamplefuncchat",
+      "hub": "sample_funcchat",
       "direction": "in"
     }
   ]

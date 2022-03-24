@@ -52,7 +52,7 @@ Check if the response header contains `webhook-allowed-origin: *`. This curl com
 1. Open [Azure Portal](https://ms.portal.azure.com/), search for and select your `Azure Web PubSub` resource.
 2. Under **Settings** section, click **Settings**.
 3. Click **Add**.
-3. Enter `awpssampleaadchat` as **Hub name**.
+3. Enter `sample_aadchat` as **Hub name**.
 4. Set **URL template** to `https://<name>.loca.lt/eventhandler`
 5. Click **System events**, then select **connected** to let the service sends `connected` events to your upstream server.
     ![Event Handler](./../../../docs/images/portal_event_handler.png)

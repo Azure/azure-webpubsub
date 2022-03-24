@@ -23,7 +23,7 @@ namespace logstream
         {
             services.AddAzureClients(builder =>
             {
-                builder.AddWebPubSubServiceClient(Configuration["Azure:WebPubSub:ConnectionString"], "awpssamplestream");
+                builder.AddWebPubSubServiceClient(Configuration["Azure:WebPubSub:ConnectionString"], "sample_stream");
             });
         }
 

@@ -14,7 +14,7 @@ from azure.identity import (
     DefaultAzureCredential
 )
 
-hub_name = 'awpssampleaadchat'
+hub_name = 'sample_aadchat'
 
 app = Flask(__name__)
 
