@@ -1,0 +1,61 @@
+{
+    "$schema": "https://developer.microsoft.com/en-us/json-schemas/teams/v1.11/MicrosoftTeams.schema.json",
+    "manifestVersion": "1.11",
+    "version": "1.0.0",
+    "id": "884142da-a1b0-4e60-8d72-26e86cc91261",
+    "packageName": "com.microsoft.teams.extension",
+    "developer": {
+        "name": "Teams App, Inc.",
+        "websiteUrl": "https://localhost:53000",
+        "privacyUrl": "https://localhost:53000/index.html#/privacy",
+        "termsOfUseUrl": "https://localhost:53000/index.html#/termsofuse"
+    },
+    "icons": {
+        "color": "resources/color.png",
+        "outline": "resources/outline.png"
+    },
+    "name": {
+        "short": "CodeInterview-local-debug",
+        "full": "CodeInterview-local-debug"
+    },
+    "description": {
+        "short": "Short description of CodeInterview-local-debug",
+        "full": "Full description of CodeInterview-local-debug"
+    },
+    "accentColor": "#FFFFFF",
+    "bots": [],
+    "composeExtensions": [],
+    "configurableTabs": [
+        {
+            "configurationUrl": "https://localhost:53000/index.html#/config",
+            "canUpdateConfiguration": true,
+            "scopes": [
+                "team",
+                "groupchat"
+            ]
+        }
+    ],
+    "staticTabs": [
+        {
+            "entityId": "index",
+            "name": "Personal Tab",
+            "contentUrl": "https://localhost:53000/index.html#/tab",
+            "websiteUrl": "https://localhost:53000/index.html#/tab",
+            "scopes": [
+                "personal"
+            ]
+        }
+    ],
+    "permissions": [
+        "identity",
+        "messageTeamMembers"
+    ],
+    "validDomains": [
+        "localhost",
+        "localhost:53000"
+    ],
+    "webApplicationInfo": {
+        "id": "d1924497-dc07-46c4-8f34-3f0587643366",
+        "resource": "api://localhost/d1924497-dc07-46c4-8f34-3f0587643366"
+    }
+}
