@@ -13,7 +13,7 @@ import path from 'path'
 const port = process.env.port || process.env.PORT || 5050
 const staticRoot = path.join(__dirname, 'public')
 const connectionString = process.env.WebPubSubConnectionString as string
-const hubName = process.env.NODE_ENV === 'production' ? 'scoreboard' : 'dev_scoreboard'
+const hubName = process.env.NODE_ENV === 'production' ? 'sample_scoreboard' : 'sample_dev_scoreboard'
 
 // setup simulation matches
 const serviceClient = new WebPubSubServiceClient(connectionString, hubName, { allowInsecureConnection: true })
