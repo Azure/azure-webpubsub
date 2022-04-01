@@ -1,0 +1,57 @@
+{
+    "$schema": "https://developer.microsoft.com/en-us/json-schemas/teams/v1.11/MicrosoftTeams.schema.json",
+    "manifestVersion": "1.11",
+    "version": "1.0.0",
+    "id": "d7140305-cee9-44a9-bfdb-9b9be42d3bad",
+    "packageName": "com.microsoft.teams.extension",
+    "developer": {
+        "name": "Teams App, Inc.",
+        "websiteUrl": "https://codeintervdev284483tab.z5.web.core.windows.net",
+        "privacyUrl": "https://codeintervdev284483tab.z5.web.core.windows.net/index.html#/privacy",
+        "termsOfUseUrl": "https://codeintervdev284483tab.z5.web.core.windows.net/index.html#/termsofuse"
+    },
+    "icons": {
+        "color": "resources/color.png",
+        "outline": "resources/outline.png"
+    },
+    "name": {
+        "short": "Code Interview",
+        "full": "Code Interview"
+    },
+    "description": {
+        "short": "Code Interview",
+        "full": "Code Interview"
+    },
+    "accentColor": "#FFFFFF",
+    "bots": [],
+    "composeExtensions": [],
+    "configurableTabs": [
+        {
+            "configurationUrl": "https://codeintervdev284483tab.z5.web.core.windows.net/index.html#/config",
+            "canUpdateConfiguration": true,
+            "scopes": [
+                "team",
+                "groupchat"
+            ],
+            "context": [
+                "channelTab",
+                "privateChatTab",
+                "meetingChatTab",
+                "meetingDetailsTab",
+                "meetingSidePanel",
+                "meetingStage"
+            ]
+        }
+    ],
+    "permissions": [
+        "identity",
+        "messageTeamMembers"
+    ],
+    "validDomains": [
+        "codeintervdev284483tab.z5.web.core.windows.net"
+    ],
+    "webApplicationInfo": {
+        "id": "b75572d3-6d7d-4148-9a9b-3fc3ea751088",
+        "resource": "api://codeintervdev284483tab.z5.web.core.windows.net/b75572d3-6d7d-4148-9a9b-3fc3ea751088"
+    }
+}
