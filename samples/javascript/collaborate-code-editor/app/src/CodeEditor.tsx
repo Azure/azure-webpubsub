@@ -1,7 +1,7 @@
 import { useEffect, useRef } from "react";
 import { editor as MonacoEditor } from "monaco-editor";
 import Editor, { useMonaco } from "@monaco-editor/react";
-import { WebsocketProvider } from "./lib/y-websocket-2";
+import { AzureWebPubSubProvider } from "./lib/y-azurewebpubsub";
 
 import * as Y from "yjs";
 import { error } from "lib0";
@@ -41,81 +41,76 @@ export function CodeEditor(props: {
       return;
     }
 
-    let connect = async function () {
-      const ydoc = new Y.Doc();
-      const ytext = ydoc.getText("monaco");
+    const ydoc = new Y.Doc();
+    const ytext = ydoc.getText("monaco");
 
-      new WebsocketProvider(props.url, props.chanId, ydoc);
+    let provider = new AzureWebPubSubProvider(props.url, props.chanId, ydoc);
+    provider.connect();
 
-      const textModel = editorRef?.current?.getModel();
-      if (textModel == null) {
-        return;
-      }
+    const textModel = editorRef?.current?.getModel();
+    if (textModel == null) {
+      return;
+    }
 
-      let mux = createMutex();
+    let mux = createMutex();
 
-      let textObserver = (event: { delta: any[] }) => {
-        let index = 0;
+    let textObserver = (event: { delta: any[] }) => {
+      let index = 0;
 
-        event.delta.forEach((op) => {
-          mux(() => {
-            if (op.retain !== undefined) {
-              index += op.retain;
-            } else if (op.insert !== undefined) {
-              const pos = textModel.getPositionAt(index);
-              const range = new monaco.Range(
-                pos.lineNumber,
-                pos.column,
-                pos.lineNumber,
-                pos.column
-              );
-              textModel.applyEdits([{ range, text: op.insert }]);
-              index += op.insert.length;
-            } else if (op.delete !== undefined) {
-              const pos = textModel.getPositionAt(index);
-              const endPos = textModel.getPositionAt(index + op.delete);
-              const range = new monaco.Range(
-                pos.lineNumber,
-                pos.column,
-                endPos.lineNumber,
-                endPos.column
-              );
-              textModel.applyEdits([{ range, text: "" }]);
-            } else {
-              throw error.unexpectedCase();
-            }
-          });
-        });
-      };
-
-      ytext.observe(textObserver);
-      {
-        const ytextValue = ytext.toString();
-        if (textModel.getValue() !== ytextValue) {
-          textModel.setValue(ytextValue);
-        }
-      }
-
-      console.log("register");
-
-      textModel.onDidChangeContent((event) => {
+      event.delta.forEach((op) => {
         mux(() => {
-          // apply changes from right to left
-          ydoc.transact(() => {
-            event.changes
-              .sort(
-                (change1, change2) => change2.rangeOffset - change1.rangeOffset
-              )
-              .forEach((change) => {
-                ytext.delete(change.rangeOffset, change.rangeLength);
-                ytext.insert(change.rangeOffset, change.text);
-              });
-          }, null);
+          if (op.retain !== undefined) {
+            index += op.retain;
+          } else if (op.insert !== undefined) {
+            const pos = textModel.getPositionAt(index);
+            const range = new monaco.Range(
+              pos.lineNumber,
+              pos.column,
+              pos.lineNumber,
+              pos.column
+            );
+            textModel.applyEdits([{ range, text: op.insert }]);
+            index += op.insert.length;
+          } else if (op.delete !== undefined) {
+            const pos = textModel.getPositionAt(index);
+            const endPos = textModel.getPositionAt(index + op.delete);
+            const range = new monaco.Range(
+              pos.lineNumber,
+              pos.column,
+              endPos.lineNumber,
+              endPos.column
+            );
+            textModel.applyEdits([{ range, text: "" }]);
+          } else {
+            throw error.unexpectedCase();
+          }
         });
       });
     };
 
-    connect();
+    ytext.observe(textObserver);
+    {
+      const ytextValue = ytext.toString();
+      if (textModel.getValue() !== ytextValue) {
+        textModel.setValue(ytextValue);
+      }
+    }
+
+    textModel.onDidChangeContent((event) => {
+      mux(() => {
+        // apply changes from right to left
+        ydoc.transact(() => {
+          event.changes
+            .sort(
+              (change1, change2) => change2.rangeOffset - change1.rangeOffset
+            )
+            .forEach((change) => {
+              ytext.delete(change.rangeOffset, change.rangeLength);
+              ytext.insert(change.rangeOffset, change.text);
+            });
+        }, null);
+      });
+    });
   }, [monaco, props.chanId, props.url]);
 
   return (

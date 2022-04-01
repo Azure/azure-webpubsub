@@ -17,5 +17,5 @@
     "noEmit": true,
     "jsx": "react-jsx"
   },
-  "include": ["src", "server.ts", "client.ts"]
+  "include": ["src", "server.ts", "client.ts", "../y-azure-webpubsub/src/Constants.ts"]
 }
