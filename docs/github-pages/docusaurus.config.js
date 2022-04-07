@@ -20,7 +20,7 @@ const config = {
       /** @type {import('@docusaurus/preset-classic').Options} */
       ({
         docs: {
-          path: "../samples",
+          path: "../../samples",
           include: ['**/scoreboard/*.{md,mdx}'],
           sidebarPath: require.resolve('./sidebars.js'),
         },
