@@ -13,21 +13,7 @@ export function Container(props: {
   const [url, setUrl] = useState("");
 
   useEffect(() => {
-    let negotiate = async function (group: string): Promise<{ url: string }> {
-      let url = `${APP_SERVER_HOST}/sync/negotiate?id=${group}`;
-      let res = await fetch(url);
-      let data = await res.json();
-      return data;
-    };
-
-    let connect = async function () {
-      let data = await negotiate(props.chanId);
-      setUrl(data.url);
-    };
-
-    if (props.chanId !== "") {
-      connect();
-    }
+    setUrl(`${APP_SERVER_HOST}/sync/negotiate?id=${props.chanId}`);
   }, [props.chanId]);
 
   return (
