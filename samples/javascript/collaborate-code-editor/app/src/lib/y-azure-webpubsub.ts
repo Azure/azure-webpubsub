@@ -19,6 +19,7 @@ import { Observable } from "lib0/observable";
 import { Buffer } from "buffer";
 
 import * as syncProtocol from "y-protocols/sync";
+import { Message, MessageDataType, MessageType } from "./Constants";
 
 const messageSyncStep1 = syncProtocol.messageYjsSyncStep1;
 
@@ -35,29 +36,6 @@ type MessageHandler = (
 export interface ProviderOptions {
   resyncInterval: number;
   tokenProvider: Promise<string> | null;
-}
-
-enum messageType {
-  System = "system",
-  JoinGroup = "joinGroup",
-  SendToGroup = "sendToGroup",
-}
-
-enum messageDataType {
-  Init = "init",
-  Sync = "sync",
-}
-
-interface MessageData {
-  t: string; // type / target uuid
-  f: string; // origin uuid
-  c: string; // base64 encoded binary data
-}
-
-interface Message {
-  type: string;
-  group: string;
-  data: MessageData;
 }
 
 /**
@@ -184,7 +162,7 @@ export class AzureWebPubSubProvider extends Observable<string> {
           sendToControlGroup(
             this,
             group,
-            messageDataType.Sync,
+            MessageDataType.Sync,
             encoding.toUint8Array(encoder)
           );
         }
@@ -204,7 +182,7 @@ export class AzureWebPubSubProvider extends Observable<string> {
         sendToControlGroup(
           this,
           group,
-          messageDataType.Sync,
+          MessageDataType.Sync,
           encoding.toUint8Array(encoder)
         );
       }
@@ -271,7 +249,7 @@ export class AzureWebPubSubProvider extends Observable<string> {
       }
 
       let message: Message = JSON.parse(event.data);
-      if (message.type === messageType.System) {
+      if (message.type === MessageType.System) {
         // simply skip system event.
         return;
       }
@@ -289,7 +267,7 @@ export class AzureWebPubSubProvider extends Observable<string> {
         sendToControlGroup(
           provider,
           provider.group,
-          messageDataType.Sync,
+          MessageDataType.Sync,
           encoding.toUint8Array(encoder)
         );
       }
@@ -316,7 +294,7 @@ export class AzureWebPubSubProvider extends Observable<string> {
       encoding.writeVarUint(encoder, messageSyncStep1);
       syncProtocol.writeSyncStep1(encoder, provider.doc);
       let u8 = encoding.toUint8Array(encoder);
-      sendToControlGroup(provider, provider.group, messageDataType.Init, u8);
+      sendToControlGroup(provider, provider.group, MessageDataType.Init, u8);
     };
   }
 }
@@ -324,7 +302,7 @@ export class AzureWebPubSubProvider extends Observable<string> {
 function joinGroup(provider: AzureWebPubSubProvider, group: string) {
   provider.ws?.send(
     JSON.stringify({
-      type: messageType.JoinGroup,
+      type: MessageType.JoinGroup,
       group: group,
     })
   );
@@ -338,7 +316,7 @@ function sendToControlGroup(
 ) {
   provider.ws?.send(
     JSON.stringify({
-      type: messageType.SendToGroup,
+      type: MessageType.SendToGroup,
       group: `${group}.host`,
       data: {
         t: type,

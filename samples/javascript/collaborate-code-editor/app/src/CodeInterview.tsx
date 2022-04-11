@@ -1,7 +1,7 @@
 import "bootstrap/dist/css/bootstrap.min.css";
 import "./CodeInterview.scss";
 
-import { useState, useEffect } from "react";
+import { useEffect, useState } from "react";
 import { Container } from "./Container";
 import { Navigator } from "./Navigator";
 

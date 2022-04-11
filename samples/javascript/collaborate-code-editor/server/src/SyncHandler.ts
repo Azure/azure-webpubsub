@@ -1,11 +1,11 @@
 import { WebPubSubServiceClient } from "@azure/web-pubsub";
-import { WebPubSubEventHandler } from "@azure/web-pubsub-express"
+import { WebPubSubEventHandler } from "@azure/web-pubsub-express";
 
-import { Connection as ServerConnection } from "./SyncConnection";
+import { AzureWebPubSubConnection } from "./AzureWebPubSubConnection";
 
 export default class SyncHandler extends WebPubSubEventHandler {
   private _client: WebPubSubServiceClient;
-  private _connections: Map<string, ServerConnection> = new Map();
+  private _connections: Map<string, AzureWebPubSubConnection> = new Map();
 
   constructor(hub: string, path: string, client: WebPubSubServiceClient) {
     super(hub, {
@@ -16,7 +16,7 @@ export default class SyncHandler extends WebPubSubEventHandler {
 
   getHostConnection(group: string) {
     if (!this._connections.has(group)) {
-      let connection = new ServerConnection(this._client, group);
+      let connection = new AzureWebPubSubConnection(this._client, group);
       connection.connect();
       this._connections.set(group, connection);
     }
