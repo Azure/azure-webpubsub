@@ -1,2 +1,2 @@
-export * from "./src/AzureWebPubSubProvider";
-export * from "./src/SyncConnection";
+export * from "./src/WebPubSubSyncClient";
+export * from "./src/WebPubSubSyncHost";

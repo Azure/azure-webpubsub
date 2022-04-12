@@ -1,14 +1,20 @@
-import * as encoding from 'lib0/encoding';
-import * as decoding from 'lib0/decoding';
-import * as syncProtocol from 'y-protocols/sync';
+import * as encoding from "lib0/encoding";
+import * as decoding from "lib0/decoding";
+import * as syncProtocol from "y-protocols/sync";
 
-import { WebPubSubServiceClient } from '@azure/web-pubsub';
-import { Message, MessageData, MessageDataType, MessageType } from './Constants';
-import { Doc } from 'yjs';
+import { WebPubSubServiceClient } from "@azure/web-pubsub";
+import { WebSocket } from "ws";
+import {
+  Message,
+  MessageData,
+  MessageDataType,
+  MessageType,
+} from "./Constants";
+import { Doc } from "yjs";
 
-const HostUserId = 'host';
+const HostUserId = "host";
 
-export class Connection {
+export class AzureWebPubSubConnection {
   private _client: WebPubSubServiceClient;
   private _conn: WebSocket | null;
 
@@ -31,20 +37,20 @@ export class Connection {
       connection.broadcast(connection.group, u8);
     };
 
-    this.doc.on('update', updateHandler);
+    this.doc.on("update", updateHandler);
   }
 
   async connect() {
     const url = await this.negotiate(this.group);
-    const conn = new WebSocket(url, 'json.webpubsub.azure.v1');
+    const conn = new WebSocket(url, "json.webpubsub.azure.v1");
 
     const server = this;
     const group = this.group;
 
-    conn.onmessage = (e: { data: string }) => {
-      const event: Message = JSON.parse(e.data);
+    conn.onmessage = (e) => {
+      const event: Message = JSON.parse(e.data.toString());
 
-      if (event.type === 'message' && event.from === 'group') {
+      if (event.type === "message" && event.from === "group") {
         switch (event.data.t) {
           case MessageDataType.Init:
             server.onClientInit(group, event.data);
@@ -62,7 +68,7 @@ export class Connection {
         JSON.stringify({
           type: MessageType.JoinGroup,
           group: `${group}.host`,
-        }),
+        })
       );
     };
 
@@ -76,9 +82,9 @@ export class Connection {
         group,
         noEcho: true,
         data: {
-          c: Buffer.from(u8).toString('base64'),
+          c: Buffer.from(u8).toString("base64"),
         },
-      }),
+      })
     );
   }
 
@@ -90,9 +96,9 @@ export class Connection {
         noEcho: true,
         data: {
           t: to,
-          c: Buffer.from(u8).toString('base64'),
+          c: Buffer.from(u8).toString("base64"),
         },
-      }),
+      })
     );
   }
 
@@ -106,7 +112,7 @@ export class Connection {
 
   private onClientSync(group: string, data: MessageData) {
     try {
-      const buf = Buffer.from(data.c, 'base64');
+      const buf = Buffer.from(data.c, "base64");
       const encoder = encoding.createEncoder();
       const decoder = decoding.createDecoder(buf);
       const messageType = decoding.readVarUint(decoder);
@@ -120,7 +126,7 @@ export class Connection {
           break;
       }
     } catch (err) {
-      this.doc.emit('error', [err]);
+      this.doc.emit("error", [err]);
     }
   }
 
