@@ -34,21 +34,10 @@ const config = {
     ],
   ],
 
-  themeConfig:
-    /** @type {import('@docusaurus/preset-classic').ThemeConfig} */
-    ({
-      navbar: {
-        title: 'Home',
-        logo: {
-          alt: 'Azure Web PubSub Service Logo',
-          src: 'img/logo.svg',
-        },
-        items: [],
-      },
-      prism: {
-        theme: lightCodeTheme,
-      },
-    }),
+  // themeConfig:
+  //   /** @type {import('@docusaurus/preset-classic').ThemeConfig} */
+  //   ({
+  //   }),
 };
 
 module.exports = config;
