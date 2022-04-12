@@ -1,8 +1,5 @@
 import React from 'react'
-import { Stack } from '@fluentui/react'
-import { SearchBox } from '@fluentui/react/lib/SearchBox'
-import { Label } from '@fluentui/react/lib/Label'
-import { ImageIcon, FontIcon } from '@fluentui/react/lib/Icon'
+import { Stack, SearchBox, Label, ImageIcon, FontIcon } from '@fluentui/react'
 import { css } from '@fluentui/react/lib/Utilities'
 import * as styles from './styles.module'
 
