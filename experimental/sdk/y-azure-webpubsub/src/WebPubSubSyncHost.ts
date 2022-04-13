@@ -1,46 +1,48 @@
-import * as encoding from 'lib0/encoding';
 import * as decoding from 'lib0/decoding';
+import * as encoding from 'lib0/encoding';
+import * as WebSocket from "ws";
 import * as syncProtocol from 'y-protocols/sync';
 
 import { WebPubSubServiceClient } from '@azure/web-pubsub';
-import { WebSocket } from "ws";
-import { Message, MessageData, MessageDataType, MessageType } from './Constants';
 import { Doc } from 'yjs';
+import { Message, MessageData, MessageDataType, MessageType } from './Constants';
 
 const HostUserId = 'host';
 
 export class WebPubSubSyncHost {
+
+  public doc: Doc;
+  public topic: string;
+
   private _client: WebPubSubServiceClient;
   private _conn: WebSocket | null;
 
-  public group: string;
-  public doc: Doc;
-
-  constructor(client: WebPubSubServiceClient, group: string, doc: Doc) {
-    this._client = client;
-    this._conn = null;
-    this.group = group;
+  constructor(client: WebPubSubServiceClient, topic: string, doc: Doc) {
     this.doc = doc;
+    this.topic = topic;
+    this._client = client;
 
-    const connection = this;
+    this._conn = null;
+
+    const host = this;
 
     const updateHandler = (update: Uint8Array) => {
       const encoder = encoding.createEncoder();
       encoding.writeVarUint(encoder, syncProtocol.messageYjsSyncStep1);
       syncProtocol.writeUpdate(encoder, update);
       const u8 = encoding.toUint8Array(encoder);
-      connection.broadcast(connection.group, u8);
+      host.broadcast(host.topic, u8);
     };
 
     this.doc.on('update', updateHandler);
   }
 
   async start() {
-    const url = await this.negotiate(this.group);
+    const url = await this.negotiate(this.topic);
     const conn = new WebSocket(url, 'json.webpubsub.azure.v1');
 
     const server = this;
-    const group = this.group;
+    const group = this.topic;
 
     conn.onmessage = (e) => {
       const event: Message = JSON.parse(e.data.toString());

@@ -4,10 +4,9 @@ import { Doc } from 'yjs'; // eslint-disable-line
 
 import { Message, MessageDataType, MessageType } from './Constants';
 
-import decoding from 'lib0/decoding';
-import encoding from 'lib0/encoding';
-import time from 'lib0/time';
-import syncProtocol from 'y-protocols/sync';
+import * as decoding from 'lib0/decoding';
+import * as encoding from 'lib0/encoding';
+import * as syncProtocol from 'y-protocols/sync';
 
 const messageSyncStep1 = syncProtocol.messageYjsSyncStep1;
 
@@ -73,9 +72,8 @@ export class WebPubSubSyncClient {
   private _ws: WebSocket | null;
   private _url: string;
   private _wsConnected: boolean;
-  private _wsLastMessageReceived: number;
   private _synced: boolean;
-  private _resyncInterval: NodeJS.Timer | null;
+  private _resyncInterval;
   private _updateHandler: (update: any, origin: any) => void;
   private _uuid: string;
 
@@ -105,7 +103,6 @@ export class WebPubSubSyncClient {
 
     this._synced = false;
     this._ws = null;
-    this._wsLastMessageReceived = 0;
 
     this._resyncInterval = null;
 
@@ -200,7 +197,6 @@ export class WebPubSubSyncClient {
       }
 
       const buf = Buffer.from(messageData.c, 'base64');
-      provider._wsLastMessageReceived = time.getUnixTime();
       const encoder = readMessage(provider, buf, true);
       if (encoding.length(encoder) > 1) {
         sendToControlGroup(provider, provider.topic, MessageDataType.Sync, encoding.toUint8Array(encoder));
@@ -218,7 +214,6 @@ export class WebPubSubSyncClient {
     };
 
     websocket.onopen = () => {
-      provider._wsLastMessageReceived = time.getUnixTime();
       provider._wsConnected = true;
 
       joinGroup(provider, provider.topic);
