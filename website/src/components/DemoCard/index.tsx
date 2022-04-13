@@ -18,9 +18,9 @@ import * as styles from './styles.module'
 const previewProps: IDocumentCardPreviewProps = {
   previewImages: [
     {
-      name: 'Revenue stream proposal fiscal year 2016 version02.pptx',
+      name: 'Scoreboard',
       linkProps: {
-        href: 'http://bing.com',
+        href: '#',
         target: '_blank',
       },
       previewImageSrc: '/img/card-scoreboard.png',
