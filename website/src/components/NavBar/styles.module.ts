@@ -1,4 +1,4 @@
-import { IStackStyles, IStackTokens, IStackItemStyles, DefaultPalette } from '@fluentui/react'
+import { IStackStyles, IStackTokens, DefaultPalette } from '@fluentui/react'
 import { ISearchBoxStyles } from '@fluentui/react/lib/SearchBox'
 import { ILabelStyles } from '@fluentui/react/lib/Label'
 import { mergeStyleSets } from '@fluentui/react/lib/Styling'
