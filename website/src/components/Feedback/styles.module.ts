@@ -13,13 +13,19 @@ export const centerAlignItems: IStackStyles = {
   },
 }
 
-export const tokens: IStackTokens = {
+export const tellusTokens: IStackTokens = {
   childrenGap: 's2',
+}
+
+export const textTokens: IStackTokens = {
+  childrenGap: '0',
 }
 
 export const know: ILabelStyles = {
   root: {
     fontWeight: 400,
+    padding: 0,
+    marginBottom: '1.8rem',
   },
 }
 
@@ -33,5 +39,6 @@ export const title: ILabelStyles = {
   root: {
     fontWeight: 600,
     fontSize: '1.8rem',
+    padding: 0,
   },
 }
