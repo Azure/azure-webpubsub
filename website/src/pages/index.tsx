@@ -4,6 +4,7 @@ import useDocusaurusContext from '@docusaurus/useDocusaurusContext'
 
 import NavBar from '@site/src/components/NavBar'
 import Demos from '@site/src/components/Demos'
+import CustomerStories from '../components/CustomerStories'
 
 initializeIcons()
 
@@ -12,6 +13,7 @@ export default function Home(): JSX.Element {
     <div>
       <NavBar></NavBar>
       <Demos></Demos>
+      <CustomerStories></CustomerStories>
     </div>
   )
 }

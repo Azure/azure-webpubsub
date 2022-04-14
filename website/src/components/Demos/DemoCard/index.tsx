@@ -25,15 +25,13 @@ const previewProps: IDocumentCardPreviewProps = {
       },
       previewImageSrc: '/img/card-scoreboard.png',
       imageFit: ImageFit.cover,
-      width: 318,
-      height: 196,
     },
   ],
 }
 
 export default function DemoCard(): JSX.Element {
   return (
-    <DocumentCard aria-label="Demo card" onClickHref="#">
+    <DocumentCard aria-label="Demo card" onClickHref="#" styles={styles.card}>
       <DocumentCardPreview {...previewProps} />
       <DocumentCardLocation location={'Scoreboard'} ariaLabel="Scoreboard" />
       <DocumentCardTitle title={'A scoreboard live demo to show to monitor real time matches'} styles={styles.title} />
