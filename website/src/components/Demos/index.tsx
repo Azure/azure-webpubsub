@@ -1,7 +1,7 @@
 import React from 'react'
 import { Stack, MessageBar, MessageBarType, MessageBarButton, Checkbox } from '@fluentui/react'
 
-import DemoCard from '../DemoCard'
+import DemoCard from './DemoCard'
 import * as styles from './styles.module'
 
 export default function Demos(): JSX.Element {

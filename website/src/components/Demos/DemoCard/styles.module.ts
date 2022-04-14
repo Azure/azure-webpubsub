@@ -1,4 +1,4 @@
-import { IDocumentCardTitleStyles, IStackStyles, ILinkStyles, DefaultPalette, mergeStyles } from '@fluentui/react'
+import { IDocumentCardStyles, IDocumentCardTitleStyles, IStackStyles, ILinkStyles, DefaultPalette, mergeStyles } from '@fluentui/react'
 
 export const title: IDocumentCardTitleStyles = {
   root: {
@@ -31,4 +31,8 @@ export const classNames = {
   share: mergeStyles({
     color: DefaultPalette.blue,
   }),
+}
+
+export const cardStyles: IDocumentCardStyles = {
+  root: { marginRight: 20, marginBottom: 20, width: 320 },
 }
