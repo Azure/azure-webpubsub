@@ -31,7 +31,7 @@ const previewProps: IDocumentCardPreviewProps = {
 
 export default function DemoCard(): JSX.Element {
   return (
-    <DocumentCard aria-label="Demo card" onClickHref="#" styles={styles.card}>
+    <DocumentCard aria-label="Demo card" onClickHref="#">
       <DocumentCardPreview {...previewProps} />
       <DocumentCardLocation location={'Scoreboard'} ariaLabel="Scoreboard" />
       <DocumentCardTitle title={'A scoreboard live demo to show to monitor real time matches'} styles={styles.title} />
