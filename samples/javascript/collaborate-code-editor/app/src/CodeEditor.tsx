@@ -1,11 +1,10 @@
-import { useEffect, useRef } from "react";
-import { editor as MonacoEditor } from "monaco-editor";
 import Editor, { useMonaco } from "@monaco-editor/react";
-import { AzureWebPubSubProvider } from "./lib/y-azure-webpubsub";
-
-import { Doc } from "yjs";
 import { error } from "lib0";
 import { createMutex } from "lib0/mutex";
+import { editor as MonacoEditor } from "monaco-editor";
+import { useEffect, useRef } from "react";
+import { WebPubSubSyncClient } from "./WebPubSubSyncClient";
+import { Doc } from "yjs";
 
 const DEFAULT_CODE = "";
 
@@ -44,8 +43,8 @@ export function CodeEditor(props: {
     const ydoc = new Doc();
     const ytext = ydoc.getText("monaco");
 
-    let provider = new AzureWebPubSubProvider(props.url, props.chanId, ydoc);
-    provider.connect();
+    let provider = new WebPubSubSyncClient(props.url, props.chanId, ydoc);
+    provider.start();
 
     const textModel = editorRef?.current?.getModel();
     if (textModel == null) {

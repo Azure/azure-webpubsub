@@ -1,19 +1,40 @@
 {
   "name": "y-azure-webpubsub",
-  "version": "1.0.0-beta.0",
+  "version": "1.0.0-beta.8",
   "description": "",
-  "main": "index.js",
+  "main": "dist/index.js",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Azure/azure-webpubsub.git"
+  },
+  "keywords": [
+    "azure",
+    "webpubsub",
+    "yjs",
+    "monaco-editor"
+  ],
+  "author": "Microsoft",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/Azure/azure-webpubsub/issues"
+  },
+  "homepage": "https://github.com/Azure/azure-webpubsub/tree/main/experimental/sdk/y-azure-webpubsub",
+  "contributors": [
+    {
+      "name": "Terence Fan",
+      "email": "tefa@microsoft.com"
+    }
+  ],
   "scripts": {
     "test": "jest --config jestconfig.json",
-    "build": "tsc",
+    "build": "tsc --build",
     "format": "prettier --write \"src/**/*.ts\" \"src/**/*.js\"",
     "lint": "tslint -p tsconfig.json"
   },
-  "author": "",
-  "license": "ISC",
   "dependencies": {
     "@azure/web-pubsub": "^1.0.0",
     "buffer": "^6.0.3",
+    "lib0": "^0.2.49",
     "uuid": "^8.3.2",
     "y-protocols": "^1.0.5",
     "yjs": "^13.5.34"
@@ -31,6 +52,6 @@
     "typescript": "^4.6.3"
   },
   "optionalDependencies": {
-    "ws": "^6.2.1"
+    "ws": "^8.5.0"
   }
 }
