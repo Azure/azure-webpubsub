@@ -1,12 +1,10 @@
 // @ts-check
 // Note: type annotations allow type checking and IDEs autocompletion
 
-const lightCodeTheme = require('prism-react-renderer/themes/github');
-
 /** @type {import('@docusaurus/types').Config} */
 const config = {
   title: 'Demos for Azure Web PubSub Service',
-  url: 'https://azure.github.io/azure-webpubsub',
+  url: '/azure-webpubsub',
   baseUrl: '/',
   onBrokenLinks: 'throw',
   onBrokenMarkdownLinks: 'warn',
@@ -21,8 +19,12 @@ const config = {
       ({
         docs: {
           path: "../samples",
-          include: ['**/scoreboard/*.{md,mdx}'],
-          sidebarPath: require.resolve('./sidebars.js'),
+          include: [
+            '**/javascript/scoreboard/*.{md,mdx}',
+            '**/javascript/chatapp/*.{md,mdx}',
+          ],
+          routeBasePath: 'demos',
+          breadcrumbs: false,
         },
         blog: {
           showReadingTime: true,
@@ -33,11 +35,6 @@ const config = {
       }),
     ],
   ],
-
-  // themeConfig:
-  //   /** @type {import('@docusaurus/preset-classic').ThemeConfig} */
-  //   ({
-  //   }),
 };
 
 module.exports = config;
