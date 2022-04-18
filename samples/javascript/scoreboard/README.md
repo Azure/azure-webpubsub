@@ -1,3 +1,8 @@
+---
+id: scoreboard
+title: Real-time Scoreboard
+description: A real-time scoreboard live demo utilizing Azure Web PubSub service
+---
 # A Scoreboard
 
 ## Start the client
