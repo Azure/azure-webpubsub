@@ -2,7 +2,7 @@
   "name": "collaborate-code-editor",
   "version": "1.0.0",
   "description": "This sample is to help you create a collaborate code editor.",
-  "main": "index.js",
+  "main": "dist/index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "postinstall": "npm --prefix ./server install && npm --prefix ./app install --no-optional",

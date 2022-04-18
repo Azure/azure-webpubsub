@@ -20,6 +20,9 @@
     "react-dom": "^17.0.2",
     "react-scripts": "5.0.0",
     "sass": "^1.49.9",
+    "test-package": "file:../test-package",
+    "y-azure-webpubsub": "^1.0.0-beta.15",
+    "y-azure-webpubsub-dev": "^1.0.2",
     "y-protocols": "^1.0.5",
     "yjs": "^13.5.34"
   },
