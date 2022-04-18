@@ -4,11 +4,11 @@ import Layout from '@theme/Layout'
 import NotFound from '@theme/NotFound'
 import BackToTopButton from '@theme/BackToTopButton'
 import { matchPath } from '@docusaurus/router'
-import { translate } from '@docusaurus/Translate'
 import clsx from 'clsx'
 import styles from './styles.module.css'
 import { HtmlClassNameProvider, ThemeClassNames, docVersionSearchTag, DocsSidebarProvider, DocsVersionProvider } from '@docusaurus/theme-common'
 import SearchMetadata from '@theme/SearchMetadata'
+import Introduction from '@site/src/components/Introduction'
 
 function DocPageContent({ versionMetadata, children }) {
   const { pluginId, version } = versionMetadata
@@ -17,23 +17,9 @@ function DocPageContent({ versionMetadata, children }) {
     <>
       <SearchMetadata version={version} tag={docVersionSearchTag(pluginId, version)} />
       <Layout>
+        <Introduction></Introduction>
         <div className={styles.docPage}>
           <BackToTopButton />
-          <div
-            className={styles.collapsedDocSidebar}
-            title={translate({
-              id: 'theme.docs.sidebar.expandButtonTitle',
-              message: 'Expand sidebar',
-              description: 'The ARIA label and title attribute for expand button of doc sidebar',
-            })}
-            aria-label={translate({
-              id: 'theme.docs.sidebar.expandButtonAriaLabel',
-              message: 'Expand sidebar',
-              description: 'The ARIA label and title attribute for expand button of doc sidebar',
-            })}
-            tabIndex={0}
-            role="button"
-          ></div>
           <main className={clsx(styles.docMainContainer, styles.docMainContainerEnhanced)}>
             <div className={clsx('container padding-top--md padding-bottom--lg', styles.docItemWrapper, styles.docItemWrapperEnhanced)}>{children}</div>
           </main>
