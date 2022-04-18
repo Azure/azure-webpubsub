@@ -9,6 +9,8 @@ import styles from './styles.module.css'
 import { HtmlClassNameProvider, ThemeClassNames, docVersionSearchTag, DocsSidebarProvider, DocsVersionProvider } from '@docusaurus/theme-common'
 import SearchMetadata from '@theme/SearchMetadata'
 import Introduction from '@site/src/components/Introduction'
+import { Stack, StackItem } from '@fluentui/react'
+import Sidebar from '@site/src/components/Sidebar'
 
 function DocPageContent({ versionMetadata, children }) {
   const { pluginId, version } = versionMetadata
@@ -20,9 +22,14 @@ function DocPageContent({ versionMetadata, children }) {
         <Introduction></Introduction>
         <div className={styles.docPage}>
           <BackToTopButton />
-          <main className={clsx(styles.docMainContainer, styles.docMainContainerEnhanced)}>
-            <div className={clsx('container padding-top--md padding-bottom--lg', styles.docItemWrapper, styles.docItemWrapperEnhanced)}>{children}</div>
-          </main>
+          <Stack horizontal>
+            <Sidebar></Sidebar>
+            <StackItem>
+              <main className={clsx(styles.docMainContainer, styles.docMainContainerEnhanced)}>
+                <div className={clsx('container padding-top--md padding-bottom--lg', styles.docItemWrapper, styles.docItemWrapperEnhanced)}>{children}</div>
+              </main>
+            </StackItem>
+          </Stack>
         </div>
       </Layout>
     </>
