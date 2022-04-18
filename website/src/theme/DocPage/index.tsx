@@ -11,6 +11,7 @@ import SearchMetadata from '@theme/SearchMetadata'
 import Introduction from '@site/src/components/Introduction'
 import { Stack, StackItem } from '@fluentui/react'
 import Sidebar from '@site/src/components/Sidebar'
+import RatingWithFeedback from '@site/src/components/RatingWithFeedback'
 
 function DocPageContent({ versionMetadata, children }) {
   const { pluginId, version } = versionMetadata
@@ -25,9 +26,12 @@ function DocPageContent({ versionMetadata, children }) {
           <Stack horizontal>
             <Sidebar></Sidebar>
             <StackItem>
-              <main className={clsx(styles.docMainContainer, styles.docMainContainerEnhanced)}>
-                <div className={clsx('container padding-top--md padding-bottom--lg', styles.docItemWrapper, styles.docItemWrapperEnhanced)}>{children}</div>
-              </main>
+              <Stack>
+                <main className={clsx(styles.docMainContainer, styles.docMainContainerEnhanced)}>
+                  <div className={clsx('container padding-top--md padding-bottom--lg', styles.docItemWrapper, styles.docItemWrapperEnhanced)}>{children}</div>
+                </main>
+                <RatingWithFeedback></RatingWithFeedback>
+              </Stack>
             </StackItem>
           </Stack>
         </div>

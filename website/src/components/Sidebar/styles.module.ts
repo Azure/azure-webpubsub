@@ -10,13 +10,13 @@ export const sidebar: IStackStyles = {
 }
 
 export const tokens: IStackTokens = {
-  childrenGap: 's2',
+  childrenGap: 's1',
 }
 
 export const title: ILabelStyles = {
   root: {
     fontWeight: 600,
     fontSize: '1.1rem',
-    marginBottom: '5px',
+    marginBottom: '10px',
   },
 }
