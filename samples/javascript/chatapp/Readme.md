@@ -1,3 +1,11 @@
+---
+id: chat
+title: Simple Chat
+description: A real-time chat room live demo utilizing Azure Web PubSub service
+slug: /chat
+hide_table_of_contents: true
+---
+
 # Create a Chat app
 
 ## Prerequisites
@@ -45,7 +53,7 @@ lt --port 8080 --print-requests
 localtunnel will print out an url (`https://<domain-name>.loca.lt`) that can be accessed from internet, e.g. `https://xxx.loca.lt`.
 
 > Tip:
-> There is one known issue that [localtunnel goes offline when the server restarts](https://github.com/localtunnel/localtunnel/issues/466) and [here is the workaround](https://github.com/localtunnel/localtunnel/issues/466#issuecomment-1030599216)  
+> There is one known issue that [localtunnel goes offline when the server restarts](https://github.com/localtunnel/localtunnel/issues/466) and [here is the workaround](https://github.com/localtunnel/localtunnel/issues/466#issuecomment-1030599216)
 
 There are also other tools to choose when debugging the webhook locally, for example, [ngrok](​https://ngrok.com/), [loophole](https://loophole.cloud/docs/), [TunnelRelay](https://github.com/OfficeDev/microsoft-teams-tunnelrelay) or so. Some tools might have issue returning response headers correctly. Try the following command to see if the tool is working properly:
 
@@ -74,6 +82,7 @@ Open http://localhost:8080/index.html, input your user name, and send messages.
 You can see in the localtunnel command window that there are requests coming in with every message sent from the page.
 
 ## Client using `json.webpubsub.azure.v1` subprotocol
+
 Besides the simple WebSocket client we show in [index.html](./public/index.html), [fancy.html](./public/fancy.html) shows a client using `json.webpubsub.azure.v1` achieving the same by sending `message` event to the service. With the help of the subprotocol, the client can get `connected` and `disconnected` messages containing some metadata of the connection.
 
 You can open both http://localhost:8080/index.html and http://localhost:8080/fancy.html to see messages received by both clients.

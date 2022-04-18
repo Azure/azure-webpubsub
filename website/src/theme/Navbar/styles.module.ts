@@ -75,3 +75,10 @@ export const classNames = mergeStyleSets({
     height: '0.5rem',
   },
 })
+
+export const root: React.CSSProperties = {
+  backgroundColor: '',
+    display: 'block',
+    height: 'auto',
+    padding: 0,
+}
