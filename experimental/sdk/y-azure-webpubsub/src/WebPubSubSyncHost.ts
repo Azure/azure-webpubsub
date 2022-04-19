@@ -1,7 +1,8 @@
 import * as decoding from 'lib0/decoding';
 import * as encoding from 'lib0/encoding';
-import * as WebSocket from "ws";
 import * as syncProtocol from 'y-protocols/sync';
+
+import * as WebSocket from "ws";
 
 import { WebPubSubServiceClient } from '@azure/web-pubsub';
 import { Doc } from 'yjs';

@@ -4,10 +4,10 @@ import { Doc } from 'yjs'; // eslint-disable-line
 
 import { Message, MessageDataType, MessageType } from './Constants';
 
-import decoding from 'lib0/decoding';
-import encoding from 'lib0/encoding';
-import time from 'lib0/time';
-import syncProtocol from 'y-protocols/sync';
+import * as decoding from 'lib0/decoding';
+import * as encoding from 'lib0/encoding';
+import * as time from 'lib0/time';
+import * as syncProtocol from 'y-protocols/sync';
 
 const messageSyncStep1 = syncProtocol.messageYjsSyncStep1;
 

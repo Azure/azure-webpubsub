@@ -3,7 +3,7 @@ import { error } from "lib0";
 import { createMutex } from "lib0/mutex";
 import { editor as MonacoEditor } from "monaco-editor";
 import { useEffect, useRef } from "react";
-import { WebPubSubSyncClient } from "./WebPubSubSyncClient";
+import { WebPubSubSyncClient } from "y-azure-webpubsub-dev";
 import { Doc } from "yjs";
 
 const DEFAULT_CODE = "";
