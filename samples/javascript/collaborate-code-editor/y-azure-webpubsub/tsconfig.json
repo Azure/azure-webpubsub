@@ -8,19 +8,16 @@
     ],
     "allowJs": true,
     "module": "esnext",
+    // "declaration": true,
+    // "declarationMap": true,
     "moduleResolution": "node",
-    "declaration": true,
-    "declarationMap": true,
     "sourceMap": true,
     "allowSyntheticDefaultImports": true,
-    "outDir": "./dist",
+    "outDir": "dist",
   },
   "include": [
-    "src",
-    "index.ts"
+    "./src",
   ],
   "exclude": [
-    "node_modules",
-    "**/__tests__/*"
   ]
 }
