@@ -1,21 +1,21 @@
 import React from 'react'
-import { initializeIcons } from '@fluentui/font-icons-mdl2'
 import useDocusaurusContext from '@docusaurus/useDocusaurusContext'
 
-import NavBar from '@site/src/components/NavBar'
 import Demos from '@site/src/components/Demos'
 import CustomerStories from '../components/CustomerStories'
 import Feedback from '../components/Feedback'
-
-initializeIcons()
+import Banner from '../components/Banner'
+import Layout from '@theme/Layout'
 
 export default function Home(): JSX.Element {
+  const { siteConfig } = useDocusaurusContext()
+
   return (
-    <div>
-      <NavBar></NavBar>
+    <Layout title={siteConfig.title}>
+      <Banner></Banner>
       <Demos></Demos>
       <CustomerStories></CustomerStories>
       <Feedback></Feedback>
-    </div>
+    </Layout>
   )
 }
