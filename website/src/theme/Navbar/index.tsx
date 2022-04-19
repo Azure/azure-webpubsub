@@ -2,11 +2,13 @@ import React from 'react'
 import { Stack, SearchBox, Label, ImageIcon, FontIcon } from '@fluentui/react'
 import { initializeIcons } from '@fluentui/font-icons-mdl2'
 import { css } from '@fluentui/react/lib/Utilities'
+import { isWideDevice } from '@site/src/utils/CssUtils'
 import * as styles from './styles.module'
 
 initializeIcons()
 
 export default function NavBar(): JSX.Element {
+  const isWide = isWideDevice()
   return (
     <div className="navbar" style={styles.root}>
       <Stack horizontal horizontalAlign="space-between" styles={styles.navBar} tokens={styles.stackTokens}>
@@ -26,9 +28,11 @@ export default function NavBar(): JSX.Element {
                 />
               </Stack>
             </Stack.Item>
-            <Stack.Item>
-              <Label styles={styles.title}>Web PubSub Service Demo Platform</Label>
-            </Stack.Item>
+            {isWide && (
+              <Stack.Item>
+                <Label styles={styles.title}>Web PubSub Service Demo Platform</Label>
+              </Stack.Item>
+            )}
           </Stack>
         </Stack.Item>
 

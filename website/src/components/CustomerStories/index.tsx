@@ -2,8 +2,10 @@ import React from 'react'
 import { Stack, StackItem, Label } from '@fluentui/react'
 import * as styles from './styles.module'
 import Story from './Story'
+import { isWideDevice } from '@site/src/utils/CssUtils'
 
 export default function CustomerStories(): JSX.Element {
+  const isWide = isWideDevice()
   return (
     <Stack>
       <StackItem>
@@ -14,14 +16,14 @@ export default function CustomerStories(): JSX.Element {
         </Stack>
       </StackItem>
       <StackItem>
-        <Stack horizontal horizontalAlign="space-between">
-          <StackItem grow>
+        <Stack horizontal={isWide} horizontalAlign="space-around">
+          <StackItem>
             <Story></Story>
           </StackItem>
-          <StackItem grow>
+          <StackItem>
             <Story></Story>
           </StackItem>
-          <StackItem grow>
+          <StackItem>
             <Story></Story>
           </StackItem>
         </Stack>
