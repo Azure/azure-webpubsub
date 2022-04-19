@@ -1,20 +1,25 @@
-import * as decoding from 'lib0/decoding';
-import * as encoding from 'lib0/encoding';
-import * as syncProtocol from 'y-protocols/sync';
+import * as decoding from "lib0/decoding";
+import * as encoding from "lib0/encoding";
+import * as syncProtocol from "y-protocols/sync";
+import * as awarenessProtocol from "y-protocols/awareness";
 
-import { WebPubSubServiceClient } from '@azure/web-pubsub';
-import { WebSocket } from 'ws';
-import { Doc } from 'yjs';
+import { WebPubSubServiceClient } from "@azure/web-pubsub";
+import { WebSocket } from "ws";
+import { Doc } from "yjs";
+
+const messageSync = 0;
+const messageAwareness = 1;
 
 export enum MessageType {
-  System = 'system',
-  JoinGroup = 'joinGroup',
-  SendToGroup = 'sendToGroup',
+  System = "system",
+  JoinGroup = "joinGroup",
+  SendToGroup = "sendToGroup",
 }
 
 export enum MessageDataType {
-  Init = 'init',
-  Sync = 'sync',
+  Init = "init",
+  Sync = "sync",
+  Awareness = "awareness",
 }
 
 export interface MessageData {
@@ -29,14 +34,13 @@ export interface Message {
   group: string;
   data: MessageData;
 }
-const HostUserId = 'host';
+const HostUserId = "host";
 
 export interface WebPubSubHostOptions {
   WebSocketPolyfill: any;
 }
 
 export class WebPubSubSyncHost {
-
   public doc: Doc;
   public topic: string;
 
@@ -44,32 +48,59 @@ export class WebPubSubSyncHost {
   private _polyfill: any;
   private _conn: any;
 
-  constructor(client: WebPubSubServiceClient, topic: string, doc: Doc, {
-    WebSocketPolyfill = WebSocket
-  }: WebPubSubHostOptions) {
+  private _awareness: awarenessProtocol.Awareness;
+
+  constructor(
+    client: WebPubSubServiceClient,
+    topic: string,
+    doc: Doc,
+    { WebSocketPolyfill = WebSocket }: WebPubSubHostOptions
+  ) {
     this.doc = doc;
     this.topic = topic;
     this._client = client;
 
     this._conn = null;
     this._polyfill = WebSocketPolyfill;
-
     const host = this;
 
+    // register awareness controller
+    const awareness = new awarenessProtocol.Awareness(doc);
+    awareness.setLocalState(null);
+
+    const awarenessChangeHandler = ({ added, updated, removed }, conn) => {
+      const changedClients = added.concat(updated, removed);
+      const encoder = encoding.createEncoder();
+      encoding.writeVarUint(encoder, messageAwareness);
+      encoding.writeVarUint8Array(
+        encoder,
+        awarenessProtocol.encodeAwarenessUpdate(awareness, changedClients)
+      );
+      const u8 = encoding.toUint8Array(encoder);
+      host.broadcast(host.topic, u8);
+    };
+    awareness.on("update", awarenessChangeHandler);
+
+    this._awareness = awareness;
+
+    // register update handler
     const updateHandler = (update: Uint8Array) => {
       const encoder = encoding.createEncoder();
-      encoding.writeVarUint(encoder, syncProtocol.messageYjsSyncStep1);
+      encoding.writeVarUint(encoder, messageSync);
       syncProtocol.writeUpdate(encoder, update);
       const u8 = encoding.toUint8Array(encoder);
       host.broadcast(host.topic, u8);
     };
+    doc.on("update", updateHandler);
+  }
 
-    this.doc.on('update', updateHandler);
+  get awareness() {
+    return this._awareness;
   }
 
   async start() {
     const url = await this.negotiate(this.topic);
-    const conn = new this._polyfill(url, 'json.webpubsub.azure.v1');
+    const conn = new this._polyfill(url, "json.webpubsub.azure.v1");
 
     const server = this;
     const group = this.topic;
@@ -77,7 +108,7 @@ export class WebPubSubSyncHost {
     conn.onmessage = (e) => {
       const event: Message = JSON.parse(e.data.toString());
 
-      if (event.type === 'message' && event.from === 'group') {
+      if (event.type === "message" && event.from === "group") {
         switch (event.data.t) {
           case MessageDataType.Init:
             server.onClientInit(group, event.data);
@@ -85,6 +116,9 @@ export class WebPubSubSyncHost {
             return;
           case MessageDataType.Sync:
             server.onClientSync(group, event.data);
+            return;
+          case MessageDataType.Awareness:
+            server.onAwareness(group, event.data);
             return;
         }
       }
@@ -95,7 +129,7 @@ export class WebPubSubSyncHost {
         JSON.stringify({
           type: MessageType.JoinGroup,
           group: `${group}.host`,
-        }),
+        })
       );
     };
 
@@ -109,9 +143,9 @@ export class WebPubSubSyncHost {
         group,
         noEcho: true,
         data: {
-          c: Buffer.from(u8).toString('base64'),
+          c: Buffer.from(u8).toString("base64"),
         },
-      }),
+      })
     );
   }
 
@@ -123,9 +157,9 @@ export class WebPubSubSyncHost {
         noEcho: true,
         data: {
           t: to,
-          c: Buffer.from(u8).toString('base64'),
+          c: Buffer.from(u8).toString("base64"),
         },
-      }),
+      })
     );
   }
 
@@ -139,7 +173,7 @@ export class WebPubSubSyncHost {
 
   private onClientSync(group: string, data: MessageData) {
     try {
-      const buf = Buffer.from(data.c, 'base64');
+      const buf = Buffer.from(data.c, "base64");
       const encoder = encoding.createEncoder();
       const decoder = decoding.createDecoder(buf);
       const messageType = decoding.readVarUint(decoder);
@@ -153,7 +187,22 @@ export class WebPubSubSyncHost {
           break;
       }
     } catch (err) {
-      this.doc.emit('error', [err]);
+      this.doc.emit("error", [err]);
+    }
+  }
+
+  private onAwareness(group: string, data: MessageData) {
+    try {
+      const buf = Buffer.from(data.c, "base64");
+      const decoder = decoding.createDecoder(buf);
+      const messageType = decoding.readVarUint(decoder); // skip the message type
+      awarenessProtocol.applyAwarenessUpdate(
+        this._awareness,
+        decoding.readVarUint8Array(decoder),
+        undefined
+      );
+    } catch (err) {
+      this.doc.emit("error", [err]);
     }
   }
 

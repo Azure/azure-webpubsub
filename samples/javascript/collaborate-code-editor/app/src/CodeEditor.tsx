@@ -1,8 +1,8 @@
 import Editor, { useMonaco } from "@monaco-editor/react";
 import { editor as MonacoEditor } from "monaco-editor";
 import { useEffect, useRef } from "react";
+import { MonacoBinding } from "./y-monaco";
 import { WebPubSubSyncClient } from "y-azure-webpubsub-client";
-import { MonacoBinding } from "y-monaco";
 import { Doc } from "yjs";
 
 const DEFAULT_CODE = "";
@@ -13,7 +13,7 @@ export function CodeEditor(props: {
   chanId: string;
   url: string;
 }) {
-  const editorRef = useRef<MonacoEditor.ICodeEditor | null>(null);
+  const editorRef = useRef<MonacoEditor.IStandaloneCodeEditor | null>(null);
   const monaco = useMonaco();
 
   const code = DEFAULT_CODE;
@@ -24,7 +24,7 @@ export function CodeEditor(props: {
     readOnly: false,
   };
 
-  function onEditorMount(editor: MonacoEditor.ICodeEditor) {
+  function onEditorMount(editor: MonacoEditor.IStandaloneCodeEditor) {
     editorRef.current = editor;
     editor.focus();
   }
@@ -54,9 +54,10 @@ export function CodeEditor(props: {
       ytext,
       textModel,
       new Set([editorRef.current]),
-      undefined // TODO awareness support
+      client.awareness
     );
-  });
+    console.log(monacoBinding);
+  }, [monaco, props.chanId, props.url]);
 
   return (
     <div className="editor">
