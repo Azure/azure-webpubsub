@@ -2,13 +2,13 @@ import React from 'react'
 import { Stack, SearchBox, Label, ImageIcon, FontIcon } from '@fluentui/react'
 import { initializeIcons } from '@fluentui/font-icons-mdl2'
 import { css } from '@fluentui/react/lib/Utilities'
-import { isWideDevice } from '@site/src/utils/CssUtils'
+import { IsWideDevice } from '@site/src/utils/CssUtils'
 import * as styles from './styles.module'
 
 initializeIcons()
 
 export default function NavBar(): JSX.Element {
-  const isWide = isWideDevice()
+  const isWide = IsWideDevice()
   return (
     <div className="navbar" style={styles.root}>
       <Stack horizontal horizontalAlign="space-between" styles={styles.navBar} tokens={styles.stackTokens}>

@@ -2,10 +2,10 @@ import React from 'react'
 import { Stack, StackItem, Label } from '@fluentui/react'
 import * as styles from './styles.module'
 import Story from './Story'
-import { isWideDevice } from '@site/src/utils/CssUtils'
+import { IsWideDevice } from '@site/src/utils/CssUtils'
 
 export default function CustomerStories(): JSX.Element {
-  const isWide = isWideDevice()
+  const isWide = IsWideDevice()
   return (
     <Stack>
       <StackItem>

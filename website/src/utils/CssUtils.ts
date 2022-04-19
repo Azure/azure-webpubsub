@@ -4,7 +4,7 @@ import { useMediaQuery } from 'react-responsive'
 const isMobileDevice = () => useMediaQuery({ query: '(max-width: 639px)' })
 const isPortraitDevice = () => useMediaQuery({ query: '(orientation: portrait)' })
 
-export const isWideDevice = () => {
+export const IsWideDevice = () => {
   const isMobile = isMobileDevice()
   const isPortrait = isPortraitDevice()
   return (isMobile && !isPortrait) || !isMobile
