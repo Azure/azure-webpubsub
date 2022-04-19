@@ -17,7 +17,7 @@ export default function Demos(): JSX.Element {
         If you did not find the demos below, you can tell us what demo you need here
       </MessageBar>
 
-      <Stack horizontal tokens={styles.checkboxTokens}>
+      <Stack horizontal wrap tokens={styles.checkboxTokens}>
         <Checkbox label="All" defaultChecked></Checkbox>
         <Checkbox label="Game" defaultChecked></Checkbox>
         <Checkbox label="Live chat" defaultChecked></Checkbox>
