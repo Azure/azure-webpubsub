@@ -4,6 +4,7 @@ import { createMutex } from "lib0/mutex";
 import { editor as MonacoEditor } from "monaco-editor";
 import { useEffect, useRef } from "react";
 import { WebPubSubSyncClient } from "y-azure-webpubsub-dev";
+import { MonacoBinding } from "y-monaco";
 import { Doc } from "yjs";
 
 const DEFAULT_CODE = "";
@@ -43,74 +44,21 @@ export function CodeEditor(props: {
     const ydoc = new Doc();
     const ytext = ydoc.getText("monaco");
 
-    let provider = new WebPubSubSyncClient(props.url, props.chanId, ydoc);
-    provider.start();
+    let client = new WebPubSubSyncClient(props.url, props.chanId, ydoc);
+    client.start();
 
     const textModel = editorRef?.current?.getModel();
     if (textModel == null) {
       return;
     }
 
-    let mux = createMutex();
-
-    let textObserver = (event: { delta: any[] }) => {
-      let index = 0;
-
-      event.delta.forEach((op) => {
-        mux(() => {
-          if (op.retain !== undefined) {
-            index += op.retain;
-          } else if (op.insert !== undefined) {
-            const pos = textModel.getPositionAt(index);
-            const range = new monaco.Range(
-              pos.lineNumber,
-              pos.column,
-              pos.lineNumber,
-              pos.column
-            );
-            textModel.applyEdits([{ range, text: op.insert }]);
-            index += op.insert.length;
-          } else if (op.delete !== undefined) {
-            const pos = textModel.getPositionAt(index);
-            const endPos = textModel.getPositionAt(index + op.delete);
-            const range = new monaco.Range(
-              pos.lineNumber,
-              pos.column,
-              endPos.lineNumber,
-              endPos.column
-            );
-            textModel.applyEdits([{ range, text: "" }]);
-          } else {
-            throw error.unexpectedCase();
-          }
-        });
-      });
-    };
-
-    ytext.observe(textObserver);
-    {
-      const ytextValue = ytext.toString();
-      if (textModel.getValue() !== ytextValue) {
-        textModel.setValue(ytextValue);
-      }
-    }
-
-    textModel.onDidChangeContent((event) => {
-      mux(() => {
-        // apply changes from right to left
-        ydoc.transact(() => {
-          event.changes
-            .sort(
-              (change1, change2) => change2.rangeOffset - change1.rangeOffset
-            )
-            .forEach((change) => {
-              ytext.delete(change.rangeOffset, change.rangeLength);
-              ytext.insert(change.rangeOffset, change.text);
-            });
-        }, null);
-      });
-    });
-  }, [monaco, props.chanId, props.url]);
+    const monacoBinding = new MonacoBinding(
+      ytext,
+      textModel,
+      new Set([editorRef.current]),
+      undefined // TODO awareness support
+    );
+  });
 
   return (
     <div className="editor">
