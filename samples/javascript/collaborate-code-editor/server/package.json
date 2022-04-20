@@ -8,7 +8,7 @@
   },
   "keywords": [],
   "author": "",
-  "license": "ISC",
+  "license": "MIT",
   "dependencies": {
     "@azure/msal-node": "^1.5.0",
     "@azure/web-pubsub": "^1.0.0",
@@ -23,7 +23,8 @@
     "lib0": "^0.2.43",
     "request": "^2.88.2",
     "typescript": "^4.6.2",
-    "y-azure-webpubsub": "^1.0.0-beta.5",
+    "ws": "^8.5.0",
+    "y-azure-webpubsub": "^1.0.0-beta.22",
     "yjs": "^13.5.28"
   },
   "devDependencies": {

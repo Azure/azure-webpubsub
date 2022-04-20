@@ -1,9 +1,7 @@
 import Editor, { useMonaco } from "@monaco-editor/react";
-import { error } from "lib0";
-import { createMutex } from "lib0/mutex";
 import { editor as MonacoEditor } from "monaco-editor";
 import { useEffect, useRef } from "react";
-import { WebPubSubSyncClient } from "y-azure-webpubsub-dev";
+import { WebPubSubSyncClient } from "y-azure-webpubsub-client";
 import { MonacoBinding } from "y-monaco";
 import { Doc } from "yjs";
 

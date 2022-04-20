@@ -2,13 +2,38 @@ import * as decoding from 'lib0/decoding';
 import * as encoding from 'lib0/encoding';
 import * as syncProtocol from 'y-protocols/sync';
 
-import * as WebSocket from "ws";
-
 import { WebPubSubServiceClient } from '@azure/web-pubsub';
+import { WebSocket } from 'ws';
 import { Doc } from 'yjs';
-import { Message, MessageData, MessageDataType, MessageType } from './Constants';
 
+export enum MessageType {
+  System = 'system',
+  JoinGroup = 'joinGroup',
+  SendToGroup = 'sendToGroup',
+}
+
+export enum MessageDataType {
+  Init = 'init',
+  Sync = 'sync',
+}
+
+export interface MessageData {
+  t: string; // type / target uuid
+  f: string; // origin uuid
+  c: string; // base64 encoded binary data
+}
+
+export interface Message {
+  type: string;
+  from: string;
+  group: string;
+  data: MessageData;
+}
 const HostUserId = 'host';
+
+export interface WebPubSubHostOptions {
+  WebSocketPolyfill: any;
+}
 
 export class WebPubSubSyncHost {
 
@@ -16,14 +41,18 @@ export class WebPubSubSyncHost {
   public topic: string;
 
   private _client: WebPubSubServiceClient;
-  private _conn: WebSocket | null;
+  private _polyfill: any;
+  private _conn: any;
 
-  constructor(client: WebPubSubServiceClient, topic: string, doc: Doc) {
+  constructor(client: WebPubSubServiceClient, topic: string, doc: Doc, {
+    WebSocketPolyfill = WebSocket
+  }: WebPubSubHostOptions) {
     this.doc = doc;
     this.topic = topic;
     this._client = client;
 
     this._conn = null;
+    this._polyfill = WebSocketPolyfill;
 
     const host = this;
 
@@ -40,7 +69,7 @@ export class WebPubSubSyncHost {
 
   async start() {
     const url = await this.negotiate(this.topic);
-    const conn = new WebSocket(url, 'json.webpubsub.azure.v1');
+    const conn = new this._polyfill(url, 'json.webpubsub.azure.v1');
 
     const server = this;
     const group = this.topic;
