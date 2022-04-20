@@ -3,6 +3,8 @@ import { Doc } from "yjs";
 import { WebPubSubServiceClient } from "@azure/web-pubsub";
 import { WebPubSubEventHandler } from "@azure/web-pubsub-express";
 
+import ws from "ws";
+
 import { WebPubSubSyncHost } from "y-azure-webpubsub";
 
 const DefaultCode = `import { v4 } from 'uuid';
@@ -51,7 +53,9 @@ export default class SyncHandler extends WebPubSubEventHandler {
       let doc = new Doc();
       let text = doc.getText("monaco");
       text.insert(0, DefaultCode);
-      let connection = new WebPubSubSyncHost(this._client, group, doc);
+      let connection = new WebPubSubSyncHost(this._client, group, doc, {
+        WebSocketPolyfill: ws.WebSocket,
+      });
       connection.start();
       this._connections.set(group, connection);
     }
