@@ -24,7 +24,7 @@
     "request": "^2.88.2",
     "typescript": "^4.6.2",
     "ws": "^8.5.0",
-    "y-azure-webpubsub": "^1.0.0-beta.22",
+    "y-azure-webpubsub": "^1.0.0-beta.23",
     "yjs": "^13.5.28"
   },
   "devDependencies": {

@@ -5,8 +5,11 @@ import { Doc } from "yjs"; // eslint-disable-line
 import * as encoding from "lib0/encoding";
 import * as decoding from "lib0/decoding";
 import * as syncProtocol from "y-protocols/sync";
+import * as awarenessProtocol from "y-protocols/awareness";
 
-const messageSyncStep1 = syncProtocol.messageYjsSyncStep1;
+const messageSyncStep1 = 0;
+const messageQueryAwareness = 1;
+const messageAwareness = 2;
 
 const AzureWebPubSubJsonProtocol = "json.webpubsub.azure.v1";
 
@@ -19,6 +22,7 @@ export enum MessageType {
 export enum MessageDataType {
   Init = "init",
   Sync = "sync",
+  Awareness = "awareness",
 }
 
 export interface MessageData {
@@ -72,12 +76,37 @@ messageHandlers[messageSyncStep1] = (
   }
 };
 
-/**
- * @param {WebPubSubSyncClient} client
- * @param {Uint8Array} buf
- * @param {boolean} emitSynced
- * @return {encoding.Encoder}
- */
+messageHandlers[messageQueryAwareness] = (
+  encoder,
+  decoder,
+  client,
+  emitSynced,
+  messageType
+) => {
+  encoding.writeVarUint(encoder, messageAwareness);
+  encoding.writeVarUint8Array(
+    encoder,
+    awarenessProtocol.encodeAwarenessUpdate(
+      client.awareness,
+      Array.from(client.awareness.getStates().keys())
+    )
+  );
+};
+
+messageHandlers[messageAwareness] = (
+  encoder,
+  decoder,
+  client,
+  emitSynced,
+  messageType
+) => {
+  awarenessProtocol.applyAwarenessUpdate(
+    client.awareness,
+    decoding.readVarUint8Array(decoder),
+    client
+  );
+};
+
 const readMessage = (
   client: WebPubSubSyncClient,
   buf: Uint8Array,
@@ -95,10 +124,6 @@ const readMessage = (
   return encoder;
 };
 
-/**
- * Azure WebPubSub Sync Client for Yjs.
- * Creates a websocket connection to sync the shared document.
- */
 export class WebPubSubSyncClient {
   public doc: Doc;
   public topic: string;
@@ -109,8 +134,14 @@ export class WebPubSubSyncClient {
   private _wsLastMessageReceived: number;
   private _synced: boolean;
   private _resyncInterval;
-  private _updateHandler: (update: any, origin: any) => void;
   private _uuid: string;
+  private _awareness: awarenessProtocol.Awareness;
+
+  private _updateHandler: (update: any, origin: any) => void;
+  private _awarenessUpdateHandler: (
+    { added, updated, removed }: { added: any; updated: any; removed: any },
+    origin: any
+  ) => void;
 
   /**
    * @param {string} url
@@ -140,6 +171,9 @@ export class WebPubSubSyncClient {
     this._ws = null;
     this._wsLastMessageReceived = 0;
 
+    const awareness = new awarenessProtocol.Awareness(doc);
+    this._awareness = awareness;
+
     this._resyncInterval = null;
 
     if (options.resyncInterval > 0) {
@@ -159,6 +193,7 @@ export class WebPubSubSyncClient {
       }, options.resyncInterval);
     }
 
+    // register text update handler
     this._updateHandler = (update: Uint8Array, origin: any) => {
       if (origin !== this) {
         const encoder = encoding.createEncoder();
@@ -173,16 +208,35 @@ export class WebPubSubSyncClient {
       }
     };
     this.doc.on("update", this._updateHandler);
+
+    // register awareness update handler
+    this._awarenessUpdateHandler = ({ added, updated, removed }, origin) => {
+      const changedClients = added.concat(updated).concat(removed);
+      const encoder = encoding.createEncoder();
+      encoding.writeVarUint(encoder, messageAwareness);
+      encoding.writeVarUint8Array(
+        encoder,
+        awarenessProtocol.encodeAwarenessUpdate(awareness, changedClients)
+      );
+      sendToControlGroup(
+        this,
+        topic,
+        MessageDataType.Awareness,
+        encoding.toUint8Array(encoder)
+      );
+    };
+    awareness.on("update", this._awarenessUpdateHandler);
   }
 
-  /**
-   * @type {boolean}
-   */
-  get synced() {
+  get awareness(): awarenessProtocol.Awareness {
+    return this._awareness;
+  }
+
+  get synced(): boolean {
     return this._synced;
   }
 
-  set synced(state) {
+  set synced(state: boolean) {
     if (this._synced !== state) {
       this._synced = state;
     }
@@ -260,6 +314,13 @@ export class WebPubSubSyncClient {
       if (client._wsConnected) {
         client._wsConnected = false;
         client.synced = false;
+        awarenessProtocol.removeAwarenessStates(
+          client.awareness,
+          Array.from(client.awareness.getStates().keys()).filter(
+            (x) => x !== client.doc.clientID
+          ),
+          client
+        );
       } else {
         // TODO reconnect
       }
@@ -277,6 +338,20 @@ export class WebPubSubSyncClient {
       syncProtocol.writeSyncStep1(encoder, client.doc);
       const u8 = encoding.toUint8Array(encoder);
       sendToControlGroup(client, client.topic, MessageDataType.Init, u8);
+
+      // broadcast awareness state
+      if (client.awareness.getLocalState() !== null) {
+        const encoderAwarenessState = encoding.createEncoder();
+        encoding.writeVarUint(encoderAwarenessState, messageAwareness);
+        encoding.writeVarUint8Array(
+          encoderAwarenessState,
+          awarenessProtocol.encodeAwarenessUpdate(client.awareness, [
+            client.doc.clientID,
+          ])
+        );
+        const u8 = encoding.toUint8Array(encoder);
+        sendToControlGroup(client, client.topic, MessageDataType.Awareness, u8);
+      }
     };
   }
 }

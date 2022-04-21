@@ -1,6 +1,6 @@
 {
   "name": "y-azure-webpubsub",
-  "version": "1.0.0-beta.22",
+  "version": "1.0.0-beta.23",
   "description": "",
   "main": "dist/WebPubSubSyncHost.js",
   "types": "./dist/WebPubSubSyncHost.d.ts",
