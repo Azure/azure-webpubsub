@@ -8,8 +8,8 @@ import * as syncProtocol from "y-protocols/sync";
 import * as awarenessProtocol from "y-protocols/awareness";
 
 const messageSyncStep1 = 0;
-const messageQueryAwareness = 1;
-const messageAwareness = 2;
+const messageAwareness = 1;
+const messageQueryAwareness = 3;
 
 const AzureWebPubSubJsonProtocol = "json.webpubsub.azure.v1";
 
