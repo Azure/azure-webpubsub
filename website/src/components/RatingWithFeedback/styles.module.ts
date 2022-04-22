@@ -1,4 +1,4 @@
-import { DefaultPalette, FontSizes, FontWeights, ILabelStyles, IStackTokens, ITextFieldStyles } from '@fluentui/react'
+import { IStackStyles, FontSizes, FontWeights, ILabelStyles, IStackTokens, ITextFieldStyles } from '@fluentui/react'
 
 export const rateTokens: IStackTokens = {
   childrenGap: 's2',
@@ -18,13 +18,20 @@ export const description: ILabelStyles = {
   },
 }
 
-export const tokens: IStackTokens = {
-  padding: 20,
-  childrenGap: 's1',
+export const background: IStackStyles = {
+  root: {
+    padding: '40px 0 10px 0',
+  },
 }
 
-export const textField: ITextFieldStyles = {
+export const textFieldWide: ITextFieldStyles = {
   root: {
     width: '30%',
+  },
+}
+
+export const textFieldSmall: ITextFieldStyles = {
+  root: {
+    width: '100%',
   },
 }

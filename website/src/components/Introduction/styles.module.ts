@@ -6,11 +6,14 @@ export const background: IStackStyles = {
   },
 }
 
-export const left: IStackStyles = {
-  root: { alignItems: 'center' },
+export const tryDemo: IStackStyles = {
+  root: {
+    alignItems: 'center',
+    marginBottom: '10px',
+  },
 }
 
-export const leftItem: IStackItemStyles = {
+export const tryDemoItem: IStackItemStyles = {
   root: { padding: '0 4rem' },
 }
 

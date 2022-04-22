@@ -1,5 +1,5 @@
 import React from 'react'
-import { Stack, SearchBox, Label, ImageIcon, FontIcon, Link } from '@fluentui/react'
+import { Stack, Label, Link } from '@fluentui/react'
 import * as styles from './styles.module'
 
 export default function Sidebar(): JSX.Element {
