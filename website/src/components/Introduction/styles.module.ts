@@ -1,7 +1,14 @@
-import { IStackItemStyles, IStackItemTokens, IStackStyles } from '@fluentui/react'
+import { IStackItemStyles, IStackStyles, IStackTokens } from '@fluentui/react'
 
 export const background: IStackStyles = {
   root: {
+    backgroundColor: '#F0F6FF',
+  },
+}
+
+export const backgroundMobile: IStackStyles = {
+  root: {
+    height: 162,
     backgroundColor: '#F0F6FF',
   },
 }
@@ -28,4 +35,8 @@ export const title: React.CSSProperties = {
 
 export const preview: React.CSSProperties = {
   padding: '1rem 3rem',
+}
+
+export const mobileButtonTokens: IStackTokens = {
+  padding: '15px',
 }
