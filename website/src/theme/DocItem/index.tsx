@@ -16,6 +16,7 @@ import styles from './styles.module.css'
 import { PageMetadata, HtmlClassNameProvider, ThemeClassNames, useWindowSize } from '@docusaurus/theme-common'
 import DocBreadcrumbs from '@theme/DocBreadcrumbs'
 import MDXContent from '@theme/MDXContent'
+import RatingWithFeedback from '@site/src/components/RatingWithFeedback'
 
 function DocItemMetadata(props): JSX.Element {
   const { content: DocContent } = props
@@ -89,6 +90,7 @@ function DocItemContent(props) {
 
             <DocItemFooter {...props} />
           </article>
+          <RatingWithFeedback></RatingWithFeedback>
 
           {/* <DocPaginator previous={metadata.previous} next={metadata.next} /> */}
         </div>
