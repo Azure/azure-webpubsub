@@ -19,3 +19,7 @@
 .docSidebarContainer {
   display: none;
 }
+
+.content {
+  width: 100vw;
+}

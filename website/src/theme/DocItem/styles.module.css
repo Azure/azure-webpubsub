@@ -20,3 +20,7 @@
     display: none;
   }
 }
+
+pre {
+  border-radius: 2px;
+}
