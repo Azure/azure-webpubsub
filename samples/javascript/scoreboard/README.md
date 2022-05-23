@@ -67,3 +67,31 @@ Local development uses hub `dev_scoreboard`, so let's set the event handler thro
 ```azurecli
 az webpubsub hub create --hub-name dev_scoreboard --name "<your-unique-resource-name>" --resource-group "myResourceGroup" --event-handler url-template=http://<domain-name>.loca.lt/eventhandler/{event} user-event-pattern=* system-event=connect system-event=disconnected system-event=connected
 ```
+
+## Deploy to Azure
+
+### Create Services in Azure
+
+First, deploy needed resources to Azure. You can either deploy them by use the `Deploy to Azure` button or Bicep file with Azure CLI.
+
+#### Deploy with one click
+
+todo: update ARM template link to make it work
+
+![Deploy to Azure](https://aka.ms/deploytoazurebutton)
+
+#### Deploy with Bicep
+
+```bash
+az deployment group create --resource-group <resource-group-name> --template-file ./deploy/deploy.bicep
+```
+
+### Deploy demo package to your App Service
+
+```bash
+# build and pack the demo to dist.zip if you modify the code
+npm run pack
+
+# deploy demo with dist.zip
+az webapp deploy --resource-group wanl-test-bicep-1  --name wap-jebp663hbbuow  --src-path  ./dist.zip --type zip
+```
