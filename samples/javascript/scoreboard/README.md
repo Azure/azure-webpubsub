@@ -70,28 +70,30 @@ az webpubsub hub create --hub-name dev_scoreboard --name "<your-unique-resource-
 
 ## Deploy to Azure
 
-### Create Services in Azure
+You can deploy to Azure by use the `Deploy to Azure` button or Bicep file with Azure CLI.
 
-First, deploy needed resources to Azure. You can either deploy them by use the `Deploy to Azure` button or Bicep file with Azure CLI.
-
-#### Deploy with one click
+### Deploy all with one click
 
 todo: update ARM template link to make it work
 
 ![Deploy to Azure](https://aka.ms/deploytoazurebutton)
 
-#### Deploy with Bicep
+### Deploy Azure resources with Bicep
+
+If you want to customize Azure resources to be created or demo code, you can deploy to Azure in the following steps:
+
+1. Deploy resources to Azure
 
 ```bash
 az deployment group create --resource-group <resource-group-name> --template-file ./deploy/deploy.bicep
 ```
 
-### Deploy demo package to your App Service
+1. Deploy demo package to your App Service
 
 ```bash
 # build and pack the demo to dist.zip if you modify the code
 npm run pack
 
 # deploy demo with dist.zip
-az webapp deploy --resource-group wanl-test-bicep-1  --name wap-jebp663hbbuow  --src-path  ./dist.zip --type zip
+az webapp deploy --resource-group <resource-group>  --name <webapp-resource-name>  --src-path  ./dist.zip --type zip
 ```

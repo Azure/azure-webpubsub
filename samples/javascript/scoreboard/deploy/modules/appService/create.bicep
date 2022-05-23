@@ -28,4 +28,4 @@ resource appService 'Microsoft.Web/sites@2020-06-01' = {
 }
 
 output host string = appService.properties.defaultHostName
-output name string = webSiteName
+output webSiteName string = webSiteName

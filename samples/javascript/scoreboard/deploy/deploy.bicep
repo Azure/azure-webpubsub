@@ -61,7 +61,7 @@ module webpusubHubModule './modules/webpsubsub/hub/createOrUpdate.bicep' = {
 module appSettings './modules/appService/appSettings/update.bicep' = {
   name: 'AppSettingsUpdate'
   params: {
-    resourceName: appServiceModule.outputs.name
+    webSiteName: appServiceModule.outputs.webSiteName
     webPubSubConnectionString: webpubsubModule.outputs.conenctionString
   }
 }

@@ -1,12 +1,13 @@
 param webPubSubConnectionString string
-param resourceName string
+param webSiteName string
 
 resource appSettings 'Microsoft.Web/sites/config@2021-03-01' = {
-  name: '${resourceName}/web'
+  name: '${webSiteName}/web'
   properties: {
     appSettings: [
       {
-        WebPubSubConnectionString: webPubSubConnectionString
+        name: 'WebPubSubConnectionString'
+        value: webPubSubConnectionString
       }
     ]
   }
