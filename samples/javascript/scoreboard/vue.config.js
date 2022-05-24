@@ -2,7 +2,7 @@ const path = require('path')
 
 module.exports = {
     transpileDependencies: ['element-plus'],
-    outputDir: 'deploy/dist/public',
+    outputDir: 'dist/public',
     devServer: {
         proxy: 'http://localhost:5050',
         static: {
