@@ -16,7 +16,7 @@ This is a simple app showing how to show IoT device temperature and humidity in 
 2. Get the **Service Connection String** for IoT Hub using below CLI command, and replace the `<iot-connection-string>` in `local.settings.json` with the value.
 
 ```azcli
-az iot hub connection-string show --policy-name service --hub-name {YourIoTHubName} --output table
+az iot hub connection-string show --policy-name service --hub-name {YourIoTHubName} --output table --default-eventhub
 ```
 
 3. Get the **Connection String** for Web PubSub using below CLI command, and replace the `<webpubsub-connection-string>` in `local.settings.json` with the value.
