@@ -1,0 +1,283 @@
+<!doctype html>
+
+<html lang="en">
+
+<head>
+    <!-- Required meta tags -->
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+
+    <script src="https://code.jquery.com/jquery-3.4.0.min.js"
+        integrity="sha256-BJeo0qm959uMBGb65z40ejJYGSgR7REI4+CW1fNKwOg=" crossorigin="anonymous"" type=" text/javascript"
+        charset="utf-8"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@2.8.0/dist/Chart.min.js" type="text/javascript"
+        charset="utf-8"></script>
+    <script>
+        /* eslint-disable max-classes-per-file */
+        /* eslint-disable no-restricted-globals */
+        /* eslint-disable no-undef */
+        $(document).ready(async () => {
+            const res = await fetch(`/api/negotiate?id=${1}`);
+            const data = await res.json();
+            const webSocket = new WebSocket(data.url);
+
+            // A class for holding the last N points of telemetry for a device
+            class DeviceData {
+                constructor(deviceId) {
+                    this.deviceId = deviceId;
+                    this.maxLen = 50;
+                    this.timeData = new Array(this.maxLen);
+                    this.temperatureData = new Array(this.maxLen);
+                    this.humidityData = new Array(this.maxLen);
+                }
+                bind(chart) {
+                    this.chart = chart;
+                }
+
+                addData(time, temperature, humidity) {
+                    this.timeData.push(time);
+                    this.temperatureData.push(temperature);
+                    this.humidityData.push(humidity || null);
+
+                    if (this.timeData.length > this.maxLen) {
+                        this.timeData.shift();
+                        this.temperatureData.shift();
+                        this.humidityData.shift();
+                    }
+                }
+            }
+
+            // All the devices in the list (those that have been sending telemetry)
+            class TrackedDevices {
+                constructor() {
+                    this.devices = [];
+                }
+
+                // Find a device based on its Id
+                findDevice(deviceId) {
+                    for (let i = 0; i < this.devices.length; ++i) {
+                        if (this.devices[i].deviceId === deviceId) {
+                            return this.devices[i];
+                        }
+                    }
+
+                    return undefined;
+                }
+
+                getDevicesCount() {
+                    return this.devices.length;
+                }
+            }
+
+            const trackedDevices = new TrackedDevices();
+
+            function initChart(canvasElement, device) {
+
+                // Define the chart axes
+                const chartData = {
+                    datasets: [
+                        {
+                            fill: false,
+                            label: "Temperature",
+                            yAxisID: "Temperature",
+                            borderColor: "rgba(255, 204, 0, 1)",
+                            pointBoarderColor: "rgba(255, 204, 0, 1)",
+                            backgroundColor: "rgba(255, 204, 0, 0.4)",
+                            pointHoverBackgroundColor: "rgba(255, 204, 0, 1)",
+                            pointHoverBorderColor: "rgba(255, 204, 0, 1)",
+                            spanGaps: true,
+                        },
+                        {
+                            fill: false,
+                            label: "Humidity",
+                            yAxisID: "Humidity",
+                            borderColor: "rgba(24, 120, 240, 1)",
+                            pointBoarderColor: "rgba(24, 120, 240, 1)",
+                            backgroundColor: "rgba(24, 120, 240, 0.4)",
+                            pointHoverBackgroundColor: "rgba(24, 120, 240, 1)",
+                            pointHoverBorderColor: "rgba(24, 120, 240, 1)",
+                            spanGaps: true,
+                        },
+                    ],
+                };
+
+                const chartOptions = {
+                    responsive: true,
+                    scales: {
+                        yAxes: [
+                            {
+                                id: "Temperature",
+                                type: "linear",
+                                scaleLabel: {
+                                    labelString: "Temperature (ºC)",
+                                    display: true,
+                                },
+                                position: "left",
+                            },
+                            {
+                                id: "Humidity",
+                                type: "linear",
+                                scaleLabel: {
+                                    labelString: "Humidity (%)",
+                                    display: true,
+                                },
+                                position: "right",
+                            },
+                        ],
+                    },
+                };
+
+                chartData.labels = device.timeData;
+                chartData.datasets[0].data = device.temperatureData;
+                chartData.datasets[1].data = device.humidityData;
+
+                // Get the context of the canvas element we want to select
+                const ctx = canvasElement.getContext("2d");
+                return new Chart(ctx, {
+                    type: "line",
+                    data: chartData,
+                    options: chartOptions,
+                });
+            }
+
+            const deviceCount = document.getElementById("deviceCount");
+
+            // When a web socket message arrives:
+            // 1. Unpack it
+            // 2. Validate it has date/time and temperature
+            // 3. Find or create a cached device to hold the telemetry data
+            // 4. Append the telemetry data
+            // 5. Update the chart UI
+            webSocket.onmessage = function onMessage(message) {
+                try {
+                    const messageData = JSON.parse(message.data);
+                    console.log(messageData);
+
+                    // time and either temperature or humidity are required
+                    if (
+                        !messageData.MessageDate ||
+                        (!messageData.IotData.temperature && !messageData.IotData.humidity)
+                    ) {
+                        return;
+                    }
+
+                    // find or add device to list of tracked devices
+                    let existingDeviceData = trackedDevices.findDevice(
+                        messageData.DeviceId
+                    );
+
+                    if (existingDeviceData) {
+                        existingDeviceData.addData(
+                            messageData.MessageDate,
+                            messageData.IotData.temperature,
+                            messageData.IotData.humidity
+                        );
+                    } else {
+                        const newDeviceData = new DeviceData(messageData.DeviceId);
+                        trackedDevices.devices.push(newDeviceData);
+                        const numDevices = trackedDevices.getDevicesCount();
+                        deviceCount.innerText =
+                            numDevices === 1 ? `${numDevices} device` : `${numDevices} devices`;
+                        newDeviceData.addData(
+                            messageData.MessageDate,
+                            messageData.IotData.temperature,
+                            messageData.IotData.humidity
+                        );
+
+                        // add device to the UI list
+                        const container = document.createElement("div");
+                        container.className = "chartContainer";
+                        const header = document.createElement("h3");
+                        header.textContent = newDeviceData.deviceId;
+                        container.appendChild(header);
+                        const canvas = document.createElement("canvas");
+                        container.appendChild(canvas);
+                        document.getElementById("charts").appendChild(container);
+                        newDeviceData.bind(initChart(canvas, newDeviceData));
+                        existingDeviceData = newDeviceData;
+                    }
+
+                    existingDeviceData.chart.update();
+                } catch (err) {
+                    console.error(err);
+                }
+            };
+        });
+
+
+    </script>
+    <style>
+        body {
+            font: 14px "Lucida Grande", Helvetica, Arial, sans-serif;
+            padding: 50px;
+            margin: 0;
+            text-align: center;
+        }
+
+        .flexHeader {
+            display: flex;
+            flex-direction: row;
+            flex-wrap: nowrap;
+            justify-content: space-between;
+        }
+
+        #charts {
+            display: flex;
+            flex-direction: row;
+            flex-wrap: wrap;
+            justify-content: space-around;
+            align-content: stretch;
+        }
+
+        .chartContainer {
+            flex-basis: 45%;
+        }
+
+        a {
+            color: #00B7FF;
+        }
+
+        body select {
+            padding: 10px 70px 10px 13px;
+            max-width: 100%;
+            height: auto;
+            border: 1px solid #e3e3e3;
+            border-radius: 3px;
+            background: url("https://i.ibb.co/b7xjLrB/selectbox-arrow.png") right center no-repeat;
+            background-color: #fff;
+            color: #444444;
+            line-height: 16px;
+            appearance: none;
+            /* this is must */
+            -webkit-appearance: none;
+            -moz-appearance: none;
+        }
+
+        /* body select.select_box option */
+        body select option {
+            padding: 0 4px;
+        }
+
+        /* for Edge */
+        select::-ms-expand {
+            display: none;
+        }
+
+        select:disabled::-ms-expand {
+            background: #f60;
+        }
+    </style>
+
+    <title>Temperature &amp; Humidity Real-time Data</title>
+</head>
+
+<body>
+    <h1 class="flexHeader">
+        <span id="deviceCount">0 devices</span>
+        <span>Temperature & Humidity Real-time Data</span>
+    </h1>
+    <div id="charts">
+    </div>
+</body>
+
+</html>

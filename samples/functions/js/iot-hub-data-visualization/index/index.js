@@ -5,7 +5,11 @@ module.exports = function (context, request) {
   var index = path.join(
     context.executionContext.functionDirectory,
     "public",
-    request.query.merge ? "index2.html" : "index.html"
+    request.query.merge
+      ? "index2.html"
+      : request.query.flat
+      ? "index3.html"
+      : "index.html"
   );
   context.log("requesting path: " + index);
   fs.readFile(index, "utf8", function (err, data) {
