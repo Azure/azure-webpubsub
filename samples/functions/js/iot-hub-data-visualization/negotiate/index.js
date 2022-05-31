@@ -1,12 +1,12 @@
-const { WebPubSubServiceClient } = require("@azure/web-pubsub");
-
-module.exports = async function (context, req, connection) {
-  const serviceClient = new WebPubSubServiceClient(
-    process.env.WebPubSubConnectionString,
-    process.env.hubName
-  );
-  const token = await serviceClient.getClientAccessToken({
-    userId: req.headers["x-ms-client-principal-name"],
-  });
-  context.res = { body: token };
+module.exports = function (context, req, connection) {
+  if (!req.query.id) {
+    context.res = {
+      status: 401,
+      body: "Invalid user id",
+    };
+    context.done();
+    return;
+  }
+  context.res = { body: connection };
+  context.done();
 };

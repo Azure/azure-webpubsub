@@ -1,0 +1,85 @@
+<!doctype html>
+
+<html lang="en">
+
+<head>
+    <!-- Required meta tags -->
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+    <link href="styles/style.css" rel="stylesheet" />
+
+    <script src="styles/chart.js@2.8.0/Chart.min.js"></script>
+    <script src="styles/drawChart.js" type="text/javascript"></script>
+    <script>
+        document.addEventListener("DOMContentLoaded", async function (event) {
+            const res = await fetch(`/api/negotiate?id=${1}`);
+            const data = await res.json();
+            const webSocket = new WebSocket(data.url);
+
+            const trackedDevices = new TrackedDevices();
+
+            // Temperature (ºC)
+            // Define the chart axes
+            const chartData = {
+                datasets: [
+                ],
+            };
+
+            const chartOptions = {
+                responsive: true,
+                scales: {
+                    yAxes: [
+                        getYAxy(0, "Temperature (ºC)"),
+                    ],
+                },
+            };
+            // Get the context of the canvas element we want to select
+            const ctx = document.getElementById("chart").getContext("2d");
+
+            chartData.labels = trackedDevices.timeData;
+            const chart = new Chart(ctx, {
+                type: "line",
+                data: chartData,
+                options: chartOptions,
+            });
+
+            webSocket.onmessage = function onMessage(message) {
+                try {
+                    const messageData = JSON.parse(message.data);
+                    console.log(messageData);
+
+                    // time and either temperature or humidity are required
+                    if (
+                        !messageData.MessageDate ||
+                        (!messageData.IotData.temperature && !messageData.IotData.humidity)
+                    ) {
+                        return;
+                    }
+                    trackedDevices.addData(messageData.MessageDate, messageData.IotData.temperature, messageData.DeviceId, chartData.datasets, chartOptions.scales)
+                    const numDevices = trackedDevices.getDevicesCount();
+                    document.getElementById("deviceCount").innerText =
+                        numDevices === 1 ? `${numDevices} device` : `${numDevices} devices`;
+                    chart.update();
+                } catch (err) {
+                    console.error(err);
+                }
+            };
+        });
+
+
+    </script>
+
+    <title>Temperature Real-time Data</title>
+</head>
+
+<body>
+    <h1 class="flexHeader">
+        <span>Temperature Real-time Data</span>
+        <span id="deviceCount">0 devices</span>
+    </h1>
+    <div id="charts">
+        <canvas id="chart"></canvas>
+    </div>
+</body>
+
+</html>
