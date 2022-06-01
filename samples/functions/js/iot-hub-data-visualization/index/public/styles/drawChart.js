@@ -28,7 +28,8 @@ class DeviceData {
 // All the devices in the list (those that have been sending telemetry)
 class TrackedDevices {
   constructor() {
-    this.timeData = new Array(50);
+    this.maxLen = 50;
+    this.timeData = new Array(this.maxLen);
     this.devices = [];
   }
 

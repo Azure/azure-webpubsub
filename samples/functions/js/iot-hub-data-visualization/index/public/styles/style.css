@@ -21,7 +21,7 @@ body {
 }
 
 .chartContainer {
-    flex-basis: 45%;
+    flex: 1;
 }
 
 a {
