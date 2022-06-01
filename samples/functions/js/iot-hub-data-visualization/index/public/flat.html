@@ -26,6 +26,11 @@
                     ],
                 };
                 const chartOptions = {
+                    responsive: true,
+                    animation: {
+                        easing: 'linear',
+                        duration: 500
+                    },
                     scales: {
                         yAxes: [
                             getYAxy("Temperature", "Temperature (ºC)", "left"),

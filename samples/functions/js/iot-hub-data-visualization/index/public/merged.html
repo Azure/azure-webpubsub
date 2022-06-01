@@ -27,6 +27,10 @@
 
             const chartOptions = {
                 responsive: true,
+                animation: {
+                    easing: 'linear',
+                    duration: 500
+                },
                 scales: {
                     yAxes: [
                         getYAxy(0, "Temperature (ºC)"),
