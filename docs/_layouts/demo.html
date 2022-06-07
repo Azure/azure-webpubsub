@@ -52,7 +52,9 @@
           {%- endif -%}
           <hr/>
           {%- if page.imagelink -%}
-          <img src="{{ page.imagelink }}"></img>
+          <a href="{{ page.demolink}}">
+            <img src="{{ page.imagelink }}"></img>
+          </a>
           {%- else -%}
           <iframe src="{{ page.demolink}}" scrolling="no" class="iframe-class" frameborder="0"></iframe>
           {%- endif -%}
