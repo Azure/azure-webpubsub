@@ -51,7 +51,11 @@
           <small class="float-right"><a href="{{ page.sourcecode}}" target="_blank">[View Source Code]</a></small>
           {%- endif -%}
           <hr/>
+          {%- if page.imagelink -%}
+          <img src="{{ page.imagelink }}"></img>
+          {%- else -%}
           <iframe src="{{ page.demolink}}" scrolling="no" class="iframe-class" frameborder="0"></iframe>
+          {%- endif -%}
           {%- endif -%}
         </main>
       </div>
