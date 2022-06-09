@@ -48,14 +48,8 @@ export default function DemoCard(props: DemoCardProps): JSX.Element {
       <Stack horizontal horizontalAlign="space-between" styles={styles.footer}>
         <StackItem style={styles.footerItem}>
           <Stack horizontal horizontalAlign="space-between">
-            <PrimaryButton
-              text="Try demo"
-              allowDisabledFocus
-              onClick={(): void => {
-                window.location.href = props.liveDemoLink
-              }}
-            />
-            <Link styles={styles.link} href={props.docLink}>
+            <PrimaryButton text="Try demo" allowDisabledFocus href={props.liveDemoLink ? props.liveDemoLink : props.docLink} target="_blank" />
+            <Link styles={styles.link} href={props.docLink} target="_blank">
               See details
             </Link>
           </Stack>
