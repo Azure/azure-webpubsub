@@ -5,11 +5,18 @@
       "type": "httpTrigger",
       "direction": "in",
       "name": "req"
-  },
-  {
+    },
+    {
       "type": "http",
       "direction": "out",
       "name": "res"
-  }
+    },
+    {
+        "type": "webPubSubConnection",
+        "name": "connection",
+        "hub": "%hubName%",
+        "userId": "{query.id}",
+        "direction": "in"
+    }
   ]
 }

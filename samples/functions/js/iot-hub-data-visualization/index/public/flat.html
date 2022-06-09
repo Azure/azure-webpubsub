@@ -7,7 +7,6 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
     <link href="styles/style.css" rel="stylesheet" />
-
     <script src="styles/chart.js@2.8.0/Chart.min.js"></script>
     <script src="styles/drawChart.js" type="text/javascript"></script>
     <script>
@@ -18,51 +17,42 @@
 
             const trackedDevices = new TrackedDevices();
 
-            // Define the chart axes
-            const chartData = {
-                datasets: [
-                    getDataSet("Temperature", "Temperature", 255, 204, 0),
-                    getDataSet("Humidity", "Humidity", 24, 120, 240)
-                ]
-            };
-
-            const chartOptions = {
-                responsive: true,
-                animation: {
-                    easing: 'linear',
-                    duration: 500
-                },
-                scales: {
-                    yAxes: [
-                        getYAxy("Temperature", "Temperature (ºC)", "left"),
-                        getYAxy("Humidity", "Humidity (%)", "right")
+            function initChart(canvasElement, device) {
+                // Define the chart axes
+                const chartData = {
+                    datasets: [
+                        getDataSet("Temperature", "Temperature", 255, 204, 0),
+                        getDataSet("Humidity", "Humidity", 24, 120, 240)
                     ],
-                },
-            };
+                };
+                const chartOptions = {
+                    responsive: true,
+                    animation: {
+                        easing: 'linear',
+                        duration: 500
+                    },
+                    scales: {
+                        yAxes: [
+                            getYAxy("Temperature", "Temperature (ºC)", "left"),
+                            getYAxy("Humidity", "Humidity (%)", "right")
+                        ],
+                    },
+                };
 
-            // Get the context of the canvas element we want to select
-            const ctx = document.getElementById("iotChart").getContext("2d");
-            const myLineChart = new Chart(ctx, {
-                type: "line",
-                data: chartData,
-                options: chartOptions,
-            });
-
-            // Manage a list of devices in the UI, and update which device data the chart is showing
-            // based on selection
-            let needsAutoSelect = true;
-            const deviceCount = document.getElementById("deviceCount");
-            const listOfDevices = document.getElementById("listOfDevices");
-            function OnSelectionChange() {
-                const device = trackedDevices.findDevice(
-                    listOfDevices[listOfDevices.selectedIndex].text
-                );
                 chartData.labels = device.timeData;
                 chartData.datasets[0].data = device.temperatureData;
                 chartData.datasets[1].data = device.humidityData;
-                myLineChart.update();
+
+                // Get the context of the canvas element we want to select
+                const ctx = canvasElement.getContext("2d");
+                return new Chart(ctx, {
+                    type: "line",
+                    data: chartData,
+                    options: chartOptions,
+                });
             }
-            listOfDevices.addEventListener("change", OnSelectionChange, false);
+
+            const deviceCount = document.getElementById("deviceCount");
 
             // When a web socket message arrives:
             // 1. Unpack it
@@ -84,7 +74,7 @@
                     }
 
                     // find or add device to list of tracked devices
-                    const existingDeviceData = trackedDevices.findDevice(
+                    let existingDeviceData = trackedDevices.findDevice(
                         messageData.DeviceId
                     );
 
@@ -107,27 +97,24 @@
                         );
 
                         // add device to the UI list
-                        const node = document.createElement("option");
-                        const nodeText = document.createTextNode(messageData.DeviceId);
-                        node.appendChild(nodeText);
-                        listOfDevices.appendChild(node);
-
-                        // if this is the first device being discovered, auto-select it
-                        if (needsAutoSelect) {
-                            needsAutoSelect = false;
-                            listOfDevices.selectedIndex = 0;
-                            OnSelectionChange();
-                        }
+                        const container = document.createElement("div");
+                        container.className = "chartContainer";
+                        const header = document.createElement("h3");
+                        header.textContent = newDeviceData.deviceId;
+                        container.appendChild(header);
+                        const canvas = document.createElement("canvas");
+                        container.appendChild(canvas);
+                        document.getElementById("charts").appendChild(container);
+                        newDeviceData.bind(initChart(canvas, newDeviceData));
+                        existingDeviceData = newDeviceData;
                     }
 
-                    myLineChart.update();
+                    existingDeviceData.chart.update();
                 } catch (err) {
                     console.error(err);
                 }
             };
         });
-
-
     </script>
 
     <title>Temperature &amp; Humidity Real-time Data</title>
@@ -135,14 +122,10 @@
 
 <body>
     <h1 class="flexHeader">
-        <span>
-            <span id="deviceCount">0 devices</span>
-            <select id="listOfDevices" class="select_box"></select>
-        </span>
+        <span id="deviceCount">0 devices</span>
         <span>Temperature & Humidity Real-time Data</span>
     </h1>
-    <div>
-        <canvas id="iotChart"></canvas>
+    <div id="charts">
     </div>
 </body>
 
