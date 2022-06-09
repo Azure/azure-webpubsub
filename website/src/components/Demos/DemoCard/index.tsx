@@ -15,20 +15,6 @@ import {
 } from '@fluentui/react'
 import * as styles from './styles.module'
 
-const previewProps: IDocumentCardPreviewProps = {
-  previewImages: [
-    {
-      name: 'Scoreboard',
-      linkProps: {
-        href: '#',
-        target: '_blank',
-      },
-      previewImageSrc: '/img/card-scoreboard.png',
-      imageFit: ImageFit.cover,
-    },
-  ],
-}
-
 export interface DemoCardProps {
   name: string
   title: string
@@ -37,10 +23,22 @@ export interface DemoCardProps {
 }
 
 export default function DemoCard(props: DemoCardProps): JSX.Element {
-  console.log(props)
+  const previewImageProps: IDocumentCardPreviewProps = {
+    previewImages: [
+      {
+        name: props.name,
+        linkProps: {
+          href: props.docLink,
+          target: '_blank',
+        },
+        previewImageSrc: '/img/card-scoreboard.png', // todo: use real demo image
+        imageFit: ImageFit.cover,
+      },
+    ],
+  }
   return (
     <DocumentCard aria-label={props.name}>
-      <DocumentCardPreview {...previewProps} />
+      <DocumentCardPreview {...previewImageProps} />
       <DocumentCardLocation location={props.name} locationHref={props.docLink} ariaLabel={props.name} />
       <DocumentCardTitle title={props.title} styles={styles.title} />
       <DocumentCardTitle title={'Is this recommendation helpful?'} shouldTruncate showAsSecondaryTitle />
