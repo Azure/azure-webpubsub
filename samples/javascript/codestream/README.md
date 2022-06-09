@@ -1,3 +1,12 @@
+---
+id: CodeStream
+title: Code Stream
+description: A real-time code live stream live demo utilizing Azure Web PubSub service
+slug: /code-streaming
+hide_table_of_contents: true
+live_demo_link: https://awps-demos-codestream.azurewebsites.net/
+---
+
 # CodeStream, livestream your code
 
 This is a sample application to demonstrate how to use Azure Web PubSub to livestream your code to others.

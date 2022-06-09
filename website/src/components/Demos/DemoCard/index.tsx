@@ -1,4 +1,4 @@
-import React from 'react'
+import * as React from 'react'
 import {
   DocumentCard,
   DocumentCardPreview,
@@ -15,33 +15,41 @@ import {
 } from '@fluentui/react'
 import * as styles from './styles.module'
 
-const previewProps: IDocumentCardPreviewProps = {
-  previewImages: [
-    {
-      name: 'Scoreboard',
-      linkProps: {
-        href: '#',
-        target: '_blank',
-      },
-      previewImageSrc: '/img/card-scoreboard.png',
-      imageFit: ImageFit.cover,
-    },
-  ],
+export interface DemoCardProps {
+  name: string
+  title: string
+  docLink: string
+  liveDemoLink: string
 }
 
-export default function DemoCard(): JSX.Element {
+export default function DemoCard(props: DemoCardProps): JSX.Element {
+  const previewImageProps: IDocumentCardPreviewProps = {
+    previewImages: [
+      {
+        name: props.name,
+        linkProps: {
+          href: props.docLink,
+          target: '_blank',
+        },
+        previewImageSrc: '/img/card-scoreboard.png', // todo: use real demo image
+        imageFit: ImageFit.cover,
+      },
+    ],
+  }
   return (
-    <DocumentCard aria-label="Demo card" onClickHref="#">
-      <DocumentCardPreview {...previewProps} />
-      <DocumentCardLocation location={'Scoreboard'} ariaLabel="Scoreboard" />
-      <DocumentCardTitle title={'A scoreboard live demo to show to monitor real time matches'} styles={styles.title} />
+    <DocumentCard aria-label={props.name}>
+      <DocumentCardPreview {...previewImageProps} />
+      <DocumentCardLocation location={props.name} locationHref={props.docLink} ariaLabel={props.name} />
+      <DocumentCardTitle title={props.title} styles={styles.title} />
       <DocumentCardTitle title={'Is this recommendation helpful?'} shouldTruncate showAsSecondaryTitle />
       <Separator></Separator>
       <Stack horizontal horizontalAlign="space-between" styles={styles.footer}>
         <StackItem style={styles.footerItem}>
           <Stack horizontal horizontalAlign="space-between">
-            <PrimaryButton text="Try demo" allowDisabledFocus />
-            <Link styles={styles.link}>See details</Link>
+            <PrimaryButton text="Try demo" allowDisabledFocus href={props.liveDemoLink ? props.liveDemoLink : props.docLink} target="_blank" />
+            <Link styles={styles.link} href={props.docLink} target="_blank">
+              See details
+            </Link>
           </Stack>
         </StackItem>
         <StackItem style={styles.footerItem}>

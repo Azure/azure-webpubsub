@@ -11,29 +11,30 @@ const config = {
   favicon: 'img/favicon.ico',
   organizationName: 'microsoft',
   projectName: 'docusaurus',
-
-  presets: [
+  themes: [
     [
-      'classic',
-      /** @type {import('@docusaurus/preset-classic').Options} */
-      ({
-        docs: {
-          path: "../samples",
-          include: [
-            '**/javascript/scoreboard/*.{md,mdx}',
-            '**/javascript/chatapp/*.{md,mdx}',
-          ],
-          routeBasePath: 'demos',
-          breadcrumbs: false,
-        },
-        blog: {
-          showReadingTime: true,
-        },
-        theme: {
-          customCss: require.resolve('./src/css/custom.css'),
-        },
-      }),
+      "@docusaurus/theme-classic",
+      {
+        customCss: require.resolve("./src/css/custom.css"),
+      },
     ],
+  ],
+  plugins: [
+    '@docusaurus/plugin-content-pages',
+    [
+      './src/plugins/docusaurus-plugin-content-docs-extend',
+      {
+        path: "../samples",
+        include: [
+          '**/*.{md,mdx}',
+        ],
+        exclude: [
+          '**/node_modules/*.{md,mdx}'
+        ],
+        routeBasePath: 'demos',
+        breadcrumbs: false,
+      }
+    ]
   ],
 };
 

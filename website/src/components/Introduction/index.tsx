@@ -3,16 +3,22 @@ import { Image, ImageFit, Label, Stack, StackItem, PrimaryButton } from '@fluent
 import * as styles from './styles.module'
 import { IsWideDevice } from '@site/src/utils/CssUtils'
 
-function IntroductionDesktop(): JSX.Element {
+export interface IntroductionProps {
+  title: string
+  description: string
+  liveDemoLink: string
+}
+
+function IntroductionDesktop(props: IntroductionProps): JSX.Element {
   return (
     <Stack horizontal wrap reversed styles={styles.background}>
       <Stack grow horizontal horizontalAlign="end" styles={styles.tryDemo}>
         <StackItem styles={styles.tryDemoItem}>
           <div style={styles.content}>
-            <Label style={styles.title}>Scoreboard demo</Label>
-            <Label>description to the demo</Label>
+            <Label style={styles.title}>{props.title}</Label>
+            <Label>{props.description}</Label>
           </div>
-          <PrimaryButton text="Launch demo"></PrimaryButton>
+          <PrimaryButton text="Launch demo" href={props.liveDemoLink} target="_blank"></PrimaryButton>
         </StackItem>
       </Stack>
       <Stack grow horizontal horizontalAlign="start">
@@ -22,15 +28,15 @@ function IntroductionDesktop(): JSX.Element {
   )
 }
 
-function IntroductionMobile(): JSX.Element {
+function IntroductionMobile(props: IntroductionProps): JSX.Element {
   return (
     <Stack>
       <Stack horizontal wrap reversed styles={styles.backgroundMobile}>
         <Stack grow horizontal styles={styles.tryDemo}>
           <StackItem styles={styles.tryDemoItem}>
             <div style={styles.content}>
-              <Label style={styles.title}>Scoreboard demo</Label>
-              <Label>description to the demo</Label>
+              <Label style={styles.title}>{props.title}</Label>
+              <Label>{props.description}</Label>
             </div>
           </StackItem>
         </Stack>
@@ -42,7 +48,7 @@ function IntroductionMobile(): JSX.Element {
   )
 }
 
-export default function Introduction(): JSX.Element {
+export default function Introduction(props: IntroductionProps): JSX.Element {
   const isWide = IsWideDevice()
-  return isWide ? IntroductionDesktop() : IntroductionMobile()
+  return isWide ? IntroductionDesktop(props) : IntroductionMobile(props)
 }
