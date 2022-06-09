@@ -1,9 +1,10 @@
 ---
-id: scoreboard
+id: Scoreboard
 title: Real-time Scoreboard
 description: A real-time scoreboard live demo utilizing Azure Web PubSub service
 slug: /scoreboard
 hide_table_of_contents: true
+live_demo_link: https://awps-scoreboard-live-demo.azurewebsites.net/
 ---
 
 # A Scoreboard
