@@ -16,11 +16,12 @@ import Sidebar from '@site/src/components/Sidebar'
 function DocPageContent({ versionMetadata, currentDocRoute, children }) {
   const { pluginId, version } = versionMetadata
   const docs = useAllPluginInstancesData('docusaurus-plugin-content-docs').default.versions[0].docs
-  const introductionProps: IntroductionProps = {title: '', description: ''};
+  const introductionProps: IntroductionProps = {title: 'Live Demo', description: '', liveDemoLink: '#'};
   docs.forEach(d => {
     if (d.permalink === currentDocRoute.path) {
       introductionProps.title = d.frontMatter.title
       introductionProps.description = d.frontMatter.description
+      introductionProps.liveDemoLink = d.frontMatter.live_demo_link
     }
   })
   return (

@@ -6,6 +6,7 @@ import { IsWideDevice } from '@site/src/utils/CssUtils'
 export interface IntroductionProps {
   title: string
   description: string
+  liveDemoLink: string
 }
 
 function IntroductionDesktop(props: IntroductionProps): JSX.Element {
@@ -17,7 +18,7 @@ function IntroductionDesktop(props: IntroductionProps): JSX.Element {
             <Label style={styles.title}>{props.title}</Label>
             <Label>{props.description}</Label>
           </div>
-          <PrimaryButton text="Launch demo"></PrimaryButton>
+          <PrimaryButton text="Launch demo" href={props.liveDemoLink} target="_blank"></PrimaryButton>
         </StackItem>
       </Stack>
       <Stack grow horizontal horizontalAlign="start">
