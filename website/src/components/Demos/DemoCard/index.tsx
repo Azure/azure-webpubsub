@@ -29,19 +29,25 @@ const previewProps: IDocumentCardPreviewProps = {
   ],
 }
 
-export default function DemoCard(): JSX.Element {
+export interface DemoCardProps {
+  name: string,
+  title: string,
+  target: string,
+}
+
+export default function DemoCard(props: DemoCardProps): JSX.Element {
   return (
-    <DocumentCard aria-label="Demo card" onClickHref="#">
+    <DocumentCard aria-label={props.name} onClickHref="#">
       <DocumentCardPreview {...previewProps} />
-      <DocumentCardLocation location={'Scoreboard'} ariaLabel="Scoreboard" />
-      <DocumentCardTitle title={'A scoreboard live demo to show to monitor real time matches'} styles={styles.title} />
+      <DocumentCardLocation location={props.name} ariaLabel={props.name} />
+      <DocumentCardTitle title={props.title} styles={styles.title} />
       <DocumentCardTitle title={'Is this recommendation helpful?'} shouldTruncate showAsSecondaryTitle />
       <Separator></Separator>
       <Stack horizontal horizontalAlign="space-between" styles={styles.footer}>
         <StackItem style={styles.footerItem}>
           <Stack horizontal horizontalAlign="space-between">
             <PrimaryButton text="Try demo" allowDisabledFocus />
-            <Link styles={styles.link}>See details</Link>
+            <Link styles={styles.link} target={props.target}>See details</Link>
           </Stack>
         </StackItem>
         <StackItem style={styles.footerItem}>

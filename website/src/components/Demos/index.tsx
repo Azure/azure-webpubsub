@@ -1,10 +1,17 @@
 import React from 'react'
 import { Stack, MessageBar, MessageBarType, MessageBarButton, Checkbox } from '@fluentui/react'
-
-import DemoCard from './DemoCard'
+import { useAllPluginInstancesData } from '@docusaurus/useGlobalData'
+import DemoCard, { DemoCardProps } from './DemoCard'
 import * as styles from './styles.module'
 
 export default function Demos(): JSX.Element {
+  const docs = useAllPluginInstancesData('docusaurus-plugin-content-docs').default.versions[0].docs
+  const demoCardProps: Array<DemoCardProps> = docs.map(doc => ({
+    name: doc.title,
+    title: doc.description,
+    target: doc.permalink,
+  }))
+
   return (
     <div>
       <MessageBar
@@ -26,15 +33,9 @@ export default function Demos(): JSX.Element {
       </Stack>
 
       <Stack wrap horizontal horizontalAlign="start" tokens={styles.demoCardTokens}>
-        <DemoCard></DemoCard>
-        <DemoCard></DemoCard>
-        <DemoCard></DemoCard>
-        <DemoCard></DemoCard>
-        <DemoCard></DemoCard>
-        <DemoCard></DemoCard>
-        <DemoCard></DemoCard>
-        <DemoCard></DemoCard>
-        <DemoCard></DemoCard>
+        {demoCardProps.map((props, i) => (
+          <DemoCard {...props} key={i}></DemoCard>
+        ))}
       </Stack>
     </div>
   )

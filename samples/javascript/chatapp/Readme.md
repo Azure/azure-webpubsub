@@ -1,5 +1,5 @@
 ---
-id: chat
+id: SimpleChat
 title: Simple Chat
 description: A real-time chat room live demo utilizing Azure Web PubSub service
 slug: /chat

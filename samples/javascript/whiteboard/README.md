@@ -1,3 +1,11 @@
+---
+id: Whiteboard
+title: Whiteboard
+description: A real-time collaboration live demo utilizing Azure Web PubSub service
+slug: /whiteboard
+hide_table_of_contents: true
+---
+
 # Whiteboard: Real Time Collaboration using Azure Web PubSub
 
 This is a sample project to demonstrate how to build a web application for real time collaboration using Azure, Node.js and other related technologies. This sample application includes the following features:

@@ -1,0 +1,23 @@
+{
+  "name": "docusaurus-plugin-content-docs",
+  "version": "0.0.0",
+  "private": true,
+  "main": "index.js",
+  "dependencies": {
+    "@docusaurus/plugin-content-docs": "^2.0.0-alpha.72",
+    "@docusaurus/types": "^2.0.0-alpha.72",
+    "@docusaurus/utils": "^2.0.0-alpha.72"
+  },
+  "browserslist": {
+    "production": [
+      ">0.5%",
+      "not dead",
+      "not op_mini all"
+    ],
+    "development": [
+      "last 1 chrome version",
+      "last 1 firefox version",
+      "last 1 safari version"
+    ]
+  }
+}

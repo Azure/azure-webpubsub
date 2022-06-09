@@ -1,5 +1,5 @@
 ---
-id: scoreboard
+id: Scoreboard
 title: Real-time Scoreboard
 description: A real-time scoreboard live demo utilizing Azure Web PubSub service
 slug: /scoreboard
