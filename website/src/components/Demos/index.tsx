@@ -1,4 +1,4 @@
-import React from 'react'
+import * as React from 'react'
 import { Stack, MessageBar, MessageBarType, MessageBarButton, Checkbox } from '@fluentui/react'
 import { useAllPluginInstancesData } from '@docusaurus/useGlobalData'
 import DemoCard, { DemoCardProps } from './DemoCard'
@@ -9,7 +9,8 @@ export default function Demos(): JSX.Element {
   const demoCardProps: Array<DemoCardProps> = docs.map(doc => ({
     name: doc.title,
     title: doc.description,
-    target: doc.permalink,
+    docLink: doc.permalink,
+    liveDemoLink: doc.frontMatter.live_demo_link,
   }))
 
   return (

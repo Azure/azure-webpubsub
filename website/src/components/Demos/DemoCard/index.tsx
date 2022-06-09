@@ -1,4 +1,4 @@
-import React from 'react'
+import * as React from 'react'
 import {
   DocumentCard,
   DocumentCardPreview,
@@ -30,24 +30,34 @@ const previewProps: IDocumentCardPreviewProps = {
 }
 
 export interface DemoCardProps {
-  name: string,
-  title: string,
-  target: string,
+  name: string
+  title: string
+  docLink: string
+  liveDemoLink: string
 }
 
 export default function DemoCard(props: DemoCardProps): JSX.Element {
+  console.log(props)
   return (
-    <DocumentCard aria-label={props.name} onClickHref="#">
+    <DocumentCard aria-label={props.name}>
       <DocumentCardPreview {...previewProps} />
-      <DocumentCardLocation location={props.name} ariaLabel={props.name} />
+      <DocumentCardLocation location={props.name} locationHref={props.docLink} ariaLabel={props.name} />
       <DocumentCardTitle title={props.title} styles={styles.title} />
       <DocumentCardTitle title={'Is this recommendation helpful?'} shouldTruncate showAsSecondaryTitle />
       <Separator></Separator>
       <Stack horizontal horizontalAlign="space-between" styles={styles.footer}>
         <StackItem style={styles.footerItem}>
           <Stack horizontal horizontalAlign="space-between">
-            <PrimaryButton text="Try demo" allowDisabledFocus />
-            <Link styles={styles.link} target={props.target}>See details</Link>
+            <PrimaryButton
+              text="Try demo"
+              allowDisabledFocus
+              onClick={(): void => {
+                window.location.href = props.liveDemoLink
+              }}
+            />
+            <Link styles={styles.link} href={props.docLink}>
+              See details
+            </Link>
           </Stack>
         </StackItem>
         <StackItem style={styles.footerItem}>
