@@ -7,19 +7,27 @@ import { matchPath } from '@docusaurus/router'
 import clsx from 'clsx'
 import styles from './styles.module.css'
 import { HtmlClassNameProvider, ThemeClassNames, docVersionSearchTag, DocsSidebarProvider, DocsVersionProvider } from '@docusaurus/theme-common'
+import { useAllPluginInstancesData } from '@docusaurus/useGlobalData'
 import SearchMetadata from '@theme/SearchMetadata'
-import Introduction from '@site/src/components/Introduction'
+import Introduction, { IntroductionProps } from '@site/src/components/Introduction'
 import { Stack, StackItem } from '@fluentui/react'
 import Sidebar from '@site/src/components/Sidebar'
 
-function DocPageContent({ versionMetadata, children }) {
+function DocPageContent({ versionMetadata, currentDocRoute, children }) {
   const { pluginId, version } = versionMetadata
-
+  const docs = useAllPluginInstancesData('docusaurus-plugin-content-docs').default.versions[0].docs
+  const introductionProps: IntroductionProps = {title: '', description: ''};
+  docs.forEach(d => {
+    if (d.permalink === currentDocRoute.path) {
+      introductionProps.title = d.frontMatter.title
+      introductionProps.description = d.frontMatter.description
+    }
+  })
   return (
     <>
       <SearchMetadata version={version} tag={docVersionSearchTag(pluginId, version)} />
       <Layout>
-        <Introduction></Introduction>
+        <Introduction {...introductionProps}></Introduction>
         <div className={styles.docPage}>
           <BackToTopButton />
           <Stack horizontal horizontalAlign="center" reversed wrap className={styles.content}>
@@ -56,7 +64,7 @@ export default function DocPage(props): JSX.Element {
     <HtmlClassNameProvider className={clsx(ThemeClassNames.wrapper.docsPages, ThemeClassNames.page.docsDocPage, versionMetadata.className)}>
       <DocsVersionProvider version={versionMetadata}>
         <DocsSidebarProvider sidebar={null}>
-          <DocPageContent versionMetadata={versionMetadata}>
+          <DocPageContent versionMetadata={versionMetadata} currentDocRoute={currentDocRoute}>
             {renderRoutes(docRoutes, {
               versionMetadata,
             })}
