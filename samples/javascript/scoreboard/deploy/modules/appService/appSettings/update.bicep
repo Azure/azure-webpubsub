@@ -9,6 +9,14 @@ resource appSettings 'Microsoft.Web/sites/config@2021-03-01' = {
         name: 'WebPubSubConnectionString'
         value: webPubSubConnectionString
       }
+      {
+        name: 'NODE_ENV'
+        value: 'production'
+      }
+      {
+        name: 'WEBSITE_NODE_DEFAULT_VERSION'
+        value: '~16'
+      }
     ]
   }
 }

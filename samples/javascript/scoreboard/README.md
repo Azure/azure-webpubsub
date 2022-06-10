@@ -9,14 +9,12 @@ live_demo_link: https://awps-scoreboard-live-demo.azurewebsites.net/
 
 # A Scoreboard
 
-## Start the client
-
+## Install npm packages
 ```
 npm install
-npm run dev
 ```
 
-## Start the server
+## Start demo
 
 Copy **Connection String** from **Keys** tab of the created Azure Web PubSub service, and replace the `<connection-string>` below with the value of your **Connection String**.
 
@@ -25,19 +23,15 @@ Copy **Connection String** from **Keys** tab of the created Azure Web PubSub ser
 Linux:
 
 ```bash
-cd src/server
-npm install
 export WebPubSubConnectionString="<connection_string>"
-npm run dev
+npm run dev:all
 ```
 
 Windows:
 
 ```cmd
-cd src\server
-npm install
 SET WebPubSubConnectionString=<connection_string>
-npm run dev
+npm run dev:all
 ```
 
 ## Use localtunnel to expose localhost
@@ -71,13 +65,11 @@ az webpubsub hub create --hub-name dev_scoreboard --name "<your-unique-resource-
 
 ## Deploy to Azure
 
-You can deploy to Azure by use the `Deploy to Azure` button or Bicep file with Azure CLI.
+You can deploy to Azure by using the `Deploy to Azure` button or Bicep file with Azure CLI.
 
 ### Deploy all with one click
 
-todo: update ARM template link to make it work
-
-![Deploy to Azure](https://aka.ms/deploytoazurebutton)
+[![Deploy to Azure](https://aka.ms/deploytoazurebutton)](https://portal.azure.com/#create/Microsoft.Template/uri/https%3A%2F%2Flivedemopackages.blob.core.windows.net%2Ftemplate%2Fscoreboard-deploy.json)
 
 ### Deploy Azure resources with Bicep
 
@@ -86,15 +78,16 @@ If you want to customize Azure resources to be created or demo code, you can dep
 1. Deploy resources to Azure
 
 ```bash
+az group create -n <group-name> -l <location>
 az deployment group create --resource-group <resource-group-name> --template-file ./deploy/deploy.bicep
 ```
 
 1. Deploy demo package to your App Service
 
 ```bash
-# build and pack the demo to dist.zip if you modify the code
-npm run pack
+# build and pack the demo to scoreboard_0.1.0.zip if you modify the code
+npm run pack:zip
 
-# deploy demo with dist.zip
-az webapp deploy --resource-group <resource-group>  --name <webapp-resource-name>  --src-path  ./dist.zip --type zip
+# deploy demo with scoreboard_0.1.0.zip
+az webapp deploy --resource-group <resource-group>  --name <webapp-resource-name>  --src-path  ./scoreboard_0.1.0.zip --type zip
 ```

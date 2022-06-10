@@ -1,7 +1,7 @@
 import { createStore } from 'vuex'
-import { ScoreboardSourceOptions } from '@/ScoreboardSourceOptions'
-import { MatchTeams } from '@/models/MatchTeams'
-import { ScoreSource } from '@/ScoreSource'
+import { ScoreboardSourceOptions } from '../ScoreboardSourceOptions'
+import { MatchTeams } from '../../models/MatchTeams'
+import { ScoreSource } from '../ScoreSource'
 
 const options = <ScoreboardSourceOptions>{}
 options.onGettingRealtimeMatchDetailsScore = []

@@ -47,11 +47,11 @@
 <script lang="ts" setup>
 import { onMounted, ref, watch } from 'vue'
 import { useStore } from 'vuex'
-import utils from '@/utils'
-import { MatchTeams } from '@/models/MatchTeams'
-import { ScoreboardSourceOptions } from '@/ScoreboardSourceOptions'
-import { ScoreSource } from '@/ScoreSource'
-import { RealtimeMatchDetailsPayload } from '@/models/payloads/RealtimeMatchDetailsPayload'
+import utils from '../utils'
+import { MatchTeams } from '../../models/MatchTeams'
+import { ScoreboardSourceOptions } from '../ScoreboardSourceOptions'
+import { ScoreSource } from '../ScoreSource'
+import { RealtimeMatchDetailsPayload } from '../../models/payloads/RealtimeMatchDetailsPayload'
 import { anime } from '@maybecode/vue-next-animejs'
 import 'element-plus/theme-chalk/display.css'
 

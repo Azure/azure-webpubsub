@@ -1,26 +1,70 @@
-// parameters in resource group
-param location string = resourceGroup().location // Location for all resources
-param uniqueStr string = uniqueString(resourceGroup().id) // Generate unique string
+// common parameters
+@metadata({
+  description: 'Location for all resources. The default value [resourceGroup().location] is the location of resource group.'
+})
+param location string = resourceGroup().location
 
 // parameters for azure web pubsub
-param unit int = 1
-param demoName string = 'scoreboard'
+@metadata({
+  description: 'Unit of Azure Web PubSub service. The default value is 1.'
+})
+@allowed([
+  1
+  2
+  5
+  10
+  20
+  50
+  100
+])
+param WebPubSubUnit int = 1
 
 // parameters for azure app service
-param sku string = 'B1' // The SKU of App Service Plan
-param linuxFxVersion string = 'node|14-lts' // The runtime stack of web app
+@metadata({
+  description: 'The SKU of Azure App service. The default value is B1.'
+})
+@allowed([
+  'B1'
+  'B2'
+  'B3'
+  'F1'
+  'D1'
+  'S1'
+  'S2'
+  'S3'
+  'P1v2'
+  'P2v2'
+  'P3v2'
+  'P1v3'
+  'P2v3'
+  'P3v3'
+  'I1'
+  'I2'
+  'I3'
+  'I1v2'
+  'I2v2'
+  'I3v2'
+])
+param appServiceSku string = 'B1' // The SKU of App Service Plan
 
-var webpubsubName = toLower('wps-${uniqueStr}')
-var appServicePlanName = toLower('asp-${uniqueStr}')
-var webSiteName = toLower('wap-${uniqueStr}')
+@metadata({
+  description: 'Demo package to be deployed.'
+})
+param packageUri string = 'https://livedemopackages.blob.core.windows.net/packages/scoreboard_0.1.0.zip'
+
+var demoName = 'scoreboard'
+var uniqueStr = uniqueString(resourceGroup().id) // Generate unique string
+var webpubsubName = toLower('wps-${demoName}-${uniqueStr}')
+var appServicePlanName = toLower('asp-${demoName}-${uniqueStr}')
+var webSiteName = toLower('wap-${demoName}-${uniqueStr}')
 
 module appServiceModule './modules/appService/create.bicep' = {
   name: 'appServiceCreate'
   params: {
     appServicePlanName: appServicePlanName
     webSiteName: webSiteName
-    sku: sku
-    linuxFxVersion: linuxFxVersion
+    sku: appServiceSku
+    packageUri: packageUri
     location: location
   }
 }
@@ -28,9 +72,9 @@ module appServiceModule './modules/appService/create.bicep' = {
 module webpubsubModule './modules/webpsubsub/createOrUpdate.bicep' = {
   name: 'webpubsubCreate'
   params: {
-    name: webpubsubName
     location: location
-    unit: unit
+    name: webpubsubName
+    unit: WebPubSubUnit
   }
 }
 
@@ -66,6 +110,10 @@ module appSettings './modules/appService/appSettings/update.bicep' = {
   }
 }
 
-
-
-
+module deployPackage './modules/appService/package/deploy.bicep' = {
+  name: 'deployPackage'
+  params: {
+    packageUri: packageUri
+    webSiteName: appServiceModule.outputs.webSiteName
+  }
+}

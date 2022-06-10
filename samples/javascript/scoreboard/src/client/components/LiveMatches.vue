@@ -18,13 +18,13 @@
 <script lang="ts" setup>
 import { watch, ref, Ref } from 'vue'
 import { useStore } from 'vuex'
-import { MatchSummaryListPayload } from '@/models/payloads/MatchSummaryListPayload'
-import { MatchTeams } from '@/models/MatchTeams'
-import { ScoreboardSourceOptions } from '@/ScoreboardSourceOptions'
-import { RealtimeMatchDetailsPayload } from '@/models/payloads/RealtimeMatchDetailsPayload'
-import * as clientUtils from '@/utils'
-import utils from '@/common/utils'
-import { ScoreSource } from '@/ScoreSource'
+import { MatchSummaryListPayload } from '../../models/payloads/MatchSummaryListPayload'
+import { MatchTeams } from '../../models/MatchTeams'
+import { ScoreboardSourceOptions } from '../ScoreboardSourceOptions'
+import { RealtimeMatchDetailsPayload } from '../../models/payloads/RealtimeMatchDetailsPayload'
+import * as clientUtils from '../../client/utils'
+import utils from '../../common/utils'
+import { ScoreSource } from '../ScoreSource'
 
 interface Card {
     thumbnails: [Ref<string>, Ref<string>]

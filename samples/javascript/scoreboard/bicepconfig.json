@@ -1,0 +1,11 @@
+{
+  "analyzers": {
+    "core": {
+      "rules": {
+        "no-loc-expr-outside-params": {
+          "level": "warning"
+        }
+      }
+    }
+  }
+}

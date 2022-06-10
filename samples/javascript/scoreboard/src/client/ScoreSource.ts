@@ -1,12 +1,12 @@
 import 'ws'
 import axios from 'axios'
-import constants from '@/common/constants'
-import { RealtimeMatchDetailsPayload } from '@/models/payloads/RealtimeMatchDetailsPayload'
+import constants from '../common/constants'
+import { RealtimeMatchDetailsPayload } from '../models/payloads/RealtimeMatchDetailsPayload'
 import { ScoreboardSourceOptions } from './ScoreboardSourceOptions'
-import { MatchSummaryListPayload } from '@/models/payloads/MatchSummaryListPayload'
-import { MatchTeams } from '@/models/MatchTeams'
-import utils from '@/common/utils'
-import { MatchTeamsPayload } from '@/models/payloads/MatchTeamsPayload'
+import { MatchSummaryListPayload } from '../models/payloads/MatchSummaryListPayload'
+import { MatchTeams } from '../models/MatchTeams'
+import utils from '../common/utils'
+import { MatchTeamsPayload } from '../models/payloads/MatchTeamsPayload'
 import { Guid } from 'js-guid'
 
 export class ScoreSource {

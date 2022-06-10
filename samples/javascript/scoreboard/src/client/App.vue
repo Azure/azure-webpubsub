@@ -22,12 +22,12 @@
 import { onMounted } from 'vue'
 import { useStore } from 'vuex'
 
-import { ScoreSource } from '@/ScoreSource'
+import { ScoreSource } from './ScoreSource'
 
-import LiveMatches from '@/components/LiveMatches.vue'
-import PastMatches from '@/components/PastMatches.vue'
-import MatchDetails from '@/components/MatchDetails.vue'
-import LiveHeader from '@/components/LiveHeader.vue'
+import LiveMatches from './components/LiveMatches.vue'
+import PastMatches from './components/PastMatches.vue'
+import MatchDetails from './components/MatchDetails.vue'
+import LiveHeader from './components/LiveHeader.vue'
 
 onMounted(() => {
     const store = useStore()

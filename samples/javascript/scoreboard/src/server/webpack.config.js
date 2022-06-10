@@ -1,11 +1,10 @@
 const path = require('path')
-
-const { NODE_ENV = 'production' } = process.env
+const CopyWebpackPlugin = require('copy-webpack-plugin');
 
 module.exports = {
-    mode: NODE_ENV,
+    mode: 'production',
     target: 'node',
-    entry: './app.ts',
+    entry: path.resolve(__dirname, 'app.ts'),
     output: {
         path: path.resolve(__dirname, '../../dist'),
         filename: 'app.js',
@@ -18,7 +17,19 @@ module.exports = {
             {
                 test: /\.ts$/,
                 use: ['ts-loader'],
+                exclude: [
+                    /node_modules/,
+                    /src\/client\//
+                ],
             },
         ],
     },
+    plugins: [
+        new CopyWebpackPlugin({
+            patterns: [{
+                from: path.resolve(__dirname, 'web.config'),
+                to: path.resolve(__dirname, '../../dist/web.config'),
+            }]
+        }),
+    ]
 }
