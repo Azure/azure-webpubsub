@@ -24,9 +24,9 @@
 <script lang="ts" setup>
 import { ref, Ref } from 'vue'
 import { useStore } from 'vuex'
-import { MatchSummaryListPayload } from '@/models/payloads/MatchSummaryListPayload'
-import { ScoreboardSourceOptions } from '@/ScoreboardSourceOptions'
-import utils from '@/utils'
+import { MatchSummaryListPayload } from '../../models/payloads/MatchSummaryListPayload'
+import { ScoreboardSourceOptions } from '../ScoreboardSourceOptions'
+import utils from '../utils'
 
 interface Card {
     teams: [string, string]

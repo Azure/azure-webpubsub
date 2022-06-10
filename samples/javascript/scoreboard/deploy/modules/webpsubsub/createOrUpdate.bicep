@@ -1,5 +1,7 @@
 param name string
+
 param location string
+
 @allowed([
   1
   2

@@ -10,8 +10,8 @@ import { MatchTeams } from '../models/MatchTeams'
 import path from 'path'
 
 // environment
-const port = process.env.port || process.env.PORT || 5050
-const staticRoot = path.join(__dirname, 'public')
+const port = normalizePort(process.env.PORT || '5050');
+const staticRoot = path.join(__dirname)
 const connectionString = process.env.WebPubSubConnectionString as string
 const hubName = process.env.NODE_ENV === 'production' ? 'sample_scoreboard' : 'sample_dev_scoreboard'
 
@@ -65,6 +65,7 @@ const handler = new WebPubSubEventHandler(hubName, {
 
 // setup server
 const app = express()
+app.set('port', port)
 app.use(express.static(staticRoot))
 app.use(handler.getMiddleware())
 
@@ -91,3 +92,23 @@ matchRunner.run()
 
 // start server
 app.listen(port, () => console.log(`Event handler listening at http://localhost:${port}${handler.path} for hub ${hubName}.`))
+
+/**
+ * Normalize a port into a number, string, or false.
+ */
+
+ function normalizePort(val) {
+    let port = parseInt(val, 10);
+  
+    if (isNaN(port)) {
+      // named pipe
+      return val;
+    }
+  
+    if (port >= 0) {
+      // port number
+      return port;
+    }
+  
+    return false;
+  }

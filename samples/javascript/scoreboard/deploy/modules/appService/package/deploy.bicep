@@ -1,8 +1,9 @@
-param resourceName string
+param webSiteName string
+param packageUri string
 
-resource symbolicname 'Microsoft.Web/sites/extensions@2021-03-01' = {
-  name: '${resourceName}/MSDeploy'
+resource deployPackage 'Microsoft.Web/sites/extensions@2018-02-01' = {
+  name: '${webSiteName}/MSDeploy'
   properties: {
-    packageUri: 'todo'
+    packageUri: packageUri
   }
 }
