@@ -1,5 +1,6 @@
 import React from 'react'
-import { Stack, SearchBox, Label, ImageIcon, FontIcon } from '@fluentui/react'
+import useDocusaurusContext from '@docusaurus/useDocusaurusContext'
+import { Stack, SearchBox, Label, ImageIcon, FontIcon, Link } from '@fluentui/react'
 import { initializeIcons } from '@fluentui/font-icons-mdl2'
 import { css } from '@fluentui/react/lib/Utilities'
 import { IsWideDevice } from '@site/src/utils/CssUtils'
@@ -13,19 +14,23 @@ function Brand(): JSX.Element {
       <Stack horizontal tokens={styles.leftNavTokens} styles={styles.leftNav}>
         <Stack.Item>
           <Stack>
-            <ImageIcon
-              className={styles.classNames.logo}
-              aria-label="Locked"
-              imageProps={{
-                src: '/img/logo.png',
-                alt: 'logo',
-                className: css(styles.classNames.image, styles.classNames.logoImage),
-              }}
-            />
+            <Link href="/">
+              <ImageIcon
+                className={styles.classNames.logo}
+                aria-label="Locked"
+                imageProps={{
+                  src: '/img/logo.png',
+                  alt: 'logo',
+                  className: css(styles.classNames.image, styles.classNames.logoImage),
+                }}
+              />
+            </Link>
           </Stack>
         </Stack.Item>
         <Stack.Item>
-          <Label styles={styles.title}>Web PubSub Service Demo Platform</Label>
+          <Link href="/">
+            <Label styles={styles.title}>Web PubSub Service Demo Platform</Label>
+          </Link>
         </Stack.Item>
       </Stack>
     </Stack.Item>
@@ -41,16 +46,21 @@ function Search(): JSX.Element {
 }
 
 function Contact(): JSX.Element {
+  const { siteConfig } = useDocusaurusContext()
+  const status = siteConfig.customFields.developmentStatus
+
   return (
     <Stack.Item grow>
-      <Stack horizontal horizontalAlign="end" tokens={styles.rightNavTokens} styles={styles.rightNav}>
-        <Stack.Item>
-          <FontIcon aria-label="Chat" iconName="ChatInviteFriend" className={styles.classNames.navBarIcon} />
-        </Stack.Item>
-        <Stack.Item>
-          <FontIcon aria-label="Question" iconName="StatusCircleQuestionMark" className={styles.classNames.navBarIcon} />
-        </Stack.Item>
-      </Stack>
+      {status.isContactNavBarReady && (
+        <Stack horizontal horizontalAlign="end" tokens={styles.rightNavTokens} styles={styles.rightNav}>
+          <Stack.Item>
+            <FontIcon aria-label="Chat" iconName="ChatInviteFriend" className={styles.classNames.navBarIcon} />
+          </Stack.Item>
+          <Stack.Item>
+            <FontIcon aria-label="Question" iconName="StatusCircleQuestionMark" className={styles.classNames.navBarIcon} />
+          </Stack.Item>
+        </Stack>
+      )}
     </Stack.Item>
   )
 }
