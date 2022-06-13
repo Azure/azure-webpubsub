@@ -11,14 +11,17 @@ import { useAllPluginInstancesData } from '@docusaurus/useGlobalData'
 import SearchMetadata from '@theme/SearchMetadata'
 import Introduction, { IntroductionProps } from '@site/src/components/Introduction'
 import { Stack, StackItem } from '@fluentui/react'
-import Sidebar from '@site/src/components/Sidebar'
+import Sidebar, { SidebarProps } from '@site/src/components/Sidebar'
 
 function DocPageContent({ versionMetadata, currentDocRoute, children }) {
   const { pluginId, version } = versionMetadata
   const docs = useAllPluginInstancesData('docusaurus-plugin-content-docs').default.versions[0].docs
-  const introductionProps: IntroductionProps = {title: 'Live Demo', description: '', liveDemoLink: '#'};
+  const introductionProps: IntroductionProps = { title: 'Live Demo', description: '', liveDemoLink: '#' }
+  const sidebarProps: SidebarProps = { docId: '' }
   docs.forEach(d => {
     if (d.permalink === currentDocRoute.path) {
+      console.log(d)
+      sidebarProps.docId = d.id
       introductionProps.title = d.frontMatter.title
       introductionProps.description = d.frontMatter.description
       introductionProps.liveDemoLink = d.frontMatter.live_demo_link
@@ -40,7 +43,7 @@ function DocPageContent({ versionMetadata, currentDocRoute, children }) {
               </Stack>
             </StackItem>
             <StackItem grow>
-              <Sidebar></Sidebar>
+              <Sidebar {...sidebarProps}></Sidebar>
             </StackItem>
           </Stack>
         </div>

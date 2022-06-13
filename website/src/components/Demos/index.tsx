@@ -1,6 +1,7 @@
 import * as React from 'react'
 import { Stack, MessageBar, MessageBarType, MessageBarButton, Checkbox } from '@fluentui/react'
 import { useAllPluginInstancesData } from '@docusaurus/useGlobalData'
+import useDocusaurusContext from '@docusaurus/useDocusaurusContext'
 import DemoCard, { DemoCardProps } from './DemoCard'
 import * as styles from './styles.module'
 
@@ -13,27 +14,34 @@ export default function Demos(): JSX.Element {
     liveDemoLink: doc.frontMatter.live_demo_link,
   }))
 
+  const { siteConfig } = useDocusaurusContext()
+  const status = siteConfig.customFields.developmentStatus
+
   return (
     <div>
-      <MessageBar
-        messageBarType={MessageBarType.info}
-        actions={<MessageBarButton>Tell us</MessageBarButton>}
-        isMultiline={false}
-        dismissButtonAriaLabel="Close"
-        onDismiss={() => {}}
-      >
-        If you did not find the demos below, you can tell us what demo you need here
-      </MessageBar>
+      {status.isRequestDemoMessageBarReady && (
+        <MessageBar
+          messageBarType={MessageBarType.info}
+          actions={<MessageBarButton>Tell us</MessageBarButton>}
+          isMultiline={false}
+          dismissButtonAriaLabel="Close"
+          onDismiss={() => {}}
+        >
+          If you did not find the demos below, you can tell us what demo you need here
+        </MessageBar>
+      )}
 
-      <Stack horizontal wrap tokens={styles.checkboxTokens}>
-        <Checkbox label="All" defaultChecked></Checkbox>
-        <Checkbox label="Game" defaultChecked></Checkbox>
-        <Checkbox label="Live chat" defaultChecked></Checkbox>
-        <Checkbox label="Geolocation" defaultChecked></Checkbox>
-        <Checkbox label="Collaboration" defaultChecked></Checkbox>
-      </Stack>
+      {status.isDemoCategoryReady && (
+        <Stack horizontal wrap tokens={styles.checkboxTokens}>
+          <Checkbox label="All" defaultChecked></Checkbox>
+          <Checkbox label="Game" defaultChecked></Checkbox>
+          <Checkbox label="Live chat" defaultChecked></Checkbox>
+          <Checkbox label="Geolocation" defaultChecked></Checkbox>
+          <Checkbox label="Collaboration" defaultChecked></Checkbox>
+        </Stack>
+      )}
 
-      <Stack wrap horizontal horizontalAlign="start" tokens={styles.demoCardTokens}>
+      <Stack wrap horizontal horizontalAlign="space-evenly" tokens={styles.demoCardTokens}>
         {demoCardProps.map((props, i) => (
           <DemoCard {...props} key={i}></DemoCard>
         ))}
