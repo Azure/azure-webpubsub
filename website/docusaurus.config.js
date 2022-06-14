@@ -35,6 +35,9 @@ const config = {
   favicon: 'img/favicon.ico',
   organizationName: 'microsoft',
   projectName: 'docusaurus',
+  themeConfig: {
+    metadata: [{ name: 'keywords', content: 'websocket, serverless, azure, web pubsub, service, realtime, messaging' }],
+  },
   themes: [
     [
       "@docusaurus/theme-classic",
