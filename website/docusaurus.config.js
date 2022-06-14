@@ -36,7 +36,7 @@ const config = {
   organizationName: 'microsoft',
   projectName: 'docusaurus',
   themeConfig: {
-    metadata: [{ name: 'keywords', content: 'websocket, azure, web pubsub, service, realtime, messaging' }],
+    metadata: [{ name: 'keywords', content: 'websocket, serverless, azure, web pubsub, service, realtime, messaging' }],
   },
   themes: [
     [
