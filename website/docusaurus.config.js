@@ -1,36 +1,16 @@
 // @ts-check
 // Note: type annotations allow type checking and IDEs autocompletion
 
-const customFields = {
-  doc: {
-    path: "../samples"
-  },
-  developmentStatus: {
-    isCustomerStoryReady: false,
-    isFeedbackReady: false,
-    isRequestDemoMessageBarReady: false,
-    isDemoCategoryReady: false,
-    isTellUsReady: false,
-    isContactNavBarReady: false,
-    isRatingWithFeedback: false,
-    isShareReady: false,
-  },
-  sidebar: {
-    sampleRoot: "https://github.com/Azure/azure-webpubsub/tree/main/samples/",
-    // todo: add an issue template for live demo
-    reviewLink: "https://github.com/Azure/azure-webpubsub/issues",
-    // todo: add share component
-    shareLink: "",
-    docLink: "https://azure.microsoft.com/services/web-pubsub/",
-  }
-}
+const path = require('path')
+const customFields = require(path.resolve(__dirname, 'configs/customFields'))
+const plugins = require(path.resolve(__dirname, 'configs/plugins'))({ root: __dirname, docPath: customFields.doc.path })
 
 /** @type {import('@docusaurus/types').Config} */
 const config = {
   title: 'Demos for Azure Web PubSub Service',
   url: '/azure-webpubsub',
   baseUrl: '/',
-  onBrokenLinks: 'throw',
+  onBrokenLinks: 'warn', // external sites may be out of reach temporarily due to their own problems
   onBrokenMarkdownLinks: 'warn',
   favicon: 'img/favicon.ico',
   organizationName: 'microsoft',
@@ -43,24 +23,8 @@ const config = {
       },
     ],
   ],
-  plugins: [
-    '@docusaurus/plugin-content-pages',
-    [
-      './src/plugins/docusaurus-plugin-content-docs-extend',
-      {
-        path: customFields.doc.path,
-        include: [
-          '**/*.{md,mdx}',
-        ],
-        exclude: [
-          '**/node_modules/*.{md,mdx}'
-        ],
-        routeBasePath: 'demos',
-        breadcrumbs: false,
-      }
-    ]
-  ],
-  customFields: customFields
+  plugins,
+  customFields,
 };
 
 module.exports = config;
