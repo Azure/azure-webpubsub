@@ -3,6 +3,7 @@ import { Stack, MessageBar, MessageBarType, MessageBarButton, Checkbox } from '@
 import { useAllPluginInstancesData } from '@docusaurus/useGlobalData'
 import useDocusaurusContext from '@docusaurus/useDocusaurusContext'
 import DemoCard, { DemoCardProps } from './DemoCard'
+import { IsWideDevice } from '@site/src/utils/CssUtils'
 import * as styles from './styles.module'
 
 export default function Demos(): JSX.Element {
@@ -16,6 +17,7 @@ export default function Demos(): JSX.Element {
 
   const { siteConfig } = useDocusaurusContext()
   const status = siteConfig.customFields.developmentStatus as DevelopmentStatus
+  const isWide = IsWideDevice()
 
   return (
     <div>
@@ -41,7 +43,7 @@ export default function Demos(): JSX.Element {
         </Stack>
       )}
 
-      <Stack wrap horizontal horizontalAlign="space-between" tokens={styles.demoCardTokens}>
+      <Stack wrap horizontal horizontalAlign={isWide ? 'space-between' : 'space-evenly'} tokens={styles.demoCardTokens}>
         {demoCardProps.map((props, i) => (
           <DemoCard {...props} key={i}></DemoCard>
         ))}

@@ -24,10 +24,16 @@ export const navBar: IStackStyles = {
   },
 }
 
+export const imageIcon: ILinkStyles = {
+  root: {
+    display: 'flex',
+  },
+}
+
 export const leftNav: IStackStyles = {
   root: {
-    padding: '0 0 0 5px',
-    alignItems: 'end',
+    padding: '0 0 0 10px',
+    alignItems: 'center',
     background: DefaultPalette.themePrimary,
     color: DefaultPalette.white,
   },
