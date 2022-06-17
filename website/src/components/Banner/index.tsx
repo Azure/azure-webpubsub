@@ -1,4 +1,5 @@
 import React from 'react'
+import useDocusaurusContext from '@docusaurus/useDocusaurusContext'
 import { Swiper, SwiperSlide } from 'swiper/react'
 import { Pagination, Navigation } from 'swiper'
 import 'swiper/css'
@@ -10,7 +11,14 @@ import { IsWideDevice } from '@site/src/utils/CssUtils'
 
 export default function Banner() {
   const isWide = IsWideDevice()
-  const imageSource = `/img/banner-${isWide ? 'desktop' : 'mobile'}-1.png`
+  const { siteConfig } = useDocusaurusContext()
+  const bannerImageSources = siteConfig.customFields.bannerImageSources
+  const sources = isWide ? bannerImageSources.desktop : bannerImageSources.mobile
+  const slides = sources.map((src: string, i: number) => (
+    <SwiperSlide key={i}>
+      <img src={src} className={styles.bannerImage}></img>
+    </SwiperSlide>
+  ))
   return (
     <Swiper
       slidesPerView={1}
@@ -22,12 +30,7 @@ export default function Banner() {
       navigation={isWide}
       modules={[Pagination, Navigation]}
     >
-      <SwiperSlide>
-        <img src={imageSource} className={styles.bannerImage}></img>
-      </SwiperSlide>
-      <SwiperSlide>
-        <img src={imageSource} className={styles.bannerImage}></img>
-      </SwiperSlide>
+      {slides}
     </Swiper>
   )
 }
