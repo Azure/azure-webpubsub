@@ -14,6 +14,7 @@ module.exports = {
         isContactNavBarReady: false,
         isRatingWithFeedback: false,
         isShareReady: false,
+        isSearchReady: false,
     },
     bannerImageSources: {
         mobile: [...Array(bannerCount).keys()].map(i => getImageSource(i, 'mobile')),

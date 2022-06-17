@@ -10,5 +10,6 @@ declare global {
     isContactNavBarReady: boolean
     isRatingWithFeedback: boolean
     isShareReady: boolean
+    isSearchReady: boolean
   }
 }

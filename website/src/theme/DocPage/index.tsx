@@ -12,7 +12,6 @@ import SearchMetadata from '@theme/SearchMetadata'
 import Introduction, { IntroductionProps } from '@site/src/components/Introduction'
 import { Stack, StackItem } from '@fluentui/react'
 import Sidebar, { SidebarProps } from '@site/src/components/Sidebar'
-import Demos from '@site/src/components/Demos'
 
 function DocPageContent({ versionMetadata, currentDocRoute, children }) {
   const { pluginId, version } = versionMetadata
