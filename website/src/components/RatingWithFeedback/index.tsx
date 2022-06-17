@@ -7,7 +7,7 @@ import useDocusaurusContext from '@docusaurus/useDocusaurusContext'
 export default function RatingWithFeedback(): JSX.Element {
   const isWide = IsWideDevice()
   const { siteConfig } = useDocusaurusContext()
-  const status = siteConfig.customFields.developmentStatus
+  const status = siteConfig.customFields.developmentStatus as DevelopmentStatus
 
   return (
     status.isRatingWithFeedback && (

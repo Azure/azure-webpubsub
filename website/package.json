@@ -6,6 +6,8 @@
     "docusaurus": "docusaurus",
     "start": "docusaurus start",
     "build": "docusaurus build",
+    "build:workaround:init": "git clone https://github.com/wanlwanl/docusaurus && cd docusaurus && yarn && yarn build:packages && npm link ./docusaurus/node_modules/react/",
+    "build:workaround": "node ./docusaurus/packages/docusaurus/bin/docusaurus.mjs build .",
     "swizzle": "docusaurus swizzle",
     "deploy": "docusaurus deploy",
     "clear": "docusaurus clear",

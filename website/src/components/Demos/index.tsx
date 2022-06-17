@@ -5,11 +5,7 @@ import useDocusaurusContext from '@docusaurus/useDocusaurusContext'
 import DemoCard, { DemoCardProps } from './DemoCard'
 import * as styles from './styles.module'
 
-export interface DemosProps {
-  hidden: boolean
-}
-
-export default function Demos(props: DemosProps): JSX.Element {
+export default function Demos(): JSX.Element {
   const docs = useAllPluginInstancesData('docusaurus-plugin-content-docs').default.versions[0].docs
   const demoCardProps: Array<DemoCardProps> = docs.map(doc => ({
     name: doc.title,
@@ -19,14 +15,10 @@ export default function Demos(props: DemosProps): JSX.Element {
   }))
 
   const { siteConfig } = useDocusaurusContext()
-  const status = siteConfig.customFields.developmentStatus
-
-  // fluentui build bug workaround
-  const style = {}
-  if (props.hidden) style['display'] = 'none'
+  const status = siteConfig.customFields.developmentStatus as DevelopmentStatus
 
   return (
-    <div style={style}>
+    <div>
       {status.isRequestDemoMessageBarReady && (
         <MessageBar
           messageBarType={MessageBarType.info}
