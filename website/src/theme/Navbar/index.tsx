@@ -5,43 +5,45 @@ import { initializeIcons } from '@fluentui/font-icons-mdl2'
 import { css } from '@fluentui/react/lib/Utilities'
 import { IsWideDevice } from '@site/src/utils/CssUtils'
 import * as styles from './styles.module'
+import localStyles from './styles.module.css'
 
 initializeIcons()
 
 function Brand(): JSX.Element {
   return (
-    <Stack.Item grow>
+    <Stack.Item grow align="center">
       <Stack horizontal tokens={styles.leftNavTokens} styles={styles.leftNav}>
-        <Stack.Item>
-          <Stack>
-            <Link href="/">
-              <ImageIcon
-                className={styles.classNames.logo}
-                aria-label="Locked"
-                imageProps={{
-                  src: '/img/logo.png',
-                  alt: 'logo',
-                  className: css(styles.classNames.image, styles.classNames.logoImage),
-                }}
-              />
-            </Link>
-          </Stack>
-        </Stack.Item>
-        <Stack.Item>
-          <Link href="/">
-            <Label styles={styles.title}>Web PubSub Service Demo Platform</Label>
-          </Link>
-        </Stack.Item>
+        <Link className={localStyles.imageIcon} href="/">
+          <ImageIcon
+            className={styles.classNames.logo}
+            aria-label="Locked"
+            imageProps={{
+              src: '/img/logo.png',
+              alt: 'logo',
+              className: css(styles.classNames.image, styles.classNames.logoImage),
+            }}
+          ></ImageIcon>
+        </Link>
+        <Link href="/" className={localStyles.link}>
+          <Label styles={styles.title}>Web PubSub Service Demo Platform</Label>
+        </Link>
       </Stack>
     </Stack.Item>
   )
 }
 
 function Search(): JSX.Element {
+  const { siteConfig } = useDocusaurusContext()
+  const status = siteConfig.customFields.developmentStatus as DevelopmentStatus
   return (
-    <Stack.Item grow>
-      <SearchBox placeholder="Search demos by keyword. e.g. chat" styles={styles.searchBox} />
-    </Stack.Item>
+    <>
+      {status.isSearchReady && (
+        <Stack.Item grow>
+          {' '}
+          <SearchBox placeholder="Search demos by keyword. e.g. chat" styles={styles.searchBox} />
+        </Stack.Item>
+      )}
+    </>
   )
 }
 
@@ -50,18 +52,20 @@ function Contact(): JSX.Element {
   const status = siteConfig.customFields.developmentStatus as DevelopmentStatus
 
   return (
-    <Stack.Item grow>
+    <>
       {status.isContactNavBarReady && (
-        <Stack horizontal horizontalAlign="end" tokens={styles.rightNavTokens} styles={styles.rightNav}>
-          <Stack.Item>
-            <FontIcon aria-label="Chat" iconName="ChatInviteFriend" className={styles.classNames.navBarIcon} />
-          </Stack.Item>
-          <Stack.Item>
-            <FontIcon aria-label="Question" iconName="StatusCircleQuestionMark" className={styles.classNames.navBarIcon} />
-          </Stack.Item>
-        </Stack>
+        <Stack.Item grow>
+          <Stack horizontal horizontalAlign="end" tokens={styles.rightNavTokens} styles={styles.rightNav}>
+            <Stack.Item>
+              <FontIcon aria-label="Chat" iconName="ChatInviteFriend" className={styles.classNames.navBarIcon} />
+            </Stack.Item>
+            <Stack.Item>
+              <FontIcon aria-label="Question" iconName="StatusCircleQuestionMark" className={styles.classNames.navBarIcon} />
+            </Stack.Item>
+          </Stack>
+        </Stack.Item>
       )}
-    </Stack.Item>
+    </>
   )
 }
 
@@ -78,6 +82,9 @@ function NavBarDesktop(): JSX.Element {
 }
 
 function NavBarMobile(): JSX.Element {
+  const { siteConfig } = useDocusaurusContext()
+  const status = siteConfig.customFields.developmentStatus as DevelopmentStatus
+
   return (
     <div className="navbar" style={styles.root}>
       <Stack>
@@ -85,9 +92,12 @@ function NavBarMobile(): JSX.Element {
           <Brand></Brand>
           <Contact></Contact>
         </Stack>
-        <Stack horizontal horizontalAlign="space-between" styles={styles.navBar} tokens={styles.stackTokens}>
-          <Search></Search>
-        </Stack>
+        {/* need to remove this, otherwise will hold space */}
+        {status.isSearchReady && (
+          <Stack horizontal horizontalAlign="space-between" styles={styles.navBar} tokens={styles.stackTokens}>
+            <Search></Search>
+          </Stack>
+        )}
       </Stack>
     </div>
   )

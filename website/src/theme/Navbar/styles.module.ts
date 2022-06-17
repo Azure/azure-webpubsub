@@ -1,12 +1,19 @@
-import { IStackStyles, IStackTokens, DefaultPalette } from '@fluentui/react'
+import { IStackStyles, IStackTokens, DefaultPalette, ILinkStyles } from '@fluentui/react'
 import { ISearchBoxStyles } from '@fluentui/react/lib/SearchBox'
 import { ILabelStyles } from '@fluentui/react/lib/Label'
 import { mergeStyleSets } from '@fluentui/react/lib/Styling'
+
+export const titleLink: ILinkStyles = {
+  root: {
+    textDecoration: 'none',
+  },
+}
 
 export const title: ILabelStyles = {
   root: {
     fontWeight: 600,
     color: DefaultPalette.white,
+    cursor: 'pointer',
   },
 }
 
@@ -19,8 +26,8 @@ export const navBar: IStackStyles = {
 
 export const leftNav: IStackStyles = {
   root: {
-    padding: 0,
-    alignItems: 'center',
+    padding: '0 0 0 5px',
+    alignItems: 'end',
     background: DefaultPalette.themePrimary,
     color: DefaultPalette.white,
   },
@@ -74,11 +81,16 @@ export const classNames = mergeStyleSets({
     fontSize: '1.5rem',
     height: '0.5rem',
   },
+  titleLink: {
+    'a:hover': {
+      textDecoration: 'none',
+    },
+  },
 })
 
 export const root: React.CSSProperties = {
   backgroundColor: '',
-    display: 'block',
-    height: 'auto',
-    padding: 0,
+  display: 'block',
+  height: 'auto',
+  padding: 0,
 }

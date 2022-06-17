@@ -41,7 +41,7 @@ export default function Demos(): JSX.Element {
         </Stack>
       )}
 
-      <Stack wrap horizontal horizontalAlign="space-evenly" tokens={styles.demoCardTokens}>
+      <Stack wrap horizontal horizontalAlign="space-between" tokens={styles.demoCardTokens}>
         {demoCardProps.map((props, i) => (
           <DemoCard {...props} key={i}></DemoCard>
         ))}
