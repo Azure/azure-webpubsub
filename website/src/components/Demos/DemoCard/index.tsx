@@ -12,7 +12,6 @@ import {
   Stack,
   StackItem,
   ImageFit,
-  IDocumentCardPreview,
 } from '@fluentui/react'
 import * as styles from './styles.module'
 import useDocusaurusContext from '@docusaurus/useDocusaurusContext'
@@ -42,15 +41,10 @@ export default function DemoCard(props: DemoCardProps): JSX.Element {
   const { siteConfig } = useDocusaurusContext()
   const status = siteConfig.customFields.developmentStatus as DevelopmentStatus
   const sidebarConfig = siteConfig.customFields.sidebar
-  const r = React.createRef<IDocumentCardPreview>()
-
-  React.useEffect(() => {
-    console.log(r.current)
-  })
 
   return (
     <DocumentCard aria-label={props.name}>
-      <DocumentCardPreview {...previewImageProps} componentRef={r} />
+      <DocumentCardPreview {...previewImageProps} />
       <DocumentCardLocation location={props.name} locationHref={props.docLink} ariaLabel={props.name} />
       <DocumentCardTitle title={props.title} styles={styles.title} />
       <Link href={sidebarConfig.reviewLink} target="_blank">
