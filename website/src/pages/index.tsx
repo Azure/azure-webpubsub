@@ -10,13 +10,11 @@ import Introduction, { IntroductionProps } from '../components/Introduction'
 
 export default function Home(): JSX.Element {
   const { siteConfig } = useDocusaurusContext()
-  const introProps: IntroductionProps = { hidden: true, title: '', description: '', liveDemoLink: '' }
 
   return (
     <Layout title={siteConfig.title}>
       <Banner></Banner>
-      <Introduction {...introProps}></Introduction>
-      <Demos hidden={false}></Demos>
+      <Demos></Demos>
       <CustomerStories></CustomerStories>
       <Feedback></Feedback>
     </Layout>

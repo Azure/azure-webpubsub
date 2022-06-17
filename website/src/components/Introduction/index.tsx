@@ -7,7 +7,6 @@ export interface IntroductionProps {
   title: string
   description: string
   liveDemoLink: string
-  hidden: boolean
 }
 
 function IntroductionDesktop(props: IntroductionProps): JSX.Element {
@@ -51,10 +50,5 @@ function IntroductionMobile(props: IntroductionProps): JSX.Element {
 
 export default function Introduction(props: IntroductionProps): JSX.Element {
   const isWide = IsWideDevice()
-
-  // fluentui build bug workaround
-  const style = {}
-  if (props.hidden) style['display'] = 'none'
-
-  return <div style={style}>{isWide ? IntroductionDesktop(props) : IntroductionMobile(props)}</div>
+  return isWide ? IntroductionDesktop(props) : IntroductionMobile(props)
 }

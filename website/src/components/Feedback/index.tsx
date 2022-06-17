@@ -5,7 +5,7 @@ import useDocusaurusContext from '@docusaurus/useDocusaurusContext'
 
 export default function Feedback(): JSX.Element {
   const { siteConfig } = useDocusaurusContext()
-  const status = siteConfig.customFields.developmentStatus
+  const status = siteConfig.customFields.developmentStatus as DevelopmentStatus
   return (
     status.isFeedbackReady && (
       <Stack horizontal styles={styles.centerAlignItems}>

@@ -38,7 +38,7 @@ export default function DemoCard(props: DemoCardProps): JSX.Element {
     ],
   }
   const { siteConfig } = useDocusaurusContext()
-  const status = siteConfig.customFields.developmentStatus
+  const status = siteConfig.customFields.developmentStatus as DevelopmentStatus
 
   return (
     <DocumentCard aria-label={props.name}>

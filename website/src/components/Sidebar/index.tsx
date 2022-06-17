@@ -10,7 +10,7 @@ export interface SidebarProps {
 export default function Sidebar(props: SidebarProps): JSX.Element {
   const { siteConfig } = useDocusaurusContext()
   const sidebarConfig = siteConfig.customFields.sidebar
-  const status = siteConfig.customFields.developmentStatus
+  const status = siteConfig.customFields.developmentStatus as DevelopmentStatus
   const paths = props.docId.split('/')
   paths.length -= 1
   const docPath = paths.join('/')
