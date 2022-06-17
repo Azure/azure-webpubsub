@@ -1,3 +1,6 @@
+const bannerCount = 4
+const getImageSource = (i, bannerType) => `/img/banners/${bannerType}/banner-${i}.jpg`
+
 module.exports = {
     doc: {
         path: "../samples"
@@ -11,6 +14,10 @@ module.exports = {
         isContactNavBarReady: false,
         isRatingWithFeedback: false,
         isShareReady: false,
+    },
+    bannerImageSources: {
+        mobile: [...Array(bannerCount).keys()].map(i => getImageSource(i, 'mobile')),
+        desktop: [...Array(bannerCount).keys()].map(i => getImageSource(i, 'desktop')),
     },
     sidebar: {
         sampleRoot: "https://github.com/Azure/azure-webpubsub/tree/main/samples/",
