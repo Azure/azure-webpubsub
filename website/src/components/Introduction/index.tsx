@@ -4,6 +4,7 @@ import * as styles from './styles.module'
 import { IsWideDevice } from '@site/src/utils/CssUtils'
 
 export interface IntroductionProps {
+  previewImageName: string
   title: string
   description: string
   liveDemoLink: string
@@ -22,7 +23,7 @@ function IntroductionDesktop(props: IntroductionProps): JSX.Element {
         </StackItem>
       </Stack>
       <Stack grow horizontal horizontalAlign="start">
-        <Image imageFit={ImageFit.none} src="/img/introduction.png" alt="demo introduction" style={styles.preview}></Image>
+        <Image imageFit={ImageFit.none} src={`/img/previews/${props.previewImageName}.jpg`} alt="demo introduction" style={styles.preview}></Image>
       </Stack>
     </Stack>
   )

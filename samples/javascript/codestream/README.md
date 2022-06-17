@@ -5,6 +5,7 @@ description: A real-time code live stream live demo utilizing Azure Web PubSub s
 slug: /code-streaming
 hide_table_of_contents: true
 live_demo_link: https://awps-demos-codestream.azurewebsites.net/
+preview_image_name: CodeStream
 ---
 
 # CodeStream, livestream your code

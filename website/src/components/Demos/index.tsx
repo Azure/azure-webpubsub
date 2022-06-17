@@ -8,7 +8,9 @@ import * as styles from './styles.module'
 
 export default function Demos(): JSX.Element {
   const docs = useAllPluginInstancesData('docusaurus-plugin-content-docs').default.versions[0].docs
+  console.log(docs)
   const demoCardProps: Array<DemoCardProps> = docs.map(doc => ({
+    previewImageName: doc.frontMatter.preview_image_name || '_default',
     name: doc.title,
     title: doc.description,
     docLink: doc.permalink,

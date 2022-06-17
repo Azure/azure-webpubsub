@@ -12,11 +12,13 @@ import {
   Stack,
   StackItem,
   ImageFit,
+  IDocumentCardPreview,
 } from '@fluentui/react'
 import * as styles from './styles.module'
 import useDocusaurusContext from '@docusaurus/useDocusaurusContext'
 
 export interface DemoCardProps {
+  previewImageName: string
   name: string
   title: string
   docLink: string
@@ -32,20 +34,28 @@ export default function DemoCard(props: DemoCardProps): JSX.Element {
           href: props.docLink,
           target: '_blank',
         },
-        previewImageSrc: '/img/card-scoreboard.png', // todo: use real demo image
+        previewImageSrc: `/img/previews/${props.previewImageName}.jpg`,
         imageFit: ImageFit.cover,
       },
     ],
   }
   const { siteConfig } = useDocusaurusContext()
   const status = siteConfig.customFields.developmentStatus as DevelopmentStatus
+  const sidebarConfig = siteConfig.customFields.sidebar
+  const r = React.createRef<IDocumentCardPreview>()
+
+  React.useEffect(() => {
+    console.log(r.current)
+  })
 
   return (
     <DocumentCard aria-label={props.name}>
-      <DocumentCardPreview {...previewImageProps} />
+      <DocumentCardPreview {...previewImageProps} componentRef={r} />
       <DocumentCardLocation location={props.name} locationHref={props.docLink} ariaLabel={props.name} />
       <DocumentCardTitle title={props.title} styles={styles.title} />
-      <DocumentCardTitle title={'Is this recommendation helpful?'} shouldTruncate showAsSecondaryTitle />
+      <Link href={sidebarConfig.reviewLink} target="_blank">
+        <DocumentCardTitle title={'Is this recommendation helpful?'} shouldTruncate showAsSecondaryTitle />
+      </Link>
       <Separator></Separator>
       <Stack horizontal horizontalAlign="space-between" styles={styles.footer}>
         {status.isShareReady && <StackItem style={styles.footerItem}>{LeftFooter(props)}</StackItem>}
