@@ -25,6 +25,7 @@ export interface DemoCardProps {
 }
 
 export default function DemoCard(props: DemoCardProps): JSX.Element {
+  const { siteConfig } = useDocusaurusContext()
   const previewImageProps: IDocumentCardPreviewProps = {
     previewImages: [
       {
@@ -33,12 +34,11 @@ export default function DemoCard(props: DemoCardProps): JSX.Element {
           href: props.docLink,
           target: '_blank',
         },
-        previewImageSrc: `/img/previews/${props.previewImageName}.jpg`,
+        previewImageSrc: `${siteConfig.baseUrl}img/previews/${props.previewImageName}.jpg`,
         imageFit: ImageFit.cover,
       },
     ],
   }
-  const { siteConfig } = useDocusaurusContext()
   const status = siteConfig.customFields.developmentStatus as DevelopmentStatus
   const sidebarConfig = siteConfig.customFields.sidebar
 

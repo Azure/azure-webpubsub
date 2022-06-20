@@ -10,21 +10,22 @@ import localStyles from './styles.module.css'
 initializeIcons()
 
 function Brand(): JSX.Element {
+  const { siteConfig } = useDocusaurusContext()
   return (
     <Stack.Item grow align="center">
       <Stack horizontal tokens={styles.leftNavTokens} styles={styles.leftNav}>
-          <Link className={localStyles.imageIcon} href="/" styles={styles.imageIcon}>
-            <ImageIcon
-              className={styles.classNames.logo}
-              aria-label="Locked"
-              imageProps={{
-                src: '/img/logo.png',
-                alt: 'logo',
-                className: css(styles.classNames.image, styles.classNames.logoImage),
-              }}
-            ></ImageIcon>
-          </Link>
-        <Link href="/" className={localStyles.link}>
+        <Link className={localStyles.imageIcon} href={siteConfig.baseUrl} styles={styles.imageIcon}>
+          <ImageIcon
+            className={styles.classNames.logo}
+            aria-label="Locked"
+            imageProps={{
+              src: siteConfig.baseUrl + 'img/logo.png',
+              alt: 'logo',
+              className: css(styles.classNames.image, styles.classNames.logoImage),
+            }}
+          ></ImageIcon>
+        </Link>
+        <Link href={siteConfig.baseUrl} className={localStyles.link}>
           <Label styles={styles.title}>Web PubSub Service Demo Platform</Label>
         </Link>
       </Stack>
