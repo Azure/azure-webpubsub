@@ -1,10 +1,11 @@
 ---
 id: Whiteboard
 title: Whiteboard
-description: A real-time collaboration live demo utilizing Azure Web PubSub service
+description: A real-time collaboration live demo using Azure Web PubSub service
 slug: /whiteboard
 hide_table_of_contents: true
 live_demo_link: https://awps-demo-whiteboard.azurewebsites.net/
+preview_image_name: Whiteboard
 ---
 
 # Whiteboard: Real Time Collaboration using Azure Web PubSub

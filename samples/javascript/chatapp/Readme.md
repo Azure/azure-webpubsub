@@ -1,10 +1,11 @@
 ---
 id: SimpleChat
 title: Simple Chat
-description: A real-time chat room live demo utilizing Azure Web PubSub service
+description: A real-time chat room live demo using Azure Web PubSub service
 slug: /chat
 hide_table_of_contents: true
 live_demo_link: https://awps-demos-client-chat.azurewebsites.net/fancy.html
+preview_image_name: SimpleChat
 ---
 
 # Create a Chat app

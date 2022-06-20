@@ -22,8 +22,7 @@ module.exports = {
     },
     sidebar: {
         sampleRoot: "https://github.com/Azure/azure-webpubsub/tree/main/samples/",
-        // todo: add an issue template for live demo
-        reviewLink: "https://github.com/Azure/azure-webpubsub/issues",
+        reviewLink: "https://github.com/Azure/azure-webpubsub/issues/new?assignees=&labels=&template=30_sample_feedback.md",
         // todo: add share component
         shareLink: "",
         docLink: "https://azure.microsoft.com/services/web-pubsub/",
