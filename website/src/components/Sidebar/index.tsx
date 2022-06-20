@@ -14,7 +14,7 @@ export default function Sidebar(props: SidebarProps): JSX.Element {
   const paths = props.docId.split('/')
   paths.length -= 1
   const docPath = paths.join('/')
-  const repoLink = `${sidebarConfig.sampleRoot}/${docPath}`
+  const repoLink = `${sidebarConfig.sampleRoot}${docPath}`
 
   return (
     <Stack styles={styles.sidebar} tokens={styles.tokens}>
