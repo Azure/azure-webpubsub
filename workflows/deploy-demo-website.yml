@@ -1,0 +1,38 @@
+name: deploy-docusaurus
+
+on:
+    push:
+        branches: __dont_enable_for_now # todo: set 'main' auto deploy once everything works
+        paths:
+            - 'samples/**'
+            - 'website/**'
+
+    # Allows you to run this workflow manually from the Actions tab
+    workflow_dispatch:
+
+# A workflow run is made up of one or more jobs that can run sequentially or in parallel
+jobs:
+    publish:
+        runs-on: ubuntu-latest
+        steps:
+            - name: Checkout
+              uses: actions/checkout@v3
+              with:
+                  ref: main
+            - name: Build demo website
+              run: |
+                  cd website
+                  npm install 
+                  npm run build:workaround:init:command
+                  npm run build:workaround:link:react
+                  npm run build:workaround
+              env:
+                  trackingID: G-9DVQRCY9L7
+            - name: Deploy to GitHub Pages
+              if: success()
+              uses: crazy-max/ghaction-github-pages@v2
+              with:
+                  target_branch: gh-pages
+                  build_dir: website/build
+              env:
+                  GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
