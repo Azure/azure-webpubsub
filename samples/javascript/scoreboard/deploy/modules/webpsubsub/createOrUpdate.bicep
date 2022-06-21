@@ -13,12 +13,20 @@ param location string
 ])
 param unit int
 
+@allowed([
+  'Free'
+  'Standard'
+])
+param tier string
+
+var skuName = tier == 'Free' ? 'Free_F1' : 'Standard_S1'
+
 resource webpubsub 'Microsoft.SignalRService/webPubSub@2021-10-01' = {
   name: name
   location: location
   sku: {
-    name: 'Standard_S1'
-    tier: 'Standard'
+    name: skuName
+    tier: tier
     capacity: unit
   }
   properties: {
