@@ -1,4 +1,4 @@
-name: deploy-docusaurus
+name: deploy-demo-website
 
 on:
     push:
