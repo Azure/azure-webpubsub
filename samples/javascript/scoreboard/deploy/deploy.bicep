@@ -1,33 +1,28 @@
-// common parameters
-@metadata({
-  description: 'Location for all resources. The default value [resourceGroup().location] is the location of resource group.'
-})
-param location string = resourceGroup().location
-
 // parameters for azure web pubsub
 @metadata({
   description: 'Unit of Azure Web PubSub service. The default value is 1.'
 })
 @allowed([
-  1
-  2
-  5
-  10
-  20
-  50
-  100
+  'Free'
+  'Standard Unit 1'
+  'Standard Unit 2'
+  'Standard Unit 5'
+  'Standard Unit 10'
+  'Standard Unit 20'
+  'Standard Unit 50'
+  'Standard Unit 100'
 ])
-param WebPubSubUnit int = 1
+param WebPubSubSku string = 'Free'
 
 // parameters for azure app service
 @metadata({
   description: 'The SKU of Azure App service. The default value is B1.'
 })
 @allowed([
+  'F1'
   'B1'
   'B2'
   'B3'
-  'F1'
   'D1'
   'S1'
   'S2'
@@ -45,13 +40,14 @@ param WebPubSubUnit int = 1
   'I2v2'
   'I3v2'
 ])
-param appServiceSku string = 'B1' // The SKU of App Service Plan
+param appServiceSku string = 'F1' // The SKU of App Service Plan
 
 @metadata({
   description: 'Demo package to be deployed.'
 })
 param packageUri string = 'https://livedemopackages.blob.core.windows.net/packages/scoreboard_0.1.0.zip'
 
+var location = resourceGroup().location
 var demoName = 'scoreboard'
 var uniqueStr = uniqueString(resourceGroup().id) // Generate unique string
 var webpubsubName = toLower('wps-${demoName}-${uniqueStr}')
@@ -69,12 +65,18 @@ module appServiceModule './modules/appService/create.bicep' = {
   }
 }
 
+var tier = WebPubSubSku == 'Free' ? 'Free' : 'Standard'
+var ind = tier == 'Free' ? -1 : lastIndexOf(WebPubSubSku, ' ')
+var str = ind == -1 ? '1' : substring(WebPubSubSku, ind + 1, length(WebPubSubSku) - ind - 1)
+var webPubSubUnit = int(str)
+
 module webpubsubModule './modules/webpsubsub/createOrUpdate.bicep' = {
   name: 'webpubsubCreate'
   params: {
     location: location
     name: webpubsubName
-    unit: WebPubSubUnit
+    unit: webPubSubUnit
+    tier: tier
   }
 }
 
@@ -117,3 +119,5 @@ module deployPackage './modules/appService/package/deploy.bicep' = {
     webSiteName: appServiceModule.outputs.webSiteName
   }
 }
+
+output demoLink string = appServiceModule.outputs.host

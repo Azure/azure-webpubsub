@@ -5,28 +5,22 @@
     "_generator": {
       "name": "bicep",
       "version": "0.6.18.56646",
-      "templateHash": "8737078811673360721"
+      "templateHash": "10159244883142085345"
     }
   },
   "parameters": {
-    "location": {
+    "WebPubSubSku": {
       "type": "string",
-      "defaultValue": "[resourceGroup().location]",
-      "metadata": {
-        "description": "Location for all resources. The default value [resourceGroup().location] is the location of resource group."
-      }
-    },
-    "WebPubSubUnit": {
-      "type": "int",
-      "defaultValue": 1,
+      "defaultValue": "Free",
       "allowedValues": [
-        1,
-        2,
-        5,
-        10,
-        20,
-        50,
-        100
+        "Free",
+        "Standard Unit 1",
+        "Standard Unit 2",
+        "Standard Unit 5",
+        "Standard Unit 10",
+        "Standard Unit 20",
+        "Standard Unit 50",
+        "Standard Unit 100"
       ],
       "metadata": {
         "description": "Unit of Azure Web PubSub service. The default value is 1."
@@ -34,12 +28,12 @@
     },
     "appServiceSku": {
       "type": "string",
-      "defaultValue": "B1",
+      "defaultValue": "F1",
       "allowedValues": [
+        "F1",
         "B1",
         "B2",
         "B3",
-        "F1",
         "D1",
         "S1",
         "S2",
@@ -70,11 +64,16 @@
     }
   },
   "variables": {
+    "location": "[resourceGroup().location]",
     "demoName": "scoreboard",
     "uniqueStr": "[uniqueString(resourceGroup().id)]",
     "webpubsubName": "[toLower(format('wps-{0}-{1}', variables('demoName'), variables('uniqueStr')))]",
     "appServicePlanName": "[toLower(format('asp-{0}-{1}', variables('demoName'), variables('uniqueStr')))]",
-    "webSiteName": "[toLower(format('wap-{0}-{1}', variables('demoName'), variables('uniqueStr')))]"
+    "webSiteName": "[toLower(format('wap-{0}-{1}', variables('demoName'), variables('uniqueStr')))]",
+    "tier": "[if(equals(parameters('WebPubSubSku'), 'Free'), 'Free', 'Standard')]",
+    "ind": "[if(equals(variables('tier'), 'Free'), -1, lastIndexOf(parameters('WebPubSubSku'), ' '))]",
+    "str": "[if(equals(variables('ind'), -1), '1', substring(parameters('WebPubSubSku'), add(variables('ind'), 1), sub(sub(length(parameters('WebPubSubSku')), variables('ind')), 1)))]",
+    "webPubSubUnit": "[int(variables('str'))]"
   },
   "resources": [
     {
@@ -100,7 +99,7 @@
             "value": "[parameters('packageUri')]"
           },
           "location": {
-            "value": "[parameters('location')]"
+            "value": "[variables('location')]"
           }
         },
         "template": {
@@ -188,13 +187,16 @@
         "mode": "Incremental",
         "parameters": {
           "location": {
-            "value": "[parameters('location')]"
+            "value": "[variables('location')]"
           },
           "name": {
             "value": "[variables('webpubsubName')]"
           },
           "unit": {
-            "value": "[parameters('WebPubSubUnit')]"
+            "value": "[variables('webPubSubUnit')]"
+          },
+          "tier": {
+            "value": "[variables('tier')]"
           }
         },
         "template": {
@@ -204,7 +206,7 @@
             "_generator": {
               "name": "bicep",
               "version": "0.6.18.56646",
-              "templateHash": "15910863148887880261"
+              "templateHash": "17822856743972706006"
             }
           },
           "parameters": {
@@ -225,7 +227,17 @@
                 50,
                 100
               ]
+            },
+            "tier": {
+              "type": "string",
+              "allowedValues": [
+                "Free",
+                "Standard"
+              ]
             }
+          },
+          "variables": {
+            "skuName": "[if(equals(parameters('tier'), 'Free'), 'Free_F1', 'Standard_S1')]"
           },
           "resources": [
             {
@@ -234,8 +246,8 @@
               "name": "[parameters('name')]",
               "location": "[parameters('location')]",
               "sku": {
-                "name": "Standard_S1",
-                "tier": "Standard",
+                "name": "[variables('skuName')]",
+                "tier": "[parameters('tier')]",
                 "capacity": "[parameters('unit')]"
               },
               "properties": {
@@ -475,5 +487,11 @@
         "[resourceId('Microsoft.Resources/deployments', 'appServiceCreate')]"
       ]
     }
-  ]
+  ],
+  "outputs": {
+    "demoLink": {
+      "type": "string",
+      "value": "[reference(resourceId('Microsoft.Resources/deployments', 'appServiceCreate')).outputs.host.value]"
+    }
+  }
 }

@@ -10,7 +10,10 @@ preview_image_name: Scoreboard
 
 # A Scoreboard
 
+![live demo](./images/live-demo.jpg)
+
 ## Install npm packages
+
 ```
 npm install
 ```
@@ -71,6 +74,17 @@ You can deploy to Azure by using the `Deploy to Azure` button or Bicep file with
 ### Deploy all with one click
 
 [![Deploy to Azure](https://aka.ms/deploytoazurebutton)](https://portal.azure.com/#create/Microsoft.Template/uri/https%3A%2F%2Flivedemopackages.blob.core.windows.net%2Ftemplate%2Fscoreboard-deploy.json)
+
+#### Visit your live demo
+
+1. When the deployment completes, you will get the following blade.
+
+    ![deployment-success](./images/deployment-success.jpg)
+
+2. Click **Outputs** on the left, you will get your demo link.
+   ![deployment outputs](./images/deployment-outputs.jpg)
+
+3. Visit the demo link in browser to play with your live demo.
 
 ### Deploy Azure resources with Bicep
 
