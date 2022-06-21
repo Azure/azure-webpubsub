@@ -6,7 +6,9 @@ import CustomerStories from '../components/CustomerStories'
 import Feedback from '../components/Feedback'
 import Banner from '../components/Banner'
 import Layout from '@theme/Layout'
-import Introduction, { IntroductionProps } from '../components/Introduction'
+
+import styles from './index.module.css'
+import { Stack, StackItem } from '@fluentui/react'
 
 export default function Home(): JSX.Element {
   const { siteConfig } = useDocusaurusContext()
@@ -14,9 +16,13 @@ export default function Home(): JSX.Element {
   return (
     <Layout title={siteConfig.title}>
       <Banner></Banner>
-      <Demos></Demos>
-      <CustomerStories></CustomerStories>
-      <Feedback></Feedback>
+      <Stack horizontal horizontalAlign="center">
+        <section className={styles.mainContent}>
+          <Demos></Demos>
+          <CustomerStories></CustomerStories>
+          <Feedback></Feedback>
+        </section>
+      </Stack>
     </Layout>
   )
 }
