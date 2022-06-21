@@ -85,7 +85,6 @@ You can deploy to Azure by using the `Deploy to Azure` button or Bicep file with
    ![deployment outputs](./images/deployment-outputs.jpg)
 
 3. Visit the demo link in browser to play with your live demo.
-   ![live demo](./images/live-demo.jpg)
 
 ### Deploy Azure resources with Bicep
 
