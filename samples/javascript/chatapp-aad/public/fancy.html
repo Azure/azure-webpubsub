@@ -19,6 +19,7 @@
         main>div,
         .chat {
             height: 100%;
+            overflow: auto;
         }
 
         body {
@@ -202,7 +203,7 @@
                         client.connection.close();
                         addItem(`${client.userId}:${client.connectionId} disconnected.`, client.logs);
                     }
-                    connect(client, client.endpoint,null,
+                    connect(client, client.endpoint, null,
                         (client, msg) => {
                             let response = JSON.parse(msg.data);
                             if (response.type === "system") {
@@ -217,7 +218,7 @@
                             }
                             else if (response.type === "message") {
                                 let content = response.data;
-                                if (content.type === "system"){
+                                if (content.type === "system") {
                                     addItem({ type: "system", content: content.message }, client.chat.messages);
                                 }
                                 else if (client.userId && content.from === client.userId)
