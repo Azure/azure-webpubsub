@@ -2,7 +2,7 @@ name: deploy-demo-website
 
 on:
     push:
-        branches: __dont_enable_for_now # todo: set 'main' auto deploy once everything works
+        branches: main # todo: set 'main' auto deploy once everything works
         paths:
             - 'samples/**'
             - 'website/**'

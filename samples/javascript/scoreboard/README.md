@@ -8,7 +8,7 @@ live_demo_link: https://awps-scoreboard-live-demo.azurewebsites.net/
 preview_image_name: Scoreboard
 ---
 
-# A Scoreboard
+# Real-time Scoreboard
 
 ![live demo](./images/live-demo.jpg)
 
