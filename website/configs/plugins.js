@@ -22,7 +22,7 @@ const setupPlugins = function ({ root, docPath }) {
     const trackingID = process.env.trackingID
     if (trackingID && trackingID !== "") {
         const gtagPlugin = [
-            '@docusaurus/plugin-google-gtag',
+            path.resolve(root, 'docusaurus/packages/docusaurus-plugin-google-gtag'),
             {
                 trackingID,
                 anonymizeIP: true,
