@@ -20,15 +20,18 @@ const setupPlugins = function ({ root, docPath }) {
 
     // only add gtag in production
     const trackingID = process.env.trackingID
-    if (trackingID && trackingID !== "") {
+    const gtmTrackingID = process.env.gtmTrackingID
+    if (trackingID && trackingID !== "" && gtmTrackingID && gtmTrackingID !== "") {
         const gtagPlugin = [
             path.resolve(root, 'docusaurus/packages/docusaurus-plugin-google-gtag'),
             {
                 trackingID,
+                gtmTrackingID,
                 anonymizeIP: true,
             },
         ]
         plugins.push(gtagPlugin)
+        console.log(`Add gtag plugin Successfully. tracking ID: ${trackingID}, GTM tracking ID: ${gtmTrackingID}`)
     } else {
         console.warn('Failed to get "trackingID" for gtag! Should be null in development, but should be non empty string in Production.')
     }
