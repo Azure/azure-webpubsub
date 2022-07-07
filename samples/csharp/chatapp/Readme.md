@@ -53,7 +53,7 @@ Go to the **Settings** tab to configure the event handler for this `Sample_ChatA
 
 2. Set Url template to `https://<domain-name>.loca.lt/eventhandler` and check `connected` system event, click "Save".
 
-    ![Event Handler](./../../../docs/images/portal_event_handler.png)
+    ![Event Handler](images/portal_event_handler.png)
 
 ## Start the chat
 

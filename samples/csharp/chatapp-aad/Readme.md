@@ -55,7 +55,7 @@ Check if the response header contains `webhook-allowed-origin: *`. This curl com
 3. Enter `Sample_AadChatApp` as **Hub name**.
 4. Set **URL template** to `https://<name>.loca.lt/eventhandler`
 5. Click **System events**, then select **connected** to let the service sends `connected` events to your upstream server.
-    ![Event Handler](./../../../docs/images/portal_event_handler.png)
+    ![Event Handler](images/portal_event_handler.png)
 1. Click **Save** to confirm the change.
 
 ### 5. Configure Role-Based Access Control (RBAC)
