@@ -36,7 +36,7 @@ Check if the response header contains `webhook-allowed-origin: *`. This curl com
 1. Fill in the URL copied from the previous step to `URL template`.
 1. Set URL Pattern to `https://<domain-name>.loca.lt/eventhandler` and check `connected` in System Event Pattern, click "Save".
 1. Click `Save` button to update the settings, wait until the settings are updated successfully.
-    ![Event Handler](./../../../docs/images/portal_event_handler.png)
+    ![Event Handler](../../images/portal_event_handler_chat.png)
 
 ## Start server
 

@@ -74,7 +74,7 @@ Go to the **Settings** tab to configure the event handler for this `sample_githu
 
 2. Set URL Pattern to `https://<domain-name>.loca.lt/eventhandler/{event}` and check `connected` in System Event Pattern, click "Save".
 
-![Event Handler](./../../../docs/images/portal_event_handler.png)
+![Event Handler](../../images/portal_event_handler_githubchat.png)
 
 ## Start the chat
 
