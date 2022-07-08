@@ -27,7 +27,7 @@ const setupPlugins = function ({ root, docPath }) {
     const gtmTrackingID = process.env.gtmTrackingID
     if (trackingID && trackingID !== "" && gtmTrackingID && gtmTrackingID !== "") {
         const gtagPlugin = [
-            path.resolve(root, 'docusaurus/packages/docusaurus-plugin-google-gtag'),
+            path.resolve(root, 'src/plugins/visitor-behavior-tracking-plugin'),
             {
                 trackingID,
                 gtmTrackingID,

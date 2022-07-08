@@ -1,4 +1,5 @@
-module.exports = pluginVisitorBehaviorChecking(context, { anonymizeIP, trackingID, gtmTrackingID }) {
+module.exports = function (context, options) {
+    const{ anonymizeIP, trackingID, gtmTrackingID } = options;
     return {
         name: 'visitor-behavior-tracking-plugin',
         getClientModules: function () {
@@ -7,9 +8,6 @@ module.exports = pluginVisitorBehaviorChecking(context, { anonymizeIP, trackingI
             ]
         },
         injectHtmlTags() {
-            if (!isProd) {
-                return {};
-            }
             return {
                 // Gtag includes GA by default, so we also preconnect to
                 // google-analytics.
@@ -40,35 +38,28 @@ module.exports = pluginVisitorBehaviorChecking(context, { anonymizeIP, trackingI
                         tagName: 'script',
                         innerHTML: `
                     window.dataLayer = window.dataLayer || [];
-                    function getCookie(cname)
-                    {
-                    var name = cname + "=";
-                    var ca = document.cookie.split(';');
-                    for(var i=0; i<ca.length; i++) 
-                    {
-                        var c = ca[i].trim();
-                        if (c.indexOf(name)==0) return c.substring(name.length,c.length);
-                    }
-                    return "";
-                    }
+
                     function gtag(){
-                        var optOutCookie = getCookie('google-analytics-opt-out') === 'true';
-                        if (!optOutCookie) dataLayer.push(arguments);
+                        dataLayer.push(arguments);
                     }
-                    gtag('js', new Date());
-                    gtag('config', '${trackingID}', { ${anonymizeIP ? "'anonymize_ip': true" : ''} });`,
+
+                    function gtagInit() {
+                        gtag('js', new Date());
+                        gtag('config', '${trackingID}', { ${anonymizeIP ? "'anonymize_ip': true" : ''} });
+                    }
+                   `,
                     },
-                    // for GTM
-                    {
-                        tagName: 'script',
-                        innerHTML: `
-                  (function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':
-                  new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],
-                  j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
-                  'https://www.googletagmanager.com/gtm.js?id='+i+dl;f.parentNode.insertBefore(j,f);
-                  })(window,document,'script','dataLayer','${gtmTrackingID}');
-                  `,
-                    },
+                //     // for GTM
+                //     {
+                //         tagName: 'script',
+                //         innerHTML: `
+                //   (function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':
+                //   new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],
+                //   j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
+                //   'https://www.googletagmanager.com/gtm.js?id='+i+dl;f.parentNode.insertBefore(j,f);
+                //   })(window,document,'script','dataLayer','${gtmTrackingID}');
+                //   `,
+                //     },
                 ],
             };
         },

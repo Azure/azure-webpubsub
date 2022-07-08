@@ -1,5 +1,5 @@
-const SET = SET;
-const RESET = RESET;
+const SET = "set";
+const RESET = "reset";
 
 function getSetDate() {
     var d = new Date();
@@ -19,7 +19,15 @@ function SocialMediaCookie(setString) {
 
 function AnalyticsCookie(setString) {
     const enable = setString === SET;
-    document.cookie = `google-analytics-opt-out=${enable}; expires=` + getSetDate() + "; path=/";
+    if (enable) {
+        document.cookie = `google-analytics-enable=true; expires=` + getSetDate() + "; path=/";
+        window['ga-disable-MEASUREMENT_ID'] = true;
+        if (gtagInit) gtagInit();
+    }
+    else {
+        document.cookie = `google-analytics-enable=true; expires=` + getResetDate() + "; path=/";
+        window['ga-disable-MEASUREMENT_ID'] = false;
+    }
 }
 
 function AdvertisingCookie(setString) {
@@ -27,6 +35,7 @@ function AdvertisingCookie(setString) {
 }
 
 function setNonEssentialCookies(categoryPreferences) {
+    console.log('set non essential')
     if (categoryPreferences.Advertising) {
         AdvertisingCookie(SET);
     } else {
@@ -47,12 +56,12 @@ function setNonEssentialCookies(categoryPreferences) {
 }
 
 function onConsentChanged(categoryPreferences) {
+    console.log('change', categoryPreferences)
     setNonEssentialCookies(categoryPreferences);
 }
 
 module.exports = clientModule = {
     onRouteDidUpdate: function () {
-        setEssentialCookies();
         window.siteConsent = null;
         window.WcpConsent && WcpConsent.init("en-US", "cookie-banner", function (err, _siteConsent) {
             if (!err) {
