@@ -14,8 +14,12 @@ const setupPlugins = function ({ root, docPath }) {
                 ],
                 routeBasePath: 'demos',
                 breadcrumbs: false,
-            }
+            },
+        ], [
+            path.resolve(root, 'src/plugins/wcp-consent-plugin'),
+            {},
         ]
+
     ]
 
     // only add gtag in production
