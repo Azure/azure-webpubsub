@@ -1,0 +1,10 @@
+{
+    "IsEncrypted": false,
+    "Values": {
+        "AzureWebJobsStorage": "UseDevelopmentStorage=true",
+        "FUNCTIONS_WORKER_RUNTIME": "dotnet",
+        "Hub": "sample_aadfuncchat",
+        "WebPubSubEndpoint": "https://<Your-WebPubSub-Resource-Name>.webpubsub.azure.com",
+        "WebPubSubIdentityObjectId": "<Your-WebPubSub-Identity-ObjectId>"
+    }
+}
