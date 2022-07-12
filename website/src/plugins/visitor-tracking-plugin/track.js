@@ -57,7 +57,6 @@ function setNonEssentialCookies(categoryPreferences) {
 }
 
 function onConsentChanged(categoryPreferences) {
-    console.log('change', categoryPreferences)
     setNonEssentialCookies(categoryPreferences);
 }
 
