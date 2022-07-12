@@ -28,7 +28,7 @@ const setupPlugins = function ({ root, docPath }) {
                 trackingID,
                 gtmTrackingID,
                 anonymizeIP: true,
-            },
+            }
         ]
         plugins.push(gtagPlugin)
         console.log(`Add visitor-tracking-plugin Successfully. tracking ID: ${trackingID}, GTM tracking ID: ${gtmTrackingID}`)
