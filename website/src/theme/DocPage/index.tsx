@@ -12,6 +12,7 @@ import SearchMetadata from '@theme/SearchMetadata'
 import Introduction, { IntroductionProps } from '@site/src/components/Introduction'
 import { Stack, StackItem } from '@fluentui/react'
 import Sidebar, { SidebarProps } from '@site/src/components/Sidebar'
+import Footer from '@site/src/components/Footer'
 
 function DocPageContent({ versionMetadata, currentDocRoute, children }) {
   const { pluginId, version } = versionMetadata
@@ -79,6 +80,7 @@ export default function DocPage(props): JSX.Element {
           </DocsSidebarProvider>
         </DocsVersionProvider>
       </HtmlClassNameProvider>
+      <Footer></Footer>
     </div>
   )
 }

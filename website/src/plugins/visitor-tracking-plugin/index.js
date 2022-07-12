@@ -1,17 +1,24 @@
-module.exports = function (context, options) {
+module.exports = function pluginVisitorTracking(context, options) {
     const{ anonymizeIP, trackingID, gtmTrackingID } = options;
     return {
-        name: 'visitor-behavior-tracking-plugin',
-        getClientModules: function () {
-            return [
-                './track'
-            ]
+        name: 'visitor-tracking-plugin',
+
+        getClientModules() {
+            return ['./track'];
         },
+
         injectHtmlTags() {
             return {
-                // Gtag includes GA by default, so we also preconnect to
-                // google-analytics.
                 headTags: [
+                    {
+                        tagName: 'script',
+                        attributes: {
+                            async: true,
+                            src: `https://wcpstatic.microsoft.com/mscc/lib/v2/wcp-consent.js`,
+                        },
+                    },
+                    // Gtag includes GA by default, so we also preconnect to
+                    // google-analytics.
                     {
                         tagName: 'link',
                         attributes: {
@@ -49,19 +56,19 @@ module.exports = function (context, options) {
                     }
                    `,
                     },
-                //     // for GTM
-                //     {
-                //         tagName: 'script',
-                //         innerHTML: `
-                //   (function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':
-                //   new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],
-                //   j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
-                //   'https://www.googletagmanager.com/gtm.js?id='+i+dl;f.parentNode.insertBefore(j,f);
-                //   })(window,document,'script','dataLayer','${gtmTrackingID}');
-                //   `,
-                //     },
+                    // for GTM
+                    {
+                        tagName: 'script',
+                        innerHTML: `
+                  (function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':
+                  new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],
+                  j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
+                  'https://www.googletagmanager.com/gtm.js?id='+i+dl;f.parentNode.insertBefore(j,f);
+                  })(window,document,'script','dataLayer','${gtmTrackingID}');
+                  `,
+                    },
                 ],
-            };
-        },
+            }
+        }
     }
 }

@@ -7,7 +7,8 @@ import Feedback from '../components/Feedback'
 import Banner from '../components/Banner'
 import Layout from '@theme/Layout'
 import styles from './index.module.css'
-import { Stack, StackItem } from '@fluentui/react'
+import { Stack } from '@fluentui/react'
+import Footer from '../components/Footer'
 
 export default function Home(): JSX.Element {
   const { siteConfig } = useDocusaurusContext()
@@ -25,6 +26,7 @@ export default function Home(): JSX.Element {
           </section>
         </Stack>
       </Layout>
+      <Footer></Footer>
     </div>
   )
 }
