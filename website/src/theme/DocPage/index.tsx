@@ -12,6 +12,7 @@ import SearchMetadata from '@theme/SearchMetadata'
 import Introduction, { IntroductionProps } from '@site/src/components/Introduction'
 import { Stack, StackItem } from '@fluentui/react'
 import Sidebar, { SidebarProps } from '@site/src/components/Sidebar'
+import Footer from '@site/src/components/Footer'
 
 function DocPageContent({ versionMetadata, currentDocRoute, children }) {
   const { pluginId, version } = versionMetadata
@@ -29,6 +30,7 @@ function DocPageContent({ versionMetadata, currentDocRoute, children }) {
   })
   return (
     <>
+      <div id="cookie-banner"></div>
       <SearchMetadata version={version} tag={docVersionSearchTag(pluginId, version)} />
       <Layout>
         <Introduction {...introductionProps}></Introduction>
@@ -65,16 +67,20 @@ export default function DocPage(props): JSX.Element {
   } // For now, the sidebarName is added as route config: not ideal!
 
   return (
-    <HtmlClassNameProvider className={clsx(ThemeClassNames.wrapper.docsPages, ThemeClassNames.page.docsDocPage, versionMetadata.className)}>
-      <DocsVersionProvider version={versionMetadata}>
-        <DocsSidebarProvider sidebar={null}>
-          <DocPageContent versionMetadata={versionMetadata} currentDocRoute={currentDocRoute}>
-            {renderRoutes(docRoutes, {
-              versionMetadata,
-            })}
-          </DocPageContent>
-        </DocsSidebarProvider>
-      </DocsVersionProvider>
-    </HtmlClassNameProvider>
+    <div>
+      <div id="cookie-banner"></div>
+      <HtmlClassNameProvider className={clsx(ThemeClassNames.wrapper.docsPages, ThemeClassNames.page.docsDocPage, versionMetadata.className)}>
+        <DocsVersionProvider version={versionMetadata}>
+          <DocsSidebarProvider sidebar={null}>
+            <DocPageContent versionMetadata={versionMetadata} currentDocRoute={currentDocRoute}>
+              {renderRoutes(docRoutes, {
+                versionMetadata,
+              })}
+            </DocPageContent>
+          </DocsSidebarProvider>
+        </DocsVersionProvider>
+      </HtmlClassNameProvider>
+      <Footer></Footer>
+    </div>
   )
 }

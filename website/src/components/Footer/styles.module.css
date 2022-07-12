@@ -1,0 +1,10 @@
+.footer {
+  background-color: #f2f2f2;
+  padding: 10px;
+}
+
+.item {
+  color: rgb(97, 97, 97);
+  font-size: 0.5rem;
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+}

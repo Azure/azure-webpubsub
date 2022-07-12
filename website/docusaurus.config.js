@@ -8,7 +8,7 @@ const plugins = require(path.resolve(__dirname, 'configs/plugins'))({ root: __di
 
 /** @type {import('@docusaurus/types').Config} */
 const config = {
-  title: 'Demos for Azure Web PubSub Service',
+  title: process.env.title || 'Demos for Azure Web PubSub Service',
   url: '/azure-webpubsub',
   baseUrl: '/azure-webpubsub/',
   onBrokenLinks: 'warn', // external sites may be out of reach temporarily due to their own problems
