@@ -1,4 +1,4 @@
-import React, {useEffect} from 'react'
+import React from 'react'
 import useDocusaurusContext from '@docusaurus/useDocusaurusContext'
 
 import Demos from '@site/src/components/Demos'

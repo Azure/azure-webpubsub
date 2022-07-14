@@ -61,13 +61,10 @@ function onConsentChanged(categoryPreferences) {
 }
 
 function initConsent() {
-    var initConsentEvent = new Event('initConsent');
-
     window.siteConsent = null;
     window.WcpConsent && WcpConsent.init("en-US", "cookie-banner", function (err, _siteConsent) {
         if (!err) {
-            siteConsent = _siteConsent;  //siteConsent is used to get the current consent          
-            document.dispatchEvent(initConsentEvent);
+            siteConsent = _siteConsent;  //siteConsent is used to get the current consent
             setNonEssentialCookies(siteConsent.getConsent());
         } else {
             console.log("Error initializing WcpConsent: " + err);

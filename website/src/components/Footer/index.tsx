@@ -1,4 +1,4 @@
-import React, {useState} from 'react'
+import React, {useState, useEffect} from 'react'
 import { IStackTokens, Link, Stack } from "@fluentui/react";
 import styles from './styles.module.css'
 
@@ -7,8 +7,8 @@ export default function Footer(): JSX.Element {
         childrenGap: '20px'
     }
 
-    const [visible, setVisible] = useState(true) 
-    document.addEventListener('initConsent', function (e) {
+    const [visible, setVisible] = useState(true)
+    useEffect(() => {
         setVisible(window.siteConsent.isConsentRequired)
     })
 
