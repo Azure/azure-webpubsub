@@ -1,13 +1,3 @@
----
-title: Reference - Azure Web PubSub client feature spec
-description: The reference describes Azure Web PubSub client feature spec
-author: zackliu
-ms.author: chenyl
-ms.service: azure-web-pubsub
-ms.topic: conceptual 
-ms.date: 6/21/2022
----
-
 #  Web PubSub Client Spec
 
 This document outlines the complete feature set of the pub sub client of Azure Web PubSub Service. It is expected that every client library developer refers to this document to ensure that their client library provides the right behavior and features
@@ -38,7 +28,7 @@ A sample URI is `wss://{host}/client/hubs/{hub}?access_token={accessToken}`
     - Reliable subprotocols: `json.reliable.webpubsub.azure.v1`, `protobuf.reliable.webpubsub.azure.v1`
     - Non-reliable subprotocols: `json.webpubsub.azure.v1`, `protobuf.webpubsub.azure.v1`
 
-4. If the websocket connection doesn't specify the subprotocol or specify non-predefined subprotocols. The connection will be a "simple websocket client". It's not the target of this spec or client libraries. See details in [The simple Websocket client](./concept-client-protocols.md#the-simple-websocket-client)
+4. If the websocket connection doesn't specify the subprotocol or specify non-predefined subprotocols. The connection will be a "simple websocket client". It's not the target of this spec or client libraries. See details in [The simple Websocket client](https://docs.microsoft.com/azure/azure-web-pubsub/concept-client-protocols#the-simple-websocket-client)
 
 5. Client libraries are RECOMMENDED to implement reliable subprotocols as they have advantages over others on connection reliability and message delivery.
 
@@ -174,49 +164,48 @@ Once the client connection is using reliable subprotocols, many messages from th
 
 Different subprotocols have different format for message. Find the reference to messages format.
 
-# [json.reliable.webpubsub.azure.v1](#tab/json-reliable)
+### json.reliable.webpubsub.azure.v1
 
-- [ConnectedMessage](./reference-json-reliable-webpubsub-subprotocol.md#connected)
-- [DisconnectedMessage](./reference-json-reliable-webpubsub-subprotocol.md#disconnected)
-- [JoinGroupMessage](./reference-json-reliable-webpubsub-subprotocol.md#join-groups)
-- [LeaveGroupMessage](./reference-json-reliable-webpubsub-subprotocol.md#leave-groups)
-- [SendToGroupMessage](./reference-json-reliable-webpubsub-subprotocol.md#publish-messages)
-- [EventMessage](./reference-json-reliable-webpubsub-subprotocol.md#send-custom-events)
-- [AckMessage](./reference-json-reliable-webpubsub-subprotocol.md#ack-response)
-- [SequenceAckMessage](./reference-json-reliable-webpubsub-subprotocol.md#sequence-ack)
+- [ConnectedMessage](https://docs.microsoft.com/azure/azure-web-pubsub/reference-json-reliable-webpubsub-subprotocol.md#connected)
+- [DisconnectedMessage](https://docs.microsoft.com/azure/azure-web-pubsub/reference-json-reliable-webpubsub-subprotocol.md#disconnected)
+- [JoinGroupMessage](https://docs.microsoft.com/azure/azure-web-pubsub/reference-json-reliable-webpubsub-subprotocol.md#join-groups)
+- [LeaveGroupMessage](https://docs.microsoft.com/azure/azure-web-pubsub/reference-json-reliable-webpubsub-subprotocol.md#leave-groups)
+- [SendToGroupMessage](https://docs.microsoft.com/azure/azure-web-pubsub/reference-json-reliable-webpubsub-subprotocol.md#publish-messages)
+- [EventMessage](https://docs.microsoft.com/azure/azure-web-pubsub/reference-json-reliable-webpubsub-subprotocol.md#send-custom-events)
+- [AckMessage](https://docs.microsoft.com/azure/azure-web-pubsub/reference-json-reliable-webpubsub-subprotocol.md#ack-response)
+- [SequenceAckMessage](https://docs.microsoft.com/azure/azure-web-pubsub/reference-json-reliable-webpubsub-subprotocol.md#sequence-ack)
 
 # [protobuf.reliable.webpubsub.azure.v1](#tab/protobuf-reliable)
 
-- [ConnectedMessage](./reference-protobuf-reliable-webpubsub-subprotocol.md#connected)
-- [DisconnectedMessage](./reference-protobuf-reliable-webpubsub-subprotocol.md#disconnected)
-- [JoinGroupMessage](./reference-protobuf-reliable-webpubsub-subprotocol.md#join-groups)
-- [LeaveGroupMessage](./reference-protobuf-reliable-webpubsub-subprotocol.md#leave-groups)
-- [SendToGroupMessage](./reference-protobuf-reliable-webpubsub-subprotocol.md#publish-messages)
-- [EventMessage](./reference-protobuf-reliable-webpubsub-subprotocol.md#send-custom-events)
-- [AckMessage](./reference-protobuf-reliable-webpubsub-subprotocol.md#ack-response)
-- [SequenceAckMessage](./reference-protobuf-reliable-webpubsub-subprotocol.md#sequence-ack)
+- [ConnectedMessage](https://docs.microsoft.com/azure/azure-web-pubsub/reference-protobuf-reliable-webpubsub-subprotocol.md#connected)
+- [DisconnectedMessage](https://docs.microsoft.com/azure/azure-web-pubsub/reference-protobuf-reliable-webpubsub-subprotocol.md#disconnected)
+- [JoinGroupMessage](https://docs.microsoft.com/azure/azure-web-pubsub/reference-protobuf-reliable-webpubsub-subprotocol.md#join-groups)
+- [LeaveGroupMessage](https://docs.microsoft.com/azure/azure-web-pubsub/reference-protobuf-reliable-webpubsub-subprotocol.md#leave-groups)
+- [SendToGroupMessage](https://docs.microsoft.com/azure/azure-web-pubsub/reference-protobuf-reliable-webpubsub-subprotocol.md#publish-messages)
+- [EventMessage](https://docs.microsoft.com/azure/azure-web-pubsub/reference-protobuf-reliable-webpubsub-subprotocol.md#send-custom-events)
+- [AckMessage](https://docs.microsoft.com/azure/azure-web-pubsub/reference-protobuf-reliable-webpubsub-subprotocol.md#ack-response)
+- [SequenceAckMessage](https://docs.microsoft.com/azure/azure-web-pubsub/reference-protobuf-reliable-webpubsub-subprotocol.md#sequence-ack)
 
 # [json.webpubsub.azure.v1](#tab/json)
 
-- [ConnectedMessage](./reference-json-webpubsub-subprotocol.md#connected)
-- [DisconnectedMessage](./reference-json-webpubsub-subprotocol.md#disconnected)
-- [JoinGroupMessage](./reference-json-webpubsub-subprotocol.md#join-groups)
-- [LeaveGroupMessage](./reference-json-webpubsub-subprotocol.md#leave-groups)
-- [SendToGroupMessage](./reference-json-webpubsub-subprotocol.md#publish-messages)
-- [EventMessage](./reference-json-webpubsub-subprotocol.md#send-custom-events)
-- [AckMessage](./reference-json-webpubsub-subprotocol.md#ack-response)
+- [ConnectedMessage](https://docs.microsoft.com/azure/azure-web-pubsub/reference-json-webpubsub-subprotocol.md#connected)
+- [DisconnectedMessage](https://docs.microsoft.com/azure/azure-web-pubsub/reference-json-webpubsub-subprotocol.md#disconnected)
+- [JoinGroupMessage](https://docs.microsoft.com/azure/azure-web-pubsub/reference-json-webpubsub-subprotocol.md#join-groups)
+- [LeaveGroupMessage](https://docs.microsoft.com/azure/azure-web-pubsub/reference-json-webpubsub-subprotocol.md#leave-groups)
+- [SendToGroupMessage](https://docs.microsoft.com/azure/azure-web-pubsub/reference-json-webpubsub-subprotocol.md#publish-messages)
+- [EventMessage](https://docs.microsoft.com/azure/azure-web-pubsub/reference-json-webpubsub-subprotocol.md#send-custom-events)
+- [AckMessage](https://docs.microsoft.com/azure/azure-web-pubsub/reference-json-webpubsub-subprotocol.md#ack-response)
 
 # [protobuf.webpubsub.azure.v1](#tab/protobuf)
 
-- [ConnectedMessage](./reference-protobuf-webpubsub-subprotocol.md#connected)
-- [DisconnectedMessage](./reference-protobuf-webpubsub-subprotocol.md#disconnected)
-- [JoinGroupMessage](./reference-protobuf-webpubsub-subprotocol.md#join-groups)
-- [LeaveGroupMessage](./reference-protobuf-webpubsub-subprotocol.md#leave-groups)
-- [SendToGroupMessage](./reference-protobuf-webpubsub-subprotocol.md#publish-messages)
-- [EventMessage](./reference-protobuf-webpubsub-subprotocol.md#send-custom-events)
-- [AckMessage](./reference-protobuf-webpubsub-subprotocol.md#ack-response)
+- [ConnectedMessage](https://docs.microsoft.com/azure/azure-web-pubsub/reference-protobuf-webpubsub-subprotocol.md#connected)
+- [DisconnectedMessage](https://docs.microsoft.com/azure/azure-web-pubsub/reference-protobuf-webpubsub-subprotocol.md#disconnected)
+- [JoinGroupMessage](https://docs.microsoft.com/azure/azure-web-pubsub/reference-protobuf-webpubsub-subprotocol.md#join-groups)
+- [LeaveGroupMessage](https://docs.microsoft.com/azure/azure-web-pubsub/reference-protobuf-webpubsub-subprotocol.md#leave-groups)
+- [SendToGroupMessage](https://docs.microsoft.com/azure/azure-web-pubsub/reference-protobuf-webpubsub-subprotocol.md#publish-messages)
+- [EventMessage](https://docs.microsoft.com/azure/azure-web-pubsub/reference-protobuf-webpubsub-subprotocol.md#send-custom-events)
+- [AckMessage](https://docs.microsoft.com/azure/azure-web-pubsub/reference-protobuf-webpubsub-subprotocol.md#ack-response)
 
-***
 
 ## 5. Term definition
 
@@ -229,7 +218,3 @@ Callback function is also one of the ways to achieve asynchronize. In different 
 ### Function name
 
 The function name, such as `connect`, `joinGroup` described in the spec is just an example of naming. Different languages should follow their language conventions.
-
-## Next steps
-
-[!INCLUDE [next step](includes/include-next-step.md)]
