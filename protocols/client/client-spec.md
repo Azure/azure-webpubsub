@@ -114,8 +114,6 @@ In order to recovery the connection, the client library MUST:
 
 If the recovery failed, the client library MUST reset the local sequenceId and mark all messages sent but not receive `AckMessage` as failed. 
 
-4. 
-
 ## 2. Authentication
 
 ### 2.1 Access token
