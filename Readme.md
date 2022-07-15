@@ -33,6 +33,7 @@ Eager to get started? Check [Quickstart](https://docs.microsoft.com/azure/azure-
     - [Server CloudEvents protocol](https://docs.microsoft.com/azure/azure-web-pubsub/reference-cloud-events)
     - [Server REST API][rest]
 - [Service Internals](https://docs.microsoft.com/azure/azure-web-pubsub/concept-service-internals)
+- [Client Spec](protocols/client/client-spec.md)
 
 ## Contributing
 
