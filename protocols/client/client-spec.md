@@ -1,3 +1,29 @@
+## Table of Content
+
+- [Web PubSub Client Spec](#web-pubsub-client-spec)
+  - [1. Connection](#1-connection)
+    - [1.1 Connect](#11-connect)
+    - [1.2 Connected](#12-connected)
+    - [1.3 Connection drop](#13-connection-drop)
+    - [1.4 Connection recovery](#14-connection-recovery)
+  - [2. Authentication](#2-authentication)
+    - [2.1 Access token](#21-access-token)
+    - [2.2 Reconnection token](#22-reconnection-token)
+  - [3. Groups and messages](#3-groups-and-messages)
+    - [3.1 Ack messages](#31-ack-messages)
+    - [3.2 SequenceId](#32-sequenceid)
+    - [3.3 Join group and leave group](#33-join-group-and-leave-group)
+    - [3.4 Send group messages](#34-send-group-messages)
+    - [3.5 Send event messages](#35-send-event-messages)
+  - [4. Message Object Reference](#4-message-object-reference)
+    - [json.reliable.webpubsub.azure.v1](#jsonreliablewebpubsubazurev1)
+    - [protobuf.reliable.webpubsub.azure.v1](#protobufreliablewebpubsubazurev1)
+    - [json.webpubsub.azure.v1](#jsonwebpubsubazurev1)
+    - [protobuf.webpubsub.azure.v1](#protobufwebpubsubazurev1)
+  - [5. Term definition](#5-term-definition)
+    - [Callback function](#callback-function)
+    - [Function name](#function-name)
+
 #  Web PubSub Client Spec
 
 This document outlines the complete feature set of the pub sub client of Azure Web PubSub Service. It is expected that every client library developer refers to this document to ensure that their client library provides the right behavior and features
