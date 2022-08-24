@@ -20,7 +20,7 @@ export default function Home(): JSX.Element {
         <Banner></Banner>
         <Stack horizontal horizontalAlign="center">
           <section className={styles.mainContent}>
-            <Demos></Demos>
+            {/* <Demos></Demos> */}
             <CustomerStories></CustomerStories>
             <Feedback></Feedback>
           </section>
