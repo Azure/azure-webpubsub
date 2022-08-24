@@ -1,0 +1,12 @@
+.carousel_slide_1_4 {
+    transform: translate(0);
+  }
+  .carousel_slide_2_4 {
+    transform: translate(-25%);
+  }
+  .carousel_slide_3_4 {
+    transform: translate(-50%);
+  }
+  .carousel_slide_4_4 {
+    transform: translate(-75%);
+  }
