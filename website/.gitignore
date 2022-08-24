@@ -8,7 +8,7 @@
 .docusaurus
 .cache-loader
 
-# Misc
+# Miscs
 .DS_Store
 .env.local
 .env.development.local

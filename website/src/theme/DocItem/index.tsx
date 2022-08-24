@@ -8,7 +8,7 @@ import React from 'react'
 import clsx from 'clsx'
 import DocVersionBanner from '@theme/DocVersionBanner'
 import DocVersionBadge from '@theme/DocVersionBadge'
-import DocItemFooter from '@theme/DocItemFooter'
+// import DocItemFooter from '@theme/DocItemFooter'
 import TOC from '@theme/TOC'
 import TOCCollapsible from '@theme/TOCCollapsible'
 import Heading from '@theme/Heading'
@@ -88,7 +88,7 @@ function DocItemContent(props) {
               </MDXContent>
             </div>
 
-            <DocItemFooter {...props} />
+            {/* <DocItemFooter {...props} /> */}
           </article>
           <RatingWithFeedback></RatingWithFeedback>
 

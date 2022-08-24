@@ -47,9 +47,9 @@ export default function DemoCard(props: DemoCardProps): JSX.Element {
       <DocumentCardPreview {...previewImageProps} />
       <DocumentCardLocation location={props.name} locationHref={props.docLink} ariaLabel={props.name} />
       <DocumentCardTitle title={props.title} styles={styles.title} />
-      <Link href={sidebarConfig.reviewLink} target="_blank">
+      {/* <Link href={sidebarConfig.reviewLink} target="_blank">
         <DocumentCardTitle title={'Is this recommendation helpful?'} shouldTruncate showAsSecondaryTitle />
-      </Link>
+      </Link> */}
       <Separator></Separator>
       <Stack horizontal horizontalAlign="space-between" styles={styles.footer}>
         {status.isShareReady && <StackItem style={styles.footerItem}>{LeftFooter(props)}</StackItem>}
