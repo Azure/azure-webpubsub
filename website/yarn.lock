@@ -1470,7 +1470,7 @@
     "@types/react" "*"
     "prop-types" "^15.6.2"
 
-"@docusaurus/theme-classic@^2.0.0-alpha.72", "@docusaurus/theme-classic@2.0.1":
+"@docusaurus/theme-classic@2.0.1":
   "integrity" "sha512-0jfigiqkUwIuKOw7Me5tqUM9BBvoQX7qqeevx7v4tkYQexPhk3VYSZo7aRuoJ9oyW5makCTPX551PMJzmq7+sw=="
   "resolved" "https://registry.npmjs.org/@docusaurus/theme-classic/-/theme-classic-2.0.1.tgz"
   "version" "2.0.1"
