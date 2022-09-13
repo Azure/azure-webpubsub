@@ -13,12 +13,14 @@ export default function Banner() {
   const isWide = IsWideDevice()
   const { siteConfig } = useDocusaurusContext()
   const bannerImageSources = siteConfig.customFields.bannerImageSources
+  const bannerImageSourcesAriaLabels = siteConfig.customFields.bannerImageSourcesAriaLabels
   const sources = isWide ? bannerImageSources.desktop : bannerImageSources.mobile
+  const ariaLabels = isWide ? bannerImageSourcesAriaLabels.desktop : bannerImageSourcesAriaLabels.mobile
   const slides = sources.map((src: string, i: number) => (
     <SwiperSlide key={i}>
-      <img src={src} className={styles.bannerImage}></img>
+        <img src={src} className={styles.bannerImage} aria-label={ariaLabels[i]}></img>
     </SwiperSlide>
-  ))
+    ))
   return (
     <Swiper
       slidesPerView={1}
