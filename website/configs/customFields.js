@@ -1,4 +1,4 @@
-const bannerCount = 4 //if bannerCount change, please change the bannerImageSourcesAriaLabels accordingly
+const bannerCount = 4//if bannerCount change, please change the bannerImageSourcesAriaLabels accordingly
 const getImageSource = (i, bannerType, baseUrl) => baseUrl + `img/banners/${bannerType}/banner-${i}.jpg`
 
 module.exports = function ({ baseUrl }) {
