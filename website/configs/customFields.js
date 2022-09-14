@@ -1,4 +1,4 @@
-const bannerCount = 4
+const bannerCount = 4 //if bannerCount change, please change the bannerImageSourcesAriaLabels accordingly
 const getImageSource = (i, bannerType, baseUrl) => baseUrl + `img/banners/${bannerType}/banner-${i}.jpg`
 
 module.exports = function ({ baseUrl }) {
@@ -22,8 +22,8 @@ module.exports = function ({ baseUrl }) {
             desktop: [...Array(bannerCount).keys()].map(i => getImageSource(i, 'desktop', baseUrl)),
         },
         bannerImageSourcesAriaLabels: {
-            mobile: ["mobile-aria-0", "mobile-aria-1", "mobile-aria-2", "mobile-aria-3"],
-            desktop: ["desktop-aria-0", "desktop-aria-1", "desktop-aria-2", "desktop-aria-3"]
+            mobile: ["Push time-sensitive data to your client at scale", "Build real time chat apps that connect users across the globe", "Focus on your users, not infrastructure", "Monitor and synchronize internet-connected devices with high reliability"],
+            desktop: ["Push time-sensitive data to your client at scale", "Build real time chat apps that connect users across the globe", "Focus on your users, not infrastructure", "Monitor and synchronize internet-connected devices with high reliability"]
         },
         sidebar: {
             sampleRoot: "https://github.com/Azure/azure-webpubsub/tree/main/samples/",
