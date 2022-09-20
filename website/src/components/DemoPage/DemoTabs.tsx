@@ -20,10 +20,10 @@ function DemoTabs({overview, local, deploy, resources}){
           onLinkClick={handleLinkClick}
           headersOnly={true}
         >
-          <PivotItem headerText="Overview" itemKey="overview" />
-          <PivotItem headerText="Run locally" itemKey="local" />
-          <PivotItem headerText="One-click deploy to Azure" itemKey="deploy" />
-          <PivotItem headerText="Resources" itemKey="resources" />
+          {overview && <PivotItem headerText="Overview" itemKey="overview" />}
+          {local && <PivotItem headerText="Run locally" itemKey="local" />}
+          {deploy && <PivotItem headerText="One-click deploy to Azure" itemKey="deploy" />}
+          {resources && <PivotItem headerText="Resources" itemKey="resources" />}
         </Pivot>
       </div>
       <div className="font-sans font-light">

@@ -1,25 +1,12 @@
 ---
 slug: welcome
 title: Welcome
-authors: [LiangyingW, Wangpeng]
-tags: [Microsoft, Azure]
+authors: [Wangpeng]
+# tags: [Microsoft, Azure, Azure Web PubSub]
 ---
+This is a site dedicated to showing developers what they can build with Azure Web PubSub through live demos. If a picture is worth a thousand words, a live demo is probably worth a lot more than that.
 
-[Docusaurus blogging features](https://docusaurus.io/docs/blog) are powered by the [blog plugin](https://docusaurus.io/docs/api/plugins/@docusaurus/plugin-content-blog).
 
-Simply add Markdown files (or folders) to the `blog` directory.
+Azure Web PubSub is a cloud service that helps you build real-time messaging web applications using WebSockets and the publish-subscribe pattern easily. This real-time functionality allows publishing content updates between server and connected clients (for example a single page web application or mobile application). The clients do not need to poll the latest updates, or submit new HTTP requests for updates.
 
-Regular blog authors can be added to `authors.yml`.
-
-The blog post date can be extracted from filenames, such as:
-
-- `2019-05-30-welcome.md`
-- `2019-05-30-welcome/index.md`
-
-A blog post folder can be convenient to co-locate blog post images:
-
-![Docusaurus Plushie](./docusaurus-plushie-banner.jpeg)
-
-The blog supports tags as well!
-
-**And if you don't want a blog**: just delete this directory, and use `blog: false` in your Docusaurus config.
+Check out the demos on the site and let us know what you think.

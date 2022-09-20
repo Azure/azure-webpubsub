@@ -1,19 +1,14 @@
-import React from "react";
+import React from 'react'
 
-import ExternalLink from "@site/static/icons/externallink.svg";
+import ExternalLink from '@site/static/icons/externallink.svg'
 
-function HyperLink({ to, text = "here", openInNewTab = true }) {
+function HyperLink({ to, text = 'here', openInNewTab = true }) {
   return (
-    <a
-      href={to}
-      className="font-bold text-blue-600 hover:underline"
-      target={openInNewTab ? "_blank" : ""}
-    >
+    <a href={to} className="font-bold text-blue-600 hover:underline" target={openInNewTab ? '_blank' : ''}>
       {text}
       <ExternalLink className="icon_inline" />
-      &nbsp;
     </a>
-  );
+  )
 }
 
-export default HyperLink;
+export default HyperLink
