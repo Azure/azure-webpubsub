@@ -3,6 +3,7 @@ import React from 'react'
 import SplitDemo from '@site/src/components/DemoPage/SplitDemo'
 import DemoTabs from '@site/src/components/DemoPage/DemoTabs'
 import TextBlock from '@site/src/components/DemoPage/TextBlock'
+import HyperLink from '@site/src/components/Common/HyperLink'
 
 import Local from '@site/src/components/DemoPage/Overview/Local'
 import Deploy from '@site/src/components/DemoPage/Overview/Deploy'
@@ -10,26 +11,16 @@ import Resources from '@site/src/components/DemoPage/Overview/Resources'
 
 import { DataDemos } from '../../../DataDemos'
 
-const DataDemo = DataDemos.find(item => item.detailURL === 'demos/realtime_scoreboard')
+const DataDemo = DataDemos.find(item => item.detailURL === 'demos/chatr')
 
 const languages = DataDemo.languages
 const githubURL = DataDemo.githubRepo
-const onClickDeploy = DataDemo.deployLink
 
-function RealtimeScoreboard() {
+function Chatr() {
   return (
     <>
-      <SplitDemo
-        leftSrc="https://awps-scoreboard-live-demo.azurewebsites.net/"
-        rightSrc="https://awps-scoreboard-live-demo.azurewebsites.net/"
-        description="Real-time chat app demo"
-        width="400"
-        languages={languages}
-        githubURL={githubURL}
-      />
-
       <div className="max-w-full overflow-hidden">
-        <DemoTabs overview={<Overview />} local={<Local />} deploy={<Deploy to={onClickDeploy} />} resources={<Resources />} />
+        <DemoTabs overview={<Overview />} />
       </div>
     </>
   )
@@ -40,15 +31,26 @@ function Overview() {
     <div>
       <h2 className="text-4xl">Overview</h2>
       <TextBlock title="About the app">
-        <p>This app demonstrates how to push data from server to connected clients using Azure Web PubSub</p>
+        <p>
+          This demo is developed by &nbsp;
+          <HyperLink to="https://github.com/benc-uk" text="Ben Coleman" />
+          using Azure Web PubSub service, Azure Static Web Apps, and deploy using Azure Bicep.
+        </p>
       </TextBlock>
+      {/* <TextBlock title="Technologies and libraries used"></TextBlock> */}
       <TextBlock title="Azure Web PubSub enables">
         <ul className="ml-5 list-disc leading-5">
-          <li className="mt-0">Server pushing data to clients in real-time</li>
+          <li className="mt-0">Real-time code editing</li>
         </ul>
       </TextBlock>
+
+      <h2 className="mt-12 text-4xl">Check out the live demo</h2>
+      <p>
+        You can check out the live demo &nbsp;
+        <HyperLink to="https://github.com/benc-uk/chatr" />
+      </p>
     </div>
   )
 }
 
-export default RealtimeScoreboard
+export default Chatr
