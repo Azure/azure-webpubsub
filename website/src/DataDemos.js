@@ -6,7 +6,7 @@ export let DataDemos = [
     languages: [
       // { language: 'JavaScript', percent: '' }
     ],
-    detailURL: 'demos/simple_chat_app',
+    detailURL: 'demos/chat',
     thumbnailURL: 'img/thumbnails/chat_abstract.jpeg',
     githubRepo: 'https://github.com/Azure/azure-webpubsub/tree/main/samples/javascript/chatapp',
   },
@@ -17,7 +17,7 @@ export let DataDemos = [
     languages: [
       // { language: 'JavaScript', percent: '' }
     ],
-    detailURL: 'demos/collaborative_whiteboard',
+    detailURL: 'demos/whiteboard',
     thumbnailURL: 'img/thumbnails/whiteboard.jpeg',
     githubRepo: 'https://github.com/Azure/azure-webpubsub/tree/main/samples/javascript/whiteboard',
   },
@@ -39,14 +39,14 @@ export let DataDemos = [
     languages: [
       // { language: 'C#', percent: '27' },
     ],
-    detailURL: 'demos/code_stream',
+    detailURL: 'demos/code-streaming',
     thumbnailURL: 'img/thumbnails/code.png',
     githubRepo: 'https://github.com/Azure/azure-webpubsub/tree/main/samples/javascript/codestream',
   },
   {
     id: 5,
     title: 'Chatr',
-    description: 'This demo is developed by Ben Coleman using Azure Web PubSub service, Azure Static Web Apps, and deploy using Azure Bicep.',
+    description: 'This demo is developed by Ben Coleman using Azure Web PubSub and other Azure technologies',
     languages: [
       // { language: 'C#', percent: '27' },
     ],
@@ -61,7 +61,7 @@ export let DataDemos = [
     languages: [
       // { language: 'C#', percent: '27' },
     ],
-    detailURL: 'demos/realtime_scoreboard',
+    detailURL: 'demos/scoreboard',
     thumbnailURL: 'img/thumbnails/scoreboard.jpeg',
     githubRepo: 'https://github.com/Azure/azure-webpubsub/tree/main/samples/javascript/scoreboard',
     deployLink:

@@ -10,7 +10,7 @@ import Resources from '@site/src/components/DemoPage/Overview/Resources'
 
 import { DataDemos } from '../../../DataDemos'
 
-const DataDemo = DataDemos.find(item => item.detailURL === 'demos/code_stream')
+const DataDemo = DataDemos.find(item => item.detailURL === 'demos/code-streaming')
 
 const languages = DataDemo.languages
 const githubURL = DataDemo.githubRepo
