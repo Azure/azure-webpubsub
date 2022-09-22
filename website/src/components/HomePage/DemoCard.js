@@ -1,18 +1,18 @@
-import React from "react";
-import useBaseUrl from "@docusaurus/useBaseUrl";
+import React from 'react'
+import useBaseUrl from '@docusaurus/useBaseUrl'
 
-import CodePercent from "@site/src/components/Common/CodePercent";
-import ButtonLink from "@site/src/components/Common/ButtonLink";
+import CodePercent from '@site/src/components/Common/CodePercent'
+import ButtonLink from '@site/src/components/Common/ButtonLink'
 
 function DemoCard({ title, description, imgURL, detailURL, languages }) {
-  let firstTwoLanguages = languages.slice(0, 2);
+  let firstTwoLanguages = languages.slice(0, 2)
 
   return (
-    <div className="mb-5 w-full overflow-hidden rounded-xl shadow-lg">
+    <div className="relative mb-5 w-full overflow-hidden rounded-xl shadow-lg">
       <img src={useBaseUrl(imgURL)} className="h-52 w-full object-cover" />
 
-      <section className="px-4 pt-3 pb-6">
-        <div className="mb-4 flex gap-8">
+      <section className="h-44 px-4 pt-3 pb-6">
+        {/* <div className="mb-4 flex gap-8">
           {firstTwoLanguages.map((item) => (
             <CodePercent
               lang={item.language}
@@ -20,17 +20,17 @@ function DemoCard({ title, description, imgURL, detailURL, languages }) {
               key={item.language}
             ></CodePercent>
           ))}
-        </div>
+        </div> */}
 
         <h3 className="text-xl font-bold">{title}</h3>
-        <p className="mt-1 mb-5 text-sm leading-5 text-gray-500">
-          {description}
-        </p>
+        <p className="mt-1 mb-5 text-sm leading-5 text-gray-500">{description}</p>
 
-        <ButtonLink text="View details" to={detailURL} />
+        <div className="absolute bottom-4">
+          <ButtonLink text="View details" to={detailURL} />
+        </div>
       </section>
     </div>
-  );
+  )
 }
 
-export default DemoCard;
+export default DemoCard
