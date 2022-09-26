@@ -1,7 +1,7 @@
 ---
 slug: welcome
 title: Welcome
-authors: [Wangpeng]
+authors: [WangpengL]
 custom_edit_url: null
 ---
 This is a site dedicated to showing developers what they can build with Azure Web PubSub through live demos. If a picture is worth a thousand words, a live demo is probably worth a lot more than that.
