@@ -12,16 +12,6 @@ function DemoCard({ title, description, imgURL, detailURL, languages }) {
       <img src={useBaseUrl(imgURL)} className="h-52 w-full object-cover" />
 
       <section className="h-44 px-4 pt-3 pb-6">
-        {/* <div className="mb-4 flex gap-8">
-          {firstTwoLanguages.map((item) => (
-            <CodePercent
-              lang={item.language}
-              percent={item.percent}
-              key={item.language}
-            ></CodePercent>
-          ))}
-        </div> */}
-
         <h3 className="text-xl font-bold">{title}</h3>
         <p className="mt-1 mb-5 text-sm leading-5 text-gray-500">{description}</p>
 

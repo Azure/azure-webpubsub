@@ -36,28 +36,6 @@ function Overview() {
       <TextBlock title="About the app">
         <p>An app demonstrating how Azure Web PubSub can be used to enable multi-player experience in Metaverse (coming soon)</p>
       </TextBlock>
-      {/* <TextBlock title="Technologies and libraries used"></TextBlock> */}
-      {/* <TextBlock title="Azure Web PubSub enables">
-        <ul className="ml-5 list-disc leading-5">
-          <li className="mt-0">User presence status indicator</li>
-          <li className="mt-0">Syncronization of user location</li>
-          <li className="mt-0">Group text chatting</li>
-        </ul>
-      </TextBlock> */}
-
-      {/* <h2 className="mt-12 text-4xl">How it works?</h2>
-      <TextBlock title="Server side">
-        Serve a static web page <code>public/index.html</code> A REST API &nbsp;
-        <code>/negotiate</code> which returns a url to connect to Web PubSub
-        <ul className="ml-5 list-disc">
-          <li className="mt-0">
-            Serve a static web page <code>public/index.html</code>
-          </li>
-          <li className="mt-0">
-            A REST API <code>/negotiate</code> which returns a url to connect to Web PubSub
-          </li>
-        </ul>
-      </TextBlock> */}
     </div>
   )
 }

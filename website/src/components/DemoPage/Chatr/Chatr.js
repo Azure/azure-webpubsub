@@ -37,7 +37,6 @@ function Overview() {
           using Azure Web PubSub service, Azure Static Web Apps, and deploy using Azure Bicep.
         </p>
       </TextBlock>
-      {/* <TextBlock title="Technologies and libraries used"></TextBlock> */}
       <TextBlock title="Azure Web PubSub enables">
         <ul className="ml-5 list-disc leading-5">
           <li className="mt-0">Real-time code editing</li>
