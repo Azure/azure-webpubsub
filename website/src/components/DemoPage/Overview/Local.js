@@ -1,7 +1,7 @@
-import React from "react";
-import TextBlock from "@site/src/components/DemoPage/TextBlock";
-import CodeBlock from "@site/src/components/DemoPage/CodeBlock";
-import HyperLink from "@site/src/components/Common/HyperLink";
+import React from 'react'
+import TextBlock from '@site/src/components/DemoPage/TextBlock'
+import CodeBlock from '@site/src/components/DemoPage/CodeBlock'
+import HyperLink from '@site/src/components/Common/HyperLink'
 
 function Local() {
   return (
@@ -34,21 +34,12 @@ function Local() {
         title="Windows"
       />
 
-      <h2 className="mb-5 mt-10 text-4xl">
-        Use Localtunnel to expose localhost
-      </h2>
+      <h2 className="mb-5 mt-10 text-4xl">Use Localtunnel to expose localhost</h2>
       <TextBlock>
         <p>
-          <HyperLink
-            to="https://github.com/localtunnel/localtunnel"
-            text="Localtunnel"
-          />
-          is an open-source project that help expose your localhost to
-          public.&nbsp;
-          <HyperLink
-            to="https://github.com/localtunnel/localtunnel#installation"
-            text="Install"
-          />
+          <HyperLink to="https://github.com/localtunnel/localtunnel" text="Localtunnel" />
+          is an open-source project that help expose your localhost to public.&nbsp;
+          <HyperLink to="https://github.com/localtunnel/localtunnel#installation" text="Install" />
           the tool and run:
         </p>
       </TextBlock>
@@ -58,15 +49,12 @@ function Local() {
       <TextBlock>
         <p>
           Event handler can be set from Azure Portal or through Azure CLI.&nbsp;
-          <HyperLink
-            to="https://docs.microsoft.com/en-us/azure/azure-web-pubsub/howto-develop-eventhandler"
-            text="Here"
-          />
+          <HyperLink to="https://docs.microsoft.com/en-us/azure/azure-web-pubsub/howto-develop-eventhandler" text="Here" />
           contains the detailed instructions of how to set it up.
         </p>
       </TextBlock>
     </div>
-  );
+  )
 }
 
-export default Local;
+export default Local
