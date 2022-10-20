@@ -8,6 +8,7 @@ export default function Footer(): JSX.Element {
     }
 
     const [visible, setVisible] = useState(true)
+
     useEffect(() => {
         setVisible(window.siteConsent.isConsentRequired)
     })
