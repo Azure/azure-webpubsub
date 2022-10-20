@@ -10,6 +10,8 @@ import Footer from "../components/Common/Footer";
 export default function Home() {
   const { siteConfig } = useDocusaurusContext();
   return (
+    <div>
+    <div id="cookie-banner"></div>
     <Layout
       title={`${siteConfig.title}`}
       description="Description will go into a meta tag in <head />"
@@ -25,5 +27,6 @@ export default function Home() {
         <Footer />
       </div>
     </Layout>
+    </div>
   );
 }
