@@ -1,4 +1,4 @@
-import React from "react";
+import React from 'react'
 
 function TextBlock({ title, children }) {
   return (
@@ -6,7 +6,7 @@ function TextBlock({ title, children }) {
       <h3 className="mb-1 font-sans font-semibold">{title}</h3>
       {children}
     </div>
-  );
+  )
 }
 
-export default TextBlock;
+export default TextBlock
