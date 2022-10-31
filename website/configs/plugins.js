@@ -1,5 +1,5 @@
 const path = require('path')
-const setupPlugins = function ({ root, docPath }) {
+const setupPlugins = function ({ root }) {
   const plugins = [
     async function tailwindPlugin(context, options) {
       return {

@@ -2,9 +2,7 @@
 // Note: type annotations allow type checking and IDEs autocompletion
 
 const path = require('path')
-const baseUrl = '/azure-webpubsub/'
-const customFields = require(path.resolve(__dirname, 'configs/customFields'))({ baseUrl })
-const plugins = require(path.resolve(__dirname, 'configs/plugins'))({ root: __dirname, docPath: customFields.doc.path })
+const plugins = require(path.resolve(__dirname, 'configs/plugins'))({ root: __dirname })
 
 const lightCodeTheme = require('prism-react-renderer/themes/github')
 const darkCodeTheme = require('prism-react-renderer/themes/dracula')
@@ -13,7 +11,7 @@ const darkCodeTheme = require('prism-react-renderer/themes/dracula')
 const config = {
   title: process.env.title || 'Demos for Azure Web PubSub Service',
   tagline: 'Easily add real-time capabilities to your apps using your preferred tech stack',
-  url: '/azure-webpubsub',
+  url: '/azure-webpubsub/',
   baseUrl: '/azure-webpubsub/',
   onBrokenLinks: 'warn', // external sites may be out of reach temporarily due to their own problems
   onBrokenMarkdownLinks: 'warn',
@@ -75,7 +73,6 @@ const config = {
     },
 
   plugins,
-  customFields,
 }
 
 module.exports = config
