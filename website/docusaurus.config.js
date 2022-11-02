@@ -11,8 +11,8 @@ const darkCodeTheme = require('prism-react-renderer/themes/dracula')
 const config = {
   title: process.env.title || 'Demos for Azure Web PubSub Service',
   tagline: 'Easily add real-time capabilities to your apps using your preferred tech stack',
-  url: '/azure-webpubsub',
-  baseUrl: '/azure-webpubsub/',
+  url: 'https://azure.github.io',
+  baseUrl: '/azure-webpubsub',
   onBrokenLinks: 'warn', // external sites may be out of reach temporarily due to their own problems
   onBrokenMarkdownLinks: 'warn',
   favicon: 'img/favicon.ico',
