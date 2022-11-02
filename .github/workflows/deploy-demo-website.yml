@@ -23,9 +23,7 @@ jobs:
               run: |
                   cd website
                   npm install 
-                  npm run build:workaround:init:command
-                  npm run build:workaround:link:react
-                  npm run build:workaround
+                  npm run build
               env:
                   trackingID: G-9DVQRCY9L7
                   gtmTrackingID: GTM-N67NT6N
