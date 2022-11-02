@@ -4,7 +4,7 @@ import Layout from '@theme/Layout'
 
 import Carousel from '../components/Carousel/Carousel'
 import Tagline from '../components/HomePage/Tagline'
-import Democards from '../components/HomePage/Democards'
+import DemoCards from '../components/HomePage/DemoCards'
 import Footer from '../components/Common/Footer'
 
 export default function Home() {
@@ -18,7 +18,7 @@ export default function Home() {
           <Tagline />
 
           <div className="mb-10 flex justify-center">
-            <Democards />
+            <DemoCards />
           </div>
 
           <Footer />
