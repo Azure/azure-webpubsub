@@ -16,7 +16,8 @@ export function Navigator(props: {
   return (
     <Navbar bg="dark" variant="dark" expand="lg">
       <Container>
-        <Navbar.Brand>Code Interview</Navbar.Brand>
+        <Navbar.Brand>CodeStream</Navbar.Brand>
+          {/*
         <Navbar.Toggle aria-controls="basic-navbar-nav" />
         <Navbar.Collapse id="basic-navbar-nav">
           <Nav className="me-auto">
@@ -37,15 +38,11 @@ export function Navigator(props: {
               })}
             </NavDropdown>
           </Nav>
-          <Nav.Item>
-            {/* <Nav.Link href="#/tab?chanId=default"> */}
-            {/* https://codestream.com */}
-            {/* </Nav.Link> */}
-          </Nav.Item>
           <Navbar.Text>
             {props.username ? `${props.username}` : "Disconnected"}
           </Navbar.Text>
         </Navbar.Collapse>
+          */}
       </Container>
     </Navbar>
   );

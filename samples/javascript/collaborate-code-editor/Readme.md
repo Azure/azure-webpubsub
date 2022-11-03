@@ -14,9 +14,10 @@ Powered by [Monaco Editor](https://microsoft.github.io/monaco-editor/) and [Yjs]
 ### 1. Run npm install
 
 ```bash
-npm install
+npm i --prefix server
+npm i --prefix app
 ```
-   
+
 ### 2. Start host server
 
 ```bash

@@ -18,8 +18,9 @@ export function CodeEditor(props: {
 
   const code = DEFAULT_CODE;
 
-  const options = {
+  const options : MonacoEditor.IEditorOptions = {
     selectOnLineNumbers: true,
+    lineNumbers: 'off',
     lineNumbersMinChars: 15,
     readOnly: false,
   };

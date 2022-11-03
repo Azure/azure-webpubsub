@@ -5,14 +5,23 @@ import { useEffect, useState } from "react";
 import { Container } from "./Container";
 import { Navigator } from "./Navigator";
 
+function makeId(length) {
+  var result = "";
+  var characters = "abcdefghijklmnopqrstuvwxyz0123456789";
+  var charactersLength = characters.length;
+  for (var i = 0; i < length; i++) {
+    result += characters.charAt(Math.floor(Math.random() * charactersLength));
+  }
+  return result;
+}
+
 export function CodeInterview() {
   const [language, setLanguage] = useState("Typescript");
   const [group, setGroup] = useState("");
   const [username, setUsername] = useState("");
 
   useEffect(() => {
-    let person = prompt("Please enter your name", "Anonymous");
-    setUsername(person || "Anonymous");
+    setUsername(makeId(5));
   }, []);
 
   useEffect(() => {
