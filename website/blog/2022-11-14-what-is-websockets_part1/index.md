@@ -9,15 +9,15 @@ custom_edit_url: null
 This article is the first of a two-part series that describes the values of WebSocket on a high-level.
 
 ## **Quick links**
-Explore a few live apps built with __[Web PubSub](https://learn.microsoft.com/en-us/azure/azure-web-pubsub/overview)__, a fully managed WebSocket service from Azure.  
+Explore a few live apps built with __[:link: Web PubSub](https://learn.microsoft.com/en-us/azure/azure-web-pubsub/overview)__, a fully managed WebSocket service from Azure.  
 
-1.[ A simple chat app](https://azure.github.io/azure-webpubsub/demos/chat)   
-2.[ A collaborative whiteboard app](https://azure.github.io/azure-webpubsub/demos/whiteboard)
+[:link: A simple chat app](https://azure.github.io/azure-webpubsub/demos/chat)  
+[:link: A collaborative whiteboard app](https://azure.github.io/azure-webpubsub/demos/whiteboard) 
 
 
 > **Definition**
 > 
-> WebSocket gives developers a **_bidirectional_**, **_full-duplex_** communication channels over HTTP through a single TCP connection.  
+> WebSocket gives developers a **_bidirectional_**, **_full-duplex_** communication channels over HTTP through a single TCP connection 
 
 -
 
@@ -42,6 +42,6 @@ In the second part, we will explore the idea of “full-duplex”.
 
 ---
 **Credits:**  
-The bicycle photograph is taken by __[Philipp M](https://www.pexels.com/@luftschnitzel/)__.  
-The bi-fold door photograph is taken by __[sena](https://www.pexels.com/@sena-124356903/)__.
+The bicycle photograph is taken by __[:link: Philipp M](https://www.pexels.com/@luftschnitzel/)__.  
+The bi-fold door photograph is taken by __[:link: sena](https://www.pexels.com/@sena-124356903/)__.
 
