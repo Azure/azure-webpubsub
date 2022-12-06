@@ -13,14 +13,15 @@ function AnalyticsCookie(setString) {
   const enable = setString === SET
   if (enable) {
     startGoogleTagManager()
-    cookies.set('google-analytics-enable', 'true', {expires: 365})
+    setGoogleAnalyticsEnableCookie(365)
     window[`ga-disable-G-${trackingIndex}`] = false
     if (gtagInit) gtagInit()
   } else {
-    cookies.set('google-analytics-enable', 'true', {expires: -1})
+    setGoogleAnalyticsEnableCookie(-1)
     window[`ga-disable-G-${trackingIndex}`] = true
     expireCookie('_ga')
     expireCookie(`_ga_${trackingIndex}`)
+    expireCookie('_mid')
   }
 }
 
@@ -33,14 +34,20 @@ function startGoogleTagManager() {
   limitExpireTimeForGDPR('_ga')
 }
 
+function setGoogleAnalyticsEnableCookie(expires) {
+  const name = 'google-analytics-enable'
+  const val = cookies.get(name)
+  if (val) cookies.set(name, val, { expires })
+}
+
 function limitExpireTimeForGDPR(name) {
   const val = cookies.get(name)
-  cookies.set(name, val, { expires: 365 })
+  if (val) cookies.set(name, val, { expires: 365 })
 }
 
 function expireCookie(name) {
   const val = cookies.get(name)
-  if (val) cookies.set(name, val, { expires: -1 })
+  if (val) cookies.set(name, val, { expires: -365 })
 }
 
 function AdvertisingCookie(setString) {
