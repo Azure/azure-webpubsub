@@ -52,7 +52,7 @@ function limitExpireTimeForGDPR(name) {
 
 function expireCookie(name) {
   const val = cookies.get(name)
-  cookies.set(name, val, { expires: -1 })
+  if (val) cookies.set(name, val, { expires: -1 })
 }
 
 function AdvertisingCookie(setString) {
