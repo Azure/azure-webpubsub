@@ -22,6 +22,7 @@ function AnalyticsCookie(setString) {
     expireCookie('_ga')
     expireCookie(`_ga_${trackingIndex}`)
     expireCookie('_mid')
+    expireCookie('_mid', '/azure-webpubsub')
   }
 }
 
@@ -44,9 +45,9 @@ function limitExpireTimeForGDPR(name) {
   if (val) cookies.set(name, val, { expires: 365 })
 }
 
-function expireCookie(name) {
+function expireCookie(name, path) {
   const val = cookies.get(name)
-  if (val) cookies.set(name, val, { expires: -365 })
+  if (val) cookies.set(name, val, { expires: -365, path: path || cookies.defaults.path })
 }
 
 function AdvertisingCookie(setString) {
