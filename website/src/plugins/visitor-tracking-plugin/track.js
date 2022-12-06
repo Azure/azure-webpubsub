@@ -5,18 +5,6 @@ const trackingIndex = '9DVQRCY9L7'
 const SET = 'set'
 const RESET = 'reset'
 
-function getSetDate() {
-  var d = new Date()
-  d.setMonth(12)
-  return d
-}
-
-function getResetDate() {
-  var d = new Date()
-  d.setMonth(-12)
-  return d
-}
-
 function SocialMediaCookie(setString) {
   // todo
 }
@@ -25,11 +13,11 @@ function AnalyticsCookie(setString) {
   const enable = setString === SET
   if (enable) {
     startGoogleTagManager()
-    document.cookie = `google-analytics-enable=true; expires=` + getSetDate() + '; path=/'
+    cookies.set('google-analytics-enable', 'true', {expires: 365})
     window[`ga-disable-G-${trackingIndex}`] = false
     if (gtagInit) gtagInit()
   } else {
-    document.cookie = `google-analytics-enable=true; expires=` + getResetDate() + '; path=/'
+    cookies.set('google-analytics-enable', 'true', {expires: -1})
     window[`ga-disable-G-${trackingIndex}`] = true
     expireCookie('_ga')
     expireCookie(`_ga_${trackingIndex}`)
