@@ -36,8 +36,7 @@ function startGoogleTagManager() {
 
 function setGoogleAnalyticsEnableCookie(expires) {
   const name = 'google-analytics-enable'
-  const val = cookies.get(name)
-  if (val) cookies.set(name, val, { expires })
+  cookies.set(name, 'true', { expires })
 }
 
 function limitExpireTimeForGDPR(name) {
