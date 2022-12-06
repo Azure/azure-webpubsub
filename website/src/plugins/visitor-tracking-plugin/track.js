@@ -1,3 +1,7 @@
+const cookies = require('browser-cookies')
+
+// client side, have to hard code the id
+const trackingIndex = '9DVQRCY9L7'
 const SET = 'set'
 const RESET = 'reset'
 
@@ -20,15 +24,35 @@ function SocialMediaCookie(setString) {
 function AnalyticsCookie(setString) {
   const enable = setString === SET
   if (enable) {
+    startGoogleTagManager()
     document.cookie = `google-analytics-enable=true; expires=` + getSetDate() + '; path=/'
-    // client side, have to hard code the id
-    window['ga-disable-G-9DVQRCY9L7'] = false
+    window[`ga-disable-G-${trackingIndex}`] = false
     if (gtagInit) gtagInit()
   } else {
     document.cookie = `google-analytics-enable=true; expires=` + getResetDate() + '; path=/'
-    // client side, have to hard code the id
-    window['ga-disable-G-9DVQRCY9L7'] = true
+    window[`ga-disable-G-${trackingIndex}`] = true
+    expireCookie('_ga')
+    expireCookie(`_ga_${trackingIndex}`)
   }
+}
+
+function startGoogleTagManager() {
+  window.dataLayer = window.dataLayer || [];
+  window.dataLayer.push({
+    'gtm.start':
+      new Date().getTime(), event: 'gtm.js'
+  })
+  limitExpireTimeForGDPR('_ga')
+}
+
+function limitExpireTimeForGDPR(name) {
+  const val = cookies.get(name)
+  cookies.set(name, val, { expires: 365 })
+}
+
+function expireCookie(name) {
+  const val = cookies.get(name)
+  cookies.set(name, val, { expires: -1 })
 }
 
 function AdvertisingCookie(setString) {
