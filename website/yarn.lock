@@ -2813,8 +2813,8 @@
     "fill-range" "^7.0.1"
 
 "browser-cookies@^1.2.0":
-  "integrity" "sha1-/KP/ubamOq3E2MCZnGtX0Pp9KbU="
-  "resolved" "https://msazure.pkgs.visualstudio.com/_packaging/AzurePortal/npm/registry/browser-cookies/-/browser-cookies-1.2.0.tgz"
+  "integrity" "sha512-cg2WuoOJo+F+g2XjEaP8nmeRp1vDHjt7sqpKJMsTNXKrpyIBNVslYJeehvs6FEddj8usV2+qyRSBEX244yN5/g=="
+  "resolved" "https://registry.npmjs.org/browser-cookies/-/browser-cookies-1.2.0.tgz"
   "version" "1.2.0"
 
 "browserslist@^4.0.0", "browserslist@^4.14.5", "browserslist@^4.16.6", "browserslist@^4.18.1", "browserslist@^4.20.2", "browserslist@^4.21.3", "browserslist@^4.21.4", "browserslist@>= 4.21.0":
