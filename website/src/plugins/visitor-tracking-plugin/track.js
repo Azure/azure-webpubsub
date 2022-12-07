@@ -1,17 +1,9 @@
+const cookies = require('browser-cookies')
+
+// client side, have to hard code the id
+const trackingIndex = '9DVQRCY9L7'
 const SET = 'set'
 const RESET = 'reset'
-
-function getSetDate() {
-  var d = new Date()
-  d.setMonth(12)
-  return d
-}
-
-function getResetDate() {
-  var d = new Date()
-  d.setMonth(-12)
-  return d
-}
 
 function SocialMediaCookie(setString) {
   // todo
@@ -20,15 +12,55 @@ function SocialMediaCookie(setString) {
 function AnalyticsCookie(setString) {
   const enable = setString === SET
   if (enable) {
-    document.cookie = `google-analytics-enable=true; expires=` + getSetDate() + '; path=/'
-    // client side, have to hard code the id
-    window['ga-disable-G-9DVQRCY9L7'] = false
+    window[`ga-disable-G-${trackingIndex}`] = false
+    setGoogleAnalyticsEnableCookie(365)
     if (gtagInit) gtagInit()
+    startGoogleTagManager()
   } else {
-    document.cookie = `google-analytics-enable=true; expires=` + getResetDate() + '; path=/'
-    // client side, have to hard code the id
-    window['ga-disable-G-9DVQRCY9L7'] = true
+    setGoogleAnalyticsEnableCookie(-365)
+    window[`ga-disable-G-${trackingIndex}`] = true
+    expireCookie('_ga')
+    expireCookie(`_ga_${trackingIndex}`)
+    expireCookie('_mid')
+    expireCookie('_mid', normalizePath(location.pathname))
+    expireCookie('_mid', getParentPath())
   }
+}
+
+function normalizePath(path) {
+  if (path[path.length - 1] === '/') path = path.substring(0, path.length - 1)
+  return path
+}
+
+function getParentPath() {
+  let path = location.pathname
+  if (path) {
+    if (path === '/') return path
+    path = normalizePath(path)
+    path = path.substring(1)
+    const arr = path.split('/').slice(0, -1)
+    const parentPath = '/' + arr.join('/')
+    return parentPath
+  }
+  return path
+}
+
+function startGoogleTagManager() {
+  window.dataLayer = window.dataLayer || [];
+  window.dataLayer.push({
+    'gtm.start':
+      new Date().getTime(), event: 'gtm.js'
+  })
+}
+
+function setGoogleAnalyticsEnableCookie(expires) {
+  const name = 'google-analytics-enable'
+  cookies.set(name, 'true', { expires })
+}
+
+function expireCookie(name, path) {
+  const val = cookies.get(name)
+  if (val) cookies.set(name, val, { expires: -365, path: path || cookies.defaults.path })
 }
 
 function AdvertisingCookie(setString) {
