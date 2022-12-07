@@ -18,7 +18,7 @@ function AnalyticsCookie(setString) {
     if (gtagInit) gtagInit()
     startGoogleTagManager()
   } else {
-    console.log('expires cookies begin', document.cookies)
+    console.log('expires cookies begin', document.cookie)
     setGoogleAnalyticsEnableCookie(-365)
     window[`ga-disable-G-${trackingIndex}`] = true
     expireCookie('_ga')
@@ -26,7 +26,7 @@ function AnalyticsCookie(setString) {
     expireCookie('_mid')
     expireCookie('_mid', normalizePath(location.pathname))
     expireCookie('_mid', getParentPath())
-    console.log('expires cookies end', document.cookies)
+    console.log('expires cookies end', document.cookie)
   }
 }
 
