@@ -17,13 +17,32 @@ function AnalyticsCookie(setString) {
     if (gtagInit) gtagInit()
     startGoogleTagManager()
   } else {
-    setGoogleAnalyticsEnableCookie(-1)
+    setGoogleAnalyticsEnableCookie(-365)
     window[`ga-disable-G-${trackingIndex}`] = true
     expireCookie('_ga')
     expireCookie(`_ga_${trackingIndex}`)
     expireCookie('_mid')
-    expireCookie('_mid', '/azure-webpubsub')
+    expireCookie('_mid', normalizePath(location.pathname))
+    expireCookie('_mid', getParentPath())
   }
+}
+
+function normalizePath(path) {
+  if (path[path.length - 1] === '/') path = path.substring(0, path.length - 1)
+  return path
+}
+
+function getParentPath() {
+  let path = location.pathname
+  if (path) {
+    if (path === '/') return path
+    path = normalizePath(path)
+    path = path.substring(1)
+    const arr = path.split('/').slice(0, -1)
+    const parentPath = '/' + arr.join('/')
+    return parentPath
+  }
+  return path
 }
 
 function startGoogleTagManager() {
