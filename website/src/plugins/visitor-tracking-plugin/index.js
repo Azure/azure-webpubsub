@@ -53,9 +53,6 @@ module.exports = function pluginVisitorTracking(context, options) {
                     function gtagInit() {
                         gtag('js', new Date());
                         gtag('config', '${trackingID}', { ${anonymizeIP ? "'anonymize_ip': true" : ''} });
-                        gtag('config', '${trackingID}', {
-                          cookie_expires: 31536000,
-                        });
                     }
                    `,
           },

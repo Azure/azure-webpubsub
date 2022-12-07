@@ -12,10 +12,10 @@ function SocialMediaCookie(setString) {
 function AnalyticsCookie(setString) {
   const enable = setString === SET
   if (enable) {
-    startGoogleTagManager()
-    setGoogleAnalyticsEnableCookie(365)
     window[`ga-disable-G-${trackingIndex}`] = false
+    setGoogleAnalyticsEnableCookie(365)
     if (gtagInit) gtagInit()
+    startGoogleTagManager()
   } else {
     setGoogleAnalyticsEnableCookie(-1)
     window[`ga-disable-G-${trackingIndex}`] = true
@@ -32,17 +32,11 @@ function startGoogleTagManager() {
     'gtm.start':
       new Date().getTime(), event: 'gtm.js'
   })
-  limitExpireTimeForGDPR('_ga')
 }
 
 function setGoogleAnalyticsEnableCookie(expires) {
   const name = 'google-analytics-enable'
   cookies.set(name, 'true', { expires })
-}
-
-function limitExpireTimeForGDPR(name) {
-  const val = cookies.get(name)
-  if (val) cookies.set(name, val, { expires: 365 })
 }
 
 function expireCookie(name, path) {
