@@ -10,23 +10,29 @@ function SocialMediaCookie(setString) {
 }
 
 function AnalyticsCookie(setString) {
-  console.log('AnalyticsCookie', setString)
   const enable = setString === SET
   if (enable) {
     window[`ga-disable-G-${trackingIndex}`] = false
+    if (window['_ga']) cookies.set('_ga', window['_ga'], { domain: '.azure.github.io', expires: 365, path: '/' })
+    if (window[`_ga_${trackingIndex}`]) cookies.set(`_ga_${trackingIndex}`, window[`_ga_${trackingIndex}`], { domain: '.azure.github.io', expires: 365, path: '/' })
     setGoogleAnalyticsEnableCookie(365)
-    if (gtagInit) gtagInit()
-    startGoogleTagManager()
+
+    if (window['_ga_started'] === true) { }
+    else {
+      if (gtagInit) gtagInit()
+      startGoogleTagManager()
+    }
+    window['_ga_started'] = true
   } else {
-    console.log('expires cookies begin', document.cookie)
     setGoogleAnalyticsEnableCookie(-365)
     window[`ga-disable-G-${trackingIndex}`] = true
-    expireCookie('_ga')
-    expireCookie(`_ga_${trackingIndex}`)
-    expireCookie('_mid')
+    window['_ga'] = cookies.get('_ga')
+    window[`_ga_${trackingIndex}`] = cookies.get(`_ga_${trackingIndex}`)
+    expireCookie('_ga', '/', '.azure.github.io')
+    expireCookie(`_ga_${trackingIndex}`, '/', '.azure.github.io')
+    expireCookie('_mid', '/')
     expireCookie('_mid', normalizePath(location.pathname))
     expireCookie('_mid', getParentPath())
-    console.log('expires cookies end', document.cookie)
   }
 }
 
@@ -61,9 +67,14 @@ function setGoogleAnalyticsEnableCookie(expires) {
   cookies.set(name, 'true', { expires })
 }
 
-function expireCookie(name, path) {
+function expireCookie(name, path, domain) {
   const val = cookies.get(name)
-  if (val) cookies.set(name, val, { expires: -365, path: path || cookies.defaults.path })
+  if (val) {
+    cookies.erase(name, {
+      path: path || cookies.defaults.path,
+      domain: domain || cookies.defaults.domain
+    })
+  }
 }
 
 function AdvertisingCookie(setString) {
@@ -105,7 +116,7 @@ function initConsent() {
           siteConsent = _siteConsent //siteConsent is used to get the current consent
           setNonEssentialCookies(siteConsent.getConsent())
         } else {
-          console.log('Error initializing WcpConsent: ' + err)
+          console.error('Error initializing WcpConsent: ' + err)
         }
       },
       onConsentChanged,
