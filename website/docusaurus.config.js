@@ -18,6 +18,7 @@ const config = {
   favicon: 'img/favicon.ico',
   organizationName: 'azure',
   projectName: 'azure-webpubsub',
+  trailingSlash: false,
   presets: [
     [
       'classic',
