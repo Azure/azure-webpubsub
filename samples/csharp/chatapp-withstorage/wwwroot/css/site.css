@@ -1,0 +1,138 @@
+﻿/*html, body {
+    font-size: 16px;
+}
+
+@media all and (max-device-width: 720px) {
+    html, body {
+        font-size: 20px;
+    }
+}*/
+
+html, body {
+    padding: 0;
+    height: 100%;
+}
+
+#messages {
+    border: 1px solid #ccc;
+    height: 500px;
+    float: none;
+    margin: 0px auto;
+    padding-left: 0px;
+    overflow-y: auto;
+}
+
+#userlist {
+    border: 1px solid #ccc;
+    background-color: #e0e0e0; 
+    height: 582px;
+    float: none;
+    margin-top: 0px;
+    padding-left: 0px;
+    overflow-y: auto;
+}
+
+textarea:focus {
+    outline: none !important;
+}
+
+.system-message {
+    background: #87CEFA;
+}
+
+.sessionlabel {
+    font-size: 24px;
+    padding:24px;
+    border: 1px solid #ccc;
+    border-bottom-style: hidden;
+    background-color: whitesmoke;
+    text-align: left;
+    padding-left: 10px;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    overflow: hidden;
+}
+
+.textarea {
+    width: 100%; 
+    border-left-style:1px solid #ccc; 
+    border-right-style:1px solid #ccc;
+}
+
+.usercard {
+    height: 60px;
+    border-bottom: 1px solid #ccc;
+}
+
+.currentusercard {
+    height: 60px;
+    border-bottom: 1px solid #ccc;
+    background-color: #d0d0d0;
+}
+
+.usercardname {
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    overflow: hidden;
+    padding-left: 5px;
+    font-size: 24px;
+    color: #606060;
+}
+
+.usercardmessage {
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    overflow: hidden;
+    padding-top:2px; 
+    padding-left: 5px;
+    font-size: 18px;
+    color: #a0a0a0;
+}
+
+.broadcast-message {
+    display: inline-block;
+    background: yellow;
+    margin: auto;
+    padding: 5px 10px;
+}
+
+.message-entry {
+    overflow: auto;
+    margin: 8px 0;
+}
+
+.message-avatar {
+    display: inline-block;
+    padding: 10px;
+    max-width: 8em;
+    word-wrap: break-word;
+}
+
+.message-content {
+    display: inline-block;
+    background-color: #b2e281;
+    padding: 10px;
+    margin: 0 0.5em;
+    max-width: calc(60%);
+    word-wrap: break-word;
+}
+
+.message-content.pull-left:before {
+    width: 0;
+    height: 0;
+    display: inline-block;
+    border-top: 10px solid transparent;
+    border-bottom: 10px solid transparent;
+    border-right: 10px solid #b2e281;
+    margin: 15px 0;
+}
+
+.message-content.pull-right:after {
+    width: 0;
+    height: 0;
+    display: inline-block;
+    border-top: 10px solid transparent;
+    border-bottom: 10px solid transparent;
+    border-left: 10px solid #b2e281;
+    margin: 15px 0;
+}
