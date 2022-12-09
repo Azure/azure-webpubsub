@@ -45,7 +45,6 @@
             justify-content: flex-end;
         }
     </style>
-    <script type="module" src="https://cdn.jsdelivr.net/npm/bulma-toast@2.3.0/dist/bulma-toast.esm.js"></script>
 </head>
 
 <body class="m-2">
@@ -56,7 +55,7 @@
 
         <!--Login modal-->
         <div v-if="!login">
-            <form class="box" v-on:submit.prevent="login = true">
+            <form class="box" v-on:submit.prevent="connect">
                 <div class="field">
                     <label class="label">Name</label>
                     <div class="control">
@@ -69,13 +68,6 @@
 
         <!--Chat-->
         <div v-if="login">
-            <div>
-                <ul>
-                    <li v-for="l in logs.slice().reverse()">
-                        {{ l.text }}
-                    </li>
-                </ul>
-            </div>
             <div class="notification is-danger" v-if="error">{{ error }}</div>
             <div class="columns m-2">
                 <div class="column is-3 box">
@@ -84,13 +76,10 @@
                             User list
                         </p>
                         <ul class="menu-list">
-                            <li v-for="u of Object.values(users)" >
-                                <a :class="{'is-active': currentPair === u.name}" @click="currentPair = u.name">
-                                    <!--<span class="icon is-small" :class="{'has-text-success': u.online}">
-                                        <i class="fas fa-circle" aria-hidden="true"></i>
-                                    </span>-->
-                                    {{u.name}}
-                                    <span class="animate__heartBeat animate__animated animate__infinite">
+                            <li v-for="u of users" >
+                                <a :class="{'is-active': currentPair === u.name}" v-if="u.name !== user" @click="switchChatPair(u)">
+                                    <span :class="{'has-text-weight-bold': u.new}">{{u.name}}</span>
+                                    <span class="animate__heartBeat animate__animated animate__infinite" v-show="u.unread">
                                         &nbsp;&nbsp;💬
                                     </span>
                                 </a>
@@ -103,18 +92,36 @@
                     <span class="icon is-small" :class="{'has-text-success': connected}">
                         <i class="fas fa-circle" aria-hidden="true"></i>
                     </span>
-                    <div class="container chatComponent">
-                        <form v-on:submit.prevent="sendMessage" v-show="currentChats" class="is-flex">
+                    <section v-show="!currentPair">
+                        Choose one user to start chatting
+                    </section>
+                    <div class="chatComponent" v-show="!!currentPair">
+                        <form v-on:submit.prevent="sendToUser" v-show="currentChats" class="is-flex">
                             <input class="chatInput input" ref="chatInput" :placeholder="`Say hi to ${currentPair}`" v-model="message"></input>
                             <button class="button is-success" :disabled="!connected || !message"><i class="fas fa-share"></i><span class="is-hidden-mobile">&nbsp; Send</span></button>
                         </form>
 
-                        <div class="chatBox con" contentEditable="false" readonly ref="chatBox">
-                            <div v-for="chat of currentChats.chats" class="chatMsgRow" :class="{chatRight: user == chat.from}">
-                                <div class="card m-3 p-2 chatMsg" :class="{'has-background-primary-light': user == chat.from}">
-                                    <div class="has-text-info chatMsgTitle" v-if="chat.from">{{ chat.from }}</div>
-                                    <div class="chatMsgBody">{{chat.text}}</div>
-                                    <div class="chatMsgTitle has-text-grey" v-if="chat.date">{{ chat.date }}</div>
+                        <div class="chatBox" contentEditable="false" readonly ref="chatBox" @click="readTo">
+                            <div v-for="chat of currentChats.chats">
+                                <div v-if="user == chat.from">
+                                    <div class="chatMsgRow chatRight">
+                                        <div class="card m-3 p-2 chatMsg has-background-primary-light">
+                                            <div class="has-text-info chatMsgTitle" v-if="chat.from">{{ chat.from }}</div>
+                                            <div class="chatMsgBody">{{chat.text}}</div>
+                                            <div class="chatMsgTitle has-text-grey">
+                                                {{chat.sequenceId ?  (chat.sequenceId > currentChats.pairReadSequenceId ? "Sent" : "Read") : "Sending" }}
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div v-else>
+                                    <div class="chatMsgRow">
+                                        <div class="card m-3 p-2 chatMsg">
+                                            <div class="has-text-info chatMsgTitle" v-if="chat.from">{{ chat.from }}</div>
+                                            <div class="chatMsgBody">{{chat.text}}</div>
+                                            <div class="chatMsgTitle has-text-grey">{{chat.sequenceId > currentChats.readSequenceId ? "Unread" : "Read" }}</div>
+                                        </div>
+                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -124,7 +131,6 @@
         </div>
     </div>
     <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
-    <script src="./js/webpubsub/dist/main.js"></script>
     <script src="./js/app.js"></script>
 </body>
 </html>

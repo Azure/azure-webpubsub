@@ -8,7 +8,6 @@ builder.Services.AddWebPubSub(
     o => o.ServiceEndpoint = new ServiceEndpoint(builder.Configuration["Azure:WebPubSub:ConnectionString"]))
     .AddWebPubSubServiceClient<Sample_ReliableChatApp>();
 
-builder.Services.AddSingleton<ISessionHandler, InMemorySessionStorage>(); 
 builder.Services.AddSingleton<IChatHandler, InMemoryChatHandler>();
 builder.Services.AddSingleton<IUserManager, InMemoryUserManager>();
 
@@ -21,7 +20,6 @@ if (app.Environment.IsDevelopment())
 
 app.UseStaticFiles();
 app.UseRouting();
-
 app.UseEndpoints(endpoints =>
 {    
     endpoints.MapGet("/negotiate", async (WebPubSubServiceClient<Sample_ReliableChatApp> serviceClient, HttpContext context) =>

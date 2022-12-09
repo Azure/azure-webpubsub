@@ -17,13 +17,8 @@ using Azure.Messaging;
 using System.Collections.Concurrent;
 using System.Reflection;
 
-namespace Microsoft.Azure.SignalR.Samples.ReliableChatRoom
+namespace Microsoft.Azure.WebPubSub.Samples
 {
-    public record UserState(string name, bool online)
-    {
-        public bool online { get; set; } = online;
-    }
-
     public class Sample_ReliableChatApp : WebPubSubHub
     {
         private readonly WebPubSubServiceClient<Sample_ReliableChatApp> _serviceClient;
@@ -99,7 +94,18 @@ namespace Microsoft.Azure.SignalR.Samples.ReliableChatRoom
                 case "sendToUser":
                     {
                         var msg = request.Data.ToObject<SendToUserRequest>(JsonObjectSerializer.Default);
-                        var sequenceId = await SendUserMessage(msg);
+
+                        // Server to generate the sequenceId
+                        var sequenceId = await _messageHandler.AddMessageAsync(msg.from, msg.to, msg.text);
+                        
+                        // Server to broadcast to others (including other connections for current user) about the message
+                        _ = SendToPair(msg.from, msg.to, new
+                        {
+                            @event = "chat",
+                            data = new Chat(msg.text, msg.from, msg.to, sequenceId),
+                        }, request.ConnectionContext.ConnectionId);
+
+                        // Server to ack back the sequenceId to the connection sending the message
                         return request.CreateResponse(
                             BinaryData.FromObjectAsJson(new
                             {
@@ -115,14 +121,15 @@ namespace Microsoft.Azure.SignalR.Samples.ReliableChatRoom
                     {
                         var msg = request.Data.ToObject<ReadToRequest>(JsonObjectSerializer.Default);
                         await _messageHandler.ReadTo(msg.user, msg.pair, msg.sequenceId);
+                        // Tell others (including other connections and the pair user) 
                         await SendToPair(msg.user, msg.pair, new
                         {
-                            @event = "sequenceId",
-                            from = msg.user,
-                            to = msg.pair,
+                            @event = "readto",
+                            user = msg.user,
+                            pair = msg.pair,
                             sequenceId = msg.sequenceId
-                        });
-                        return default;
+                        }, request.ConnectionContext.ConnectionId);
+                        return new UserEventResponse();
                     }
                 default:
                     throw new NotSupportedException(request.ConnectionContext.EventName);
@@ -142,24 +149,24 @@ namespace Microsoft.Azure.SignalR.Samples.ReliableChatRoom
         /// <param name="receiver"></param>
         /// <param name="messageContent"></param>
         /// <returns>The sequenceId of the message.</returns>
-        public async Task<int> SendUserMessage(SendToUserRequest data)
+        public async Task<int> SendUserMessage(SendToUserRequest data, string exclude)
         {
             var sequenceId = await _messageHandler.AddMessageAsync(data.from, data.to, data.text);
             await SendToPair(data.from, data.to, new
             {
                 @event = "chat",
-                data = new Chat(data.from, data.to, data.text, sequenceId),
-            });
+                data = new Chat(data.text, data.from, data.to, sequenceId),
+            }, exclude);
 
             return sequenceId;
         }
 
-        private Task SendToPair(string user, string pair, object msg)
+        private Task SendToPair(string user, string pair, object msg, string exclude)
         {
             return Task.WhenAll(
                 _serviceClient.SendToUserAsync(
                 user,
-                RequestContent.Create(msg), ContentType.ApplicationJson),
+                RequestContent.Create(msg), ContentType.ApplicationJson, ClientConnectionFilter.Create($"connectionId ne {exclude}")),
                 _serviceClient.SendToUserAsync(
                 pair,
                 RequestContent.Create(msg), ContentType.ApplicationJson)
