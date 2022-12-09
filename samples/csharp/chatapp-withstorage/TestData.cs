@@ -1,14 +1,16 @@
-﻿public class TestData
+﻿using Microsoft.Azure.WebPubSub.Samples;
+
+public class TestData
 {
-    public static void LoadTestData(IUserManager userManager, IChatHandler chatHandler)
+    public static async Task LoadTestData(IUserManager userManager, IChatHandler chatHandler)
     {
         for (var i = 0; i < 10; i++)
         {
-            userManager.AddUser("User" + i);
+            await userManager.AddUserAsync("User" + i);
         }
 
-        var users = userManager.GetUsers();
-        var count = users.Length;
+        var users = await userManager.GetUsersAsync();
+        var count = users.Count;
         var rand = new Random();
         var words = new string[]
         {

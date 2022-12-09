@@ -11,6 +11,4 @@ namespace Microsoft.Azure.WebPubSub.Samples
 
         Task ReadTo(string from, string to, int sequenceId);
     }
-    public record ChatHistory(string user, string pair, int readSequenceId, int pairReadSequenceId, IList<Chat> chats);
-    public record Chat(string text, string from, string to, int sequenceId);
 }

@@ -1,6 +1,6 @@
-using Microsoft.Azure.SignalR.Samples.ReliableChatRoom;
 using Microsoft.Azure.WebPubSub.AspNetCore;
 using Microsoft.Azure.WebPubSub.Common;
+using Microsoft.Azure.WebPubSub.Samples;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -8,7 +8,7 @@ builder.Services.AddWebPubSub(
     o => o.ServiceEndpoint = new ServiceEndpoint(builder.Configuration["Azure:WebPubSub:ConnectionString"]))
     .AddWebPubSubServiceClient<Sample_ReliableChatApp>();
 
-builder.Services.AddSingleton<IChatHandler, InMemoryChatHandler>();
+builder.Services.AddSingleton<IChatHandler, InMemoryChatStorage>();
 builder.Services.AddSingleton<IUserManager, InMemoryUserManager>();
 
 var app = builder.Build();

@@ -3,12 +3,5 @@
 
 namespace Microsoft.Azure.WebPubSub.Samples
 {
-    public interface IUserManager
-    {
-        Task<IList<UserState>> GetUsersAsync();
-
-        Task AddUserAsync(string name);
-    }
-
-    public record UserState(string name);
+    public record Chat(string text, string from, string to, int sequenceId);
 }

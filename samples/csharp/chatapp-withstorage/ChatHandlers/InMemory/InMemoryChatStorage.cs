@@ -7,7 +7,7 @@ using Newtonsoft.Json;
 
 namespace Microsoft.Azure.WebPubSub.Samples
 {
-    public class InMemoryChatHandler : IChatHandler
+    public class InMemoryChatStorage : IChatHandler
     {
         private readonly ConcurrentDictionary<string, SessionMessage> _chatStorage = new();
         public Task<int> AddMessageAsync(string from, string to, string text)

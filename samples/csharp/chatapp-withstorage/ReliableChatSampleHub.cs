@@ -1,21 +1,13 @@
 // Copyright (c) Microsoft. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
-using System;
-using System.Collections.Generic;
-using Microsoft.AspNetCore.SignalR;
-using System.Security.Claims;
-using System.Threading.Tasks;
-using Microsoft.Azure.WebPubSub.AspNetCore;
-using Microsoft.Azure.WebPubSub.Common;
 using Azure;
 using Azure.Core;
 using Azure.Core.Serialization;
 using Azure.Messaging.WebPubSub;
-using System.Text.RegularExpressions;
-using Azure.Messaging;
-using System.Collections.Concurrent;
-using System.Reflection;
+
+using Microsoft.Azure.WebPubSub.AspNetCore;
+using Microsoft.Azure.WebPubSub.Common;
 
 namespace Microsoft.Azure.WebPubSub.Samples
 {
@@ -37,7 +29,17 @@ namespace Microsoft.Azure.WebPubSub.Samples
         public override async Task OnConnectedAsync(ConnectedEventRequest request)
         {
             var sender = request.ConnectionContext.UserId;
-            await UpdateUserAsync(sender, true);
+
+            // broadcast the newly added user to everyone
+            await _serviceClient.SendToAllAsync(
+           RequestContent.Create(new
+           {
+               @event = "updateUsers",
+               users = new Dictionary<string, UserState>
+               {
+                   [sender] = new(sender)
+               }
+           }), ContentType.ApplicationJson);
 
             //  Send latest session list to user.
             await _serviceClient.SendToConnectionAsync(
@@ -45,33 +47,8 @@ namespace Microsoft.Azure.WebPubSub.Samples
                 RequestContent.Create(new
                 {
                     @event = "setUsers",
-                    users = _userManager.GetUsers()
+                    users = _userManager.GetUsersAsync()
                 }), ContentType.ApplicationJson);
-        }
-
-
-        public override async Task OnDisconnectedAsync(DisconnectedEventRequest request)
-        {
-            var sender = request.ConnectionContext.UserId;
-            if (!await _serviceClient.UserExistsAsync(sender))
-            {
-                await UpdateUserAsync(sender, false);
-            }
-        }
-
-        private Task UpdateUserAsync(string user, bool online)
-        {
-            _userManager.UpdateUserState(user, online);
-
-            return _serviceClient.SendToAllAsync(
-            RequestContent.Create(new
-            {
-                @event = "updateUsers",
-                users = new Dictionary<string, UserState>
-                {
-                    [user] = new(user, false)
-                }
-            }), ContentType.ApplicationJson);
         }
 
         public override async ValueTask<UserEventResponse> OnMessageReceivedAsync(UserEventRequest request, CancellationToken cancellationToken)

@@ -17,16 +17,16 @@ namespace Microsoft.Azure.WebPubSub.Samples
             RowKey = rkey;
         }
 
-        public SessionEntity(string pkey, string rkey, Session session)
+        public SessionEntity(string pkey, string rkey, UserState session)
         {
             PartitionKey = pkey;
             RowKey = rkey;
-            SessionId = session.SessionId;
+            SessionId = session.name;
         }
 
-        public Session ToSession()
+        public UserState ToSession()
         {
-            return new Session(SessionId);
+            return new UserState(SessionId);
         }
     }
 }

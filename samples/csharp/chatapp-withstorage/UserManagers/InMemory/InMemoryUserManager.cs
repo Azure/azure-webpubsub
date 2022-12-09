@@ -9,32 +9,20 @@ namespace Microsoft.Azure.WebPubSub.Samples
     {
         private readonly ConcurrentDictionary<string, UserState> _userStorage = new ConcurrentDictionary<string, UserState>();
 
-        public void AddUser(string username)
+        public Task AddUserAsync(string name)
         {
-            _userStorage.AddOrUpdate(username, s => new(username, true), (s, u) =>
-            {
-                u.online = true;
-                return u;
-            });
+            _userStorage.GetOrAdd(name, _ => new UserState(name));
+            return Task.CompletedTask;
         }
 
-        public void UpdateUserState(string username, bool online)
+        public Task<IList<UserState>> GetUsersAsync()
         {
-            _userStorage.AddOrUpdate(username, s => new(username, online), (s, u) =>
-            {
-                u.online = online;
-                return u;
-            });
+            return Task.FromResult(_userStorage.Values.OrderBy(u => u.name).ToArray() as IList<UserState>);
         }
 
-        public UserState[] GetUsers()
+        public void RemoveUser(string name)
         {
-            return _userStorage.Values.OrderBy(u => u.name).ToArray();
-        }
-
-        public void RemoveUser(string username)
-        {
-            _userStorage.TryRemove(username, out _);
+            _userStorage.TryRemove(name, out _);
         }
     }
 }
