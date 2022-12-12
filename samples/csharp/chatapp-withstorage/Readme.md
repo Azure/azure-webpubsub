@@ -107,7 +107,7 @@ Open http://localhost:8080/index.html, input your user name, and send messages.
 
 You can see in the localtunnel command window that there are requests coming in with every message sent from the page.
 
-    ![Chat demo](./images/demo.gif)
+![Chat demo](./images/demo.gif)
 
 	
 ### Use your own database
