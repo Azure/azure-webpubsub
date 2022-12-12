@@ -33,7 +33,7 @@
                     pair: this.currentPair,
                     // Find the earlist sequenceId in current chat
                     // It is possible that this history loading behavior happens after the connection is connected and received messages
-                    currentSequenceId: chat.chats.find(s=>s.sequenceId != null), 
+                    currentSequenceId: chat.chats.find(s=>s.sequenceId != null)?.sequenceId, 
                 });
                 chat.historyRequested = true;
             }
@@ -58,6 +58,7 @@
             var chat = getOrAddUserChat(message.from, message.to);
             chat.chats.push(message);
             send("sendToUser", message);
+            this.message = null;
         }
     }
 }).mount('#app');
@@ -108,10 +109,12 @@ function getOrAddUserChat(from, to) {
         pairReadSequenceId: 0,
         chats: []
     };
-    var user = app.users.find(s => s.name === to);
+    // If the pair is not yet in the list, add it
+    var pair = app.user === from ? to : from;
+    var user = app.users.find(s => s.name === pair);
     if (!user) {
         app.users.unshift({
-            name: to,
+            name: pair,
             new: true,
             unread: false
         });
