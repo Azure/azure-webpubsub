@@ -14,41 +14,29 @@ namespace Microsoft.Azure.WebPubSub.Samples
     public class Sample_ReliableChatApp : WebPubSubHub
     {
         private readonly WebPubSubServiceClient<Sample_ReliableChatApp> _serviceClient;
-        private readonly IUserManager _userManager;
-        private readonly IChatHandler _messageHandler;
+        private readonly IChatHandler _chatHandler;
 
         public Sample_ReliableChatApp(WebPubSubServiceClient<Sample_ReliableChatApp> serviceClient,
-            IUserManager userManager,
-            IChatHandler messageHandler)
+            IChatHandler chatHandler)
         {
             _serviceClient = serviceClient;
-            _userManager = userManager;
-            _messageHandler = messageHandler;
+            _chatHandler = chatHandler;
         }
 
         public override async Task OnConnectedAsync(ConnectedEventRequest request)
         {
             var sender = request.ConnectionContext.UserId;
 
-            // broadcast the newly added user to everyone
-            await _serviceClient.SendToAllAsync(
-           RequestContent.Create(new
-           {
-               @event = "updateUsers",
-               users = new Dictionary<string, UserState>
-               {
-                   [sender] = new(sender)
-               }
-           }), ContentType.ApplicationJson);
-
-            //  Send latest session list to user.
+            var pairs = await _chatHandler.GetPairsAsync(sender);
+            //  Send latest session list to the connection.
             await _serviceClient.SendToConnectionAsync(
                 request.ConnectionContext.ConnectionId,
                 RequestContent.Create(new
                 {
-                    @event = "setUsers",
-                    users = _userManager.GetUsersAsync()
+                    @event = "pairs",
+                    pairs = pairs
                 }), ContentType.ApplicationJson);
+
         }
 
         public override async ValueTask<UserEventResponse> OnMessageReceivedAsync(UserEventRequest request, CancellationToken cancellationToken)
@@ -59,7 +47,7 @@ namespace Microsoft.Azure.WebPubSub.Samples
                 case "getChatHistory":
                     {
                         var msg = request.Data.ToObject<GetChatHistoryRequest>(JsonObjectSerializer.Default);
-                        var history = await _messageHandler.LoadHistoryMessageAsync(msg.user, msg.pair);
+                        var history = await _chatHandler.LoadHistoryMessageAsync(msg.user, msg.pair, msg.currentSequenceId);
                         return request.CreateResponse(
                             BinaryData.FromObjectAsJson(new
                             {
@@ -73,7 +61,7 @@ namespace Microsoft.Azure.WebPubSub.Samples
                         var msg = request.Data.ToObject<SendToUserRequest>(JsonObjectSerializer.Default);
 
                         // Server to generate the sequenceId
-                        var sequenceId = await _messageHandler.AddMessageAsync(msg.from, msg.to, msg.text);
+                        var sequenceId = await _chatHandler.AddMessageAsync(msg.from, msg.to, msg.text);
                         
                         // Server to broadcast to others (including other connections for current user) about the message
                         _ = SendToPair(msg.from, msg.to, new
@@ -97,7 +85,7 @@ namespace Microsoft.Azure.WebPubSub.Samples
                 case "readTo":
                     {
                         var msg = request.Data.ToObject<ReadToRequest>(JsonObjectSerializer.Default);
-                        await _messageHandler.ReadTo(msg.user, msg.pair, msg.sequenceId);
+                        await _chatHandler.ReadTo(msg.user, msg.pair, msg.sequenceId);
                         // Tell others (including other connections and the pair user) 
                         await SendToPair(msg.user, msg.pair, new
                         {
@@ -113,31 +101,6 @@ namespace Microsoft.Azure.WebPubSub.Samples
             }
         }
 
-        public record ReadToRequest(string user, string pair, int sequenceId);
-
-        public record GetChatHistoryRequest(string user, string pair);
-
-        public record SendToUserRequest(string from, string to, string text, int invocationId);
-
-        /// <summary>
-        /// Send a message to the specified user.
-        /// </summary>
-        /// <param name="sessionId"></param>
-        /// <param name="receiver"></param>
-        /// <param name="messageContent"></param>
-        /// <returns>The sequenceId of the message.</returns>
-        public async Task<int> SendUserMessage(SendToUserRequest data, string exclude)
-        {
-            var sequenceId = await _messageHandler.AddMessageAsync(data.from, data.to, data.text);
-            await SendToPair(data.from, data.to, new
-            {
-                @event = "chat",
-                data = new Chat(data.text, data.from, data.to, sequenceId),
-            }, exclude);
-
-            return sequenceId;
-        }
-
         private Task SendToPair(string user, string pair, object msg, string exclude)
         {
             return Task.WhenAll(
@@ -149,5 +112,11 @@ namespace Microsoft.Azure.WebPubSub.Samples
                 RequestContent.Create(msg), ContentType.ApplicationJson)
                 );
         }
+
+        private record ReadToRequest(string user, string pair, int sequenceId);
+
+        private record GetChatHistoryRequest(string user, string pair, int? currentSequenceId);
+
+        private record SendToUserRequest(string from, string to, string text, int invocationId);
     }
 }

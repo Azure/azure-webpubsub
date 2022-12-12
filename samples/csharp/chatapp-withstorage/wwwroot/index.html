@@ -9,7 +9,6 @@
 
     <title>Azure Web PubSub Chat</title>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bulma@0.9.3/css/bulma.min.css" />
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css" />
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css" />
 
     <style>
@@ -51,11 +50,12 @@
     <div id="app" class="container-fluid h-100 d-flex flex-column flex-nowrap p-0">
         <nav class="navbar navbar-dark bg-dark flex-md-nowrap p-0 shadow">
             <a class="title navbar-brand col-sm-3 col-md-2 mr-0" href="#">Web PubSub Chat Demo</a>
+            <button class="button is-warning navbar-end" v-show="login" @click="signout">Sign out</button>
         </nav>
 
         <!--Login modal-->
         <div v-if="!login">
-            <form class="box" v-on:submit.prevent="connect">
+            <form class="box" v-on:submit.prevent="signin">
                 <div class="field">
                     <label class="label">Name</label>
                     <div class="control">
@@ -71,15 +71,21 @@
             <div class="notification is-danger" v-if="error">{{ error }}</div>
             <div class="columns m-2">
                 <div class="column is-3 box">
+                    <div class="my-2">
+                        <button class="button is-info" @click="newChatModal = true">
+                            <span>💬</span>
+                            <span class="is-hidden-mobile">&nbsp; Create new chat</span>
+                        </button>
+                    </div>
                     <aside class="menu">
                         <p class="menu-label">
-                            User list
+                            Chat list
                         </p>
                         <ul class="menu-list">
-                            <li v-for="u of users" >
-                                <a :class="{'is-active': currentPair === u.name}" v-if="u.name !== user" @click="switchChatPair(u)">
+                            <li v-for="u of users" v-show="u.name !== user">
+                                <a :class="{'is-active': currentPair && currentPair === u.name}"  @click="switchChatPair(u)">
                                     <span :class="{'has-text-weight-bold': u.new}">{{u.name}}</span>
-                                    <span class="animate__heartBeat animate__animated animate__infinite" v-show="u.unread">
+                                    <span v-show="u.unread">
                                         &nbsp;&nbsp;💬
                                     </span>
                                 </a>
@@ -92,11 +98,8 @@
                     <span class="icon is-small" :class="{'has-text-success': connected}">
                         <i class="fas fa-circle" aria-hidden="true"></i>
                     </span>
-                    <section v-show="!currentPair">
-                        Choose one user to start chatting
-                    </section>
-                    <div class="chatComponent" v-show="!!currentPair">
-                        <form v-on:submit.prevent="sendToUser" v-show="currentChats" class="is-flex">
+                    <div class="chatComponent" v-if="currentChats">
+                        <form v-on:submit.prevent="sendToUser" class="is-flex">
                             <input class="chatInput input" ref="chatInput" :placeholder="`Say hi to ${currentPair}`" v-model="message"></input>
                             <button class="button is-success" :disabled="!connected || !message"><i class="fas fa-share"></i><span class="is-hidden-mobile">&nbsp; Send</span></button>
                         </form>
@@ -127,6 +130,20 @@
                         </div>
                     </div>
                 </div>
+            </div>
+        </div>
+
+        <div class="modal " :class="{'is-active': newChatModal}">
+            <div class="modal-background"></div>
+            <div class="modal-card">
+                <header class="modal-card-head">
+                    <p class="modal-card-title">New chat with</p>
+                    <button class="delete" aria-label="close" @click="newChatModal = false"></button>
+                </header>
+                <form class="modal-card-body is-flex" v-on:submit.prevent="newChatModal = false || addUserChat(pairUserName)">
+                    <input class="input is-focused" placeholder="User name" v-model="pairUserName">
+                    <button class="button is-success" >OK</button>
+                </form>
             </div>
         </div>
     </div>

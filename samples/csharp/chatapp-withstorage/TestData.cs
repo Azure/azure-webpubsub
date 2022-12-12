@@ -2,15 +2,10 @@
 
 public class TestData
 {
-    public static async Task LoadTestData(IUserManager userManager, IChatHandler chatHandler)
+    public static async Task LoadTestData(IChatHandler chatHandler)
     {
-        for (var i = 0; i < 10; i++)
-        {
-            await userManager.AddUserAsync("User" + i);
-        }
-
-        var users = await userManager.GetUsersAsync();
-        var count = users.Count;
+        var users = Enumerable.Range(0, 10).Select(i => "user" + i).ToArray();
+        var count = users.Length;
         var rand = new Random();
         var words = new string[]
         {
@@ -19,13 +14,13 @@ public class TestData
         // Generate random chat messages
         for (var i = 0; i < 100; i++)
         {
-            var from = users[rand.Next(count)].name;
-            var to = users[rand.Next(count)].name;
+            var from = users[rand.Next(count)];
+            var to = users[rand.Next(count)];
             var text = string.Join(' ', new string[] {
             words[rand.Next(words.Length)],
             words[rand.Next(words.Length)],
             words[rand.Next(words.Length)]});
-            chatHandler.AddMessageAsync(from, to, text);
+            await chatHandler.AddMessageAsync(from, to, text);
         }
     }
 }

@@ -9,7 +9,6 @@ builder.Services.AddWebPubSub(
     .AddWebPubSubServiceClient<Sample_ReliableChatApp>();
 
 builder.Services.AddSingleton<IChatHandler, InMemoryChatStorage>();
-builder.Services.AddSingleton<IUserManager, InMemoryUserManager>();
 
 var app = builder.Build();
 
@@ -18,7 +17,7 @@ if (app.Environment.IsDevelopment())
     app.UseDeveloperExceptionPage();
 }
 
-app.UseStaticFiles();
+app.UseDefaultFiles().UseStaticFiles();
 app.UseRouting();
 app.UseEndpoints(endpoints =>
 {    

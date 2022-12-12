@@ -1,32 +1,6 @@
-﻿const userChats = {
-
-};
-
-const app = Vue.createApp({
+﻿const app = Vue.createApp({
     data() {
-        return {
-            login: false,
-            connected: false,
-            error: null,
-            message: null,
-            user: "User1",
-            currentPair: null,
-            /**
-             * Sample key-value pair
-             * '["user1", "user2"]': {
-             *    readSequenceId: 2, // the latest received message I read
-             *    pairReadSequenceId: 1, // the latest message my pair read
-             *    latestSequenceId: 3; // the latest message sequence id sent
-             *    chats: []; // the chat items
-             * }
-             * */
-            userChats: { },
-            /**
-             * Sample item:
-             * { name: "user1", unread: false, new: false}
-             * */
-            users: [ ]
-        }
+        return reset({});
     },
     computed: {
         currentChats() {
@@ -34,9 +8,17 @@ const app = Vue.createApp({
         }
     },
     methods: {
-        connect() {
+        signin() {
             this.login = true;
             connect();
+        },
+        async signout() {
+            this.client.close();
+            reset(this);
+        },
+        addUserChat(pair) {
+            var chat = getOrAddUserChat(this.user, pair);
+            this.currentPair = pair;
         },
         switchChatPair(current) {
             this.currentPair = current.name;
@@ -49,6 +31,9 @@ const app = Vue.createApp({
                 send("getChatHistory", {
                     user: this.user,
                     pair: this.currentPair,
+                    // Find the earlist sequenceId in current chat
+                    // It is possible that this history loading behavior happens after the connection is connected and received messages
+                    currentSequenceId: chat.chats.find(s=>s.sequenceId != null), 
                 });
                 chat.historyRequested = true;
             }
@@ -77,12 +62,42 @@ const app = Vue.createApp({
     }
 }).mount('#app');
 
+function reset(data) {
+    data.login = false;
+    data.connected = false;
+    data.error = null;
+    data.message = null;
+    data.pairUserName = null;
+    data.newChatModal = false;
+    data.user = null;
+    data.currentPair = null;
+    /**
+     * Sample key-value pair
+     * '["user1", "user2"]': {
+     *    readSequenceId: 2, // the latest received message I read
+     *    pairReadSequenceId: 1, // the latest message my pair read
+     *    latestSequenceId: 3; // the latest message sequence id sent
+     *    chats: []; // the chat items
+     * }
+     * */
+    data.userChats = {};
+    /**
+     * Sample item:
+     * { name: "user1", unread: false, new: false}
+     * */
+    data.users = [];
+    return data;
+}
+
 function setUnread(name, unread) {
     var user = app.users.find(s => s.name === name);
     if (user) user.unread = unread;
 }
 
 function getOrAddUserChat(from, to) {
+    if (!from || !to) {
+        return null;
+    }
     // from-to & to-from share the same chat key
     var key = JSON.stringify([from, to].sort());
     var chat = app.userChats[key] = app.userChats[key] ?? {
@@ -93,6 +108,14 @@ function getOrAddUserChat(from, to) {
         pairReadSequenceId: 0,
         chats: []
     };
+    var user = app.users.find(s => s.name === to);
+    if (!user) {
+        app.users.unshift({
+            name: to,
+            new: true,
+            unread: false
+        });
+    }
     return chat;
 }
 
@@ -125,14 +148,13 @@ async function connect() {
         let client = app.client = new WebSocket(url, 'json.webpubsub.azure.v1');
 
         client.onerror = (e) => {
-            const msg = log(`Connection disconnected: ${e.message}`);
+            const msg = log(`Connection disconnected with error: ${e.message}`);
             app.error = msg;
             app.connected = false;
         };
 
         client.onclose = (e) => {
-            const msg = log(`Connection disconnected: ${e.message}`);
-            app.error = msg;
+            const msg = log(`Connection closed.`);
             app.connected = false;
         };
         client.onopen = () => {
@@ -148,21 +170,16 @@ async function connect() {
                 }
                 const message = msg.data;
                 switch (message.event) {
-                    case "setUsers": {
-                        var users = message.users;
-                        app.users = users;
-                        break;
-                    }
-                    case "updateUsers": {
-                        var users = message.users;
-                        // { name:...}
-                        // newly added user to bold
-                        Object.values(users).forEach(i => {
-                            app.users.unshift({
-                                ...i,
-                                new: true
-                            });
-                        })
+                    case "pairs": {
+                        var pairs = message.pairs;
+                        pairs.forEach(i => {
+                            if (!app.users.find(s => s.name === i)) {
+                                app.users.unshift({
+                                    name: i,
+                                    new: true,
+                                });
+                            }
+                        });
                         break;
                     }
                     case "chatHistory": {
@@ -173,14 +190,13 @@ async function connect() {
                         chat.readSequenceId = data.readSequenceId;
                         chat.pairReadSequenceId = data.pairReadSequenceId;
                         // Insert history to the top
-                        // should be ordered by the server
                         [].unshift.apply(chat.chats, data.chats);
                         chat.chats.forEach(c => { if (chat.lastestSequenceId < c.sequenceId) chat.lastestSequenceId = c.sequenceId; })
                         chat.historyLoaded = true;
                         break;
                     }
                     case "chat": {
-                        // {from: ..., to: ..., text: ..., date: ..., id: ...}
+                        // {from: ..., to: ..., text: ..., sequenceId: ...}
                         var data = message.data;
                         var chat = getOrAddUserChat(data.from, data.to);
                         // always append to the chat
@@ -220,29 +236,19 @@ async function connect() {
                     }
                 }
             } catch (err) {
-                const msg = log(`Error: ${err.message}`, "err");
+                const msg = log(`Error: ${err.message}`, "error");
                 this.error = msg;
                 throw err;
             }
         }
     } catch (err) {
-        const msg = log(`Error: ${err.message}`, "err");
+        const msg = log(`Error: ${err.message}`, "error");
         this.error = msg;
         throw err;
     }
 }
 
 function log(message, level = "info") {
-    switch (level) {
-        case "info":
-            console.log(message);
-            break;
-        case "warn":
-            console.warn(message);
-            break;
-        case "err":
-            console.error(message);
-            break;
-    }
+    console[level](`[${new Date().toISOString()}]${message}`);
     return message;
 }
