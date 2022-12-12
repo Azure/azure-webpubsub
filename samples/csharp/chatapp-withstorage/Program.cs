@@ -8,7 +8,7 @@ builder.Services.AddWebPubSub(
     o => o.ServiceEndpoint = new ServiceEndpoint(builder.Configuration["Azure:WebPubSub:ConnectionString"]))
     .AddWebPubSubServiceClient<Sample_ReliableChatApp>();
 
-builder.Services.AddSingleton<IChatHandler, InMemoryChatStorage>();
+builder.Services.AddSingleton<IChatHandler, AzureTableChatStorage>();
 
 var app = builder.Build();
 

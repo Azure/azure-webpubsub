@@ -3,5 +3,5 @@
 
 namespace Microsoft.Azure.WebPubSub.Samples
 {
-    public record Chat(string text, string from, string to, int sequenceId);
+    public record Chat(string text, string from, string to, long sequenceId);
 }

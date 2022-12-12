@@ -113,10 +113,10 @@ namespace Microsoft.Azure.WebPubSub.Samples
                 );
         }
 
-        private record ReadToRequest(string user, string pair, int sequenceId);
+        private record ReadToRequest(string user, string pair, long sequenceId);
 
-        private record GetChatHistoryRequest(string user, string pair, int? currentSequenceId);
+        private record GetChatHistoryRequest(string user, string pair, long? currentSequenceId);
 
-        private record SendToUserRequest(string from, string to, string text, int invocationId);
+        private record SendToUserRequest(string from, string to, string text, long invocationId);
     }
 }

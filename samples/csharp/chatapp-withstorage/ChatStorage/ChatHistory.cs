@@ -3,5 +3,5 @@
 
 namespace Microsoft.Azure.WebPubSub.Samples
 {
-    public record ChatHistory(string user, string pair, int readSequenceId, int pairReadSequenceId, IList<Chat> chats);
+    public record ChatHistory(string user, string pair, long readSequenceId, long pairReadSequenceId, IList<Chat> chats);
 }

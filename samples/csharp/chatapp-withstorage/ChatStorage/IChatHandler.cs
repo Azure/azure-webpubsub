@@ -5,11 +5,11 @@ namespace Microsoft.Azure.WebPubSub.Samples
 {
     public interface IChatHandler
     {
-        Task<ChatHistory> LoadHistoryMessageAsync(string user, string pair, int? beforeSequenceId);
+        Task<ChatHistory> LoadHistoryMessageAsync(string user, string pair, long? beforeSequenceId);
 
-        Task<int> AddMessageAsync(string from, string to, string text);
+        Task<long> AddMessageAsync(string from, string to, string text);
 
-        Task ReadTo(string from, string to, int sequenceId);
+        Task ReadTo(string from, string to, long sequenceId);
 
         Task<IList<string>> GetPairsAsync(string name);
     }

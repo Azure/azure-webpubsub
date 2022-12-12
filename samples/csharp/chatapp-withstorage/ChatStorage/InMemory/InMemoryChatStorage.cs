@@ -2,6 +2,7 @@
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
 using System.Collections.Concurrent;
+using System.Reflection.Metadata.Ecma335;
 using System.Text.Json;
 
 namespace Microsoft.Azure.WebPubSub.Samples
@@ -13,7 +14,7 @@ namespace Microsoft.Azure.WebPubSub.Samples
         private readonly ConcurrentDictionary<string, List<string>> _fromAsKey = new ();
         private readonly ConcurrentDictionary<string, List<string>> _toAsKey = new ();
 
-        public Task<int> AddMessageAsync(string from, string to, string text)
+        public Task<long> AddMessageAsync(string from, string to, string text)
         {
             var key = GetKey(from, to);
             var session = _chatStorage.GetOrAdd(key, k => new SessionMessage(from, to));
@@ -36,7 +37,7 @@ namespace Microsoft.Azure.WebPubSub.Samples
             return Task.FromResult(session.AddMessage(from, to, text));
         }
 
-        public Task<ChatHistory> LoadHistoryMessageAsync(string user, string pair, int? beforeSequenceId)
+        public Task<ChatHistory> LoadHistoryMessageAsync(string user, string pair, long? beforeSequenceId)
         {
             var key = GetKey(user, pair);
             if (_chatStorage.TryGetValue(key, out SessionMessage session))
@@ -57,8 +58,7 @@ namespace Microsoft.Azure.WebPubSub.Samples
             {
                 pairs.AddRange(to);
             }
-            if (
-            _toAsKey.TryGetValue(name, out var from))
+            if (_toAsKey.TryGetValue(name, out var from))
             {
                 pairs.AddRange(from);
             }
@@ -72,11 +72,12 @@ namespace Microsoft.Azure.WebPubSub.Samples
         /// <param name="pair"></param>
         /// <param name="sequenceId"></param>
         /// <returns></returns>
-        public Task ReadTo(string user, string pair, int sequenceId)
+        public Task ReadTo(string user, string pair, long sequenceId)
         {
             var key = GetKey(user, pair);
             var session = _chatStorage.GetOrAdd(key, k => new SessionMessage(user, pair));
-            session.ReadTo[pair] = sequenceId;
+
+            session.ReadTo.AddOrUpdate(pair, sequenceId, (s, l) => sequenceId > l ? sequenceId : l);
             return Task.CompletedTask;
         }
 
@@ -88,12 +89,12 @@ namespace Microsoft.Azure.WebPubSub.Samples
         private sealed class SessionMessage
         {
             private object _lock = new object();
-            private int _lastSequenceId = 0;
-            public int LastSequenceId => _lastSequenceId;
+            private long _lastSequenceId = 0;
+            public long LastSequenceId => _lastSequenceId;
 
-            public ConcurrentDictionary<string, int> ReadTo { get; } = new();
+            public ConcurrentDictionary<string, long> ReadTo { get; } = new();
 
-            private readonly SortedList<int, Chat> _chats = new();
+            private readonly SortedList<long, Chat> _chats = new();
 
             public SessionMessage(string pair1, string pair2)
             {
@@ -101,7 +102,7 @@ namespace Microsoft.Azure.WebPubSub.Samples
                 ReadTo[pair2] = 0;
             }
 
-            public IList<Chat> GetChats(int? beforeSequenceId)
+            public IList<Chat> GetChats(long? beforeSequenceId)
             {
                 if (beforeSequenceId == null)
                 {
@@ -111,7 +112,7 @@ namespace Microsoft.Azure.WebPubSub.Samples
                 return _chats.Values.Where(s => s.sequenceId < beforeSequenceId).ToList();
             }
 
-            public int AddMessage(string from, string to, string text)
+            public long AddMessage(string from, string to, string text)
             {
                 var sequenceId = Interlocked.Increment(ref _lastSequenceId);
                 lock (_lock)
