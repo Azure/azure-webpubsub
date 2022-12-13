@@ -1,0 +1,153 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="description" content="Azure Web PubSub Chat">
+
+    <title>Azure Web PubSub Chat</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bulma@0.9.3/css/bulma.min.css" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css" />
+
+    <style>
+        .chatBox {
+            width: 100%;
+            height: 75vh;
+            background-color: #eeeeee;
+            font-size: 1.1rem;
+            padding: 0.5rem;
+            overflow-y: scroll;
+        }
+
+        .chatMsgRow {
+            width: 100%;
+            display: flex;
+        }
+
+        .chatMsg {
+            max-width: 70%;
+        }
+
+        .chatMsgTitle {
+            font-size: 0.6rem;
+            font-weight: bold;
+            color: hsl(204, 86%, 53%);
+        }
+
+        .chatMsgBody {
+            font-size: 0.9rem;
+        }
+
+        .chatRight {
+            justify-content: flex-end;
+        }
+    </style>
+</head>
+
+<body class="m-2">
+    <div id="app" class="container-fluid h-100 d-flex flex-column flex-nowrap p-0">
+        <nav class="navbar navbar-dark bg-dark flex-md-nowrap p-0 shadow">
+            <a class="title navbar-brand col-sm-3 col-md-2 mr-0" href="#">Web PubSub Chat Demo</a>
+            <button class="button is-warning navbar-end" v-show="login" @click="signout">Sign out</button>
+        </nav>
+
+        <!--Login modal-->
+        <div v-if="!login">
+            <form class="box" v-on:submit.prevent="signin">
+                <div class="field">
+                    <label class="label">Name</label>
+                    <div class="control">
+                        <input class="input" type="text" placeholder="e.g. Lia" v-model="user">
+                    </div>
+                </div>
+                <button class="button is-primary" :disabled="!user">Login</button>
+            </form>
+        </div>
+
+        <!--Chat-->
+        <div v-if="login">
+            <div class="notification is-danger" v-if="error">{{ error }}</div>
+            <div class="columns m-2">
+                <div class="column is-3 box">
+                    <div class="my-2">
+                        <button class="button is-info" @click="newChatModal = true">
+                            <span>💬</span>
+                            <span class="is-hidden-mobile">&nbsp; Create new chat</span>
+                        </button>
+                    </div>
+                    <aside class="menu">
+                        <p class="menu-label">
+                            Chat list
+                        </p>
+                        <ul class="menu-list">
+                            <li v-for="u of users" v-show="u.name !== user">
+                                <a :class="{'is-active': currentPair && currentPair === u.name}"  @click="switchChatPair(u)">
+                                    <span :class="{'has-text-weight-bold': u.new}">{{u.name}}</span>
+                                    <span v-show="u.unread">
+                                        &nbsp;&nbsp;💬
+                                    </span>
+                                </a>
+                            </li>
+                        </ul>
+                    </aside>
+                </div>
+                <div class="column box">
+                    Hi {{user}}
+                    <span class="icon is-small" :class="{'has-text-success': connected}">
+                        <i class="fas fa-circle" aria-hidden="true"></i>
+                    </span>
+                    <div class="chatComponent" v-if="currentChats">
+                        <form v-on:submit.prevent="sendToUser" class="is-flex">
+                            <input class="chatInput input" ref="chatInput" :placeholder="`Say hi to ${currentPair}`" v-model="message"></input>
+                            <button class="button is-success" :disabled="!connected || !message"><i class="fas fa-share"></i><span class="is-hidden-mobile">&nbsp; Send</span></button>
+                        </form>
+
+                        <div class="chatBox" contentEditable="false" readonly ref="chatBox" @click="readTo">
+                            <div v-for="chat of currentChats.chats">
+                                <div v-if="user == chat.from">
+                                    <div class="chatMsgRow chatRight">
+                                        <div class="card m-3 p-2 chatMsg has-background-primary-light">
+                                            <div class="has-text-info chatMsgTitle" v-if="chat.from">{{ chat.from }}</div>
+                                            <div class="chatMsgBody">{{chat.text}}</div>
+                                            <div class="chatMsgTitle has-text-grey">
+                                                {{chat.sequenceId ?  (chat.sequenceId > currentChats.pairReadSequenceId ? "Sent" : "Read") : "Sending" }}
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div v-else>
+                                    <div class="chatMsgRow">
+                                        <div class="card m-3 p-2 chatMsg">
+                                            <div class="has-text-info chatMsgTitle" v-if="chat.from">{{ chat.from }}</div>
+                                            <div class="chatMsgBody">{{chat.text}}</div>
+                                            <div class="chatMsgTitle has-text-grey">{{chat.sequenceId > currentChats.readSequenceId ? "Unread" : "Read" }}</div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="modal " :class="{'is-active': newChatModal}">
+            <div class="modal-background"></div>
+            <div class="modal-card">
+                <header class="modal-card-head">
+                    <p class="modal-card-title">New chat with</p>
+                    <button class="delete" aria-label="close" @click="newChatModal = false"></button>
+                </header>
+                <form class="modal-card-body is-flex" v-on:submit.prevent="newChatModal = false || addUserChat(pairUserName)">
+                    <input class="input is-focused" placeholder="User name" v-model="pairUserName">
+                    <button class="button is-success" >OK</button>
+                </form>
+            </div>
+        </div>
+    </div>
+    <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+    <script src="./js/app.js"></script>
+</body>
+</html>
