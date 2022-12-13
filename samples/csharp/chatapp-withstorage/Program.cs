@@ -6,7 +6,7 @@ var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddWebPubSub(
     o => o.ServiceEndpoint = new ServiceEndpoint(builder.Configuration["Azure:WebPubSub:ConnectionString"]))
-    .AddWebPubSubServiceClient<Sample_ReliableChatApp>();
+    .AddWebPubSubServiceClient<Sample_ChatWithStorageHub>();
 
 builder.Services.AddSingleton<IChatHandler, AzureTableChatStorage>();
 
@@ -21,7 +21,7 @@ app.UseDefaultFiles().UseStaticFiles();
 app.UseRouting();
 app.UseEndpoints(endpoints =>
 {    
-    endpoints.MapGet("/negotiate", async (WebPubSubServiceClient<Sample_ReliableChatApp> serviceClient, HttpContext context) =>
+    endpoints.MapGet("/negotiate", async (WebPubSubServiceClient<Sample_ChatWithStorageHub> serviceClient, HttpContext context) =>
     {
         var id = context.Request.Query["id"];
         if (id.Count != 1)
@@ -33,7 +33,7 @@ app.UseEndpoints(endpoints =>
         await context.Response.WriteAsync(serviceClient.GetClientAccessUri(userId: id).AbsoluteUri);
     });
 
-    endpoints.MapWebPubSubHub<Sample_ReliableChatApp>("/eventhandler/{*path}");
+    endpoints.MapWebPubSubHub<Sample_ChatWithStorageHub>("/eventhandler/{*path}");
 });
 
 app.Run();

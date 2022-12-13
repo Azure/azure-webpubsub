@@ -11,12 +11,12 @@ using Microsoft.Azure.WebPubSub.Common;
 
 namespace Microsoft.Azure.WebPubSub.Samples
 {
-    public class Sample_ReliableChatApp : WebPubSubHub
+    public class Sample_ChatWithStorageHub : WebPubSubHub
     {
-        private readonly WebPubSubServiceClient<Sample_ReliableChatApp> _serviceClient;
+        private readonly WebPubSubServiceClient<Sample_ChatWithStorageHub> _serviceClient;
         private readonly IChatHandler _chatHandler;
 
-        public Sample_ReliableChatApp(WebPubSubServiceClient<Sample_ReliableChatApp> serviceClient,
+        public Sample_ChatWithStorageHub(WebPubSubServiceClient<Sample_ChatWithStorageHub> serviceClient,
             IChatHandler chatHandler)
         {
             _serviceClient = serviceClient;

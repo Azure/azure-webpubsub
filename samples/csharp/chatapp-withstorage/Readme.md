@@ -1,10 +1,7 @@
 # Create a Chat app with storage
 
 ## Overview
-This demo shows how to work with storage to create a chat sample with:
-* Chat to user
-* Chat history replay
-* Message sent/read status change
+This demo shows how to work with storage to create a chat sample having chat history and states.
 
 ## Prerequisites
 
@@ -19,48 +16,31 @@ We support the dependency injection (DI) software design pattern for the storage
 ### Store the data in memory
 
 Sometimes we don't need to store data in a real database (For example, in a dev/test environment.)
-You should register the service in the app's `Startup.ConfigureServices` method.
+Register [InMemoryChatStorage](./ChatStorage/InMemory/InMemoryChatStorage.cs) when DI services.
 
 ```cs
-public void ConfigureServices(IServiceCollection services)
-{
-	...
-	services.AddSingleton<IChatHandler, InMemoryChatStorage>();
-}
+services.AddSingleton<IChatHandler, InMemoryChatStorage>();
 ```
 
 ### Store the data in Azure Table
 
 > If you don't have an Azure Storage Account, **[start now](https://azure.microsoft.com/en-us/services/storage/tables/)** to create one for your project.
 
-In `Startup.ConfigureServices` method, instead of registering `InMemoryChatStorage`, you need to use `AzureTableChatStorage` and pass in connection string to make the application connect to the service.
+Use [AzureTableChatStorage](./ChatStorage/AzureTable/AzureTablChatStorage.cs) with Azure Table connection string when DI services.
 
 ```cs
-public void ConfigureServices(IServiceCollection services)
-{
-	...
-	builder.Services.AddSingleton<IChatHandler, AzureTableChatStorage>();
-}
+builder.Services.AddSingleton<IChatHandler, AzureTableChatStorage>();
 ```
 
+## Start the server
 Now set the connection string in the [Secret Manager](https://docs.microsoft.com/en-us/aspnet/core/security/app-secrets?view=aspnetcore-2.1&tabs=visual-studio#secret-manager) tool for .NET Core, and run this app.
+
+> Get Azure Web PubSub connection string from **Kyes** tab of the Azure Web PubSub service
 
 ```
 dotnet restore
 dotnet user-secrets set Azure:Storage:ConnectionString "<Your Azure Storage's connection string>"
 dotnet user-secrets set Azure:WebPubSub:ConnectionString "<Your Azure Web PubSub's connection string>"
-dotnet run --urls http://localhost:8080
-```
-
-## Start the server
-
-Copy **Connection String** from **Keys** tab of the created Azure Web PubSub service. Run the below command with the `<connection-string>` replaced by the value of your **Connection String**. We are using [Secret Manager](https://docs.microsoft.com/aspnet/core/security/app-secrets#secret-manager) tool for .NET Core to set the connection string.
-
-![Connection String](./../../../docs/images/portal_conn.png)
-
-```bash
-dotnet restore
-dotnet user-secrets set Azure:WebPubSub:ConnectionString "<connection-string>"
 dotnet run --urls http://localhost:8080
 ```
 
@@ -95,11 +75,12 @@ Event handler can be set from portal or through Azure CLI, here contains the det
 
 Go to the **Settings** tab to configure the event handler for this `Sample_ChatApp` hub:
 
-1. Click **Add** to add setting for hub `Sample_ChatApp`.
+1. Click **Add** to add setting for hub `Sample_ChatWithStorageHub`.
 
-2. Set Url template to `https://<domain-name>.loca.lt/eventhandler` and check `connected` system event, click "Save".
-
-    ![Event Handler](../chatapp-aad/images/portal_event_handler.png)
+2. Set:
+    * Url template: `https://<domain-name>.loca.lt/eventhandler`
+    * System event: check `connected` and `disconnected` 
+    * User event: select `All`.
 
 ## Start the chat
 
