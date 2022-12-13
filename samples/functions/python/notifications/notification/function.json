@@ -1,0 +1,17 @@
+{
+  "scriptFile": "__init__.py",
+  "bindings": [
+    {
+    "name": "myTimer",
+    "type": "timerTrigger",
+    "direction": "in",
+    "schedule": "*/10 * * * * *"
+    },
+    {
+    "type": "webPubSub",
+    "name": "actions",
+    "hub": "sample_notification",
+    "direction": "out"
+    }
+  ]
+}
