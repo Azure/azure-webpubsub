@@ -9,7 +9,7 @@ function CarouselSlide({ title, description, imageSrc }) {
         </h2>
         <p className="hidden max-w-3xl text-gray-200 md:ml-10 md:block md:max-w-[70%] lg:ml-14">{description}</p>
       </section>
-      <img src={imageSrc} className="h-[270px] w-full object-cover md:h-[600px] xl:h-[750px]" />
+      <img src={imageSrc} className="h-[270px] w-full object-cover md:h-[600px] xl:h-[750px]" aria-label={description} alt={description} />
     </div>
   )
 }
