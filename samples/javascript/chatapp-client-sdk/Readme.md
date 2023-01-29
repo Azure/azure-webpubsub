@@ -8,7 +8,7 @@ live_demo_link: https://awps-demos-client-chat.azurewebsites.net/fancy.html
 preview_image_name: SimpleChat
 ---
 
-# Create a Chat app
+# Create a Chat app with client SDK
 
 ## Prerequisites
 
