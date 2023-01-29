@@ -1,0 +1,25 @@
+{
+  "name": "logstream",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Log stream with client sdk",
+  "main": "index.js",
+  "scripts": {
+    "build": "webpack --mode=development --watch",
+    "release": "webpack --mode=production",
+    "publish": "npm run release && dotnet publish -c Release"
+  },
+  "keywords": [],
+  "author": "chenyl",
+  "license": "MIT",
+  "dependencies": {
+    "events": "latest",
+    "@azure/web-pubsub-client": "^1.0.0-beta.1"
+  },
+  "devDependencies": {
+    "webpack": "^5.75.0",
+    "copy-webpack-plugin": "^8.1.1",
+    "html-webpack-plugin": "latest",
+    "clean-webpack-plugin": "latest"
+  }
+}
