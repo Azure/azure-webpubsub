@@ -1,4 +1,4 @@
-# Streaming logs samples
+# Chat app samples
 
-* [Chat app sample with client SDK and service SDK](./sdk)
-* [Chat app sample with native websocket library for client and service SDK](./nativeapi)
+* [Chat app sample with client SDK](./sdk)
+* [Chat app sample with native websocket library for client](./nativeapi)
