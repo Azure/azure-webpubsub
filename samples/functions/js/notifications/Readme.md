@@ -14,16 +14,10 @@ This is a simple app to simulate the scenario of monitoring lab temperature and 
 
 ![Connection String](./../../../../docs/images/portal_conn.png)
 
-2. Install function extensions
-
-```bash
-func extensions install
-```
-
-3. Start app
+1. Start app
 
 ```bash
 func start
 ```
 
-4. Open function host index page: `http://localhost:7071/api/index` to view the notifations broadcast from function.
+1. Open function host index page: `http://localhost:7071/api/index` to view the notifations broadcast from function.

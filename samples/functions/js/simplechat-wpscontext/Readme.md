@@ -11,19 +11,13 @@
 
 ![Connection String](./../../../../docs/images/portal_conn.png)
 
-2. Install function extensions
-
-```bash
-func extensions install
-```
-
-3. Start app
+1. Start app
 
 ```bash
 func start
 ```
 
-4. Use localtunnel to expose localhost
+1. Use localtunnel to expose localhost
 
 [localtunnel](https://github.com/localtunnel/localtunnel) is an open-source project that help expose your localhost to public. [Install the tool](https://github.com/localtunnel/localtunnel#installation) and run:
 
@@ -45,7 +39,7 @@ curl https://<domain-name>.loca.lt/api/validate -X OPTIONS -H "WebHook-Request-O
 Check if the response header contains `webhook-allowed-origin: *`. This curl command actually checks if the WebHook [abuse protection request](https://docs.microsoft.com/azure/azure-web-pubsub/reference-cloud-events#webhook-validation) can response with the expected header.
 
 
-5. Update event handler settings in **Azure Portal** -> **Settings** to enable service route events to current function app.
+1. Update event handler settings in **Azure Portal** -> **Settings** to enable service route events to current function app.
 
 Property|Value
 --|--
@@ -56,7 +50,7 @@ Property|Value
 
 ![Event Handler](./../../../../docs/images/portal_event_handler.png)
 
-6. Open function hosted page `http://localhost:7071/api/index` to start chat.
+1. Open function hosted page `http://localhost:7071/api/index` to start chat.
 
 
 ## Deploy Functions to Azure
