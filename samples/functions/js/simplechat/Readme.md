@@ -11,13 +11,7 @@
 
 ![Connection String](./../../../../docs/images/portal_conn.png)
 
-2. Install function extensions
-
-```bash
-func extensions install
-```
-
-3. Start app
+1. Start app
 
 ```bash
 func start
