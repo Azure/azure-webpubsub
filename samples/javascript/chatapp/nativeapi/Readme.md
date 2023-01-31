@@ -26,7 +26,7 @@ npm install
 
 Copy **Connection String** from **Keys** tab of the created Azure Web PubSub service, and replace the `<connection-string>` below with the value of your **Connection String**.
 
-![Connection String](./../../../docs/images/portal_conn.png)
+![Connection String](./../../../../docs/images/portal_conn.png)
 
 Linux:
 

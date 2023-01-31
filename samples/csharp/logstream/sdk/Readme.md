@@ -14,7 +14,7 @@ This sample demonstrates how the JavaScript client SDK, .Net client SDK and .Net
 
 Copy **Connection String** from **Keys** tab of the created Azure Web PubSub service. Run the below command with the `<connection-string>` replaced by the value of your **Connection String**. We are using [Secret Manager](https://docs.microsoft.com/aspnet/core/security/app-secrets#secret-manager) tool for .NET Core to set the connection string.
 
-![Connection String](./../../../docs/images/portal_conn.png)
+![Connection String](./../../../../docs/images/portal_conn.png)
 
 ```bash
 cd logstream
