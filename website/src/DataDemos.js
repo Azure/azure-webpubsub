@@ -9,6 +9,8 @@ export let DataDemos = [
     detailURL: 'demos/chat',
     thumbnailURL: 'img/thumbnails/chat_abstract.jpeg',
     githubRepo: 'https://github.com/Azure/azure-webpubsub/tree/main/samples/javascript/chatapp',
+    deployLink:
+      'https://portal.azure.com/#create/Microsoft.Template/uri/https%3A%2F%2Flivedemopackages.blob.core.windows.net%2Ftemplate%2Fchatapp-containerapp-deploy.json',
   },
   {
     id: 2,
@@ -20,6 +22,8 @@ export let DataDemos = [
     detailURL: 'demos/whiteboard',
     thumbnailURL: 'img/thumbnails/whiteboard.jpeg',
     githubRepo: 'https://github.com/Azure/azure-webpubsub/tree/main/samples/javascript/whiteboard',
+    deployLink:
+      'https://portal.azure.com/#create/Microsoft.Template/uri/https%3A%2F%2Flivedemopackages.blob.core.windows.net%2Ftemplate%2Fwhiteboard-containerapp-deploy.json',
   },
   {
     id: 3,
@@ -42,6 +46,8 @@ export let DataDemos = [
     detailURL: 'demos/code-streaming',
     thumbnailURL: 'img/thumbnails/code.png',
     githubRepo: 'https://github.com/Azure/azure-webpubsub/tree/main/samples/javascript/codestream',
+    deployLink:
+      'https://portal.azure.com/#create/Microsoft.Template/uri/https%3A%2F%2Flivedemopackages.blob.core.windows.net%2Ftemplate%2Fcodestream-containerapp-deploy.json',
   },
   {
     id: 5,
