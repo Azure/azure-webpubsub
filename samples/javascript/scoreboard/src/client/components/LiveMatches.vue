@@ -6,9 +6,9 @@
                     <el-radio v-model="selectedIndex" :label="i"> &nbsp; </el-radio>
                 </el-row>
                 <el-row justify="space-around" class="horizontal-center">
-                    <img class="thumbnail-image" :src="c.thumbnails[0].value" />
+                    <img class="thumbnail-image" :src="c.thumbnails[0].value" aria-label="thumbnail image"/>
                     {{ c.scores[0] + ' : ' + c.scores[1] }}
-                    <img class="thumbnail-image" :src="c.thumbnails[1].value" />
+                    <img class="thumbnail-image" :src="c.thumbnails[1].value" aria-label="thumbnail image"/>
                 </el-row>
             </el-card>
         </el-col>
