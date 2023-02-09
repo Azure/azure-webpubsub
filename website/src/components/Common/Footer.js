@@ -3,7 +3,7 @@ import React, { useState, useEffect } from 'react'
 function Footer() {
   const [visible, setVisible] = useState(true)
   useEffect(() => {
-    setVisible(true)
+    setVisible(window.siteConsent.isConsentRequired)
   })
 
   return (
