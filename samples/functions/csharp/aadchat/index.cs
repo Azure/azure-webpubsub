@@ -15,14 +15,10 @@ namespace aadchat
         [FunctionName("index")]
         public static IActionResult Run(
             [HttpTrigger(AuthorizationLevel.Anonymous)] HttpRequest req,
+            ExecutionContext context,
             ILogger log)
         {
-            string indexFile = "index.html";
-            
-            if (Environment.GetEnvironmentVariable("HOME") != null)
-            {
-                indexFile = Path.Join(Environment.GetEnvironmentVariable("HOME"), "site", "wwwroot", indexFile);
-            }
+            var indexFile = Path.Combine(context.FunctionAppDirectory, "index.html");
             return new ContentResult
             {
                 Content = File.ReadAllText(indexFile),
