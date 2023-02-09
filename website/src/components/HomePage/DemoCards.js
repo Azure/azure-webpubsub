@@ -17,6 +17,7 @@ function DemoCards() {
               detailURL={item.detailURL}
               languages={item.languages}
               key={item.id}
+              ariaLabel={item.buttonAriaLabel}
             />
           ))}
         </div>
