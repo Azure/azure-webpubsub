@@ -4,11 +4,7 @@ var fs = require('fs');
 var path = require('path');
 
 module.exports = function (context, req) {
-    var index = 'index.html';
-    if (process.env["HOME"] != null)
-    {
-        index = path.join(process.env["HOME"], "site", "wwwroot", index);
-    }
+    var index = context.executionContext.functionDirectory + '/../index.html';
     context.log("index.html path: " + index);
     fs.readFile(index, 'utf8', function (err, data) {
         if (err) {
