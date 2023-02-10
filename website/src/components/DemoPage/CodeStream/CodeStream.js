@@ -14,13 +14,14 @@ const DataDemo = DataDemos.find(item => item.detailURL === 'demos/code-streaming
 
 const languages = DataDemo.languages
 const githubURL = DataDemo.githubRepo
+const onClickDeploy = DataDemo.deployLink
 
 function CodeStream() {
   return (
-    <>
+    <div>
       <SplitDemo
+        alert="To see streaming as you code, open the link in another tab."
         leftSrc="https://awps-demos-codestream.azurewebsites.net/"
-        rightSrc="https://awps-demos-codestream.azurewebsites.net/"
         description="Real-time chat app demo"
         width="400"
         languages={languages}
@@ -28,9 +29,9 @@ function CodeStream() {
       />
 
       <div className="max-w-full overflow-hidden">
-        <DemoTabs overview={<Overview />} local={<Local />} resources={<Resources />} />
+        <DemoTabs overview={<Overview />} local={<Local />} resources={<Resources />} deploy={<Deploy to={onClickDeploy} />} />
       </div>
-    </>
+    </div>
   )
 }
 
