@@ -4,7 +4,7 @@ import useBaseUrl from '@docusaurus/useBaseUrl'
 import CodePercent from '@site/src/components/Common/CodePercent'
 import ButtonLink from '@site/src/components/Common/ButtonLink'
 
-function DemoCard({ title, description, imgURL, detailURL, languages }) {
+function DemoCard({ title, description, imgURL, detailURL, languages, tabIndex, ariaLabel }) {
   let firstTwoLanguages = languages.slice(0, 2)
 
   return (
@@ -15,9 +15,7 @@ function DemoCard({ title, description, imgURL, detailURL, languages }) {
         <h3 className="text-xl font-bold">{title}</h3>
         <p className="mt-1 mb-5 text-sm leading-5 text-gray-500">{description}</p>
 
-        <div className="absolute bottom-4">
-          <ButtonLink text="View details" to={detailURL} />
-        </div>
+        <ButtonLink text="View details" to={detailURL} tabIndex='0' ariaLabel={ariaLabel} />
       </section>
     </div>
   )

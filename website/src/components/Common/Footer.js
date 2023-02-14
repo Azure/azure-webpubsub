@@ -10,13 +10,13 @@ function Footer() {
     <footer className="flex justify-center bg-gray-100  py-2 text-xs tracking-wider text-gray-600">
       <ul className="flex gap-3">
         <li>
-          <a href="https://privacy.microsoft.com/en-us/privacystatement">Privacy</a>
+          <h6><a href="https://privacy.microsoft.com/en-us/privacystatement"><u>Privacy</u></a></h6>
         </li>
         <li>
-          <a href="https://www.microsoft.com/en-us/legal/terms-of-use">Terms of Use</a>
+          <h6><a href="https://www.microsoft.com/en-us/legal/terms-of-use"><u>Terms of Use</u></a></h6>
         </li>
         <li>
-          <a href="https://www.microsoft.com/en-us/legal/intellectualproperty/trademarks">Trademarks</a>
+          <h6><a href="https://www.microsoft.com/en-us/legal/intellectualproperty/trademarks"><u>Trademarks</u></a></h6>
         </li>
         {visible && (
           <li
@@ -30,7 +30,7 @@ function Footer() {
           </li>
         )}
 
-        <p>{`© Microsoft ${new Date().getFullYear()}`}</p>
+        <li><h6>{`© Microsoft ${new Date().getFullYear()}`}</h6></li>
       </ul>
     </footer>
   )
