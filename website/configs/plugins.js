@@ -13,7 +13,9 @@ const setupPlugins = function ({ root }) {
       }
     },
 
-    // handle "back to main menu" issue with Docusaurus
+    // Handle "back to main menu" issue with Docusaurus
+    // When the rendered webpage zoomed to 200%, the "back to main menu" is not functional.
+    // This function removes the DOM element after rendering.
     function handleBackToMainMenuBtn(context, options) {
       return {
         name: 'handle-back-to-main-btn',
@@ -21,11 +23,13 @@ const setupPlugins = function ({ root }) {
           return {
             postBodyTags: [
               `<script>
-                window.addEventListener('load', ()=> {
-                  const backBtn = document.querySelector(".navbar-sidebar__back");
-                  if(backBtn) backBtn.style.display = "none";
+                document.addEventListener('keyup', (event)=> {
+                  if(event.keyCode === 9) {
+                    const backBtn = document.querySelector(".navbar-sidebar__back");
+                    if(backBtn) backBtn.style.display = "none";
+                  }
                 });
-
+              
                 window.addEventListener('resize', () => {
                   const backBtn = document.querySelector(".navbar-sidebar__back");
                   if(backBtn) backBtn.style.display = "none";
