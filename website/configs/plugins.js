@@ -12,6 +12,30 @@ const setupPlugins = function ({ root }) {
         },
       }
     },
+
+    // handle "back to main menu" issue with Docusaurus
+    function handleBackToMainMenuBtn(context, options) {
+      return {
+        name: 'handle-back-to-main-btn',
+        injectHtmlTags({ content }) {
+          return {
+            postBodyTags: [
+              `<script>
+                window.addEventListener('load', ()=> {
+                  const backBtn = document.querySelector(".navbar-sidebar__back");
+                  if(backBtn) backBtn.style.display = "none";
+                });
+
+                window.addEventListener('resize', () => {
+                  const backBtn = document.querySelector(".navbar-sidebar__back");
+                  if(backBtn) backBtn.style.display = "none";
+                });
+            </script>`,
+            ],
+          }
+        },
+      }
+    },
   ]
 
   // only add gtag in production
