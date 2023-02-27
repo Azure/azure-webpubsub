@@ -66,7 +66,7 @@ export default function Carousel() {
         <ButtonNav direction="right" onClick={nextSlide} isShow={slideIndex !== SLIDE_NUM - 1} />
       </div>
 
-      <div className="absolute bottom-3 left-1/2 z-50 flex -translate-x-1/2 transform gap-1">
+      <div className="absolute -bottom-12 left-1/2 z-50 flex -translate-x-1/2 transform gap-1 md:bottom-3">
         <CarouselDots number={SLIDE_NUM} currentIndex={slideIndex} />
       </div>
 
