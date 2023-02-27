@@ -46,7 +46,6 @@ const config = {
         disableSwitch: true,
       },
       navbar: {
-        title: 'Web PubSub',
         logo: {
           alt: 'Azure Web PubSub Service',
           src: 'img/azure_logo.png',
