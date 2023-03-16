@@ -21,7 +21,7 @@ const githubURL = DataDemo.githubRepo
 function Metaverse() {
   return (
     <>
-      <Image imgURL={MetaverseScene} />
+      <Image imgURL={MetaverseScene} ariaInfo="metaverse scene image" alt="metaverse scene image" />
       <div className="max-w-full overflow-hidden">
         <DemoTabs overview={<Overview />} />
       </div>

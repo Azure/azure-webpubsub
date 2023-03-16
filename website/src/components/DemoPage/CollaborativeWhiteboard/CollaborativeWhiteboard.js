@@ -14,6 +14,7 @@ const DataDemo = DataDemos.find(item => item.detailURL === 'demos/whiteboard')
 
 const languages = DataDemo.languages
 const githubURL = DataDemo.githubRepo
+const onClickDeploy = DataDemo.deployLink
 
 function CollaborativeWhiteboard() {
   return (
@@ -28,7 +29,7 @@ function CollaborativeWhiteboard() {
       />
 
       <div className="max-w-full overflow-hidden">
-        <DemoTabs overview={<Overview />} local={<Local />} resources={<Resources />} />
+        <DemoTabs overview={<Overview />} local={<Local />} resources={<Resources />} deploy={<Deploy to={onClickDeploy} />} />
       </div>
     </>
   )
