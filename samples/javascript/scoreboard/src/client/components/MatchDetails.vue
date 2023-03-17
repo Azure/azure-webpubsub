@@ -5,14 +5,14 @@
                 <el-tag type="danger" size="medium" class="live">● Live </el-tag>
             </el-col>
             <el-col :span="12" :offset="4" class="horizontal-center vertical-center">
-                <img class="title-logo" :src="titleLogo" />
+                <img class="title-logo" :src="titleLogo" aria-label="team logo image"/>
                 <div class="title">World Q League</div>
             </el-col>
         </el-row>
         <el-divider></el-divider>
         <el-row class="scores horizontal-center">
             <el-col class="logo-col" :xs="8" :sm="8" :md="8" :lg="8" :xl="8">
-                <img :src="logoL" class="logo" />
+                <img :src="logoL" class="logo" aria-label="left side team logo image"/>
             </el-col>
             <el-col :xs="8" :sm="8" :md="8" :lg="8" :xl="8">
                 <el-row class="vs-container" justify="space-around">
@@ -23,7 +23,7 @@
             </el-col>
             <el-col :xs="8" :sm="8" :md="8" :lg="8" :xl="8">
                 <div class="logo-col">
-                    <img :src="logoR" class="logo" />
+                    <img :src="logoR" class="logo" aria-label="right side team logo image"/>
                 </div>
             </el-col>
         </el-row>

@@ -9,6 +9,9 @@ export let DataDemos = [
     detailURL: 'demos/chat',
     thumbnailURL: 'img/thumbnails/chat_abstract.jpeg',
     githubRepo: 'https://github.com/Azure/azure-webpubsub/tree/main/samples/javascript/chatapp',
+    buttonAriaLabel: 'view demo of simple chat app',
+    deployLink:
+      'https://portal.azure.com/#create/Microsoft.Template/uri/https%3A%2F%2Flivedemopackages.blob.core.windows.net%2Ftemplate%2Fchatapp-containerapp-deploy.json',
   },
   {
     id: 2,
@@ -20,6 +23,9 @@ export let DataDemos = [
     detailURL: 'demos/whiteboard',
     thumbnailURL: 'img/thumbnails/whiteboard.jpeg',
     githubRepo: 'https://github.com/Azure/azure-webpubsub/tree/main/samples/javascript/whiteboard',
+    buttonAriaLabel: 'view demo of collaborative whiteboard',
+    deployLink:
+      'https://portal.azure.com/#create/Microsoft.Template/uri/https%3A%2F%2Flivedemopackages.blob.core.windows.net%2Ftemplate%2Fwhiteboard-containerapp-deploy.json',
   },
   {
     id: 3,
@@ -31,6 +37,7 @@ export let DataDemos = [
     detailURL: 'demos/metaverse',
     thumbnailURL: 'img/thumbnails/metaverse.jpeg',
     githubRepo: '',
+    buttonAriaLabel: 'view demo of metaverse'
   },
   {
     id: 4,
@@ -42,6 +49,9 @@ export let DataDemos = [
     detailURL: 'demos/code-streaming',
     thumbnailURL: 'img/thumbnails/code.png',
     githubRepo: 'https://github.com/Azure/azure-webpubsub/tree/main/samples/javascript/codestream',
+    buttonAriaLabel: 'view demo of code stream',
+    deployLink:
+      'https://portal.azure.com/#create/Microsoft.Template/uri/https%3A%2F%2Flivedemopackages.blob.core.windows.net%2Ftemplate%2Fcodestream-containerapp-deploy.json',
   },
   {
     id: 5,
@@ -53,6 +63,7 @@ export let DataDemos = [
     detailURL: 'demos/chatr',
     thumbnailURL: 'img/thumbnails/chat_closeup.jpeg',
     githubRepo: 'https://github.com/Azure/azure-webpubsub/tree/main/samples/javascript/chatr',
+    buttonAriaLabel: 'view demo of Chatr'
   },
   {
     id: 6,
@@ -64,7 +75,7 @@ export let DataDemos = [
     detailURL: 'demos/scoreboard',
     thumbnailURL: 'img/thumbnails/scoreboard.jpeg',
     githubRepo: 'https://github.com/Azure/azure-webpubsub/tree/main/samples/javascript/scoreboard',
-    deployLink:
-      'https://portal.azure.com/#create/Microsoft.Template/uri/https%3A%2F%2Flivedemopackages.blob.core.windows.net%2Ftemplate%2Fscoreboard-deploy.json',
+    deployLink:'https://portal.azure.com/#create/Microsoft.Template/uri/https%3A%2F%2Flivedemopackages.blob.core.windows.net%2Ftemplate%2Fscoreboard-deploy.json',
+    buttonAriaLabel: 'view demo of real-time scoreboard'
   },
 ]

@@ -3,12 +3,12 @@
         <el-col :xs="24" :sm="24" :md="8" :lg="8" :xl="8" v-for="(c, i) in cards" :key="i">
             <el-card class="box-card">
                 <el-row justify="center">
-                    <el-radio v-model="selectedIndex" :label="i"> &nbsp; </el-radio>
+                  <el-radio v-model="selectedIndex" :label="i" :aria-label="c.ariaLabel"> &nbsp; </el-radio>
                 </el-row>
                 <el-row justify="space-around" class="horizontal-center">
-                    <img class="thumbnail-image" :src="c.thumbnails[0].value" />
+                    <img class="thumbnail-image" :src="c.thumbnails[0].value" aria-label="thumbnail image"/>
                     {{ c.scores[0] + ' : ' + c.scores[1] }}
-                    <img class="thumbnail-image" :src="c.thumbnails[1].value" />
+                    <img class="thumbnail-image" :src="c.thumbnails[1].value" aria-label="thumbnail image"/>
                 </el-row>
             </el-card>
         </el-col>
@@ -30,6 +30,7 @@ interface Card {
     thumbnails: [Ref<string>, Ref<string>]
     scores: [number, number]
     teams: [string, string]
+    ariaLabel:string
 }
 
 const store = useStore()
@@ -41,7 +42,7 @@ options.onGettingLiveMatchSummaryList = (payload: MatchSummaryListPayload) => {
     const source = store.state.source.instance as ScoreSource
     payload.list.map(s => {
         const thumbnails: [Ref<string>, Ref<string>] = [ref(''), ref('')]
-        cards.value.push({ thumbnails, scores: [0, 0], teams: [s.teams.teamL, s.teams.teamR] })
+        cards.value.push({ thumbnails, scores: [0, 0], teams: [s.teams.teamL, s.teams.teamR], ariaLabel: 'match between ' + s.teams.teamL + " and " + s.teams.teamR})
         clientUtils.default.updateImage(`images/thumbnails/${s.teams.teamL}.png`, thumbnails[0])
         clientUtils.default.updateImage(`images/thumbnails/${s.teams.teamR}.png`, thumbnails[1])
         source.subscribeMatch(s.teams)
