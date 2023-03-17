@@ -12,7 +12,7 @@ The sample demonstrates a chat app on a webpage with the Web PubSub client SDK.
 The functionality of the following files:
 
 * `/server.js` Host a server exposing endpoints for returning `Client Access URI` for clients and handling events from clients.
-* `/src` A webpage contains a Web PubSub client receiving messages from the server and sending events to the server.
+* `/src` The structure is generated from `npx create-react-app my-app` and modified `/src/App.js` to contains a Web PubSub client receiving messages from the server and sending events to the server.
 
 ## Setup
 
