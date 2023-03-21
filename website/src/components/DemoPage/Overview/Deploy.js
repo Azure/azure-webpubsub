@@ -25,7 +25,7 @@ function Deploy({ to }) {
         </p>
       </TextBlock>
 
-      <Image imgURL={BladeOutputs} />
+      <Image imgURL={BladeOutputs} ariaInfo="Blade outputs image" alt="Blade outputs image"/>
     </div>
   )
 }

@@ -15,11 +15,13 @@ export default function Home() {
       <Layout title={`${siteConfig.title}`} description="Description will go into a meta tag in <head />">
         <div className="w-screen overflow-hidden">
           <Carousel />
-          <Tagline />
+          <main>
+            <Tagline />
 
-          <div className="mb-10 flex justify-center">
-            <DemoCards />
-          </div>
+            <div className="mb-10 flex justify-center">
+                <DemoCards />
+            </div>
+          </main>
 
           <Footer />
         </div>
