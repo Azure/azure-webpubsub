@@ -1,5 +1,7 @@
 # Client with Cert
 
+This sample shows how to allow clients to connect with client cert.
+
 1. Update the webpubsub resource to enable `clientCertEnabled` using *Try It* from https://learn.microsoft.com/rest/api/webpubsub/controlplane/web-pub-sub/create-or-update?tabs=HTTP#webpubsubtlssettings, sample request as below: 
 
     ```REST
@@ -38,9 +40,10 @@
     2. Use tunnel tools to expose localhost, for example, ngrok or localtunnel
     3. Go to Web PubSub resource portal and update the event handler settings for `cert` hub
         * Hub: `cert`
+        * AllowAnonymous: `true`
         * System event: `connect`
-        * Event handler: `<tunnel exposed url>/eventhandler`, e.g. `https://aaaa.asse.ngrok.ms/eventhandler`
+        * Event handler: `<tunnel exposed url>/eventhandler`, e.g. `https://3183.ap.ngrok.io/eventhandler`
 
-4. Go to [client](client/) folder, replace `<your_cert_password>` in [Program.cs](client/Program.cs) with the password you used to create the cert file, and replace `<your_endpoint>` with your service endpoint, and start the client with `dotnet run`.
+4. Go to [client](client/) folder, replace `<your_cert_password>` in [client.go](client/client.go) with the password you used to create the cert file, and replace `<your_endpoint>` with your service endpoint, and start the client with `go run client.go`.
 
-5. You will see the thumbprint printed out in your server side.
+5. You will see the cert thumbprint, the custom query and the custom headers are printed out in your server side.

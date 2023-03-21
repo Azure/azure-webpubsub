@@ -1,4 +1,5 @@
 # Client with Cert
+This sample shows how to allow clients to connect with client cert.
 
 1. Update the webpubsub resource to enable `clientCertEnabled` using *Try It* from https://learn.microsoft.com/rest/api/webpubsub/controlplane/web-pub-sub/create-or-update?tabs=HTTP#webpubsubtlssettings, sample request as below: 
 
@@ -39,6 +40,7 @@
         
     4. Go to Web PubSub resource portal and update the event handler settings for `cert` hub
         * Hub: `cert`
+        * AllowAnonymous: `true`
         * System event: `connect`
         * Event handler: `<dev tunnel url>/eventhandler`, e.g. `https://aaaa.asse.devtunnels.ms/eventhandler`
 
