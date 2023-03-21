@@ -15,6 +15,7 @@ namespace stream
             await client.ConnectAsync(new Uri("wss://<your_endpoint>.webpubsub.azure.com/client/hubs/cert?query1=value1"), default);
 
             Console.WriteLine("Connected.");
+            Console.WriteLine("Press Enter to exit.");
             Console.ReadLine();
             await client.CloseAsync(WebSocketCloseStatus.NormalClosure, null, default);
         }
