@@ -50,6 +50,7 @@ func main() {
 		panic(err)
 	}
 	fmt.Println("Connected")
+	fmt.Println("Press Enter to exit")
 
 	fmt.Scanln()
 	conn.Close()

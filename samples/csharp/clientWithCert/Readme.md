@@ -34,12 +34,12 @@ This sample shows how to allow clients to connect with client cert.
    ```
 
 3. Go to [server](server/) folder
-    2. Enable [dev tunnel](https://learn.microsoft.com/aspnet/core/test/dev-tunnels?view=aspnetcore-7.0) to expose local to public
+    1. Enable [dev tunnel](https://learn.microsoft.com/aspnet/core/test/dev-tunnels?view=aspnetcore-7.0) to expose local to public
 
-    3. In Visual studio, F5 to run the server side
+    1. In Visual studio, F5 to run the server side
         
-    4. Go to Web PubSub resource portal and update the event handler settings for `cert` hub
-        * Hub: `cert`
+    1. Go to Web PubSub resource portal and update the event handler settings for `certHub` hub
+        * Hub: `certHub`
         * AllowAnonymous: `true`
         * System event: `connect`
         * Event handler: `<dev tunnel url>/eventhandler`, e.g. `https://aaaa.asse.devtunnels.ms/eventhandler`

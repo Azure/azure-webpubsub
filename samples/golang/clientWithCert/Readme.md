@@ -35,7 +35,6 @@ This sample shows how to allow clients to connect with client cert.
    ```
 
 3. Go to [server](server/) folder
-
     1. Run the server using `go run server.go`
     2. Use tunnel tools to expose localhost, for example, ngrok or localtunnel
     3. Go to Web PubSub resource portal and update the event handler settings for `cert` hub

@@ -1,4 +1,3 @@
-
 using Microsoft.Azure.WebPubSub.AspNetCore;
 using Microsoft.Azure.WebPubSub.Common;
 
@@ -9,12 +8,12 @@ var app = builder.Build();
 app.UseRouting();
 app.UseEndpoints(endpoint =>
 {
-    endpoint.MapWebPubSubHub<Cert>("/eventhandler");
+    endpoint.MapWebPubSubHub<CertHub>("/eventhandler");
 });
 
 app.Run();
 
-sealed class Cert : WebPubSubHub
+sealed class CertHub : WebPubSubHub
 {
     public override ValueTask<ConnectEventResponse> OnConnectAsync(ConnectEventRequest request, CancellationToken cancellationToken)
     {
