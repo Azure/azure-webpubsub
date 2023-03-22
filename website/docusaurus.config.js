@@ -9,7 +9,7 @@ const darkCodeTheme = require('prism-react-renderer/themes/dracula')
 
 /** @type {import('@docusaurus/types').Config} */
 const config = {
-  title: process.env.title || 'Demos for Azure Web PubSub Service',
+  title: process.env.title || 'Demos for Azure Web PubSub',
   tagline: 'Easily add real-time capabilities to your apps using your preferred tech stack',
   url: 'https://azure.github.io',
   baseUrl: '/azure-webpubsub',
@@ -46,7 +46,6 @@ const config = {
         disableSwitch: true,
       },
       navbar: {
-        title: 'Web PubSub',
         logo: {
           alt: 'Azure Web PubSub Service',
           src: 'img/azure_logo.png',

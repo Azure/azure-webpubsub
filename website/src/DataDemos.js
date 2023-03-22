@@ -16,7 +16,7 @@ export let DataDemos = [
   {
     id: 2,
     title: 'Collaborative whiteboard',
-    description: 'A whiteboard app demonstrating how to build real-time collaborative apps using Azure Web PubSub and Node.js',
+    description: 'Multi-user drawing on a shared whiteboard, built with Node.js',
     languages: [
       // { language: 'JavaScript', percent: '' }
     ],
@@ -30,7 +30,7 @@ export let DataDemos = [
   {
     id: 3,
     title: 'Metaverse',
-    description: 'An app demonstrating how Azure Web PubSub can be used to enable multi-player experience in Metaverse (coming soon)',
+    description: 'Multi-player experience in Metaverse (coming soon)',
     languages: [
       // { language: 'C#', percent: '27' },
     ],
@@ -56,7 +56,7 @@ export let DataDemos = [
   {
     id: 5,
     title: 'Chatr',
-    description: 'This demo is developed by Ben Coleman using Azure Web PubSub and other Azure technologies',
+    description: 'Developed by Ben Coleman using Azure Web PubSub and other Azure technologies',
     languages: [
       // { language: 'C#', percent: '27' },
     ],
@@ -68,7 +68,7 @@ export let DataDemos = [
   {
     id: 6,
     title: 'Real-time scoreboard',
-    description: 'This app demonstrates how to push data from server to connected clients using Azure Web PubSub',
+    description: 'Push live game data from server to connected clients using Azure Web PubSub',
     languages: [
       // { language: 'C#', percent: '27' },
     ],
