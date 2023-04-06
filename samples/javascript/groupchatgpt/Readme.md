@@ -25,22 +25,26 @@ In this sample, we open this project from [GitHub codespace](https://github.com/
 2. In Codespace, switch to the Terminal tab:
     1. Copy **Connection String** from **Keys** tab of the created Azure Web PubSub service, and set the value to the environment.
         ```bash
-        export WebPubSubConnectionString="<your-connection-string>"
+        export WebPubSubConnectionString="<your-web-pubsub-service-connection-string>"
         ```
     2. Copy your OpenAI API, and set the value to the environment:
         ```bash
         export OPENAI_API_KEY="<your-api-key>"
-        export OPENAI_API_Deployment="<your-service-model-deployment-name>"
-        export OPENAI_API_Endpoint="<your-api-service-endpoint>"
+        export OPENAI_API_Endpoint="<your-api-service-endpoint>" #set if you are using Azure OpenAI
+        export OPENAI_API_Deployment="<your-service-model-deployment-name>" #set if you are using Azure OpenAI
         ```
-    3. Run the project
+    3. Run the project on port 8080
         ```bash
         npm install
         npm run start
         ```
-3. Expose the port to public
-4. In Azure Web PubSub settings tab, configure the event handler for hub `chatgpt`
-    * Hub: `chatgpt`
-    * User Event: `invokegpt`
-    * URL: ``
-5. Open multiple browser tabs and open http://event/index.html, and chat.
+3. Expose port 8080 to public
+    In Codespaces **PORTS** tab (next to the **TERMINAL** tab), right click to change *Port Visibility* to **Public** so that Azure Web PubSub can connect to it. Right click and select *Copy Local Address*, this address will be used in next step for Azure Web PubSub to push events to.
+4. In Azure Web PubSub *settings* tab, add hub setting for `groupchatgpt`
+    * Hub: `groupchatgpt`
+    * Configure Event Handlers -> Add
+        * URL Template:  `<copied_local_address>/eventhandler` (Don't forget to add path `/eventhandler`)
+        * User events: **Specify**
+        * Specify the user events: `invokegpt`
+    * **Confirm** and **Save**
+5. Switch back to your codespace and open the application in multiple browser tabs with your copied local address and start your chat.

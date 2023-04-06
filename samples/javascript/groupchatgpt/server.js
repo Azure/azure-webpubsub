@@ -4,8 +4,6 @@ const { WebPubSubEventHandler } = require('@azure/web-pubsub-express');
 const invokeChatgpt = require('./chatgpt');
 
 const hubname = "groupchatgpt";
-// https://demo4chatgpt.openai.azure.com/
-// eastus
 const connectionString = process.argv[2] || process.env.WebPubSubConnectionString;
 const service = new WebPubSubServiceClient(connectionString, hubname);
 
@@ -24,10 +22,15 @@ app.get('/negotiate', async (req, res) => {
 let handler = new WebPubSubEventHandler(hubname, {
   path: '/eventhandler',
   handleUserEvent: async (req, res) => {
-    console.log(req);
     if (req.context.eventName === "invokegpt"){
-        const response = invokeChatgpt(req.data.message);
-        res.success({message: response, from: "@gpt"});
+        const message = req.data.message;
+        if (!message.startsWith("@chatgpt ")){
+          res.fail(400, "Invalid format invoking ChatGPT.");
+        }
+        const response = await invokeChatgpt(message.substring(9));
+        console.log(response);
+        await service.group("chat").sendToAll({from: "@chatgpt", message: response});
+        res.success();
     }else {
         res.fail(401, "Invalid invoke.");
     }

@@ -41,12 +41,13 @@ function App() {
       from: user,
       message: message,
     };
-    if (chat.message.startsWith("@gpt ")) {
-      await client.sendEvents("invokegpt", chat);
-    } else {
-      await client.sendToGroup("chat", chat, "json", { noEcho: true });
-    }
+
     appendMessage(chat);
+    await client.sendToGroup("chat", chat, "json", { noEcho: true });
+
+    if (chat.message.startsWith("@chatgpt ")) {
+      await client.sendEvent("invokegpt", chat, "json");
+    }
   }
 
   function appendMessage(data) {
