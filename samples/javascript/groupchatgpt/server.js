@@ -1,16 +1,7 @@
 const express = require('express');
 const { WebPubSubServiceClient } = require('@azure/web-pubsub');
 const { WebPubSubEventHandler } = require('@azure/web-pubsub-express');
-
-const { Configuration, OpenAIApi } = require("openai");
-
-const configuration = new Configuration({
-  apiKey: process.env.OpenAIKey,
-});
-
-if (!configuration.apiKey) {
-  throw new error("OpenAI API key not configured");
-}
+const invokeChatgpt = require('./chatgpt');
 
 const hubname = "groupchatgpt";
 // https://demo4chatgpt.openai.azure.com/
@@ -35,7 +26,8 @@ let handler = new WebPubSubEventHandler(hubname, {
   handleUserEvent: async (req, res) => {
     console.log(req);
     if (req.context.eventName === "invokegpt"){
-        res.success(req.data);
+        const response = invokeChatgpt(req.data.message);
+        res.success({message: response, from: "@gpt"});
     }else {
         res.fail(401, "Invalid invoke.");
     }
@@ -44,3 +36,4 @@ let handler = new WebPubSubEventHandler(hubname, {
 
 app.use(handler.getMiddleware());
 app.listen(port, ()=>console.log(`Open http://localhost:${port}`));
+

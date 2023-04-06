@@ -13,6 +13,9 @@ The functionality of the following files:
 * `/server.js` Host a server exposing endpoints for returning `Client Access URI` for clients; serve the `invokegpt` event ask from the client.
 * `/src/App.js` Contains a Web PubSub client receiving messages from a group and sending messages to the group with the react framework. When the chat starts with `@chatgpt ` then the client sends event `invokegpt` to the service.
 
+## Create your OpenAI service
+You can use OpenAI API or your own Azure OpenAI service. If you are using Azure OpenAI service, make sure the Model deployment name is the model name `gpt-3.5-turbo`.
+
 ## Setup and run the app
 In some of the other samples, we show how to run the app locally and expose the local app through some local tunnel tools like ngrok or localtunnel.
 
@@ -26,7 +29,9 @@ In this sample, we open this project from [GitHub codespace](https://github.com/
         ```
     2. Copy your OpenAI API, and set the value to the environment:
         ```bash
-        export OpenAIKey="<your-api-key>"
+        export OPENAI_API_KEY="<your-api-key>"
+        export OPENAI_API_Deployment="<your-service-model-deployment-name>"
+        export OPENAI_API_Endpoint="<your-api-service-endpoint>"
         ```
     3. Run the project
         ```bash
