@@ -1,0 +1,27 @@
+{
+  "profiles": {
+
+    "awps-tunnel": {
+      "commandName": "Project",
+      "commandLineArgs": "run --cs Endpoint=http://localhost:8080;AccessKey=ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789ABCDEFGH;Version=1.0; --hub chat",
+      "launchBrowser": true,
+      "environmentVariables": {
+        "ASPNETCORE_ENVIRONMENT": "Development",
+        "ASPNETCORE_HOSTINGSTARTUPASSEMBLIES": "Microsoft.AspNetCore.SpaProxy"
+      },
+      "applicationUrl": "http://localhost:5026"
+    },
+    "nospa": {
+      "commandName": "Project",
+      "commandLineArgs": "bind"
+    }
+  },
+  "iisSettings": {
+    "windowsAuthentication": false,
+    "anonymousAuthentication": true,
+    "iisExpress": {
+      "applicationUrl": "http://localhost:18274",
+      "sslPort": 0
+    }
+  }
+}
