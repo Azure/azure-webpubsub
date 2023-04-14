@@ -14,77 +14,57 @@ preview_image_name: SimpleChat
 
 1. [Node.js](https://nodejs.org)
 2. Create an Azure Web PubSub resource
-3. [localtunnel](https://github.com/localtunnel/localtunnel) to expose our localhost to internet
+3. Use GitHub Codespaces
 
-## Setup
+## Overview
+The sample demonstrates building and run a chat app with Web PubSub service.
 
-```bash
-npm install
-```
+## Setup and run the app
 
-## Start the app
+In some of the other samples, we show how to run the app locally and expose the local app through some local tunnel tools like ngrok or localtunnel.
 
-Copy **Connection String** from **Keys** tab of the created Azure Web PubSub service, and replace the `<connection-string>` below with the value of your **Connection String**.
+In this sample, we open this project from [GitHub codespaces](https://github.com/features/codespaces) and run it from inside.
 
-![Connection String](./../../../../docs/images/portal_conn.png)
+1. In this GitHub repo, click **Code** and choose `Codespaces` tab to open the project in codespace. If there is no codespace yet, click *Create codespace on main* to create one for you. Codespace starts in seconds with up to 60 hours a month free.
 
-Linux:
+2. Inside Codespace, switch to the Terminal tab
+    1. Navigate to current folder
+        ```bash
+        cd samples/javascript/chatapp/nativeapi
+        ```
+    2. Copy **Connection String** from **Keys** tab of the created Azure Web PubSub service, and set the value to the environment
+        
+        ```bash
+        export WebPubSubConnectionString="<your-web-pubsub-service-connection-string>"
+        ```
+        ![Connection String](./../../../../docs/images/portal_conn.png)
 
-```bash
-export WebPubSubConnectionString="<connection_string>"
-node server
-```
+    3. Run the project on port 8080
+    ```bash
+    npm install
+    node server
+    ```
+3. Expose port 8080 to public
 
-Windows:
+    In Codespaces **PORTS** tab (next to the **TERMINAL** tab), right click to change *Port Visibility* to **Public** so that Azure Web PubSub can connect to it. Right click and select *Copy Local Address*, this address will be used in next step for Azure Web PubSub to push events to.
 
-```cmd
-SET WebPubSubConnectionString=<connection_string>
-node server
-```
+4. Configure the event handler
+    
+    Event handler can be set from portal or through Azure CLI, here contains the detailed [instructions](https://docs.microsoft.com/azure/azure-web-pubsub/howto-develop-eventhandler) for how to.
 
-The web app is listening to event handler requests at `http://localhost:8080/eventhandler`.
+    In the Web PubSub service portal, go to the **Settings** tab to configure the event handler for this `sample_chat` hub:
 
-## Use localtunnel to expose localhost
-
-[localtunnel](https://github.com/localtunnel/localtunnel) is an open-source project that help expose your localhost to public. [Install the tool](https://github.com/localtunnel/localtunnel#installation) and run:
-
-```bash
-lt --port 8080 --print-requests
-```
-
-localtunnel will print out an url (`https://<domain-name>.loca.lt`) that can be accessed from internet, e.g. `https://xxx.loca.lt`.
-
-> Tip:
-> There is one known issue that [localtunnel goes offline when the server restarts](https://github.com/localtunnel/localtunnel/issues/466) and [here is the workaround](https://github.com/localtunnel/localtunnel/issues/466#issuecomment-1030599216)
-
-There are also other tools to choose when debugging the webhook locally, for example, [ngrok](​https://ngrok.com/), [loophole](https://loophole.cloud/docs/), [TunnelRelay](https://github.com/OfficeDev/microsoft-teams-tunnelrelay) or so. Some tools might have issue returning response headers correctly. Try the following command to see if the tool is working properly:
-
-```bash
-curl https://<domain-name>.loca.lt/eventhandler -X OPTIONS -H "WebHook-Request-Origin: *" -H "ce-awpsversion: 1.0" --ssl-no-revoke -i
-```
-
-Check if the response header contains `webhook-allowed-origin: *`. This curl command actually checks if the WebHook [abuse protection request](https://docs.microsoft.com/azure/azure-web-pubsub/reference-cloud-events#webhook-validation) can response with the expected header.
-
-## Configure the event handler
-
-Event handler can be set from portal or through Azure CLI, here contains the detailed [instructions](https://docs.microsoft.com/azure/azure-web-pubsub/howto-develop-eventhandler) for how to.
-
-Go to the **Settings** tab to configure the event handler for this `chat` hub:
-
-1. Click "Add" to add settings for hub `sample_chat`.
-
-2. Set URL Pattern to `https://<domain-name>.loca.lt/eventhandler` and check `connected` in System Event Pattern, click "Save".
+        * Hub: `sample_chat`
+        * Configure Event Handlers -> Add
+            * URL Template:  `<copied_local_address>/eventhandler` (Don't forget to add path `/eventhandler`)
+            * System event: `connected`
+            * Others keep unchanged
+        * **Confirm** and **Save**
 
     ![Event Handler](../../../images/portal_event_handler_chat.png)
 
-## Start the chat
+5. Switch back to your codespace and open the application in multiple browser tabs with your copied local address and start your chat.
 
-Open http://localhost:8080/index.html, input your user name, and send messages.
+    Besides the simple WebSocket client we show in [index.html](./public/index.html), [fancy.html](./public/fancy.html) shows a client using `json.webpubsub.azure.v1` achieving the same by sending `message` event to the service. With the help of the subprotocol, the client can get `connected` and `disconnected` messages containing some metadata of the connection.
 
-You can see in the localtunnel command window that there are requests coming in with every message sent from the page.
-
-## Client using `json.webpubsub.azure.v1` subprotocol
-
-Besides the simple WebSocket client we show in [index.html](./public/index.html), [fancy.html](./public/fancy.html) shows a client using `json.webpubsub.azure.v1` achieving the same by sending `message` event to the service. With the help of the subprotocol, the client can get `connected` and `disconnected` messages containing some metadata of the connection.
-
-You can open both http://localhost:8080/index.html and http://localhost:8080/fancy.html to see messages received by both clients.
+    You can open both http://localhost:8080/index.html and http://localhost:8080/fancy.html to see messages received by both clients.

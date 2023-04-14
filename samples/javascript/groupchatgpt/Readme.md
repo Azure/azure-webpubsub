@@ -4,6 +4,7 @@
 
 1. [Node.js](https://nodejs.org)
 2. Create an Azure Web PubSub resource
+3. Use GitHub Codespaces
 
 ## Overview
 The sample demonstrates building a chat app on a webpage with the Web PubSub client SDK and react.
@@ -21,8 +22,12 @@ In some of the other samples, we show how to run the app locally and expose the 
 
 In this sample, we open this project from [GitHub codespace](https://github.com/features/codespaces) and run it from inside the Codespace.
 
-1. In GitHub repo, click Code and choose `Codespaces` tab to open the project in codespace.
-2. In Codespace, switch to the Terminal tab:
+1. In this GitHub repo, click **Code** and choose `Codespaces` tab to open the project in codespace. If there is no codespace yet, click *Create codespace on main* to create one for you. Codespace starts in seconds with up to 60 hours a month free.
+2. In Codespace, switch to the Terminal tab
+    0. Navigate to current folder
+        ```bash
+        cd samples/javascript/groupchatgpt
+        ```
     1. Copy **Connection String** from **Keys** tab of the created Azure Web PubSub service, and set the value to the environment.
         ```bash
         export WebPubSubConnectionString="<your-web-pubsub-service-connection-string>"
