@@ -24,21 +24,22 @@ In this sample, we open this project from [GitHub codespace](https://github.com/
 
 1. In this GitHub repo, click **Code** and choose `Codespaces` tab to open the project in codespace. If there is no codespace yet, click *Create codespace on main* to create one for you. Codespace starts in seconds with up to 60 hours a month free.
 2. In Codespace, switch to the Terminal tab
-    0. Navigate to current folder
+    
+    1. Navigate to current folder
         ```bash
         cd samples/javascript/groupchatgpt
         ```
-    1. Copy **Connection String** from **Keys** tab of the created Azure Web PubSub service, and set the value to the environment.
+    2. Copy **Connection String** from **Keys** tab of the created Azure Web PubSub service, and set the value to the environment.
         ```bash
         export WebPubSubConnectionString="<your-web-pubsub-service-connection-string>"
         ```
-    2. Copy your OpenAI API, and set the value to the environment:
+    3. Copy your OpenAI API, and set the value to the environment:
         ```bash
         export OPENAI_API_KEY="<your-api-key>"
         export OPENAI_API_Endpoint="<your-api-service-endpoint>" #set if you are using Azure OpenAI
         export OPENAI_API_Deployment="<your-service-model-deployment-name>" #set if you are using Azure OpenAI
         ```
-    3. Run the project on port 8080
+    4. Run the project on port 8080
         ```bash
         npm install
         npm run start
