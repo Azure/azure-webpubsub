@@ -3,7 +3,8 @@
         <el-col :xs="24" :sm="24" :md="8" :lg="8" :xl="8" v-for="(c, i) in cards" :key="i">
             <el-card class="box-card">
                 <el-row justify="center">
-                  <el-radio v-model="selectedIndex" :label="i" :aria-label="c.ariaLabel"> &nbsp; </el-radio>
+                  <input v-model="selectedIndex" type="radio" :value="i" :label ="i" :aria-label="c.ariaLabel">
+                  <span> &nbsp; </span>
                 </el-row>
                 <el-row justify="space-around" class="horizontal-center">
                     <img class="thumbnail-image" :src="c.thumbnails[0].value" aria-label="thumbnail image"/>

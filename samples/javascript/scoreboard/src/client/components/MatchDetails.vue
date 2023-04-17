@@ -2,7 +2,7 @@
     <el-card height="100vh">
         <el-row class="horizontal-center">
             <el-col :span="2">
-                <el-tag type="danger" size="medium" class="live">● Live </el-tag>
+                <el-tag type="danger" size="medium" class="live" effect="dark" color="#bc5151">● Live </el-tag>
             </el-col>
             <el-col :span="12" :offset="4" class="horizontal-center vertical-center">
                 <img class="title-logo" :src="titleLogo" aria-label="team logo image"/>
@@ -34,7 +34,7 @@
         </el-row>
         <el-row>
             <el-col :span="24">
-                <el-table :data="tableData" class="table" :cell-class-name="() => 'table-cell'">
+                <el-table :data="tableData" class="table" :header-cell-style="{ color: 'black' }" :cell-class-name="() => 'table-cell'">
                     <el-table-column prop="quarter" label="" />
                     <el-table-column prop="scoreL" :label="teams.teamL" />
                     <el-table-column prop="scoreR" :label="teams.teamR" />
@@ -76,17 +76,6 @@ options.onGettingRealtimeMatchDetailsScore.push((payload: RealtimeMatchDetailsPa
             tableData.value.push({ quarter: getQuarterText(i), scoreL: q[0], scoreR: q[1] })
         })
     }
-})
-
-onMounted(() => {
-    anime({
-        targets: '.live',
-        opacity: 0.3,
-        loop: true,
-        duration: 1000,
-        easing: 'easeInOutCirc',
-        direction: 'alternate',
-    })
 })
 
 watch(store.state.selected, selected => {
