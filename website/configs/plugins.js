@@ -24,9 +24,14 @@ const setupPlugins = function ({ root }) {
             postBodyTags: [
               `<script>
                 document.addEventListener('keyup', (event)=> {
-                  if(event.keyCode === 9) {
+                  if(event.key === 'Tab') {
                     const backBtn = document.querySelector(".navbar-sidebar__back");
                     if(backBtn) backBtn.style.display = "none";
+                  }
+
+                  if(event.key === 'Escape') {
+                    const closeBtn = document.querySelector(".navbar-sidebar__close");
+                    closeBtn.click();
                   }
                 });
               
@@ -41,6 +46,7 @@ const setupPlugins = function ({ root }) {
       }
     },
   ]
+
 
   // only add gtag in production
   const trackingID = process.env.trackingID
