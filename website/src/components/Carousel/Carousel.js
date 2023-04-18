@@ -34,7 +34,7 @@ const DATA_SLIDES = [
   {
     id: 4,
     title: 'Monitor and synchronize internet-connected devices with high reliability',
-    description: '',
+    description: 'Monitor and synchronize internet-connected devices with high reliability',
     img: hero_connected_devices,
   },
 ]
@@ -62,8 +62,8 @@ export default function Carousel() {
   return (
     <div className="relative h-[270px] w-screen md:h-[600px] xl:h-[750px]">
       <div className="absolute bottom-1/2 z-50 flex w-full translate-y-1/2 transform justify-between px-4">
-        <ButtonNav direction="left" onClick={prevSlide} isShow={slideIndex !== 0} tabIndex="0" />
-        <ButtonNav direction="right" onClick={nextSlide} isShow={slideIndex !== SLIDE_NUM - 1} tabIndex="0" />
+        <ButtonNav direction="left" onClick={prevSlide} isShow={slideIndex !== 0} tabIndex="0" ariaLabel="left button" />
+        <ButtonNav direction="right" onClick={nextSlide} isShow={slideIndex !== SLIDE_NUM - 1} tabIndex="0" ariaLabel="right button" />
       </div>
 
       <div className="absolute -bottom-12 left-1/2 z-50 flex -translate-x-1/2 transform gap-1 md:bottom-3">
