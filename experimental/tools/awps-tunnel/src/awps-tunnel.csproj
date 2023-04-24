@@ -18,7 +18,7 @@
     <ApplicationIcon>ClientApp\public\favicon.ico</ApplicationIcon>
     <Title>Local tunnel tool for Azure Web PubSub</Title>
     <VersionPrefix>0.0.1</VersionPrefix>
-    <VersionSuffix>alpha-005</VersionSuffix>
+    <VersionSuffix>alpha-006</VersionSuffix>
   </PropertyGroup>
 
   <ItemGroup>

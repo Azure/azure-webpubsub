@@ -3,7 +3,7 @@
 
     "awps-tunnel": {
       "commandName": "Project",
-      "commandLineArgs": "run --cs Endpoint=http://localhost:8080;AccessKey=ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789ABCDEFGH;Version=1.0; --hub chat",
+      "commandLineArgs": "run",
       "launchBrowser": true,
       "environmentVariables": {
         "ASPNETCORE_ENVIRONMENT": "Development",

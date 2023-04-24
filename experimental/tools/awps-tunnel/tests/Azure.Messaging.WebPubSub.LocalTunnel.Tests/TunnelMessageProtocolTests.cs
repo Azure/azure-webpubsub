@@ -8,7 +8,10 @@ public class TunnelMessageProtocolTests
     [Fact]
     public void TestRequestMessage()
     {
-        var message = new TunnelRequestMessage(1, true, default, HttpMethod.Head.Method, default, default)
+        var message = new TunnelRequestMessage(1, true, "a", HttpMethod.Head.Method, "b", new Dictionary<string, string[]>
+        {
+            ["a"] = new string[] { "b" }
+        })
         {
             Content = Encoding.UTF8.GetBytes("Hello")
         };
@@ -16,6 +19,7 @@ public class TunnelMessageProtocolTests
         var parsed = TestCore(message);
         Assert.Equal(TunnelMessageType.HttpRequest, parsed.Type);
         Assert.Equal(message.Type, parsed.Type);
+        Assert.Equal(message.ChannelName, parsed.ChannelName);
         Assert.Equal(message.HttpMethod, parsed.HttpMethod);
         Assert.Equal(message.Url, parsed.Url);
         Assert.Equal(message.Headers, parsed.Headers);
@@ -26,7 +30,7 @@ public class TunnelMessageProtocolTests
     [Fact]
     public void TestResponseMessage()
     {
-        var message = new TunnelResponseMessage(1, true, 200, "a", new System.Collections.Generic.Dictionary<string, string[]>
+        var message = new TunnelResponseMessage(1, true, 200, "a", new Dictionary<string, string[]>
         {
             ["a"] = new string[] { "b" }
         })

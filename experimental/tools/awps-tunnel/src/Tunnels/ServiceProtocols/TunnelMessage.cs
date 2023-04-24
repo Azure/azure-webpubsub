@@ -44,13 +44,13 @@ public class TunnelRequestMessage : ByteContentTunnelMessage
 
     public string Url { get; }
 
-    public Dictionary<string, string[]> Headers { get; }
+    public IDictionary<string, string[]> Headers { get; }
 
     public bool GlobalRouting { get; }
 
     public string ChannelName { get; }
 
-    public TunnelRequestMessage(int ackId, bool globalRouting, string channelName, string httpMethod, string url, Dictionary<string, string[]>? headers)
+    public TunnelRequestMessage(int ackId, bool globalRouting, string channelName, string httpMethod, string url, IDictionary<string, string[]>? headers)
     {
         AckId = ackId;
         ChannelName = channelName;
@@ -69,13 +69,13 @@ public class TunnelResponseMessage : ByteContentTunnelMessage
 
     public int StatusCode { get; }
 
-    public Dictionary<string, string[]> Headers { get; }
+    public IDictionary<string, string[]> Headers { get; }
 
     public bool GlobalRouting { get; }
 
     public string ChannelName { get; }
 
-    public TunnelResponseMessage(int ackId, bool globalRouting, int statusCode, string channelName, Dictionary<string, string[]>? headers)
+    public TunnelResponseMessage(int ackId, bool globalRouting, int statusCode, string channelName, IDictionary<string, string[]>? headers)
     {
         AckId = ackId;
         GlobalRouting = globalRouting;
