@@ -1,0 +1,9 @@
+{
+  "profiles": {
+    "notification_isolated": {
+      "commandName": "Project",
+      "commandLineArgs": "--port 7071",
+      "launchBrowser": false
+    }
+  }
+}
