@@ -4,15 +4,16 @@
     {
       "type": "webPubSubTrigger",
       "direction": "in",
-      "name": "message",
-      "hub": "simplechat",
+      "name": "data",
+      "dataType": "binary",
+      "hub": "sample_funcchat",
       "eventName": "message",
       "eventType": "user"
     },
     {
       "type": "webPubSub",
-      "name": "webPubSubOperation",
-      "hub": "simplechat",
+      "name": "actions",
+      "hub": "sample_funcchat",
       "direction": "out"
     }
   ]

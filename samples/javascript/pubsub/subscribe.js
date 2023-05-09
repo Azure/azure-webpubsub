@@ -2,16 +2,12 @@ const WebSocket = require('ws');
 const { WebPubSubServiceClient } = require('@azure/web-pubsub');
 
 async function main() {
-  if (process.argv.length !== 4) {
-    console.log('Usage: node subscribe <connection-string> <hub-name>');
-    return 1;
-  }
-
-  let serviceClient = new WebPubSubServiceClient(process.argv[2], process.argv[3]);
-  let token = await serviceClient.getAuthenticationToken();
+  const hub = "sample_pubsub";
+  let serviceClient = new WebPubSubServiceClient(process.env.WebPubSubConnectionString, hub);
+  let token = await serviceClient.getClientAccessToken();
   let ws = new WebSocket(token.url);
   ws.on('open', () => console.log('connected'));
-  ws.on('message', data => console.log(data));;
+  ws.on('message', data => console.log('Message received: %s', data));
 }
 
 main();

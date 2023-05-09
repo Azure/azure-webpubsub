@@ -1,0 +1,497 @@
+{
+  "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+  "contentVersion": "1.0.0.0",
+  "metadata": {
+    "_generator": {
+      "name": "bicep",
+      "version": "0.6.18.56646",
+      "templateHash": "10159244883142085345"
+    }
+  },
+  "parameters": {
+    "WebPubSubSku": {
+      "type": "string",
+      "defaultValue": "Free",
+      "allowedValues": [
+        "Free",
+        "Standard Unit 1",
+        "Standard Unit 2",
+        "Standard Unit 5",
+        "Standard Unit 10",
+        "Standard Unit 20",
+        "Standard Unit 50",
+        "Standard Unit 100"
+      ],
+      "metadata": {
+        "description": "Unit of Azure Web PubSub service. The default value is 1."
+      }
+    },
+    "appServiceSku": {
+      "type": "string",
+      "defaultValue": "F1",
+      "allowedValues": [
+        "F1",
+        "B1",
+        "B2",
+        "B3",
+        "D1",
+        "S1",
+        "S2",
+        "S3",
+        "P1v2",
+        "P2v2",
+        "P3v2",
+        "P1v3",
+        "P2v3",
+        "P3v3",
+        "I1",
+        "I2",
+        "I3",
+        "I1v2",
+        "I2v2",
+        "I3v2"
+      ],
+      "metadata": {
+        "description": "The SKU of Azure App service. The default value is B1."
+      }
+    },
+    "packageUri": {
+      "type": "string",
+      "defaultValue": "https://livedemopackages.blob.core.windows.net/packages/scoreboard_0.1.0.zip",
+      "metadata": {
+        "description": "Demo package to be deployed."
+      }
+    }
+  },
+  "variables": {
+    "location": "[resourceGroup().location]",
+    "demoName": "scoreboard",
+    "uniqueStr": "[uniqueString(resourceGroup().id)]",
+    "webpubsubName": "[toLower(format('wps-{0}-{1}', variables('demoName'), variables('uniqueStr')))]",
+    "appServicePlanName": "[toLower(format('asp-{0}-{1}', variables('demoName'), variables('uniqueStr')))]",
+    "webSiteName": "[toLower(format('wap-{0}-{1}', variables('demoName'), variables('uniqueStr')))]",
+    "tier": "[if(equals(parameters('WebPubSubSku'), 'Free'), 'Free', 'Standard')]",
+    "ind": "[if(equals(variables('tier'), 'Free'), -1, lastIndexOf(parameters('WebPubSubSku'), ' '))]",
+    "str": "[if(equals(variables('ind'), -1), '1', substring(parameters('WebPubSubSku'), add(variables('ind'), 1), sub(sub(length(parameters('WebPubSubSku')), variables('ind')), 1)))]",
+    "webPubSubUnit": "[int(variables('str'))]"
+  },
+  "resources": [
+    {
+      "type": "Microsoft.Resources/deployments",
+      "apiVersion": "2020-10-01",
+      "name": "appServiceCreate",
+      "properties": {
+        "expressionEvaluationOptions": {
+          "scope": "inner"
+        },
+        "mode": "Incremental",
+        "parameters": {
+          "appServicePlanName": {
+            "value": "[variables('appServicePlanName')]"
+          },
+          "webSiteName": {
+            "value": "[variables('webSiteName')]"
+          },
+          "sku": {
+            "value": "[parameters('appServiceSku')]"
+          },
+          "packageUri": {
+            "value": "[parameters('packageUri')]"
+          },
+          "location": {
+            "value": "[variables('location')]"
+          }
+        },
+        "template": {
+          "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+          "contentVersion": "1.0.0.0",
+          "metadata": {
+            "_generator": {
+              "name": "bicep",
+              "version": "0.6.18.56646",
+              "templateHash": "13364624537899975490"
+            }
+          },
+          "parameters": {
+            "appServicePlanName": {
+              "type": "string"
+            },
+            "webSiteName": {
+              "type": "string"
+            },
+            "sku": {
+              "type": "string"
+            },
+            "packageUri": {
+              "type": "string"
+            },
+            "location": {
+              "type": "string"
+            }
+          },
+          "resources": [
+            {
+              "type": "Microsoft.Web/serverfarms",
+              "apiVersion": "2020-06-01",
+              "name": "[parameters('appServicePlanName')]",
+              "location": "[parameters('location')]",
+              "sku": {
+                "name": "[parameters('sku')]"
+              }
+            },
+            {
+              "type": "Microsoft.Web/sites",
+              "apiVersion": "2020-06-01",
+              "name": "[parameters('webSiteName')]",
+              "location": "[parameters('location')]",
+              "properties": {
+                "serverFarmId": "[resourceId('Microsoft.Web/serverfarms', parameters('appServicePlanName'))]"
+              },
+              "dependsOn": [
+                "[resourceId('Microsoft.Web/serverfarms', parameters('appServicePlanName'))]"
+              ]
+            },
+            {
+              "type": "Microsoft.Web/sites/extensions",
+              "apiVersion": "2018-02-01",
+              "name": "[format('{0}/{1}', parameters('webSiteName'), 'MSDeploy')]",
+              "properties": {
+                "packageUri": "[parameters('packageUri')]"
+              },
+              "dependsOn": [
+                "[resourceId('Microsoft.Web/sites', parameters('webSiteName'))]"
+              ]
+            }
+          ],
+          "outputs": {
+            "host": {
+              "type": "string",
+              "value": "[reference(resourceId('Microsoft.Web/sites', parameters('webSiteName'))).defaultHostName]"
+            },
+            "webSiteName": {
+              "type": "string",
+              "value": "[parameters('webSiteName')]"
+            }
+          }
+        }
+      }
+    },
+    {
+      "type": "Microsoft.Resources/deployments",
+      "apiVersion": "2020-10-01",
+      "name": "webpubsubCreate",
+      "properties": {
+        "expressionEvaluationOptions": {
+          "scope": "inner"
+        },
+        "mode": "Incremental",
+        "parameters": {
+          "location": {
+            "value": "[variables('location')]"
+          },
+          "name": {
+            "value": "[variables('webpubsubName')]"
+          },
+          "unit": {
+            "value": "[variables('webPubSubUnit')]"
+          },
+          "tier": {
+            "value": "[variables('tier')]"
+          }
+        },
+        "template": {
+          "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+          "contentVersion": "1.0.0.0",
+          "metadata": {
+            "_generator": {
+              "name": "bicep",
+              "version": "0.6.18.56646",
+              "templateHash": "17822856743972706006"
+            }
+          },
+          "parameters": {
+            "name": {
+              "type": "string"
+            },
+            "location": {
+              "type": "string"
+            },
+            "unit": {
+              "type": "int",
+              "allowedValues": [
+                1,
+                2,
+                5,
+                10,
+                20,
+                50,
+                100
+              ]
+            },
+            "tier": {
+              "type": "string",
+              "allowedValues": [
+                "Free",
+                "Standard"
+              ]
+            }
+          },
+          "variables": {
+            "skuName": "[if(equals(parameters('tier'), 'Free'), 'Free_F1', 'Standard_S1')]"
+          },
+          "resources": [
+            {
+              "type": "Microsoft.SignalRService/webPubSub",
+              "apiVersion": "2021-10-01",
+              "name": "[parameters('name')]",
+              "location": "[parameters('location')]",
+              "sku": {
+                "name": "[variables('skuName')]",
+                "tier": "[parameters('tier')]",
+                "capacity": "[parameters('unit')]"
+              },
+              "properties": {
+                "tls": {
+                  "clientCertEnabled": false
+                },
+                "networkACLs": {
+                  "defaultAction": "Deny",
+                  "publicNetwork": {
+                    "allow": [
+                      "ServerConnection",
+                      "ClientConnection",
+                      "RESTAPI",
+                      "Trace"
+                    ]
+                  },
+                  "privateEndpoints": []
+                },
+                "publicNetworkAccess": "Enabled",
+                "disableLocalAuth": false,
+                "disableAadAuth": false
+              }
+            }
+          ],
+          "outputs": {
+            "name": {
+              "type": "string",
+              "value": "[parameters('name')]"
+            },
+            "hostname": {
+              "type": "string",
+              "value": "[reference(resourceId('Microsoft.SignalRService/webPubSub', parameters('name'))).hostName]"
+            },
+            "conenctionString": {
+              "type": "string",
+              "value": "[listKeys(resourceId('Microsoft.SignalRService/webPubSub', parameters('name')), '2021-10-01').primaryConnectionString]"
+            }
+          }
+        }
+      }
+    },
+    {
+      "type": "Microsoft.Resources/deployments",
+      "apiVersion": "2020-10-01",
+      "name": "webpubsubHubCreate",
+      "properties": {
+        "expressionEvaluationOptions": {
+          "scope": "inner"
+        },
+        "mode": "Incremental",
+        "parameters": {
+          "resourceName": {
+            "value": "[reference(resourceId('Microsoft.Resources/deployments', 'webpubsubCreate')).outputs.name.value]"
+          },
+          "hubNameSuffix": {
+            "value": "[variables('demoName')]"
+          },
+          "eventHandlers": {
+            "value": [
+              {
+                "auth": {
+                  "managedIdentity": {},
+                  "type": "None"
+                },
+                "systemEvents": [
+                  "connect",
+                  "connected",
+                  "disconnected"
+                ],
+                "urlTemplate": "[format('https://{0}/eventhandler', reference(resourceId('Microsoft.Resources/deployments', 'appServiceCreate')).outputs.host.value)]",
+                "userEventPattern": "*"
+              }
+            ]
+          },
+          "anonymousConnectPolicy": {
+            "value": "deny"
+          }
+        },
+        "template": {
+          "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+          "contentVersion": "1.0.0.0",
+          "metadata": {
+            "_generator": {
+              "name": "bicep",
+              "version": "0.6.18.56646",
+              "templateHash": "12961931233320519981"
+            }
+          },
+          "parameters": {
+            "resourceName": {
+              "type": "string"
+            },
+            "hubNameSuffix": {
+              "type": "string"
+            },
+            "eventHandlers": {
+              "type": "array"
+            },
+            "anonymousConnectPolicy": {
+              "type": "string"
+            }
+          },
+          "variables": {
+            "hubName": "[format('sample_{0}', parameters('hubNameSuffix'))]"
+          },
+          "resources": [
+            {
+              "type": "Microsoft.SignalRService/webPubSub/hubs",
+              "apiVersion": "2021-10-01",
+              "name": "[format('{0}/{1}', parameters('resourceName'), variables('hubName'))]",
+              "properties": {
+                "anonymousConnectPolicy": "[parameters('anonymousConnectPolicy')]",
+                "eventHandlers": "[parameters('eventHandlers')]"
+              }
+            }
+          ]
+        }
+      },
+      "dependsOn": [
+        "[resourceId('Microsoft.Resources/deployments', 'appServiceCreate')]",
+        "[resourceId('Microsoft.Resources/deployments', 'webpubsubCreate')]"
+      ]
+    },
+    {
+      "type": "Microsoft.Resources/deployments",
+      "apiVersion": "2020-10-01",
+      "name": "AppSettingsUpdate",
+      "properties": {
+        "expressionEvaluationOptions": {
+          "scope": "inner"
+        },
+        "mode": "Incremental",
+        "parameters": {
+          "webSiteName": {
+            "value": "[reference(resourceId('Microsoft.Resources/deployments', 'appServiceCreate')).outputs.webSiteName.value]"
+          },
+          "webPubSubConnectionString": {
+            "value": "[reference(resourceId('Microsoft.Resources/deployments', 'webpubsubCreate')).outputs.conenctionString.value]"
+          }
+        },
+        "template": {
+          "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+          "contentVersion": "1.0.0.0",
+          "metadata": {
+            "_generator": {
+              "name": "bicep",
+              "version": "0.6.18.56646",
+              "templateHash": "2115785187831714881"
+            }
+          },
+          "parameters": {
+            "webPubSubConnectionString": {
+              "type": "string"
+            },
+            "webSiteName": {
+              "type": "string"
+            }
+          },
+          "resources": [
+            {
+              "type": "Microsoft.Web/sites/config",
+              "apiVersion": "2021-03-01",
+              "name": "[format('{0}/web', parameters('webSiteName'))]",
+              "properties": {
+                "appSettings": [
+                  {
+                    "name": "WebPubSubConnectionString",
+                    "value": "[parameters('webPubSubConnectionString')]"
+                  },
+                  {
+                    "name": "NODE_ENV",
+                    "value": "production"
+                  },
+                  {
+                    "name": "WEBSITE_NODE_DEFAULT_VERSION",
+                    "value": "~16"
+                  }
+                ]
+              }
+            }
+          ]
+        }
+      },
+      "dependsOn": [
+        "[resourceId('Microsoft.Resources/deployments', 'appServiceCreate')]",
+        "[resourceId('Microsoft.Resources/deployments', 'webpubsubCreate')]"
+      ]
+    },
+    {
+      "type": "Microsoft.Resources/deployments",
+      "apiVersion": "2020-10-01",
+      "name": "deployPackage",
+      "properties": {
+        "expressionEvaluationOptions": {
+          "scope": "inner"
+        },
+        "mode": "Incremental",
+        "parameters": {
+          "packageUri": {
+            "value": "[parameters('packageUri')]"
+          },
+          "webSiteName": {
+            "value": "[reference(resourceId('Microsoft.Resources/deployments', 'appServiceCreate')).outputs.webSiteName.value]"
+          }
+        },
+        "template": {
+          "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+          "contentVersion": "1.0.0.0",
+          "metadata": {
+            "_generator": {
+              "name": "bicep",
+              "version": "0.6.18.56646",
+              "templateHash": "14709359733537869693"
+            }
+          },
+          "parameters": {
+            "webSiteName": {
+              "type": "string"
+            },
+            "packageUri": {
+              "type": "string"
+            }
+          },
+          "resources": [
+            {
+              "type": "Microsoft.Web/sites/extensions",
+              "apiVersion": "2018-02-01",
+              "name": "[format('{0}/MSDeploy', parameters('webSiteName'))]",
+              "properties": {
+                "packageUri": "[parameters('packageUri')]"
+              }
+            }
+          ]
+        }
+      },
+      "dependsOn": [
+        "[resourceId('Microsoft.Resources/deployments', 'appServiceCreate')]"
+      ]
+    }
+  ],
+  "outputs": {
+    "demoLink": {
+      "type": "string",
+      "value": "[reference(resourceId('Microsoft.Resources/deployments', 'appServiceCreate')).outputs.host.value]"
+    }
+  }
+}

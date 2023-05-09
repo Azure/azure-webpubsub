@@ -17,11 +17,21 @@ Copy **Connection String** from **Keys** tab of the created Azure Web PubSub ser
 
 ![Connection String](./../../../docs/images/portal_conn.png)
 
+Linux:
+
 ```bash
-node server "<connection-string>"
+export WebPubSubConnectionString="<connection_string>"
+node server
 ```
 
-The server is then started. Open `http://localhost:8080` in browser. If you use F12 to view the Network you can see the WebSocket connection is established.
+Windows:
+
+```cmd
+SET WebPubSubConnectionString=<connection_string>
+node server
+```
+
+The server is then started. Open http://localhost:8080/index.html in the browser. If you use F12 to view the Network you can see the WebSocket connection is established.
 
 ## Start the log streamer
 Run:
@@ -29,4 +39,4 @@ Run:
 node stream
 ```
 
-Start typing messages and you can see these messages are transfered to the browser in real-time.
+Start typing messages and you can see these messages are transferred to the browser in real-time.

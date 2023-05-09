@@ -1,0 +1,3 @@
+azure-messaging-webpubsubservice==1.0.0
+protobuf
+websockets

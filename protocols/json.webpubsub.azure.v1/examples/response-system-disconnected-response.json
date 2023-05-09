@@ -1,0 +1,6 @@
+{
+    "$schema": "./../webpubsub.v1.response.json",
+    "type": "system",
+    "event": "disconnected",
+    "message": "Service reload"
+}

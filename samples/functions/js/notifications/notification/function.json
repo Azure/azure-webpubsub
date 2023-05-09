@@ -8,8 +8,8 @@
     },
     {
       "type": "webPubSub",
-      "name": "webPubSubOperation",
-      "hub": "notification",
+      "name": "actions",
+      "hub": "sample_notification",
       "direction": "out"
     }
   ]

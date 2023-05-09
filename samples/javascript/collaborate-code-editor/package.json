@@ -1,0 +1,12 @@
+{
+  "name": "collaborate-code-editor",
+  "version": "1.0.0",
+  "description": "This sample is to help you create a collaborate code editor.",
+  "main": "dist/index.js",
+  "scripts": {
+    "server": "npm --prefix ./server start",
+    "app": "npm --prefix ./app start"
+  },
+  "author": "",
+  "license": "ISC"
+}

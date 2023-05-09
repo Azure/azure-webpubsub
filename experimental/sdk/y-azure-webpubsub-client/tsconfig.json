@@ -1,0 +1,23 @@
+{
+  "compilerOptions": {
+    "target": "es6",
+    "lib": [
+      "ES6",
+      "ESNext.BigInt",
+      "DOM"
+    ],
+    "allowJs": true,
+    "module": "esnext",
+    "declaration": true,
+    "declarationMap": true,
+    "moduleResolution": "node",
+    "sourceMap": true,
+    "allowSyntheticDefaultImports": true,
+    "outDir": "dist",
+  },
+  "include": [
+    "./src",
+  ],
+  "exclude": [
+  ]
+}

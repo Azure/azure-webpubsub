@@ -1,0 +1,26 @@
+{
+  "name": "videoshare",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "webpack --mode development",
+    "build": "webpack --mode production"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "@azure/web-pubsub": "^1.0.0-alpha.20211102.4",
+    "@azure/web-pubsub-express": "^1.0.0-alpha.20211102.4",
+    "express": "^4.17.1",
+    "express-fileupload": "^1.2.1",
+    "google-protobuf": "^3.17.3"
+  },
+  "devDependencies": {
+    "copy-webpack-plugin": "^8.1.1",
+    "webpack": "^5.35.1",
+    "webpack-cli": "^4.7.2"
+  }
+}

@@ -11,9 +11,9 @@ let diagram = {
   users: 0
 };
 
-const hubName = 'draw';
+const hubName = 'sample_draw';
 let serviceClient = new WebPubSubServiceClient(process.argv[2] || process.env.Web_PubSub_ConnectionString, hubName);
-let handler = new WebPubSubEventHandler(hubName, ['*'], {
+let handler = new WebPubSubEventHandler(hubName, {
   path: '/eventhandler',
   handleConnect: async (req, res) => {
     res.success({
@@ -60,7 +60,7 @@ app.use(fileUpload());
 app.use(handler.getMiddleware());
 app
   .get('/negotiate', async (req, res) => {
-    let token = await serviceClient.getAuthenticationToken({
+    let token = await serviceClient.getClientAccessToken({
       roles: ['webpubsub.sendToGroup.draw']
     });
     res.json({

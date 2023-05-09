@@ -1,0 +1,109 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/**
+ * Any CSS included here will be global. The classic template
+ * bundles Infima by default. Infima is a CSS framework designed to
+ * work well for content-centric websites.
+ */
+
+/* You can override the default Infima variables here. */
+:root {
+  --ifm-color-primary: #006bcd;
+  --ifm-color-primary-dark: #0057a8;
+  --ifm-color-primary-darker: #003e77;
+  --ifm-color-primary-darkest: #002f5b;
+  --ifm-color-primary-light: #097eec;
+  --ifm-color-primary-lighter: #198efb;
+  --ifm-color-primary-lightest: #a2d2ff;
+  --ifm-code-font-size: 95%;
+  --docusaurus-highlighted-code-line-bg: rgba(0, 0, 0, 0.1);
+  --ifm-font-family-base: 'Segoe UI', sans-serif;
+}
+
+/* For readability concerns, you should choose a lighter palette in dark mode. */
+[data-theme='dark'] {
+  --ifm-color-primary: #25c2a0;
+  --ifm-color-primary-dark: #21af90;
+  --ifm-color-primary-darker: #1fa588;
+  --ifm-color-primary-darkest: #1a8870;
+  --ifm-color-primary-light: #29d5b0;
+  --ifm-color-primary-lighter: #32d8b4;
+  --ifm-color-primary-lightest: #4fddbf;
+  --docusaurus-highlighted-code-line-bg: rgba(0, 0, 0, 0.3);
+}
+
+html {
+  font-family: 'Segoe UI', sans-serif;
+}
+
+a,
+a:hover {
+  text-decoration: none;
+}
+
+a:hover {
+  color: inherit;
+}
+
+.menu__list {
+  font-size: 14px;
+}
+
+.navbar__logo img {
+  padding-top: 2px;
+  height: 24px;
+}
+
+.navbar__title {
+  border-left: 3px solid rgb(34, 34, 34);
+  padding-left: 10px;
+}
+
+.footer {
+  padding-top: 10px;
+  padding-bottom: 10px;
+  padding-right: 0px;
+}
+
+.footer__copyright {
+  text-align: right;
+  font-size: small;
+}
+
+.pattern-dots-sm {
+  background-image: radial-gradient(#c3c3c3 0.5px, transparent 0.5px);
+  background-size: calc(10 * 0.5px) calc(10 * 0.5px);
+}
+
+.breadcrumbs {
+  display: flex;
+}
+
+.breadcrumbs__item:not(:last-child):after {
+  margin-bottom: 9px;
+}
+
+.theme-edit-this-page {
+  display: flex;
+}
+
+[data-theme='light'] .lightIcon {
+  fill: rgb(255, 255, 255);
+}
+
+/* Docusaurus defines the style for code element */
+code {
+  background-color: rgba(0, 0, 0, 0);
+}
+
+.icon_inline {
+  display: inline-block;
+  height: 12px;
+  width: 12px;
+  fill: currentColor;
+  margin-left: 2px;
+  margin-right: 2px;
+  margin-bottom: 4px;
+}

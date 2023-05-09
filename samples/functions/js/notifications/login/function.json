@@ -15,7 +15,7 @@
     {
       "type": "webPubSubConnection",
       "name": "connection",
-      "hub": "notification",
+      "hub": "sample_notification",
       "direction": "in"
     }
   ]

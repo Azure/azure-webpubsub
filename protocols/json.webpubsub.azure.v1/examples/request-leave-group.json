@@ -1,0 +1,6 @@
+{
+    "$schema": "./../webpubsub.v1.request.json",
+    "type": "leaveGroup",
+    "group": "group1",
+    "ackId" : 1
+}

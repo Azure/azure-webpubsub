@@ -1,0 +1,23 @@
+{
+  "disabled": false,
+  "bindings": [
+    {
+      "authLevel": "anonymous",
+      "type": "httpTrigger",
+      "direction": "in",
+      "name": "req",
+      "methods": ["post"]
+    },
+    {
+      "type": "webPubSubContext",
+      "name": "wpsReq",
+      "direction": "in"
+    },
+    {
+      "type": "webPubSub",
+      "name": "actions",
+      "hub": "sample_funcchat",
+      "direction": "out"
+    }
+  ]
+}

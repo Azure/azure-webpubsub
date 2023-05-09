@@ -10,7 +10,8 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
-    "@azure/web-pubsub": "1.0.0-beta.3",
+    "@azure/web-pubsub": "^1.0.0",
+    "@azure/web-pubsub-express": "^1.0.0",
     "ws": "^7.4.4"
   }
 }

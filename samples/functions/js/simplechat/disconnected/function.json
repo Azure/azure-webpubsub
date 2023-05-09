@@ -1,0 +1,19 @@
+{
+  "disabled": false,
+  "bindings": [
+    {
+      "type": "webPubSubTrigger",
+      "direction": "in",
+      "name": "request",
+      "hub": "sample_funcchat",
+      "eventName": "disconnected",
+      "eventType": "system"
+    },
+    {
+      "type": "webPubSub",
+      "name": "actions",
+      "hub": "sample_funcchat",
+      "direction": "out"
+    }
+  ]
+}

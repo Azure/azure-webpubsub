@@ -17,8 +17,18 @@ Copy **Connection String** from **Keys** tab of the created Azure Web PubSub ser
 
 ![Connection String](./../../../docs/images/portal_conn.png)
 
+Linux:
+
 ```bash
-node subscribe "<connection-string>" pubsub
+export WebPubSubConnectionString="<connection_string>"
+node subscribe
+```
+
+Windows:
+
+```cmd
+SET WebPubSubConnectionString=<connection_string>
+node subscribe
 ```
 
 The subscriber is then connected.
@@ -27,8 +37,18 @@ The subscriber is then connected.
 
 Replace the `<connection-string>` below with the value of your **Connection String**:
 
+Linux:
+
 ```bash
-node publish "<connection-string>" pubsub Hello,world
+export WebPubSubConnectionString="<connection_string>"
+node publish "Hello world"
 ```
 
-You can see that the client receives message `Hello,world`.
+Windows:
+
+```cmd
+SET WebPubSubConnectionString=<connection_string>
+node publish "Hello world"
+```
+
+You can see that the client receives message `Hello world`.

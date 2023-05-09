@@ -3,9 +3,9 @@
   "bindings": [
     {
       "type": "webPubSubTrigger",
-      "name": "connectionContext",
+      "name": "request",
       "direction": "in",
-      "hub": "simplechat",
+      "hub": "sample_funcchat",
       "eventName": "connect",
       "eventType": "system"
     }

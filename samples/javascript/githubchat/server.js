@@ -12,8 +12,8 @@ const app = express();
 const users = {};
 passport.use(
   new GitHubStrategy({
-    clientID: process.argv[3],
-    clientSecret: process.argv[4]
+    clientID: process.env.GitHubClientId,
+    clientSecret: process.env.GitHubClientSecret
   },
   (accessToken, refreshToken, profile, done) => {
     users[profile.id] = profile;
@@ -42,10 +42,11 @@ app.get('/auth/github', passport.authenticate('github', { scope: ['user:email'] 
 app.get('/auth/github/callback', passport.authenticate('github', { successRedirect: '/' }));
 
 // initialize web pubsub event handlers
-const hubName = 'chat';
+const hubName = 'sample_githubchat';
 
-let serviceClient = new WebPubSubServiceClient(process.argv[2], hubName);
-let handler = new WebPubSubEventHandler(hubName, ['*'], {
+let connectionString = process.argv[2] || process.env.WebPubSubConnectionString;
+let serviceClient = new WebPubSubServiceClient(connectionString, hubName);
+let handler = new WebPubSubEventHandler(hubName, {
   path: '/eventhandler',
   handleConnect: (req, res) => {
     res.success({
@@ -76,12 +77,13 @@ app.get('/negotiate', async (req, res) => {
   let options = {
     userId: req.user.username
   };
-  if (req.user.username === process.argv[5]) options.roles = ['webpubsub.sendToGroup.system'];
-  let token = await serviceClient.getAuthenticationToken(options);
+  if (req.user.username === process.argv[2]) options.roles = ['webpubsub.sendToGroup.system'];
+  let token = await serviceClient.getClientAccessToken(options);
   res.json({
     url: token.url
   });
 });
 
 app.use(express.static('public'));
-app.listen(8080, () => console.log('server started'));
+const port= 8080
+app.listen(port, () => console.log(`Event handler listening at http://localhost:${port}${handler.path}`));

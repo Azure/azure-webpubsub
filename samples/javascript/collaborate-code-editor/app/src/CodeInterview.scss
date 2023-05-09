@@ -1,0 +1,82 @@
+$navHeight: 3.5em;
+$bodyHeight: calc(100vh - $navHeight);
+$radius: 0.4em;
+$userHeight: 5 * $radius;
+
+$blue: #6699cc;
+$red: #f2777a;
+$green: #99cc99;
+$grey: #282a2e;
+$limestone: #585a5e;
+$background: #1d1f21;
+$foreground: #ccc;
+
+$darkblue: #4271ae;
+
+body {
+  background-color: $background;
+}
+
+.tab-config {
+  padding: 1em;
+
+  span.bold {
+    font-weight: bold;
+  }
+}
+
+.myContentClass {
+  border-bottom: 1px solid darkorange;
+}
+
+.no-padding {
+  padding: 0;
+}
+
+.no-show {
+  display: none;
+}
+
+#language-dropdown {
+  color: $foreground;
+}
+
+.navbar {
+  height: $navHeight;
+  border-bottom: 1px solid #333;
+}
+
+.my-container-row {
+  margin: 0;
+  height: $bodyHeight;
+}
+
+.editor {
+  height: $bodyHeight;
+}
+
+#monaco-editor {
+  width: 100%;
+  height: 600px;
+  border: 1px solid #ccc;
+}
+
+.yRemoteSelection {
+  background-color: rgb(250, 129, 0, 0.5);
+}
+.yRemoteSelectionHead {
+  position: absolute;
+  border-left: orange solid 2px;
+  border-top: orange solid 2px;
+  border-bottom: orange solid 2px;
+  height: 100%;
+  box-sizing: border-box;
+}
+.yRemoteSelectionHead::after {
+  position: absolute;
+  content: " ";
+  border: 3px solid orange;
+  border-radius: 4px;
+  left: -4px;
+  top: -5px;
+}
