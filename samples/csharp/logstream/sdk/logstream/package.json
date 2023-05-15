@@ -13,7 +13,7 @@
   "author": "chenyl",
   "license": "MIT",
   "dependencies": {
-    "@azure/web-pubsub-client": "^1.0.0-beta.2",
+    "@azure/web-pubsub-client": "^1.0.0-beta.3",
     "events": "latest"
   },
   "devDependencies": {

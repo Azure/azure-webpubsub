@@ -73,15 +73,12 @@ function Overview() {
             <code>startStream()</code> in <code>public/index.html</code>.
           </li>
           <li className="mt-0">
-            <strong>Watcher</strong> <br></br>Watcher is the one who watches
-          </li>
-          <p>
-            Watcher is the one who watches streamer to code. It receives the changes from Azure Web PubSub and applies them one by one to the code editor (by
+            <strong>Watcher</strong> <br></br>Watcher is the one who watches streamer to code. It receives the changes from Azure Web PubSub and applies them one by one to the code editor (by
             calling the applyDelta() function). Since the changes is only a delta from the previous content there needs to be a way to get the full content from
             streamer when watcher is connected for the first time. So in this app when watcher is connected it will send a sync message to streamer (through
             another group called <code>id-control</code>) and streamer will send the full content to the group. The main implementation can be found at &nbsp;
             <code>watch()</code> in <code>public/index.html</code>.
-          </p>
+          </li>
         </ul>
       </TextBlock>
     </div>
