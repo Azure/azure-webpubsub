@@ -1,0 +1,10 @@
+{
+  "dependencies": {
+    "sqlite1": {
+      "secretStore": null,
+      "resourceId": null,
+      "type": "sqlite.local",
+      "connectionId": "ConnectionStrings:store.db"
+    }
+  }
+}
