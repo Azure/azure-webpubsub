@@ -1,5 +1,5 @@
 {
-  "name": "codestream",
+  "name": "collaborate-code-editor-server",
   "version": "1.0.0",
   "description": "",
   "main": "server.ts",
