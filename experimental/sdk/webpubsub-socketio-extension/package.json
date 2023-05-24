@@ -1,0 +1,83 @@
+{
+  "name": "socketio-webpubsub-extension",
+  "version": "1.0.0",
+  "socketio-version": "4.6.1",
+  "description": "Enable Socket.IO server support Azure Web PubSub Service",
+  "main": "./dist/src/index.js",
+  "types": "./dist/src/index.d.ts",
+  "author": "Microsoft",
+  "private": true,
+  "license": "MIT",
+  "directories": {
+    "lib": "src",
+    "example": "samples",
+    "test": "test"
+  },
+  "exports": {
+    "types": "./dist/src/index.d.ts"
+  },
+  "dependencies": {
+    "@azure/web-pubsub": "1.1.1",
+    "@azure/web-pubsub-express": "1.0.4",
+    "@socket.io/admin-ui": "^0.5.1",
+    "async-mutex": "^0.4.0",
+    "base64url": "^3.0.1",
+    "cors": "^2.8.5",
+    "engine.io": "6.4.0",
+    "engine.io-client": "^6.4.0",
+    "express-serve-static-core": "^0.1.1",
+    "socket.io": "^4.6.1",
+    "socket.io-adapter": "^2.5.2",
+    "socket.io-client": "4.6.1",
+    "uuid": "^9.0.0"
+  },
+  "scripts": {
+    "build": "rimraf ./dist && tsc",
+    "compile": "rimraf ./dist && tsc",
+    "test": "npm run test:unit",
+    "test:types": "tsd",
+    "test:unit": "nyc mocha --require ts-node/register --reporter spec --slow 200 --timeout 2000 --bail ./test/index.ts"
+  },
+  "devDependencies": {
+    "@types/debug": "^4.1.7",
+    "@types/engine.io": "^3.1.7",
+    "@types/expect.js": "^0.3.29",
+    "@types/express": "^4.17.17",
+    "@types/mocha": "^9.0.0",
+    "@types/node": "^10.17.60",
+    "@types/ws": "^8.5.4",
+    "expect.js": "0.3.1",
+    "express": "4.18.2",
+    "mocha": "^10.0.0",
+    "nyc": "^15.1.0",
+    "prettier": "^2.3.2",
+    "rimraf": "^3.0.2",
+    "supertest": "^6.3.3",
+    "ts-node": "^10.2.1",
+    "tsd": "^0.21.0",
+    "typescript": "^5.0.3"
+  },
+  "keywords": [
+    "socket.io",
+    "azure-web-pubsub",
+    "websocket",
+    "realtime-messaging"
+  ],
+  "engines": {
+    "node": ">=10.0.0"
+  },
+  "tsd": {
+    "directory": "test"
+  },
+  "mocha": {
+    "extensions": [
+      "ts"
+    ],
+    "spec": [
+      "test/*.ts"
+    ],
+    "require": [
+      "ts-node/register"
+    ]
+  }
+}
