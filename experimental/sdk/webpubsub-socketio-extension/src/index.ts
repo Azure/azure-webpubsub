@@ -10,5 +10,5 @@ debug("load");
  */ 
 const init = () => {};
 
-export { useAzureWebPubSubForSio as useAzureWebPubSub } from "./SIO/extension-interface";
+export { useAzureWebPubSubForSio as useAzureWebPubSub } from "./SIO/interface";
 export { init };
