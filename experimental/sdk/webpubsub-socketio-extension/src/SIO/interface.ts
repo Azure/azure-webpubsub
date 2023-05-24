@@ -3,6 +3,7 @@ import { useAzureWebPubSubForSio } from "./extension";
 import * as SIO from "socket.io"
 
 const debug = debugModule("wps-sio-ext:SIO:extension-interface");
+
 debug("load");
 
 declare module 'socket.io' {
