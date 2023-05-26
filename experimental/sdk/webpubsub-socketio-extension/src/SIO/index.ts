@@ -3,7 +3,7 @@ import { WpsEioServer } from "../EIO";
 import { WpsAdapterProxy } from "./components/web-pubsub-adapter";
 import * as SIO from "socket.io"
 
-export function useAzureWebPubSubForSio(this: SIO.Server, wpsOptions: WebPubSubExtensionOptions, useDefaultAdapter: boolean = true): SIO.Server {
+export function useAzureWebPubSub(this: SIO.Server, wpsOptions: WebPubSubExtensionOptions, useDefaultAdapter: boolean = true): SIO.Server {
     // @ts-ignore
     var engine = new WpsEioServer(this.engine.opts, wpsOptions);
 
@@ -22,4 +22,4 @@ export function useAzureWebPubSubForSio(this: SIO.Server, wpsOptions: WebPubSubE
     return this;
 }
 
-export { WpsAdapter };
+export { WpsAdapterProxy };
