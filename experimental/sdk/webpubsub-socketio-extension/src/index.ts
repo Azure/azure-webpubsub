@@ -4,4 +4,6 @@
  */ 
 export const init = () => {};
 
+export { WpsEioServer } from "./EIO";
+export { WpsAdapterProxy } from "./SIO/components/web-pubsub-adapter";
 export { useAzureWebPubSubForSio as useAzureWebPubSub } from "./SIO";

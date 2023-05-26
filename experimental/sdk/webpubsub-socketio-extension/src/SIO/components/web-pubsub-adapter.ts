@@ -8,10 +8,10 @@ import { Namespace, Server as SioServer } from "socket.io"
  * Thus its constructor parameters of the adapter class is out of our control. 
  * So a proxy class is necessary to wrap the adapter class for customimzed constructor parameters.
  * How to use:
- *  1. Instansize a `WpsAdapter` object: `const wpsAdapter = new WpsAdapter(extraOptions);`
- *  2. Set the adapter: `io.adapter(wpsAdapter);`, thus additional options are 
+ *  1. Instansize a `WpsAdapterProxy` object: `const wpsAdapterProxy = new WpsAdapterProxy(extraOptions);`
+ *  2. Set the adapter: `io.adapter(WpsAdapterProxy);`, thus additional options are 
  */
-export class WpsAdapter {
+export class WpsAdapterProxy {
 	constructor(extraArgForWpsAdapter: any) {
 		var proxyHandler = { 
             construct: (target, args) => new target(...args, extraArgForWpsAdapter), 
