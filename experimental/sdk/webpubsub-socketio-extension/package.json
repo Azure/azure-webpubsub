@@ -19,16 +19,11 @@
   "dependencies": {
     "@azure/web-pubsub": "1.1.1",
     "@azure/web-pubsub-express": "1.0.4",
-    "@socket.io/admin-ui": "^0.5.1",
     "async-mutex": "^0.4.0",
     "base64url": "^3.0.1",
-    "cors": "^2.8.5",
     "engine.io": "6.4.0",
-    "engine.io-client": "^6.4.0",
-    "express-serve-static-core": "^0.1.1",
     "socket.io": "^4.6.1",
     "socket.io-adapter": "^2.5.2",
-    "socket.io-client": "4.6.1",
     "uuid": "^9.0.0"
   },
   "scripts": {
