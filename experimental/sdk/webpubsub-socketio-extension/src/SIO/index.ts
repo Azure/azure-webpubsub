@@ -1,11 +1,11 @@
 import { WebPubSubExtensionOptions } from "../common/utils"
-import { WpsEioServer } from "../EIO";
-import { WpsAdapterProxy } from "./components/web-pubsub-adapter";
+import { WebPubSubEioServer } from "../EIO";
+import { WebPubSubAdapterProxy } from "./components/web-pubsub-adapter";
 import * as SIO from "socket.io"
 
-export function useAzureWebPubSub(this: SIO.Server, wpsOptions: WebPubSubExtensionOptions, useDefaultAdapter: boolean = true): SIO.Server {
+export function useAzureWebPubSub(this: SIO.Server, webPubSubOptions: WebPubSubExtensionOptions, useDefaultAdapter: boolean = true): SIO.Server {
     // @ts-ignore
-    var engine = new WpsEioServer(this.engine.opts, wpsOptions);
+    var engine = new WebPubSubEioServer(this.engine.opts, webPubSubOptions);
 
     // @ts-ignore
     engine.attach(this.httpServer, this.opts);
@@ -14,7 +14,7 @@ export function useAzureWebPubSub(this: SIO.Server, wpsOptions: WebPubSubExtensi
     this.bind(engine as any);
 
     if (!useDefaultAdapter) {
-        var adapterProxy = new WpsAdapterProxy("NotImplementedArg");
+        var adapterProxy = new WebPubSubAdapterProxy("NotImplementedArg");
 
         // @ts-ignore
         this.adapter(adapterProxy);
@@ -22,4 +22,4 @@ export function useAzureWebPubSub(this: SIO.Server, wpsOptions: WebPubSubExtensi
     return this;
 }
 
-export { WpsAdapterProxy };
+export { WebPubSubAdapterProxy };

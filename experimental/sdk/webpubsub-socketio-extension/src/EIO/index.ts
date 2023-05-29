@@ -15,8 +15,8 @@ import * as engine from "engine.io";
 *
 * TODO: implment BaseServer rather than extends Server
 **/
-export class WpsEioServer extends engine.Server {
-    constructor(options: engine.ServerOptions, wpsOptions: WebPubSubExtensionOptions) {
+export class WebPubSubEioServer extends engine.Server {
+    constructor(options: engine.ServerOptions, webPubSubOptions: WebPubSubExtensionOptions) {
         super();
     }
 }

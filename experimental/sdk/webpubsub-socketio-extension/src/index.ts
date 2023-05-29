@@ -10,7 +10,7 @@ export const init = () => {};
 
 declare module "socket.io" {
     interface Server {
-        useAzureWebPubSub(this: Server, wpsOptions: WebPubSubExtensionOptions): Server;
+        useAzureWebPubSub(this: Server, webPubSubOptions: WebPubSubExtensionOptions): Server;
     }
 }
 
@@ -18,3 +18,4 @@ addProperty(SIO.Server.prototype, "useAzureWebPubSub", useAzureWebPubSub);
 
 export * from "./EIO";
 export * from "./SIO";
+export { WebPubSubExtensionOptions }
