@@ -1,5 +1,5 @@
 import Diagram from './diagram';
-import WebSocketClient from './websocketclient';
+import { WebPubSubClient } from '@azure/web-pubsub-client';
 
 function resizeImage(data, maxSize) {
   let dataURLToBlob = dataURL => {
@@ -109,90 +109,88 @@ async function initialize() {
     diagram: diagram
   };
 
-  let ws = new WebSocketClient(async function () {
+  let ws = new WebPubSubClient({getClientAccessUrl: async () => {
     let res = await fetch('/negotiate');
     let data = await res.json();
     return data.url;
-  }, 'json.webpubsub.azure.v1', 5000);
+  }});
 
-  ws.onopen = async () => {
-    appData.connected = true;
-    diagram.removeAll();
-    let res = await fetch('/diagram');
-    let data = await res.json();
-    for (let i in data.shapes)
-      diagram.updateShape(i, data.shapes[i]);
-    if (data.background)
-      diagram.updateBackground('/background/' + data.background);
-  };
-  ws.onclose = () => appData.connected = false;
-  ws.onmessage = event => {
-    let message = JSON.parse(event.data);
-    if (message.type !== 'message') return;
-    let data = message.data;
-    if (message.from === 'group' && message.group === 'draw') {
-      switch (data.name) {
-        case 'clear': {
-          let a = data.data;
-          if (author !== a) diagram.removeAll();
-          break;
-        }
-        case 'updateShape': {
-          let [a, i, m] = data.data;
-          if (author !== a) diagram.updateShape(i, m);
-          break;
-        }
-        case 'patchShape': {
-          let [a, i, d] = data.data;
-          if (author !== a) diagram.patchShape(i, d);
-          break;
-        }
-        case 'removeShape': {
-          let [a, i] = data.data;
-          if (author !== a) diagram.removeShape(i);
-          break;
-        }
-        case 'newMessage': {
-          let [a, n, m] = data.data;
-          if (author !== a) appData.messages.push({ name: n, message: m });
-          break;
-        }
-        case 'updateUser': {
-          let n = data.data;
-          appData.totalUsers = n;
-          break;
-        }
-      }
-    } else if (message.from === 'server') {
-      switch (data.name) {
-        case 'updateBackground': {
-          let i = data.data;
-          diagram.updateBackground('/background/' + i);
-          break;
-        }
+  ws.on("stopped", () => appData.connected = false);
+  ws.on("server-message", e => {
+    let data = e.message.data;
+    switch (data.name) {
+      case 'updateBackground': {
+        let i = data.data;
+        diagram.updateBackground('/background/' + i);
+        break;
       }
     }
-  };
+  })
+  ws.on("group-message", e => {
+    let data = e.message.data;
+    switch (data.name) {
+      case 'clear': {
+        let a = data.data;
+        if (author !== a) diagram.removeAll();
+        break;
+      }
+      case 'updateShape': {
+        let [a, i, m] = data.data;
+        if (author !== a) diagram.updateShape(i, m);
+        break;
+      }
+      case 'patchShape': {
+        let [a, i, d] = data.data;
+        if (author !== a) diagram.patchShape(i, d);
+        break;
+      }
+      case 'removeShape': {
+        let [a, i] = data.data;
+        if (author !== a) diagram.removeShape(i);
+        break;
+      }
+      case 'newMessage': {
+        let [a, n, m] = data.data;
+        if (author !== a) appData.messages.push({ name: n, message: m });
+        break;
+      }
+      case 'updateUser': {
+        let n = data.data;
+        appData.totalUsers = n;
+        break;
+      }
+    }
+  })
+
+  await ws.start();
+  appData.connected = true;
+  diagram.removeAll();
+  let res = await fetch('/diagram');
+  let data = await res.json();
+  for (let i in data.shapes)
+    diagram.updateShape(i, data.shapes[i]);
+  if (data.background)
+    diagram.updateBackground('/background/' + data.background);
 
   diagram.onShapeUpdate((i, m) => ws.sendToGroup('draw', {
     name: 'updateShape',
     data: [author, i, m]
-  }));
+  }, "json"));
   diagram.onShapePatch((i, d) => ws.sendToGroup('draw', {
     name: 'patchShape',
     data: [author, i, d]
-  }));
-  diagram.onShapeAdd((i, m) => ws.sendEvent({
+  }, "json", {fireAndForget: true}));
+  diagram.onShapeAdd((i, m) => ws.sendEvent("message", {
     name: 'addShape',
     data: [i, m]
-  }));
+  }, "json"));
   diagram.onShapeRemove(i => {
-    ws.sendEvent({ name: 'removeShape', data: i });
-    ws.sendToGroup('draw', { name: 'removeShape', data: [author, i] });
+    ws.sendEvent("message", { name: 'removeShape', data: i }, "json");
+    ws.sendToGroup('draw', { name: 'removeShape', data: [author, i] }, "json");
   });
   diagram.onClear(() => {
-    ws.sendEvent({ name: 'clear' });
-    ws.sendToGroup('draw', { name: 'clear', data: author });
+    ws.sendEvent("message", { name: 'clear' }, "json");
+    ws.sendToGroup('draw', { name: 'clear', data: author }, "json");
   });
   diagram.onHistoryChange((p, f) => [appData.hasUndo, appData.hasRedo] = [p, f]);
 
@@ -221,7 +219,7 @@ async function initialize() {
         ws.sendToGroup('draw', {
           name: 'newMessage',
           data: [author, this.name, this.draft]
-        });
+        }, "json");
         this.draft = '';
       },
       setName: function () { if (this.name) $('#inputName').modal('toggle'); },
