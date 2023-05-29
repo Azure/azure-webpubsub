@@ -21,10 +21,9 @@
     "@azure/web-pubsub-express": "1.0.4",
     "async-mutex": "^0.4.0",
     "base64url": "^3.0.1",
-    "engine.io": "6.4.0",
+    "engine.io": "~6.4.2",
     "socket.io": "^4.6.1",
-    "socket.io-adapter": "^2.5.2",
-    "uuid": "^9.0.0"
+    "socket.io-adapter": "^2.5.2"
   },
   "scripts": {
     "build": "rimraf ./dist && tsc",
@@ -32,7 +31,7 @@
     "test": "npm run test:unit",
     "test:types": "tsd",
     "test:unit": "nyc mocha --require ts-node/register --reporter spec --slow 200 --timeout 2000 --bail ./test/index.ts",
-    "format:fix": "npx prettier --write ."
+    "format:fix": "npx prettier --write . --print-width 100"
   },
   "devDependencies": {
     "@types/debug": "^4.1.7",
