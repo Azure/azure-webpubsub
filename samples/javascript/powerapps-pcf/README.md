@@ -12,6 +12,8 @@
 
 5. Run `npm start watch` under project __PowerAppLinerInput__ to start the power app.
 
-> Update the switch value in file [`PowerAppLinerInput\LinerInputControl\index.ts`](/PowerAppLinerInput/LinearInputControl/index.ts#L42) to turn on/off the Web PubSub connection. You'll be able to see the instance updates when the value is `true` in 2 different local app windows.
+> Update the switch value in file [`PowerAppLinerInput\LinerInputControl\index.ts`](/PowerAppLinerInput/LinearInputControl/index.ts#L42) to turn on/off the Web PubSub connection. 
+> - When the value is `true` which means Web PubSub is on to get real-time data, you'll be able to see the instant updates in 2 different local app windows. See snapshot.
+> - When the value is `false` without Web PubSub, you have to refresh page in another window to get the latest value. 
 
 ![snapshot](realtime-updates.gif)
