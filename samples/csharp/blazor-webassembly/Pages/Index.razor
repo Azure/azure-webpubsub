@@ -82,13 +82,12 @@
             return;
         }
         client = new WebPubSubClient(uri);
-        client.Connected += args =>
+        client.Connected += async args =>
         {
             status = "Connected.";
             connectionId = args.ConnectionId;
             userId = args.UserId;
             StateHasChanged();
-            return client.JoinGroupAsync("chat");
         };
         client.GroupMessageReceived += args =>
         {
@@ -109,6 +108,18 @@
         try
         {
             await client.StartAsync();
+            try
+            {
+                await client.JoinGroupAsync("chat");
+            }
+            catch (SendMessageFailedException ex)
+            {
+                errorMessage = ex.Error.Message;
+                status = "Not connected.";
+                _ = client.StopAsync();
+                StateHasChanged();
+                throw;
+            }
         }
         catch (Exception ex)
         {
@@ -127,8 +138,19 @@
         {
             return;
         }
-        await client.SendToGroupAsync("chat", BinaryData.FromString(message), WebPubSubDataType.Text);
-        message = string.Empty;
+        try
+        {
+            await client.SendToGroupAsync("chat", BinaryData.FromString(message), WebPubSubDataType.Text);
+            message = string.Empty;
+        }
+        catch (SendMessageFailedException ex)
+        {
+            errorMessage = ex.Error.Message;
+        }
+        catch (Exception ex)
+        {
+            errorMessage = ex.Message;
+        }
         StateHasChanged();
     }
 }
