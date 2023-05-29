@@ -4,7 +4,7 @@
 
 1. Check [Create your first component](https://learn.microsoft.com/power-apps/developer/component-framework/implementing-controls-using-typescript?tabs=before) to set up the environment and run the app locally.
 
-2. Update the [`index.ts`](/Functions/negotiate/index.ts#L6) under project __Functions__ to set the Web PubSub connection string.
+2. Update the [`index.ts`](/Functions/negotiate/index.ts#L6) under project __Functions__ to set the Web PubSub connection string. Replace the placeholder `<webpubsub-connection-string>` with your resource value.
 
 3. Run `npm install` under project __Functions__ to install functions required dependent packages.
    
