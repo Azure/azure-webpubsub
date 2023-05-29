@@ -8,19 +8,19 @@ import { Namespace, Server as SioServer } from "socket.io"
  * Thus its constructor parameters of the adapter class is out of our control. 
  * So a proxy class is necessary to wrap the adapter class for customimzed constructor parameters.
  * How to use:
- *  1. Instansize a `WpsAdapterProxy` object: `const wpsAdapterProxy = new WpsAdapterProxy(extraOptions);`
- *  2. Set the adapter: `io.adapter(WpsAdapterProxy);`, thus additional options are 
+ *  1. Instansize a `WebPubSubAdapterProxy` object: `const webPubSubAdapterProxy = new WebPubSubAdapterProxy(extraOptions);`
+ *  2. Set the adapter: `io.adapter(WebPubSubAdapterProxy);`, thus additional options are controllable.
  */
-export class WpsAdapterProxy {
+export class WebPubSubAdapterProxy {
 	constructor(extraArgForWpsAdapter: any) {
 		var proxyHandler = { 
-            construct: (target, args) => new target(...args, extraArgForWpsAdapter), 
-        }
-		return new Proxy(WpsAdapterInternal, proxyHandler);
+			construct: (target, args) => new target(...args, extraArgForWpsAdapter), 
+		}
+		return new Proxy(WebPubSubAdapterInternal, proxyHandler);
 	}
 }
 
-export class WpsAdapterInternal extends NativeInMemoryAdapter {
+export class WebPubSubAdapterInternal extends NativeInMemoryAdapter {
     /**
      * Azure Web PubSub Socket.IO Adapter constructor.
      *
