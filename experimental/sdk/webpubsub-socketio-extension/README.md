@@ -39,9 +39,9 @@ const wpsExt = require("webpubsub-socketio-extension");
 
 // Add an Web PubSub Option
 const webPubSubOptions = {
-	hub: "eio_hub",
-	path: "/eventhandler/",
-	connectionString: "<web-pubsub-connection-string>",
+  hub: "eio_hub",
+  path: "/eventhandler/",
+  connectionString: "<web-pubsub-connection-string>",
 };
 
 const io = require("socket.io")(options).useAzureWebPubSub(webPubSubOptions);
