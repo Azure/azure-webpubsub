@@ -82,12 +82,13 @@
             return;
         }
         client = new WebPubSubClient(uri);
-        client.Connected += async args =>
+        client.Connected += args =>
         {
             status = "Connected.";
             connectionId = args.ConnectionId;
             userId = args.UserId;
             StateHasChanged();
+            return Task.CompletedTask;
         };
         client.GroupMessageReceived += args =>
         {
