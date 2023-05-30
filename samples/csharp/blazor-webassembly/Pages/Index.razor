@@ -1,0 +1,157 @@
+﻿@page "/"
+@using Azure.Messaging.WebPubSub.Clients;
+
+<PageTitle>Chat in Blazor Webassembly</PageTitle>
+
+<h1>Azure Web PubSub Chat</h1>
+
+<div style="background:lightgray">
+    <strong>Status:</strong> @status
+    <br/>
+    <strong>ConnectionId:</strong> @connectionId
+    <br/>
+    <strong>UserId:</strong> @userId
+    <br/>
+    <strong>Error:</strong> <span style="color:red">@errorMessage</span>
+</div>
+
+<div>
+    <input style="width: 100%" @bind="url" placeholder="The uri to connect to the service."></input>
+    <button @onclick="()=>Connect()">Connect</button>
+</div>
+
+<div>
+    @if(messages.Count == 0)
+    {
+        <p>No message received yet.</p>
+    }
+    else
+    {
+        @foreach (var message in messages)
+        {
+            <p style="background:lightgreen">
+                <strong>@message.FromUserId:</strong> @message.Data.ToString()
+            </p>
+        }
+    }
+</div>
+
+<div>
+    <input style="width: 100%" @bind="message" placeholder="Message to send."></input>
+    <button @onclick="()=>SendMessage()">Send</button>
+</div>
+
+@code{
+    private string url = string.Empty;
+    private string errorMessage = string.Empty;
+    private string status = "Not connected.";
+    private string connectionId = string.Empty;
+    private string userId = string.Empty;
+    private string message = string.Empty;
+    private WebPubSubClient? client = null;
+    private List<GroupDataMessage> messages = new();
+
+    private async Task Connect()
+    {
+        if (client != null)
+        {
+            await client.DisposeAsync();
+            client = null;
+        }
+        errorMessage = string.Empty;
+        status = "Not connected.";
+        connectionId = string.Empty;
+        userId = string.Empty;
+        messages.Clear();
+        if (string.IsNullOrEmpty(url))
+        {
+            errorMessage = "Please enter service connection string.";
+            return;
+        }
+        if (Uri.TryCreate(url, UriKind.Absolute, out var uri))
+        {
+            if (uri.Scheme != "wss" && uri.Scheme != "https")
+            {
+                errorMessage = "Please enter a valid uri with scheme wss or https.";
+                return;
+            }
+        }
+        else
+        {
+            errorMessage = "Please enter a valid uri.";
+            return;
+        }
+        client = new WebPubSubClient(uri);
+        client.Connected += args =>
+        {
+            status = "Connected.";
+            connectionId = args.ConnectionId;
+            userId = args.UserId;
+            StateHasChanged();
+            return Task.CompletedTask;
+        };
+        client.GroupMessageReceived += args =>
+        {
+            messages.Add(args.Message);
+            StateHasChanged();
+            return Task.CompletedTask;
+        };
+        client.Disconnected += args =>
+        {
+            status = "Not connected.";
+            connectionId = string.Empty;
+            userId = string.Empty;
+            StateHasChanged();
+            return Task.CompletedTask;
+        };
+        status = "Connecting ...";
+        StateHasChanged();
+        try
+        {
+            await client.StartAsync();
+            try
+            {
+                await client.JoinGroupAsync("chat");
+            }
+            catch (SendMessageFailedException ex)
+            {
+                errorMessage = ex.Error.Message;
+                status = "Not connected.";
+                _ = client.StopAsync();
+                StateHasChanged();
+                throw;
+            }
+        }
+        catch (Exception ex)
+        {
+            errorMessage = ex.Message;
+            status = "Not connected.";
+        }
+    }
+
+    private async Task SendMessage()
+    {
+        if (string.IsNullOrEmpty(message))
+        {
+            return;
+        }
+        if (client == null)
+        {
+            return;
+        }
+        try
+        {
+            await client.SendToGroupAsync("chat", BinaryData.FromString(message), WebPubSubDataType.Text);
+            message = string.Empty;
+        }
+        catch (SendMessageFailedException ex)
+        {
+            errorMessage = ex.Error.Message;
+        }
+        catch (Exception ex)
+        {
+            errorMessage = ex.Message;
+        }
+        StateHasChanged();
+    }
+}

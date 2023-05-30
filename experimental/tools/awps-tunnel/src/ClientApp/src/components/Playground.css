@@ -1,0 +1,14 @@
+.playground {
+    position: fixed;
+    background-color: rgba(200,200,200,80%);
+    padding: 20px;
+    border: 1px solid #ccc;
+    width: 100%;
+    z-index: 999;
+    top: 48px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+}
+
+.show {
+    background-color: #ccc;
+}

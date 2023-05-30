@@ -1,0 +1,126 @@
+.line {
+    height: 2px;
+    margin-left: -100px;
+    margin-right: -100px;
+}
+
+.dashed-line {
+    border-top: 2px dashed #ccc !important;
+    border-bottom: 2px dashed #ccc !important;
+}
+
+    .dashed-line.connecting {
+        border-top: 2px dashed #ff6a00 !important;
+        border-bottom: 2px dashed #ff6a00 !important;
+    }
+
+.two-direction-arrow-line {
+    position: relative;
+    border-top: 2px solid #ccc;
+    height: 16px;
+    border-bottom: 2px solid #ccc;
+}
+
+    .two-direction-arrow-line::before,
+    .two-direction-arrow-line::after {
+        content: "";
+        position: absolute;
+        border-top: 10px solid transparent;
+        border-bottom: 10px solid transparent;
+    }
+
+    .two-direction-arrow-line::before {
+        top: 3px;
+        left: -10px;
+        border-right: 10px solid #ccc;
+    }
+
+    .two-direction-arrow-line::after {
+        top: -10px;
+        right: -10px;
+        border-left: 10px solid #ccc;
+    }
+
+    .two-direction-arrow-line.connected {
+        border-color: green;
+    }
+
+        .two-direction-arrow-line.connected::before {
+            left: -10px;
+            border-right: 10px solid green;
+        }
+
+        .two-direction-arrow-line.connected::after {
+            right: -10px;
+            border-left: 10px solid green;
+        }
+    .two-direction-arrow-line.requesterror {
+        border-top-color: red;
+    }
+        .two-direction-arrow-line.requesterror::after {
+            right: -10px;
+            border-left: 10px solid red;
+        }
+
+    .two-direction-arrow-line.responseerror {
+        border-top-color: green;
+        border-bottom-color: red;
+    }
+
+        .two-direction-arrow-line.responseerror::before {
+            left: -10px;
+            border-right: 10px solid red;
+        }
+
+.arrow-line {
+    position: relative;
+    border-top: 2px solid #ccc;
+    border-bottom: 2px solid #ccc;
+}
+
+    .arrow-line::before,
+    .arrow-line::after {
+        content: "";
+        position: absolute;
+        top: -10px;
+        border-top: 10px solid transparent;
+        border-bottom: 10px solid transparent;
+    }
+
+    .arrow-line::before {
+        left: -10px;
+        border-right: 10px solid #ccc;
+    }
+
+    .arrow-line::after {
+        right: -10px;
+        border-left: 10px solid #ccc;
+    }
+
+    .arrow-line.connecting {
+        border-color: #ff6a00;
+    }
+
+        .arrow-line.connecting::before {
+            left: -10px;
+            border-right: 10px solid #ff6a00;
+        }
+
+        .arrow-line.connecting::after {
+            right: -10px;
+            border-left: 10px solid #ff6a00;
+        }
+
+    .arrow-line.connected {
+        border-color: green;
+    }
+
+        .arrow-line.connected::before {
+            left: -10px;
+            border-right: 10px solid green;
+        }
+
+        .arrow-line.connected::after {
+            right: -10px;
+            border-left: 10px solid green;
+        }

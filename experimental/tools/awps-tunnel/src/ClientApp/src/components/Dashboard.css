@@ -1,0 +1,108 @@
+.unread td {
+    font-weight: bold;
+}
+
+.table-container {
+    margin-right: 16px;
+}
+
+table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+thead th {
+    text-align: left;
+    font-weight: bold;
+    padding: 8px;
+    background-color: #f0f0f0;
+    border-bottom: 1px solid #ccc;
+}
+
+tbody tr:hover {
+    background-color: #f0f0f0;
+    cursor: pointer;
+}
+
+.table-container .active {
+    background-color: #f0f0f0;
+}
+
+.panel-container, .table-container {
+    padding: 5px;
+    overflow-y: auto;
+}
+
+.banner, .request, .response {
+    border-bottom: 1px solid #ccc;
+    margin: 5px;
+}
+
+.resizablePanel {
+    border: 1px solid #ccc;
+}
+
+.playground {
+    margin: 5px;
+    padding: 5px;
+    background: #eee;
+    box-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
+}
+
+.playground::before {
+    content: "";
+    position: relative;
+    top: -40px;
+    left: 50%;
+    width: 0;
+    height: 0;
+    border-left: 12px solid transparent;
+    border-right: 12px solid transparent;
+    border-bottom: 20px solid #eee;
+}
+
+.nofocus .ms-FocusZone {
+    background-color: unset !important;
+    color: unset !important;
+}
+
+.websocket-client-container {
+    margin: 5px;
+}
+
+html, body, #root, #root > div
+{
+    height: 100%;
+}
+
+#root > div, #root > div > div,
+.logPanel .ms-Panel-scrollableContent, .logPanel .ms-Panel-content,
+.workflow-panels, .workflow-panels > .tab-content {
+    flex: 1;
+    flex-direction: column;
+    overflow-y: auto;
+    display: flex;
+}
+
+.workflow-panels > .tab-content > .active
+{
+    flex: 1;
+    flex-direction:column;
+    overflow-y: auto;
+    display: flex
+}
+
+.point {
+    background-color: green;
+    border-radius: 5px;
+    height: 10px;
+    width: 10px;
+}
+
+.workflow>div {
+    flex: 1;
+}
+
+.workflow i {
+    font-size: 2em;
+}

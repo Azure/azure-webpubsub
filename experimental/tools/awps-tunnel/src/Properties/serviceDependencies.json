@@ -1,0 +1,8 @@
+{
+  "dependencies": {
+    "sqlite1": {
+      "type": "sqlite",
+      "connectionId": "ConnectionStrings:store.db"
+    }
+  }
+}
