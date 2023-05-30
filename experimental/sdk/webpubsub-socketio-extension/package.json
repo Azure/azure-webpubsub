@@ -21,17 +21,17 @@
     "@azure/web-pubsub-express": "1.0.4",
     "async-mutex": "^0.4.0",
     "base64url": "^3.0.1",
-    "engine.io": "~6.4.2",
+    "engine.io": "^6.4.2",
     "socket.io": "^4.6.1",
     "socket.io-adapter": "^2.5.2"
   },
   "scripts": {
-    "build": "rimraf ./dist && tsc",
-    "compile": "rimraf ./dist && tsc",
+    "build": "npm run clean && tsc",
+    "check-format": "npx prettier --list-different ./src/ --print-width 100",
+    "format": "npx prettier --write . --print-width 100",
     "test": "npm run test:unit",
-    "test:types": "tsd",
-    "test:unit": "nyc mocha --require ts-node/register --reporter spec --slow 200 --timeout 2000 --bail ./test/index.ts",
-    "format:fix": "npx prettier --write . --print-width 100"
+    "unit-test": "nyc mocha --require ts-node/register --reporter spec --slow 200 --timeout 2000 --bail ./test/index.ts",
+    "clean": "rimraf dist dist-esm test-dist temp types *.tgz *.log"
   },
   "devDependencies": {
     "@types/debug": "^4.1.7",
