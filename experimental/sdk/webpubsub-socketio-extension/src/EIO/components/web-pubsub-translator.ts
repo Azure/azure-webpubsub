@@ -57,6 +57,14 @@ export class WebPubSubTranslator {
   constructor(server: BaseServer, options: WebPubSubExtensionOptions) {
     debug("constructor");
 
+    if (!options.connectionString || options.connectionString === "") {
+      throw new Error("Valid connectionString is required");
+    }
+
+    if (!options.hub || options.hub === "") {
+      throw new Error("Valid hub is required");
+    }
+
     this.linkedEioServer = server;
     this._webPubSubOptions = options;
     this.serviceClient = new WebPubSubServiceClient(
@@ -82,7 +90,7 @@ export class WebPubSubTranslator {
            */
           var timeout = setTimeout( () => { if (!context.connectResponded) { res.fail(500, `EIO server cannot handle connect request with error: Timeout 1000ms`); }}, 1000);
 
-          var connectReq = this.convertWebPubsubConnectReqToEioHandshakeReq(req, context);
+          var connectReq = this.getEioHandshakeRequest(req, context);
 
           this._candidateSids.push(connectionId);
           this._clientConnections.set(connectionId, context);
@@ -104,19 +112,13 @@ export class WebPubSubTranslator {
           debug(`onUserEvent, connectionId = ${connectionId}, req.data = ${req.data}`);
 
           if (this._clientConnections.has(connectionId)) {
-            const handlePayload = (payload: string) => {
-              debug(`onUserEvent, connectionId = ${connectionId}, handle payload = ${payload}`);
+            // @ts-ignore to access private `clients` property
+            const client = this.linkedEioServer.clients[connectionId];
+            
+            const packets = await client.transport.parser.decodePayload(req.data); // prettier-ignore
 
-              // @ts-ignore to access private `clients` property
-              var packet = this.linkedEioServer.clients[connectionId].transport.parser.decodePacket(payload); // prettier-ignore
-
-              // @ts-ignore to access private `clients` property
-              this.linkedEioServer.clients[connectionId].onPacket(packet);
-            };
-
-            var payloads = (req.data as string).split(String.fromCharCode(30));
-            for (var i = 0; i < payloads.length; i++) {
-              handlePayload(payloads[i]);
+            for (const packet of packets) {
+              client.onPacket(packet);
             }
             return res.success();
           } else {
@@ -166,7 +168,7 @@ export class WebPubSubTranslator {
    * @param req AWPS `connect` request.
    * @param context Corrsponding `ClientConnectionContext` for the connecting client. It will be used in `createTransport` to bind each transport to the correct AWPS client connection.
    */
-  private convertWebPubsubConnectReqToEioHandshakeReq(
+  private getEioHandshakeRequest(
     req: WebPubSubConnectRequest,
     context: ClientConnectionContext
   ) {

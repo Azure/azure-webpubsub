@@ -27,11 +27,11 @@ export class ClientConnectionContext {
    * @param message The message
    * @param cb Callback function to handle error
    */
-  public async send(message: string | RequestBodyType | JSONTypes, cb?: (err?: Error) => void) {
+  public async send(message: string, cb?: (err?: Error) => void) {
     debug(`send message ${message}, type = ${typeof message}`);
 
     var options: HubSendToConnectionOptions = {};
-    options["contentType"] = typeof message === "string" ? "text/plain" : "application/octet-stream";
+    options["contentType"] = "text/plain";
 
     try {
       await this.serviceClient.sendToConnection(this.connectionId, message, options);
@@ -42,12 +42,11 @@ export class ClientConnectionContext {
 
   /**
    * Action after an EIO connection is accepted by EIO server and the server is trying to send open packet to client
-   * @param openPacketPayload 
+   * @param openPacketPayload Open packet payload without type in first character
    */
   public onAcceptEioConnection(openPacketPayload: string) {
-    let payloadWithoutType = openPacketPayload.substring(1);
     this._connectResponseHandler.success({
-      socketioHandshake: JSON.parse(payloadWithoutType),
+      socketioHandshake: JSON.parse(openPacketPayload),
     } as WebPubSubConnectResponse); 
     this.connectResponded = true;
   }
