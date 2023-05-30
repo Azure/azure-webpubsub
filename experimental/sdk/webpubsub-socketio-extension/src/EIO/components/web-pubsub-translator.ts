@@ -1,6 +1,6 @@
 import { WebPubSubExtensionOptions, debugModule } from "../../common/utils";
 import { ClientConnectionContext } from "./client-connection-context";
-import { EIO_SERVER_ACCEPT_CONNECTION, EIO_SERVER_REFUSE_CONNECTION } from "./constants";
+import { EIO_SERVER_ACCEPT_CONNECTION, EIO_SERVER_REFUSE_CONNECTION, WEBPUBSUB_TRANSPORT_NAME } from "./constants";
 import { WebPubSubServiceClient } from "@azure/web-pubsub";
 import type { BaseServer } from "engine.io";
 import {
@@ -8,7 +8,7 @@ import {
   ConnectResponse as WebPubSubConnectResponse,
   WebPubSubEventHandler,
 } from "@azure/web-pubsub-express";
-import { Server as HttpServer, IncomingMessage, ServerResponse } from "http";
+import { Server as HttpServer } from "http";
 import express from "express";
 
 const debug = debugModule("wps-sio-ext:EIO:WebPubSubTranslator");
@@ -91,7 +91,7 @@ export class WebPubSubTranslator {
         this.candidateSids.push(connectionId);
         this.clientConnections.set(connectionId, context);
         // @ts-ignore to access private `handshake` method
-        await this.linkedEioServer.handshake("webpubsub", connectReq);
+        await this.linkedEioServer.handshake(WEBPUBSUB_TRANSPORT_NAME, connectReq);
       },
 
       onConnected: async (req) => {},
@@ -111,8 +111,6 @@ export class WebPubSubTranslator {
             // @ts-ignore to access private `clients` property
             this.linkedEioServer.clients[connectionId].onPacket(packet);
           };
-
-          debug(`onUserEvent, connectionId = ${connectionId}, req.data = ${req.data}`);
 
           var payloads = (req.data as string).split(String.fromCharCode(30));
           for (var i = 0; i < payloads.length; i++) {
@@ -153,32 +151,35 @@ export class WebPubSubTranslator {
     return bridgeHttpServer.listeners("request")[0];
   } 
 
-  public getNextId = () => this.candidateSids.shift();
+  public getNextSid = () => this.candidateSids.shift();
 
   /**
-   * Translate a AWPS `connect` request to a Engine.IO `handshake` request.
+   * Convert an AWPS `connect` request to an Engine.IO `handshake` request.
    * @param req AWPS `connect` request.
-   * @param context Corrsponding `ClientConnectionContext` for the incoming client. It will be used in `createTransport` to enable each transport send message to the AWPS client.
+   * @param context Corrsponding `ClientConnectionContext` for the connecting client. It will be used in `createTransport` to bind each transport to the correct AWPS client connection.
    */
   private convertWebPubsubConnectReqToEioHandshakeReq(
     req: WebPubSubConnectRequest,
     context: ClientConnectionContext
   ) {
-    var dummyReq: any = {
-      method: "GET", // TODO: SDK should expose method in req
-      url: this.webPubSubOptions.path,
+    /**
+     * Properties inside are used in EIO src: server.ts `handshake` method.
+     */
+    var dummyEioHandshakeReq: any = {
+      method: "GET", 
       headers: {},
-      _query: { EIO: req.queries.EIO[0], transport: "websocket" },
       websocket: null,
       statusCode: null,
       statusMessage: null,
       connection: {},
+      url: this.webPubSubOptions.path,
+      _query: { EIO: req.queries.EIO[0], transport: WEBPUBSUB_TRANSPORT_NAME },
       webPubSubContext: context,
     };
     for (var key in req.headers) {
       let _key = key.toLowerCase();
-      dummyReq["headers"][_key] = _key == "upgrade" ? req.headers[key][0] : req.headers[key];
+      dummyEioHandshakeReq["headers"][_key] = _key == "upgrade" ? req.headers[key][0] : req.headers[key];
     }
-    return dummyReq;
+    return dummyEioHandshakeReq;
   }
 }
