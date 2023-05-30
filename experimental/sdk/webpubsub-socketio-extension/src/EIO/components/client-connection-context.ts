@@ -18,7 +18,7 @@ export class ClientConnectionContext extends EventEmitter {
     this.connectionId = connectionId;
   }
 
-  async send(packet: any, cb?: (err?: Error) => void) {
+  public async send(packet: any, cb?: (err?: Error) => void) {
     debug(`send packet ${packet}, type = ${typeof packet}`);
 
     var options: HubSendToConnectionOptions = {};
