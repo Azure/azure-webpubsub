@@ -8,8 +8,6 @@ import {
   ConnectResponse as WebPubSubConnectResponse,
   WebPubSubEventHandler,
 } from "@azure/web-pubsub-express";
-import { Server as HttpServer } from "http";
-import express from "express";
 
 const debug = debugModule("wps-sio-ext:EIO:WebPubSubTranslator");
 
@@ -149,16 +147,25 @@ export class WebPubSubTranslator {
     /**
      * AWPS package provides Express middleware for event handlers.
      * However Express middleware is not compatiable to be directly used by EIO Server.
-     * So a temporary Express App and HttpServer are created as bridges to convert Express middleware to EIO middleware.
+     * expressMiddleware = (req: express.Request, res: express.Response, express.NextFunction) => void;
+     * eioMiddleware = (req: IncomingMessage, res: ServerResponse) => void;
+     * To resolve the difference, So a conversion from express middleware to EIO middleware.
      */
-    const expressMiddleware = this._webPubSubEventHandler.getMiddleware();
-    
-    // Pass Web PubSub Express middlewares into Engine.IO middlewares
-    let bridgeApp = express();
-    bridgeApp.use(expressMiddleware);
-    const bridgeHttpServer = new HttpServer(bridgeApp);
 
-    return bridgeHttpServer.listeners("request")[0];
+    const expressMiddleware = this._webPubSubEventHandler.getMiddleware();
+
+    const eioMiddleware = (req, res, errorCallback) => {
+      /**
+       * `baseUrl` is a property of Express Request object and its used in `expressMiddleware`. 
+       * Without actual usage as a part of Express, `req.baseUrl` is always ''.
+       * Ref https://expressjs.com/en/api.html#req.baseUrl
+       */
+      req.baseUrl = ''; 
+      req.path = req.url; // e.g. /eventhandler/
+      expressMiddleware(req, res, errorCallback);
+    };
+  
+    return eioMiddleware;
   } 
 
   public getNextSid = () => this._candidateSids.shift();
