@@ -57,7 +57,7 @@
     //https://unpkg.com/browse/monaco-editor@0.8.3/min/vs/editor/
     function createEditor(element, readOnly) {
         let monacoeditor = monaco.editor.create(element, {
-            value: ['function x() {', '\tconsole.log("Hello world!");', '}'].join('\n'),
+            value: '',
             language: "typescript",
             theme: 'vs-dark',
             readOnly: readOnly
@@ -82,7 +82,7 @@
       let data = await res.json();
       updateStreamId(data.id);
       let ws = new WebSocket(data.url, 'json.webpubsub.azure.v1');
-      let editor = createEditor(document.getElementById("monacoeditor"), true);
+      let editor = createEditor(document.getElementById("monacoeditor"), false);//monaco editor.executeEdits() won't work in readyonly mode
       return [ws, editor, data.id];
     }
 
