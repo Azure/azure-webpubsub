@@ -1,6 +1,6 @@
 import { WebPubSubExtensionOptions, debugModule } from "../../common/utils";
 import { ClientConnectionContext } from "./client-connection-context";
-import { WEBPUBSUB_TRANSPORT_NAME } from "./constants";
+import { WEBPUBSUB_CLIENT_CONNECTION_FILED_NAME, WEBPUBSUB_TRANSPORT_NAME } from "./constants";
 import { WebPubSubServiceClient } from "@azure/web-pubsub";
 import type { BaseServer } from "engine.io";
 import {
@@ -189,7 +189,6 @@ export class WebPubSubConnectionManager {
       connection: {},
       url: this._webPubSubOptions.path,
       _query: {},
-      webPubSubContext: context,
     };
     // Preserve all queires. Each value of `req.queries` is an one-element array which is wrapped by AWPS. Just pick out the first element.
     // Example: req.queries = { EIO:['4'], t: ['OXhVRj0'], transport: ['polling'] }. 
@@ -198,6 +197,8 @@ export class WebPubSubConnectionManager {
     }
     // AWPS helps server abstract the details of Long-Polling and WebSockets with the client. So server always use our own transport `WEBPUBSUB_TRANSPORT_NAME`.
     handshakeRequest._query["transport"] = WEBPUBSUB_TRANSPORT_NAME;
+    // AWPS client connection context is passed to Engine.IO `createTransport` method to bind each transport to the correct AWPS client connection.
+    handshakeRequest[WEBPUBSUB_CLIENT_CONNECTION_FILED_NAME] = context;
     return handshakeRequest;
   }
 }
