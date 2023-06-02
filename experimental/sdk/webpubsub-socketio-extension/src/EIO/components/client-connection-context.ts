@@ -2,6 +2,7 @@ import { debugModule } from "../../common/utils";
 import { HubSendToConnectionOptions, WebPubSubServiceClient, JSONTypes} from "@azure/web-pubsub";
 import { RequestBodyType } from '@azure/core-rest-pipeline';
 import { ConnectResponse as WebPubSubConnectResponse, ConnectResponseHandler as WebPubSubConnectResponseHandler } from "@azure/web-pubsub-express";
+import { WEBPUBSUB_CONNECT_RESPONSE_FIELD_NAME } from "./constants";
 
 const debug = debugModule("wps-sio-ext:EIO:ClientConnectionContext");
 
@@ -46,7 +47,7 @@ export class ClientConnectionContext {
    */
   public onAcceptEioConnection(openPacketPayload: string) {
     this._connectResponseHandler.success({
-      socketioHandshake: JSON.parse(openPacketPayload),
+      [WEBPUBSUB_CONNECT_RESPONSE_FIELD_NAME]: JSON.parse(openPacketPayload),
     } as WebPubSubConnectResponse); 
     this.connectResponded = true;
   }
