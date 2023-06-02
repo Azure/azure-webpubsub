@@ -9,18 +9,18 @@ import {
   WebPubSubEventHandler,
 } from "@azure/web-pubsub-express";
 
-const debug = debugModule("wps-sio-ext:EIO:WebPubSubTranslator");
+const debug = debugModule("wps-sio-ext:EIO:ConnectionManager");
 
 /**
- * A `WebPubSubTranslator` instance is created for each Engine.IO server instance. It's designed to:
+ * A `WebPubSubConnectionManager` instance is created for each Engine.IO server instance. It's designed to:
  * 1. Manages all Azure Web PubSub client connections and keep them consistent with corresponding EIO clients.
  * 2. Handle upstream invoke requests from AWPS and then translate them into Engine.IO behaviours.
  * 3. Translates Engine.IO behaviours to AWPS behaviours like REST API calls.
  * 4. Makes the EIO `sid` same as its corresponding Azure Web PubSub client connection id.
  */
-export class WebPubSubTranslator {
+export class WebPubSubConnectionManager {
   /**
-   * Each `WebPubSubTranslator` instance is bound to a Engine.IO server instance and vice versa.
+   * Each `WebPubSubConnectionManager` instance is bound to a Engine.IO server instance and vice versa.
    */
   public linkedEioServer: BaseServer;
 
@@ -188,7 +188,7 @@ export class WebPubSubTranslator {
       headers: req.headers,
       connection: {},
       url: this._webPubSubOptions.path,
-      _query: { EIO: req.queries.EIO[0], transport: WEBPUBSUB_TRANSPORT_NAME },
+      _query: {},
       webPubSubContext: context,
     };
     // Preserve all queires. Each value of `req.queries` is an one-element array which is wrapped by AWPS. Just pick out the first element.
@@ -196,6 +196,7 @@ export class WebPubSubTranslator {
     for (var key in req.queries) {
       handshakeRequest._query[key] = req.queries[key][0];
     }
+    // AWPS helps server abstract the details of Long-Polling and WebSockets with the client. So server always use our own transport `WEBPUBSUB_TRANSPORT_NAME`.
     handshakeRequest._query["transport"] = WEBPUBSUB_TRANSPORT_NAME;
     return handshakeRequest;
   }
