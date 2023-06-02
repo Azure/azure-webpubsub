@@ -8,14 +8,16 @@
 
   <!-- Bootstrap CSS -->
   <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.4.1/css/bootstrap.min.css"
-    integrity="sha384-Vkoo8x4CGsO3+Hhxv8T/Q5PaXtkKtu6ug5TOeNV6gBiFeWPGFN9MuhOf23Q9Ifjh" crossorigin="anonymous">
-  <title>Code Stream</title>
-  <style>
-    #editor {
-      width: 100vw;
-      height: calc(100vh - 3.5rem);
-    }
-  </style>
+          integrity="sha384-Vkoo8x4CGsO3+Hhxv8T/Q5PaXtkKtu6ug5TOeNV6gBiFeWPGFN9MuhOf23Q9Ifjh" crossorigin="anonymous">
+    <link data-name="vs/editor/editor.main" rel="stylesheet"
+          href="https://microsoft.github.io/monaco-editor/node_modules/monaco-editor/min/vs/editor/editor.main.css">
+    <title>Code Stream</title>
+    <style>
+        #monacoeditor {
+            width: 100vw;
+            height: calc(100vh - 3.5rem);
+        }
+    </style>
 </head>
 
 <body>
@@ -28,12 +30,12 @@
           <a class="nav-link" id="url" target="_blank" href="#"></a>
         </li>
       </ul>
-      <span id="status" class="navbar-text" style="color: white"></span>
+      <span id="status" class="navbar-text" style="color: white">  </span>
     </div>
-  </nav>
-  <div class="container-fluid">
+    </nav>
+  <div class="contai ner-fluid">
     <div class="row">
-      <div id="editor" class="col"></div>
+      <div id="monacoeditor" class  ="col" style="height: 100vh;"></div>
     </div>
   </div>
 
@@ -48,16 +50,20 @@
   <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.4.1/js/bootstrap.min.js"
     integrity="sha384-wfSDF2E50Y2D1uUdj0O3uMBJnjuUD4Ih7YwaYd1iqfktj0Uod8GCExl3Og8ifwB6"
     crossorigin="anonymous"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/ace/1.4.9/ace.min.js"></script>
+  <script src="https://microsoft.github.io/monaco-editor/node_modules/monaco-editor/min/vs/loader.js"></script>
+  <script src="https://microsoft.github.io/monaco-editor/node_modules/monaco-editor/min/vs/editor/editor.main.nls.js"></script>
+  <script src="https://microsoft.github.io/monaco-editor/node_modules/monaco-editor/min/vs/editor/editor.main.js"></script>
   <script>
+    //https://unpkg.com/browse/monaco-editor@0.8.3/min/vs/editor/
     function createEditor(element, readOnly) {
-      ace.config.set('basePath', 'https://cdnjs.cloudflare.com/ajax/libs/ace/1.4.9');
-      let editor = ace.edit(element, {
-        mode: 'ace/mode/javascript',
-        readOnly: readOnly
-      });
-      editor.setTheme('ace/theme/tomorrow_night');
-      return editor;
+        let monacoeditor = monaco.editor.create(element, {
+            value: '',
+            language: "typescript",
+            theme: 'vs-dark',
+            readOnly: readOnly
+        });
+      
+      return monacoeditor;
     }
 
     function updateStreamId(id) {
@@ -76,7 +82,7 @@
       let data = await res.json();
       updateStreamId(data.id);
       let ws = new WebSocket(data.url, 'json.webpubsub.azure.v1');
-      let editor = createEditor(document.querySelector('#editor'), true);
+      let editor = createEditor(document.getElementById("monacoeditor"), false);//monaco editor.executeEdits() won't work in readyonly mode
       return [ws, editor, data.id];
     }
 
@@ -117,8 +123,8 @@
         updateStatus('Connected');
         setInterval(() => flush(), 200);
         joinGroup(ws, `${id}-control`);
-        editor.on('change', e => changes.push(e));
-        editor.setReadOnly(false);
+        editor.getModel().onDidChangeContent((e) => {changes.push(e);});  //editor.on('change', e => changes.push(e));
+        editor.updateOptions({ readOnly: false });//editor.setReadOnly(false); 
       }
 
       ws.onmessage = e => {
@@ -146,7 +152,17 @@
           switch (data.data.type) {
             case 'delta':
               if (data.data.version !== version + 1) console.log(`unexpected version: ${data.data.version}`);
-              data.data.changes.forEach(c => editor.getSession().getDocument().applyDelta(c));
+              //data.data.changes.forEach(changeEvent => editor.getSession().getDocument().applyDelta(c)); 
+              data.data.changes.forEach(changeEvent => {
+                const changes = changeEvent.changes;//event.changes: IModelContentChangedEvent.IModelContentChange[]
+                changes.forEach(change => { //IModelContentChange (range, rangeLength, rangeOffset, text)
+                    editor.executeEdits('update-value', [{
+                        range: change.range,
+                        text: change.text,
+                        forceMoveMarkers: true
+                    }]);
+                });
+              }); 
               version = data.data.version;
               break;
             case 'full':

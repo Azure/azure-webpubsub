@@ -21,7 +21,7 @@ This is a sample application to demonstrate how to use Azure Web PubSub to lives
    npm install
    node server "<connection-string>"
    ```
-4. Open `http://loalhost:8080`, try to write some code in the code editor
+4. Open `http://localhost:8080`, try to write some code in the code editor
 5. Share the link at the top of the page to others, they will see how you code in real time
 
 ## How it works
