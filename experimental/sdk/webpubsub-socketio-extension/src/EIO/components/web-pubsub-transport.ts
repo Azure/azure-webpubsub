@@ -1,3 +1,6 @@
+// Copyright (c) Microsoft Corporation.
+// Licensed under the MIT license.
+
 import { Packet } from "engine.io-parser";
 import { Transport } from "engine.io";
 import { WEBPUBSUB_TRANSPORT_NAME } from "./constants";
@@ -9,11 +12,17 @@ import { WEBPUBSUB_TRANSPORT_NAME } from "./constants";
  * TODO: Batch receive is implemented in web-pubsub-translator. It should be moved here later.
  **/
 export class WebPubSubTransport extends Transport {
-  public override supportsFraming = () => false;
+  public override supportsFraming = (): boolean => false;
 
-  public override name = () => WEBPUBSUB_TRANSPORT_NAME;
+  public override name = (): string => WEBPUBSUB_TRANSPORT_NAME;
 
-  public override async send(packets: Packet[]) {}
+  public override async send(_packets: Packet[]): Promise<void> {
+    return Promise.resolve();
+  }
 
-  public override doClose(fn) {}
+  public override doClose(fn: () => void): void {
+    if (fn) {
+      fn();
+    }
+  }
 }

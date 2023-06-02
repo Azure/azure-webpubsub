@@ -1,11 +1,14 @@
-import { WebPubSubServiceClient } from "@azure/web-pubsub";
+// Copyright (c) Microsoft Corporation.
+// Licensed under the MIT license.
+
+import { Packet } from "engine.io-parser";
+import { Namespace } from "socket.io";
 import {
   Adapter as NativeInMemoryAdapter,
   BroadcastOptions,
   Room,
   SocketId,
 } from "socket.io-adapter";
-import { Namespace, Server as SioServer } from "socket.io";
 
 /**
  * Socket.IO Server uses method `io.Adapter(AdapterClass))` to set the adapter. `AdatperClass` is not an instansized object, but a class.
@@ -17,8 +20,8 @@ import { Namespace, Server as SioServer } from "socket.io";
  *  2. Set the adapter: `io.adapter(WebPubSubAdapterProxy);`, thus additional options are controllable.
  */
 export class WebPubSubAdapterProxy {
-  constructor(extraArgForWpsAdapter: any) {
-    var proxyHandler = {
+  constructor(extraArgForWpsAdapter: string) {
+    const proxyHandler = {
       construct: (target, args) => new target(...args, extraArgForWpsAdapter),
     };
     return new Proxy(WebPubSubAdapterInternal, proxyHandler);
@@ -29,9 +32,10 @@ export class WebPubSubAdapterInternal extends NativeInMemoryAdapter {
   /**
    * Azure Web PubSub Socket.IO Adapter constructor.
    *
-   * @param {Namespace} nsp
+   * @param nsp - Namespace
+   * @param extraArgForWpsAdapter - extra argument for WebPubSubAdapter
    */
-  constructor(readonly nsp: any, extraArgForWpsAdapter: any) {
+  constructor(readonly nsp: Namespace, extraArgForWpsAdapter: string) {
     super(nsp);
   }
 
@@ -42,16 +46,13 @@ export class WebPubSubAdapterInternal extends NativeInMemoryAdapter {
   /**
    * Broadcasts a packet.
    *
-   * Options:
-   *  - `flags` {Object} flags for this packet
-   *  - `except` {Array} sids that should be excluded
-   *  - `rooms` {Array} list of rooms to broadcast to
-   *
-   * @param {Object} packet   the packet object
-   * @param {Object} opts     the options
-   * @public
+   * @param packet - the packet object
+   * @param opts - the options
    */
-  public override broadcast(packet: any, opts: BroadcastOptions): void {}
+  public override broadcast(packet: Packet, opts: BroadcastOptions): void {
+    // TODO: Implement this method.
+    // For now, it is intentionally empty.
+  }
 
   /**
    * Makes the matching socket instances join the specified rooms
@@ -59,60 +60,64 @@ export class WebPubSubAdapterInternal extends NativeInMemoryAdapter {
    * @param opts - the filters to apply
    * @param rooms - the rooms to join
    */
-  public addSockets(opts: BroadcastOptions, rooms: Room[]): void {}
+  public addSockets(opts: BroadcastOptions, rooms: Room[]): void {
+    // TODO: Implement this method.
+    // For now, it is intentionally empty.
+  }
 
   /**
    * Adds a socket to a list of room.
    *
-   * @param {SocketId}  id      the socket id
-   * @param {Set<Room>} rooms   a set of rooms
-   * @public
+   * @param id - the socket id
+   * @param rooms - a set of rooms
    */
-  public async addAll(id: SocketId, rooms: Set<Room>): Promise<void> {}
+  public async addAll(id: SocketId, rooms: Set<Room>): Promise<void> {
+    // TODO: Implement this method.
+    // For now, it is intentionally empty.
+  }
 
   /**
    * Removes a socket from a room.
    *
-   * @param {SocketId} id     the socket id
-   * @param {Room}     room   the room name
+   * @param id - the socket id
+   * @param room - the room name
    */
-  public del(id: SocketId, room: Room): Promise<void> | void {}
+  public del(id: SocketId, room: Room): Promise<void> | void {
+    // TODO: Implement this method.
+    // For now, it is intentionally empty.
+  }
 
   /**
    * Removes a socket from all rooms it's joined.
    *
-   * @param {SocketId} id   the socket id
+   * @param id - the socket id
    */
-  public delAll(id: SocketId): void {}
+  public delAll(id: SocketId): void {
+    // TODO: Implement this method.
+    // For now, it is intentionally empty.
+  }
 
   /**
    * Broadcasts a packet and expects multiple acknowledgements.
    *
-   * Options:
-   *  - `flags` {Object} flags for this packet
-   *  - `except` {Array} sids that should be excluded
-   *  - `rooms` {Array} list of rooms to broadcast to
-   *
-   * @param {Object} packet   the packet object
-   * @param {Object} opts     the options
+   * @param packet - the packet object
+   * @param opts - the options
    * @param clientCountCallback - the number of clients that received the packet
-   * @param ack                 - the callback that will be called for each client response
-   *
-   * @public
+   * @param ack - the callback that will be called for each client response
    */
   public broadcastWithAck(
-    packet: any,
+    packet: Packet,
     opts: BroadcastOptions,
     clientCountCallback: (clientCount: number) => void,
     ack: (...args: any[]) => void
-  ) {
+  ): void {
     throw new Error("Not implemented");
   }
 
   /**
    * Gets a list of sockets by sid.
    *
-   * @param {Set<Room>} rooms   the explicit set of rooms to check.
+   * @param rooms - the explicit set of rooms to check.
    */
   public sockets(rooms: Set<Room>): Promise<Set<SocketId>> {
     // const sids = new Set<SocketId>();
@@ -128,7 +133,7 @@ export class WebPubSubAdapterInternal extends NativeInMemoryAdapter {
   /**
    * Gets the list of rooms a given socket has joined.
    *
-   * @param {SocketId} id   the socket id
+   * @param id - the socket id
    */
   public socketRooms(id: SocketId): Set<Room> | undefined {
     throw new Error("Not implemented");

@@ -1,3 +1,6 @@
+// Copyright (c) Microsoft Corporation.
+// Licensed under the MIT license.
+
 import { WebPubSubExtensionOptions, debugModule } from "../../common/utils";
 import { ClientConnectionContext } from "./client-connection-context";
 import { WEBPUBSUB_CLIENT_CONNECTION_FILED_NAME, WEBPUBSUB_TRANSPORT_NAME } from "./constants";
@@ -22,7 +25,7 @@ export class WebPubSubConnectionManager {
   /**
    * Each `WebPubSubConnectionManager` instance is bound to a Engine.IO server instance and vice versa.
    */
-  public linkedEioServer: BaseServer;
+  public eioServer: BaseServer;
 
   /**
    * Client for connecting to a Web PubSub hub
@@ -63,7 +66,7 @@ export class WebPubSubConnectionManager {
       throw new Error("Valid hub is required");
     }
 
-    this.linkedEioServer = server;
+    this.eioServer = server;
     this._webPubSubOptions = options;
     this.serviceClient = new WebPubSubServiceClient(
       this._webPubSubOptions.connectionString,
@@ -74,26 +77,31 @@ export class WebPubSubConnectionManager {
     this._webPubSubEventHandler = new WebPubSubEventHandler(this._webPubSubOptions.hub, {
       path: this._webPubSubOptions.path,
       handleConnect: async (req, res) => {
+        let timeout: NodeJS.Timeout;
         try {
-          var connectionId = req.context.connectionId;
+          const connectionId = req.context.connectionId;
           debug(`onConnect, connectionId = ${connectionId}`);
 
-          var context = new ClientConnectionContext(this.serviceClient, connectionId, res);
+          const context = new ClientConnectionContext(this.serviceClient, connectionId, res);
 
           /**
            * Two conditions lead to returning reponse for connect event:
            *   1. The connection is accepted or refused by EIO Server and the corresponding events are triggered.
            *   2. Exception is thrown in following code
-           * As a defensive measure, a timeout is set to return response in 1000ms in case of both conditions don't happen.
+           * As a defensive measure, a timeout is set to return response in 30000ms in case of both conditions don't happen.
            */
-          var timeout = setTimeout( () => { if (!context.connectResponded) { res.fail(500, `EIO server cannot handle connect request with error: Timeout 1000ms`); }}, 1000);
+          timeout = setTimeout(() => {
+            if (!context.connectResponded) {
+              res.fail(500, `EIO server cannot handle connect request with error: Timeout 30000ms`);
+            }
+          }, 30000);
 
-          var connectReq = this.getEioHandshakeRequest(req, context);
+          const connectReq = this.getEioHandshakeRequest(req, context);
 
           this._candidateSids.push(connectionId);
           this._clientConnections.set(connectionId, context);
-          // @ts-ignore to access private `handshake` method
-          await this.linkedEioServer.handshake(WEBPUBSUB_TRANSPORT_NAME, connectReq);
+
+          await (this.eioServer as any).handshake(WEBPUBSUB_TRANSPORT_NAME, connectReq);
         } catch (error) {
           debug(`onConnect, req = ${req}, err = ${error}`);
           res.fail(500, `EIO server cannot handle connect request with error: ${error}`);
@@ -101,18 +109,15 @@ export class WebPubSubConnectionManager {
         }
       },
 
-      onConnected: async (req) => {},
-
       handleUserEvent: async (req, res) => {
-        try{
-          var connectionId = req.context.connectionId;
+        try {
+          const connectionId = req.context.connectionId;
 
           debug(`onUserEvent, connectionId = ${connectionId}, req.data = ${req.data}`);
 
           if (this._clientConnections.has(connectionId)) {
-            // @ts-ignore to access private `clients` property
-            const client = this.linkedEioServer.clients[connectionId];
-            
+            const client = (this.eioServer as any).clients[connectionId];
+
             const packets = await client.transport.parser.decodePayload(req.data); // prettier-ignore
 
             for (const packet of packets) {
@@ -123,15 +128,14 @@ export class WebPubSubConnectionManager {
             // `UserEventResponseHandler.fail(code, ...)` cannot set `code` with 404. Only 400, 401 and 500 are available.
             return res.fail(400, `EIO server cannot find ConnectionId ${connectionId}`);
           }
-        }
-        catch(err){
+        } catch (err) {
           debug(`onUserEvent, req = ${req}, err = ${err}`);
           return res.fail(500, `EIO server cannot handle user event with error: ${err}`);
         }
       },
 
       onDisconnected: async (req) => {
-        var connectionId = req.context.connectionId;
+        const connectionId = req.context.connectionId;
         debug(`onDisconnected, connectionId = ${connectionId}`);
         if (!this._clientConnections.delete(connectionId)) {
           debug(`onDisconnected, Failed to delete non-existing connectionId = ${connectionId}`);
@@ -143,56 +147,56 @@ export class WebPubSubConnectionManager {
   /**
    * @returns AWPS event handler middleware for EIO Server.
    */
-  public getEventHandlerEioMiddleware() {
+  public getEventHandlerEioMiddleware(): any {
     /**
      * AWPS package provides Express middleware for event handlers.
      * However Express middleware is not compatiable to be directly used by EIO Server.
-     * expressMiddleware = (req: express.Request, res: express.Response, express.NextFunction) => void;
-     * eioMiddleware = (req: IncomingMessage, res: ServerResponse) => void;
+     * expressMiddleware = (req: express.Request, res: express.Response, express.NextFunction) =\> void;
+     * eioMiddleware = (req: IncomingMessage, res: ServerResponse) =\> void;
      * To resolve the difference, So a conversion from express middleware to EIO middleware.
      */
 
-    const expressMiddleware = this._webPubSubEventHandler.getMiddleware();
+    const expressMiddleware: any = this._webPubSubEventHandler.getMiddleware();
 
-    const eioMiddleware = (req, res, errorCallback) => {
+    const eioMiddleware = (req, res, errorCallback): void => {
       /**
-       * `baseUrl` is a property of Express Request object and its used in `expressMiddleware`. 
+       * `baseUrl` is a property of Express Request object and its used in `expressMiddleware`.
        * Without actual usage as a part of Express, `req.baseUrl` is always ''.
        * Ref https://expressjs.com/en/api.html#req.baseUrl
        */
-      req.baseUrl = ''; 
+      req.baseUrl = "";
       req.path = req.url; // e.g. /eventhandler/
       expressMiddleware(req, res, errorCallback);
     };
-  
-    return eioMiddleware;
-  } 
 
-  public getNextSid = () => this._candidateSids.shift();
+    return eioMiddleware;
+  }
+
+  public getNextSid = (): string => this._candidateSids.shift();
 
   /**
    * Convert an AWPS `connect` request to an Engine.IO `handshake` request.
-   * @param req AWPS `connect` request.
-   * @param context Corrsponding `ClientConnectionContext` for the connecting client. It will be used in `createTransport` to bind each transport to the correct AWPS client connection.
+   * @param req - AWPS `connect` request.
+   * @param context - Corrsponding `ClientConnectionContext` for the connecting client. It will be used in `createTransport` to bind each transport to the correct AWPS client connection.
    */
   private getEioHandshakeRequest(
     req: WebPubSubConnectRequest,
     context: ClientConnectionContext
-  ) {
+  ): any {
     /**
      * Properties inside `handshakeRequest` are used in Engine.IO `handshake` method in `Server` class.
      * src: https://github.com/socketio/engine.io/blob/6.0.x/lib/server.ts#L396
      */
-    var handshakeRequest: any = {
-      method: "GET", 
+    const handshakeRequest: any = {
+      method: "GET",
       headers: req.headers,
       connection: {},
       url: this._webPubSubOptions.path,
       _query: {},
     };
     // Preserve all queires. Each value of `req.queries` is an one-element array which is wrapped by AWPS. Just pick out the first element.
-    // Example: req.queries = { EIO:['4'], t: ['OXhVRj0'], transport: ['polling'] }. 
-    for (var key in req.queries) {
+    // Example: req.queries = { EIO:['4'], t: ['OXhVRj0'], transport: ['polling'] }.
+    for (const key in req.queries) {
       handshakeRequest._query[key] = req.queries[key][0];
     }
     // AWPS helps server abstract the details of Long-Polling and WebSockets with the client. So server always use our own transport `WEBPUBSUB_TRANSPORT_NAME`.

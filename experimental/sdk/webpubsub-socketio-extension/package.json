@@ -3,8 +3,8 @@
   "version": "1.0.0",
   "socketio-version": "4.6.1",
   "description": "Enable Socket.IO server support Azure Web PubSub Service",
-  "main": "./dist/src/index.js",
-  "types": "./dist/src/index.d.ts",
+  "main": "./dist-esm/index.js",
+  "types": "./dist-esm/index.d.ts",
   "author": "Microsoft",
   "private": true,
   "license": "MIT",
@@ -14,26 +14,33 @@
     "test": "test"
   },
   "exports": {
-    "types": "./dist/src/index.d.ts"
+    "types": "./types/index.d.ts"
   },
   "dependencies": {
     "@azure/web-pubsub": "1.1.1",
     "@azure/web-pubsub-express": "1.0.4",
     "async-mutex": "^0.4.0",
     "base64url": "^3.0.1",
+    "debug": "^4.3.4",
     "engine.io": "^6.4.2",
+    "engine.io-parser": "^5.0.7",
     "socket.io": "^4.6.1",
     "socket.io-adapter": "^2.5.2"
   },
   "scripts": {
     "build": "npm run clean && tsc",
-    "check-format": "npx prettier --list-different ./src/ --print-width 100",
-    "format": "npx prettier --write . --print-width 100",
+    "check-format": "prettier --list-different --config ./.prettierrc.json --ignore-path ./.prettierignore ./src/ --print-width 100",
+    "format": "prettier --write --config ./.prettierrc.json --ignore-path ./.prettierignore ./src/ --print-width 100",
     "test": "npm run test:unit",
     "unit-test": "nyc mocha --require ts-node/register --reporter spec --slow 200 --timeout 2000 --bail ./test/index.ts",
-    "clean": "rimraf dist dist-esm test-dist temp types *.tgz *.log"
+    "clean": "rimraf dist dist-esm test-dist temp types *.tgz *.log",
+    "extract-api": "tsc -p . && api-extractor run --local",
+    "lint": "eslint package.json api-extractor.json README.md src --ext .ts,.javascript,.js",
+    "lint:fix": "eslint package.json api-extractor.json README.md src --ext .ts,.javascript,.js --fix"
   },
   "devDependencies": {
+    "@azure/eslint-plugin-azure-sdk": "^3.0.0",
+    "@microsoft/api-extractor": "^7.31.1",
     "@types/debug": "^4.1.7",
     "@types/engine.io": "^3.1.7",
     "@types/expect.js": "^0.3.29",
@@ -41,6 +48,13 @@
     "@types/mocha": "^9.0.0",
     "@types/node": "^10.17.60",
     "@types/ws": "^8.5.4",
+    "@typescript-eslint/eslint-plugin": "^5.59.8",
+    "eslint": "^8.0.0",
+    "eslint-plugin-import": "^2.27.5",
+    "eslint-plugin-markdown": "^3.0.0",
+    "eslint-plugin-no-only-tests": "^3.1.0",
+    "eslint-plugin-promise": "^6.1.1",
+    "eslint-plugin-tsdoc": "^0.2.17",
     "expect.js": "0.3.1",
     "express": "4.18.2",
     "mocha": "^10.0.0",
