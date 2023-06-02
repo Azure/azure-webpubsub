@@ -16,7 +16,7 @@ const debug = debugModule("wps-sio-ext:EIO:ClientConnectionContext");
  * It maps Engine.IO Transport behaviours to Azure Web PubSub service REST API calls.
  */
 export class ClientConnectionContext {
-  public serviceClient: WebPubSubServiceClient;
+  public service: WebPubSubServiceClient;
   public connectionId: string;
   public connectResponded: boolean;
   private _connectResponseHandler: WebPubSubConnectResponseHandler;
@@ -26,7 +26,7 @@ export class ClientConnectionContext {
     connectionId: string,
     connectResponseHandler: WebPubSubConnectResponseHandler
   ) {
-    this.serviceClient = serviceClient;
+    this.service = serviceClient;
     this.connectionId = connectionId;
     this._connectResponseHandler = connectResponseHandler;
     this.connectResponded = false;
@@ -45,7 +45,7 @@ export class ClientConnectionContext {
     } as HubSendToConnectionOptions;
 
     try {
-      await this.serviceClient.sendToConnection(this.connectionId, message, options);
+      await this.service.sendToConnection(this.connectionId, message, options);
     } catch (error) {
       if (cb) {
         cb(error);

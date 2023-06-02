@@ -56,8 +56,6 @@ export class WebPubSubConnectionManager {
   private _candidateSids: Array<string> = new Array();
 
   constructor(server: BaseServer, options: WebPubSubExtensionOptions) {
-    debug("constructor");
-
     if (!options.connectionString || options.connectionString === "") {
       throw new Error("Valid connectionString is required");
     }
@@ -138,6 +136,7 @@ export class WebPubSubConnectionManager {
         const connectionId = req.context.connectionId;
         debug(`onDisconnected, connectionId = ${connectionId}`);
         if (!this._clientConnections.delete(connectionId)) {
+          (this.eioServer as any).clients[connectionId].close(true);
           debug(`onDisconnected, Failed to delete non-existing connectionId = ${connectionId}`);
         }
       },
