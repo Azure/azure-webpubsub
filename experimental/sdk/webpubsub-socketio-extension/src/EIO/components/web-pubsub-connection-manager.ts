@@ -30,7 +30,7 @@ export class WebPubSubConnectionManager {
   /**
    * Client for connecting to a Web PubSub hub
    */
-  public serviceClient: WebPubSubServiceClient;
+  public service: WebPubSubServiceClient;
 
   /**
    * Map from the `connectionId` of each client to its corresponding logical `ClientConnectionContext`.
@@ -66,7 +66,7 @@ export class WebPubSubConnectionManager {
 
     this.eioServer = server;
     this._webPubSubOptions = options;
-    this.serviceClient = new WebPubSubServiceClient(
+    this.service = new WebPubSubServiceClient(
       this._webPubSubOptions.connectionString,
       this._webPubSubOptions.hub,
       this._webPubSubOptions.webPubSubServiceClientOptions
@@ -80,7 +80,7 @@ export class WebPubSubConnectionManager {
           const connectionId = req.context.connectionId;
           debug(`onConnect, connectionId = ${connectionId}`);
 
-          const context = new ClientConnectionContext(this.serviceClient, connectionId, res);
+          const context = new ClientConnectionContext(this.service, connectionId, res);
 
           /**
            * Two conditions lead to returning reponse for connect event:
