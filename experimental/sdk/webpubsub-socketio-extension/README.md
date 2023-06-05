@@ -60,7 +60,7 @@ To fit new Socket.IO server, you shall update the Socket.IO client as below:
 ```javascript
 var socket = io('<web-pubsub-endpoint>', {
     path: "/clients/socketio/hubs/eio_hub"
-})；
+})
 ```
 
 # Debug

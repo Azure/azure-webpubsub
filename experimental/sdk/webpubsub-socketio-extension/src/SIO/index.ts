@@ -1,3 +1,6 @@
+// Copyright (c) Microsoft Corporation.
+// Licensed under the MIT license.
+
 import { WebPubSubExtensionOptions } from "../common/utils";
 import { WebPubSubEioServer } from "../EIO";
 import { WebPubSubAdapterProxy } from "./components/web-pubsub-adapter";
@@ -8,20 +11,16 @@ export function useAzureWebPubSub(
   webPubSubOptions: WebPubSubExtensionOptions,
   useDefaultAdapter: boolean = true
 ): SIO.Server {
-  // @ts-ignore
-  var engine = new WebPubSubEioServer(this.engine.opts, webPubSubOptions);
+  const engine = new WebPubSubEioServer(this.engine.opts, webPubSubOptions);
 
-  // @ts-ignore
-  engine.attach(this.httpServer, this.opts);
+  engine.attach((this as any).httpServer, (this as any).opts);
 
-  // @ts-ignore
   this.bind(engine as any);
 
   if (!useDefaultAdapter) {
-    var adapterProxy = new WebPubSubAdapterProxy("NotImplementedArg");
+    const adapterProxy = new WebPubSubAdapterProxy("NotImplementedArg");
 
-    // @ts-ignore
-    this.adapter(adapterProxy);
+    this.adapter(adapterProxy as any);
   }
   return this;
 }

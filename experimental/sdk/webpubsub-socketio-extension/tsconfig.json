@@ -1,29 +1,29 @@
 {
-  "include": ["./src", "./samples"],
-  "exclude": ["./dist", "./node_modules"],
+  "include": ["src/**/*.ts"],
+  "exclude": ["./dist-esm", "./node_modules"],
   "compilerOptions": {
-    "experimentalDecorators": true,
-    "allowJs": false, // allow compile .js files
-
-    /* Basic Options */
-    "target": "ES2017" /* Specify ECMAScript target version: 'ES3' (default), 'ES5', 'ES2015', 'ES2016', 'ES2017', 'ES2018', 'ES2019', 'ES2020', 'ES2021', or 'ESNEXT'. */,
-    "module": "commonjs" /* Specify module code generation: 'none', 'commonjs', 'amd', 'system', 'umd', 'es2015', 'es2020', or 'ESNext'. */,
-    "declaration": true /* Generates corresponding '.d.ts' file. */,
-    "declarationMap": true /* Generates a sourcemap for each corresponding '.d.ts' file. */,
-    "sourceMap": true /* Generates corresponding '.map' file. */,
-    "outDir": "dist/" /* Redirect output structure to the directory. */,
-
-    /* Strict Type-Checking Options */
-    "strict": false /* Enable all strict type-checking options. */,
-
-    /* Additional Checks */
-    "noUnusedLocals": false /* Report errors on unused locals. */,
-
-    /* Module Resolution Options */
-    "esModuleInterop": true /* Enables emit interoperability between CommonJS and ES Modules via creation of namespace objects for all imports. Implies 'allowSyntheticDefaultImports'. */,
-
-    /* Advanced Options */
-    "skipLibCheck": true /* Skip type checking of declaration files. */,
-    "forceConsistentCasingInFileNames": true /* Disallow inconsistently-cased references to the same file. */
-  }
+    "target": "ES2017",
+    "module": "es6",
+    "lib": [],
+    "declaration": true,
+    "declarationMap": true,
+    "inlineSources": true,
+    "sourceMap": true,
+    "importHelpers": true,
+    "strict": false,
+    "alwaysStrict": true,
+    "noUnusedLocals": false,
+    "noUnusedParameters": false,
+    "noImplicitReturns": true,
+    "noFallthroughCasesInSwitch": true,
+    "forceConsistentCasingInFileNames": true,
+    "moduleResolution": "node",
+    "allowSyntheticDefaultImports": true,
+    "esModuleInterop": true,
+    "outDir": "./dist-esm",
+    "declarationDir": "./types",
+    "paths": {
+      "@azure/web-pubsub-socketio": ["./src/index"]
+    }
+  },
 }

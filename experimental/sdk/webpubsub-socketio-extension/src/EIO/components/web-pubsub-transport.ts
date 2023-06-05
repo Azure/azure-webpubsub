@@ -1,5 +1,9 @@
+// Copyright (c) Microsoft Corporation.
+// Licensed under the MIT license.
+
 import { Packet } from "engine.io-parser";
 import { Transport } from "engine.io";
+import { WEBPUBSUB_TRANSPORT_NAME } from "./constants";
 
 /**
  * A class inherited from Engine.IO Transport class, it acts the same role with `Polling` Transport and `WebSocket` Transport.
@@ -8,11 +12,17 @@ import { Transport } from "engine.io";
  * TODO: Batch receive is implemented in web-pubsub-translator. It should be moved here later.
  **/
 export class WebPubSubTransport extends Transport {
-  override supportsFraming = () => false;
+  public override supportsFraming = (): boolean => false;
 
-  override name = () => "webpubsub";
+  public override name = (): string => WEBPUBSUB_TRANSPORT_NAME;
 
-  public override async send(packets: Packet[]) {}
+  public override async send(_packets: Packet[]): Promise<void> {
+    return Promise.resolve();
+  }
 
-  public override doClose(fn) {}
+  public override doClose(fn: () => void): void {
+    if (fn) {
+      fn();
+    }
+  }
 }
