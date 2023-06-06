@@ -63,8 +63,7 @@ export class WebPubSubTransport extends Transport {
   public override name = (): string => WEBPUBSUB_TRANSPORT_NAME;
 
   /**
-   * In native Engine.IO, this method sends an array of `Packet` to client.
-   * In this class, it doesn't take the send action directly, but stores the packets in queue.
+   * sends an array of `Packet` to the client.
    * @param packets - An array of `Packet` to send
    */
   public override async send(packets: Packet[]): Promise<void> {
