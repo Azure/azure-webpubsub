@@ -7,6 +7,10 @@ This tool opens a tunnel connection to your Azure Web PubSub service. When your 
 Option 1. Use Azure CLI authentication `az login` before running the tool, assign your account with `Web PubSub Service Owner` role.
 Option 2. Use ConnectionString login, pass in `--cs <ConnectionString>` when running the tool
 
+## Install
+```cli
+dotnet tool install -g awps-tunnel --version 0.0.1-alpha-006 --add-source https://www.myget.org/F/azure-webpubsub-dev/api/v3/index.json
+```
 ## Usage
 
 You can bind the default service endpoint URL and the default hub to connect to using `bind` command.
