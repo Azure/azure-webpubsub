@@ -1,7 +1,7 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT license.
 
-import { debugModule } from "../../common/utils";
+import { debugModule, toAsync } from "../../common/utils";
 import { ClientConnectionContext } from "./client-connection-context";
 import { WEBPUBSUB_CLIENT_CONNECTION_FILED_NAME, WEBPUBSUB_TRANSPORT_NAME } from "./constants";
 import { Transport } from "engine.io";
@@ -41,21 +41,8 @@ export class WebPubSubTransport extends Transport {
     // Reference: https://github.com/socketio/engine.io/blob/6.4.2/lib/socket.ts#L510
     this.writable = true;
 
-    this._encodePacketAsync = ({ type, data }: Packet, supportsBinary: boolean): Promise<string> => {
-      return new Promise((resolve, reject) => {
-        this.parser.encodePacket({ type, data }, supportsBinary, (encodedPacket) => {
-          resolve(encodedPacket);
-        });
-      });
-    };
-
-    this._encodePayloadAsync = (packets: Packet[]): Promise<string> => {
-      return new Promise((resolve, reject) => {
-        this.parser.encodePayload(packets, (encodedPackets) => {
-          resolve(encodedPackets);
-        });
-      });
-    };
+    this._encodePacketAsync = toAsync<string>(this.parser.encodePacket);
+    this._encodePayloadAsync = toAsync<string>(this.parser.encodePayload);
   }
 
   public override supportsFraming = (): boolean => false;
@@ -70,8 +57,7 @@ export class WebPubSubTransport extends Transport {
     debug(`send packets, number = ${packets.length}`);
     this.writable = false;
     try {
-      this._queue = this._queue.concat(packets);
-      await this._sendPacketsQueue();
+      await this._sendPacketsQueue(packets);
     } catch (error) {
       debug(error);
     } finally {
@@ -112,32 +98,32 @@ export class WebPubSubTransport extends Transport {
    * Send packets stored in queue to client via AWPS.
    * Special handling for the `open` packet, for it should be delivered to service as the response for `connect` event request.
    */
-  private async _sendPacketsQueue(): Promise<void> {
+  private async _sendPacketsQueue(packets: Packet[]): Promise<void> {
     debug(`sendPacketsQueue, number = ${this._queue.length}, onceSent = ${this._onceSent}`);
 
-    if (this._queue.length === 0) return;
+    if (packets.length === 0) return;
 
     if (!this._onceSent) {
-      const firstPacket = this._queue.shift();
+      const firstPacket = packets.shift();
       if (firstPacket.type === "open") {
         const payload = await this._encodePacketAsync(firstPacket, false);
+        debug(`first packet is 'open' packet, payload = ${payload}`);
         this.clientConnectionContext.onAcceptEioConnection(payload.substring(1));
+        this._onceSent = true;
       } else {
         const errorMessage = `First packet must be 'open' packet, but got packet type = ${firstPacket.type}.`;
+        debug(errorMessage);
         this.clientConnectionContext.onRefuseEioConnection(errorMessage);
-        throw new Error(errorMessage);
       }
-
-      this._onceSent = true;
     }
 
-    if (this._queue.length > 0) {
+    if (packets.length > 0) {
       // Clone queue and clear it immediately in case of `webPubSend` throws a exception without clearing queue.
-      const queue = this._queue.slice();
-      this._queue = [];
+      const queue = packets.slice();
+      packets = [];
       const payloads = await this._encodePayloadAsync(queue);
       await this._webPubSubSend(payloads);
     }
-    debug(`sendPacketsQueue, finish, ${this._queue.length}`);
+    debug(`sendPacketsQueue, finish, ${packets.length}`);
   }
 }
