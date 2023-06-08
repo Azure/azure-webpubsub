@@ -56,13 +56,31 @@ export class WebPubSubTransport extends Transport {
   public override async send(packets: Packet[]): Promise<void> {
     debug(`send packets, number = ${packets.length}`);
     this.writable = false;
-    try {
-      await this._sendPacketsQueue(packets);
-    } catch (error) {
-      debug(error);
-    } finally {
-      this.writable = true;
+  
+    if (packets.length > 0 && !this._onceSent) {
+      const firstPacket = packets.shift();
+      if (firstPacket.type === "open") {
+        const payload = await this._encodePacketAsync(firstPacket, false);
+        debug(`first packet is 'open' packet, payload = ${payload}`);
+        this.clientConnectionContext.onAcceptEioConnection(payload.substring(1));
+        this._onceSent = true;
+      } else {
+        const errorMessage = `First packet must be 'open' packet, but got packet type = ${firstPacket.type}.`;
+        debug(errorMessage);
+        this.clientConnectionContext.onRefuseEioConnection(errorMessage);
+      }
     }
+
+    if (packets.length > 0) {
+      // Clone queue and clear it immediately in case of `webPubSend` throws a exception without clearing queue.
+      const queue = packets.slice();
+      packets = [];
+      const payloads = await this._encodePayloadAsync(queue);
+      await this._webPubSubSend(payloads);
+    }
+    debug(`send, finish, ${packets.length}`);
+
+    this.writable = true;
   }
 
   public override doClose(fn?: () => void): void {
@@ -92,38 +110,5 @@ export class WebPubSubTransport extends Transport {
         throw error;
       }
     }
-  }
-
-  /**
-   * Send packets stored in queue to client via AWPS.
-   * Special handling for the `open` packet, for it should be delivered to service as the response for `connect` event request.
-   */
-  private async _sendPacketsQueue(packets: Packet[]): Promise<void> {
-    debug(`sendPacketsQueue, number = ${this._queue.length}, onceSent = ${this._onceSent}`);
-
-    if (packets.length === 0) return;
-
-    if (!this._onceSent) {
-      const firstPacket = packets.shift();
-      if (firstPacket.type === "open") {
-        const payload = await this._encodePacketAsync(firstPacket, false);
-        debug(`first packet is 'open' packet, payload = ${payload}`);
-        this.clientConnectionContext.onAcceptEioConnection(payload.substring(1));
-        this._onceSent = true;
-      } else {
-        const errorMessage = `First packet must be 'open' packet, but got packet type = ${firstPacket.type}.`;
-        debug(errorMessage);
-        this.clientConnectionContext.onRefuseEioConnection(errorMessage);
-      }
-    }
-
-    if (packets.length > 0) {
-      // Clone queue and clear it immediately in case of `webPubSend` throws a exception without clearing queue.
-      const queue = packets.slice();
-      packets = [];
-      const payloads = await this._encodePayloadAsync(queue);
-      await this._webPubSubSend(payloads);
-    }
-    debug(`sendPacketsQueue, finish, ${packets.length}`);
   }
 }
