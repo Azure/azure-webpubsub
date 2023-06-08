@@ -10,7 +10,8 @@
         "build:client": "set NODE_ENV=production && webpack --config ./src/client/webpack.config.js",
         "build:server": "set NODE_ENV=production && webpack --config ./src/server/webpack.config.js",
         "build:all": "concurrently \"npm run build:server\" \"npm run build:client\"",
-        "pack:zip": "npm-build-zip --source ./dist/"
+        "pack:zip": "npm-build-zip --source ./dist/",
+        "test": "echo TODO"
     },
     "dependencies": {
         "@azure/web-pubsub": "1.0.0",

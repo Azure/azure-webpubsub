@@ -7,6 +7,7 @@
     "build": "webpack --mode=development --watch",
     "release": "webpack --mode=production",
     "publish": "npm run release && dotnet publish -c Release",
+    "test": "echo TODO",
     "start": "node server.js"
   },
   "keywords": [],

@@ -4,6 +4,7 @@
   "description": "",
   "main": "server.js",
   "scripts": {
+    "test": "echo TODO",
     "start": "node server"
   },
   "keywords": [],

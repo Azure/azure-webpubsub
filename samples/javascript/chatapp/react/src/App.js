@@ -1,5 +1,5 @@
 import "./App.css";
-import { useState } from "react";
+import React, { useState } from "react";
 import { WebPubSubClient } from "@azure/web-pubsub-client";
 
 function UserChat({ from, message }) {
@@ -15,7 +15,7 @@ function SelfChat({ message }) {
   return <div className="align-self-end alert-success alert">{message}</div>;
 }
 
-function App() {
+const App = () => {
   const [user, setUser] = useState("");
   const [message, setMessage] = useState("");
   const [chats, setChats] = useState([]);

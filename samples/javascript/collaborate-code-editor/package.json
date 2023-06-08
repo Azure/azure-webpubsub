@@ -4,6 +4,7 @@
   "description": "This sample is to help you create a collaborate code editor.",
   "main": "dist/index.js",
   "scripts": {
+    "test": "echo TODO",
     "server": "npm --prefix ./server start",
     "app": "npm --prefix ./app start"
   },
