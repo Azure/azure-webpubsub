@@ -1,6 +1,6 @@
 {
   "include": ["src/**/*.ts"],
-  "exclude": ["./dist-esm", "./node_modules"],
+  "exclude": ["./dist-esm", "node_modules"],
   "compilerOptions": {
     "target": "ES2017",
     "module": "es6",
@@ -20,6 +20,7 @@
     "moduleResolution": "node",
     "allowSyntheticDefaultImports": true,
     "esModuleInterop": true,
+    "skipLibCheck": true,
     "outDir": "./dist-esm",
     "declarationDir": "./types",
     "paths": {

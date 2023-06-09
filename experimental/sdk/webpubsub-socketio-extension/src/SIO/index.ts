@@ -12,7 +12,7 @@ debug("load");
 export function useAzureWebPubSub(
   this: SIO.Server,
   webPubSubOptions: WebPubSubExtensionOptions,
-  useDefaultAdapter: boolean = true
+  useDefaultAdapter = true
 ): SIO.Server {
   debug("use Azure Web PubSub For Socket.IO Server");
 
