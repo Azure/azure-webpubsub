@@ -10,11 +10,12 @@
         "build:client": "set NODE_ENV=production && webpack --config ./src/client/webpack.config.js",
         "build:server": "set NODE_ENV=production && webpack --config ./src/server/webpack.config.js",
         "build:all": "concurrently \"npm run build:server\" \"npm run build:client\"",
-        "pack:zip": "npm-build-zip --source ./dist/"
+        "pack:zip": "npm-build-zip --source ./dist/",
+        "test": "echo TODO"
     },
     "dependencies": {
-        "@azure/web-pubsub": "1.0.0",
-        "@azure/web-pubsub-express": "1.0.2",
+        "@azure/web-pubsub": "^1.0.0",
+        "@azure/web-pubsub-express": "^1.0.2",
         "@element-plus/icons-vue": "^0.2.4",
         "@maybecode/vue-next-animejs": "^1.0.5",
         "axios": "^0.24.0",

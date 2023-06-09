@@ -28,7 +28,7 @@ namespace chatapp
         // For more information on how to configure your application, visit https://go.microsoft.com/fwlink/?LinkID=398940
         public void ConfigureServices(IServiceCollection services)
         {
-            services.AddWebPubSub(o => o.ServiceEndpoint = new ServiceEndpoint(Configuration["Azure:WebPubSub:ConnectionString"]))
+            services.AddWebPubSub(o => o.ServiceEndpoint = new WebPubSubServiceEndpoint(Configuration["Azure:WebPubSub:ConnectionString"]))
                 .AddWebPubSubServiceClient<Sample_ChatApp>();
         }
 

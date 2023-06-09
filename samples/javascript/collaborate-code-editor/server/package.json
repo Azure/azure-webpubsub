@@ -4,7 +4,8 @@
   "description": "",
   "main": "server.ts",
   "scripts": {
-    "start": "ts-node server"
+    "start": "ts-node server",
+    "test": "echo TODO"
   },
   "keywords": [],
   "author": "",
