@@ -56,7 +56,7 @@ export class WebPubSubTransport extends Transport {
   public override async send(packets: Packet[]): Promise<void> {
     debug(`send packets, number = ${packets.length}`);
     this.writable = false;
-  
+
     if (packets.length > 0 && !this._onceSent) {
       const firstPacket = packets.shift();
       if (firstPacket.type === "open") {
@@ -96,7 +96,7 @@ export class WebPubSubTransport extends Transport {
    * @param data - The data to be sent.
    * @param autoRetry - If true, wait for a certain time and retry sending when the first response status is 429.
    */
-  private async _webPubSubSend(data: string, autoRetry: boolean = false): Promise<void> {
+  private async _webPubSubSend(data: string, autoRetry = false): Promise<void> {
     debug(`webPubSubSend ${data}`);
     try {
       await this.clientConnectionContext.send(data);
