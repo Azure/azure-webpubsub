@@ -3,12 +3,7 @@
 
 import { Packet } from "engine.io-parser";
 import { Namespace } from "socket.io";
-import {
-  Adapter as NativeInMemoryAdapter,
-  BroadcastOptions,
-  Room,
-  SocketId,
-} from "socket.io-adapter";
+import { Adapter as NativeInMemoryAdapter, BroadcastOptions, Room, SocketId } from "socket.io-adapter";
 
 /**
  * Socket.IO Server uses method `io.Adapter(AdapterClass))` to set the adapter. `AdatperClass` is not an instansized object, but a class.

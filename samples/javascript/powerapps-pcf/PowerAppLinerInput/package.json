@@ -9,7 +9,8 @@
     "lint:fix": "pcf-scripts lint fix",
     "rebuild": "pcf-scripts rebuild",
     "start": "pcf-scripts start",
-    "refreshTypes": "pcf-scripts refreshTypes"
+    "refreshTypes": "pcf-scripts refreshTypes",
+    "test": "echo \"No tests yet...\""
   },
   "dependencies": {
   },

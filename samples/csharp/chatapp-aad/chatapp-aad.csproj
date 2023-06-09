@@ -1,13 +1,13 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk.Web">
 
   <PropertyGroup>
-    <TargetFramework>net5.0</TargetFramework>
+    <TargetFramework>net6.0</TargetFramework>
     <UserSecretsId>a9ce8186-c6aa-4ca5-bd07-c16d5cd5cbd2</UserSecretsId>
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="Azure.Messaging.WebPubSub" Version="1.0.0" />
-    <PackageReference Include="Microsoft.Extensions.Azure" Version="1.0.0" />
+    <PackageReference Include="Azure.Messaging.WebPubSub" Version="1.*" />
+    <PackageReference Include="Microsoft.Extensions.Azure" Version="1.*" />
   </ItemGroup>
 
 </Project>

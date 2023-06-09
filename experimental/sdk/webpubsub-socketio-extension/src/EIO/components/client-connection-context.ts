@@ -69,10 +69,7 @@ export class ClientConnectionContext {
    * @param errorMessage - Error message
    */
   public onRefuseEioConnection(errorMessage: string): void {
-    this._connectResponseHandler.fail(
-      400,
-      `EIO server refused connection with error: ${errorMessage}`
-    );
+    this._connectResponseHandler.fail(400, `EIO server refused connection with error: ${errorMessage}`);
     this.connectResponded = true;
   }
 }

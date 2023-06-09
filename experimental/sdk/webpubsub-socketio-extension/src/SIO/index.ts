@@ -9,7 +9,7 @@ import * as SIO from "socket.io";
 export function useAzureWebPubSub(
   this: SIO.Server,
   webPubSubOptions: WebPubSubExtensionOptions,
-  useDefaultAdapter: boolean = true
+  useDefaultAdapter = true
 ): SIO.Server {
   const engine = new WebPubSubEioServer(this.engine.opts, webPubSubOptions);
 

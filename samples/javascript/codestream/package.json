@@ -4,14 +4,15 @@
   "description": "",
   "main": "server.js",
   "scripts": {
+    "test": "echo TODO",
     "start": "node server"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
   "dependencies": {
-    "@azure/web-pubsub": "^1.0.0-alpha.20211102.4",
-    "@azure/web-pubsub-express": "^1.0.0-alpha.20211102.4",
+    "@azure/web-pubsub": "^1.0.0",
+    "@azure/web-pubsub-express": "^1.0.0",
     "express": "^4.17.1"
   }
 }
