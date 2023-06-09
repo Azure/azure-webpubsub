@@ -31,7 +31,7 @@
     "build": "npm run clean && tsc",
     "check-format": "prettier --list-different --config ./.prettierrc.json --ignore-path ./.prettierignore ./src/ --print-width 100",
     "format": "prettier --write --config ./.prettierrc.json --ignore-path ./.prettierignore ./src/ --print-width 100",
-    "test": "tsc && && npm run lint && echo TODO",
+    "test": "tsc && npm run lint && echo TODOTEST",
     "test:unit": "nyc mocha --require ts-node/register --reporter spec --slow 200 --timeout 2000 --bail ./test/index.ts",
     "clean": "rimraf dist dist-esm test-dist temp types *.tgz *.log",
     "extract-api": "tsc -p . && api-extractor run --local",
