@@ -47,7 +47,7 @@ export class WebPubSubEioServer extends engine.Server {
    * @param req - handshake request
    * @returns socket id for EIO connection built from handshake request `req`
    */
-  public override generateId = (req: unknown): string => this.webPubSubConnectionManager.getNextSid();
+  public override generateId = (req: unknown): string | undefined => this.webPubSubConnectionManager.getNextSid();
 
   /**
    *

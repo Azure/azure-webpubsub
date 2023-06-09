@@ -171,7 +171,7 @@ export class WebPubSubConnectionManager {
     return eioMiddleware;
   }
 
-  public getNextSid = (): string => this._candidateSids.shift();
+  public getNextSid = (): string | undefined => this._candidateSids.shift();
 
   /**
    * Convert an AWPS `connect` request to an Engine.IO `handshake` request.
