@@ -3,14 +3,9 @@
 
 import { debugModule } from "../../common/utils";
 import { WebPubSubServiceClient } from "@azure/web-pubsub";
-import { Packet, Encoder } from "socket.io-parser"
+import { Packet, Encoder } from "socket.io-parser";
 import { Namespace, Server as SioServer } from "socket.io";
-import {
-  Adapter as NativeInMemoryAdapter,
-  BroadcastOptions,
-  Room,
-  SocketId,
-} from "socket.io-adapter";
+import { Adapter as NativeInMemoryAdapter, BroadcastOptions, Room, SocketId } from "socket.io-adapter";
 import base64url from "base64url";
 
 const debug = debugModule("wps-sio-ext:SIO:Adapter");
@@ -120,7 +115,7 @@ export class WebPubSubAdapterInternal extends NativeInMemoryAdapter {
       debug(
         `Try to add connection ${eioSid} to group ${groupName}, convert from ns#room = ${this.nsp.name}#${room}, SocketId = ${id}`
       );
-      
+
       await this.service.group(groupName).addConnection(eioSid);
     }
   }
@@ -229,7 +224,7 @@ export class WebPubSubAdapterInternal extends NativeInMemoryAdapter {
   public disconnectSockets(opts: BroadcastOptions, close: boolean): void {
     throw NotSupportedError;
   }
-  
+
   /**
    * Generates OData filter string for Web PubSub service from a set of rooms and a set of exceptions
    * @param rooms - a set of Rooms to include
@@ -250,23 +245,22 @@ export class WebPubSubAdapterInternal extends NativeInMemoryAdapter {
     }
 
     let denyFilter = "";
-    if (excepts)
-      {for (const except of excepts) {
+    if (excepts) {
+      for (const except of excepts) {
         const exceptGroupName = this._getGroupName(this.nsp.name, except);
-        denyFilter +=
-          `not ('${exceptGroupName}' in groups)` + (except_idx === excepts.size - 1 ? "" : " and ");
+        denyFilter += `not ('${exceptGroupName}' in groups)` + (except_idx === excepts.size - 1 ? "" : " and ");
         except_idx++;
-      }}
+      }
+    }
 
     let result = "";
-    if (allowFilter.length > 0)
-      {result = allowFilter + (denyFilter.length > 0 ? " and " + denyFilter : "");}
-    else result = denyFilter.length > 0 ? `${denyFilter}` : "";
+    if (allowFilter.length > 0) {
+      result = allowFilter + (denyFilter.length > 0 ? " and " + denyFilter : "");
+    } else result = denyFilter.length > 0 ? `${denyFilter}` : "";
     debug(`_buildODataFilter result = ${result}`);
     return result;
   }
 
-  
   private _getEioSid(sioSid: string): string {
     return (this.nsp.sockets.get(sioSid).conn as any).id;
   }
