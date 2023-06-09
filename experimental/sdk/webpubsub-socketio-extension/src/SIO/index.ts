@@ -23,7 +23,7 @@ export function useAzureWebPubSub(
   if (!useDefaultAdapter) {
     debug("use webPubSub adatper");
 
-    const adapterProxy = new WebPubSubAdapterProxy((this.engine as any).webPubSubConnectionManager.serviceClient)
+    const adapterProxy = new WebPubSubAdapterProxy((this.engine as WebPubSubEioServer).webPubSubConnectionManager.service)
     this.adapter(adapterProxy as any);
   }
   return this;

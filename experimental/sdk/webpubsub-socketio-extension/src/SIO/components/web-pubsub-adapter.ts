@@ -3,7 +3,7 @@
 
 import { debugModule } from "../../common/utils";
 import { WebPubSubServiceClient } from "@azure/web-pubsub";
-import { Packet } from "engine.io-parser";
+import { Packet, Encoder } from "socket.io-parser"
 import { Namespace, Server as SioServer } from "socket.io";
 import {
   Adapter as NativeInMemoryAdapter,
@@ -44,6 +44,7 @@ export class WebPubSubAdapterProxy {
 
 export class WebPubSubAdapterInternal extends NativeInMemoryAdapter {
   public service: WebPubSubServiceClient;
+  private _encoder: Encoder;
 
   /**
    * Azure Web PubSub Socket.IO Adapter constructor.
@@ -55,6 +56,8 @@ export class WebPubSubAdapterInternal extends NativeInMemoryAdapter {
     debug(`constructor nsp.name = ${nsp.name}, serviceClient = ${serviceClient}`);
     super(nsp);
     this.service = serviceClient;
+    // Fixed to use the default encoder https://github.com/socketio/socket.io-adapter
+    this._encoder = new Encoder();
   }
 
   /**
@@ -65,42 +68,25 @@ export class WebPubSubAdapterInternal extends NativeInMemoryAdapter {
    */
   public override async broadcast(packet: Packet, opts: BroadcastOptions): Promise<void> {
     debug(`broadcast packet ${JSON.stringify(packet)}`);
-    try {
-      const flags = opts.flags || {};
-      const packetOpts = {
-        preEncoded: true,
-        volatile: flags.volatile,
-        compress: flags.compress,
-      };
 
-      (packet as any).nsp = this.nsp.name;
+    // Modified from https://github.com/socketio/socket.io-adapter/blob/2.5.2/lib/index.ts#L233
+    const encodedPackets = this._encoder.encode(packet);
 
-      const encodedPackets = (this as any)._encode(packet, packetOpts);
+    const oDataFilter = this._buildODataFilter(opts.rooms, opts.except);
 
-      const oDataFilter = this._buildODataFilter(opts.rooms, opts.except);
+    debug(`broadcast encodedPackets = ${encodedPackets}, oDataFilter = ${oDataFilter}`);
 
-      debug(`broadcast encodedPackets = ${encodedPackets}, oDataFilter = ${oDataFilter}`);
-
-      // https://github.com/socketio/socket.io/blob/main/lib/client.ts#L230
-      if (encodedPackets.volatile) {
-        debug("volatile packet is discarded since the transport is not currently writable");
-        return;
+    const packets = Array.isArray(encodedPackets) ? encodedPackets : [encodedPackets];
+    var sendOptions = { filter: oDataFilter };
+    for (let encodedPacket of packets) {
+      if (typeof encodedPacket === "string") {
+        encodedPacket = "4" + encodedPacket.toString();
+        sendOptions["contentType"] = "text/plain";
+      } else {
+        sendOptions["contentType"] = "application/octet-stream";
       }
-      const packets = Array.isArray(encodedPackets) ? encodedPackets : [encodedPackets];
-      for (let encodedPacket of packets) {
-        const sendOptions = { filter: oDataFilter };
-        if (typeof encodedPacket === "string") {
-          encodedPacket = "4" + encodedPacket.toString();
-          sendOptions["contentType"] = "text/plain";
-        } else {
-          sendOptions["contentType"] = "application/octet-stream";
-        }
 
-        await this.service.sendToAll(encodedPacket, sendOptions);
-      }
-    }
-    catch (error) {
-      console.error(error);
+      await this.service.sendToAll(encodedPacket, sendOptions);
     }
   }
 
@@ -123,23 +109,19 @@ export class WebPubSubAdapterInternal extends NativeInMemoryAdapter {
   public async addAll(id: SocketId, rooms: Set<Room>): Promise<void> {
     // TODO: RT should support a new API AddConnectionsToGroups
     debug(`addAll SocketId = ${id}, |rooms| = ${rooms.size}`);
-    try {
-      const eioSid = this._getEioSid(id);
 
-      // TODO: Temporary mitigation. This behaviour should be taken only one time and by service
-      rooms = rooms.add(""); // add namespace default room
+    const eioSid = this._getEioSid(id);
 
-      for (const room of rooms) {
-        const groupName = this._getGroupName(this.nsp.name, room);
-        debug(
-          `Try to add connection ${eioSid} to group ${groupName}, convert from ns#room = ${this.nsp.name}#${room}, SocketId = ${id}`
-        );
-        
-        await this.service.group(groupName).addConnection(eioSid);
-      }
-    }
-    catch (error) {
-      console.error(error);
+    // TODO: Temporary mitigation. This behaviour should be taken only one time and by service
+    rooms = rooms.add(""); // add namespace default room
+
+    for (const room of rooms) {
+      const groupName = this._getGroupName(this.nsp.name, room);
+      debug(
+        `Try to add connection ${eioSid} to group ${groupName}, convert from ns#room = ${this.nsp.name}#${room}, SocketId = ${id}`
+      );
+      
+      await this.service.group(groupName).addConnection(eioSid);
     }
   }
 
@@ -151,16 +133,12 @@ export class WebPubSubAdapterInternal extends NativeInMemoryAdapter {
    */
   public del(id: SocketId, room: Room): Promise<void> | void {
     debug(`del SocketId = ${id}, room = ${room}`);
-    try {
-      const eioSid = this._getEioSid(id);
-      const groupName = this._getGroupName(this.nsp.name, room);
-      debug(
-        `Try to remove connection ${eioSid} from group ${groupName}, convert from ns#room = ${this.nsp.name}#${room}, SocketId = ${id}`
-      );
-      this.service.group(groupName).removeConnection(eioSid);
-    } catch (error) {
-      console.error(error);
-    }
+    const eioSid = this._getEioSid(id);
+    const groupName = this._getGroupName(this.nsp.name, room);
+    debug(
+      `Try to remove connection ${eioSid} from group ${groupName}, convert from ns#room = ${this.nsp.name}#${room}, SocketId = ${id}`
+    );
+    this.service.group(groupName).removeConnection(eioSid);
   }
 
   /**
@@ -170,16 +148,13 @@ export class WebPubSubAdapterInternal extends NativeInMemoryAdapter {
    */
   public delAll(id: SocketId): void {
     debug(`delAll SocketId = ${id}`);
-    try {
-      const eioSid = this._getEioSid(id);
-      const groupName = this._getGroupName(this.nsp.name, "");
-      debug(
-        `Try to remove connection ${eioSid} from group ${groupName}, convert from ns#room = ${this.nsp.name}#, SocketId = ${id}`
-      );
-      this.service.group(groupName).removeConnection(eioSid);
-    } catch (error) {
-      console.error(error);
-    }
+
+    const eioSid = this._getEioSid(id);
+    const groupName = this._getGroupName(this.nsp.name, "");
+    debug(
+      `Try to remove connection ${eioSid} from group ${groupName}, convert from ns#room = ${this.nsp.name}#, SocketId = ${id}`
+    );
+    this.service.group(groupName).removeConnection(eioSid);
   }
 
   /**
