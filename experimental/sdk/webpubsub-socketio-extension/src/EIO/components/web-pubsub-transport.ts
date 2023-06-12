@@ -16,10 +16,6 @@ const debug = debugModule("wps-sio-ext:EIO:WebPubSubTransport");
  **/
 export class WebPubSubTransport extends Transport {
   public clientConnectionContext: ClientConnectionContext;
-  /**
-   * Queue for storing packets to be sent. This design is to ensure packets are sent in order with send action in async manner.
-   */
-  public _queue: Packet[] = [];
 
   // Reference: https://github.com/socketio/engine.io-parser/blob/5.0.7/lib/encodePacket.ts#L3
   private _encodePacketAsync: (packet: Packet, supportsBinary: boolean) => Promise<RawData>;
@@ -72,10 +68,7 @@ export class WebPubSubTransport extends Transport {
     }
 
     if (packets.length > 0) {
-      // Clone queue and clear it immediately in case of `webPubSend` throws a exception without clearing queue.
-      const queue = packets.slice();
-      packets = [];
-      const payloads = await this._encodePayloadAsync(queue);
+      const payloads = await this._encodePayloadAsync(packets);
       await this._webPubSubSend(payloads);
     }
     debug(`send, finish, ${packets.length}`);
