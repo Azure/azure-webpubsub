@@ -25,13 +25,13 @@ export class WebPubSubTransport extends Transport {
   /**
    * Indicate whether any packet have been actually sent through AWPS or not.
    */
-  private _onceSent: boolean;
+  private _opened: boolean;
 
   constructor(req: unknown) {
     debug("constructor");
     super(req);
     this.clientConnectionContext = req[WEBPUBSUB_CLIENT_CONNECTION_FILED_NAME];
-    this._onceSent = false;
+    this._opened = false;
 
     // `Socket` places packets in its own buffer if `writable` == false. Otherwise, it calls `send` with buffer directly.
     // Reference: https://github.com/socketio/engine.io/blob/6.4.2/lib/socket.ts#L510
@@ -53,13 +53,13 @@ export class WebPubSubTransport extends Transport {
     debug(`send packets, number = ${packets.length}`);
     this.writable = false;
 
-    if (packets.length > 0 && !this._onceSent) {
+    if (packets.length > 0 && !this._opened) {
       const firstPacket = packets.shift();
       if (firstPacket.type === "open") {
         const payload = await this._encodePacketAsync(firstPacket, false);
         debug(`first packet is 'open' packet, payload = ${payload}`);
         this.clientConnectionContext.onAcceptEioConnection(payload.substring(1));
-        this._onceSent = true;
+        this._opened = true;
       } else {
         const errorMessage = `First packet must be 'open' packet, but got packet type = ${firstPacket.type}.`;
         debug(errorMessage);
