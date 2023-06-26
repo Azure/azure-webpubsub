@@ -2,8 +2,14 @@
 // Licensed under the MIT license.
 
 import { WebPubSubExtensionOptions, debugModule } from "../../common/utils";
-import { ClientConnectionContext } from "./client-connection-context";
-import { WEBPUBSUB_CLIENT_CONNECTION_FILED_NAME, WEBPUBSUB_TRANSPORT_NAME } from "./constants";
+import { ClientConnectionContext, ConnectionError } from "./client-connection-context";
+import {
+  CONNECTION_ERROR_EVENT_NAME,
+  CONNECTION_ERROR_WEBPUBSUB_CODE,
+  CONNECTION_ERROR_WEBPUBSUB_MESSAGE,
+  WEBPUBSUB_CLIENT_CONNECTION_FILED_NAME,
+  WEBPUBSUB_TRANSPORT_NAME,
+} from "./constants";
 import { WebPubSubServiceClient } from "@azure/web-pubsub";
 import type { BaseServer } from "engine.io";
 import {
@@ -30,7 +36,7 @@ export class WebPubSubConnectionManager {
   /**
    * Client for connecting to a Web PubSub hub
    */
-  public serviceClient: WebPubSubServiceClient;
+  public service: WebPubSubServiceClient;
 
   /**
    * Map from the `connectionId` of each client to its corresponding logical `ClientConnectionContext`.
@@ -66,7 +72,7 @@ export class WebPubSubConnectionManager {
 
     this.eioServer = server;
     this._webPubSubOptions = options;
-    this.serviceClient = new WebPubSubServiceClient(
+    this.service = new WebPubSubServiceClient(
       this._webPubSubOptions.connectionString,
       this._webPubSubOptions.hub,
       this._webPubSubOptions.webPubSubServiceClientOptions
@@ -76,11 +82,28 @@ export class WebPubSubConnectionManager {
       path: this._webPubSubOptions.path,
       handleConnect: async (req, res) => {
         let timeout: NodeJS.Timeout;
+        let cleanup: (error: string) => void;
         try {
           const connectionId = req.context.connectionId;
           debug(`onConnect, connectionId = ${connectionId}`);
 
-          const context = new ClientConnectionContext(this.serviceClient, connectionId, res);
+          cleanup = (error: string): void => {
+            if (this._clientConnections.has(connectionId)) {
+              this._clientConnections.delete(connectionId);
+            }
+            if (this._candidateSids.lastIndexOf(connectionId) === this._candidateSids.length - 1) {
+              this._candidateSids.shift();
+            }
+            const connectionError = {
+              req: req,
+              code: CONNECTION_ERROR_WEBPUBSUB_CODE,
+              message: CONNECTION_ERROR_WEBPUBSUB_MESSAGE,
+              context: error,
+            };
+            this.eioServer.emit(CONNECTION_ERROR_EVENT_NAME, connectionError);
+          };
+
+          const context = new ClientConnectionContext(this.service, connectionId, res, cleanup);
 
           /**
            * Two conditions lead to returning reponse for connect event:
@@ -90,7 +113,9 @@ export class WebPubSubConnectionManager {
            */
           timeout = setTimeout(() => {
             if (!context.connectResponded) {
-              res.fail(500, `EIO server cannot handle connect request with error: Timeout 30000ms`);
+              const error = `EIO server cannot handle connect request with error: Timeout 30000ms`;
+              cleanup(error);
+              res.fail(500, error);
             }
           }, 30000);
 
@@ -102,8 +127,10 @@ export class WebPubSubConnectionManager {
           await (this.eioServer as any).handshake(WEBPUBSUB_TRANSPORT_NAME, connectReq);
         } catch (error) {
           debug(`onConnect, req = ${req}, err = ${error}`);
-          res.fail(500, `EIO server cannot handle connect request with error: ${error}`);
+          const errorMessage = `EIO server cannot handle connect request with error: ${error}`;
           clearTimeout(timeout);
+          cleanup(errorMessage);
+          res.fail(500, errorMessage);
         }
       },
 
@@ -171,7 +198,7 @@ export class WebPubSubConnectionManager {
     return eioMiddleware;
   }
 
-  public getNextSid = (): string => this._candidateSids.shift();
+  public getNextSid = (): string | undefined => this._candidateSids.shift();
 
   /**
    * Convert an AWPS `connect` request to an Engine.IO `handshake` request.
