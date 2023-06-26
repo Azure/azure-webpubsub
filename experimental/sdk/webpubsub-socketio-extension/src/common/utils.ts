@@ -27,4 +27,22 @@ export interface WebPubSubExtensionOptions {
   webPubSubServiceClientOptions?: WebPubSubServiceClientOptions;
 }
 
+/**
+ * Convert a sync function with callback parameter to its async form.
+ * @param syncFunc - a sync function with callback as its last parameter
+ * @returns the async function converted from sync function `syncFunc`
+ */
+export function toAsync<T>(syncFunc: (...args: any[]) => T): (...args: any[]) => Promise<T> {
+  return (...args: any[]) =>
+    new Promise((resolve, reject) => {
+      try {
+        syncFunc(...args, (ret: T) => {
+          resolve(ret);
+        });
+      } catch (error) {
+        reject(error);
+      }
+    });
+}
+
 export { debugModule };

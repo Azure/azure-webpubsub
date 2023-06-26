@@ -11,6 +11,14 @@ import { WEBPUBSUB_CONNECT_RESPONSE_FIELD_NAME } from "./constants";
 
 const debug = debugModule("wps-sio-ext:EIO:ClientConnectionContext");
 
+// Reference: https://github.com/socketio/engine.io/blob/123b68c04f9e971f59b526e0f967a488ee6b0116/README.md?plain=1#L219
+export interface ConnectionError {
+  req: any;
+  code: number;
+  message: string;
+  context: unknown;
+}
+
 /**
  * A logical concept that stands for an Engine.IO client connection, every connection has a unique `connectionId`.
  * It maps Engine.IO Transport behaviours to Azure Web PubSub service REST API calls.
@@ -20,16 +28,19 @@ export class ClientConnectionContext {
   public connectionId: string;
   public connectResponded: boolean;
   private _connectResponseHandler: WebPubSubConnectResponseHandler;
+  private _refusedCallback: (error: string) => void;
 
   constructor(
     serviceClient: WebPubSubServiceClient,
     connectionId: string,
-    connectResponseHandler: WebPubSubConnectResponseHandler
+    connectResponseHandler: WebPubSubConnectResponseHandler,
+    refusedCallback?: (error: string) => void
   ) {
     this.service = serviceClient;
     this.connectionId = connectionId;
     this._connectResponseHandler = connectResponseHandler;
     this.connectResponded = false;
+    this._refusedCallback = refusedCallback;
   }
 
   /**
@@ -71,5 +82,8 @@ export class ClientConnectionContext {
   public onRefuseEioConnection(errorMessage: string): void {
     this._connectResponseHandler.fail(400, `EIO server refused connection with error: ${errorMessage}`);
     this.connectResponded = true;
+    if (this._refusedCallback) {
+      this._refusedCallback(errorMessage);
+    }
   }
 }
