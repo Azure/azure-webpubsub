@@ -1,26 +1,35 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT license.
 
-import { WebPubSubExtensionOptions } from "../common/utils";
+import { debugModule, WebPubSubExtensionOptions } from "../common/utils";
 import { WebPubSubEioServer } from "../EIO";
 import { WebPubSubAdapterProxy } from "./components/web-pubsub-adapter";
 import * as SIO from "socket.io";
+import { Adapter } from "socket.io-adapter";
+
+const debug = debugModule("wps-sio-ext:SIO:index");
+debug("load");
+
+declare type AdapterConstructor = typeof Adapter | ((nsp: SIO.Namespace) => Adapter);
 
 export function useAzureWebPubSub(
   this: SIO.Server,
   webPubSubOptions: WebPubSubExtensionOptions,
   useDefaultAdapter = true
 ): SIO.Server {
+  debug("use Azure Web PubSub For Socket.IO Server");
+
   const engine = new WebPubSubEioServer(this.engine.opts, webPubSubOptions);
-
-  engine.attach((this as any).httpServer, (this as any).opts);
-
-  this.bind(engine as any);
+  engine.attach(this["httpServer"], this["opts"]);
+  this.bind(engine);
 
   if (!useDefaultAdapter) {
-    const adapterProxy = new WebPubSubAdapterProxy("NotImplementedArg");
+    debug("use webPubSub adatper");
 
-    this.adapter(adapterProxy as any);
+    const adapterProxy = new WebPubSubAdapterProxy(
+      (this.engine as WebPubSubEioServer).webPubSubConnectionManager.service
+    );
+    this.adapter(adapterProxy as unknown as AdapterConstructor);
   }
   return this;
 }

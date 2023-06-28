@@ -13,7 +13,7 @@ const debug = debugModule("wps-sio-ext:EIO:ClientConnectionContext");
 
 // Reference: https://github.com/socketio/engine.io/blob/123b68c04f9e971f59b526e0f967a488ee6b0116/README.md?plain=1#L219
 export interface ConnectionError {
-  req: any;
+  req: unknown;
   code: number;
   message: string;
   context: unknown;
