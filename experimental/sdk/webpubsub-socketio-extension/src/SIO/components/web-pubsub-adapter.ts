@@ -72,7 +72,7 @@ export class WebPubSubAdapterInternal extends NativeInMemoryAdapter {
     debug(`broadcast encodedPackets = ${encodedPackets}, oDataFilter = ${oDataFilter}`);
 
     const packets = Array.isArray(encodedPackets) ? encodedPackets : [encodedPackets];
-    var sendOptions = { filter: oDataFilter };
+    const sendOptions = { filter: oDataFilter };
     for (let encodedPacket of packets) {
       if (typeof encodedPacket === "string") {
         encodedPacket = "4" + encodedPacket.toString();
@@ -262,7 +262,7 @@ export class WebPubSubAdapterInternal extends NativeInMemoryAdapter {
   }
 
   private _getEioSid(sioSid: string): string {
-    return (this.nsp.sockets.get(sioSid).conn as any).id;
+    return this.nsp.sockets.get(sioSid).conn["id"];
   }
 
   /**

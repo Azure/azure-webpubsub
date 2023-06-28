@@ -11,7 +11,7 @@ debugModule.log = (msg, ...args): void => {
   console.log(`[${timestamp}] ${msg}`, ...args);
 };
 
-export function addProperty(o: object, p: string, f: (...args: any[]) => any): void {
+export function addProperty(o: object, p: string, f: (...args: unknown[]) => unknown): void {
   Object.defineProperty(o, p, {
     value: f,
     writable: true,
@@ -32,8 +32,8 @@ export interface WebPubSubExtensionOptions {
  * @param syncFunc - a sync function with callback as its last parameter
  * @returns the async function converted from sync function `syncFunc`
  */
-export function toAsync<T>(syncFunc: (...args: any[]) => T): (...args: any[]) => Promise<T> {
-  return (...args: any[]) =>
+export function toAsync<T>(syncFunc: (...args: unknown[]) => T): (...args: unknown[]) => Promise<T> {
+  return (...args: unknown[]) =>
     new Promise((resolve, reject) => {
       try {
         syncFunc(...args, (ret: T) => {

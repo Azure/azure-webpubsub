@@ -3,7 +3,7 @@
   "exclude": ["./dist-esm", "node_modules"],
   "compilerOptions": {
     "target": "ES2017",
-    "module": "es6",
+    "module": "CommonJS",
     "lib": [],
     "declaration": true,
     "declarationMap": true,

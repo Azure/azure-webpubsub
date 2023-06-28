@@ -7,16 +7,13 @@ import {
   CONNECTION_ERROR_EVENT_NAME,
   CONNECTION_ERROR_WEBPUBSUB_CODE,
   CONNECTION_ERROR_WEBPUBSUB_MESSAGE,
+  EIO_CONNECTION_ERROR,
   WEBPUBSUB_CLIENT_CONNECTION_FILED_NAME,
   WEBPUBSUB_TRANSPORT_NAME,
 } from "./constants";
 import { WebPubSubServiceClient } from "@azure/web-pubsub";
 import type { BaseServer } from "engine.io";
-import {
-  ConnectRequest as WebPubSubConnectRequest,
-  ConnectResponse as WebPubSubConnectResponse,
-  WebPubSubEventHandler,
-} from "@azure/web-pubsub-express";
+import { ConnectRequest as WebPubSubConnectRequest, WebPubSubEventHandler } from "@azure/web-pubsub-express";
 
 const debug = debugModule("wps-sio-ext:EIO:ConnectionManager");
 
@@ -99,7 +96,7 @@ export class WebPubSubConnectionManager {
               code: CONNECTION_ERROR_WEBPUBSUB_CODE,
               message: CONNECTION_ERROR_WEBPUBSUB_MESSAGE,
               context: error,
-            };
+            } as ConnectionError;
             this.eioServer.emit(CONNECTION_ERROR_EVENT_NAME, connectionError);
           };
 
@@ -124,7 +121,15 @@ export class WebPubSubConnectionManager {
           this._candidateSids.push(connectionId);
           this._clientConnections.set(connectionId, context);
 
-          await (this.eioServer as any).handshake(WEBPUBSUB_TRANSPORT_NAME, connectReq);
+          await this.eioServer["handshake"](
+            WEBPUBSUB_TRANSPORT_NAME,
+            connectReq,
+            (errorCode: number, errorContext: unknown) => {
+              const message =
+                errorContext && errorContext["message"] ? errorContext["message"] : EIO_CONNECTION_ERROR[errorCode];
+              context.onRefuseEioConnection(message);
+            }
+          );
         } catch (error) {
           debug(`onConnect, req = ${req}, err = ${error}`);
           const errorMessage = `EIO server cannot handle connect request with error: ${error}`;
@@ -141,7 +146,7 @@ export class WebPubSubConnectionManager {
           debug(`onUserEvent, connectionId = ${connectionId}, req.data = ${req.data}`);
 
           if (this._clientConnections.has(connectionId)) {
-            const client = (this.eioServer as any).clients[connectionId];
+            const client = this.eioServer["clients"][connectionId];
 
             const packets = await client.transport.parser.decodePayload(req.data); // prettier-ignore
 
@@ -163,7 +168,7 @@ export class WebPubSubConnectionManager {
         const connectionId = req.context.connectionId;
         debug(`onDisconnected, connectionId = ${connectionId}`);
         if (!this._clientConnections.delete(connectionId)) {
-          (this.eioServer as any).clients[connectionId].close(true);
+          this.eioServer["clients"][connectionId].close(true);
           debug(`onDisconnected, Failed to delete non-existing connectionId = ${connectionId}`);
         }
       },
@@ -173,7 +178,7 @@ export class WebPubSubConnectionManager {
   /**
    * @returns AWPS event handler middleware for EIO Server.
    */
-  public getEventHandlerEioMiddleware(): any {
+  public getEventHandlerEioMiddleware(): unknown {
     /**
      * AWPS package provides Express middleware for event handlers.
      * However Express middleware is not compatiable to be directly used by EIO Server.
@@ -182,6 +187,8 @@ export class WebPubSubConnectionManager {
      * To resolve the difference, So a conversion from express middleware to EIO middleware.
      */
 
+    // We have to use "any" otherwise express package will be introduced
+    // eslint-disable-next-line
     const expressMiddleware: any = this._webPubSubEventHandler.getMiddleware();
 
     const eioMiddleware = (req, res, errorCallback): void => {
@@ -205,12 +212,12 @@ export class WebPubSubConnectionManager {
    * @param req - AWPS `connect` request.
    * @param context - Corrsponding `ClientConnectionContext` for the connecting client. It will be used in `createTransport` to bind each transport to the correct AWPS client connection.
    */
-  private getEioHandshakeRequest(req: WebPubSubConnectRequest, context: ClientConnectionContext): any {
+  private getEioHandshakeRequest(req: WebPubSubConnectRequest, context: ClientConnectionContext): unknown {
     /**
      * Properties inside `handshakeRequest` are used in Engine.IO `handshake` method in `Server` class.
      * src: https://github.com/socketio/engine.io/blob/6.0.x/lib/server.ts#L396
      */
-    const handshakeRequest: any = {
+    const handshakeRequest: { [key: string]: unknown } = {
       method: "GET",
       headers: req.headers,
       connection: {},
