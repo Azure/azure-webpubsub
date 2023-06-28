@@ -2,3 +2,5 @@ temp/
 .nyc_output/
 dist-esm/
 types/
+node_modules/
+yarn.lock
