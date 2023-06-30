@@ -3,16 +3,17 @@
 
 import { debugModule } from "../../common/utils";
 import { WebPubSubServiceClient } from "@azure/web-pubsub";
-import { Packet, Encoder } from "socket.io-parser";
+import { Packet, Encoder, PacketType } from "socket.io-parser";
 import { Namespace, Server as SioServer } from "socket.io";
 import { Adapter as NativeInMemoryAdapter, BroadcastOptions, Room, SocketId } from "socket.io-adapter";
 import base64url from "base64url";
 
 const debug = debugModule("wps-sio-ext:SIO:Adapter");
 
-const GROUP_DELIMITER = String.fromCharCode(31);
+const GROUP_DELIMITER = "~";
 const NotImplementedError = new Error("Not Implemented. This feature will be available in further version.");
 const NotSupportedError = new Error("Not Supported.");
+const NonLocalNotSupported = new Error("Non-local condition is not Supported.");
 
 /**
  * Socket.IO Server uses method `io.Adapter(AdapterClass))` to set the adapter. `AdatperClass` is not an instansized object, but a class.
@@ -164,7 +165,7 @@ export class WebPubSubAdapterInternal extends NativeInMemoryAdapter {
     packet: Packet,
     opts: BroadcastOptions,
     clientCountCallback: (clientCount: number) => void,
-    ack: (...args: any[]) => void
+    ack: (...args: unknown[]) => void
   ): void {
     throw NotImplementedError;
   }
@@ -186,15 +187,23 @@ export class WebPubSubAdapterInternal extends NativeInMemoryAdapter {
    * @param id - the socket id
    */
   public socketRooms(id: SocketId): Set<Room> | undefined {
-    throw NotSupportedError;
+    if (this.nsp.sockets.has(id)) {
+      throw NonLocalNotSupported;
+    }
+    const socket = this.nsp.sockets.get(id);
+    return socket.rooms;
   }
   /**
    * Returns the matching socket instances
    *
    * @param opts - the filters to apply
    */
-  public fetchSockets(opts: BroadcastOptions): Promise<any[]> {
-    throw NotSupportedError;
+  public fetchSockets(opts: BroadcastOptions): Promise<unknown[]> {
+    if (opts.flags.local) {
+      return super.fetchSockets(opts);
+    } else {
+      throw NotSupportedError;
+    }
   }
 
   /**
@@ -211,7 +220,7 @@ export class WebPubSubAdapterInternal extends NativeInMemoryAdapter {
    * Send a packet to the other Socket.IO servers in the cluster
    * @param packet - an array of arguments, which may include an acknowledgement callback at the end
    */
-  public override serverSideEmit(packet: any[]): void {
+  public override serverSideEmit(packet: unknown[]): void {
     throw NotSupportedError;
   }
 
@@ -221,8 +230,8 @@ export class WebPubSubAdapterInternal extends NativeInMemoryAdapter {
    * @param opts - the filters to apply
    * @param close - whether to close the underlying connection
    */
-  public disconnectSockets(opts: BroadcastOptions, close: boolean): void {
-    throw NotSupportedError;
+  public async disconnectSockets(opts: BroadcastOptions, close: boolean): Promise<void> {
+    await this.broadcast({ type: PacketType.DISCONNECT, nsp: this.nsp.name, data: { close } } as Packet, opts);
   }
 
   /**
@@ -270,8 +279,8 @@ export class WebPubSubAdapterInternal extends NativeInMemoryAdapter {
    * `group` is a concept from Azure Web PubSub.
    */
   private _getGroupName(namespace: string, room?: string): string {
-    const ret = namespace + GROUP_DELIMITER + (room && room.length ? room : "");
+    const ret = base64url(namespace) + GROUP_DELIMITER + (room && room.length ? base64url(room) : "");
     debug(`convert namespace::room ${namespace}::${room} => ${ret}`);
-    return base64url(ret);
+    return ret;
   }
 }
