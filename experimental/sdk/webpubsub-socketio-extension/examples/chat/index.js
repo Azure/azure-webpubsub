@@ -1,4 +1,4 @@
-const wpsExt = require("webpubsub-socket.io");
+const wpsExt = require("@azure/socketio");
 // Setup basic express server
 const express = require('express');
 const app = express();
@@ -9,7 +9,7 @@ const server = require('http').createServer(app);
 const wpsOptions = {
     hub: "eio_hub",
     path: "/eventhandler/",
-    connectionString: process.argv[2] || process.env.WebPubSubConnectionString || "Endpoint=http://localhost;Port=8080;AccessKey=ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789ABCDEFGH;Version=1.0;",
+    connectionString: process.argv[2] || process.env.WebPubSubConnectionString,
     webPubSubServiceClientOptions: { allowInsecureConnection: true }
 };
 
@@ -71,5 +71,4 @@ io.on('connection', socket => {
 
 io.httpServer.listen(3000, () => {
     console.log('Visit http://localhost:%d', 3000);
-    console.log("MAKE sure `useWps` in public/main.js is true");
 });

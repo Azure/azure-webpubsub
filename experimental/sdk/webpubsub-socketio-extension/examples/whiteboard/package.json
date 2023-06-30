@@ -10,7 +10,7 @@
     "dependencies": {
       "express": "~4.17.1",
       "socket.io": "^4.6.1",
-      "webpubsub-socket.io": "../../dist-esm"
+      "@azure/socketio": "../../dist-esm"
     },
     "scripts": {
       "start": "node index"
