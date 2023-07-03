@@ -89,6 +89,20 @@ $Env:DEBUG='*'
 node <socket-io-application>.js
 ```
 
+# Unit Test
+1. Write a `.env.test` file in root dir. An example is given in `.env.test.example`:
+```
+WebPubSubConnectionString="<web-pubsub-connection-string>"
+WebPubSubHub="eio_hub"
+WebPubSubPath="/eventhandler/"
+SocketIoPort=3000
+```
+
+2. Run command
+```bash
+yarn test:unit
+```
+
 # Limitations
 
 1. Service-side support is not public yet. This package is only for internal use.
