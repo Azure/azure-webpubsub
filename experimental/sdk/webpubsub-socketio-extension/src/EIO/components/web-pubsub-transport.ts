@@ -158,13 +158,13 @@ export class WebPubSubTransport extends Transport {
      * Binary Packet = an EIO packet whose data is BINARY_EVENT or BINARY_ACK SIO packet.
      * Binary Attachment Packet = an EIO packet whose data is binary attachment of a binary packet.
      */
-    var attachmentCount = 0, // the number of binary attachment packets found for the latest binary packet.
+    let attachmentCount = 0, // the number of binary attachment packets found for the latest binary packet.
       expectedAttachments = 0, // the expected number of binary attachment packets for the latest binary packet.
       lastBinaryMessagePacketIdx = -1, // the index of the latest binary packet.
       lastSentPacketIdx = -1, // the largest index of EIO packet that can be sent in the next REST API call
       shouldBeAttachment = false; // whether the current packet should be a binary attachment packet
 
-    for (var i = 0; i < this._buffer.length; i++) {
+    for (let i = 0; i < this._buffer.length; i++) {
       const eioPacket = this._buffer[i];
 
       // Condition 0: a pure EIO packet without data related to SIO packet.
