@@ -172,8 +172,13 @@ export class WebPubSubConnectionManager {
         const connectionId = req.context.connectionId;
         debug(`onDisconnected, connectionId = ${connectionId}`);
         if (!this._clientConnections.delete(connectionId)) {
-          this.eioServer["clients"][connectionId].close(true);
-          debug(`onDisconnected, Failed to delete non-existing connectionId = ${connectionId}`);
+          try {
+            this.eioServer["clients"][connectionId].close(true);
+            debug(`onDisconnected, Failed to delete non-existing connectionId = ${connectionId}`);
+          }
+          catch (err) {
+            debug(`onDisconnected, Failed to close client connection, connectionId = ${connectionId}, err = ${err}`);
+          }
         }
       },
     });
