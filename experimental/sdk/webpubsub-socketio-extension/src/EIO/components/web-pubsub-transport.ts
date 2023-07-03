@@ -197,8 +197,7 @@ export class WebPubSubTransport extends Transport {
       // Condition 2: A binary packet
       if (this._isTypeWithBinary(sioPacket)) {
         if (shouldBeAttachment) throw new Error("Expect a packet with binary content, but got a regular packet.");
-        if (attachmentCount !== 0)
-          throw new Error(`Exepect attachmentCount = 0 but got ${attachmentCount}`);
+        if (attachmentCount !== 0) throw new Error(`Exepect attachmentCount = 0 but got ${attachmentCount}`);
 
         attachmentCount = 0;
         expectedAttachments = sioPacket.attachments;
@@ -214,6 +213,6 @@ export class WebPubSubTransport extends Transport {
       shouldBeAttachment = false;
       lastSentPacketIdx++;
     }
-    return lastSentPacketIdx + 1; 
+    return lastSentPacketIdx + 1;
   }
 }

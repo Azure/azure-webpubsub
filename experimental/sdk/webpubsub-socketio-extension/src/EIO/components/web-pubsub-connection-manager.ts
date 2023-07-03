@@ -175,8 +175,7 @@ export class WebPubSubConnectionManager {
           try {
             this.eioServer["clients"][connectionId].close(true);
             debug(`onDisconnected, Failed to delete non-existing connectionId = ${connectionId}`);
-          }
-          catch (err) {
+          } catch (err) {
             debug(`onDisconnected, Failed to close client connection, connectionId = ${connectionId}, err = ${err}`);
           }
         }
