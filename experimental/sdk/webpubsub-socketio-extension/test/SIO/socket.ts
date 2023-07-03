@@ -644,6 +644,5 @@ describe("socket", () => {
       });
     });
 
-    // TODO: test ("should disconnect all namespaces when calling disconnect(true)"
   });
 });
