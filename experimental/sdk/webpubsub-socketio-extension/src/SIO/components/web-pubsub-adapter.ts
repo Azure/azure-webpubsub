@@ -2,11 +2,12 @@
 // Licensed under the MIT license.
 
 import { debugModule } from "../../common/utils";
-import { WebPubSubServiceClient } from "@azure/web-pubsub";
-import { Packet, Encoder, PacketType } from "socket.io-parser";
+import { WebPubSubServiceClient, HubSendTextToAllOptions } from "@azure/web-pubsub";
+import { Packet as SioPacket, Encoder as SioEncoder, PacketType as SioPacketType } from "socket.io-parser";
 import { Namespace, Server as SioServer } from "socket.io";
 import { Adapter as NativeInMemoryAdapter, BroadcastOptions, Room, SocketId } from "socket.io-adapter";
 import base64url from "base64url";
+import { EIO_PACKET_SEPARATOR } from "../../EIO/components/constants";
 
 const debug = debugModule("wps-sio-ext:SIO:Adapter");
 
@@ -40,7 +41,7 @@ export class WebPubSubAdapterProxy {
 
 export class WebPubSubAdapterInternal extends NativeInMemoryAdapter {
   public service: WebPubSubServiceClient;
-  private _encoder: Encoder;
+  private _encoder: SioEncoder;
 
   /**
    * Azure Web PubSub Socket.IO Adapter constructor.
@@ -53,7 +54,7 @@ export class WebPubSubAdapterInternal extends NativeInMemoryAdapter {
     super(nsp);
     this.service = serviceClient;
     // Fixed to use the default encoder https://github.com/socketio/socket.io-adapter
-    this._encoder = new Encoder();
+    this._encoder = new SioEncoder();
   }
 
   /**
@@ -62,28 +63,28 @@ export class WebPubSubAdapterInternal extends NativeInMemoryAdapter {
    * @param packet - the packet object
    * @param opts - the options
    */
-  public override async broadcast(packet: Packet, opts: BroadcastOptions): Promise<void> {
-    debug(`broadcast packet ${JSON.stringify(packet)}`);
+  public override async broadcast(packet: SioPacket, opts: BroadcastOptions): Promise<void> {
+    debug(`broadcast, start, packet ${JSON.stringify(packet)}`);
+    packet.nsp = this.nsp.name;
 
     // Modified from https://github.com/socketio/socket.io-adapter/blob/2.5.2/lib/index.ts#L233
-    const encodedPackets = this._encoder.encode(packet);
-
+    // if packet owns binary attachements, `.encode` returns [string, ...buffers]. Otherwise, returns a single element of string.
+    let encodedPackets = this._encoder.encode(packet);
     const oDataFilter = this._buildODataFilter(opts.rooms, opts.except);
 
-    debug(`broadcast encodedPackets = ${encodedPackets}, oDataFilter = ${oDataFilter}`);
+    debug(`broadcast encodedPackets = "${encodedPackets}", oDataFilter = "${oDataFilter}"`);
 
-    const packets = Array.isArray(encodedPackets) ? encodedPackets : [encodedPackets];
-    const sendOptions = { filter: oDataFilter };
-    for (let encodedPacket of packets) {
-      if (typeof encodedPacket === "string") {
-        encodedPacket = "4" + encodedPacket.toString();
-        sendOptions["contentType"] = "text/plain";
-      } else {
-        sendOptions["contentType"] = "application/octet-stream";
-      }
+    // Ensure `encodedPackets` is an array whose binary attachements are base64-encoeded.
+    encodedPackets = Array.isArray(encodedPackets)
+      ? [encodedPackets[0], ...encodedPackets.slice(1).map((item) => Buffer.from(item).toString("base64"))]
+      : [encodedPackets];
 
-      await this.service.sendToAll(encodedPacket, sendOptions);
-    }
+    const encodedPayload = encodedPackets.map((item) => "4" + item).join(EIO_PACKET_SEPARATOR);
+    const sendOptions = { filter: oDataFilter, contentType: "text/plain" };
+    debug(`broadcast, finish, encodedPayload = "${encodedPayload}", sendOptions = "${JSON.stringify(sendOptions)}"`);
+
+    // await this.service.sendToAll(encodedPayload, sendOptions);
+    await this.service.sendToAll(encodedPayload, sendOptions as HubSendTextToAllOptions);
   }
 
   /**
@@ -108,13 +109,10 @@ export class WebPubSubAdapterInternal extends NativeInMemoryAdapter {
 
     const eioSid = this._getEioSid(id);
 
-    // TODO: Temporary mitigation. This behaviour should be taken only one time and by service
-    rooms = rooms.add(""); // add namespace default room
-
     for (const room of rooms) {
       const groupName = this._getGroupName(this.nsp.name, room);
       debug(
-        `Try to add connection ${eioSid} to group ${groupName}, convert from ns#room = ${this.nsp.name}#${room}, SocketId = ${id}`
+        `Try to add EIO connection ${eioSid} to group ${groupName}, converted from (ns="${this.nsp.name}", room="${room}"), SocketId = ${id}`
       );
 
       await this.service.group(groupName).addConnection(eioSid);
@@ -127,14 +125,14 @@ export class WebPubSubAdapterInternal extends NativeInMemoryAdapter {
    * @param id - the socket id
    * @param room - the room name
    */
-  public del(id: SocketId, room: Room): Promise<void> | void {
+  public async del(id: SocketId, room: Room): Promise<void> {
     debug(`del SocketId = ${id}, room = ${room}`);
     const eioSid = this._getEioSid(id);
     const groupName = this._getGroupName(this.nsp.name, room);
     debug(
       `Try to remove connection ${eioSid} from group ${groupName}, convert from ns#room = ${this.nsp.name}#${room}, SocketId = ${id}`
     );
-    this.service.group(groupName).removeConnection(eioSid);
+    await this.service.group(groupName).removeConnection(eioSid);
   }
 
   /**
@@ -142,7 +140,7 @@ export class WebPubSubAdapterInternal extends NativeInMemoryAdapter {
    *
    * @param id - the socket id
    */
-  public delAll(id: SocketId): void {
+  public async delAll(id: SocketId): Promise<void> {
     debug(`delAll SocketId = ${id}`);
 
     const eioSid = this._getEioSid(id);
@@ -150,7 +148,7 @@ export class WebPubSubAdapterInternal extends NativeInMemoryAdapter {
     debug(
       `Try to remove connection ${eioSid} from group ${groupName}, convert from ns#room = ${this.nsp.name}#, SocketId = ${id}`
     );
-    this.service.group(groupName).removeConnection(eioSid);
+    await this.service.group(groupName).removeConnection(eioSid);
   }
 
   /**
@@ -162,7 +160,7 @@ export class WebPubSubAdapterInternal extends NativeInMemoryAdapter {
    * @param ack - the callback that will be called for each client response
    */
   public broadcastWithAck(
-    packet: Packet,
+    packet: SioPacket,
     opts: BroadcastOptions,
     clientCountCallback: (clientCount: number) => void,
     ack: (...args: unknown[]) => void
@@ -231,7 +229,7 @@ export class WebPubSubAdapterInternal extends NativeInMemoryAdapter {
    * @param close - whether to close the underlying connection
    */
   public async disconnectSockets(opts: BroadcastOptions, close: boolean): Promise<void> {
-    await this.broadcast({ type: PacketType.DISCONNECT, nsp: this.nsp.name, data: { close } } as Packet, opts);
+    await this.broadcast({ type: SioPacketType.DISCONNECT, nsp: this.nsp.name, data: { close } } as SioPacket, opts);
   }
 
   /**
@@ -271,6 +269,7 @@ export class WebPubSubAdapterInternal extends NativeInMemoryAdapter {
   }
 
   private _getEioSid(sioSid: string): string {
+    debug(`Get EIO socket by Sid ${sioSid} from nsp.sockets`);
     return this.nsp.sockets.get(sioSid).conn["id"];
   }
 
@@ -279,8 +278,11 @@ export class WebPubSubAdapterInternal extends NativeInMemoryAdapter {
    * `group` is a concept from Azure Web PubSub.
    */
   private _getGroupName(namespace: string, room?: string): string {
-    const ret = base64url(namespace) + GROUP_DELIMITER + (room && room.length ? base64url(room) : "");
-    debug(`convert namespace::room ${namespace}::${room} => ${ret}`);
+    let ret = `0${GROUP_DELIMITER}${base64url(namespace)}${GROUP_DELIMITER}`;
+    if (room && room.length > 0) {
+      ret += base64url(room) + GROUP_DELIMITER;
+    }
+    debug(`convert (ns="${namespace}", room="${room}") => groupName = "${ret}"`);
     return ret;
   }
 }
