@@ -130,6 +130,10 @@ export class WebPubSubConnectionManager {
               context.onRefuseEioConnection(message);
             }
           );
+
+          // Each Socket instance manages a unique `transport` property. Give transport the access to its manager Socket.
+          // This step enables tranposrt call `flush` method of its manager Socket.
+          this.eioServer["clients"][connectionId]["transport"]["socket"] = this.eioServer["clients"][connectionId];
         } catch (error) {
           debug(`onConnect, req = ${req}, err = ${error}`);
           const errorMessage = `EIO server cannot handle connect request with error: ${error}`;
