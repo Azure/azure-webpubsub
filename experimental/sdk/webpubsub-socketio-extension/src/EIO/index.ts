@@ -27,7 +27,10 @@ export class WebPubSubEioServer extends engine.Server {
   public webPubSubOptions: WebPubSubExtensionOptions | WebPubSubExtensionCredentialOptions;
   public webPubSubConnectionManager: WebPubSubConnectionManager;
 
-  constructor(options: engine.ServerOptions, webPubSubOptions: WebPubSubExtensionOptions | WebPubSubExtensionCredentialOptions) {
+  constructor(
+    options: engine.ServerOptions,
+    webPubSubOptions: WebPubSubExtensionOptions | WebPubSubExtensionCredentialOptions
+  ) {
     debug("create Engine.IO Server with AWPS");
     super(options);
     this.webPubSubOptions = webPubSubOptions;

@@ -15,7 +15,10 @@ export function init(): void {
 
 declare module "socket.io" {
   interface Server {
-    useAzureWebPubSub(this: Server, webPubSubOptions: WebPubSubExtensionOptions | WebPubSubExtensionCredentialOptions): Server;
+    useAzureWebPubSub(
+      this: Server,
+      webPubSubOptions: WebPubSubExtensionOptions | WebPubSubExtensionCredentialOptions
+    ): Server;
   }
 }
 

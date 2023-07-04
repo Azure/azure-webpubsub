@@ -1,7 +1,12 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT license.
 
-import { WebPubSubExtensionOptions, WebPubSubExtensionCredentialOptions, debugModule, getWebPubSubServiceClient } from "../../common/utils";
+import {
+  WebPubSubExtensionOptions,
+  WebPubSubExtensionCredentialOptions,
+  debugModule,
+  getWebPubSubServiceClient,
+} from "../../common/utils";
 import { ClientConnectionContext, ConnectionError } from "./client-connection-context";
 import {
   CONNECTION_ERROR_EVENT_NAME,

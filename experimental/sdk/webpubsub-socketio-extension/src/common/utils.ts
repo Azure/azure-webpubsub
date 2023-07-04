@@ -2,7 +2,7 @@
 // Licensed under the MIT license.
 
 import { WebPubSubServiceClient, WebPubSubServiceClientOptions } from "@azure/web-pubsub";
-import { AzureKeyCredential, TokenCredential } from '@azure/core-auth';
+import { AzureKeyCredential, TokenCredential } from "@azure/core-auth";
 import debugModule from "debug";
 
 export const T = (now: Date): string => `${now.toLocaleString().replace(" AM", "").replace(" PM", "")}:${now.getMilliseconds().toString().padStart(3, '0')}`; // prettier-ignore
@@ -30,32 +30,40 @@ export interface WebPubSubExtensionOptions {
 }
 
 export interface WebPubSubExtensionCredentialOptions {
-  endpoint: string,
-  credential: AzureKeyCredential | TokenCredential,
-  hub: string,
+  endpoint: string;
+  credential: AzureKeyCredential | TokenCredential;
+  hub: string;
   path: string;
-  webPubSubServiceClientOptions?: WebPubSubServiceClientOptions
+  webPubSubServiceClientOptions?: WebPubSubServiceClientOptions;
 }
 
 export function getWebPubSubServiceClient(options: WebPubSubExtensionOptions | WebPubSubExtensionCredentialOptions) {
   // if owns connection string, handle as `WebPubSubExtensionOptions`
   if (Object.keys(options).indexOf("connectionString") !== -1) {
-    const requiredKeys = ["connectionString", "hub", "path"]
+    const requiredKeys = ["connectionString", "hub", "path"];
 
-    for (const key in requiredKeys ) {
-      if (!options[key] || options[key] === "") 
+    for (const key in requiredKeys) {
+      if (!options[key] || options[key] === "")
         throw new Error(`Expect valid ${key} is required, got null or empty value.`);
     }
 
-    return new WebPubSubServiceClient(this._webPubSubOptions["connectionString"], this._webPubSubOptions["hub"], this._webPubSubOptions["webPubSubServiceClientOption"]);
-  }
-  else {
+    return new WebPubSubServiceClient(
+      this._webPubSubOptions["connectionString"],
+      this._webPubSubOptions["hub"],
+      this._webPubSubOptions["webPubSubServiceClientOption"]
+    );
+  } else {
     const requiredKeys = ["endpoint", "credential", "hub", "path"];
-    for (const key in requiredKeys ) {
-      if (!options[key] || options[key] === "") 
+    for (const key in requiredKeys) {
+      if (!options[key] || options[key] === "")
         throw new Error(`Expect valid ${key} is required, got null or empty value.`);
     }
-    return new WebPubSubServiceClient(options["endpoint"], options["credential"], options["hub"], options["webPubSubServiceClientOption"]);
+    return new WebPubSubServiceClient(
+      options["endpoint"],
+      options["credential"],
+      options["hub"],
+      options["webPubSubServiceClientOption"]
+    );
   }
 }
 
