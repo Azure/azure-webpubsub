@@ -143,7 +143,7 @@ export class WebPubSubAdapterInternal extends NativeInMemoryAdapter {
       debug(
         `Try to remove connection ${eioSid} from group ${groupName}, convert from ns#room = ${this.nsp.name}#, SocketId = ${id}`
       );
-      
+
       await this.service.group(groupName).removeConnection(eioSid);
     }
     super.delAll(id);
