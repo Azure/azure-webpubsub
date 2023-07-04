@@ -1,7 +1,7 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT license.
 
-import { addProperty, WebPubSubExtensionOptions } from "./common/utils";
+import { addProperty, WebPubSubExtensionOptions, WebPubSubExtensionCredentialOptions } from "./common/utils";
 import { useAzureWebPubSub } from "./SIO";
 import * as SIO from "socket.io";
 
@@ -15,7 +15,7 @@ export function init(): void {
 
 declare module "socket.io" {
   interface Server {
-    useAzureWebPubSub(this: Server, webPubSubOptions: WebPubSubExtensionOptions): Server;
+    useAzureWebPubSub(this: Server, webPubSubOptions: WebPubSubExtensionOptions | WebPubSubExtensionCredentialOptions): Server;
   }
 }
 
