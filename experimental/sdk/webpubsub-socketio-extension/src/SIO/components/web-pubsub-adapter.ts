@@ -3,11 +3,11 @@
 
 import { debugModule } from "../../common/utils";
 import { WebPubSubServiceClient, HubSendTextToAllOptions } from "@azure/web-pubsub";
-import { Packet as SioPacket, Encoder as SioEncoder, PacketType as SioPacketType } from "socket.io-parser";
+import { getSingleEioEncodedPayload } from "./encoder";
+import { Packet as SioPacket, PacketType as SioPacketType } from "socket.io-parser";
 import { Namespace, Server as SioServer } from "socket.io";
 import { Adapter as NativeInMemoryAdapter, BroadcastOptions, Room, SocketId } from "socket.io-adapter";
 import base64url from "base64url";
-import { EIO_PACKET_SEPARATOR } from "../../EIO/components/constants";
 
 const debug = debugModule("wps-sio-ext:SIO:Adapter");
 
@@ -41,7 +41,6 @@ export class WebPubSubAdapterProxy {
 
 export class WebPubSubAdapterInternal extends NativeInMemoryAdapter {
   public service: WebPubSubServiceClient;
-  private _encoder: SioEncoder;
 
   /**
    * Azure Web PubSub Socket.IO Adapter constructor.
@@ -53,8 +52,6 @@ export class WebPubSubAdapterInternal extends NativeInMemoryAdapter {
     debug(`constructor nsp.name = ${nsp.name}, serviceClient = ${serviceClient}`);
     super(nsp);
     this.service = serviceClient;
-    // Fixed to use the default encoder https://github.com/socketio/socket.io-adapter
-    this._encoder = new SioEncoder();
   }
 
   /**
@@ -67,23 +64,13 @@ export class WebPubSubAdapterInternal extends NativeInMemoryAdapter {
     debug(`broadcast, start, packet ${JSON.stringify(packet)}`);
     packet.nsp = this.nsp.name;
 
-    // Modified from https://github.com/socketio/socket.io-adapter/blob/2.5.2/lib/index.ts#L233
-    // if packet owns binary attachements, `.encode` returns [string, ...buffers]. Otherwise, returns a single element of string.
-    let encodedPackets = this._encoder.encode(packet);
+    const encodedPayload = await getSingleEioEncodedPayload(packet);
+
     const oDataFilter = this._buildODataFilter(opts.rooms, opts.except);
-
-    debug(`broadcast encodedPackets = "${encodedPackets}", oDataFilter = "${oDataFilter}"`);
-
-    // Ensure `encodedPackets` is an array whose binary attachements are base64-encoeded.
-    encodedPackets = Array.isArray(encodedPackets)
-      ? [encodedPackets[0], ...encodedPackets.slice(1).map((item) => Buffer.from(item).toString("base64"))]
-      : [encodedPackets];
-
-    const encodedPayload = encodedPackets.map((item) => "4" + item).join(EIO_PACKET_SEPARATOR);
     const sendOptions = { filter: oDataFilter, contentType: "text/plain" };
+
     debug(`broadcast, finish, encodedPayload = "${encodedPayload}", sendOptions = "${JSON.stringify(sendOptions)}"`);
 
-    // await this.service.sendToAll(encodedPayload, sendOptions);
     await this.service.sendToAll(encodedPayload, sendOptions as HubSendTextToAllOptions);
   }
 
@@ -280,7 +267,7 @@ export class WebPubSubAdapterInternal extends NativeInMemoryAdapter {
   private _getGroupName(namespace: string, room?: string): string {
     let ret = `0${GROUP_DELIMITER}${base64url(namespace)}${GROUP_DELIMITER}`;
     if (room && room.length > 0) {
-      ret += base64url(room) + GROUP_DELIMITER;
+      ret += base64url(room);
     }
     debug(`convert (ns="${namespace}", room="${room}") => groupName = "${ret}"`);
     return ret;
