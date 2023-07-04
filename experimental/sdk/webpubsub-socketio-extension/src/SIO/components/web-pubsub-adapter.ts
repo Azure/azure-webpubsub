@@ -104,6 +104,8 @@ export class WebPubSubAdapterInternal extends NativeInMemoryAdapter {
 
       await this.service.group(groupName).addConnection(eioSid);
     }
+
+    super.addAll(id, rooms);
   }
 
   /**
@@ -120,6 +122,8 @@ export class WebPubSubAdapterInternal extends NativeInMemoryAdapter {
       `Try to remove connection ${eioSid} from group ${groupName}, convert from ns#room = ${this.nsp.name}#${room}, SocketId = ${id}`
     );
     await this.service.group(groupName).removeConnection(eioSid);
+
+    super.del(id, room);
   }
 
   /**
@@ -131,11 +135,18 @@ export class WebPubSubAdapterInternal extends NativeInMemoryAdapter {
     debug(`delAll SocketId = ${id}`);
 
     const eioSid = this._getEioSid(id);
-    const groupName = this._getGroupName(this.nsp.name, "");
-    debug(
-      `Try to remove connection ${eioSid} from group ${groupName}, convert from ns#room = ${this.nsp.name}#, SocketId = ${id}`
-    );
-    await this.service.group(groupName).removeConnection(eioSid);
+    // To remove it from the namespace group, add a "" room
+    // Reference: https://github.com/socketio/socket.io-adapter/blob/2.5.2/lib/index.ts#L146
+    const rooms = ["", ...this.rooms.keys()];
+    for (const room of rooms) {
+      const groupName = this._getGroupName(this.nsp.name, room[0]);
+      debug(
+        `Try to remove connection ${eioSid} from group ${groupName}, convert from ns#room = ${this.nsp.name}#, SocketId = ${id}`
+      );
+      
+      await this.service.group(groupName).removeConnection(eioSid);
+    }
+    super.delAll(id);
   }
 
   /**
