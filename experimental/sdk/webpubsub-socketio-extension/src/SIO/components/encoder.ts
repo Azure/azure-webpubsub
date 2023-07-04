@@ -1,7 +1,6 @@
 import { toAsync } from "../../common/utils";
-import { Packet as SioPacket } from "socket.io-parser";
 import { Packet as EioPacket, encodePayload as encodeEioPayload, PacketType as EioPacketType } from "engine.io-parser";
-import { Encoder as SioEncoder } from "socket.io-parser";
+import { Packet as SioPacket, Encoder as SioEncoder } from "socket.io-parser";
 
 const encodeEioPayloadAsync = toAsync<string>(encodeEioPayload);
 const sioEncoder: SioEncoder = new SioEncoder();

@@ -68,10 +68,10 @@ export class WebPubSubAdapterInternal extends NativeInMemoryAdapter {
 
     const oDataFilter = this._buildODataFilter(opts.rooms, opts.except);
     const sendOptions = { filter: oDataFilter, contentType: "text/plain" };
-
-    debug(`broadcast, finish, encodedPayload = "${encodedPayload}", sendOptions = "${JSON.stringify(sendOptions)}"`);
+    debug(`broadcast, encodedPayload = "${encodedPayload}", sendOptions = "${JSON.stringify(sendOptions)}"`);
 
     await this.service.sendToAll(encodedPayload, sendOptions as HubSendTextToAllOptions);
+    debug(`broadcast, finish`);
   }
 
   /**
