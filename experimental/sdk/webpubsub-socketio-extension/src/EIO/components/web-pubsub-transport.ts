@@ -3,10 +3,11 @@
 
 import { debugModule, toAsync } from "../../common/utils";
 import { ClientConnectionContext } from "./client-connection-context";
+import { decodeStringPartial } from "../../SIO/components/decoder";
 import { WEBPUBSUB_CLIENT_CONNECTION_FILED_NAME, WEBPUBSUB_TRANSPORT_NAME } from "./constants";
 import { Transport, Socket as EioSocket } from "engine.io";
 import { Packet as EioPacket, RawData } from "engine.io-parser";
-import { Packet as SioPacket, Decoder as SioDecoder, PacketType as SioPacketType } from "socket.io-parser";
+import { Packet as SioPacket, PacketType as SioPacketType } from "socket.io-parser";
 
 const debug = debugModule("wps-sio-ext:EIO:WebPubSubTransport");
 
@@ -40,7 +41,6 @@ export class WebPubSubTransport extends Transport {
    * Indicate whether the transport is underlying Socket.IO or a pure Engine.IO transport.
    */
   private _sioMode: boolean;
-  private _sioDecoder: SioDecoder = new SioDecoder();
 
   constructor(req: unknown, sioMode = true) {
     debug("constructor");
@@ -190,9 +190,7 @@ export class WebPubSubTransport extends Transport {
         continue;
       }
 
-      const sioPacket: SioPacket = this._sioDecoder["decodeString"](eioPacket.data as string);
-      if (!SioDecoder["isPayloadValid"](sioPacket.type, sioPacket.data))
-        throw new Error(`Socket.IO decoder failed when EIO Packet = ${eioPacket} `);
+      const sioPacket: SioPacket = decodeStringPartial(eioPacket.data);
 
       // Condition 2: A binary packet
       if (this._isTypeWithBinary(sioPacket)) {
