@@ -92,9 +92,10 @@ _buffer.length=${this._buffer.length}, _buffer=${JSON.stringify(this._buffer)}`
     while (this._buffer.length > 0) {
       let sentNumber = 0;
       try {
-        sentNumber = this._getPacketNumberForNextSend(this._buffer); 
+        sentNumber = this._getPacketNumberForNextSend(this._buffer);
       } catch (error) {
-        debug(`send, internal error, inside _getPacketNumberForNextSend, error = ${error.message}, _buffer=${JSON.stringify(this._buffer)}`);
+        debug(`send, internal error, inside _getPacketNumberForNextSend, error = ${error.message},\
+_buffer=${JSON.stringify(this._buffer)}`);
         sentNumber = this._buffer.length;
       }
       if (sentNumber <= 0) break;
@@ -184,12 +185,17 @@ _buffer.length=${this._buffer.length}, _buffer=${JSON.stringify(this._buffer)}`
 
       // Condition 1: A binary attachment packet
       if (this._isMessageWithBinary(eioPacket)) {
-        if (!shouldBeAttachment) throw new Error(`Expect a packet whose data is binary attachment but not found, packets[${i}] = ${eioPacket}`);
+        if (!shouldBeAttachment)
+          throw new Error(
+            `Expect a packet whose data is binary attachment but not found, packets[${i}] = ${eioPacket}`
+          );
 
         attachmentCount++;
         if (attachmentCount === expectedAttachments) {
           if (lastBinaryMessagePacketIdx < 0 || lastBinaryMessagePacketIdx >= i)
-            throw new Error(`Invalid lastBinaryMessagePacketIdx = ${lastBinaryMessagePacketIdx}, packets[${i}] = ${eioPacket}`);
+            throw new Error(
+              `Invalid lastBinaryMessagePacketIdx = ${lastBinaryMessagePacketIdx}, packets[${i}] = ${eioPacket}`
+            );
           attachmentCount = 0;
           shouldBeAttachment = false;
           lastSentPacketIdx = i;
@@ -203,8 +209,12 @@ _buffer.length=${this._buffer.length}, _buffer=${JSON.stringify(this._buffer)}`
 
       // Condition 2: A binary packet
       if (this._isTypeWithBinary(sioPacket)) {
-        if (shouldBeAttachment) throw new Error(`Expect a packet with binary content, but got a regular packet, packets[${i}] = ${eioPacket}`);
-        if (attachmentCount !== 0) throw new Error(`Exepect attachmentCount = 0 but got ${attachmentCount}, packets[${i}] = ${eioPacket}`);
+        if (shouldBeAttachment)
+          throw new Error(
+            `Expect a packet with binary content, but got a regular packet, packets[${i}] = ${eioPacket}`
+          );
+        if (attachmentCount !== 0)
+          throw new Error(`Exepect attachmentCount = 0 but got ${attachmentCount}, packets[${i}] = ${eioPacket}`);
 
         attachmentCount = 0;
         expectedAttachments = sioPacket.attachments;

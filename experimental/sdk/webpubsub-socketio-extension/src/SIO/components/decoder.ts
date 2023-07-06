@@ -18,9 +18,9 @@ export interface PartialSioPacket {
 export function decodeStringPartial(str: string): PartialSioPacket {
   let i = 0;
   // look up type
-  var p: PartialSioPacket = {
+  const p: PartialSioPacket = {
     type: Number(str.charAt(0)),
-    attachments: 0
+    attachments: 0,
   };
 
   if (PacketType[p.type] === undefined) {
