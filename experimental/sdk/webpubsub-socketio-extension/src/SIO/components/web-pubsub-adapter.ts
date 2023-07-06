@@ -4,10 +4,13 @@
 import { debugModule } from "../../common/utils";
 import { WebPubSubServiceClient, HubSendTextToAllOptions } from "@azure/web-pubsub";
 import { getSingleEioEncodedPayload } from "./encoder";
-import { Packet as SioPacket, PacketType as SioPacketType } from "socket.io-parser";
+import { Packet as SioPacket, PacketType as SioPacketType, Decoder as SioDecoder } from "socket.io-parser";
+import * as EioParser from "engine.io-parser";
 import { Namespace, Server as SioServer } from "socket.io";
 import { Adapter as NativeInMemoryAdapter, BroadcastOptions, Room, SocketId } from "socket.io-adapter";
 import base64url from "base64url";
+import {InvokeOperationSpec} from "./operation-spec"
+import * as coreClient from "@azure/core-client";
 
 const debug = debugModule("wps-sio-ext:SIO:Adapter");
 
@@ -40,6 +43,7 @@ export class WebPubSubAdapterProxy {
 }
 
 export class WebPubSubAdapterInternal extends NativeInMemoryAdapter {
+  private _sioDecoder: SioDecoder;
   public service: WebPubSubServiceClient;
 
   /**
@@ -52,6 +56,7 @@ export class WebPubSubAdapterInternal extends NativeInMemoryAdapter {
     debug(`constructor nsp.name = ${nsp.name}, serviceClient = ${serviceClient}`);
     super(nsp);
     this.service = serviceClient;
+    this._sioDecoder = new SioDecoder();
   }
 
   /**
@@ -144,13 +149,62 @@ export class WebPubSubAdapterInternal extends NativeInMemoryAdapter {
    * @param clientCountCallback - the number of clients that received the packet
    * @param ack - the callback that will be called for each client response
    */
-  public broadcastWithAck(
+  public async broadcastWithAck(
     packet: SioPacket,
     opts: BroadcastOptions,
     clientCountCallback: (clientCount: number) => void,
     ack: (...args: unknown[]) => void
-  ): void {
-    throw NotImplementedError;
+  ): Promise<void> {
+    const onResponse = (rawResponse, flatResponse, error?) => {
+      let accumulatedData = '';
+      if (rawResponse.status !== 200) {
+        clientCountCallback(0);
+      }
+      if (rawResponse.browserStreamBody) {
+      } else {
+        let count = 0;
+        let stream = rawResponse.readableStreamBody;
+        stream.on("data", chunk => {
+          accumulatedData += chunk.toString();
+          const lines = accumulatedData.split('\n');
+
+          for (let i = 0; i < lines.length - 1; i ++) {
+            if (lines[i]) {
+              const emitWithAckResponse = JSON.parse(lines[i]);
+
+              // The payload is utf-8 encoded engineio payload, we need to decode it and only ack the data
+              let eioPackets = EioParser.decodePayload(emitWithAckResponse.Payload);
+              this._sioDecoder.on('decoded', (packet: SioPacket) => {
+                ack(packet.data);
+                count++;
+              });
+              eioPackets.forEach(element => {
+                this._sioDecoder.add(element.data);
+              });
+              this._sioDecoder.off('decoded');
+            }
+          }
+          accumulatedData = lines[lines.length - 1];
+        });
+        
+        stream.on("end", () => {
+          clientCountCallback(count);
+        })
+      }
+    }
+
+    const options: coreClient.OperationOptions = { onResponse: onResponse };
+
+    const encodedPayload = await getSingleEioEncodedPayload(packet);
+
+    const operationArguments = {
+      hub: this.service.hubName,
+      contentType: "text/plain",
+      message: encodedPayload,
+      options: options
+    };
+
+    await ((this.service as any).client as coreClient.ServiceClient).sendOperationRequest(operationArguments, InvokeOperationSpec);
   }
 
   /**
