@@ -3,7 +3,7 @@
 
 import { debugModule, toAsync } from "../../common/utils";
 import { ClientConnectionContext } from "./client-connection-context";
-import { decodeStringPartial } from "../../SIO/components/decoder";
+import { decodeStringPartial, PartialSioPacket } from "../../SIO/components/decoder";
 import { WEBPUBSUB_CLIENT_CONNECTION_FILED_NAME, WEBPUBSUB_TRANSPORT_NAME } from "./constants";
 import { Transport, Socket as EioSocket } from "engine.io";
 import { Packet as EioPacket, RawData } from "engine.io-parser";
@@ -65,7 +65,10 @@ export class WebPubSubTransport extends Transport {
    * @param packets - An array of `Packet` to send
    */
   public override async send(packets: EioPacket[]): Promise<void> {
-    debug(`send packets, packets.length = ${packets.length}, packets = ${JSON.stringify(packets)}`);
+    debug(
+      `send packets, packets.length = ${packets.length}, packets = ${JSON.stringify(packets)},\
+_buffer.length=${this._buffer.length}, _buffer=${JSON.stringify(this._buffer)}`
+    );
     this.writable = false;
 
     this._buffer.push(...packets);
@@ -87,7 +90,13 @@ export class WebPubSubTransport extends Transport {
     }
 
     while (this._buffer.length > 0) {
-      const sentNumber = this._getPacketNumberForNextSend(this._buffer);
+      let sentNumber = 0;
+      try {
+        sentNumber = this._getPacketNumberForNextSend(this._buffer); 
+      } catch (error) {
+        debug(`send, internal error, inside _getPacketNumberForNextSend, error = ${error.message}, _buffer=${JSON.stringify(this._buffer)}`);
+        sentNumber = this._buffer.length;
+      }
       if (sentNumber <= 0) break;
       const payloads = await this._encodeEioPayloadAsync(this._buffer.splice(0, sentNumber));
       await this._webPubSubSend(payloads);
@@ -101,7 +110,7 @@ export class WebPubSubTransport extends Transport {
       debug(`send, not stored transport's father socket`);
     }
 
-    debug(`send, finish, packets.length = ${packets.length}, packets = ${JSON.stringify(packets)}`);
+    debug(`send, finish, _buffer.length=${this._buffer.length}, _buffer=${JSON.stringify(this._buffer)}`);
   }
 
   public override doClose(fn?: () => void): void {
@@ -138,7 +147,7 @@ export class WebPubSubTransport extends Transport {
     return packet.data instanceof ArrayBuffer || ArrayBuffer.isView(packet.data);
   }
 
-  private _isTypeWithBinary(packet: SioPacket): boolean {
+  private _isTypeWithBinary(packet: PartialSioPacket): boolean {
     return packet.type === SioPacketType.BINARY_EVENT || packet.type === SioPacketType.BINARY_ACK;
   }
 
@@ -164,8 +173,8 @@ export class WebPubSubTransport extends Transport {
       lastSentPacketIdx = -1, // the largest index of EIO packet that can be sent in the next REST API call
       shouldBeAttachment = false; // whether the current packet should be a binary attachment packet
 
-    for (let i = 0; i < this._buffer.length; i++) {
-      const eioPacket = this._buffer[i];
+    for (let i = 0; i < packets.length; i++) {
+      const eioPacket = packets[i];
 
       // Condition 0: a pure EIO packet without data related to SIO packet.
       if (eioPacket.type !== "message") {
@@ -175,12 +184,12 @@ export class WebPubSubTransport extends Transport {
 
       // Condition 1: A binary attachment packet
       if (this._isMessageWithBinary(eioPacket)) {
-        if (!shouldBeAttachment) throw new Error("Expect a packet whose data is binary attachment but not found.");
+        if (!shouldBeAttachment) throw new Error(`Expect a packet whose data is binary attachment but not found, packets[${i}] = ${eioPacket}`);
 
         attachmentCount++;
         if (attachmentCount === expectedAttachments) {
           if (lastBinaryMessagePacketIdx < 0 || lastBinaryMessagePacketIdx >= i)
-            throw new Error(`Invalid lastBinaryMessagePacketIdx = ${lastBinaryMessagePacketIdx}, lastBinary = ${i}`);
+            throw new Error(`Invalid lastBinaryMessagePacketIdx = ${lastBinaryMessagePacketIdx}, packets[${i}] = ${eioPacket}`);
           attachmentCount = 0;
           shouldBeAttachment = false;
           lastSentPacketIdx = i;
@@ -190,12 +199,12 @@ export class WebPubSubTransport extends Transport {
         continue;
       }
 
-      const sioPacket: SioPacket = decodeStringPartial(eioPacket.data);
+      const sioPacket: PartialSioPacket = decodeStringPartial(eioPacket.data);
 
       // Condition 2: A binary packet
       if (this._isTypeWithBinary(sioPacket)) {
-        if (shouldBeAttachment) throw new Error("Expect a packet with binary content, but got a regular packet.");
-        if (attachmentCount !== 0) throw new Error(`Exepect attachmentCount = 0 but got ${attachmentCount}`);
+        if (shouldBeAttachment) throw new Error(`Expect a packet with binary content, but got a regular packet, packets[${i}] = ${eioPacket}`);
+        if (attachmentCount !== 0) throw new Error(`Exepect attachmentCount = 0 but got ${attachmentCount}, packets[${i}] = ${eioPacket}`);
 
         attachmentCount = 0;
         expectedAttachments = sioPacket.attachments;
@@ -206,7 +215,7 @@ export class WebPubSubTransport extends Transport {
 
       // Condition 3: A EIO packet whose data is related to SIO packet. But it is neither a binary packet nor a binary attachment packet
       if (shouldBeAttachment) {
-        throw new Error("Expect a packet whose data is binary attachment but not found.");
+        throw new Error(`Expect a packet whose data is binary attachment but not found, packets[${i}] = ${eioPacket}`);
       }
       shouldBeAttachment = false;
       lastSentPacketIdx++;
