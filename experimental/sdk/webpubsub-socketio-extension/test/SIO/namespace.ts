@@ -250,5 +250,4 @@ describe("namespaces", () => {
 
     io.of("/chat");
   });
-
 });

@@ -198,7 +198,7 @@ describe("socket", () => {
     });
   });
 
-  // All tests related to violate were skipped
+  // Skip: All tests related to `violate`
 
   it("should emit message events through `send`", (done) => {
     const io = new Server(serverPort);
@@ -565,37 +565,8 @@ describe("socket", () => {
       });
     });
 
-    it("should call listener when broadcasting", (done) => {
-      const io = new Server(serverPort);
-      const clientSocket = createClient(io, "/", { multiplex: false });
-
-      io.on("connection", (socket) => {
-        socket.onAnyOutgoing((event, arg1) => {
-          expect(event).to.be("my-event");
-          expect(arg1).to.be("123");
-
-          success(done, io, clientSocket);
-        });
-
-        io.emit("my-event", "123");
-      });
-    });
-
-    it("should call listener when broadcasting binary data", (done) => {
-      const io = new Server(serverPort);
-      const clientSocket = createClient(io, "/", { multiplex: false });
-
-      io.on("connection", (socket) => {
-        socket.onAnyOutgoing((event, arg1) => {
-          expect(event).to.be("my-event");
-          expect(arg1).to.be.an(Uint8Array);
-
-          success(done, io, clientSocket);
-        });
-
-        io.emit("my-event", Uint8Array.of(1, 2, 3));
-      });
-    });
+    // Skip: 2 tests based on default in-memory adapter
+    // "should call listener when broadcasting" and "should call listener when broadcasting binary data"
 
     it("should prepend listener", (done) => {
       const io = new Server(serverPort);
@@ -643,6 +614,5 @@ describe("socket", () => {
         socket.emit("my-event", "123");
       });
     });
-
   });
 });
