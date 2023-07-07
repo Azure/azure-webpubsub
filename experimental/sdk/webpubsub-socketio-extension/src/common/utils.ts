@@ -72,7 +72,7 @@ export function getWebPubSubServiceClient(options: WebPubSubExtensionOptions | W
  * @param syncFunc - a sync function with callback as its last parameter
  * @returns the async function converted from sync function `syncFunc`
  */
-export function toAsync<T>(syncFunc: (...args: unknown[]) => T): (...args: unknown[]) => Promise<T> {
+export function toAsync<T>(syncFunc: (...args: unknown[]) => unknown): (...args: unknown[]) => Promise<T> {
   return (...args: unknown[]) =>
     new Promise((resolve, reject) => {
       try {
