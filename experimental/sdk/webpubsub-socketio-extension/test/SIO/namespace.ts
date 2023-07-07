@@ -245,7 +245,7 @@ describe("namespaces", () => {
         expect(io._nsps.has("/chat")).to.be(true);
         expect(io._nsps.get("/chat")!.sockets.size).to.be(0);
         success(done, io);
-      }, 100);
+      }, 1000);
     });
 
     io.of("/chat");

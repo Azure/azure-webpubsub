@@ -7,7 +7,7 @@ import { decodeStringPartial, PartialSioPacket } from "../../SIO/components/deco
 import { WEBPUBSUB_CLIENT_CONNECTION_FILED_NAME, WEBPUBSUB_TRANSPORT_NAME } from "./constants";
 import { Transport, Socket as EioSocket } from "engine.io";
 import { Packet as EioPacket, RawData } from "engine.io-parser";
-import { Packet as SioPacket, PacketType as SioPacketType } from "socket.io-parser";
+import { PacketType as SioPacketType } from "socket.io-parser";
 
 const debug = debugModule("wps-sio-ext:EIO:WebPubSubTransport");
 

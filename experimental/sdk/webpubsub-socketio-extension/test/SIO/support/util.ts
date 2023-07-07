@@ -66,6 +66,9 @@ export function getEndpointFullPath(connectionString: string): string {
       endpoint = value.trim();
     }
   }
+  if (port === -1) {
+    port = endpoint.indexOf("https://") === 0 || endpoint.indexOf("wss://") === 0 ? 443 : 80;
+  }
   return `${endpoint}:${port}`;
 }
 
