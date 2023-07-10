@@ -11,6 +11,7 @@ import { Adapter as NativeInMemoryAdapter, BroadcastOptions, Room, SocketId } fr
 import base64url from "base64url";
 import {InvokeOperationSpec} from "./operation-spec"
 import * as coreClient from "@azure/core-client";
+import { TextDecoder } from "util";
 
 const debug = debugModule("wps-sio-ext:SIO:Adapter");
 
@@ -156,40 +157,66 @@ export class WebPubSubAdapterInternal extends NativeInMemoryAdapter {
     ack: (...args: unknown[]) => void
   ): Promise<void> {
     const onResponse = (rawResponse, flatResponse, error?) => {
+      let count = 0;
       let accumulatedData = '';
-      if (rawResponse.status !== 200) {
-        clientCountCallback(0);
-      }
-      if (rawResponse.browserStreamBody) {
-      } else {
-        let count = 0;
-        let stream = rawResponse.readableStreamBody;
-        stream.on("data", chunk => {
-          accumulatedData += chunk.toString();
-          const lines = accumulatedData.split('\n');
-
-          for (let i = 0; i < lines.length - 1; i ++) {
-            if (lines[i]) {
-              const emitWithAckResponse = JSON.parse(lines[i]);
-
-              // The payload is utf-8 encoded engineio payload, we need to decode it and only ack the data
-              let eioPackets = EioParser.decodePayload(emitWithAckResponse.Payload);
-              this._sioDecoder.on('decoded', (packet: SioPacket) => {
-                ack(packet.data);
-                count++;
-              });
-              eioPackets.forEach(element => {
-                this._sioDecoder.add(element.data);
-              });
-              this._sioDecoder.off('decoded');
-            }
+      const handleJsonLines = (lines: string[], onPacket: (SioPacket)=>void) => {
+        /**
+         * line1: {xxx}
+         * line2: {xxx}
+         * ..
+         * lineN: {xx   //maybe not complete
+         */
+        for (let i = 0; i < lines.length - 1; i ++) {
+          if (lines[i]) {
+            const emitWithAckResponse = JSON.parse(lines[i]);
+  
+            // The payload is utf-8 encoded engineio payload, we need to decode it and only ack the data
+            let eioPackets = EioParser.decodePayload(emitWithAckResponse.Payload);
+            this._sioDecoder.on('decoded', (packet: SioPacket) => onPacket(packet));
+            eioPackets.forEach(element => {
+              this._sioDecoder.add(element.data);
+            });
+            this._sioDecoder.off('decoded');
           }
-          accumulatedData = lines[lines.length - 1];
+        }
+      };
+
+      const streamHandleResponse = (chunk: string) => {
+        accumulatedData += chunk.toString();
+        const lines = accumulatedData.split('\n');
+        handleJsonLines(lines, (packet: SioPacket) => {
+          ack(packet.data);
+              count++;
         });
-        
+        accumulatedData = lines[lines.length - 1];
+      }
+
+      if (error || rawResponse.status !== 200) {
+        // Log and do nothing, let it timeout
+        debug(`broadcastWithAck response status code = ${rawResponse.status}, error = ${error}, rawResponse = ${JSON.stringify(rawResponse)}`)
+        return;
+      }
+
+      if (rawResponse.browserStreamBody) {
+        // Browser stream
+        let reader = rawResponse.browserStreamBody.getReader();
+        const decoder = new TextDecoder('utf-8');
+        reader.read().then(function processText({ done, value }) {
+          if (done) {
+            clientCountCallback(count);
+            return;
+          }
+          let text = decoder.decode(value);
+          streamHandleResponse(text);
+        });
+      } else {
+        let stream = rawResponse.readableStreamBody;
         stream.on("end", () => {
           clientCountCallback(count);
         })
+        stream.on("data", chunk => {
+          streamHandleResponse(chunk.toString());
+        });
       }
     }
 
