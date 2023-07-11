@@ -313,7 +313,7 @@ export class WebPubSubAdapterInternal extends NativeInMemoryAdapter {
     const lock = this._roomOperationLock.get(id);
     await lock.waitForUnlock();
     const release = await lock.acquire();
-    
+
     debug(`_getLock, finish, id = ${id}`);
     return release;
   }
