@@ -4,6 +4,10 @@ import { Server as _Server, ServerOptions } from "socket.io";
 import { io as ioc, ManagerOptions, Socket as ClientSocket, SocketOptions } from "socket.io-client";
 import { debugModule } from "../../../src/common/utils";
 import { init, WebPubSubExtensionOptions } from "../../../src";
+import { Server as HttpServer } from "http";
+import { setTimeout } from "timers";
+
+const request = require("supertest");
 
 const debug = debugModule("wps-sio-ext:ut:sio:util");
 const expect = require("expect.js");
@@ -11,7 +15,7 @@ const i = expect.stringify;
 
 init();
 
-const wpsOptions = {
+export const wpsOptions = {
   hub: process.env.WebPubSubHub,
   path: process.env.WebPubSubPath,
   connectionString: process.env.WebPubSubConnectionString,
@@ -21,21 +25,43 @@ const wpsOptions = {
 const serverPort = Number(process.env.SocketIoPort);
 debug(`SocketIO Server Port = ${serverPort}`);
 
+// e.g: /eventhandler/this-is-a-file.js
+export const attachmentPath = (filename: string): string =>
+  wpsOptions.path + (wpsOptions.path.endsWith("/") ? "" : "/") + filename;
+
+// e.g. /eventhandler/socket.io.js
+export const defaultAttachmentPath = attachmentPath("socket.io.js");
+
+// e.g. http://localhost:3000
+export const getClientConnectDomain = (): string => getEndpointFullPath(process.env.WebPubSubConnectionString ?? "");
+
+// e.g. /client/socket/hubs/eio_hub
+export const getClientConnectPath = (): string => `/clients/socketio/hubs/${process.env.WebPubSubHub}`;
+
+export const enableFastClose = (server: _Server): void => {
+  server["httpServer"] = require("http-shutdown")(server["httpServer"]);
+};
+
 export class Server extends _Server {
-  constructor(port: number = serverPort, extraOpts: Partial<ServerOptions> = {}) {
+  constructor(srv?: number | HttpServer, extraOpts?: Partial<ServerOptions>) {
     const opts = extraOpts ? { ...extraOpts, path: wpsOptions.path } : { path: wpsOptions.path };
-    debug(`Server, port = ${port}, opts = ${JSON.stringify(opts)}`);
-    super(port, opts);
+    if (typeof srv === "number") {
+      debug(`Server, port = ${srv}, opts = ${JSON.stringify(opts)}`);
+    } else {
+      debug(`Server, srv = ${srv}, opts = ${JSON.stringify(opts)}`);
+    }
+    super(srv, opts);
     this.useAzureWebPubSub(wpsOptions);
     // `Server.close()` will trigger `HttpServer.close()`, which costs a lot of time
     // This is a trick to shutdown http server in a short time
-    this["httpServer"] = require("http-shutdown")(this["httpServer"]);
+    enableFastClose(this);
+    // this["httpServer"] = require("http-shutdown")(this["httpServer"]);
   }
 }
 
 // add support for Set/Map
 const contain = expect.Assertion.prototype.contain;
-expect.Assertion.prototype.contain = function (...args) {
+expect.Assertion.prototype.contain = function (...args: any[]) {
   if (this.obj instanceof Set || this.obj instanceof Map) {
     args.forEach((obj) => {
       this.assert(
@@ -78,7 +104,7 @@ export function createClient(
   opts?: Partial<ManagerOptions & SocketOptions>
 ): ClientSocket {
   const endpointFullPath = getEndpointFullPath(process.env.WebPubSubConnectionString ?? "");
-  opts = { path: `/clients/socketio/hubs/${process.env.WebPubSubHub}`, ...opts };
+  opts = { path: getClientConnectPath(), ...opts };
   let uri = `${endpointFullPath}${nsp}`;
   debug(`createClient, opts = ${JSON.stringify(opts)}, endpointFullPath = ${endpointFullPath}, uri = ${uri}`);
 
@@ -88,7 +114,7 @@ export function createClient(
 export function shutdown(io: Server, cb?: (err?: Error) => void) {
   io["httpServer"].shutdown((err) => {
     if (err) {
-      console.log(`Http Server shutdown failed: ${err.message}`);
+      debug(`Http Server shutdown failed: ${err.message}`);
     }
     debug("httpServer closed");
     io.close(() => {
@@ -126,4 +152,88 @@ export function createPartialDone(count: number, done: (err?: Error) => void) {
       done(new Error(`partialDone() called too many times: ${i} > ${count}`));
     }
   };
+}
+
+export function waitFor<T = unknown>(emitter, event) {
+  return new Promise<T>((resolve) => {
+    emitter.once(event, resolve);
+  });
+}
+
+// TODO: update superagent as latest release now supports promises
+export function eioHandshake(): Promise<string> {
+  return new Promise((resolve) => {
+    request(getClientConnectDomain())
+      .get(getClientConnectPath())
+      .query({ transport: "polling", EIO: 4 })
+      .end((err, res) => {
+        debug(`eioHandshake, err = ${err} response = ${JSON.stringify(res)}`);
+        const sid = JSON.parse(res.text.substring(1)).sid;
+        resolve(sid);
+      });
+  });
+}
+
+export function eioPush(sid: string, body: string): Promise<void> {
+  return new Promise((resolve) => {
+    request(getClientConnectDomain())
+      .post(getClientConnectPath())
+      .type("text/plain")
+      .send(body)
+      .query({ transport: "polling", EIO: 4, sid })
+      .expect(200)
+      .end((err, res) => {
+        debug(`eioPush, err = ${err}, res = ${JSON.stringify(res)}`);
+        resolve();
+      });
+  });
+}
+
+export function eioPoll(sid: string): Promise<string> {
+  return new Promise((resolve) => {
+    request(getClientConnectDomain())
+      .get(getClientConnectPath())
+      .query({ transport: "polling", EIO: 4, sid })
+      .expect(200)
+      .end((err, res) => {
+        debug(`eioPoll, err = ${err}, res = ${JSON.stringify(res)}`);
+        resolve(res.text);
+      });
+  });
+}
+
+/**
+ * Constantly execute `check` function every `intervalMilliseconds` until it finish without throwing exception or `maxMs` is reached.
+ * When `maxMs` is reached and not returned yet, the last exception will be thrown.
+ * @param check - a function that contains assert sentences which throw excpetion when fail
+ * @param maxMilliseconds - the maximum milliseconds to wait for a sucessful `check` execution
+ * @param intervalMilliseconds - the interval milliseconds between two `check` executions
+ * @returns
+ */
+export async function spinCheck(
+  check: () => void,
+  maxMilliseconds: number = 2000,
+  intervalMilliseconds: number = 100
+): Promise<void> {
+  debug("spinCheck, start");
+  const start = Date.now();
+
+  while (true) {
+    try {
+      check();
+      debug(`spinCheck, success, total cost = ${Date.now() - start} ms`);
+      return;
+    } catch (e) {
+      const cost = Date.now() - start;
+      debug(`spinCheck, error message = ${e.message}, total cost = ${cost} ms`);
+      if (cost > maxMilliseconds) {
+        debug(`spinCheck, last error message = "${e.message}", total cost = ${cost} ms`);
+        throw e;
+      }
+      // sleep await 200 ms
+      await new Promise((resolve) => {
+        setTimeout(resolve, intervalMilliseconds);
+      });
+    }
+  }
 }

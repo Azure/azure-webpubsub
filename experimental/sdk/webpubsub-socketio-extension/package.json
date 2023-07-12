@@ -65,7 +65,7 @@
     "nyc": "^15.1.0",
     "prettier": "^2.8.8",
     "rimraf": "^3.0.2",
-    "socket.io-client": "^4.7.1",
+    "socket.io-client": "4.6.2",
     "supertest": "^6.3.3",
     "ts-node": "^10.2.1",
     "tsd": "^0.21.0",
