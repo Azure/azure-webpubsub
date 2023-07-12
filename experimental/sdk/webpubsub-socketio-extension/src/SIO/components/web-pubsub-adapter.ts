@@ -1,12 +1,13 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT license.
 
-import { debugModule } from "../../common/utils";
+import { debugModule, toString } from "../../common/utils";
 import { WebPubSubServiceClient, HubSendTextToAllOptions } from "@azure/web-pubsub";
 import { getSingleEioEncodedPayload } from "./encoder";
 import { Packet as SioPacket, PacketType as SioPacketType } from "socket.io-parser";
 import { Namespace, Server as SioServer } from "socket.io";
 import { Adapter as NativeInMemoryAdapter, BroadcastOptions, Room, SocketId } from "socket.io-adapter";
+import { Mutex, MutexInterface } from "async-mutex";
 import base64url from "base64url";
 
 const debug = debugModule("wps-sio-ext:SIO:Adapter");
@@ -41,6 +42,7 @@ export class WebPubSubAdapterProxy {
 
 export class WebPubSubAdapterInternal extends NativeInMemoryAdapter {
   public service: WebPubSubServiceClient;
+  private _roomOperationLock: Map<SocketId, Mutex> = new Map();
 
   /**
    * Azure Web PubSub Socket.IO Adapter constructor.
@@ -61,7 +63,7 @@ export class WebPubSubAdapterInternal extends NativeInMemoryAdapter {
    * @param opts - the options
    */
   public override async broadcast(packet: SioPacket, opts: BroadcastOptions): Promise<void> {
-    debug(`broadcast, start, packet ${JSON.stringify(packet)}`);
+    debug(`broadcast, start, packet = ${JSON.stringify(packet)}, opts = ${JSON.stringify(opts)}`);
     packet.nsp = this.nsp.name;
 
     const encodedPayload = await getSingleEioEncodedPayload(packet);
@@ -92,18 +94,24 @@ export class WebPubSubAdapterInternal extends NativeInMemoryAdapter {
    */
   public async addAll(id: SocketId, rooms: Set<Room>): Promise<void> {
     // TODO: RT should support a new API AddConnectionsToGroups
-    debug(`addAll SocketId = ${id}, |rooms| = ${rooms.size}`);
-
-    const eioSid = this._getEioSid(id);
-
-    for (const room of rooms) {
-      const groupName = this._getGroupName(this.nsp.name, room);
-      debug(
-        `Try to add EIO connection ${eioSid} to group ${groupName}, converted from (ns="${this.nsp.name}", room="${room}"), SocketId = ${id}`
-      );
-
-      await this.service.group(groupName).addConnection(eioSid);
+    debug(`addAll, start, id = ${id}, rooms = ${toString(rooms)}}`);
+    const release = await this._getLock(id);
+    try {
+      const eioSid = this._getEioSid(id);
+      for (const room of rooms) {
+        const groupName = this._getGroupName(this.nsp.name, room);
+        await this.service.group(groupName).addConnection(eioSid);
+        debug(
+          `addAll, call API AddConnectionToGroup, finish, groupName = ${groupName}, connectionId(eioSid) = ${eioSid}`
+        );
+      }
+      super.addAll(id, rooms);
+    } catch (e) {
+      debug(`addAll, error, SocketId = ${id}, rooms = ${toString(rooms)}, error.message = ${e.message}`);
+    } finally {
+      release();
     }
+    debug(`addAll, finish, SocketId = ${id}, rooms = ${toString(rooms)}, id.rooms = ${toString(this.sids.get(id))}`);
   }
 
   /**
@@ -113,13 +121,24 @@ export class WebPubSubAdapterInternal extends NativeInMemoryAdapter {
    * @param room - the room name
    */
   public async del(id: SocketId, room: Room): Promise<void> {
-    debug(`del SocketId = ${id}, room = ${room}`);
-    const eioSid = this._getEioSid(id);
-    const groupName = this._getGroupName(this.nsp.name, room);
-    debug(
-      `Try to remove connection ${eioSid} from group ${groupName}, convert from ns#room = ${this.nsp.name}#${room}, SocketId = ${id}`
-    );
-    await this.service.group(groupName).removeConnection(eioSid);
+    debug(`del, start, id = ${id}, room = ${room}`);
+    const release = await this._getLock(id);
+    try {
+      const eioSid = this._getEioSid(id);
+      const groupName = this._getGroupName(this.nsp.name, room);
+
+      await this.service.group(groupName).removeConnection(eioSid);
+
+      debug(
+        `del, call API RemoveConnectionFromGroup, finish, groupName = ${groupName}, connectionId(eioSid) = ${eioSid}`
+      );
+      super.del(id, room);
+    } catch (e) {
+      debug(`del, error, SocketId = ${id}, room = ${room}, error.message = ${e.message}`);
+    } finally {
+      release();
+    }
+    debug(`del, finish, SocketId = ${id}, room = ${room}, id.rooms = ${toString(this.sids.get(id))}`);
   }
 
   /**
@@ -128,12 +147,24 @@ export class WebPubSubAdapterInternal extends NativeInMemoryAdapter {
    * @param id - the socket id
    */
   public async delAll(id: SocketId): Promise<void> {
-    debug(`delAll SocketId = ${id}`);
+    debug(`delAll, start, id = ${id}`);
+    const release = await this._getLock(id);
+    debug(`delAll, lock acquired`);
+    try {
+      // send disconnect packet to socketio connection by leveraging private room whose name == sid
+      const packet: SioPacket = { type: SioPacketType.DISCONNECT } as SioPacket;
+      const opts: BroadcastOptions = { rooms: new Set([id]) } as BroadcastOptions;
+      debug(`delAll, call adapter.broadcast`);
 
-    // send disconnect packet to socketio connection by leveraging private room whose name == sid
-    const groupName = this._getGroupName(this.nsp.name, id);
-    const opts = { rooms: new Set([groupName]) } as BroadcastOptions;
-    await this.broadcast({ type: SioPacketType.DISCONNECT, nsp: this.nsp.name } as SioPacket, opts);
+      await this.broadcast(packet, opts);
+
+      super.delAll(id);
+    } catch (e) {
+      debug(`delAll, error, SocketId = ${id}, error.message = ${e.message}`);
+    } finally {
+      release();
+    }
+    debug(`delAll, finish, SocketId = ${id}, id.rooms = ${toString(this.sids.get(id))}`);
   }
 
   /**
@@ -162,26 +193,26 @@ export class WebPubSubAdapterInternal extends NativeInMemoryAdapter {
     throw NotSupportedError;
   }
 
-  // Unsupported Methods
-
   /**
    * Gets the list of rooms a given socket has joined.
    *
    * @param id - the socket id
    */
   public socketRooms(id: SocketId): Set<Room> | undefined {
-    if (this.nsp.sockets.has(id)) {
-      throw NonLocalNotSupported;
-    }
-    const socket = this.nsp.sockets.get(id);
-    return socket.rooms;
+    debug(`socketRooms, start, id = ${id}`);
+    // Follow the same handling logic as RedisAdapter. Though it's incorrect strictly for multiple server condition.
+    const ret = super.socketRooms(id);
+    debug(`socketRooms, finish, id = ${id} ${toString(ret)}`);
+    return ret;
   }
+
   /**
    * Returns the matching socket instances
    *
    * @param opts - the filters to apply
    */
   public fetchSockets(opts: BroadcastOptions): Promise<unknown[]> {
+    debug(`fetchSockets, start, opts = ${JSON.stringify(opts)}`);
     if (opts.flags.local) {
       return super.fetchSockets(opts);
     } else {
@@ -214,7 +245,9 @@ export class WebPubSubAdapterInternal extends NativeInMemoryAdapter {
    * @param close - whether to close the underlying connection
    */
   public async disconnectSockets(opts: BroadcastOptions, close: boolean): Promise<void> {
+    debug(`disconnectSockets, start, opts = ${JSON.stringify(opts)}, close = ${close}`);
     await this.broadcast({ type: SioPacketType.DISCONNECT, nsp: this.nsp.name, data: { close } } as SioPacket, opts);
+    debug(`disconnectSockets, finish, opts = ${JSON.stringify(opts)}, close = ${close}`);
   }
 
   /**
@@ -254,7 +287,7 @@ export class WebPubSubAdapterInternal extends NativeInMemoryAdapter {
   }
 
   private _getEioSid(sioSid: string): string {
-    debug(`Get EIO socket by Sid ${sioSid} from nsp.sockets`);
+    debug(`Get EIO socket, id = "${sioSid}", nsp.sockets = ${toString(this.nsp.sockets.keys())}`);
     return this.nsp.sockets.get(sioSid).conn["id"];
   }
 
@@ -269,5 +302,18 @@ export class WebPubSubAdapterInternal extends NativeInMemoryAdapter {
     }
     debug(`convert (ns="${namespace}", room="${room}") => groupName = "${ret}"`);
     return ret;
+  }
+
+  private async _getLock(id: SocketId): Promise<MutexInterface.Releaser> {
+    debug(`_getLock, start, id = ${id}`);
+
+    if (!this._roomOperationLock.has(id)) {
+      this._roomOperationLock.set(id, new Mutex());
+    }
+    const lock = this._roomOperationLock.get(id);
+    const release = await lock.acquire();
+
+    debug(`_getLock, finish, id = ${id}`);
+    return release;
   }
 }
