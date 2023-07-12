@@ -86,11 +86,10 @@ opts = ${toOptionsString(opts)}, namespace = "${this.nsp.name}"`);
   public async addSockets(opts: BroadcastOptions, rooms: Room[]): Promise<void> {
     debug(`addSockets, start, rooms = ${toString(rooms)}, opts = ${toOptionsString(opts)}`);
     const localSockets = await super.fetchSockets(opts);
-    let releases: MutexInterface.Releaser[] = [];
+    const releases: MutexInterface.Releaser[] = [];
     localSockets.forEach(async (socket) => {
       releases.push(await this._getLock(socket.id));
     });
-    await Promise.all(releases);
     try {
       const oDataFilter = this._buildODataFilter(opts.rooms, opts.except);
       const groupNames = Array.from(rooms).map((room) => this._getGroupName(this.nsp.name, room));
@@ -249,7 +248,7 @@ groupNames = ${toString(rooms)}, connectionId(eioSid) = ${this._getEioSid(id)}`)
   public async delSockets(opts: BroadcastOptions, rooms: Room[]): Promise<void> {
     debug(`delSockets, start, rooms = ${toString(rooms)}, opts = ${toOptionsString(opts)}`);
     const localSockets = await super.fetchSockets(opts);
-    let releases: MutexInterface.Releaser[] = [];
+    const releases: MutexInterface.Releaser[] = [];
     localSockets.forEach(async (socket) => {
       releases.push(await this._getLock(socket.id));
     });
