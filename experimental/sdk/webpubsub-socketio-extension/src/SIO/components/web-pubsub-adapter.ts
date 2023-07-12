@@ -311,7 +311,6 @@ export class WebPubSubAdapterInternal extends NativeInMemoryAdapter {
       this._roomOperationLock.set(id, new Mutex());
     }
     const lock = this._roomOperationLock.get(id);
-    await lock.waitForUnlock();
     const release = await lock.acquire();
 
     debug(`_getLock, finish, id = ${id}`);
