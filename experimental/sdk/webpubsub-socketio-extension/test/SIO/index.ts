@@ -33,7 +33,7 @@
 
 describe("socket.io", () => {
   require("./server-attachment");
-  // handshake.ts: CORS is not supported 
+  // handshake.ts: CORS is not supported
   require("./close");
   require("./namespace");
   require("./socket");
