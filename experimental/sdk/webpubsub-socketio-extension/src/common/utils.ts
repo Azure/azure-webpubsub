@@ -45,4 +45,13 @@ export function toAsync<T>(syncFunc: (...args: unknown[]) => unknown): (...args:
     });
 }
 
+/**
+ * Stringify a set of string .
+ * @param set - a set or string. Example: Set\<string\>{"a", "b"}
+ * @returns the stringified set. Example: "{ "a", "b" }"
+ */
+export function toString(set: Set<string> | IterableIterator<string>): string {
+  return set ? `{ "${[...set].join('", "')}" }` : "{}";
+}
+
 export { debugModule };

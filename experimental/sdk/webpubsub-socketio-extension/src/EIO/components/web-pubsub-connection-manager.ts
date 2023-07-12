@@ -171,9 +171,9 @@ export class WebPubSubConnectionManager {
       onDisconnected: async (req) => {
         const connectionId = req.context.connectionId;
         debug(`onDisconnected, connectionId = ${connectionId}`);
-        if (!this._clientConnections.delete(connectionId)) {
+        if (this._clientConnections.delete(connectionId)) {
           try {
-            this.eioServer["clients"][connectionId].close(true);
+            this.eioServer["clients"][connectionId].transport.onClose();
             debug(`onDisconnected, Failed to delete non-existing connectionId = ${connectionId}`);
           } catch (err) {
             debug(`onDisconnected, Failed to close client connection, connectionId = ${connectionId}, err = ${err}`);
