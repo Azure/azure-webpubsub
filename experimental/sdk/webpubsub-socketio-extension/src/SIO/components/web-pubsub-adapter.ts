@@ -1,7 +1,7 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT license.
 
-import { debugModule, toString } from "../../common/utils";
+import { debugModule, toOptionsString, toString } from "../../common/utils";
 import { WebPubSubServiceClient, HubSendTextToAllOptions } from "@azure/web-pubsub";
 import { getSingleEioEncodedPayload } from "./encoder";
 import { Packet as SioPacket, PacketType as SioPacketType } from "socket.io-parser";
@@ -63,7 +63,8 @@ export class WebPubSubAdapterInternal extends NativeInMemoryAdapter {
    * @param opts - the options
    */
   public override async broadcast(packet: SioPacket, opts: BroadcastOptions): Promise<void> {
-    debug(`broadcast, start, packet = ${JSON.stringify(packet)}, opts = ${JSON.stringify(opts)}`);
+    debug(`broadcast, start, packet = ${JSON.stringify(packet)},\
+opts = ${toOptionsString(opts)}, namespace = "${this.nsp.name}"`);
     packet.nsp = this.nsp.name;
 
     const encodedPayload = await getSingleEioEncodedPayload(packet);
@@ -82,8 +83,27 @@ export class WebPubSubAdapterInternal extends NativeInMemoryAdapter {
    * @param opts - the filters to apply
    * @param rooms - the rooms to join
    */
-  public addSockets(opts: BroadcastOptions, rooms: Room[]): void {
-    throw NotImplementedError;
+  public async addSockets(opts: BroadcastOptions, rooms: Room[]): Promise<void> {
+    debug(`addSockets, start, rooms = ${toString(rooms)}, opts = ${toOptionsString(opts)}`);
+    const localSockets = await super.fetchSockets(opts);
+    let releases: MutexInterface.Releaser[] = [];
+    localSockets.forEach(async (socket) => {
+      releases.push(await this._getLock(socket.id));
+    });
+    await Promise.all(releases);
+    try {
+      const oDataFilter = this._buildODataFilter(opts.rooms, opts.except);
+      const groupNames = Array.from(rooms).map((room) => this._getGroupName(this.nsp.name, room));
+      await this.service.addConnectionsToGroups(groupNames, oDataFilter);
+      debug(`addSockets, call API addConnectionsToGroups, finish, \
+rooms = ${toString(rooms)}, opts = ${toOptionsString(opts)}`);
+      super.addSockets(opts, rooms);
+    } catch (e) {
+      debug(`addSockets, error, rooms = ${toString(rooms)}, opts = ${toOptionsString(opts)}, \
+error.message = ${e.message}`);
+    } finally {
+      releases.forEach((release: MutexInterface.Releaser) => release());
+    }
   }
 
   /**
@@ -93,18 +113,18 @@ export class WebPubSubAdapterInternal extends NativeInMemoryAdapter {
    * @param rooms - a set of rooms
    */
   public async addAll(id: SocketId, rooms: Set<Room>): Promise<void> {
-    // TODO: RT should support a new API AddConnectionsToGroups
     debug(`addAll, start, id = ${id}, rooms = ${toString(rooms)}}`);
     const release = await this._getLock(id);
     try {
       const eioSid = this._getEioSid(id);
-      for (const room of rooms) {
-        const groupName = this._getGroupName(this.nsp.name, room);
-        await this.service.group(groupName).addConnection(eioSid);
-        debug(
-          `addAll, call API AddConnectionToGroup, finish, groupName = ${groupName}, connectionId(eioSid) = ${eioSid}`
-        );
-      }
+      const connectionFilter = `connectionId eq '${eioSid}'`;
+      const groupNames = Array.from(rooms).map((room) => this._getGroupName(this.nsp.name, room));
+
+      debug(`addAll, connectionFilter = "${connectionFilter}", groupNames = "${toString(groupNames)}"`);
+      await this.service.addConnectionsToGroups(groupNames, connectionFilter);
+
+      debug(`addAll, call API AddConnectionsToGroups, finish, \
+groupNames = ${toString(rooms)}, connectionId(eioSid) = ${this._getEioSid(id)}`);
       super.addAll(id, rooms);
     } catch (e) {
       debug(`addAll, error, SocketId = ${id}, rooms = ${toString(rooms)}, error.message = ${e.message}`);
@@ -212,7 +232,7 @@ export class WebPubSubAdapterInternal extends NativeInMemoryAdapter {
    * @param opts - the filters to apply
    */
   public fetchSockets(opts: BroadcastOptions): Promise<unknown[]> {
-    debug(`fetchSockets, start, opts = ${JSON.stringify(opts)}`);
+    debug(`fetchSockets, start, opts = ${toOptionsString(opts)}`);
     if (opts.flags.local) {
       return super.fetchSockets(opts);
     } else {
@@ -226,8 +246,27 @@ export class WebPubSubAdapterInternal extends NativeInMemoryAdapter {
    * @param opts - the filters to apply
    * @param rooms - the rooms to leave
    */
-  public delSockets(opts: BroadcastOptions, rooms: Room[]): void {
-    throw NotImplementedError;
+  public async delSockets(opts: BroadcastOptions, rooms: Room[]): Promise<void> {
+    debug(`delSockets, start, rooms = ${toString(rooms)}, opts = ${toOptionsString(opts)}`);
+    const localSockets = await super.fetchSockets(opts);
+    let releases: MutexInterface.Releaser[] = [];
+    localSockets.forEach(async (socket) => {
+      releases.push(await this._getLock(socket.id));
+    });
+    await Promise.all(releases);
+    try {
+      const oDataFilter = this._buildODataFilter(opts.rooms, opts.except);
+      const groupNames = Array.from(rooms).map((room) => this._getGroupName(this.nsp.name, room));
+      await this.service.removeConnectionsFromGroups(groupNames, oDataFilter);
+      debug(`delSockets, call API removeConnectionsFromGroups, finish, \
+rooms = ${toString(rooms)}, opts = ${toOptionsString(opts)}`);
+      super.delSockets(opts, rooms);
+    } catch (e) {
+      debug(`delSockets, error, rooms = ${toString(rooms)}, \
+opts = ${toOptionsString(opts)}, error.message = ${e.message}`);
+    } finally {
+      releases.forEach((release: MutexInterface.Releaser) => release());
+    }
   }
 
   /**
@@ -245,9 +284,10 @@ export class WebPubSubAdapterInternal extends NativeInMemoryAdapter {
    * @param close - whether to close the underlying connection
    */
   public async disconnectSockets(opts: BroadcastOptions, close: boolean): Promise<void> {
-    debug(`disconnectSockets, start, opts = ${JSON.stringify(opts)}, close = ${close}`);
+    debug(`disconnectSockets, start, opts = ${toOptionsString(opts)}, close = ${close}`);
     await this.broadcast({ type: SioPacketType.DISCONNECT, nsp: this.nsp.name, data: { close } } as SioPacket, opts);
-    debug(`disconnectSockets, finish, opts = ${JSON.stringify(opts)}, close = ${close}`);
+    super.disconnectSockets(opts, close);
+    debug(`disconnectSockets, finish, opts = ${toOptionsString(opts)}, close = ${close}`);
   }
 
   /**
@@ -256,7 +296,7 @@ export class WebPubSubAdapterInternal extends NativeInMemoryAdapter {
    * @param except - a set of Rooms to exclude
    * @returns OData - filter string
    */
-  private _buildODataFilter(rooms: Set<string>, excepts: Set<string> | undefined): string {
+  private _buildODataFilter(rooms: Set<string>, excepts?: Set<string> | undefined): string {
     debug("_buildODataFilter");
     let allowFilter = "";
     let room_idx = 0,

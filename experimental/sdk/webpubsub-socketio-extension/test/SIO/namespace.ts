@@ -274,6 +274,7 @@ describe("namespaces", () => {
     });
   });
 
+  // Note: This test is modified. See "Modification 3" in index.ts
   it("should exclude a specific socket when emitting (in a namespace)", (done) => {
     const io = new Server(serverPort);
 
@@ -287,7 +288,11 @@ describe("namespaces", () => {
     });
     socket1.on("a", successFn(done, io, socket1, socket2));
 
-    socket2.on("connect", () => {
+    socket2.on("connect", async () => {
+      // ensure `socket1` is connected before broadcasting
+      await spinCheck(() => {
+        expect(socket1.connected).to.equal(true);
+      });
       nsp.except(socket2.id).emit("a");
     });
   });
