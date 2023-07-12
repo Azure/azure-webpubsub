@@ -12,7 +12,7 @@ import { WebPubSubServiceClientOptions } from '@azure/web-pubsub';
 export function init(): void;
 
 // @public (undocumented)
-export function useAzureWebPubSub(this: SIO.Server, webPubSubOptions: WebPubSubExtensionOptions, useDefaultAdapter?: boolean): SIO.Server;
+export function useAzureSocketIO(this: SIO.Server, webPubSubOptions: WebPubSubExtensionOptions, useDefaultAdapter?: boolean): SIO.Server;
 
 // @public
 export class WebPubSubAdapterProxy {

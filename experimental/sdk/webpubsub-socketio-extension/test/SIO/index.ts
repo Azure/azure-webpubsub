@@ -24,7 +24,7 @@
  *      - Content:
  *        Explicitly call `userAzureWebPubSub` in unit test
  *     - Purpose:
- *        `useAzureWebPubSub` must be used after the http server is created inside Socket.IO Server.
+ *        `useAzureSocketIO` must be used after the http server is created inside Socket.IO Server.
  *        Some tests use constructors of Socket.IO Server which doesn't create http server.
  *        Then they attach an external http server to the Socket.IO Server. So the `util.Server` doesn't fit such cases.
  */

@@ -133,7 +133,7 @@ describe("server attachment", () => {
       const io = new NativeSioServer({ path: wpsOptions.path });
       io.attach(srv);
 
-      io.useAzureWebPubSub(wpsOptions);
+      io.useAzureSocketIO(wpsOptions);
       enableFastClose(io);
 
       request(srv)
@@ -159,7 +159,7 @@ describe("server attachment", () => {
       server.attach(srv, {
         pingInterval: 24000,
       });
-      server.useAzureWebPubSub(wpsOptions);
+      server.useAzureSocketIO(wpsOptions);
       enableFastClose(server);
 
       // @ts-ignore
@@ -186,7 +186,7 @@ describe("server attachment", () => {
      */
     it("with listen", (done) => {
       const io = new NativeSioServer().listen(serverPort);
-      io.useAzureWebPubSub(wpsOptions);
+      io.useAzureSocketIO(wpsOptions);
       enableFastClose(io);
 
       request(`http://localhost:${getPort(io)}`)
