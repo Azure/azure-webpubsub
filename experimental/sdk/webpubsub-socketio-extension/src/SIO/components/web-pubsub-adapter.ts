@@ -271,7 +271,10 @@ opts = ${toOptionsString(opts)}, error.message = ${e.message}`);
    */
   public async disconnectSockets(opts: BroadcastOptions, close: boolean): Promise<void> {
     debug(`disconnectSockets, start, opts = ${toOptionsString(opts)}, close = ${close}`);
-    await this.broadcast({ type: SioPacketType.DISCONNECT, nsp: this.nsp.name, data: { close: close } } as SioPacket, opts);
+    await this.broadcast(
+      { type: SioPacketType.DISCONNECT, nsp: this.nsp.name, data: { close: close } } as SioPacket,
+      opts
+    );
     /**
      * Server should not call Socket.disconnect(close) for each socket as `super.disconnectSockets` does.
      * Server should wait for EIO CLOSE packet or SIO DISCONNECT packet sent from service.
