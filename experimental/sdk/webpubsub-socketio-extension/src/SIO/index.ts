@@ -12,7 +12,7 @@ debug("load");
 
 declare type AdapterConstructor = typeof Adapter | ((nsp: SIO.Namespace) => Adapter);
 
-export function useAzureWebPubSub(
+export function useAzureSocketIO(
   this: SIO.Server,
   webPubSubOptions: WebPubSubExtensionOptions,
   useDefaultAdapter = false
