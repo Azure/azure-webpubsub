@@ -29,7 +29,7 @@ internal class TunnelService
 
     public async Task StartAsync(CancellationToken cancellationToken)
     {
-        using var listener = new TunnelConnection(_connectionStatus, _reporter, _store, _options.Endpoint,
+        using var listener = new TunnelConnection(_connectionStatus, _reporter, _options.Endpoint,
             _options.Credential, _options.Hub, _loggerFactory)
         {
             RequestHandler = ProcessTunnelRequest
@@ -64,7 +64,7 @@ internal class TunnelService
         return $"{method} {uri} {body}";
     }
 
-    private static HttpRequestMessage ToHttp(TunnelRequestMessage request)
+    private static HttpRequestMessage ToHttp(TunnelHttpRequestMessage request)
     {
         var http = new HttpRequestMessage()
         {
@@ -88,9 +88,9 @@ internal class TunnelService
         return http;
     }
 
-    private async Task<TunnelResponseMessage> ToResponse(TunnelRequestMessage request, HttpResponseMessage message)
+    private async Task<TunnelHttpResponseMessage> ToResponse(TunnelHttpRequestMessage request, HttpResponseMessage message)
     {
-        var bytes = new TunnelResponseMessage(request.AckId, request.GlobalRouting, (int)message.StatusCode, request.ChannelName, null)
+        var bytes = new TunnelHttpResponseMessage(request.AckId, request.LocalRouting, (int)message.StatusCode, request.ChannelName, null)
         {
             Content = await message.Content.ReadAsByteArrayAsync(),
         };
@@ -110,7 +110,7 @@ internal class TunnelService
         return bytes;
     }
 
-    private async Task<TunnelResponseMessage> ProcessTunnelRequest(TunnelRequestMessage tunnelRequest, CancellationToken token)
+    private async Task<TunnelHttpResponseMessage> ProcessTunnelRequest(TunnelHttpRequestMessage tunnelRequest, CancellationToken token)
     {
         var arrivedAt = DateTime.UtcNow;
         // invoke remote
