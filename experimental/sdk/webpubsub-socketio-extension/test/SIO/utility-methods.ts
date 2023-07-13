@@ -9,21 +9,30 @@ const serverPort = Number(process.env.SocketIoPort);
 const SOCKETS_COUNT = 3;
 
 describe("utility methods", () => {
-  let io: Server, clientSockets: ClientSocket[], serverSockets: Socket[];
+  let io: Server;
+  let clientSockets: ClientSocket[] = [];
+  let serverSockets: Socket[] = [];
+
   beforeEach((done) => {
     const srv = createServer();
     io = new Server(srv);
 
     srv.listen(serverPort, () => {
       const port = (srv.address() as AddressInfo).port;
-      clientSockets = [];
+
       for (let i = 0; i < SOCKETS_COUNT; i++) {
         clientSockets.push(createClient(io, "/", { transports: ["websocket"] }));
       }
-      serverSockets = [];
-      io.on("connection", (socket: Socket) => {
+      io.on("connection", async (socket: Socket) => {
         serverSockets.push(socket);
         if (serverSockets.length === SOCKETS_COUNT) {
+          await spinCheck(() => {
+            for (const clientSocket of clientSockets) expect(clientSocket.connected).to.be(true);
+          });
+
+          const compareFunc = (a, b) => (a.id < b.id ? -1 : 1);
+          serverSockets = serverSockets.sort(compareFunc);
+          clientSockets = clientSockets.sort(compareFunc);
           done();
         }
       });
@@ -45,7 +54,7 @@ describe("utility methods", () => {
           expect(socket.rooms).to.contain("room1");
         });
       });
-      success(done, io, ...clientSockets);
+      done();
     });
 
     // Note: This test is modified. See "Modification 3" in index.ts
@@ -59,7 +68,7 @@ describe("utility methods", () => {
         expect(serverSockets[1].rooms).to.contain("room3");
         expect(serverSockets[2].rooms).to.not.contain("room3");
       });
-      success(done, io, ...clientSockets);
+      done();
     });
   });
 
@@ -79,7 +88,7 @@ describe("utility methods", () => {
           expect(serverSockets[0].rooms).to.contain("room2");
           expect(serverSockets[0].rooms).to.not.contain("room1");
           expect(serverSockets[1].rooms).to.not.contain("room1");
-          success(done, io, ...clientSockets);
+          done();
         });
       });
     });
@@ -98,7 +107,7 @@ describe("utility methods", () => {
           expect(serverSockets[0].rooms).to.contain("room2");
           expect(serverSockets[0].rooms).to.not.contain("room1");
           expect(serverSockets[1].rooms).to.contain("room1");
-          success(done, io, ...clientSockets);
+          done();
         });
       });
     });
@@ -111,7 +120,6 @@ describe("utility methods", () => {
       clientSockets[0].on("disconnect", partialDone);
       clientSockets[1].on("disconnect", partialDone);
       clientSockets[2].on("disconnect", partialDone);
-      success(done, io, ...clientSockets);
     });
 
     // Note: This test is modified. See "Modification 3" in index.ts
@@ -119,7 +127,6 @@ describe("utility methods", () => {
       serverSockets[0].join(["room1", "room2"]);
       serverSockets[1].join("room1");
       serverSockets[2].join("room2");
-      // Note: `setTimeout` is added for Modification 5
       spinCheck(() => {
         expect(serverSockets[0].rooms).to.contain("room1", "room2");
         expect(serverSockets[1].rooms).to.contain("room1");
@@ -129,7 +136,7 @@ describe("utility methods", () => {
 
         const partialDone = createPartialDone(2, () => {
           clientSockets[1].off("disconnect");
-          success(done, io, ...clientSockets);
+          done();
         });
         clientSockets[0].on("disconnect", partialDone);
         clientSockets[1].on("disconnect", () => {
@@ -138,5 +145,18 @@ describe("utility methods", () => {
         clientSockets[2].on("disconnect", partialDone);
       });
     });
+  });
+
+  afterEach((done) => {
+    success(
+      () => {
+        clientSockets = [];
+        serverSockets = [];
+        done();
+      },
+      io,
+      ...(clientSockets ?? []),
+      ...(serverSockets ?? [])
+    );
   });
 });

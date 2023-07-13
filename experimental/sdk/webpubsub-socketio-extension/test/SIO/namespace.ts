@@ -238,11 +238,11 @@ describe("namespaces", () => {
   // Skip: All tests which contains unsupported feature `BroadcastOperator.allSockets()`
   // Skip: All tests realted to `volatile`
 
-  it("should throw on reserved event", () => {
+  it("should throw on reserved event", (done) => {
     const io = new Server(serverPort);
 
     expect(() => io.emit("connect")).to.throwException(/"connect" is a reserved event name/);
-    shutdown(io);
+    success(done, io);
   });
 
   it("should close a client without namespace", (done) => {
