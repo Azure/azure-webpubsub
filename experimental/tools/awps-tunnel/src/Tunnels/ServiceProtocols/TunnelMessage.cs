@@ -3,7 +3,6 @@
 using System;
 using System.Collections.Generic;
 using System.Runtime.Serialization;
-using System.Text.Json.Serialization;
 
 public abstract class TunnelMessage
 {
@@ -23,18 +22,22 @@ public enum TunnelMessageType
 
     ServiceStatus = 5,
 
-    ConnectionReconnectCommand = 6,
+    ConnectionReconnect = 6,
 
-    ConnectionCloseCommand = 7,
+    ConnectionClose = 7,
+
+    ConnectionRebalance = 8,
+
+    ConnectionConnected = 10,
 }
 
-public abstract class ByteContentTunnelMessage : TunnelMessage
+public abstract class TunnelByteContentMessage : TunnelMessage
 {
     [IgnoreDataMember]
     public ReadOnlyMemory<byte> Content { get; set; }
 }
 
-public class TunnelRequestMessage : ByteContentTunnelMessage
+public class TunnelHttpRequestMessage : TunnelByteContentMessage
 {
     public override TunnelMessageType Type => TunnelMessageType.HttpRequest;
 
@@ -46,22 +49,22 @@ public class TunnelRequestMessage : ByteContentTunnelMessage
 
     public IDictionary<string, string[]> Headers { get; }
 
-    public bool GlobalRouting { get; }
+    public bool LocalRouting { get; }
 
     public string ChannelName { get; }
 
-    public TunnelRequestMessage(int ackId, bool globalRouting, string channelName, string httpMethod, string url, IDictionary<string, string[]>? headers)
+    public TunnelHttpRequestMessage(int ackId, bool localRouting, string channelName, string httpMethod, string url, IDictionary<string, string[]>? headers)
     {
         AckId = ackId;
         ChannelName = channelName;
-        GlobalRouting = globalRouting;
+        LocalRouting = localRouting;
         HttpMethod = httpMethod;
         Url = url;
         Headers = headers ?? new Dictionary<string, string[]>();
     }
 }
 
-public class TunnelResponseMessage : ByteContentTunnelMessage
+public class TunnelHttpResponseMessage : TunnelByteContentMessage
 {
     public override TunnelMessageType Type => TunnelMessageType.HttpResponse;
 
@@ -71,23 +74,23 @@ public class TunnelResponseMessage : ByteContentTunnelMessage
 
     public IDictionary<string, string[]> Headers { get; }
 
-    public bool GlobalRouting { get; }
+    public bool LocalRouting { get; }
 
     public string ChannelName { get; }
 
-    public TunnelResponseMessage(int ackId, bool globalRouting, int statusCode, string channelName, IDictionary<string, string[]>? headers)
+    public TunnelHttpResponseMessage(int ackId, bool localRouting, int statusCode, string channelName, IDictionary<string, string[]>? headers)
     {
         AckId = ackId;
-        GlobalRouting = globalRouting;
+        LocalRouting = localRouting;
         ChannelName = channelName;
         StatusCode = statusCode;
         Headers = headers ?? new Dictionary<string, string[]>();
     }
 }
 
-public class ServiceReconnectTunnelMessage : TunnelMessage
+public class TunnelConnectionReconnectMessage : TunnelMessage
 {
-    public override TunnelMessageType Type => TunnelMessageType.ConnectionReconnectCommand;
+    public override TunnelMessageType Type => TunnelMessageType.ConnectionReconnect;
 
     public string TargetId { get; }
 
@@ -95,7 +98,7 @@ public class ServiceReconnectTunnelMessage : TunnelMessage
 
     public string Message { get; }
 
-    public ServiceReconnectTunnelMessage(string targetId, string endpoint, string message)
+    public TunnelConnectionReconnectMessage(string targetId, string endpoint, string message)
     {
         TargetId = targetId;
         Endpoint = endpoint;
@@ -103,28 +106,61 @@ public class ServiceReconnectTunnelMessage : TunnelMessage
     }
 }
 
-public class ConnectionCloseTunnelMessage : TunnelMessage
+public class TunnelConnectionCloseMessage : TunnelMessage
 {
-    public override TunnelMessageType Type => TunnelMessageType.ConnectionCloseCommand;
+    public override TunnelMessageType Type => TunnelMessageType.ConnectionClose;
 
     public string Message { get; }
 
-    public ConnectionCloseTunnelMessage(string message)
+    public TunnelConnectionCloseMessage(string message)
     {
         Message = message;
     }
 }
 
-public class ServiceStatusTunnelMessage : TunnelMessage
+public class TunnelServiceStatusMessage : TunnelMessage
 {
     public override TunnelMessageType Type => TunnelMessageType.ServiceStatus;
 
     public string Message { get; }
 
-    public ServiceStatusTunnelMessage(string message)
+    public TunnelServiceStatusMessage(string message)
     {
         Message = message;
     }
 }
 
-#nullable restore
+public class TunnelConnectionRebalanceMessage : TunnelMessage
+{
+    public override TunnelMessageType Type => TunnelMessageType.ConnectionRebalance;
+
+    public string TargetId { get; }
+
+    public string Endpoint { get; }
+
+    public string Message { get; }
+
+    public TunnelConnectionRebalanceMessage(string targetId, string endpoint, string message)
+    {
+        TargetId = targetId;
+        Endpoint = endpoint;
+        Message = message;
+    }
+}
+
+public class TunnelConnectionConnectedMessage : TunnelMessage
+{
+    public override TunnelMessageType Type => TunnelMessageType.ConnectionConnected;
+
+    public string ConnectionId { get; }
+    public string? UserId { get; }
+    public string? ReconnectionToken { get; }
+
+    public TunnelConnectionConnectedMessage(string connectionId, string? userId, string? reconnectionToken)
+    {
+        ConnectionId = connectionId;
+        UserId = userId;
+        ReconnectionToken = reconnectionToken;
+    }
+}
+
