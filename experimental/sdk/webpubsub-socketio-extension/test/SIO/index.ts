@@ -34,7 +34,6 @@
 describe("socket.io", () => {
   require("./server-attachment");
   // handshake.ts: CORS is not supported
-  require("./close");
   require("./namespace");
   require("./socket");
   require("./messaging-many");
@@ -43,6 +42,9 @@ describe("socket.io", () => {
   // v2-compatibility.ts: Not supported yet
   require("./socket-timeout");
   // uws.ts: Makes no sense for this package
-  // utility-methods.ts: TODO
+  require("./utility-methods");
   // connection-state-recovery.ts: Not supported yet
+
+  // TODO: If "./close" is put before "./namespace", the test "should fire a `connection` event" will be extremly slow or fail. Need more investigation.
+  require("./close");
 });
