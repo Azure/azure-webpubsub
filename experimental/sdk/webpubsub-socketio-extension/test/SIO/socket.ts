@@ -614,5 +614,30 @@ describe("socket", () => {
         socket.emit("my-event", "123");
       });
     });
+
+    // Note: This test is modified. See "Modification 2" in index.ts
+    it("should disconnect all namespaces when calling disconnect(true)", (done) => {
+      const io = new Server(serverPort);
+      io.of("/default");
+      io.of("/foo");
+      io.of("/bar");
+
+      const socket1 = createClient(io, "/default", {
+        transports: ["websocket"],
+      });
+
+      const socket2 = createClient(io, "/foo");
+      const socket3 = createClient(io, "/bar");
+
+      io.of("/bar").on("connection", (socket) => {
+        socket.disconnect(true);
+      });
+
+      const partialDone = createPartialDone(3, successFn(done, io, socket1, socket2, socket3));
+
+      socket1.on("disconnect", partialDone);
+      socket2.on("disconnect", partialDone);
+      socket3.on("disconnect", partialDone);
+    });
   });
 });

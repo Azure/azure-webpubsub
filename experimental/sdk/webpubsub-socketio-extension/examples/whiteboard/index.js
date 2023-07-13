@@ -1,4 +1,4 @@
-const wpsExt = require("@azure/socketio");
+const wpsExt = require("@azure/web-pubsub-socket.io");
 const express = require('express');
 const app = express();
 const http = require('http').Server(app);
@@ -14,7 +14,7 @@ const eioOptions = {
   path: "/eventhandler/",
 }
 
-const io = require('socket.io')(http, eioOptions).useAzureWebPubSub(wpsOptions);
+const io = require('socket.io')(http, eioOptions).useAzureSocketIO(wpsOptions);
 const port = process.env.PORT || 3000;
 
 app.use(express.static(__dirname + '/public'));
