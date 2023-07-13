@@ -86,10 +86,6 @@ opts = ${toOptionsString(opts)}, namespace = "${this.nsp.name}"`);
   public async addSockets(opts: BroadcastOptions, rooms: Room[]): Promise<void> {
     debug(`addSockets, start, rooms = ${toString(rooms)}, opts = ${toOptionsString(opts)}`);
     const localSockets = await super.fetchSockets(opts);
-    const releases: MutexInterface.Releaser[] = [];
-    localSockets.forEach(async (socket) => {
-      releases.push(await this._getLock(socket.id));
-    });
     try {
       const oDataFilter = this._buildODataFilter(opts.rooms, opts.except);
       const groupNames = Array.from(rooms).map((room) => this._getGroupName(this.nsp.name, room));
@@ -100,8 +96,6 @@ rooms = ${toString(rooms)}, opts = ${toOptionsString(opts)}`);
     } catch (e) {
       debug(`addSockets, error, rooms = ${toString(rooms)}, opts = ${toOptionsString(opts)}, \
 error.message = ${e.message}`);
-    } finally {
-      releases.forEach((release: MutexInterface.Releaser) => release());
     }
   }
 
@@ -248,11 +242,6 @@ groupNames = ${toString(rooms)}, connectionId(eioSid) = ${this._getEioSid(id)}`)
   public async delSockets(opts: BroadcastOptions, rooms: Room[]): Promise<void> {
     debug(`delSockets, start, rooms = ${toString(rooms)}, opts = ${toOptionsString(opts)}`);
     const localSockets = await super.fetchSockets(opts);
-    const releases: MutexInterface.Releaser[] = [];
-    localSockets.forEach(async (socket) => {
-      releases.push(await this._getLock(socket.id));
-    });
-    await Promise.all(releases);
     try {
       const oDataFilter = this._buildODataFilter(opts.rooms, opts.except);
       const groupNames = Array.from(rooms).map((room) => this._getGroupName(this.nsp.name, room));
@@ -263,8 +252,6 @@ rooms = ${toString(rooms)}, opts = ${toOptionsString(opts)}`);
     } catch (e) {
       debug(`delSockets, error, rooms = ${toString(rooms)}, \
 opts = ${toOptionsString(opts)}, error.message = ${e.message}`);
-    } finally {
-      releases.forEach((release: MutexInterface.Releaser) => release());
     }
   }
 
@@ -284,8 +271,11 @@ opts = ${toOptionsString(opts)}, error.message = ${e.message}`);
    */
   public async disconnectSockets(opts: BroadcastOptions, close: boolean): Promise<void> {
     debug(`disconnectSockets, start, opts = ${toOptionsString(opts)}, close = ${close}`);
-    await this.broadcast({ type: SioPacketType.DISCONNECT, nsp: this.nsp.name, data: { close } } as SioPacket, opts);
-    super.disconnectSockets(opts, close);
+    await this.broadcast({ type: SioPacketType.DISCONNECT, nsp: this.nsp.name, data: { close: close } } as SioPacket, opts);
+    /**
+     * Server should not call Socket.disconnect(close) for each socket as `super.disconnectSockets` does.
+     * Server should wait for EIO CLOSE packet or SIO DISCONNECT packet sent from service.
+     */
     debug(`disconnectSockets, finish, opts = ${toOptionsString(opts)}, close = ${close}`);
   }
 
