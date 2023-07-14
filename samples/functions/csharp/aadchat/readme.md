@@ -11,8 +11,8 @@ Follow https://docs.microsoft.com/en-us/azure/azure-web-pubsub/howto-use-managed
 ## 1. Deploy the sample to Function app
 
 Update your `local.settings.json`:
-*   "Hub": <your-hub-name>
-*   "WebPubSubEndpoint": "https://<your-resource-name>.webpubsub.azure.com",
+*   "Hub": &lt;your-hub-name&gt;
+*   "WebPubSubEndpoint": "https://&lt;your-resource-name&gt;.webpubsub.azure.com",
 *   "WebPubSubIdentityObjectId": The copied Object(principal) ID
 
 Create and deploy:
@@ -43,7 +43,7 @@ For Function app to talk to Azure Web PubSub using AAD auth, you need to assign 
 
 Follow https://docs.microsoft.com/en-us/azure/app-service/configure-authentication-provider-aad?toc=%2Fazure%2Fazure-functions%2Ftoc.json#--option-1-create-a-new-app-registration-automatically to add client Authentication to your clients.
 
-* Name: <Your App Name>
+* Name: &lt;Your App Name&gt;
 * Restrict access: Require authentication
 
 Now let's test if the workflow works: open URL https://<FUNCIONAPP_NAME>.azurewebsites.net/api/index, it should redirect to AAD login window, login to redirect back. And when you press F12 to view the network, (F5 to refresh the page)you can see that there is a request to "negotiate" with your Function and the WebSocket connection is successfully established.
@@ -57,7 +57,7 @@ Open your Web PubSub resource from Azure portal, go to **Settting**, add a **cha
     * <APP_KEY> can be read from Function poratl (App Keys => System Keys => `webpubsub_extension`)
   * Authentication: Use Managed Identity
     * Specify the issued token audience
-        * Click **select from existing applications** and search with your <Your App Name>
+        * Click **select from existing applications** and search with your &lt;Your App Name&gt; and select App ID which is provided by app's identity provider
   * Others keep default settings
 
 All set.

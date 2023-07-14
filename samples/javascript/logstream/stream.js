@@ -1,5 +1,5 @@
 const WebSocket = require('ws');
-const fetch = require('node-fetch');
+const fetch = (...args) => import('node-fetch').then(({default: fetch}) => fetch(...args));
 
 async function main() {
   let res = await fetch(`http://localhost:8080/negotiate`);
