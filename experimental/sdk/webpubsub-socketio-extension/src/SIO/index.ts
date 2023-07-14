@@ -1,7 +1,7 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT license.
 
-import { debugModule, WebPubSubExtensionOptions } from "../common/utils";
+import { debugModule, WebPubSubExtensionOptions, WebPubSubExtensionCredentialOptions } from "../common/utils";
 import { WebPubSubEioServer } from "../EIO";
 import { WebPubSubAdapterProxy } from "./components/web-pubsub-adapter";
 import * as SIO from "socket.io";
@@ -14,7 +14,7 @@ declare type AdapterConstructor = typeof Adapter | ((nsp: SIO.Namespace) => Adap
 
 export function useAzureSocketIO(
   this: SIO.Server,
-  webPubSubOptions: WebPubSubExtensionOptions,
+  webPubSubOptions: WebPubSubExtensionOptions | WebPubSubExtensionCredentialOptions,
   useDefaultAdapter = false
 ): SIO.Server {
   debug("use Azure Web PubSub For Socket.IO Server");

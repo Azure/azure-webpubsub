@@ -47,6 +47,20 @@ const webPubSubOptions = {
 const io = require("socket.io")(options).useAzureSocketIO(webPubSubOptions);
 ```
 
+You can also authenticate with Web PubSub service using an endpoint and an `AzureKeyCredential`.
+Replace `webPubSubOptions` with new value:
+```javascript
+const { AzureKeyCredential } = require("@azure/web-pubsub");
+const key = new AzureKeyCredential("<Key>");
+
+const webPubSubOptions = {
+  hub: "eio_hub",
+  path: "/eventhandler/",
+  endpoint: "<web-pubsub-endpoint>",
+  credential: key,
+};
+```
+
 ## 3. Set up client
 
 Assuming your client-side code is:

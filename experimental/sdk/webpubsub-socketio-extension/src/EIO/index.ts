@@ -1,7 +1,7 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT license.
 
-import { WebPubSubExtensionOptions, debugModule } from "../common/utils";
+import { WebPubSubExtensionOptions, WebPubSubExtensionCredentialOptions, debugModule } from "../common/utils";
 import { WebPubSubTransport } from "./components/web-pubsub-transport";
 import { WebPubSubConnectionManager } from "./components/web-pubsub-connection-manager";
 import * as engine from "engine.io";
@@ -24,10 +24,13 @@ debug("load");
  * TODO: implment BaseServer rather than extends Server
  **/
 export class WebPubSubEioServer extends engine.Server {
-  public webPubSubOptions: WebPubSubExtensionOptions;
+  public webPubSubOptions: WebPubSubExtensionOptions | WebPubSubExtensionCredentialOptions;
   public webPubSubConnectionManager: WebPubSubConnectionManager;
 
-  constructor(options: engine.ServerOptions, webPubSubOptions: WebPubSubExtensionOptions) {
+  constructor(
+    options: engine.ServerOptions,
+    webPubSubOptions: WebPubSubExtensionOptions | WebPubSubExtensionCredentialOptions
+  ) {
     debug("create Engine.IO Server with AWPS");
     super(options);
     this.webPubSubOptions = webPubSubOptions;

@@ -1,7 +1,8 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT license.
 
-import { WebPubSubServiceClientOptions } from "@azure/web-pubsub";
+import { WebPubSubServiceClient, WebPubSubServiceClientOptions } from "@azure/web-pubsub";
+import { AzureKeyCredential, TokenCredential } from "@azure/core-auth";
 import debugModule from "debug";
 import { BroadcastOptions } from "socket.io-adapter";
 
@@ -21,11 +22,50 @@ export function addProperty(o: object, p: string, f: (...args: unknown[]) => unk
   });
 }
 
+// 2 option definitions refer to https://github.com/Azure/azure-sdk-for-js/blob/%40azure/web-pubsub_1.1.1/sdk/web-pubsub/web-pubsub/review/web-pubsub.api.md?plain=1#L173
 export interface WebPubSubExtensionOptions {
   connectionString: string;
   hub: string;
   path: string;
   webPubSubServiceClientOptions?: WebPubSubServiceClientOptions;
+}
+
+export interface WebPubSubExtensionCredentialOptions {
+  endpoint: string;
+  credential: AzureKeyCredential | TokenCredential;
+  hub: string;
+  path: string;
+  webPubSubServiceClientOptions?: WebPubSubServiceClientOptions;
+}
+
+export function getWebPubSubServiceClient(options: WebPubSubExtensionOptions | WebPubSubExtensionCredentialOptions) {
+  // if owns connection string, handle as `WebPubSubExtensionOptions`
+  if (Object.keys(options).indexOf("connectionString") !== -1) {
+    const requiredKeys = ["connectionString", "hub", "path"];
+
+    for (const key of requiredKeys) {
+      if (!options[key] || options[key] === "")
+        throw new Error(`Expect valid ${key} is required, got null or empty value.`);
+    }
+
+    return new WebPubSubServiceClient(
+      options["connectionString"],
+      options["hub"],
+      options["webPubSubServiceClientOptions"]
+    );
+  } else {
+    const requiredKeys = ["endpoint", "credential", "hub", "path"];
+    for (const key of requiredKeys) {
+      if (!options[key] || options[key] === "")
+        throw new Error(`Expect valid ${key} is required, got null or empty value.`);
+    }
+    return new WebPubSubServiceClient(
+      options["endpoint"],
+      options["credential"],
+      options["hub"],
+      options["webPubSubServiceClientOptions"]
+    );
+  }
 }
 
 /**
