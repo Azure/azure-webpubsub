@@ -427,7 +427,7 @@ describe("messaging many", () => {
     });
 
     Promise.all([waitFor(socket1, "connect"), waitFor(socket2, "connect"), waitFor(socket3, "connect")]).then(() => {
-      io.timeout(2000).emit("some event", (err, responses) => {
+      io.timeout(timeoutMap[2000]).emit("some event", (err, responses) => {
         expect(err).to.be(null);
         expect(responses).to.have.length(3);
         expect(responses).to.contain(1, 2, 3);
