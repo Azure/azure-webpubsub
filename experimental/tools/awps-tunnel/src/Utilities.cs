@@ -46,7 +46,7 @@ internal static class Utilities
         }
     }
 
-    public static string DumpRaw(this TunnelRequestMessage request)
+    public static string DumpRaw(this TunnelHttpRequestMessage request)
     {
         var sb = new StringBuilder();
 
@@ -73,7 +73,7 @@ internal static class Utilities
         return sb.ToString();
     }
 
-    public static string DumpRaw(this TunnelResponseMessage response)
+    public static string DumpRaw(this TunnelHttpResponseMessage response)
     {
         var sb = new StringBuilder();
 

@@ -15,14 +15,14 @@ export function init(): void {
 
 declare module "socket.io" {
   interface Server {
-    useAzureWebPubSub(
+    useAzureSocketIO(
       this: Server,
       webPubSubOptions: WebPubSubExtensionOptions | WebPubSubExtensionCredentialOptions
     ): Server;
   }
 }
 
-addProperty(SIO.Server.prototype, "useAzureWebPubSub", useAzureWebPubSub);
+addProperty(SIO.Server.prototype, "useAzureSocketIO", useAzureSocketIO);
 
 export * from "./EIO";
 export * from "./SIO";

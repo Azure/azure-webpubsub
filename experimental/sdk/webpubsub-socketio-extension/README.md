@@ -35,7 +35,7 @@ With some minor changes, your Socket.IO server will supported by Azure Web PubSu
 // Add an path option in Socket.IO Server options
 const options = { pingInterval: 15000, path: "/eventhandler/" };
 // Import this package
-const wpsExt = require("webpubsub-socketio-extension");
+const wpsExt = require("@azure/web-pubsub-socket.io");
 
 // Add an Web PubSub Option
 const webPubSubOptions = {
@@ -44,7 +44,7 @@ const webPubSubOptions = {
   connectionString: "<web-pubsub-connection-string>",
 };
 
-const io = require("socket.io")(options).useAzureWebPubSub(webPubSubOptions);
+const io = require("socket.io")(options).useAzureSocketIO(webPubSubOptions);
 ```
 
 You can also authenticate with Web PubSub service using an endpoint and an `AzureKeyCredential`.

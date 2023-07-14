@@ -1,6 +1,6 @@
 // Modified from https://github.com/socketio/socket.io/blob/4.6.2/test/support/util.ts
 
-import { Server as _Server, ServerOptions } from "socket.io";
+import { Server as _Server, ServerOptions, Socket } from "socket.io";
 import { io as ioc, ManagerOptions, Socket as ClientSocket, SocketOptions } from "socket.io-client";
 import { debugModule } from "../../../src/common/utils";
 import { init, WebPubSubExtensionOptions } from "../../../src";
@@ -51,7 +51,7 @@ export class Server extends _Server {
       debug(`Server, srv = ${srv}, opts = ${JSON.stringify(opts)}`);
     }
     super(srv, opts);
-    this.useAzureWebPubSub(wpsOptions);
+    this.useAzureSocketIO(wpsOptions);
     // `Server.close()` will trigger `HttpServer.close()`, which costs a lot of time
     // This is a trick to shutdown http server in a short time
     enableFastClose(this);
@@ -112,20 +112,24 @@ export function createClient(
 }
 
 export function shutdown(io: Server, cb?: (err?: Error) => void) {
-  io["httpServer"].shutdown((err) => {
-    if (err) {
-      debug(`Http Server shutdown failed: ${err.message}`);
-    }
-    debug("httpServer closed");
+  const commonShutdown = () => {
     io.close(() => {
       io.removeAllListeners();
       debug("SIO Server closed");
       cb && cb();
     });
+  };
+  if (!io || !io["httpServer"]) commonShutdown();
+  io["httpServer"].shutdown((err) => {
+    if (err) {
+      debug(`Http Server shutdown failed: ${err.message}`);
+    }
+    debug("httpServer closed");
+    commonShutdown();
   });
 }
 
-export async function success(done: Function, io: Server, ...clients: ClientSocket[]) {
+export async function success(done: Function, io: Server, ...clients: (ClientSocket | Socket)[]) {
   clients.forEach((client) => client.disconnect());
   debug("start cleanup for success");
   shutdown(io, () => {
