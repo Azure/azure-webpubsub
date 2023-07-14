@@ -2,7 +2,7 @@
 // Licensed under the MIT license.
 
 import { addProperty, WebPubSubExtensionOptions, WebPubSubExtensionCredentialOptions } from "./common/utils";
-import { useAzureWebPubSub } from "./SIO";
+import { useAzureSocketIO } from "./SIO";
 import * as SIO from "socket.io";
 
 /**
@@ -26,4 +26,4 @@ addProperty(SIO.Server.prototype, "useAzureSocketIO", useAzureSocketIO);
 
 export * from "./EIO";
 export * from "./SIO";
-export { WebPubSubExtensionOptions };
+export { WebPubSubExtensionOptions, WebPubSubExtensionCredentialOptions };

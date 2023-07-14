@@ -43,19 +43,19 @@ export function getWebPubSubServiceClient(options: WebPubSubExtensionOptions | W
   if (Object.keys(options).indexOf("connectionString") !== -1) {
     const requiredKeys = ["connectionString", "hub", "path"];
 
-    for (const key in requiredKeys) {
+    for (const key of requiredKeys) {
       if (!options[key] || options[key] === "")
         throw new Error(`Expect valid ${key} is required, got null or empty value.`);
     }
 
     return new WebPubSubServiceClient(
-      this._webPubSubOptions["connectionString"],
-      this._webPubSubOptions["hub"],
-      this._webPubSubOptions["webPubSubServiceClientOption"]
+      options["connectionString"],
+      options["hub"],
+      options["webPubSubServiceClientOptions"]
     );
   } else {
     const requiredKeys = ["endpoint", "credential", "hub", "path"];
-    for (const key in requiredKeys) {
+    for (const key of requiredKeys) {
       if (!options[key] || options[key] === "")
         throw new Error(`Expect valid ${key} is required, got null or empty value.`);
     }
@@ -63,7 +63,7 @@ export function getWebPubSubServiceClient(options: WebPubSubExtensionOptions | W
       options["endpoint"],
       options["credential"],
       options["hub"],
-      options["webPubSubServiceClientOption"]
+      options["webPubSubServiceClientOptions"]
     );
   }
 }

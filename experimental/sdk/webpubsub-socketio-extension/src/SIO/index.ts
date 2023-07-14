@@ -14,7 +14,7 @@ declare type AdapterConstructor = typeof Adapter | ((nsp: SIO.Namespace) => Adap
 
 export function useAzureSocketIO(
   this: SIO.Server,
-  webPubSubOptions: WebPubSubExtensionOptions,
+  webPubSubOptions: WebPubSubExtensionOptions | WebPubSubExtensionCredentialOptions,
   useDefaultAdapter = false
 ): SIO.Server {
   debug("use Azure Web PubSub For Socket.IO Server");
