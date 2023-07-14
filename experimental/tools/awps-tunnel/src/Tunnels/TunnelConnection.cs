@@ -1,18 +1,16 @@
-﻿using System.IO.Pipelines;
+﻿using System.Buffers;
+using System.Collections.Concurrent;
 using System.Net;
-using System.Net.WebSockets;
-using System.Threading;
+using System.Threading.Channels;
 
 using Azure.Core;
+using Azure.Messaging.WebPubSub.Clients;
 
-using Microsoft.Extensions.Azure;
-using Microsoft.Net.Http.Headers;
+record ConnectionTarget(Uri Endpoint, string? Target);
 
 internal class TunnelConnection : IDisposable
 {
     private const string HttpTunnelPath = "server/tunnel";
-    private readonly TaskCompletionSource<WebSocketCloseStatus?> _closeTcs = new(TaskCreationOptions.RunContinuationsAsynchronously);
-    private volatile WebSocketConnection? _webSocket;
 
     private readonly ILogger _logger;
     private readonly string _hub;
@@ -20,97 +18,61 @@ internal class TunnelConnection : IDisposable
 
     private TokenCredential _credential;
 
-    // Can change with every reconnect
-    private string? _target;
-    private Uri? _tunnelEndpoint;
     private readonly IOutput _connectionStatus;
     private readonly IServiceEndpointStatusReporter _reporter;
-    private readonly IRepository<HttpItem> _store;
     private Uri _endpoint;
-    private volatile bool _allowReconnect;
 
-    public string? Target
-    {
-        get => _target;
-        set
-        {
-            if (value != _target)
-            {
-                _target = value;
-                _tunnelEndpoint = GetTunnelEndpoint();
-            }
-        }
-    }
+    public Uri TunnelEndpoint => _endpoint;
 
-    public Uri TunnelEndpoint
-    {
-        get
-        {
-            if (_tunnelEndpoint == null)
-            {
-                _tunnelEndpoint = GetTunnelEndpoint();
-            }
+    private ConcurrentDictionary<string, WebPubSubTunnelClient> _clients = new ConcurrentDictionary<string, WebPubSubTunnelClient>();
+    public Func<TunnelHttpRequestMessage, CancellationToken, Task<TunnelHttpResponseMessage>>? RequestHandler { get; init; }
 
-            return _tunnelEndpoint;
-        }
-    }
+    public IReadOnlyList<string> Connections => _clients.Select(s => s.Key).ToArray();
 
-    public Func<TunnelRequestMessage, CancellationToken, Task<TunnelResponseMessage>>? RequestHandler { get; init; }
-
-    public TunnelConnection(IOutput connectionStatus, IServiceEndpointStatusReporter reporter, IRepository<HttpItem> store, Uri endpoint, TokenCredential credential, string hub, ILoggerFactory loggerFactory)
+    public TunnelConnection(IOutput connectionStatus, IServiceEndpointStatusReporter reporter, Uri endpoint, TokenCredential credential, string hub, ILoggerFactory loggerFactory)
     {
         _connectionStatus = connectionStatus;
         _reporter = reporter;
-        _store = store;
         _credential = credential;
+        _endpoint = endpoint;
         _hub = hub;
-        SetEndpoint(endpoint);
+        _reporter.ReportServiceEndpoint(endpoint.AbsoluteUri);
         _loggerFactory = loggerFactory;
         _logger = _loggerFactory.CreateLogger<TunnelConnection>();
     }
 
     public async Task RunAsync(CancellationToken cancellationToken)
     {
-        do
+        _logger.LogInformation($"Connecting to {TunnelEndpoint.AbsoluteUri}");
+        _ = ReportLiveTraceUri(cancellationToken);
+        SetStatus(ConnectionStatus.Connecting);
+        try
         {
-            // always allow reconnect unless explicitly set
-            _allowReconnect = true;
-
-            _logger.LogInformation($"Connecting to {TunnelEndpoint.AbsoluteUri}");
-            SetStatus(ConnectionStatus.Connecting);
-            try
-            {
-                // Always retry if connect fails
-                await Utilities.WithRetry(RunCore, null, _logger, cancellationToken);
-            }
-            catch (Exception e)
-            {
-                _logger.LogError($"Error connecting to {TunnelEndpoint.AbsoluteUri}: {e.Message}");
-            }
-            // Wait for 1 second before reconnect
-            await Utilities.Delay(1000, cancellationToken);
-        } while (_allowReconnect && !cancellationToken.IsCancellationRequested);
+            // Always retry if connect fails
+            await Utilities.WithRetry(StartCore, null, _logger, cancellationToken);
+            SetStatus(ConnectionStatus.Connected);
+            await LifetimeTask;
+            SetStatus(ConnectionStatus.Disconnected);
+        }
+        catch (Exception e)
+        {
+            _logger.LogError($"Error connecting to {TunnelEndpoint.AbsoluteUri}: {e.Message}");
+            SetStatus(ConnectionStatus.Disconnected);
+        }
     }
 
     public void Dispose()
     {
-        _webSocket?.Dispose();
+        StopAsync().GetAwaiter().GetResult();
     }
 
-    public Task StopAsync()
+    public async Task StopAsync()
     {
-        return _webSocket?.StopAsync() ?? Task.CompletedTask;
-    }
-
-    private void SetEndpoint(Uri endpoint)
-    {
-        if (Equals(_endpoint, endpoint))
+        _lifetimeTcs.TrySetResult(null);
+        foreach (var (key, _) in _clients)
         {
-            return;
+            await StopConnectionAsync(key, default);
         }
-        _endpoint = endpoint;
-        _tunnelEndpoint = GetTunnelEndpoint();
-        _reporter.ReportServiceEndpoint(endpoint.AbsoluteUri);
     }
 
     private void SetStatus(ConnectionStatus status)
@@ -119,23 +81,10 @@ internal class TunnelConnection : IDisposable
         _ = _reporter.ReportStatusChange(status);
     }
 
-    private async Task RunCore(CancellationToken cancellationToken)
+    private async Task StartCore(CancellationToken cancellationToken)
     {
-        var bearer = (await _credential.GetTokenAsync(new TokenRequestContext(new string[] { "https://webpubsub.azure.com" }, claims: TunnelEndpoint.AbsoluteUri), cancellationToken)).Token;
-        var ws = _webSocket = new WebSocketConnection(TunnelEndpoint, bearer, _logger, cancellationToken);
-        _ = ReportLiveTraceUri(cancellationToken);
-        ws.OnMessage = m => ProcessTunnelMessageAsync(m, cancellationToken);
-        ws.OnConnected = () =>
-        {
-            SetStatus(ConnectionStatus.Connected);
-            _logger.LogInformation("Connected to " + TunnelEndpoint.AbsoluteUri); return Task.CompletedTask;
-        };
-        ws.OnDisconnected = (e, ex) =>
-        {
-            SetStatus(ConnectionStatus.Disconnected);
-            _logger.LogInformation($"Disconnected from {TunnelEndpoint.AbsoluteUri}: {e} {ex?.Message}"); return Task.CompletedTask;
-        };
-        await ws.LifecycleTask;
+        await StartConnectionAsync(new ConnectionTarget(_endpoint, null), cancellationToken);
+        SetStatus(ConnectionStatus.Connected);
     }
 
     private async Task ReportLiveTraceUri(CancellationToken cancellationToken)
@@ -154,275 +103,286 @@ internal class TunnelConnection : IDisposable
         await _reporter.ReportLiveTraceUrl(uri.AbsoluteUri);
     }
 
-    private Uri GetTunnelEndpoint()
+    private async Task StartConnectionAsync(string? endpoint, string? target, CancellationToken token = default)
     {
-        var uriBuilder = new UriBuilder(_endpoint.AbsoluteUri);
-        uriBuilder.Scheme = uriBuilder.Scheme.Equals("http", StringComparison.OrdinalIgnoreCase) ? "ws" : "wss";
-        uriBuilder.Path = uriBuilder.Path + HttpTunnelPath;
-        var hubQuery = $"hub={WebUtility.UrlEncode(_hub)}";
-        if (string.IsNullOrEmpty(uriBuilder.Query))
+        if (endpoint != null && !string.Equals(endpoint, _endpoint.AbsoluteUri, StringComparison.OrdinalIgnoreCase))
         {
-            uriBuilder.Query = hubQuery;
+            // starting to another endpoint
+            await StartConnectionAsync(new ConnectionTarget(new Uri(endpoint), target), token);
         }
         else
         {
-            uriBuilder.Query = $"{uriBuilder.Query}&{hubQuery}";
+            await StartConnectionAsync(new ConnectionTarget(_endpoint, target), token);
         }
-        var target = _target;
-        if (string.IsNullOrEmpty(target))
+    }
+
+    public Task LifetimeTask => _lifetimeTcs.Task;
+
+    private readonly TaskCompletionSource<object?> _lifetimeTcs = new TaskCompletionSource<object?>(TaskCreationOptions.RunContinuationsAsynchronously);
+
+    private void TryEndLife()
+    {
+        if (_lifetimeTcs.Task.IsCompleted)
         {
+            return;
+        }
+
+        if (_clients.All(s => s.Value.Ended))
+        {
+            _lifetimeTcs.TrySetResult(null);
+        }
+    }
+
+    public async Task<string> StartConnectionAsync(ConnectionTarget target, CancellationToken cancellationToken)
+    {
+        var client = new WebPubSubTunnelClient(target.Endpoint, _credential, _hub, target.Target);
+        client.Stopped += _ =>
+        {
+            TryEndLife();
+            return Task.CompletedTask;
+        };
+        _clients[client.Id] = client;
+        await client.StartAsync(cancellationToken);
+        _ = ProcessMessages(client, cancellationToken);
+        _logger.LogInformation($"Connected connections: ({_clients.Count})\n" + string.Join('\n', PrintClientLines()));
+        return client.Id;
+    }
+
+    private IEnumerable<string> PrintClientLines()
+    {
+        foreach(var (_, client) in _clients)
+        {
+            yield return $"{client.Id}: ended? {client.Ended}";
+        }
+    }
+
+    private async Task ProcessMessages(WebPubSubTunnelClient client, CancellationToken token)
+    {
+        while (await client.Reader.WaitToReadAsync(token))
+        {
+            var message = await client.Reader.ReadAsync(token);
+
+            var buffer = new ReadOnlySequence<byte>(message.Data);
+            if (TunnelMessageProtocol.Instance.TryParse(ref buffer, out var tunnelMessage))
+            {
+                switch (tunnelMessage)
+                {
+                    case TunnelHttpRequestMessage tunnelRequest:
+                        {
+                            _logger.LogInformation($"Getting request {tunnelRequest.TracingId}: {tunnelRequest.HttpMethod} {tunnelRequest.Url}");
+                            var tunnelResponse = await RequestHandler!.Invoke(tunnelRequest, token);
+                            await client.SendAsync(tunnelResponse, token);
+                        }
+                        break;
+                    case TunnelConnectionReconnectMessage reconnect:
+                        {
+                            _logger.LogInformation($"Reconnect the connection: {reconnect.Message}.");
+                            _ = StopConnectionAsync(client.Id, token);
+                            await StartConnectionAsync(reconnect.Endpoint, reconnect.TargetId, token);
+                        }
+                        break;
+                    case TunnelConnectionRebalanceMessage rebalance:
+                        {
+                            _logger.LogInformation($"Starting another rebalance connection: {rebalance.Message}.");
+                            await StartConnectionAsync(rebalance.Endpoint, rebalance.TargetId, token);
+                        }
+                        break;
+                    case TunnelConnectionCloseMessage close:
+                        {
+                            _logger.LogInformation($"Close the connection: {close.Message}.");
+                            _ = StopConnectionAsync(client.Id, token);
+                        }
+                        break;
+                    case TunnelServiceStatusMessage status:
+                        {
+                            _logger.LogInformation(status.Message);
+                        }
+                        break;
+                    default:
+                        {
+                            _logger.LogInformation($"{tunnelMessage.Type} is not supported in current version");
+                        }
+                        break;
+                }
+            }
+        }
+    }
+
+    public async Task StopConnectionAsync(string id, CancellationToken cancellationToken)
+    {
+        if (_clients.TryGetValue(id, out var client))
+        {
+            await client.StopAsync();
+        }
+    }
+
+    private sealed class WebPubSubTunnelClient
+    {
+        private Channel<ServerDataMessage> _channel = Channel.CreateUnbounded<ServerDataMessage>();
+        private WebPubSubClient _client;
+
+        private TaskCompletionSource<string> _startedCts = new TaskCompletionSource<string>();
+
+        public string Id { get; } = Guid.NewGuid().ToString();
+
+        public bool Ended { get; private set; } = false;
+
+        public ChannelReader<ServerDataMessage> Reader => _channel.Reader;
+
+        public WebPubSubTunnelClient(Uri url, TokenCredential credential)
+        {
+            var options = new WebPubSubClientOptions()
+            {
+                Protocol = new TunnelServerProtocol(),
+                AutoReconnect = false
+            };
+            _client = new WebPubSubClient(new WebPubSubClientCredential(token => GetAccessTokenUrl(url, credential, token)), options);
+            _client.ServerMessageReceived += eventArgs =>
+            {
+                _channel.Writer.TryWrite(eventArgs.Message);
+                return Task.CompletedTask;
+            };
+            _client.Connected += connected =>
+            {
+                // everytime when reconnect connectionid could change
+                _startedCts.TrySetResult(connected.ConnectionId);
+                return Task.CompletedTask;
+            };
+            _client.Stopped += stopped =>
+            {
+                Ended = true;
+                // stopped before connected message received
+                _startedCts.TrySetCanceled();
+                _channel.Writer.Complete();
+                Stopped?.Invoke(stopped);
+                return Task.CompletedTask;
+            };
+        }
+
+        public WebPubSubTunnelClient(Uri endpoint, TokenCredential credential, string hub, string? target) : this(GetUrl(endpoint.AbsoluteUri, hub, target), credential)
+        {
+        }
+
+        public Task SendAsync(TunnelMessage message, CancellationToken token) => _client.SendEventAsync(message.Type.ToString(), BinaryData.FromBytes(
+            TunnelMessageProtocol.Instance.GetBytes(message)
+            ), WebPubSubDataType.Binary, fireAndForget: true, cancellationToken: token);
+
+        public event Func<WebPubSubStoppedEventArgs, Task> Stopped;
+
+        public async Task<string> StartAsync(CancellationToken cancellationToken)
+        {
+            await _client.StartAsync(cancellationToken);
+            return await _startedCts.Task;
+        }
+
+        public Task StopAsync() => _client.StopAsync();
+
+        private static Uri GetUrl(string endpoint, string hub, string? target)
+        {
+            var uriBuilder = new UriBuilder(endpoint);
+            uriBuilder.Scheme = uriBuilder.Scheme.Equals("http", StringComparison.OrdinalIgnoreCase) ? "ws" : "wss";
+            uriBuilder.Path = uriBuilder.Path + HttpTunnelPath;
+            var hubQuery = $"hub={WebUtility.UrlEncode(hub)}";
+            if (string.IsNullOrEmpty(uriBuilder.Query))
+            {
+                uriBuilder.Query = hubQuery;
+            }
+            else
+            {
+                uriBuilder.Query = $"{uriBuilder.Query}&{hubQuery}";
+            }
+            if (string.IsNullOrEmpty(target))
+            {
+                return uriBuilder.Uri;
+            }
+
+            uriBuilder.Query = $"{uriBuilder.Query}&{WebUtility.UrlEncode(target)}";
             return uriBuilder.Uri;
+
         }
 
-        uriBuilder.Query = $"{uriBuilder.Query}&{WebUtility.UrlEncode(target)}";
-        return uriBuilder.Uri;
-    }
-
-    private async Task ProcessTunnelMessageAsync(TunnelMessage message, CancellationToken token)
-    {
-        switch (message!)
+        private static async ValueTask<Uri> GetAccessTokenUrl(Uri endpoint, TokenCredential credential, CancellationToken cancellationToken)
         {
-            case TunnelRequestMessage tunnelRequest:
-                {
-                    _logger.LogInformation($"Getting request {tunnelRequest.TracingId}: {tunnelRequest.HttpMethod} {tunnelRequest.Url}");
-                    var tunnelResponse = await RequestHandler!.Invoke(tunnelRequest, token);
-                    using var writer = new MemoryBufferWriter();
-                    TunnelMessageProtocol.Instance.Write(tunnelResponse, writer);
-                    using var owner = writer.CreateMemoryOwner();
-                    await _webSocket!.SendAsync(owner.Memory, token);
-                }
-                break;
-            case ServiceReconnectTunnelMessage reconnect:
-                {
-                    _logger.LogInformation($"Reconnect the connection: {reconnect.Message}.");
-                    await Reconnect(reconnect, token);
-                }
-                break;
-            case ConnectionCloseTunnelMessage close:
-                {
-                    _logger.LogInformation($"Close the connection: {close.Message}.");
-                    await Close();
-                }
-                break;
-            case ServiceStatusTunnelMessage status:
-                {
-                    _logger.LogInformation(status.Message);
-                }
-                break;
-            default:
-                {
-                    _logger.LogInformation($"{message.Type} is not supported in current version");
-                }
-                break;
+            var bearer = (await credential.GetTokenAsync(new TokenRequestContext(new string[] { "https://webpubsub.azure.com" }, claims: endpoint.AbsoluteUri), cancellationToken)).Token;
+            return new Uri($"{endpoint.AbsoluteUri}&access_token={bearer}");
         }
-    }
 
-    private async Task Reconnect(ServiceReconnectTunnelMessage? reconnect = null, CancellationToken token = default)
-    {
-        _allowReconnect = true;
-        SetStatus(ConnectionStatus.Reconnecting);
-        if (reconnect != null)
+        private sealed class TunnelServerProtocol : WebPubSubProtocol
         {
-            if (!string.IsNullOrEmpty(reconnect.TargetId))
+            public override string Name { get; } = nameof(TunnelServerProtocol);
+            public override WebPubSubProtocolMessageType WebSocketMessageType { get; } = WebPubSubProtocolMessageType.Binary;
+            public override bool IsReliable { get; } = false;
+
+            public override ReadOnlyMemory<byte> GetMessageBytes(WebPubSubMessage message)
             {
-                Target = reconnect.TargetId;
-            }
-            if (!string.IsNullOrEmpty(reconnect.Endpoint))
-            {
-                SetEndpoint(new Uri(reconnect.Endpoint));
-            }
-        }
-        await StopAsync();
-    }
-
-    private async Task Close()
-    {
-        _allowReconnect = false;
-        await StopAsync();
-    }
-
-    private sealed class WebSocketConnection : IDisposable
-    {
-        private readonly Uri _endpoint;
-        private readonly ILogger _logger;
-        private readonly ClientWebSocket _webSocket;
-
-        public Task LifecycleTask { get; }
-
-        public WebSocketConnection(Uri endpoint, string token, ILogger logger, CancellationToken cancellation)
-        {
-            _endpoint = endpoint;
-            _logger = logger;
-            _webSocket = new ClientWebSocket();
-            _webSocket.Options.SetRequestHeader(HeaderNames.Authorization, "Bearer " + token);
-
-            // start the life cycle
-            LifecycleTask = RunAsync(cancellation);
-        }
-
-        public ValueTask SendAsync(ReadOnlyMemory<byte> buffer, CancellationToken cancellationToken)
-        {
-            return _webSocket.SendAsync(buffer, WebSocketMessageType.Binary, true, cancellationToken);
-        }
-
-        public async Task StopAsync()
-        {
-            try
-            {
-                if (_webSocket.State != WebSocketState.Closed)
+                switch (message)
                 {
-                    // Block a Start from happening until we've finished capturing the connection state.
-                    await _webSocket.CloseAsync(WebSocketCloseStatus.NormalClosure, "", default);
-                }
-            }
-            catch { }
-
-            try
-            {
-                await LifecycleTask.ConfigureAwait(false);
-            }
-            catch { }
-        }
-
-        public Func<Task>? OnConnected { get; set; }
-
-        public Func<DisconnectEvent, Exception?, Task>? OnDisconnected { get; set; }
-
-        public Func<TunnelMessage, Task>? OnMessage { get; set; }
-
-        private async Task RunAsync(CancellationToken cancellation)
-        {
-            await _webSocket.ConnectAsync(_endpoint, cancellation).ConfigureAwait(false);
-            await (OnConnected?.Invoke() ?? Task.CompletedTask).ConfigureAwait(false);
-            await ReceiveLoop(cancellation).ConfigureAwait(false);
-        }
-
-        private async Task ReceiveLoop(CancellationToken token)
-        {
-            var pipe = new Pipe();
-            Task writing = WriteAsync(pipe.Writer, token);
-            Task reading = ReadAsync(pipe.Reader, token);
-            await Task.WhenAll(reading, writing);
-
-            async Task WriteAsync(PipeWriter writer, CancellationToken token)
-            {
-                while (!token.IsCancellationRequested)
-                {
-                    var memory = writer.GetMemory();
-                    ValueWebSocketReceiveResult receiveResult;
-                    try
-                    {
-                        receiveResult = await _webSocket.ReceiveAsync(memory, token);
-                    }
-                    catch (Exception ex) when (ex is InvalidOperationException || ex is ObjectDisposedException)
-                    {
-                        // _webSocket ends remotely
-                        OnDisconnected?.Invoke(DisconnectEvent.ClosedWithException, ex);
-                        break;
-                    }
-                    catch (OperationCanceledException)
-                    {
-                        // cancelled
-                        OnDisconnected?.Invoke(DisconnectEvent.Cancelled, null);
-                        break;
-                    }
-                    catch (Exception ex)
-                    {
-                        OnDisconnected?.Invoke(DisconnectEvent.ClosedWithException, ex);
-                        _logger.LogError("Error receiving", ex);
-                        break;
-                    }
-
-                    // Need to check again for NetCoreApp2.2 because a close can happen between a 0-byte read and the actual read
-                    if (receiveResult.MessageType == WebSocketMessageType.Close)
-                    {
-                        try
+                    case SendEventMessage sendEventMessage:
                         {
-                            if (_webSocket.State != WebSocketState.Closed)
-                            {
-                                await _webSocket.CloseAsync(WebSocketCloseStatus.NormalClosure, string.Empty, default);
-                            }
+                            // Reuse event data to store tunnel message
+                            return sendEventMessage.Data;
                         }
-                        catch
+                    case SequenceAckMessage sequenceAckMessage:
                         {
-                            // It is possible that the remote is already closed
+                            // TODO: add when reliable is true
+                            break;
                         }
-
-                        OnDisconnected?.Invoke(DisconnectEvent.NormalClosure, null);
-                        break;
-                    }
-
-                    // always binary
-                    if (receiveResult.MessageType != WebSocketMessageType.Binary)
-                    {
-                        OnDisconnected?.Invoke(DisconnectEvent.ClosedWithInvalidMessageType, null);
-                        _logger.LogError($"Error receiving {receiveResult.MessageType} message type.");
-                        break;
-                    }
-
-                    writer.Advance(receiveResult.Count);
-
-                    // Make the data available to the PipeReader.
-                    FlushResult result = await writer.FlushAsync();
-
-                    if (result.IsCompleted)
-                    {
-                        break;
-                    }
-                }
-
-                await writer.CompleteAsync();
-            }
-
-            async Task ReadAsync(PipeReader reader, CancellationToken token)
-            {
-                while (!token.IsCancellationRequested)
-                {
-                    try
-                    {
-                        ReadResult result = await reader.ReadAsync(token);
-                        var buffer = result.Buffer;
-                        while (TunnelMessageProtocol.Instance.TryParse(ref buffer, out var message))
-                        {
-                            if (OnMessage != null)
-                            {
-                                try
-                                {
-                                    await OnMessage.Invoke(message);
-                                }
-                                catch (Exception ex)
-                                {
-                                    _logger.LogError($"Error handling message {message.GetType().Name}: {ex.Message}.", ex);
-                                }
-                            }
-                        }
-                        reader.AdvanceTo(buffer.Start, buffer.End);
-                        if (result.IsCompleted || result.IsCanceled)
+                    default:
                         {
                             break;
                         }
-                    }
-                    catch (OperationCanceledException)
-                    {
-                        break;
-                    }
                 }
 
-                await reader.CompleteAsync();
+                return Array.Empty<byte>();
             }
-        }
 
-        public void Dispose()
-        {
-            _webSocket.Dispose();
-        }
+            public override WebPubSubMessage ParseMessage(ReadOnlySequence<byte> input)
+            {
+                /*
+                case ConnectedMessage connectedMessage:
+                case DisconnectedMessage disconnectedMessage:
+                case AckMessage ackMessage:
+                case GroupDataMessage groupResponseMessage:
+                case ServerDataMessage serverResponseMessage:
+                    */
+                // TODO: message to add sequence id for recovery case
+                if (TunnelMessageProtocol.Instance.TryParse(input, out var message, out var offset))
+                {
+                    if (message is TunnelConnectionConnectedMessage connected)
+                    {
+                        return new ConnectedMessage(connected.UserId, connected.ConnectionId, connected.ReconnectionToken);
+                    }
 
-        public enum DisconnectEvent
-        {
-            NormalClosure,
-            Cancelled,
-            ClosedWithException,
-            ClosedWithInvalidMessageType
+                    return new ServerDataMessage(WebPubSubDataType.Binary, new BinaryData(input.Slice(0, offset).ToArray()), null);
+                }
+                else
+                {
+                    // not supported
+                    throw new NotSupportedException("Expecting tunnel message.");
+                }
+            }
+
+            public override void WriteMessage(WebPubSubMessage message, IBufferWriter<byte> output)
+            {
+                switch (message)
+                {
+                    case SendEventMessage sendEventMessage:
+                        {
+                            // Reuse event data to store tunnel message
+                            output.Write(sendEventMessage.Data);
+                            break;
+                        }
+                    case SequenceAckMessage sequenceAckMessage:
+                        {
+                            // TODO: add when reliable is true
+                            break;
+                        }
+                    default:
+                        {
+                            break;
+                        }
+                }
+            }
         }
     }
 }

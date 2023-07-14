@@ -62,6 +62,8 @@ export class ClientConnectionContext {
         cb(error);
       }
     }
+
+    debug(`send message, finish`);
   }
 
   /**

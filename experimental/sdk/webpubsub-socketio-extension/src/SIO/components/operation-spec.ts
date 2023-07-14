@@ -8,6 +8,7 @@ import * as mappers from "./mappers"
 const serializer = coreClient.createSerializer(mappers, /* isXml */ false);
 
 export const InvokeOperationSpec: coreClient.OperationSpec = {
+    baseUrl: "http://localhost:8080",
     path: "/api/hubs/{hub}/:invoke",
     httpMethod: "POST",
     responses: {
