@@ -122,6 +122,11 @@ _buffer=${JSON.stringify(this._buffer)}`);
     }
   }
 
+  protected override onClose(): void {
+    debug("onClose");
+    super.onClose();
+  }
+
   /**
    * Send `data` to client via AWPS asynchronously.
    * @param data - The data to be sent.

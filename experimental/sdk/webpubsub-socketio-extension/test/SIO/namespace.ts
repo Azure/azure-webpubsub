@@ -1,10 +1,11 @@
 // Modified from https://github.com/socketio/socket.io/blob/4.6.2/test/namespace.ts
 
-import type { SocketId } from "socket.io-adapter";
 import { Namespace, Socket } from "socket.io";
-import expect from "expect.js";
-import { Server } from "./support/util";
-import { success, createClient, successFn, shutdown } from "./support/util";
+import { Server, success, createClient, successFn, shutdown, spinCheck } from "./support/util";
+import { debugModule } from "../../src/common/utils";
+
+const expect = require("expect.js");
+const debug = debugModule("wps-sio-ext:ut:namespace");
 
 const serverPort = Number(process.env.SocketIoPort);
 
@@ -140,6 +141,86 @@ describe("namespaces", () => {
     });
   });
 
+  // Note: This test is modified. A `setTimeout` is added to mitigate intermittent failures caused by socket.io-client cache.
+  it("should disconnect upon transport disconnection", (done) => {
+    const io = new Server(serverPort);
+    setTimeout(() => {
+      const chat = createClient(io, "/chat-sdutd");
+      const news = createClient(io, "/news-sdutd");
+
+      let total = 2;
+      let totald = 2;
+      let chatClientSocket;
+      io.of("/news-sdutd", (socket) => {
+        debug(`news client eio id = ${socket.conn["id"]}`);
+        socket.on("disconnect", (reason) => {
+          --totald || success(done, io, chat, news);
+        });
+        --total || close();
+      });
+      io.of("/chat-sdutd", (socket) => {
+        debug(`chat client eio id = ${socket.conn["id"]}`);
+        chatClientSocket = socket;
+        socket.on("disconnect", (reason) => {
+          --totald || success(done, io, chat, news);
+        });
+        --total || close();
+      });
+      function close() {
+        chatClientSocket.disconnect(true);
+      }
+    }, 1000);
+  });
+
+  /**
+   * Note: This test is modified in its `close` method.
+   * 1. See "Modification 1" and "Modification 3" in index.ts
+   * 2. Use `setTimeout(() => { s.disconnect(); }, 1000);` instead of `process.nextTick(() => s.disconnect());`
+   *    For it takes longer for `s.join(room)` to take effect.
+   */
+  it("should fire a `disconnecting` event just before leaving all rooms", (done) => {
+    const io = new Server(serverPort);
+    const socket = createClient(io);
+
+    io.on("connection", async (s) => {
+      await s.join("a");
+      setTimeout(() => {
+        s.disconnect();
+      }, 1000);
+
+      let total = 2;
+      s.on("disconnecting", async (reason) => {
+        const check1 = () => {
+          expect(s.rooms).to.contain(s.id);
+          expect(s.rooms).to.contain("a");
+        };
+        await spinCheck(check1);
+
+        total--;
+      });
+
+      s.on("disconnect", async (reason) => {
+        const check2 = () => {
+          expect(total).to.equal(1);
+          expect(s.rooms.size).to.eql(0);
+        };
+
+        await spinCheck(check2);
+        --total || success(done, io, socket);
+      });
+    });
+  });
+
+  it("should return error connecting to non-existent namespace", (done) => {
+    const io = new Server(serverPort);
+    const client = createClient(io, "/doesnotexist");
+
+    client.on("connect_error", (err) => {
+      expect(err.message).to.be("Invalid namespace");
+      success(done, io);
+    });
+  });
+
   it("should not reuse same-namespace connections", (done) => {
     const io = new Server(serverPort);
     const clientSocket1 = createClient(io);
@@ -157,11 +238,24 @@ describe("namespaces", () => {
   // Skip: All tests which contains unsupported feature `BroadcastOperator.allSockets()`
   // Skip: All tests realted to `volatile`
 
-  it("should throw on reserved event", () => {
+  it("should throw on reserved event", (done) => {
     const io = new Server(serverPort);
 
     expect(() => io.emit("connect")).to.throwException(/"connect" is a reserved event name/);
-    shutdown(io);
+    success(done, io);
+  });
+
+  it("should close a client without namespace", (done) => {
+    const io = new Server(serverPort, {
+      connectTimeout: 10,
+    });
+
+    const socket = createClient(io, "/scawn");
+
+    // @ts-ignore
+    socket.io.engine.write = () => {}; // prevent the client from sending a CONNECT packet
+
+    socket.on("disconnect", successFn(done, io, socket));
   });
 
   it("should exclude a specific socket when emitting", (done) => {
@@ -180,6 +274,7 @@ describe("namespaces", () => {
     });
   });
 
+  // Note: This test is modified. See "Modification 3" in index.ts
   it("should exclude a specific socket when emitting (in a namespace)", (done) => {
     const io = new Server(serverPort);
 
@@ -193,18 +288,23 @@ describe("namespaces", () => {
     });
     socket1.on("a", successFn(done, io, socket1, socket2));
 
-    socket2.on("connect", () => {
+    socket2.on("connect", async () => {
+      // ensure `socket1` is connected before broadcasting
+      await spinCheck(() => {
+        expect(socket1.connected).to.equal(true);
+      });
       nsp.except(socket2.id).emit("a");
     });
   });
 
+  // Note: This test is modified. See "Modification 1" and "Modification 2" in index.ts
   it("should exclude a specific room when emitting", (done) => {
     const io = new Server(serverPort);
 
-    const nsp = io.of("/nsp");
+    const nsp = io.of("/nsp-seasrwe");
 
-    const socket1 = createClient(io, "/nsp");
-    const socket2 = createClient(io, "/nsp");
+    const socket1 = createClient(io, "/nsp-seasrwe");
+    const socket2 = createClient(io, "/nsp-seasrwe");
 
     socket1.on("a", successFn(done, io, socket1, socket2));
     socket2.on("a", () => {
@@ -212,8 +312,9 @@ describe("namespaces", () => {
     });
 
     nsp.on("connection", (socket) => {
-      socket.on("broadcast", () => {
-        socket.join("room1");
+      socket.on("broadcast", async () => {
+        await socket.join("room1");
+        expect(socket.rooms).to.contain("room1");
         nsp.except("room1").emit("a");
       });
     });
