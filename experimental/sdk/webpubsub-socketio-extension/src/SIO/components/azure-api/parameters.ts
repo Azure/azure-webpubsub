@@ -12,9 +12,9 @@ export const message: coreClient.OperationParameter = {
     serializedName: "message",
     required: true,
     type: {
-      name: "String"
-    }
-  }
+      name: "String",
+    },
+  },
 };
 
 export const apiVersion: coreClient.OperationQueryParameter = {
@@ -24,9 +24,9 @@ export const apiVersion: coreClient.OperationQueryParameter = {
     isConstant: true,
     serializedName: "api-version",
     type: {
-      name: "String"
-    }
-  }
+      name: "String",
+    },
+  },
 };
 
 export const excludedConnections: coreClient.OperationQueryParameter = {
@@ -37,12 +37,12 @@ export const excludedConnections: coreClient.OperationQueryParameter = {
       name: "Sequence",
       element: {
         type: {
-          name: "String"
-        }
-      }
-    }
+          name: "String",
+        },
+      },
+    },
   },
-  collectionFormat: "Multi"
+  collectionFormat: "Multi",
 };
 
 export const filter: coreClient.OperationQueryParameter = {
@@ -50,9 +50,9 @@ export const filter: coreClient.OperationQueryParameter = {
   mapper: {
     serializedName: "filter",
     type: {
-      name: "String"
-    }
-  }
+      name: "String",
+    },
+  },
 };
 
 export const endpoint: coreClient.OperationURLParameter = {
@@ -61,24 +61,24 @@ export const endpoint: coreClient.OperationURLParameter = {
     serializedName: "Endpoint",
     required: true,
     type: {
-      name: "String"
-    }
+      name: "String",
+    },
   },
-  skipEncoding: true
+  skipEncoding: true,
 };
 
 export const hub: coreClient.OperationURLParameter = {
   parameterPath: "hub",
   mapper: {
     constraints: {
-      Pattern: new RegExp("^[A-Za-z][A-Za-z0-9_`,.[\\]]{0,127}$")
+      Pattern: new RegExp("^[A-Za-z][A-Za-z0-9_`,.[\\]]{0,127}$"),
     },
     serializedName: "hub",
     required: true,
     type: {
-      name: "String"
-    }
-  }
+      name: "String",
+    },
+  },
 };
 
 export const contentType: coreClient.OperationParameter = {
@@ -88,9 +88,9 @@ export const contentType: coreClient.OperationParameter = {
     isConstant: true,
     serializedName: "Content-Type",
     type: {
-      name: "String"
-    }
-  }
+      name: "String",
+    },
+  },
 };
 
 export const accept: coreClient.OperationParameter = {
@@ -100,7 +100,7 @@ export const accept: coreClient.OperationParameter = {
     isConstant: true,
     serializedName: "Accept",
     type: {
-      name: "String"
-    }
-  }
+      name: "String",
+    },
+  },
 };
