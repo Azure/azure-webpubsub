@@ -4,9 +4,10 @@ module.exports = {
   entry: "./index.ts",
   devtool: "inline-source-map",
   output: {
-    filename: "server.js",
+    filename: "index.js",
     path: path.resolve(__dirname, "dist"),
   },
+
   resolve: {
     // Add `.ts` and `.tsx` as a resolvable extension.
     extensions: [".ts", ".tsx", ".js"],
@@ -17,6 +18,7 @@ module.exports = {
       ".mjs": [".mjs", ".mts"],
     },
   },
+  target: "node",
   module: {
     rules: [
       // all files with a `.ts`, `.cts`, `.mts` or `.tsx` extension will be handled by `ts-loader`

@@ -19,9 +19,12 @@
     "typescript": "^5.1.6"
   },
   "dependencies": {
+    "@azure/abort-controller": "^1.1.0",
+    "@azure/core-auth": "^1.4.0",
     "@azure/logger": "^1.0.4",
     "@azure/web-pubsub-client": "^1.0.0-beta.3",
     "@msgpack/msgpack": "^3.0.0-beta2",
+    "jsonwebtoken": "^9.0.1",
     "ws": "^8.13.0"
   }
 }

@@ -1,4 +1,3 @@
-import { Buffer } from "buffer";
 import { encode, decode } from "@msgpack/msgpack";
 import {
   TunnelByteContentMessage,
@@ -24,18 +23,20 @@ export class TunnelMessageProtocol {
     if (message instanceof TunnelByteContentMessage) {
       content = message.Content;
     }
-    const bytes = [message.Type, JSON.stringify(message, (key, value) => {
-      if (key === "Content") {
-        // exclude the byte Content
-        return undefined;
-      }
-      return value;
-    }), content];
+    const bytes = [
+      message.Type,
+      JSON.stringify(message, (key, value) => {
+        if (key === "Content") {
+          // exclude the byte Content
+          return undefined;
+        }
+        return value;
+      }),
+      content,
+    ];
     const encodedMessage = encode(bytes);
     const messageLength = encodedMessage.byteLength;
-    const buffer = new ArrayBuffer(
-      TunnelMessageProtocol.messageLengthSize + messageLength
-    );
+    const buffer = new ArrayBuffer(TunnelMessageProtocol.messageLengthSize + messageLength);
     const view = new DataView(buffer);
     view.setUint32(0, messageLength, true);
     const dataView = new Uint8Array(buffer);
