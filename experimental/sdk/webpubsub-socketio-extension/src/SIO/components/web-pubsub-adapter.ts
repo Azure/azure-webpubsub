@@ -219,8 +219,8 @@ groupNames = ${toString(rooms)}, connectionId(eioSid) = ${this._getEioSid(id)}`)
         for (let i = 0; i < lines.length - 1; i++) {
           if (lines[i]) {
             const emitWithAckResponse = JSON.parse(lines[i]);
-            // The payload is base64url encoded EIO payload, we need to decode it and only ack the data
-            const eioPackets = EioParser.decodePayload(base64url.decode(emitWithAckResponse.Payload));
+            // The payload is UTF-8 encoded EIO payload, we need to decode it and only ack the data
+            const eioPackets = EioParser.decodePayload(emitWithAckResponse.Payload);
             this._sioDecoder.on("decoded", (packet: SioPacket) => onPacket(packet));
             eioPackets.forEach((element) => {
               this._sioDecoder.add(element.data);
