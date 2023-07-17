@@ -46,7 +46,7 @@ export const excludedConnections: coreClient.OperationQueryParameter = {
 };
 
 export const filter: coreClient.OperationQueryParameter = {
-  parameterPath: ["options", "filter"],
+  parameterPath: "filter",
   mapper: {
     serializedName: "filter",
     type: {
