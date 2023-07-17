@@ -21,7 +21,7 @@ export class TunnelMessageProtocol {
   public getBytes<T extends TunnelMessage>(message: T): Uint8Array {
     let content = undefined;
     if (message instanceof TunnelByteContentMessage) {
-      content = message.Content;
+      content = (message as TunnelByteContentMessage).Content;
     }
     const bytes = [
       message.Type,

@@ -1,14 +1,44 @@
 {
-  "name": "common",
-  "private": true,
+  "name": "awps-tunnel-proxies",
   "version": "1.0.0",
   "description": "",
-  "main": "index.js",
+  "main": "dist/index.js",
+  "module": "dist-esm/index.js",
+  "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "require": "./dist/index.js",
+      "import": "./dist-esm/index.js",
+      "types": "./dist/index.d.ts"
+    }
+  },
+  "files": [
+    "dist/**/*.js",
+    "dist/**/*.js.map",
+    "dist/**/*.d.ts",
+    "dist/**/*.d.ts.map",
+    "dist-esm/**/*.js",
+    "dist-esm/**/*.js.map",
+    "dist-esm/**/*.d.ts",
+    "dist-esm/**/*.d.ts.map",
+    "src/**/*.ts",
+    "README.md",
+    "LICENSE",
+    "rollup.config.js",
+    "tsconfig.json",
+    "review/*",
+    "CHANGELOG.md",
+    "types/*"
+  ],
   "scripts": {
+    "build": "rollup -c",
     "test": "jest"
   },
   "license": "MIT",
   "devDependencies": {
+    "@rollup/plugin-commonjs": "^25.0.3",
+    "@rollup/plugin-node-resolve": "^15.1.0",
+    "@rollup/plugin-typescript": "^11.1.2",
     "@types/cors": "^2.8.13",
     "@types/jest": "^29.5.3",
     "@types/ws": "^8.5.5",

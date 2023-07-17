@@ -5,7 +5,7 @@ import { WebPubSubExtensionOptions, WebPubSubExtensionCredentialOptions, debugMo
 import { WebPubSubTransport } from "./components/web-pubsub-transport";
 import { WebPubSubConnectionManager } from "./components/web-pubsub-connection-manager";
 import * as engine from "engine.io";
-
+import { InprocessServerProxy } from "awps-tunnel-proxies";
 const debug = debugModule("wps-sio-ext:EIO:index");
 debug("load");
 
@@ -31,13 +31,13 @@ export class WebPubSubEioServer extends engine.Server {
     options: engine.ServerOptions,
     webPubSubOptions: WebPubSubExtensionOptions | WebPubSubExtensionCredentialOptions
   ) {
-    debug("create Engine.IO Server with AWPS");
     super(options);
+    debug("create Engine.IO Server with AWPS");
     this.webPubSubOptions = webPubSubOptions;
     this.webPubSubConnectionManager = new WebPubSubConnectionManager(this, webPubSubOptions);
-
     const webPubSubEioMiddleware = this.webPubSubConnectionManager.getEventHandlerEioMiddleware();
-    this.use(webPubSubEioMiddleware);
+    const tunnel = InprocessServerProxy.fromConnectionString(webPubSubOptions.connectionString, webPubSubOptions.hub, webPubSubEioMiddleware);
+    tunnel.runAsync();
   }
 
   protected override createTransport(transportName: string, req: unknown): engine.Transport {

@@ -179,7 +179,7 @@ export class WebPubSubConnectionManager {
   /**
    * @returns AWPS event handler middleware for EIO Server.
    */
-  public getEventHandlerEioMiddleware(): unknown {
+  public getEventHandlerEioMiddleware() {
     /**
      * AWPS package provides Express middleware for event handlers.
      * However Express middleware is not compatiable to be directly used by EIO Server.
@@ -187,23 +187,7 @@ export class WebPubSubConnectionManager {
      * eioMiddleware = (req: IncomingMessage, res: ServerResponse) =\> void;
      * To resolve the difference, So a conversion from express middleware to EIO middleware.
      */
-
-    // We have to use "any" otherwise express package will be introduced
-    // eslint-disable-next-line
-    const expressMiddleware: any = this._webPubSubEventHandler.getMiddleware();
-
-    const eioMiddleware = (req, res, errorCallback): void => {
-      /**
-       * `baseUrl` is a property of Express Request object and its used in `expressMiddleware`.
-       * Without actual usage as a part of Express, `req.baseUrl` is always ''.
-       * Ref https://expressjs.com/en/api.html#req.baseUrl
-       */
-      req.baseUrl = "";
-      req.path = req.url; // e.g. /eventhandler/
-      expressMiddleware(req, res, errorCallback);
-    };
-
-    return eioMiddleware;
+    return this._webPubSubEventHandler.getMiddleware();
   }
 
   public getNextSid = (): string | undefined => this._candidateSids.shift();

@@ -9,7 +9,7 @@ const server = require('http').createServer(app);
 const wpsOptions = {
     hub: "eio_hub",
     path: "/eventhandler/",
-    connectionString: process.argv[2] || process.env.WebPubSubConnectionString,
+    connectionString: "Endpoint=http://localhost;Port=8080;AccessKey=ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789ABCDEFGH;Version=1.0;",
     webPubSubServiceClientOptions: { allowInsecureConnection: true }
 };
 

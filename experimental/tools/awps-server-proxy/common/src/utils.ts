@@ -1,4 +1,5 @@
 import { KeyTokenCredential } from "./KeyTokenCredential";
+import { URL } from "url";
 
 interface ParsedConnectionString {
   credential: KeyTokenCredential;

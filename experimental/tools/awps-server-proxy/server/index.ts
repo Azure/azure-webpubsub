@@ -3,14 +3,12 @@
 // start the server connection
 
 // temp: show how to project reference the common project
-import { parseConnectionString } from "../common/utils";
 import { WebPubSubEventHandler } from "@azure/web-pubsub-express";
-import { InprocessServerProxy } from "../common/InprocessServerProxy";
+import { InprocessServerProxy } from "awps-tunnel-proxies";
 var host = "http://localhost:8080";
 var key = "";
-var connectionString = process.env["AzureWebPubSub__ConnectionString"] || `Endpoint=${host};AccessKey=${key}`;
+var connectionString = process.env["WebPubSubConnectionString"] || `Endpoint=${host};AccessKey=${key}`;
 
-const { credential, endpoint } = parseConnectionString(connectionString);
 const hub = "chat";
 
 const handler = new WebPubSubEventHandler(hub, {
@@ -36,5 +34,6 @@ const handler = new WebPubSubEventHandler(hub, {
 });
 
 const middleware = handler.getMiddleware();
-const tunnel = new InprocessServerProxy(endpoint, credential, hub, middleware);
+
+const tunnel = InprocessServerProxy.fromConnectionString(connectionString, hub, middleware);
 tunnel.runAsync();

@@ -5,11 +5,16 @@ import { Socket } from "net";
 import { AbortSignalLike } from "@azure/abort-controller";
 import { TokenCredential } from "@azure/core-auth";
 import { createLogger } from "./logger";
+import { parseConnectionString } from "./utils";
 
 const logger = createLogger("InprocessServerProxy");
 
 export class InprocessServerProxy {
   private _tunnel: TunnelConnection;
+  static fromConnectionString(connectionString: string, hub: string, handler: RequestHandler) : InprocessServerProxy{
+    const { credential, endpoint } = parseConnectionString(connectionString);
+    return new InprocessServerProxy(endpoint, credential, hub, handler);
+  }
   constructor(endpoint: string, credential: TokenCredential, hub: string, handler: RequestHandler) {
     this._tunnel = new TunnelConnection(endpoint, credential, hub, function (request, abortSignal) {
       const req = buildRequest(request) as Request;
