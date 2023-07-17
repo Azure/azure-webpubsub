@@ -8,8 +8,7 @@ const server = require('http').createServer(app);
 // Add an Web PubSub Option
 const wpsOptions = {
     hub: "eio_hub",
-    path: "/eventhandler/",
-    connectionString: "Endpoint=http://localhost;Port=8080;AccessKey=ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789ABCDEFGH;Version=1.0;",
+    connectionString: process.argv[2] || process.env.WebPubSubConnectionString,
     webPubSubServiceClientOptions: { allowInsecureConnection: true }
 };
 

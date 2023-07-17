@@ -26,9 +26,9 @@ export class InprocessServerProxy {
       const responseReader = readResponse(res, abortSignal);
       handler(req, res as unknown as Response, (err?: any) => {
         // end the response
-        err = "Not correctly handled. " + err;
+        err = "Not correctly handled. " + err ?? "";
         logger.error(err);
-        res.statusCode = res.statusCode ?? 500;
+        res.statusCode = 500;
         res.end(err);
       });
       // make sure request content is set after request emit is registered in handler
