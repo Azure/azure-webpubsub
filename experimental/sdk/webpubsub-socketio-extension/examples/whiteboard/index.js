@@ -13,15 +13,19 @@ const eioOptions = {
   path: "/eventhandler/",
 }
 
-const io = require('socket.io')(http, eioOptions).useAzureSocketIO(wpsOptions);
-const port = process.env.PORT || 3000;
+async function main() {
+  const io = require('socket.io')(http, eioOptions).useAzureSocketIO(wpsOptions);
+  const port = process.env.PORT || 3000;
 
-app.use(express.static(__dirname + '/public'));
+  app.use(express.static(__dirname + '/public'));
 
-io.on('connection', (socket) => {
-  socket.on('drawing', (data) => socket.broadcast.emit('drawing', data));
-});
+  io.on('connection', (socket) => {
+    socket.on('drawing', (data) => socket.broadcast.emit('drawing', data));
+  });
 
-http.listen(port, () => {
-  console.log('Visit http://localhost:%d', port);
-});
+  http.listen(port, () => {
+    console.log('Visit http://localhost:%d', port);
+  });
+}
+
+main();

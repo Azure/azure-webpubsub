@@ -43,6 +43,10 @@ export class InprocessServerProxy {
   public runAsync(abortSignal?: AbortSignalLike): Promise<void> {
     return this._tunnel.runAsync(abortSignal);
   }
+
+  public stop(): void {
+    this._tunnel.stop();
+  }
 }
 
 function buildRequest(tunnelRequest: TunnelIncomingMessage): http.IncomingMessage {

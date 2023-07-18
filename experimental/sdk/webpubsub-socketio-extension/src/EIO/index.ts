@@ -26,18 +26,51 @@ debug("load");
 export class WebPubSubEioServer extends engine.Server {
   public webPubSubOptions: WebPubSubExtensionOptions | WebPubSubExtensionCredentialOptions;
   public webPubSubConnectionManager: WebPubSubConnectionManager;
+  private _tunnel: InprocessServerProxy;
+  private _setuped: Promise<void>;
 
   constructor(
     options: engine.ServerOptions,
-    webPubSubOptions: WebPubSubExtensionOptions | WebPubSubExtensionCredentialOptions
+    webPubSubOptions: WebPubSubExtensionOptions | WebPubSubExtensionCredentialOptions,
+    useTunnel: boolean = true
   ) {
     super(options);
     debug("create Engine.IO Server with AWPS");
     this.webPubSubOptions = webPubSubOptions;
     this.webPubSubConnectionManager = new WebPubSubConnectionManager(this, webPubSubOptions);
-    const webPubSubEioMiddleware = this.webPubSubConnectionManager.getEventHandlerEioMiddleware();
-    const tunnel = InprocessServerProxy.fromConnectionString(webPubSubOptions.connectionString, webPubSubOptions.hub, webPubSubEioMiddleware);
-    tunnel.runAsync();
+
+    if (useTunnel) {
+      const webPubSubEioMiddleware = this.webPubSubConnectionManager.getEventHandlerExpressMiddleware();
+      this._tunnel =
+        Object.keys(webPubSubOptions).indexOf("connectionString") !== -1
+          ? InprocessServerProxy.fromConnectionString(
+              webPubSubOptions["connectionString"],
+              webPubSubOptions.hub,
+              webPubSubEioMiddleware
+            )
+          : new InprocessServerProxy(
+              webPubSubOptions["endpoint"],
+              webPubSubOptions["credential"],
+              webPubSubOptions["hub"],
+              webPubSubEioMiddleware
+            );
+      this._setuped = this._tunnel.runAsync();
+      /**
+       * After close EIO server, internal tunnel should be closed as well.
+       * Force override `cleanup`, which is executed when closing EIO server.
+       * In native implementation, it close internal WebSocket server, which makes nno sense in AWPS.
+       */
+      this["cleanup"] = () => {
+        this._tunnel.stop();
+      };
+    } else {
+      const webPubSubEioMiddleware = this.webPubSubConnectionManager.getEventHandlerEioMiddleware();
+      this.use(webPubSubEioMiddleware);
+    }
+  }
+
+  public async setup(): Promise<void> {
+    await this._setuped;
   }
 
   protected override createTransport(transportName: string, req: unknown): engine.Transport {

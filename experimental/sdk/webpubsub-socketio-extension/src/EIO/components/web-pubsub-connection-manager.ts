@@ -187,6 +187,26 @@ export class WebPubSubConnectionManager {
      * eioMiddleware = (req: IncomingMessage, res: ServerResponse) =\> void;
      * To resolve the difference, So a conversion from express middleware to EIO middleware.
      */
+    const expressMiddleware: any = this._webPubSubEventHandler.getMiddleware();
+
+    const eioMiddleware = (req, res, errorCallback): void => {
+      /**
+       * `baseUrl` is a property of Express Request object and its used in `expressMiddleware`.
+       * Without actual usage as a part of Express, `req.baseUrl` is always ''.
+       * Ref https://expressjs.com/en/api.html#req.baseUrl
+       */
+      req.baseUrl = "";
+      req.path = req.url; // e.g. /eventhandler/
+      expressMiddleware(req, res, errorCallback);
+    };
+
+    return eioMiddleware;
+  }
+
+  /**
+   * @returns AWPS event handler middleware for Express Server.
+   */
+  public getEventHandlerExpressMiddleware() {
     return this._webPubSubEventHandler.getMiddleware();
   }
 
