@@ -5,7 +5,6 @@ const http = require('http').Server(app);
 
 const wpsOptions = {
   hub: "eio_hub",
-  path: "/eventhandler/",
   connectionString: process.argv[2] || process.env.WebPubSubConnectionString,
   webPubSubServiceClientOptions: { allowInsecureConnection: true }
 }
