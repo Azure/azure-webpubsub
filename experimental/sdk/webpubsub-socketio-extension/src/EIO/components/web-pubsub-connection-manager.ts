@@ -206,7 +206,7 @@ export class WebPubSubConnectionManager {
       method: "GET",
       headers: req.headers,
       connection: {},
-      url: this._webPubSubOptions.path,
+      url: "/eventhandler/",
       _query: {},
     };
     // Preserve all queires. Each value of `req.queries` is an one-element array which is wrapped by AWPS. Just pick out the first element.

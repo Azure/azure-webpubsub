@@ -31,7 +31,7 @@
     "types/*"
   ],
   "scripts": {
-    "build": "rollup -c",
+    "build": "rollup -c --bundleConfigAsCjs",
     "test": "jest"
   },
   "license": "MIT",
