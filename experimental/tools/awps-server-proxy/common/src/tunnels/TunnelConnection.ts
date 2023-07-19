@@ -9,7 +9,7 @@ import {
   TunnelMessageType,
 } from "./messages";
 import { TokenCredential } from "@azure/core-auth";
-import { PromiseCompletionSource } from "../utils";
+import { PromiseCompletionSource, AckEntity } from "../utils";
 import { AbortSignalLike } from "@azure/abort-controller";
 import { createLogger } from "../logger";
 
@@ -37,19 +37,57 @@ export interface TunnelRequestHandler {
   (request: TunnelIncomingMessage, abortSignal?: AbortSignalLike): Promise<TunnelOutgoingMessage | undefined>;
 }
 
+export interface HttpRequestLike {
+  method: string;
+  url: string;
+  content?: Uint8Array;
+}
+
+export interface HttpResponseLike {
+  statusCode: number;
+  content?: Uint8Array;
+}
+
 export class TunnelConnection {
+  private readonly _ackMap: Map<number, AckEntity<TunnelHttpResponseMessage>> = new Map<number, AckEntity<TunnelHttpResponseMessage>>();
   private readonly clients = new Map<string, WebPubSubTunnelClient>();
   private readonly lifetimeTcs: PromiseCompletionSource<void> = new PromiseCompletionSource<void>();
-  constructor(
-    private readonly endpoint: string,
-    private readonly credential: TokenCredential,
-    private readonly hub: string,
-    public requestHandler?: TunnelRequestHandler
-  ) {}
+  private _ackId: number = 0;
+  constructor(private readonly endpoint: string, private readonly credential: TokenCredential, private readonly hub: string, public requestHandler?: TunnelRequestHandler) {}
+
+  private nextAckId(): number {
+    this._ackId = this._ackId + 1;
+    return this._ackId;
+  }
 
   public async runAsync(abortSignal?: AbortSignalLike): Promise<void> {
     // Run the connection
     await this.startConnectionAsync({ endpoint: this.endpoint }, abortSignal);
+  }
+
+  public async invokeAsync(
+    httpRequest: HttpRequestLike,
+    abortSignal?: AbortSignalLike
+  ): Promise<HttpResponseLike> {
+    // TODO: what is the send balance strategy?
+    const client = this.getClient();
+    if (!client) {
+      throw new Error("No connection started.");
+    }
+    const ackId = this.nextAckId();
+    const ackEntity = new AckEntity<TunnelHttpResponseMessage>(ackId, abortSignal);
+    this._ackMap.set(ackId, ackEntity);
+    try {
+      await client.sendAsync(new TunnelHttpRequestMessage(ackId, true, "", httpRequest.method, httpRequest.url, undefined, httpRequest.content), abortSignal);
+      const response = await ackEntity.promise();
+      return {
+        statusCode: response.StatusCode,
+        content: response.Content,
+      };
+    } catch (err) {
+      this._ackMap.delete(ackId);
+      throw err;
+    }
   }
 
   public stop(): void {
@@ -61,8 +99,25 @@ export class TunnelConnection {
     });
   }
 
+  private getClient(): WebPubSubTunnelClient | undefined {
+    for (const [_, client] of this.clients) {
+      return client;
+    }
+  }
+
   private async processMessage(client: WebPubSubTunnelClient, message: TunnelMessage, abortSignal?: AbortSignalLike): Promise<void> {
     switch (message.Type) {
+      case TunnelMessageType.HttpResponse: {
+        const tunnelResponse = message as TunnelHttpResponseMessage;
+        logger.info(`Getting request ${tunnelResponse.TracingId ?? ""}: ackId: ${tunnelResponse.AckId}, statusCode: ${tunnelResponse.StatusCode}`);
+        const ackId = tunnelResponse.AckId;
+        if (this._ackMap.has(ackId)) {
+          const entity = this._ackMap.get(ackId)!;
+          this._ackMap.delete(ackId);
+          entity.resolve(tunnelResponse);
+        }
+        break;
+      }
       case TunnelMessageType.HttpRequest: {
         const tunnelRequest = message as TunnelHttpRequestMessage;
         logger.info(`Getting request ${tunnelRequest.TracingId ?? ""}: ${tunnelRequest.HttpMethod} ${tunnelRequest.Url}`);

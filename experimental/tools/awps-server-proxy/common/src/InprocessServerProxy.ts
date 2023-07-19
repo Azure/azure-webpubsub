@@ -2,7 +2,9 @@ import {
   TunnelConnection,
   TunnelOutgoingMessage,
   TunnelIncomingMessage,
-  TunnelRequestHandler
+  TunnelRequestHandler,
+  HttpRequestLike,
+  HttpResponseLike
 } from "./tunnels/TunnelConnection";
 import { Request, Response, RequestHandler } from "express-serve-static-core";
 import * as http from "http";
@@ -14,7 +16,16 @@ import { parseConnectionString } from "./utils";
 
 const logger = createLogger("InprocessServerProxy");
 
-export class InprocessServerProxy {
+export interface WebPubSubServiceCaller {
+  sendToAll: (message: string, options?: { filter: string; contentType: string }) => Promise<void>;
+  removeConnectionsFromGroups(groups: string[], filter: string): Promise<void>;
+  addConnectionsToGroups(groups: string[], filter: string): Promise<void>;
+  group(groupName: string): {
+    removeConnection(connectionId: string): Promise<void>;
+  };
+}
+
+export class InprocessServerProxy implements WebPubSubServiceCaller {
   private _tunnel: TunnelConnection;
   static fromConnectionString(
     connectionString: string,
@@ -36,6 +47,23 @@ export class InprocessServerProxy {
       hub,
       this._getRequestHandler(handler)
     );
+  }
+  public sendToAll(message: string, options?: { filter: string; contentType: string; } | undefined) : Promise<void>{
+    // todo: form the http request and invoke _sendAsync
+    throw new Error("Method not implemented.");
+  }
+  public removeConnectionsFromGroups(groups: string[], filter: string): Promise<void> {
+    throw new Error("Method not implemented.");
+  }
+  public addConnectionsToGroups(groups: string[], filter: string): Promise<void> {
+    throw new Error("Method not implemented.");
+  }
+  public group(groupName: string): { removeConnection(connectionId: string): Promise<void>; } {
+    throw new Error("Method not implemented.");
+  }
+
+  private _sendAsync(httpRequest: HttpRequestLike) : Promise<HttpResponseLike> {
+    return this._tunnel.invokeAsync(httpRequest);
   }
 
   public runAsync(abortSignal?: AbortSignalLike): Promise<void> {
