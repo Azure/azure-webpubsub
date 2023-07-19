@@ -32,10 +32,10 @@
     "build": "npm run clean && tsc --build .",
     "check-format": "prettier --list-different --config ./.prettierrc.json --ignore-path ./.prettierignore ./src/",
     "format": "prettier --write --config ./.prettierrc.json --ignore-path ./.prettierignore ./src/ ./test/",
-    "test": "tsc && npm run lint && echo TODOTEST",
+    "test": "npm run build && npm run lint && echo TODOTEST",
     "test:unit": "nyc mocha --require ts-node/register --reporter spec --slow 200 --timeout 4000 --bail ./test/index.ts",
     "clean": "rimraf dist dist-esm test-dist temp types *.tgz *.log",
-    "extract-api": "tsc -p . && api-extractor run --local",
+    "extract-api": "npm run build && api-extractor run --local",
     "lint": "eslint src --ext .ts,.javascript,.js ",
     "lint:fix": "eslint src --ext .ts,.javascript,.js --fix"
   },
