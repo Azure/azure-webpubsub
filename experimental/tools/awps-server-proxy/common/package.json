@@ -4,12 +4,12 @@
   "description": "",
   "main": "dist/index.js",
   "module": "dist-esm/index.js",
-  "types": "dist/types/src/index.d.ts",
+  "types": "types/index.d.ts",
   "exports": {
     ".": {
       "require": "./dist/index.js",
       "import": "./dist-esm/index.js",
-      "types": "./dist/types/src/index.d.ts"
+      "types": "./types/index.d.ts"
     }
   },
   "files": [
@@ -31,7 +31,8 @@
     "types/*"
   ],
   "scripts": {
-    "build": "rollup -c --bundleConfigAsCjs",
+    "build": "npm run clean && tsc && rollup -c --bundleConfigAsCjs",
+    "clean": "rimraf dist dist-esm test-dist temp types *.tgz *.log",
     "test": "jest"
   },
   "license": "MIT",

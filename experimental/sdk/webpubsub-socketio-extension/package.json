@@ -29,7 +29,7 @@
     "socket.io-adapter": "^2.5.2"
   },
   "scripts": {
-    "build": "npm run clean && tsc",
+    "build": "npm run clean && tsc --build .",
     "check-format": "prettier --list-different --config ./.prettierrc.json --ignore-path ./.prettierignore ./src/",
     "format": "prettier --write --config ./.prettierrc.json --ignore-path ./.prettierignore ./src/ ./test/",
     "test": "tsc && npm run lint && echo TODOTEST",

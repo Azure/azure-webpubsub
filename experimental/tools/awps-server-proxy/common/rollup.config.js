@@ -10,11 +10,7 @@ export default {
     {
       file: "dist/index.js",
       format: "cjs",
-    },
-    {
-      file: "dist-esm/index.js",
-      format: "esm",
-    },
+    }
   ],
   plugins: [
     resolve({
