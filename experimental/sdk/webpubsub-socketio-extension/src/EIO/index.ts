@@ -32,7 +32,7 @@ export class WebPubSubEioServer extends engine.Server {
   constructor(
     options: engine.ServerOptions,
     webPubSubOptions: WebPubSubExtensionOptions | WebPubSubExtensionCredentialOptions,
-    tunnel? : InprocessServerProxy
+    tunnel?: InprocessServerProxy
   ) {
     super(options);
     debug("create Engine.IO Server with AWPS");

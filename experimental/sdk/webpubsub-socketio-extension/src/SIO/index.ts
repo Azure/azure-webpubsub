@@ -21,10 +21,11 @@ export async function useAzureSocketIO(
   debug("use Azure Web PubSub For Socket.IO Server");
   const useTunnel = true;
 
-  const serverProxy = !useTunnel ? undefined :
-    (Object.keys(webPubSubOptions).indexOf("connectionString") !== -1
-      ? InprocessServerProxy.fromConnectionString(webPubSubOptions["connectionString"], webPubSubOptions.hub)
-      : new InprocessServerProxy(webPubSubOptions["endpoint"], webPubSubOptions["credential"], webPubSubOptions["hub"]));
+  const serverProxy = !useTunnel
+    ? undefined
+    : Object.keys(webPubSubOptions).indexOf("connectionString") !== -1
+    ? InprocessServerProxy.fromConnectionString(webPubSubOptions["connectionString"], webPubSubOptions.hub)
+    : new InprocessServerProxy(webPubSubOptions["endpoint"], webPubSubOptions["credential"], webPubSubOptions["hub"]);
   const engine = new WebPubSubEioServer(this.engine.opts, webPubSubOptions, serverProxy);
   engine.attach(this["httpServer"], this["opts"]);
 
