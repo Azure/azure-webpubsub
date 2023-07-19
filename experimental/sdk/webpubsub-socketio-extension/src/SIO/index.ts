@@ -43,7 +43,8 @@ export async function useAzureSocketIO(
     debug("use webPubSub adatper");
 
     const adapterProxy = new WebPubSubAdapterProxy(
-      (this.engine as WebPubSubEioServer).webPubSubConnectionManager.service
+      (this.engine as WebPubSubEioServer).webPubSubConnectionManager.service,
+      serverProxy
     );
     this.adapter(adapterProxy as unknown as AdapterConstructor);
   }

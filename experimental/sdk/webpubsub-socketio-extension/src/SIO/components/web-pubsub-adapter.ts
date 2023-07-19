@@ -2,11 +2,11 @@
 // Licensed under the MIT license.
 
 import { debugModule, toOptionsString, toString } from "../../common/utils";
-import { WebPubSubServiceClient, HubSendTextToAllOptions } from "@azure/web-pubsub";
 import { getSingleEioEncodedPayload } from "./encoder";
 import { Packet as SioPacket, PacketType as SioPacketType } from "socket.io-parser";
 import { Namespace, Server as SioServer } from "socket.io";
 import { Adapter as NativeInMemoryAdapter, BroadcastOptions, Room, SocketId } from "socket.io-adapter";
+import { InprocessServerProxy, WebPubSubServiceCaller } from "awps-tunnel-proxies";
 import { Mutex, MutexInterface } from "async-mutex";
 import base64url from "base64url";
 
@@ -27,21 +27,21 @@ const NonLocalNotSupported = new Error("Non-local condition is not Supported.");
  *  2. Set the adapter: `io.adapter(WebPubSubAdapterProxy);`, thus additional options are controllable.
  */
 export class WebPubSubAdapterProxy {
-  public serivce: WebPubSubServiceClient;
+  public serivce: WebPubSubServiceCaller;
   public sioServer: SioServer;
 
-  constructor(serviceClient: WebPubSubServiceClient) {
+  constructor(serviceClient: WebPubSubServiceCaller, serverProxy?: InprocessServerProxy) {
     this.serivce = serviceClient;
 
     const proxyHandler = {
-      construct: (target, args) => new target(...args, serviceClient),
+      construct: (target, args) => new target(...args, serviceClient, serverProxy),
     };
     return new Proxy(WebPubSubAdapterInternal, proxyHandler);
   }
 }
 
 export class WebPubSubAdapterInternal extends NativeInMemoryAdapter {
-  public service: WebPubSubServiceClient;
+  public service: WebPubSubServiceCaller;
   private _roomOperationLock: Map<SocketId, Mutex> = new Map();
 
   /**
@@ -50,10 +50,10 @@ export class WebPubSubAdapterInternal extends NativeInMemoryAdapter {
    * @param nsp - Namespace
    * @param extraArgForWpsAdapter - extra argument for WebPubSubAdapter
    */
-  constructor(readonly nsp: Namespace, serviceClient: WebPubSubServiceClient) {
+  constructor(readonly nsp: Namespace, serviceClient: WebPubSubServiceCaller, serverProxy?: InprocessServerProxy) {
     debug(`constructor nsp.name = ${nsp.name}, serviceClient = ${serviceClient}`);
     super(nsp);
-    this.service = serviceClient;
+    this.service = serverProxy ?? serviceClient;
   }
 
   /**
@@ -73,7 +73,7 @@ opts = ${toOptionsString(opts)}, namespace = "${this.nsp.name}"`);
     const sendOptions = { filter: oDataFilter, contentType: "text/plain" };
     debug(`broadcast, encodedPayload = "${encodedPayload}", sendOptions = "${JSON.stringify(sendOptions)}"`);
 
-    await this.service.sendToAll(encodedPayload, sendOptions as HubSendTextToAllOptions);
+    await this.service.sendToAll(encodedPayload, sendOptions);
     debug(`broadcast, finish`);
   }
 

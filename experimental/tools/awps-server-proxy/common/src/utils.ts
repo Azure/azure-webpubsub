@@ -1,9 +1,41 @@
 import { KeyTokenCredential } from "./KeyTokenCredential";
+import { AbortSignalLike } from "@azure/abort-controller";
 import { URL } from "url";
 
 interface ParsedConnectionString {
   credential: KeyTokenCredential;
   endpoint: string;
+}
+
+export class AckEntity<T> {
+  private readonly _promise: Promise<T>;
+  private _resolve?: (value: T) => void;
+  private _reject?: (reason?: any) => void;
+
+  constructor(ackId: number, abortSignal?: AbortSignalLike) {
+    this._promise = new Promise<T>((resolve, reject) => {
+      this._resolve = resolve;
+      this._reject = reject;
+    });
+    this.ackId = ackId;
+    abortSignal?.addEventListener("abort", () => {
+      this._reject!("aborted");
+    });
+  }
+
+  public ackId;
+
+  public promise(): Promise<T> {
+    return this._promise;
+  }
+
+  public resolve(value: T): void {
+    this._resolve!(value);
+  }
+
+  public reject(reason?: any): void {
+    this._reject!(reason);
+  }
 }
 
 export class PromiseCompletionSource<T> {
