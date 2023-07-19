@@ -44,9 +44,9 @@ export class WebPubSubEioServer extends engine.Server {
       this._tunnel.use(this.webPubSubConnectionManager.getEventHandlerExpressMiddleware());
       this._setuped = this._tunnel.runAsync();
       /**
-       * After close EIO server, internal tunnel should be closed as well.
+       * After closing the EIO server, internal tunnel should be closed as well.
        * Force override `cleanup`, which is executed when closing EIO server.
-       * In native implementation, it close internal WebSocket server, which makes nno sense in AWPS.
+       * In native implementation, it close internal WebSocket server, this is not needed when using Azure Web PubSub.
        */
       this["cleanup"] = () => {
         this._tunnel.stop();

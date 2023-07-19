@@ -33,7 +33,6 @@ export interface WebPubSubExtensionCredentialOptions {
   endpoint: string;
   credential: AzureKeyCredential | TokenCredential;
   hub: string;
-  path: string;
   webPubSubServiceClientOptions?: WebPubSubServiceClientOptions;
 }
 
