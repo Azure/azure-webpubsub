@@ -33,6 +33,10 @@ export interface TunnelOutgoingMessage {
   Content: Uint8Array;
 }
 
+export interface TunnelRequestHandler {
+  (request: TunnelIncomingMessage, abortSignal?: AbortSignalLike): Promise<TunnelOutgoingMessage | undefined>;
+}
+
 export class TunnelConnection {
   private readonly clients = new Map<string, WebPubSubTunnelClient>();
   private readonly lifetimeTcs: PromiseCompletionSource<void> = new PromiseCompletionSource<void>();
@@ -40,7 +44,7 @@ export class TunnelConnection {
     private readonly endpoint: string,
     private readonly credential: TokenCredential,
     private readonly hub: string,
-    private readonly requestHandler: (request: TunnelIncomingMessage, abortSignal?: AbortSignalLike) => Promise<TunnelOutgoingMessage | undefined>
+    public requestHandler?: TunnelRequestHandler
   ) {}
 
   public async runAsync(abortSignal?: AbortSignalLike): Promise<void> {

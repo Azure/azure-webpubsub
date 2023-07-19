@@ -40,7 +40,7 @@ export interface WebPubSubExtensionCredentialOptions {
 export function getWebPubSubServiceClient(options: WebPubSubExtensionOptions | WebPubSubExtensionCredentialOptions) {
   // if owns connection string, handle as `WebPubSubExtensionOptions`
   if (Object.keys(options).indexOf("connectionString") !== -1) {
-    const requiredKeys = ["connectionString", "hub", "path"];
+    const requiredKeys = ["connectionString", "hub"];
 
     for (const key of requiredKeys) {
       if (!options[key] || options[key] === "")
@@ -53,7 +53,7 @@ export function getWebPubSubServiceClient(options: WebPubSubExtensionOptions | W
       options["webPubSubServiceClientOptions"]
     );
   } else {
-    const requiredKeys = ["endpoint", "credential", "hub", "path"];
+    const requiredKeys = ["endpoint", "credential", "hub"];
     for (const key of requiredKeys) {
       if (!options[key] || options[key] === "")
         throw new Error(`Expect valid ${key} is required, got null or empty value.`);
