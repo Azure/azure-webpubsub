@@ -2,7 +2,7 @@
 
 import { Server as _Server, ServerOptions, Socket } from "socket.io";
 import { io as ioc, ManagerOptions, Socket as ClientSocket, SocketOptions } from "socket.io-client";
-import { debugModule } from "../../../src/common/utils";
+import { debugModule, TUNNEL_PATH } from "../../../src/common/utils";
 import { init, WebPubSubExtensionOptions } from "../../../src";
 import { Server as HttpServer } from "http";
 import { setTimeout } from "timers";
@@ -17,7 +17,6 @@ init();
 
 export const wpsOptions = {
   hub: process.env.WebPubSubHub,
-  path: process.env.WebPubSubPath,
   connectionString: process.env.WebPubSubConnectionString,
   webPubSubServiceClientOptions: { allowInsecureConnection: true },
 } as WebPubSubExtensionOptions;
@@ -26,8 +25,7 @@ const serverPort = Number(process.env.SocketIoPort);
 debug(`SocketIO Server Port = ${serverPort}`);
 
 // e.g: /eventhandler/this-is-a-file.js
-export const attachmentPath = (filename: string): string =>
-  wpsOptions.path + (wpsOptions.path.endsWith("/") ? "" : "/") + filename;
+export const attachmentPath = (filename: string): string => TUNNEL_PATH + filename;
 
 // e.g. /eventhandler/socket.io.js
 export const defaultAttachmentPath = attachmentPath("socket.io.js");
@@ -44,7 +42,7 @@ export const enableFastClose = (server: _Server): void => {
 
 export class Server extends _Server {
   constructor(srv?: number | HttpServer, extraOpts?: Partial<ServerOptions>) {
-    const opts = extraOpts ? { ...extraOpts, path: wpsOptions.path } : { path: wpsOptions.path };
+    const opts = extraOpts ? { ...extraOpts, path: TUNNEL_PATH } : { path: TUNNEL_PATH };
     if (typeof srv === "number") {
       debug(`Server, port = ${srv}, opts = ${JSON.stringify(opts)}`);
     } else {

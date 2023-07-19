@@ -1,10 +1,10 @@
 {
   "include": ["src/**/*.ts"],
   "exclude": ["./dist-esm", "node_modules"],
+  "references": [{ "path": "../../tools/awps-server-proxy/common" }],
   "compilerOptions": {
     "target": "ES2017",
     "module": "CommonJS",
-    "lib": [],
     "declaration": true,
     "declarationMap": true,
     "inlineSources": true,
@@ -24,7 +24,8 @@
     "outDir": "./dist-esm",
     "declarationDir": "./types",
     "paths": {
-      "@azure/web-pubsub-socketio": ["./src/index"]
+      "@azure/web-pubsub-socketio": ["./src/index"],
+      "awps-tunnel-proxies": ["../../tools/awps-server-proxy/common"]
     }
   },
 }

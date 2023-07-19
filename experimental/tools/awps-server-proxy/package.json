@@ -7,7 +7,7 @@
     "start": "cd client && npm start",
     "server": "cd server && npm run dev",
     "test": "cd client && npm test",
-    "build": "cd client && npm run build",
+    "build": "cd server && npm run build",
     "lint": "cd client && npm run lint",
     "format": "cd client && npm run format"
   },

@@ -1,4 +1,4 @@
-import { TunnelMessageProtocol } from "../tunnels/TunnelMessageProtocol";
+import { TunnelMessageProtocol } from "../src/tunnels/TunnelMessageProtocol";
 import {
   TunnelConnectionRebalanceMessage,
   TunnelConnectionCloseMessage,
@@ -9,10 +9,9 @@ import {
   TunnelMessage,
   TunnelMessageType,
   TunnelServiceStatusMessage,
-} from "../tunnels/messages";
+} from "../src/tunnels/messages";
 
 describe("TunnelMessageProtocolTests", () => {
-
   it("TestResponseMessage", () => {
     const message = new TunnelHttpResponseMessage(1, true, 200, "a", {
       a: ["b"],
@@ -119,26 +118,11 @@ describe("ServiceBytesCanParseTests", () => {
         "LgAAAJMH2Sl7IlR5cGUiOjcsIk1lc3NhZ2UiOiJhIiwiVHJhY2luZ0lkIjpudWxsfcA=",
       ],
       [
-        new TunnelHttpRequestMessage(
-          1,
-          true,
-          "a",
-          "HEAD",
-          "a",
-          { a: ["b"] },
-          utf8Encode("Hello")
-        ),
+        new TunnelHttpRequestMessage(1, true, "a", "HEAD", "a", { a: ["b"] }, utf8Encode("Hello")),
         "igAAAJMB2X97IlR5cGUiOjEsIkFja0lkIjoxLCJIdHRwTWV0aG9kIjoiSEVBRCIsIlVybCI6ImEiLCJIZWFkZXJzIjp7ImEiOlsiYiJdfSwiTG9jYWxSb3V0aW5nIjp0cnVlLCJDaGFubmVsTmFtZSI6ImEiLCJUcmFjaW5nSWQiOm51bGx9xAVIZWxsbw==",
       ],
       [
-        new TunnelHttpResponseMessage(
-          1,
-          true,
-          200,
-          "a",
-          { a: ["b"] },
-          utf8Encode("Hello")
-        ),
+        new TunnelHttpResponseMessage(1, true, 200, "a", { a: ["b"] }, utf8Encode("Hello")),
         "fQAAAJMC2XJ7IlR5cGUiOjIsIkFja0lkIjoxLCJTdGF0dXNDb2RlIjoyMDAsIkhlYWRlcnMiOnsiYSI6WyJiIl19LCJMb2NhbFJvdXRpbmciOnRydWUsIkNoYW5uZWxOYW1lIjoiYSIsIlRyYWNpbmdJZCI6bnVsbH3EBUhlbGxv",
       ],
     ];
