@@ -1,4 +1,9 @@
-import { TunnelConnection, TunnelOutgoingMessage, TunnelIncomingMessage } from "./tunnels/TunnelConnection";
+import {
+  TunnelConnection,
+  TunnelOutgoingMessage,
+  TunnelIncomingMessage,
+  TunnelRequestHandler
+} from "./tunnels/TunnelConnection";
 import { Request, Response, RequestHandler } from "express-serve-static-core";
 import * as http from "http";
 import { Socket } from "net";
@@ -11,12 +16,45 @@ const logger = createLogger("InprocessServerProxy");
 
 export class InprocessServerProxy {
   private _tunnel: TunnelConnection;
-  static fromConnectionString(connectionString: string, hub: string, handler: RequestHandler) : InprocessServerProxy{
+  static fromConnectionString(
+    connectionString: string,
+    hub: string,
+    handler?: RequestHandler
+  ): InprocessServerProxy {
     const { credential, endpoint } = parseConnectionString(connectionString);
     return new InprocessServerProxy(endpoint, credential, hub, handler);
   }
-  constructor(endpoint: string, credential: TokenCredential, hub: string, handler: RequestHandler) {
-    this._tunnel = new TunnelConnection(endpoint, credential, hub, function (request, abortSignal) {
+  constructor(
+    endpoint: string,
+    credential: TokenCredential,
+    hub: string,
+    handler?: RequestHandler
+  ) {
+    this._tunnel = new TunnelConnection(
+      endpoint,
+      credential,
+      hub,
+      this._getRequestHandler(handler)
+    );
+  }
+
+  public runAsync(abortSignal?: AbortSignalLike): Promise<void> {
+    return this._tunnel.runAsync(abortSignal);
+  }
+
+  public stop(): void {
+    this._tunnel.stop();
+  }
+
+  public use(handler: RequestHandler): void {
+    this._tunnel.requestHandler = this._getRequestHandler(handler);
+  }
+
+  private _getRequestHandler(handler?: RequestHandler): TunnelRequestHandler | undefined {
+    if (!handler) {
+      return undefined;
+    }
+    return function (request, abortSignal) {
       const req = buildRequest(request) as Request;
       const res = new ContentInterpreteResponse(req);
 
@@ -37,15 +75,7 @@ export class InprocessServerProxy {
       }
       req.emit("end");
       return responseReader;
-    });
-  }
-
-  public runAsync(abortSignal?: AbortSignalLike): Promise<void> {
-    return this._tunnel.runAsync(abortSignal);
-  }
-
-  public stop(): void {
-    this._tunnel.stop();
+    };
   }
 }
 
@@ -122,7 +152,10 @@ function convertHeaders(headers: http.OutgoingHttpHeaders): Record<string, strin
   return result;
 }
 
-function readResponse(res: http.ServerResponse, abortSignal?: AbortSignalLike): Promise<TunnelOutgoingMessage> {
+function readResponse(
+  res: http.ServerResponse,
+  abortSignal?: AbortSignalLike
+): Promise<TunnelOutgoingMessage> {
   return new Promise((resolve, reject) => {
     const chunks: Uint8Array[] = [];
     abortSignal?.addEventListener("abort", () => reject("cancelled"));
