@@ -5,6 +5,9 @@
 .vscode/
 esm/
 
+.rollup.cache/
+tsconfig.tsbuildinfo
+
 # User-specific files
 *.rsuser
 *.suo

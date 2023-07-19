@@ -44,7 +44,7 @@ const webPubSubOptions = {
   connectionString: "<web-pubsub-connection-string>",
 };
 
-const io = require("socket.io")(options).useAzureSocketIO(webPubSubOptions);
+const io = await require("socket.io")(options).useAzureSocketIO(webPubSubOptions);
 ```
 
 You can also authenticate with Web PubSub service using an endpoint and an `AzureKeyCredential`.

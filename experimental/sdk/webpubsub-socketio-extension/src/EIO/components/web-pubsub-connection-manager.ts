@@ -69,7 +69,7 @@ export class WebPubSubConnectionManager {
     this._webPubSubOptions = options;
 
     this._webPubSubEventHandler = new WebPubSubEventHandler(this._webPubSubOptions.hub, {
-      path: this._webPubSubOptions.path,
+      path: "/eventhandler/",
       handleConnect: async (req, res) => {
         let timeout: NodeJS.Timeout;
         let cleanup: (error: string) => void;
@@ -179,7 +179,7 @@ export class WebPubSubConnectionManager {
   /**
    * @returns AWPS event handler middleware for EIO Server.
    */
-  public getEventHandlerEioMiddleware(): unknown {
+  public getEventHandlerEioMiddleware() {
     /**
      * AWPS package provides Express middleware for event handlers.
      * However Express middleware is not compatiable to be directly used by EIO Server.
@@ -187,9 +187,6 @@ export class WebPubSubConnectionManager {
      * eioMiddleware = (req: IncomingMessage, res: ServerResponse) =\> void;
      * To resolve the difference, So a conversion from express middleware to EIO middleware.
      */
-
-    // We have to use "any" otherwise express package will be introduced
-    // eslint-disable-next-line
     const expressMiddleware: any = this._webPubSubEventHandler.getMiddleware();
 
     const eioMiddleware = (req, res, errorCallback): void => {
@@ -204,6 +201,13 @@ export class WebPubSubConnectionManager {
     };
 
     return eioMiddleware;
+  }
+
+  /**
+   * @returns AWPS event handler middleware for Express Server.
+   */
+  public getEventHandlerExpressMiddleware() {
+    return this._webPubSubEventHandler.getMiddleware();
   }
 
   public getNextSid = (): string | undefined => this._candidateSids.shift();
@@ -222,7 +226,7 @@ export class WebPubSubConnectionManager {
       method: "GET",
       headers: req.headers,
       connection: {},
-      url: this._webPubSubOptions.path,
+      url: "/eventhandler/",
       _query: {},
     };
     // Preserve all queires. Each value of `req.queries` is an one-element array which is wrapped by AWPS. Just pick out the first element.

@@ -7,13 +7,12 @@ dotenv.config({ path: ".env.test" });
 // Add an Web PubSub Option
 const wpsOptions = {
   hub: process.env.WebPubSubHub,
-  path: process.env.WebPubSubPath,
   connectionString: process.env.WebPubSubConnectionString,
 };
 console.debug("Unit Test Configuration:", JSON.stringify(wpsOptions));
 
 describe("WebPubSub Socket.IO Extension", () => {
-  if (wpsOptions.hub !== undefined || wpsOptions.path !== undefined || wpsOptions.connectionString !== undefined) {
+  if (wpsOptions.hub !== undefined || wpsOptions.connectionString !== undefined) {
     require("./SIO/index");
   } else {
     console.log(

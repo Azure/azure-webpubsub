@@ -12,15 +12,17 @@ debug("load");
 
 declare type AdapterConstructor = typeof Adapter | ((nsp: SIO.Namespace) => Adapter);
 
-export function useAzureSocketIO(
+export async function useAzureSocketIO(
   this: SIO.Server,
   webPubSubOptions: WebPubSubExtensionOptions | WebPubSubExtensionCredentialOptions,
   useDefaultAdapter = false
-): SIO.Server {
+): Promise<SIO.Server> {
   debug("use Azure Web PubSub For Socket.IO Server");
 
   const engine = new WebPubSubEioServer(this.engine.opts, webPubSubOptions);
   engine.attach(this["httpServer"], this["opts"]);
+
+  await engine.setup();
 
   // `attachServe` is a Socket.IO design which attachs static file serving to internal http server.
   // Creating new engine makes previous `attachServe` execution invalid.

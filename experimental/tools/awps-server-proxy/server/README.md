@@ -14,5 +14,6 @@ yarn build
 
 3. Run
 ```
+SET AZURE_LOG_LEVEL=verbose
 node dist/server.js
 ```
