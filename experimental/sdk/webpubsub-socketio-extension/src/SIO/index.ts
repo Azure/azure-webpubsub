@@ -6,6 +6,7 @@ import { WebPubSubEioServer } from "../EIO";
 import { WebPubSubAdapterProxy } from "./components/web-pubsub-adapter";
 import * as SIO from "socket.io";
 import { Adapter } from "socket.io-adapter";
+import { InprocessServerProxy } from "awps-tunnel-proxies";
 
 const debug = debugModule("wps-sio-ext:SIO:index");
 debug("load");
@@ -18,8 +19,14 @@ export async function useAzureSocketIO(
   useDefaultAdapter = false
 ): Promise<SIO.Server> {
   debug("use Azure Web PubSub For Socket.IO Server");
+  const useTunnel = true;
 
-  const engine = new WebPubSubEioServer(this.engine.opts, webPubSubOptions);
+  const serverProxy = !useTunnel
+    ? undefined
+    : Object.keys(webPubSubOptions).indexOf("connectionString") !== -1
+    ? InprocessServerProxy.fromConnectionString(webPubSubOptions["connectionString"], webPubSubOptions.hub)
+    : new InprocessServerProxy(webPubSubOptions["endpoint"], webPubSubOptions["credential"], webPubSubOptions["hub"]);
+  const engine = new WebPubSubEioServer(this.engine.opts, webPubSubOptions, serverProxy);
   engine.attach(this["httpServer"], this["opts"]);
 
   await engine.setup();
@@ -35,8 +42,10 @@ export async function useAzureSocketIO(
   if (!useDefaultAdapter) {
     debug("use webPubSub adatper");
 
+    // TODO: change undefined to serverProxy to enable server to service side tunneling
     const adapterProxy = new WebPubSubAdapterProxy(
-      (this.engine as WebPubSubEioServer).webPubSubConnectionManager.service
+      (this.engine as WebPubSubEioServer).webPubSubConnectionManager.service,
+      undefined
     );
     this.adapter(adapterProxy as unknown as AdapterConstructor);
   }

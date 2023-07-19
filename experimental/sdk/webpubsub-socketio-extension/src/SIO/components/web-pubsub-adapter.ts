@@ -2,12 +2,12 @@
 // Licensed under the MIT license.
 
 import { debugModule, toOptionsString, toString } from "../../common/utils";
-import { WebPubSubServiceClient, HubSendTextToAllOptions } from "@azure/web-pubsub";
 import { getSingleEioEncodedPayload } from "./encoder";
 import { Packet as SioPacket, PacketType as SioPacketType, Decoder as SioDecoder } from "socket.io-parser";
 import * as EioParser from "engine.io-parser";
 import { Namespace, Server as SioServer } from "socket.io";
 import { Adapter as NativeInMemoryAdapter, BroadcastOptions, Room, SocketId } from "socket.io-adapter";
+import { InprocessServerProxy, WebPubSubServiceCaller } from "awps-tunnel-proxies";
 import { Mutex, MutexInterface } from "async-mutex";
 import base64url from "base64url";
 import { getInvokeOperationSpec } from "./azure-api/operation-spec";
@@ -29,23 +29,23 @@ const NotSupportedError = new Error("Not Supported.");
  *  2. Set the adapter: `io.adapter(WebPubSubAdapterProxy);`, thus additional options are controllable.
  */
 export class WebPubSubAdapterProxy {
-  public serivce: WebPubSubServiceClient;
+  public serivce: WebPubSubServiceCaller;
   public sioServer: SioServer;
 
-  constructor(serviceClient: WebPubSubServiceClient) {
+  constructor(serviceClient: WebPubSubServiceCaller, serverProxy?: InprocessServerProxy) {
     this.serivce = serviceClient;
 
     const proxyHandler = {
-      construct: (target, args) => new target(...args, serviceClient),
+      construct: (target, args) => new target(...args, serviceClient, serverProxy),
     };
     return new Proxy(WebPubSubAdapterInternal, proxyHandler);
   }
 }
 
 export class WebPubSubAdapterInternal extends NativeInMemoryAdapter {
-  private _sioDecoder: SioDecoder;
   public service: WebPubSubServiceClient;
   private _roomOperationLock: Map<SocketId, Mutex> = new Map();
+  private _sioDecoder: SioDecoder;
 
   /**
    * Azure Web PubSub Socket.IO Adapter constructor.
@@ -53,10 +53,11 @@ export class WebPubSubAdapterInternal extends NativeInMemoryAdapter {
    * @param nsp - Namespace
    * @param extraArgForWpsAdapter - extra argument for WebPubSubAdapter
    */
-  constructor(readonly nsp: Namespace, serviceClient: WebPubSubServiceClient) {
+  constructor(readonly nsp: Namespace, serviceClient: WebPubSubServiceCaller, serverProxy?: InprocessServerProxy) {
     debug(`constructor nsp.name = ${nsp.name}, serviceClient = ${serviceClient}`);
     super(nsp);
-    this.service = serviceClient;
+    
+    this.service = serverProxy ?? serviceClient;
     this._sioDecoder = new SioDecoder();
   }
 

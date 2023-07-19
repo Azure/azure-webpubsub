@@ -1,4 +1,11 @@
-import { TunnelConnection, TunnelOutgoingMessage, TunnelIncomingMessage } from "./tunnels/TunnelConnection";
+import {
+  TunnelConnection,
+  TunnelOutgoingMessage,
+  TunnelIncomingMessage,
+  TunnelRequestHandler,
+  HttpRequestLike,
+  HttpResponseLike
+} from "./tunnels/TunnelConnection";
 import { Request, Response, RequestHandler } from "express-serve-static-core";
 import * as http from "http";
 import { Socket } from "net";
@@ -9,14 +16,73 @@ import { parseConnectionString } from "./utils";
 
 const logger = createLogger("InprocessServerProxy");
 
-export class InprocessServerProxy {
+export interface WebPubSubServiceCaller {
+  sendToAll: (message: string, options?: { filter: string; contentType: string }) => Promise<void>;
+  removeConnectionsFromGroups(groups: string[], filter: string): Promise<void>;
+  addConnectionsToGroups(groups: string[], filter: string): Promise<void>;
+  group(groupName: string): {
+    removeConnection(connectionId: string): Promise<void>;
+  };
+}
+
+export class InprocessServerProxy implements WebPubSubServiceCaller {
   private _tunnel: TunnelConnection;
-  static fromConnectionString(connectionString: string, hub: string, handler: RequestHandler) : InprocessServerProxy{
+  static fromConnectionString(
+    connectionString: string,
+    hub: string,
+    handler?: RequestHandler
+  ): InprocessServerProxy {
     const { credential, endpoint } = parseConnectionString(connectionString);
     return new InprocessServerProxy(endpoint, credential, hub, handler);
   }
-  constructor(endpoint: string, credential: TokenCredential, hub: string, handler: RequestHandler) {
-    this._tunnel = new TunnelConnection(endpoint, credential, hub, function (request, abortSignal) {
+  constructor(
+    endpoint: string,
+    credential: TokenCredential,
+    hub: string,
+    handler?: RequestHandler
+  ) {
+    this._tunnel = new TunnelConnection(
+      endpoint,
+      credential,
+      hub,
+      this._getRequestHandler(handler)
+    );
+  }
+  public sendToAll(message: string, options?: { filter: string; contentType: string; } | undefined) : Promise<void>{
+    // todo: form the http request and invoke _sendAsync
+    throw new Error("Method not implemented.");
+  }
+  public removeConnectionsFromGroups(groups: string[], filter: string): Promise<void> {
+    throw new Error("Method not implemented.");
+  }
+  public addConnectionsToGroups(groups: string[], filter: string): Promise<void> {
+    throw new Error("Method not implemented.");
+  }
+  public group(groupName: string): { removeConnection(connectionId: string): Promise<void>; } {
+    throw new Error("Method not implemented.");
+  }
+
+  private _sendAsync(httpRequest: HttpRequestLike) : Promise<HttpResponseLike> {
+    return this._tunnel.invokeAsync(httpRequest);
+  }
+
+  public runAsync(abortSignal?: AbortSignalLike): Promise<void> {
+    return this._tunnel.runAsync(abortSignal);
+  }
+
+  public stop(): void {
+    this._tunnel.stop();
+  }
+
+  public use(handler: RequestHandler): void {
+    this._tunnel.requestHandler = this._getRequestHandler(handler);
+  }
+
+  private _getRequestHandler(handler?: RequestHandler): TunnelRequestHandler | undefined {
+    if (!handler) {
+      return undefined;
+    }
+    return function (request, abortSignal) {
       const req = buildRequest(request) as Request;
       const res = new ContentInterpreteResponse(req);
 
@@ -37,15 +103,7 @@ export class InprocessServerProxy {
       }
       req.emit("end");
       return responseReader;
-    });
-  }
-
-  public runAsync(abortSignal?: AbortSignalLike): Promise<void> {
-    return this._tunnel.runAsync(abortSignal);
-  }
-
-  public stop(): void {
-    this._tunnel.stop();
+    };
   }
 }
 
@@ -122,7 +180,10 @@ function convertHeaders(headers: http.OutgoingHttpHeaders): Record<string, strin
   return result;
 }
 
-function readResponse(res: http.ServerResponse, abortSignal?: AbortSignalLike): Promise<TunnelOutgoingMessage> {
+function readResponse(
+  res: http.ServerResponse,
+  abortSignal?: AbortSignalLike
+): Promise<TunnelOutgoingMessage> {
   return new Promise((resolve, reject) => {
     const chunks: Uint8Array[] = [];
     abortSignal?.addEventListener("abort", () => reject("cancelled"));
