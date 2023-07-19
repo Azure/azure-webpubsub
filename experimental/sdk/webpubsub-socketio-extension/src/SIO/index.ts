@@ -42,9 +42,10 @@ export async function useAzureSocketIO(
   if (!useDefaultAdapter) {
     debug("use webPubSub adatper");
 
+    // TODO: change undefined to serverProxy to enable server to service side tunneling
     const adapterProxy = new WebPubSubAdapterProxy(
       (this.engine as WebPubSubEioServer).webPubSubConnectionManager.service,
-      serverProxy
+      undefined
     );
     this.adapter(adapterProxy as unknown as AdapterConstructor);
   }
