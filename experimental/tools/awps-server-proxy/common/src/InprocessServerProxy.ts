@@ -17,6 +17,7 @@ import { parseConnectionString } from "./utils";
 const logger = createLogger("InprocessServerProxy");
 
 export interface WebPubSubServiceCaller {
+  sendToConnection: (connectionId: string, message: string, options?: { contentType: string } | undefined) => Promise<void>;
   sendToAll: (message: string, options?: { filter: string; contentType: string }) => Promise<void>;
   removeConnectionsFromGroups(groups: string[], filter: string): Promise<void>;
   addConnectionsToGroups(groups: string[], filter: string): Promise<void>;
@@ -47,6 +48,10 @@ export class InprocessServerProxy implements WebPubSubServiceCaller {
       hub,
       this._getRequestHandler(handler)
     );
+  }
+  public sendToConnection(connectionId: string, message: string, options?: { contentType: string; } | undefined) : Promise<void>{
+    // todo: form the http request and invoke _sendAsync
+    throw new Error("Method not implemented.");
   }
   public sendToAll(message: string, options?: { filter: string; contentType: string; } | undefined) : Promise<void>{
     // todo: form the http request and invoke _sendAsync
