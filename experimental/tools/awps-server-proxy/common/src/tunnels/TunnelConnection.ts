@@ -9,7 +9,7 @@ import {
   TunnelMessageType,
 } from "./messages";
 import { TokenCredential } from "@azure/core-auth";
-import { PromiseCompletionSource, AckEntity } from "../utils";
+import { PromiseCompletionSource, AckEntity, AsyncIterator } from "../utils";
 import { AbortSignalLike } from "@azure/abort-controller";
 import { createLogger } from "../logger";
 
@@ -45,7 +45,7 @@ export interface HttpRequestLike {
 
 export interface HttpResponseLike {
   statusCode: number;
-  content?: Uint8Array;
+  body: AsyncIterator<Uint8Array>;
 }
 
 export class TunnelConnection {
@@ -75,15 +75,40 @@ export class TunnelConnection {
       throw new Error("No connection started.");
     }
     const ackId = this.nextAckId();
-    const ackEntity = new AckEntity<TunnelHttpResponseMessage>(ackId, abortSignal);
-    this._ackMap.set(ackId, ackEntity);
+    const pcs = new PromiseCompletionSource<HttpResponseLike>();
+
+    let firstResponse = false;
+    let ackMap = this._ackMap;
+    let body = new AsyncIterator<Uint8Array>();
+
+    let ackEntity = new AckEntity<TunnelHttpResponseMessage>(ackId, (data: TunnelHttpResponseMessage|undefined, error:string|null, done: boolean) => {
+      // handle body
+      if (error) {
+        body.error(error);
+      }
+
+      if (data!.Content) {
+        body.add(data!.Content);
+      }
+      
+      if (done) {
+        body.close();
+      }
+
+      if (!firstResponse) {
+        firstResponse = true;
+        pcs.resolve({
+          statusCode: data!.StatusCode,
+          body: body,
+        } as HttpResponseLike)
+      }
+    }, abortSignal);
+    ackMap.set(ackId, ackEntity);
+
     try {
       await client.sendAsync(new TunnelHttpRequestMessage(ackId, true, "", httpRequest.method, httpRequest.url, undefined, httpRequest.content), abortSignal);
-      const response = await ackEntity.promise();
-      return {
-        statusCode: response.StatusCode,
-        content: response.Content,
-      };
+      // Wait for the first response which contains status code / headers
+      return pcs.promise;
     } catch (err) {
       this._ackMap.delete(ackId);
       throw err;
@@ -113,8 +138,10 @@ export class TunnelConnection {
         const ackId = tunnelResponse.AckId;
         if (this._ackMap.has(ackId)) {
           const entity = this._ackMap.get(ackId)!;
-          this._ackMap.delete(ackId);
-          entity.resolve(tunnelResponse);
+          entity.write(tunnelResponse, null, !tunnelResponse.NotCompleted);
+          if (!tunnelResponse.NotCompleted) {
+            this._ackMap.delete(ackId);
+          }
         }
         break;
       }
@@ -129,7 +156,7 @@ export class TunnelConnection {
         if (response) {
           logger.info(`Sending response back: ${response.StatusCode}, content-length: ${response.Content.length}`);
           await client.sendAsync(
-            new TunnelHttpResponseMessage(tunnelRequest.AckId, tunnelRequest.LocalRouting, response.StatusCode, tunnelRequest.ChannelName, response.Headers, response.Content),
+            new TunnelHttpResponseMessage(tunnelRequest.AckId, tunnelRequest.LocalRouting, response.StatusCode, tunnelRequest.ChannelName, false, response.Headers, response.Content),
             abortSignal
           );
         }

@@ -44,6 +44,7 @@ export class TunnelHttpResponseMessage extends TunnelByteContentMessage {
     public readonly LocalRouting: boolean,
     public readonly StatusCode: number,
     public readonly ChannelName: string,
+    public readonly NotCompleted: boolean,
     public readonly Headers?: Record<string, string[]>,
     public Content?: Uint8Array
   ) {
