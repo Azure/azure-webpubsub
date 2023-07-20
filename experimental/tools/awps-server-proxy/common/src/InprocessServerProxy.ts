@@ -51,6 +51,7 @@ export class InprocessServerProxy implements WebPubSubServiceCaller {
   }
   public sendToConnection(connectionId: string, message: string, options?: { contentType: string; } | undefined) : Promise<void>{
     // todo: form the http request and invoke _sendAsync
+    throw new Error("Method not implemented.");
   }
   public sendToAll(message: string, options?: { filter: string; contentType: string; } | undefined) : Promise<void>{
     // todo: form the http request and invoke _sendAsync
