@@ -2,7 +2,7 @@
 
 import { Server as _Server, ServerOptions, Socket } from "socket.io";
 import { io as ioc, ManagerOptions, Socket as ClientSocket, SocketOptions } from "socket.io-client";
-import { debugModule, TUNNEL_PATH } from "../../../src/common/utils";
+import { debugModule } from "../../../src/common/utils";
 import { init, WebPubSubExtensionOptions } from "../../../src";
 import { Server as HttpServer } from "http";
 import { setTimeout } from "timers";
@@ -25,7 +25,8 @@ const serverPort = Number(process.env.SocketIoPort);
 debug(`SocketIO Server Port = ${serverPort}`);
 
 // e.g: /eventhandler/this-is-a-file.js
-export const attachmentPath = (filename: string): string => TUNNEL_PATH + filename;
+export const attachmentPath = (filename: string, path: string = "/socket.io/"): string =>
+  (path.endsWith("/") ? path : path + "/") + filename;
 
 // e.g. /eventhandler/socket.io.js
 export const defaultAttachmentPath = attachmentPath("socket.io.js");
@@ -41,8 +42,7 @@ export const enableFastClose = (server: _Server): void => {
 };
 
 export class Server extends _Server {
-  constructor(srv?: number | HttpServer, extraOpts?: Partial<ServerOptions>) {
-    const opts = extraOpts ? { ...extraOpts, path: TUNNEL_PATH } : { path: TUNNEL_PATH };
+  constructor(srv?: number | HttpServer, opts?: Partial<ServerOptions>) {
     if (typeof srv === "number") {
       debug(`Server, port = ${srv}, opts = ${JSON.stringify(opts)}`);
     } else {

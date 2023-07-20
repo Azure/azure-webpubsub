@@ -18,3 +18,5 @@ export const EIO_CONNECTION_ERROR = {
   FORBIDDEN: 4,
   UNSUPPORTED_PROTOCOL_VERSION: 5,
 };
+
+export const TUNNEL_PATH = "/eventhandler/";

@@ -9,12 +9,8 @@ const wpsOptions = {
   webPubSubServiceClientOptions: { allowInsecureConnection: true }
 }
 
-const eioOptions = {
-  path: "/eventhandler/",
-}
-
 async function main() {
-  const io = require('socket.io')(http, eioOptions).useAzureSocketIO(wpsOptions);
+  const io = await require('socket.io')(http).useAzureSocketIO(wpsOptions);
   const port = process.env.PORT || 3000;
 
   app.use(express.static(__dirname + '/public'));
