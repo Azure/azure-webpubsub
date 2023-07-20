@@ -45,7 +45,6 @@ export async function useAzureSocketIO(
     // TODO: change undefined to serverProxy to enable server to service side tunneling
     const adapterProxy = new WebPubSubAdapterProxy(
       (this.engine as WebPubSubEioServer).webPubSubConnectionManager.service,
-      undefined
     );
     this.adapter(adapterProxy as unknown as AdapterConstructor);
   }
