@@ -9,6 +9,7 @@ import { Adapter as NativeInMemoryAdapter, BroadcastOptions, Room, SocketId } fr
 import { InprocessServerProxy, WebPubSubServiceCaller } from "awps-tunnel-proxies";
 import { Mutex, MutexInterface } from "async-mutex";
 import base64url from "base64url";
+import { WebPubSubServiceClient } from "@azure/web-pubsub";
 
 const debug = debugModule("wps-sio-ext:SIO:Adapter");
 
@@ -27,10 +28,10 @@ const NonLocalNotSupported = new Error("Non-local condition is not Supported.");
  *  2. Set the adapter: `io.adapter(WebPubSubAdapterProxy);`, thus additional options are controllable.
  */
 export class WebPubSubAdapterProxy {
-  public serivce: WebPubSubServiceCaller;
+  public serivce: WebPubSubServiceClient;
   public sioServer: SioServer;
 
-  constructor(serviceClient: WebPubSubServiceCaller) {
+  constructor(serviceClient: WebPubSubServiceClient) {
     this.serivce = serviceClient;
 
     const proxyHandler = {
@@ -41,7 +42,7 @@ export class WebPubSubAdapterProxy {
 }
 
 export class WebPubSubAdapterInternal extends NativeInMemoryAdapter {
-  public service: WebPubSubServiceCaller;
+  public service: WebPubSubServiceClient;
   private _roomOperationLock: Map<SocketId, Mutex> = new Map();
 
   /**
@@ -50,7 +51,7 @@ export class WebPubSubAdapterInternal extends NativeInMemoryAdapter {
    * @param nsp - Namespace
    * @param extraArgForWpsAdapter - extra argument for WebPubSubAdapter
    */
-  constructor(readonly nsp: Namespace, serviceClient: WebPubSubServiceCaller) {
+  constructor(readonly nsp: Namespace, serviceClient: WebPubSubServiceClient) {
     debug(`constructor nsp.name = ${nsp.name}, serviceClient = ${serviceClient}`);
     super(nsp);
     this.service = serviceClient;

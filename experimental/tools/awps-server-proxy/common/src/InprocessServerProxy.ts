@@ -15,6 +15,9 @@ import { createLogger } from "./logger";
 import { parseConnectionString } from "./utils";
 
 const logger = createLogger("InprocessServerProxy");
+const apiVersion = "2023-07-01";
+const httpMethodPost = "POST";
+const httpMethodDelete = "DELETE";
 
 export interface WebPubSubServiceCaller {
   sendToConnection: (connectionId: string, message: string, options?: { contentType: string } | undefined) => Promise<void>;
@@ -24,10 +27,14 @@ export interface WebPubSubServiceCaller {
   group(groupName: string): {
     removeConnection(connectionId: string): Promise<void>;
   };
+  invoke(message: string, body: (data: Uint8Array|undefined, end: boolean) => void, options?: { filter: string; contentType: string }): Promise<void>;
 }
 
 export class InprocessServerProxy implements WebPubSubServiceCaller {
   private _tunnel: TunnelConnection;
+  private _hub: string;
+  private _encoder = new TextEncoder();
+
   static fromConnectionString(
     connectionString: string,
     hub: string,
@@ -48,23 +55,116 @@ export class InprocessServerProxy implements WebPubSubServiceCaller {
       hub,
       this._getRequestHandler(handler)
     );
+    this._hub = hub;
   }
-  public sendToConnection(connectionId: string, message: string, options?: { contentType: string; } | undefined) : Promise<void>{
-    // todo: form the http request and invoke _sendAsync
-    throw new Error("Method not implemented.");
-  }
-  public sendToAll(message: string, options?: { filter: string; contentType: string; } | undefined) : Promise<void>{
-    // todo: form the http request and invoke _sendAsync
-    throw new Error("Method not implemented.");
-  }
-  public removeConnectionsFromGroups(groups: string[], filter: string): Promise<void> {
-    throw new Error("Method not implemented.");
-  }
-  public addConnectionsToGroups(groups: string[], filter: string): Promise<void> {
-    throw new Error("Method not implemented.");
-  }
+
   public group(groupName: string): { removeConnection(connectionId: string): Promise<void>; } {
-    throw new Error("Method not implemented.");
+    return {
+      removeConnection: (connectionId: string) => {
+        return this._removeConnectionFromGroup(connectionId, groupName)
+      }
+    }
+  }
+
+  public async sendToConnection(connectionId: string, message: string, options?: { contentType: string; } | undefined) : Promise<void>{
+    let request = {
+      method: httpMethodPost,
+      url: this._getUrl(`/api/hubs/${this._hub}/connections/${connectionId}/:send`),
+      content: this._encoder.encode(message),
+      contentType: "text/plain",
+    } as HttpRequestLike
+    let response = await this._tunnel.invokeAsync(request);
+    if (response.statusCode !== 202) {
+      throw new Error(`sendToConnection got unexpected status code ${response.statusCode}`);
+    }
+  }
+
+  public async sendToAll(message: string, options?: { filter: string; contentType: string; } | undefined) : Promise<void>{
+    let query = {};
+    if (options?.filter) {
+      query = {"filter": options.filter};
+    }
+    let request = {
+      method: httpMethodPost,
+      url: this._getUrl(`/api/hubs/${this._hub}/:send`, query),
+      content: this._encoder.encode(message),
+      contentType: "text/plain",
+    } as HttpRequestLike
+    let response = await this._tunnel.invokeAsync(request);
+    if (response.statusCode !== 202) {
+      throw new Error(`sendToAll got unexpected status code ${response.statusCode}`);
+    }
+  }
+
+  public async removeConnectionsFromGroups(groups: string[], filter: string): Promise<void> {
+    let body = {
+      groups: groups,
+      filter: filter,
+    }
+    let request = {
+      method: httpMethodPost,
+      url: this._getUrl(`/api/hubs/${this._hub}/:removeFromGroups`),
+      content: this._encoder.encode(JSON.stringify(body)),
+      contentType: "application/json",
+    } as HttpRequestLike
+    let response = await this._tunnel.invokeAsync(request);
+    if (response.statusCode !== 200) {
+      throw new Error(`removeConnectionsFromGroups got unexpected status code ${response.statusCode}`);
+    }
+  }
+
+  public async addConnectionsToGroups(groups: string[], filter: string): Promise<void> {
+    let body = {
+      groups: groups,
+      filter: filter,
+    }
+    let request = {
+      method: httpMethodPost,
+      url: this._getUrl(`/api/hubs/${this._hub}/:addToGroups`),
+      content: this._encoder.encode(JSON.stringify(body)),
+      contentType: "application/json",
+    } as HttpRequestLike
+    let response = await this._tunnel.invokeAsync(request);
+    if (response.statusCode !== 200) {
+      throw new Error(`addConnectionsToGroups got unexpected status code ${response.statusCode}`);
+    }
+  }
+
+  private async _removeConnectionFromGroup(connectionId: string, groupName: string): Promise<void> {
+    let request = {
+      method: httpMethodDelete,
+      url: this._getUrl(`/api/hubs/${this._hub}/groups/${groupName}/connections/${connectionId}`),
+    } as HttpRequestLike
+    let response = await this._tunnel.invokeAsync(request);
+    if (response.statusCode !== 200) {
+      throw new Error(`removeConnectionFromGroup got unexpected status code ${response.statusCode}`);
+    }
+  }
+
+  public async invoke(message: string, body: (data: Uint8Array|undefined, end: boolean) => void, options?: { filter: string; contentType: string }): Promise<void> {
+    let query = {};
+    if (options?.filter) {
+      query = {"filter": options.filter};
+    }
+    let request = {
+      method: httpMethodPost,
+      url: this._getUrl(`/api/hubs/${this._hub}/:invoke`, query),
+      content: this._encoder.encode(message),
+      contentType: "text/plain",
+    } as HttpRequestLike
+    let response = await this._tunnel.invokeAsync(request);
+    if (response.statusCode !== 200) {
+      throw new Error(`invoke got unexpected status code ${response.statusCode}`);
+    }
+
+    let readBody = async() => {
+      for await (const chunk of response.body) {
+        body(chunk, false);
+      }
+      body(undefined, true);
+    }
+
+    setTimeout(() => readBody(), 0);
   }
 
   private _sendAsync(httpRequest: HttpRequestLike) : Promise<HttpResponseLike> {
@@ -109,6 +209,19 @@ export class InprocessServerProxy implements WebPubSubServiceCaller {
       req.emit("end");
       return responseReader;
     };
+  }
+
+  private _getUrl(path: string, query?: Record<string, string>|undefined): string {
+    const baseUrl = "https://host";
+    const url = new URL(baseUrl);
+    url.pathname = path;
+    url.searchParams.append("api-version", apiVersion);
+    if (query) {
+      for (const key in query) {
+        url.searchParams.append(key, query[key]);
+      }
+    }
+    return url.toString();
   }
 }
 
