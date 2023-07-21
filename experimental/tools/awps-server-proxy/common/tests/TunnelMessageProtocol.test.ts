@@ -13,7 +13,7 @@ import {
 
 describe("TunnelMessageProtocolTests", () => {
   it("TestResponseMessage", () => {
-    const message = new TunnelHttpResponseMessage(1, true, 200, "a", {
+    const message = new TunnelHttpResponseMessage(1, true, 200, "a", true, {
       a: ["b"],
     });
     message.Content = new TextEncoder().encode("Hello");
@@ -26,6 +26,7 @@ describe("TunnelMessageProtocolTests", () => {
     expect(message.LocalRouting).toEqual(parsed.LocalRouting);
     expect(message.Content).toEqual(parsed.Content);
     expect(message.StatusCode).toEqual(parsed.StatusCode);
+    expect(message.NotCompleted).toEqual(parsed.NotCompleted);
   });
 
   it("TestRequestMessage", () => {
@@ -122,8 +123,8 @@ describe("ServiceBytesCanParseTests", () => {
         "igAAAJMB2X97IlR5cGUiOjEsIkFja0lkIjoxLCJIdHRwTWV0aG9kIjoiSEVBRCIsIlVybCI6ImEiLCJIZWFkZXJzIjp7ImEiOlsiYiJdfSwiTG9jYWxSb3V0aW5nIjp0cnVlLCJDaGFubmVsTmFtZSI6ImEiLCJUcmFjaW5nSWQiOm51bGx9xAVIZWxsbw==",
       ],
       [
-        new TunnelHttpResponseMessage(1, true, 200, "a", { a: ["b"] }, utf8Encode("Hello")),
-        "fQAAAJMC2XJ7IlR5cGUiOjIsIkFja0lkIjoxLCJTdGF0dXNDb2RlIjoyMDAsIkhlYWRlcnMiOnsiYSI6WyJiIl19LCJMb2NhbFJvdXRpbmciOnRydWUsIkNoYW5uZWxOYW1lIjoiYSIsIlRyYWNpbmdJZCI6bnVsbH3EBUhlbGxv",
+        new TunnelHttpResponseMessage(1, true, 200, "a", false, { a: ["b"] }, utf8Encode("Hello")),
+        "kgAAAJMC2Yd7IlR5cGUiOjIsIkFja0lkIjoxLCJTdGF0dXNDb2RlIjoyMDAsIkhlYWRlcnMiOnsiYSI6WyJiIl19LCJMb2NhbFJvdXRpbmciOnRydWUsIkNoYW5uZWxOYW1lIjoiYSIsIk5vdENvbXBsZXRlZCI6ZmFsc2UsIlRyYWNpbmdJZCI6bnVsbH3EBUhlbGxv",
       ],
     ];
 
