@@ -5,7 +5,6 @@ import {
   debugModule,
   WebPubSubExtensionOptions,
   WebPubSubExtensionCredentialOptions,
-  getWebPubSubServiceCaller,
 } from "../common/utils";
 import { WebPubSubEioServer } from "../EIO";
 import { WebPubSubAdapterProxy } from "./components/web-pubsub-adapter";
