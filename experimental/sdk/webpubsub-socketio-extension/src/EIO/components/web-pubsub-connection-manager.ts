@@ -5,7 +5,7 @@ import {
   WebPubSubExtensionOptions,
   WebPubSubExtensionCredentialOptions,
   debugModule,
-  getWebPubSubServiceClient,
+  getWebPubSubServiceCaller,
 } from "../../common/utils";
 import { ClientConnectionContext, ConnectionError } from "./client-connection-context";
 import {
@@ -17,9 +17,9 @@ import {
   WEBPUBSUB_CLIENT_CONNECTION_FILED_NAME,
   WEBPUBSUB_TRANSPORT_NAME,
 } from "./constants";
-import { WebPubSubServiceClient } from "@azure/web-pubsub";
 import type { BaseServer } from "engine.io";
 import { ConnectRequest as WebPubSubConnectRequest, WebPubSubEventHandler } from "@azure/web-pubsub-express";
+import { WebPubSubServiceCaller } from "awps-tunnel-proxies";
 
 const debug = debugModule("wps-sio-ext:EIO:ConnectionManager");
 
@@ -39,7 +39,7 @@ export class WebPubSubConnectionManager {
   /**
    * Client for connecting to a Web PubSub hub
    */
-  public service: WebPubSubServiceClient;
+  public service: WebPubSubServiceCaller;
 
   /**
    * Map from the `connectionId` of each client to its corresponding logical `ClientConnectionContext`.
@@ -65,7 +65,7 @@ export class WebPubSubConnectionManager {
   private _candidateSids: Array<string> = [];
 
   constructor(server: BaseServer, options: WebPubSubExtensionOptions | WebPubSubExtensionCredentialOptions) {
-    this.service = getWebPubSubServiceClient(options);
+    this.service = getWebPubSubServiceCaller(options, true);
     this.eioServer = server;
     this._webPubSubOptions = options;
 
