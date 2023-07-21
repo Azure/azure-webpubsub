@@ -8,33 +8,24 @@ interface ParsedConnectionString {
 }
 
 export class AckEntity<T> {
-  private readonly _promise: Promise<T>;
-  private _resolve?: (value: T) => void;
-  private _reject?: (reason?: any) => void;
+  private readonly _reader: (data: T | undefined, error: string|null, done: boolean) => void;
 
-  constructor(ackId: number, abortSignal?: AbortSignalLike) {
-    this._promise = new Promise<T>((resolve, reject) => {
-      this._resolve = resolve;
-      this._reject = reject;
-    });
+  constructor(ackId: number, reader: (data: T | undefined, error: string|null, done: boolean) => void, abortSignal?: AbortSignalLike) {
+    this._reader = reader;
+
     this.ackId = ackId;
     abortSignal?.addEventListener("abort", () => {
-      this._reject!("aborted");
+      // TODO: clean it from map
+      this.write(undefined, "aborted", true);
     });
   }
 
   public ackId;
 
-  public promise(): Promise<T> {
-    return this._promise;
-  }
-
-  public resolve(value: T): void {
-    this._resolve!(value);
-  }
-
-  public reject(reason?: any): void {
-    this._reject!(reason);
+  public write(value: T | undefined, error: string|null, done: boolean): void {
+    setTimeout(() => {
+      this._reader(value, error, done);
+    }, 0);
   }
 }
 
@@ -91,4 +82,71 @@ export function parseConnectionString(conn: string): ParsedConnectionString {
   url.port = "";
 
   return { credential, endpoint };
+}
+
+export class AsyncIterator<T> implements AsyncIterable<T> {
+  private items: T[] = [];
+  private isClosed = false;
+  private resolveCurrent: (() => void) | null = null;
+  private errorToThrow: any | null = null;
+
+  add(item: T): void {
+    if (!this.isClosed) {
+      this.items.push(item);
+      if (this.resolveCurrent) {
+        this.resolveCurrent();
+        this.resolveCurrent = null;
+      }
+    } else {
+      throw new Error('Iterator has been closed. No more items can be added.');
+    }
+  }
+
+  async next(): Promise<IteratorResult<T>> {
+    if (this.errorToThrow) {
+      throw this.errorToThrow;
+    }
+
+    if (this.items.length > 0) {
+      let item = this.items.shift()!;
+      return { value: item, done: false };
+    } else if (this.isClosed) {
+      return { done: true, value: undefined as any };
+    } else {
+      await new Promise<void>((resolve) => {
+        this.resolveCurrent = resolve;
+      });
+
+      if (this.errorToThrow) {
+        throw this.errorToThrow;
+      }
+
+      if (this.items.length > 0) {
+        let item = this.items.shift()!;
+        return { value: item, done: false };
+      } else {
+        return { done: true, value: undefined as any };
+      }
+    }
+  }
+
+  error(err: any) {
+    this.errorToThrow = err;
+    if (this.resolveCurrent) {
+      this.resolveCurrent();
+      this.resolveCurrent = null;
+    }
+  }
+
+  close(): void {
+    this.isClosed = true;
+    if (this.resolveCurrent) {
+      this.resolveCurrent();
+      this.resolveCurrent = null;
+    }
+  }
+
+  [Symbol.asyncIterator](): AsyncIterator<T> {
+    return this;
+  }
 }

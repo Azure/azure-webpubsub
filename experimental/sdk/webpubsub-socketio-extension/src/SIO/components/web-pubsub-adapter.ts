@@ -32,11 +32,11 @@ export class WebPubSubAdapterProxy {
   public serivce: WebPubSubServiceCaller;
   public sioServer: SioServer;
 
-  constructor(serviceClient: WebPubSubServiceCaller, serverProxy?: InprocessServerProxy) {
+  constructor(serviceClient: WebPubSubServiceCaller) {
     this.serivce = serviceClient;
 
     const proxyHandler = {
-      construct: (target, args) => new target(...args, serviceClient, serverProxy),
+      construct: (target, args) => new target(...args, serviceClient),
     };
     return new Proxy(WebPubSubAdapterInternal, proxyHandler);
   }
@@ -53,11 +53,10 @@ export class WebPubSubAdapterInternal extends NativeInMemoryAdapter {
    * @param nsp - Namespace
    * @param extraArgForWpsAdapter - extra argument for WebPubSubAdapter
    */
-  constructor(readonly nsp: Namespace, serviceClient: WebPubSubServiceCaller, serverProxy?: InprocessServerProxy) {
+  constructor(readonly nsp: Namespace, serviceClient: WebPubSubServiceCaller) {
     debug(`constructor nsp.name = ${nsp.name}, serviceClient = ${serviceClient}`);
     super(nsp);
-    
-    this.service = serverProxy ?? serviceClient;
+    this.service = serviceClient;
     this._sioDecoder = new SioDecoder();
   }
 
