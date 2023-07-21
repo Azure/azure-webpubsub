@@ -13,6 +13,7 @@ import {
   CONNECTION_ERROR_WEBPUBSUB_CODE,
   CONNECTION_ERROR_WEBPUBSUB_MESSAGE,
   EIO_CONNECTION_ERROR,
+  TUNNEL_PATH,
   WEBPUBSUB_CLIENT_CONNECTION_FILED_NAME,
   WEBPUBSUB_TRANSPORT_NAME,
 } from "./constants";
@@ -69,7 +70,7 @@ export class WebPubSubConnectionManager {
     this._webPubSubOptions = options;
 
     this._webPubSubEventHandler = new WebPubSubEventHandler(this._webPubSubOptions.hub, {
-      path: "/eventhandler/",
+      path: TUNNEL_PATH,
       handleConnect: async (req, res) => {
         let timeout: NodeJS.Timeout;
         let cleanup: (error: string) => void;
@@ -226,7 +227,7 @@ export class WebPubSubConnectionManager {
       method: "GET",
       headers: req.headers,
       connection: {},
-      url: "/eventhandler/",
+      url: TUNNEL_PATH,
       _query: {},
     };
     // Preserve all queires. Each value of `req.queries` is an one-element array which is wrapped by AWPS. Just pick out the first element.

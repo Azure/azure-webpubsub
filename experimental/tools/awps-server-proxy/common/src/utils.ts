@@ -150,3 +150,92 @@ export class AsyncIterator<T> implements AsyncIterable<T> {
     return this;
   }
 }
+
+export class AsyncIterator<T> implements AsyncIterable<T> {
+  private items: T[] = [];
+  private isClosed = false;
+  private resolveCurrent: (() => void) | null = null;
+  private errorToThrow: any | null = null;
+
+  add(item: T): void {
+    if (!this.isClosed) {
+      this.items.push(item);
+      if (this.resolveCurrent) {
+        this.resolveCurrent();
+        this.resolveCurrent = null;
+      }
+    } else {
+      throw new Error('Iterator has been closed. No more items can be added.');
+    }
+  }
+
+  async next(): Promise<IteratorResult<T>> {
+    if (this.errorToThrow) {
+      throw this.errorToThrow;
+    }
+
+    if (this.items.length > 0) {
+      let item = this.items.shift()!;
+      return { value: item, done: false };
+    } else if (this.isClosed) {
+      return { done: true, value: undefined as any };
+    } else {
+      await new Promise<void>((resolve) => {
+        this.resolveCurrent = resolve;
+      });
+
+      if (this.errorToThrow) {
+        throw this.errorToThrow;
+      }
+
+      if (this.items.length > 0) {
+        let item = this.items.shift()!;
+        return { value: item, done: false };
+      } else {
+        return { done: true, value: undefined as any };
+      }
+    }
+  }
+
+  error(err: any) {
+    this.errorToThrow = err;
+    if (this.resolveCurrent) {
+      this.resolveCurrent();
+      this.resolveCurrent = null;
+    }
+  }
+
+  close(): void {
+    this.isClosed = true;
+    if (this.resolveCurrent) {
+      this.resolveCurrent();
+      this.resolveCurrent = null;
+    }
+  }
+
+  [Symbol.asyncIterator](): AsyncIterator<T> {
+    return this;
+  }
+}
+
+async function readToEnd(iterator: AsyncIterator<Uint8Array>): Promise<Uint8Array> {
+  const chunks: Uint8Array[] = [];
+  for await (const chunk of iterator) {
+    chunks.push(chunk);
+  }
+
+  return concatUint8Arrays(...chunks);
+}
+
+function concatUint8Arrays(...arrays: Uint8Array[]): Uint8Array {
+  const totalLength = arrays.reduce((acc, array) => acc + array.length, 0);
+  const resultArray = new Uint8Array(totalLength);
+  let offset = 0;
+
+  for (const array of arrays) {
+    resultArray.set(array, offset);
+    offset += array.length;
+  }
+
+  return resultArray;
+}

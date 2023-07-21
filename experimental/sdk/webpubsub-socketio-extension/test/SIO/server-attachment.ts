@@ -14,7 +14,6 @@ import {
   attachmentPath,
   defaultAttachmentPath,
 } from "./support/util";
-import { TUNNEL_PATH } from "../../src/common/utils";
 
 const request = require("supertest");
 const serverPort = Number(process.env.SocketIoPort);
@@ -131,7 +130,7 @@ describe("server attachment", () => {
         res.writeHead(404);
         res.end();
       });
-      const io = new NativeSioServer({ path: TUNNEL_PATH });
+      const io = new NativeSioServer();
       io.attach(srv);
 
       io.useAzureSocketIO(wpsOptions);

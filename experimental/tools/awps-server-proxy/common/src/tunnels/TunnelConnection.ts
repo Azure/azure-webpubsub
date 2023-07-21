@@ -41,6 +41,7 @@ export interface HttpRequestLike {
   method: string;
   url: string;
   content?: Uint8Array;
+  contentType?: string;
 }
 
 export interface HttpResponseLike {
@@ -106,7 +107,11 @@ export class TunnelConnection {
     ackMap.set(ackId, ackEntity);
 
     try {
-      await client.sendAsync(new TunnelHttpRequestMessage(ackId, true, "", httpRequest.method, httpRequest.url, undefined, httpRequest.content), abortSignal);
+      let headers = {};
+      if (httpRequest.contentType) {
+        headers = {"Content-Type": [httpRequest.contentType]};
+      }
+      await client.sendAsync(new TunnelHttpRequestMessage(ackId, true, "", httpRequest.method, httpRequest.url, headers, httpRequest.content), abortSignal);
       // Wait for the first response which contains status code / headers
       return pcs.promise;
     } catch (err) {

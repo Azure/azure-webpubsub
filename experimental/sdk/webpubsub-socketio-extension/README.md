@@ -25,26 +25,22 @@ Create a AWPS resource, create a hub and configure it, copy connection string, .
 Assuming your server-side code is:
 
 ```typescript
-const options = { pingInterval: 15000 };
-const io = require("socket.io")(options);
+const io = require("socket.io")();
 ```
 
 With some minor changes, your Socket.IO server will supported by Azure Web PubSub Service:
 
 ```javascript
-// Add an path option in Socket.IO Server options
-const options = { pingInterval: 15000, path: "/eventhandler/" };
 // Import this package
 const wpsExt = require("@azure/web-pubsub-socket.io");
 
 // Add an Web PubSub Option
 const webPubSubOptions = {
   hub: "eio_hub",
-  path: "/eventhandler/",
   connectionString: "<web-pubsub-connection-string>",
 };
 
-const io = await require("socket.io")(options).useAzureSocketIO(webPubSubOptions);
+const io = await require("socket.io")().useAzureSocketIO(webPubSubOptions);
 ```
 
 You can also authenticate with Web PubSub service using an endpoint and an `AzureKeyCredential`.
@@ -55,7 +51,6 @@ const key = new AzureKeyCredential("<Key>");
 
 const webPubSubOptions = {
   hub: "eio_hub",
-  path: "/eventhandler/",
   endpoint: "<web-pubsub-endpoint>",
   credential: key,
 };
@@ -66,7 +61,7 @@ const webPubSubOptions = {
 Assuming your client-side code is:
 
 ```javascript
-var socket = io("<socket-io-server-endpoint");
+var socket = io("<socket-io-server-endpoint>");
 ```
 
 To fit new Socket.IO server, you shall update the Socket.IO client as below:
@@ -108,7 +103,6 @@ node <socket-io-application>.js
 ```
 WebPubSubConnectionString="<web-pubsub-connection-string>"
 WebPubSubHub="eio_hub"
-WebPubSubPath="/eventhandler/"
 SocketIoPort=3000
 ```
 
