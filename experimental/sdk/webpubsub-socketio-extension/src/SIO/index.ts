@@ -1,11 +1,7 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT license.
 
-import {
-  debugModule,
-  WebPubSubExtensionOptions,
-  WebPubSubExtensionCredentialOptions,
-} from "../common/utils";
+import { debugModule, WebPubSubExtensionOptions, WebPubSubExtensionCredentialOptions } from "../common/utils";
 import { WebPubSubEioServer } from "../EIO";
 import { WebPubSubAdapterProxy } from "./components/web-pubsub-adapter";
 import * as SIO from "socket.io";
