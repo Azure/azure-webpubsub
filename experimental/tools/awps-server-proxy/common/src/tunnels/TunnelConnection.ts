@@ -107,7 +107,7 @@ export class TunnelConnection {
     ackMap.set(ackId, ackEntity);
 
     try {
-      let headers;
+      let headers = {};
       if (httpRequest.contentType) {
         headers = {"Content-Type": [httpRequest.contentType]};
       }
