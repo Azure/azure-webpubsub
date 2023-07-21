@@ -9,7 +9,6 @@ import { Adapter as NativeInMemoryAdapter, BroadcastOptions, Room, SocketId } fr
 import { WebPubSubServiceCaller } from "awps-tunnel-proxies";
 import { Mutex, MutexInterface } from "async-mutex";
 import base64url from "base64url";
-import { WebPubSubServiceClient } from "@azure/web-pubsub";
 
 const debug = debugModule("wps-sio-ext:SIO:Adapter");
 
