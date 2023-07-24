@@ -2,12 +2,12 @@
 // Licensed under the MIT license.
 
 import { debugModule } from "../../common/utils";
-import { HubSendToConnectionOptions, WebPubSubServiceClient } from "@azure/web-pubsub";
 import {
   ConnectResponse as WebPubSubConnectResponse,
   ConnectResponseHandler as WebPubSubConnectResponseHandler,
 } from "@azure/web-pubsub-express";
 import { WEBPUBSUB_CONNECT_RESPONSE_FIELD_NAME } from "./constants";
+import { WebPubSubServiceCaller } from "awps-tunnel-proxies";
 
 const debug = debugModule("wps-sio-ext:EIO:ClientConnectionContext");
 
@@ -24,14 +24,14 @@ export interface ConnectionError {
  * It maps Engine.IO Transport behaviours to Azure Web PubSub service REST API calls.
  */
 export class ClientConnectionContext {
-  public service: WebPubSubServiceClient;
+  public service: WebPubSubServiceCaller;
   public connectionId: string;
   public connectResponded: boolean;
   private _connectResponseHandler: WebPubSubConnectResponseHandler;
   private _refusedCallback: (error: string) => void;
 
   constructor(
-    serviceClient: WebPubSubServiceClient,
+    serviceClient: WebPubSubServiceCaller,
     connectionId: string,
     connectResponseHandler: WebPubSubConnectResponseHandler,
     refusedCallback?: (error: string) => void
@@ -51,9 +51,7 @@ export class ClientConnectionContext {
   public async send(message: string, cb?: (err?: Error) => void): Promise<void> {
     debug(`send message ${message}, type = ${typeof message}`);
 
-    const options: HubSendToConnectionOptions = {
-      contentType: "text/plain",
-    } as HubSendToConnectionOptions;
+    const options = { contentType: "text/plain" };
 
     try {
       await this.service.sendToConnection(this.connectionId, message, options);

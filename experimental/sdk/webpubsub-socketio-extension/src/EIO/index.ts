@@ -6,6 +6,7 @@ import { WebPubSubTransport } from "./components/web-pubsub-transport";
 import { WebPubSubConnectionManager } from "./components/web-pubsub-connection-manager";
 import * as engine from "engine.io";
 import { InprocessServerProxy } from "awps-tunnel-proxies";
+
 const debug = debugModule("wps-sio-ext:EIO:index");
 debug("load");
 
@@ -26,32 +27,33 @@ debug("load");
 export class WebPubSubEioServer extends engine.Server {
   public webPubSubOptions: WebPubSubExtensionOptions | WebPubSubExtensionCredentialOptions;
   public webPubSubConnectionManager: WebPubSubConnectionManager;
-  private _tunnel: InprocessServerProxy;
   private _setuped: Promise<void>;
 
   constructor(
     options: engine.ServerOptions,
-    webPubSubOptions: WebPubSubExtensionOptions | WebPubSubExtensionCredentialOptions,
-    tunnel?: InprocessServerProxy
+    webPubSubOptions: WebPubSubExtensionOptions | WebPubSubExtensionCredentialOptions
   ) {
+    debug(`constructor, options: ${JSON.stringify(options)}, webPubSubOptions: ${JSON.stringify(webPubSubOptions)}`);
     super(options);
-    debug("create Engine.IO Server with AWPS");
     this.webPubSubOptions = webPubSubOptions;
     this.webPubSubConnectionManager = new WebPubSubConnectionManager(this, webPubSubOptions);
 
-    if (tunnel) {
-      this._tunnel = tunnel;
-      this._tunnel.use(this.webPubSubConnectionManager.getEventHandlerExpressMiddleware());
-      this._setuped = this._tunnel.runAsync();
+    // Using tunnel
+    if (this.webPubSubConnectionManager.service instanceof InprocessServerProxy) {
+      debug("constructor, use InprocessServerProxy");
+      const tunnel: InprocessServerProxy = this.webPubSubConnectionManager.service;
+      tunnel.use(this.webPubSubConnectionManager.getEventHandlerExpressMiddleware());
+      this._setuped = tunnel.runAsync();
       /**
        * After closing the EIO server, internal tunnel should be closed as well.
        * Force override `cleanup`, which is executed when closing EIO server.
        * In native implementation, it close internal WebSocket server, this is not needed when using Azure Web PubSub.
        */
       this["cleanup"] = () => {
-        this._tunnel.stop();
+        tunnel.stop();
       };
     } else {
+      debug("constructor, use RestApiServiceCaller");
       const webPubSubEioMiddleware = this.webPubSubConnectionManager.getEventHandlerEioMiddleware();
       this.use(webPubSubEioMiddleware);
     }
