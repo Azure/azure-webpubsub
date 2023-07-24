@@ -204,7 +204,7 @@ groupNames = ${toString(rooms)}, connectionId(eioSid) = ${this._getEioSid(id)}`)
   ): Promise<void> {
     debug(`broadcastWithAck, start, packet = ${JSON.stringify(packet)},\
   opts = ${toOptionsString(opts)}, namespace = "${this.nsp.name}"`);
-  
+
     let accumulatedData = "";
     let count = 0;
 
@@ -222,7 +222,9 @@ groupNames = ${toString(rooms)}, connectionId(eioSid) = ${this._getEioSid(id)}`)
             // The payload is UTF-8 encoded EIO payload, we need to decode it and only ack the data
             const eioPackets = EioParser.decodePayload(emitWithAckResponse.Payload);
             this._sioDecoder.on("decoded", (packet: SioPacket) => onPacket(packet));
-            eioPackets.forEach((element) => { this._sioDecoder.add(element.data); });
+            eioPackets.forEach((element) => {
+              this._sioDecoder.add(element.data);
+            });
             this._sioDecoder.off("decoded");
           }
         }
@@ -237,10 +239,10 @@ groupNames = ${toString(rooms)}, connectionId(eioSid) = ${this._getEioSid(id)}`)
       accumulatedData = lines[lines.length - 1];
     };
 
-    const bodyHandler: (data: Uint8Array|undefined, end: boolean) => void = (value, end) => {
+    const bodyHandler: (data: Uint8Array | undefined, end: boolean) => void = (value, end) => {
       if (end) {
         clientCountCallback(count);
-        return ;
+        return;
       }
       const text = this._utf8Decoder.decode(value);
       streamHandleResponse(text);

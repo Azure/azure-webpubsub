@@ -18,19 +18,25 @@ export class RestServiceClient extends WebPubSubServiceClient implements WebPubS
     const onResponse = (rawResponse: coreClient.FullOperationResponse, flatResponse: unknown, error?: unknown) => {
       if (error || rawResponse.status !== 200) {
         // Log and do nothing, let it timeout
-        debug(`broadcastWithAck response status code = ${rawResponse["status"]}, error = ${error}, rawResponse = ${JSON.stringify(rawResponse)}`);
+        debug(`broadcastWithAck response status code = ${rawResponse["status"]}, error = ${error},\
+rawResponse = ${JSON.stringify(rawResponse)}`);
         return;
       }
 
       if (rawResponse.browserStreamBody) {
         // Browser stream
         const reader = rawResponse.browserStreamBody["getReader"]();
-        reader.read().then(function processText({ done, value }) { bodyHandler(value, done); });
-      } 
-      else {
+        reader.read().then(function processText({ done, value }) {
+          bodyHandler(value, done);
+        });
+      } else {
         const stream = rawResponse["readableStreamBody"];
-        stream.on("end", () => { bodyHandler(undefined, true); });
-        stream.on("data", (chunk) => { bodyHandler(chunk.toString(), false); });
+        stream.on("end", () => {
+          bodyHandler(undefined, true);
+        });
+        stream.on("data", (chunk) => {
+          bodyHandler(chunk.toString(), false);
+        });
       }
     };
 
