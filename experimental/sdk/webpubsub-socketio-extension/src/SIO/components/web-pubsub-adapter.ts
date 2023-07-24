@@ -241,12 +241,12 @@ groupNames = ${toString(rooms)}, connectionId(eioSid) = ${this._getEioSid(id)}`)
 
     const bodyHandler = (value: Uint8Array | undefined, end: boolean) => {
       if (value) {
-        if (end) {
-          clientCountCallback(count);
-          return;
-        }
         const text = this._utf8Decoder.decode(value);
         streamHandleResponse(text);
+      }
+      if (end) {
+        clientCountCallback(count);
+        return;
       }
     };
 
