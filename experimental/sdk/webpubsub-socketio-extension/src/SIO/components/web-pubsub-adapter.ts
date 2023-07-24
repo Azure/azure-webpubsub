@@ -247,7 +247,7 @@ groupNames = ${toString(rooms)}, connectionId(eioSid) = ${this._getEioSid(id)}`)
         }
         const text = this._utf8Decoder.decode(value);
         streamHandleResponse(text);
-      };
+      }
     };
 
     try {
