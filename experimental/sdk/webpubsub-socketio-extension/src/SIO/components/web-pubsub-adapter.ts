@@ -239,13 +239,15 @@ groupNames = ${toString(rooms)}, connectionId(eioSid) = ${this._getEioSid(id)}`)
       accumulatedData = lines[lines.length - 1];
     };
 
-    const bodyHandler: (data: Uint8Array | undefined, end: boolean) => void = (value, end) => {
-      if (end) {
-        clientCountCallback(count);
-        return;
-      }
-      const text = this._utf8Decoder.decode(value);
-      streamHandleResponse(text);
+    const bodyHandler = (value: Uint8Array | undefined, end: boolean) => {
+      if (value) {
+        if (end) {
+          clientCountCallback(count);
+          return;
+        }
+        const text = this._utf8Decoder.decode(value);
+        streamHandleResponse(text);
+      };
     };
 
     try {
