@@ -10,9 +10,6 @@ import { Adapter as NativeInMemoryAdapter, BroadcastOptions, Room, SocketId } fr
 import { WebPubSubServiceCaller } from "awps-tunnel-proxies";
 import { Mutex, MutexInterface } from "async-mutex";
 import base64url from "base64url";
-import { WebPubSubServiceClient } from "@azure/web-pubsub";
-import { getInvokeOperationSpec } from "./azure-api/operation-spec";
-import * as coreClient from "@azure/core-client";
 import { TextDecoder } from "util";
 
 const debug = debugModule("wps-sio-ext:SIO:Adapter");
@@ -47,6 +44,7 @@ export class WebPubSubAdapterInternal extends NativeInMemoryAdapter {
   public service: WebPubSubServiceCaller;
   private _roomOperationLock: Map<SocketId, Mutex> = new Map();
   private _sioDecoder: SioDecoder;
+  private _utf8Decoder = new TextDecoder("utf-8");
 
   /**
    * Azure Web PubSub Socket.IO Adapter constructor.
@@ -79,7 +77,7 @@ opts = ${toOptionsString(opts)}, namespace = "${this.nsp.name}"`);
       const sendOptions = { filter: oDataFilter, contentType: "text/plain" };
       debug(`broadcast, encodedPayload = "${encodedPayload}", sendOptions = "${JSON.stringify(sendOptions)}"`);
 
-      await this.service.sendToAll(encodedPayload, sendOptions as HubSendTextToAllOptions);
+      await this.service.sendToAll(encodedPayload, sendOptions);
       debug(`broadcast, finish`);
     } catch (e) {
       debug(`broadcast, error, packet = ${JSON.stringify(packet)},\
@@ -206,10 +204,11 @@ groupNames = ${toString(rooms)}, connectionId(eioSid) = ${this._getEioSid(id)}`)
   ): Promise<void> {
     debug(`broadcastWithAck, start, packet = ${JSON.stringify(packet)},\
   opts = ${toOptionsString(opts)}, namespace = "${this.nsp.name}"`);
+  
+    let accumulatedData = "";
+    let count = 0;
 
-    const onResponse = (rawResponse: coreClient.FullOperationResponse, flatResponse: unknown, error?: unknown) => {
-      let count = 0;
-      let accumulatedData = "";
+    const streamHandleResponse = (chunk: string) => {
       const handleJsonLines = (lines: string[], onPacket: (SioPacket) => void) => {
         /**
          * Line 1: {xxx}
@@ -223,75 +222,37 @@ groupNames = ${toString(rooms)}, connectionId(eioSid) = ${this._getEioSid(id)}`)
             // The payload is UTF-8 encoded EIO payload, we need to decode it and only ack the data
             const eioPackets = EioParser.decodePayload(emitWithAckResponse.Payload);
             this._sioDecoder.on("decoded", (packet: SioPacket) => onPacket(packet));
-            eioPackets.forEach((element) => {
-              this._sioDecoder.add(element.data);
-            });
+            eioPackets.forEach((element) => { this._sioDecoder.add(element.data); });
             this._sioDecoder.off("decoded");
           }
         }
       };
 
-      const streamHandleResponse = (chunk: string) => {
-        accumulatedData += chunk.toString();
-        const lines = accumulatedData.split("\n");
-        handleJsonLines(lines, (packet: SioPacket) => {
-          ack(...packet.data);
-          count++;
-        });
-        accumulatedData = lines[lines.length - 1];
-      };
+      accumulatedData += chunk.toString();
+      const lines = accumulatedData.split("\n");
+      handleJsonLines(lines, (packet: SioPacket) => {
+        ack(...packet.data);
+        count++;
+      });
+      accumulatedData = lines[lines.length - 1];
+    };
 
-      if (error || rawResponse.status !== 200) {
-        // Log and do nothing, let it timeout
-        debug(
-          `broadcastWithAck response status code = ${
-            rawResponse["status"]
-          }, error = ${error}, rawResponse = ${JSON.stringify(rawResponse)}`
-        );
-        return;
+    const bodyHandler: (data: Uint8Array|undefined, end: boolean) => void = (value, end) => {
+      if (end) {
+        clientCountCallback(count);
+        return ;
       }
-
-      if (rawResponse.browserStreamBody) {
-        // Browser stream
-        const reader = rawResponse.browserStreamBody["getReader"]();
-        const decoder = new TextDecoder("utf-8");
-        reader.read().then(function processText({ done, value }) {
-          if (done) {
-            clientCountCallback(count);
-            return;
-          }
-          const text = decoder.decode(value);
-          streamHandleResponse(text);
-        });
-      } else {
-        const stream = rawResponse["readableStreamBody"];
-        stream.on("end", () => {
-          clientCountCallback(count);
-        });
-        stream.on("data", (chunk) => {
-          streamHandleResponse(chunk.toString());
-        });
-      }
+      const text = this._utf8Decoder.decode(value);
+      streamHandleResponse(text);
     };
 
     try {
-      const options: coreClient.OperationOptions = { onResponse: onResponse };
       packet.nsp = this.nsp.name;
       const encodedPayload = await getSingleEioEncodedPayload(packet);
       const oDataFilter = this._buildODataFilter(opts.rooms, opts.except);
 
-      const operationArguments: coreClient.OperationArguments = {
-        hub: this.service.hubName,
-        contentType: "text/plain",
-        message: encodedPayload,
-        options: options,
-        filter: oDataFilter,
-      };
+      await this.service.invoke(encodedPayload, bodyHandler, { filter: oDataFilter, contentType: "text/plain" });
 
-      await ((this.service as any).client as coreClient.ServiceClient).sendOperationRequest(
-        operationArguments,
-        getInvokeOperationSpec(this.service.endpoint)
-      );
       debug(`broadcastWithAck, finish`);
     } catch (e) {
       debug(`broadcastWithAck, error, packet = ${JSON.stringify(packet)},\
