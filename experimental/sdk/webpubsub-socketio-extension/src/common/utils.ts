@@ -1,10 +1,12 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT license.
 
-import { WebPubSubServiceClient, WebPubSubServiceClientOptions } from "@azure/web-pubsub";
+import { WebPubSubServiceClientOptions } from "@azure/web-pubsub";
 import { AzureKeyCredential, TokenCredential } from "@azure/core-auth";
 import debugModule from "debug";
 import { BroadcastOptions } from "socket.io-adapter";
+import { RestServiceClient } from "./rest-service-client";
+import { InprocessServerProxy, WebPubSubServiceCaller } from "awps-tunnel-proxies";
 
 export const T = (now: Date): string => `${now.toLocaleString().replace(" AM", "").replace(" PM", "")}:${now.getMilliseconds().toString().padStart(3, '0')}`; // prettier-ignore
 
@@ -12,6 +14,8 @@ debugModule.log = (msg, ...args): void => {
   const timestamp = T(new Date());
   console.log(`[${timestamp}] ${msg}`, ...args);
 };
+
+const debug = debugModule("wps-sio-ext:common:utils");
 
 export function addProperty(o: object, p: string, f: (...args: unknown[]) => unknown): void {
   Object.defineProperty(o, p, {
@@ -36,33 +40,40 @@ export interface WebPubSubExtensionCredentialOptions {
   webPubSubServiceClientOptions?: WebPubSubServiceClientOptions;
 }
 
-export function getWebPubSubServiceClient(options: WebPubSubExtensionOptions | WebPubSubExtensionCredentialOptions) {
+export function getWebPubSubServiceCaller(
+  options: WebPubSubExtensionOptions | WebPubSubExtensionCredentialOptions,
+  useTunnel = true
+): WebPubSubServiceCaller {
+  debug(`getWebPubSubServiceCaller, ${JSON.stringify(options)}, useTunnel: ${useTunnel}`);
   // if owns connection string, handle as `WebPubSubExtensionOptions`
   if (Object.keys(options).indexOf("connectionString") !== -1) {
+    debug(`getWebPubSubServiceCaller, use connection string`);
+
     const requiredKeys = ["connectionString", "hub"];
 
     for (const key of requiredKeys) {
       if (!options[key] || options[key] === "")
         throw new Error(`Expect valid ${key} is required, got null or empty value.`);
     }
-
-    return new WebPubSubServiceClient(
-      options["connectionString"],
-      options["hub"],
-      options["webPubSubServiceClientOptions"]
-    );
+    return useTunnel
+      ? InprocessServerProxy.fromConnectionString(options["connectionString"], options.hub)
+      : new RestServiceClient(options["connectionString"], options.hub, options.webPubSubServiceClientOptions);
   } else {
+    debug(`getWebPubSubServiceCaller, use credential`);
+
     const requiredKeys = ["endpoint", "credential", "hub"];
     for (const key of requiredKeys) {
       if (!options[key] || options[key] === "")
         throw new Error(`Expect valid ${key} is required, got null or empty value.`);
     }
-    return new WebPubSubServiceClient(
-      options["endpoint"],
-      options["credential"],
-      options["hub"],
-      options["webPubSubServiceClientOptions"]
-    );
+    return useTunnel
+      ? new InprocessServerProxy(options["endpoint"], options["credential"], options.hub)
+      : new RestServiceClient(
+          options["endpoint"],
+          options["credential"],
+          options.hub,
+          options.webPubSubServiceClientOptions
+        );
   }
 }
 

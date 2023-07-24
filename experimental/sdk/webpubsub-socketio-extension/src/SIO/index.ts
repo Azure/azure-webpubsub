@@ -18,18 +18,16 @@ export async function useAzureSocketIO(
   webPubSubOptions: WebPubSubExtensionOptions | WebPubSubExtensionCredentialOptions,
   useDefaultAdapter = false
 ): Promise<SIO.Server> {
-  debug("use Azure Web PubSub For Socket.IO Server");
-  const useTunnel = true;
-
-  const serverProxy = !useTunnel
-    ? undefined
-    : Object.keys(webPubSubOptions).indexOf("connectionString") !== -1
-    ? InprocessServerProxy.fromConnectionString(webPubSubOptions["connectionString"], webPubSubOptions.hub)
-    : new InprocessServerProxy(webPubSubOptions["endpoint"], webPubSubOptions["credential"], webPubSubOptions["hub"]);
-  const engine = new WebPubSubEioServer(this.engine.opts, webPubSubOptions, serverProxy);
+  debug(
+    `useAzureSocketIO, webPubSubOptions: ${JSON.stringify(webPubSubOptions)}, useDefaultAdapter: ${useDefaultAdapter}`
+  );
+  const engine = new WebPubSubEioServer(this.engine.opts, webPubSubOptions);
   engine.attach(this["httpServer"], this["opts"]);
 
-  await engine.setup();
+  // Using Tunnel
+  if (engine.webPubSubConnectionManager.service instanceof InprocessServerProxy) {
+    await engine.setup();
+  }
 
   // `attachServe` is a Socket.IO design which attachs static file serving to internal http server.
   // Creating new engine makes previous `attachServe` execution invalid.

@@ -7,7 +7,7 @@ import { Packet as SioPacket, PacketType as SioPacketType, Decoder as SioDecoder
 import * as EioParser from "engine.io-parser";
 import { Namespace, Server as SioServer } from "socket.io";
 import { Adapter as NativeInMemoryAdapter, BroadcastOptions, Room, SocketId } from "socket.io-adapter";
-import { InprocessServerProxy, WebPubSubServiceCaller } from "awps-tunnel-proxies";
+import { WebPubSubServiceCaller } from "awps-tunnel-proxies";
 import { Mutex, MutexInterface } from "async-mutex";
 import base64url from "base64url";
 import { WebPubSubServiceClient } from "@azure/web-pubsub";
@@ -30,10 +30,10 @@ const NotSupportedError = new Error("Not Supported.");
  *  2. Set the adapter: `io.adapter(WebPubSubAdapterProxy);`, thus additional options are controllable.
  */
 export class WebPubSubAdapterProxy {
-  public serivce: WebPubSubServiceClient;
+  public serivce: WebPubSubServiceCaller;
   public sioServer: SioServer;
 
-  constructor(serviceClient: WebPubSubServiceClient) {
+  constructor(serviceClient: WebPubSubServiceCaller) {
     this.serivce = serviceClient;
 
     const proxyHandler = {
@@ -44,7 +44,7 @@ export class WebPubSubAdapterProxy {
 }
 
 export class WebPubSubAdapterInternal extends NativeInMemoryAdapter {
-  public service: WebPubSubServiceClient;
+  public service: WebPubSubServiceCaller;
   private _roomOperationLock: Map<SocketId, Mutex> = new Map();
   private _sioDecoder: SioDecoder;
 
@@ -54,7 +54,7 @@ export class WebPubSubAdapterInternal extends NativeInMemoryAdapter {
    * @param nsp - Namespace
    * @param extraArgForWpsAdapter - extra argument for WebPubSubAdapter
    */
-  constructor(readonly nsp: Namespace, serviceClient: WebPubSubServiceClient) {
+  constructor(readonly nsp: Namespace, serviceClient: WebPubSubServiceCaller) {
     debug(`constructor nsp.name = ${nsp.name}, serviceClient = ${serviceClient}`);
     super(nsp);
     this.service = serviceClient;
