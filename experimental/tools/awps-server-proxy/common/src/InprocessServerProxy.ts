@@ -250,8 +250,7 @@ class ContentInterpreteResponse extends http.ServerResponse {
   end(chunkOrCb?: unknown, encodingOrCb?: unknown, cb?: unknown): this {
     if (chunkOrCb === undefined) {
       super.end();
-    }
-    if (typeof chunkOrCb === "function") {
+    } else if (typeof chunkOrCb === "function") {
       super.end(chunkOrCb);
     } else {
       const chunk = chunkOrCb as string | Buffer | ArrayBuffer;
