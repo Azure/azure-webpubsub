@@ -6,7 +6,7 @@ import { AzureKeyCredential, TokenCredential } from "@azure/core-auth";
 import debugModule from "debug";
 import { BroadcastOptions } from "socket.io-adapter";
 import { RestServiceClient } from "./rest-service-client";
-import { InprocessServerProxy, WebPubSubServiceCaller } from "awps-tunnel-proxies";
+import { InprocessServerProxy, WebPubSubServiceCaller } from "../serverProxies";
 
 export const T = (now: Date): string => `${now.toLocaleString().replace(" AM", "").replace(" PM", "")}:${now.getMilliseconds().toString().padStart(3, '0')}`; // prettier-ignore
 

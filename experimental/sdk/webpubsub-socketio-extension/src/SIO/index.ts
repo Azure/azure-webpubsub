@@ -6,7 +6,7 @@ import { WebPubSubEioServer } from "../EIO";
 import { WebPubSubAdapterProxy } from "./components/web-pubsub-adapter";
 import * as SIO from "socket.io";
 import { Adapter } from "socket.io-adapter";
-import { InprocessServerProxy } from "awps-tunnel-proxies";
+import { InprocessServerProxy } from "../serverProxies";
 
 const debug = debugModule("wps-sio-ext:SIO:index");
 debug("load");
