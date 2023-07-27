@@ -7,7 +7,7 @@ import { Packet as SioPacket, PacketType as SioPacketType, Decoder as SioDecoder
 import * as EioParser from "engine.io-parser";
 import { Namespace, Server as SioServer } from "socket.io";
 import { Adapter as NativeInMemoryAdapter, BroadcastOptions, Room, SocketId } from "socket.io-adapter";
-import { WebPubSubServiceCaller } from "awps-tunnel-proxies";
+import { WebPubSubServiceCaller } from "../../serverProxies";
 import { Mutex, MutexInterface } from "async-mutex";
 import base64url from "base64url";
 import { TextDecoder } from "util";

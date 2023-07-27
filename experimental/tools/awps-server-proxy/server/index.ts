@@ -4,7 +4,7 @@
 
 // temp: show how to project reference the common project
 import { WebPubSubEventHandler } from "@azure/web-pubsub-express";
-import { InprocessServerProxy } from "awps-tunnel-proxies";
+import { InprocessServerProxy } from "./serverProxies";
 var host = "http://localhost:8080";
 var key = "";
 var connectionString = process.env["WebPubSubConnectionString"] || `Endpoint=${host};AccessKey=${key}`;

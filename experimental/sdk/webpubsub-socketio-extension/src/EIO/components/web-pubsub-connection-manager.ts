@@ -19,7 +19,7 @@ import {
 } from "./constants";
 import type { BaseServer } from "engine.io";
 import { ConnectRequest as WebPubSubConnectRequest, WebPubSubEventHandler } from "@azure/web-pubsub-express";
-import { WebPubSubServiceCaller } from "awps-tunnel-proxies";
+import { WebPubSubServiceCaller } from "../../serverProxies";
 
 const debug = debugModule("wps-sio-ext:EIO:ConnectionManager");
 

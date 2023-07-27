@@ -1,5 +1,5 @@
 import { WebPubSubServiceClient } from "@azure/web-pubsub";
-import { WebPubSubServiceCaller } from "awps-tunnel-proxies";
+import { WebPubSubServiceCaller } from "../serverProxies";
 import { getInvokeOperationSpec } from "./azure-api/operation-spec";
 import { debugModule } from "./utils";
 import * as coreClient from "@azure/core-client";

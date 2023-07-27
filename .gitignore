@@ -4,10 +4,10 @@
 ## Get latest from https://github.com/github/gitignore/blob/master/VisualStudio.gitignore
 .vscode/
 esm/
-
+dist-esm/
 .rollup.cache/
-tsconfig.tsbuildinfo
-
+*.tsbuildinfo
+types/
 # User-specific files
 *.rsuser
 *.suo

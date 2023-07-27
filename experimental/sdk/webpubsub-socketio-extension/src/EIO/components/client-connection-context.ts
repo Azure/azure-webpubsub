@@ -7,7 +7,7 @@ import {
   ConnectResponseHandler as WebPubSubConnectResponseHandler,
 } from "@azure/web-pubsub-express";
 import { WEBPUBSUB_CONNECT_RESPONSE_FIELD_NAME } from "./constants";
-import { WebPubSubServiceCaller } from "awps-tunnel-proxies";
+import { WebPubSubServiceCaller } from "../../serverProxies";
 
 const debug = debugModule("wps-sio-ext:EIO:ClientConnectionContext");
 

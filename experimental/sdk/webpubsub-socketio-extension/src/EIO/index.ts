@@ -5,7 +5,7 @@ import { WebPubSubExtensionOptions, WebPubSubExtensionCredentialOptions, debugMo
 import { WebPubSubTransport } from "./components/web-pubsub-transport";
 import { WebPubSubConnectionManager } from "./components/web-pubsub-connection-manager";
 import * as engine from "engine.io";
-import { InprocessServerProxy } from "awps-tunnel-proxies";
+import { InprocessServerProxy } from "../serverProxies";
 
 const debug = debugModule("wps-sio-ext:EIO:index");
 debug("load");
