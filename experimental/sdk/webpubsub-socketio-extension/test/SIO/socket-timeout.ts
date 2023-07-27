@@ -73,7 +73,6 @@ describe("timeout", () => {
     });
   });
 
-  /* TODO: Unncomment this UT after BroadcastWithAck is available
   it("should not timeout if the client does acknowledge the event (promise)", (done) => {
     const io = new Server(serverPort);
     const client = createClient(io, "/");
@@ -88,5 +87,4 @@ describe("timeout", () => {
       success(done, io, client);
     });
   });
-  */
 });

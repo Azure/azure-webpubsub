@@ -129,39 +129,39 @@ describe("messaging many", () => {
     });
   });
 
-  /* Skip: All test realted to BroadcastWithAck
-     TODO: uncommennt when BroadcastWithAck is implemented
   it("emits to rooms avoiding dupes", (done) => {
     const io = new Server(serverPort);
-    const socket1 = createClient(io, "/etrad", { multiplex: false });
-    const socket2 = createClient(io, "/etrad", { multiplex: false });
+    const client1 = createClient(io, "/", { multiplex: false });
+    const client2 = createClient(io, "/", { multiplex: false });
 
-    const partialDone = createPartialDone(
-      2,
-      successFn(done, io, socket1, socket2)
-    );
+    const partialDone = createPartialDone(2, successFn(done, io, client1, client2));
 
-    socket2.on("a", () => {
+    client2.on("a", () => {
       done(new Error("not"));
     });
-    socket1.on("a", partialDone);
-    socket2.on("b", partialDone);
+    client1.on("a", partialDone);
+    client2.on("b", partialDone);
 
-    socket1.emit("join", "woot");
-    socket1.emit("join", "test");
-    socket2.emit("join", "third", () => {
-      socket2.emit("emit");
-    });
-
-    io.of("/etrad").on("connection", (socket) => {
-      socket.on("join", (room, fn) => {
-        socket.join(room);
+    io.on("connection", async (socket) => {
+      socket.on("join", async (room, fn) => {
+        await socket.join(room);
         fn && fn();
       });
 
       socket.on("emit", () => {
         io.in("woot").in("test").emit("a");
         io.in("third").emit("b");
+      });
+    });
+
+    spinCheck(() => {
+      expect(client1.connected && client2.connected).to.be(true);
+
+      client1.emit("join", "woot");
+      client1.emit("join", "test");
+
+      client2.emit("join", "third", () => {
+        client2.emit("emit");
       });
     });
   });
@@ -172,15 +172,15 @@ describe("messaging many", () => {
     const socket2 = createClient(io, "/", { multiplex: false });
     const socket3 = createClient(io, "/", { multiplex: false });
 
-    const partialDone = createPartialDone(
-      2,
-      successFn(done, io, socket1, socket2, socket3)
-    );
+    const partialDone = createPartialDone(2, successFn(done, io, socket1, socket2, socket3));
 
-    socket1.emit("join", "woot");
-    socket2.emit("join", "test");
-    socket3.emit("join", "test", () => {
-      socket3.emit("broadcast");
+    spinCheck(() => {
+      expect(socket1.connected && socket2.connected && socket3.connected).to.be(true);
+      socket1.emit("join", "woot");
+      socket2.emit("join", "test");
+      socket3.emit("join", "test", () => {
+        socket3.emit("broadcast");
+      });
     });
 
     socket1.on("a", () => {
@@ -197,8 +197,8 @@ describe("messaging many", () => {
     });
 
     io.on("connection", (socket) => {
-      socket.on("join", (room, fn) => {
-        socket.join(room);
+      socket.on("join", async (room, fn) => {
+        await socket.join(room);
         fn && fn();
       });
 
@@ -215,15 +215,15 @@ describe("messaging many", () => {
     const socket2 = createClient(io, "/", { multiplex: false });
     const socket3 = createClient(io, "/", { multiplex: false });
 
-    const partialDone = createPartialDone(
-      2,
-      successFn(done, io, socket1, socket2, socket3)
-    );
+    const partialDone = createPartialDone(2, successFn(done, io, socket1, socket2, socket3));
 
-    socket1.emit("join", "woot");
-    socket2.emit("join", "test");
-    socket3.emit("join", "test", () => {
-      socket3.emit("broadcast");
+    spinCheck(() => {
+      expect(socket1.connected && socket2.connected && socket3.connected).to.be(true);
+      socket1.emit("join", "woot");
+      socket2.emit("join", "test");
+      socket3.emit("join", "test", () => {
+        socket3.emit("broadcast");
+      });
     });
 
     socket1.on("bin", (data) => {
@@ -255,7 +255,6 @@ describe("messaging many", () => {
       });
     });
   });
-  */
 
   // Note: This test is modified. See "Modification 1" and "Modification 3" in index.ts
   it("keeps track of rooms", (done) => {
@@ -409,7 +408,6 @@ describe("messaging many", () => {
     });
   });
 
-  /* Skip: uncomment these tests after BroadcastWithAck is implemented
   it("should broadcast and expect multiple acknowledgements", (done) => {
     const io = new Server(serverPort);
     const socket1 = createClient(io, "/", { multiplex: false });
@@ -428,15 +426,11 @@ describe("messaging many", () => {
       cb(3);
     });
 
-    Promise.all([
-      waitFor(socket1, "connect"),
-      waitFor(socket2, "connect"),
-      waitFor(socket3, "connect"),
-    ]).then(() => {
-      io.timeout(2000).emit("some event", (err, responses) => {
+    Promise.all([waitFor(socket1, "connect"), waitFor(socket2, "connect"), waitFor(socket3, "connect")]).then(() => {
+      io.timeout(timeoutMap[2000]).emit("some event", (err, responses) => {
         expect(err).to.be(null);
         expect(responses).to.have.length(3);
-        expect(responses).to["contain"](1, 2, 3);
+        expect(responses).to.contain(1, 2, 3);
 
         success(done, io, socket1, socket2, socket3);
       });
@@ -461,11 +455,7 @@ describe("messaging many", () => {
       // timeout
     });
 
-    Promise.all([
-      waitFor(socket1, "connect"),
-      waitFor(socket2, "connect"),
-      waitFor(socket3, "connect"),
-    ]).then(() => {
+    Promise.all([waitFor(socket1, "connect"), waitFor(socket2, "connect"), waitFor(socket3, "connect")]).then(() => {
       io.timeout(timeoutMap[200]).emit("some event", (err, responses) => {
         expect(err).to.be.an(Error);
         expect(responses).to.have.length(2);
@@ -494,16 +484,14 @@ describe("messaging many", () => {
       cb(3);
     });
 
-    Promise.all([
-      waitFor(socket1, "connect"),
-      waitFor(socket2, "connect"),
-      waitFor(socket3, "connect"),
-    ]).then(async () => {
-      const responses = await io.timeout(2000).emitWithAck("some event");
-      expect(responses).to["contain"](1, 2, 3);
+    Promise.all([waitFor(socket1, "connect"), waitFor(socket2, "connect"), waitFor(socket3, "connect")]).then(
+      async () => {
+        const responses = await io.timeout(2000).emitWithAck("some event");
+        expect(responses).to["contain"](1, 2, 3);
 
-      success(done, io, socket1, socket2, socket3);
-    });
+        success(done, io, socket1, socket2, socket3);
+      }
+    );
   });
 
   it("should fail when a client does not acknowledge the event in the given delay (promise)", (done) => {
@@ -524,24 +512,22 @@ describe("messaging many", () => {
       // timeout
     });
 
-    Promise.all([
-      waitFor(socket1, "connect"),
-      waitFor(socket2, "connect"),
-      waitFor(socket3, "connect"),
-    ]).then(async () => {
-      try {
-        await io.timeout(200).emitWithAck("some event");
-        expect["fail"]();
-      } catch (err) {
-        expect(err).to.be.an(Error);
-        // @ts-ignore
-        expect(err.responses).to.have.length(2);
-        // @ts-ignore
-        expect(err.responses).to["contain"](1, 2);
+    Promise.all([waitFor(socket1, "connect"), waitFor(socket2, "connect"), waitFor(socket3, "connect")]).then(
+      async () => {
+        try {
+          await io.timeout(200).emitWithAck("some event");
+          expect["fail"]();
+        } catch (err) {
+          expect(err).to.be.an(Error);
+          // @ts-ignore
+          expect(err.responses).to.have.length(2);
+          // @ts-ignore
+          expect(err.responses).to["contain"](1, 2);
 
-        success(done, io, socket1, socket2, socket3);
+          success(done, io, socket1, socket2, socket3);
+        }
       }
-    });
+    );
   });
 
   it("should broadcast and return if the packet is sent to 0 client", (done) => {
@@ -571,7 +557,6 @@ describe("messaging many", () => {
         success(done, io, socket1, socket2, socket3);
       });
   });
-  */
 
   /**
    * Skip: 1 test related to WebSocket frame precomputation. It doesn't make sense for current implementation.

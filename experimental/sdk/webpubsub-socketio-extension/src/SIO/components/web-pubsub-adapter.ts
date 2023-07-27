@@ -3,19 +3,19 @@
 
 import { debugModule, toOptionsString, toString } from "../../common/utils";
 import { getSingleEioEncodedPayload } from "./encoder";
-import { Packet as SioPacket, PacketType as SioPacketType } from "socket.io-parser";
+import { Packet as SioPacket, PacketType as SioPacketType, Decoder as SioDecoder } from "socket.io-parser";
+import * as EioParser from "engine.io-parser";
 import { Namespace, Server as SioServer } from "socket.io";
 import { Adapter as NativeInMemoryAdapter, BroadcastOptions, Room, SocketId } from "socket.io-adapter";
 import { WebPubSubServiceCaller } from "awps-tunnel-proxies";
 import { Mutex, MutexInterface } from "async-mutex";
 import base64url from "base64url";
+import { TextDecoder } from "util";
 
 const debug = debugModule("wps-sio-ext:SIO:Adapter");
 
 const GROUP_DELIMITER = "~";
-const NotImplementedError = new Error("Not Implemented. This feature will be available in further version.");
 const NotSupportedError = new Error("Not Supported.");
-const NonLocalNotSupported = new Error("Non-local condition is not Supported.");
 
 /**
  * Socket.IO Server uses method `io.Adapter(AdapterClass))` to set the adapter. `AdatperClass` is not an instansized object, but a class.
@@ -43,6 +43,8 @@ export class WebPubSubAdapterProxy {
 export class WebPubSubAdapterInternal extends NativeInMemoryAdapter {
   public service: WebPubSubServiceCaller;
   private _roomOperationLock: Map<SocketId, Mutex> = new Map();
+  private _sioDecoder: SioDecoder;
+  private _utf8Decoder = new TextDecoder("utf-8");
 
   /**
    * Azure Web PubSub Socket.IO Adapter constructor.
@@ -54,6 +56,7 @@ export class WebPubSubAdapterInternal extends NativeInMemoryAdapter {
     debug(`constructor nsp.name = ${nsp.name}, serviceClient = ${serviceClient}`);
     super(nsp);
     this.service = serviceClient;
+    this._sioDecoder = new SioDecoder();
   }
 
   /**
@@ -65,16 +68,21 @@ export class WebPubSubAdapterInternal extends NativeInMemoryAdapter {
   public override async broadcast(packet: SioPacket, opts: BroadcastOptions): Promise<void> {
     debug(`broadcast, start, packet = ${JSON.stringify(packet)},\
 opts = ${toOptionsString(opts)}, namespace = "${this.nsp.name}"`);
-    packet.nsp = this.nsp.name;
+    try {
+      packet.nsp = this.nsp.name;
 
-    const encodedPayload = await getSingleEioEncodedPayload(packet);
+      const encodedPayload = await getSingleEioEncodedPayload(packet);
 
-    const oDataFilter = this._buildODataFilter(opts.rooms, opts.except);
-    const sendOptions = { filter: oDataFilter, contentType: "text/plain" };
-    debug(`broadcast, encodedPayload = "${encodedPayload}", sendOptions = "${JSON.stringify(sendOptions)}"`);
+      const oDataFilter = this._buildODataFilter(opts.rooms, opts.except);
+      const sendOptions = { filter: oDataFilter, contentType: "text/plain" };
+      debug(`broadcast, encodedPayload = "${encodedPayload}", sendOptions = "${JSON.stringify(sendOptions)}"`);
 
-    await this.service.sendToAll(encodedPayload, sendOptions);
-    debug(`broadcast, finish`);
+      await this.service.sendToAll(encodedPayload, sendOptions);
+      debug(`broadcast, finish`);
+    } catch (e) {
+      debug(`broadcast, error, packet = ${JSON.stringify(packet)},\
+opts = ${toOptionsString(opts)}, namespace = "${this.nsp.name}"`);
+    }
   }
 
   /**
@@ -188,13 +196,72 @@ groupNames = ${toString(rooms)}, connectionId(eioSid) = ${this._getEioSid(id)}`)
    * @param clientCountCallback - the number of clients that received the packet
    * @param ack - the callback that will be called for each client response
    */
-  public broadcastWithAck(
+  public async broadcastWithAck(
     packet: SioPacket,
     opts: BroadcastOptions,
     clientCountCallback: (clientCount: number) => void,
     ack: (...args: unknown[]) => void
-  ): void {
-    throw NotImplementedError;
+  ): Promise<void> {
+    debug(`broadcastWithAck, start, packet = ${JSON.stringify(packet)},\
+  opts = ${toOptionsString(opts)}, namespace = "${this.nsp.name}"`);
+
+    let accumulatedData = "";
+    let count = 0;
+
+    const streamHandleResponse = (chunk: string) => {
+      const handleJsonLines = (lines: string[], onPacket: (SioPacket) => void) => {
+        /**
+         * Line 1: {xxx}
+         * Line 2: {xxx}
+         * ..
+         * Line N: {xx   // maybe not complete
+         */
+        for (let i = 0; i < lines.length - 1; i++) {
+          if (lines[i]) {
+            const emitWithAckResponse = JSON.parse(lines[i]);
+            // The payload is UTF-8 encoded EIO payload, we need to decode it and only ack the data
+            const eioPackets = EioParser.decodePayload(emitWithAckResponse.Payload);
+            this._sioDecoder.on("decoded", (packet: SioPacket) => onPacket(packet));
+            eioPackets.forEach((element) => {
+              this._sioDecoder.add(element.data);
+            });
+            this._sioDecoder.off("decoded");
+          }
+        }
+      };
+
+      accumulatedData += chunk.toString();
+      const lines = accumulatedData.split("\n");
+      handleJsonLines(lines, (packet: SioPacket) => {
+        ack(...packet.data);
+        count++;
+      });
+      accumulatedData = lines[lines.length - 1];
+    };
+
+    const bodyHandler = (value: Uint8Array | undefined, end: boolean) => {
+      if (value) {
+        const text = this._utf8Decoder.decode(value);
+        streamHandleResponse(text);
+      }
+      if (end) {
+        clientCountCallback(count);
+        return;
+      }
+    };
+
+    try {
+      packet.nsp = this.nsp.name;
+      const encodedPayload = await getSingleEioEncodedPayload(packet);
+      const oDataFilter = this._buildODataFilter(opts.rooms, opts.except);
+
+      await this.service.invoke(encodedPayload, bodyHandler, { filter: oDataFilter, contentType: "text/plain" });
+
+      debug(`broadcastWithAck, finish`);
+    } catch (e) {
+      debug(`broadcastWithAck, error, packet = ${JSON.stringify(packet)},\
+opts = ${toOptionsString(opts)}, namespace = "${this.nsp.name}"`);
+    }
   }
 
   /**
