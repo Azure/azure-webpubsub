@@ -12,6 +12,13 @@
     "example": "samples",
     "test": "test"
   },
+  "files": [
+    "dist/",
+    "dist-esm/",
+    "types/",
+    "README.md",
+    "LICENSE"
+  ],
   "exports": {
     "types": "./types/index.d.ts",
     "import": "./dist-esm/index.js",
