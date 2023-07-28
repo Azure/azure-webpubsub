@@ -30,7 +30,8 @@ jobs:
     - run: npm install -g yarn 
     - run: yarn install
     - run: yarn workspaces run test
-    - name: socketio
+    - name: Pack SocketIO package
+      id: socketio
       run: |
         pushd experimental/sdk/webpubsub-socketio-extension
         yarn build
