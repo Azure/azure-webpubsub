@@ -47,9 +47,7 @@ jobs:
       uses: actions/upload-artifact@v2
       with:
         name: socketio package
-        path: ${{ steps.socketio.outputs.artifacts }}    
-    - name: Azcopy
-      run: azcopy --version
+        path: ${{ steps.socketio.outputs.artifacts }} 
     - name: Setup .NET ${{ matrix.dotnet-version }}
       uses: actions/setup-dotnet@v3
       with:
