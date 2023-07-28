@@ -36,7 +36,7 @@ jobs:
         yarn build
         yarn pack
         for file in $(find . -type f -name '*.tgz'); do
-          path = "./experimental/sdk/webpubsub-socketio-extension/${file#./}"
+          path="./experimental/sdk/webpubsub-socketio-extension/${file#./}"
           echo "File found: $path"
           echo "::set-output name=artifacts::$path"
         done
@@ -47,6 +47,8 @@ jobs:
       with:
         name: socketio package
         path: ${{ steps.socketio.outputs.artifacts }}    
+    - name: Azcopy
+      run: azcopy --version
     - name: Setup .NET ${{ matrix.dotnet-version }}
       uses: actions/setup-dotnet@v3
       with:
