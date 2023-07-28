@@ -36,8 +36,9 @@ jobs:
         yarn build
         yarn pack
         for file in $(find . -type f -name '*.tgz'); do
-          echo "File found: $file"
-          echo "::set-output name=artifacts::$file"
+          path = "./experimental/sdk/webpubsub-socketio-extension/${file#./}
+          echo "File found: $path"
+          echo "::set-output name=artifacts::$path"
         done
         popd
       shell: bash
