@@ -1,12 +1,11 @@
 {
   "name": "@azure/web-pubsub-socket.io",
-  "version": "1.0.0",
+  "version": "1.0.0-alpha.20230728.1",
   "socketio-version": "4.6.1",
   "description": "Enable Socket.IO server support Azure Web PubSub Service",
-  "main": "./dist-esm/index.js",
-  "types": "./dist-esm/index.d.ts",
+  "main": "./dist/index.js",
+  "module": "./dist-esm/index.js",
   "author": "Microsoft",
-  "private": false,
   "license": "MIT",
   "directories": {
     "lib": "src",
@@ -14,12 +13,16 @@
     "test": "test"
   },
   "exports": {
-    "types": "./types/index.d.ts"
+    "types": "./types/index.d.ts",
+    "import": "./dist-esm/index.js",
+    "require": "./dist/index.js"
   },
   "dependencies": {
+    "cpy-cli": "^5.0.0",
     "@azure/abort-controller": "^1.1.0",
     "@azure/logger": "^1.0.4",
     "@azure/web-pubsub": "1.1.3-alpha.20230711.3",
+    "@azure/web-pubsub-client": "^1.0.0-beta.3",
     "@azure/web-pubsub-express": "^1.0.4",
     "@msgpack/msgpack": "^3.0.0-beta2",
     "async-mutex": "^0.4.0",
@@ -33,7 +36,12 @@
     "ws": "^8.13.0"
   },
   "scripts": {
-    "build": "npm run clean && tsc --build .",
+    "build:cpy:esm": "cpy . ../../../webpubsub-socketio-extension/dist-esm/serverProxies --cwd=../server-proxies/dist-esm",
+    "build:cpy:cjs": "cpy . ../../../webpubsub-socketio-extension/dist/serverProxies --cwd=../server-proxies/dist",
+    "build:cpy": "npm run build:cpy:esm && npm run build:cpy:cjs",
+    "build:dsp": "rimraf dist-esm/serverProxies.* dist/serverProxies.* types/serverProxies.*",
+    "build:src": "tsc -b tsconfig.json && tsc -b tsconfig-cjs.json",
+    "build": "npm run clean && npm run build:src && npm run build:dsp && npm run build:cpy",
     "check-format": "prettier --list-different --config ./.prettierrc.json --ignore-path ./.prettierignore ./src/",
     "format": "prettier --write --config ./.prettierrc.json --ignore-path ./.prettierignore ./src/ ./test/",
     "test": "npm run build && npm run lint && echo TODOTEST",

@@ -1,30 +1,9 @@
 {
-  "include": ["src/**/*.ts"],
-  "exclude": ["./dist-esm", "node_modules"],
-  "references": [{ "path": "../server-proxies" }],
+  "extends": "./tsconfig-base.json",
+  "references": [{ "path": "../server-proxies/tsconfig.json" }],
   "compilerOptions": {
-    "target": "ES2017",
-    "module": "CommonJS",
-    "declaration": true,
-    "declarationMap": true,
-    "inlineSources": true,
-    "sourceMap": true,
-    "importHelpers": true,
-    "strict": false,
-    "alwaysStrict": true,
-    "noUnusedLocals": false,
-    "noUnusedParameters": false,
-    "noImplicitReturns": true,
-    "noFallthroughCasesInSwitch": true,
-    "forceConsistentCasingInFileNames": true,
-    "moduleResolution": "node",
-    "allowSyntheticDefaultImports": true,
-    "esModuleInterop": true,
-    "skipLibCheck": true,
-    "outDir": "./dist-esm",
-    "declarationDir": "./types",
-    "paths": {
-      "@azure/web-pubsub-socketio": ["./src/index"]
-    }
+    "target": "ESNext" /* Set the JavaScript language version for emitted JavaScript and include compatible library declarations. */,
+    "module": "ES6" /* Specify what module code is generated. */,
+    "outDir": "./dist-esm" /* Specify an output folder for all emitted files. */
   },
 }
