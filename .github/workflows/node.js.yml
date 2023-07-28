@@ -32,11 +32,12 @@ jobs:
     - run: yarn workspaces run test
     - name: socketio
       run: |
-        pushd ../experimental/sdk/webpubsub-socketio-extension
+        pushd experimental/sdk/webpubsub-socketio-extension
         yarn build
         yarn pack
         for file in $(find . -type f -name '*.tgz'); do
-          echo "::set-output name=artifacts::$file.tar.gz"
+          echo "File found: $file"
+          echo "::set-output name=artifacts::$file"
         done
         popd
       shell: bash
