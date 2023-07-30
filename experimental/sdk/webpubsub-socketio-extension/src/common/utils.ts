@@ -1,8 +1,9 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT license.
 
-import { WebPubSubServiceClientOptions } from "@azure/web-pubsub";
+import { WebPubSubServiceClient, WebPubSubServiceClientOptions, GenerateClientTokenOptions } from "@azure/web-pubsub";
 import { AzureKeyCredential, TokenCredential } from "@azure/core-auth";
+import { IncomingMessage, ServerResponse } from "http";
 import debugModule from "debug";
 import { BroadcastOptions } from "socket.io-adapter";
 import { RestServiceClient } from "./rest-service-client";
@@ -26,17 +27,24 @@ export function addProperty(o: object, p: string, f: (...args: unknown[]) => unk
   });
 }
 
-// 2 option definitions refer to https://github.com/Azure/azure-sdk-for-js/blob/%40azure/web-pubsub_1.1.1/sdk/web-pubsub/web-pubsub/review/web-pubsub.api.md?plain=1#L173
-export interface WebPubSubExtensionOptions {
-  connectionString: string;
+export interface WebPubSubExtensionCommonOptions {
   hub: string;
+  negotiate?: (
+    req: IncomingMessage,
+    res: ServerResponse,
+    getClientAccessToken: (options?: GenerateClientTokenOptions) => Promise<string>
+  ) => Promise<void>;
   webPubSubServiceClientOptions?: WebPubSubServiceClientOptions;
 }
 
-export interface WebPubSubExtensionCredentialOptions {
+// 2 option definitions refer to https://github.com/Azure/azure-sdk-for-js/blob/%40azure/web-pubsub_1.1.1/sdk/web-pubsub/web-pubsub/review/web-pubsub.api.md?plain=1#L173
+export interface WebPubSubExtensionOptions extends WebPubSubExtensionCommonOptions {
+  connectionString: string;
+}
+
+export interface WebPubSubExtensionCredentialOptions extends WebPubSubExtensionCommonOptions {
   endpoint: string;
   credential: AzureKeyCredential | TokenCredential;
-  hub: string;
   webPubSubServiceClientOptions?: WebPubSubServiceClientOptions;
 }
 
@@ -45,6 +53,8 @@ export function getWebPubSubServiceCaller(
   useTunnel = true
 ): WebPubSubServiceCaller {
   debug(`getWebPubSubServiceCaller, ${JSON.stringify(options)}, useTunnel: ${useTunnel}`);
+  let caller: WebPubSubServiceCaller;
+  let nativeServiceClient: WebPubSubServiceClient;
   // if owns connection string, handle as `WebPubSubExtensionOptions`
   if (Object.keys(options).indexOf("connectionString") !== -1) {
     debug(`getWebPubSubServiceCaller, use connection string`);
@@ -55,9 +65,12 @@ export function getWebPubSubServiceCaller(
       if (!options[key] || options[key] === "")
         throw new Error(`Expect valid ${key} is required, got null or empty value.`);
     }
-    return useTunnel
-      ? InprocessServerProxy.fromConnectionString(options["connectionString"], options.hub)
-      : new RestServiceClient(options["connectionString"], options.hub, options.webPubSubServiceClientOptions);
+
+    const args: [string, string] = [options["connectionString"], options.hub];
+    if (useTunnel) {
+      caller = InprocessServerProxy.fromConnectionString(...args);
+      nativeServiceClient = new WebPubSubServiceClient(...args, options.webPubSubServiceClientOptions);
+    } else caller = new RestServiceClient(...args, options.webPubSubServiceClientOptions);
   } else {
     debug(`getWebPubSubServiceCaller, use credential`);
 
@@ -66,15 +79,21 @@ export function getWebPubSubServiceCaller(
       if (!options[key] || options[key] === "")
         throw new Error(`Expect valid ${key} is required, got null or empty value.`);
     }
-    return useTunnel
-      ? new InprocessServerProxy(options["endpoint"], options["credential"], options.hub)
-      : new RestServiceClient(
-          options["endpoint"],
-          options["credential"],
-          options.hub,
-          options.webPubSubServiceClientOptions
-        );
+    const args: [string, TokenCredential, string] = [options["endpoint"], options["credential"], options.hub];
+    if (useTunnel) {
+      caller = new InprocessServerProxy(...args);
+      nativeServiceClient = new WebPubSubServiceClient(...args, options.webPubSubServiceClientOptions);
+    } else caller = new RestServiceClient(...args, options.webPubSubServiceClientOptions);
   }
+
+  caller.getClientAccessTokenUrl = async (tokenOption?: GenerateClientTokenOptions) => {
+    const result = await nativeServiceClient.getClientAccessToken(tokenOption);
+    return result.url
+      .replace("ws://", "http://")
+      .replace("wss://", "https://")
+      .replace(`/client/hubs/${options.hub}`, "");
+  };
+  return caller;
 }
 
 /**

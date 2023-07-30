@@ -14,6 +14,7 @@ console.debug("Unit Test Configuration:", JSON.stringify(wpsOptions));
 describe("WebPubSub Socket.IO Extension", () => {
   if (wpsOptions.hub !== undefined || wpsOptions.connectionString !== undefined) {
     require("./SIO/index");
+    require("./web-pubsub/index");
   } else {
     console.log(
       "WebPubSub Socket.IO Extension test skipped. Please set the environment variables in 'test/.env.test' to enable the test."

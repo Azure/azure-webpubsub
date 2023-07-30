@@ -1,4 +1,4 @@
-import { WebPubSubServiceClient } from "@azure/web-pubsub";
+import { WebPubSubServiceClient, GenerateClientTokenOptions } from "@azure/web-pubsub";
 import { WebPubSubServiceCaller } from "../serverProxies";
 import { getInvokeOperationSpec } from "./azure-api/operation-spec";
 import { debugModule } from "./utils";
@@ -53,5 +53,13 @@ rawResponse = ${JSON.stringify(rawResponse)}`);
       operationArguments,
       getInvokeOperationSpec(this.endpoint)
     );
+  }
+
+  async getClientAccessTokenUrl(options?: GenerateClientTokenOptions): Promise<string> {
+    const response = await this.getClientAccessToken(options);
+    return response.url
+      .replace("ws://", "http://")
+      .replace("wss://", "https://")
+      .replace(`/client/hubs/${this.hubName}`, "");
   }
 }
