@@ -14,31 +14,22 @@ const wpsOptions = {
 
 // Add an Web PubSub Option
 
-async function main(useCustomizedNegotiate = true) {
-    var io;
-    if (useCustomizedNegotiate) {
-        const negotiateHandler = async (req, res, getClientAccessToken) => {
-            let statusCode = 400, message = "Bad Request";
-            try{
-                const username = parse(req.url || "", true).query["username"];
-                const endpointWithToken = await getClientAccessToken({userId: username ?? ""});
-                statusCode = 200;
-                message = endpointWithToken;
-            }
-            catch (e) {
-                statusCode = 400;
-                message = e.message;
-            }
-            finally {
-                res.writeHead(statusCode, { "Content-Type": "text/plain" });
-                res.end(message);
-            }
-        }
-        io = await require('socket.io')(server).useAzureSocketIO({ ...wpsOptions, negotitate: negotiateHandler});
+async function main() {
+    const getGenerateClientTokenOptions = (req) => {
+        const query = parse(req.url || "", true).query
+        const username = query["username"] ?? "annoyomous";
+        const expirationMinutes = query["expirationMinutes"] ?? 600;
+        return {
+            userId: username,
+            expirationTimeInMinutes: expirationMinutes
+        };
     }
-    else {
-        io = await require('socket.io')(server).useAzureSocketIO(wpsOptions);
-    }
+
+    const io = await require('socket.io')(server).useAzureSocketIO(
+        { 
+            ...wpsOptions, 
+            getGenerateClientTokenOptions: getGenerateClientTokenOptions
+        });
 
     app.use(express.static(path.join(__dirname, 'public')));
 

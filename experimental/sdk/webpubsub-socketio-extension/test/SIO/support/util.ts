@@ -13,7 +13,6 @@ const debug = debugModule("wps-sio-ext:ut:sio:util");
 const expect = require("expect.js");
 const i = expect.stringify;
 
-
 export const defaultWpsOptions = {
   hub: process.env.WebPubSubHub,
   connectionString: process.env.WebPubSubConnectionString,

@@ -1,15 +1,21 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT license.
 
-import { debugModule, WebPubSubExtensionOptions, WebPubSubExtensionCredentialOptions } from "../common/utils";
+import {
+  debugModule,
+  WebPubSubExtensionOptions,
+  WebPubSubExtensionCredentialOptions,
+  GenerateClientTokenOptions,
+  getWebPubSubServiceCaller,
+} from "../common/utils";
 import { WebPubSubEioServer } from "../EIO";
 import { WebPubSubAdapterProxy } from "./components/web-pubsub-adapter";
 import * as SIO from "socket.io";
 import { Adapter } from "socket.io-adapter";
 import { IncomingMessage, ServerResponse } from "http";
-import { GenerateClientTokenOptions } from "@azure/web-pubsub";
 import { InprocessServerProxy } from "../serverProxies";
-import { parse } from "url";
+import { WebPubSubServiceClient } from "@azure/web-pubsub";
+import { RestServiceClient } from "../common/rest-service-client";
 
 const debug = debugModule("wps-sio-ext:SIO:index");
 debug("load");
@@ -42,12 +48,16 @@ export async function useAzureSocketIO(
   const listeners = httpServer.listeners("request").slice(0);
   httpServer.removeAllListeners("request");
   httpServer.on("request", (req: IncomingMessage, res: ServerResponse) => {
-    req.url
+    req.url;
     if (negotiatePathPrefix === req.url.slice(0, negotiatePathPrefix.length)) {
-      if (!webPubSubOptions.negotiate) {
-        webPubSubOptions.negotiate = getDefaultNegotiateHandler(engine);
-      }
-      webPubSubOptions.negotiate(req, res, engine.webPubSubConnectionManager.service.getClientAccessTokenUrl);
+      const nativeServiceClient = getWebPubSubServiceCaller(webPubSubOptions, false) as unknown as WebPubSubServiceClient;
+      const negotiateHandler = getDefaultNegotiateHandler();
+      negotiateHandler(
+        req,
+        res,
+        webPubSubOptions.getGenerateClientTokenOptions,
+        nativeServiceClient
+      );
     } else {
       // EIO handleRequest listener handler should be skipped, but other listeners should be handled.
       for (let i = 0; i < listeners.length; i++) {
@@ -80,23 +90,28 @@ export async function useAzureSocketIO(
   return this;
 }
 
-function getDefaultNegotiateHandler(
-  engine: WebPubSubEioServer
-): (
+function getDefaultNegotiateHandler(): (
   req: IncomingMessage,
   res: ServerResponse,
-  getClientAccessTokenUrl: (options?: GenerateClientTokenOptions) => Promise<string>
+  getGenerateClientTokenOptions: (req: IncomingMessage) => Promise<GenerateClientTokenOptions>,
+  serviceClient: WebPubSubServiceClient
 ) => Promise<void> {
   return async (
     req: IncomingMessage,
     res: ServerResponse,
-    getClientAccessTokenUrl: (options?: GenerateClientTokenOptions) => Promise<string>
+    getGenerateClientTokenOptions: (req: IncomingMessage) => Promise<GenerateClientTokenOptions>,
+    serviceClient: WebPubSubServiceClient
   ): Promise<void> => {
-    let statusCode = 400,
-      message = "Bad Request";
+    let statusCode = 500;
+    let message = "Internal Server Error";
     try {
-      const username = parse(req.url || "", true).query["username"] as string;
-      const endpointWithToken = await getClientAccessTokenUrl({ userId: username ?? "", roles });
+      const generateClientTokenOptions = await getGenerateClientTokenOptions(req);
+      // Example: https://<web-pubsub-endpoint>?access_token=ABC.EFG.HIJ
+      const endpointWithToken = (await serviceClient.getClientAccessToken(generateClientTokenOptions))
+                                  .url
+                                  .replace("ws://", "http://")
+                                  .replace("wss://", "https://")
+                                  .replace(`/client/hubs/${serviceClient.hubName}`, "");
       statusCode = 200;
       message = endpointWithToken;
     } catch (e) {

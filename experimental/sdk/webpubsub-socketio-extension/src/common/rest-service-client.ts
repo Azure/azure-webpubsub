@@ -54,12 +54,4 @@ rawResponse = ${JSON.stringify(rawResponse)}`);
       getInvokeOperationSpec(this.endpoint)
     );
   }
-
-  async getClientAccessTokenUrl(options?: GenerateClientTokenOptions): Promise<string> {
-    const response = await this.getClientAccessToken(options);
-    return response.url
-      .replace("ws://", "http://")
-      .replace("wss://", "https://")
-      .replace(`/client/hubs/${this.hubName}`, "");
-  }
 }

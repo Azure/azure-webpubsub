@@ -28,13 +28,9 @@ export interface WebPubSubServiceCaller {
     removeConnection(connectionId: string): Promise<void>;
   };
   invoke(message: string, body: (data: Uint8Array|undefined, end: boolean) => void, options?: { filter: string; contentType: string }): Promise<void>;
-  getClientAccessTokenUrl(options?: unknown): Promise<string>;
 }
 
 export class InprocessServerProxy implements WebPubSubServiceCaller {
-  public getClientAccessTokenUrl(options?: unknown): Promise<string> {
-    throw new Error("Not implemented");
-  }
   private _tunnel: TunnelConnection;
   private _hub: string;
   private _encoder = new TextEncoder();

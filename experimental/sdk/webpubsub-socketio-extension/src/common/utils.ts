@@ -3,7 +3,7 @@
 
 import { WebPubSubServiceClient, WebPubSubServiceClientOptions } from "@azure/web-pubsub";
 import { AzureKeyCredential, TokenCredential } from "@azure/core-auth";
-import { IncomingMessage, ServerResponse } from "http";
+import { IncomingMessage } from "http";
 import debugModule from "debug";
 import { BroadcastOptions } from "socket.io-adapter";
 import { RestServiceClient } from "./rest-service-client";
@@ -43,11 +43,7 @@ export interface GenerateClientTokenOptions {
 
 export interface WebPubSubExtensionCommonOptions {
   hub: string;
-  negotiate?: (
-    req: IncomingMessage,
-    res: ServerResponse,
-    getClientAccessToken: (options?: GenerateClientTokenOptions) => Promise<string>
-  ) => Promise<void>;
+  getGenerateClientTokenOptions?: (req: IncomingMessage) => Promise<GenerateClientTokenOptions>;
   webPubSubServiceClientOptions?: WebPubSubServiceClientOptions;
 }
 
@@ -62,6 +58,13 @@ export interface WebPubSubExtensionCredentialOptions extends WebPubSubExtensionC
   webPubSubServiceClientOptions?: WebPubSubServiceClientOptions;
 }
 
+function checkRequiredKeys(options: unknown, requiredKeys: string[]): boolean {
+  for (const key of requiredKeys) {
+    if (!options[key] || options[key] === "") return false;
+  }
+  return true;
+}
+
 export function getWebPubSubServiceCaller(
   options: WebPubSubExtensionOptions | WebPubSubExtensionCredentialOptions,
   useTunnel = true
@@ -72,42 +75,21 @@ export function getWebPubSubServiceCaller(
   // if owns connection string, handle as `WebPubSubExtensionOptions`
   if (Object.keys(options).indexOf("connectionString") !== -1) {
     debug(`getWebPubSubServiceCaller, use connection string`);
-
     const requiredKeys = ["connectionString", "hub"];
-
-    for (const key of requiredKeys) {
-      if (!options[key] || options[key] === "")
-        throw new Error(`Expect valid ${key} is required, got null or empty value.`);
+    if (checkRequiredKeys(options, requiredKeys)) {
+      const args:[string, string] = [options["connectionString"], options.hub];
+      return useTunnel ? InprocessServerProxy.fromConnectionString(...args) : new RestServiceClient(...args, options.webPubSubServiceClientOptions);
     }
-
-    const args: [string, string] = [options["connectionString"], options.hub];
-    if (useTunnel) {
-      caller = InprocessServerProxy.fromConnectionString(...args);
-      nativeServiceClient = new WebPubSubServiceClient(...args, options.webPubSubServiceClientOptions);
-    } else caller = new RestServiceClient(...args, options.webPubSubServiceClientOptions);
+    throw new Error(`Expect valid options with keys ${requiredKeys} are expected, but got null or empty value`);
   } else {
     debug(`getWebPubSubServiceCaller, use credential`);
-
     const requiredKeys = ["endpoint", "credential", "hub"];
-    for (const key of requiredKeys) {
-      if (!options[key] || options[key] === "")
-        throw new Error(`Expect valid ${key} is required, got null or empty value.`);
+    if (checkRequiredKeys(options, requiredKeys)) {
+      const args:[string, TokenCredential, string] = [options["endpoint"], options["credential"], options.hub];
+      return useTunnel ? new InprocessServerProxy(...args) : new RestServiceClient(...args, options.webPubSubServiceClientOptions);
     }
-    const args: [string, TokenCredential, string] = [options["endpoint"], options["credential"], options.hub];
-    if (useTunnel) {
-      caller = new InprocessServerProxy(...args);
-      nativeServiceClient = new WebPubSubServiceClient(...args, options.webPubSubServiceClientOptions);
-    } else caller = new RestServiceClient(...args, options.webPubSubServiceClientOptions);
+    throw new Error(`Expect valid options with keys ${requiredKeys} are expected, but got null or empty value`);
   }
-
-  caller.getClientAccessTokenUrl = async (tokenOption?: GenerateClientTokenOptions) => {
-    const result = await nativeServiceClient.getClientAccessToken(tokenOption);
-    return result.url
-      .replace("ws://", "http://")
-      .replace("wss://", "https://")
-      .replace(`/client/hubs/${options.hub}`, "");
-  };
-  return caller;
 }
 
 /**
