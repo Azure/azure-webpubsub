@@ -1,9 +1,9 @@
 import { AbortSignalLike } from "@azure/abort-controller";
-import { KeyTokenCredential } from "../src/KeyTokenCredential";
 import { HttpRequestLike, HttpResponseLike, TunnelConnection } from "../src/tunnels/TunnelConnection";
 import { WebPubSubTunnelClient } from "../src/tunnels/WebPubSubTunnelClient";
 import { TunnelHttpResponseMessage, TunnelMessage, TunnelMessageType } from "../src/tunnels/messages";
 import { PromiseCompletionSource } from "../src/utils";
+import { AzureKeyCredential } from "@azure/core-auth";
 
 jest.mock('../src/tunnels/WebPubSubTunnelClient.ts');
 
@@ -21,7 +21,7 @@ describe("TunnelConnection", () => {
       }
     })
     let client = new (WebPubSubTunnelClient as any)();
-    const connection = new TunnelConnection("test", new KeyTokenCredential("key"), "hub");
+    const connection = new TunnelConnection("test", new AzureKeyCredential("key"), "hub");
     connection["clients"].set("key", client);
 
     let p = connection.invokeAsync({method: "Get", url: "abc.com"} as HttpRequestLike);
@@ -50,7 +50,7 @@ describe("TunnelConnection", () => {
       }
     })
     let client = new (WebPubSubTunnelClient as any)();
-    const connection = new TunnelConnection("test", new KeyTokenCredential("key"), "hub");
+    const connection = new TunnelConnection("test", new AzureKeyCredential("key"), "hub");
     connection["clients"].set("key", client);
 
     let p = connection.invokeAsync({method: "Get", url: "abc.com"} as HttpRequestLike);

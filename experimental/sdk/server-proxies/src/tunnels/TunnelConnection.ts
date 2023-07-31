@@ -8,7 +8,7 @@ import {
   TunnelMessage,
   TunnelMessageType,
 } from "./messages";
-import { TokenCredential } from "@azure/core-auth";
+import { TokenCredential, AzureKeyCredential, isTokenCredential } from "@azure/core-auth";
 import { PromiseCompletionSource, AckEntity, AsyncIterator } from "../utils";
 import { AbortSignalLike } from "@azure/abort-controller";
 import { createLogger } from "../logger";
@@ -18,6 +18,7 @@ const logger = createLogger("TunnelConnection");
 interface ConnectionTarget {
   endpoint: string;
   target?: string;
+  reverseProxyEndpoint?: string;
 }
 
 export interface TunnelIncomingMessage {
@@ -54,7 +55,13 @@ export class TunnelConnection {
   private readonly clients = new Map<string, WebPubSubTunnelClient>();
   private readonly lifetimeTcs: PromiseCompletionSource<void> = new PromiseCompletionSource<void>();
   private _ackId: number = 0;
-  constructor(private readonly endpoint: string, private readonly credential: TokenCredential, private readonly hub: string, public requestHandler?: TunnelRequestHandler) {}
+  constructor(
+    private readonly endpoint: string,
+    private readonly credential: AzureKeyCredential | TokenCredential,
+    private readonly hub: string,
+    public requestHandler?: TunnelRequestHandler,
+    private readonly reverseProxyEndpoint?: string
+  ) {}
 
   private nextAckId(): number {
     this._ackId = this._ackId + 1;
@@ -63,13 +70,10 @@ export class TunnelConnection {
 
   public async runAsync(abortSignal?: AbortSignalLike): Promise<void> {
     // Run the connection
-    await this.startConnectionAsync({ endpoint: this.endpoint }, abortSignal);
+    await this.startConnectionAsync({ endpoint: this.endpoint, reverseProxyEndpoint: this.reverseProxyEndpoint }, abortSignal);
   }
 
-  public async invokeAsync(
-    httpRequest: HttpRequestLike,
-    abortSignal?: AbortSignalLike
-  ): Promise<HttpResponseLike> {
+  public async invokeAsync(httpRequest: HttpRequestLike, abortSignal?: AbortSignalLike): Promise<HttpResponseLike> {
     // TODO: what is the send balance strategy?
     const client = this.getClient();
     if (!client) {
@@ -82,34 +86,38 @@ export class TunnelConnection {
     let ackMap = this._ackMap;
     let body = new AsyncIterator<Uint8Array>();
 
-    let ackEntity = new AckEntity<TunnelHttpResponseMessage>(ackId, (data: TunnelHttpResponseMessage|undefined, error:string|null, done: boolean) => {
-      // handle body
-      if (error) {
-        body.error(error);
-      }
+    let ackEntity = new AckEntity<TunnelHttpResponseMessage>(
+      ackId,
+      (data: TunnelHttpResponseMessage | undefined, error: string | null, done: boolean) => {
+        // handle body
+        if (error) {
+          body.error(error);
+        }
 
-      if (data!.Content) {
-        body.add(data!.Content);
-      }
-      
-      if (done) {
-        body.close();
-      }
+        if (data!.Content) {
+          body.add(data!.Content);
+        }
 
-      if (!firstResponse) {
-        firstResponse = true;
-        pcs.resolve({
-          statusCode: data!.StatusCode,
-          body: body,
-        } as HttpResponseLike)
-      }
-    }, abortSignal);
+        if (done) {
+          body.close();
+        }
+
+        if (!firstResponse) {
+          firstResponse = true;
+          pcs.resolve({
+            statusCode: data!.StatusCode,
+            body: body,
+          } as HttpResponseLike);
+        }
+      },
+      abortSignal
+    );
     ackMap.set(ackId, ackEntity);
 
     try {
       let headers = {};
       if (httpRequest.contentType) {
-        headers = {"Content-Type": [httpRequest.contentType]};
+        headers = { "Content-Type": [httpRequest.contentType] };
       }
       await client.sendAsync(new TunnelHttpRequestMessage(ackId, true, "", httpRequest.method, httpRequest.url, headers, httpRequest.content), abortSignal);
       // Wait for the first response which contains status code / headers
@@ -210,7 +218,8 @@ export class TunnelConnection {
   }
 
   public async startConnectionAsync(target: ConnectionTarget, abortSignal?: AbortSignalLike): Promise<string> {
-    const client = new WebPubSubTunnelClient(getUrl(target.endpoint, this.hub, target.target), this.credential);
+    const url = getUrl(target, this.hub);
+    const client = new WebPubSubTunnelClient(url, this.credential);
     client.on("stop", () => {
       logger.warning(`Client ${client.id} stopped`);
       this.tryEndLife(client.id);
@@ -246,21 +255,35 @@ export class TunnelConnection {
   }
 }
 
-function getUrl(endpoint: string, hub: string, target?: string): URL {
+function appendPath(pathname: string, append: string): string {
+  return pathname.endsWith("/") ? `${pathname}${append}` : `${pathname}/${append}`;
+
+}
+
+function getUrl(target: ConnectionTarget, hub: string): { endpoint: URL; reverseProxyEndpoint: URL | undefined } {
   const HttpTunnelPath = "server/tunnel";
-  const uriBuilder = new URL(endpoint);
-  uriBuilder.protocol = uriBuilder.protocol === "http:" ? "ws:" : "wss:";
-  uriBuilder.pathname = uriBuilder.pathname + HttpTunnelPath;
+  const uriBuilder = new URL(target.endpoint);
+  uriBuilder.protocol = uriBuilder.protocol.toLowerCase() === "http:" ? "ws:" : "wss:";
+
+  uriBuilder.pathname = appendPath(uriBuilder.pathname, HttpTunnelPath);
   const hubQuery = `hub=${encodeURIComponent(hub)}`;
   if (!uriBuilder.search) {
     uriBuilder.search = `?${hubQuery}`;
   } else {
     uriBuilder.search = `${uriBuilder.search}&${hubQuery}`;
   }
-  if (!target) {
-    return uriBuilder;
+
+  if (target.target){
+    uriBuilder.search = `${uriBuilder.search}&${encodeURIComponent(target.target)}`;
   }
 
-  uriBuilder.search = `${uriBuilder.search}&${encodeURIComponent(target)}`;
-  return uriBuilder;
+  let reverseProxy: URL | undefined = undefined;
+  if (target.reverseProxyEndpoint) {
+    reverseProxy = new URL(target.reverseProxyEndpoint);
+    reverseProxy.protocol = reverseProxy.protocol.toLowerCase() === "http:" ? "ws:" : "wss:";
+    reverseProxy.pathname = appendPath(reverseProxy.pathname, HttpTunnelPath);
+    reverseProxy.search = uriBuilder.search;
+  }
+
+  return { endpoint: uriBuilder, reverseProxyEndpoint: reverseProxy };
 }

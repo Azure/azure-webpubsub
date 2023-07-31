@@ -7,7 +7,6 @@
 import { AzureKeyCredential } from '@azure/core-auth';
 import * as SIO from 'socket.io';
 import { TokenCredential } from '@azure/core-auth';
-import { WebPubSubServiceClientOptions } from '@azure/web-pubsub';
 
 // @public (undocumented)
 export function useAzureSocketIO(io: SIO.Server, webPubSubOptions: WebPubSubExtensionOptions | WebPubSubExtensionCredentialOptions): Promise<SIO.Server>;
@@ -21,7 +20,7 @@ export interface WebPubSubExtensionCredentialOptions {
     // (undocumented)
     hub: string;
     // (undocumented)
-    webPubSubServiceClientOptions?: WebPubSubServiceClientOptions;
+    reverseProxyEndpoint?: string;
 }
 
 // @public (undocumented)
@@ -31,7 +30,7 @@ export interface WebPubSubExtensionOptions {
     // (undocumented)
     hub: string;
     // (undocumented)
-    webPubSubServiceClientOptions?: WebPubSubServiceClientOptions;
+    reverseProxyEndpoint?: string;
 }
 
 // (No @packageDocumentation comment for this package)
