@@ -1,7 +1,6 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT license.
 
-import { WebPubSubServiceClientOptions } from "@azure/web-pubsub";
 import { AzureKeyCredential, TokenCredential } from "@azure/core-auth";
 import debugModule from "debug";
 import { BroadcastOptions } from "socket.io-adapter";
@@ -26,18 +25,17 @@ export function addProperty(o: object, p: string, f: (...args: unknown[]) => unk
   });
 }
 
-// 2 option definitions refer to https://github.com/Azure/azure-sdk-for-js/blob/%40azure/web-pubsub_1.1.1/sdk/web-pubsub/web-pubsub/review/web-pubsub.api.md?plain=1#L173
 export interface WebPubSubExtensionOptions {
   connectionString: string;
   hub: string;
-  webPubSubServiceClientOptions?: WebPubSubServiceClientOptions;
+  reverseProxyEndpoint?: string;
 }
 
 export interface WebPubSubExtensionCredentialOptions {
   endpoint: string;
   credential: AzureKeyCredential | TokenCredential;
   hub: string;
-  webPubSubServiceClientOptions?: WebPubSubServiceClientOptions;
+  reverseProxyEndpoint?: string;
 }
 
 export function getWebPubSubServiceCaller(
@@ -57,7 +55,9 @@ export function getWebPubSubServiceCaller(
     }
     return useTunnel
       ? InprocessServerProxy.fromConnectionString(options["connectionString"], options.hub)
-      : new RestServiceClient(options["connectionString"], options.hub, options.webPubSubServiceClientOptions);
+      : new RestServiceClient(options["connectionString"], options.hub, {
+          reverseProxyEndpoint: options.reverseProxyEndpoint,
+        });
   } else {
     debug(`getWebPubSubServiceCaller, use credential`);
 
@@ -68,12 +68,9 @@ export function getWebPubSubServiceCaller(
     }
     return useTunnel
       ? new InprocessServerProxy(options["endpoint"], options["credential"], options.hub)
-      : new RestServiceClient(
-          options["endpoint"],
-          options["credential"],
-          options.hub,
-          options.webPubSubServiceClientOptions
-        );
+      : new RestServiceClient(options["endpoint"], options["credential"], options.hub, {
+          reverseProxyEndpoint: options.reverseProxyEndpoint,
+        });
   }
 }
 
