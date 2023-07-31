@@ -1,7 +1,6 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT license.
 
-import { WebPubSubServiceClient, WebPubSubServiceClientOptions } from "@azure/web-pubsub";
 import { AzureKeyCredential, TokenCredential } from "@azure/core-auth";
 import { IncomingMessage } from "http";
 import debugModule from "debug";
@@ -44,7 +43,7 @@ export interface GenerateClientTokenOptions {
 export interface WebPubSubExtensionCommonOptions {
   hub: string;
   getGenerateClientTokenOptions?: (req: IncomingMessage) => Promise<GenerateClientTokenOptions>;
-  webPubSubServiceClientOptions?: WebPubSubServiceClientOptions;
+  reverseProxyEndpoint?: string;
 }
 
 // 2 option definitions refer to https://github.com/Azure/azure-sdk-for-js/blob/%40azure/web-pubsub_1.1.1/sdk/web-pubsub/web-pubsub/review/web-pubsub.api.md?plain=1#L173
@@ -55,7 +54,6 @@ export interface WebPubSubExtensionOptions extends WebPubSubExtensionCommonOptio
 export interface WebPubSubExtensionCredentialOptions extends WebPubSubExtensionCommonOptions {
   endpoint: string;
   credential: AzureKeyCredential | TokenCredential;
-  webPubSubServiceClientOptions?: WebPubSubServiceClientOptions;
 }
 
 function checkRequiredKeys(options: unknown, requiredKeys: string[]): boolean {
@@ -70,23 +68,25 @@ export function getWebPubSubServiceCaller(
   useTunnel = true
 ): WebPubSubServiceCaller {
   debug(`getWebPubSubServiceCaller, ${JSON.stringify(options)}, useTunnel: ${useTunnel}`);
-  let caller: WebPubSubServiceCaller;
-  let nativeServiceClient: WebPubSubServiceClient;
   // if owns connection string, handle as `WebPubSubExtensionOptions`
   if (Object.keys(options).indexOf("connectionString") !== -1) {
     debug(`getWebPubSubServiceCaller, use connection string`);
     const requiredKeys = ["connectionString", "hub"];
     if (checkRequiredKeys(options, requiredKeys)) {
-      const args:[string, string] = [options["connectionString"], options.hub];
-      return useTunnel ? InprocessServerProxy.fromConnectionString(...args) : new RestServiceClient(...args, options.webPubSubServiceClientOptions);
+      const args: [string, string] = [options["connectionString"], options.hub];
+      return useTunnel
+        ? InprocessServerProxy.fromConnectionString(...args)
+        : new RestServiceClient(...args, { reverseProxyEndpoint: options.reverseProxyEndpoint });
     }
     throw new Error(`Expect valid options with keys ${requiredKeys} are expected, but got null or empty value`);
   } else {
     debug(`getWebPubSubServiceCaller, use credential`);
     const requiredKeys = ["endpoint", "credential", "hub"];
     if (checkRequiredKeys(options, requiredKeys)) {
-      const args:[string, TokenCredential, string] = [options["endpoint"], options["credential"], options.hub];
-      return useTunnel ? new InprocessServerProxy(...args) : new RestServiceClient(...args, options.webPubSubServiceClientOptions);
+      const args: [string, TokenCredential, string] = [options["endpoint"], options["credential"], options.hub];
+      return useTunnel
+        ? new InprocessServerProxy(...args)
+        : new RestServiceClient(...args, { reverseProxyEndpoint: options.reverseProxyEndpoint });
     }
     throw new Error(`Expect valid options with keys ${requiredKeys} are expected, but got null or empty value`);
   }

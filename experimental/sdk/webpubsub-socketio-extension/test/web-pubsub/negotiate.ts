@@ -11,7 +11,7 @@ const serverPort = Number(process.env.SocketIoPort);
 
 describe("negotiate", () => {
   it("works using negotiate", (done) => {
-    const getGenerateClientTokenOptions = async (req: IncomingMessage):Promise<GenerateClientTokenOptions> => {
+    const getGenerateClientTokenOptions = async (req: IncomingMessage): Promise<GenerateClientTokenOptions> => {
       const query = parse(req.url || "", true).query;
       const username = query["username"] ?? "annoyomous";
       const expirationMinutes = Number(query["expirationMinutes"]) ?? 600;

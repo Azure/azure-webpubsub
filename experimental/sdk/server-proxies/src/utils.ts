@@ -1,9 +1,9 @@
-import { KeyTokenCredential } from "./KeyTokenCredential";
 import { AbortSignalLike } from "@azure/abort-controller";
+import { AzureKeyCredential } from "@azure/core-auth";
 import { URL } from "url";
 
 interface ParsedConnectionString {
-  credential: KeyTokenCredential;
+  credential: AzureKeyCredential;
   endpoint: string;
 }
 
@@ -74,7 +74,7 @@ export function parseConnectionString(conn: string): ParsedConnectionString {
   }
   const key = parsed["accesskey"];
   if (!key) throw new TypeError("connection string missing access key");
-  const credential = new KeyTokenCredential(key);
+  const credential = new AzureKeyCredential(key);
   const port = parsed["port"];
   const url = new URL(endpointPart);
   url.port = port;

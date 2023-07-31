@@ -10,7 +10,7 @@ import { Request, Response, RequestHandler } from "express-serve-static-core";
 import * as http from "http";
 import { Socket } from "net";
 import { AbortSignalLike } from "@azure/abort-controller";
-import { TokenCredential } from "@azure/core-auth";
+import { TokenCredential, AzureKeyCredential } from "@azure/core-auth";
 import { createLogger } from "./logger";
 import { parseConnectionString } from "./utils";
 
@@ -38,22 +38,25 @@ export class InprocessServerProxy implements WebPubSubServiceCaller {
   static fromConnectionString(
     connectionString: string,
     hub: string,
-    handler?: RequestHandler
-  ): InprocessServerProxy {
+    handler?: RequestHandler,
+    reverseProxyEndpoint?: string
+    ): InprocessServerProxy {
     const { credential, endpoint } = parseConnectionString(connectionString);
-    return new InprocessServerProxy(endpoint, credential, hub, handler);
+    return new InprocessServerProxy(endpoint, credential, hub, handler, reverseProxyEndpoint);
   }
   constructor(
     endpoint: string,
-    credential: TokenCredential,
+    credential: AzureKeyCredential | TokenCredential,
     hub: string,
-    handler?: RequestHandler
-  ) {
+    handler?: RequestHandler,
+    reverseProxyEndpoint?: string,
+    ) {
     this._tunnel = new TunnelConnection(
       endpoint,
       credential,
       hub,
-      this._getRequestHandler(handler)
+      this._getRequestHandler(handler),
+      reverseProxyEndpoint
     );
     this._hub = hub;
   }

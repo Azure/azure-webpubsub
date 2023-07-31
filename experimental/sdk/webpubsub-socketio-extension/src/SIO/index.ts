@@ -15,21 +15,17 @@ import { Adapter } from "socket.io-adapter";
 import { IncomingMessage, ServerResponse } from "http";
 import { InprocessServerProxy } from "../serverProxies";
 import { WebPubSubServiceClient } from "@azure/web-pubsub";
-import { RestServiceClient } from "../common/rest-service-client";
 
 const debug = debugModule("wps-sio-ext:SIO:index");
 debug("load");
 
 declare type AdapterConstructor = typeof Adapter | ((nsp: SIO.Namespace) => Adapter);
 
-export async function useAzureSocketIO(
+export async function useAzureSocketIOChain(
   this: SIO.Server,
-  webPubSubOptions: WebPubSubExtensionOptions | WebPubSubExtensionCredentialOptions,
-  useDefaultAdapter = false
+  webPubSubOptions: WebPubSubExtensionOptions | WebPubSubExtensionCredentialOptions
 ): Promise<SIO.Server> {
-  debug(
-    `useAzureSocketIO, webPubSubOptions: ${JSON.stringify(webPubSubOptions)}, useDefaultAdapter: ${useDefaultAdapter}`
-  );
+  debug(`useAzureSocketIOChain, webPubSubOptions: ${JSON.stringify(webPubSubOptions)}`);
   const engine = new WebPubSubEioServer(this.engine.opts, webPubSubOptions);
   const httpServer = this["httpServer"];
   engine.attach(httpServer, this["opts"]);
@@ -48,22 +44,23 @@ export async function useAzureSocketIO(
   const listeners = httpServer.listeners("request").slice(0);
   httpServer.removeAllListeners("request");
   httpServer.on("request", (req: IncomingMessage, res: ServerResponse) => {
-    req.url;
-    if (negotiatePathPrefix === req.url.slice(0, negotiatePathPrefix.length)) {
-      const nativeServiceClient = getWebPubSubServiceCaller(webPubSubOptions, false) as unknown as WebPubSubServiceClient;
+    // negotiate handler
+    if (
+      webPubSubOptions.getGenerateClientTokenOptions &&
+      negotiatePathPrefix === req.url.slice(0, negotiatePathPrefix.length)
+    ) {
+      const nativeServiceClient = getWebPubSubServiceCaller(
+        webPubSubOptions,
+        false
+      ) as unknown as WebPubSubServiceClient;
       const negotiateHandler = getDefaultNegotiateHandler();
-      negotiateHandler(
-        req,
-        res,
-        webPubSubOptions.getGenerateClientTokenOptions,
-        nativeServiceClient
-      );
-    } else {
-      // EIO handleRequest listener handler should be skipped, but other listeners should be handled.
-      for (let i = 0; i < listeners.length; i++) {
-        if (path !== req.url.slice(0, path.length)) {
-          listeners[i].call(httpServer, req, res);
-        }
+      negotiateHandler(req, res, webPubSubOptions.getGenerateClientTokenOptions, nativeServiceClient);
+      return;
+    }
+    // EIO handleRequest listener handler should be skipped, but other listeners should be handled.
+    for (let i = 0; i < listeners.length; i++) {
+      if (path !== req.url.slice(0, path.length)) {
+        listeners[i].call(httpServer, req, res);
       }
     }
   });
@@ -78,15 +75,11 @@ export async function useAzureSocketIO(
 
   this.bind(engine);
 
-  if (!useDefaultAdapter) {
-    debug("use webPubSub adatper");
-
-    // TODO: change undefined to serverProxy to enable server to service side tunneling
-    const adapterProxy = new WebPubSubAdapterProxy(
-      (this.engine as WebPubSubEioServer).webPubSubConnectionManager.service
-    );
-    this.adapter(adapterProxy as unknown as AdapterConstructor);
-  }
+  debug("use webPubSub adatper");
+  const adapterProxy = new WebPubSubAdapterProxy(
+    (this.engine as WebPubSubEioServer).webPubSubConnectionManager.service
+  );
+  this.adapter(adapterProxy as unknown as AdapterConstructor);
   return this;
 }
 
@@ -106,22 +99,30 @@ function getDefaultNegotiateHandler(): (
     let message = "Internal Server Error";
     try {
       const generateClientTokenOptions = await getGenerateClientTokenOptions(req);
+
       // Example: https://<web-pubsub-endpoint>?access_token=ABC.EFG.HIJ
-      const endpointWithToken = (await serviceClient.getClientAccessToken(generateClientTokenOptions))
-                                  .url
-                                  .replace("ws://", "http://")
-                                  .replace("wss://", "https://")
-                                  .replace(`/client/hubs/${serviceClient.hubName}`, "");
+      const endpointWithToken = (await serviceClient.getClientAccessToken(generateClientTokenOptions)).url
+        .replace("ws://", "http://")
+        .replace("wss://", "https://")
+        .replace(`/client/hubs/${serviceClient.hubName}`, "");
       statusCode = 200;
       message = endpointWithToken;
     } catch (e) {
-      statusCode = 400;
+      statusCode = 500;
       message = e.message;
     } finally {
       res.writeHead(statusCode, { "Content-Type": "text/plain" });
       res.end(message);
     }
   };
+}
+
+export async function useAzureSocketIO(
+  io: SIO.Server,
+  webPubSubOptions: WebPubSubExtensionOptions | WebPubSubExtensionCredentialOptions
+): Promise<SIO.Server> {
+  debug(`useAzureSocketIO, webPubSubOptions: ${JSON.stringify(webPubSubOptions)}`);
+  return useAzureSocketIOChain.call(io, webPubSubOptions);
 }
 
 export { WebPubSubAdapterProxy };

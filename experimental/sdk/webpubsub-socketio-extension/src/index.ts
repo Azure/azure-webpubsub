@@ -3,11 +3,12 @@
 
 import {
   addProperty,
+  GenerateClientTokenOptions,
   WebPubSubExtensionCommonOptions,
   WebPubSubExtensionOptions,
   WebPubSubExtensionCredentialOptions,
 } from "./common/utils";
-import { useAzureSocketIO } from "./SIO";
+import { useAzureSocketIO, useAzureSocketIOChain } from "./SIO";
 import * as SIO from "socket.io";
 
 declare module "socket.io" {
@@ -19,10 +20,11 @@ declare module "socket.io" {
   }
 }
 
-addProperty(SIO.Server.prototype, "useAzureSocketIO", useAzureSocketIO);
+addProperty(SIO.Server.prototype, "useAzureSocketIO", useAzureSocketIOChain);
 
 export {
   useAzureSocketIO,
+  GenerateClientTokenOptions,
   WebPubSubExtensionCommonOptions,
   WebPubSubExtensionOptions,
   WebPubSubExtensionCredentialOptions,

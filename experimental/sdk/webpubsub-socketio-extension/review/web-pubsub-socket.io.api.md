@@ -7,24 +7,27 @@
 /// <reference types="node" />
 
 import { AzureKeyCredential } from '@azure/core-auth';
-import { GenerateClientTokenOptions } from '@azure/web-pubsub';
 import { IncomingMessage } from 'http';
-import { ServerResponse } from 'http';
 import * as SIO from 'socket.io';
 import { TokenCredential } from '@azure/core-auth';
-import { WebPubSubServiceClientOptions } from '@azure/web-pubsub';
+
+// @public
+export interface GenerateClientTokenOptions {
+    expirationTimeInMinutes?: number;
+    userId?: string;
+}
 
 // @public (undocumented)
-export function useAzureSocketIO(this: SIO.Server, webPubSubOptions: WebPubSubExtensionOptions | WebPubSubExtensionCredentialOptions, useDefaultAdapter?: boolean): Promise<SIO.Server>;
+export function useAzureSocketIO(io: SIO.Server, webPubSubOptions: WebPubSubExtensionOptions | WebPubSubExtensionCredentialOptions): Promise<SIO.Server>;
 
 // @public (undocumented)
 export interface WebPubSubExtensionCommonOptions {
     // (undocumented)
+    getGenerateClientTokenOptions?: (req: IncomingMessage) => Promise<GenerateClientTokenOptions>;
+    // (undocumented)
     hub: string;
     // (undocumented)
-    negotiate?: (req: IncomingMessage, res: ServerResponse, getClientAccessToken: (options?: GenerateClientTokenOptions) => Promise<string>) => Promise<void>;
-    // (undocumented)
-    webPubSubServiceClientOptions?: WebPubSubServiceClientOptions;
+    reverseProxyEndpoint?: string;
 }
 
 // @public (undocumented)
@@ -33,8 +36,6 @@ export interface WebPubSubExtensionCredentialOptions extends WebPubSubExtensionC
     credential: AzureKeyCredential | TokenCredential;
     // (undocumented)
     endpoint: string;
-    // (undocumented)
-    webPubSubServiceClientOptions?: WebPubSubServiceClientOptions;
 }
 
 // @public (undocumented)

@@ -1,11 +1,12 @@
 import { WebPubSubClient, WebPubSubClientOptions, WebPubSubClientProtocol, WebPubSubMessage } from "@azure/web-pubsub-client";
 import { TunnelMessageProtocol } from "./TunnelMessageProtocol";
 import { TunnelMessage, TunnelMessageType, TunnelConnectionConnectedMessage } from "./messages";
-import { TokenCredential } from "@azure/core-auth";
+import { TokenCredential, isTokenCredential, AzureKeyCredential } from "@azure/core-auth";
 import { logger } from "../logger";
 import EventEmitter from "events";
 import { Guid, PromiseCompletionSource } from "../utils";
 import { AbortSignalLike } from "@azure/abort-controller";
+import jwt from "jsonwebtoken";
 
 export class WebPubSubTunnelClient {
   private readonly _emitter: EventEmitter = new EventEmitter();
@@ -22,7 +23,7 @@ export class WebPubSubTunnelClient {
     this._emitter.removeListener(event, listener);
   }
 
-  constructor(url: URL, credential: TokenCredential) {
+  constructor(url: { endpoint: URL; reverseProxyEndpoint: URL | undefined }, credential: AzureKeyCredential | TokenCredential) {
     const options: WebPubSubClientOptions = {
       protocol: new TunnelServerProtocol(),
       autoReconnect: false,
@@ -30,7 +31,7 @@ export class WebPubSubTunnelClient {
     const client = (this._client = new WebPubSubClient(
       {
         getClientAccessUrl: () => {
-          return getAccessTokenUrl(url, credential);
+          return getAccessTokenUrl(url.endpoint, credential, url.reverseProxyEndpoint);
         },
       },
       options
@@ -132,12 +133,23 @@ class TunnelServerProtocol implements WebPubSubClientProtocol {
   }
 }
 
-async function getAccessTokenUrl(endpoint: URL, credential: TokenCredential): Promise<string> {
+async function getAccessTokenUrl(endpoint: URL, credential: AzureKeyCredential | TokenCredential, reverseProxyEndpoint?: URL): Promise<string> {
   const url = endpoint.toString();
-  const tokenString = (
-    await credential.getToken("https://webpubsub.azure.com/.default", {
-      claims: url,
-    })
-  )?.token;
-  return `${url}&access_token=${encodeURIComponent(tokenString!)}`;
+  let tokenString: string;
+  if (!isTokenCredential(credential)){
+    tokenString = signJwtToken(credential, url);
+  }else {
+    tokenString = (
+      await credential.getToken("https://webpubsub.azure.com/.default")
+    )!.token;
+  }
+  return `${reverseProxyEndpoint?.toString() ?? url}&access_token=${encodeURIComponent(tokenString)}`;
+}
+
+function signJwtToken(credential: AzureKeyCredential, audience: string) : string {
+  return jwt.sign({}, credential.key, {
+    audience: audience,
+    expiresIn: "1h",
+    algorithm: "HS256",
+  });
 }
