@@ -33,6 +33,31 @@ export async function useAzureSocketIO(
     await engine.setup();
   }
 
+  // Add negotiate handler
+  debug("add negotiate handler");
+  const path = this._opts.path || "/socket.io";
+  const negotiatePathPrefix = path + (path.endsWith("/") ? "" : "/") + "negotiate";
+
+  // current listeners = EIO handleRequest listeners (e.g. /socket.io) + other listeners from user
+  const listeners = httpServer.listeners("request").slice(0);
+  httpServer.removeAllListeners("request");
+  httpServer.on("request", (req: IncomingMessage, res: ServerResponse) => {
+    req.url
+    if (negotiatePathPrefix === req.url.slice(0, negotiatePathPrefix.length)) {
+      if (!webPubSubOptions.negotiate) {
+        webPubSubOptions.negotiate = getDefaultNegotiateHandler(engine);
+      }
+      webPubSubOptions.negotiate(req, res, engine.webPubSubConnectionManager.service.getClientAccessTokenUrl);
+    } else {
+      // EIO handleRequest listener handler should be skipped, but other listeners should be handled.
+      for (let i = 0; i < listeners.length; i++) {
+        if (path !== req.url.slice(0, path.length)) {
+          listeners[i].call(httpServer, req, res);
+        }
+      }
+    }
+  });
+
   // `attachServe` is a Socket.IO design which attachs static file serving to internal http server.
   // Creating new engine makes previous `attachServe` execution invalid.
   // Reference: https://github.com/socketio/socket.io/blob/4.6.2/lib/index.ts#L518
@@ -40,27 +65,6 @@ export async function useAzureSocketIO(
   if (this["_serveClient"]) {
     this["attachServe"](httpServer);
   }
-
-  // Add negotiate handler
-  debug("add negotiate handler");
-
-  const path = this._opts.path || "/socket.io";
-  const negotiatePathPrefix = path + (path.endsWith("/") ? "" : "/") + "negotiate";
-
-  const listeners = httpServer.listeners("request").slice(0);
-  httpServer.removeAllListeners("request");
-  httpServer.on("request", (req: IncomingMessage, res: ServerResponse) => {
-    if (negotiatePathPrefix === req.url.slice(0, negotiatePathPrefix.length)) {
-      if (!webPubSubOptions.negotiate) {
-        webPubSubOptions.negotiate = getDefaultNegotiateHandler(engine);
-      }
-      webPubSubOptions.negotiate(req, res, engine.webPubSubConnectionManager.service.getClientAccessTokenUrl);
-    } else {
-      for (let i = 0; i < listeners.length; i++) {
-        listeners[i].call(httpServer, req, res);
-      }
-    }
-  });
 
   this.bind(engine);
 
@@ -92,7 +96,7 @@ function getDefaultNegotiateHandler(
       message = "Bad Request";
     try {
       const username = parse(req.url || "", true).query["username"] as string;
-      const endpointWithToken = await getClientAccessTokenUrl({ userId: username ?? "" });
+      const endpointWithToken = await getClientAccessTokenUrl({ userId: username ?? "", roles });
       statusCode = 200;
       message = endpointWithToken;
     } catch (e) {

@@ -1,7 +1,7 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT license.
 
-import { WebPubSubServiceClient, WebPubSubServiceClientOptions, GenerateClientTokenOptions } from "@azure/web-pubsub";
+import { WebPubSubServiceClient, WebPubSubServiceClientOptions } from "@azure/web-pubsub";
 import { AzureKeyCredential, TokenCredential } from "@azure/core-auth";
 import { IncomingMessage, ServerResponse } from "http";
 import debugModule from "debug";
@@ -25,6 +25,20 @@ export function addProperty(o: object, p: string, f: (...args: unknown[]) => unk
     enumerable: false,
     configurable: true,
   });
+}
+
+/**
+ * Options for generating a token to connect a client to the Azure Web Pubsub service.
+ */
+export interface GenerateClientTokenOptions {
+  /**
+   * The userId for the client.
+   */
+  userId?: string;
+  /**
+   * Minutes until the token expires.
+   */
+  expirationTimeInMinutes?: number;
 }
 
 export interface WebPubSubExtensionCommonOptions {
