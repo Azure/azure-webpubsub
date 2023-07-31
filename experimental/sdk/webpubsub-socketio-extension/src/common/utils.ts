@@ -29,7 +29,7 @@ export function addProperty(o: object, p: string, f: (...args: unknown[]) => unk
 /**
  * Options for generating a token to connect a client to the Azure Web Pubsub service.
  */
-export interface GenerateClientTokenOptions {
+export interface NegotiateOptions {
   /**
    * The userId for the client.
    */
@@ -42,7 +42,7 @@ export interface GenerateClientTokenOptions {
 
 export interface WebPubSubExtensionCommonOptions {
   hub: string;
-  getGenerateClientTokenOptions?: (req: IncomingMessage) => Promise<GenerateClientTokenOptions>;
+  configureNegotiateOptions?: (req: IncomingMessage) => Promise<NegotiateOptions>;
   reverseProxyEndpoint?: string;
 }
 
@@ -58,7 +58,7 @@ export interface WebPubSubExtensionCredentialOptions extends WebPubSubExtensionC
 
 function checkRequiredKeys(options: unknown, requiredKeys: string[]): boolean {
   for (const key of requiredKeys) {
-    if (!options[key] || options[key] === "") return false;
+    if (!options[key]) return false;
   }
   return true;
 }

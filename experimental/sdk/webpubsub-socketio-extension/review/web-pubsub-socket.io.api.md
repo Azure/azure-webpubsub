@@ -12,7 +12,7 @@ import * as SIO from 'socket.io';
 import { TokenCredential } from '@azure/core-auth';
 
 // @public
-export interface GenerateClientTokenOptions {
+export interface NegotiateOptions {
     expirationTimeInMinutes?: number;
     userId?: string;
 }
@@ -23,7 +23,7 @@ export function useAzureSocketIO(io: SIO.Server, webPubSubOptions: WebPubSubExte
 // @public (undocumented)
 export interface WebPubSubExtensionCommonOptions {
     // (undocumented)
-    getGenerateClientTokenOptions?: (req: IncomingMessage) => Promise<GenerateClientTokenOptions>;
+    configureNegotiateOptions?: (req: IncomingMessage) => Promise<NegotiateOptions>;
     // (undocumented)
     hub: string;
     // (undocumented)

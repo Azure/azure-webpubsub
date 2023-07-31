@@ -3,7 +3,7 @@
 
 import {
   addProperty,
-  GenerateClientTokenOptions,
+  NegotiateOptions,
   WebPubSubExtensionCommonOptions,
   WebPubSubExtensionOptions,
   WebPubSubExtensionCredentialOptions,
@@ -24,7 +24,7 @@ addProperty(SIO.Server.prototype, "useAzureSocketIO", useAzureSocketIOChain);
 
 export {
   useAzureSocketIO,
-  GenerateClientTokenOptions,
+  NegotiateOptions,
   WebPubSubExtensionCommonOptions,
   WebPubSubExtensionOptions,
   WebPubSubExtensionCredentialOptions,

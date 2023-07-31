@@ -15,7 +15,7 @@ const wpsOptions = {
 // Add an Web PubSub Option
 
 async function main() {
-    const getGenerateClientTokenOptions = (req) => {
+    const configureNegotiateOptions = (req) => {
         const query = parse(req.url || "", true).query
         const username = query["username"] ?? "annoyomous";
         const expirationMinutes = query["expirationMinutes"] ?? 600;
@@ -28,7 +28,7 @@ async function main() {
     const io = await require('socket.io')(server).useAzureSocketIO(
         { 
             ...wpsOptions, 
-            getGenerateClientTokenOptions: getGenerateClientTokenOptions
+            configureNegotiateOptions: configureNegotiateOptions
         });
 
     app.use(express.static(path.join(__dirname, 'public')));

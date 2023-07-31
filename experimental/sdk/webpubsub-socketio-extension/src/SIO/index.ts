@@ -5,7 +5,7 @@ import {
   debugModule,
   WebPubSubExtensionOptions,
   WebPubSubExtensionCredentialOptions,
-  GenerateClientTokenOptions,
+  NegotiateOptions,
   getWebPubSubServiceCaller,
 } from "../common/utils";
 import { WebPubSubEioServer } from "../EIO";
@@ -38,23 +38,22 @@ export async function useAzureSocketIOChain(
   // Add negotiate handler
   debug("add negotiate handler");
   const path = this._opts.path || "/socket.io";
-  const negotiatePathPrefix = path + (path.endsWith("/") ? "" : "/") + "negotiate/";
+  const negotiatePathPrefix = path + (path.endsWith("/") ? "" : "/") + "negotiate";
+  const checkNegotiate = (url: string): boolean =>
+    url === negotiatePathPrefix || // url is "/socket.io/negotiate" without any extra string.
+    url.startsWith(negotiatePathPrefix + "/") ||
+    url.startsWith(negotiatePathPrefix + "?");
 
   // current listeners = EIO handleRequest listeners (e.g. /socket.io) + other listeners from user
   const listeners = httpServer.listeners("request").slice(0);
   httpServer.removeAllListeners("request");
+  let nativeServiceClient: WebPubSubServiceClient;
   httpServer.on("request", (req: IncomingMessage, res: ServerResponse) => {
     // negotiate handler
-    if (
-      webPubSubOptions.getGenerateClientTokenOptions &&
-      negotiatePathPrefix === req.url.slice(0, negotiatePathPrefix.length)
-    ) {
-      const nativeServiceClient = getWebPubSubServiceCaller(
-        webPubSubOptions,
-        false
-      ) as unknown as WebPubSubServiceClient;
+    if (webPubSubOptions.configureNegotiateOptions && checkNegotiate(req.url)) {
+      nativeServiceClient = getWebPubSubServiceCaller(webPubSubOptions, false) as unknown as WebPubSubServiceClient;
       const negotiateHandler = getDefaultNegotiateHandler();
-      negotiateHandler(req, res, webPubSubOptions.getGenerateClientTokenOptions, nativeServiceClient);
+      negotiateHandler(req, res, webPubSubOptions.configureNegotiateOptions, nativeServiceClient);
       return;
     }
     // EIO handleRequest listener handler should be skipped, but other listeners should be handled.
@@ -86,33 +85,34 @@ export async function useAzureSocketIOChain(
 function getDefaultNegotiateHandler(): (
   req: IncomingMessage,
   res: ServerResponse,
-  getGenerateClientTokenOptions: (req: IncomingMessage) => Promise<GenerateClientTokenOptions>,
+  configureNegotiateOptions: (req: IncomingMessage) => Promise<NegotiateOptions>,
   serviceClient: WebPubSubServiceClient
 ) => Promise<void> {
   return async (
     req: IncomingMessage,
     res: ServerResponse,
-    getGenerateClientTokenOptions: (req: IncomingMessage) => Promise<GenerateClientTokenOptions>,
+    configureNegotiateOptions: (req: IncomingMessage) => Promise<NegotiateOptions>,
     serviceClient: WebPubSubServiceClient
   ): Promise<void> => {
     let statusCode = 500;
-    let message = "Internal Server Error";
+    let message = {};
     try {
-      const generateClientTokenOptions = await getGenerateClientTokenOptions(req);
+      const negotiateOptions = await configureNegotiateOptions(req);
 
       // Example: https://<web-pubsub-endpoint>?access_token=ABC.EFG.HIJ
-      const endpointWithToken = (await serviceClient.getClientAccessToken(generateClientTokenOptions)).url
-        .replace("ws://", "http://")
-        .replace("wss://", "https://")
-        .replace(`/client/hubs/${serviceClient.hubName}`, "");
+      const tokenResponse = await serviceClient.getClientAccessToken(negotiateOptions);
+      const url = new URL(req.url, tokenResponse.baseUrl);
+      const protocol = url.protocol.replace("wss", "https").replace("ws", "http");
+      const endpointWithToken = `${protocol}//${url.host}?access_token=${tokenResponse.token}`;
+
       statusCode = 200;
-      message = endpointWithToken;
+      message = { endpoint: endpointWithToken };
     } catch (e) {
       statusCode = 500;
-      message = e.message;
+      message = { message: e.message };
     } finally {
-      res.writeHead(statusCode, { "Content-Type": "text/plain" });
-      res.end(message);
+      res.writeHead(statusCode, { "Content-Type": "application/json" });
+      res.end(JSON.stringify(message));
     }
   };
 }
