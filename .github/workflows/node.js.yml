@@ -30,24 +30,6 @@ jobs:
     - run: npm install -g yarn 
     - run: yarn install
     - run: yarn workspaces run test
-    - name: Pack SocketIO package
-      id: socketio
-      run: |
-        pushd experimental/sdk/webpubsub-socketio-extension
-        yarn build
-        yarn pack
-        for file in $(find . -type f -name '*.tgz'); do
-          path="./experimental/sdk/webpubsub-socketio-extension/${file#./}"
-          echo "File found: $path"
-          echo "::set-output name=artifacts::$path"
-        done
-        popd
-      shell: bash
-    - name: Publish SocketIO Artifacts
-      uses: actions/upload-artifact@v2
-      with:
-        name: socketio package
-        path: ${{ steps.socketio.outputs.artifacts }} 
     - name: Setup .NET ${{ matrix.dotnet-version }}
       uses: actions/setup-dotnet@v3
       with:
