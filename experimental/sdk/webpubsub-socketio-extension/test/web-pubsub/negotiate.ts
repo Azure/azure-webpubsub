@@ -29,7 +29,7 @@ describe("negotiate", () => {
 
     const username = "bob";
     const rawEndpoint = getEndpointFullPath(process.env.WebPubSubConnectionString ?? "");
-    const negotiateUrl = `${rawEndpoint}/socket.io/negotiate?username=${username}&expirationMinutes=600`;
+    const negotiateUrl = `${rawEndpoint}/socket.io/negotiate/?username=${username}&expirationMinutes=600`;
 
     fetch(negotiateUrl)
       .then((data) => data.text())

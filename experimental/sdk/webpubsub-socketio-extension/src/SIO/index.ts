@@ -42,7 +42,7 @@ export async function useAzureSocketIO(
   // Add negotiate handler
   debug("add negotiate handler");
   const path = this._opts.path || "/socket.io";
-  const negotiatePathPrefix = path + (path.endsWith("/") ? "" : "/") + "negotiate";
+  const negotiatePathPrefix = path + (path.endsWith("/") ? "" : "/") + "negotiate/";
 
   // current listeners = EIO handleRequest listeners (e.g. /socket.io) + other listeners from user
   const listeners = httpServer.listeners("request").slice(0);
