@@ -4,7 +4,7 @@
   "compilerOptions": {
     "target": "ESNext" /* Set the JavaScript language version for emitted JavaScript and include compatible library declarations. */,
     "module": "ESNext" /* Specify what module code is generated. */,
-    "moduleResolution": "NodeNext",
+    "moduleResolution": "Node",
     "outDir": "./dist-esm" /* Specify an output folder for all emitted files. */
   },
 }
