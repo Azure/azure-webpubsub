@@ -1,4 +1,4 @@
-import { WebPubSubServiceClient, GenerateClientTokenOptions } from "@azure/web-pubsub";
+import { WebPubSubServiceClient } from "@azure/web-pubsub";
 import { WebPubSubServiceCaller } from "../serverProxies";
 import { getInvokeOperationSpec } from "./azure-api/operation-spec";
 import { debugModule } from "./utils";
