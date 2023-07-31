@@ -13,14 +13,11 @@ debug("load");
 
 declare type AdapterConstructor = typeof Adapter | ((nsp: SIO.Namespace) => Adapter);
 
-export async function useAzureSocketIO(
+export async function useAzureSocketIOChain(
   this: SIO.Server,
-  webPubSubOptions: WebPubSubExtensionOptions | WebPubSubExtensionCredentialOptions,
-  useDefaultAdapter = false
+  webPubSubOptions: WebPubSubExtensionOptions | WebPubSubExtensionCredentialOptions
 ): Promise<SIO.Server> {
-  debug(
-    `useAzureSocketIO, webPubSubOptions: ${JSON.stringify(webPubSubOptions)}, useDefaultAdapter: ${useDefaultAdapter}`
-  );
+  debug(`useAzureSocketIOChain, webPubSubOptions: ${JSON.stringify(webPubSubOptions)}`);
   const engine = new WebPubSubEioServer(this.engine.opts, webPubSubOptions);
   engine.attach(this["httpServer"], this["opts"]);
 
@@ -37,16 +34,20 @@ export async function useAzureSocketIO(
   }
   this.bind(engine);
 
-  if (!useDefaultAdapter) {
-    debug("use webPubSub adatper");
-
-    // TODO: change undefined to serverProxy to enable server to service side tunneling
-    const adapterProxy = new WebPubSubAdapterProxy(
-      (this.engine as WebPubSubEioServer).webPubSubConnectionManager.service
-    );
-    this.adapter(adapterProxy as unknown as AdapterConstructor);
-  }
+  debug("use webPubSub adatper");
+  const adapterProxy = new WebPubSubAdapterProxy(
+    (this.engine as WebPubSubEioServer).webPubSubConnectionManager.service
+  );
+  this.adapter(adapterProxy as unknown as AdapterConstructor);
   return this;
+}
+
+export async function useAzureSocketIO(
+  io: SIO.Server,
+  webPubSubOptions: WebPubSubExtensionOptions | WebPubSubExtensionCredentialOptions
+): Promise<SIO.Server> {
+  debug(`useAzureSocketIO, webPubSubOptions: ${JSON.stringify(webPubSubOptions)}`);
+  return useAzureSocketIOChain.call(io, webPubSubOptions);
 }
 
 export { WebPubSubAdapterProxy };
