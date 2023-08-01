@@ -52,7 +52,7 @@ export async function useAzureSocketIOChain(
     // negotiate handler
     if (webPubSubOptions.configureNegotiateOptions && checkNegotiate(req.url)) {
       nativeServiceClient = getWebPubSubServiceCaller(webPubSubOptions, false) as unknown as WebPubSubServiceClient;
-      const negotiateHandler = getDefaultNegotiateHandler();
+      const negotiateHandler = getNegotiateHandler();
       negotiateHandler(req, res, webPubSubOptions.configureNegotiateOptions, nativeServiceClient);
       return;
     }
@@ -82,7 +82,7 @@ export async function useAzureSocketIOChain(
   return this;
 }
 
-function getDefaultNegotiateHandler(): (
+function getNegotiateHandler(): (
   req: IncomingMessage,
   res: ServerResponse,
   configureNegotiateOptions: (req: IncomingMessage) => Promise<NegotiateOptions>,
