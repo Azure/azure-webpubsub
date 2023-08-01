@@ -122,12 +122,21 @@ function getNegotiateHandler(): (
   };
 }
 
+/**
+ * This method returns a Socket.IO server using Web PubSub for Socket.IO.
+ *
+ * @param io - the Socket.IO server instance
+ * @param azureSocketIOOptions - the Azure SocketIO options
+ * @returns a Socket.IO server instance using Web PubSub for Socket.IO
+ *
+ * @public
+ */
 export async function useAzureSocketIO(
   io: SIO.Server,
-  webPubSubOptions: AzureSocketIOOptions | AzureSocketIOCredentialOptions
+  azureSocketIOOptions: AzureSocketIOOptions | AzureSocketIOCredentialOptions
 ): Promise<SIO.Server> {
-  debug(`useAzureSocketIO, webPubSubOptions: ${JSON.stringify(webPubSubOptions)}`);
-  return useAzureSocketIOChain.call(io, webPubSubOptions);
+  debug(`useAzureSocketIO, azureSocketIOOptions: ${JSON.stringify(azureSocketIOOptions)}`);
+  return useAzureSocketIOChain.call(io, azureSocketIOOptions);
 }
 
 export { WebPubSubAdapterProxy };
