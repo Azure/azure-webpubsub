@@ -17,7 +17,7 @@ export const defaultWpsOptions = {
   hub: process.env.WebPubSubHub,
   connectionString: process.env.WebPubSubConnectionString,
   webPubSubServiceClientOptions: { allowInsecureConnection: true },
-} as wpsExt.WebPubSubExtensionOptions;
+} as wpsExt.AzureSocketIOOptions;
 
 const serverPort = Number(process.env.SocketIoPort);
 debug(`SocketIO Server Port = ${serverPort}`);
@@ -40,7 +40,7 @@ export const enableFastClose = (server: _Server): void => {
 };
 
 export class Server extends _Server {
-  constructor(srv?: number | HttpServer, opts?: Partial<ServerOptions>, wpsOpts?: wpsExt.WebPubSubExtensionOptions) {
+  constructor(srv?: number | HttpServer, opts?: Partial<ServerOptions>, wpsOpts?: wpsExt.AzureSocketIOOptions) {
     if (typeof srv === "number") {
       debug(`Server, port = ${srv}, opts = ${JSON.stringify(opts)}`);
     } else {

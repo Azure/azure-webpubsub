@@ -1,7 +1,7 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT license.
 
-import { WebPubSubExtensionOptions, WebPubSubExtensionCredentialOptions, debugModule } from "../common/utils";
+import { AzureSocketIOOptions, AzureSocketIOCredentialOptions, debugModule } from "../common/utils";
 import { WebPubSubTransport } from "./components/web-pubsub-transport";
 import { WebPubSubConnectionManager } from "./components/web-pubsub-connection-manager";
 import * as engine from "engine.io";
@@ -25,14 +25,11 @@ debug("load");
  * TODO: implment BaseServer rather than extends Server
  **/
 export class WebPubSubEioServer extends engine.Server {
-  public webPubSubOptions: WebPubSubExtensionOptions | WebPubSubExtensionCredentialOptions;
+  public webPubSubOptions: AzureSocketIOOptions | AzureSocketIOCredentialOptions;
   public webPubSubConnectionManager: WebPubSubConnectionManager;
   private _setuped: Promise<void>;
 
-  constructor(
-    options: engine.ServerOptions,
-    webPubSubOptions: WebPubSubExtensionOptions | WebPubSubExtensionCredentialOptions
-  ) {
+  constructor(options: engine.ServerOptions, webPubSubOptions: AzureSocketIOOptions | AzureSocketIOCredentialOptions) {
     debug(`constructor, options: ${JSON.stringify(options)}, webPubSubOptions: ${JSON.stringify(webPubSubOptions)}`);
     super(options);
     this.webPubSubOptions = webPubSubOptions;

@@ -11,17 +11,8 @@ import { IncomingMessage } from 'http';
 import * as SIO from 'socket.io';
 import { TokenCredential } from '@azure/core-auth';
 
-// @public
-export interface NegotiateOptions {
-    expirationTimeInMinutes?: number;
-    userId?: string;
-}
-
 // @public (undocumented)
-export function useAzureSocketIO(io: SIO.Server, webPubSubOptions: WebPubSubExtensionOptions | WebPubSubExtensionCredentialOptions): Promise<SIO.Server>;
-
-// @public (undocumented)
-export interface WebPubSubExtensionCommonOptions {
+export interface AzureSocketIOCommonOptions {
     // (undocumented)
     configureNegotiateOptions?: (req: IncomingMessage) => Promise<NegotiateOptions>;
     // (undocumented)
@@ -31,7 +22,7 @@ export interface WebPubSubExtensionCommonOptions {
 }
 
 // @public (undocumented)
-export interface WebPubSubExtensionCredentialOptions extends WebPubSubExtensionCommonOptions {
+export interface AzureSocketIOCredentialOptions extends AzureSocketIOCommonOptions {
     // (undocumented)
     credential: AzureKeyCredential | TokenCredential;
     // (undocumented)
@@ -39,10 +30,19 @@ export interface WebPubSubExtensionCredentialOptions extends WebPubSubExtensionC
 }
 
 // @public (undocumented)
-export interface WebPubSubExtensionOptions extends WebPubSubExtensionCommonOptions {
+export interface AzureSocketIOOptions extends AzureSocketIOCommonOptions {
     // (undocumented)
     connectionString: string;
 }
+
+// @public
+export interface NegotiateOptions {
+    expirationTimeInMinutes?: number;
+    userId?: string;
+}
+
+// @public (undocumented)
+export function useAzureSocketIO(io: SIO.Server, webPubSubOptions: AzureSocketIOOptions | AzureSocketIOCredentialOptions): Promise<SIO.Server>;
 
 // (No @packageDocumentation comment for this package)
 

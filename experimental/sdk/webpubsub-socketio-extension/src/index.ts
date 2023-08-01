@@ -4,19 +4,16 @@
 import {
   addProperty,
   NegotiateOptions,
-  WebPubSubExtensionCommonOptions,
-  WebPubSubExtensionOptions,
-  WebPubSubExtensionCredentialOptions,
+  AzureSocketIOCommonOptions,
+  AzureSocketIOOptions,
+  AzureSocketIOCredentialOptions,
 } from "./common/utils";
 import { useAzureSocketIO, useAzureSocketIOChain } from "./SIO";
 import * as SIO from "socket.io";
 
 declare module "socket.io" {
   interface Server {
-    useAzureSocketIO(
-      this: Server,
-      webPubSubOptions: WebPubSubExtensionOptions | WebPubSubExtensionCredentialOptions
-    ): Server;
+    useAzureSocketIO(this: Server, webPubSubOptions: AzureSocketIOOptions | AzureSocketIOCredentialOptions): Server;
   }
 }
 
@@ -25,7 +22,7 @@ addProperty(SIO.Server.prototype, "useAzureSocketIO", useAzureSocketIOChain);
 export {
   useAzureSocketIO,
   NegotiateOptions,
-  WebPubSubExtensionCommonOptions,
-  WebPubSubExtensionOptions,
-  WebPubSubExtensionCredentialOptions,
+  AzureSocketIOCommonOptions,
+  AzureSocketIOOptions,
+  AzureSocketIOCredentialOptions,
 };

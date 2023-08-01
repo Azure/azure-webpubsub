@@ -3,8 +3,8 @@
 
 import {
   debugModule,
-  WebPubSubExtensionOptions,
-  WebPubSubExtensionCredentialOptions,
+  AzureSocketIOOptions,
+  AzureSocketIOCredentialOptions,
   NegotiateOptions,
   getWebPubSubServiceClient,
 } from "../common/utils";
@@ -23,7 +23,7 @@ declare type AdapterConstructor = typeof Adapter | ((nsp: SIO.Namespace) => Adap
 
 export async function useAzureSocketIOChain(
   this: SIO.Server,
-  webPubSubOptions: WebPubSubExtensionOptions | WebPubSubExtensionCredentialOptions
+  webPubSubOptions: AzureSocketIOOptions | AzureSocketIOCredentialOptions
 ): Promise<SIO.Server> {
   debug(`useAzureSocketIOChain, webPubSubOptions: ${JSON.stringify(webPubSubOptions)}`);
   const engine = new WebPubSubEioServer(this.engine.opts, webPubSubOptions);
@@ -124,7 +124,7 @@ function getNegotiateHandler(): (
 
 export async function useAzureSocketIO(
   io: SIO.Server,
-  webPubSubOptions: WebPubSubExtensionOptions | WebPubSubExtensionCredentialOptions
+  webPubSubOptions: AzureSocketIOOptions | AzureSocketIOCredentialOptions
 ): Promise<SIO.Server> {
   debug(`useAzureSocketIO, webPubSubOptions: ${JSON.stringify(webPubSubOptions)}`);
   return useAzureSocketIOChain.call(io, webPubSubOptions);

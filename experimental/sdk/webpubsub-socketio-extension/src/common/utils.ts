@@ -41,18 +41,18 @@ export interface NegotiateOptions {
   expirationTimeInMinutes?: number;
 }
 
-export interface WebPubSubExtensionCommonOptions {
+export interface AzureSocketIOCommonOptions {
   hub: string;
   configureNegotiateOptions?: (req: IncomingMessage) => Promise<NegotiateOptions>;
   reverseProxyEndpoint?: string;
 }
 
 // 2 option definitions refer to https://github.com/Azure/azure-sdk-for-js/blob/%40azure/web-pubsub_1.1.1/sdk/web-pubsub/web-pubsub/review/web-pubsub.api.md?plain=1#L173
-export interface WebPubSubExtensionOptions extends WebPubSubExtensionCommonOptions {
+export interface AzureSocketIOOptions extends AzureSocketIOCommonOptions {
   connectionString: string;
 }
 
-export interface WebPubSubExtensionCredentialOptions extends WebPubSubExtensionCommonOptions {
+export interface AzureSocketIOCredentialOptions extends AzureSocketIOCommonOptions {
   endpoint: string;
   credential: AzureKeyCredential | TokenCredential;
 }
@@ -65,11 +65,11 @@ function checkRequiredKeys(options: unknown, requiredKeys: string[]): boolean {
 }
 
 export function getWebPubSubServiceCaller(
-  options: WebPubSubExtensionOptions | WebPubSubExtensionCredentialOptions,
+  options: AzureSocketIOOptions | AzureSocketIOCredentialOptions,
   useTunnel = true
 ): WebPubSubServiceCaller {
   debug(`getWebPubSubServiceCaller, ${JSON.stringify(options)}, useTunnel: ${useTunnel}`);
-  // if owns connection string, handle as `WebPubSubExtensionOptions`
+  // if owns connection string, handle as `AzureSocketIOOptions`
   if (Object.keys(options).indexOf("connectionString") !== -1) {
     debug(`getWebPubSubServiceCaller, use connection string`);
     const requiredKeys = ["connectionString", "hub"];
@@ -94,10 +94,10 @@ export function getWebPubSubServiceCaller(
 }
 
 export function getWebPubSubServiceClient(
-  options: WebPubSubExtensionOptions | WebPubSubExtensionCredentialOptions
+  options: AzureSocketIOOptions | AzureSocketIOCredentialOptions
 ): WebPubSubServiceClient {
   debug(`getWebPubSubServiceClient, ${JSON.stringify(options)}`);
-  // if owns connection string, handle as `WebPubSubExtensionOptions`
+  // if owns connection string, handle as `AzureSocketIOOptions`
   if (Object.keys(options).indexOf("connectionString") !== -1) {
     debug(`getWebPubSubServiceClient, use connection string`);
     const requiredKeys = ["connectionString", "hub"];
