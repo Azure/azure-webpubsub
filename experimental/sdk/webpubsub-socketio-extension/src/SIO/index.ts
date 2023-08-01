@@ -126,7 +126,7 @@ function getNegotiateHandler(): (
  * This method returns a Socket.IO server using Web PubSub for Socket.IO.
  *
  * @param io - the Socket.IO server instance
- * @param azureSocketIOOptions - the Azure SocketIO options
+ * @param azureSocketIOOptions - the options of Web PubSub for Socket.IO
  * @returns a Socket.IO server instance using Web PubSub for Socket.IO
  *
  * @public
