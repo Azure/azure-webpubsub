@@ -4,19 +4,26 @@
 
 ```ts
 
+/// <reference types="node" />
+
 import { AzureKeyCredential } from '@azure/core-auth';
+import { IncomingMessage } from 'http';
 import * as SIO from 'socket.io';
 import { TokenCredential } from '@azure/core-auth';
+
+// @public
+export interface NegotiateOptions {
+    expirationTimeInMinutes?: number;
+    userId?: string;
+}
 
 // @public (undocumented)
 export function useAzureSocketIO(io: SIO.Server, webPubSubOptions: WebPubSubExtensionOptions | WebPubSubExtensionCredentialOptions): Promise<SIO.Server>;
 
 // @public (undocumented)
-export interface WebPubSubExtensionCredentialOptions {
+export interface WebPubSubExtensionCommonOptions {
     // (undocumented)
-    credential: AzureKeyCredential | TokenCredential;
-    // (undocumented)
-    endpoint: string;
+    configureNegotiateOptions?: (req: IncomingMessage) => Promise<NegotiateOptions>;
     // (undocumented)
     hub: string;
     // (undocumented)
@@ -24,13 +31,17 @@ export interface WebPubSubExtensionCredentialOptions {
 }
 
 // @public (undocumented)
-export interface WebPubSubExtensionOptions {
+export interface WebPubSubExtensionCredentialOptions extends WebPubSubExtensionCommonOptions {
+    // (undocumented)
+    credential: AzureKeyCredential | TokenCredential;
+    // (undocumented)
+    endpoint: string;
+}
+
+// @public (undocumented)
+export interface WebPubSubExtensionOptions extends WebPubSubExtensionCommonOptions {
     // (undocumented)
     connectionString: string;
-    // (undocumented)
-    hub: string;
-    // (undocumented)
-    reverseProxyEndpoint?: string;
 }
 
 // (No @packageDocumentation comment for this package)

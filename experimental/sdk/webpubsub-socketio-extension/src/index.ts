@@ -1,7 +1,13 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT license.
 
-import { addProperty, WebPubSubExtensionOptions, WebPubSubExtensionCredentialOptions } from "./common/utils";
+import {
+  addProperty,
+  NegotiateOptions,
+  WebPubSubExtensionCommonOptions,
+  WebPubSubExtensionOptions,
+  WebPubSubExtensionCredentialOptions,
+} from "./common/utils";
 import { useAzureSocketIO, useAzureSocketIOChain } from "./SIO";
 import * as SIO from "socket.io";
 
@@ -16,4 +22,10 @@ declare module "socket.io" {
 
 addProperty(SIO.Server.prototype, "useAzureSocketIO", useAzureSocketIOChain);
 
-export { WebPubSubExtensionOptions, WebPubSubExtensionCredentialOptions, useAzureSocketIO };
+export {
+  useAzureSocketIO,
+  NegotiateOptions,
+  WebPubSubExtensionCommonOptions,
+  WebPubSubExtensionOptions,
+  WebPubSubExtensionCredentialOptions,
+};

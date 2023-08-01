@@ -2,6 +2,8 @@
 // Licensed under the MIT license.
 
 import { AzureKeyCredential, TokenCredential } from "@azure/core-auth";
+import { IncomingMessage } from "http";
+import { WebPubSubServiceClient } from "@azure/web-pubsub";
 import debugModule from "debug";
 import { BroadcastOptions } from "socket.io-adapter";
 import { RestServiceClient } from "./rest-service-client";
@@ -25,17 +27,41 @@ export function addProperty(o: object, p: string, f: (...args: unknown[]) => unk
   });
 }
 
-export interface WebPubSubExtensionOptions {
-  connectionString: string;
+/**
+ * Options for generating a token to connect a client to the Azure Web Pubsub service.
+ */
+export interface NegotiateOptions {
+  /**
+   * The userId for the client.
+   */
+  userId?: string;
+  /**
+   * Minutes until the token expires.
+   */
+  expirationTimeInMinutes?: number;
+}
+
+export interface WebPubSubExtensionCommonOptions {
   hub: string;
+  configureNegotiateOptions?: (req: IncomingMessage) => Promise<NegotiateOptions>;
   reverseProxyEndpoint?: string;
 }
 
-export interface WebPubSubExtensionCredentialOptions {
+// 2 option definitions refer to https://github.com/Azure/azure-sdk-for-js/blob/%40azure/web-pubsub_1.1.1/sdk/web-pubsub/web-pubsub/review/web-pubsub.api.md?plain=1#L173
+export interface WebPubSubExtensionOptions extends WebPubSubExtensionCommonOptions {
+  connectionString: string;
+}
+
+export interface WebPubSubExtensionCredentialOptions extends WebPubSubExtensionCommonOptions {
   endpoint: string;
   credential: AzureKeyCredential | TokenCredential;
-  hub: string;
-  reverseProxyEndpoint?: string;
+}
+
+function checkRequiredKeys(options: unknown, requiredKeys: string[]): boolean {
+  for (const key of requiredKeys) {
+    if (options[key] === undefined || options[key] === null || options[key] === "") return false;
+  }
+  return true;
 }
 
 export function getWebPubSubServiceCaller(
@@ -46,31 +72,48 @@ export function getWebPubSubServiceCaller(
   // if owns connection string, handle as `WebPubSubExtensionOptions`
   if (Object.keys(options).indexOf("connectionString") !== -1) {
     debug(`getWebPubSubServiceCaller, use connection string`);
-
     const requiredKeys = ["connectionString", "hub"];
-
-    for (const key of requiredKeys) {
-      if (!options[key] || options[key] === "")
-        throw new Error(`Expect valid ${key} is required, got null or empty value.`);
+    if (checkRequiredKeys(options, requiredKeys)) {
+      const args: [string, string] = [options["connectionString"], options.hub];
+      return useTunnel
+        ? InprocessServerProxy.fromConnectionString(...args)
+        : new RestServiceClient(...args, { reverseProxyEndpoint: options.reverseProxyEndpoint });
     }
-    return useTunnel
-      ? InprocessServerProxy.fromConnectionString(options["connectionString"], options.hub)
-      : new RestServiceClient(options["connectionString"], options.hub, {
-          reverseProxyEndpoint: options.reverseProxyEndpoint,
-        });
+    throw new Error(`Expect valid options with keys ${requiredKeys} are expected, but got null or empty value`);
   } else {
     debug(`getWebPubSubServiceCaller, use credential`);
-
     const requiredKeys = ["endpoint", "credential", "hub"];
-    for (const key of requiredKeys) {
-      if (!options[key] || options[key] === "")
-        throw new Error(`Expect valid ${key} is required, got null or empty value.`);
+    if (checkRequiredKeys(options, requiredKeys)) {
+      const args: [string, TokenCredential, string] = [options["endpoint"], options["credential"], options.hub];
+      return useTunnel
+        ? new InprocessServerProxy(...args)
+        : new RestServiceClient(...args, { reverseProxyEndpoint: options.reverseProxyEndpoint });
     }
-    return useTunnel
-      ? new InprocessServerProxy(options["endpoint"], options["credential"], options.hub)
-      : new RestServiceClient(options["endpoint"], options["credential"], options.hub, {
-          reverseProxyEndpoint: options.reverseProxyEndpoint,
-        });
+    throw new Error(`Expect valid options with keys ${requiredKeys} are expected, but got null or empty value`);
+  }
+}
+
+export function getWebPubSubServiceClient(
+  options: WebPubSubExtensionOptions | WebPubSubExtensionCredentialOptions
+): WebPubSubServiceClient {
+  debug(`getWebPubSubServiceClient, ${JSON.stringify(options)}`);
+  // if owns connection string, handle as `WebPubSubExtensionOptions`
+  if (Object.keys(options).indexOf("connectionString") !== -1) {
+    debug(`getWebPubSubServiceClient, use connection string`);
+    const requiredKeys = ["connectionString", "hub"];
+    if (checkRequiredKeys(options, requiredKeys)) {
+      const args: [string, string] = [options["connectionString"], options.hub];
+      return new RestServiceClient(...args, { reverseProxyEndpoint: options.reverseProxyEndpoint });
+    }
+    throw new Error(`Expect valid options with keys ${requiredKeys} are expected, but got null or empty value`);
+  } else {
+    debug(`WebPubSubServiceClient, use credential`);
+    const requiredKeys = ["endpoint", "credential", "hub"];
+    if (checkRequiredKeys(options, requiredKeys)) {
+      const args: [string, TokenCredential, string] = [options["endpoint"], options["credential"], options.hub];
+      return new RestServiceClient(...args, { reverseProxyEndpoint: options.reverseProxyEndpoint });
+    }
+    throw new Error(`Expect valid options with keys ${requiredKeys} are expected, but got null or empty value`);
   }
 }
 

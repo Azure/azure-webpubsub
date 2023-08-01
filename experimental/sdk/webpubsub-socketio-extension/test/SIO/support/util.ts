@@ -13,7 +13,7 @@ const debug = debugModule("wps-sio-ext:ut:sio:util");
 const expect = require("expect.js");
 const i = expect.stringify;
 
-export const wpsOptions = {
+export const defaultWpsOptions = {
   hub: process.env.WebPubSubHub,
   connectionString: process.env.WebPubSubConnectionString,
   webPubSubServiceClientOptions: { allowInsecureConnection: true },
@@ -40,14 +40,14 @@ export const enableFastClose = (server: _Server): void => {
 };
 
 export class Server extends _Server {
-  constructor(srv?: number | HttpServer, opts?: Partial<ServerOptions>) {
+  constructor(srv?: number | HttpServer, opts?: Partial<ServerOptions>, wpsOpts?: wpsExt.WebPubSubExtensionOptions) {
     if (typeof srv === "number") {
       debug(`Server, port = ${srv}, opts = ${JSON.stringify(opts)}`);
     } else {
       debug(`Server, srv = ${srv}, opts = ${JSON.stringify(opts)}`);
     }
     super(srv, opts);
-    this.useAzureSocketIO(wpsOptions);
+    this.useAzureSocketIO(wpsOpts || defaultWpsOptions);
     // `Server.close()` will trigger `HttpServer.close()`, which costs a lot of time
     // This is a trick to shutdown http server in a short time
     enableFastClose(this);
