@@ -28,7 +28,9 @@ export function addProperty(o: object, p: string, f: (...args: unknown[]) => unk
 }
 
 /**
- * Options for generating a token to connect a client to the Azure Web Pubsub service.
+ * Options for generating a token to connect a client to Web PubSub for Socket.IO.
+ *
+ * @public
  */
 export interface NegotiateOptions {
   /**
@@ -41,19 +43,53 @@ export interface NegotiateOptions {
   expirationTimeInMinutes?: number;
 }
 
+/**
+ * Common options for `AzureSocketIOOptions` and `AzureSocketIOCredentialOptions`
+ *
+ * @public
+ */
 export interface AzureSocketIOCommonOptions {
+  /**
+   * The hub name of Web PubSub for Socket.IO.
+   */
   hub: string;
+  /**
+   * A function to extract a `NegotiateOptions` from a HTTP `IncomingMessage`
+   * @param req - the HTTP `IncomingMessage`
+   * @returns a Promise of `NegotiateOptions`
+   */
   configureNegotiateOptions?: (req: IncomingMessage) => Promise<NegotiateOptions>;
+  /**
+   * The reverse proxy endpoint of Web PubSub for Socket.IO.
+   */
   reverseProxyEndpoint?: string;
 }
 
-// 2 option definitions refer to https://github.com/Azure/azure-sdk-for-js/blob/%40azure/web-pubsub_1.1.1/sdk/web-pubsub/web-pubsub/review/web-pubsub.api.md?plain=1#L173
+/**
+ * Options for connecting to Web PubSub for Socket.IO using connection string.
+ *
+ * @public
+ */
 export interface AzureSocketIOOptions extends AzureSocketIOCommonOptions {
+  /**
+   * The connection string of Web PubSub for Socket.IO.
+   */
   connectionString: string;
 }
 
+/**
+ * Options for connecting to Web PubSub for Socket.IO using credential.
+ *
+ * @public
+ */
 export interface AzureSocketIOCredentialOptions extends AzureSocketIOCommonOptions {
+  /**
+   * The endpoint of Web PubSub for Socket.IO.
+   */
   endpoint: string;
+  /**
+   * The credential of Web PubSub for Socket.IO.
+   */
   credential: AzureKeyCredential | TokenCredential;
 }
 

@@ -11,27 +11,21 @@ import { IncomingMessage } from 'http';
 import * as SIO from 'socket.io';
 import { TokenCredential } from '@azure/core-auth';
 
-// @public (undocumented)
+// @public
 export interface AzureSocketIOCommonOptions {
-    // (undocumented)
     configureNegotiateOptions?: (req: IncomingMessage) => Promise<NegotiateOptions>;
-    // (undocumented)
     hub: string;
-    // (undocumented)
     reverseProxyEndpoint?: string;
 }
 
-// @public (undocumented)
+// @public
 export interface AzureSocketIOCredentialOptions extends AzureSocketIOCommonOptions {
-    // (undocumented)
     credential: AzureKeyCredential | TokenCredential;
-    // (undocumented)
     endpoint: string;
 }
 
-// @public (undocumented)
+// @public
 export interface AzureSocketIOOptions extends AzureSocketIOCommonOptions {
-    // (undocumented)
     connectionString: string;
 }
 
@@ -41,8 +35,8 @@ export interface NegotiateOptions {
     userId?: string;
 }
 
-// @public (undocumented)
-export function useAzureSocketIO(io: SIO.Server, webPubSubOptions: AzureSocketIOOptions | AzureSocketIOCredentialOptions): Promise<SIO.Server>;
+// @public
+export function useAzureSocketIO(io: SIO.Server, azureSocketIOOptions: AzureSocketIOOptions | AzureSocketIOCredentialOptions): Promise<SIO.Server>;
 
 // (No @packageDocumentation comment for this package)
 
