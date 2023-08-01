@@ -6,7 +6,7 @@ import {
   WebPubSubExtensionOptions,
   WebPubSubExtensionCredentialOptions,
   NegotiateOptions,
-  getWebPubSubServiceCaller,
+  getWebPubSubServiceClient,
 } from "../common/utils";
 import { WebPubSubEioServer } from "../EIO";
 import { WebPubSubAdapterProxy } from "./components/web-pubsub-adapter";
@@ -51,13 +51,15 @@ export async function useAzureSocketIOChain(
   httpServer.on("request", (req: IncomingMessage, res: ServerResponse) => {
     // negotiate handler
     if (webPubSubOptions.configureNegotiateOptions && checkNegotiate(req.url)) {
-      nativeServiceClient = getWebPubSubServiceCaller(webPubSubOptions, false) as unknown as WebPubSubServiceClient;
+      nativeServiceClient = getWebPubSubServiceClient(webPubSubOptions);
       const negotiateHandler = getNegotiateHandler();
       negotiateHandler(req, res, webPubSubOptions.configureNegotiateOptions, nativeServiceClient);
       return;
     }
     // EIO handleRequest listener handler should be skipped, but other listeners should be handled.
     for (let i = 0; i < listeners.length; i++) {
+      // Follow the same logic as Engine.IO
+      // Reference: https://github.com/socketio/engine.io/blob/6.4.2/lib/server.ts#L804
       if (path !== req.url.slice(0, path.length)) {
         listeners[i].call(httpServer, req, res);
       }
@@ -94,6 +96,7 @@ function getNegotiateHandler(): (
     configureNegotiateOptions: (req: IncomingMessage) => Promise<NegotiateOptions>,
     serviceClient: WebPubSubServiceClient
   ): Promise<void> => {
+    debug("negotiate, start");
     let statusCode = 500;
     let message = {};
     try {
@@ -106,13 +109,15 @@ function getNegotiateHandler(): (
       const endpointWithToken = `${protocol}//${url.host}?access_token=${tokenResponse.token}`;
 
       statusCode = 200;
-      message = { endpoint: endpointWithToken };
+      message = { url: endpointWithToken };
     } catch (e) {
       statusCode = 500;
-      message = { message: e.message };
+      message = { message: "Internal Server Error" };
+      debug(`negotiate, error: ${e.message}`);
     } finally {
       res.writeHead(statusCode, { "Content-Type": "application/json" });
       res.end(JSON.stringify(message));
+      debug("negotiate, finish");
     }
   };
 }

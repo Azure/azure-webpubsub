@@ -33,7 +33,7 @@ describe("negotiate", () => {
 
     fetch(negotiateUrl)
       .then((data) => data.json())
-      .then((data) => data.endpoint)
+      .then((data) => data.url)
       .then((endpoint) => {
         expect(endpoint.startsWith(rawEndpoint)).to.be(true);
         expect(parse(endpoint, true).query.access_token).to.be.ok();

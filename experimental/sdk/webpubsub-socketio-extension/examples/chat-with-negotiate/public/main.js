@@ -36,7 +36,7 @@ async function main(username) {
     console.log("Failed to negotiate, status code =", negotiateResponse.status);
     return ;
   } else {
-    endpoint = (await negotiateResponse.json()).endpoint;
+    endpoint = (await negotiateResponse.json()).url;
     console.log("endpoint=", endpoint);
   }
   var socket = io(endpoint, {

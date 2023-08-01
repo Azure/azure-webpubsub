@@ -3,6 +3,7 @@
 
 import { AzureKeyCredential, TokenCredential } from "@azure/core-auth";
 import { IncomingMessage } from "http";
+import { WebPubSubServiceClient } from "@azure/web-pubsub";
 import debugModule from "debug";
 import { BroadcastOptions } from "socket.io-adapter";
 import { RestServiceClient } from "./rest-service-client";
@@ -58,7 +59,7 @@ export interface WebPubSubExtensionCredentialOptions extends WebPubSubExtensionC
 
 function checkRequiredKeys(options: unknown, requiredKeys: string[]): boolean {
   for (const key of requiredKeys) {
-    if (!options[key]) return false;
+    if (options[key] === undefined || options[key] === null || options[key] === "") return false;
   }
   return true;
 }
@@ -87,6 +88,30 @@ export function getWebPubSubServiceCaller(
       return useTunnel
         ? new InprocessServerProxy(...args)
         : new RestServiceClient(...args, { reverseProxyEndpoint: options.reverseProxyEndpoint });
+    }
+    throw new Error(`Expect valid options with keys ${requiredKeys} are expected, but got null or empty value`);
+  }
+}
+
+export function getWebPubSubServiceClient(
+  options: WebPubSubExtensionOptions | WebPubSubExtensionCredentialOptions
+): WebPubSubServiceClient {
+  debug(`getWebPubSubServiceClient, ${JSON.stringify(options)}`);
+  // if owns connection string, handle as `WebPubSubExtensionOptions`
+  if (Object.keys(options).indexOf("connectionString") !== -1) {
+    debug(`getWebPubSubServiceClient, use connection string`);
+    const requiredKeys = ["connectionString", "hub"];
+    if (checkRequiredKeys(options, requiredKeys)) {
+      const args: [string, string] = [options["connectionString"], options.hub];
+      return new RestServiceClient(...args, { reverseProxyEndpoint: options.reverseProxyEndpoint });
+    }
+    throw new Error(`Expect valid options with keys ${requiredKeys} are expected, but got null or empty value`);
+  } else {
+    debug(`WebPubSubServiceClient, use credential`);
+    const requiredKeys = ["endpoint", "credential", "hub"];
+    if (checkRequiredKeys(options, requiredKeys)) {
+      const args: [string, TokenCredential, string] = [options["endpoint"], options["credential"], options.hub];
+      return new RestServiceClient(...args, { reverseProxyEndpoint: options.reverseProxyEndpoint });
     }
     throw new Error(`Expect valid options with keys ${requiredKeys} are expected, but got null or empty value`);
   }
