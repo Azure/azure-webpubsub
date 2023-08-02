@@ -2,7 +2,7 @@
   "extends": "./tsconfig-base.json",
   "compilerOptions": {
     "target": "ESNext" /* Set the JavaScript language version for emitted JavaScript and include compatible library declarations. */,
-    "module": "CommonJS" /* Specify what module code is generated. */,
-    "outDir": "./dist" /* Specify an output folder for all emitted files. */
+    "module": "ES6" /* Specify what module code is generated. */,
+    "outDir": "./dist-esm" /* Specify an output folder for all emitted files. */
   },
 }
