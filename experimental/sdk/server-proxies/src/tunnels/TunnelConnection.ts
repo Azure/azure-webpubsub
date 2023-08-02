@@ -218,7 +218,7 @@ export class TunnelConnection {
   }
 
   public async startConnectionAsync(target: ConnectionTarget, abortSignal?: AbortSignalLike): Promise<string> {
-    const url = getUrl(target, this.hub);
+    const url = this.getUrl(target, this.hub);
     const client = new WebPubSubTunnelClient(url, this.credential);
     client.on("stop", () => {
       logger.warning(`Client ${client.id} stopped`);
@@ -253,6 +253,41 @@ export class TunnelConnection {
       yield `${clientId}: [${client.currentConnectionId}] ended? ${client.stopped}`;
     }
   }
+
+  private getUrl(target: ConnectionTarget, hub: string): { endpoint: URL; reverseProxyEndpoint: URL | undefined } {
+    const HttpTunnelPath = "server/tunnel";
+    let endpoint;
+    if (target.endpoint) {
+      endpoint = target.endpoint;
+    } else {
+      logger.info(`No endpoint from 'target' use original endpoint ${this.endpoint}`);
+      endpoint = this.endpoint;
+    }
+    const uriBuilder = new URL(endpoint);
+    uriBuilder.protocol = uriBuilder.protocol.toLowerCase() === "http:" ? "ws:" : "wss:";
+  
+    uriBuilder.pathname = appendPath(uriBuilder.pathname, HttpTunnelPath);
+    const hubQuery = `hub=${encodeURIComponent(hub)}`;
+    if (!uriBuilder.search) {
+      uriBuilder.search = `?${hubQuery}`;
+    } else {
+      uriBuilder.search = `${uriBuilder.search}&${hubQuery}`;
+    }
+  
+    if (target.target){
+      uriBuilder.search = `${uriBuilder.search}&${encodeURIComponent(target.target)}`;
+    }
+  
+    let reverseProxy: URL | undefined = undefined;
+    if (target.reverseProxyEndpoint) {
+      reverseProxy = new URL(target.reverseProxyEndpoint);
+      reverseProxy.protocol = reverseProxy.protocol.toLowerCase() === "http:" ? "ws:" : "wss:";
+      reverseProxy.pathname = appendPath(reverseProxy.pathname, HttpTunnelPath);
+      reverseProxy.search = uriBuilder.search;
+    }
+  
+    return { endpoint: uriBuilder, reverseProxyEndpoint: reverseProxy };
+  }
 }
 
 function appendPath(pathname: string, append: string): string {
@@ -260,30 +295,4 @@ function appendPath(pathname: string, append: string): string {
 
 }
 
-function getUrl(target: ConnectionTarget, hub: string): { endpoint: URL; reverseProxyEndpoint: URL | undefined } {
-  const HttpTunnelPath = "server/tunnel";
-  const uriBuilder = new URL(target.endpoint);
-  uriBuilder.protocol = uriBuilder.protocol.toLowerCase() === "http:" ? "ws:" : "wss:";
 
-  uriBuilder.pathname = appendPath(uriBuilder.pathname, HttpTunnelPath);
-  const hubQuery = `hub=${encodeURIComponent(hub)}`;
-  if (!uriBuilder.search) {
-    uriBuilder.search = `?${hubQuery}`;
-  } else {
-    uriBuilder.search = `${uriBuilder.search}&${hubQuery}`;
-  }
-
-  if (target.target){
-    uriBuilder.search = `${uriBuilder.search}&${encodeURIComponent(target.target)}`;
-  }
-
-  let reverseProxy: URL | undefined = undefined;
-  if (target.reverseProxyEndpoint) {
-    reverseProxy = new URL(target.reverseProxyEndpoint);
-    reverseProxy.protocol = reverseProxy.protocol.toLowerCase() === "http:" ? "ws:" : "wss:";
-    reverseProxy.pathname = appendPath(reverseProxy.pathname, HttpTunnelPath);
-    reverseProxy.search = uriBuilder.search;
-  }
-
-  return { endpoint: uriBuilder, reverseProxyEndpoint: reverseProxy };
-}
