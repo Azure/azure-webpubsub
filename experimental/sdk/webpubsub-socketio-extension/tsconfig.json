@@ -3,8 +3,8 @@
   "references": [{ "path": "../server-proxies/tsconfig.json" }],
   "compilerOptions": {
     "target": "ESNext" /* Set the JavaScript language version for emitted JavaScript and include compatible library declarations. */,
-    "moduleResolution": "Node",
     "module": "CommonJS" /* Specify what module code is generated. */,
+    "moduleResolution": "Node",
     "outDir": "./dist" /* Specify an output folder for all emitted files. */
   },
 }

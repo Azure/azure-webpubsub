@@ -1,6 +1,6 @@
 {
   "extends": "./tsconfig-base.json",
-  "references": [{ "path": "../server-proxies/tsconfig.json" }],
+  "references": [{ "path": "../server-proxies/tsconfig.esm.json" }],
   "compilerOptions": {
     "target": "ESNext" /* Set the JavaScript language version for emitted JavaScript and include compatible library declarations. */,
     "moduleResolution": "Node",
