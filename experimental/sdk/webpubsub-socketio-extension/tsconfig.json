@@ -1,10 +1,10 @@
 {
   "extends": "./tsconfig-base.json",
-  "references": [{ "path": "../server-proxies/tsconfig.json" }],
+  "references": [{ "path": "../server-proxies/tsconfig-cjs.json" }],
   "compilerOptions": {
     "target": "ESNext" /* Set the JavaScript language version for emitted JavaScript and include compatible library declarations. */,
-    "module": "ESNext" /* Specify what module code is generated. */,
     "moduleResolution": "Node",
-    "outDir": "./dist-esm" /* Specify an output folder for all emitted files. */
+    "module": "CommonJS" /* Specify what module code is generated. */,
+    "outDir": "./dist" /* Specify an output folder for all emitted files. */
   },
 }

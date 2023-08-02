@@ -10,7 +10,7 @@ import {
   getPort,
   success,
   successFn,
-  wpsOptions,
+  defaultWpsOptions as wpsOptions,
   attachmentPath,
   defaultAttachmentPath,
 } from "./support/util";
