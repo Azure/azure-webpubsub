@@ -48,7 +48,7 @@ export class Server extends _Server {
       debug(`Server, srv = ${srv}, opts = ${JSON.stringify(opts)}`);
     }
     super(srv, opts);
-    (this as any).useAzureSocketIO(wpsOpts || defaultWpsOptions);
+    this.useAzureSocketIO(wpsOpts || defaultWpsOptions);
     // `Server.close()` will trigger `HttpServer.close()`, which costs a lot of time
     // This is a trick to shutdown http server in a short time
     enableFastClose(this);
