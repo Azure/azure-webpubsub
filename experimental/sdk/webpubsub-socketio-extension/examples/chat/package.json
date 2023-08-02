@@ -9,7 +9,7 @@
     "dependencies": {
       "express": "~4.17.1",
       "socket.io": "^4.6.1",
-      "@azure/web-pubsub-socket.io": "../../dist/"
+      "@azure/web-pubsub-socket.io": "../../"
     },
     "scripts": {
       "start": "node index.js"

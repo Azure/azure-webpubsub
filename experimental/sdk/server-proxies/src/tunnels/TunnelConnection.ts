@@ -8,8 +8,8 @@ import {
   TunnelMessage,
   TunnelMessageType,
 } from "./messages";
-import { TokenCredential, AzureKeyCredential, isTokenCredential } from "@azure/core-auth";
-import { PromiseCompletionSource, AckEntity, AsyncIterator } from "../utils";
+import { TokenCredential, AzureKeyCredential } from "@azure/core-auth";
+import { Guid, PromiseCompletionSource, AckEntity, AsyncIterator } from "../utils";
 import { AbortSignalLike } from "@azure/abort-controller";
 import { createLogger } from "../logger";
 
@@ -51,6 +51,7 @@ export interface HttpResponseLike {
 }
 
 export class TunnelConnection {
+  public id = Guid.newGuid();
   private readonly _ackMap: Map<number, AckEntity<TunnelHttpResponseMessage>> = new Map<number, AckEntity<TunnelHttpResponseMessage>>();
   private readonly clients = new Map<string, WebPubSubTunnelClient>();
   private readonly lifetimeTcs: PromiseCompletionSource<void> = new PromiseCompletionSource<void>();
@@ -219,7 +220,7 @@ export class TunnelConnection {
 
   public async startConnectionAsync(target: ConnectionTarget, abortSignal?: AbortSignalLike): Promise<string> {
     const url = this.getUrl(target, this.hub);
-    const client = new WebPubSubTunnelClient(url, this.credential);
+    const client = new WebPubSubTunnelClient(url, this.credential, this.id, target.target);
     client.on("stop", () => {
       logger.warning(`Client ${client.id} stopped`);
       this.tryEndLife(client.id);
@@ -233,8 +234,17 @@ export class TunnelConnection {
       }
     });
     this.clients.set(client.id, client);
-
-    await client.startAsync(abortSignal);
+    let retry = 0;
+    while (!(abortSignal?.aborted ?? false)) {
+      try {
+        await client.startAsync(abortSignal);
+        break;
+      } catch (err) {
+        retry++;
+        logger.verbose(`Error starting client ${client.id}: ${err}, retry ${retry} in 2 seconds`);
+        await delay(2000);
+      }
+    }
     logger.info(`Connected connections: (${this.clients.size})\n` + Array.from(this.printClientLines()).join("\n"));
     return client.id;
   }
@@ -250,7 +260,7 @@ export class TunnelConnection {
 
   private *printClientLines(): IterableIterator<string> {
     for (const [clientId, client] of this.clients) {
-      yield `${clientId}: [${client.currentConnectionId}] ended? ${client.stopped}`;
+      yield `[${client.currentConnectionId}][${client.userId}]: ended: ${client.stopped}; target: ${client.target ?? "<random>"}; `;
     }
   }
 
@@ -260,7 +270,7 @@ export class TunnelConnection {
     if (target.endpoint) {
       endpoint = target.endpoint;
     } else {
-      logger.info(`No endpoint from 'target' use original endpoint ${this.endpoint}`);
+      logger.info(`No endpoint specified, use original endpoint ${this.endpoint}`);
       endpoint = this.endpoint;
     }
     const uriBuilder = new URL(endpoint);
@@ -290,9 +300,10 @@ export class TunnelConnection {
   }
 }
 
-function appendPath(pathname: string, append: string): string {
-  return pathname.endsWith("/") ? `${pathname}${append}` : `${pathname}/${append}`;
-
+function delay(milliseconds: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, milliseconds));
 }
 
-
+function appendPath(pathname: string, append: string): string {
+  return pathname.endsWith("/") ? `${pathname}${append}` : `${pathname}/${append}`;
+}

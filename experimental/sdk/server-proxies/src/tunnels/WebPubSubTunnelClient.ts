@@ -23,7 +23,7 @@ export class WebPubSubTunnelClient {
     this._emitter.removeListener(event, listener);
   }
 
-  constructor(url: { endpoint: URL; reverseProxyEndpoint: URL | undefined }, credential: AzureKeyCredential | TokenCredential) {
+  constructor(url: { endpoint: URL; reverseProxyEndpoint: URL | undefined }, credential: AzureKeyCredential | TokenCredential, public readonly userId: string, public readonly target?: string) {
     const options: WebPubSubClientOptions = {
       protocol: new TunnelServerProtocol(),
       autoReconnect: false,
@@ -31,7 +31,7 @@ export class WebPubSubTunnelClient {
     const client = (this._client = new WebPubSubClient(
       {
         getClientAccessUrl: () => {
-          return getAccessTokenUrl(url.endpoint, credential, url.reverseProxyEndpoint);
+          return getAccessTokenUrl(url.endpoint, credential, url.reverseProxyEndpoint, userId);
         },
       },
       options
@@ -133,11 +133,11 @@ class TunnelServerProtocol implements WebPubSubClientProtocol {
   }
 }
 
-async function getAccessTokenUrl(endpoint: URL, credential: AzureKeyCredential | TokenCredential, reverseProxyEndpoint?: URL): Promise<string> {
+async function getAccessTokenUrl(endpoint: URL, credential: AzureKeyCredential | TokenCredential, reverseProxyEndpoint?: URL, userId?: string): Promise<string> {
   const url = endpoint.toString();
   let tokenString: string;
   if (!isTokenCredential(credential)){
-    tokenString = signJwtToken(credential, url);
+    tokenString = signJwtToken(credential, url, userId);
   }else {
     tokenString = (
       await credential.getToken("https://webpubsub.azure.com/.default")
@@ -146,8 +146,9 @@ async function getAccessTokenUrl(endpoint: URL, credential: AzureKeyCredential |
   return `${reverseProxyEndpoint?.toString() ?? url}&access_token=${encodeURIComponent(tokenString)}`;
 }
 
-function signJwtToken(credential: AzureKeyCredential, audience: string) : string {
+function signJwtToken(credential: AzureKeyCredential, audience: string, userId?: string) : string {
   return jwt.sign({}, credential.key, {
+    subject: userId,
     audience: audience,
     expiresIn: "1h",
     algorithm: "HS256",
