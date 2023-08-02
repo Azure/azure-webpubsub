@@ -7,7 +7,7 @@
   "module": "dist-esm/index.js",
   "types": "types/index.d.ts",
   "scripts": {
-    "build:src": "tsc -p tsconfig-cjs.json && tsc -p tsconfig.json",
+    "build:src": "tsc -p tsconfig.json && tsc -p tsconfig.esm.json",
     "build": "npm run clean && npm run build:src",
     "clean": "rimraf dist dist-esm test-dist temp types *.tgz *.log",
     "test": "jest"
