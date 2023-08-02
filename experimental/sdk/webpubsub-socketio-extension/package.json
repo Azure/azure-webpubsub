@@ -7,7 +7,6 @@
   "module": "./dist-esm/index.js",
   "author": "Microsoft",
   "license": "MIT",
-  "type": "module",
   "directories": {
     "lib": "src",
     "example": "samples",
@@ -48,7 +47,7 @@
     "build:cpy:cjs": "cpy . ../../../webpubsub-socketio-extension/dist/serverProxies --cwd=../server-proxies/dist",
     "build:cpy": "npm run build:cpy:esm && npm run build:cpy:cjs",
     "build:dsp": "rimraf dist-esm/serverProxies.* dist/serverProxies.* types/serverProxies.*",
-    "build:src": "tsc -b tsconfig.json && tsc -b tsconfig-cjs.json && cpy package-cjs.json ./dist --rename=package.json",
+    "build:src": "tsc -b tsconfig.esm.json && tsc -b tsconfig.json && cpy package.esm.json ./dist-esm --rename=package.json",
     "build": "npm run clean && npm run build:src && npm run build:dsp && npm run build:cpy",
     "check-format": "prettier --list-different --config ./.prettierrc.json --ignore-path ./.prettierignore ./src/",
     "format": "prettier --write --config ./.prettierrc.json --ignore-path ./.prettierignore ./src/ ./test/",
