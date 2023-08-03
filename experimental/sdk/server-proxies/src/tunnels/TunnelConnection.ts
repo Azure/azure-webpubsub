@@ -71,7 +71,13 @@ export class TunnelConnection {
 
   public async runAsync(abortSignal?: AbortSignalLike): Promise<void> {
     // Run the connection
-    await this.startConnectionAsync({ endpoint: this.endpoint, reverseProxyEndpoint: this.reverseProxyEndpoint }, abortSignal);
+    await this.startConnectionAsync(
+      {
+        endpoint: this.endpoint,
+        reverseProxyEndpoint: this.reverseProxyEndpoint,
+      },
+      abortSignal
+    );
   }
 
   public async invokeAsync(httpRequest: HttpRequestLike, abortSignal?: AbortSignalLike): Promise<HttpResponseLike> {
@@ -120,7 +126,10 @@ export class TunnelConnection {
       if (httpRequest.contentType) {
         headers = { "Content-Type": [httpRequest.contentType] };
       }
-      await client.sendAsync(new TunnelHttpRequestMessage(ackId, true, "", httpRequest.method, httpRequest.url, headers, httpRequest.content), abortSignal);
+      await client.sendAsync(
+        new TunnelHttpRequestMessage(ackId, true, "", httpRequest.method, httpRequest.url, headers, httpRequest.content),
+        abortSignal
+      );
       // Wait for the first response which contains status code / headers
       return pcs.promise;
     } catch (err) {
@@ -170,7 +179,15 @@ export class TunnelConnection {
         if (response) {
           logger.info(`Sending response back: ${response.StatusCode}, content-length: ${response.Content.length}`);
           await client.sendAsync(
-            new TunnelHttpResponseMessage(tunnelRequest.AckId, tunnelRequest.LocalRouting, response.StatusCode, tunnelRequest.ChannelName, false, response.Headers, response.Content),
+            new TunnelHttpResponseMessage(
+              tunnelRequest.AckId,
+              tunnelRequest.LocalRouting,
+              response.StatusCode,
+              tunnelRequest.ChannelName,
+              false,
+              response.Headers,
+              response.Content
+            ),
             abortSignal
           );
         }
@@ -178,7 +195,7 @@ export class TunnelConnection {
       }
       case TunnelMessageType.ConnectionReconnect: {
         const reconnect = message as TunnelConnectionReconnectMessage;
-        logger.info(`Reconnect the connection: ${reconnect.Message}`);
+        logger.info(`Reconnect the connection ${client.getPrintableIdentifier()}: ${reconnect.Message}`);
         await this.stopConnection(client.id);
         await this.startConnectionAsync(
           {
@@ -191,7 +208,7 @@ export class TunnelConnection {
       }
       case TunnelMessageType.ConnectionClose: {
         const close = message as TunnelConnectionCloseMessage;
-        logger.info(`Close the connection: ${close.Message}`);
+        logger.info(`Close the connection ${client.getPrintableIdentifier()}: ${close.Message}`);
         this.stopConnection(client.id);
         break;
       }
@@ -222,7 +239,7 @@ export class TunnelConnection {
     const url = this.getUrl(target, this.hub);
     const client = new WebPubSubTunnelClient(url, this.credential, this.id, target.target);
     client.on("stop", () => {
-      logger.warning(`Client ${client.id} stopped`);
+      logger.warning(`Client ${client.getPrintableIdentifier()} stopped`);
       this.tryEndLife(client.id);
     });
     client.on("message", () => {
@@ -241,7 +258,7 @@ export class TunnelConnection {
         break;
       } catch (err) {
         retry++;
-        logger.verbose(`Error starting client ${client.id}: ${err}, retry ${retry} in 2 seconds`);
+        logger.verbose(`Error starting client ${client.getPrintableIdentifier()}: ${err}, retry ${retry} in 2 seconds`);
         await delay(2000);
       }
     }
@@ -260,7 +277,9 @@ export class TunnelConnection {
 
   private *printClientLines(): IterableIterator<string> {
     for (const [clientId, client] of this.clients) {
-      yield `[${client.currentConnectionId}][${client.userId}]: ended: ${client.stopped}; target: ${client.target ?? "<random>"}; `;
+      yield `${client.getPrintableIdentifier()}: connectionId: ${client.currentConnectionId}; userId: ${client.userId}; ended: ${
+        client.stopped
+      }; target: ${client.target ?? "<random>"}; `;
     }
   }
 
@@ -275,7 +294,7 @@ export class TunnelConnection {
     }
     const uriBuilder = new URL(endpoint);
     uriBuilder.protocol = uriBuilder.protocol.toLowerCase() === "http:" ? "ws:" : "wss:";
-  
+
     uriBuilder.pathname = appendPath(uriBuilder.pathname, HttpTunnelPath);
     const hubQuery = `hub=${encodeURIComponent(hub)}`;
     if (!uriBuilder.search) {
@@ -283,11 +302,11 @@ export class TunnelConnection {
     } else {
       uriBuilder.search = `${uriBuilder.search}&${hubQuery}`;
     }
-  
-    if (target.target){
+
+    if (target.target) {
       uriBuilder.search = `${uriBuilder.search}&${encodeURIComponent(target.target)}`;
     }
-  
+
     let reverseProxy: URL | undefined = undefined;
     if (target.reverseProxyEndpoint) {
       reverseProxy = new URL(target.reverseProxyEndpoint);
@@ -295,7 +314,7 @@ export class TunnelConnection {
       reverseProxy.pathname = appendPath(reverseProxy.pathname, HttpTunnelPath);
       reverseProxy.search = uriBuilder.search;
     }
-  
+
     return { endpoint: uriBuilder, reverseProxyEndpoint: reverseProxy };
   }
 }
