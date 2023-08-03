@@ -139,7 +139,7 @@ export class InprocessServerProxy implements WebPubSubServiceCaller {
       url: this._getUrl(`/api/hubs/${this._hub}/groups/${groupName}/connections/${connectionId}`),
     } as HttpRequestLike
     let response = await this._tunnel.invokeAsync(request);
-    if (response.statusCode !== 200) {
+    if (response.statusCode !== 200 && response.statusCode !== 204) {
       throw new Error(`removeConnectionFromGroup got unexpected status code ${response.statusCode}`);
     }
   }
