@@ -26,7 +26,7 @@ export class WebPubSubTunnelClient {
   constructor(url: { endpoint: URL; reverseProxyEndpoint: URL | undefined }, credential: AzureKeyCredential | TokenCredential, public readonly userId: string, public readonly target?: string) {
     const options: WebPubSubClientOptions = {
       protocol: new TunnelServerProtocol(),
-      autoReconnect: false,
+      autoReconnect: true,
     };
     const client = (this._client = new WebPubSubClient(
       {
