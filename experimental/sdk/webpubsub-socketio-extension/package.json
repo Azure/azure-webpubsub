@@ -5,6 +5,7 @@
   "description": "Enable Socket.IO server support Azure Web PubSub Service",
   "main": "./dist/index.js",
   "module": "./dist-esm/index.js",
+  "types": "./types/index.d.ts",
   "author": "Microsoft",
   "license": "MIT",
   "directories": {
@@ -20,11 +21,6 @@
     "LICENSE",
     "review/"
   ],
-  "exports": {
-    "types": "./types/index.d.ts",
-    "import": "./dist-esm/index.js",
-    "require": "./dist/index.js"
-  },
   "dependencies": {
     "@azure/abort-controller": "^1.1.0",
     "@azure/logger": "^1.0.4",
@@ -47,7 +43,7 @@
     "build:cpy:cjs": "cpy . ../../../webpubsub-socketio-extension/dist/serverProxies --cwd=../server-proxies/dist",
     "build:cpy": "npm run build:cpy:esm && npm run build:cpy:cjs",
     "build:dsp": "rimraf dist-esm/serverProxies.* dist/serverProxies.* types/serverProxies.*",
-    "build:src": "tsc -b tsconfig.esm.json && tsc -b tsconfig.json && cpy package.esm.json ./dist-esm --rename=package.json",
+    "build:src": "tsc -b tsconfig.esm.json && tsc -b tsconfig.json",
     "build": "npm run clean && npm run build:src && npm run build:dsp && npm run build:cpy",
     "check-format": "prettier --list-different --config ./.prettierrc.json --ignore-path ./.prettierignore ./src/",
     "format": "prettier --write --config ./.prettierrc.json --ignore-path ./.prettierignore ./src/ ./test/",
