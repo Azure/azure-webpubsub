@@ -16,12 +16,6 @@ export class WebPubSubTunnelClient {
   public currentConnectionId: string | undefined;
   public stopped = false;
   public messageQueue: TunnelMessage[] = [];
-  public on(event: "message" | "stop", listener: (...args: any[]) => void): void {
-    this._emitter.on(event, listener);
-  }
-  public off(event: "message" | "stop", listener: (...args: any[]) => void): void {
-    this._emitter.removeListener(event, listener);
-  }
 
   constructor(url: { endpoint: URL; reverseProxyEndpoint: URL | undefined }, credential: AzureKeyCredential | TokenCredential, public readonly userId: string, public readonly target?: string) {
     const options: WebPubSubClientOptions = {
@@ -69,6 +63,16 @@ export class WebPubSubTunnelClient {
         logger.error("Received invalid message from server.");
       }
     });
+  }
+  
+  public getPrintableIdentifier(){
+    return `[${this.id}]${this.currentConnectionId}`
+  }
+  public on(event: "message" | "stop", listener: (...args: any[]) => void): void {
+    this._emitter.on(event, listener);
+  }
+  public off(event: "message" | "stop", listener: (...args: any[]) => void): void {
+    this._emitter.removeListener(event, listener);
   }
 
   public async startAsync(abortSignal?: AbortSignalLike): Promise<string> {
