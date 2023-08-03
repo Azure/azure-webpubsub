@@ -81,7 +81,7 @@ opts = ${toOptionsString(opts)}, namespace = "${this.nsp.name}"`);
       debug(`broadcast, finish`);
     } catch (e) {
       debug(`broadcast, error, packet = ${JSON.stringify(packet)},\
-opts = ${toOptionsString(opts)}, namespace = "${this.nsp.name}"`);
+opts = ${toOptionsString(opts)}, namespace = "${this.nsp.name}", error = ${e}`);
     }
   }
 
@@ -103,7 +103,7 @@ rooms = ${toString(rooms)}, opts = ${toOptionsString(opts)}`);
       super.addSockets(opts, rooms);
     } catch (e) {
       debug(`addSockets, error, rooms = ${toString(rooms)}, opts = ${toOptionsString(opts)}, \
-error.message = ${e.message}`);
+error.message = ${e.message}, error = ${e}`);
     }
   }
 
@@ -128,7 +128,7 @@ error.message = ${e.message}`);
 groupNames = ${toString(rooms)}, connectionId(eioSid) = ${this._getEioSid(id)}`);
       super.addAll(id, rooms);
     } catch (e) {
-      debug(`addAll, error, SocketId = ${id}, rooms = ${toString(rooms)}, error.message = ${e.message}`);
+      debug(`addAll, error, SocketId = ${id}, rooms = ${toString(rooms)}, error = ${e}`);
     } finally {
       release();
     }
@@ -155,7 +155,7 @@ groupNames = ${toString(rooms)}, connectionId(eioSid) = ${this._getEioSid(id)}`)
       );
       super.del(id, room);
     } catch (e) {
-      debug(`del, error, SocketId = ${id}, room = ${room}, error.message = ${e.message}`);
+      debug(`del, error, SocketId = ${id}, room = ${room}, error = ${e}`);
     } finally {
       release();
     }
@@ -181,7 +181,7 @@ groupNames = ${toString(rooms)}, connectionId(eioSid) = ${this._getEioSid(id)}`)
 
       super.delAll(id);
     } catch (e) {
-      debug(`delAll, error, SocketId = ${id}, error.message = ${e.message}`);
+      debug(`delAll, error, SocketId = ${id}, error = ${e}`);
     } finally {
       release();
     }
@@ -260,7 +260,7 @@ groupNames = ${toString(rooms)}, connectionId(eioSid) = ${this._getEioSid(id)}`)
       debug(`broadcastWithAck, finish`);
     } catch (e) {
       debug(`broadcastWithAck, error, packet = ${JSON.stringify(packet)},\
-opts = ${toOptionsString(opts)}, namespace = "${this.nsp.name}"`);
+opts = ${toOptionsString(opts)}, namespace = "${this.nsp.name}, error = ${e}"`);
     }
   }
 
@@ -318,7 +318,7 @@ rooms = ${toString(rooms)}, opts = ${toOptionsString(opts)}`);
       super.delSockets(opts, rooms);
     } catch (e) {
       debug(`delSockets, error, rooms = ${toString(rooms)}, \
-opts = ${toOptionsString(opts)}, error.message = ${e.message}`);
+opts = ${toOptionsString(opts)}, error = ${e}`);
     }
   }
 
