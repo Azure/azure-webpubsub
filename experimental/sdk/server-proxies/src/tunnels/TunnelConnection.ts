@@ -130,6 +130,7 @@ export class TunnelConnection {
         new TunnelHttpRequestMessage(ackId, true, "", httpRequest.method, httpRequest.url, headers, httpRequest.content),
         abortSignal
       );
+      logger.info(`Sent http request: ackId: ${ackId}, method: ${httpRequest.method}, url: ${httpRequest.url}`);
       // Wait for the first response which contains status code / headers
       return pcs.promise;
     } catch (err) {
@@ -157,7 +158,7 @@ export class TunnelConnection {
     switch (message.Type) {
       case TunnelMessageType.HttpResponse: {
         const tunnelResponse = message as TunnelHttpResponseMessage;
-        logger.info(`Getting request ${tunnelResponse.TracingId ?? ""}: ackId: ${tunnelResponse.AckId}, statusCode: ${tunnelResponse.StatusCode}`);
+        logger.info(`Getting http response ${tunnelResponse.TracingId ?? ""}: ackId: ${tunnelResponse.AckId}, statusCode: ${tunnelResponse.StatusCode}, notComplete: ${tunnelResponse.NotCompleted}`);
         const ackId = tunnelResponse.AckId;
         if (this._ackMap.has(ackId)) {
           const entity = this._ackMap.get(ackId)!;
@@ -170,14 +171,14 @@ export class TunnelConnection {
       }
       case TunnelMessageType.HttpRequest: {
         const tunnelRequest = message as TunnelHttpRequestMessage;
-        logger.info(`Getting request ${tunnelRequest.TracingId ?? ""}: ${tunnelRequest.HttpMethod} ${tunnelRequest.Url}`);
+        logger.info(`Getting http request ${tunnelRequest.TracingId ?? ""}: ackId: ${tunnelRequest.AckId}, method: ${tunnelRequest.HttpMethod}, url: ${tunnelRequest.Url}`);
         if (!this.requestHandler) {
           throw new Error("Request handler not configured");
         }
 
         const response = await this.requestHandler(tunnelRequest, abortSignal);
         if (response) {
-          logger.info(`Sending response back: ${response.StatusCode}, content-length: ${response.Content.length}`);
+          logger.info(`Sending response back ${tunnelRequest.TracingId ?? ""}: ackId:${tunnelRequest.AckId}, statusCode: ${response.StatusCode}, content-length: ${response.Content.length}`);
           await client.sendAsync(
             new TunnelHttpResponseMessage(
               tunnelRequest.AckId,
