@@ -13,7 +13,10 @@ import * as SIO from "socket.io";
 
 declare module "socket.io" {
   interface Server {
-    useAzureSocketIO(this: Server, webPubSubOptions: AzureSocketIOOptions | AzureSocketIOCredentialOptions): Server;
+    useAzureSocketIO(
+      this: Server,
+      webPubSubOptions: AzureSocketIOOptions | AzureSocketIOCredentialOptions
+    ): Promise<Server>;
   }
 }
 
