@@ -1,0 +1,15 @@
+{
+  "name": "codestream",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "@azure/web-pubsub-socket.io": "1.0.0-alpha.20230804.1",
+    "express": "^4.18.2"
+  }
+}
