@@ -4,7 +4,7 @@ import { Server as _Server, ServerOptions, Socket } from "socket.io";
 import { io as ioc, ManagerOptions, Socket as ClientSocket, SocketOptions } from "socket.io-client";
 import { debugModule } from "../../../src/common/utils";
 import * as wpsExt from "../../../src";
-import "../../../src";  // Otherwise: Error `this.useAzureSocketIO` is not a function
+import "../../../src"; // Otherwise: Error `this.useAzureSocketIO` is not a function
 import { Server as HttpServer } from "http";
 import { setTimeout } from "timers";
 
