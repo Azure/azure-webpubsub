@@ -1,7 +1,7 @@
 
 # Socket.IO Collaborative Whiteboard
 
-A simple collaborative whiteboard for Socket.IO with Azuue Web PubSub
+A simple collaborative whiteboard for Socket.IO with Azure Web PubSub
 
 ### Update endpoint in `public/main.js`
 
