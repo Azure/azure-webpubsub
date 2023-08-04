@@ -6,9 +6,9 @@ This demo shows how to use a default or customized negotiate method to generate 
 
 ## How to use
 
-```
-$ yarn install
-$ yarn start <web-pubsub-connection-string>
+```bash
+npm install
+npm run start -- <web-pubsub-connection-string>
 ```
 
 And point your browser to `http://localhost:3000`.

@@ -5,18 +5,23 @@ A simple chat demo for Socket.IO with Azure Web PubSub
 
 ## How to use
 
-```
-$ yarn install
-$ yarn start
+### Update endpoint in `public/main.js`
+
+```js
+const webPubSubEndpoint = "https://<endpoint of web pubsub for socket.io>";
 ```
 
-And point your browser to `http://localhost:3000`. Optionally, specify
-a port by supplying the `PORT` env variable.
+### Run the server
+
+```bash
+npm install
+npm run start -- "<connection-string>"
+```
+
+And point your browser to `http://localhost:3000`.
 
 ## Features
 
-- Multiple users can join a chat room by each entering a unique username
-on website load.
-- Users can type chat messages to the chat room.
-- A notification is sent to all users when a user joins or leaves
-the chatroom.
+- Multiple users can join a chat room by each entering a unique username on website load.
+- Users can type chat messages to send to the chat room.
+- A notification is sent to all users when a user joins or leaves the chatroom.

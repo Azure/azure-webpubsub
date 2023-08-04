@@ -3,11 +3,17 @@
 
 A simple collaborative whiteboard for Socket.IO with Azuue Web PubSub
 
-## How to use
+### Update endpoint in `public/main.js`
 
+```js
+const webPubSubEndpoint = "https://<endpoint of web pubsub for socket.io>";
 ```
-$ yarn install
-$ yarn start
+
+### Run the server
+
+```bash
+npm install
+npm run start -- "<connection-string>"
 ```
 
 And point your browser to `http://localhost:3000`. Optionally, specify
