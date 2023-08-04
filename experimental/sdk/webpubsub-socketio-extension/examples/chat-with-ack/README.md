@@ -3,11 +3,17 @@
 
 A simple chat-with-ack demo for Socket.IO with Azure Web PubSub.
 
-## How to use
+### Update endpoint in `public/main.js`
 
+```js
+const webPubSubEndpoint = "https://<endpoint of web pubsub for socket.io>";
 ```
-$ yarn install
-$ yarn start <web-pubsub-connnection-string>
+
+### Run the server
+
+```bash
+npm install
+npm run start -- "<connection-string>"
 ```
 
 Then, visit http://localhost:3000 in web browser.

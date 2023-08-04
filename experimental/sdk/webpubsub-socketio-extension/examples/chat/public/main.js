@@ -18,9 +18,7 @@ async function main() {
 
   const webPubSubEndpoint = "localhost:8080";
   var socket = io(webPubSubEndpoint, {
-    cors: { origin: "*", credential: false },
     path: "/clients/socketio/hubs/eio_hub",
-    reconnection: false
   });
   console.log(socket);
   setInterval(() => {console.log(socket);}, 3000);

@@ -4,13 +4,22 @@
 A simple Typescript demo for Socket.IO with Azure Web PubSub
 
 ## How to use
-1. Replace `endpoint` in `client.ts` with your own endpoint from Azure Web PubSub for Socket.IO.
 
-2.
-```
-$ yarn install
-$ yarn start:server <web-pubsub-connection-string>
-$ yarn start:client
+### Update endpoint in `client.ts`
+
+```js
+const endpoint = "https://<endpoint of web pubsub for socket.io>";
 ```
 
-`server-alternative.ts` provides another usage of API. Run it by `yarn start:server-alternative <web-pubsub-connection-string>`.
+### Run the server
+
+```bash
+npm install
+npm run build
+npm run start:server <web-pubsub-connection-string>
+npm run start:client
+```
+
+You can see ping pong long between client and server.
+
+`server-alternative.ts` provides another usage of API. Run it by `npm start:server-alternative <web-pubsub-connection-string>`.

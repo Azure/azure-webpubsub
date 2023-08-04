@@ -40,9 +40,7 @@ async function main(username) {
     console.log("endpoint=", endpoint);
   }
   var socket = io(endpoint, {
-    cors: { origin: "*", credential: false },
     path: "/clients/socketio/hubs/eio_hub",
-    reconnection: false
   });
 
   // Prompt for setting a username
