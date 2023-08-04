@@ -1,6 +1,6 @@
 {
   "name": "@azure/web-pubsub-socket.io",
-  "version": "1.0.0-alpha.20230803.1",
+  "version": "1.0.0-alpha.20230804.1",
   "socketio-version": "4.6.1",
   "description": "Enable Socket.IO server support Azure Web PubSub Service",
   "main": "./dist/index.js",
@@ -41,7 +41,8 @@
   "scripts": {
     "build:cpy:esm": "cpy . ../../../webpubsub-socketio-extension/dist-esm/serverProxies --cwd=../server-proxies/dist-esm",
     "build:cpy:cjs": "cpy . ../../../webpubsub-socketio-extension/dist/serverProxies --cwd=../server-proxies/dist",
-    "build:cpy": "npm run build:cpy:esm && npm run build:cpy:cjs",
+    "build:cpy:types": "cpy . ../../../webpubsub-socketio-extension/types/serverProxies --cwd=../server-proxies/types",
+    "build:cpy": "npm run build:cpy:esm && npm run build:cpy:cjs && npm run build:cpy:types",
     "build:dsp": "rimraf dist-esm/serverProxies.* dist/serverProxies.* types/serverProxies.*",
     "build:src": "tsc -b tsconfig.esm.json && tsc -b tsconfig.json",
     "build": "npm run clean && npm run build:src && npm run build:dsp && npm run build:cpy",
