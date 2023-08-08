@@ -1,7 +1,8 @@
 {
-    "name": "webpubsub-socket.io-quickstart",
+    "name": "webpubsub-socket.io-quickstart-esm",
     "version": "0.0.0",
     "main": "server.js",
+    "type": "module",
     "private": true,
     "license": "BSD",
     "dependencies": {

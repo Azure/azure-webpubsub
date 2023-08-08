@@ -1,4 +1,4 @@
-const io = require("socket.io-client");
+import { io } from "socket.io-client";
 
 const webPubSubEndpoint = process.argv[2] || process.env.WebPubSubEndpoint|| "<web-pubsub-socketio-endpoint>";
 const socket = io(webPubSubEndpoint, {

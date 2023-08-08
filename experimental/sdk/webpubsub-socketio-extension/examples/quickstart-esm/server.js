@@ -1,5 +1,5 @@
-const { Server } = require("socket.io");
-const { useAzureSocketIO } = require("@azure/web-pubsub-socket.io");
+import { Server } from "socket.io";
+import { useAzureSocketIO } from "@azure/web-pubsub-socket.io";
 
 // Add a Web PubSub Option
 const wpsOptions = {
