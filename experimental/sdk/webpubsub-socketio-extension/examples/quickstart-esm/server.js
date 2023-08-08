@@ -7,7 +7,7 @@ const wpsOptions = {
     connectionString: process.argv[2] || process.env.WebPubSubConnectionString,
 };
 
-let io = new Server(3000);
+const io = new Server(3000);
 useAzureSocketIO(io, wpsOptions);
 
 io.on("connection", (socket) => {
