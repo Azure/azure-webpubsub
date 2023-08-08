@@ -47,17 +47,22 @@ export class WebPubSubEioServer extends engine.Server {
        * In native implementation, it close internal WebSocket server, this is not needed when using Azure Web PubSub.
        */
       this["cleanup"] = () => {
-        tunnel.stop();
+        // TODO: Find the optimal time to close the tunnel
+        // debug("cleanup, stop internal tunnel");
+        // tunnel.stop();
       };
     } else {
       debug("constructor, use RestApiServiceCaller");
       const webPubSubEioMiddleware = this.webPubSubConnectionManager.getEventHandlerEioMiddleware();
       this.use(webPubSubEioMiddleware);
     }
+    debug(`constructor, finish`);
   }
 
   public async setup(): Promise<void> {
-    await this._setuped;
+    if (this.webPubSubConnectionManager.service instanceof InprocessServerProxy) {
+      await this._setuped;
+    }
   }
 
   protected override createTransport(transportName: string, req: unknown): engine.Transport {
