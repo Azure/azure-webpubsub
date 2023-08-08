@@ -218,8 +218,8 @@ export class WebPubSubConnectionManager {
     this._clientConnections.forEach(async (context) => {
       try {
         await context.close();
-      } catch {
-        //ignore
+      } catch (error) {
+        debug(`Close WebPubSubConnectionManager got error: ${error}`);
       }
     });
   }
