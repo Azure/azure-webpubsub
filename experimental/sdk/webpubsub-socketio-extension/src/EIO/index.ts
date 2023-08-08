@@ -46,7 +46,10 @@ export class WebPubSubEioServer extends engine.Server {
        * Force override `cleanup`, which is executed when closing EIO server.
        * In native implementation, it close internal WebSocket server, this is not needed when using Azure Web PubSub.
        */
-      this["cleanup"] = () => {
+      this["cleanup"] = async () => {
+        // TODO: Find the optimal time to close the tunnel
+        debug("cleanup, stop internal tunnel");
+        await this.webPubSubConnectionManager.close();
         tunnel.stop();
       };
     } else {
@@ -54,10 +57,13 @@ export class WebPubSubEioServer extends engine.Server {
       const webPubSubEioMiddleware = this.webPubSubConnectionManager.getEventHandlerEioMiddleware();
       this.use(webPubSubEioMiddleware);
     }
+    debug(`constructor, finish`);
   }
 
   public async setup(): Promise<void> {
-    await this._setuped;
+    if (this.webPubSubConnectionManager.service instanceof InprocessServerProxy) {
+      await this._setuped;
+    }
   }
 
   protected override createTransport(transportName: string, req: unknown): engine.Transport {

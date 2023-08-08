@@ -1,13 +1,13 @@
 // Modified from // Modified from https://github.com/socketio/socket.io/blob/4.6.2/test/socket.ts
 
-import { Server, getEndpointFullPath, defaultWpsOptions } from "../SIO/support/util";
+import { Server, getEndpointFullPath, defaultWpsOptions, getServer, getPort } from "../SIO/support/util";
 import { NegotiateOptions, debugModule } from "../../src/common/utils";
 import { parse } from "url";
 import { IncomingMessage } from "http";
 import expect from "expect.js";
+const request = require("supertest");
 
 const debug = debugModule("wps-sio-ext:ut");
-const serverPort = Number(process.env.SocketIoPort);
 
 describe("negotiate", () => {
   it("works using negotiate", (done) => {
@@ -21,31 +21,35 @@ describe("negotiate", () => {
       } as NegotiateOptions;
     };
 
-    const io = new Server(
-      serverPort,
-      {},
-      { ...defaultWpsOptions, configureNegotiateOptions: configureNegotiateOptions }
-    );
+    const ioPromise = getServer(0, {}, { ...defaultWpsOptions, configureNegotiateOptions: configureNegotiateOptions });
 
-    const username = "bob";
-    const rawEndpoint = getEndpointFullPath(process.env.WebPubSubConnectionString ?? "");
-    const negotiateUrl = `${rawEndpoint}/socket.io/negotiate/?username=${username}&expirationMinutes=600`;
+    ioPromise.then((io) => {
+      const port = getPort(io);
+      const endpoint = `http://localhost:${port}`;
 
-    fetch(negotiateUrl)
-      .then((data) => data.json())
-      .then((data) => data.url)
-      .then((endpoint) => {
-        expect(endpoint.startsWith(rawEndpoint)).to.be(true);
-        expect(parse(endpoint, true).query.access_token).to.be.ok();
+      const username = "bob";
+      const negotiatePath = `/socket.io/negotiate/?username=${username}&expirationMinutes=600`;
 
-        // parse JWT token and check its sub claim
-        const token = parse(endpoint, true).query.access_token as string;
-        const tokenParts = token.split(".");
-        expect(tokenParts.length).to.be(3);
+      request(endpoint)
+        .get(negotiatePath)
+        .buffer(true)
+        .end((err, res) => {
+          if (err) return done(err);
+          expect(res.status).to.be(200);
+          const url = JSON.parse(res.text).url;
+          const serviceEndpoint = getEndpointFullPath(defaultWpsOptions.connectionString);
+          expect(url.startsWith(serviceEndpoint)).to.be(true);
+          expect(parse(url, true).query.access_token).to.be.ok();
 
-        const payload = JSON.parse(Buffer.from(tokenParts[1], "base64").toString());
-        expect(payload.sub).to.be(username);
-        done();
-      });
+          // parse JWT token and check its sub claim
+          const token = parse(url, true).query.access_token as string;
+          const tokenParts = token.split(".");
+          expect(tokenParts.length).to.be(3);
+
+          const payload = JSON.parse(Buffer.from(tokenParts[1], "base64").toString());
+          expect(payload.sub).to.be(username);
+          done();
+        });
+    });
   });
 });
