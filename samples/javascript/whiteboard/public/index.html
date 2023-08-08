@@ -32,7 +32,7 @@
               <button type="button" class="btn btn-lg btn-light" v-on:click="diagram.clear()" aria-label="clean button">
                 <i class="far fa-file"></i>
               </button>
-              <button type="button" class="btn btn-lg btn-light" v-on:click="$('#file-selector').click()" aria-label="file select button">
+              <button type="button" class="btn btn-lg btn-light" v-on:click="selectFile()" aria-label="file select button">
                 <i class="far fa-image"></i>
               </button>
               <button type="button" v-bind:class="{ btn: true, 'btn-lg': true, 'btn-light': true, disabled: !hasUndo }"
