@@ -92,8 +92,8 @@ export class ClientConnectionContext {
   public async close(): Promise<void> {
     try {
       await this.transport.send([{ type: "close" }]);
-    } catch {
-      // ignore
+    } catch (error) {
+      debug(`Close ClientConnectionContext got error: ${error}`);
     }
   }
 }
