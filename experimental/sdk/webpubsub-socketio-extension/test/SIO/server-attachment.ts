@@ -13,10 +13,15 @@ import {
   defaultWpsOptions as wpsOptions,
   attachmentPath,
   defaultAttachmentPath,
+  getServer,
+  updateAndGetInternalCounter,
+  getSioServerOptions,
+  baseServerPort,
 } from "./support/util";
+import { useAzureSocketIO } from "../../src";
 
 const request = require("supertest");
-const serverPort = Number(process.env.SocketIoPort);
+const serverPort = 3000;
 
 describe("server attachment", () => {
   describe("http.Server", () => {
@@ -172,26 +177,29 @@ describe("server attachment", () => {
 
   describe("port", () => {
     it("should be bound", (done) => {
-      const io = new Server(serverPort);
+      const ioPromise = getServer(0);
 
-      setTimeout(() => {
-        request(`http://localhost:${getPort(io)}`)
-          .get(defaultAttachmentPath)
-          .expect(200, successFn(done, io));
-      }, 200);
+      ioPromise.then((io) => {
+        setTimeout(() => {
+          request(`http://localhost:${getPort(io)}`)
+            .get(defaultAttachmentPath)
+            .expect(200, successFn(done, io));
+        }, 200);
+      });
     });
 
     /**
      * Note: This test is modified. See "Modification 4" in test.ts
      */
     it("with listen", (done) => {
-      const io = new NativeSioServer().listen(serverPort);
-      io.useAzureSocketIO(wpsOptions);
-      enableFastClose(io);
-
-      request(`http://localhost:${getPort(io)}`)
-        .get(defaultAttachmentPath)
-        .expect(200, successFn(done, io));
+      const expectPort = updateAndGetInternalCounter();
+      const io = new NativeSioServer().listen(baseServerPort + expectPort);
+      useAzureSocketIO(io, getSioServerOptions()).then((io) => {
+        enableFastClose(io);
+        request(`http://localhost:${getPort(io)}`)
+          .get(defaultAttachmentPath)
+          .expect(200, successFn(done, io));
+      });
     });
   });
 });

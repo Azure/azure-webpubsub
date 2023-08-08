@@ -2,26 +2,28 @@
 
 import { Server as _Server, ServerOptions, Socket } from "socket.io";
 import { io as ioc, ManagerOptions, Socket as ClientSocket, SocketOptions } from "socket.io-client";
+import { Server as HttpServer } from "http";
+import * as fs from "fs";
+import type { AddressInfo } from "net";
 import { debugModule } from "../../../src/common/utils";
 import * as wpsExt from "../../../src";
 import "../../../src"; // Otherwise: Error `this.useAzureSocketIO` is not a function
-import { Server as HttpServer } from "http";
-import { setTimeout } from "timers";
+
+export const debug = debugModule("wps-sio-ext:ut:sio:util");
+export const envFilePath = ".env.test";
 
 const request = require("supertest");
-
-const debug = debugModule("wps-sio-ext:ut:sio:util");
 const expect = require("expect.js");
 const i = expect.stringify;
 
 export const defaultWpsOptions = {
   hub: process.env.WebPubSubHub,
   connectionString: process.env.WebPubSubConnectionString,
-  webPubSubServiceClientOptions: { allowInsecureConnection: true },
 } as wpsExt.AzureSocketIOOptions;
 
-const serverPort = Number(process.env.SocketIoPort);
-debug(`SocketIO Server Port = ${serverPort}`);
+let internalCounter = process.env.InternalCounter ? parseInt(process.env.InternalCounter) : 0;
+
+export const baseServerPort = 3000;
 
 // e.g: /eventhandler/this-is-a-file.js
 export const attachmentPath = (filename: string, path: string = "/socket.io/"): string =>
@@ -30,30 +32,82 @@ export const attachmentPath = (filename: string, path: string = "/socket.io/"): 
 // e.g. /eventhandler/socket.io.js
 export const defaultAttachmentPath = attachmentPath("socket.io.js");
 
+export const getIndexedHub = (idx: number): string => `${process.env.WebPubSubHub}_${idx}`;
+
 // e.g. http://localhost:3000
 export const getClientConnectDomain = (): string => getEndpointFullPath(process.env.WebPubSubConnectionString ?? "");
 
 // e.g. /client/socket/hubs/eio_hub
-export const getClientConnectPath = (): string => `/clients/socketio/hubs/${process.env.WebPubSubHub}`;
+export const getClientConnectPath = (idx: number = 0): string => `/clients/socketio/hubs/${getIndexedHub(idx)}`;
 
 export const enableFastClose = (server: _Server): void => {
   server["httpServer"] = require("http-shutdown")(server["httpServer"]);
 };
 
 export class Server extends _Server {
-  constructor(srv?: number | HttpServer, opts?: Partial<ServerOptions>, wpsOpts?: wpsExt.AzureSocketIOOptions) {
-    if (typeof srv === "number") {
-      debug(`Server, port = ${srv}, opts = ${JSON.stringify(opts)}`);
-    } else {
-      debug(`Server, srv = ${srv}, opts = ${JSON.stringify(opts)}`);
-    }
+  /**
+   *
+   * @param srv - port for new HTTP server or a existing HTTP server.
+   * @param opts - option for Socket.IO server
+   */
+  constructor(srv?: number | HttpServer, opts?: Partial<ServerOptions>) {
+    debug(`Server, srv = ${srv}, opts = ${JSON.stringify(opts)}`);
     super(srv, opts);
-    this.useAzureSocketIO(wpsOpts || defaultWpsOptions);
+
     // `Server.close()` will trigger `HttpServer.close()`, which costs a lot of time
     // This is a trick to shutdown http server in a short time
     enableFastClose(this);
     // this["httpServer"] = require("http-shutdown")(this["httpServer"]);
+    debug(`Server, constructor, finish, srv=${srv}, opts=${JSON.stringify(opts)}`);
   }
+}
+
+export const updateAndGetInternalCounter = () => {
+  // Too large counter => Too large port number
+  internalCounter = (internalCounter + 1) % 5000;
+
+  // Add or update `InternalCounter` in file `.env.test`
+  if (!fs.existsSync(envFilePath)) {
+    fs.writeFileSync(envFilePath, "");
+  }
+  const envContent = fs.readFileSync(envFilePath, "utf8");
+
+  // If existing, replace it. If non-existing, append it.
+  if (envContent.includes("InternalCounter")) {
+    const updatedEnvContent = envContent.replace(/(InternalCounter=).*/, `$1${internalCounter}`);
+    fs.writeFileSync(envFilePath, updatedEnvContent);
+  } else {
+    const dataToAppend = `\nInternalCounter=${internalCounter}\n`;
+    fs.appendFileSync(envFilePath, dataToAppend);
+  }
+  return internalCounter;
+};
+
+export function getSioServerOptions(wpsOpts?: wpsExt.AzureSocketIOOptions) {
+  return wpsOpts
+    ? { ...wpsOpts, hub: getIndexedHub(internalCounter) }
+    : { ...defaultWpsOptions, hub: getIndexedHub(internalCounter) };
+}
+
+export async function getServer(
+  srv?: number | HttpServer,
+  opts?: Partial<ServerOptions>,
+  wpsOpts?: wpsExt.AzureSocketIOOptions
+): Promise<Server> {
+  debug(`getServer, srv = ${srv}, opts = ${JSON.stringify(opts)}, wpsOpts = ${JSON.stringify(wpsOpts)}`);
+  let port = baseServerPort + updateAndGetInternalCounter();
+  if (typeof srv === "number") {
+    port = srv > 0 ? srv : internalCounter + baseServerPort;
+    debug(`getServer, srv is port number, actual port = ${port}`);
+  } else {
+    port = getPort(srv as HttpServer);
+    debug(`getServer, srv is HttpServer, actual port = ${port}`);
+  }
+  const io = new Server(srv, opts);
+
+  const finalWpsOptions = getSioServerOptions(wpsOpts);
+  debug(`http port=${port}, hub=${finalWpsOptions.hub}`);
+  return io.useAzureSocketIO(finalWpsOptions);
 }
 
 // add support for Set/Map
@@ -95,33 +149,29 @@ export function getEndpointFullPath(connectionString: string): string {
   return `${endpoint}:${port}`;
 }
 
-export function createClient(
-  io: Server,
-  nsp: string = "/",
-  opts?: Partial<ManagerOptions & SocketOptions>
-): ClientSocket {
+export function createClient(nsp: string = "/", opts?: Partial<ManagerOptions & SocketOptions>): ClientSocket {
   const endpointFullPath = getEndpointFullPath(process.env.WebPubSubConnectionString ?? "");
-  opts = { path: getClientConnectPath(), ...opts };
+  opts = { path: getClientConnectPath(internalCounter), ...opts };
   let uri = `${endpointFullPath}${nsp}`;
   debug(`createClient, opts = ${JSON.stringify(opts)}, endpointFullPath = ${endpointFullPath}, uri = ${uri}`);
-
   return ioc(uri, opts);
 }
 
 export function shutdown(io: Server, cb?: (err?: Error) => void) {
+  debug("shutdown");
   const commonShutdown = () => {
+    debug("commonShutdown");
     io.close(() => {
       io.removeAllListeners();
       debug("SIO Server closed");
       cb && cb();
     });
   };
-  if (!io || !io["httpServer"]) commonShutdown();
-  io["httpServer"].shutdown((err) => {
-    if (err) {
-      debug(`Http Server shutdown failed: ${err.message}`);
-    }
-    debug("httpServer closed");
+  if (!io["httpServer"]) return commonShutdown();
+  // http server shutdown will trigger EIO engine close
+  io["httpServer"].shutdown((err: Error) => {
+    io["httpServer"] = null;
+    debug(`Http Server shutdown ` + (err ? `failed: ${err.message}` : "successfully"));
     commonShutdown();
   });
 }
@@ -138,9 +188,9 @@ export function successFn(done: Function, sio: Server, ...clientSockets: ClientS
   return () => success(done, sio, ...clientSockets);
 }
 
-export function getPort(io: Server): number {
-  // @ts-ignore
-  return io.httpServer.address().port;
+export function getPort(srv: Server | HttpServer): number {
+  const _getPort = (x: HttpServer) => (x.address() as AddressInfo).port;
+  return (srv as any).httpServer ? _getPort(srv["httpServer"]) : _getPort(srv as HttpServer);
 }
 
 export function createPartialDone(count: number, done: (err?: Error) => void) {
@@ -211,6 +261,7 @@ export function eioPoll(sid: string): Promise<string> {
  * @param intervalMilliseconds - the interval milliseconds between two `check` executions
  * @returns
  */
+
 export async function spinCheck(
   check: () => void,
   maxMilliseconds: number = 2000,

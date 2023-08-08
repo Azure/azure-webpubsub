@@ -16,7 +16,7 @@ debugModule.log = (msg, ...args): void => {
   console.log(`[${timestamp}] ${msg}`, ...args);
 };
 
-const debug = debugModule("wps-sio-ext:common:utils");
+export const debug = debugModule("wps-sio-ext:common:utils");
 
 export function addProperty(o: object, p: string, f: (...args: unknown[]) => unknown): void {
   Object.defineProperty(o, p, {

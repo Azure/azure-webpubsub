@@ -6,7 +6,6 @@ dotenv.config({ path: ".env.test" });
 import { Server, createClient, getPort, success, successFn, createPartialDone, spinCheck } from "./support/util";
 
 const expect = require("expect.js");
-const serverPort = Number(process.env.SocketIoPort);
 
 // Add an Web PubSub Option
 const wpsOptions = {
@@ -26,8 +25,8 @@ const partialDone2 = () => {
 };
 
 // Paste test code below. Sample:
-const io = new Server(serverPort);
-const socket = createClient(io, "/scacwn");
+const ioPromise = getServer(0);
+const socket = createClient("/scacwn");
 io.on("connection", (s) => {
   s.on("random", (a, b, c) => {
     expect(a).to.be(1);

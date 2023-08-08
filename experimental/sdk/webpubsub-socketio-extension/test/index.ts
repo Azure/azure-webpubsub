@@ -9,15 +9,16 @@ const wpsOptions = {
   hub: process.env.WebPubSubHub,
   connectionString: process.env.WebPubSubConnectionString,
 };
-console.debug("Unit Test Configuration:", JSON.stringify(wpsOptions));
+const optS = JSON.stringify(wpsOptions);
+console.debug(`Test Config = ${optS.substring(0, 60)}***${optS.slice(-20)}`);
 
-describe("WebPubSub Socket.IO Extension", () => {
-  if (wpsOptions.hub !== undefined || wpsOptions.connectionString !== undefined) {
+if (wpsOptions.hub !== undefined || wpsOptions.connectionString !== undefined) {
+  describe("WebPubSub Socket.IO Extension", () => {
     require("./SIO/index");
     require("./web-pubsub/index");
-  } else {
-    console.log(
-      "WebPubSub Socket.IO Extension test skipped. Please set the environment variables in 'test/.env.test' to enable the test."
-    );
-  }
-});
+  });
+} else {
+  console.log(
+    "WebPubSub Socket.IO Extension test skipped. Please set the environment variables in '.env.test' to enable the test."
+  );
+}
