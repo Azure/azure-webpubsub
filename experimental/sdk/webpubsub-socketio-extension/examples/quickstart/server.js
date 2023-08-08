@@ -5,7 +5,6 @@ const { useAzureSocketIO } = require("@azure/web-pubsub-socket.io");
 const wpsOptions = {
     hub: "eio_hub",
     connectionString: process.argv[2] || process.env.WebPubSubConnectionString,
-    webPubSubServiceClientOptions: { allowInsecureConnection: true }
 };
 
 let io = new Server(3000);
