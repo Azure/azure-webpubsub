@@ -46,10 +46,11 @@ export class WebPubSubEioServer extends engine.Server {
        * Force override `cleanup`, which is executed when closing EIO server.
        * In native implementation, it close internal WebSocket server, this is not needed when using Azure Web PubSub.
        */
-      this["cleanup"] = () => {
+      this["cleanup"] = async () => {
         // TODO: Find the optimal time to close the tunnel
-        // debug("cleanup, stop internal tunnel");
-        // tunnel.stop();
+        debug("cleanup, stop internal tunnel");
+        await this.webPubSubConnectionManager.close();
+        tunnel.stop();
       };
     } else {
       debug("constructor, use RestApiServiceCaller");

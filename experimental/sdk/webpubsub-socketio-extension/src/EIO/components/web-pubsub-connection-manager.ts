@@ -128,6 +128,7 @@ export class WebPubSubConnectionManager {
           // Each Socket instance manages a unique `transport` property. Give transport the access to its manager Socket.
           // This step enables tranposrt call `flush` method of its manager Socket.
           this.eioServer["clients"][connectionId]["transport"]["socket"] = this.eioServer["clients"][connectionId];
+          context.transport = this.eioServer["clients"][connectionId]["transport"];
         } catch (error) {
           debug(`onConnect, req = ${req}, err = ${error}`);
           const errorMessage = `EIO server cannot handle connect request with error: ${error}`;
@@ -212,6 +213,12 @@ export class WebPubSubConnectionManager {
   }
 
   public getNextSid = (): string | undefined => this._candidateSids.shift();
+
+  public async close(): Promise<void> {
+    this._clientConnections.forEach(async (context) => {
+      await context.close();
+    });
+  }
 
   /**
    * Convert an AWPS `connect` request to an Engine.IO `handshake` request.
