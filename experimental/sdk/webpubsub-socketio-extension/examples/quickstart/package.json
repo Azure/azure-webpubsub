@@ -1,0 +1,16 @@
+{
+    "name": "webpubsub-socket.io-quickstart",
+    "version": "0.0.0",
+    "main": "server.js",
+    "type": "module",
+    "private": true,
+    "license": "BSD",
+    "dependencies": {
+        "@azure/web-pubsub-socket.io": "1.0.0-alpha.20230803.1",
+        "socket.io-client": "^4.7.2"
+    },
+    "scripts": {
+        "server": "node server.js",
+        "client": "node client.js"
+    }
+}
