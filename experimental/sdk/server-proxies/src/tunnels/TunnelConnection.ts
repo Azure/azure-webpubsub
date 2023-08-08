@@ -315,7 +315,6 @@ export class TunnelConnection {
       reverseProxy.pathname = appendPath(reverseProxy.pathname, HttpTunnelPath);
       reverseProxy.search = uriBuilder.search;
     }
-    console.log(`Endpoint: ${uriBuilder.toString()}`);
     return { endpoint: uriBuilder, reverseProxyEndpoint: reverseProxy };
   }
 }
