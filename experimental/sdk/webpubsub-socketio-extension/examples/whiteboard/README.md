@@ -6,7 +6,7 @@ A simple collaborative whiteboard for Socket.IO with Azure Web PubSub
 ### Update endpoint in `public/main.js`
 
 ```js
-const webPubSubEndpoint = "https://<endpoint of web pubsub for socket.io>";
+const webPubSubEndpoint = "https://<host name of web pubsub for socket.io>";
 ```
 
 ### Run the server
