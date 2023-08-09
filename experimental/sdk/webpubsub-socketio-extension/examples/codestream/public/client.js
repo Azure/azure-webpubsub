@@ -20,10 +20,10 @@ function updateStatus(status) {
     document.querySelector('#status').textContent = status;
 }
 
-async function initialize(url) {
+async function initialize(url, isWriter) {
     let res = await fetch(url);
     let data = await res.json();
-    updateStreamId(data.room_id);
+    if (isWriter) updateStreamId(data.room_id);
     let editor = createEditor(document.getElementById("monacoeditor"), false);//monaco editor.executeEdits() won't work in readyonly mode
 
     var socket = io(data.url, {
@@ -50,8 +50,8 @@ function sendToRoom(socket, room_id, data) {
     });
 }
 
-async function startStream() {
-    let [socket, editor, room_id] = await initialize('/negotiate');
+async function startWriter() {
+    let [socket, editor, room_id] = await initialize('/negotiate', true);
     let changes = [];
     let content = '';
     let version = 0;
@@ -67,7 +67,7 @@ async function startStream() {
     }
 
     socket.on("login", () => {
-        updateStatus('Connected');
+        updateStatus('You are a writer. Connected');
         joinRoom(socket, `${room_id}-control`);
         setInterval(() => flush(), 200);
         editor.getModel().onDidChangeContent((e) => { changes.push(e); });  //editor.on('change', e => changes.push(e));
@@ -85,11 +85,11 @@ async function startStream() {
     });
 }
 
-async function watch(room_id) {
+async function startViewer(room_id) {
     let version = -1;
-    let [socket, editor] = await initialize(`/negotiate?room_id=${room_id}`)
+    let [socket, editor] = await initialize(`/negotiate?room_id=${room_id}`, false)
     socket.on("login", () => {
-        updateStatus('Connected');
+        updateStatus('You are a viewer. Connected');
         joinRoom(socket, `${room_id}`);
     });
 
@@ -126,5 +126,5 @@ async function watch(room_id) {
 }
 
 let room_id = location.hash.slice(1);
-if (!room_id) startStream();
-else watch(room_id);
+if (!room_id) startWriter();
+else startViewer(room_id);

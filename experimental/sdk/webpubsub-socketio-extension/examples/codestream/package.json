@@ -9,7 +9,7 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
-    "@azure/web-pubsub-socket.io": "1.0.0-alpha.20230804.1",
+    "@azure/web-pubsub-socket.io": "1.0.0-beta.2",
     "express": "^4.18.2"
   }
 }
