@@ -4,7 +4,7 @@
   console.log("The send behaviour is 3X for test purpose in L58");
   var url, socket;
 
-  const webpubsubEndpoint = "localhost:8080";
+  const webpubsubEndpoint = "https://<web-pubsub-for-socketio-hostname>";
   socket = io(webpubsubEndpoint, {transports:["polling", "websocket"], path: "/clients/socketio/hubs/eio_hub", reconnection: false});
   
   var canvas = document.getElementsByClassName('whiteboard')[0];

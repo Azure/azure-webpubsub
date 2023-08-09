@@ -8,6 +8,7 @@ import {
 } from "@azure/web-pubsub-express";
 import { WEBPUBSUB_CONNECT_RESPONSE_FIELD_NAME } from "./constants";
 import { WebPubSubServiceCaller } from "../../serverProxies";
+import { Transport } from "engine.io";
 
 const debug = debugModule("wps-sio-ext:EIO:ClientConnectionContext");
 
@@ -27,6 +28,7 @@ export class ClientConnectionContext {
   public service: WebPubSubServiceCaller;
   public connectionId: string;
   public connectResponded: boolean;
+  public transport: Transport;
   private _connectResponseHandler: WebPubSubConnectResponseHandler;
   private _refusedCallback: (error: string) => void;
 
@@ -84,6 +86,14 @@ export class ClientConnectionContext {
     this.connectResponded = true;
     if (this._refusedCallback) {
       this._refusedCallback(errorMessage);
+    }
+  }
+
+  public async close(): Promise<void> {
+    try {
+      await this.transport.send([{ type: "close" }]);
+    } catch (error) {
+      debug(`Close ClientConnectionContext got error: ${error}`);
     }
   }
 }

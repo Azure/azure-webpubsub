@@ -308,7 +308,6 @@ opts = ${toOptionsString(opts)}, namespace = "${this.nsp.name}, error = ${e}"`);
    */
   public async delSockets(opts: BroadcastOptions, rooms: Room[]): Promise<void> {
     debug(`delSockets, start, rooms = ${toString(rooms)}, opts = ${toOptionsString(opts)}`);
-    const localSockets = await super.fetchSockets(opts);
     try {
       const oDataFilter = this._buildODataFilter(opts.rooms, opts.except);
       const groupNames = Array.from(rooms).map((room) => this._getGroupName(this.nsp.name, room));
