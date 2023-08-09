@@ -16,7 +16,7 @@ async function main() {
   const $loginPage = $('.login.page');        // The login page
   const $chatPage = $('.chat.page');          // The chatroom page
 
-  const webPubSubEndpoint = "localhost:8080";
+  const webPubSubEndpoint = "https://<web-pubsub-for-socketio-hostname>";
   var socket = io(webPubSubEndpoint, {
     path: "/clients/socketio/hubs/eio_hub",
   });
