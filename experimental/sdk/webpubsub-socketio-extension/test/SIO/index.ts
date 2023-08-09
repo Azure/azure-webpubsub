@@ -32,19 +32,30 @@
 "use strict";
 
 describe("socket.io", () => {
-  require("./server-attachment");
-  // handshake.ts: CORS is not supported
+  /**
+   * Core Features
+   */
   require("./namespace");
-  require("./socket");
+  require("./socket"); // For Reviewer: Works well steadily. No need to test specially.
   require("./messaging-many");
+  // TODO: If "./close" is put before "./namespace", the test "should fire a `connection` event" will be extremly slow or fail. Need more investigation.
+  require("./close");
+
+  /**
+   * Side Features
+   */
+  require("./server-attachment");
   require("./middleware");
   require("./socket-middleware");
-  // v2-compatibility.ts: Not supported yet
   require("./socket-timeout");
-  // uws.ts: Makes no sense for this package
   require("./utility-methods");
-  // connection-state-recovery.ts: Not supported yet
 
-  // // TODO: If "./close" is put before "./namespace", the test "should fire a `connection` event" will be extremly slow or fail. Need more investigation.
-  require("./close");
+  /**
+   * Not Supported
+   *
+   * uws.ts: Makes no sense for this package
+   * v2-compatibility.ts: Not supported and no plan to support
+   * handshake.ts: CORS is not supported
+   * connection-state-recovery.ts: Not supported yet
+   */
 });

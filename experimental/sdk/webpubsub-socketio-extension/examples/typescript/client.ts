@@ -1,6 +1,6 @@
 import { io } from "socket.io-client";
 
-const endpoint = "http://localhost:8080";
+const endpoint = "https://<web-pubsub-for-socketio-hostname>";
 const socket = io(endpoint, {
     path: "/clients/socketio/hubs/eio_hub",
     reconnection: false

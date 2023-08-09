@@ -305,7 +305,7 @@ export class TunnelConnection {
     }
 
     if (target.target) {
-      uriBuilder.search = `${uriBuilder.search}&${encodeURIComponent(target.target)}`;
+      uriBuilder.search = `${uriBuilder.search}&target=${encodeURIComponent(target.target)}`;
     }
 
     let reverseProxy: URL | undefined = undefined;
@@ -315,7 +315,6 @@ export class TunnelConnection {
       reverseProxy.pathname = appendPath(reverseProxy.pathname, HttpTunnelPath);
       reverseProxy.search = uriBuilder.search;
     }
-
     return { endpoint: uriBuilder, reverseProxyEndpoint: reverseProxy };
   }
 }

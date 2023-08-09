@@ -8,7 +8,7 @@ A simple Typescript demo for Socket.IO with Azure Web PubSub
 ### Update endpoint in `client.ts`
 
 ```js
-const endpoint = "https://<endpoint of web pubsub for socket.io>";
+const endpoint = "https://<host name of web pubsub for socket.io>";
 ```
 
 ### Run the server

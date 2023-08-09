@@ -198,6 +198,7 @@ async function initialize() {
     el: '#app',
     data: appData,
     methods: {
+      selectFile: () => $('#file-selector').click(),
       upload: async function () {
         let b = await resizeImage(event.target.files[0], this.maxImageSize);
         let formData = new FormData($('#uploadForm')[0]);
