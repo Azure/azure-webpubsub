@@ -20,6 +20,7 @@ import {
 import type { BaseServer } from "engine.io";
 import { ConnectRequest as WebPubSubConnectRequest, WebPubSubEventHandler } from "@azure/web-pubsub-express";
 import { WebPubSubServiceCaller } from "../../serverProxies";
+import { WebPubSubEioServer } from "..";
 
 const debug = debugModule("wps-sio-ext:EIO:ConnectionManager");
 
@@ -34,7 +35,7 @@ export class WebPubSubConnectionManager {
   /**
    * Each `WebPubSubConnectionManager` instance is bound to a Engine.IO server instance and vice versa.
    */
-  public eioServer: BaseServer;
+  public eioServer: WebPubSubEioServer;
 
   /**
    * Client for connecting to a Web PubSub hub
@@ -64,7 +65,7 @@ export class WebPubSubConnectionManager {
    */
   private _candidateSids: Array<string> = [];
 
-  constructor(server: BaseServer, options: AzureSocketIOOptions | AzureSocketIOCredentialOptions) {
+  constructor(server: WebPubSubEioServer, options: AzureSocketIOOptions | AzureSocketIOCredentialOptions) {
     this.service = getWebPubSubServiceCaller(options, true);
     this.eioServer = server;
     this._webPubSubOptions = options;
@@ -115,20 +116,7 @@ export class WebPubSubConnectionManager {
           this._candidateSids.push(connectionId);
           this._clientConnections.set(connectionId, context);
 
-          await this.eioServer["handshake"](
-            WEBPUBSUB_TRANSPORT_NAME,
-            connectReq,
-            (errorCode: number, errorContext: unknown) => {
-              const message =
-                errorContext && errorContext["message"] ? errorContext["message"] : EIO_CONNECTION_ERROR[errorCode];
-              context.onRefuseEioConnection(message);
-            }
-          );
-
-          // Each Socket instance manages a unique `transport` property. Give transport the access to its manager Socket.
-          // This step enables tranposrt call `flush` method of its manager Socket.
-          this.eioServer["clients"][connectionId]["transport"]["socket"] = this.eioServer["clients"][connectionId];
-          context.transport = this.eioServer["clients"][connectionId]["transport"];
+          await this.eioServer.onConnect(connectionId, connectReq, context);
         } catch (error) {
           debug(`onConnect, req = ${req}, err = ${error}`);
           const errorMessage = `EIO server cannot handle connect request with error: ${error}`;
@@ -145,13 +133,7 @@ export class WebPubSubConnectionManager {
           debug(`onUserEvent, connectionId = ${connectionId}, req.data = ${req.data}`);
 
           if (this._clientConnections.has(connectionId)) {
-            const client = this.eioServer["clients"][connectionId];
-
-            const packets = await client.transport.parser.decodePayload(req.data); // prettier-ignore
-
-            for (const packet of packets) {
-              client.onPacket(packet);
-            }
+            await this.eioServer.onUserEvent(connectionId, req.data);
             return res.success();
           } else {
             // `UserEventResponseHandler.fail(code, ...)` cannot set `code` with 404. Only 400, 401 and 500 are available.
@@ -168,7 +150,7 @@ export class WebPubSubConnectionManager {
         debug(`onDisconnected, connectionId = ${connectionId}`);
         if (this._clientConnections.delete(connectionId)) {
           try {
-            this.eioServer["clients"][connectionId].transport.onClose();
+            await this.eioServer.onDisconnected(connectionId);
             debug(`onDisconnected, Failed to delete non-existing connectionId = ${connectionId}`);
           } catch (err) {
             debug(`onDisconnected, Failed to close client connection, connectionId = ${connectionId}, err = ${err}`);
