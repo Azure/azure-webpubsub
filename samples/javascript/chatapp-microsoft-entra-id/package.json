@@ -1,5 +1,5 @@
 {
-  "name": "chatapp-aad",
+  "name": "chatapp-microsoft-entra-id",
   "version": "1.0.0",
   "description": "",
   "main": "server.js",

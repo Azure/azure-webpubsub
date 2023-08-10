@@ -1,6 +1,6 @@
-# Create a chat app with aad auth
+# Create a chat app with Microsoft Entra ID
 
-This sample is to help you create a chat app with aad auth method.
+This sample is to help you create a chat app with Microsoft Entra ID.
 
 ## Prerequisites
 

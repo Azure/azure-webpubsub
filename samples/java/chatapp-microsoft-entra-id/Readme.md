@@ -1,6 +1,6 @@
-# Create a chat app with aad auth
+# Create a chat app with Microsoft Entra ID
 
-This sample is to help you create a chat app with aad auth method.
+This sample is to help you create a chat app with Microsoft Entra ID.
 
 ## Prerequisites
 
@@ -11,8 +11,8 @@ This sample is to help you create a chat app with aad auth method.
 5. [Azure CLI](https://docs.microsoft.com/cli/azure/) or [Azure Powershell](https://docs.microsoft.com/powershell/azure/)
 
 ## Getting started
-   
-### 1. Compile and build your java project.
+
+### 1. Compile and build your java project
 
 ```bash
 mvn compile
@@ -36,7 +36,7 @@ lt --port 8080 --print-requests
 localtunnel will print out an url (`https://<domain-name>.loca.lt`) that can be accessed from internet, e.g. `https://xxx.loca.lt`.
 
 > Tip:
-> There is one known issue that [localtunnel goes offline when the server restarts](https://github.com/localtunnel/localtunnel/issues/466) and [here is the workaround](https://github.com/localtunnel/localtunnel/issues/466#issuecomment-1030599216)  
+> There is one known issue that [localtunnel goes offline when the server restarts](https://github.com/localtunnel/localtunnel/issues/466) and [here is the workaround](https://github.com/localtunnel/localtunnel/issues/466#issuecomment-1030599216)
 
 There are also other tools to choose when debugging the webhook locally, for example, [ngrok](​https://ngrok.com/), [loophole](https://loophole.cloud/docs/), [TunnelRelay](https://github.com/OfficeDev/microsoft-teams-tunnelrelay) or so. Some tools might have issue returning response headers correctly. Try the following command to see if the tool is working properly:
 
@@ -46,19 +46,19 @@ curl https://<domain-name>.loca.lt/eventhandler -X OPTIONS -H "WebHook-Request-O
 
 Check if the response header contains `webhook-allowed-origin: *`. This curl command actually checks if the WebHook [abuse protection request](https://docs.microsoft.com/azure/azure-web-pubsub/reference-cloud-events#webhook-validation) can response with the expected header.
 
-
-### 4. Configure an event handler on Azure portal.
+### 4. Configure an event handler on Azure portal
 
 1. Open [Azure Portal](https://ms.portal.azure.com/), search for and select your `Azure Web PubSub` resource.
 2. Under **Settings** section, click **Settings**.
 3. Click **Add**.
-3. Enter `sample_aadchat` as **Hub name**.
-4. Set **URL template** to `https://<name>.loca.lt/eventhandler`
-5. Click **System events**, then select **connected** to let the service sends `connected` events to your upstream server.
-    ![Event Handler](../../images/portal_event_handler_aadchat.png)
-1. Click **Save** to confirm the change.
+4. Enter `sample_aadchat` as **Hub name**.
+5. Set **URL template** to `https://<name>.loca.lt/eventhandler`
+6. Click **System events**, then select **connected** to let the service sends `connected` events to your upstream server.
+   ![Event Handler](../../images/portal_event_handler_aadchat.png)
+7. Click **Save** to confirm the change.
 
 ### 5. Configure Role-Based Access Control (RBAC)
+
 1. Open [Azure Portal](https://ms.portal.azure.com/), search for and select your `Azure Web PubSub` resource.
 1. Select **Access control (IAM)**.
 1. Click **Add > Add role assignment**.

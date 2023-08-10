@@ -7,7 +7,7 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "chatapp", "chatapp\chatapp.
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "blazor-webassembly", "blazor-webassembly\blazor-webassembly.csproj", "{37A390E9-156A-475A-93CB-C5F8D4F7371C}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "chatapp-aad", "chatapp-aad\chatapp-aad.csproj", "{7AB618C9-3ACA-4B82-89E5-BCB057E8C78A}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "chatapp-microsoft-entra-id", "chatapp-microsoft-entra-id\chatapp-microsoft-entra-id.csproj", "{7AB618C9-3ACA-4B82-89E5-BCB057E8C78A}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "chatapp-net6", "chatapp-net6\chatapp-net6.csproj", "{1C61B67B-7B29-4759-BB7C-C2DF67E0BC08}"
 EndProject

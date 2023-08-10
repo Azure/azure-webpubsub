@@ -31,7 +31,6 @@ let handler = new WebPubSubEventHandler(hubName, {
       type: "system",
       message: `${req.context.userId} joined`
     });
-    console.log("123")
     res.success();
   },
   handleUserEvent: async (req, res) => {

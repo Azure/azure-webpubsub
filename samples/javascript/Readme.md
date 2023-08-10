@@ -2,7 +2,7 @@
 
 * [A client-subscribe and server-publish messages demo](./pubsub)
 * [A simple chat demo](./chatapp)
-* [A simple chat demo using AAD](./chatapp-aad)
+* [A simple chat demo with Microsoft Entra ID](./chatapp-microsoft-entra-id)
 * [A simple chat demo using GitHub OAuth](./githubchat)
 * [A log streaming sample using the WebSocket subprotocol](./logstream)
 * [A client-only publish/subscribe messages using WebSocket subprotocol](./clientpubsub)

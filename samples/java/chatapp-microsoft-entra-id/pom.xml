@@ -8,7 +8,7 @@
   <artifactId>webpubsub-tutorial-chat</artifactId>
   <version>1.0-SNAPSHOT</version>
 
-  <name>webpubsub-tutorial-chat-aad</name>
+  <name>webpubsub-tutorial-chat-with-microsoft-entra-id</name>
   <!-- FIXME change it to the project's website -->
   <url>http://www.example.com</url>
 
