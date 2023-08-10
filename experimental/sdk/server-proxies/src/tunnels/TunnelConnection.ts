@@ -81,10 +81,9 @@ export class TunnelConnection {
   }
 
   public async invokeAsync(httpRequest: HttpRequestLike, abortSignal?: AbortSignalLike): Promise<HttpResponseLike> {
-    // TODO: what is the send balance strategy?
     const client = this.getClient();
     if (!client) {
-      throw new Error("No connection started.");
+      throw new Error("No connection available.");
     }
     const ackId = this.nextAckId();
     const pcs = new PromiseCompletionSource<HttpResponseLike>();
@@ -148,10 +147,26 @@ export class TunnelConnection {
     });
   }
 
-  private getClient(): WebPubSubTunnelClient | undefined {
-    for (const [_, client] of this.clients) {
-      return client;
+  private getRandomKey() : string | undefined {
+    const keys = Array.from(this.clients.keys());
+    if (keys.length === 0) {
+      return undefined;
     }
+
+    return keys[Math.floor(Math.random() * keys.length)];
+  }
+
+  private getClient(): WebPubSubTunnelClient | undefined {
+    let client: WebPubSubTunnelClient | undefined;
+    let i = 0;
+    do {
+      const key = this.getRandomKey();
+      if (!key) return undefined;
+      client = this.clients.get(key);
+      i++;
+    } while (i <= 5 && (!client || client.stopped));
+    
+    return client;
   }
 
   private async processMessage(client: WebPubSubTunnelClient, message: TunnelMessage, abortSignal?: AbortSignalLike): Promise<void> {
