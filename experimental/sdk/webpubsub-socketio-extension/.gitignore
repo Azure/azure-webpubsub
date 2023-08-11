@@ -4,3 +4,4 @@ dist-esm/
 types/
 node_modules/
 yarn.lock
+.env.test

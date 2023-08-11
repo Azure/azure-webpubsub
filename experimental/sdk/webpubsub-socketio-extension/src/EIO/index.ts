@@ -6,6 +6,8 @@ import { WebPubSubTransport } from "./components/web-pubsub-transport";
 import { WebPubSubConnectionManager } from "./components/web-pubsub-connection-manager";
 import * as engine from "engine.io";
 import { InprocessServerProxy } from "../serverProxies";
+import { EIO_CONNECTION_ERROR, WEBPUBSUB_TRANSPORT_NAME } from "./components/constants";
+import { ClientConnectionContext } from "./components/client-connection-context";
 
 const debug = debugModule("wps-sio-ext:EIO:index");
 debug("load");
@@ -84,4 +86,27 @@ export class WebPubSubEioServer extends engine.Server {
    * @returns a list of available transports for upgrade given a certain Transport `transport`
    */
   public override upgrades = (transport: string): Array<string> => [];
+
+  public async onConnect(connectionId: string, connectReq: unknown, context: ClientConnectionContext): Promise<void> {
+    await this.handshake(WEBPUBSUB_TRANSPORT_NAME, connectReq, (errorCode: number, errorContext: unknown) => {
+      const message =
+        errorContext && errorContext["message"] ? errorContext["message"] : EIO_CONNECTION_ERROR[errorCode];
+      context.onRefuseEioConnection(message);
+    });
+
+    context.transport = this.clients[connectionId].transport;
+  }
+
+  public async onUserEvent(connectionId: string, content: unknown): Promise<void> {
+    const client = this.clients[connectionId];
+    const packets = await client.transport.parser.decodePayload(content);
+
+    for (const packet of packets) {
+      client.onPacket(packet);
+    }
+  }
+
+  public async onDisconnected(connectionId: string): Promise<void> {
+    this.clients[connectionId].transport.onClose();
+  }
 }
