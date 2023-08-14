@@ -73,12 +73,21 @@ opts = ${toOptionsString(opts)}, namespace = "${this.nsp.name}"`);
 
       const encodedPayload = await getSingleEioEncodedPayload(packet);
 
-      const oDataFilter = this._buildODataFilter(opts.rooms, opts.except);
-      const sendOptions = { filter: oDataFilter, contentType: "text/plain" };
-      debug(`broadcast, encodedPayload = "${encodedPayload}", sendOptions = "${JSON.stringify(sendOptions)}"`);
-
-      await this.service.sendToAll(encodedPayload, sendOptions);
-      debug(`broadcast, finish`);
+      // optimize
+      if (opts.rooms.size === 1) {
+        const oDataFilter = this._buildODataFilterForExceptsOnly(opts.except);
+        const sendOptions = { filter: oDataFilter, contentType: "text/plain" };
+        debug(`broadcast, encodedPayload = "${encodedPayload}", sendOptions = "${JSON.stringify(sendOptions)}"`);
+        const encodedGroupName = this._getGroupName(this.nsp.name, opts.rooms.values().next().value);
+        await this.service.group(encodedGroupName).sendToAll(encodedPayload, sendOptions);
+        debug(`broadcast, finish`);
+      } else {
+        const oDataFilter = this._buildODataFilter(opts.rooms, opts.except);
+        const sendOptions = { filter: oDataFilter, contentType: "text/plain" };
+        debug(`broadcast, encodedPayload = "${encodedPayload}", sendOptions = "${JSON.stringify(sendOptions)}"`);
+        await this.service.sendToAll(encodedPayload, sendOptions);
+        debug(`broadcast, finish`);
+      }
     } catch (e) {
       debug(`broadcast, error, packet = ${JSON.stringify(packet)},\
 opts = ${toOptionsString(opts)}, namespace = "${this.nsp.name}", error = ${e}`);
@@ -351,7 +360,7 @@ opts = ${toOptionsString(opts)}, error = ${e}`);
   /**
    * Generates OData filter string for Web PubSub service from a set of rooms and a set of exceptions
    * @param rooms - a set of Rooms to include
-   * @param except - a set of Rooms to exclude
+   * @param excepts - a set of Rooms to exclude
    * @returns OData - filter string
    */
   private _buildODataFilter(rooms: Set<string>, excepts?: Set<string> | undefined): string {
@@ -382,6 +391,28 @@ opts = ${toOptionsString(opts)}, error = ${e}`);
     } else result = denyFilter.length > 0 ? `${denyFilter}` : "";
     debug(`_buildODataFilter result = ${result}`);
     return result;
+  }
+
+  /**
+   * Generates OData filter string for Web PubSub service from a set of exceptions
+   * @param excepts - a set of Rooms to exclude
+   * @returns OData - filter string
+   */
+  private _buildODataFilterForExceptsOnly(excepts?: Set<string> | undefined): string {
+    debug("_buildODataFilterForExceptsOnly");
+    let except_idx = 0;
+
+    let denyFilter = "";
+    if (excepts) {
+      for (const except of excepts) {
+        const exceptGroupName = this._getGroupName(this.nsp.name, except);
+        denyFilter += `not ('${exceptGroupName}' in groups)` + (except_idx === excepts.size - 1 ? "" : " and ");
+        except_idx++;
+      }
+    }
+
+    debug(`_buildODataFilterForExceptsOnly result = ${denyFilter}`);
+    return denyFilter;
   }
 
   private _getEioSid(sioSid: string): string {

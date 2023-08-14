@@ -26,6 +26,7 @@ export interface WebPubSubServiceCaller {
   addConnectionsToGroups(groups: string[], filter: string): Promise<void>;
   group(groupName: string): {
     removeConnection(connectionId: string): Promise<void>;
+    sendToAll(message: string, options?: { filter: string; contentType: string }): Promise<void>;
   };
   invoke(message: string, body: (data: Uint8Array|undefined, end: boolean) => void, options?: { filter: string; contentType: string }): Promise<void>;
 }
@@ -61,10 +62,16 @@ export class InprocessServerProxy implements WebPubSubServiceCaller {
     this._hub = hub;
   }
 
-  public group(groupName: string): { removeConnection(connectionId: string): Promise<void>; } {
+  public group(groupName: string): { 
+    removeConnection(connectionId: string): Promise<void>;
+    sendToAll(message: string, options?: { filter: string; contentType: string }): Promise<void>;
+   } {
     return {
       removeConnection: (connectionId: string) => {
-        return this._removeConnectionFromGroup(connectionId, groupName)
+        return this._removeConnectionFromGroup(connectionId, groupName);
+      },
+      sendToAll: (message: string, options?: { filter: string; contentType: string }): Promise<void> => {
+        return this._sendToGroup(groupName, message, options);
       }
     }
   }
@@ -141,6 +148,23 @@ export class InprocessServerProxy implements WebPubSubServiceCaller {
     let response = await this._tunnel.invokeAsync(request);
     if (response.statusCode !== 200 && response.statusCode !== 204) {
       throw new Error(`removeConnectionFromGroup got unexpected status code ${response.statusCode}`);
+    }
+  }
+
+  private async _sendToGroup(groupName: string, message: string, options?: { filter: string; contentType: string }): Promise<void> {
+    let query = {};
+    if (options?.filter) {
+      query = {"filter": options.filter};
+    }
+    let request = {
+      method: httpMethodPost,
+      url: this._getUrl(`/api/hubs/${this._hub}/groups/${groupName}/:send`, query),
+      content: this._encoder.encode(message),
+      contentType: "text/plain",
+    } as HttpRequestLike
+    let response = await this._tunnel.invokeAsync(request);
+    if (response.statusCode !== 202) {
+      throw new Error(`sendToGroup got unexpected status code ${response.statusCode}`);
     }
   }
 
