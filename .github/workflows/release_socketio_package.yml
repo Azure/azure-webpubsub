@@ -82,9 +82,3 @@ jobs:
       run: |
         azcopy login --service-principal --application-id $ID
         azcopy copy ${{ steps.socketio.outputs.packagePath }} "$URL/azure-webpubsub/js/$BUILDNUMBER/"
-    - name: Publish SocketIO Artifacts
-      if: steps.compare_versions.outputs.version_changed == 'true'
-      uses: actions/upload-artifact@v2
-      with:
-        name: socketio package
-        path: ${{ steps.socketio.outputs.packagePath }} 
