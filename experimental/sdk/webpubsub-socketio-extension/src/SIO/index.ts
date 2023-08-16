@@ -101,15 +101,10 @@ function getNegotiateHandler(): (
     let message = {};
     try {
       const negotiateOptions = await configureNegotiateOptions(req);
-
       // Example: https://<web-pubsub-endpoint>?access_token=ABC.EFG.HIJ
       const tokenResponse = await serviceClient.getClientAccessToken(negotiateOptions);
-      const url = new URL(req.url, tokenResponse.baseUrl);
-      const protocol = url.protocol.replace("wss", "https").replace("ws", "http");
-      const endpointWithToken = `${protocol}//${url.host}?access_token=${tokenResponse.token}`;
-
       statusCode = 200;
-      message = { url: endpointWithToken };
+      message = { url: tokenResponse.url };
     } catch (e) {
       statusCode = 500;
       message = { message: "Internal Server Error" };
