@@ -170,80 +170,84 @@ export class TunnelConnection {
   }
 
   private async processMessage(client: WebPubSubTunnelClient, message: TunnelMessage, abortSignal?: AbortSignalLike): Promise<void> {
-    switch (message.Type) {
-      case TunnelMessageType.HttpResponse: {
-        const tunnelResponse = message as TunnelHttpResponseMessage;
-        logger.info(`Getting http response ${tunnelResponse.TracingId ?? ""}: ackId: ${tunnelResponse.AckId}, statusCode: ${tunnelResponse.StatusCode}, notComplete: ${tunnelResponse.NotCompleted}`);
-        const ackId = tunnelResponse.AckId;
-        if (this._ackMap.has(ackId)) {
-          const entity = this._ackMap.get(ackId)!;
-          entity.write(tunnelResponse, null, !tunnelResponse.NotCompleted);
-          if (!tunnelResponse.NotCompleted) {
-            this._ackMap.delete(ackId);
+    try {
+      switch (message.Type) {
+        case TunnelMessageType.HttpResponse: {
+          const tunnelResponse = message as TunnelHttpResponseMessage;
+          logger.info(`Getting http response ${tunnelResponse.TracingId ?? ""}: ackId: ${tunnelResponse.AckId}, statusCode: ${tunnelResponse.StatusCode}, notComplete: ${tunnelResponse.NotCompleted}`);
+          const ackId = tunnelResponse.AckId;
+          if (this._ackMap.has(ackId)) {
+            const entity = this._ackMap.get(ackId)!;
+            entity.write(tunnelResponse, null, !tunnelResponse.NotCompleted);
+            if (!tunnelResponse.NotCompleted) {
+              this._ackMap.delete(ackId);
+            }
           }
+          break;
         }
-        break;
-      }
-      case TunnelMessageType.HttpRequest: {
-        const tunnelRequest = message as TunnelHttpRequestMessage;
-        logger.info(`Getting http request ${tunnelRequest.TracingId ?? ""}: ackId: ${tunnelRequest.AckId}, method: ${tunnelRequest.HttpMethod}, url: ${tunnelRequest.Url}`);
-        if (!this.requestHandler) {
-          throw new Error("Request handler not configured");
+        case TunnelMessageType.HttpRequest: {
+          const tunnelRequest = message as TunnelHttpRequestMessage;
+          logger.info(`Getting http request ${tunnelRequest.TracingId ?? ""}: ackId: ${tunnelRequest.AckId}, method: ${tunnelRequest.HttpMethod}, url: ${tunnelRequest.Url}`);
+          if (!this.requestHandler) {
+            throw new Error("Request handler not configured");
+          }
+  
+          const response = await this.requestHandler(tunnelRequest, abortSignal);
+          if (response) {
+            logger.info(`Sending response back ${tunnelRequest.TracingId ?? ""}: ackId:${tunnelRequest.AckId}, statusCode: ${response.StatusCode}, content-length: ${response.Content.length}`);
+            await client.sendAsync(
+              new TunnelHttpResponseMessage(
+                tunnelRequest.AckId,
+                tunnelRequest.LocalRouting,
+                response.StatusCode,
+                tunnelRequest.ChannelName,
+                false,
+                response.Headers,
+                response.Content
+              ),
+              abortSignal
+            );
+          }
+          break;
         }
-
-        const response = await this.requestHandler(tunnelRequest, abortSignal);
-        if (response) {
-          logger.info(`Sending response back ${tunnelRequest.TracingId ?? ""}: ackId:${tunnelRequest.AckId}, statusCode: ${response.StatusCode}, content-length: ${response.Content.length}`);
-          await client.sendAsync(
-            new TunnelHttpResponseMessage(
-              tunnelRequest.AckId,
-              tunnelRequest.LocalRouting,
-              response.StatusCode,
-              tunnelRequest.ChannelName,
-              false,
-              response.Headers,
-              response.Content
-            ),
+        case TunnelMessageType.ConnectionReconnect: {
+          const reconnect = message as TunnelConnectionReconnectMessage;
+          logger.info(`Reconnect the connection ${client.getPrintableIdentifier()}: ${reconnect.Message}`);
+          await this.stopConnection(client.id);
+          await this.startConnectionAsync(
+            {
+              endpoint: reconnect.Endpoint,
+              target: reconnect.TargetId,
+            },
             abortSignal
           );
+          break;
         }
-        break;
+        case TunnelMessageType.ConnectionClose: {
+          const close = message as TunnelConnectionCloseMessage;
+          logger.info(`Close the connection ${client.getPrintableIdentifier()}: ${close.Message}`);
+          this.stopConnection(client.id);
+          break;
+        }
+        case TunnelMessageType.ConnectionRebalance: {
+          const rebalance = message as TunnelConnectionRebalanceMessage;
+          logger.info(`Start another rebalance connection ${rebalance.Endpoint} -> ${rebalance.TargetId}`);
+          await this.startConnectionAsync(
+            {
+              endpoint: rebalance.Endpoint,
+              target: rebalance.TargetId,
+            },
+            abortSignal
+          );
+          break;
+        }
+        default: {
+          logger.info(`[TunnelConnection] Not Support TBD message type: ${message.Type}`);
+          break;
+        }
       }
-      case TunnelMessageType.ConnectionReconnect: {
-        const reconnect = message as TunnelConnectionReconnectMessage;
-        logger.info(`Reconnect the connection ${client.getPrintableIdentifier()}: ${reconnect.Message}`);
-        await this.stopConnection(client.id);
-        await this.startConnectionAsync(
-          {
-            endpoint: reconnect.Endpoint,
-            target: reconnect.TargetId,
-          },
-          abortSignal
-        );
-        break;
-      }
-      case TunnelMessageType.ConnectionClose: {
-        const close = message as TunnelConnectionCloseMessage;
-        logger.info(`Close the connection ${client.getPrintableIdentifier()}: ${close.Message}`);
-        this.stopConnection(client.id);
-        break;
-      }
-      case TunnelMessageType.ConnectionRebalance: {
-        const rebalance = message as TunnelConnectionRebalanceMessage;
-        logger.info(`Start another rebalance connection ${rebalance.Endpoint} -> ${rebalance.TargetId}`);
-        await this.startConnectionAsync(
-          {
-            endpoint: rebalance.Endpoint,
-            target: rebalance.TargetId,
-          },
-          abortSignal
-        );
-        break;
-      }
-      default: {
-        logger.info(`[TunnelConnection] Not Support TBD message type: ${message.Type}`);
-        break;
-      }
+    } catch (err) {
+      logger.warning(`Error processing message: ${err}`); 
     }
   }
 
