@@ -65,52 +65,41 @@ rawResponse = ${JSON.stringify(rawResponse)}`);
       getInvokeOperationSpec(this.endpoint)
     );
   }
-  
+
   /**
    * Generate a token for a client to connect to the Azure Web PubSub service.
    *
    * @param options - Additional options
    */
-  public async getClientAccessToken(
-    options: GenerateClientTokenOptions = {}
-  ): Promise<ClientTokenResponse> {
-    return tracingClient.withSpan(
-      "getClientAccessToken",
-      options,
-      async (updatedOptions) => {
-        const endpoint = this.endpoint.endsWith("/") ? this.endpoint : this.endpoint + "/";
-        const baseUrl = `${endpoint}clients/socketio/hubs/${this.hubName}`;
-        const credential = this["credential"];
-        const innerClient = this["client"];
-        let token: string;
-        if (isTokenCredential(credential)) {
-          const response = await innerClient.webPubSub.generateClientToken(
-            this.hubName,
-            updatedOptions
-          );
-          token = response.token!;
-        } else {
-          const key = credential.key;
-          const payload = { role: options?.roles, "webpubsub.group": options?.groups };
-          const signOptions: jwt.SignOptions = {
-            audience: baseUrl,
-            expiresIn:
-              options?.expirationTimeInMinutes === undefined
-                ? "1h"
-                : `${options.expirationTimeInMinutes}m`,
-            algorithm: "HS256",
-          };
-          if (options?.userId) {
-            signOptions.subject = options?.userId;
-          }
-          token = jwt.sign(payload, key, signOptions);
-        }
-
-        return {
-          token,
-          baseUrl,
-          url: `${baseUrl}?access_token=${token}`,
+  public async getClientAccessToken(options: GenerateClientTokenOptions = {}): Promise<ClientTokenResponse> {
+    return tracingClient.withSpan("getClientAccessToken", options, async (updatedOptions) => {
+      const endpoint = this.endpoint.endsWith("/") ? this.endpoint : this.endpoint + "/";
+      const baseUrl = `${endpoint}clients/socketio/hubs/${this.hubName}`;
+      const credential = this["credential"];
+      const innerClient = this["client"];
+      let token: string;
+      if (isTokenCredential(credential)) {
+        const response = await innerClient.webPubSub.generateClientToken(this.hubName, updatedOptions);
+        token = response.token!;
+      } else {
+        const key = credential.key;
+        const payload = { role: options?.roles, "webpubsub.group": options?.groups };
+        const signOptions: jwt.SignOptions = {
+          audience: baseUrl,
+          expiresIn: options?.expirationTimeInMinutes === undefined ? "1h" : `${options.expirationTimeInMinutes}m`,
+          algorithm: "HS256",
         };
-      })
+        if (options?.userId) {
+          signOptions.subject = options?.userId;
+        }
+        token = jwt.sign(payload, key, signOptions);
+      }
+
+      return {
+        token,
+        baseUrl,
+        url: `${baseUrl}?access_token=${token}`,
+      };
+    });
   }
 }
