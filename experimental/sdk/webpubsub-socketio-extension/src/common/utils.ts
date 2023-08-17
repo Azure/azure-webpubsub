@@ -44,6 +44,26 @@ export interface NegotiateOptions {
 }
 
 /**
+ * The negotiate response when negotiate is enabled
+ *
+ * @public
+ */
+export interface NegotiateResponse {
+  /**
+   * The endpoint of Web PubSub for Socket.IO.
+   */
+  endpoint: string;
+  /**
+   * The path of Web PubSub for Socket.IO.
+   */
+  path: string;
+  /**
+   * The token used to connect to Web PubSub for Socket.IO.
+   */
+  token: string;
+}
+
+/**
  * Common options for `AzureSocketIOOptions` and `AzureSocketIOCredentialOptions`
  *
  * @public

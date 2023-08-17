@@ -4,6 +4,7 @@
 import {
   addProperty,
   NegotiateOptions,
+  NegotiateResponse,
   AzureSocketIOCommonOptions,
   AzureSocketIOOptions,
   AzureSocketIOCredentialOptions,
@@ -25,6 +26,7 @@ addProperty(SIO.Server.prototype, "useAzureSocketIO", useAzureSocketIOChain);
 export {
   useAzureSocketIO,
   NegotiateOptions,
+  NegotiateResponse,
   AzureSocketIOCommonOptions,
   AzureSocketIOOptions,
   AzureSocketIOCredentialOptions,

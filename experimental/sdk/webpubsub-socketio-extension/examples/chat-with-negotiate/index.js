@@ -1,4 +1,6 @@
 const wpsExt = require("@azure/web-pubsub-socket.io");
+const { AzureCliCredential } = require("@azure/identity");
+
 // Setup basic express server
 const express = require('express');
 const app = express();
@@ -6,11 +8,22 @@ const path = require('path');
 const server = require('http').createServer(app);
 const parse = require('url').parse;
 
+// option 1: use connection string
 const wpsOptions = {
     hub: "eio_hub",
     connectionString: process.argv[2] || process.env.WebPubSubConnectionString,
-    webPubSubServiceClientOptions: { allowInsecureConnection: true }
 };
+
+// option 2: use AAD auth
+// step 1: in service portal , access control tab, add your account as "Web PubSub Service Owner"
+// step 2: choose the credential you want to use, for example, you can call `az login` before running the app and use AzureCliCredential
+/*
+const wpsOptions = {
+    hub: "eio_hub",
+    endpoint: "https://sio.webpubsub.azure.com",
+    credential: new AzureCliCredential()
+};
+*/
 
 // Add an Web PubSub Option
 
@@ -18,7 +31,7 @@ async function main() {
     const configureNegotiateOptions = (req) => {
         const query = parse(req.url || "", true).query
         const username = query["username"] ?? "annoyomous";
-        const expirationMinutes = query["expirationMinutes"] ?? 600;
+        const expirationMinutes = Number.parseInt(query["expirationMinutes"]) ?? 600;
         return {
             userId: username,
             expirationTimeInMinutes: expirationMinutes

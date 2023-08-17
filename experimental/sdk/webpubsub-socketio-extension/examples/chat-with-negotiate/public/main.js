@@ -35,12 +35,15 @@ async function main(username) {
   if (!negotiateResponse.ok) {
     console.log("Failed to negotiate, status code =", negotiateResponse.status);
     return ;
-  } else {
-    endpoint = (await negotiateResponse.json()).url;
-    console.log("endpoint=", endpoint);
   }
+  const json = await negotiateResponse.json();
+  endpoint = json.endpoint;
+  path = json.path;
+  token = json.token;
+  console.log("endpoint=", endpoint);
+  
   var socket = io(endpoint, {
-    path: "/clients/socketio/hubs/eio_hub",
+    path: path,
   });
 
   // Prompt for setting a username
