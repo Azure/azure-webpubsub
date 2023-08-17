@@ -7,6 +7,7 @@ import {
   AzureSocketIOCredentialOptions,
   NegotiateOptions,
   getWebPubSubServiceClient,
+  NegotiateResponse,
 } from "../common/utils";
 import { WebPubSubEioServer } from "../EIO";
 import { WebPubSubAdapterProxy } from "./components/web-pubsub-adapter";
@@ -97,24 +98,28 @@ function getNegotiateHandler(): (
     serviceClient: WebPubSubServiceClient
   ): Promise<void> => {
     debug("negotiate, start");
-    let statusCode = 500;
-    let message = {};
     try {
       const negotiateOptions = await configureNegotiateOptions(req);
       // Example: https://<web-pubsub-endpoint>?access_token=ABC.EFG.HIJ
       const tokenResponse = await serviceClient.getClientAccessToken(negotiateOptions);
-      statusCode = 200;
-      message = { url: tokenResponse.url };
+      const url = new URL(tokenResponse.baseUrl);
+      const message: NegotiateResponse = {
+        endpoint: url.origin,
+        path: url.pathname,
+        token: tokenResponse.token,
+      };
+      writeJsonResponse(res, 200, message);
+      debug("negotiate, finished");
     } catch (e) {
-      statusCode = 500;
-      message = { message: "Internal Server Error" };
+      writeJsonResponse(res, 500, { message: "Internal Server Error" });
       debug(`negotiate, error: ${e.message}`);
-    } finally {
-      res.writeHead(statusCode, { "Content-Type": "application/json" });
-      res.end(JSON.stringify(message));
-      debug("negotiate, finish");
     }
   };
+}
+
+function writeJsonResponse(res: ServerResponse, statusCode: number, message: unknown): void {
+  res.writeHead(statusCode, { "Content-Type": "application/json" });
+  res.end(JSON.stringify(message));
 }
 
 /**
