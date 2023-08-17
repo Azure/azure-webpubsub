@@ -44,6 +44,9 @@ async function main(username) {
   
   var socket = io(endpoint, {
     path: path,
+    query: {
+      access_token: token
+    }
   });
 
   // Prompt for setting a username
