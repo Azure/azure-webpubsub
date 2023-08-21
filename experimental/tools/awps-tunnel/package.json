@@ -1,7 +1,7 @@
 {
-  "name": "awps-server-proxy",
+  "name": "awps-tunnel",
   "version": "1.0.0",
-  "description": "A server proxy for Azure Web PubSub service",
+  "description": "A server tunnel to connect Azure Web PubSub and your local server",
   "main": "server/src/server.ts",
   "scripts": {
     "start": "cd client && npm start",
