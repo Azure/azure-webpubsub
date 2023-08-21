@@ -1,5 +1,5 @@
 {
-  "name": "awps_link",
+  "name": "awps-tunnel-client",
   "version": "0.1.0",
   "private": true,
   "dependencies": {
