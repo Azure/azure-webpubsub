@@ -12,20 +12,63 @@ export interface HttpHistoryItem {
   id: number
 }
 
+export interface LogItem {
+  level: LogLevel,
+  message: string,
+  time: Date,
+}
+
+export enum LogLevel {
+  Trace,
+  Debug,
+  Info,
+  Warning,
+  Error
+}
+
 export interface DataModel {
+  /** 
+   * Whether the data is loaded 
+   */
   ready: boolean,
-  hub: string,
-  clientUrl: string,
-  service?: string,
+  /** 
+   * Endpoint part of the connection string, or the endpoint parameter,
+   *  e.g. https://xxx.webpubsub.azure.com 
+   */
   endpoint: string,
-  server?: string,
-  trafficHistory: HttpHistoryItem[],
+  /** The hub the tunnel is connecting to
+   * each hub is an isolation boudary
+   */
+  hub: string,
+  /** 
+   * The generated URL for the WebSocket client to connect to, including the access_token
+   * e.g. https://xxx.webpubsub.azure.com/client/hubs/chat?access_token=xxx
+   */
+  clientUrl: string,
+  /** 
+   * The Live Trace URL that this Web PubSub service uses, it can be opened in a browser
+   */
   liveTraceUrl: string,
-  serviceUrl: string,
+  /**
+   * The URL of the local server that the tunnel is connecting to
+   */
   upstreamServerUrl: string,
+  /**
+   * The status of the tunnel connections connecting to Web PubSub service
+   */
   tunnelConnectionStatus: Status,
+  /**
+   * The status pair of the HTTP request invoking the local server
+   */
   tunnelServerStatus: StatusPair,
-  logs: string[]
+  /**
+   * The traffic history stored in local storage
+   */
+  trafficHistory: HttpHistoryItem[],
+  /**
+   * The logs for current round
+   */
+  logs: LogItem[]
 }
 
 export enum Status {
@@ -73,16 +116,19 @@ export const DataProvider: React.FC<{
     ready: false,
     clientUrl: "",
     liveTraceUrl: "https://www.google.com",
-    serviceUrl: "https://www.service.com",
+    endpoint: "https://www.service.com",
     upstreamServerUrl: "https://www.server.com",
     tunnelConnectionStatus: Status.Connected,
     tunnelServerStatus: { statusIn: Status.Disconnected, statusOut: Status.Connected },
-    endpoint: "",
     hub: "chat",
     trafficHistory: [
       generateMockHttpItem()
     ],
-    logs: []
+    logs: [{
+      level: LogLevel.Info,
+      message: 'This is a log message',
+      time: new Date(),
+    }]
   });
 
   useEffect(() => {
@@ -116,6 +162,14 @@ export const DataProvider: React.FC<{
     </DataContext.Provider>
   );
 };
+
+interface IDataFetcher {
+
+}
+
+export class DataFetcher implements IDataFetcher {
+
+}
 
 /*
 TODO: update to fetch data from backend

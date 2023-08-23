@@ -6,7 +6,7 @@ import { Tabs } from './Tabs';
 import { DefaultButton } from '@fluentui/react/lib/Button';
 import { Panel, PanelType } from '@fluentui/react/lib/Panel';
 import { Connector, TwoDirectionConnector } from './Connector';
-import { Status, StatusPair, useDataContext } from '../providers/DataContext';
+import { LogLevel, Status, StatusPair, useDataContext } from '../providers/DataContext';
 import { WorkflowStep } from './workflows/WorkflowStep';
 import { ServicePanel } from './panels/ServicePanel';
 import { ServerPanel } from './panels/ServerPanel';
@@ -46,7 +46,7 @@ export const Dashboard = () => {
       status: data?.tunnelConnectionStatus,
       content: (
         <ServicePanel
-          endpoint={data.serviceUrl}
+          endpoint={data.endpoint}
           status={data.tunnelConnectionStatus}
           liveTraceUrl={data.liveTraceUrl}
         ></ServicePanel>
@@ -102,7 +102,8 @@ export const Dashboard = () => {
         closeButtonAriaLabel="Close"
         headerText="Logs"
       >
-        <textarea className="flex-fill" disabled value={data?.logs} />
+        <textarea className="flex-fill" disabled value={
+          data.logs.map(log => `${log.time.toISOString()} [${LogLevel[log.level]}] ${log.message}`).join('\n')} />
       </Panel>
       {workflow()}
       <Tabs
