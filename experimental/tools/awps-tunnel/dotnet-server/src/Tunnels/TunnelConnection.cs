@@ -171,6 +171,7 @@ internal class TunnelConnection : IDisposable
                         {
                             _logger.LogInformation($"Getting request {tunnelRequest.TracingId}: {tunnelRequest.HttpMethod} {tunnelRequest.Url}");
                             var tunnelResponse = await RequestHandler!.Invoke(tunnelRequest, token);
+                            // TODO: multiplex to mulitple client calls
                             await client.SendAsync(tunnelResponse, token);
                         }
                         break;

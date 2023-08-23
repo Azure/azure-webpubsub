@@ -1,26 +1,20 @@
 import React, { useEffect, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import moment from 'moment';
-import { ReadonlyTabs } from './Tabs';
-import { ResizablePanel } from './ResizablePanel';
-export function RequestHistory({ connection }) {
-  const [items, setItems] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [selectedItem, setSelectedItem] = useState(null);
+import { ReadonlyTabs } from '../Tabs';
+import { ResizablePanel } from '../ResizablePanel';
+import { useDataContext, HttpHistoryItem } from '../../providers/DataContext';
+
+export function RequestHistory() {
+  const [items, setItems] = useState<HttpHistoryItem[]>([]);
+  const [selectedItem, setSelectedItem] = useState<HttpHistoryItem | undefined>(undefined);
   const [searchParams] = useSearchParams();
-  const detailId = parseInt(searchParams.get("detailId"));
+  const detailId = parseInt(searchParams.get("detailId") ?? "-1");
+  const { data } = useDataContext();
+
   useEffect(() => {
-    async function fetchData() {
-      // loading history data
-      const response = await fetch('httphistory');
-      const data = await response.json();
-
-      setLoading(false);
-      setItems(data);
-    }
-    fetchData();
-  }, []);
-
+    setItems(data.trafficHistory.slice(0, 50));
+  }, [data.trafficHistory])
   useEffect(() => {
     if (selectedItem) {
       return;
@@ -33,14 +27,6 @@ export function RequestHistory({ connection }) {
     }
   }, [items, selectedItem, detailId])
 
-  useEffect(() => {
-    if (connection) {
-      connection.on('updateData', (newItem) => {
-        setItems(prevState =>
-          [{ ...newItem, unread: true }, ...prevState]);
-      });
-    }
-  }, [connection]);
   const overviewPanel = (<table className='table' aria-labelledby="tabelLabel">
     <tbody>
       {
@@ -62,7 +48,7 @@ export function RequestHistory({ connection }) {
     <div className="table-container flex-fill d-flex flex-column">
       <h5>History</h5>
       {
-        loading ?
+        !data.ready ?
           (
             <p><em>Loading...</em></p>
           ) : (<ResizablePanel left={overviewPanel} right={detailPanel}></ResizablePanel>)}
@@ -70,7 +56,7 @@ export function RequestHistory({ connection }) {
   </div>);
 }
 
-function Details({ item }) {
+function Details({ item } : { item?: HttpHistoryItem }) {
   if (!item) return <></>;
   let requestTabItems = [
     {
