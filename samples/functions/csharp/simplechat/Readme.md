@@ -30,7 +30,7 @@ localtunnel will print out an url (`https://<domain-name>.loca.lt`) that can be 
 > Tip:
 > There is one known issue that [localtunnel goes offline when the server restarts](https://github.com/localtunnel/localtunnel/issues/466) and [here is the workaround](https://github.com/localtunnel/localtunnel/issues/466#issuecomment-1030599216)  
 
-There are also other tools to choose when debugging the webhook locally, for example, [ngrok](​https://ngrok.com/), [loophole](https://loophole.cloud/docs/), [TunnelRelay](https://github.com/OfficeDev/microsoft-teams-tunnelrelay) or so. Some tools might have issue returning response headers correctly. Try the following command to see if the tool is working properly:
+There are also other tools to choose when debugging the webhook locally, for example, [Dev Tunnels](https://learn.microsoft.com/aspnet/core/test/dev-tunnels), [loophole](https://loophole.cloud/docs/), [TunnelRelay](https://github.com/OfficeDev/microsoft-teams-tunnelrelay) or so. Some tools might have issue returning response headers correctly. Try the following command to see if the tool is working properly:
 
 ```bash
 curl https://<domain-name>.loca.lt/runtime/webhooks/webpubsub -X OPTIONS -H "WebHook-Request-Origin: *" -H "ce-awpsversion: 1.0" --ssl-no-revoke -i
