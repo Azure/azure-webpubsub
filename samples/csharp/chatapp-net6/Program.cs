@@ -4,7 +4,7 @@ using Microsoft.Azure.WebPubSub.Common;
 var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddWebPubSub(
-    o => o.ServiceEndpoint = new ServiceEndpoint(builder.Configuration["Azure:WebPubSub:ConnectionString"]))
+    o => o.ServiceEndpoint = new WebPubSubServiceEndpoint(builder.Configuration["Azure:WebPubSub:ConnectionString"]))
     .AddWebPubSubServiceClient<Sample_ChatApp>();
 
 var app = builder.Build();
