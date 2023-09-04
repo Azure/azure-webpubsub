@@ -3,7 +3,8 @@ import { useSearchParams } from 'react-router-dom';
 import moment from 'moment';
 import { ReadonlyTabs } from '../Tabs';
 import { ResizablePanel } from '../ResizablePanel';
-import { useDataContext, HttpHistoryItem } from '../../providers/DataContext';
+import { useDataContext } from '../../providers/DataContext';
+import { HttpHistoryItem } from '../../providers/models';
 
 export function RequestHistory() {
   const [items, setItems] = useState<HttpHistoryItem[]>([]);
@@ -56,7 +57,7 @@ export function RequestHistory() {
   </div>);
 }
 
-function Details({ item } : { item?: HttpHistoryItem }) {
+function Details({ item }: { item?: HttpHistoryItem }) {
   if (!item) return <></>;
   let requestTabItems = [
     {

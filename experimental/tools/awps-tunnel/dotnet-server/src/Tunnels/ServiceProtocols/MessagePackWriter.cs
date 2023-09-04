@@ -1,154 +1,251 @@
 ﻿using System;
+using System.Buffers;
 using System.Collections.Generic;
+using System.Collections.Immutable;
 using System.IO;
 
-using MessagePack;
-#nullable disable
+using MPW = MessagePack.MessagePackWriter;
+
+#nullable enable
 
 public static class MessagePackWriter
 {
-    public static MessagePackWriter<MessagePackTerminator<TStream>> Create<TStream>(
-        TStream stream)
-        where TStream : Stream =>
-        new(stream, new(stream));
+    public static MessagePackWriter<MessagePackTerminator<TWriter>> Create<TWriter>(TWriter writer)
+        where TWriter : IBufferWriter<byte> =>
+        new(writer, new(writer));
 }
 
-public struct MessagePackWriter<TOuter>
+public readonly struct MessagePackWriter<TOuter>
+    where TOuter : struct
 {
     private readonly TOuter _outer;
-    private readonly Stream _stream;
+    private readonly IBufferWriter<byte> _writer;
 
-    public MessagePackWriter(Stream stream, TOuter outer)
+    public MessagePackWriter(IBufferWriter<byte> writer, TOuter outer)
     {
-        _stream = stream;
+        _writer = writer;
         _outer = outer;
     }
 
     public TOuter Text(string text)
     {
-        MessagePackBinary.WriteString(_stream, text);
+        var w = new MPW(_writer);
+        w.Write(text);
+        w.Flush();
+        return _outer;
+    }
+
+    public TOuter NullableText(string? text)
+    {
+        var w = new MPW(_writer);
+        w.Write(text);
+        w.Flush();
         return _outer;
     }
 
     public TOuter Int(int value)
     {
-        MessagePackBinary.WriteInt32(_stream, value);
+        var w = new MPW(_writer);
+        w.Write(value);
+        w.Flush();
         return _outer;
     }
 
     public TOuter Nil()
     {
-        MessagePackBinary.WriteNil(_stream);
+        var w = new MPW(_writer);
+        w.WriteNil();
+        w.Flush();
         return _outer;
     }
 
     public MessagePackValueWriter<TOuter> Simple() =>
-        new(_stream, _outer);
+        new(_writer, _outer);
 
     public MessagePackArrayWriter<TOuter> Array(int count)
     {
-        MessagePackBinary.WriteArrayHeader(_stream, count);
-        return new(_stream, _outer, count);
+        var w = new MPW(_writer);
+        w.WriteArrayHeader(count);
+        w.Flush();
+        return new(_writer, _outer, count);
     }
 
-    public TOuter StringArray(IReadOnlyCollection<string> array)
+    public TOuter StringArray(IReadOnlyCollection<string?> array)
     {
-        MessagePackHelper.WriteStringArray(_stream, array);
+        var mpw = new MPW(_writer);
+        if (array == null)
+        {
+            // null as empty.
+            mpw.WriteArrayHeader(0);
+            mpw.Flush();
+            return _outer;
+        }
+        mpw.WriteArrayHeader(array.Count);
+        foreach (var value in array)
+        {
+            mpw.Write(value);
+        }
+        mpw.Flush();
         return _outer;
     }
 
-    public TOuter NullableStringArray(IReadOnlyCollection<string> array)
+    public TOuter NullableStringArray(IReadOnlyCollection<string?>? array)
     {
-        MessagePackHelper.WriteNullableStringArray(_stream, array);
+        var mpw = new MPW(_writer);
+        if (array == null)
+        {
+            mpw.WriteNil();
+            mpw.Flush();
+            return _outer;
+        }
+        mpw.WriteArrayHeader(array.Count);
+        foreach (var value in array)
+        {
+            mpw.Write(value);
+        }
+        mpw.Flush();
+        return _outer;
+    }
+
+    public TOuter PayloadArray(IReadOnlyCollection<ReadOnlyMemory<byte>> payloads)
+    {
+        var mpw = new MPW(_writer);
+        mpw.WriteArrayHeader(payloads.Count);
+        foreach (var payload in payloads)
+        {
+            mpw.Write(new ReadOnlySequence<byte>(payload));
+        }
+        mpw.Flush();
         return _outer;
     }
 
     public TOuter EmptyArray()
     {
-        MessagePackBinary.WriteArrayHeader(_stream, 0);
+        var mpw = new MPW(_writer);
+        mpw.WriteArrayHeader(0);
+        mpw.Flush();
         return _outer;
+    }
+
+    public TOuter NullableArray<TValue>(
+        IReadOnlyCollection<TValue>? array,
+        Func<MessagePackWriter<MessagePackTerminator<object?>>, TValue, MessagePackTerminator<object?>> func)
+    {
+        if (array == null)
+        {
+            return Nil();
+        }
+        return Array(array, func);
     }
 
     public TOuter Array<TValue>(
         IReadOnlyCollection<TValue> array,
-        Func<MessagePackWriter<MessagePackTerminator<Stream>>, TValue, MessagePackTerminator<Stream>> func)
+        Func<MessagePackWriter<MessagePackTerminator<object?>>, TValue, MessagePackTerminator<object?>> func)
     {
         if (array.Count == 0)
         {
             return EmptyArray();
         }
-        MessagePackBinary.WriteArrayHeader(_stream, array.Count);
+        var mpw = new MPW(_writer);
+        mpw.WriteArrayHeader(array.Count);
+        mpw.Flush();
         foreach (var item in array)
         {
-            _ = func(new(_stream, new(_stream)), item);
+            _ = func(new(_writer, new(null)), item);
         }
         return _outer;
     }
 
     public MessagePackMapWriter<TOuter> Map(int count)
     {
-        MessagePackBinary.WriteMapHeader(_stream, count);
-        return new(_stream, _outer, count);
+        var mpw = new MPW(_writer);
+        mpw.WriteMapHeader(count);
+        mpw.Flush();
+        return new(_writer, _outer, count);
     }
 
     public TOuter Map<TValue>(
         IReadOnlyDictionary<string, TValue> dict,
-        Func<MessagePackWriter<MessagePackTerminator<Stream>>, TValue, MessagePackTerminator<Stream>> func)
-    {
-        if (dict?.Count == 0)
-        {
-            return EmptyMap();
-        }
-        MessagePackBinary.WriteMapHeader(_stream, dict.Count);
-        foreach (var (k, v) in dict)
-        {
-            MessagePackBinary.WriteString(_stream, k);
-            _ = func(new(_stream, new(_stream)), v);
-        }
-        return _outer;
-    }
-
-    public TOuter StringMap(IReadOnlyDictionary<string, string> dict)
+        Func<MessagePackWriter<MessagePackTerminator<object?>>, TValue, MessagePackTerminator<object?>> func)
     {
         if (dict.Count == 0)
         {
             return EmptyMap();
         }
-        MessagePackBinary.WriteMapHeader(_stream, dict.Count);
+        var mpw = new MPW(_writer);
+        mpw.WriteMapHeader(dict.Count);
         foreach (var (k, v) in dict)
         {
-            MessagePackBinary.WriteString(_stream, k);
-            MessagePackBinary.WriteString(_stream, v);
+            mpw.Write(k);
+            mpw.Flush();
+            _ = func(new(_writer, new(null)), v);
         }
         return _outer;
     }
 
-    public TOuter StringMap(IDictionary<string, string> dict)
+    public TOuter IntMap(IReadOnlyDictionary<string, int> dict)
     {
         if (dict.Count == 0)
         {
             return EmptyMap();
         }
-        MessagePackBinary.WriteMapHeader(_stream, dict.Count);
+        var mpw = new MPW(_writer);
+        mpw.WriteMapHeader(dict.Count);
         foreach (var (k, v) in dict)
         {
-            MessagePackBinary.WriteString(_stream, k);
-            MessagePackBinary.WriteString(_stream, v);
+            mpw.Write(k);
+            mpw.Write(v);
         }
+        mpw.Flush();
         return _outer;
     }
 
-    public TOuter PayloadsMap(IDictionary<string, ReadOnlyMemory<byte>> payloads)
+    public TOuter StringMap(IImmutableDictionary<string, string?> dict)
+    {
+        if (dict.Count == 0)
+        {
+            return EmptyMap();
+        }
+        var mpw = new MPW(_writer);
+        mpw.WriteMapHeader(dict.Count);
+        foreach (var (k, v) in dict)
+        {
+            mpw.Write(k);
+            mpw.Write(v);
+        }
+        mpw.Flush();
+        return _outer;
+    }
+
+    public TOuter DateTimeMap(IReadOnlyDictionary<string, DateTime> dict)
+    {
+        if (dict.Count == 0)
+        {
+            return EmptyMap();
+        }
+        var mpw = new MPW(_writer);
+        mpw.WriteMapHeader(dict.Count);
+        foreach (var (k, v) in dict)
+        {
+            mpw.Write(k);
+            mpw.Write(v);
+        }
+        mpw.Flush();
+        return _outer;
+    }
+
+    public TOuter PayloadsMap(IDictionary<string, ReadOnlyMemory<byte>>? payloads)
     {
         if (payloads?.Count > 0)
         {
-            MessagePackBinary.WriteMapHeader(_stream, payloads.Count);
+            var mpw = new MPW(_writer);
+            mpw.WriteMapHeader(payloads.Count);
             foreach (var (k, v) in payloads)
             {
-                MessagePackBinary.WriteString(_stream, k);
-                var segment = v.GetArraySegment();
-                MessagePackBinary.WriteBytes(_stream, segment.Array, segment.Offset, segment.Count);
+                mpw.Write(k);
+                mpw.Write(v.Span);
             }
+            mpw.Flush();
             return _outer;
         }
         return EmptyMap();
@@ -156,316 +253,379 @@ public struct MessagePackWriter<TOuter>
 
     public TOuter EmptyMap()
     {
-        MessagePackBinary.WriteMapHeader(_stream, 0);
+        var mpw = new MPW(_writer);
+        mpw.WriteMapHeader(0);
+        mpw.Flush();
         return _outer;
     }
 }
 
-public struct MessagePackTerminator<TStream>
-    where TStream : Stream
+public readonly struct MessagePackTerminator<T>
 {
-    private readonly TStream _stream;
-    public MessagePackTerminator(TStream stream) => _stream = stream;
-    public TStream Terminate() => _stream;
+    private readonly T _obj;
+    public MessagePackTerminator(T obj) => _obj = obj;
+    public T Terminate() => _obj;
 }
 
-public struct MessagePackValueWriter<TOuter>
+public readonly struct MessagePackValueWriter<TOuter>
+    where TOuter : struct
 {
-    private readonly Stream _stream;
+    private readonly IBufferWriter<byte> _writer;
     private readonly TOuter _outer;
 
-    internal MessagePackValueWriter(Stream stream, TOuter outer)
+    internal MessagePackValueWriter(IBufferWriter<byte> writer, TOuter outer)
     {
-        _stream = stream;
+        _writer = writer;
         _outer = outer;
     }
 
-    public TOuter Value(string text)
+    public TOuter Value(string? text)
     {
-        MessagePackBinary.WriteString(_stream, text);
+        var mpw = new MPW(_writer);
+        mpw.Write(text);
+        mpw.Flush();
         return _outer;
     }
 
     public TOuter Value(char value)
     {
-        MessagePackBinary.WriteChar(_stream, value);
+        var mpw = new MPW(_writer);
+        mpw.Write(value);
+        mpw.Flush();
         return _outer;
     }
 
     public TOuter Value(char? value)
     {
+        var mpw = new MPW(_writer);
         if (value.HasValue)
         {
-            MessagePackBinary.WriteChar(_stream, value.Value);
+            mpw.Write(value.Value);
         }
         else
         {
-            MessagePackBinary.WriteNil(_stream);
+            mpw.WriteNil();
         }
+        mpw.Flush();
         return _outer;
     }
 
     public TOuter Value(sbyte value)
     {
-        MessagePackBinary.WriteSByte(_stream, value);
+        var mpw = new MPW(_writer);
+        mpw.Write(value);
+        mpw.Flush();
         return _outer;
     }
 
     public TOuter Value(sbyte? value)
     {
+        var mpw = new MPW(_writer);
         if (value.HasValue)
         {
-            MessagePackBinary.WriteSByte(_stream, value.Value);
+            mpw.Write(value.Value);
         }
         else
         {
-            MessagePackBinary.WriteNil(_stream);
+            mpw.WriteNil();
         }
+        mpw.Flush();
         return _outer;
     }
 
     public TOuter Value(byte value)
     {
-        MessagePackBinary.WriteByte(_stream, value);
+        var mpw = new MPW(_writer);
+        mpw.Write(value);
+        mpw.Flush();
         return _outer;
     }
 
     public TOuter Value(byte? value)
     {
+        var mpw = new MPW(_writer);
         if (value.HasValue)
         {
-            MessagePackBinary.WriteByte(_stream, value.Value);
+            mpw.Write(value.Value);
         }
         else
         {
-            MessagePackBinary.WriteNil(_stream);
+            mpw.WriteNil();
         }
+        mpw.Flush();
         return _outer;
     }
 
     public TOuter Value(short value)
     {
-        MessagePackBinary.WriteInt16(_stream, value);
+        var mpw = new MPW(_writer);
+        mpw.Write(value);
+        mpw.Flush();
         return _outer;
     }
 
     public TOuter Value(short? value)
     {
+        var mpw = new MPW(_writer);
         if (value.HasValue)
         {
-            MessagePackBinary.WriteInt16(_stream, value.Value);
+            mpw.Write(value.Value);
         }
         else
         {
-            MessagePackBinary.WriteNil(_stream);
+            mpw.WriteNil();
         }
+        mpw.Flush();
         return _outer;
     }
 
     public TOuter Value(ushort value)
     {
-        MessagePackBinary.WriteUInt16(_stream, value);
+        var mpw = new MPW(_writer);
+        mpw.Write(value);
+        mpw.Flush();
         return _outer;
     }
 
     public TOuter Value(ushort? value)
     {
+        var mpw = new MPW(_writer);
         if (value.HasValue)
         {
-            MessagePackBinary.WriteUInt16(_stream, value.Value);
+            mpw.Write(value.Value);
         }
         else
         {
-            MessagePackBinary.WriteNil(_stream);
+            mpw.WriteNil();
         }
+        mpw.Flush();
         return _outer;
     }
 
     public TOuter Value(int value)
     {
-        MessagePackBinary.WriteInt32(_stream, value);
+        var mpw = new MPW(_writer);
+        mpw.Write(value);
+        mpw.Flush();
         return _outer;
     }
 
     public TOuter Value(int? value)
     {
+        var mpw = new MPW(_writer);
         if (value.HasValue)
         {
-            MessagePackBinary.WriteInt32(_stream, value.Value);
+            mpw.Write(value.Value);
         }
         else
         {
-            MessagePackBinary.WriteNil(_stream);
+            mpw.WriteNil();
         }
+        mpw.Flush();
         return _outer;
     }
 
     public TOuter Value(uint value)
     {
-        MessagePackBinary.WriteUInt32(_stream, value);
+        var mpw = new MPW(_writer);
+        mpw.Write(value);
+        mpw.Flush();
         return _outer;
     }
 
     public TOuter Value(uint? value)
     {
+        var mpw = new MPW(_writer);
         if (value.HasValue)
         {
-            MessagePackBinary.WriteUInt32(_stream, value.Value);
+            mpw.Write(value.Value);
         }
         else
         {
-            MessagePackBinary.WriteNil(_stream);
+            mpw.WriteNil();
         }
+        mpw.Flush();
         return _outer;
     }
 
     public TOuter Value(long value)
     {
-        MessagePackBinary.WriteInt64(_stream, value);
+        var mpw = new MPW(_writer);
+        mpw.Write(value);
+        mpw.Flush();
         return _outer;
     }
 
     public TOuter Value(long? value)
     {
+        var mpw = new MPW(_writer);
         if (value.HasValue)
         {
-            MessagePackBinary.WriteInt64(_stream, value.Value);
+            mpw.Write(value.Value);
         }
         else
         {
-            MessagePackBinary.WriteNil(_stream);
+            mpw.WriteNil();
         }
+        mpw.Flush();
         return _outer;
     }
 
     public TOuter Value(ulong value)
     {
-        MessagePackBinary.WriteUInt64(_stream, value);
+        var mpw = new MPW(_writer);
+        mpw.Write(value);
+        mpw.Flush();
         return _outer;
     }
 
     public TOuter Value(ulong? value)
     {
+        var mpw = new MPW(_writer);
         if (value.HasValue)
         {
-            MessagePackBinary.WriteUInt64(_stream, value.Value);
+            mpw.Write(value.Value);
         }
         else
         {
-            MessagePackBinary.WriteNil(_stream);
+            mpw.WriteNil();
         }
+        mpw.Flush();
         return _outer;
     }
 
     public TOuter Value(float value)
     {
-        MessagePackBinary.WriteSingle(_stream, value);
+        var mpw = new MPW(_writer);
+        mpw.Write(value);
+        mpw.Flush();
         return _outer;
     }
 
     public TOuter Value(float? value)
     {
+        var mpw = new MPW(_writer);
         if (value.HasValue)
         {
-            MessagePackBinary.WriteSingle(_stream, value.Value);
+            mpw.Write(value.Value);
         }
         else
         {
-            MessagePackBinary.WriteNil(_stream);
+            mpw.WriteNil();
         }
+        mpw.Flush();
         return _outer;
     }
 
     public TOuter Value(double value)
     {
-        MessagePackBinary.WriteDouble(_stream, value);
+        var mpw = new MPW(_writer);
+        mpw.Write(value);
+        mpw.Flush();
         return _outer;
     }
 
     public TOuter Value(double? value)
     {
+        var mpw = new MPW(_writer);
         if (value.HasValue)
         {
-            MessagePackBinary.WriteDouble(_stream, value.Value);
+            mpw.Write(value.Value);
         }
         else
         {
-            MessagePackBinary.WriteNil(_stream);
+            mpw.WriteNil();
         }
+        mpw.Flush();
         return _outer;
     }
 
     public TOuter Value(bool value)
     {
-        MessagePackBinary.WriteBoolean(_stream, value);
+        var mpw = new MPW(_writer);
+        mpw.Write(value);
+        mpw.Flush();
         return _outer;
     }
 
     public TOuter Value(bool? value)
     {
+        var mpw = new MPW(_writer);
         if (value.HasValue)
         {
-            MessagePackBinary.WriteBoolean(_stream, value.Value);
+            mpw.Write(value.Value);
         }
         else
         {
-            MessagePackBinary.WriteNil(_stream);
+            mpw.WriteNil();
         }
+        mpw.Flush();
         return _outer;
     }
 
     public TOuter Value(DateTime value)
     {
-        MessagePackBinary.WriteDateTime(_stream, value);
+        var mpw = new MPW(_writer);
+        mpw.Write(value);
+        mpw.Flush();
         return _outer;
     }
 
     public TOuter Value(DateTime? value)
     {
+        var mpw = new MPW(_writer);
         if (value.HasValue)
         {
-            MessagePackBinary.WriteDateTime(_stream, value.Value);
+            mpw.Write(value.Value);
         }
         else
         {
-            MessagePackBinary.WriteNil(_stream);
+            mpw.WriteNil();
         }
+        mpw.Flush();
         return _outer;
     }
 
     public TOuter Value(byte[] value)
     {
-        MessagePackBinary.WriteBytes(_stream, value);
-        return _outer;
-    }
-
-    public TOuter Value(ReadOnlyMemory<byte> value)
-    {
-        var seg = value.GetArraySegment();
-        MessagePackBinary.WriteBytes(_stream, seg.Array, seg.Offset, seg.Count);
+        var mpw = new MPW(_writer);
+        mpw.Write(value);
+        mpw.Flush();
         return _outer;
     }
 
     public TOuter Value(ReadOnlyMemory<byte>? value)
     {
-        if (value == null)
+        var mpw = new MPW(_writer);
+        if (value.HasValue)
         {
-            MessagePackBinary.WriteNil(_stream);
-            return _outer;
+            mpw.Write(value.Value.Span);
         }
-        var seg = value.Value.GetArraySegment();
+        else
+        {
+            mpw.WriteNil();
+        }
+        mpw.Flush();
+        return _outer;
+    }
 
-        MessagePackBinary.WriteBytes(_stream, seg.Array, seg.Offset, seg.Count);
+    public TOuter Value(ReadOnlyMemory<byte> value)
+    {
+        var mpw = new MPW(_writer);
+        mpw.Write(value.Span);
+        mpw.Flush();
         return _outer;
     }
 
     public TOuter Nil()
     {
-        MessagePackBinary.WriteNil(_stream);
+        var mpw = new MPW(_writer);
+        mpw.WriteNil();
+        mpw.Flush();
         return _outer;
     }
 
-    public TOuter Value(object value)
+    public TOuter Value(object? value)
     {
         return value switch
         {
@@ -489,14 +649,16 @@ public struct MessagePackValueWriter<TOuter>
             Memory<byte> buf => Value(buf),
             ReadOnlyMemory<byte> buf => Value(buf),
             IReadOnlyCollection<object> array => WriteArray(array),
-            IReadOnlyDictionary<string, object> map => WriteMap(map),
+            IReadOnlyDictionary<string, object?> map => WriteMap(map),
             _ => WritePocoObject(value),
         };
     }
 
-    private TOuter WriteArray(IReadOnlyCollection<object> array)
+    private TOuter WriteArray(IReadOnlyCollection<object?> array)
     {
-        MessagePackBinary.WriteArrayHeader(_stream, array.Count);
+        var mpw = new MPW(_writer);
+        mpw.WriteArrayHeader(array.Count);
+        mpw.Flush();
         foreach (var item in array)
         {
             Value(item);
@@ -504,9 +666,11 @@ public struct MessagePackValueWriter<TOuter>
         return _outer;
     }
 
-    private TOuter WriteMap(IReadOnlyDictionary<string, object> map)
+    private TOuter WriteMap(IReadOnlyDictionary<string, object?> map)
     {
-        MessagePackBinary.WriteMapHeader(_stream, map.Count);
+        var mpw = new MPW(_writer);
+        mpw.WriteMapHeader(map.Count);
+        mpw.Flush();
         foreach (var (k, v) in map)
         {
             Value(k);
@@ -517,7 +681,7 @@ public struct MessagePackValueWriter<TOuter>
 
     private TOuter WritePocoObject(object value)
     {
-        Dictionary<string, object> dict = new();
+        Dictionary<string, object?> dict = new();
         var props = value.GetType().GetProperties(System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.Public);
         foreach (var prop in props)
         {
@@ -536,14 +700,15 @@ public struct MessagePackValueWriter<TOuter>
 }
 
 public struct MessagePackArrayWriter<TOuter>
+    where TOuter : struct
 {
+    private readonly IBufferWriter<byte> _writer;
     private readonly TOuter _outer;
-    private readonly Stream _stream;
     private int _count;
 
-    internal MessagePackArrayWriter(Stream stream, TOuter outer, int count)
+    internal MessagePackArrayWriter(IBufferWriter<byte> writer, TOuter outer, int count)
     {
-        _stream = stream;
+        _writer = writer;
         _outer = outer;
         _count = count;
     }
@@ -551,7 +716,7 @@ public struct MessagePackArrayWriter<TOuter>
     public MessagePackWriter<MessagePackArrayWriter<TOuter>> Item()
     {
         DecreaseCount();
-        return new(_stream, this);
+        return new(_writer, this);
     }
 
     public MessagePackWriter<TOuter> TailItem()
@@ -561,58 +726,67 @@ public struct MessagePackArrayWriter<TOuter>
         {
             throw new InvalidDataException("Too less item for this array.");
         }
-        return new(_stream, _outer);
-    }
-
-    public MessagePackArrayWriter<TOuter> Item<TValue>(
-        Func<MessagePackWriter<MessagePackTerminator<Stream>>, TValue, MessagePackTerminator<Stream>> func,
-        TValue value)
-    {
-        DecreaseCount();
-        _ = func(new(_stream, new(_stream)), value);
-        return this;
+        return new(_writer, _outer);
     }
 
     public MessagePackArrayWriter<TOuter> Text(string text)
     {
         DecreaseCount();
-        MessagePackBinary.WriteString(_stream, text);
+        var mpw = new MPW(_writer);
+        mpw.Write(text);
+        mpw.Flush();
+        return this;
+    }
+
+    public MessagePackArrayWriter<TOuter> NullableText(string? text)
+    {
+        DecreaseCount();
+        var mpw = new MPW(_writer);
+        mpw.Write(text);
+        mpw.Flush();
         return this;
     }
 
     public MessagePackArrayWriter<TOuter> Int(int value)
     {
         DecreaseCount();
-        MessagePackBinary.WriteInt32(_stream, value);
+        var mpw = new MPW(_writer);
+        mpw.Write(value);
+        mpw.Flush();
         return this;
     }
 
     public MessagePackArrayWriter<TOuter> Boolean(bool value)
     {
         DecreaseCount();
-        MessagePackBinary.WriteBoolean(_stream, value);
+        var mpw = new MPW(_writer);
+        mpw.Write(value);
+        mpw.Flush();
         return this;
     }
 
     public MessagePackArrayWriter<TOuter> Bytes(ReadOnlyMemory<byte> value)
     {
         DecreaseCount();
-        var segment = value.GetArraySegment();
-        MessagePackBinary.WriteBytes(_stream, segment.Array);
+        var mpw = new MPW(_writer);
+        mpw.Write(value.Span);
+        mpw.Flush();
         return this;
     }
 
     public MessagePackArrayWriter<TOuter> Nil()
     {
         DecreaseCount();
-        MessagePackBinary.WriteNil(_stream);
+        var mpw = new MPW(_writer);
+        mpw.WriteNil();
+        mpw.Flush();
         return this;
     }
 
     public MessagePackValueWriter<MessagePackArrayWriter<TOuter>> Simple()
     {
         DecreaseCount();
-        return new(_stream, this);
+        return new(_writer, this);
     }
 
     public MessagePackWriter<MessagePackArrayWriter<TOuter>> When(bool condition)
@@ -620,11 +794,11 @@ public struct MessagePackArrayWriter<TOuter>
         if (condition)
         {
             DecreaseCount();
-            return new(_stream, this);
+            return new(_writer, this);
         }
         else
         {
-            return new(Stream.Null, this);
+            return new(NullBufferWriter.Instance, this);
         }
     }
 
@@ -648,14 +822,15 @@ public struct MessagePackArrayWriter<TOuter>
 }
 
 public struct MessagePackMapWriter<TOuter>
+    where TOuter : struct
 {
     private readonly TOuter _outer;
-    private readonly Stream _stream;
+    private readonly IBufferWriter<byte> _writer;
     private int _count;
 
-    public MessagePackMapWriter(Stream stream, TOuter outer, int count)
+    public MessagePackMapWriter(IBufferWriter<byte> writer, TOuter outer, int count)
     {
-        _stream = stream;
+        _writer = writer;
         _outer = outer;
         _count = count;
     }
@@ -663,50 +838,62 @@ public struct MessagePackMapWriter<TOuter>
     public MessagePackWriter<MessagePackMapWriter<TOuter>> Key(string key)
     {
         DecreaseCount();
-        MessagePackBinary.WriteString(_stream, key);
-        return new(_stream, this);
+        var mpw = new MPW(_writer);
+        mpw.Write(key);
+        mpw.Flush();
+        return new(_writer, this);
     }
 
     public MessagePackMapWriter<TOuter> Key<TValue>(
         string key,
-        Func<MessagePackWriter<MessagePackTerminator<Stream>>, TValue, MessagePackTerminator<Stream>> func,
+        Func<MessagePackWriter<MessagePackTerminator<object?>>, TValue, MessagePackTerminator<object?>> func,
         TValue value)
     {
         DecreaseCount();
-        MessagePackBinary.WriteString(_stream, key);
-        _ = func(new(_stream, new(_stream)), value);
+        var mpw = new MPW(_writer);
+        mpw.Write(key);
+        mpw.Flush();
+        _ = func(new(_writer, new(null)), value);
         return this;
     }
 
-    public MessagePackMapWriter<TOuter> Text(string key, string value)
+    public MessagePackMapWriter<TOuter> Text(string key, string? value)
     {
         DecreaseCount();
-        MessagePackBinary.WriteString(_stream, key);
-        MessagePackBinary.WriteString(_stream, value);
+        var mpw = new MPW(_writer);
+        mpw.Write(key);
+        mpw.Write(value);
+        mpw.Flush();
         return this;
     }
 
     public MessagePackMapWriter<TOuter> Int(string key, int value)
     {
         DecreaseCount();
-        MessagePackBinary.WriteString(_stream, key);
-        MessagePackBinary.WriteInt32(_stream, value);
+        var mpw = new MPW(_writer);
+        mpw.Write(key);
+        mpw.Write(value);
+        mpw.Flush();
         return this;
     }
 
     public MessagePackMapWriter<TOuter> Nil(string key)
     {
         DecreaseCount();
-        MessagePackBinary.WriteString(_stream, key);
-        MessagePackBinary.WriteNil(_stream);
+        var mpw = new MPW(_writer);
+        mpw.Write(key);
+        mpw.WriteNil();
+        mpw.Flush();
         return this;
     }
 
     public MessagePackValueWriter<MessagePackMapWriter<TOuter>> Simple(string key)
     {
         DecreaseCount();
-        MessagePackBinary.WriteString(_stream, key);
-        return new(_stream, this);
+        var mpw = new MPW(_writer);
+        mpw.Write(key);
+        mpw.Flush();
+        return new(_writer, this);
     }
 
     public TOuter EndMap()
@@ -727,4 +914,36 @@ public struct MessagePackMapWriter<TOuter>
         _count--;
     }
 }
-#nullable restore
+
+internal sealed class NullBufferWriter : IBufferWriter<byte>
+{
+    public static readonly IBufferWriter<byte> Instance = new NullBufferWriter();
+
+    private volatile byte[] _buffer = new byte[4096];
+
+    public void Advance(int count)
+    {
+    }
+
+    public Memory<byte> GetMemory(int sizeHint = 0)
+    {
+        var buffer = _buffer;
+        if (sizeHint > buffer.Length)
+        {
+            buffer = new byte[sizeHint];
+            _buffer = buffer;
+        }
+        return buffer;
+    }
+
+    public Span<byte> GetSpan(int sizeHint = 0)
+    {
+        var buffer = _buffer;
+        if (sizeHint > buffer.Length)
+        {
+            buffer = new byte[sizeHint];
+            _buffer = buffer;
+        }
+        return buffer;
+    }
+}

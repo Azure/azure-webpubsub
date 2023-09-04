@@ -1,30 +1,30 @@
 import React from 'react';
 import './Connector.css';
-import { Status, StatusPair } from '../providers/DataContext';
+import { ConnectionStatus, ConnectionStatusPair } from '../providers/models';
 
-export function Connector({ status }: { status: Status }) {
+export function Connector({ status }: { status: ConnectionStatus }) {
 
-  if (status === Status.Connecting) {
+  if (status === ConnectionStatus.Connecting) {
     return <div className="dashed-line arrow-line connecting"></div>
   }
 
-  if (status === Status.Connected) {
+  if (status === ConnectionStatus.Connected) {
     return <div className="arrow-line connected"></div>;
   }
 
   return <div className="dashed-line arrow-line"></div>
 }
 
-export function TwoDirectionConnector({ statusPair }: { statusPair: StatusPair }) {
-  if (statusPair.statusOut === Status.Connected && statusPair.statusIn === Status.Connected) {
+export function TwoDirectionConnector({ statusPair }: { statusPair: ConnectionStatusPair }) {
+  if (statusPair.statusOut === ConnectionStatus.Connected && statusPair.statusIn === ConnectionStatus.Connected) {
     return <div className="two-direction-arrow-line connected"></div>;
   }
 
-  if (statusPair.statusOut === Status.Disconnected) {
+  if (statusPair.statusOut === ConnectionStatus.Disconnected) {
     return <div className="two-direction-arrow-line requesterror"></div>;
   }
 
-  if (statusPair.statusOut === Status.Connected && statusPair.statusIn === Status.Disconnected) {
+  if (statusPair.statusOut === ConnectionStatus.Connected && statusPair.statusIn === ConnectionStatus.Disconnected) {
     return <div className="two-direction-arrow-line responseerror"></div>;
   }
 

@@ -6,7 +6,7 @@ internal class TunnelService
 {
     private readonly TunnelServiceOptions _options;
     private readonly IOutput _connectionStatus;
-    private readonly IServiceEndpointStatusReporter _reporter;
+    private readonly IStateNotifier _dataHub;
     private readonly IRepository<HttpItem> _store;
     private readonly IHttpClientFactory _httpClientFactory;
     private readonly ILogger<TunnelService> _logger;
@@ -14,22 +14,22 @@ internal class TunnelService
 
     private readonly Uri _localServerUri;
 
-    public TunnelService(IOutput connectionStatus, IServiceEndpointStatusReporter reporter, IOptions<TunnelServiceOptions> options, IRepository<HttpItem> store, IHttpClientFactory httpClientFactory, ILoggerFactory loggerFactory)
+    public TunnelService(IOutput connectionStatus, IStateNotifier dataHub, IOptions<TunnelServiceOptions> options, IRepository<HttpItem> store, IHttpClientFactory httpClientFactory, ILoggerFactory loggerFactory)
     {
         _options = options.Value;
         _connectionStatus = connectionStatus;
-        _reporter = reporter;
+        _dataHub = dataHub;
         _store = store;
         _httpClientFactory = httpClientFactory;
         _loggerFactory = loggerFactory;
         _logger = loggerFactory.CreateLogger<TunnelService>();
         _localServerUri = new UriBuilder(_options.LocalScheme, "localhost", _options.LocalPort).Uri;
-        reporter.ReportLocalServerUrl(_localServerUri.AbsoluteUri);
+        _dataHub.ReportLocalServerUrl(_localServerUri.AbsoluteUri);
     }
 
     public async Task StartAsync(CancellationToken cancellationToken)
     {
-        using var listener = new TunnelConnection(_connectionStatus, _reporter, _options.Endpoint,
+        using var listener = new TunnelConnection(_connectionStatus, _dataHub, _options.Endpoint,
             _options.Credential, _options.Hub, _loggerFactory)
         {
             RequestHandler = ProcessTunnelRequest
@@ -131,11 +131,11 @@ internal class TunnelService
             _logger.LogInformation($"Received proxied response for '{proxiedRequestUrl}: {response.StatusCode}'");
             if (response.IsSuccessStatusCode)
             {
-                await _reporter.ReportTunnelToLocalServerStatus(HttpConnectionStatus.Succeed);
+                await _dataHub.ReportTunnelToLocalServerStatus(ConnectionStatusPair.Success);
             }
             else
             {
-                await _reporter.ReportTunnelToLocalServerStatus(HttpConnectionStatus.ErrorResponse);
+                await _dataHub.ReportTunnelToLocalServerStatus(ConnectionStatusPair.ErrorResponse);
             }
         }
         catch (Exception e)
@@ -145,11 +145,11 @@ internal class TunnelService
             response.Content = new StringContent(e.Message);
             if (e is TaskCanceledException)
             {
-                await _reporter.ReportTunnelToLocalServerStatus(HttpConnectionStatus.RequestTimeout);
+                await _dataHub.ReportTunnelToLocalServerStatus(ConnectionStatusPair.RequestTimeout);
             }
             else
             {
-                await _reporter.ReportTunnelToLocalServerStatus(HttpConnectionStatus.RequestFailed);
+                await _dataHub.ReportTunnelToLocalServerStatus(ConnectionStatusPair.RequestFailed);
             }
         }
 

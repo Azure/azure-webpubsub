@@ -1,11 +1,11 @@
 import React from 'react';
 import { Icon } from '@fluentui/react/lib/Icon';
 import { StatusIndicator } from '../workflows/StatusIndicator';
-import { Status } from '../../providers/DataContext';
+import { ConnectionStatus } from '../../providers/models';
 
 export interface ServicePanelProps {
   endpoint?: string;
-  status?: Status;
+  status?: ConnectionStatus;
   liveTraceUrl?: string;
 }
 

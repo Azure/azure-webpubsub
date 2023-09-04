@@ -13,11 +13,11 @@ import {
 } from '@fluentui/react';
 import { ResizablePanel } from '../ResizablePanel';
 import { TrafficItem, TrafficItemProps } from '../TrafficItem';
-import { Status } from '../../providers/DataContext';
+import { ConnectionStatus } from '../../providers/models';
 import { useDataContext } from '../../providers/DataContext';
 
 export interface PlaygroundProps {
-  onStatusChange: (status: Status) => void;
+  onStatusChange: (status: ConnectionStatus) => void;
 }
 
 interface PlaygroundState {
@@ -50,11 +50,11 @@ export const Playground = ({ onStatusChange }: PlaygroundProps) => {
     try {
       const connection = new WebSocket(data.clientUrl);
       connection.onopen = (event) => {
-        onStatusChange(Status.Connected);
+        onStatusChange(ConnectionStatus.Connected);
         setState((prevState) => ({ ...prevState, connected: true, traffic: [], error: '' }));
       };
       connection.onclose = (event) => {
-        onStatusChange(Status.Disconnected);
+        onStatusChange(ConnectionStatus.Disconnected);
         setState((prevState) => ({
           ...prevState,
           connected: false,

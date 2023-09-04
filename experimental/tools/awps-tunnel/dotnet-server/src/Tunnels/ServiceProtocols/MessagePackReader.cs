@@ -1,1181 +1,1753 @@
 ﻿using System;
+using System.Buffers;
 using System.Collections.Generic;
+using System.Collections.Immutable;
+using System.Diagnostics;
 using System.IO;
 using System.Runtime.CompilerServices;
-using System.Text;
 
 using MessagePack;
-#nullable disable
 
-    public static class MessagePackReader
+using Microsoft.Azure.SignalR.Protocol;
+
+using MPR = MessagePack.MessagePackReader;
+
+#nullable enable
+
+public static class MessagePackReader
+{
+    public static MessagePackReader<MessagePackTerminator> Create(
+        in ReadOnlyMemory<byte> sequence) =>
+        new(new(new(sequence)), new());
+
+    public static MessagePackReader<MessagePackTerminator> Create(
+        in ReadOnlySequence<byte> sequence) =>
+        new(new(sequence), new());
+}
+
+public readonly struct MessagePackTerminator
+{
+    public void Terminate() { }
+}
+
+public readonly struct MessagePackReader<TOuter>
+    where TOuter : struct
+{
+    private readonly StrongBox<ReadOnlySequence<byte>> _sequence;
+    private readonly TOuter _outer;
+    private readonly string _fieldName;
+
+    public MessagePackReader(StrongBox<ReadOnlySequence<byte>> sequence, TOuter outer, string fieldName = "")
     {
-        public static MessagePackReader<MessagePackTerminator<TStream>> Create<TStream>(
-            TStream stream)
-            where TStream : Stream =>
-            new(stream, new(stream));
+        _sequence = sequence;
+        _outer = outer;
+        _fieldName = fieldName;
     }
 
-    public struct MessagePackReader<TOuter>
+    public TOuter Text(
+        out string value,
+#if DEBUG
+        [CallerArgumentExpression("value")]
+#endif
+        string fieldName = "")
     {
-        private readonly Stream _stream;
-        private readonly TOuter _outer;
-        private readonly string _fieldName;
-
-        public MessagePackReader(Stream stream, TOuter outer, string fieldName = "")
+        var result = NullableText(out var text, fieldName);
+        if (text is null)
         {
-            _stream = stream;
-            _outer = outer;
-            _fieldName = fieldName;
+            throw new InvalidDataException($"Field {FieldDisplayName(fieldName)} is invalid (nil).");
         }
+        value = text;
+        return result;
+    }
 
-        public TOuter Text(out string value) =>
-            Text(string.Empty, out value);
-
-        public TOuter Text(string fieldName, out string value)
+    public TOuter NullableText(
+        out string? value,
+#if DEBUG
+        [CallerArgumentExpression("value")]
+#endif
+        string fieldName = "")
+    {
+        var mpr = new MPR(_sequence.Value);
+        try
         {
-            try
-            {
-                value = MessagePackBinary.ReadString(_stream);
-                return _outer;
-            }
-            catch (Exception ex)
-            {
-                throw new InvalidDataException($"Field {FieldDisplayName(fieldName)} is invalid.", ex);
-            }
+            value = mpr.ReadString();
         }
-
-        public TOuter Int(out int value) =>
-            Int(string.Empty, out value);
-
-        public TOuter Int(string fieldName, out int value)
+        catch (Exception ex)
         {
-            try
-            {
-                value = MessagePackBinary.ReadInt32(_stream);
-                return _outer;
-            }
-            catch (Exception ex)
-            {
-                throw new InvalidDataException($"Field {FieldDisplayName(fieldName)} is invalid.", ex);
-            }
+            throw new InvalidDataException($"Field {FieldDisplayName(fieldName)} is invalid.", ex);
         }
+        _sequence.Value = _sequence.Value.Slice(mpr.Position);
+        return _outer;
+    }
 
-        public MessagePackValueReader<TOuter> Simple(string fieldName = "") =>
-            new(_stream, _outer, FieldDisplayName(fieldName));
-
-        public TOuter StringArray(out string[] value) =>
-            StringArray(string.Empty, out value);
-
-        public TOuter StringArray(string fieldName, out string[] value)
+    public TOuter Int(
+        out int value,
+#if DEBUG
+        [CallerArgumentExpression("value")]
+#endif
+        string fieldName = "")
+    {
+        var mpr = new MPR(_sequence.Value);
+        try
         {
-            int count;
-            try
-            {
-                count = MessagePackBinary.ReadArrayHeader(_stream);
-            }
-            catch (Exception ex)
-            {
-                throw new InvalidDataException($"Field {FieldDisplayName(fieldName)} is invalid.", ex);
-            }
-            if (count == 0)
-            {
-                value = System.Array.Empty<string>();
-                return _outer;
-            }
-            value = new string[count];
-            for (int i = 0; i < count; i++)
-            {
-                try
-                {
-                    value[i] = MessagePackBinary.ReadString(_stream);
-                }
-                catch (Exception ex)
-                {
-                    throw new InvalidDataException($"Field {FieldDisplayName(fieldName)}/{i} is invalid.", ex);
-                }
-            }
+            value = mpr.ReadInt32();
+        }
+        catch (Exception ex)
+        {
+            throw new InvalidDataException($"Field {FieldDisplayName(fieldName)} is invalid.", ex);
+        }
+        _sequence.Value = _sequence.Value.Slice(mpr.Position);
+        return _outer;
+    }
+
+    public MessagePackValueReader<TOuter> Simple(string fieldName = "") =>
+        new(_sequence, _outer, FieldDisplayName(fieldName));
+
+    public TOuter StringArray(
+        out string[] value,
+#if DEBUG
+        [CallerArgumentExpression("value")]
+#endif
+        string fieldName = "")
+    {
+        var mpr = new MPR(_sequence.Value);
+        if (!mpr.TryReadArrayHeader(out var count))
+        {
+            throw new InvalidDataException($"Field {FieldDisplayName(fieldName)} is invalid.");
+        }
+        if (count == 0)
+        {
+            value = System.Array.Empty<string>();
+            _sequence.Value = _sequence.Value.Slice(mpr.Position);
             return _outer;
         }
-
-        public TOuter ObjectArray(out object[] value) =>
-            ObjectArray(string.Empty, out value);
-
-        public TOuter ObjectArray(string fieldName, out object[] value)
-        {
-            var reader = Array(fieldName);
-            value = new object[reader.Count];
-            for (int i = 0; i < reader.Count; i++)
-            {
-                reader.Simple().Value(out value[i]);
-            }
-            return reader.EndArray();
-        }
-
-        public MessagePackArrayReader<TOuter> Array(string fieldName = "")
+        value = new string[count];
+        for (int i = 0; i < count; i++)
         {
             try
             {
-                int count = MessagePackBinary.ReadArrayHeader(_stream);
-                return new MessagePackArrayReader<TOuter>(_stream, _outer, count, FieldDisplayName(fieldName));
+                value[i] = mpr.ReadString()!;
             }
             catch (Exception ex)
             {
-                throw new InvalidDataException($"Field {FieldDisplayName(fieldName)} is invalid.", ex);
+                throw new InvalidDataException($"Field {FieldDisplayName(fieldName, i)} is invalid.", ex);
             }
         }
-
-        public MessagePackMapReader<TOuter> Map(string fieldName = "")
-        {
-            try
-            {
-                int count = MessagePackBinary.ReadMapHeader(_stream);
-                return new MessagePackMapReader<TOuter>(_stream, _outer, count, FieldDisplayName(fieldName));
-            }
-            catch (Exception ex)
-            {
-                throw new InvalidDataException($"Field {FieldDisplayName(fieldName)} is invalid.", ex);
-            }
-        }
-
-        private string FieldDisplayName(string fieldName) =>
-            (string.IsNullOrEmpty(_fieldName), string.IsNullOrEmpty(fieldName)) switch
-            {
-                (true, true) => string.Empty,
-                (true, false) => fieldName,
-                (false, true) => _fieldName,
-                (false, false) => _fieldName + "/" + fieldName,
-            };
+        _sequence.Value = _sequence.Value.Slice(mpr.Position);
+        return _outer;
     }
 
-    public struct MessagePackValueReader<TOuter>
+    public TOuter NullableStringArray(
+        out string[]? value,
+#if DEBUG
+        [CallerArgumentExpression("value")]
+#endif
+        string fieldName = "")
     {
-        private static readonly object BoxedTrue = true;
-        private static readonly object BoxedFalse = false;
-
-        private readonly Stream _stream;
-        private readonly TOuter _outer;
-        private readonly string _fieldName;
-
-        internal MessagePackValueReader(Stream stream, TOuter outer, string fieldName)
+        var mpr = new MPR(_sequence.Value);
+        if (mpr.TryReadNil())
         {
-            _stream = stream;
-            _outer = outer;
-            _fieldName = fieldName;
+            value = null;
+            _sequence.Value = _sequence.Value.Slice(mpr.Position);
+            return _outer;
         }
+        return StringArray(out value, fieldName);
+    }
 
-        public TOuter Value(out string value)
+    public TOuter PayloadArray(
+        out ReadOnlyMemory<byte>[] value,
+#if DEBUG
+        [CallerArgumentExpression("value")]
+#endif
+        string fieldName = "")
+    {
+        var mpr = new MPR(_sequence.Value);
+        if (!mpr.TryReadArrayHeader(out var count))
+        {
+            throw new InvalidDataException($"Field {FieldDisplayName(fieldName)} is invalid.");
+        }
+        if (count == 0)
+        {
+            value = System.Array.Empty<ReadOnlyMemory<byte>>();
+            _sequence.Value = _sequence.Value.Slice(mpr.Position);
+            return _outer;
+        }
+        value = new ReadOnlyMemory<byte>[count];
+        for (int i = 0; i < count; i++)
         {
             try
             {
-                value = MessagePackBinary.ReadString(_stream);
-                return _outer;
+                var seq = mpr.ReadBytes()!.Value;
+                Debug.Assert(seq.IsSingleSegment);
+                value[i] = seq.First;
             }
             catch (Exception ex)
             {
-                throw new InvalidDataException($"Field {_fieldName} is invalid.", ex);
+                throw new InvalidDataException($"Field {FieldDisplayName(fieldName, i)} is invalid.", ex);
             }
         }
+        _sequence.Value = _sequence.Value.Slice(mpr.Position);
+        return _outer;
+    }
 
-        public TOuter Value(out char value)
+    public TOuter ObjectArray(
+        out object?[] value,
+#if DEBUG
+        [CallerArgumentExpression("value")]
+#endif
+        string fieldName = "")
+    {
+        var reader = Array(fieldName);
+        value = new object[reader.Count];
+        for (int i = 0; i < reader.Count; i++)
+        {
+            reader.Simple().Value(out value[i]);
+        }
+        return reader.EndArray();
+    }
+
+    public MessagePackArrayReader<TOuter> Array(string fieldName = "")
+    {
+        var mpr = new MPR(_sequence.Value);
+        if (!mpr.TryReadArrayHeader(out var count))
+        {
+            throw new InvalidDataException($"Field {FieldDisplayName(fieldName)} is invalid.");
+        }
+        _sequence.Value = _sequence.Value.Slice(mpr.Position);
+        return new MessagePackArrayReader<TOuter>(_sequence, _outer, count, FieldDisplayName(fieldName));
+    }
+
+    public MessagePackArrayReader<TOuter> NullableArray(
+        out bool isNull,
+#if DEBUG
+        [CallerArgumentExpression("isNull")]
+#endif
+        string fieldName = "")
+    {
+        var mpr = new MPR(_sequence.Value);
+        if (mpr.TryReadNil())
+        {
+            isNull = true;
+            _sequence.Value = _sequence.Value.Slice(mpr.Position);
+            return new MessagePackArrayReader<TOuter>(_sequence, _outer, 0, FieldDisplayName(fieldName));
+        }
+        isNull = false;
+        return Array(fieldName);
+    }
+
+    public MessagePackMapReader<TOuter> Map(string fieldName = "")
+    {
+        var mpr = new MPR(_sequence.Value);
+        if (!mpr.TryReadMapHeader(out var count))
+        {
+            throw new InvalidDataException($"Field {FieldDisplayName(fieldName)} is invalid.");
+        }
+        _sequence.Value = _sequence.Value.Slice(mpr.Position);
+        return new MessagePackMapReader<TOuter>(_sequence, _outer, count, FieldDisplayName(fieldName));
+    }
+
+    public MessagePackImmutableMapReader<TOuter> ImmutableMap(string fieldName = "")
+    {
+        var mpr = new MPR(_sequence.Value);
+        if (!mpr.TryReadMapHeader(out var count))
+        {
+            throw new InvalidDataException($"Field {FieldDisplayName(fieldName)} is invalid.");
+        }
+        _sequence.Value = _sequence.Value.Slice(mpr.Position);
+        return new MessagePackImmutableMapReader<TOuter>(_sequence, _outer, count, FieldDisplayName(fieldName));
+    }
+
+    public MessagePackMapReader<TOuter> NullableMap(
+        out bool isNull,
+#if DEBUG
+        [CallerArgumentExpression("isNull")]
+#endif
+        string fieldName = "")
+    {
+        var mpr = new MPR(_sequence.Value);
+        if (mpr.TryReadNil())
+        {
+            isNull = true;
+            _sequence.Value = _sequence.Value.Slice(mpr.Position);
+            return new(_sequence, _outer, 0, FieldDisplayName(fieldName));
+        }
+        isNull = false;
+        return Map(fieldName);
+    }
+
+    public TOuter Nullable(out bool isNull)
+    {
+        var mpr = new MPR(_sequence.Value);
+        isNull = false;
+
+        if (mpr.TryReadNil())
+        {
+            _sequence.Value = _sequence.Value.Slice(mpr.Position);
+            isNull = true;
+        }
+        return _outer;
+    }
+
+    private string FieldDisplayName(string fieldName) =>
+        (string.IsNullOrEmpty(_fieldName), string.IsNullOrEmpty(fieldName)) switch
+        {
+            (true, true) => string.Empty,
+            (true, false) => fieldName,
+            (false, true) => _fieldName,
+            (false, false) => _fieldName + "/" + fieldName,
+        };
+
+    private string FieldDisplayName(string fieldName, int index) =>
+        (string.IsNullOrEmpty(_fieldName), string.IsNullOrEmpty(fieldName)) switch
+        {
+            (true, true) => string.Empty,
+            (true, false) => fieldName + $"({index})",
+            (false, true) => _fieldName + $"({index})",
+            (false, false) => _fieldName + "/" + fieldName + $"({index})",
+        };
+}
+
+public readonly struct MessagePackValueReader<TOuter>
+    where TOuter : struct
+{
+    private static readonly object BoxedTrue = true;
+    private static readonly object BoxedFalse = false;
+
+    private readonly StrongBox<ReadOnlySequence<byte>> _sequence;
+    private readonly TOuter _outer;
+    private readonly string _fieldName;
+
+    internal MessagePackValueReader(StrongBox<ReadOnlySequence<byte>> sequence, TOuter outer, string fieldName)
+    {
+        _sequence = sequence;
+        _outer = outer;
+        _fieldName = fieldName;
+    }
+
+    public TOuter Value(
+        out string? value,
+#if DEBUG
+        [CallerArgumentExpression("value")]
+#endif
+        string fieldName = "")
+    {
+        var mpr = new MPR(_sequence.Value);
+        try
+        {
+            value = mpr.ReadString();
+        }
+        catch (Exception ex)
+        {
+            throw new InvalidDataException($"Field {FieldDisplayName(fieldName)} is invalid.", ex);
+        }
+        _sequence.Value = _sequence.Value.Slice(mpr.Position);
+        return _outer;
+    }
+
+    public TOuter Value(
+        out char value,
+#if DEBUG
+        [CallerArgumentExpression("value")]
+#endif
+        string fieldName = "")
+    {
+        var mpr = new MPR(_sequence.Value);
+        try
+        {
+            value = mpr.ReadChar();
+        }
+        catch (Exception ex)
+        {
+            throw new InvalidDataException($"Field {FieldDisplayName(fieldName)} is invalid.", ex);
+        }
+        _sequence.Value = _sequence.Value.Slice(mpr.Position);
+        return _outer;
+    }
+
+    public TOuter Value(
+        out char? value,
+#if DEBUG
+        [CallerArgumentExpression("value")]
+#endif
+        string fieldName = "")
+    {
+        var mpr = new MPR(_sequence.Value);
+        if (mpr.TryReadNil())
+        {
+            value = null;
+        }
+        else
         {
             try
             {
-                value = MessagePackBinary.ReadChar(_stream);
-                return _outer;
+                value = mpr.ReadChar();
             }
             catch (Exception ex)
             {
-                throw new InvalidDataException($"Field {_fieldName} is invalid.", ex);
+                throw new InvalidDataException($"Field {FieldDisplayName(fieldName)} is invalid.", ex);
+            }
+        }
+        _sequence.Value = _sequence.Value.Slice(mpr.Position);
+        return _outer;
+    }
+
+    public TOuter Value(
+        out sbyte value,
+#if DEBUG
+        [CallerArgumentExpression("value")]
+#endif
+        string fieldName = "")
+    {
+        var mpr = new MPR(_sequence.Value);
+        try
+        {
+            value = mpr.ReadSByte();
+        }
+        catch (Exception ex)
+        {
+            throw new InvalidDataException($"Field {FieldDisplayName(fieldName)} is invalid.", ex);
+        }
+        _sequence.Value = _sequence.Value.Slice(mpr.Position);
+        return _outer;
+    }
+
+    public TOuter Value(
+        out sbyte? value,
+#if DEBUG
+        [CallerArgumentExpression("value")]
+#endif
+        string fieldName = "")
+    {
+        var mpr = new MPR(_sequence.Value);
+        if (mpr.TryReadNil())
+        {
+            value = null;
+        }
+        else
+        {
+            try
+            {
+                value = mpr.ReadSByte();
+            }
+            catch (Exception ex)
+            {
+                throw new InvalidDataException($"Field {FieldDisplayName(fieldName)} is invalid.", ex);
+            }
+        }
+        _sequence.Value = _sequence.Value.Slice(mpr.Position);
+        return _outer;
+    }
+
+    public TOuter Value(
+        out byte value,
+#if DEBUG
+        [CallerArgumentExpression("value")]
+#endif
+        string fieldName = "")
+    {
+        var mpr = new MPR(_sequence.Value);
+        try
+        {
+            value = mpr.ReadByte();
+        }
+        catch (Exception ex)
+        {
+            throw new InvalidDataException($"Field {FieldDisplayName(fieldName)} is invalid.", ex);
+        }
+        _sequence.Value = _sequence.Value.Slice(mpr.Position);
+        return _outer;
+    }
+
+    public TOuter Value(
+        out byte? value,
+#if DEBUG
+        [CallerArgumentExpression("value")]
+#endif
+        string fieldName = "")
+    {
+        var mpr = new MPR(_sequence.Value);
+        if (mpr.TryReadNil())
+        {
+            value = null;
+        }
+        else
+        {
+            try
+            {
+                value = mpr.ReadByte();
+            }
+            catch (Exception ex)
+            {
+                throw new InvalidDataException($"Field {FieldDisplayName(fieldName)} is invalid.", ex);
+            }
+        }
+        _sequence.Value = _sequence.Value.Slice(mpr.Position);
+        return _outer;
+    }
+
+    public TOuter Value(
+        out short value,
+#if DEBUG
+        [CallerArgumentExpression("value")]
+#endif
+        string fieldName = "")
+    {
+        var mpr = new MPR(_sequence.Value);
+        try
+        {
+            value = mpr.ReadInt16();
+        }
+        catch (Exception ex)
+        {
+            throw new InvalidDataException($"Field {FieldDisplayName(fieldName)} is invalid.", ex);
+        }
+        _sequence.Value = _sequence.Value.Slice(mpr.Position);
+        return _outer;
+    }
+
+    public TOuter Value(
+        out short? value,
+#if DEBUG
+        [CallerArgumentExpression("value")]
+#endif
+        string fieldName = "")
+    {
+        var mpr = new MPR(_sequence.Value);
+        if (mpr.TryReadNil())
+        {
+            value = null;
+        }
+        else
+        {
+            try
+            {
+                value = mpr.ReadInt16();
+            }
+            catch (Exception ex)
+            {
+                throw new InvalidDataException($"Field {FieldDisplayName(fieldName)} is invalid.", ex);
+            }
+        }
+        _sequence.Value = _sequence.Value.Slice(mpr.Position);
+        return _outer;
+    }
+
+    public TOuter Value(
+        out ushort value,
+#if DEBUG
+        [CallerArgumentExpression("value")]
+#endif
+        string fieldName = "")
+    {
+        var mpr = new MPR(_sequence.Value);
+        try
+        {
+            value = mpr.ReadUInt16();
+        }
+        catch (Exception ex)
+        {
+            throw new InvalidDataException($"Field {FieldDisplayName(fieldName)} is invalid.", ex);
+        }
+        _sequence.Value = _sequence.Value.Slice(mpr.Position);
+        return _outer;
+    }
+
+    public TOuter Value(
+        out ushort? value,
+#if DEBUG
+        [CallerArgumentExpression("value")]
+#endif
+        string fieldName = "")
+    {
+        var mpr = new MPR(_sequence.Value);
+        if (mpr.TryReadNil())
+        {
+            value = null;
+        }
+        else
+        {
+            try
+            {
+                value = mpr.ReadUInt16();
+            }
+            catch (Exception ex)
+            {
+                throw new InvalidDataException($"Field {FieldDisplayName(fieldName)} is invalid.", ex);
+            }
+        }
+        _sequence.Value = _sequence.Value.Slice(mpr.Position);
+        return _outer;
+    }
+
+    public TOuter Value(
+        out int value,
+#if DEBUG
+        [CallerArgumentExpression("value")]
+#endif
+        string fieldName = "")
+    {
+        var mpr = new MPR(_sequence.Value);
+        try
+        {
+            value = mpr.ReadInt32();
+        }
+        catch (Exception ex)
+        {
+            throw new InvalidDataException($"Field {FieldDisplayName(fieldName)} is invalid.", ex);
+        }
+        _sequence.Value = _sequence.Value.Slice(mpr.Position);
+        return _outer;
+    }
+
+    public TOuter Value(
+        out int? value,
+#if DEBUG
+        [CallerArgumentExpression("value")]
+#endif
+        string fieldName = "")
+    {
+        var mpr = new MPR(_sequence.Value);
+        if (mpr.TryReadNil())
+        {
+            value = null;
+        }
+        else
+        {
+            try
+            {
+                value = mpr.ReadInt32();
+            }
+            catch (Exception ex)
+            {
+                throw new InvalidDataException($"Field {FieldDisplayName(fieldName)} is invalid.", ex);
+            }
+        }
+        _sequence.Value = _sequence.Value.Slice(mpr.Position);
+        return _outer;
+    }
+
+    public TOuter Value(
+        out uint value,
+#if DEBUG
+        [CallerArgumentExpression("value")]
+#endif
+        string fieldName = "")
+    {
+        var mpr = new MPR(_sequence.Value);
+        try
+        {
+            value = mpr.ReadUInt32();
+        }
+        catch (Exception ex)
+        {
+            throw new InvalidDataException($"Field {FieldDisplayName(fieldName)} is invalid.", ex);
+        }
+        _sequence.Value = _sequence.Value.Slice(mpr.Position);
+        return _outer;
+    }
+
+    public TOuter Value(
+        out uint? value,
+#if DEBUG
+        [CallerArgumentExpression("value")]
+#endif
+        string fieldName = "")
+    {
+        var mpr = new MPR(_sequence.Value);
+        if (mpr.TryReadNil())
+        {
+            value = null;
+        }
+        else
+        {
+            try
+            {
+                value = mpr.ReadUInt32();
+            }
+            catch (Exception ex)
+            {
+                throw new InvalidDataException($"Field {FieldDisplayName(fieldName)} is invalid.", ex);
+            }
+        }
+        _sequence.Value = _sequence.Value.Slice(mpr.Position);
+        return _outer;
+    }
+
+    public TOuter Value(
+        out long value,
+#if DEBUG
+        [CallerArgumentExpression("value")]
+#endif
+        string fieldName = "")
+    {
+        var mpr = new MPR(_sequence.Value);
+        try
+        {
+            value = mpr.ReadInt64();
+        }
+        catch (Exception ex)
+        {
+            throw new InvalidDataException($"Field {FieldDisplayName(fieldName)} is invalid.", ex);
+        }
+        _sequence.Value = _sequence.Value.Slice(mpr.Position);
+        return _outer;
+    }
+
+    public TOuter Value(
+        out long? value,
+#if DEBUG
+        [CallerArgumentExpression("value")]
+#endif
+        string fieldName = "")
+    {
+        var mpr = new MPR(_sequence.Value);
+        if (mpr.TryReadNil())
+        {
+            value = null;
+        }
+        else
+        {
+            try
+            {
+                value = mpr.ReadInt64();
+            }
+            catch (Exception ex)
+            {
+                throw new InvalidDataException($"Field {FieldDisplayName(fieldName)} is invalid.", ex);
+            }
+        }
+        _sequence.Value = _sequence.Value.Slice(mpr.Position);
+        return _outer;
+    }
+
+    public TOuter Value(
+        out ulong value,
+#if DEBUG
+        [CallerArgumentExpression("value")]
+#endif
+        string fieldName = "")
+    {
+        var mpr = new MPR(_sequence.Value);
+        try
+        {
+            value = mpr.ReadUInt64();
+        }
+        catch (Exception ex)
+        {
+            throw new InvalidDataException($"Field {FieldDisplayName(fieldName)} is invalid.", ex);
+        }
+        _sequence.Value = _sequence.Value.Slice(mpr.Position);
+        return _outer;
+    }
+
+    public TOuter Value(
+        out ulong? value,
+#if DEBUG
+        [CallerArgumentExpression("value")]
+#endif
+        string fieldName = "")
+    {
+        var mpr = new MPR(_sequence.Value);
+        if (mpr.TryReadNil())
+        {
+            value = null;
+        }
+        else
+        {
+            try
+            {
+                value = mpr.ReadUInt64();
+            }
+            catch (Exception ex)
+            {
+                throw new InvalidDataException($"Field {FieldDisplayName(fieldName)} is invalid.", ex);
+            }
+        }
+        _sequence.Value = _sequence.Value.Slice(mpr.Position);
+        return _outer;
+    }
+
+    public TOuter Value(
+        out float value,
+#if DEBUG
+        [CallerArgumentExpression("value")]
+#endif
+        string fieldName = "")
+    {
+        var mpr = new MPR(_sequence.Value);
+        try
+        {
+            value = mpr.ReadSingle();
+        }
+        catch (Exception ex)
+        {
+            throw new InvalidDataException($"Field {FieldDisplayName(fieldName)} is invalid.", ex);
+        }
+        _sequence.Value = _sequence.Value.Slice(mpr.Position);
+        return _outer;
+    }
+
+    public TOuter Value(
+        out float? value,
+#if DEBUG
+        [CallerArgumentExpression("value")]
+#endif
+        string fieldName = "")
+    {
+        var mpr = new MPR(_sequence.Value);
+        if (mpr.TryReadNil())
+        {
+            value = null;
+        }
+        else
+        {
+            try
+            {
+                value = mpr.ReadSingle();
+            }
+            catch (Exception ex)
+            {
+                throw new InvalidDataException($"Field {FieldDisplayName(fieldName)} is invalid.", ex);
+            }
+        }
+        _sequence.Value = _sequence.Value.Slice(mpr.Position);
+        return _outer;
+    }
+
+    public TOuter Value(
+        out double value,
+#if DEBUG
+        [CallerArgumentExpression("value")]
+#endif
+        string fieldName = "")
+    {
+        var mpr = new MPR(_sequence.Value);
+        try
+        {
+            value = mpr.ReadDouble();
+        }
+        catch (Exception ex)
+        {
+            throw new InvalidDataException($"Field {FieldDisplayName(fieldName)} is invalid.", ex);
+        }
+        _sequence.Value = _sequence.Value.Slice(mpr.Position);
+        return _outer;
+    }
+
+    public TOuter Value(
+        out double? value,
+#if DEBUG
+        [CallerArgumentExpression("value")]
+#endif
+        string fieldName = "")
+    {
+        var mpr = new MPR(_sequence.Value);
+        if (mpr.TryReadNil())
+        {
+            value = null;
+        }
+        else
+        {
+            try
+            {
+                value = mpr.ReadDouble();
+            }
+            catch (Exception ex)
+            {
+                throw new InvalidDataException($"Field {FieldDisplayName(fieldName)} is invalid.", ex);
+            }
+        }
+        _sequence.Value = _sequence.Value.Slice(mpr.Position);
+        return _outer;
+    }
+
+    public TOuter Value(
+        out bool value,
+#if DEBUG
+        [CallerArgumentExpression("value")]
+#endif
+        string fieldName = "")
+    {
+        var mpr = new MPR(_sequence.Value);
+        try
+        {
+            value = mpr.ReadBoolean();
+        }
+        catch (Exception ex)
+        {
+            throw new InvalidDataException($"Field {FieldDisplayName(fieldName)} is invalid.", ex);
+        }
+        _sequence.Value = _sequence.Value.Slice(mpr.Position);
+        return _outer;
+    }
+
+    public TOuter Value(
+        out bool? value,
+#if DEBUG
+        [CallerArgumentExpression("value")]
+#endif
+        string fieldName = "")
+    {
+        var mpr = new MPR(_sequence.Value);
+        if (mpr.TryReadNil())
+        {
+            value = null;
+        }
+        else
+        {
+            try
+            {
+                value = mpr.ReadBoolean();
+            }
+            catch (Exception ex)
+            {
+                throw new InvalidDataException($"Field {FieldDisplayName(fieldName)} is invalid.", ex);
+            }
+        }
+        _sequence.Value = _sequence.Value.Slice(mpr.Position);
+        return _outer;
+    }
+
+    public TOuter Value(
+        out DateTime value,
+#if DEBUG
+        [CallerArgumentExpression("value")]
+#endif
+        string fieldName = "")
+    {
+        var mpr = new MPR(_sequence.Value);
+        try
+        {
+            value = mpr.ReadDateTime();
+        }
+        catch (Exception ex)
+        {
+            throw new InvalidDataException($"Field {FieldDisplayName(fieldName)} is invalid.", ex);
+        }
+        _sequence.Value = _sequence.Value.Slice(mpr.Position);
+        return _outer;
+    }
+
+    public TOuter Value(
+        out DateTime? value,
+#if DEBUG
+        [CallerArgumentExpression("value")]
+#endif
+        string fieldName = "")
+    {
+        var mpr = new MPR(_sequence.Value);
+        if (mpr.TryReadNil())
+        {
+            value = null;
+        }
+        else
+        {
+            try
+            {
+                value = mpr.ReadDateTime();
+            }
+            catch (Exception ex)
+            {
+                throw new InvalidDataException($"Field {FieldDisplayName(fieldName)} is invalid.", ex);
+            }
+        }
+        _sequence.Value = _sequence.Value.Slice(mpr.Position);
+        return _outer;
+    }
+
+    public TOuter Value(
+        out byte[] value,
+#if DEBUG
+        [CallerArgumentExpression("value")]
+#endif
+        string fieldName = "")
+    {
+        var mpr = new MPR(_sequence.Value);
+        try
+        {
+            var seq = mpr.ReadBytes();
+            if (seq != null)
+            {
+                value = seq.Value.ToArray();
+                _sequence.Value = _sequence.Value.Slice(mpr.Position);
+                return _outer;
+            }
+        }
+        catch (Exception ex)
+        {
+            throw new InvalidDataException($"Field {FieldDisplayName(fieldName)} is invalid.", ex);
+        }
+        throw new InvalidDataException($"Field {FieldDisplayName(fieldName)} is invalid.");
+    }
+
+    public TOuter Value(
+        out ReadOnlyMemory<byte>? value,
+#if DEBUG
+        [CallerArgumentExpression("value")]
+#endif
+        string fieldName = "")
+    {
+        var mpr = new MPR(_sequence.Value);
+        if (mpr.TryReadNil())
+        {
+            value = null;
+        }
+        else
+        {
+            try
+            {
+                var seq = mpr.ReadBytes();
+                if (seq != null)
+                {
+                    value = seq.Value.ToArray();
+                }
+                else
+                {
+                    throw new InvalidDataException($"Field {FieldDisplayName(fieldName)} is invalid.");
+                }
+            }
+            catch (Exception ex)
+            {
+                throw new InvalidDataException($"Field {FieldDisplayName(fieldName)} is invalid.", ex);
             }
         }
 
-        public TOuter Value(out char? value)
+        _sequence.Value = _sequence.Value.Slice(mpr.Position);
+        return _outer;
+    }
+
+    public TOuter Value(
+        out ReadOnlyMemory<byte> value,
+#if DEBUG
+        [CallerArgumentExpression("value")]
+#endif
+        string fieldName = "")
+    {
+        var mpr = new MPR(_sequence.Value);
+        try
         {
-            Value(out ushort? u);
-            if (u == null)
+            var seq = mpr.ReadBytes();
+            if (seq != null)
             {
+                value = seq.Value.ToArray();
+                _sequence.Value = _sequence.Value.Slice(mpr.Position);
+                return _outer;
+            }
+        }
+        catch (Exception ex)
+        {
+            throw new InvalidDataException($"Field {FieldDisplayName(fieldName)} is invalid.", ex);
+        }
+        throw new InvalidDataException($"Field {FieldDisplayName(fieldName)} is invalid.");
+    }
+
+    /// <summary>
+    /// Do not use this, until you ensure source is byte[].
+    /// </summary>
+    public TOuter DangerousValue(
+        out ReadOnlyMemory<byte> value,
+#if DEBUG
+        [CallerArgumentExpression("value")]
+#endif
+        string fieldName = "")
+    {
+        var mpr = new MPR(_sequence.Value);
+        try
+        {
+            var seq = mpr.ReadBytes();
+            if (seq != null && seq.Value.IsSingleSegment)
+            {
+                value = seq.Value.First;
+                _sequence.Value = _sequence.Value.Slice(mpr.Position);
+                return _outer;
+            }
+        }
+        catch (Exception ex)
+        {
+            throw new InvalidDataException($"Field {FieldDisplayName(fieldName)} is invalid.", ex);
+        }
+        throw new InvalidDataException($"Field {FieldDisplayName(fieldName)} is invalid.");
+    }
+
+    public TOuter Nil()
+    {
+        var mpr = new MPR(_sequence.Value);
+        try
+        {
+            mpr.ReadNil();
+            _sequence.Value = _sequence.Value.Slice(mpr.Position);
+            return _outer;
+        }
+        catch (Exception ex)
+        {
+            throw new InvalidDataException($"Field {_fieldName} is invalid.", ex);
+        }
+    }
+
+    public TOuter Value(out object? value)
+    {
+        var mpr = new MPR(_sequence.Value);
+        switch (mpr.NextMessagePackType)
+        {
+            case MessagePackType.Nil:
                 value = null;
+                _sequence.Value = _sequence.Value.Slice(1);
+                return _outer;
+            case MessagePackType.Boolean:
+                value = mpr.ReadBoolean() ? BoxedTrue : BoxedFalse;
+                _sequence.Value = _sequence.Value.Slice(mpr.Position);
+                return _outer;
+            case MessagePackType.String:
+                value = mpr.ReadString();
+                _sequence.Value = _sequence.Value.Slice(mpr.Position);
+                return _outer;
+            case MessagePackType.Binary:
+                {
+                    value = mpr.ReadBytes()!.Value.ToArray();
+                    _sequence.Value = _sequence.Value.Slice(mpr.Position);
+                    return _outer;
+                }
+            case MessagePackType.Array:
+                {
+                    var count = mpr.ReadArrayHeader();
+                    _sequence.Value = _sequence.Value.Slice(mpr.Position);
+                    if (count == 0)
+                    {
+                        value = Array.Empty<object>();
+                        return _outer;
+                    }
+                    else
+                    {
+                        var array = new object?[count];
+                        for (int i = 0; i < count; i++)
+                        {
+                            Value(out array[i]);
+                        }
+                        value = array;
+                        return _outer;
+                    }
+                }
+            case MessagePackType.Map:
+                {
+                    var count = mpr.ReadMapHeader();
+                    _sequence.Value = _sequence.Value.Slice(mpr.Position);
+                    if (count == 0)
+                    {
+                        value = new Dictionary<string, object?>();
+                        return _outer;
+                    }
+                    else
+                    {
+                        var dict = new Dictionary<string, object?>(count);
+                        for (int i = 0; i < count; i++)
+                        {
+                            mpr = new MPR(_sequence.Value);
+                            var key = mpr.ReadString();
+                            _sequence.Value = _sequence.Value.Slice(mpr.Position);
+                            Value(out object? item);
+                            dict.Add(key!, item);
+                        }
+                        value = dict;
+                        return _outer;
+                    }
+                }
+            case MessagePackType.Extension:
+                value = mpr.ReadDateTime();
+                _sequence.Value = _sequence.Value.Slice(mpr.Position);
+                return _outer;
+            default:
+                switch (mpr.NextCode)
+                {
+                    case MessagePackCode.Float32:
+                        value = mpr.ReadSingle();
+                        _sequence.Value = _sequence.Value.Slice(mpr.Position);
+                        return _outer;
+                    case MessagePackCode.Float64:
+                        value = mpr.ReadDouble();
+                        _sequence.Value = _sequence.Value.Slice(mpr.Position);
+                        return _outer;
+                    case >= MessagePackCode.MinFixInt and <= MessagePackCode.MaxFixInt:
+                    case >= MessagePackCode.MinNegativeFixInt and <= MessagePackCode.MaxNegativeFixInt:
+                    case MessagePackCode.Int8:
+                    case MessagePackCode.UInt8:
+                    case MessagePackCode.Int16:
+                    case MessagePackCode.UInt16:
+                    case MessagePackCode.Int32:
+                        value = mpr.ReadInt32();
+                        _sequence.Value = _sequence.Value.Slice(mpr.Position);
+                        return _outer;
+                    case MessagePackCode.UInt32:
+                        {
+                            var temp = mpr.ReadUInt32();
+                            _sequence.Value = _sequence.Value.Slice(mpr.Position);
+                            if (temp > int.MaxValue)
+                            {
+                                value = temp;
+                            }
+                            else
+                            {
+                                value = (int)temp;
+                            }
+                            return _outer;
+                        }
+                    case MessagePackCode.Int64:
+                        value = mpr.ReadInt64();
+                        _sequence.Value = _sequence.Value.Slice(mpr.Position);
+                        return _outer;
+                    case MessagePackCode.UInt64:
+                        value = mpr.ReadUInt64();
+                        _sequence.Value = _sequence.Value.Slice(mpr.Position);
+                        return _outer;
+                    default:
+                        throw new InvalidDataException($"Field {_fieldName} is invalid.");
+                }
+        }
+    }
+
+    private string FieldDisplayName(string fieldName) =>
+        (string.IsNullOrEmpty(_fieldName), string.IsNullOrEmpty(fieldName)) switch
+        {
+            (true, true) => string.Empty,
+            (true, false) => fieldName,
+            (false, true) => _fieldName,
+            (false, false) => _fieldName + "/" + fieldName,
+        };
+}
+
+public struct MessagePackArrayReader<TOuter>
+    where TOuter : struct
+{
+    public readonly int Count;
+
+    private readonly StrongBox<ReadOnlySequence<byte>> _sequence;
+    private readonly TOuter _outer;
+    private readonly string _fieldName;
+
+    private int _index;
+
+    internal MessagePackArrayReader(StrongBox<ReadOnlySequence<byte>> sequence, TOuter outer, int count, string fieldName)
+    {
+        _sequence = sequence;
+        _outer = outer;
+        Count = count;
+        _fieldName = fieldName;
+        _index = 0;
+    }
+
+    public MessagePackArrayReader<TOuter> Text(
+        out string value,
+#if DEBUG
+        [CallerArgumentExpression("value")]
+#endif
+        string fieldName = "")
+    {
+        NullableText(out var text, fieldName);
+        if (text is null)
+        {
+            throw new InvalidDataException($"Field {FieldDisplayName(fieldName)} is invalid (nil).");
+        }
+        value = text;
+        return this;
+    }
+
+    public MessagePackArrayReader<TOuter> NullableText(
+        out string? value,
+#if DEBUG
+        [CallerArgumentExpression("value")]
+#endif
+        string fieldName = "")
+    {
+        IncreaseIndex(fieldName);
+        var mpr = new MPR(_sequence.Value);
+        try
+        {
+            value = mpr.ReadString();
+        }
+        catch (Exception ex)
+        {
+            throw new InvalidDataException($"Field {FieldDisplayName(fieldName)} is invalid.", ex);
+        }
+        _sequence.Value = _sequence.Value.Slice(mpr.Position);
+        return this;
+    }
+
+    public MessagePackArrayReader<TOuter> Int(
+        out int value,
+#if DEBUG
+        [CallerArgumentExpression("value")]
+#endif
+        string fieldName = "")
+    {
+        IncreaseIndex(fieldName);
+        var mpr = new MPR(_sequence.Value);
+        try
+        {
+            value = mpr.ReadInt32();
+        }
+        catch (Exception ex)
+        {
+            throw new InvalidDataException($"Field {FieldDisplayName(fieldName)} is invalid.", ex);
+        }
+        _sequence.Value = _sequence.Value.Slice(mpr.Position);
+        return this;
+    }
+
+    public MessagePackArrayReader<TOuter> Bytes(
+        out ReadOnlyMemory<byte> value,
+#if DEBUG
+        [CallerArgumentExpression("value")]
+#endif
+        string fieldName = "")
+    {
+        IncreaseIndex(fieldName);
+        var mpr = new MPR(_sequence.Value);
+        ReadOnlySequence<byte>? seq;
+        try
+        {
+            seq = mpr.ReadBytes();
+        }
+        catch (Exception ex)
+        {
+            throw new InvalidDataException($"Field {FieldDisplayName(fieldName)} is invalid.", ex);
+        }
+        if (seq == null)
+        {
+            throw new InvalidDataException($"Field {FieldDisplayName(fieldName)} is null.");
+        }
+        value = seq.Value.ToArray();
+        _sequence.Value = _sequence.Value.Slice(mpr.Position);
+        return this;
+    }
+
+    public MessagePackValueReader<MessagePackArrayReader<TOuter>> Simple(string fieldName = "")
+    {
+        IncreaseIndex(fieldName);
+        return new(_sequence, this, FieldDisplayName(fieldName));
+    }
+
+    public MessagePackReader<MessagePackArrayReader<TOuter>> Item(string fieldName = "")
+    {
+        IncreaseIndex(fieldName);
+        return new(_sequence, this, FieldDisplayName(fieldName));
+    }
+
+    public MessagePackArrayReader<TOuter> SkipItem()
+    {
+        IncreaseIndex(string.Empty);
+        var mpr = new MPR(_sequence.Value);
+        mpr.Skip();
+        _sequence.Value = _sequence.Value.Slice(mpr.Position);
+        return this;
+    }
+
+    public MessagePackReader<TOuter> TailItem(string fieldName = "")
+    {
+        IncreaseIndex(fieldName);
+        EndArray(false);
+        return new(_sequence, _outer, FieldDisplayName(fieldName));
+    }
+
+    public MessagePackArrayReader<TOuter> OptionalText(
+        out string? value,
+#if DEBUG
+        [CallerArgumentExpression("value")]
+#endif
+        string fieldName = "")
+    {
+        if (HasOptional())
+        {
+            var mpr = new MPR(_sequence.Value);
+            try
+            {
+                value = mpr.ReadString();
+            }
+            catch (Exception ex)
+            {
+                throw new InvalidDataException($"Field {FieldDisplayName(fieldName)} is invalid.", ex);
+            }
+            _sequence.Value = _sequence.Value.Slice(mpr.Position);
+            return this;
+        }
+        value = null;
+        return this;
+    }
+
+    public MessagePackArrayReader<TOuter> OptionalInt(
+        out int? value,
+#if DEBUG
+        [CallerArgumentExpression("value")]
+#endif
+        string fieldName = "")
+    {
+        if (HasOptional())
+        {
+            var mpr = new MPR(_sequence.Value);
+            try
+            {
+                value = mpr.ReadInt32();
+            }
+            catch (Exception ex)
+            {
+                throw new InvalidDataException($"Field {FieldDisplayName(fieldName)} is invalid.", ex);
+            }
+            _sequence.Value = _sequence.Value.Slice(mpr.Position);
+            return this;
+        }
+        value = default;
+        return this;
+    }
+
+    public MessagePackArrayReader<TOuter> OptionalDateTime(
+        out DateTime? value,
+#if DEBUG
+        [CallerArgumentExpression("value")]
+#endif
+        string fieldName = "")
+    {
+        if (HasOptional())
+        {
+            var mpr = new MPR(_sequence.Value);
+            if (mpr.TryReadNil())
+            {
+                value = default;
             }
             else
             {
-                value = (char)u;
-            }
-            return _outer;
-        }
-
-        public TOuter Value(out sbyte value)
-        {
-            try
-            {
-                value = MessagePackBinary.ReadSByte(_stream);
-                return _outer;
-            }
-            catch (Exception ex)
-            {
-                throw new InvalidDataException($"Field {_fieldName} is invalid.", ex);
-            }
-        }
-
-        public TOuter Value(out sbyte? value)
-        {
-            var code = ReadU1();
-            value = code switch
-            {
-                MessagePackCode.Nil => null,
-                >= MessagePackCode.MinFixInt and <= MessagePackCode.MaxFixInt => (sbyte)code,
-                >= MessagePackCode.MinNegativeFixInt and <= MessagePackCode.MaxNegativeFixInt => GetNegativeFixInt(code),
-                MessagePackCode.Int8 => GetInt8(),
-                _ => throw new InvalidDataException($"Field {_fieldName} is invalid."),
-            };
-            return _outer;
-        }
-
-        public TOuter Value(out byte value)
-        {
-            try
-            {
-                value = MessagePackBinary.ReadByte(_stream);
-                return _outer;
-            }
-            catch (Exception ex)
-            {
-                throw new InvalidDataException($"Field {_fieldName} is invalid.", ex);
-            }
-        }
-
-        public TOuter Value(out byte? value)
-        {
-            var code = ReadU1();
-            value = code switch
-            {
-                MessagePackCode.Nil => null,
-                >= MessagePackCode.MinFixInt and <= MessagePackCode.MaxFixInt => (byte)code,
-                MessagePackCode.UInt8 => GetUInt8(),
-                _ => throw new InvalidDataException($"Field {_fieldName} is invalid."),
-            };
-            return _outer;
-        }
-
-        public TOuter Value(out short value)
-        {
-            try
-            {
-                value = MessagePackBinary.ReadInt16(_stream);
-                return _outer;
-            }
-            catch (Exception ex)
-            {
-                throw new InvalidDataException($"Field {_fieldName} is invalid.", ex);
-            }
-        }
-
-        public TOuter Value(out short? value)
-        {
-            var code = ReadU1();
-            value = code switch
-            {
-                MessagePackCode.Nil => null,
-                >= MessagePackCode.MinFixInt and <= MessagePackCode.MaxFixInt => (short)code,
-                >= MessagePackCode.MinNegativeFixInt and <= MessagePackCode.MaxNegativeFixInt => GetNegativeFixInt(code),
-                MessagePackCode.Int8 => GetInt8(),
-                MessagePackCode.UInt8 => GetUInt8(),
-                MessagePackCode.Int16 => GetInt16(),
-                MessagePackCode.UInt16 => CheckedConvert(GetUInt16()),
-                _ => throw new InvalidDataException($"Field {_fieldName} is invalid."),
-            };
-            return _outer;
-
-            [MethodImpl(MethodImplOptions.AggressiveInlining)]
-            static short CheckedConvert(ushort value)
-            {
-                checked
+                try
                 {
-                    return (short)value;
+                    value = mpr.ReadDateTime();
+                }
+                catch (Exception ex)
+                {
+                    throw new InvalidDataException($"Field {FieldDisplayName(fieldName)} is invalid.", ex);
                 }
             }
+            _sequence.Value = _sequence.Value.Slice(mpr.Position);
+            return this;
         }
-
-        public TOuter Value(out ushort value)
-        {
-            try
-            {
-                value = MessagePackBinary.ReadUInt16(_stream);
-                return _outer;
-            }
-            catch (Exception ex)
-            {
-                throw new InvalidDataException($"Field {_fieldName} is invalid.", ex);
-            }
-        }
-
-        public TOuter Value(out ushort? value)
-        {
-            var code = ReadU1();
-            value = code switch
-            {
-                MessagePackCode.Nil => null,
-                >= MessagePackCode.MinFixInt and <= MessagePackCode.MaxFixInt => (ushort)code,
-                MessagePackCode.UInt8 => GetUInt8(),
-                MessagePackCode.UInt16 => GetUInt16(),
-                _ => throw new InvalidDataException($"Field {_fieldName} is invalid."),
-            };
-            return _outer;
-            throw new InvalidDataException($"Field {_fieldName} is invalid.");
-        }
-
-        public TOuter Value(out int value)
-        {
-            try
-            {
-                value = MessagePackBinary.ReadInt32(_stream);
-                return _outer;
-            }
-            catch (Exception ex)
-            {
-                throw new InvalidDataException($"Field {_fieldName} is invalid.", ex);
-            }
-        }
-
-        public TOuter Value(out int? value)
-        {
-            var code = ReadU1();
-            value = code switch
-            {
-                MessagePackCode.Nil => null,
-                >= MessagePackCode.MinFixInt and <= MessagePackCode.MaxFixInt => code,
-                >= MessagePackCode.MinNegativeFixInt and <= MessagePackCode.MaxNegativeFixInt => GetNegativeFixInt(code),
-                MessagePackCode.Int8 => GetInt8(),
-                MessagePackCode.UInt8 => GetUInt8(),
-                MessagePackCode.Int16 => GetInt16(),
-                MessagePackCode.UInt16 => GetUInt16(),
-                MessagePackCode.Int32 => GetInt32(),
-                MessagePackCode.UInt32 => CheckedConvert(GetUInt32()),
-                _ => throw new InvalidDataException($"Field {_fieldName} is invalid."),
-            };
-            return _outer;
-
-            [MethodImpl(MethodImplOptions.AggressiveInlining)]
-            static int CheckedConvert(uint value)
-            {
-                checked
-                {
-                    return (int)value;
-                }
-            }
-        }
-
-        public TOuter Value(out uint value)
-        {
-            try
-            {
-                value = MessagePackBinary.ReadUInt32(_stream);
-                return _outer;
-            }
-            catch (Exception ex)
-            {
-                throw new InvalidDataException($"Field {_fieldName} is invalid.", ex);
-            }
-        }
-
-        public TOuter Value(out uint? value)
-        {
-            var code = ReadU1();
-            value = code switch
-            {
-                MessagePackCode.Nil => null,
-                >= MessagePackCode.MinFixInt and <= MessagePackCode.MaxFixInt => (uint)code,
-                MessagePackCode.UInt8 => GetUInt8(),
-                MessagePackCode.UInt16 => GetUInt16(),
-                MessagePackCode.UInt32 => GetUInt32(),
-                _ => throw new InvalidDataException($"Field {_fieldName} is invalid."),
-            };
-            return _outer;
-        }
-
-        public TOuter Value(out long value)
-        {
-            try
-            {
-                value = MessagePackBinary.ReadInt64(_stream);
-                return _outer;
-            }
-            catch (Exception ex)
-            {
-                throw new InvalidDataException($"Field {_fieldName} is invalid.", ex);
-            }
-        }
-
-        public TOuter Value(out long? value)
-        {
-            var code = ReadU1();
-            value = code switch
-            {
-                MessagePackCode.Nil => null,
-                >= MessagePackCode.MinFixInt and <= MessagePackCode.MaxFixInt => code,
-                >= MessagePackCode.MinNegativeFixInt and <= MessagePackCode.MaxNegativeFixInt => GetNegativeFixInt(code),
-                MessagePackCode.Int8 => GetInt8(),
-                MessagePackCode.UInt8 => GetUInt8(),
-                MessagePackCode.Int16 => GetInt16(),
-                MessagePackCode.UInt16 => GetUInt16(),
-                MessagePackCode.Int32 => GetInt32(),
-                MessagePackCode.UInt32 => GetUInt32(),
-                MessagePackCode.Int64 => GetInt64(),
-                MessagePackCode.UInt64 => CheckedConvert(GetUInt64()),
-                _ => throw new InvalidDataException($"Field {_fieldName} is invalid."),
-            };
-            return _outer;
-
-            [MethodImpl(MethodImplOptions.AggressiveInlining)]
-            static long CheckedConvert(ulong value)
-            {
-                checked
-                {
-                    return (long)value;
-                }
-            }
-        }
-
-        public TOuter Value(out ulong value)
-        {
-            try
-            {
-                value = MessagePackBinary.ReadUInt64(_stream);
-                return _outer;
-            }
-            catch (Exception ex)
-            {
-                throw new InvalidDataException($"Field {_fieldName} is invalid.", ex);
-            }
-        }
-
-        public TOuter Value(out ulong? value)
-        {
-            var code = ReadU1();
-            value = code switch
-            {
-                MessagePackCode.Nil => null,
-                >= MessagePackCode.MinFixInt and <= MessagePackCode.MaxFixInt => (ulong)code,
-                MessagePackCode.UInt8 => GetUInt8(),
-                MessagePackCode.UInt16 => GetUInt16(),
-                MessagePackCode.UInt32 => GetUInt32(),
-                MessagePackCode.UInt64 => GetUInt64(),
-                _ => throw new InvalidDataException($"Field {_fieldName} is invalid."),
-            };
-            return _outer;
-        }
-
-        public TOuter Value(out float value)
-        {
-            try
-            {
-                value = MessagePackBinary.ReadSingle(_stream);
-                return _outer;
-            }
-            catch (Exception ex)
-            {
-                throw new InvalidDataException($"Field {_fieldName} is invalid.", ex);
-            }
-        }
-
-        public TOuter Value(out float? value)
-        {
-            value = ReadU1() switch
-            {
-                MessagePackCode.Nil => null,
-                MessagePackCode.Float32 => GetFloat32(),
-                _ => throw new InvalidDataException($"Field {_fieldName} is invalid."),
-            };
-            return _outer;
-        }
-
-        public TOuter Value(out double value)
-        {
-            try
-            {
-                value = MessagePackBinary.ReadDouble(_stream);
-                return _outer;
-            }
-            catch (Exception ex)
-            {
-                throw new InvalidDataException($"Field {_fieldName} is invalid.", ex);
-            }
-        }
-
-        public TOuter Value(out double? value)
-        {
-            value = ReadU1() switch
-            {
-                MessagePackCode.Nil => null,
-                MessagePackCode.Float64 => GetFloat64(),
-                _ => throw new InvalidDataException($"Field {_fieldName} is invalid."),
-            };
-            return _outer;
-        }
-
-        public TOuter Value(out bool value)
-        {
-            try
-            {
-                value = MessagePackBinary.ReadBoolean(_stream);
-                return _outer;
-            }
-            catch (Exception ex)
-            {
-                throw new InvalidDataException($"Field {_fieldName} is invalid.", ex);
-            }
-        }
-
-        public TOuter Value(out bool? value)
-        {
-            value = ReadU1() switch
-            {
-                MessagePackCode.Nil => null,
-                MessagePackCode.True => true,
-                MessagePackCode.False => false,
-                _ => throw new InvalidDataException($"Field {_fieldName} is invalid."),
-            };
-            return _outer;
-        }
-
-        public TOuter Value(out DateTime value)
-        {
-            try
-            {
-                value = MessagePackBinary.ReadDateTime(_stream);
-                return _outer;
-            }
-            catch (Exception ex)
-            {
-                throw new InvalidDataException($"Field {_fieldName} is invalid.", ex);
-            }
-        }
-
-        public TOuter Value(out DateTime? value)
-        {
-            value = ReadU1() switch
-            {
-                MessagePackCode.Nil => null,
-                MessagePackCode.FixExt4 => GetDateTimeForFixExt4(),
-                MessagePackCode.FixExt8 => GetDateTimeForFixExt8(),
-                MessagePackCode.Ext8 => GetDateTimeForExt8(),
-                _ => throw new InvalidDataException($"Field {_fieldName} is invalid."),
-            };
-            return _outer;
-        }
-
-        public TOuter Value(out byte[] value)
-        {
-            try
-            {
-                value = MessagePackBinary.ReadBytes(_stream);
-                return _outer;
-            }
-            catch (Exception ex)
-            {
-                throw new InvalidDataException($"Field {_fieldName} is invalid.", ex);
-            }
-        }
-
-        public TOuter Nil()
-        {
-            try
-            {
-                MessagePackBinary.ReadNil(_stream);
-                return _outer;
-            }
-            catch (Exception ex)
-            {
-                throw new InvalidDataException($"Field {_fieldName} is invalid.", ex);
-            }
-        }
-
-        public TOuter Value(out object value)
-        {
-            var code = _stream.ReadByte();
-            if (code == -1)
-            {
-                throw new InvalidDataException($"Field {_fieldName} is invalid (EOS).");
-            }
-            // see: https://github.com/msgpack/msgpack/blob/master/spec.md
-            switch (code)
-            {
-                case -1:
-                    throw new InvalidDataException($"Field {_fieldName} is invalid (EOS).");
-                case MessagePackCode.Nil:
-                    value = null;
-                    break;
-                case MessagePackCode.True:
-                    value = BoxedTrue;
-                    break;
-                case MessagePackCode.False:
-                    value = BoxedFalse;
-                    break;
-                case MessagePackCode.Float32:
-                    value = GetFloat32();
-                    break;
-                case MessagePackCode.Float64:
-                    value = GetFloat64();
-                    break;
-                case >= MessagePackCode.MinFixStr and <= MessagePackCode.MaxFixStr:
-                    value = ReadString(code - MessagePackCode.MinFixStr);
-                    break;
-                case MessagePackCode.Str8:
-                    value = ReadString(ReadU1());
-                    break;
-                case MessagePackCode.Str16:
-                    value = ReadString(ReadU2());
-                    break;
-                case MessagePackCode.Str32:
-                    {
-                        var count = (int)ReadU4();
-                        if (count < 0)
-                        {
-                            throw new InvalidDataException($"Field {_fieldName} is invalid (string length).");
-                        }
-                        value = ReadString(count);
-                        break;
-                    }
-                case MessagePackCode.Bin8:
-                    value = ReadBinary(ReadU1());
-                    break;
-                case MessagePackCode.Bin16:
-                    value = ReadBinary(ReadU2());
-                    break;
-                case MessagePackCode.Bin32:
-                    {
-                        var count = (int)ReadU4();
-                        if (count < 0)
-                        {
-                            throw new InvalidDataException($"Field {_fieldName} is invalid (string length).");
-                        }
-                        value = ReadBinary(count);
-                        break;
-                    }
-                case >= MessagePackCode.MinFixInt and <= MessagePackCode.MaxFixInt:
-                    value = code;
-                    break;
-                case >= MessagePackCode.MinNegativeFixInt and <= MessagePackCode.MaxNegativeFixInt:
-                    value = (int)GetNegativeFixInt(code);
-                    break;
-                case MessagePackCode.Int8:
-                    value = (int)GetInt8();
-                    break;
-                case MessagePackCode.UInt8:
-                    value = (int)GetUInt8();
-                    break;
-                case MessagePackCode.Int16:
-                    value = (int)GetInt16();
-                    break;
-                case MessagePackCode.UInt16:
-                    value = (int)GetUInt16();
-                    break;
-                case MessagePackCode.Int32:
-                    value = GetInt32();
-                    break;
-                case MessagePackCode.UInt32:
-                    var u = GetUInt32();
-                    if (u > int.MaxValue)
-                    {
-                        value = u;
-                    }
-                    else
-                    {
-                        value = (int)u;
-                    }
-                    break;
-                case MessagePackCode.Int64:
-                    value = GetInt64();
-                    break;
-                case MessagePackCode.UInt64:
-                    var ul = GetUInt64();
-                    if (ul > long.MaxValue)
-                    {
-                        value = ul;
-                    }
-                    else
-                    {
-                        value = (long)ul;
-                    }
-                    break;
-                case MessagePackCode.FixExt4:
-                    value = GetDateTimeForFixExt4();
-                    break;
-                case MessagePackCode.FixExt8:
-                    value = GetDateTimeForFixExt8();
-                    break;
-                case MessagePackCode.Ext8:
-                    value = GetDateTimeForExt8();
-                    break;
-                case >= MessagePackCode.MinFixArray and <= MessagePackCode.MaxFixArray:
-                    value = ReadObjectArray(code - MessagePackCode.MinFixArray);
-                    break;
-                case MessagePackCode.Array16:
-                    value = ReadObjectArray(ReadU2());
-                    break;
-                case MessagePackCode.Array32:
-                    {
-                        var count = (int)ReadU4();
-                        if (count < 0)
-                        {
-                            throw new InvalidDataException($"Field {_fieldName} is invalid (array count).");
-                        }
-                        value = ReadObjectArray(count);
-                        break;
-                    }
-                case >= MessagePackCode.MinFixMap and <= MessagePackCode.MaxFixMap:
-                    value = ReadObjectMap(code - MessagePackCode.MinFixMap);
-                    break;
-                case MessagePackCode.Map16:
-                    value = ReadObjectMap(ReadU2());
-                    break;
-                case MessagePackCode.Map32:
-                    {
-                        var count = (int)ReadU4();
-                        if (count < 0)
-                        {
-                            throw new InvalidDataException($"Field {_fieldName} is invalid (map count).");
-                        }
-                        value = ReadObjectMap(count);
-                        break;
-                    }
-                default:
-                    throw new InvalidDataException($"Field {_fieldName} is invalid (unsupported type).");
-            }
-            return _outer;
-        }
-
-        private int ReadU1()
-        {
-            var value = _stream.ReadByte();
-            if (value == -1)
-            {
-                throw new InvalidDataException($"Field {_fieldName} is invalid (EOS).");
-            }
-            return value;
-        }
-
-        private int ReadU2() =>
-            (ReadU1() << 8) + ReadU1();
-
-        private uint ReadU4() =>
-            ((uint)ReadU2() << 16) + (uint)ReadU2();
-
-        private ulong ReadU8() =>
-            ((ulong)ReadU4() << 32) + ReadU4();
-
-        private string ReadString(int count)
-        {
-            using var owner = ExactSizeMemoryPool.Shared.Rent(count);
-            int currentIndex = 0;
-            int read;
-            while (currentIndex < count &&
-                (read = _stream.Read(owner.Memory.Span[currentIndex..(count - currentIndex)])) > 0)
-            {
-                currentIndex += read;
-            }
-            if (count != currentIndex)
-            {
-                throw new InvalidDataException($"Field {_fieldName} is invalid (string incomplete).");
-            }
-            return Encoding.UTF8.GetString(owner.Memory.Span[0..count]);
-        }
-
-        private byte[] ReadBinary(int count)
-        {
-            var bytes = new byte[count];
-            int currentIndex = 0;
-            int read;
-            while ((read = _stream.Read(bytes, currentIndex, count - currentIndex)) > 0)
-            {
-                currentIndex += read;
-            }
-            if (count != currentIndex)
-            {
-                throw new InvalidDataException($"Field {_fieldName} is invalid (binary incomplete).");
-            }
-            return bytes;
-        }
-
-        private object[] ReadObjectArray(int count)
-        {
-            var array = new object[count];
-            for (int i = 0; i < count; i++)
-            {
-                Value(out array[i]);
-            }
-            return array;
-        }
-
-        private Dictionary<string, object> ReadObjectMap(int count)
-        {
-            Dictionary<string, object> map = new(count);
-            for (int i = 0; i < count; i++)
-            {
-                Value(out string key);
-                Value(out object value);
-                map[key] = value;
-            }
-            return map;
-        }
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static sbyte GetNegativeFixInt(int code) =>
-        (sbyte)(code - MessagePackCode.MaxNegativeFixInt - 1);
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private sbyte GetInt8() => (sbyte)(byte)ReadU1();
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private byte GetUInt8() => (byte)ReadU1();
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private short GetInt16() => (short)(ushort)ReadU2();
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private ushort GetUInt16() => (ushort)ReadU2();
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private int GetInt32() => (int)ReadU4();
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private uint GetUInt32() => ReadU4();
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private long GetInt64() => (long)ReadU8();
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private ulong GetUInt64() => ReadU8();
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private float GetFloat32() => BitConverter.Int32BitsToSingle((int)ReadU4());
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private double GetFloat64() => BitConverter.Int64BitsToDouble((long)ReadU8());
-
-        private DateTime GetDateTimeForFixExt4()
-        {
-            var type = ReadU1();
-            if (type == 255)
-            {
-                return DateTime.SpecifyKind(DateTime.UnixEpoch.AddSeconds(ReadU4()), DateTimeKind.Utc);
-            }
-            throw new InvalidDataException($"Field {_fieldName} is invalid (unsupported extension).");
-        }
-
-        private DateTime GetDateTimeForFixExt8()
-        {
-            var type = ReadU1();
-            if (type == 255)
-            {
-                var u8 = ReadU8();
-                var seconds = u8 & 0x3FFFFFFFF;
-                var dt = DateTime.SpecifyKind(DateTime.UnixEpoch.AddSeconds(seconds), DateTimeKind.Utc);
-                var f = checked((long)(u8 >> 34));
-                return dt.AddTicks(f / 100);
-            }
-            throw new InvalidDataException($"Field {_fieldName} is invalid (unsupported extension).");
-        }
-
-        private DateTime GetDateTimeForExt8()
-        {
-            var length = ReadU1();
-            if (length == 12)
-            {
-                var type = ReadU1();
-                if (type == 255)
-                {
-                    var u4 = ReadU4();
-                    var u8 = ReadU8();
-                    var dt = DateTime.SpecifyKind(DateTime.UnixEpoch.AddSeconds((long)u8), DateTimeKind.Utc);
-                    return dt.AddTicks(u4 / 100);
-                }
-            }
-            throw new InvalidDataException($"Field {_fieldName} is invalid (unsupported extension).");
-        }
+        value = default;
+        return this;
     }
 
-    public struct MessagePackArrayReader<TOuter>
+    public MessagePackArrayReader<TOuter> Optional<TValue>(
+        Func<MessagePackReader<MessagePackTerminator>, StrongBox<TValue?>, MessagePackTerminator> func,
+        out TValue? value,
+#if DEBUG
+        [CallerArgumentExpression("value")]
+#endif
+        string fieldName = "")
+        where TValue : notnull
     {
-        public readonly int Count;
-
-        private readonly Stream _stream;
-        private readonly TOuter _outer;
-        private readonly string _fieldName;
-
-        private int _index;
-
-        internal MessagePackArrayReader(Stream stream, TOuter outer, int count, string fieldName)
+        value = default;
+        if (HasOptional())
         {
-            _stream = stream;
-            _outer = outer;
-            Count = count;
-            _fieldName = fieldName;
-            _index = 0;
-        }
-
-        public MessagePackArrayReader<TOuter> Text(out string value) =>
-            Text(string.Empty, out value);
-
-        public MessagePackArrayReader<TOuter> Text(string fieldName, out string value)
-        {
-            IncreaseIndex(fieldName);
-            try
-            {
-                value = MessagePackBinary.ReadString(_stream);
-                return this;
-            }
-            catch (Exception ex)
-            {
-                throw new InvalidDataException($"Field {FieldDisplayName(fieldName)} is invalid.", ex);
-            }
-        }
-
-        public MessagePackArrayReader<TOuter> Boolean(out bool value) =>
-            Boolean(string.Empty, out value);
-
-        public MessagePackArrayReader<TOuter> Boolean(string fieldName, out bool value)
-        {
-            IncreaseIndex(fieldName);
-            try
-            {
-                value = MessagePackBinary.ReadBoolean(_stream);
-                return this;
-            }
-            catch (Exception ex)
-            {
-                throw new InvalidDataException($"Field {FieldDisplayName(fieldName)} is invalid.", ex);
-            }
-        }
-
-        public MessagePackArrayReader<TOuter> Int(out int value) =>
-            Int(string.Empty, out value);
-
-        public MessagePackArrayReader<TOuter> Int(string fieldName, out int value)
-        {
-            IncreaseIndex(fieldName);
-            try
-            {
-                value = MessagePackBinary.ReadInt32(_stream);
-                return this;
-            }
-            catch (Exception ex)
-            {
-                throw new InvalidDataException($"Field {FieldDisplayName(fieldName)} is invalid.", ex);
-            }
-        }
-
-        public MessagePackArrayReader<TOuter> Bytes(out ReadOnlyMemory<byte> value) =>
-            Bytes(string.Empty, out value);
-
-        public MessagePackArrayReader<TOuter> Bytes(string fieldName, out ReadOnlyMemory<byte> value)
-        {
-            IncreaseIndex(fieldName);
-            try
-            {
-                value = MessagePackBinary.ReadBytes(_stream);
-                return this;
-            }
-            catch (Exception ex)
-            {
-                throw new InvalidDataException($"Field {FieldDisplayName(fieldName)} is invalid.", ex);
-            }
-        }
-
-
-        public MessagePackValueReader<MessagePackArrayReader<TOuter>> Simple(string fieldName = "")
-        {
-            IncreaseIndex(fieldName);
-            return new(_stream, this, FieldDisplayName(fieldName));
-        }
-
-        public MessagePackReader<MessagePackArrayReader<TOuter>> Item(string fieldName = "")
-        {
-            IncreaseIndex(fieldName);
-            return new(_stream, this, FieldDisplayName(fieldName));
-        }
-
-        public MessagePackArrayReader<TOuter> Item<TValue>(
-            Func<MessagePackReader<MessagePackTerminator<Stream>>, StrongBox<TValue>, MessagePackTerminator<Stream>> func,
-            out TValue value,
-            string fieldName = "")
-        {
-            IncreaseIndex(fieldName);
-            StrongBox<TValue> box = new();
-            _ = func(new(_stream, new(_stream), FieldDisplayName(fieldName)), box);
+            StrongBox<TValue?> box = new();
+            func(new(_sequence, new(), FieldDisplayName(fieldName)), box);
             value = box.Value;
-            return this;
         }
-
-        public MessagePackArrayReader<TOuter> OptionalText(out string value) =>
-            OptionalText(string.Empty, out value);
-
-        public MessagePackArrayReader<TOuter> OptionalText(string fieldName, out string value)
-        {
-            if (HasOptional())
-            {
-                try
-                {
-                    value = MessagePackBinary.ReadString(_stream);
-                    return this;
-                }
-                catch (Exception ex)
-                {
-                    throw new InvalidDataException($"Field {FieldDisplayName(fieldName)} is invalid.", ex);
-                }
-            }
-            value = default;
-            return this;
-        }
-
-        public MessagePackArrayReader<TOuter> OptionalInt(out int? value) =>
-            OptionalInt(string.Empty, out value);
-
-        public MessagePackArrayReader<TOuter> OptionalInt(string fieldName, out int? value)
-        {
-            if (HasOptional())
-            {
-                try
-                {
-                    value = MessagePackBinary.ReadInt32(_stream);
-                    return this;
-                }
-                catch (Exception ex)
-                {
-                    throw new InvalidDataException($"Field {FieldDisplayName(fieldName)} is invalid.", ex);
-                }
-            }
-            value = default;
-            return this;
-        }
-
-        public MessagePackArrayReader<TOuter> Optional<TValue>(
-            Func<MessagePackReader<MessagePackTerminator<Stream>>, StrongBox<TValue>, MessagePackTerminator<Stream>> func,
-            out TValue value,
-            string fieldName = "")
-        {
-            value = default;
-            if (HasOptional())
-            {
-                StrongBox<TValue> box = new();
-                func(new(_stream, new(_stream), FieldDisplayName(fieldName)), box);
-                value = box.Value;
-            }
-            return this;
-        }
-
-        public TOuter EndArray(bool skipOptionals = true)
-        {
-            if (skipOptionals)
-            {
-                while (_index != Count)
-                {
-                    _index++;
-                    MessagePackBinary.ReadNextBlock(_stream);
-                }
-            }
-            else if (_index != Count)
-            {
-                throw new InvalidDataException($"Have more items in array {_fieldName}.");
-            }
-            return _outer;
-        }
-
-        private void IncreaseIndex(string fieldName)
-        {
-            if (_index == Count)
-            {
-                throw new InvalidDataException($"No more item in array, field {_fieldName}.{fieldName}.");
-            }
-            _index++;
-        }
-
-        private bool HasOptional()
-        {
-            if (_index == Count)
-            {
-                return false;
-            }
-            _index++;
-            return true;
-        }
-
-        private string FieldDisplayName(string fieldName) =>
-            (string.IsNullOrEmpty(_fieldName), string.IsNullOrEmpty(fieldName)) switch
-            {
-                (true, true) => string.Empty,
-                (true, false) => _fieldName,
-                (false, true) => fieldName,
-                (false, false) => _fieldName + "/" + fieldName,
-            };
+        return this;
     }
 
-public struct MessagePackMapReader<TOuter>
+    public TOuter ToList<TItem>(
+        Func<MessagePackReader<MessagePackTerminator>, StrongBox<TItem?>, MessagePackTerminator> func,
+        out List<TItem?> list,
+#if DEBUG
+        [CallerArgumentExpression("list")]
+#endif
+        string fieldName = "")
+        where TItem : notnull
+    {
+        list = new(Count - _index);
+        StrongBox<TItem?> box = new();
+        while (HasOptional())
+        {
+            box.Value = default;
+            func(new(_sequence, new(), FieldDisplayName(fieldName)), box);
+            list.Add(box.Value);
+        }
+        return _outer;
+    }
+
+    /// <summary>
+    /// Comparing to the other overload, this overload allows the list item to be non-nullable, while that of the other overload is always nullable.
+    /// </summary>
+    /// <typeparam name="TItem">TItem can be nullabel or non-nullable</typeparam>
+    public TOuter ToList<TItem>(
+        Func<MessagePackReader<TOuter>, (TOuter, TItem)> func,
+        out List<TItem> list,
+#if DEBUG
+        [CallerArgumentExpression("list")]
+#endif
+        string fieldName = "")
+    {
+        list = new(Count - _index);
+        while (HasOptional())
+        {
+            list.Add(func(new(_sequence, new(), FieldDisplayName(fieldName))).Item2);
+        }
+        return _outer;
+    }
+
+    public TOuter EndArray(bool skipOptionals = true)
+    {
+        if (skipOptionals)
+        {
+            var mpr = new MPR(_sequence.Value);
+            while (_index != Count)
+            {
+                _index++;
+                mpr.Skip();
+            }
+            _sequence.Value = _sequence.Value.Slice(mpr.Position);
+        }
+        else if (_index != Count)
+        {
+            throw new InvalidDataException($"Have more items in array {_fieldName}.");
+        }
+        return _outer;
+    }
+
+    private void IncreaseIndex(string fieldName)
+    {
+        if (_index == Count)
+        {
+            throw new InvalidDataException($"No more item in array, field {_fieldName}.{fieldName}.");
+        }
+        _index++;
+    }
+
+    private bool HasOptional()
+    {
+        if (_index == Count)
+        {
+            return false;
+        }
+        _index++;
+        return true;
+    }
+
+    private string FieldDisplayName(string fieldName) =>
+        (string.IsNullOrEmpty(_fieldName), string.IsNullOrEmpty(fieldName)) switch
+        {
+            (true, true) => string.Empty,
+            (true, false) => fieldName,
+            (false, true) => _fieldName,
+            (false, false) => _fieldName + "/" + fieldName,
+        };
+}
+
+public readonly struct MessagePackMapReader<TOuter>
+    where TOuter : struct
 {
-    private readonly Stream _stream;
+    private readonly StrongBox<ReadOnlySequence<byte>> _sequence;
     private readonly TOuter _outer;
     public readonly int Count;
     private readonly string _fieldName;
 
-    internal MessagePackMapReader(Stream stream, TOuter outer, int count, string fieldName)
+    internal MessagePackMapReader(StrongBox<ReadOnlySequence<byte>> sequence, TOuter outer, int count, string fieldName)
     {
-        _stream = stream;
+        _sequence = sequence;
         _outer = outer;
         Count = count;
         _fieldName = fieldName;
     }
 
-    public TOuter Text(out Dictionary<string, string> value)
+    public TOuter Text(
+        out Dictionary<string, string?> value,
+#if DEBUG
+        [CallerArgumentExpression("value")]
+#endif
+        string fieldName = "")
     {
         value = new();
+        var mpr = new MPR(_sequence.Value);
         for (int i = 0; i < Count; i++)
         {
             try
             {
-                value.Add(MessagePackBinary.ReadString(_stream), MessagePackBinary.ReadString(_stream));
+                value.Add(mpr.ReadString()!, mpr.ReadString());
             }
             catch (Exception ex)
             {
-                throw new InvalidDataException($"Field {_fieldName}({i}) is invalid.", ex);
+                throw new InvalidDataException($"Field {FieldDisplayName(fieldName, i)} is invalid.", ex);
             }
         }
+        _sequence.Value = _sequence.Value.Slice(mpr.Position);
         return _outer;
     }
 
-    public TOuter Int(out Dictionary<string, int> value)
+    public TOuter Int(
+        out Dictionary<string, int> value,
+#if DEBUG
+        [CallerArgumentExpression("value")]
+#endif
+        string fieldName = "")
     {
         value = new();
+        var mpr = new MPR(_sequence.Value);
         for (int i = 0; i < Count; i++)
         {
             try
             {
-                value.Add(MessagePackBinary.ReadString(_stream), MessagePackBinary.ReadInt32(_stream));
+                value.Add(mpr.ReadString()!, mpr.ReadInt32());
             }
             catch (Exception ex)
             {
-                throw new InvalidDataException($"Field {_fieldName}({i}) is invalid.", ex);
+                throw new InvalidDataException($"Field {FieldDisplayName(fieldName, i)} is invalid.", ex);
             }
         }
+        _sequence.Value = _sequence.Value.Slice(mpr.Position);
+        return _outer;
+    }
+
+    public TOuter DateTime(
+        out Dictionary<string, DateTime> value,
+#if DEBUG
+        [CallerArgumentExpression("value")]
+#endif
+        string fieldName = "")
+    {
+        value = new();
+        var mpr = new MPR(_sequence.Value);
+        for (int i = 0; i < Count; i++)
+        {
+            try
+            {
+                value.Add(mpr.ReadString()!, mpr.ReadDateTime());
+            }
+            catch (Exception ex)
+            {
+                throw new InvalidDataException($"Field {FieldDisplayName(fieldName, i)} is invalid.", ex);
+            }
+        }
+        _sequence.Value = _sequence.Value.Slice(mpr.Position);
+        return _outer;
+    }
+
+    /// <summary>
+    /// Do not use this, until you ensure source is byte[].
+    /// </summary>
+    public TOuter DangerousPayloads(
+        out IDictionary<string, ReadOnlyMemory<byte>> value,
+#if DEBUG
+        [CallerArgumentExpression("value")]
+#endif
+        string fieldName = "")
+    {
+        if (Count == 0)
+        {
+            value = ImmutableDictionary<string, ReadOnlyMemory<byte>>.Empty;
+            return _outer;
+        }
+        value = new ArrayDictionary<string, ReadOnlyMemory<byte>>(Count);
+        var mpr = new MPR(_sequence.Value);
+        for (int i = 0; i < Count; i++)
+        {
+            try
+            {
+                value.Add(mpr.ReadString()!, mpr.ReadBytes()!.Value.First);
+            }
+            catch (Exception ex)
+            {
+                throw new InvalidDataException($"Field {FieldDisplayName(fieldName, i)} is invalid.", ex);
+            }
+        }
+        _sequence.Value = _sequence.Value.Slice(mpr.Position);
         return _outer;
     }
 
     public TOuter ToDict<TValue>(
-        Func<MessagePackReader<MessagePackTerminator<Stream>>, StrongBox<TValue>, MessagePackTerminator<Stream>> func,
-        out Dictionary<string, TValue> value)
+        Func<MessagePackReader<MessagePackTerminator>, StrongBox<TValue?>, MessagePackTerminator> func,
+        out Dictionary<string, TValue?> value,
+#if DEBUG
+        [CallerArgumentExpression("value")]
+#endif
+        string fieldName = "")
+        where TValue : notnull
     {
         value = new();
-        StrongBox<TValue> box = new();
+        StrongBox<TValue?> box = new();
         for (int i = 0; i < Count; i++)
         {
+            var mpr = new MPR(_sequence.Value);
+            string key;
+            var fdn = FieldDisplayName(fieldName, i);
             try
             {
-                var key = MessagePackBinary.ReadString(_stream);
-                _ = func(new(_stream, new(_stream), _fieldName), box);
-                value.Add(key, box.Value);
+                key = mpr.ReadString()!;
             }
             catch (Exception ex)
             {
-                throw new InvalidDataException($"Field {_fieldName}({i}) is invalid.", ex);
+                throw new InvalidDataException($"Field {fdn} is invalid.", ex);
             }
+            _sequence.Value = _sequence.Value.Slice(mpr.Position);
+            _ = func(new(_sequence, new(), fdn), box);
+            value.Add(key, box.Value);
+            box.Value = default;
+        }
+        return _outer;
+    }
+
+    public TOuter Enumerate<TValue, TResult>(
+        Func<MessagePackReader<MessagePackTerminator>, StrongBox<TValue?>, MessagePackTerminator> func,
+        Func<TResult> seed,
+        Func<TResult, string, TValue?, TResult> aggregator,
+        out TResult result,
+#if DEBUG
+        [CallerArgumentExpression("result")]
+#endif
+        string fieldName = "")
+        where TValue : notnull
+    {
+        result = seed();
+        StrongBox<TValue?> box = new();
+        for (int i = 0; i < Count; i++)
+        {
+            var mpr = new MPR(_sequence.Value);
+            string key;
+            var fdn = FieldDisplayName(fieldName, i);
+            try
+            {
+                key = mpr.ReadString()!;
+            }
+            catch (Exception ex)
+            {
+                throw new InvalidDataException($"Field {fdn} is invalid.", ex);
+            }
+            _sequence.Value = _sequence.Value.Slice(mpr.Position);
+            _ = func(new(_sequence, new(), fdn), box);
+            result = aggregator(result, key!, box.Value);
+            box.Value = default;
+        }
+        return _outer;
+    }
+
+    public TOuter Enumerate<TResult>(
+        Func<TResult> init,
+        Func<TResult, string, MessagePackReader<MessagePackTerminator>, MessagePackTerminator> func,
+        out TResult result,
+#if DEBUG
+        [CallerArgumentExpression("result")]
+#endif
+        string fieldName = "")
+        where TResult : class
+    {
+        result = init();
+        for (int i = 0; i < Count; i++)
+        {
+            var mpr = new MPR(_sequence.Value);
+            string key;
+            var fdn = FieldDisplayName(fieldName, i);
+            try
+            {
+                key = mpr.ReadString()!;
+            }
+            catch (Exception ex)
+            {
+                throw new InvalidDataException($"Field {fdn} is invalid.", ex);
+            }
+            _sequence.Value = _sequence.Value.Slice(mpr.Position);
+            _ = func(result, key!, new(_sequence, new(), fdn));
         }
         return _outer;
     }
@@ -1188,5 +1760,156 @@ public struct MessagePackMapReader<TOuter>
         }
         return _outer;
     }
+
+    private string FieldDisplayName(string fieldName, int index) =>
+        (string.IsNullOrEmpty(_fieldName), string.IsNullOrEmpty(fieldName)) switch
+        {
+            (true, true) => string.Empty,
+            (true, false) => fieldName + $"({index})",
+            (false, true) => _fieldName + $"({index})",
+            (false, false) => _fieldName + "/" + fieldName + $"({index})",
+        };
 }
-#nullable restore
+
+public readonly struct MessagePackImmutableMapReader<TOuter>
+    where TOuter : struct
+{
+    private readonly StrongBox<ReadOnlySequence<byte>> _sequence;
+    private readonly TOuter _outer;
+    public readonly int Count;
+    private readonly string _fieldName;
+
+    internal MessagePackImmutableMapReader(StrongBox<ReadOnlySequence<byte>> sequence, TOuter outer, int count, string fieldName)
+    {
+        _sequence = sequence;
+        _outer = outer;
+        Count = count;
+        _fieldName = fieldName;
+    }
+
+    public TOuter Text(
+        out ImmutableDictionary<string, string?> value,
+#if DEBUG
+        [CallerArgumentExpression("value")]
+#endif
+        string fieldName = "")
+    {
+        var builder = ImmutableDictionary.CreateBuilder<string, string?>();
+        var mpr = new MPR(_sequence.Value);
+        for (int i = 0; i < Count; i++)
+        {
+            try
+            {
+                builder.Add(mpr.ReadString()!, mpr.ReadString());
+            }
+            catch (Exception ex)
+            {
+                throw new InvalidDataException($"Field {FieldDisplayName(fieldName, i)} is invalid.", ex);
+            }
+        }
+        value = builder.ToImmutable();
+        _sequence.Value = _sequence.Value.Slice(mpr.Position);
+        return _outer;
+    }
+
+    public TOuter Int(
+        out ImmutableDictionary<string, int> value,
+#if DEBUG
+        [CallerArgumentExpression("value")]
+#endif
+        string fieldName = "")
+    {
+        var builder = ImmutableDictionary.CreateBuilder<string, int>();
+        var mpr = new MPR(_sequence.Value);
+        for (int i = 0; i < Count; i++)
+        {
+            try
+            {
+                builder.Add(mpr.ReadString()!, mpr.ReadInt32());
+            }
+            catch (Exception ex)
+            {
+                throw new InvalidDataException($"Field {FieldDisplayName(fieldName, i)} is invalid.", ex);
+            }
+        }
+        value = builder.ToImmutable();
+        _sequence.Value = _sequence.Value.Slice(mpr.Position);
+        return _outer;
+    }
+
+    public TOuter DateTime(
+        out ImmutableDictionary<string, DateTime> value,
+#if DEBUG
+        [CallerArgumentExpression("value")]
+#endif
+        string fieldName = "")
+    {
+        var builder = ImmutableDictionary.CreateBuilder<string, DateTime>();
+        var mpr = new MPR(_sequence.Value);
+        for (int i = 0; i < Count; i++)
+        {
+            try
+            {
+                builder.Add(mpr.ReadString()!, mpr.ReadDateTime());
+            }
+            catch (Exception ex)
+            {
+                throw new InvalidDataException($"Field {FieldDisplayName(fieldName, i)} is invalid.", ex);
+            }
+        }
+        value = builder.ToImmutable();
+        _sequence.Value = _sequence.Value.Slice(mpr.Position);
+        return _outer;
+    }
+
+    public TOuter ToDict<TValue>(
+        Func<MessagePackReader<MessagePackTerminator>, StrongBox<TValue?>, MessagePackTerminator> func,
+        out ImmutableDictionary<string, TValue?> value,
+#if DEBUG
+        [CallerArgumentExpression("value")]
+#endif
+        string fieldName = "")
+        where TValue : notnull
+    {
+        var builder = ImmutableDictionary.CreateBuilder<string, TValue?>();
+        StrongBox<TValue?> box = new();
+        for (int i = 0; i < Count; i++)
+        {
+            var mpr = new MPR(_sequence.Value);
+            string key;
+            var fdn = FieldDisplayName(fieldName, i);
+            try
+            {
+                key = mpr.ReadString()!;
+            }
+            catch (Exception ex)
+            {
+                throw new InvalidDataException($"Field {fdn} is invalid.", ex);
+            }
+            _sequence.Value = _sequence.Value.Slice(mpr.Position);
+            _ = func(new(_sequence, new(), fdn), box);
+            builder.Add(key, box.Value);
+            box.Value = default;
+        }
+        value = builder.ToImmutable();
+        return _outer;
+    }
+
+    public TOuter EndMap()
+    {
+        if (Count != 0)
+        {
+            throw new InvalidDataException($"Have more items in map {_fieldName}.");
+        }
+        return _outer;
+    }
+
+    private string FieldDisplayName(string fieldName, int index) =>
+        (string.IsNullOrEmpty(_fieldName), string.IsNullOrEmpty(fieldName)) switch
+        {
+            (true, true) => string.Empty,
+            (true, false) => fieldName + $"({index})",
+            (false, true) => _fieldName + $"({index})",
+            (false, false) => _fieldName + "/" + fieldName + $"({index})",
+        };
+}

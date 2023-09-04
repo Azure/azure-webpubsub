@@ -1,8 +1,6 @@
 ﻿using System;
 using System.Buffers;
-using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
-using System.IO;
 using System.Net.Http;
 
 using Newtonsoft.Json;
@@ -21,7 +19,7 @@ public class TunnelMessageProtocol : IMessageProtocol<TunnelMessage>
         return lease.Writer.ToArray();
     }
 
-    public bool TryParseResponseMessage(ReadOnlyMemory<byte> data, out TunnelHttpResponseMessage? message)
+    public bool TryParseResponseMessage(ReadOnlyMemory<byte> data, [NotNullWhen(true)] out TunnelHttpResponseMessage? message)
     {
         var buffer = new ReadOnlySequence<byte>(data);
         if (TryParse(ref buffer, out var tm) && tm is TunnelHttpResponseMessage rm)
@@ -72,12 +70,17 @@ public class TunnelMessageProtocol : IMessageProtocol<TunnelMessage>
 
         var length = ReadLength(buffer);
 
+        if (length > MaxLength)
+        {
+            return false;
+        }
+
         if (buffer.Length < length + MessageLengthSize)
         {
             return false;
         }
 
-        var content = buffer.Slice(MessageLengthSize, length).AsStream();
+        var content = buffer.Slice(MessageLengthSize, length);
         try
         {
             message = Parse(content, false);
@@ -118,47 +121,47 @@ public class TunnelMessageProtocol : IMessageProtocol<TunnelMessage>
 
     public static int WriteMessage(TunnelMessage message, IBufferWriter<byte> writer)
     {
-        var m = writer.GetMemory(4);
-        writer.Advance(4);
-        var stream = writer.AsStream();
-        WriteMessage(stream, message);
-        var length = (int)stream.Length;
-        BitConverter.TryWriteBytes(m.Span, length);
-        return length + 4;
+        using var lpWriter = writer.WithLengthPrefix();
+        WriteMessageCore(lpWriter, message);
+        return lpWriter.OuterLength;
     }
 
-    private static TunnelMessage? Parse(Stream stream, bool throwOnError)
+    private static TunnelMessage? Parse(ReadOnlySequence<byte> input, bool throwOnError)
     {
-        var reader = MessagePackReader.Create(stream)
+        var reader = MessagePackReader.Create(input)
             .Array()
             .Int(out var type)
             .Text(out var json)
-            .Optional<byte[]>((r, box) => r.Simple().Value(out box.Value), out var content);
+            .Simple().Value(out ReadOnlyMemory<byte>? content);
         switch ((TunnelMessageType)type)
         {
             case TunnelMessageType.HttpRequest:
                 {
-                    var message = JsonConvert.DeserializeObject<TunnelHttpRequestMessage>(json);
-                    message!.Content = content;
+                    var message = JsonConvert.DeserializeObject<TunnelHttpRequestMessage>(json!);
+                    message!.Content = content ?? Array.Empty<byte>();
                     return message;
                 }
             case TunnelMessageType.HttpResponse:
                 {
-                    var message = JsonConvert.DeserializeObject<TunnelHttpResponseMessage>(json);
-                    message!.Content = content;
+                    var message = JsonConvert.DeserializeObject<TunnelHttpResponseMessage>(json!);
+                    message!.Content = content ?? Array.Empty<byte>();
                     return message;
                 }
             case TunnelMessageType.ServiceStatus:
                 {
-                    return JsonConvert.DeserializeObject<TunnelServiceStatusMessage>(json);
+                    return JsonConvert.DeserializeObject<TunnelServiceStatusMessage>(json!);
                 }
             case TunnelMessageType.ConnectionReconnect:
                 {
-                    return JsonConvert.DeserializeObject<TunnelConnectionReconnectMessage>(json);
+                    return JsonConvert.DeserializeObject<TunnelConnectionReconnectMessage>(json!);
+                }
+            case TunnelMessageType.ConnectionRebalance:
+                {
+                    return JsonConvert.DeserializeObject<TunnelConnectionRebalanceMessage>(json!);
                 }
             case TunnelMessageType.ConnectionClose:
                 {
-                    return JsonConvert.DeserializeObject<TunnelConnectionCloseMessage>(json);
+                    return JsonConvert.DeserializeObject<TunnelConnectionCloseMessage>(json!);
                 }
             case TunnelMessageType.ConnectionConnected:
                 {
@@ -173,18 +176,15 @@ public class TunnelMessageProtocol : IMessageProtocol<TunnelMessage>
         }
     }
 
-    private static void WriteMessage(Stream stream, TunnelMessage message)
+    private static void WriteMessageCore(IBufferWriter<byte> writer, TunnelMessage message)
     {
         var content = (message as TunnelByteContentMessage)?.Content;
-        MessagePackWriter.Create(stream)
+        MessagePackWriter.Create(writer)
             .Array(3)
             .Int((int)message.Type)
             .Text(JsonConvert.SerializeObject(message))
             .Simple().Value(content)
-            .When(content != null).Simple().Value(content)
             .EndArray()
             .Terminate();
     }
 }
-
-#nullable restore

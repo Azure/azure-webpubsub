@@ -6,7 +6,8 @@ import { Tabs } from './Tabs';
 import { DefaultButton } from '@fluentui/react/lib/Button';
 import { Panel, PanelType } from '@fluentui/react/lib/Panel';
 import { Connector, TwoDirectionConnector } from './Connector';
-import { LogLevel, Status, StatusPair, useDataContext } from '../providers/DataContext';
+import { useDataContext } from '../providers/DataContext';
+import { LogLevel, ConnectionStatus, ConnectionStatusPair } from '../providers/models';
 import { WorkflowStep } from './workflows/WorkflowStep';
 import { ServicePanel } from './panels/ServicePanel';
 import { ServerPanel } from './panels/ServerPanel';
@@ -16,15 +17,15 @@ interface WorkflowProps {
   key: string;
   title: string;
   iconName: string;
-  status?: Status;
-  statusPair?: StatusPair;
+  status?: ConnectionStatus;
+  statusPair?: ConnectionStatusPair;
   content: React.ReactNode;
 }
 
 export const Dashboard = () => {
   const [currentTab, setCurrentTab] = useState(2);
   const [showPanel, setShowPanel] = useState(false);
-  const [clientConnectionStatus, setClientConnectionStatus] = useState(Status.Disconnected);
+  const [clientConnectionStatus, setClientConnectionStatus] = useState(ConnectionStatus.Disconnected);
   const { data } = useDataContext();
 
 
