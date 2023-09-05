@@ -31,11 +31,6 @@ export async function useAzureSocketIOChain(
   const httpServer = this["httpServer"];
   engine.attach(httpServer, this["opts"]);
 
-  // Using Tunnel
-  if (engine.webPubSubConnectionManager.service instanceof InprocessServerProxy) {
-    await engine.setup();
-  }
-
   // Add negotiate handler
   debug("add negotiate handler");
   const path = this._opts.path || "/socket.io";
@@ -82,6 +77,10 @@ export async function useAzureSocketIOChain(
     (this.engine as WebPubSubEioServer).webPubSubConnectionManager.service
   );
   this.adapter(adapterProxy as unknown as AdapterConstructor);
+
+  // If using tunnel, wait until connected. `engine.setup` does no nothing when using REST API.
+  await engine.setup();
+
   return this;
 }
 
