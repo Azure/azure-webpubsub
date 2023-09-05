@@ -204,6 +204,17 @@ async function main(username) {
 
   // Socket events
 
+  // Refresh token when reconnecting
+  socket.io.on('reconnect_attempt', async () => {
+    const negotiateResponse = await fetch(`http://localhost:3000/socket.io/negotiate/?username=${username}&expirationMinutes=600`);
+    if (!negotiateResponse.ok) {
+      console.log("Failed to negotiate, status code =", negotiateResponse.status);
+      return;
+    } 
+    const json = await negotiateResponse.json();
+    socket.io.opts.query['access_token'] = json.token;
+  });
+
   // Whenever the server emits 'login', log the login message
   socket.on('login', (data) => {
     connected = true;
