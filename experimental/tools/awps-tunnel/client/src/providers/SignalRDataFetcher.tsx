@@ -1,8 +1,19 @@
 import { ConnectionStatus, LogLevel, HttpHistoryItem, DataModel } from "./models";
 import { IDataFetcher } from "./IDataFetcher";
 import * as signalR from "@microsoft/signalr";
+function loadTrafficHistory() {
+  const trafficHistory = localStorage.getItem("trafficHistory");
+  if (trafficHistory) {
+    return JSON.parse(trafficHistory);
+  }
+  return [];
+}
+function updateTrafficHistory(items: HttpHistoryItem[]) {
+  localStorage.setItem("trafficHistory", JSON.stringify(items));
+}
 
 export class SignalRDataFetcher implements IDataFetcher {
+  // load data from local storage
   public model: DataModel = {
     ready: false,
     endpoint: "",
@@ -15,16 +26,12 @@ export class SignalRDataFetcher implements IDataFetcher {
       statusIn: ConnectionStatus.Disconnected,
       statusOut: ConnectionStatus.Disconnected,
     },
-    trafficHistory: [],
+    trafficHistory: loadTrafficHistory(),
     logs: [],
   };
 
   constructor(private onModelUpdate: (model: DataModel) => void) {
-    this.fetch().then((model) => this._updateModel({ ...model, ready: true }));
-  }
-
-  fetch(): Promise<DataModel> {
-    return this._startConnection();
+    this._startConnection();
   }
 
   async _startConnection() {
@@ -35,21 +42,42 @@ export class SignalRDataFetcher implements IDataFetcher {
 
     newConnection.on("UpdateLogs", (logs) => {
       console.log(logs);
-      this._updateModel({ ...this.model, logs: [...this.model.logs, ...logs] });
+      this.model.logs = [...this.model.logs, ...logs];
+      this.onModelUpdate(this.model);
     });
 
-    newConnection.on("UpdateState", (state) => {
-      console.log(state);
-      this._updateModel({ ...this.model, ...state });
+    newConnection.on("ReportLiveTraceUrl", (url) => {
+      console.log(url);
+      this.model.liveTraceUrl = url;
+      this.onModelUpdate(this.model);
     });
 
+    newConnection.on("ReportServiceEndpoint", (url) => {
+      console.log(url);
+      this.model.endpoint = url;
+    });
+    newConnection.on("ReportLocalServerUrl", (url) => {
+      console.log(url);
+      this.model.upstreamServerUrl = url;
+      this.onModelUpdate(this.model);
+    });
+    newConnection.on("ReportStatusChange", (status) => {
+      console.log(status);
+      this.model.tunnelConnectionStatus = status;
+      this.onModelUpdate(this.model);
+    });
+    newConnection.on("ReportTunnelToLocalServerStatus", (status) => {
+      console.log(status);
+      this.model.tunnelServerStatus = status;
+      this.onModelUpdate(this.model);
+    });
     newConnection.on("UpdateTraffics", (items) => {
       console.log(items);
-
-      this._updateModel({
-        ...this.model,
-        trafficHistory: [...items, ...this.model.trafficHistory],
-      });
+      // only takes 50 items;
+      const currentItems = [...items, ...this.model.trafficHistory].slice(0, 50);
+      updateTrafficHistory(currentItems);
+      this.model.trafficHistory = currentItems;
+      this.onModelUpdate(this.model);
     });
 
     console.log("SignalR connection established.");
@@ -59,16 +87,16 @@ export class SignalRDataFetcher implements IDataFetcher {
       console.log("SignalR connection failed: " + err);
     }
     const serverModel = await newConnection.invoke("GetCurrentModel");
-    return {
+    setInterval(async () => {
+      this.model.clientUrl = await newConnection.invoke("GetClientAccessUrl");
+      this.onModelUpdate(this.model);
+    }, 10 * 1000);
+    this.model = {
+      ...this.model,
       logs: serverModel.logs,
-      trafficHistory: serverModel.trafficHistory,
       ...serverModel.state,
+      ready: true,
     };
-  }
-
-  _updateModel(current: DataModel): void {
-    console.log(current);
-    this.model = current;
     this.onModelUpdate(this.model);
   }
 }

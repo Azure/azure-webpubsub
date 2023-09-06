@@ -74,7 +74,7 @@ class ConsoleUILoggerProvider : ILoggerProvider
 {
     private readonly IOutput _output;
 
-    public IHubContext<DataHub>? HubContext { get; set; }
+    public IHubContext<DataHub, IDataHubClient>? HubContext { get; set; }
 
     public ConsoleUILoggerProvider(IOutput output)
     {
@@ -117,13 +117,8 @@ class ConsoleUILoggerProvider : ILoggerProvider
             _consoleUI.AddLog(log);
             if (_provider.HubContext != null)
             {
-                _provider.HubContext.Clients.All.SendAsync(
-                "Log",
-                logLevel,
-                DateTime.UtcNow,
-                formatter.Invoke(state, exception),
-                exception
-                );
+                _provider.HubContext.Clients
+                    .All.UpdateLogs(new LogItem { Level = logLevel, Time = DateTime.UtcNow, Message = formatter.Invoke(state, exception) });
             }
         }
     }
