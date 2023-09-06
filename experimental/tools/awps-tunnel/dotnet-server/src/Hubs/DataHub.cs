@@ -9,21 +9,20 @@ public interface IDataHub
     Task<DataModel> GetCurrentModel();
 }
 
-public interface IStateNotifier
+public interface IStateNotifier : IDataHubClient
 {
     State State { get; }
-    Task ReportLiveTraceUrl(string url);
-    Task ReportServiceEndpoint(string url);
-    Task ReportStatusChange(ConnectionStatus status);
-    Task ReportTunnelToLocalServerStatus(ConnectionStatusPair status);
-    Task ReportLocalServerUrl(string url);
 }
 
 public interface IDataHubClient
 {
-    Task UpdateState(State state);
     Task UpdateLogs(params LogItem[] logs);
     Task UpdateTraffics(params HttpItem[] traffics);
+    Task ReportLiveTraceUrl(string url);
+    Task ReportServiceEndpoint(string url);
+    Task ReportLocalServerUrl(string url);
+    Task ReportStatusChange(ConnectionStatus status);
+    Task ReportTunnelToLocalServerStatus(ConnectionStatusPair status);
 }
 
 internal class StateNotifier : IStateNotifier
@@ -44,48 +43,53 @@ internal class StateNotifier : IStateNotifier
     public Task ReportLiveTraceUrl(string url)
     {
         State.LiveTraceUrl = url;
-        return _hubContext.Clients.All.UpdateState(State);
+        return _hubContext.Clients.All.ReportLiveTraceUrl(url);
     }
 
     public Task ReportServiceEndpoint(string endpoint)
     {
         State.Endpoint = endpoint;
-        return _hubContext.Clients.All.UpdateState(State);
+        return _hubContext.Clients.All.ReportServiceEndpoint(endpoint);
     }
 
     public Task ReportStatusChange(ConnectionStatus status)
     {
         State.TunnelConnectionStatus = status;
-        return _hubContext.Clients.All.UpdateState(State);
+        return _hubContext.Clients.All.ReportStatusChange(status);
     }
 
     public Task ReportLocalServerUrl(string url)
     {
         State.UpstreamServerUrl = url;
-        return _hubContext.Clients.All.UpdateState(State);
+        return _hubContext.Clients.All.ReportLocalServerUrl(url);
     }
 
     public Task ReportTunnelToLocalServerStatus(ConnectionStatusPair status)
     {
         State.TunnelServerStatus = status;
-        return _hubContext.Clients.All.UpdateState(State);
+        return _hubContext.Clients.All.ReportTunnelToLocalServerStatus(status);
+    }
+
+    public Task UpdateLogs(params LogItem[] logs)
+    {
+        return _hubContext.Clients.All.UpdateLogs(logs);
+    }
+
+    public Task UpdateTraffics(params HttpItem[] traffics)
+    {
+        return _hubContext.Clients.All.UpdateTraffics(traffics);
     }
 }
 
 public class DataHub : Hub<IDataHubClient>, IDataHub
 {
     private readonly WebPubSubServiceClient _serviceClient;
-    private readonly IOptions<TunnelServiceOptions> _options;
     private readonly IStateNotifier _state;
-    private readonly ILogger _logger;
-    private readonly IRepository<HttpItem> _repo;
 
-    public DataHub(WebPubSubServiceClient serviceClient, IStateNotifier state, ILogger<DataHub> logger, IRepository<HttpItem> repo)
+    public DataHub(WebPubSubServiceClient serviceClient, IStateNotifier state)
     {
         _serviceClient = serviceClient;
         _state = state;
-        _logger = logger;
-        _repo = repo;
     }
 
     public async Task<DataModel> GetCurrentModel()
@@ -93,14 +97,13 @@ public class DataHub : Hub<IDataHubClient>, IDataHub
         _state.State.ClientUrl = await GetClientAccessUrl();
         return new DataModel
         {
-            TrafficHistory = await _repo.GetRangeAsync(50, Context.ConnectionAborted),
             State = _state.State
         };
     }
 
     public async Task<string> GetClientAccessUrl()
     {
-        return (await _serviceClient.GetClientAccessUriAsync()).ToString();
+        return (await _serviceClient.GetClientAccessUriAsync(expiresAfter: TimeSpan.FromHours(1))).ToString();
     }
 }
 
@@ -120,7 +123,6 @@ public class State
 public class DataModel
 {
     public State State { get; set; } = new State();
-    public List<HttpItem> TrafficHistory { get; set; } = new List<HttpItem>();
     public List<LogItem> Logs { get; set; } = new List<LogItem>();
 }
 

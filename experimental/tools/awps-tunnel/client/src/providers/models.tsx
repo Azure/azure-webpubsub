@@ -6,7 +6,6 @@ export interface HttpHistoryItem {
   requestRaw: string;
   responseRaw: string;
   unread: boolean;
-  id: number;
 }
 
 export interface LogItem {

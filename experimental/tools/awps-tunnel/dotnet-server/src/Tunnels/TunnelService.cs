@@ -7,19 +7,17 @@ internal class TunnelService
     private readonly TunnelServiceOptions _options;
     private readonly IOutput _connectionStatus;
     private readonly IStateNotifier _dataHub;
-    private readonly IRepository<HttpItem> _store;
     private readonly IHttpClientFactory _httpClientFactory;
     private readonly ILogger<TunnelService> _logger;
     private readonly ILoggerFactory _loggerFactory;
 
     private readonly Uri _localServerUri;
 
-    public TunnelService(IOutput connectionStatus, IStateNotifier dataHub, IOptions<TunnelServiceOptions> options, IRepository<HttpItem> store, IHttpClientFactory httpClientFactory, ILoggerFactory loggerFactory)
+    public TunnelService(IOutput connectionStatus, IStateNotifier dataHub, IOptions<TunnelServiceOptions> options, IHttpClientFactory httpClientFactory, ILoggerFactory loggerFactory)
     {
         _options = options.Value;
         _connectionStatus = connectionStatus;
         _dataHub = dataHub;
-        _store = store;
         _httpClientFactory = httpClientFactory;
         _loggerFactory = loggerFactory;
         _logger = loggerFactory.CreateLogger<TunnelService>();
@@ -158,7 +156,7 @@ internal class TunnelService
         // TODO: write directly to memory instead of convert
         var tunnelResponse = await ToResponse(tunnelRequest, response);
         _logger.LogInformation($"Getting response for {tunnelRequest.TracingId}: {response.StatusCode}");
-        _ = _store.AddAsync(new HttpItem
+        _ = _dataHub.UpdateTraffics(new HttpItem
         {
             Code = (int)response.StatusCode,
             TracingId = tunnelRequest.TracingId,
@@ -168,7 +166,7 @@ internal class TunnelService
             Url = tunnelRequest.Url,
             RespondAt = processedAt,
             ResponseRaw = tunnelResponse.DumpRaw(),
-        }, token);
+        });
         return tunnelResponse;
     }
 }
