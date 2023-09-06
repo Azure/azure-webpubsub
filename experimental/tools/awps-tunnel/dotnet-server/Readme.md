@@ -23,3 +23,7 @@ You can use `status` command to show the current binded info.
 `run` to start the tunnel
 `awps-tunnel run`
 
+## How to build and run
+
+Open awps-tunnel.sln and F5
+

@@ -10,12 +10,12 @@ public enum ConnectionStatus
     Disconnected
 }
 
-public enum HttpConnectionStatus
+public record ConnectionStatusPair(ConnectionStatus StatusIn, ConnectionStatus StatusOut)
 {
-    Succeed,
-    RequestFailed,
-    RequestTimeout,
-    ErrorResponse,
+    public static ConnectionStatusPair Success = new ConnectionStatusPair(ConnectionStatus.Connected, ConnectionStatus.Connected);
+    public static ConnectionStatusPair RequestFailed = new ConnectionStatusPair(ConnectionStatus.Disconnected, ConnectionStatus.Disconnected);
+    public static ConnectionStatusPair RequestTimeout = new ConnectionStatusPair(ConnectionStatus.Disconnected, ConnectionStatus.Disconnected);
+    public static ConnectionStatusPair ErrorResponse = new ConnectionStatusPair(ConnectionStatus.Connected, ConnectionStatus.Disconnected);
 }
 
 public interface IOutput

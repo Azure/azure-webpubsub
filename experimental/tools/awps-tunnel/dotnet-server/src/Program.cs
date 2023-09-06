@@ -134,6 +134,18 @@ async Task HandleRunAsync(bool disableWebView, string? hub, string? endpoint, st
 
     using var store = new StoreContext(storageFile);
     var contentRoot = Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location)!;
+
+
+    WebPubSubServiceClient client;
+    if (connection.Key != null)
+    {
+        client = new WebPubSubServiceClient(connection.Endpoint, hub, new Azure.AzureKeyCredential(connection.Key));
+    }
+    else
+    {
+        client = new WebPubSubServiceClient(connection.Endpoint, hub, connection.Credential);
+    }
+
     var appBuilder = WebApplication.CreateBuilder(new WebApplicationOptions()
     {
         ContentRootPath = contentRoot
@@ -144,7 +156,8 @@ async Task HandleRunAsync(bool disableWebView, string? hub, string? endpoint, st
     appBuilder.Services.AddSignalR().AddJsonProtocol(s => s.PayloadSerializerOptions.Converters.Add(new JsonStringEnumConverter()));
     appBuilder.Services.AddHttpClient();
     appBuilder.Services.AddSingleton<TunnelService>();
-    appBuilder.Services.AddSingleton<IServiceEndpointStatusReporter, ServiceEndpointStatusReporter>();
+    appBuilder.Services.AddSingleton<IStateNotifier, StateNotifier>();
+    appBuilder.Services.AddSingleton<WebPubSubServiceClient>(s => client);
     appBuilder.Services.Configure<TunnelServiceOptions>(o =>
     {
         o.Endpoint = connection.Endpoint;
@@ -156,16 +169,6 @@ async Task HandleRunAsync(bool disableWebView, string? hub, string? endpoint, st
     appBuilder.Services.AddSingleton<StoreContext>(store);
     appBuilder.Services.AddSingleton<IRepository<HttpItem>, HttpItemRepository>();
     var app = appBuilder.Build();
-
-    WebPubSubServiceClient client;
-    if (connection.Key != null)
-    {
-        client = new WebPubSubServiceClient(connection.Endpoint, hub, new Azure.AzureKeyCredential(connection.Key));
-    }
-    else
-    {
-        client = new WebPubSubServiceClient(connection.Endpoint, hub, connection.Credential);
-    }
 
     app.UseStaticFiles();
     app.UseRouting();

@@ -19,7 +19,7 @@ internal class TunnelConnection : IDisposable
     private TokenCredential _credential;
 
     private readonly IOutput _connectionStatus;
-    private readonly IServiceEndpointStatusReporter _reporter;
+    private readonly IStateNotifier _dataHub;
     private Uri _endpoint;
 
     public Uri TunnelEndpoint => _endpoint;
@@ -29,14 +29,14 @@ internal class TunnelConnection : IDisposable
 
     public IReadOnlyList<string> Connections => _clients.Select(s => s.Key).ToArray();
 
-    public TunnelConnection(IOutput connectionStatus, IServiceEndpointStatusReporter reporter, Uri endpoint, TokenCredential credential, string hub, ILoggerFactory loggerFactory)
+    public TunnelConnection(IOutput connectionStatus, IStateNotifier dataHub, Uri endpoint, TokenCredential credential, string hub, ILoggerFactory loggerFactory)
     {
         _connectionStatus = connectionStatus;
-        _reporter = reporter;
+        _dataHub = dataHub;
         _credential = credential;
         _endpoint = endpoint;
         _hub = hub;
-        _reporter.ReportServiceEndpoint(endpoint.AbsoluteUri);
+        dataHub.ReportServiceEndpoint(endpoint.AbsoluteUri);
         _loggerFactory = loggerFactory;
         _logger = _loggerFactory.CreateLogger<TunnelConnection>();
     }
@@ -78,7 +78,7 @@ internal class TunnelConnection : IDisposable
     private void SetStatus(ConnectionStatus status)
     {
         _connectionStatus.Status = status;
-        _ = _reporter.ReportStatusChange(status);
+        _ = _dataHub.ReportStatusChange(status);
     }
 
     private async Task StartCore(CancellationToken cancellationToken)
@@ -100,12 +100,12 @@ internal class TunnelConnection : IDisposable
 
         uriBuilder.Query = $"livetrace_access_token={clientToken}&access_token={clientToolToken}";
         var uri = uriBuilder.Uri;
-        await _reporter.ReportLiveTraceUrl(uri.AbsoluteUri);
+        await _dataHub.ReportLiveTraceUrl(uri.AbsoluteUri);
     }
 
     private async Task StartConnectionAsync(string? endpoint, string? target, CancellationToken token = default)
     {
-        if (endpoint != null && !string.Equals(endpoint, _endpoint.AbsoluteUri, StringComparison.OrdinalIgnoreCase))
+        if (!string.IsNullOrEmpty(endpoint) && !string.Equals(endpoint, _endpoint.AbsoluteUri, StringComparison.OrdinalIgnoreCase))
         {
             // starting to another endpoint
             await StartConnectionAsync(new ConnectionTarget(new Uri(endpoint), target), token);
@@ -171,6 +171,7 @@ internal class TunnelConnection : IDisposable
                         {
                             _logger.LogInformation($"Getting request {tunnelRequest.TracingId}: {tunnelRequest.HttpMethod} {tunnelRequest.Url}");
                             var tunnelResponse = await RequestHandler!.Invoke(tunnelRequest, token);
+                            // TODO: multiplex to mulitple client calls
                             await client.SendAsync(tunnelResponse, token);
                         }
                         break;
