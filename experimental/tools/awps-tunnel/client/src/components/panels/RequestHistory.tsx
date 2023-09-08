@@ -4,7 +4,7 @@ import moment from "moment";
 import { ReadonlyTabs } from "../Tabs";
 import { ResizablePanel } from "../ResizablePanel";
 import { useDataContext } from "../../providers/DataContext";
-import { HttpHistoryItem } from "../../providers/models";
+import { HttpHistoryItem } from "../../models";
 
 export function RequestHistory() {
   const [items, setItems] = useState<HttpHistoryItem[]>([]);

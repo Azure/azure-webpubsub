@@ -1,7 +1,7 @@
 import React from "react";
 import { Icon } from "@fluentui/react/lib/Icon";
 import { StatusIndicator } from "../workflows/StatusIndicator";
-import { ConnectionStatus } from "../../providers/models";
+import { ConnectionStatus } from "../../models";
 
 export interface ServicePanelProps {
   endpoint?: string;
@@ -25,9 +25,7 @@ export function ServicePanel({ endpoint, status, liveTraceUrl }: ServicePanelPro
           Open live trace
         </a>
       </p>
-      {liveTraceUrl && (
-        <iframe className="flex-fill" src={liveTraceUrl} title="Live trace"></iframe>
-      )}
+      {liveTraceUrl && <iframe className="flex-fill" src={liveTraceUrl} title="Live trace"></iframe>}
     </div>
   );
 }

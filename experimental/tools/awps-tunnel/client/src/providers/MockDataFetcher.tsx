@@ -1,4 +1,4 @@
-import { ConnectionStatus, LogLevel, HttpHistoryItem, DataModel } from "./models";
+import { ConnectionStatus, LogLevel, HttpHistoryItem, DataModel } from "../models";
 import { IDataFetcher } from "./IDataFetcher";
 
 export class MockDataFetcher implements IDataFetcher {

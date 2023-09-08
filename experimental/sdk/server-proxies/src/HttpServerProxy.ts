@@ -1,17 +1,23 @@
 import { AbortSignal } from "@azure/abort-controller";
-import { TokenCredential } from "@azure/core-auth";
+import { TokenCredential, AzureKeyCredential } from "@azure/core-auth";
 import { AbortSignalLike } from "@azure/abort-controller";
+import { parseConnectionString } from "./utils";
 import http from "http";
 import { TunnelConnection, TunnelIncomingMessage, TunnelOutgoingMessage } from "./tunnels/TunnelConnection";
 
 export class HttpServerProxy {
   private _tunnel: TunnelConnection;
 
-  constructor(endpoint: string, credential: TokenCredential, hub: string) {
-    const tunnel = (this._tunnel = new TunnelConnection(endpoint, credential, hub, this.sendHttpRequest));
+  static fromConnectionString(connectionString: string, hub: string, reverseProxyEndpoint?: string): HttpServerProxy {
+    const { credential, endpoint } = parseConnectionString(connectionString);
+    return new HttpServerProxy(endpoint, credential, hub, reverseProxyEndpoint);
   }
 
-  public runAsync(abortSignal: AbortSignal): Promise<void> {
+  constructor(endpoint: string, credential: AzureKeyCredential | TokenCredential, hub: string, reverseProxyEndpoint?: string) {
+    const tunnel = (this._tunnel = new TunnelConnection(endpoint, credential, hub, this.sendHttpRequest, reverseProxyEndpoint));
+  }
+
+  public runAsync(abortSignal?: AbortSignal): Promise<void> {
     return this._tunnel.runAsync(abortSignal);
   }
 
@@ -51,7 +57,7 @@ export class HttpServerProxy {
               Content: new Uint8Array(Buffer.concat(chunks)),
             });
           });
-        }
+        },
       );
       req.on("error", (err) => {
         reject(err);
