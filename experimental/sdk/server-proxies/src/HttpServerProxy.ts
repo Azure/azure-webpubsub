@@ -5,15 +5,22 @@ import { parseConnectionString } from "./utils";
 import http from "http";
 import { TunnelConnection, TunnelIncomingMessage, TunnelOutgoingMessage } from "./tunnels/TunnelConnection";
 
+export interface HttpServerProxyOptions {
+  /**
+   * The target HTTP server base url, e.g. https://localhost:8080
+   */
+  target: string;
+}
+
 export class HttpServerProxy {
   private _tunnel: TunnelConnection;
 
-  static fromConnectionString(connectionString: string, hub: string, reverseProxyEndpoint?: string): HttpServerProxy {
+  static fromConnectionString(connectionString: string, hub: string, options: HttpServerProxyOptions, reverseProxyEndpoint?: string): HttpServerProxy {
     const { credential, endpoint } = parseConnectionString(connectionString);
-    return new HttpServerProxy(endpoint, credential, hub, reverseProxyEndpoint);
+    return new HttpServerProxy(endpoint, credential, hub, options, reverseProxyEndpoint);
   }
 
-  constructor(endpoint: string, credential: AzureKeyCredential | TokenCredential, hub: string, reverseProxyEndpoint?: string) {
+  constructor(public endpoint: string, credential: AzureKeyCredential | TokenCredential, public hub: string, private _options: HttpServerProxyOptions, reverseProxyEndpoint?: string) {
     const tunnel = (this._tunnel = new TunnelConnection(endpoint, credential, hub, this.sendHttpRequest, reverseProxyEndpoint));
   }
 
@@ -39,8 +46,11 @@ export class HttpServerProxy {
 
     return new Promise<TunnelOutgoingMessage>((resolve, reject) => {
       abortSignal?.addEventListener("abort", () => reject("aborted"));
+      console.log(request.Url);
+      const url = new URL(this._options.target, new URL(request.Url).pathname);
+      
       const req = http.request(
-        request.Url,
+        url,
         {
           method: request.HttpMethod,
           headers: request.Headers,
