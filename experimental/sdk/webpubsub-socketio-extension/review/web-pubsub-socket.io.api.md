@@ -37,6 +37,9 @@ export interface AzureSocketIOOptions extends AzureSocketIOCommonOptions {
 export function getClaimsHttpMiddleware(io: SIO.Server | AzureSocketIOOptions | AzureSocketIOCredentialOptions, configureNegotiateOptions: ConfigureNegotiateOptions): (req: IncomingMessage, res: ServerResponse) => void;
 
 // @public
+export function getClaimsSocketIOMiddleware(): (socket: SIO.Socket, next: (err?: ExtendedError) => void) => void;
+
+// @public
 export function getNegotiateHttpMiddleware(io: SIO.Server | AzureSocketIOOptions | AzureSocketIOCredentialOptions, configureNegotiateOptions: ConfigureNegotiateOptions): (req: IncomingMessage, res: ServerResponse) => void;
 
 // @public
