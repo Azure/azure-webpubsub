@@ -197,7 +197,6 @@ export function getClaimsHttpMiddleware(
   io: SIO.Server | AzureSocketIOOptions | AzureSocketIOCredentialOptions,
   configureNegotiateOptions: ConfigureNegotiateOptions
 ) {
-  // export function getClaimsHttpMiddleware(io: , configureNegotiateOptions: ConfigureNegotiateOptions) {
   const webPubSubOptions: AzureSocketIOOptions | AzureSocketIOCredentialOptions =
     io instanceof SIO.Server ? io[WEB_PUBSUB_OPTIONS_PROPERY_NAME] : io;
 
