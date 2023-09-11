@@ -41,6 +41,7 @@ export interface NegotiateOptions {
    * Minutes until the token expires.
    */
   expirationTimeInMinutes?: number;
+  customClaims?: { [key: string]: string };
 }
 
 /**
@@ -64,6 +65,13 @@ export interface NegotiateResponse {
 }
 
 /**
+ * A function to extract a `NegotiateOptions` from a HTTP `IncomingMessage`
+ * @param req - the HTTP `IncomingMessage`
+ * @returns a Promise of `NegotiateOptions`
+ */
+export type ConfigureNegotiateOptions = (req: IncomingMessage) => Promise<NegotiateOptions>;
+
+/**
  * Common options for `AzureSocketIOOptions` and `AzureSocketIOCredentialOptions`
  *
  * @public
@@ -73,12 +81,7 @@ export interface AzureSocketIOCommonOptions {
    * The hub name of Web PubSub for Socket.IO.
    */
   hub: string;
-  /**
-   * A function to extract a `NegotiateOptions` from a HTTP `IncomingMessage`
-   * @param req - the HTTP `IncomingMessage`
-   * @returns a Promise of `NegotiateOptions`
-   */
-  configureNegotiateOptions?: (req: IncomingMessage) => Promise<NegotiateOptions>;
+
   /**
    * The reverse proxy endpoint of Web PubSub for Socket.IO.
    */

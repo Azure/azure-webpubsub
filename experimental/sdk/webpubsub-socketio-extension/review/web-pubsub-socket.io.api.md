@@ -7,13 +7,15 @@
 /// <reference types="node" />
 
 import { AzureKeyCredential } from '@azure/core-auth';
+import { ExtendedError } from 'socket.io/dist/namespace';
 import { IncomingMessage } from 'http';
+import { ServerResponse } from 'http';
 import * as SIO from 'socket.io';
+import { Store } from 'express-session';
 import { TokenCredential } from '@azure/core-auth';
 
 // @public
 export interface AzureSocketIOCommonOptions {
-    configureNegotiateOptions?: (req: IncomingMessage) => Promise<NegotiateOptions>;
     hub: string;
     reverseProxyEndpoint?: string;
 }
@@ -29,10 +31,41 @@ export interface AzureSocketIOOptions extends AzureSocketIOCommonOptions {
     connectionString: string;
 }
 
+// Warning: (ae-forgotten-export) The symbol "ConfigureNegotiateOptions" needs to be exported by the entry point index.d.ts
+//
+// @public
+export function getClaimsHttpMiddleware(io: SIO.Server | AzureSocketIOOptions | AzureSocketIOCredentialOptions, configureNegotiateOptions: ConfigureNegotiateOptions): (req: IncomingMessage, res: ServerResponse) => void;
+
+// @public
+export function getNegotiateHttpMiddleware(io: SIO.Server | AzureSocketIOOptions | AzureSocketIOCredentialOptions, configureNegotiateOptions: ConfigureNegotiateOptions): (req: IncomingMessage, res: ServerResponse) => void;
+
+// @public
+export function getPassportHttpMiddleware(io: SIO.Server | AzureSocketIOOptions | AzureSocketIOCredentialOptions, store: Store, assignProperty?: string): (req: IncomingMessage, res: ServerResponse) => void;
+
+// @public
+export function getPassportSocketIOMiddleware(assignProperty?: string): (socket: SIO.Socket, next: (err?: ExtendedError) => void) => void;
+
+// @public
+export function getSessionHttpMiddleware(io: SIO.Server | AzureSocketIOOptions | AzureSocketIOCredentialOptions, secret: Buffer, iv: Buffer): (req: IncomingMessage, res: ServerResponse) => void;
+
+// @public
+export function getSessionSocketIOMiddleware(secret: Buffer, iv: Buffer): (socket: SIO.Socket, next: (err?: ExtendedError) => void) => void;
+
 // @public
 export interface NegotiateOptions {
+    // (undocumented)
+    customClaims?: {
+        [key: string]: string;
+    };
     expirationTimeInMinutes?: number;
     userId?: string;
+}
+
+// @public
+export interface NegotiateResponse {
+    endpoint: string;
+    path: string;
+    token: string;
 }
 
 // @public

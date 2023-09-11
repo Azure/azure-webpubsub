@@ -5,6 +5,7 @@ const { AzureCliCredential } = require("@azure/identity");
 const express = require('express');
 const app = express();
 const path = require('path');
+const { getNegotiateHttpMiddleware } = require("@azure/web-pubsub-socket.io/SIO/components/negotiate");
 const server = require('http').createServer(app);
 const parse = require('url').parse;
 
@@ -40,8 +41,7 @@ async function main() {
 
     const io = await require('socket.io')(server).useAzureSocketIO(
         { 
-            ...wpsOptions, 
-            configureNegotiateOptions: configureNegotiateOptions
+            ...wpsOptions,
         });
 
     app.use(express.static(path.join(__dirname, 'public')));
@@ -94,6 +94,7 @@ async function main() {
         });
     });
 
+    io.httpServer.addListener("request", getNegotiateHttpMiddleware(io, configureNegotiateOptions));
     io.httpServer.listen(3000, () => {
         console.log('Visit http://localhost:%d', 3000);
     });

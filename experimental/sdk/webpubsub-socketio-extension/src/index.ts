@@ -10,6 +10,14 @@ import {
   AzureSocketIOCredentialOptions,
 } from "./common/utils";
 import { useAzureSocketIO, useAzureSocketIOChain } from "./SIO";
+import {
+  getPassportHttpMiddleware,
+  getPassportSocketIOMiddleware,
+  getSessionHttpMiddleware,
+  getSessionSocketIOMiddleware,
+  getClaimsHttpMiddleware,
+  getNegotiateHttpMiddleware,
+} from "./SIO/components/negotiate";
 import * as SIO from "socket.io";
 
 declare module "socket.io" {
@@ -30,4 +38,10 @@ export {
   AzureSocketIOCommonOptions,
   AzureSocketIOOptions,
   AzureSocketIOCredentialOptions,
+  getPassportHttpMiddleware,
+  getPassportSocketIOMiddleware,
+  getSessionHttpMiddleware,
+  getSessionSocketIOMiddleware,
+  getClaimsHttpMiddleware,
+  getNegotiateHttpMiddleware,
 };
