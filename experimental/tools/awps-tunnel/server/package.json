@@ -5,8 +5,22 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
-    "build": "tsc --build ."
+    "build:cpy:cjs": "npx cpy . ../../../tools/awps-tunnel/server/dist/server/serverProxies --cwd=../../../sdk/server-proxies/dist",
+    "build:cpy:types": "npx cpy . ../../../tools/awps-tunnel/server/types/server/serverProxies --cwd=../../../sdk/server-proxies/types",
+    "build:cpy": "npm run build:cpy:cjs && npm run build:cpy:types",
+    "build:src": "tsc -b .",
+    "build:client": "cd ../client && npm run build:npm && npx cpy build/ ../server/dist/client",
+    "build:dsp": "rimraf dist/server/serverProxies.* types/server/serverProxies.* && npm run build:cpy",
+    "copy:dsp": "npx cpy submodules/node-signalr/signalr-node-server dist/server",
+    "build": "npm run build:src && npm run build:dsp && npm run copy:dsp && npm run build:client",
+    "check-format": "prettier --list-different --config ./.prettierrc.json --ignore-path ./.prettierignore ./src/",
+    "format": "prettier --write --config ./.prettierrc.json --ignore-path ./.prettierignore ./src/ ./test/",
+    "test": "npm run build && npm run lint && npm run test:unit",
+    "test:unit": "nyc mocha --require ts-node/register --reporter spec --slow 200 --timeout 6000 --bail ./test/index.ts",
+    "clean": "rimraf dist test-dist temp types *.tgz *.log",
+    "lint": "eslint src --ext .ts,.javascript,.js ",
+    "lint:fix": "eslint src --ext .ts,.javascript,.js --fix",
+    "start": "npm run build && node dist/server/index.js"
   },
   "license": "MIT",
   "devDependencies": {
@@ -16,6 +30,7 @@
     "@types/ws": "^8.5.5",
     "body-parser": "^1.20.2",
     "cors": "^2.8.5",
+    "cpy": "^10.1.0",
     "express": "^4.18.2",
     "jest": "^29.6.1",
     "ts-jest": "^29.1.1",
@@ -29,8 +44,11 @@
     "@azure/logger": "^1.0.4",
     "@azure/web-pubsub-client": "^1.0.0-beta.3",
     "@azure/web-pubsub-express": "^1.0.5",
+    "@microsoft/signalr": "^7.0.10",
     "@msgpack/msgpack": "^3.0.0-beta2",
+    "dotenv": "^16.3.1",
     "jsonwebtoken": "^9.0.1",
+    "socket.io": "^4.7.2",
     "ws": "^8.13.0"
   }
 }

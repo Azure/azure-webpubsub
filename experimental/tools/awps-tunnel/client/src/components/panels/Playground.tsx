@@ -1,20 +1,9 @@
-import React, { useState, useRef } from 'react';
-import {
-  DefaultButton,
-  ComboBox,
-  SelectableOptionMenuItemType,
-  Checkbox,
-  DetailsList,
-  DetailsListLayoutMode,
-  SelectionMode,
-  Icon,
-  TextField,
-  Dropdown,
-} from '@fluentui/react';
-import { ResizablePanel } from '../ResizablePanel';
-import { TrafficItem, TrafficItemProps } from '../TrafficItem';
-import { ConnectionStatus } from '../../providers/models';
-import { useDataContext } from '../../providers/DataContext';
+import React, { useState, useRef } from "react";
+import { DefaultButton, ComboBox, SelectableOptionMenuItemType, Checkbox, DetailsList, DetailsListLayoutMode, SelectionMode, Icon, TextField, Dropdown } from "@fluentui/react";
+import { ResizablePanel } from "../ResizablePanel";
+import { TrafficItem, TrafficItemProps } from "../TrafficItem";
+import { ConnectionStatus } from "../../models";
+import { useDataContext } from "../../providers/DataContext";
 
 export interface PlaygroundProps {
   onStatusChange: (status: ConnectionStatus) => void;
@@ -36,12 +25,12 @@ export const Playground = ({ onStatusChange }: PlaygroundProps) => {
   const [state, setState] = useState<PlaygroundState>({
     hub: data.hub,
     connected: false,
-    transferFormat: 'json',
-    message: '',
+    transferFormat: "json",
+    message: "",
     showSubprotocol: false,
-    subprotocol: '',
+    subprotocol: "",
     traffic: [],
-    error: '',
+    error: "",
   });
 
   const connectionRef = useRef<WebSocket | null>(null);
@@ -51,7 +40,7 @@ export const Playground = ({ onStatusChange }: PlaygroundProps) => {
       const connection = new WebSocket(data.clientUrl);
       connection.onopen = (event) => {
         onStatusChange(ConnectionStatus.Connected);
-        setState((prevState) => ({ ...prevState, connected: true, traffic: [], error: '' }));
+        setState((prevState) => ({ ...prevState, connected: true, traffic: [], error: "" }));
       };
       connection.onclose = (event) => {
         onStatusChange(ConnectionStatus.Disconnected);
@@ -63,39 +52,57 @@ export const Playground = ({ onStatusChange }: PlaygroundProps) => {
         }));
       };
       connection.onmessage = (ev) => {
-        setState((prevState) => ({ ...prevState, traffic: [{ content: ev.data }, ...prevState.traffic] }));
+        setState((prevState) => ({
+          ...prevState,
+          traffic: [{ content: ev.data }, ...prevState.traffic],
+        }));
       };
       connectionRef.current = connection;
     } catch (e) {
-      setState((prevState) => ({ ...prevState, error: 'Error establishing the WebSocket connection.' }));
+      setState((prevState) => ({
+        ...prevState,
+        error: "Error establishing the WebSocket connection.",
+      }));
     }
   };
 
   const send = () => {
     if (!connectionRef.current) {
-      console.error('Connection is not connected');
+      console.error("Connection is not connected");
       return;
     }
     const message = state.message;
     if (message) {
       connectionRef.current.send(message);
     }
-    setState((prevState) => ({ ...prevState, message: '', traffic: [{ content: message, up: true }, ...prevState.traffic] }));
+    setState((prevState) => ({
+      ...prevState,
+      message: "",
+      traffic: [{ content: message, up: true }, ...prevState.traffic],
+    }));
   };
 
   const options = [
-    { key: 'Json', text: 'Service supported JSON protocols', itemType: SelectableOptionMenuItemType.Header },
-    { key: 'A', text: 'json.webpubsub.azure.v1' },
-    { key: 'B', text: 'json.reliable.webpubsub.azure.v1' },
-    { key: 'divider', text: '-', itemType: SelectableOptionMenuItemType.Divider },
-    { key: 'binary', text: 'Service supported binary protocols', itemType: SelectableOptionMenuItemType.Header },
-    { key: 'C', text: 'protobuf.webpubsub.azure.v1' },
-    { key: 'D', text: 'protobuf.reliable.webpubsub.azure.v1' },
+    {
+      key: "Json",
+      text: "Service supported JSON protocols",
+      itemType: SelectableOptionMenuItemType.Header,
+    },
+    { key: "A", text: "json.webpubsub.azure.v1" },
+    { key: "B", text: "json.reliable.webpubsub.azure.v1" },
+    { key: "divider", text: "-", itemType: SelectableOptionMenuItemType.Divider },
+    {
+      key: "binary",
+      text: "Service supported binary protocols",
+      itemType: SelectableOptionMenuItemType.Header,
+    },
+    { key: "C", text: "protobuf.webpubsub.azure.v1" },
+    { key: "D", text: "protobuf.reliable.webpubsub.azure.v1" },
   ];
 
   const transferOptions = [
-    { key: 'text', text: 'Text' },
-    { key: 'binary', text: 'Binary' },
+    { key: "text", text: "Text" },
+    { key: "binary", text: "Binary" },
   ];
 
   const connectPane = (
@@ -105,11 +112,12 @@ export const Playground = ({ onStatusChange }: PlaygroundProps) => {
       <DefaultButton hidden={!data.ready || state.connected} onClick={connect}>
         Connect
       </DefaultButton>
-      {state.connected && <p className="text-success"><i>Connected</i></p>}
-      {false && (
-        <Checkbox label="Specify subprotocol" checked={state.showSubprotocol}
-          onChange={(e, c) => setState((prevState) => ({ ...prevState, showSubprotocol: c ?? false }))} />
+      {state.connected && (
+        <p className="text-success">
+          <i>Connected</i>
+        </p>
       )}
+      {false && <Checkbox label="Specify subprotocol" checked={state.showSubprotocol} onChange={(e, c) => setState((prevState) => ({ ...prevState, showSubprotocol: c ?? false }))} />}
       <ComboBox
         hidden={!state.showSubprotocol}
         label="Subprotocol"
@@ -130,23 +138,21 @@ export const Playground = ({ onStatusChange }: PlaygroundProps) => {
               onChange={(e, i) => setState((prevState) => ({ ...prevState, transferFormat: i?.key.toString() }))}
             />
           )}
-          <TextField
-            label="Messages"
-            multiline
-            autoAdjustHeight
-            value={state.message}
-            onChange={(e, t) => setState((prevState) => ({ ...prevState, message: t }))}
-          />
+          <TextField label="Messages" multiline autoAdjustHeight value={state.message} onChange={(e, t) => setState((prevState) => ({ ...prevState, message: t }))} />
           <DefaultButton disabled={!state.connected || !state.message} text="Send" onClick={send}></DefaultButton>
         </div>
       )}
     </div>
   );
   const trafficList = state.traffic.map((i) => TrafficItem(i));
-  const trafficPane = <div><DetailsList items={trafficList} selectionMode={SelectionMode.none} layoutMode={DetailsListLayoutMode.justified}></DetailsList></div>;
+  const trafficPane = (
+    <div>
+      <DetailsList items={trafficList} selectionMode={SelectionMode.none} layoutMode={DetailsListLayoutMode.justified}></DetailsList>
+    </div>
+  );
 
   return (
-    <div className="d-flex flex-column" style={{ height: '100%' }}>
+    <div className="d-flex flex-column" style={{ height: "100%" }}>
       <p className="m-2">
         <Icon iconName="Brunch"></Icon>
         <b>Open you own client or have a quick try here.</b>

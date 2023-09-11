@@ -1,39 +1,67 @@
 // a command tool accepting parameters
 // host the website
 // start the server connection
+import dotenv from "dotenv";
+import { ConnectionStatus } from "../client/src/models";
+
+dotenv.config();
+
+// 1. provide signalr/ datahub
 
 // temp: show how to project reference the common project
-import { WebPubSubEventHandler } from "@azure/web-pubsub-express";
-import { InprocessServerProxy } from "./serverProxies";
+import { HttpServerProxy } from "./serverProxies";
 var host = "http://localhost:8080";
 var key = "";
-var connectionString = process.env["WebPubSubConnectionString"] || `Endpoint=${host};AccessKey=${key}`;
+var connectionString = process.env.WebPubSubConnectionString || `Endpoint=${host};AccessKey=${key}`;
 
 const hub = "chat";
 
-const handler = new WebPubSubEventHandler(hub, {
-  path: "/eventhandler",
-  handleUserEvent(req, res) {
-    // Quick test: in F12 browser establish a connection and send messages through
-    // var ws = new WebSocket("ws://{host}/client/hubs/chat?access_token={token}");
-    // ws.send("text"); ws.send("binary"); ws.send("others");
-    if (req.dataType === "text") {
-      if (req.data === "text") {
-        res.success("Hello", "text");
-        return;
-      } else if (req.data === "binary") {
-        // try binary here
-        res.success(new TextEncoder().encode(req.data + " response"), "binary");
-      } else {
-        res.success(JSON.stringify({ a: "Hello" }), "json");
-      }
-    } else {
-      res.fail(400, "Invalid data type " + req.dataType);
-    }
-  },
+const tunnel = HttpServerProxy.fromConnectionString(connectionString, hub);
+tunnel.runAsync();
+
+import express from "express";
+import { createServer } from "http";
+import path from "path";
+import { Server, Socket } from "socket.io";
+const app = express();
+
+const server = createServer(app);
+const io = new Server(server);
+const port = process.env.EXPRESS_PORT || 8080;
+const website = `http://localhost:${port}`;
+
+app.use(express.static(path.join(__dirname, "../client/build")));
+
+// Socket.io event handling
+io.on("connection", (socket: Socket) => {
+  console.log("A user connected");
+
+  socket.on("getCurrentModel", (callback) => {
+    callback({
+      ready: true,
+      endpoint: "http://A",
+      hub: "chat",
+      clientUrl: "http://E",
+      liveTraceUrl: "http://D",
+      upstreamServerUrl: "http://F",
+      tunnelConnectionStatus: ConnectionStatus.Connected,
+      trafficHistory: [],
+      tunnelServerStatus: {
+        statusIn: ConnectionStatus.Connected,
+        statusOut: ConnectionStatus.Connected,
+      },
+      logs: [],
+    });
+    socket.on("getClientAccessUrl", (callback) => {
+      callback("http://ABC");
+    });
+  });
+
+  socket.on("disconnect", () => {
+    console.log("A user disconnected");
+  });
 });
 
-const middleware = handler.getMiddleware();
-
-const tunnel = InprocessServerProxy.fromConnectionString(connectionString, hub, middleware);
-tunnel.runAsync();
+server.listen(port, () => {
+  console.log(`listening on ${website}`);
+});

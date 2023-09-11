@@ -1,3 +1,3 @@
 import { InprocessServerProxy, WebPubSubServiceCaller } from "./InprocessServerProxy";
-
-export { InprocessServerProxy, WebPubSubServiceCaller };
+import { HttpServerProxy } from "./HttpServerProxy";
+export { InprocessServerProxy, WebPubSubServiceCaller, HttpServerProxy };

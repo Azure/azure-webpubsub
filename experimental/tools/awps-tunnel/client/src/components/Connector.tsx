@@ -1,18 +1,17 @@
-import React from 'react';
-import './Connector.css';
-import { ConnectionStatus, ConnectionStatusPair } from '../providers/models';
+import React from "react";
+import "./Connector.css";
+import { ConnectionStatus, ConnectionStatusPair } from "../models";
 
 export function Connector({ status }: { status: ConnectionStatus }) {
-
   if (status === ConnectionStatus.Connecting) {
-    return <div className="dashed-line arrow-line connecting"></div>
+    return <div className="dashed-line arrow-line connecting"></div>;
   }
 
   if (status === ConnectionStatus.Connected) {
     return <div className="arrow-line connected"></div>;
   }
 
-  return <div className="dashed-line arrow-line"></div>
+  return <div className="dashed-line arrow-line"></div>;
 }
 
 export function TwoDirectionConnector({ statusPair }: { statusPair: ConnectionStatusPair }) {

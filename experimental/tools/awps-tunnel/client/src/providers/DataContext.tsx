@@ -1,9 +1,7 @@
 // DataContext.js
-import React, { createContext, useContext, useState, useEffect, ReactNode, useMemo } from "react";
-import { MockDataFetcher } from "./MockDataFetcher";
-import { IDataFetcher } from "./IDataFetcher";
-import { DataModel } from "./models";
-import { SignalRDataFetcher } from "./SignalRDataFetcher";
+import React, { createContext, useContext, useState, ReactNode, useMemo } from "react";
+import { IDataFetcher, getDataFetcher } from "./IDataFetcher";
+import { DataModel } from "../models";
 
 const DataContext = createContext<DataContextType | undefined>(undefined);
 
@@ -23,10 +21,7 @@ interface DataContextType {
 export const DataProvider: React.FC<{
   children: ReactNode;
 }> = ({ children }) => {
-  const dataFetcher = useMemo<IDataFetcher>(
-    () => new SignalRDataFetcher((m) => setData(m)),
-    []
-  ) as IDataFetcher;
+  const dataFetcher = useMemo<IDataFetcher>(() => getDataFetcher((m) => setData(m)), []) as IDataFetcher;
   const [data, setData] = useState<DataModel>(dataFetcher.model);
 
   return <DataContext.Provider value={{ data, setData }}>{children}</DataContext.Provider>;
