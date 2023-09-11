@@ -16,6 +16,7 @@ import {
   getSessionHttpMiddleware,
   getSessionSocketIOMiddleware,
   getClaimsHttpMiddleware,
+  getClaimsSocketIOMiddleware,
   getNegotiateHttpMiddleware,
 } from "./SIO/components/negotiate";
 import * as SIO from "socket.io";
@@ -42,6 +43,7 @@ export {
   getPassportSocketIOMiddleware,
   getSessionHttpMiddleware,
   getSessionSocketIOMiddleware,
+  getClaimsSocketIOMiddleware,
   getClaimsHttpMiddleware,
   getNegotiateHttpMiddleware,
 };
