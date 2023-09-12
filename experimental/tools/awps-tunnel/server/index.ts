@@ -13,14 +13,12 @@ import { ConnectionStatus, ConnectionStatusPairs } from "../client/src/models";
 import { logger } from "./logger";
 
 // temp: show how to project reference the common project
-var host = "http://localhost:8080";
-var key = "";
-var connectionString = process.env.WebPubSubConnectionString || `Endpoint=${host};AccessKey=${key}`;
+var connectionString = process.env.WebPubSubConnectionString;
+if (!connectionString) throw Error("Invalid connection string");
 
 const hub = "chat";
 const upstreamUrl = "http://localhost:3333";
 const app = express();
-
 const server = createServer(app);
 const tunnel = HttpServerProxy.fromConnectionString(connectionString, hub, { target: upstreamUrl });
 const dataHub = new DataHub(server, tunnel, upstreamUrl);
