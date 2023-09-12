@@ -77,9 +77,9 @@ export class SignalRDataFetcher implements IDataFetcher {
       this.onModelUpdate(this.model);
     });
 
-    console.log("SignalR connection established.");
     try {
       await newConnection.start();
+      console.log("SignalR connection established.");
     } catch (err) {
       console.log("SignalR connection failed: " + err);
     }

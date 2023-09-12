@@ -5,6 +5,8 @@ import { Server, Socket } from "socket.io";
 import { ConnectionStatus, ConnectionStatusPair, HttpHistoryItem, ConnectionStatusPairs } from "../client/src/models";
 import http from "http";
 import { HttpServerProxy } from "./serverProxies";
+import { TokenCredential, AzureKeyCredential, isTokenCredential } from "@azure/core-auth";
+import jwt from "jsonwebtoken";
 
 export class DataHub {
   public static tunnelConnectionStatus = ConnectionStatus.Connecting;
@@ -17,44 +19,52 @@ export class DataHub {
   public static hub = "";
 
   private io: Server;
-  constructor(server: http.Server, tunnel: HttpServerProxy, upstreamUrl: string) {
-  const io = this.io = new Server(server);
-  DataHub.endpoint = tunnel.endpoint;
-  DataHub.clientUrl = getClientAccessUrl();
-  DataHub.hub = tunnel.hub;
-  DataHub.upstreamServerUrl = upstreamUrl;
-  DataHub.livetraceUrl = getLiveTraceUrl();
-  // Socket.io event handling
-  io.on("connection", (socket: Socket) => {
-    console.log("A Socketio client connected");
+  constructor(server: http.Server, private tunnel: HttpServerProxy, upstreamUrl: string) {
+    const io = (this.io = new Server(server));
+    DataHub.endpoint = tunnel.endpoint;
+    DataHub.hub = tunnel.hub;
+    DataHub.upstreamServerUrl = upstreamUrl;
+    // Socket.io event handling
+    io.on("connection", (socket: Socket) => {
+      console.log("A Socketio client connected");
 
-    socket.on("getCurrentModel", (callback) => {
-      callback({
-        ready: true,
-        state: {
-          endpoint: DataHub.endpoint,
-          hub: DataHub.hub,
-          clientUrl: DataHub.clientUrl,
-          liveTraceUrl: DataHub.livetraceUrl,
-          upstreamServerUrl: DataHub.upstreamServerUrl,
-          tunnelConnectionStatus: DataHub.tunnelConnectionStatus,
-          tunnelServerStatus: DataHub.tunnelServerStatus,
-        },
-        trafficHistory: DataHub.trafficHistory,
-        logs: [],
+      socket.on("getCurrentModel", async (callback) => {
+        callback({
+          ready: true,
+          state: {
+            endpoint: DataHub.endpoint,
+            hub: DataHub.hub,
+            clientUrl: await this.GetClientAccessUrl(),
+            liveTraceUrl: await this.GetLiveTraceUrl(),
+            upstreamServerUrl: DataHub.upstreamServerUrl,
+            tunnelConnectionStatus: DataHub.tunnelConnectionStatus,
+            tunnelServerStatus: DataHub.tunnelServerStatus,
+          },
+          trafficHistory: DataHub.trafficHistory,
+          logs: [],
+        });
+        socket.on("getClientAccessUrl", async (callback) => {
+          const url = await this.GetClientAccessUrl();
+          callback(url);
+        });
       });
-      socket.on("getClientAccessUrl", (callback) => {
-        const url = DataHub.clientUrl = getClientAccessUrl();
-        callback(url);
+
+      socket.on("disconnect", () => {
+        console.log("A Socketio client disconnected");
       });
     });
-
-    socket.on("disconnect", () => {
-      console.log("A Socketio client disconnected");
-    });
-  });
   }
-  
+
+  async GetClientAccessUrl(): Promise<string>{
+    const url = DataHub.clientUrl = await this.tunnel.getClientAccessUrl();
+    return url;
+  }
+
+  async GetLiveTraceUrl(): Promise<string>{
+    const url = DataHub.livetraceUrl = await this.tunnel.getLiveTraceUrl();
+    return url;
+  }
+
   UpdateTraffics(trafficHistory: HttpHistoryItem[]) {
     DataHub.trafficHistory.push(...trafficHistory);
     this.io.emit("updateTraffics", trafficHistory);
@@ -74,7 +84,7 @@ export class DataHub {
     DataHub.upstreamServerUrl = url;
     this.io.emit("reportLocalServerUrl", url);
   }
-  ReportStatusChange(status: ConnectionStatus) {  
+  ReportStatusChange(status: ConnectionStatus) {
     DataHub.tunnelConnectionStatus = status;
     this.io.emit("reportStatusChange", status);
   }
@@ -82,13 +92,4 @@ export class DataHub {
     DataHub.tunnelServerStatus = status;
     this.io.emit("reportTunnelToLocalServerStatus", status);
   }
-  
-}
-
-function getClientAccessUrl() {
-  return "http://ABC";
-}
-
-function getLiveTraceUrl() {
-  return "http://D";
 }
