@@ -95,8 +95,7 @@ export function getSessionHttpMiddleware(
 
   return getNegotiateHttpMiddleware(webPubSubOptions, async (req: IncomingMessage) => {
     const query = parse(req.url || "", true).query;
-    const userId = query["userId"].toString();
-    const expirationMinutes = Number(query["expirationMinutes"]) ?? undefined;
+    const expirationMinutes = Number(query["expirationMinutes"] ?? 600);
 
     const cookies = cookieParser.parse(req.headers.cookie);
     const sessionCookie = cookies[EXPRESS_SESSION_COOKIE_NAME];
@@ -104,7 +103,6 @@ export function getSessionHttpMiddleware(
     const encryptedSessionCookie = crypto.encrypt(sessionCookie);
 
     return {
-      userId: userId,
       expirationTimeInMinutes: expirationMinutes,
       customClaims: {
         [EXPRESS_SESSION_COOKIE_NAME]: encryptedSessionCookie,
@@ -157,7 +155,7 @@ export function getPassportHttpMiddleware(
 
   return getNegotiateHttpMiddleware(webPubSubOptions, async (req: IncomingMessage) => {
     const query = parse(req.url || "", true).query;
-    const expirationMinutes = Number(query["expirationMinutes"]) ?? 600;
+    const expirationMinutes = Number(query["expirationMinutes"] ?? 600);
 
     const sessionId = req.headers.cookie.slice("connect.sid=s%3A".length).split(".")[0];
     const session = JSON.parse(store.sessions[sessionId]);
