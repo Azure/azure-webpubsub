@@ -12,6 +12,7 @@
     "skipLibCheck": true /* Skip type checking all .d.ts files. */,
     "moduleResolution": "node",
     "outDir": "./dist",
-    "declarationDir": "./types"
+    "declarationDir": "./types",
+    "resolveJsonModule": true
   }
 }

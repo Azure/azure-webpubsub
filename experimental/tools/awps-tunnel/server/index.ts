@@ -11,10 +11,35 @@ import { DataHub } from "./dataHub";
 import { HttpServerProxy } from "./serverProxies";
 import { ConnectionStatus, ConnectionStatusPairs } from "../client/src/models";
 import { logger } from "./logger";
-
+import packageJson from "./package.json";
 // temp: show how to project reference the common project
 var connectionString = process.env.WebPubSubConnectionString;
 if (!connectionString) throw Error("Invalid connection string");
+
+
+import {program} from "commander";
+
+program.version(packageJson.version).description(packageJson.description);
+
+program.command("status");
+program.command("bind")
+.option('-e, --endpoint <endpoint>', 'Sepcify the Web PubSub service endpoint URL to connect to')
+.option('--hub <hub>', 'Specify the hub to connect to')
+.action((endpoint, hub)=>{
+  console.log(`Binding to endpoint: ${endpoint}, hub: ${hub}`);
+  // Add your logic here to bind to the provided URL
+});
+program.command("run")
+.option('-e, --endpoint <endpoint>', 'Sepcify the Web PubSub service endpoint URL to connect to')
+.option('--hub <hub>', 'Specify the hub to connect to')
+.option('-u, --upstream <upstream>', 'Specify the upstream URL to redirect traffic to')
+.option("-cs, --connection-string <connectionString>", "The connection string of the Web PubSub service")
+.action(({ endpoint, hub, upstream, connectionString }) => {
+  console.log(`Binding to endpoint: ${endpoint}, hub: ${hub}, upstream: ${upstream}, connectionString: ${connectionString}`);
+  // Add your logic here to bind to the provided URL
+});
+
+program.parse(process.argv);
 
 const hub = "chat";
 const upstreamUrl = "http://localhost:3333";
