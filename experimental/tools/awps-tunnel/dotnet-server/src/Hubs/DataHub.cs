@@ -9,15 +9,16 @@ public interface IDataHub
     Task<DataModel> GetCurrentModel();
 }
 
-public interface IStateNotifier : IDataHubClient
+public interface IStateNotifier : IStateReporter
 {
+    Task UpdateTraffics(CancellationToken token, params HttpItem[] traffics);
+
     State State { get; }
 }
 
-public interface IDataHubClient
+public interface IStateReporter
 {
     Task UpdateLogs(params LogItem[] logs);
-    Task UpdateTraffics(params HttpItem[] traffics);
     Task ReportLiveTraceUrl(string url);
     Task ReportServiceEndpoint(string url);
     Task ReportLocalServerUrl(string url);
@@ -25,14 +26,21 @@ public interface IDataHubClient
     Task ReportTunnelToLocalServerStatus(ConnectionStatusPair status);
 }
 
+public interface IDataHubClient: IStateReporter
+{
+    Task UpdateTraffics(params HttpItem[] traffics);
+}
+
 internal class StateNotifier : IStateNotifier
 {
     public State State { get; }
 
+    private readonly IRepository<HttpDataModel> _store;
     private readonly IHubContext<DataHub, IDataHubClient> _hubContext;
 
-    public StateNotifier(IHubContext<DataHub, IDataHubClient> hubContext, IOptions<TunnelServiceOptions> options)
+    public StateNotifier(IRepository<HttpDataModel> store, IHubContext<DataHub, IDataHubClient> hubContext, IOptions<TunnelServiceOptions> options)
     {
+        _store = store;
         _hubContext = hubContext;
         State = new State
         {
@@ -75,9 +83,14 @@ internal class StateNotifier : IStateNotifier
         return _hubContext.Clients.All.UpdateLogs(logs);
     }
 
-    public Task UpdateTraffics(params HttpItem[] traffics)
+    public async Task UpdateTraffics(CancellationToken token, params HttpItem[] traffics)
     {
-        return _hubContext.Clients.All.UpdateTraffics(traffics);
+        foreach(var t in traffics)
+        {
+            await _store.AddAsync(t.DataModel, token);
+        }
+
+        await _hubContext.Clients.All.UpdateTraffics(traffics);
     }
 }
 
@@ -85,11 +98,13 @@ public class DataHub : Hub<IDataHubClient>, IDataHub
 {
     private readonly WebPubSubServiceClient _serviceClient;
     private readonly IStateNotifier _state;
+    private readonly IRepository<HttpDataModel> _repo;
 
-    public DataHub(WebPubSubServiceClient serviceClient, IStateNotifier state)
+    public DataHub(WebPubSubServiceClient serviceClient, IStateNotifier state, IRepository<HttpDataModel> repo)
     {
         _serviceClient = serviceClient;
         _state = state;
+        _repo = repo;
     }
 
     public async Task<DataModel> GetCurrentModel()
@@ -97,6 +112,7 @@ public class DataHub : Hub<IDataHubClient>, IDataHub
         _state.State.ClientUrl = await GetClientAccessUrl();
         return new DataModel
         {
+            TrafficHistory = (await _repo.GetRangeAsync(50, Context.ConnectionAborted)).Select(s => new HttpItem(s)).ToList(),
             State = _state.State
         };
     }
@@ -124,6 +140,7 @@ public class DataModel
 {
     public State State { get; set; } = new State();
     public List<LogItem> Logs { get; set; } = new List<LogItem>();
+    public List<HttpItem> TrafficHistory { get; set; } = new List<HttpItem>();
 }
 
 public class LogItem

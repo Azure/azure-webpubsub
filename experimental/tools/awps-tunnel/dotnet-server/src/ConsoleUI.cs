@@ -61,7 +61,7 @@ class PlainOutput : IOutput
 
     public void AddRequest(HttpItem request)
     {
-        _logger.LogInformation($"RequestedAt: {request.RequestAt}; Uri: {request.Url}; Code: {request.Code};");
+        _logger.LogInformation($"RequestedAt: {request.RequestAtOffset}; Uri: {request.Url}; Code: {request.Code};");
     }
 
     public Task DrawAsync(CancellationToken cancellationToken)
