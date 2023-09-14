@@ -1,5 +1,5 @@
 {
-  "name": "awps-tunnel",
+  "name": "awps-tunnel-bundle",
   "version": "1.0.0",
   "description": "A server tunnel to connect Azure Web PubSub and your local server",
   "main": "server/src/server.ts",
@@ -30,5 +30,9 @@
   "devDependencies": {
     "@types/node": "^20.5.9",
     "typescript": "^5.1.6"
+  },
+  "dependencies": {
+    "@azure/identity": "^3.3.0",
+    "appdirsjs": "^1.2.7"
   }
 }
