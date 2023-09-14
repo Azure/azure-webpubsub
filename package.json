@@ -1,7 +1,10 @@
 {
   "name": "azure-webpubsub",
   "private": true,
-  "workspaces": ["samples/javascript/**", "experimental/sdk/**socketio**/"],
+  "workspaces": [
+    "samples/javascript/**",
+    "sdk/**socketio**/"
+  ],
   "version": "1.0.0",
   "main": "index.js",
   "repository": "https://github.com/Azure/azure-webpubsub.git",
