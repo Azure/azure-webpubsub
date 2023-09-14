@@ -8,12 +8,14 @@
 
 import { AzureKeyCredential } from '@azure/core-auth';
 import { IncomingMessage } from 'http';
+import { Request as Request_2 } from 'express';
+import { Response as Response_2 } from 'express';
 import * as SIO from 'socket.io';
+import { Store } from 'express-session';
 import { TokenCredential } from '@azure/core-auth';
 
 // @public
 export interface AzureSocketIOCommonOptions {
-    configureNegotiateOptions?: (req: IncomingMessage) => Promise<NegotiateOptions>;
     hub: string;
     reverseProxyEndpoint?: string;
 }
@@ -30,13 +32,36 @@ export interface AzureSocketIOOptions extends AzureSocketIOCommonOptions {
 }
 
 // @public
+export type ConfigureNegotiateOptions = (req: IncomingMessage) => Promise<NegotiateOptions>;
+
+// @public
+export function negotiate(path: string, io: SIO.Server | AzureSocketIOOptions | AzureSocketIOCredentialOptions, configureNegotiateOptions: ConfigureNegotiateOptions): (req: Request_2, res: Response_2, next: any) => void;
+
+// @public
 export interface NegotiateOptions {
+    // (undocumented)
+    customClaims?: {
+        [key: string]: string;
+    };
     expirationTimeInMinutes?: number;
     userId?: string;
 }
 
 // @public
+export interface NegotiateResponse {
+    endpoint: string;
+    path: string;
+    token: string;
+}
+
+// @public
+export function restorePassport(assignProperty?: string): (request: Request_2, response: Response_2, next: any) => void;
+
+// @public
 export function useAzureSocketIO(io: SIO.Server, azureSocketIOOptions: AzureSocketIOOptions | AzureSocketIOCredentialOptions): Promise<SIO.Server>;
+
+// @public
+export function usePassport(store: Store, assignProperty?: string): ConfigureNegotiateOptions;
 
 // (No @packageDocumentation comment for this package)
 

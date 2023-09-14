@@ -83,7 +83,12 @@ rawResponse = ${JSON.stringify(rawResponse)}`);
         token = response.token!;
       } else {
         const key = credential.key;
-        const payload = { role: options?.roles, "webpubsub.group": options?.groups };
+        const payload = {
+          role: options?.roles,
+          "webpubsub.group": options?.groups,
+          customClaims: options?.["customClaims"],
+          userId: options?.userId,
+        };
         const signOptions: jwt.SignOptions = {
           audience: baseUrl,
           expiresIn: options?.expirationTimeInMinutes === undefined ? "1h" : `${options.expirationTimeInMinutes}m`,
