@@ -1,4 +1,5 @@
 export interface HttpHistoryItem {
+  id: number;
   requestAtOffset: number;
   code: number;
   methodName: string;

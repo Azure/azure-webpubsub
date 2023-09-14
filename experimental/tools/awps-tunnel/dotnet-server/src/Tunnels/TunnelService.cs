@@ -156,17 +156,24 @@ internal class TunnelService
         // TODO: write directly to memory instead of convert
         var tunnelResponse = await ToResponse(tunnelRequest, response);
         _logger.LogInformation($"Getting response for {tunnelRequest.TracingId}: {response.StatusCode}");
-        _ = _dataHub.UpdateTraffics(new HttpItem
+        _ = _dataHub.UpdateTraffics(token, new HttpItem(new HttpDataModel
         {
-            Code = (int)response.StatusCode,
-            TracingId = tunnelRequest.TracingId,
-            MethodName = tunnelRequest.HttpMethod,
-            RequestAt = arrivedAt,
-            RequestRaw = tunnelRequest.DumpRaw(),
-            Url = tunnelRequest.Url,
-            RespondAt = processedAt,
-            ResponseRaw = tunnelResponse.DumpRaw(),
-        });
+            Request = new HttpRequestDetail
+            {
+                Url = tunnelRequest.Url,
+                TracingId = tunnelRequest.TracingId,
+                MethodName = tunnelRequest.HttpMethod,
+                RequestAt = arrivedAt,
+                RequestRaw = tunnelRequest.DumpRaw(),
+            },
+            Response = new HttpResponseDetail
+            {
+                Code = (int)response.StatusCode,
+
+                RespondAt = processedAt,
+                ResponseRaw = tunnelResponse.DumpRaw(),
+            }
+        }));
         return tunnelResponse;
     }
 }

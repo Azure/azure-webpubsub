@@ -21,7 +21,7 @@ export function RequestHistory() {
       return;
     }
     if (detailId !== undefined && detailId >= 0) {
-      var selected = items.find((s) => s.requestAtOffset === detailId);
+      var selected = items.find((s) => s.id === detailId);
       if (selected) {
         setSelectedItem(selected);
       }

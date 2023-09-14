@@ -58,6 +58,8 @@ export class MockDataFetcher implements IDataFetcher {
   }
 }
 
+let id = 0;
+
 export function generateMockHttpItem(): HttpHistoryItem {
   return {
     requestAtOffset: Date.now(),
@@ -67,5 +69,6 @@ export function generateMockHttpItem(): HttpHistoryItem {
     requestRaw: "ABC",
     responseRaw: "DEF",
     unread: true,
+    id: id++,
   };
 }
