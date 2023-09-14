@@ -5,20 +5,13 @@ import {
   addProperty,
   NegotiateOptions,
   NegotiateResponse,
+  ConfigureNegotiateOptions,
   AzureSocketIOCommonOptions,
   AzureSocketIOOptions,
   AzureSocketIOCredentialOptions,
 } from "./common/utils";
 import { useAzureSocketIO, useAzureSocketIOChain } from "./SIO";
-import {
-  getPassportHttpMiddleware,
-  getPassportSocketIOMiddleware,
-  getSessionHttpMiddleware,
-  getSessionSocketIOMiddleware,
-  getClaimsHttpMiddleware,
-  getClaimsSocketIOMiddleware,
-  getNegotiateHttpMiddleware,
-} from "./SIO/components/negotiate";
+import { negotiate, restorePassport } from "./SIO/components/negotiate";
 import * as SIO from "socket.io";
 
 declare module "socket.io" {
@@ -34,16 +27,12 @@ addProperty(SIO.Server.prototype, "useAzureSocketIO", useAzureSocketIOChain);
 
 export {
   useAzureSocketIO,
+  negotiate,
+  restorePassport,
   NegotiateOptions,
   NegotiateResponse,
+  ConfigureNegotiateOptions,
   AzureSocketIOCommonOptions,
   AzureSocketIOOptions,
   AzureSocketIOCredentialOptions,
-  getPassportHttpMiddleware,
-  getPassportSocketIOMiddleware,
-  getSessionHttpMiddleware,
-  getSessionSocketIOMiddleware,
-  getClaimsSocketIOMiddleware,
-  getClaimsHttpMiddleware,
-  getNegotiateHttpMiddleware,
 };

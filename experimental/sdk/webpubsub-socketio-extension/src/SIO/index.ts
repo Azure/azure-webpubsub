@@ -5,22 +5,15 @@ import {
   debugModule,
   AzureSocketIOOptions,
   AzureSocketIOCredentialOptions,
-  NegotiateOptions,
-  getWebPubSubServiceClient,
-  NegotiateResponse,
+  getSioMiddlewareFromExpress,
 } from "../common/utils";
 import { WebPubSubEioServer } from "../EIO";
 import { WebPubSubAdapterProxy } from "./components/web-pubsub-adapter";
+import { DEFAULT_SIO_PATH, WEB_PUBSUB_OPTIONS_PROPERY_NAME } from "./components/constants";
+import { restoreClaims } from "./components/negotiate";
 import * as SIO from "socket.io";
 import { Adapter } from "socket.io-adapter";
 import { IncomingMessage, ServerResponse } from "http";
-import { InprocessServerProxy } from "../serverProxies";
-import {
-  DEFAULT_SIO_PATH,
-  NEGOTIATE_HANDLER_PROPERTY_NAME,
-  WEB_PUBSUB_OPTIONS_PROPERY_NAME,
-} from "./components/constants";
-import { checkNegotiatePath, getNegotiateHttpMiddleware } from "./components/negotiate";
 
 const debug = debugModule("wps-sio-ext:SIO:index");
 debug("load");
@@ -51,8 +44,7 @@ export async function useAzureSocketIOChain(
     for (let i = 0; i < listeners.length; i++) {
       // Follow the same logic as Engine.IO
       // Reference: https://github.com/socketio/engine.io/blob/6.4.2/lib/server.ts#L804
-      // Skip if the path is routing to negotiate middleware
-      if (path !== req.url.slice(0, path.length) && !checkNegotiatePath(req.url, path)) {
+      if (path !== req.url.slice(0, path.length)) {
         listeners[i].call(httpServer, req, res);
       }
     }
@@ -77,6 +69,7 @@ export async function useAzureSocketIOChain(
   // If using tunnel, wait until connected. `engine.setup` does no nothing when using REST API.
   await engine.setup();
 
+  this.use(getSioMiddlewareFromExpress(restoreClaims()));
   return this;
 }
 

@@ -7,11 +7,10 @@
 /// <reference types="node" />
 
 import { AzureKeyCredential } from '@azure/core-auth';
-import { ExtendedError } from 'socket.io/dist/namespace';
 import { IncomingMessage } from 'http';
-import { ServerResponse } from 'http';
+import { Request as Request_2 } from 'express';
+import { Response as Response_2 } from 'express';
 import * as SIO from 'socket.io';
-import { Store } from 'express-session';
 import { TokenCredential } from '@azure/core-auth';
 
 // @public
@@ -31,28 +30,11 @@ export interface AzureSocketIOOptions extends AzureSocketIOCommonOptions {
     connectionString: string;
 }
 
-// Warning: (ae-forgotten-export) The symbol "ConfigureNegotiateOptions" needs to be exported by the entry point index.d.ts
-//
 // @public
-export function getClaimsHttpMiddleware(io: SIO.Server | AzureSocketIOOptions | AzureSocketIOCredentialOptions, configureNegotiateOptions: ConfigureNegotiateOptions): (req: IncomingMessage, res: ServerResponse) => void;
+export type ConfigureNegotiateOptions = (req: IncomingMessage) => Promise<NegotiateOptions>;
 
 // @public
-export function getClaimsSocketIOMiddleware(): (socket: SIO.Socket, next: (err?: ExtendedError) => void) => void;
-
-// @public
-export function getNegotiateHttpMiddleware(io: SIO.Server | AzureSocketIOOptions | AzureSocketIOCredentialOptions, configureNegotiateOptions: ConfigureNegotiateOptions): (req: IncomingMessage, res: ServerResponse) => void;
-
-// @public
-export function getPassportHttpMiddleware(io: SIO.Server | AzureSocketIOOptions | AzureSocketIOCredentialOptions, store: Store, assignProperty?: string): (req: IncomingMessage, res: ServerResponse) => void;
-
-// @public
-export function getPassportSocketIOMiddleware(assignProperty?: string): (socket: SIO.Socket, next: (err?: ExtendedError) => void) => void;
-
-// @public
-export function getSessionHttpMiddleware(io: SIO.Server | AzureSocketIOOptions | AzureSocketIOCredentialOptions, secret: Buffer, iv: Buffer): (req: IncomingMessage, res: ServerResponse) => void;
-
-// @public
-export function getSessionSocketIOMiddleware(secret: Buffer, iv: Buffer): (socket: SIO.Socket, next: (err?: ExtendedError) => void) => void;
+export function negotiate(path: string, io: SIO.Server | AzureSocketIOOptions | AzureSocketIOCredentialOptions, configureNegotiateOptions: ConfigureNegotiateOptions): (req: Request_2, res: Response_2, next: any) => void;
 
 // @public
 export interface NegotiateOptions {
@@ -70,6 +52,9 @@ export interface NegotiateResponse {
     path: string;
     token: string;
 }
+
+// @public
+export function restorePassport(assignProperty?: string): (request: Request_2, response: Response_2, next: any) => void;
 
 // @public
 export function useAzureSocketIO(io: SIO.Server, azureSocketIOOptions: AzureSocketIOOptions | AzureSocketIOCredentialOptions): Promise<SIO.Server>;
