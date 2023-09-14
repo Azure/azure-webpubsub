@@ -85,7 +85,7 @@ async function main() {
   await useAzureSocketIO(io, wpsOptions);
 
   // ------------------------- Auth -------------------------
-  app.use(negotiate("/negotiate", io, (req) => {
+  app.get("/negotiate", negotiate(io, (req) => {
     const query = parse(req.url || "", true).query;
     const expirationMinutes = Number(query["expirationMinutes"]) ?? undefined;
 

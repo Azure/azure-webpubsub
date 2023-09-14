@@ -86,7 +86,7 @@ async function main() {
   // ------------------------- Auth -------------------------
   // When migration: JWT.userId = store.sessions[req.headers.cookie.sessionId].passport.user
   // When request: Build dummy session: socket.request.session = { passport: { user: JWT.userId }}
-  app.use(negotiate("/negotiate", io, usePassport(store)))
+  app.get("/negotiate", negotiate(io, usePassport(store)))
   io.use(wrap(restorePassport()));
   // ------------------------- Auth -------------------------
 
