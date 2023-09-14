@@ -1,16 +1,6 @@
-import { ConnectionStatus, HttpHistoryItem, DataModel } from "../models";
+import { ConnectionStatus, DataModel } from "../models";
 import { IDataFetcher } from "./IDataFetcher";
 import { io } from "socket.io-client";
-function loadTrafficHistory() {
-  const trafficHistory = localStorage.getItem("trafficHistory");
-  if (trafficHistory) {
-    return JSON.parse(trafficHistory);
-  }
-  return [];
-}
-function updateTrafficHistory(items: HttpHistoryItem[]) {
-  localStorage.setItem("trafficHistory", JSON.stringify(items));
-}
 
 export class SocketIODataFetcher implements IDataFetcher {
   // load data from local storage
@@ -26,7 +16,7 @@ export class SocketIODataFetcher implements IDataFetcher {
       statusIn: ConnectionStatus.Disconnected,
       statusOut: ConnectionStatus.Disconnected,
     },
-    trafficHistory: loadTrafficHistory(),
+    trafficHistory: [],
     logs: [],
   };
 
@@ -72,7 +62,6 @@ export class SocketIODataFetcher implements IDataFetcher {
       console.log(items);
       // only takes 50 items;
       const currentItems = [...items, ...this.model.trafficHistory].slice(0, 50);
-      updateTrafficHistory(currentItems);
       this.model.trafficHistory = currentItems;
       this.onModelUpdate(this.model);
     });
@@ -82,10 +71,11 @@ export class SocketIODataFetcher implements IDataFetcher {
     setInterval(async () => {
       this.model.clientUrl = await newConnection.emitWithAck("getClientAccessUrl");
       this.onModelUpdate(this.model);
-    }, 10 * 1000);
+    }, 3000 * 1000);
     this.model = {
       ...this.model,
       logs: serverModel.logs,
+      trafficHistory: serverModel.trafficHistory,
       ...serverModel.state,
       ready: true,
     };

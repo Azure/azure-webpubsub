@@ -40,6 +40,8 @@ function print(settings: Settings) {
 }
 
 const appConfigPath = path.join(dir, "appsettings.json");
+const dbFile = path.join(dir, "data.sqlite");
+
 const settings: Settings = fs.existsSync(appConfigPath) ? (JSON.parse(fs.readFileSync(appConfigPath, "utf-8")) as Settings) : { WebPubSub: {} };
 if (!settings.WebPubSub) settings.WebPubSub = {};
 

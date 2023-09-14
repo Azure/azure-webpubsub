@@ -1,4 +1,4 @@
-import { ConnectionStatus, HttpHistoryItem, DataModel } from "../models";
+import { ConnectionStatus, DataModel } from "../models";
 import { IDataFetcher } from "./IDataFetcher";
 import * as signalR from "@microsoft/signalr";
 
@@ -76,7 +76,7 @@ export class SignalRDataFetcher implements IDataFetcher {
     setInterval(async () => {
       this.model.clientUrl = await newConnection.invoke("GetClientAccessUrl");
       this.onModelUpdate(this.model);
-    }, 10 * 1000);
+    }, 3000 * 1000);
     this.model = {
       ...this.model,
       logs: serverModel.logs,

@@ -1,11 +1,13 @@
 export interface HttpHistoryItem {
-  id: number;
+  id?: number;
+  tracingId?: number;
   requestAtOffset: number;
-  code: number;
+  responseAtOffset?: number;
+  code?: number;
   methodName: string;
   url: string;
   requestRaw: string;
-  responseRaw: string;
+  responseRaw?: string;
   unread: boolean;
 }
 
@@ -34,10 +36,10 @@ export interface ConnectionStatusPair {
   statusOut: ConnectionStatus;
   statusIn: ConnectionStatus;
 }
-export class ConnectionStatusPairs{
-  public static readonly Connected: ConnectionStatusPair = {statusOut: ConnectionStatus.Connected, statusIn: ConnectionStatus.Connected};
-  public static readonly Disconnected: ConnectionStatusPair = {statusOut: ConnectionStatus.Disconnected, statusIn: ConnectionStatus.Disconnected};
-  public static readonly ErrorResponse: ConnectionStatusPair = {statusOut: ConnectionStatus.Connected, statusIn: ConnectionStatus.Disconnected};
+export class ConnectionStatusPairs {
+  public static readonly Connected: ConnectionStatusPair = { statusOut: ConnectionStatus.Connected, statusIn: ConnectionStatus.Connected };
+  public static readonly Disconnected: ConnectionStatusPair = { statusOut: ConnectionStatus.Disconnected, statusIn: ConnectionStatus.Disconnected };
+  public static readonly ErrorResponse: ConnectionStatusPair = { statusOut: ConnectionStatus.Connected, statusIn: ConnectionStatus.Disconnected };
 }
 
 export interface DataModel {

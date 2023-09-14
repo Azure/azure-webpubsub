@@ -5,25 +5,25 @@ import { Server, Socket } from "socket.io";
 import { ConnectionStatus, ConnectionStatusPair, HttpHistoryItem, ConnectionStatusPairs } from "../client/src/models";
 import http from "http";
 import { HttpServerProxy } from "./serverProxies";
-import { TokenCredential, AzureKeyCredential, isTokenCredential } from "@azure/core-auth";
-import jwt from "jsonwebtoken";
+import { DataRepo } from "./dataRepo";
 
+// singleton per hub?
 export class DataHub {
-  public static tunnelConnectionStatus = ConnectionStatus.Connecting;
-  public static tunnelServerStatus = ConnectionStatusPairs.Disconnected;
-  public static trafficHistory: HttpHistoryItem[] = [];
-  public static livetraceUrl = "";
-  public static clientUrl = "";
-  public static endpoint = "";
-  public static upstreamServerUrl = "";
-  public static hub = "";
-
+  public tunnelConnectionStatus = ConnectionStatus.Connecting;
+  public tunnelServerStatus = ConnectionStatusPairs.Disconnected;
+  public livetraceUrl = "";
+  public clientUrl = "";
+  public endpoint = "";
+  public upstreamServerUrl = "";
+  public hub = "";
   private io: Server;
-  constructor(server: http.Server, private tunnel: HttpServerProxy, upstreamUrl: string) {
+  private repo: DataRepo;
+  constructor(server: http.Server, private tunnel: HttpServerProxy, upstreamUrl: string, dbFile: string) {
     const io = (this.io = new Server(server));
-    DataHub.endpoint = tunnel.endpoint;
-    DataHub.hub = tunnel.hub;
-    DataHub.upstreamServerUrl = upstreamUrl;
+    this.repo = new DataRepo(dbFile);
+    this.endpoint = tunnel.endpoint;
+    this.hub = tunnel.hub;
+    this.upstreamServerUrl = upstreamUrl;
     // Socket.io event handling
     io.on("connection", (socket: Socket) => {
       console.log("A Socketio client connected");
@@ -32,15 +32,15 @@ export class DataHub {
         callback({
           ready: true,
           state: {
-            endpoint: DataHub.endpoint,
-            hub: DataHub.hub,
+            endpoint: this.endpoint,
+            hub: this.hub,
             clientUrl: await this.GetClientAccessUrl(),
             liveTraceUrl: await this.GetLiveTraceUrl(),
-            upstreamServerUrl: DataHub.upstreamServerUrl,
-            tunnelConnectionStatus: DataHub.tunnelConnectionStatus,
-            tunnelServerStatus: DataHub.tunnelServerStatus,
+            upstreamServerUrl: this.upstreamServerUrl,
+            tunnelConnectionStatus: this.tunnelConnectionStatus,
+            tunnelServerStatus: this.tunnelServerStatus,
           },
-          trafficHistory: DataHub.trafficHistory,
+          trafficHistory: await this.getHttpHistory(),
           logs: [],
         });
         socket.on("getClientAccessUrl", async (callback) => {
@@ -55,41 +55,78 @@ export class DataHub {
     });
   }
 
-  async GetClientAccessUrl(): Promise<string>{
-    const url = DataHub.clientUrl = await this.tunnel.getClientAccessUrl();
+  async GetClientAccessUrl(): Promise<string> {
+    const url = (this.clientUrl = await this.tunnel.getClientAccessUrl());
     return url;
   }
 
-  async GetLiveTraceUrl(): Promise<string>{
-    const url = DataHub.livetraceUrl = await this.tunnel.getLiveTraceUrl();
+  async GetLiveTraceUrl(): Promise<string> {
+    const url = (this.livetraceUrl = await this.tunnel.getLiveTraceUrl());
     return url;
   }
 
-  UpdateTraffics(trafficHistory: HttpHistoryItem[]) {
-    DataHub.trafficHistory.push(...trafficHistory);
+  async UpdateTraffics(trafficHistory: HttpHistoryItem[]) {
+    for (const item of trafficHistory) {
+      item.id = await this.repo.insertDataAsync({
+        Request: {
+          TracingId: item.tracingId,
+          RequestAt: item.requestAtOffset,
+          MethodName: item.methodName,
+          Url: item.url,
+          RequestRaw: item.requestRaw,
+        },
+        Response: {
+          Code: item.code,
+          ResponseRaw: item.responseRaw,
+          RespondAt: item.responseAtOffset,
+        },
+      });
+    }
     this.io.emit("updateTraffics", trafficHistory);
   }
+
   UpdateLogs(logs: string[]) {
     this.io.emit("updateLogs", logs);
   }
   ReportLiveTraceUrl(url: string) {
-    DataHub.livetraceUrl = url;
+    this.livetraceUrl = url;
     this.io.emit("reportLiveTraceUrl", url);
   }
   ReportServiceEndpoint(url: string) {
-    DataHub.endpoint = url;
+    this.endpoint = url;
     this.io.emit("reportServiceEndpoint", url);
   }
   ReportLocalServerUrl(url: string) {
-    DataHub.upstreamServerUrl = url;
+    this.upstreamServerUrl = url;
     this.io.emit("reportLocalServerUrl", url);
   }
   ReportStatusChange(status: ConnectionStatus) {
-    DataHub.tunnelConnectionStatus = status;
+    this.tunnelConnectionStatus = status;
     this.io.emit("reportStatusChange", status);
   }
   ReportTunnelToLocalServerStatus(status: ConnectionStatusPair) {
-    DataHub.tunnelServerStatus = status;
+    this.tunnelServerStatus = status;
     this.io.emit("reportTunnelToLocalServerStatus", status);
+  }
+
+  async getHttpHistory(): Promise<HttpHistoryItem[]> {
+    const data = await this.repo.getAsync(50);
+    const result: HttpHistoryItem[] = [];
+    for (const item of data) {
+      result.push({
+        id: item.Id,
+        tracingId: item.Request.TracingId,
+        requestAtOffset: item.Request.RequestAt,
+        responseAtOffset: item.Response?.RespondAt,
+        code: item.Response?.Code,
+        methodName: item.Request.MethodName,
+        url: item.Request.Url,
+        requestRaw: item.Request.RequestRaw,
+        responseRaw: item.Response?.ResponseRaw,
+        unread: false, //TODO: store in db?
+      });
+    }
+
+    return result;
   }
 }

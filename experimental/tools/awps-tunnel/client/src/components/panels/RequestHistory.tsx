@@ -41,7 +41,7 @@ export function RequestHistory() {
             }}
           >
             <td>{moment(item.requestAtOffset).fromNow()}</td>
-            <td className={item.code < 300 ? "text-success" : "text-warning"}>
+            <td className={item?.code ?? 500 < 300 ? "text-success" : "text-warning"}>
               <b>{item.methodName}</b>
             </td>
             <td>{item.url}</td>
@@ -102,7 +102,7 @@ function Details({ item }: { item?: HttpHistoryItem }) {
         <ReadonlyTabs items={requestTabItems}></ReadonlyTabs>
       </div>
       <div className="response">
-        <h5 className={item.code < 300 ? "text-success" : "text-warning"}>{item.code}</h5>
+        <h5 className={item?.code ?? 500 < 300 ? "text-success" : "text-warning"}>{item.code}</h5>
         <ReadonlyTabs items={responseTabItems}></ReadonlyTabs>
       </div>
     </div>
