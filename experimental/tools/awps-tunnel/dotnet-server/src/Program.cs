@@ -131,7 +131,7 @@ async Task HandleRunAsync(bool disableWebView, string? hub, string? endpoint, st
 
     Console.Out.WriteLine($"Configure the hub event upstream for {appConfig.Hub} as tunnel:///.");
     Console.Out.WriteLine($@"Sample az CLI command: az webpubsub hub create -n ""MyWebPubSub"" -g ""MyResourceGroup"" --hub-name ""{appConfig.Hub}"" --event-handler url-template=""tunnel:///eventhandler"" user-event-pattern=""*"" system-event=""connected"" system-event=""disconnected"" ");
-
+    using var store = new StoreContext(storageFile);
     var contentRoot = Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location)!;
 
     WebPubSubServiceClient client;
@@ -156,6 +156,8 @@ async Task HandleRunAsync(bool disableWebView, string? hub, string? endpoint, st
     appBuilder.Services.AddSingleton<TunnelService>();
     appBuilder.Services.AddSingleton<IStateNotifier, StateNotifier>();
     appBuilder.Services.AddSingleton<WebPubSubServiceClient>(s => client);
+    appBuilder.Services.AddSingleton<StoreContext>(store);
+    appBuilder.Services.AddSingleton<IRepository<HttpDataModel>, HttpItemRepository>();
     appBuilder.Services.Configure<TunnelServiceOptions>(o =>
     {
         o.Endpoint = connection.Endpoint;
