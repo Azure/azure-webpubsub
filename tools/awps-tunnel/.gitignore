@@ -4,4 +4,3 @@ dist-esm/
 dist/
 types/
 node_modules/
-yarn.lock
