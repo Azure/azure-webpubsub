@@ -218,6 +218,7 @@ export class WebPubSubConnectionManager {
       connection: {},
       url: TUNNEL_PATH,
       _query: {},
+      claims: req.claims,
     };
     // Preserve all queires. Each value of `req.queries` is an one-element array which is wrapped by AWPS. Just pick out the first element.
     // Example: req.queries = { EIO:['4'], t: ['OXhVRj0'], transport: ['polling'] }.

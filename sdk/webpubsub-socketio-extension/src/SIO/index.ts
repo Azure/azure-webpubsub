@@ -5,17 +5,16 @@ import {
   debugModule,
   AzureSocketIOOptions,
   AzureSocketIOCredentialOptions,
-  NegotiateOptions,
-  getWebPubSubServiceClient,
-  NegotiateResponse,
+  getSioMiddlewareFromExpress,
+  writeResponse,
 } from "../common/utils";
 import { WebPubSubEioServer } from "../EIO";
 import { WebPubSubAdapterProxy } from "./components/web-pubsub-adapter";
+import { DEFAULT_SIO_PATH, FORBIDDEN_REQUEST_MESSAGE, WEB_PUBSUB_OPTIONS_PROPERY_NAME } from "./components/constants";
+import { restoreClaims } from "./components/negotiate";
 import * as SIO from "socket.io";
 import { Adapter } from "socket.io-adapter";
 import { IncomingMessage, ServerResponse } from "http";
-import { InprocessServerProxy } from "../serverProxies";
-import { WebPubSubServiceClient } from "@azure/web-pubsub";
 
 const debug = debugModule("wps-sio-ext:SIO:index");
 debug("load");
@@ -33,31 +32,24 @@ export async function useAzureSocketIOChain(
 
   // Add negotiate handler
   debug("add negotiate handler");
-  const path = this._opts.path || "/socket.io";
-  const negotiatePathPrefix = path + (path.endsWith("/") ? "" : "/") + "negotiate";
-  const checkNegotiate = (url: string): boolean =>
-    url === negotiatePathPrefix || // url is "/socket.io/negotiate" without any extra string.
-    url.startsWith(negotiatePathPrefix + "/") ||
-    url.startsWith(negotiatePathPrefix + "?");
+  const path = this._opts.path || DEFAULT_SIO_PATH;
 
   // current listeners = EIO handleRequest listeners (e.g. /socket.io) + other listeners from user
   const listeners = httpServer.listeners("request").slice(0);
   httpServer.removeAllListeners("request");
-  let nativeServiceClient: WebPubSubServiceClient;
+
+  this[WEB_PUBSUB_OPTIONS_PROPERY_NAME] = webPubSubOptions;
+
   httpServer.on("request", (req: IncomingMessage, res: ServerResponse) => {
-    // negotiate handler
-    if (webPubSubOptions.configureNegotiateOptions && checkNegotiate(req.url)) {
-      nativeServiceClient = getWebPubSubServiceClient(webPubSubOptions);
-      const negotiateHandler = getNegotiateHandler();
-      negotiateHandler(req, res, webPubSubOptions.configureNegotiateOptions, nativeServiceClient);
-      return;
-    }
-    // EIO handleRequest listener handler should be skipped, but other listeners should be handled.
+    // Requests routing to EIO `handleRequest` listener should be forbidden. Other listeners should be handled as normal.
     for (let i = 0; i < listeners.length; i++) {
       // Follow the same logic as Engine.IO
       // Reference: https://github.com/socketio/engine.io/blob/6.4.2/lib/server.ts#L804
       if (path !== req.url.slice(0, path.length)) {
         listeners[i].call(httpServer, req, res);
+      } else {
+        debug(`Forbidden request whose url ${req.url} starts with ${path}`);
+        writeResponse(res, 403, FORBIDDEN_REQUEST_MESSAGE, "text/plain");
       }
     }
   });
@@ -78,47 +70,11 @@ export async function useAzureSocketIOChain(
   );
   this.adapter(adapterProxy as unknown as AdapterConstructor);
 
+  this.use(getSioMiddlewareFromExpress(restoreClaims()));
+
   // If using tunnel, wait until connected. `engine.setup` does no nothing when using REST API.
   await engine.setup();
-
   return this;
-}
-
-function getNegotiateHandler(): (
-  req: IncomingMessage,
-  res: ServerResponse,
-  configureNegotiateOptions: (req: IncomingMessage) => Promise<NegotiateOptions>,
-  serviceClient: WebPubSubServiceClient
-) => Promise<void> {
-  return async (
-    req: IncomingMessage,
-    res: ServerResponse,
-    configureNegotiateOptions: (req: IncomingMessage) => Promise<NegotiateOptions>,
-    serviceClient: WebPubSubServiceClient
-  ): Promise<void> => {
-    debug("negotiate, start");
-    try {
-      const negotiateOptions = await configureNegotiateOptions(req);
-      // Example: https://<web-pubsub-endpoint>?access_token=ABC.EFG.HIJ
-      const tokenResponse = await serviceClient.getClientAccessToken(negotiateOptions);
-      const url = new URL(tokenResponse.baseUrl);
-      const message: NegotiateResponse = {
-        endpoint: url.origin,
-        path: url.pathname,
-        token: tokenResponse.token,
-      };
-      writeJsonResponse(res, 200, message);
-      debug("negotiate, finished");
-    } catch (e) {
-      writeJsonResponse(res, 500, { message: "Internal Server Error" });
-      debug(`negotiate, error: ${e.message}`);
-    }
-  };
-}
-
-function writeJsonResponse(res: ServerResponse, statusCode: number, message: unknown): void {
-  res.writeHead(statusCode, { "Content-Type": "application/json" });
-  res.end(JSON.stringify(message));
 }
 
 /**

@@ -2,12 +2,14 @@
 // Licensed under the MIT license.
 
 import { AzureKeyCredential, TokenCredential } from "@azure/core-auth";
-import { IncomingMessage } from "http";
+import { IncomingMessage, ServerResponse } from "http";
 import { WebPubSubServiceClient } from "@azure/web-pubsub";
 import debugModule from "debug";
 import { BroadcastOptions } from "socket.io-adapter";
 import { RestServiceClient } from "./rest-service-client";
 import { InprocessServerProxy, WebPubSubServiceCaller } from "../serverProxies";
+import { Request as ExpressRequest, Response as ExpressResponse } from "express";
+import { Socket } from "socket.io";
 
 export const T = (now: Date): string => `${now.toLocaleString().replace(" AM", "").replace(" PM", "")}:${now.getMilliseconds().toString().padStart(3, '0')}`; // prettier-ignore
 
@@ -64,6 +66,13 @@ export interface NegotiateResponse {
 }
 
 /**
+ * A function to extract a `NegotiateOptions` from a HTTP `IncomingMessage`
+ * @param req - the HTTP `IncomingMessage`
+ * @returns a Promise of `NegotiateOptions`
+ */
+export type ConfigureNegotiateOptions = (req: IncomingMessage) => Promise<NegotiateOptions>;
+
+/**
  * Common options for `AzureSocketIOOptions` and `AzureSocketIOCredentialOptions`
  *
  * @public
@@ -73,12 +82,7 @@ export interface AzureSocketIOCommonOptions {
    * The hub name of Web PubSub for Socket.IO.
    */
   hub: string;
-  /**
-   * A function to extract a `NegotiateOptions` from a HTTP `IncomingMessage`
-   * @param req - the HTTP `IncomingMessage`
-   * @returns a Promise of `NegotiateOptions`
-   */
-  configureNegotiateOptions?: (req: IncomingMessage) => Promise<NegotiateOptions>;
+
   /**
    * The reverse proxy endpoint of Web PubSub for Socket.IO.
    */
@@ -205,6 +209,24 @@ export function toString(set: Set<string> | string[] | IterableIterator<string>)
 export function toOptionsString(option: BroadcastOptions): string {
   return `{rooms: ${toString(option.rooms)}, except: ${toString(option.except)},\
 flags: ${JSON.stringify(option.flags)}}`;
+}
+
+export function writeResponse(
+  res: ExpressResponse | ServerResponse,
+  statusCode: number,
+  message: unknown,
+  contentType = "application/json"
+): void {
+  res.writeHead(statusCode, { "Content-Type": contentType });
+  res.end(JSON.stringify(message));
+}
+
+export function getSioMiddlewareFromExpress(
+  middleware: (req: ExpressRequest, res: ExpressResponse, next: unknown) => void
+) {
+  return (socket: Socket, next: any) => {
+    return middleware(socket.request as ExpressRequest, {} as ExpressResponse, next);
+  };
 }
 
 export { debugModule };

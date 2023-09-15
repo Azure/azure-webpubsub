@@ -78,6 +78,7 @@
     "eslint-plugin-tsdoc": "^0.2.17",
     "expect.js": "0.3.1",
     "express": "4.18.2",
+    "express-session": "^1.17.3",
     "http-shutdown": "^1.2.2",
     "mocha": "^10.0.0",
     "nyc": "^15.1.0",
@@ -88,7 +89,8 @@
     "ts-node": "^10.2.1",
     "tsd": "^0.21.0",
     "typescript": "^5.0.3",
-    "cpy-cli": "^5.0.0"
+    "cpy-cli": "^5.0.0",
+    "@types/express-session": "^1.17.7"
   },
   "keywords": [
     "socket.io",
