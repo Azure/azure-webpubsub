@@ -1,6 +1,6 @@
 # Introduction
 
-This package is the extension library to the Socket.IO Server SDK. Use this library together with the [Web PubSub For Socket.IO Service](https://learn.microsoft.com/azure/azure-web-pubsub/socketio-overview) enables the Azure service to manage clients at scale and keep Socket.IO's programming experience.
+This package is the extension library to the Socket.IO Server SDK. Using this library together with the [Web PubSub For Socket.IO Service](https://learn.microsoft.com/azure/azure-web-pubsub/socketio-overview) enables the Azure service to manage clients at scale and keep Socket.IO's programming experience.
 
 Web PubSub For Socket.IO works as a broker between clients and the Socket.IO server. It handles connection management and broadcasting messages at scale and provide scalability and reliability experience. With this library, you don't need to introduce and manage an extra Adapter to support multi-server environment.
 
@@ -8,7 +8,7 @@ Web PubSub For Socket.IO works as a broker between clients and the Socket.IO ser
 
 The following steps show you how to create a Web PubSub for Socket.IO resource and use this library to enable your Socket.IO server to work together with the service. For more details step of how to get started with Web PubSub for Socket.IO, please refer to [Get started with Web PubSub for Socket.IO](https://learn.microsoft.com/azure/azure-web-pubsub/socketio-quickstart).
 
-### Create a Web PubSub for Socket.IO
+### Create a Web PubSub for Socket.IO resource
 
 Use following button to create a Web PubSub for Socket.IO resource in Azure.
 
