@@ -1,78 +1,104 @@
 # Introduction
 
-This package enables Socket.IO applications be a managed Azure cloud service with the support by Azure Web PubSub Service (AWPS).
+This package is the extension library to the Socket.IO Server SDK. Using this library together with the [Web PubSub For Socket.IO Service](https://learn.microsoft.com/azure/azure-web-pubsub/socketio-overview) enables the Azure service to manage clients at scale and keep Socket.IO's programming experience.
 
-With AWPS support, Socket.IO server no longer needs to face a large number of Socket.IO clients, maintain connections and messageing with them directly.
+Web PubSub For Socket.IO works as a broker between clients and the Socket.IO server. It handles connection management and broadcasting messages at scale and provide scalability and reliability experience. With this library, you don't need to introduce and manage an extra Adapter to support multi-server environment.
 
-AWPS will scale Socket.IO connections, messaging, broadcasting and any other realtime messaging stuffs for you automatically.
+## Get Started
 
-In native Socket.IO design, users have to design and host an extra backplane to achieve scalability and host [Adapter](https://socket.io/docs/v4/adapter/) to support multi-server environment by themselves.
+The following steps show you how to create a Web PubSub for Socket.IO resource and use this library to enable your Socket.IO server to work together with the service. For more details step of how to get started with Web PubSub for Socket.IO, please refer to [Get started with Web PubSub for Socket.IO](https://learn.microsoft.com/azure/azure-web-pubsub/socketio-quickstart).
 
-With the help of AWPS, these works are all no needed anymore. Besides, the scalability, performance and reliability of Socket.IO applications will be significantly improved.
+### Create a Web PubSub for Socket.IO resource
 
-# Usage
+Use following button to create a Web PubSub for Socket.IO resource in Azure.
 
-If you have an existing Socket.IO application, follow steps below:
+[![Deploy to Azure](https://aka.ms/deploytoazurebutton)](https://ms.portal.azure.com/#create/Microsoft.WebPubSubForSocketIO)
 
-## 1. Set up Azure Web PubSub resource
+### Initialize a Node project and install required packages
 
-Refer to ...
-
-Create a AWPS resource, create a hub and configure it, copy connection string, ...
-
-## 2. Set up server
-
-Assuming your server-side code is:
-
-```typescript
-const io = require("socket.io")();
+```bash
+mkdir quickstart
+cd quickstart
+npm init
+npm install @azure/web-pubsub-socket.io socket.io-client
 ```
 
-With some minor changes, your Socket.IO server will supported by Azure Web PubSub Service:
+### Write server code
+
+Create a `server.js` file and add following code to create a Socket.IO server and integrate with Web PubSub for Socket.IO.
 
 ```javascript
-// Import this package
-const wpsExt = require("@azure/web-pubsub-socket.io");
+/*server.js*/
+const { Server } = require("socket.io");
+const { useAzureSocketIO } = require("@azure/web-pubsub-socket.io");
 
-// Add an Web PubSub Option
-const webPubSubOptions = {
-  hub: "eio_hub",
-  connectionString: "<web-pubsub-connection-string>",
-};
+let io = new Server(3000);
 
-const io = await require("socket.io")().useAzureSocketIO(webPubSubOptions);
+// Use the following line to integrate with Web PubSub for Socket.IO
+useAzureSocketIO(io, {
+    hub: "Hub", // The hub name can be any valid string.
+    connectionString: process.argv[2]
+});
+
+io.on("connection", (socket) => {
+    // Sends a message to the client
+    socket.emit("hello", "world");
+
+    // Receives a message from the client
+    socket.on("howdy", (arg) => {
+        console.log(arg);   // Prints "stranger"
+    })
+});
 ```
 
-You can also authenticate with Web PubSub service using an endpoint and an `AzureKeyCredential`.
-Replace `webPubSubOptions` with new value:
-```javascript
-const { AzureKeyCredential } = require("@azure/web-pubsub");
-const key = new AzureKeyCredential("<Key>");
+### Write client code
 
-const webPubSubOptions = {
-  hub: "eio_hub",
-  endpoint: "<web-pubsub-endpoint>",
-  credential: key,
-};
-```
-
-## 3. Set up client
-
-Assuming your client-side code is:
+Create a `client.js` file and add following code to connect the client with Web PubSub for Socket.IO.
 
 ```javascript
-var socket = io("<socket-io-server-endpoint>");
+/*client.js*/
+const io = require("socket.io-client");
+
+const socket = io("<web-pubsub-socketio-endpoint>", {
+    path: "/clients/socketio/hubs/Hub",
+});
+
+// Receives a message from the server
+socket.on("hello", (arg) => {
+    console.log(arg);
+});
+
+// Sends a message to the server
+socket.emit("howdy", "stranger")
 ```
 
-To fit new Socket.IO server, you shall update the Socket.IO client as below:
+When you use Web PubSub for Socket.IO, `<web-pubsub-socketio-endpoint>` and `path` are required for the client to connect to the service. The `<web-pubsub-socketio-endpoint>` and `path` can be found in Azure portal.
 
-```javascript
-var socket = io('<web-pubsub-endpoint>', {
-    path: "/clients/socketio/hubs/eio_hub"
-})
-```
+1. Go to the **key** blade of Web PubSub for Socket.IO
 
-# Debug
+1. Type in your hub name and copy the **Client Endpoint** and **Client Path**
+
+    ![Get client path](https://learn.microsoft.com/azure/azure-web-pubsub/media/socketio-quickstart/client-url.png)
+
+### Run the app
+
+1. Run the server app:
+
+    ```bash
+    node server.js "<connection-string>"
+    ```
+
+    The `<connection-string>` is the connection string that contains the endpoint and keys to access your Web PubSub for Socket.IO resource. You can also find the connection string in Azure portal
+
+    ![Get connection string](https://learn.microsoft.com/azure/azure-web-pubsub/media/socketio-quickstart/connection-string.png)
+
+2. Run the client app in another terminal:
+
+    ```bash
+    node client.js
+    ```
+
+## Debug
 
 1. Determine which packages' logs you want to see.
 
@@ -92,25 +118,39 @@ $Env:DEBUG='wps-sio-ext*,engine*,socket.io:*'
 $Env:DEBUG='*'
 ```
 
-3. Run your Socket.IO application
+## Building library from source
 
 ```bash
-node <socket-io-application>.js
+yarn install
+yarn run build
 ```
 
-# Unit Test
-1. Write a `.env.test` file in root dir. An example is given in `.env.test.example`:
-```
+## Unit Test
+
+1. Rename `.env.test.example` to `.env.test`. And update the WebPubSubConnectionString inside:
+
+```file
 WebPubSubConnectionString="<web-pubsub-connection-string>"
 WebPubSubHub="eio_hub"
 SocketIoPort=3000
 ```
 
-2. Run command
+1. Run command
+
 ```bash
 yarn test:unit
 ```
 
-# Limitations
+## Contributing
 
-1. Service-side support is not public yet. This package is only for internal use.
+This project welcomes contributions and suggestions.  Most contributions require you to agree to a
+Contributor License Agreement (CLA) declaring that you have the right to, and actually do, grant us
+the rights to use your contribution. For details, visit https://cla.microsoft.com.
+
+When you submit a pull request, a CLA-bot will automatically determine whether you need to provide
+a CLA and decorate the PR appropriately (e.g., label, comment). Simply follow the instructions
+provided by the bot. You will only need to do this once across all repos using our CLA.
+
+This project has adopted the [Microsoft Open Source Code of Conduct](https://opensource.microsoft.com/codeofconduct/).
+For more information see the [Code of Conduct FAQ](https://opensource.microsoft.com/codeofconduct/faq/) or
+contact [opencode@microsoft.com](mailto:opencode@microsoft.com) with any additional questions or comments.
