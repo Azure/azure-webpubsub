@@ -2,7 +2,7 @@
 // Licensed under the MIT license.
 
 import { AzureKeyCredential, TokenCredential } from "@azure/core-auth";
-import { IncomingMessage } from "http";
+import { IncomingMessage, ServerResponse } from "http";
 import { WebPubSubServiceClient } from "@azure/web-pubsub";
 import debugModule from "debug";
 import { BroadcastOptions } from "socket.io-adapter";
@@ -43,7 +43,6 @@ export interface NegotiateOptions {
    * Minutes until the token expires.
    */
   expirationTimeInMinutes?: number;
-  customClaims?: { [key: string]: string };
 }
 
 /**
@@ -210,6 +209,16 @@ export function toString(set: Set<string> | string[] | IterableIterator<string>)
 export function toOptionsString(option: BroadcastOptions): string {
   return `{rooms: ${toString(option.rooms)}, except: ${toString(option.except)},\
 flags: ${JSON.stringify(option.flags)}}`;
+}
+
+export function writeResponse(
+  res: ExpressResponse | ServerResponse,
+  statusCode: number,
+  message: unknown,
+  contentType = "application/json"
+): void {
+  res.writeHead(statusCode, { "Content-Type": contentType });
+  res.end(JSON.stringify(message));
 }
 
 export function getSioMiddlewareFromExpress(

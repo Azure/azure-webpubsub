@@ -6,10 +6,11 @@ import {
   AzureSocketIOOptions,
   AzureSocketIOCredentialOptions,
   getSioMiddlewareFromExpress,
+  writeResponse,
 } from "../common/utils";
 import { WebPubSubEioServer } from "../EIO";
 import { WebPubSubAdapterProxy } from "./components/web-pubsub-adapter";
-import { DEFAULT_SIO_PATH, WEB_PUBSUB_OPTIONS_PROPERY_NAME } from "./components/constants";
+import { DEFAULT_SIO_PATH, FORBIDDEN_REQUEST_MESSAGE, WEB_PUBSUB_OPTIONS_PROPERY_NAME } from "./components/constants";
 import { restoreClaims } from "./components/negotiate";
 import * as SIO from "socket.io";
 import { Adapter } from "socket.io-adapter";
@@ -40,12 +41,15 @@ export async function useAzureSocketIOChain(
   this[WEB_PUBSUB_OPTIONS_PROPERY_NAME] = webPubSubOptions;
 
   httpServer.on("request", (req: IncomingMessage, res: ServerResponse) => {
-    // EIO handleRequest listener handler should be skipped, but other listeners should be handled.
+    // Requests routing to EIO `handleRequest` listener should be forbidden. Other listeners should be handled as normal.
     for (let i = 0; i < listeners.length; i++) {
       // Follow the same logic as Engine.IO
       // Reference: https://github.com/socketio/engine.io/blob/6.4.2/lib/server.ts#L804
       if (path !== req.url.slice(0, path.length)) {
         listeners[i].call(httpServer, req, res);
+      } else {
+        debug(`Forbidden request whose url ${req.url} starts with ${path}`);
+        writeResponse(res, 403, FORBIDDEN_REQUEST_MESSAGE, "text/plain");
       }
     }
   });
@@ -66,10 +70,10 @@ export async function useAzureSocketIOChain(
   );
   this.adapter(adapterProxy as unknown as AdapterConstructor);
 
+  this.use(getSioMiddlewareFromExpress(restoreClaims()));
+
   // If using tunnel, wait until connected. `engine.setup` does no nothing when using REST API.
   await engine.setup();
-
-  this.use(getSioMiddlewareFromExpress(restoreClaims()));
   return this;
 }
 

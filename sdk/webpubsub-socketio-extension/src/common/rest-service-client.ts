@@ -86,7 +86,6 @@ rawResponse = ${JSON.stringify(rawResponse)}`);
         const payload = {
           role: options?.roles,
           "webpubsub.group": options?.groups,
-          customClaims: options?.["customClaims"],
           userId: options?.userId,
         };
         const signOptions: jwt.SignOptions = {
