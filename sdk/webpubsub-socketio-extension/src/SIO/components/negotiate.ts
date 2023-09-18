@@ -4,6 +4,7 @@ import {
   AzureSocketIOCredentialOptions,
   getWebPubSubServiceClient,
   ConfigureNegotiateOptions,
+  NegotiateOptions,
   NegotiateResponse,
   writeResponse,
 } from "../../common/utils";
@@ -14,17 +15,18 @@ import { IncomingMessage, ServerResponse } from "http";
 import { parse } from "url";
 
 const debug = debugModule("wps-sio-ext:SIO:negotiate");
+const defaultNegotiateOptions: ConfigureNegotiateOptions = async () => ({} as NegotiateOptions);
 
 /**
  * Returns a Express middleware to handle negotiate request
  *
  * @param io - a Socket.IO server processed by `useAzureSocketIO` or a option used by `useAzureSocketIO`.
- * @param configureNegotiateOptions - a customized function which defines how to extract information for negotiation from a HTTP request
+ * @param configureNegotiateOptions - a customized function which defines how to extract information for negotiation from a HTTP request.
  * @returns
  */
 export function negotiate(
   io: SIO.Server | AzureSocketIOOptions | AzureSocketIOCredentialOptions,
-  configureNegotiateOptions: ConfigureNegotiateOptions
+  configureNegotiateOptions?: ConfigureNegotiateOptions
 ): (req: IncomingMessage, res: ServerResponse, next: any) => void {
   debug(`getNegotiateExpressMiddleware`);
 
@@ -36,6 +38,9 @@ export function negotiate(
     try {
       debug("negotiate, start");
 
+      if (!configureNegotiateOptions) {
+        configureNegotiateOptions = defaultNegotiateOptions;
+      }
       const negotiateOptions = await configureNegotiateOptions(req);
       const tokenResponse = await serviceClient.getClientAccessToken(negotiateOptions);
       const url = new URL(tokenResponse.baseUrl);
