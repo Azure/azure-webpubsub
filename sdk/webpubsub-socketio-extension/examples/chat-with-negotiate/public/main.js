@@ -31,7 +31,7 @@ async function main(username) {
   $currentInput = $inputMessage.focus();
 
   var endpoint = "";
-  const negotiateResponse = await fetch(`http://localhost:3000/socket.io/negotiate/?username=${username}&expirationMinutes=600`);
+  const negotiateResponse = await fetch(`/negotiate/?username=${username}&expirationMinutes=600`);
   if (!negotiateResponse.ok) {
     console.log("Failed to negotiate, status code =", negotiateResponse.status);
     return ;

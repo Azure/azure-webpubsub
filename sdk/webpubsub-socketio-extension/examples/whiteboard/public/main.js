@@ -4,8 +4,8 @@
   console.log("The send behaviour is 3X for test purpose in L58");
   var url, socket;
 
-  const webpubsubEndpoint = "https://<web-pubsub-for-socketio-hostname>";
-  socket = io(webpubsubEndpoint, {transports:["polling", "websocket"], path: "/clients/socketio/hubs/eio_hub", reconnection: false});
+  let negotiate = await (await fetch(`/negotiate`)).json();
+  socket = io(negotiate.endpoint, {path: negotiate.path, reconnection: false});
   
   var canvas = document.getElementsByClassName('whiteboard')[0];
   var colors = document.getElementsByClassName('color');
