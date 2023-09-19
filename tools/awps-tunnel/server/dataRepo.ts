@@ -44,13 +44,14 @@ export class DataRepo {
     return new Promise<number>((resolve, reject) => {
       const stmt = this.db.prepare("INSERT INTO HttpItems (Request, Response) VALUES (?, ?)");
       // Bind the values to the placeholders
-      stmt.run(JSON.stringify(data.Request), JSON.stringify(data.Response), function (err: { message: any }) {
+      stmt.run(JSON.stringify(data.Request), JSON.stringify(data.Response), function (err: { message: string }) {
         if (err) {
           reject(err);
           return;
         }
+        // eslint-disable-next-line @typescript-eslint/ban-ts-comment
         // @ts-ignore
-        const localThis = this as unknown as sqlite3.RunResult;
+        const localThis = this as sqlite3.RunResult;
         logger.info("Inserted data with ID:", localThis.lastID); // <-- Accessing the auto-incremented ID
 
         // Finalize the statement

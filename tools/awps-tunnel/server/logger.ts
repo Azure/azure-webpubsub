@@ -8,4 +8,4 @@ import { createClientLogger } from "@azure/logger";
  */
 export const logger = createClientLogger("awps-tunnel-server");
 
-export const createLogger = (name: string) => createClientLogger("awps-tunnel-server:" + name); 
+export const createLogger = (name: string) => createClientLogger("awps-tunnel-server:" + name);
