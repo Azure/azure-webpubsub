@@ -33,7 +33,7 @@ export interface AzureSocketIOOptions extends AzureSocketIOCommonOptions {
 export type ConfigureNegotiateOptions = (req: IncomingMessage) => Promise<NegotiateOptions>;
 
 // @public
-export function negotiate(io: SIO.Server | AzureSocketIOOptions | AzureSocketIOCredentialOptions, configureNegotiateOptions: ConfigureNegotiateOptions): (req: IncomingMessage, res: ServerResponse, next: any) => void;
+export function negotiate(io: SIO.Server | AzureSocketIOOptions | AzureSocketIOCredentialOptions, configureNegotiateOptions?: ConfigureNegotiateOptions): (req: IncomingMessage, res: ServerResponse, next: any) => void;
 
 // @public
 export interface NegotiateOptions {

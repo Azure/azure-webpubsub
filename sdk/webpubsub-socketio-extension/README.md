@@ -120,7 +120,20 @@ $Env:DEBUG='*'
 
 ## Building library from source
 
+The `@azure/web-pubsub-socket.io` library depends on `server-proxies` library, so you need to build `server-proxies` first.
+
+Build `server-proxies`:
+
 ```bash
+cd ../server-proxies
+yarn install
+yarn build
+```
+
+Build `@azure/web-pubsub-socket.io`
+
+```bash
+# navigate into webpubsub-socketio-extension folder
 yarn install
 yarn run build
 ```

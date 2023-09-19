@@ -24,7 +24,7 @@ describe("negotiate", () => {
 
     const negotiateExpressMiddleware = negotiate(defaultWpsOptions, configureNegotiateOptions);
     const httpServer = createServer().listen(3000);
-    const ioPromise = getServer(httpServer, {}, defaultWpsOptions );
+    const ioPromise = getServer(httpServer, {}, defaultWpsOptions);
 
     ioPromise.then((io) => {
       // We don't have express server in UT. So it will be converted to a Http Server middleware later.
