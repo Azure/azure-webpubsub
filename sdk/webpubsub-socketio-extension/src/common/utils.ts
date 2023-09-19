@@ -63,6 +63,10 @@ export interface NegotiateResponse {
    * The token used to connect to Web PubSub for Socket.IO.
    */
   token: string;
+  /**
+   * The url of Web PubSub for Socket.IO. The format is `https://<endpoint>/<path>`.
+   */
+  url: string;
 }
 
 /**

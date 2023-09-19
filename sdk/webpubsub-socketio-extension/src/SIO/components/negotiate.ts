@@ -48,6 +48,7 @@ export function negotiate(
         endpoint: url.origin,
         path: url.pathname,
         token: tokenResponse.token,
+        url: tokenResponse.baseUrl,
       };
       writeResponse(res, 200, message);
       debug("negotiate, finished");
