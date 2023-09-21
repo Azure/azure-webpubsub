@@ -5,7 +5,17 @@
   var url, socket;
 
   let negotiate = await (await fetch(`/negotiate`)).json();
-  socket = io(negotiate.endpoint, {path: negotiate.path, reconnection: false});
+  socket = io(negotiate.endpoint, {path: negotiate.path});
+
+  socket.io.on('reconnect_attempt', async () => {
+    const negotiateResponse = await fetch(`/negotiate`);
+    if (!negotiateResponse.ok) {
+      console.log("Failed to negotiate, status code =", negotiateResponse.status);
+      return;
+    } 
+    const json = await negotiateResponse.json();
+    socket.io.opts.query['access_token'] = json.token;
+  });
   
   var canvas = document.getElementsByClassName('whiteboard')[0];
   var colors = document.getElementsByClassName('color');

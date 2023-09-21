@@ -244,6 +244,16 @@ async function main(username) {
     }
   });
 
+  socket.io.on('reconnect_attempt', async () => {
+    const negotiateResponse = await fetch(`/negotiate/?username=${username}&expirationMinutes=600`);
+    if (!negotiateResponse.ok) {
+      console.log("Failed to negotiate, status code =", negotiateResponse.status);
+      return;
+    } 
+    const json = await negotiateResponse.json();
+    socket.io.opts.query['access_token'] = json.token;
+  });
+
   socket.io.on('reconnect_error', () => {
     log('attempt to reconnect has failed');
   });
