@@ -15,7 +15,7 @@
     "check-format": "prettier --list-different --config ./.prettierrc.json --ignore-path ./.prettierignore ./",
     "format": "prettier --write --config ./.prettierrc.json --ignore-path ./.prettierignore ./",
     "test": "npm run build && npm run lint && npm run test:unit",
-    "test:unit": "npx nyc mocha --require ts-node/register --reporter spec --slow 200 --timeout 6000 --bail ./test/*.test.ts",
+    "test:unit": "jest",
     "clean": "rimraf dist test-dist temp types *.tgz *.log",
     "lint": "npx eslint . --ext .ts,.javascript,.js",
     "lint:fix": "npx eslint . --ext .ts,.javascript,.js --fix",
