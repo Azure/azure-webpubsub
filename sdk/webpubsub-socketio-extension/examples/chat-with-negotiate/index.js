@@ -1,4 +1,4 @@
-const wpsExt = require("@azure/web-pubsub-socket.io");
+const azure = require("@azure/web-pubsub-socket.io");
 const { AzureCliCredential } = require("@azure/identity");
 
 // Setup basic express server
@@ -38,12 +38,10 @@ async function main() {
         };
     }
 
-    const io = await require('socket.io')(server).useAzureSocketIO(
-        { 
-            ...wpsOptions, 
-            configureNegotiateOptions: configureNegotiateOptions
-        });
+    const io = require('socket.io')(server);
+    azure.useAzureSocketIO(io, wpsOptions);
 
+    app.get("/negotiate", azure.negotiate(io, configureNegotiateOptions))
     app.use(express.static(path.join(__dirname, 'public')));
 
     // Chatroom

@@ -1,4 +1,4 @@
-const wpsExt = require("@azure/web-pubsub-socket.io");
+const azure = require("@azure/web-pubsub-socket.io");
 const express = require('express');
 const app = express();
 const http = require('http').Server(app);
@@ -13,6 +13,7 @@ async function main() {
   const io = await require('socket.io')(http).useAzureSocketIO(wpsOptions);
   const port = process.env.PORT || 3000;
 
+  app.get("/negotiate", azure.negotiate(io));
   app.use(express.static(__dirname + '/public'));
 
   io.on('connection', (socket) => {
