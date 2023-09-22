@@ -35,5 +35,9 @@ jobs:
       with:
         dotnet-version: ${{ matrix.dotnet-version }}
 
-    - name: Build C# projects
+    - name: Build C# samples
       run: dotnet build samples/csharp/samples.sln
+      
+    - name: Build C# tools
+      run: dotnet build tools/awps-tunnel/dotnet-server/awps-tunnel.sln
+

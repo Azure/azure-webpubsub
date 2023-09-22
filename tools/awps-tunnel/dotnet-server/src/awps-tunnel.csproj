@@ -18,7 +18,7 @@
     <ApplicationIcon>..\..\client\public\favicon.ico</ApplicationIcon>
     <Title>Local server proxy connecting Azure Web PubSub and your local server</Title>
     <VersionPrefix>0.0.1</VersionPrefix>
-    <VersionSuffix>alpha-006</VersionSuffix>
+    <VersionSuffix>alpha-007</VersionSuffix>
   </PropertyGroup>
 
   <ItemGroup>
