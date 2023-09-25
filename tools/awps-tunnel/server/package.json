@@ -1,12 +1,17 @@
 {
-  "name": "awps-tunnel",
+  "name": "@azure/web-pubsub-tunnel",
   "private": true,
-  "version": "1.0.0",
-  "description": "",
-  "main": "index.js",
+  "version": "1.0.0-beta.1",
+  "description": "A local tool to help tunnel Azure Web PubSub traffic to local web app and provide a vivid view to the end to end workflow.",
+  "main": "dist/server/index.js",
+  "files": [
+    "dist/",
+    "README.md",
+    "LICENSE"
+  ],
   "scripts": {
-    "build:cpy:cjs": "npx cpy . ../../../tools/awps-tunnel/server/dist/server/serverProxies --cwd=../../../sdk/server-proxies/dist",
-    "build:cpy:types": "npx cpy . ../../../tools/awps-tunnel/server/types/server/serverProxies --cwd=../../../sdk/server-proxies/types",
+    "build:cpy:cjs": "cpy . ../../../tools/awps-tunnel/server/dist/server/serverProxies --cwd=../../../sdk/server-proxies/dist",
+    "build:cpy:types": "cpy . ../../../tools/awps-tunnel/server/types/server/serverProxies --cwd=../../../sdk/server-proxies/types",
     "build:cpy": "npm run build:cpy:cjs && npm run build:cpy:types",
     "build:src": "tsc -b .",
     "build:client": "cd ../client && npm run build:npm && npx cpy build/ ../server/dist/client",
@@ -34,6 +39,7 @@
     "body-parser": "^1.20.2",
     "cors": "^2.8.5",
     "cpy": "^10.1.0",
+    "cpy-cli": "^5.0.0",
     "cross-env": "^7.0.3",
     "eslint": "^8.0.0",
     "eslint-config-prettier": "^8.8.0",
