@@ -204,7 +204,7 @@ function start(connectionString: string | undefined, endpoint: string | undefine
 
   const upstream = new URL(upstreamUrl);
   const upstreamPort = parseInt(upstream.port) ?? 7888;
-  const port = process.env.AWPS_TUNNEL_SERVER_PORT || (upstreamPort + 1000);
+  const port = process.env.AWPS_TUNNEL_SERVER_PORT || upstreamPort + 1000;
 
   app.use(express.static(path.join(__dirname, "../client/build")));
   server.listen(port, () => {
