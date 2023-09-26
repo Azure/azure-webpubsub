@@ -1,3 +1,4 @@
+#!/usr/bin/env node
 // a command tool accepting parameters
 // host the website
 // start the server connection
@@ -17,7 +18,7 @@ import { program } from "commander";
 import { DefaultAzureCredential } from "@azure/identity";
 
 import packageJson from "./package.json";
-const name = packageJson.name;
+const name = packageJson["cli-name"];
 
 // /home/user/.config/app on Linux
 // /Users/User/Library/Preferences/app on MacOS
@@ -201,7 +202,9 @@ function start(connectionString: string | undefined, endpoint: string | undefine
       dataHub.ReportStatusChange(ConnectionStatus.Disconnected);
     });
 
-  const port = process.env.AWPS_TUNNEL_SERVER_PORT || 8888;
+  const upstream = new URL(upstreamUrl);
+  const upstreamPort = parseInt(upstream.port) ?? 7888;
+  const port = process.env.AWPS_TUNNEL_SERVER_PORT || (upstreamPort + 1000);
 
   app.use(express.static(path.join(__dirname, "../client/build")));
   server.listen(port, () => {
