@@ -25,25 +25,28 @@ const wpsOptions = {
 };
 */
 
-// Add an Web PubSub Option
+function authentiacte(username) {
+    if (username.length < 10) return true;
+    return false;
+}
 
 async function main() {
     const configureNegotiateOptions = (req) => {
         const query = parse(req.url || "", true).query
         const username = query["username"] ?? "annoyomous";
         const expirationMinutes = Number.parseInt(query["expirationMinutes"]) ?? 600;
+        if (!authentiacte(username)) {
+            throw new Error(`Authentication Failed for username = ${username}`);
+        }
         return {
             userId: username,
             expirationTimeInMinutes: expirationMinutes
         };
     }
 
-    const io = await require('socket.io')(server).useAzureSocketIO(
-        { 
-            ...wpsOptions, 
-            configureNegotiateOptions: configureNegotiateOptions
-        });
+    const io = await require('socket.io')(server, {pingInterval: 2000}).useAzureSocketIO(wpsOptions);
 
+    app.get("/negotiate", wpsExt.negotiate(io, configureNegotiateOptions));
     app.use(express.static(path.join(__dirname, 'public')));
 
     // Chatroom

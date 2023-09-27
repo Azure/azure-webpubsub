@@ -26,16 +26,11 @@
         return;
       }
       const json = await negotiateResponse.json();
-      const endpoint = json.endpoint;
-      const path = json.path;
-      const token = json.token;
-      console.log("endpoint=", endpoint);
-      var socket = io(endpoint, {
-        path: path,
-        transports: ["websocket"],
-        reconnection: false,
+      console.log("endpoint=", json.endpoint);
+      var socket = io(json.endpoint, {
+        path: json.path,
         query: {
-          access_token: token
+          access_token: json.token
         }
       });
       const socketIdSpan = document.getElementById("socketId");
@@ -47,6 +42,13 @@
         socket.emit('whoami', (username) => {
           usernameSpan.innerText = username;
         });
+      });
+
+      socket.io.on('reconnect_attempt', async () => {
+        console.log('you are trying to reconnect');
+        let negotiate = await fetch('/negotiate');
+        let negotiateJson = await negotiate.json();
+        socket.io.opts.query['access_token'] = negotiateJson.token;
       });
     }
     main();

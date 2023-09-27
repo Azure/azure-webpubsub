@@ -22,6 +22,7 @@ const cleanInput = (input) => {
 }
 
 async function main(username) {
+  console.log("username=", username);
   // If the username is invalid
   if (!username || !username.length) return ;
 
@@ -30,22 +31,18 @@ async function main(username) {
   $loginPage.off('click');
   $currentInput = $inputMessage.focus();
 
-  var endpoint = "";
-  const negotiateResponse = await fetch(`http://localhost:3000/socket.io/negotiate/?username=${username}&expirationMinutes=600`);
+  const negotiateResponse = await fetch(`/negotiate/?username=${username}&expirationMinutes=600`);
   if (!negotiateResponse.ok) {
     console.log("Failed to negotiate, status code =", negotiateResponse.status);
     return ;
   }
   const json = await negotiateResponse.json();
-  endpoint = json.endpoint;
-  path = json.path;
-  token = json.token;
-  console.log("endpoint=", endpoint);
+  console.log("endpoint=", json.endpoint);
   
-  var socket = io(endpoint, {
-    path: path,
+  var socket = io(json.endpoint, {
+    path: json.path,
     query: {
-      access_token: token
+      access_token: json.token
     }
   });
 
@@ -237,6 +234,13 @@ async function main(username) {
     log('you have been disconnected');
   });
 
+  socket.io.on('reconnect_attempt', async () => {
+    log('you are trying to reconnect');
+    let negotiate = await fetch('/negotiate');
+    let negotiateJson = await negotiate.json();
+    socket.io.opts.query['access_token'] = negotiateJson.token;
+  });
+
   socket.io.on('reconnect', () => {
     log('you have been reconnected');
     if (username) {
@@ -258,7 +262,6 @@ $window.keydown(event => {
   // When the client hits ENTER on their keyboard
   if (event.which === 13) {
     const username = cleanInput($usernameInput.val().trim());
-    console.log("username = ", username);
     main(username);
   }
 });
