@@ -64,7 +64,7 @@
   },
   "scripts": {
     "clean": "rimraf ./build",
-    "start": "cross-env REACT_APP_DATA_FETCHER=dotnet react-scripts start",
+    "start": "cross-env REACT_APP_DATA_FETCHER=mock react-scripts start",
     "build": "npm run build:dotnet",
     "build:dotnet": "cross-env REACT_APP_DATA_FETCHER=dotnet react-scripts build",
     "build:npm": "cross-env REACT_APP_DATA_FETCHER=npm react-scripts build",
