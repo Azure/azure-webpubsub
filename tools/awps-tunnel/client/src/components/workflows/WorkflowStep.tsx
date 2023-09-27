@@ -1,7 +1,6 @@
 import React from "react";
-import { Icon } from "@fluentui/react/lib/Icon";
 
-import { makeStyles, shorthands, ToggleButton } from "@fluentui/react-components";
+import { ToggleButton } from "@fluentui/react-components";
 export interface WorkflowStepProps {
   checked: boolean;
   onClick?: React.MouseEventHandler<HTMLDivElement | HTMLAnchorElement | HTMLButtonElement | HTMLSpanElement> | undefined;

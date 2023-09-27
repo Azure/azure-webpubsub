@@ -1,6 +1,4 @@
-import React from "react";
 import { Icon } from "@fluentui/react/lib/Icon";
-import { StatusDescriptor } from "../workflows/StatusIndicator";
 import { ConnectionStatus } from "../../models";
 
 export interface ServicePanelProps {

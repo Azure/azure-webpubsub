@@ -1,13 +1,11 @@
 import React, { useState } from "react";
-import { Playground } from "./panels/Playground";
 import { RequestHistory } from "./panels/RequestHistory";
 import "./Dashboard.css";
-import { Tabs } from "./Tabs";
 import { Panel, PanelType } from "@fluentui/react";
-import { makeStyles, shorthands, tokens, Button, Tab, TabList, Accordion, AccordionHeader, AccordionItem, AccordionPanel, ToggleButton } from "@fluentui/react-components";
+import { Tab, TabList, Accordion, AccordionHeader, AccordionItem, AccordionPanel, ToggleButton } from "@fluentui/react-components";
 import * as svg from "./icons";
-import { DocumentOnePageMultiple24Regular, Link24Regular, ChevronRight24Regular, bundleIcon, wrapIcon } from "@fluentui/react-icons";
-import type { SelectTabData, SelectTabEvent, Slot, TabValue } from "@fluentui/react-components";
+import { DocumentOnePageMultiple24Regular, Link24Regular } from "@fluentui/react-icons";
+import type { SelectTabData, SelectTabEvent, TabValue } from "@fluentui/react-components";
 
 import { Connector, TwoDirectionConnector } from "./Connector";
 import { useDataContext } from "../providers/DataContext";
