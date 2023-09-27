@@ -2,8 +2,9 @@
 
 import { Server, getEndpointFullPath, defaultWpsOptions, getServer, getPort } from "../SIO/support/util";
 import { NegotiateOptions, debugModule } from "../../src/common/utils";
+import { negotiate } from "../../src";
 import { parse } from "url";
-import { IncomingMessage } from "http";
+import { IncomingMessage, ServerResponse, createServer } from "http";
 import expect from "expect.js";
 const request = require("supertest");
 
@@ -21,14 +22,22 @@ describe("negotiate", () => {
       } as NegotiateOptions;
     };
 
-    const ioPromise = getServer(0, {}, { ...defaultWpsOptions, configureNegotiateOptions: configureNegotiateOptions });
+    const negotiateExpressMiddleware = negotiate(defaultWpsOptions, configureNegotiateOptions);
+    const httpServer = createServer().listen(3000);
+    const ioPromise = getServer(httpServer, {}, defaultWpsOptions);
 
     ioPromise.then((io) => {
+      // We don't have express server in UT. So it will be converted to a Http Server middleware later.
+      io["httpServer"].prependListener("request", (req: IncomingMessage, res: ServerResponse) => {
+        if (req.url?.startsWith("/negotiate")) {
+          negotiateExpressMiddleware(req, res, () => {});
+        }
+      });
       const port = getPort(io);
       const endpoint = `http://localhost:${port}`;
 
       const username = "bob";
-      const negotiatePath = `/socket.io/negotiate/?username=${username}&expirationMinutes=600`;
+      const negotiatePath = `/negotiate/?username=${username}&expirationMinutes=600`;
 
       request(endpoint)
         .get(negotiatePath)
@@ -36,13 +45,14 @@ describe("negotiate", () => {
         .end((err, res) => {
           if (err) return done(err);
           expect(res.status).to.be(200);
-          const url = JSON.parse(res.text).url;
+          const json = JSON.parse(res.text);
+          const endpoint = json.endpoint;
+          const token = json.token;
+
           const serviceEndpoint = getEndpointFullPath(defaultWpsOptions.connectionString);
-          expect(url.startsWith(serviceEndpoint)).to.be(true);
-          expect(parse(url, true).query.access_token).to.be.ok();
+          expect(serviceEndpoint.startsWith(endpoint)).to.be(true);
 
           // parse JWT token and check its sub claim
-          const token = parse(url, true).query.access_token as string;
           const tokenParts = token.split(".");
           expect(tokenParts.length).to.be(3);
 

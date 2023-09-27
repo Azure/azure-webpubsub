@@ -6,6 +6,7 @@ import http from "http";
 import { HttpRequestLike, HttpResponseLike, TunnelConnection, TunnelIncomingMessage, TunnelOutgoingMessage, TunnelRequestHandler } from "./tunnels/TunnelConnection";
 import { logger } from "./logger";
 import jwt from "jsonwebtoken";
+import { WebPubSubServiceClient } from "@azure/web-pubsub";
 
 export interface HttpServerProxyOptions {
   /**
@@ -22,7 +23,7 @@ const apiVersion = "2023-07-01";
 
 export class HttpServerProxy {
   private _tunnel: TunnelConnection;
-
+  private _client : WebPubSubServiceClient;
   static fromConnectionString(connectionString: string, hub: string, options: HttpServerProxyOptions, reverseProxyEndpoint?: string): HttpServerProxy {
     const { credential, endpoint } = parseConnectionString(connectionString);
     return new HttpServerProxy(endpoint, credential, hub, options, reverseProxyEndpoint);
@@ -30,7 +31,8 @@ export class HttpServerProxy {
 
   constructor(public endpoint: string, public credential: AzureKeyCredential | TokenCredential, public hub: string, private _options: HttpServerProxyOptions, reverseProxyEndpoint?: string) {
     this.endpoint = this.endpoint.endsWith("/") ? this.endpoint : this.endpoint + "/";
-    const tunnel = (this._tunnel = new TunnelConnection(endpoint, credential, hub, undefined, reverseProxyEndpoint));
+    this._tunnel = new TunnelConnection(endpoint, credential, hub, undefined, reverseProxyEndpoint);
+    this._client = new WebPubSubServiceClient(endpoint, credential as any, hub);
   }
 
   public runAsync(options: RunOptions, abortSignal?: AbortSignal): Promise<void> {
@@ -38,55 +40,10 @@ export class HttpServerProxy {
     return this._tunnel.runAsync(abortSignal);
   }
 
+  // still doing the real REST API call to get the token
   public async getClientAccessUrl(userId?: string, roles?: string[], groups?: string[]): Promise<string> {
-    let token : string | undefined;
-    if (isTokenCredential(this.credential)) {
-      let request = {
-        method: "POST",
-        url: this._getUrl(`/api/hubs/${this.hub}/:generateToken`),
-        // todo: append query to the url
-      } as HttpRequestLike;
-      let response = await this._tunnel.invokeAsync(request);
-      if (response.statusCode !== 200) {
-        throw new Error(`addConnectionsToGroups got unexpected status code ${response.statusCode}`);
-      }
-      async function readBody(response: HttpResponseLike) : Promise<Uint8Array> {
-        const data = [];
-        
-        // Iterate over the async iterator
-        for await (const chunk of response.body) {
-          data.push(chunk);
-        }
-        const totalLength = data.reduce((length, array) => length + array.length, 0);
-
-        const mergedArray = new Uint8Array(totalLength);
-      
-        let offset = 0;
-        for (const array of data) {
-          mergedArray.set(array, offset);
-          offset += array.length;
-        }
-        return mergedArray;
-      }
-
-      const decoder = new TextDecoder();
-      token = JSON.parse(decoder.decode(await(readBody(response)))).token;
-    } else {
-      const credential = this.credential;
-      const key = credential.key;
-      const audience = `${this.endpoint}client/hubs/${this.hub}`;
-      const payload = { role: roles, "webpubsub.group": groups };
-      const signOptions: jwt.SignOptions = {
-        audience: audience,
-        expiresIn: "1h",
-        algorithm: "HS256",
-      };
-      if (userId) {
-        signOptions.subject = userId;
-      }
-      token = jwt.sign(payload, key, signOptions);
-    }
-    return `${this.endpoint.replace(/^http/i, "ws")}client/hubs/${this.hub}?access_token=${token}`;
+    const cat = await this._client.getClientAccessToken({userId, roles, groups});
+    return cat.url;
   }
 
   public async getLiveTraceUrl(): Promise<string> {

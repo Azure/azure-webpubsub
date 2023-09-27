@@ -3,7 +3,10 @@
   "private": true,
   "workspaces": [
     "samples/javascript/**",
-    "sdk/**socketio**/"
+    "sdk/**socketio**/",
+    "experimental/**",
+    "tools/awps-tunnel/client/",
+    "tools/awps-tunnel/server/"
   ],
   "version": "1.0.0",
   "main": "index.js",

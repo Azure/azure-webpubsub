@@ -1,3 +1,4 @@
+#!/usr/bin/env node
 // a command tool accepting parameters
 // host the website
 // start the server connection
@@ -17,7 +18,7 @@ import { program } from "commander";
 import { DefaultAzureCredential } from "@azure/identity";
 
 import packageJson from "./package.json";
-const name = packageJson.name;
+const name = packageJson["cli-name"];
 
 // /home/user/.config/app on Linux
 // /Users/User/Library/Preferences/app on MacOS
@@ -117,16 +118,16 @@ run
       return;
     }
 
-    let currentHub = hub ?? settings.WebPubSub.Hub;
+    const currentHub = hub ?? settings.WebPubSub.Hub;
     if (!currentHub) {
       console.error(`Error: hub is not specified.`);
       run.outputHelp();
       return;
     }
 
-    let connectionString = process.env.WebPubSubConnectionString;
+    const connectionString = process.env.WebPubSubConnectionString;
     // endpoint > connectionString > settings.WebPubSub.Endpoint
-    let currentEndpoint = !!connectionString ? undefined : settings.WebPubSub.Endpoint;
+    let currentEndpoint = connectionString ? undefined : settings.WebPubSub.Endpoint;
     if (endpoint) {
       if (!validateEndpoint(endpoint)) {
         console.error(`Error: invalid endpoint: ${endpoint}`);
@@ -134,16 +135,6 @@ run
       }
 
       currentEndpoint = endpoint;
-    }
-
-    if (!connectionString && !currentEndpoint) {
-      console.error(`Error: neither WebPubSubConnectionString env is set nor endpoint is not specified.`);
-      run.outputHelp();
-      return;
-    } else if (connectionString) {
-      console.log(`Using endpoint and credential from WebPubSubConnectionString env.`);
-    } else {
-      console.log(`Using endpoint ${currentEndpoint} from settings. Please make sure the Access Policy is correctly configured to allow your access.`);
     }
     start(connectionString, currentEndpoint, currentHub, currentUpstream);
   });
@@ -155,17 +146,25 @@ program.action(() => {
 });
 
 function start(connectionString: string | undefined, endpoint: string | undefined, hub: string, upstreamUrl: string) {
+  if (!connectionString && !endpoint) {
+    console.error(`Error: neither WebPubSubConnectionString env is set nor endpoint is not specified.`);
+    run.outputHelp();
+    return;
+  }
+
+  let tunnel: HttpServerProxy;
+  if (connectionString) {
+    console.log(`Using endpoint and credential from WebPubSubConnectionString env.`);
+    tunnel = HttpServerProxy.fromConnectionString(connectionString, hub, { target: upstreamUrl });
+  } else {
+    console.log(`Using endpoint ${endpoint} from settings. Please make sure the Access Policy is correctly configured to allow your access.`);
+    tunnel = new HttpServerProxy(endpoint!, new DefaultAzureCredential(), hub, { target: upstreamUrl });
+  }
+
   const app = express();
   const server = createServer(app);
-  let tunnel: HttpServerProxy;
-  if (endpoint) {
-    // when endpoint is specified, it must be specified through CLI, it takes the highest priority
-    tunnel = new HttpServerProxy(endpoint, new DefaultAzureCredential(), hub, { target: upstreamUrl });
-  } else {
-    tunnel = HttpServerProxy.fromConnectionString(connectionString!, hub, { target: upstreamUrl });
-  }
   console.log(`Connect to ${tunnel.endpoint}, hub: ${tunnel.hub}, upstream: ${upstreamUrl}`);
-  const dataHub = new DataHub(server, tunnel, upstreamUrl);
+  const dataHub = new DataHub(server, tunnel, upstreamUrl, dbFile);
   dataHub.ReportStatusChange(ConnectionStatus.Connecting);
   tunnel
     .runAsync({
@@ -203,7 +202,9 @@ function start(connectionString: string | undefined, endpoint: string | undefine
       dataHub.ReportStatusChange(ConnectionStatus.Disconnected);
     });
 
-  const port = process.env.AWPS_TUNNEL_SERVER_PORT || 8888;
+  const upstream = new URL(upstreamUrl);
+  const upstreamPort = parseInt(upstream.port) ?? 7888;
+  const port = process.env.AWPS_TUNNEL_SERVER_PORT || upstreamPort + 1000;
 
   app.use(express.static(path.join(__dirname, "../client/build")));
   server.listen(port, () => {
