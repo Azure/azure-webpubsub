@@ -1,6 +1,6 @@
 import React from "react";
 import { Icon } from "@fluentui/react/lib/Icon";
-import { StatusIndicator } from "../workflows/StatusIndicator";
+import { StatusDescriptor } from "../workflows/StatusIndicator";
 import { ConnectionStatus } from "../../models";
 
 export interface ServicePanelProps {
@@ -11,14 +11,8 @@ export interface ServicePanelProps {
 
 export function ServicePanel({ endpoint, status, liveTraceUrl }: ServicePanelProps) {
   return (
-    <div className="m-2 d-flex flex-column flex-fill">
-      <p>
-        <StatusIndicator status={status}></StatusIndicator>
-        <b>{status}</b>
-        <a className="mx-2" href={endpoint + "/api/health"} target="_blank" rel="noreferrer">
-          {endpoint}
-        </a>
-      </p>
+    <div className="mx-4 d-flex flex-column flex-fill">
+      <h5>Web PubSub Live Trace</h5>
       <p>
         <Icon className="mx-2" iconName="Cloud"></Icon>
         <a href={liveTraceUrl} target="_blank" rel="noreferrer">

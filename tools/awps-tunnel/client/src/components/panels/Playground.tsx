@@ -107,7 +107,7 @@ export const Playground = ({ onStatusChange }: PlaygroundProps) => {
 
   const connectPane = (
     <div className="d-flex flex-column websocket-client-container m-2">
-      <b>Quick try</b>
+      <b>Test Client</b>
       <input disabled={true} value={data.clientUrl}></input>
       <DefaultButton hidden={!data.ready || state.connected} onClick={connect}>
         Connect
@@ -152,12 +152,6 @@ export const Playground = ({ onStatusChange }: PlaygroundProps) => {
   );
 
   return (
-    <div className="d-flex flex-column" style={{ height: "100%" }}>
-      <p className="m-2">
-        <Icon iconName="Brunch"></Icon>
-        <b>Open you own client or have a quick try here.</b>
-      </p>
       <ResizablePanel className="flex-fill" left={connectPane} right={trafficPane}></ResizablePanel>
-    </div>
   );
 };

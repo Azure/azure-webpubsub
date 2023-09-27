@@ -1,22 +1,24 @@
-import React from 'react';
-import { DefaultButton, BaseButton, Button, } from '@fluentui/react/lib/Button';
-import { Icon } from '@fluentui/react/lib/Icon';
+import React from "react";
+import { Icon } from "@fluentui/react/lib/Icon";
 
+import { makeStyles, shorthands, ToggleButton } from "@fluentui/react-components";
 export interface WorkflowStepProps {
   checked: boolean;
-  onClick?: React.MouseEventHandler<HTMLDivElement | HTMLAnchorElement | HTMLButtonElement | BaseButton | Button | HTMLSpanElement> | undefined;
-  iconName: string;
-  text: string
+  onClick?: React.MouseEventHandler<HTMLDivElement | HTMLAnchorElement | HTMLButtonElement | HTMLSpanElement> | undefined;
+  icon: React.ReactNode;
+  text: string;
 }
 
-export function WorkflowStep({ checked, onClick, iconName, text } : WorkflowStepProps) {
+export function WorkflowStep({ checked, onClick, icon, text }: WorkflowStepProps) {
   return (
     <div className="d-flex flex-column align-items-center">
-      <DefaultButton className="m-2" checked={checked} toggle
-        onClick={onClick}
-      >
-        <Icon iconName={iconName}></Icon><b className="m-2">{text}</b>
-      </DefaultButton>
+      <ToggleButton size="large" appearance="subtle" className="m-2" checked={checked} onClick={onClick}>
+        <div>
+          <span className="m-2">{icon}</span>
+          <br></br>
+          <span className="m-2">{text}</span>
+        </div>
+      </ToggleButton>
     </div>
   );
 }

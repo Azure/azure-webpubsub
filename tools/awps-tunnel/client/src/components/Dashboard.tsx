@@ -3,64 +3,106 @@ import { Playground } from "./panels/Playground";
 import { RequestHistory } from "./panels/RequestHistory";
 import "./Dashboard.css";
 import { Tabs } from "./Tabs";
-import { DefaultButton } from "@fluentui/react/lib/Button";
-import { Panel, PanelType } from "@fluentui/react/lib/Panel";
+import { Panel, PanelType } from "@fluentui/react";
+import { makeStyles, shorthands, tokens, Button, Tab, TabList, Accordion, AccordionHeader, AccordionItem, AccordionPanel, ToggleButton } from "@fluentui/react-components";
+import * as svg from "./icons";
+import { DocumentOnePageMultiple24Regular, Link24Regular, ChevronRight24Regular, bundleIcon, wrapIcon } from "@fluentui/react-icons";
+import type { SelectTabData, SelectTabEvent, Slot, TabValue } from "@fluentui/react-components";
+
 import { Connector, TwoDirectionConnector } from "./Connector";
 import { useDataContext } from "../providers/DataContext";
 import { LogLevel, ConnectionStatus, ConnectionStatusPair } from "../models";
 import { WorkflowStep } from "./workflows/WorkflowStep";
 import { ServicePanel } from "./panels/ServicePanel";
 import { ServerPanel } from "./panels/ServerPanel";
+import { ResizablePanel } from "./ResizablePanel";
+import { StatusDescriptor, StatusDisplayText } from "./workflows/StatusIndicator";
+import { ClientPanel } from "./panels/ClientPanel";
 
 interface WorkflowProps {
   key: string;
   title: string;
-  iconName: string;
+  icon: (large?: boolean) => React.ReactNode;
   status?: ConnectionStatus;
   statusPair?: ConnectionStatusPair;
   content: React.ReactNode;
+  states?: { title: string; content: React.ReactNode }[];
 }
 
 export const Dashboard = () => {
-  const [currentTab, setCurrentTab] = useState(2);
   const [showPanel, setShowPanel] = useState(false);
   const [clientConnectionStatus, setClientConnectionStatus] = useState(ConnectionStatus.Disconnected);
   const { data } = useDataContext();
-
   const workflows: WorkflowProps[] = [
     {
       key: "client",
-      title: "Your client",
-      iconName: "SiteScan",
+      title: "Client",
+      icon: svg.SvgClient,
+      states: [
+        {
+          title: "Test Client status",
+          content: <StatusDescriptor status={clientConnectionStatus} />,
+        },
+      ],
       status: clientConnectionStatus,
-      content: <Playground onStatusChange={(status) => setClientConnectionStatus(status)}></Playground>,
+      content: <ClientPanel onStatusChange={(status) => setClientConnectionStatus(status)}></ClientPanel>,
     },
     {
       key: "service",
       title: "Web PubSub",
-      iconName: "AzureLogo",
+      icon: svg.SvgWebPubSub,
+      states: [
+        {
+          title: "Endpoint",
+          content: data.endpoint,
+        },
+      ],
       status: data?.tunnelConnectionStatus,
       content: <ServicePanel endpoint={data.endpoint} status={data.tunnelConnectionStatus} liveTraceUrl={data.liveTraceUrl}></ServicePanel>,
     },
     {
       key: "proxy",
       title: "Local Tunnel",
-      iconName: "ViewOriginal",
+      states: [
+        {
+          title: "Connect from",
+          content: data.endpoint,
+        },
+        {
+          title: "Send requests to",
+          content: data.upstreamServerUrl,
+        },
+      ],
       statusPair: data.tunnelServerStatus,
+      icon: svg.SvgTunnel,
       content: <RequestHistory />,
     },
     {
       key: "server",
-      title: "Your server",
-      iconName: "Home",
+      title: "Server",
+      icon: svg.SvgServer,
+      states: [
+        {
+          title: "Last Status",
+          content: <StatusDisplayText status={data.tunnelServerStatus} />,
+        },
+        {
+          title: "Server URL",
+          content: data.upstreamServerUrl,
+        },
+      ],
       content: <ServerPanel endpoint={data?.upstreamServerUrl}></ServerPanel>,
     },
   ];
+
+  // use Tunnel tab as the default one
+  const [selectedValue, setSelectedValue] = React.useState<TabValue>(workflows[2].key);
+
   const workflow = () => (
     <div className="workflow d-flex flex-row justify-content-center align-items-center m-2">
       {workflows.map((w, i) => (
         <React.Fragment key={i}>
-          <WorkflowStep checked={currentTab === i} onClick={() => setCurrentTab(i)} iconName={w.iconName} text={w.title} />
+          <WorkflowStep checked={selectedValue === w.key} onClick={() => setSelectedValue(w.key)} icon={w.icon(true)} text={w.title} />
           {w.status && <Connector status={w.status} />}
           {w.statusPair && <TwoDirectionConnector statusPair={w.statusPair} />}
         </React.Fragment>
@@ -68,14 +110,77 @@ export const Dashboard = () => {
     </div>
   );
 
+  const onTabSelect = (event: SelectTabEvent, data: SelectTabData) => {
+    setSelectedValue(data.value);
+  };
+
+  const tabSidebar = (
+    <>
+      <TabList size="large" className="m-2" selectedValue={selectedValue} onTabSelect={onTabSelect} vertical>
+        {workflows.map((w, i) => (
+          <React.Fragment key={i}>
+            <Tab id={w.key} icon={<span>{w.icon()}</span>} value={w.key}>
+              {w.title}
+            </Tab>
+          </React.Fragment>
+        ))}
+      </TabList>
+      <Accordion collapsible>
+        <AccordionItem value="1">
+          <AccordionHeader>Help center</AccordionHeader>
+          <AccordionPanel>
+            <ToggleButton appearance="subtle" icon={<DocumentOnePageMultiple24Regular />} checked={showPanel} onClick={() => setShowPanel(true)}>
+              View logs
+            </ToggleButton>
+            <ToggleButton as="a" appearance="transparent" icon={<Link24Regular />}>
+              <a target="_blank" rel="noreferrer" href="https://aka.ms/awps/getting-started">
+                Documentation
+              </a>
+            </ToggleButton>
+          </AccordionPanel>
+        </AccordionItem>
+      </Accordion>
+    </>
+  );
+  const paneOverview = (p: WorkflowProps) => (
+    <div className="d-flex justify-content-start">
+      {p.states?.map((s, i) => (
+        <div key={i} className="d-flex m-2 flex-column">
+          <div>
+            <b>{s.title}</b>
+          </div>
+          {s.content}
+        </div>
+      ))}
+    </div>
+  );
+  const connectPane = (
+    <>
+      {workflows.map(
+        (w, i) =>
+          selectedValue === w.key && (
+            <div key={i} className="d-flex flex-column flex-fill">
+              <Accordion className="" collapsible defaultOpenItems={"1"}>
+                <AccordionItem value="1">
+                  <AccordionHeader size="large">{w.title}</AccordionHeader>
+                  <AccordionPanel>{paneOverview(w)}</AccordionPanel>
+                </AccordionItem>
+              </Accordion>
+              <hr />
+              {w.content}
+            </div>
+          ),
+      )}
+    </>
+  );
+
   return (
     <div className="d-flex flex-column flex-fill overflow-auto">
-      <DefaultButton className="align-self-end" text="Logs >" iconProps={{ iconName: "Handwriting" }} onClick={() => setShowPanel(true)} />
       <Panel type={PanelType.medium} className="logPanel" isLightDismiss isOpen={showPanel} onDismiss={() => setShowPanel(false)} closeButtonAriaLabel="Close" headerText="Logs">
         <textarea className="flex-fill" disabled value={data.logs.map((log) => `${log.time.toISOString()} [${LogLevel[log.level]}] ${log.message}`).join("\n")} />
       </Panel>
       {workflow()}
-      <Tabs className="workflow-panels" items={workflows} activeTab={currentTab} onTabSwitch={(i) => setCurrentTab(i)}></Tabs>
+      <ResizablePanel className="flex-fill" left={tabSidebar} right={connectPane} initialLeftWidth="200px"></ResizablePanel>
     </div>
   );
 };
