@@ -1,4 +1,5 @@
 {
+  "exclude": ["samples", "types"],
   "references": [{ "path": "../../../sdk/server-proxies/tsconfig.json" }],
   "compilerOptions": {
     "target": "es2016" /* Set the JavaScript language version for emitted JavaScript and include compatible library declarations. */,
@@ -13,6 +14,6 @@
     "moduleResolution": "node",
     "outDir": "./dist",
     "declarationDir": "./types",
-    "resolveJsonModule": true
+    "resolveJsonModule": true,
   }
 }
