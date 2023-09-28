@@ -1,4 +1,4 @@
-# Create a Chat app
+# Create a chat app with Web PubSub for Socket.IO And GitHub OAuth
 
 ## Prerequisites
 
