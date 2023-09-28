@@ -1,11 +1,11 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { RequestHistory } from "./panels/RequestHistory";
 import "./Dashboard.css";
 import { Panel, PanelType } from "@fluentui/react";
 import { Tab, TabList, Accordion, AccordionHeader, AccordionItem, AccordionPanel, ToggleButton } from "@fluentui/react-components";
 import * as svg from "./icons";
 import { DocumentOnePageMultiple24Regular, Link24Regular } from "@fluentui/react-icons";
-import type { SelectTabData, SelectTabEvent, TabValue } from "@fluentui/react-components";
+import type { SelectTabData, SelectTabEvent } from "@fluentui/react-components";
 
 import { Connector, TwoDirectionConnector } from "./Connector";
 import { useDataContext } from "../providers/DataContext";
@@ -25,6 +25,18 @@ interface WorkflowProps {
   statusPair?: ConnectionStatusPair;
   content: React.ReactNode;
   states?: { title: string; content: React.ReactNode }[];
+}
+
+function loadCurrentTab(): string {
+  const tab = localStorage.getItem("currentTab");
+  if (tab) {
+    return tab;
+  }
+  return "proxy";
+}
+
+function setCurrentTab(tab: string): void {
+  localStorage.setItem("currentTab", tab);
 }
 
 export const Dashboard = () => {
@@ -92,9 +104,12 @@ export const Dashboard = () => {
       content: <ServerPanel endpoint={data?.upstreamServerUrl}></ServerPanel>,
     },
   ];
+  // read current tab from local storage
+  const [selectedValue, setSelectedValue] = React.useState<string>(loadCurrentTab());
 
-  // use Tunnel tab as the default one
-  const [selectedValue, setSelectedValue] = React.useState<TabValue>(workflows[2].key);
+  useEffect(()=>{
+    setCurrentTab(selectedValue);
+  }, [selectedValue])
 
   const workflow = () => (
     <div className="workflow d-flex flex-row justify-content-center align-items-center m-2">
@@ -109,7 +124,7 @@ export const Dashboard = () => {
   );
 
   const onTabSelect = (event: SelectTabEvent, data: SelectTabData) => {
-    setSelectedValue(data.value);
+    setSelectedValue(data.value as string);
   };
 
   const tabSidebar = (
@@ -156,8 +171,9 @@ export const Dashboard = () => {
     <>
       {workflows.map(
         (w, i) =>
-          selectedValue === w.key && (
-            <div key={i} className="d-flex flex-column flex-fill">
+          (
+            // Use hidden to prevent re-rendering
+            <div key={i} hidden={selectedValue !== w.key} className="d-flex flex-column flex-fill overflow-auto">
               <Accordion className="" collapsible defaultOpenItems={"1"}>
                 <AccordionItem value="1">
                   <AccordionHeader size="large">{w.title}</AccordionHeader>
