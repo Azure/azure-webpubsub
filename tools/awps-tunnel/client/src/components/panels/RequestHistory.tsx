@@ -53,9 +53,9 @@ export function RequestHistory() {
   );
   const detailPanel = <Details item={selectedItem}></Details>;
   return (
-    <div className="d-flex flex-row server-container overflow-auto">
+    <div className="mx-4 d-flex flex-row server-container overflow-auto">
       <div className="table-container flex-fill d-flex flex-column">
-        <h5>History</h5>
+        <h5>All requests</h5>
         {!data.ready ? (
           <p>
             <em>Loading...</em>
