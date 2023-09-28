@@ -11,6 +11,10 @@ table {
     border-collapse: collapse;
 }
 
+body [hidden] {
+    display: none !important;
+}
+
 thead th {
     text-align: left;
     font-weight: bold;

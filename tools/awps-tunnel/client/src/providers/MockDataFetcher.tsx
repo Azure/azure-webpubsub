@@ -9,10 +9,10 @@ export class MockDataFetcher implements IDataFetcher {
     clientUrl: "",
     liveTraceUrl: "",
     upstreamServerUrl: "",
-    tunnelConnectionStatus: ConnectionStatus.Connecting,
+    tunnelConnectionStatus: ConnectionStatus.Connected,
     tunnelServerStatus: {
-      statusIn: ConnectionStatus.Disconnected,
-      statusOut: ConnectionStatus.Disconnected,
+      statusIn: ConnectionStatus.Connected,
+      statusOut: ConnectionStatus.Connected,
     },
     trafficHistory: [],
     logs: [],
@@ -28,12 +28,12 @@ export class MockDataFetcher implements IDataFetcher {
     const current = {
       ready: true,
       clientUrl: "ws://abc/client",
-      liveTraceUrl: "https://www.google.com",
-      endpoint: "https://www.service.com",
-      upstreamServerUrl: "https://www.server.com",
+      liveTraceUrl: "https://xxx.webpubsub.azure.com",
+      endpoint: "https://xxx.webpubsub.azure.com",
+      upstreamServerUrl: "http://localhost:3000",
       tunnelConnectionStatus: ConnectionStatus.Connected,
       tunnelServerStatus: {
-        statusIn: ConnectionStatus.Disconnected,
+        statusIn: ConnectionStatus.Connected,
         statusOut: ConnectionStatus.Connected,
       },
       hub: "chat",
@@ -64,10 +64,32 @@ export function generateMockHttpItem(): HttpHistoryItem {
   return {
     requestAtOffset: Date.now(),
     code: 200,
-    methodName: "GET",
-    url: "https://www.google.com",
-    requestRaw: "ABC",
-    responseRaw: "DEF",
+    methodName: "POST",
+    url: "http://localhost:3000/eventhandler",
+    requestRaw: `POST http://localhost:3000/eventhandler HTTP/1.1
+ce-specversion: 1.0
+ce-awpsversion: 1.0
+ce-type: azure.webpubsub.user.message
+ce-source: /hubs/chat/client/xxx
+ce-time: 2023-09-28T01:46:50Z
+ce-connectionId: xxx
+ce-hub: chat
+ce-eventName: message
+WebHook-Request-Origin: xxx.webpubsub.azure.com
+ce-signature: sha256=xxx
+ce-signature: sha256=xxx
+ce-id: 2
+Content-Type: text/plain; charset=utf-8
+
+Hello`,
+    responseRaw: `HTTP/1.1 200
+x-powered-by: Express
+content-type: text/plain; charset=utf-8
+date: Thu, 28 Sep 2023 01:46:50 GMT
+connection: close
+content-length: 9
+
+Hey Hello`,
     unread: true,
     id: id++,
   };
