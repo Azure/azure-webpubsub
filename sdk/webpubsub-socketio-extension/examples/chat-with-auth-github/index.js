@@ -18,8 +18,7 @@ app.use(passport.session());
 app.get('/auth/github', passport.authenticate('github', { scope: ['user:email'] }));
 app.get('/auth/github/callback', passport.authenticate('github', { successRedirect: '/' }));
 
-const users = [
-];
+var users = [];
 
 passport.use(
     new GitHubStrategy({
@@ -44,35 +43,12 @@ passport.deserializeUser((id, done) => {
     return done(`invalid user id: ${id}`);
 });
 
-// app.get("/", (req, res) => {
-//     const isAuthenticated = !!req.user;
-//     if (isAuthenticated) {
-//         console.log(`user is authenticated, session is ${req.session.id}`);
-//     } else {
-//         console.log("unknown user");
-//     }
-//     res.sendFile(isAuthenticated ? "index.html" : "login.html", { root: path.join(__dirname, "/public") });
-// });
-
 app.post("/login", passport.authenticate("local", {
     successRedirect: "/",
     failureRedirect: "/",
 })
 );
 
-app.post("/logout", (req, res) => {
-    /*
-    console.log(`logout ${req.session.id}`);
-    const socketId = req.session.socketId;
-    if (socketId && io.of("/").sockets.get(socketId)) {
-      console.log(`forcefully closing socket ${socketId}`);
-      io.of("/").sockets.get(socketId).disconnect(true);
-    }
-    req.logout();
-    res.cookie("connect.sid", "", { expires: new Date() });
-    res.redirect("/");
-    */
-});
 
 async function main() {
     const wpsOptions = {
@@ -108,13 +84,6 @@ async function main() {
             console.log(`${socket.request.user.username}`);
             cb(`${socket.request.user.username}`);
         });
-
-        /*
-        const session = socket.request.session;
-        console.log(`saving sid ${socket.id} in session ${session.id}`);
-        session.socketId = socket.id;
-        session.save();
-        */
     });
 
     let numUsers = 0;
