@@ -1,4 +1,4 @@
-name: Release Azure SocketIO package
+name: Release tunnel package
 on:
   push:
     branches: [ "main" ]
@@ -54,8 +54,8 @@ jobs:
       run: npm install -g yarn 
       if: steps.compare_versions.outputs.version_changed == 'true'
 
-    - name: Pack SocketIO package
-      id: socketio
+    - name: Pack tunnel package
+      id: tunnel
       if: steps.compare_versions.outputs.version_changed == 'true'
       run: |
         pushd sdk/server-proxies
@@ -81,10 +81,10 @@ jobs:
         BUILDNUMBER: ${{ steps.read_current_version.outputs.current_version }}
       run: |
         azcopy login --service-principal --application-id $ID
-        azcopy copy ${{ steps.socketio.outputs.packagePath }} "$URL/azure-webpubsub/js/$BUILDNUMBER/"
-    - name: Publish SocketIO Artifacts
+        azcopy copy ${{ steps.tunnel.outputs.packagePath }} "$URL/azure-webpubsub/js/$BUILDNUMBER/"
+    - name: Publish tunnel Artifacts
       if: steps.compare_versions.outputs.version_changed == 'true'
       uses: actions/upload-artifact@v2
       with:
-        name: socketio package
-        path: ${{ steps.socketio.outputs.packagePath }} 
+        name: tunnel package
+        path: ${{ steps.tunnel.outputs.packagePath }} 
