@@ -61,6 +61,9 @@ jobs:
         pushd sdk/server-proxies
         yarn
         popd
+        pushd tools/awps-tunnel/client
+        yarn
+        popd
         pushd tools/awps-tunnel/server
         yarn
         yarn build
