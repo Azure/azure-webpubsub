@@ -5,7 +5,7 @@ import { Panel, PanelType } from "@fluentui/react";
 import { Tab, TabList, Accordion, AccordionHeader, AccordionItem, AccordionPanel, ToggleButton } from "@fluentui/react-components";
 import * as svg from "./icons";
 import { DocumentOnePageMultiple24Regular, Link24Regular } from "@fluentui/react-icons";
-import type { SelectTabData, SelectTabEvent, TabValue } from "@fluentui/react-components";
+import type { SelectTabData, SelectTabEvent } from "@fluentui/react-components";
 
 import { Connector, TwoDirectionConnector } from "./Connector";
 import { useDataContext } from "../providers/DataContext";
