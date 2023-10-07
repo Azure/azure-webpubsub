@@ -27,6 +27,7 @@ public class HttpItem
 
     [JsonIgnore]
     [IgnoreDataMember]
+    [System.Text.Json.Serialization.JsonIgnore]
     public HttpDataModel DataModel { get; }
 
     public HttpItem(HttpDataModel dataModel)

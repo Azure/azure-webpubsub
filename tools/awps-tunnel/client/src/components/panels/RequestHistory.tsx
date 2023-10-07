@@ -14,7 +14,7 @@ export function RequestHistory() {
   const { data } = useDataContext();
 
   useEffect(() => {
-    setItems(data.trafficHistory.slice(0, 50));
+    setItems(data.trafficHistory);
   }, [data.trafficHistory]);
   useEffect(() => {
     if (selectedItem) {
@@ -30,10 +30,16 @@ export function RequestHistory() {
 
   const overviewPanel = (
     <table className="table" aria-labelledby="tabelLabel">
+      <thead>
+          <th>Time</th>
+          <th>Method</th>
+          <th>URL</th>
+          <th>Status</th>
+      </thead>
       <tbody>
         {items.map((item) => (
           <tr
-            key={item.requestAtOffset}
+            key={(item.id ?? 0) + (item.code ?? 0) * 1000}
             className={item.unread ? "unread" : item === selectedItem ? "active" : ""}
             onClick={() => {
               item.unread = false;
@@ -41,11 +47,11 @@ export function RequestHistory() {
             }}
           >
             <td>{moment(item.requestAtOffset).fromNow()}</td>
-            <td className={item?.code ?? 500 < 300 ? "text-success" : "text-warning"}>
+            <td className={(item?.code ?? 500) < 300 ? "text-success" : "text-warning"}>
               <b>{item.methodName}</b>
             </td>
             <td>{item.url}</td>
-            <td>{item.code}</td>
+            <td>{item.code ?? "(Waiting for response)"}</td>
           </tr>
         ))}
       </tbody>
@@ -102,7 +108,7 @@ function Details({ item }: { item?: HttpHistoryItem }) {
         <ReadonlyTabs items={requestTabItems}></ReadonlyTabs>
       </div>
       <div className="response">
-        <h5 className={item?.code ?? 500 < 300 ? "text-success" : "text-warning"}>{item.code}</h5>
+        <h5 className={(item?.code ?? 500) < 300 ? "text-success" : "text-warning"}>{item.code}</h5>
         <ReadonlyTabs items={responseTabItems}></ReadonlyTabs>
       </div>
     </div>

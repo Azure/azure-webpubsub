@@ -65,9 +65,21 @@ export class DataHub {
     return url;
   }
 
-  async UpdateTraffics(trafficHistory: HttpHistoryItem[]) {
-    for (const item of trafficHistory) {
-      item.id = await this.repo.insertDataAsync({
+  async AddTraffic(item: HttpHistoryItem) {
+    item.id = await this.repo.insertDataAsync({
+      Request: {
+        TracingId: item.tracingId,
+        RequestAt: item.requestAtOffset,
+        MethodName: item.methodName,
+        Url: item.url,
+        RequestRaw: item.requestRaw,
+      }
+    });
+    this.io.emit("addTraffic", item);
+  }
+
+  async UpdateTraffic(item: HttpHistoryItem) {
+      await this.repo.updateDataAsync({
         Request: {
           TracingId: item.tracingId,
           RequestAt: item.requestAtOffset,
@@ -81,8 +93,7 @@ export class DataHub {
           RespondAt: item.responseAtOffset,
         },
       });
-    }
-    this.io.emit("updateTraffics", trafficHistory);
+    this.io.emit("updateTraffic", item);
   }
 
   UpdateLogs(logs: string[]) {
