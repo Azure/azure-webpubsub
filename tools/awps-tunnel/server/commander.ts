@@ -5,7 +5,7 @@ import { createServer } from "http";
 import path from "path";
 import { DataHub } from "./dataHub";
 import { HttpServerProxy } from "./serverProxies";
-import { ConnectionStatus, ConnectionStatusPairs } from "../client/src/models";
+import { ConnectionStatus, ConnectionStatusPairs, HttpHistoryItem } from "../client/src/models";
 import { logger } from "./logger";
 import fs from "fs";
 
@@ -13,7 +13,6 @@ import { Command, program } from "commander";
 import { DefaultAzureCredential } from "@azure/identity";
 
 import packageJson from "./package.json";
-import { TunnelIncomingMessage, TunnelOutgoingMessage } from "../../../sdk/server-proxies/src/tunnels/TunnelConnection";
 const name = packageJson["cli-name"];
 
 interface Settings {
@@ -161,29 +160,26 @@ function start(run: Command, dbFile: string, connectionString: string | undefine
   dataHub.ReportStatusChange(ConnectionStatus.Connecting);
   tunnel
     .runAsync({
-      onProxiedRequestEnd: (request, arrivedAt, proxiedUrl, response, err) => {
-        if (err) {
-          logger.error(`Error on proxy request ${proxiedUrl}: ${err}`);
-          dataHub.ReportTunnelToLocalServerStatus(ConnectionStatusPairs.Disconnected);
+      handleProxiedRequest: async (request, time, proxiedUrl, invoke) => {
+        const item: HttpHistoryItem = {
+          methodName: request.HttpMethod,
+          url: proxiedUrl.toString(),
+          requestRaw: dumpRawRequest(request),
+          requestAtOffset: time,
+          unread: true,
+        };
+        dataHub.AddTraffic(item);
+        const response = await invoke();
+        logger.info(`Success on getting proxy response ${proxiedUrl}: ${response.StatusCode}`);
+        if (response.StatusCode < 400) {
+          dataHub.ReportTunnelToLocalServerStatus(ConnectionStatusPairs.Connected);
         } else {
-          logger.info(`Success on getting proxy response ${proxiedUrl}: ${response.StatusCode}`);
-          if (response.StatusCode < 400) {
-            dataHub.ReportTunnelToLocalServerStatus(ConnectionStatusPairs.Connected);
-          } else {
-            dataHub.ReportTunnelToLocalServerStatus(ConnectionStatusPairs.ErrorResponse);
-          }
+          dataHub.ReportTunnelToLocalServerStatus(ConnectionStatusPairs.ErrorResponse);
         }
-        dataHub.UpdateTraffics([
-          {
-            code: response.StatusCode,
-            methodName: request.HttpMethod,
-            url: proxiedUrl.toString(),
-            requestRaw: getRawRequest(request),
-            responseRaw: getRawResponse(response),
-            requestAtOffset: arrivedAt,
-            unread: true,
-          },
-        ]);
+        item.code = response.StatusCode;
+        item.responseRaw = getRawResponse(response);
+        dataHub.UpdateTraffic(item);
+        return response;
       },
     })
     .then(() => {
@@ -204,7 +200,7 @@ function start(run: Command, dbFile: string, connectionString: string | undefine
   });
 }
 
-function getRawRequest(message: TunnelIncomingMessage): string {
+function dumpRawRequest(message: { Url: string; HttpMethod: string; Headers?: Record<string, string[]>; Content?: Uint8Array }): string {
   const headers = message.Headers
     ? Object.entries(message.Headers)
         .map(([name, values]) => values.map((value) => `${name}: ${value}`).join("\r\n"))
@@ -216,7 +212,7 @@ function getRawRequest(message: TunnelIncomingMessage): string {
   return `${message.HttpMethod} ${message.Url} HTTP/1.1\r\n${headers}\r\n\r\n${content}`;
 }
 
-function getRawResponse(message: TunnelOutgoingMessage) {
+function getRawResponse(message: { StatusCode: number; Headers: Record<string, string[]>; Content: Uint8Array }) {
   const headers = message.Headers
     ? Object.entries(message.Headers)
         .map(([name, values]) => values.map((value) => `${name}: ${value}`).join("\r\n"))

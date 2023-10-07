@@ -123,6 +123,19 @@ internal class TunnelService
         var proxiedRequest = CreateProxyHttpRequest(request, _localServerUri);
         var proxiedRequestUrl = GetDisplayUrl(proxiedRequest);
         _logger.LogInformation($"Proxied request to '{proxiedRequestUrl}'");
+        var dataModel = new HttpDataModel
+        {
+            Request = new HttpRequestDetail
+            {
+                Url = tunnelRequest.Url,
+                TracingId = tunnelRequest.TracingId,
+                MethodName = tunnelRequest.HttpMethod,
+                RequestAt = arrivedAt,
+                RequestRaw = tunnelRequest.DumpRaw(),
+            }
+        };
+        var item = new HttpItem(dataModel);
+        _ = _dataHub.AddTraffic(item, token);
         try
         {
             response = await httpClient.SendAsync(proxiedRequest);
@@ -156,24 +169,14 @@ internal class TunnelService
         // TODO: write directly to memory instead of convert
         var tunnelResponse = await ToResponse(tunnelRequest, response);
         _logger.LogInformation($"Getting response for {tunnelRequest.TracingId}: {response.StatusCode}");
-        _ = _dataHub.UpdateTraffics(token, new HttpItem(new HttpDataModel
+        dataModel.Response = new HttpResponseDetail
         {
-            Request = new HttpRequestDetail
-            {
-                Url = tunnelRequest.Url,
-                TracingId = tunnelRequest.TracingId,
-                MethodName = tunnelRequest.HttpMethod,
-                RequestAt = arrivedAt,
-                RequestRaw = tunnelRequest.DumpRaw(),
-            },
-            Response = new HttpResponseDetail
-            {
-                Code = (int)response.StatusCode,
+            Code = (int)response.StatusCode,
 
-                RespondAt = processedAt,
-                ResponseRaw = tunnelResponse.DumpRaw(),
-            }
-        }));
+            RespondAt = processedAt,
+            ResponseRaw = tunnelResponse.DumpRaw(),
+        };
+        _ = _dataHub.UpdateTraffic(item, token);
         return tunnelResponse;
     }
 }
