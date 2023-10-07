@@ -73,26 +73,26 @@ export class DataHub {
         MethodName: item.methodName,
         Url: item.url,
         RequestRaw: item.requestRaw,
-      }
+      },
     });
     this.io.emit("addTraffic", item);
   }
 
   async UpdateTraffic(item: HttpHistoryItem) {
-      await this.repo.updateDataAsync({
-        Request: {
-          TracingId: item.tracingId,
-          RequestAt: item.requestAtOffset,
-          MethodName: item.methodName,
-          Url: item.url,
-          RequestRaw: item.requestRaw,
-        },
-        Response: {
-          Code: item.code,
-          ResponseRaw: item.responseRaw,
-          RespondAt: item.responseAtOffset,
-        },
-      });
+    await this.repo.updateDataAsync({
+      Request: {
+        TracingId: item.tracingId,
+        RequestAt: item.requestAtOffset,
+        MethodName: item.methodName,
+        Url: item.url,
+        RequestRaw: item.requestRaw,
+      },
+      Response: {
+        Code: item.code,
+        ResponseRaw: item.responseRaw,
+        RespondAt: item.responseAtOffset,
+      },
+    });
     this.io.emit("updateTraffic", item);
   }
 
