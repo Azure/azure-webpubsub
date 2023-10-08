@@ -11,7 +11,7 @@ import { DataRepo } from "./dataRepo";
 export class DataHub {
   public tunnelConnectionStatus = ConnectionStatus.Connecting;
   public tunnelServerStatus = ConnectionStatusPairs.None;
-  public serviceConfigurations?: ServiceConfiguration = undefined;
+  public serviceConfiguration?: ServiceConfiguration = undefined;
   public livetraceUrl = "";
   public clientUrl = "";
   public endpoint = "";
@@ -40,7 +40,7 @@ export class DataHub {
             upstreamServerUrl: this.upstreamServerUrl,
             tunnelConnectionStatus: this.tunnelConnectionStatus,
             tunnelServerStatus: this.tunnelServerStatus,
-            serviceConfigurations: this.serviceConfigurations,
+            serviceConfiguration: this.serviceConfiguration,
           },
           trafficHistory: await this.getHttpHistory(),
           logs: [],
@@ -121,8 +121,8 @@ export class DataHub {
     this.tunnelServerStatus = status;
     this.io.emit("reportTunnelToLocalServerStatus", status);
   }
-  ReportServiceConfiguration(config: ServiceConfiguration){
-    this.serviceConfigurations = config;
+  ReportServiceConfiguration(config: ServiceConfiguration) {
+    this.serviceConfiguration = config;
     this.io.emit("reportServiceConfiguration", config);
   }
 

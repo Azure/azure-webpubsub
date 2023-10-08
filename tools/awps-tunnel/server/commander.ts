@@ -5,8 +5,9 @@ import { createServer } from "http";
 import path from "path";
 import { DataHub } from "./dataHub";
 import { HttpServerProxy } from "./serverProxies";
-import { ConnectionStatus, ConnectionStatusPairs, HttpHistoryItem, ServiceConfiguration } from "../client/src/models";
+import { ConnectionStatus, ConnectionStatusPairs, EventHandlerSetting, HttpHistoryItem, ServiceConfiguration } from "../client/src/models";
 import { logger } from "./logger";
+import { WebPubSubManagementClient } from "@azure/arm-webpubsub";
 import fs from "fs";
 
 import { Command, program } from "commander";
@@ -128,7 +129,7 @@ function createBindAction(bind: Command, settings: Settings, updated: CommandLin
   onDone(settings);
 }
 
-async function reportServiceConfigurations(dataHub: DataHub, subscriptionId: string | undefined, resourceGroup: string | undefined, endpoint: URL, hub: string) {
+async function reportServiceConfiguration(dataHub: DataHub, subscriptionId: string | undefined, resourceGroup: string | undefined, endpoint: URL, hub: string) {
   const config = await loadHubSettings(subscriptionId, resourceGroup, endpoint, hub);
   dataHub.ReportServiceConfiguration(config);
 }
@@ -136,7 +137,7 @@ async function reportServiceConfigurations(dataHub: DataHub, subscriptionId: str
 async function loadHubSettings(subscriptionId: string | undefined, resourceGroup: string | undefined, endpoint: URL, hub: string): Promise<ServiceConfiguration> {
   let message = "";
   let resourceName = "";
-  let eventHandlers = [];
+  let eventHandlers: EventHandlerSetting[] | undefined = [];
   if (subscriptionId && resourceGroup) {
     resourceName = endpoint.hostname.split(".")[0];
     if (!resourceName) {
@@ -144,22 +145,21 @@ async function loadHubSettings(subscriptionId: string | undefined, resourceGroup
       console.warn(message);
     } else {
       // use DefaultAzureCredential to connect to the control plane
-      const { WebPubSubManagementClient } = require("@azure/arm-webpubsub");
-      const { DefaultAzureCredential } = require("@azure/identity");
       const client = new WebPubSubManagementClient(new DefaultAzureCredential(), subscriptionId);
-      const result = await client.webPubSubHubs.get(hub, resourceGroup, resourceName);
-      if (result.statusCode >= 400) {
-        message = `Failed to fetch hub settings: ${result.code} ${result.code} ${result.details.error.message}`;
+      try {
+        const result = await client.webPubSubHubs.get(hub, resourceGroup, resourceName);
+        eventHandlers = result.properties.eventHandlers?.map((s) => s as EventHandlerSetting);
+      } catch (err) {
+        message = `Failed to fetch hub settings: ${err}`;
         console.warn(message);
       }
-      eventHandlers = result.properties.eventHandlers;
     }
   } else {
     message = `Unable to fetch hub settings: subscriptionId and resourceGroup are not specified. You can use options '-s <subscriptionId> -g <resourceGroup>' to set them or call '${name} bind -s <subscriptionId> -g <resourceGroup>' to bind the values.}`;
     console.warn(message);
   }
 
-  return {message, eventHandlers, subscriptionId, resourceGroup, resourceName, loaded: true};
+  return { message, eventHandlers, subscriptionId, resourceGroup, resourceName, loaded: true };
 }
 
 function createRunCommand(run: Command, dbFile: string, settings: Settings, updated: CommandLineArgs) {
@@ -220,13 +220,14 @@ function start(run: Command, dbFile: string, connectionString: string | undefine
     tunnel = new HttpServerProxy(endpoint!, new DefaultAzureCredential(), hub, { target: upstreamUrl });
   }
 
-  loadHubSettings(subscription, resourceGroup, new URL(tunnel.endpoint), tunnel.hub);
-
   const app = express();
   const server = createServer(app);
   console.log(`Connect to ${tunnel.endpoint}, hub: ${tunnel.hub}, upstream: ${upstreamUrl}`);
   const dataHub = new DataHub(server, tunnel, upstreamUrl, dbFile);
   dataHub.ReportStatusChange(ConnectionStatus.Connecting);
+
+  reportServiceConfiguration(dataHub, subscription, resourceGroup, new URL(tunnel.endpoint), tunnel.hub);
+
   tunnel
     .runAsync({
       handleProxiedRequest: async (request, time, proxiedUrl, invoke) => {
