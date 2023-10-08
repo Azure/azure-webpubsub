@@ -1,5 +1,5 @@
 import { ServiceConfiguration } from "../models";
-import { Skeleton, SkeletonItem, Tag } from "@fluentui/react-components";
+import { Skeleton, SkeletonItem } from "@fluentui/react-components";
 
 import { InfoLabel } from "@fluentui/react-components/unstable";
 import React from "react";
