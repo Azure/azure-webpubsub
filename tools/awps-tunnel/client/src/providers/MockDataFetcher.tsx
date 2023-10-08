@@ -1,4 +1,4 @@
-import { ConnectionStatus, LogLevel, HttpHistoryItem, DataModel } from "../models";
+import { ConnectionStatus, LogLevel, HttpHistoryItem, DataModel, SystemEvent, ConnectionStatusPairs } from "../models";
 import { IDataFetcher } from "./IDataFetcher";
 
 export class MockDataFetcher implements IDataFetcher {
@@ -14,6 +14,7 @@ export class MockDataFetcher implements IDataFetcher {
       statusIn: ConnectionStatus.Connected,
       statusOut: ConnectionStatus.Connected,
     },
+    serviceConfiguration: { loaded: false, resourceName: "abc" },
     trafficHistory: [],
     logs: [],
   };
@@ -23,20 +24,28 @@ export class MockDataFetcher implements IDataFetcher {
     });
     setInterval(() => this._updateModel(this.model), 5000);
   }
-
   fetch(): Promise<DataModel> {
-    const current = {
+  const current = {
       ready: true,
       clientUrl: "ws://abc/client",
       liveTraceUrl: "https://xxx.webpubsub.azure.com",
       endpoint: "https://xxx.webpubsub.azure.com",
       upstreamServerUrl: "http://localhost:3000",
       tunnelConnectionStatus: ConnectionStatus.Connected,
-      tunnelServerStatus: {
-        statusIn: ConnectionStatus.Connected,
-        statusOut: ConnectionStatus.Connected,
-      },
+      tunnelServerStatus: ConnectionStatusPairs.Connected,
       hub: "chat",
+      serviceConfiguration: { loaded: true, message: "Not configured", resourceName: "b", eventHandlers: [
+        {
+          systemEvents: [ SystemEvent.Connect, SystemEvent.Disconnected ],
+          urlTemplate: "http://localhost:3000/eventhandler",
+          userEventPattern: "*",
+        },
+        {
+          systemEvents: [ SystemEvent.Connect, SystemEvent.Disconnected ],
+          urlTemplate: "http://localhost:3000/eventhandler",
+          userEventPattern: "*",
+        }
+      ] },
       trafficHistory: [generateMockHttpItem()],
       logs: [
         {

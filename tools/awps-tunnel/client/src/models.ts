@@ -25,11 +25,33 @@ export enum LogLevel {
   Error,
 }
 
+export interface EventHandlerSetting {
+  urlTemplate: string;
+  userEventPattern: string;
+  systemEvents: SystemEvent[];
+}
+
+export interface ServiceConfiguration {
+  eventHandlers?: EventHandlerSetting[];
+  message?: string;
+  subscriptionId?: string;
+  resourceGroup?: string;
+  resourceName: string;
+  loaded: boolean;
+}
+
 export enum ConnectionStatus {
+  None = "None",
   Connecting = "Connecting",
   Connected = "Connected",
   Reconnecting = "Reconnecting",
   Disconnected = "Disconnected",
+}
+
+export enum SystemEvent {
+  Connect = "connect",
+  Connected = "connected",
+  Disconnected = "disconnected",
 }
 
 export interface ConnectionStatusPair {
@@ -37,6 +59,7 @@ export interface ConnectionStatusPair {
   statusIn: ConnectionStatus;
 }
 export class ConnectionStatusPairs {
+  public static readonly None: ConnectionStatusPair = { statusOut: ConnectionStatus.None, statusIn: ConnectionStatus.None };
   public static readonly Connected: ConnectionStatusPair = { statusOut: ConnectionStatus.Connected, statusIn: ConnectionStatus.Connected };
   public static readonly Disconnected: ConnectionStatusPair = { statusOut: ConnectionStatus.Disconnected, statusIn: ConnectionStatus.Disconnected };
   public static readonly ErrorResponse: ConnectionStatusPair = { statusOut: ConnectionStatus.Connected, statusIn: ConnectionStatus.Disconnected };
@@ -85,4 +108,8 @@ export interface DataModel {
    * The logs for current round
    */
   logs: LogItem[];
+  /**
+   * The service configuration
+   */
+  serviceConfiguration: ServiceConfiguration;
 }

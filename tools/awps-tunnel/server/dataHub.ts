@@ -2,7 +2,7 @@
 // host the website
 // start the server connection
 import { Server, Socket } from "socket.io";
-import { ConnectionStatus, ConnectionStatusPair, HttpHistoryItem, ConnectionStatusPairs } from "../client/src/models";
+import { ConnectionStatus, ConnectionStatusPair, HttpHistoryItem, ConnectionStatusPairs, ServiceConfiguration } from "../client/src/models";
 import http from "http";
 import { HttpServerProxy } from "./serverProxies";
 import { DataRepo } from "./dataRepo";
@@ -10,7 +10,8 @@ import { DataRepo } from "./dataRepo";
 // singleton per hub?
 export class DataHub {
   public tunnelConnectionStatus = ConnectionStatus.Connecting;
-  public tunnelServerStatus = ConnectionStatusPairs.Disconnected;
+  public tunnelServerStatus = ConnectionStatusPairs.None;
+  public serviceConfigurations?: ServiceConfiguration = undefined;
   public livetraceUrl = "";
   public clientUrl = "";
   public endpoint = "";
@@ -39,6 +40,7 @@ export class DataHub {
             upstreamServerUrl: this.upstreamServerUrl,
             tunnelConnectionStatus: this.tunnelConnectionStatus,
             tunnelServerStatus: this.tunnelServerStatus,
+            serviceConfigurations: this.serviceConfigurations,
           },
           trafficHistory: await this.getHttpHistory(),
           logs: [],
@@ -118,6 +120,10 @@ export class DataHub {
   ReportTunnelToLocalServerStatus(status: ConnectionStatusPair) {
     this.tunnelServerStatus = status;
     this.io.emit("reportTunnelToLocalServerStatus", status);
+  }
+  ReportServiceConfiguration(config: ServiceConfiguration){
+    this.serviceConfigurations = config;
+    this.io.emit("reportServiceConfiguration", config);
   }
 
   async getHttpHistory(): Promise<HttpHistoryItem[]> {
