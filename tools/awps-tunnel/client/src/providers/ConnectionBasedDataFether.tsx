@@ -16,6 +16,7 @@ abstract class ConnectionBasedDataFether implements IDataFetcher {
       statusIn: ConnectionStatus.Disconnected,
       statusOut: ConnectionStatus.Disconnected,
     },
+    serviceConfiguration: { loaded: false, resourceName: ""},
     trafficHistory: [],
     logs: [],
   };
@@ -54,6 +55,11 @@ abstract class ConnectionBasedDataFether implements IDataFetcher {
     });
     newConnection.on("reportTunnelToLocalServerStatus", (status) => {
       this.model = { ...this.model, tunnelServerStatus: status };
+      this.setData(this.model);
+    });
+
+    newConnection.on("reportServiceConfiguration", (config) => {
+      this.model = { ...this.model, serviceConfiguration: config };
       this.setData(this.model);
     });
 

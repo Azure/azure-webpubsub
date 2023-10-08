@@ -16,6 +16,7 @@ import { ServerPanel } from "./panels/ServerPanel";
 import { ResizablePanel } from "./ResizablePanel";
 import { StatusDescriptor, StatusDisplayText } from "./workflows/StatusIndicator";
 import { ClientPanel } from "./panels/ClientPanel";
+import { EventHandler } from "./EventHandler";
 
 interface WorkflowProps {
   key: string;
@@ -24,7 +25,8 @@ interface WorkflowProps {
   status?: ConnectionStatus;
   statusPair?: ConnectionStatusPair;
   content: React.ReactNode;
-  states?: { title: string; content: React.ReactNode }[];
+  states?: { title: React.ReactNode; content: React.ReactNode }[];
+  vertical?: boolean;
 }
 
 function loadCurrentTab(): string {
@@ -61,11 +63,13 @@ export const Dashboard = () => {
       key: "service",
       title: "Web PubSub",
       icon: svg.SvgWebPubSub,
+      vertical: true,
       states: [
         {
           title: "Endpoint",
           content: data.endpoint,
         },
+        EventHandler({hub: data.hub, settings: data.serviceConfiguration})
       ],
       status: data?.tunnelConnectionStatus,
       content: <ServicePanel endpoint={data.endpoint} status={data.tunnelConnectionStatus} liveTraceUrl={data.liveTraceUrl}></ServicePanel>,
@@ -156,7 +160,7 @@ export const Dashboard = () => {
     </>
   );
   const paneOverview = (p: WorkflowProps) => (
-    <div className="d-flex justify-content-start">
+    <div className={p.vertical ? "d-flex flex-column justify-content-start" : "d-flex justify-content-start"} >
       {p.states?.map((s, i) => (
         <div key={i} className="d-flex m-2 flex-column">
           <div>

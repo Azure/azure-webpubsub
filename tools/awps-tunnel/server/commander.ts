@@ -5,8 +5,9 @@ import { createServer } from "http";
 import path from "path";
 import { DataHub } from "./dataHub";
 import { HttpServerProxy } from "./serverProxies";
-import { ConnectionStatus, ConnectionStatusPairs, HttpHistoryItem } from "../client/src/models";
+import { ConnectionStatus, ConnectionStatusPairs, EventHandlerSetting, HttpHistoryItem, ServiceConfiguration } from "../client/src/models";
 import { logger } from "./logger";
+import { WebPubSubManagementClient } from "@azure/arm-webpubsub";
 import fs from "fs";
 
 import { Command, program } from "commander";
@@ -20,7 +21,17 @@ interface Settings {
     Endpoint?: string;
     Hub?: string;
     Upstream?: string;
+    SubscriptionId?: string;
+    ResourceGroup?: string;
   };
+}
+
+interface CommandLineArgs {
+  endpoint?: string;
+  hub?: string;
+  upstream?: string;
+  subscription?: string;
+  resourceGroup?: string;
 }
 
 export function getCommand(appConfigPath: string, dbFile: string): Command {
@@ -33,6 +44,11 @@ export function getCommand(appConfigPath: string, dbFile: string): Command {
     .option("-e, --endpoint <endpoint>", "Sepcify the Web PubSub service endpoint URL to connect to")
     .option("--hub <hub>", "Specify the hub to connect to")
     .option("-u, --upstream <upstream>", "Specify the upstream URL to connect to")
+    .option("-s, --subscription <subscription>", "Specify the subscriptionId your Web PubSub service belongs to. Specify subscriptionId and resource group to let the tool fetch hub settings for you")
+    .option(
+      "-g, --resourceGroup <resourceGroup>",
+      "Specify the resource group your Web PubSub service belongs to. Specify subscriptionId and resource group to let the tool fetch hub settings for you",
+    )
     .action((update) =>
       createBindAction(bind, settings, update, (updatedSettings) => {
         fs.writeFileSync(appConfigPath, JSON.stringify(updatedSettings, null, 2));
@@ -49,6 +65,11 @@ export function getCommand(appConfigPath: string, dbFile: string): Command {
     )
     .option("--hub <hub>", "Specify the hub to connect to")
     .option("-u, --upstream <upstream>", "Specify the upstream URL to redirect traffic to")
+    .option("-s, --subscription <subscription>", "Specify the subscriptionId your Web PubSub service belongs to. Specify subscriptionId and resource group to let the tool fetch hub settings for you")
+    .option(
+      "-g, --resourceGroup <resourceGroup>",
+      "Specify the resource group your Web PubSub service belongs to. Specify subscriptionId and resource group to let the tool fetch hub settings for you",
+    )
     .action((updated) => {
       createRunCommand(run, dbFile, settings, updated);
     });
@@ -60,6 +81,8 @@ function print(settings: Settings) {
   console.log(`Current Web PubSub service endpoint: ${settings?.WebPubSub?.Endpoint ?? "<Not binded>"}`);
   console.log(`Current hub: ${settings?.WebPubSub?.Hub ?? "<Not binded>"}`);
   console.log(`Current upstream: ${settings?.WebPubSub?.Upstream ?? "<Not binded>"}`);
+  console.log(`Current subscription Id: ${settings?.WebPubSub?.SubscriptionId ?? "<Not binded>"}`);
+  console.log(`Current resource group: ${settings?.WebPubSub?.ResourceGroup ?? "<Not binded>"}`);
 }
 
 function createStatusAction(settings: Settings) {
@@ -67,12 +90,14 @@ function createStatusAction(settings: Settings) {
   console.log(`Use ${name} bind to set/reset the settings.`);
 }
 
-function createBindAction(bind: Command, settings: Settings, updated: { endpoint: string; hub: string; upstream: string }, onDone: (updatedSettings: Settings) => void) {
+function createBindAction(bind: Command, settings: Settings, updated: CommandLineArgs, onDone: (updatedSettings: Settings) => void) {
   const endpoint = updated.endpoint;
   const hub = updated.hub;
   const upstream = updated.upstream;
-  if (!endpoint && !hub && !upstream) {
-    console.error("Error: none of --endpoint|--hub|--upstream is specified.");
+  const subscription = updated.subscription;
+  const resourceGroup = updated.resourceGroup;
+  if (!endpoint && !hub && !upstream && !subscription && !resourceGroup) {
+    console.error("Error: none of --endpoint|--hub|--upstream|--subscription|--resourceGroup is specified.");
     bind.outputHelp();
     return;
   }
@@ -95,13 +120,55 @@ function createBindAction(bind: Command, settings: Settings, updated: { endpoint
   if (hub) {
     settings.WebPubSub.Hub = hub;
   }
+  if (subscription) {
+    settings.WebPubSub.SubscriptionId = subscription;
+  }
+  if (resourceGroup) {
+    settings.WebPubSub.ResourceGroup = resourceGroup;
+  }
   onDone(settings);
 }
 
-function createRunCommand(run: Command, dbFile: string, settings: Settings, updated: { endpoint: string; hub: string; upstream: string }) {
+async function reportServiceConfiguration(dataHub: DataHub, subscriptionId: string | undefined, resourceGroup: string | undefined, endpoint: URL, hub: string) {
+  const config = await loadHubSettings(subscriptionId, resourceGroup, endpoint, hub);
+  dataHub.ReportServiceConfiguration(config);
+}
+
+async function loadHubSettings(subscriptionId: string | undefined, resourceGroup: string | undefined, endpoint: URL, hub: string): Promise<ServiceConfiguration> {
+  let message = "";
+  let resourceName = "";
+  let eventHandlers: EventHandlerSetting[] | undefined = [];
+  if (subscriptionId && resourceGroup) {
+    resourceName = endpoint.hostname.split(".")[0];
+    if (!resourceName) {
+      message = `Unable to get valid resource name from endpoint ${endpoint}, skip fetching hub settings.`;
+      console.warn(message);
+    } else {
+      // use DefaultAzureCredential to connect to the control plane
+      const client = new WebPubSubManagementClient(new DefaultAzureCredential(), subscriptionId);
+      try {
+        const result = await client.webPubSubHubs.get(hub, resourceGroup, resourceName);
+        eventHandlers = result.properties.eventHandlers?.map((s) => s as EventHandlerSetting);
+      } catch (err) {
+        message = `Failed to fetch hub settings: ${err}`;
+        console.warn(message);
+      }
+    }
+  } else {
+    message = `Unable to fetch hub settings: subscriptionId and resourceGroup are not specified. You can use options '-s <subscriptionId> -g <resourceGroup>' to set them or call '${name} bind -s <subscriptionId> -g <resourceGroup>' to bind the values.}`;
+    console.warn(message);
+  }
+
+  return { message, eventHandlers, subscriptionId, resourceGroup, resourceName, loaded: true };
+}
+
+function createRunCommand(run: Command, dbFile: string, settings: Settings, updated: CommandLineArgs) {
   const endpoint = updated.endpoint;
   const hub = updated.hub;
   const upstream = updated.upstream;
+  const subscription = updated.subscription ?? settings.WebPubSub.SubscriptionId;
+  const resourceGroup = updated.resourceGroup ?? settings.WebPubSub.ResourceGroup;
+
   let currentUpstream = settings.WebPubSub.Upstream;
   if (upstream) {
     if (!validateEndpoint(upstream)) {
@@ -134,10 +201,10 @@ function createRunCommand(run: Command, dbFile: string, settings: Settings, upda
 
     currentEndpoint = endpoint;
   }
-  start(run, dbFile, connectionString, currentEndpoint, currentHub, currentUpstream);
+  start(run, dbFile, connectionString, currentEndpoint, currentHub, currentUpstream, subscription, resourceGroup);
 }
 
-function start(run: Command, dbFile: string, connectionString: string | undefined, endpoint: string | undefined, hub: string, upstreamUrl: string) {
+function start(run: Command, dbFile: string, connectionString: string | undefined, endpoint: string | undefined, hub: string, upstreamUrl: string, subscription?: string, resourceGroup?: string) {
   if (!connectionString && !endpoint) {
     console.error(`Error: neither WebPubSubConnectionString env is set nor endpoint is not specified.`);
     run.outputHelp();
@@ -158,6 +225,9 @@ function start(run: Command, dbFile: string, connectionString: string | undefine
   console.log(`Connect to ${tunnel.endpoint}, hub: ${tunnel.hub}, upstream: ${upstreamUrl}`);
   const dataHub = new DataHub(server, tunnel, upstreamUrl, dbFile);
   dataHub.ReportStatusChange(ConnectionStatus.Connecting);
+
+  reportServiceConfiguration(dataHub, subscription, resourceGroup, new URL(tunnel.endpoint), tunnel.hub);
+
   tunnel
     .runAsync({
       handleProxiedRequest: async (request, time, proxiedUrl, invoke) => {
