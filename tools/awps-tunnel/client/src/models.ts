@@ -46,6 +46,7 @@ export enum ConnectionStatus {
   Connected = "Connected",
   Reconnecting = "Reconnecting",
   Disconnected = "Disconnected",
+  Disconnecting = "Disconnecting",
 }
 
 export enum SystemEvent {

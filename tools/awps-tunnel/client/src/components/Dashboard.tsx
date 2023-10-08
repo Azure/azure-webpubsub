@@ -44,7 +44,10 @@ function setCurrentTab(tab: string): void {
 export const Dashboard = () => {
   const [showPanel, setShowPanel] = useState(false);
   const [clientConnectionStatus, setClientConnectionStatus] = useState(ConnectionStatus.Disconnected);
-  const { data } = useDataContext();
+  const { data, invoke } = useDataContext();
+  const onStartUpstream = async (start: boolean) => {
+    return start ? await invoke("startEmbeddedUpstream") : await invoke("stopEmbeddedUpstream");
+  }
   const workflows: WorkflowProps[] = [
     {
       key: "client",
@@ -105,7 +108,7 @@ export const Dashboard = () => {
           content: data.upstreamServerUrl,
         },
       ],
-      content: <ServerPanel endpoint={data?.upstreamServerUrl}></ServerPanel>,
+      content: <ServerPanel endpoint={data?.upstreamServerUrl} onChange={onStartUpstream}></ServerPanel>,
     },
   ];
   // read current tab from local storage

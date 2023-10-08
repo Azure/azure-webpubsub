@@ -24,8 +24,12 @@ export class MockDataFetcher implements IDataFetcher {
     });
     setInterval(() => this._updateModel(this.model), 5000);
   }
+  async invoke(method: string, ...args: any[]): Promise<any> {
+    await delay(5000);
+    return { success: true, message: method };
+  }
   fetch(): Promise<DataModel> {
-  const current = {
+    const current = {
       ready: true,
       clientUrl: "ws://abc/client",
       liveTraceUrl: "https://xxx.webpubsub.azure.com",
@@ -34,18 +38,23 @@ export class MockDataFetcher implements IDataFetcher {
       tunnelConnectionStatus: ConnectionStatus.Connected,
       tunnelServerStatus: ConnectionStatusPairs.Connected,
       hub: "chat",
-      serviceConfiguration: { loaded: true, message: "Not configured", resourceName: "b", eventHandlers: [
-        {
-          systemEvents: [ SystemEvent.Connect, SystemEvent.Disconnected ],
-          urlTemplate: "http://localhost:3000/eventhandler",
-          userEventPattern: "*",
-        },
-        {
-          systemEvents: [ SystemEvent.Connect, SystemEvent.Disconnected ],
-          urlTemplate: "http://localhost:3000/eventhandler",
-          userEventPattern: "*",
-        }
-      ] },
+      serviceConfiguration: {
+        loaded: true,
+        message: "Not configured",
+        resourceName: "b",
+        eventHandlers: [
+          {
+            systemEvents: [SystemEvent.Connect, SystemEvent.Disconnected],
+            urlTemplate: "http://localhost:3000/eventhandler",
+            userEventPattern: "*",
+          },
+          {
+            systemEvents: [SystemEvent.Connect, SystemEvent.Disconnected],
+            urlTemplate: "http://localhost:3000/eventhandler",
+            userEventPattern: "*",
+          },
+        ],
+      },
       trafficHistory: [generateMockHttpItem()],
       logs: [
         {
@@ -102,4 +111,10 @@ Hey Hello`,
     unread: true,
     id: id++,
   };
+}
+
+function delay(ms: number): Promise<void> {
+  return new Promise<void>((resolve) => {
+    setTimeout(resolve, ms);
+  });
 }
