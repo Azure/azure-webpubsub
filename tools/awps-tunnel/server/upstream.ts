@@ -1,8 +1,8 @@
 import express from "express";
 import { Server } from "http";
 import { WebPubSubEventHandler } from "@azure/web-pubsub-express";
-import { createLogger } from "./logger";
-const logger = createLogger("upstreamServer");
+import { logger } from "./logger";
+
 export async function startUpstreamServer(port: number, hub: string, path: string): Promise<Server> {
   return new Promise((resolve, reject) => {
     const app = express();

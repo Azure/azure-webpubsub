@@ -6,9 +6,12 @@ import { ConnectionStatus, ConnectionStatusPair, HttpHistoryItem, ConnectionStat
 import http from "http";
 import { HttpServerProxy } from "./serverProxies";
 import { DataRepo } from "./dataRepo";
+import { startUpstreamServer } from "./upstream";
 
 // singleton per hub?
 export class DataHub {
+  // make sure only one server is there
+  public static upstreamServer?: http.Server;
   public tunnelConnectionStatus = ConnectionStatus.Connecting;
   public tunnelServerStatus = ConnectionStatusPairs.None;
   public serviceConfiguration?: ServiceConfiguration = undefined;
@@ -28,6 +31,29 @@ export class DataHub {
     // Socket.io event handling
     io.on("connection", (socket: Socket) => {
       console.log("A Socketio client connected");
+
+      socket.on("startEmbeddedUpstream", async (callback) => {
+        if (DataHub.upstreamServer) {
+          callback({ success: true, message: "Embedded upstream server already started" });
+          return;
+        }
+        const url = new URL(upstreamUrl);
+        try {
+          DataHub.upstreamServer = await startUpstreamServer(Number.parseInt(url.port), tunnel.hub, "/eventHandler");
+          callback({ success: true, message: "Embedded upstream server started at port " + url.port });
+        } catch (err) {
+          callback({ success: true, message: `Embedded upstream server failed to start at port ${url.port}:${err}` });
+        }
+      });
+
+      socket.on("stopEmbeddedUpstream", (callback) => {
+        try {
+          DataHub.upstreamServer?.close();
+          callback({ success: true, message: "Upstream server successfully stopped" });
+        } catch (err) {
+          callback({ success: true, message: `Upstream server failed to stop:${err}` });
+        }
+      });
 
       socket.on("getCurrentModel", async (callback) => {
         callback({

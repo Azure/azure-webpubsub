@@ -1,17 +1,40 @@
 import { Icon } from "@fluentui/react/lib/Icon";
 import { Switch, Field, ProgressBar } from "@fluentui/react-components";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 import { ConnectionStatus } from "../../models";
+import CodeTabs from "../CodeTabs";
 export interface ServerPanelProps {
   endpoint?: string;
   onChange: (checked: boolean) => Promise<{ success: boolean; message: string }>;
+}
+const key = "server-state";
+function loadState(): {started: boolean} {
+  const state = localStorage.getItem(key);
+  if (state) {
+    return JSON.parse(state);
+  }
+  return {started: false};
+}
+
+function setState(state: {started: boolean}): void {
+  localStorage.setItem(key, JSON.stringify(state));
 }
 
 export function ServerPanel({ endpoint, onChange }: ServerPanelProps) {
   const [message, setMessage] = useState<string>();
   const [startEmbeddedServer, setStartEmbeddedServer] = useState<boolean>(false);
   const [status, setStatus] = useState<ConnectionStatus>(ConnectionStatus.None);
+  useEffect(() => {
+    // loading the initial status from local storage
+    const state = loadState();
+    setStartEmbeddedServer(state.started);
+  }, []);
+
+  useEffect(() => {
+    setState({started: startEmbeddedServer});
+  }, [startEmbeddedServer]);
+
   function onSwitch(checked: boolean) {
     async function onSwitchAsync() {
       if (checked) {
@@ -67,6 +90,7 @@ export function ServerPanel({ endpoint, onChange }: ServerPanelProps) {
       <p className="m-2">
         <b>{message}</b>
       </p>
+      {startEmbeddedServer && <CodeTabs></CodeTabs>}
     </div>
   );
 }

@@ -44,9 +44,9 @@ function setCurrentTab(tab: string): void {
 export const Dashboard = () => {
   const [showPanel, setShowPanel] = useState(false);
   const [clientConnectionStatus, setClientConnectionStatus] = useState(ConnectionStatus.Disconnected);
-  const { data, invoke } = useDataContext();
+  const { data, dataFetcher } = useDataContext();
   const onStartUpstream = async (start: boolean) => {
-    return start ? await invoke("startEmbeddedUpstream") : await invoke("stopEmbeddedUpstream");
+    return start ? await dataFetcher.invoke("startEmbeddedUpstream") : await dataFetcher.invoke("stopEmbeddedUpstream");
   }
   const workflows: WorkflowProps[] = [
     {

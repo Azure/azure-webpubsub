@@ -1,5 +1,5 @@
 import { Socket, io } from "socket.io-client";
-import { ConnectionStatus, DataModel } from "../models";
+import { ConnectionStatus, ConnectionStatusPairs, DataModel } from "../models";
 import { IDataFetcher } from "./IDataFetcher";
 import * as signalR from "@microsoft/signalr";
 
@@ -12,10 +12,7 @@ abstract class ConnectionBasedDataFether implements IDataFetcher {
     liveTraceUrl: "",
     upstreamServerUrl: "",
     tunnelConnectionStatus: ConnectionStatus.Connecting,
-    tunnelServerStatus: {
-      statusIn: ConnectionStatus.Disconnected,
-      statusOut: ConnectionStatus.Disconnected,
-    },
+    tunnelServerStatus: ConnectionStatusPairs.None,
     serviceConfiguration: { loaded: false, resourceName: "" },
     trafficHistory: [],
     logs: [],

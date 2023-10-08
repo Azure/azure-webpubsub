@@ -31,10 +31,12 @@ export function RequestHistory() {
   const overviewPanel = (
     <table className="table" aria-labelledby="tabelLabel">
       <thead>
+        <tr>
           <th>Time</th>
           <th>Method</th>
           <th>URL</th>
           <th>Status</th>
+        </tr>
       </thead>
       <tbody>
         {items.map((item) => (

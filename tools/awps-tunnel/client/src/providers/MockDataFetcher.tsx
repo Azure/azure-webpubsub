@@ -25,7 +25,7 @@ export class MockDataFetcher implements IDataFetcher {
     setInterval(() => this._updateModel(this.model), 5000);
   }
   async invoke(method: string, ...args: any[]): Promise<any> {
-    await delay(5000);
+    await delay(1000);
     return { success: true, message: method };
   }
   fetch(): Promise<DataModel> {
