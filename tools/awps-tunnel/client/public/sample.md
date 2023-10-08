@@ -1,36 +1,34 @@
 # JavaScript
-
-Following the steps:
 1. Install the package:
 
-```bash
-npm install @azure/web-pubsub-express
-```
+  ```bash
+  npm install @azure/web-pubsub-express
+  ```
 
 2. Use `WebPubSubEventHandler`
 
-```js
-const app = express();
-const handler = new WebPubSubEventHandler(hub, {
-  path: path,
-  handleConnect(_, res) {
-    logger.info(`Connect triggered`);
-    res.success();
-  },
-  handleUserEvent(_, res) {
-    logger.info(`User event triggered`);
-    res.success();
-  },
-  onConnected() {
-    logger.info(`Connected triggered`);
-  },
-  onDisconnected() {
-    logger.info(`Disconnected triggered`);
-  },
-});
-app.use(handler.getMiddleware());
+  ```js
+  const app = express();
+  const handler = new WebPubSubEventHandler(hub, {
+    path: path,
+    handleConnect(_, res) {
+      logger.info(`Connect triggered`);
+      res.success();
+    },
+    handleUserEvent(_, res) {
+      logger.info(`User event triggered`);
+      res.success();
+    },
+    onConnected() {
+      logger.info(`Connected triggered`);
+    },
+    onDisconnected() {
+      logger.info(`Disconnected triggered`);
+    },
+  });
+  app.use(handler.getMiddleware());
 
-```
+  ```
 
 # C#
 ```csharp

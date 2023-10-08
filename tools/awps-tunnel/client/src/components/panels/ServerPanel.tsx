@@ -77,20 +77,22 @@ export function ServerPanel({ endpoint, onChange }: ServerPanelProps) {
         </b>
       </p>
       <Switch
-        label={startEmbeddedServer ? "Embedded server started." : "Embedded server stopped"}
+        label={startEmbeddedServer ? "Embedded server started" : "Embedded server stopped"}
         checked={startEmbeddedServer}
         disabled={status === ConnectionStatus.Connecting || status === ConnectionStatus.Disconnecting}
         onChange={(ev) => onSwitch(ev.currentTarget.checked)}
       ></Switch>
       {(status === ConnectionStatus.Connecting || status === ConnectionStatus.Disconnecting) && (
-        <Field validationMessage={status === ConnectionStatus.Connecting ? "Starting embedded upstream server" : "Stopping embedded upstream server"} validationState="none">
+        <Field className="m-2" validationMessage={status === ConnectionStatus.Connecting ? "Starting embedded upstream server" : "Stopping embedded upstream server"} validationState="none">
           <ProgressBar />
         </Field>
       )}
-      <p className="m-2">
+      <div className="m-2">
         <b>{message}</b>
-      </p>
-      {startEmbeddedServer && <CodeTabs></CodeTabs>}
+        <hr></hr>
+        <b>📋Sample code handling events in your app server:</b>
+        <CodeTabs></CodeTabs>
+      </div>
     </div>
   );
 }

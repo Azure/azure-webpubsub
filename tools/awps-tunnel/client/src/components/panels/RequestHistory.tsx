@@ -6,7 +6,10 @@ import { ResizablePanel } from "../ResizablePanel";
 import { useDataContext } from "../../providers/DataContext";
 import { HttpHistoryItem } from "../../models";
 
-export function RequestHistory() {
+export interface RequestHistoryProps {
+  onUnreadChange: (unread: number) => void;
+}
+export function RequestHistory(props: RequestHistoryProps) {
   const [items, setItems] = useState<HttpHistoryItem[]>([]);
   const [selectedItem, setSelectedItem] = useState<HttpHistoryItem | undefined>(undefined);
   const [searchParams] = useSearchParams();
@@ -15,7 +18,8 @@ export function RequestHistory() {
 
   useEffect(() => {
     setItems(data.trafficHistory);
-  }, [data.trafficHistory]);
+    props.onUnreadChange(data.trafficHistory.filter((s) => s.unread).length);
+  }, [props, data.trafficHistory]);
   useEffect(() => {
     if (selectedItem) {
       return;
@@ -29,7 +33,7 @@ export function RequestHistory() {
   }, [items, selectedItem, detailId]);
 
   const overviewPanel = (
-    <table className="table" aria-labelledby="tabelLabel">
+    <table className="table table-hover" aria-labelledby="tabelLabel">
       <thead>
         <tr>
           <th>Time</th>
@@ -45,6 +49,7 @@ export function RequestHistory() {
             className={item.unread ? "unread" : item === selectedItem ? "active" : ""}
             onClick={() => {
               item.unread = false;
+              props.onUnreadChange(data.trafficHistory.filter((s) => s.unread).length);
               setSelectedItem(item);
             }}
           >
