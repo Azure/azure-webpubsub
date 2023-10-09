@@ -73,17 +73,17 @@ export function ServerPanel({ endpoint, onChange }: ServerPanelProps) {
         <Icon className="mx-2" iconName="ServerEnviroment"></Icon>
         <b>
           Requests are sending to
-          {startEmbeddedServer ? " embedded upstream server." : ` your local server: ${endpoint}`}
+          {startEmbeddedServer ? " built-in Echo Server." : ` your local server: ${endpoint}`}
         </b>
       </p>
       <Switch
-        label={startEmbeddedServer ? "Embedded server started" : "Embedded server stopped"}
+        label={startEmbeddedServer ? "Built-in Echo Server started" : "Built-in Echo Server stopped"}
         checked={startEmbeddedServer}
         disabled={status === ConnectionStatus.Connecting || status === ConnectionStatus.Disconnecting}
         onChange={(ev) => onSwitch(ev.currentTarget.checked)}
       ></Switch>
       {(status === ConnectionStatus.Connecting || status === ConnectionStatus.Disconnecting) && (
-        <Field className="m-2" validationMessage={status === ConnectionStatus.Connecting ? "Starting embedded upstream server" : "Stopping embedded upstream server"} validationState="none">
+        <Field className="m-2" validationMessage={status === ConnectionStatus.Connecting ? "Starting built-in Echo Server" : "Stopping built-in Echo Server"} validationState="none">
           <ProgressBar />
         </Field>
       )}

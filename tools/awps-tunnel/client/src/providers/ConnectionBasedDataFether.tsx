@@ -11,7 +11,7 @@ abstract class ConnectionBasedDataFether implements IDataFetcher {
     clientUrl: "",
     liveTraceUrl: "",
     upstreamServerUrl: "",
-    tunnelConnectionStatus: ConnectionStatus.Connecting,
+    tunnelConnectionStatus: ConnectionStatus.None,
     tunnelServerStatus: ConnectionStatusPairs.None,
     serviceConfiguration: { loaded: false, resourceName: "" },
     trafficHistory: [],

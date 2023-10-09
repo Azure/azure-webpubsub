@@ -1,53 +1,94 @@
 # JavaScript
-1. Install the package:
+**1. Install the package:**
 
-  ```bash
-  npm install @azure/web-pubsub-express
-  ```
+```bash
+npm install @azure/web-pubsub-express
+```
 
-2. Use `WebPubSubEventHandler`
+**2. Use `WebPubSubEventHandler`**
 
-  ```js
-  const app = express();
-  const handler = new WebPubSubEventHandler(hub, {
-    path: path,
-    handleConnect(_, res) {
-      logger.info(`Connect triggered`);
-      res.success();
-    },
-    handleUserEvent(_, res) {
-      logger.info(`User event triggered`);
-      res.success();
-    },
-    onConnected() {
-      logger.info(`Connected triggered`);
-    },
-    onDisconnected() {
-      logger.info(`Disconnected triggered`);
-    },
-  });
-  app.use(handler.getMiddleware());
-
-  ```
+```js
+const app = express();
+const handler = new WebPubSubEventHandler(hub, {
+  path: path,
+  handleConnect(_, res) {
+    console.log(`Connect triggered`);
+    res.success();
+  },
+  handleUserEvent(req, res) {
+    console.log(`User event triggered`);
+    if (req.dataType === "text") {
+      res.success(`Echo back ${req.data}`, req.dataType);
+    } else if (req.dataType === "json") {
+      res.success(`Echo back: ${JSON.stringify(req.data)}`, req.dataType);
+    } else {
+      res.success(req.data, req.dataType);
+    }
+  },
+  onConnected() {
+    console.log(`Connected triggered`);
+  },
+  onDisconnected() {
+    console.log(`Disconnected triggered`);
+  },
+});
+app.use(handler.getMiddleware());
+app.listen(8080, () => {});
+```
 
 # C#
+
+**1. Install the package:**
+
+```bash
+dotnet add package Microsoft.Azure.WebPubSub.AspNetCore
+```
+
+**2. Use `MapWebPubSubHub`**
+
+In `Program.cs`:
+
 ```csharp
+using Microsoft.Azure.WebPubSub.AspNetCore;
+using Microsoft.Azure.WebPubSub.Common;
+
+var builder = WebApplication.CreateBuilder(args);
+builder.Services.AddWebPubSub();
+
+var app = builder.Build();
+
+app.UseRouting();
+
 app.UseEndpoints(endpoints =>
 {
-    endpoints.MapGet("/negotiate", async  (WebPubSubServiceClient<Sample_ChatApp> serviceClient, HttpContext context) =>
-    {
-        var id = context.Request.Query["id"];
-        if (id.Count != 1)
-        {
-            context.Response.StatusCode = 400;
-            await context.Response.WriteAsync("missing user id");
-            return;
-        }
-        await context.Response.WriteAsync(serviceClient.GetClientAccessUri(userId: id).AbsoluteUri);
-    });
-
-    endpoints.MapWebPubSubHub<Sample_ChatApp>("/eventhandler/{*path}");
+    endpoints.MapWebPubSubHub<Chat>("/eventhandler/{*path}");
 });
+
+app.Run();
+
+class Chat : WebPubSubHub
+{
+    public override async ValueTask<ConnectEventResponse> OnConnectAsync(ConnectEventRequest request, CancellationToken cancellationToken)
+    {
+        Console.WriteLine("Connect triggered");
+        return new ConnectEventResponse();
+    }
+
+    public override async ValueTask<UserEventResponse> OnMessageReceivedAsync(UserEventRequest request, CancellationToken cancellationToken)
+    {
+        return request.CreateResponse(request.Data, request.DataType);
+    }
+
+    public override async Task OnConnectedAsync(ConnectedEventRequest request)
+    {
+        Console.WriteLine("Connected triggered");
+    }
+
+    public override async Task OnDisconnectedAsync(DisconnectedEventRequest request)
+    {
+        Console.WriteLine("Diesconnected triggered");
+    }
+}
 ```
 
 # Java

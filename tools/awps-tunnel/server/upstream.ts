@@ -12,9 +12,15 @@ export async function startUpstreamServer(port: number, hub: string, path: strin
         logger.info(`Connect triggered`);
         res.success();
       },
-      handleUserEvent(_, res) {
+      handleUserEvent(req, res) {
         logger.info(`User event triggered`);
-        res.success();
+        if (req.dataType === "text") {
+          res.success(`Echo back ${req.data}`, req.dataType);
+        } else if (req.dataType === "json") {
+          res.success(`Echo back: ${JSON.stringify(req.data)}`, req.dataType);
+        } else {
+          res.success(req.data, req.dataType);
+        }
       },
       onConnected() {
         logger.info(`Connected triggered`);
@@ -26,7 +32,7 @@ export async function startUpstreamServer(port: number, hub: string, path: strin
     app.use(handler.getMiddleware());
     try {
       const server = app.listen(port, () => {
-        logger.info(`Embedded upstream server started on port ${port}`);
+        logger.info(`Built-in Echo Server started on port ${port}`);
         resolve(server);
       });
     } catch (err) {

@@ -3,7 +3,8 @@ import MarkdownIt from "markdown-it";
 import { Tab, TabList } from "@fluentui/react-components";
 import type { TabValue } from "@fluentui/react-components";
 
-const regex = /# (.+)\r?\n([\s\S]*?)(?=# \w+|$)/g;
+// Non greedy
+const regex = /(?<=^|\n)#\s+(.+)\r?\n([\s\S]+?)(?=\n# |$)/g;
 
 const CodeTabs = () => {
   const [markdownContent, setMarkdownContent] = useState("");
@@ -42,12 +43,12 @@ const CodeTabs = () => {
       <div>
         <TabList selectedValue={selectedValue} onTabSelect={(_, d) => setSelectedValue(d.value)}>
           {htmlSections.map((section, index) => (
-            <Tab key={index} value={index.toString()}>
+            <Tab key={index} value={index}>
               {section.title}
             </Tab>
           ))}
         </TabList>
-        <div  className="m-2 p-2 bg-light" dangerouslySetInnerHTML={{ __html: htmlSections[selectedValue as any].html }} />
+        <div className="m-2 p-2 bg-light" dangerouslySetInnerHTML={{ __html: htmlSections[selectedValue as any].html }} />
       </div>
     )
   );

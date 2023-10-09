@@ -178,14 +178,14 @@ function createRunCommand(run: Command, dbFile: string, settings: Settings, upda
     currentUpstream = upstream;
   }
   if (!currentUpstream) {
-    console.error(`Error: upstream is not specified.`);
+    console.error(`Error: upstream is not specified. Use -u|--upstream to specify the upstream URL.`);
     run.outputHelp();
     return;
   }
 
   const currentHub = hub ?? settings.WebPubSub.Hub;
   if (!currentHub) {
-    console.error(`Error: hub is not specified.`);
+    console.error(`Error: hub is not specified. Use --hub to specify the hub.`);
     run.outputHelp();
     return;
   }
@@ -238,7 +238,7 @@ function start(run: Command, dbFile: string, connectionString: string | undefine
           requestAtOffset: time,
           unread: true,
         };
-        dataHub.AddTraffic(item);
+        await dataHub.AddTraffic(item);
         const response = await invoke();
         logger.info(`Success on getting proxy response ${proxiedUrl}: ${response.StatusCode}`);
         if (response.StatusCode < 400) {

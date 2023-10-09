@@ -22,7 +22,12 @@ export class DataHub {
   public hub = "";
   private io: Server;
   private repo: DataRepo;
-  constructor(server: http.Server, private tunnel: HttpServerProxy, upstreamUrl: string, dbFile: string) {
+  constructor(
+    server: http.Server,
+    private tunnel: HttpServerProxy,
+    upstreamUrl: string,
+    dbFile: string,
+  ) {
     const io = (this.io = new Server(server));
     this.repo = new DataRepo(dbFile);
     this.endpoint = tunnel.endpoint;
@@ -34,24 +39,24 @@ export class DataHub {
 
       socket.on("startEmbeddedUpstream", async (callback) => {
         if (DataHub.upstreamServer) {
-          callback({ success: true, message: "Embedded upstream server already started" });
+          callback({ success: true, message: "Built-in Echo Server already started" });
           return;
         }
         const url = new URL(upstreamUrl);
         try {
           DataHub.upstreamServer = await startUpstreamServer(Number.parseInt(url.port), tunnel.hub, "/eventHandler");
-          callback({ success: true, message: "Embedded upstream server started at port " + url.port });
+          callback({ success: true, message: "Built-in Echo Server started at port " + url.port });
         } catch (err) {
-          callback({ success: true, message: `Embedded upstream server failed to start at port ${url.port}:${err}` });
+          callback({ success: true, message: `Built-in Echo Server failed to start at port ${url.port}:${err}` });
         }
       });
 
       socket.on("stopEmbeddedUpstream", (callback) => {
         try {
           DataHub.upstreamServer?.close();
-          callback({ success: true, message: "Upstream server successfully stopped" });
+          callback({ success: true, message: "Built-in Echo Server successfully stopped" });
         } catch (err) {
-          callback({ success: true, message: `Upstream server failed to stop:${err}` });
+          callback({ success: true, message: `Built-in Echo Server failed to stop:${err}` });
         }
       });
 
@@ -107,20 +112,15 @@ export class DataHub {
   }
 
   async UpdateTraffic(item: HttpHistoryItem) {
-    await this.repo.updateDataAsync({
-      Request: {
-        TracingId: item.tracingId,
-        RequestAt: item.requestAtOffset,
-        MethodName: item.methodName,
-        Url: item.url,
-        RequestRaw: item.requestRaw,
-      },
-      Response: {
+    if (!item.id) throw new Error("Id shouldn't be undefined when calling update");
+    await this.repo.updateDataAsync(
+      item.id,
+      JSON.stringify({
         Code: item.code,
         ResponseRaw: item.responseRaw,
         RespondAt: item.responseAtOffset,
-      },
-    });
+      }),
+    );
     this.io.emit("updateTraffic", item);
   }
 
