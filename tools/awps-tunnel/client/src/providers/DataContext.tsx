@@ -16,6 +16,7 @@ export const useDataContext = (): DataContextType => {
 interface DataContextType {
   data: DataModel;
   setData: React.Dispatch<React.SetStateAction<DataModel>>;
+  dataFetcher: IDataFetcher;
 }
 
 export const DataProvider: React.FC<{
@@ -24,5 +25,5 @@ export const DataProvider: React.FC<{
   const dataFetcher = useMemo<IDataFetcher>(() => getDataFetcher((m) => setData(m)), []) as IDataFetcher;
   const [data, setData] = useState<DataModel>(dataFetcher.model);
 
-  return <DataContext.Provider value={{ data, setData }}>{children}</DataContext.Provider>;
+  return <DataContext.Provider value={{ data, setData, dataFetcher: dataFetcher }}>{children}</DataContext.Provider>;
 };

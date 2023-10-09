@@ -11,8 +11,8 @@ public interface IDataHub
 
 public interface IStateNotifier : IStateReporter
 {
-    Task UpdateTraffics(CancellationToken token, params HttpItem[] traffics);
-
+    Task AddTraffic(HttpItem traffic, CancellationToken token);
+    Task UpdateTraffic(HttpItem traffic, CancellationToken token);
     State State { get; }
 }
 
@@ -28,7 +28,8 @@ public interface IStateReporter
 
 public interface IDataHubClient: IStateReporter
 {
-    Task UpdateTraffics(params HttpItem[] traffics);
+    Task UpdateTraffic(HttpItem traffic);
+    Task AddTraffic(HttpItem traffic);
 }
 
 internal class StateNotifier : IStateNotifier
@@ -83,14 +84,16 @@ internal class StateNotifier : IStateNotifier
         return _hubContext.Clients.All.UpdateLogs(logs);
     }
 
-    public async Task UpdateTraffics(CancellationToken token, params HttpItem[] traffics)
+    public async Task UpdateTraffic(HttpItem traffic, CancellationToken token)
     {
-        foreach(var t in traffics)
-        {
-            await _store.AddAsync(t.DataModel, token);
-        }
+        await _store.UpdateAsync(traffic.DataModel, token);
+        await _hubContext.Clients.All.UpdateTraffic(traffic);
+    }
 
-        await _hubContext.Clients.All.UpdateTraffics(traffics);
+    public async Task AddTraffic(HttpItem traffic, CancellationToken token)
+    {
+        await _store.AddAsync(traffic.DataModel, token);
+        await _hubContext.Clients.All.AddTraffic(traffic);
     }
 }
 
