@@ -82,8 +82,7 @@
     "@azure/logger": "^1.0.4",
     "@azure/web-pubsub": "^1.1.1",
     "@azure/web-pubsub-client": "^1.0.0-beta.3",
-    "@azure/web-pubsub-
-    ": "^1.0.5",
+    "@azure/web-pubsub-express": "^1.0.5",
     "@msgpack/msgpack": "^3.0.0-beta2",
     "@types/sqlite3": "^3.1.8",
     "appdirsjs": "^1.2.7",
