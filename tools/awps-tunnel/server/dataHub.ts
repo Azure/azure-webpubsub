@@ -6,9 +6,12 @@ import { ConnectionStatus, ConnectionStatusPair, HttpHistoryItem, ConnectionStat
 import http from "http";
 import { HttpServerProxy } from "./serverProxies";
 import { DataRepo } from "./dataRepo";
+import { startUpstreamServer } from "./upstream";
 
 // singleton per hub?
 export class DataHub {
+  // make sure only one server is there
+  public static upstreamServer?: http.Server;
   public tunnelConnectionStatus = ConnectionStatus.Connecting;
   public tunnelServerStatus = ConnectionStatusPairs.None;
   public serviceConfiguration?: ServiceConfiguration = undefined;
@@ -28,6 +31,29 @@ export class DataHub {
     // Socket.io event handling
     io.on("connection", (socket: Socket) => {
       console.log("A Socketio client connected");
+
+      socket.on("startEmbeddedUpstream", async (callback) => {
+        if (DataHub.upstreamServer) {
+          callback({ success: true, message: "Built-in Echo Server already started" });
+          return;
+        }
+        const url = new URL(upstreamUrl);
+        try {
+          DataHub.upstreamServer = await startUpstreamServer(Number.parseInt(url.port), tunnel.hub, "/eventHandler");
+          callback({ success: true, message: "Built-in Echo Server started at port " + url.port });
+        } catch (err) {
+          callback({ success: true, message: `Built-in Echo Server failed to start at port ${url.port}:${err}` });
+        }
+      });
+
+      socket.on("stopEmbeddedUpstream", (callback) => {
+        try {
+          DataHub.upstreamServer?.close();
+          callback({ success: true, message: "Built-in Echo Server successfully stopped" });
+        } catch (err) {
+          callback({ success: true, message: `Built-in Echo Server failed to stop:${err}` });
+        }
+      });
 
       socket.on("getCurrentModel", async (callback) => {
         callback({
@@ -81,20 +107,15 @@ export class DataHub {
   }
 
   async UpdateTraffic(item: HttpHistoryItem) {
-    await this.repo.updateDataAsync({
-      Request: {
-        TracingId: item.tracingId,
-        RequestAt: item.requestAtOffset,
-        MethodName: item.methodName,
-        Url: item.url,
-        RequestRaw: item.requestRaw,
-      },
-      Response: {
+    if (!item.id) throw new Error("Id shouldn't be undefined when calling update");
+    await this.repo.updateDataAsync(
+      item.id,
+      JSON.stringify({
         Code: item.code,
         ResponseRaw: item.responseRaw,
         RespondAt: item.responseAtOffset,
-      },
-    });
+      }),
+    );
     this.io.emit("updateTraffic", item);
   }
 

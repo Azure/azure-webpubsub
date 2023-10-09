@@ -135,7 +135,7 @@ internal class TunnelService
             }
         };
         var item = new HttpItem(dataModel);
-        _ = _dataHub.AddTraffic(item, token);
+        await _dataHub.AddTraffic(item, token);
         try
         {
             response = await httpClient.SendAsync(proxiedRequest);

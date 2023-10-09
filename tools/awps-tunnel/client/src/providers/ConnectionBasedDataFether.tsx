@@ -1,5 +1,5 @@
 import { Socket, io } from "socket.io-client";
-import { ConnectionStatus, DataModel } from "../models";
+import { ConnectionStatus, ConnectionStatusPairs, DataModel } from "../models";
 import { IDataFetcher } from "./IDataFetcher";
 import * as signalR from "@microsoft/signalr";
 
@@ -11,25 +11,30 @@ abstract class ConnectionBasedDataFether implements IDataFetcher {
     clientUrl: "",
     liveTraceUrl: "",
     upstreamServerUrl: "",
-    tunnelConnectionStatus: ConnectionStatus.Connecting,
-    tunnelServerStatus: {
-      statusIn: ConnectionStatus.Disconnected,
-      statusOut: ConnectionStatus.Disconnected,
-    },
-    serviceConfiguration: { loaded: false, resourceName: ""},
+    tunnelConnectionStatus: ConnectionStatus.None,
+    tunnelServerStatus: ConnectionStatusPairs.None,
+    serviceConfiguration: { loaded: false, resourceName: "" },
     trafficHistory: [],
     logs: [],
   };
 
-  abstract createConnection(): Promise<signalR.HubConnection | Socket>;
-  abstract startConnection(connection: signalR.HubConnection | Socket): Promise<void>;
-  abstract invoke(connection: signalR.HubConnection | Socket, method: string): Promise<any>;
+  protected abstract _createConnection(): Promise<signalR.HubConnection | Socket>;
+  protected abstract _startConnection(connection: signalR.HubConnection | Socket): Promise<void>;
+  protected abstract _invoke(connection: signalR.HubConnection | Socket, method: string, ...args: any[]): Promise<any>;
   constructor(private setData: (model: DataModel) => void) {
     this._start();
   }
 
+  public invoke(method: string, ...args: any[]) {
+    if (!this._connection) {
+      throw new Error("Tunnel connection is not yet ready.");
+    }
+    return this._invoke(this._connection, method, ...args);
+  }
+
+  private _connection: signalR.HubConnection | Socket | undefined;
   private async _start() {
-    const newConnection = await this.createConnection();
+    const newConnection = (this._connection = await this._createConnection());
 
     newConnection.on("updateLogs", (logs) => {
       this.model = { ...this.model, logs: [...this.model.logs, ...logs] };
@@ -80,11 +85,11 @@ abstract class ConnectionBasedDataFether implements IDataFetcher {
       this.setData(this.model);
     });
 
-    await this.startConnection(newConnection);
+    await this._startConnection(newConnection);
 
-    const serverModel = await this.invoke(newConnection, "getCurrentModel");
+    const serverModel = await this._invoke(newConnection, "getCurrentModel");
     setInterval(async () => {
-      const clientUrl = await this.invoke(newConnection, "getClientAccessUrl");
+      const clientUrl = await this._invoke(newConnection, "getClientAccessUrl");
       this.model = { ...this.model, clientUrl };
       this.setData(this.model);
     }, 3000 * 1000);
@@ -100,10 +105,10 @@ abstract class ConnectionBasedDataFether implements IDataFetcher {
 }
 
 export class SignalRDataFetcher extends ConnectionBasedDataFether {
-  async createConnection(): Promise<signalR.HubConnection | Socket> {
+  async _createConnection(): Promise<signalR.HubConnection | Socket> {
     return new signalR.HubConnectionBuilder().withUrl("/dataHub").withAutomaticReconnect().build();
   }
-  async startConnection(connection: signalR.HubConnection | Socket): Promise<void> {
+  async _startConnection(connection: signalR.HubConnection | Socket): Promise<void> {
     try {
       await (connection as signalR.HubConnection).start();
       console.log(`SignalR connection established.`);
@@ -111,20 +116,19 @@ export class SignalRDataFetcher extends ConnectionBasedDataFether {
       console.log("SignalR connection failed: " + err);
     }
   }
-  async invoke(connection: signalR.HubConnection | Socket, method: string): Promise<any> {
-    return (connection as signalR.HubConnection).invoke(method);
+  async _invoke(connection: signalR.HubConnection | Socket, method: string, ...args: any[]): Promise<any> {
+    return (connection as signalR.HubConnection).invoke(method, ...args);
   }
 }
 
 export class SocketIODataFetcher extends ConnectionBasedDataFether {
-  async createConnection(): Promise<signalR.HubConnection | Socket> {
+  async _createConnection(): Promise<signalR.HubConnection | Socket> {
     return io();
   }
-  async startConnection(_: signalR.HubConnection | Socket): Promise<void> {
+  async _startConnection(_: signalR.HubConnection | Socket): Promise<void> {
     console.log("SocketIO connection established.");
   }
-  async invoke(connection: signalR.HubConnection | Socket, method: string): Promise<any> {
-    return (connection as Socket).emitWithAck(method);
+  async _invoke(connection: signalR.HubConnection | Socket, method: string, ...args: any[]): Promise<any> {
+    return (connection as Socket).emitWithAck(method, ...args);
   }
 }
-

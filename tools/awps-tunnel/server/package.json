@@ -1,7 +1,7 @@
 {
   "name": "@azure/web-pubsub-tunnel",
   "private": true,
-  "version": "1.0.0-alpha.20230928.2",
+  "version": "1.0.0-alpha.20231009.1",
   "description": "A local tool to help tunnel Azure Web PubSub traffic to local web app and provide a vivid view to the end to end workflow.",
   "keywords": [
     "azure",
@@ -41,7 +41,7 @@
     "clean": "rimraf dist test-dist temp types *.tgz *.log",
     "lint": "eslint . --ext .ts,.javascript,.js",
     "lint:fix": "eslint . --ext .ts,.javascript,.js --fix",
-    "start": "npm run build && node dist/server/index.js"
+    "start": "node dist/server/index.js run"
   },
   "license": "MIT",
   "devDependencies": {
@@ -81,6 +81,7 @@
     "@azure/logger": "^1.0.4",
     "@azure/web-pubsub": "^1.1.1",
     "@azure/web-pubsub-client": "^1.0.0-beta.3",
+    "@azure/web-pubsub-express": "^1.0.5",
     "@msgpack/msgpack": "^3.0.0-beta2",
     "@types/sqlite3": "^3.1.8",
     "appdirsjs": "^1.2.7",

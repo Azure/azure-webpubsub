@@ -1,4 +1,3 @@
-import React from "react";
 import { Icon } from "@fluentui/react/lib/Icon";
 import { ConnectionStatus, ConnectionStatusPair } from "../../models";
 
@@ -30,17 +29,18 @@ export function StatusDescriptor({ status }: { status?: ConnectionStatus }) {
   }
 }
 
-
 export function StatusDisplayText({ status }: { status?: ConnectionStatusPair }) {
   if (!status) {
-    return <span className="text-warning">Unknown</span>;
+    return <span className="text-secondary">Unknown</span>;
   }
 
-  if (status.statusOut === ConnectionStatus.Connected){
+  if (status.statusOut === ConnectionStatus.Connected) {
     return <span className="text-success">Succeeded</span>;
   }
 
-  if (status.statusOut === ConnectionStatus.Disconnected){
+  if (status.statusOut === ConnectionStatus.Disconnected) {
     return <span className="text-error">Response error</span>;
   }
+
+  return <span className="text-secondary">Unknown</span>;
 }

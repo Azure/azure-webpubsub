@@ -2,7 +2,7 @@ import React, { useEffect, useState } from "react";
 import { RequestHistory } from "./panels/RequestHistory";
 import "./Dashboard.css";
 import { Panel, PanelType } from "@fluentui/react";
-import { Tab, TabList, Accordion, AccordionHeader, AccordionItem, AccordionPanel, ToggleButton } from "@fluentui/react-components";
+import { Tab, TabList, Accordion, AccordionHeader, AccordionItem, AccordionPanel, ToggleButton, CounterBadge } from "@fluentui/react-components";
 import * as svg from "./icons";
 import { DocumentOnePageMultiple24Regular, Link24Regular } from "@fluentui/react-icons";
 import type { SelectTabData, SelectTabEvent } from "@fluentui/react-components";
@@ -27,6 +27,7 @@ interface WorkflowProps {
   content: React.ReactNode;
   states?: { title: React.ReactNode; content: React.ReactNode }[];
   vertical?: boolean;
+  unread: number;
 }
 
 function loadCurrentTab(): string {
@@ -44,9 +45,14 @@ function setCurrentTab(tab: string): void {
 export const Dashboard = () => {
   const [showPanel, setShowPanel] = useState(false);
   const [clientConnectionStatus, setClientConnectionStatus] = useState(ConnectionStatus.Disconnected);
-  const { data } = useDataContext();
+  const { data, dataFetcher } = useDataContext();
+  const [tunnelUnread, setTunnelUnread] = useState(0);
+  const onStartUpstream = async (start: boolean) => {
+    return start ? await dataFetcher.invoke("startEmbeddedUpstream") : await dataFetcher.invoke("stopEmbeddedUpstream");
+  };
   const workflows: WorkflowProps[] = [
     {
+      unread: 0,
       key: "client",
       title: "Client",
       icon: svg.SvgClient,
@@ -60,6 +66,7 @@ export const Dashboard = () => {
       content: <ClientPanel onStatusChange={(status) => setClientConnectionStatus(status)}></ClientPanel>,
     },
     {
+      unread: 0,
       key: "service",
       title: "Web PubSub",
       icon: svg.SvgWebPubSub,
@@ -69,7 +76,7 @@ export const Dashboard = () => {
           title: "Endpoint",
           content: data.endpoint,
         },
-        EventHandler({hub: data.hub, settings: data.serviceConfiguration})
+        EventHandler({ hub: data.hub, settings: data.serviceConfiguration }),
       ],
       status: data?.tunnelConnectionStatus,
       content: <ServicePanel endpoint={data.endpoint} status={data.tunnelConnectionStatus} liveTraceUrl={data.liveTraceUrl}></ServicePanel>,
@@ -89,9 +96,11 @@ export const Dashboard = () => {
       ],
       statusPair: data.tunnelServerStatus,
       icon: svg.SvgTunnel,
-      content: <RequestHistory />,
+      unread: tunnelUnread,
+      content: <RequestHistory onUnreadChange={(i) => setTunnelUnread(i)} />,
     },
     {
+      unread: 0,
       key: "server",
       title: "Server",
       icon: svg.SvgServer,
@@ -101,25 +110,25 @@ export const Dashboard = () => {
           content: <StatusDisplayText status={data.tunnelServerStatus} />,
         },
         {
-          title: "Server URL",
+          title: "Configured Upstream Server URL",
           content: data.upstreamServerUrl,
         },
       ],
-      content: <ServerPanel endpoint={data?.upstreamServerUrl}></ServerPanel>,
+      content: <ServerPanel endpoint={data?.upstreamServerUrl} onChange={onStartUpstream}></ServerPanel>,
     },
   ];
   // read current tab from local storage
   const [selectedValue, setSelectedValue] = React.useState<string>(loadCurrentTab());
 
-  useEffect(()=>{
+  useEffect(() => {
     setCurrentTab(selectedValue);
-  }, [selectedValue])
+  }, [selectedValue]);
 
   const workflow = () => (
     <div className="workflow d-flex flex-row justify-content-center align-items-center m-2">
       {workflows.map((w, i) => (
         <React.Fragment key={i}>
-          <WorkflowStep checked={selectedValue === w.key} onClick={() => setSelectedValue(w.key)} icon={w.icon(true)} text={w.title} />
+          <WorkflowStep checked={selectedValue === w.key} unread={w.unread} onClick={() => setSelectedValue(w.key)} icon={w.icon(true)} text={w.title} />
           {w.status && <Connector status={w.status} />}
           {w.statusPair && <TwoDirectionConnector statusPair={w.statusPair} />}
         </React.Fragment>
@@ -137,7 +146,7 @@ export const Dashboard = () => {
         {workflows.map((w, i) => (
           <React.Fragment key={i}>
             <Tab id={w.key} icon={<span>{w.icon()}</span>} value={w.key}>
-              {w.title}
+              {w.title} {w.unread > 0 && <CounterBadge size="small" count={w.unread}></CounterBadge>}
             </Tab>
           </React.Fragment>
         ))}
@@ -160,7 +169,7 @@ export const Dashboard = () => {
     </>
   );
   const paneOverview = (p: WorkflowProps) => (
-    <div className={p.vertical ? "d-flex flex-column justify-content-start" : "d-flex justify-content-start"} >
+    <div className={p.vertical ? "d-flex flex-column justify-content-start" : "d-flex justify-content-start"}>
       {p.states?.map((s, i) => (
         <div key={i} className="d-flex m-2 flex-column">
           <div>
@@ -173,22 +182,19 @@ export const Dashboard = () => {
   );
   const connectPane = (
     <>
-      {workflows.map(
-        (w, i) =>
-          (
-            // Use hidden to prevent re-rendering
-            <div key={i} hidden={selectedValue !== w.key} className="d-flex flex-column flex-fill overflow-auto">
-              <Accordion className="" collapsible defaultOpenItems={"1"}>
-                <AccordionItem value="1">
-                  <AccordionHeader size="large">{w.title}</AccordionHeader>
-                  <AccordionPanel>{paneOverview(w)}</AccordionPanel>
-                </AccordionItem>
-              </Accordion>
-              <hr />
-              {w.content}
-            </div>
-          ),
-      )}
+      {workflows.map((w, i) => (
+        // Use hidden to prevent re-rendering
+        <div key={i} hidden={selectedValue !== w.key} className="d-flex flex-column flex-fill overflow-auto">
+          <Accordion className="" collapsible defaultOpenItems={"1"}>
+            <AccordionItem value="1">
+              <AccordionHeader size="large">{w.title}</AccordionHeader>
+              <AccordionPanel>{paneOverview(w)}</AccordionPanel>
+            </AccordionItem>
+          </Accordion>
+          <hr />
+          {w.content}
+        </div>
+      ))}
     </>
   );
 

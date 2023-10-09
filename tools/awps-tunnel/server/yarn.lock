@@ -174,6 +174,14 @@
     tslib "^2.2.0"
     ws "^7.4.5"
 
+"@azure/web-pubsub-express@^1.0.5":
+  version "1.0.5"
+  resolved "https://registry.yarnpkg.com/@azure/web-pubsub-express/-/web-pubsub-express-1.0.5.tgz#87a6435b591c0f85e399515c7a7f593ab992ce78"
+  integrity sha512-FXrby3SFYgxNpjL/SlOVF6oJ6XT4ENuULhMEFTVPb8y5zvZBYkT6timaJuu/sNBaJ0sYOFvsRKnx0QjSvuP/0w==
+  dependencies:
+    "@azure/logger" "^1.0.0"
+    tslib "^2.2.0"
+
 "@azure/web-pubsub@^1.1.1":
   version "1.1.1"
   resolved "https://registry.yarnpkg.com/@azure/web-pubsub/-/web-pubsub-1.1.1.tgz#3a53323978e8a2c6d1a73d4d8598d9e13059dc1b"
