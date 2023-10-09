@@ -22,12 +22,7 @@ export class DataHub {
   public hub = "";
   private io: Server;
   private repo: DataRepo;
-  constructor(
-    server: http.Server,
-    private tunnel: HttpServerProxy,
-    upstreamUrl: string,
-    dbFile: string,
-  ) {
+  constructor(server: http.Server, private tunnel: HttpServerProxy, upstreamUrl: string, dbFile: string) {
     const io = (this.io = new Server(server));
     this.repo = new DataRepo(dbFile);
     this.endpoint = tunnel.endpoint;
