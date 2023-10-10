@@ -81,9 +81,10 @@ jobs:
         URL: ${{ secrets.AZURESDKPARTNERDROPS_URL }}
         AZCOPY_SPA_CLIENT_SECRET: ${{ secrets.AZURESDKPARTNERDROPS_SERVICE_PRINCIPAL_KEY }}
         ID: ${{ secrets.AZURESDKPARTNERDROPS_SERVICE_PRINCIPAL_ID }}
+        TENENT: ${{ secrets.AZURESDKPARTNERDROPS_TENANT_ID }}
         BUILDNUMBER: ${{ steps.read_current_version.outputs.current_version }}
       run: |
-        azcopy login --service-principal --application-id $ID
+        azcopy login --service-principal --application-id $ID --tenent-id $TENENT
         azcopy copy ${{ steps.tunnel.outputs.packagePath }} "$URL/azure-webpubsub/js/$BUILDNUMBER/"
     - name: Publish tunnel Artifacts
       if: steps.compare_versions.outputs.version_changed == 'true'
