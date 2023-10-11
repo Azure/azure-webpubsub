@@ -142,7 +142,9 @@ export class HttpServerProxy {
         abortSignal?.addEventListener("abort", () => resolve(errorResponse("Request cancelled")));
 
         if (request.Content) {
-          req.write(request.Content);
+          // Java getBody() relies on Content-Length header
+          req.setHeader("Content-Length", request.Content.byteLength.toString());
+          req.write(Buffer.from(request.Content));
         }
         req.end();
       });
