@@ -234,7 +234,7 @@ function start(run: Command, dbFile: string, connectionString: string | undefine
         const item: HttpHistoryItem = {
           methodName: request.HttpMethod,
           url: proxiedUrl.toString(),
-          requestRaw: dumpRawRequest(request),
+          requestRaw: dumpRawRequest(proxiedUrl, request),
           requestAtOffset: time,
           unread: true,
         };
@@ -270,7 +270,7 @@ function start(run: Command, dbFile: string, connectionString: string | undefine
   });
 }
 
-function dumpRawRequest(message: { Url: string; HttpMethod: string; Headers?: Record<string, string[]>; Content?: Uint8Array }): string {
+function dumpRawRequest(proxiedUrl: URL, message: { Url: string; HttpMethod: string; Headers?: Record<string, string[]>; Content?: Uint8Array }): string {
   const headers = message.Headers
     ? Object.entries(message.Headers)
         .map(([name, values]) => values.map((value) => `${name}: ${value}`).join("\r\n"))
@@ -279,7 +279,7 @@ function dumpRawRequest(message: { Url: string; HttpMethod: string; Headers?: Re
 
   const content = message.Content ? new TextDecoder().decode(message.Content) : "";
 
-  return `${message.HttpMethod} ${message.Url} HTTP/1.1\r\n${headers}\r\n\r\n${content}`;
+  return `${message.HttpMethod} ${proxiedUrl} HTTP/1.1\r\n${headers}\r\n\r\n${content}`;
 }
 
 function getRawResponse(message: { StatusCode: number; Headers: Record<string, string[]>; Content: Uint8Array }) {

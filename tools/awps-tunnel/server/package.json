@@ -1,7 +1,7 @@
 {
   "name": "@azure/web-pubsub-tunnel-tool",
   "private": true,
-  "version": "1.0.0-alpha.20231011.1",
+  "version": "1.0.0-alpha.20231011.2",
   "description": "A local tool to help tunnel Azure Web PubSub traffic to local web app and provide a vivid view to the end to end workflow.",
   "keywords": [
     "azure",
