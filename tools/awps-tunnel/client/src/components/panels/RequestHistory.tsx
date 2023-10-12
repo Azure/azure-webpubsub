@@ -6,7 +6,10 @@ import { ResizablePanel } from "../ResizablePanel";
 import { useDataContext } from "../../providers/DataContext";
 import { HttpHistoryItem } from "../../models";
 
-export function RequestHistory() {
+export interface RequestHistoryProps {
+  onUnreadChange: (unread: number) => void;
+}
+export function RequestHistory(props: RequestHistoryProps) {
   const [items, setItems] = useState<HttpHistoryItem[]>([]);
   const [selectedItem, setSelectedItem] = useState<HttpHistoryItem | undefined>(undefined);
   const [searchParams] = useSearchParams();
@@ -14,8 +17,9 @@ export function RequestHistory() {
   const { data } = useDataContext();
 
   useEffect(() => {
-    setItems(data.trafficHistory.slice(0, 50));
-  }, [data.trafficHistory]);
+    setItems(data.trafficHistory);
+    props.onUnreadChange(data.trafficHistory.filter((s) => s.unread).length);
+  }, [props, data.trafficHistory]);
   useEffect(() => {
     if (selectedItem) {
       return;
@@ -29,23 +33,32 @@ export function RequestHistory() {
   }, [items, selectedItem, detailId]);
 
   const overviewPanel = (
-    <table className="table" aria-labelledby="tabelLabel">
+    <table className="table table-hover" aria-labelledby="tabelLabel">
+      <thead>
+        <tr>
+          <th>Time</th>
+          <th>Method</th>
+          <th>URL</th>
+          <th>Status</th>
+        </tr>
+      </thead>
       <tbody>
         {items.map((item) => (
           <tr
-            key={item.requestAtOffset}
+            key={(item.id ?? 0) + (item.code ?? 0) * 1000}
             className={item.unread ? "unread" : item === selectedItem ? "active" : ""}
             onClick={() => {
               item.unread = false;
+              props.onUnreadChange(data.trafficHistory.filter((s) => s.unread).length);
               setSelectedItem(item);
             }}
           >
             <td>{moment(item.requestAtOffset).fromNow()}</td>
-            <td className={item?.code ?? 500 < 300 ? "text-success" : "text-warning"}>
+            <td className={(item?.code ?? 500) < 300 ? "text-success" : "text-warning"}>
               <b>{item.methodName}</b>
             </td>
             <td>{item.url}</td>
-            <td>{item.code}</td>
+            <td>{item.code ?? "(Waiting for response)"}</td>
           </tr>
         ))}
       </tbody>
@@ -53,9 +66,9 @@ export function RequestHistory() {
   );
   const detailPanel = <Details item={selectedItem}></Details>;
   return (
-    <div className="d-flex flex-row server-container overflow-auto">
+    <div className="mx-4 d-flex flex-row server-container overflow-auto">
       <div className="table-container flex-fill d-flex flex-column">
-        <h5>History</h5>
+        <h5>All requests</h5>
         {!data.ready ? (
           <p>
             <em>Loading...</em>
@@ -102,7 +115,7 @@ function Details({ item }: { item?: HttpHistoryItem }) {
         <ReadonlyTabs items={requestTabItems}></ReadonlyTabs>
       </div>
       <div className="response">
-        <h5 className={item?.code ?? 500 < 300 ? "text-success" : "text-warning"}>{item.code}</h5>
+        <h5 className={(item?.code ?? 500) < 300 ? "text-success" : "text-warning"}>{item.code}</h5>
         <ReadonlyTabs items={responseTabItems}></ReadonlyTabs>
       </div>
     </div>

@@ -3,7 +3,7 @@
 ## Install
 
 ```
-npm i -g @azure/web-pubsub-tunnel
+npm i -g @azure/web-pubsub-tunnel-tool
 ```
 
 ## Usage

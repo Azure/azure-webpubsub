@@ -7,14 +7,12 @@ using Newtonsoft.Json;
 public class HttpItemRepository : IRepository<HttpDataModel>
 {
     private readonly StoreContext _store;
-    private readonly IHubContext<DataHub> _hubContext;
     private readonly IOutput _requestManager;
 
     public HttpItemRepository(StoreContext store, IHubContext<DataHub> hubContext, IOutput requestManager)
     {
         _store = store;
         _store.Database.EnsureCreated();
-        _hubContext = hubContext;
         _requestManager = requestManager;
     }
     public Task<List<HttpDataModel>> GetRangeAsync(int count, CancellationToken cancellationToken)
@@ -22,15 +20,10 @@ public class HttpItemRepository : IRepository<HttpDataModel>
         return _store.HttpItems.OrderByDescending(s => s.Id).Take(count).ToListAsync(cancellationToken);
     }
 
-    public Task AddAsync(HttpDataModel item, CancellationToken cancellationToken)
+    public async Task AddAsync(HttpDataModel item, CancellationToken cancellationToken)
     {
         _store.HttpItems.Add(item);
-        var dbTask = _store.SaveChangesAsync();
-        var hi = new HttpItem(item);
-        // do it after it is stored to DB so that ID updates
-        var hubTask = _hubContext.Clients.All.SendAsync("updateData", hi, cancellationToken);
-        _requestManager.AddRequest(hi);
-        return Task.WhenAll(hubTask, dbTask);
+        await _store.SaveChangesAsync();
     }
 
     public Task<List<HttpDataModel>> GetAllAsync(CancellationToken cancellationToken)
@@ -38,9 +31,13 @@ public class HttpItemRepository : IRepository<HttpDataModel>
         throw new NotImplementedException();
     }
 
-    public Task UpdateAsync(HttpDataModel entity, CancellationToken cancellationToken)
+    public async Task UpdateAsync(HttpDataModel entity, CancellationToken cancellationToken)
     {
-        throw new NotImplementedException();
+        _store.Update(entity);
+        await _store.SaveChangesAsync();
+        // do it after it is stored to DB so that ID updates
+        var hi = new HttpItem(entity);
+        _requestManager.AddRequest(hi);
     }
 
     public Task RemoveAsync(HttpDataModel entity, CancellationToken cancellationToken)

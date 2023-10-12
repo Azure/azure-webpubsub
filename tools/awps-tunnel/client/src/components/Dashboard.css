@@ -11,6 +11,10 @@ table {
     border-collapse: collapse;
 }
 
+body [hidden] {
+    display: none !important;
+}
+
 thead th {
     text-align: left;
     font-weight: bold;
@@ -24,7 +28,7 @@ tbody tr:hover {
     cursor: pointer;
 }
 
-.table-container .active {
+.table .active > * {
     background-color: #f0f0f0;
 }
 

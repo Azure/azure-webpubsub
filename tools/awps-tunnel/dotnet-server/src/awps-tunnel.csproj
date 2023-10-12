@@ -13,7 +13,7 @@
     <SpaRoot>..\..\client\</SpaRoot>
     <DefaultItemExcludes>$(DefaultItemExcludes);$(SpaRoot)node_modules\**</DefaultItemExcludes>
     <SpaProxyServerUrl>http://localhost:44477</SpaProxyServerUrl>
-    <SpaProxyLaunchCommand>npm start</SpaProxyLaunchCommand>
+    <SpaProxyLaunchCommand>npm run startd</SpaProxyLaunchCommand>
     <ImplicitUsings>enable</ImplicitUsings>
     <ApplicationIcon>..\..\client\public\favicon.ico</ApplicationIcon>
     <Title>Local server proxy connecting Azure Web PubSub and your local server</Title>

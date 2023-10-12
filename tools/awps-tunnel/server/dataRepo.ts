@@ -40,6 +40,29 @@ export class DataRepo {
     });
   }
 
+  public updateDataAsync(id: number, response: string): Promise<void> {
+    return new Promise<void>((resolve, reject) => {
+      const stmt = this.db.prepare("UPDATE HttpItems SET Response = ? WHERE Id = ?");
+      // Bind the values to the placeholders
+      stmt.run(response, id, function (err: { message: string }) {
+        if (err) {
+          reject(err);
+          return;
+        }
+        logger.info("Updated data with ID:", (stmt as sqlite3.RunResult).lastID); // <-- Accessing the auto-incremented ID
+
+        // Finalize the statement
+        stmt.finalize(function (finalizeErr) {
+          if (finalizeErr) {
+            reject(finalizeErr);
+          } else {
+            resolve();
+          }
+        });
+      });
+    });
+  }
+
   public insertDataAsync(data: HttpDataModel): Promise<number> {
     return new Promise<number>((resolve, reject) => {
       const stmt = this.db.prepare("INSERT INTO HttpItems (Request, Response) VALUES (?, ?)");
@@ -49,17 +72,15 @@ export class DataRepo {
           reject(err);
           return;
         }
-        // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-        // @ts-ignore
-        const localThis = this as sqlite3.RunResult;
-        logger.info("Inserted data with ID:", localThis.lastID); // <-- Accessing the auto-incremented ID
+        const id = (stmt as sqlite3.RunResult).lastID;
+        logger.info("Inserted data with ID:", id); // <-- Accessing the auto-incremented ID
 
         // Finalize the statement
         stmt.finalize(function (finalizeErr) {
           if (finalizeErr) {
             reject(finalizeErr);
           } else {
-            resolve(localThis.lastID);
+            resolve(id);
           }
         });
       });

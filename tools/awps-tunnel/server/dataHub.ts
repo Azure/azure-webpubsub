@@ -2,15 +2,19 @@
 // host the website
 // start the server connection
 import { Server, Socket } from "socket.io";
-import { ConnectionStatus, ConnectionStatusPair, HttpHistoryItem, ConnectionStatusPairs } from "../client/src/models";
+import { ConnectionStatus, ConnectionStatusPair, HttpHistoryItem, ConnectionStatusPairs, ServiceConfiguration } from "../client/src/models";
 import http from "http";
 import { HttpServerProxy } from "./serverProxies";
 import { DataRepo } from "./dataRepo";
+import { startUpstreamServer } from "./upstream";
 
 // singleton per hub?
 export class DataHub {
+  // make sure only one server is there
+  public static upstreamServer?: http.Server;
   public tunnelConnectionStatus = ConnectionStatus.Connecting;
-  public tunnelServerStatus = ConnectionStatusPairs.Disconnected;
+  public tunnelServerStatus = ConnectionStatusPairs.None;
+  public serviceConfiguration?: ServiceConfiguration = undefined;
   public livetraceUrl = "";
   public clientUrl = "";
   public endpoint = "";
@@ -28,6 +32,29 @@ export class DataHub {
     io.on("connection", (socket: Socket) => {
       console.log("A Socketio client connected");
 
+      socket.on("startEmbeddedUpstream", async (callback) => {
+        if (DataHub.upstreamServer) {
+          callback({ success: true, message: "Built-in Echo Server already started" });
+          return;
+        }
+        const url = new URL(upstreamUrl);
+        try {
+          DataHub.upstreamServer = await startUpstreamServer(Number.parseInt(url.port), tunnel.hub, "/eventHandler");
+          callback({ success: true, message: "Built-in Echo Server started at port " + url.port });
+        } catch (err) {
+          callback({ success: true, message: `Built-in Echo Server failed to start at port ${url.port}:${err}` });
+        }
+      });
+
+      socket.on("stopEmbeddedUpstream", (callback) => {
+        try {
+          DataHub.upstreamServer?.close();
+          callback({ success: true, message: "Built-in Echo Server successfully stopped" });
+        } catch (err) {
+          callback({ success: true, message: `Built-in Echo Server failed to stop:${err}` });
+        }
+      });
+
       socket.on("getCurrentModel", async (callback) => {
         callback({
           ready: true,
@@ -39,6 +66,7 @@ export class DataHub {
             upstreamServerUrl: this.upstreamServerUrl,
             tunnelConnectionStatus: this.tunnelConnectionStatus,
             tunnelServerStatus: this.tunnelServerStatus,
+            serviceConfiguration: this.serviceConfiguration,
           },
           trafficHistory: await this.getHttpHistory(),
           logs: [],
@@ -65,24 +93,30 @@ export class DataHub {
     return url;
   }
 
-  async UpdateTraffics(trafficHistory: HttpHistoryItem[]) {
-    for (const item of trafficHistory) {
-      item.id = await this.repo.insertDataAsync({
-        Request: {
-          TracingId: item.tracingId,
-          RequestAt: item.requestAtOffset,
-          MethodName: item.methodName,
-          Url: item.url,
-          RequestRaw: item.requestRaw,
-        },
-        Response: {
-          Code: item.code,
-          ResponseRaw: item.responseRaw,
-          RespondAt: item.responseAtOffset,
-        },
-      });
-    }
-    this.io.emit("updateTraffics", trafficHistory);
+  async AddTraffic(item: HttpHistoryItem) {
+    item.id = await this.repo.insertDataAsync({
+      Request: {
+        TracingId: item.tracingId,
+        RequestAt: item.requestAtOffset,
+        MethodName: item.methodName,
+        Url: item.url,
+        RequestRaw: item.requestRaw,
+      },
+    });
+    this.io.emit("addTraffic", item);
+  }
+
+  async UpdateTraffic(item: HttpHistoryItem) {
+    if (!item.id) throw new Error("Id shouldn't be undefined when calling update");
+    await this.repo.updateDataAsync(
+      item.id,
+      JSON.stringify({
+        Code: item.code,
+        ResponseRaw: item.responseRaw,
+        RespondAt: item.responseAtOffset,
+      }),
+    );
+    this.io.emit("updateTraffic", item);
   }
 
   UpdateLogs(logs: string[]) {
@@ -107,6 +141,10 @@ export class DataHub {
   ReportTunnelToLocalServerStatus(status: ConnectionStatusPair) {
     this.tunnelServerStatus = status;
     this.io.emit("reportTunnelToLocalServerStatus", status);
+  }
+  ReportServiceConfiguration(config: ServiceConfiguration) {
+    this.serviceConfiguration = config;
+    this.io.emit("reportServiceConfiguration", config);
   }
 
   async getHttpHistory(): Promise<HttpHistoryItem[]> {

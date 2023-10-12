@@ -1,9 +1,7 @@
-import React from "react";
 import "./Connector.css";
 import { ConnectionStatus, ConnectionStatusPair } from "../models";
-
 export function Connector({ status }: { status: ConnectionStatus }) {
-  if (status === ConnectionStatus.Connecting) {
+  if (status === ConnectionStatus.Connecting || status === ConnectionStatus.None) {
     return <div className="dashed-line arrow-line connecting"></div>;
   }
 
@@ -15,6 +13,10 @@ export function Connector({ status }: { status: ConnectionStatus }) {
 }
 
 export function TwoDirectionConnector({ statusPair }: { statusPair: ConnectionStatusPair }) {
+  if (statusPair.statusOut === ConnectionStatus.None || statusPair.statusIn === ConnectionStatus.None) {
+    return <div className="two-direction-arrow-line dashed-line"></div>;
+
+  }
   if (statusPair.statusOut === ConnectionStatus.Connected && statusPair.statusIn === ConnectionStatus.Connected) {
     return <div className="two-direction-arrow-line connected"></div>;
   }
