@@ -18,8 +18,7 @@
   <script src="/socket.io/socket.io.js"></script>
   <script>
     async function main() {
-      const negotiateServerEndpoint = "http://localhost:3000";
-      const negotiateResponse = await fetch(`${negotiateServerEndpoint}/negotiate/?expirationMinutes=600`);
+      const negotiateResponse = await fetch(`/negotiate`);
 
       if (!negotiateResponse.ok) {
         console.log("Failed to negotiate, status code =", negotiateResponse.status);

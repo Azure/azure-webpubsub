@@ -31,7 +31,7 @@ async function main(username) {
   $loginPage.off('click');
   $currentInput = $inputMessage.focus();
 
-  const negotiateResponse = await fetch(`/negotiate/?username=${username}&expirationMinutes=600`);
+  const negotiateResponse = await fetch(`/negotiate/?username=${username}`);
   if (!negotiateResponse.ok) {
     console.log("Failed to negotiate, status code =", negotiateResponse.status);
     return ;

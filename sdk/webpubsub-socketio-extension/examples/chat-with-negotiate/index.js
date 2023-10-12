@@ -26,8 +26,9 @@ const wpsOptions = {
 */
 
 function authentiacte(username) {
-    if (username.length < 10) return true;
-    return false;
+    // Add your own authentication logic here
+    // if (...) return false;
+    return true;
 }
 
 async function main() {
