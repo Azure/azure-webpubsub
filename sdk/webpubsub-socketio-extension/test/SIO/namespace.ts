@@ -3,7 +3,6 @@
 import { Namespace, Socket } from "socket.io";
 import { Server, success, createClient, successFn, spinCheck, getServer } from "./support/util";
 import { debugModule } from "../../src/common/utils";
-import { WebPubSubEioServer } from "../../src/EIO";
 
 const expect = require("expect.js");
 const debug = debugModule("wps-sio-ext:ut:namespace");

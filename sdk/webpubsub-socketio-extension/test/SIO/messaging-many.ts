@@ -84,9 +84,9 @@ describe("messaging many", () => {
   });
 
   it("emits to the rest", (done) => {
-    done();
     const ioPromise = getServer(0);
     ioPromise.then(async (io) => {
+      io.of("/test");
       const socket1 = createClient("/", { multiplex: false });
       const socket2 = createClient("/", { multiplex: false });
       const socket3 = createClient("/test");
@@ -155,7 +155,7 @@ describe("messaging many", () => {
       clientSocket1.emit("join", "woot");
 
       await spinCheck(async () => {
-        expect((await io.in("woot").fetchSockets()).length).to.be(1);
+        expect((await io.in("woot").local.fetchSockets()).length).to.be(1);
       });
 
       debug("clientSocket1 joined woot");
@@ -198,8 +198,8 @@ describe("messaging many", () => {
       client1.emit("join", "test");
 
       await spinCheck(async () => {
-        const wootCount = (await io.in("woot").fetchSockets()).length;
-        const testCount = (await io.in("test").fetchSockets()).length;
+        const wootCount = (await io.in("woot").local.fetchSockets()).length;
+        const testCount = (await io.in("test").local.fetchSockets()).length;
         expect(wootCount == 1 && testCount == 1).to.be(true);
       });
       client2.emit("join", "third", () => {
@@ -288,7 +288,7 @@ describe("messaging many", () => {
         });
         socket.on("broadcast", async () => {
           await spinCheck(async () => {
-            const sockets = await io.in("test").fetchSockets();
+            const sockets = await io.in("test").local.fetchSockets();
             expect(sockets.length).to.be(2);
           });
           socket.broadcast.to("test").emit("bin", Buffer.alloc(5));
@@ -307,8 +307,8 @@ describe("messaging many", () => {
       socket2.emit("join", "test");
 
       await spinCheck(async () => {
-        const wootSockets = (await io.in("woot").fetchSockets()).length;
-        const testSockest = (await io.in("test").fetchSockets()).length;
+        const wootSockets = (await io.in("woot").local.fetchSockets()).length;
+        const testSockest = (await io.in("test").local.fetchSockets()).length;
         expect(wootSockets == 1 && testSockest == 1).to.be(true);
       });
 
