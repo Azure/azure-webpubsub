@@ -50,6 +50,7 @@ app.post("/login", passport.authenticate("local", {
 );
 
 app.post("/logout", (req, res) => {
+  // Session is inaccessible by Socket.IO middleware, usage below cannot work
   /*
   console.log(`logout ${req.session.id}`);
   const socketId = req.session.socketId;
@@ -104,6 +105,7 @@ async function main() {
       cb(socket.request.user ? socket.request.user.username : '');
     });
 
+    // Session is inaccessible by Socket.IO middleware, usage below cannot work
     /*
     const session = socket.request.session;
     console.log(`saving sid ${socket.id} in session ${session.id}`);
