@@ -34,13 +34,11 @@ async function main() {
     const configureNegotiateOptions = (req) => {
         const query = parse(req.url || "", true).query
         const username = query["username"] ?? "annoyomous";
-        const expirationMinutes = Number.parseInt(query["expirationMinutes"]) ?? 600;
         if (!authentiacte(username)) {
             throw new Error(`Authentication Failed for username = ${username}`);
         }
         return {
             userId: username,
-            expirationTimeInMinutes: expirationMinutes
         };
     }
 
