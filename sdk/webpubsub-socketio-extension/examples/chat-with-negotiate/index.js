@@ -25,16 +25,21 @@ const wpsOptions = {
 };
 */
 
-// Add an Web PubSub Option
+function authentiacte(username) {
+    // Add your own authentication logic here
+    // if (...) return false;
+    return true;
+}
 
 async function main() {
     const configureNegotiateOptions = (req) => {
         const query = parse(req.url || "", true).query
         const username = query["username"] ?? "annoyomous";
-        const expirationMinutes = Number.parseInt(query["expirationMinutes"]) ?? 600;
+        if (!authentiacte(username)) {
+            throw new Error(`Authentication Failed for username = ${username}`);
+        }
         return {
             userId: username,
-            expirationTimeInMinutes: expirationMinutes
         };
     }
 
@@ -42,6 +47,7 @@ async function main() {
     azure.useAzureSocketIO(io, wpsOptions);
 
     app.get("/negotiate", azure.negotiate(io, configureNegotiateOptions))
+
     app.use(express.static(path.join(__dirname, 'public')));
 
     // Chatroom

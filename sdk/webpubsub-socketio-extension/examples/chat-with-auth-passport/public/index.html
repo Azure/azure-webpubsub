@@ -1,0 +1,61 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <title>Passport example</title>
+</head>
+
+<body>
+  <p>Authenticated!</p>
+  <p>Socket ID: <span id="socketId"></span></p>
+  <p>Username: <span id="username"></span></p>
+  <form action="/logout" method="post">
+    <div>
+      <input type="submit" value="Log out" />
+    </div>
+  </form>
+  <script src="/socket.io/socket.io.js"></script>
+  <script>
+    async function main() {
+      const negotiateResponse = await fetch(`/negotiate`);
+
+      if (!negotiateResponse.ok) {
+        console.log("Failed to negotiate, status code =", negotiateResponse.status);
+        return;
+      }
+      const json = await negotiateResponse.json();
+      console.log("endpoint=", json.endpoint);
+      var socket = io(json.endpoint, {
+        path: json.path,
+        query: {
+          access_token: json.token
+        }
+      });
+      const socketIdSpan = document.getElementById("socketId");
+      const usernameSpan = document.getElementById("username");
+
+      socket.on('connect', () => {
+        socketIdSpan.innerText = socket.id;
+
+        socket.emit('whoami', (username) => {
+          usernameSpan.innerText = username;
+        });
+      });
+
+      socket.io.on('reconnect_attempt', async () => {
+        log('you are trying to reconnect');
+        const negotiate = await fetch('/negotiate');
+        if (!negotiate.ok) {
+          console.log("Failed to negotiate, status code =", negotiateResponse.status);
+          return;
+        } 
+        const json = await negotiate.json();
+        socket.io.opts.query['access_token'] = json.token;
+      });
+    }
+    main();
+  </script>
+</body>
+
+</html>
