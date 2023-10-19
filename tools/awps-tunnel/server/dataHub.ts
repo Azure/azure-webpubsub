@@ -7,6 +7,7 @@ import http from "http";
 import { HttpServerProxy } from "./serverProxies";
 import { DataRepo } from "./dataRepo";
 import { startUpstreamServer } from "./upstream";
+import { printer } from "./output";
 
 // singleton per hub?
 export class DataHub {
@@ -24,13 +25,14 @@ export class DataHub {
   private repo: DataRepo;
   constructor(server: http.Server, private tunnel: HttpServerProxy, upstreamUrl: string, dbFile: string) {
     const io = (this.io = new Server(server));
+    printer.log("Webview client connecting to get the latest status");
     this.repo = new DataRepo(dbFile);
     this.endpoint = tunnel.endpoint;
     this.hub = tunnel.hub;
     this.upstreamServerUrl = upstreamUrl;
     // Socket.io event handling
     io.on("connection", (socket: Socket) => {
-      console.log("A Socketio client connected");
+      printer.log("A webview client connected");
 
       socket.on("startEmbeddedUpstream", async (callback) => {
         if (DataHub.upstreamServer) {
@@ -40,18 +42,26 @@ export class DataHub {
         const url = new URL(upstreamUrl);
         try {
           DataHub.upstreamServer = await startUpstreamServer(Number.parseInt(url.port), tunnel.hub, "/eventHandler");
-          callback({ success: true, message: "Built-in Echo Server started at port " + url.port });
+          const message = "Built-in Echo Server started at port " + url.port;
+          printer.status(`[Upstream] ${message}`);
+          callback({ success: true, message: message });
         } catch (err) {
-          callback({ success: true, message: `Built-in Echo Server failed to start at port ${url.port}:${err}` });
+          const message = `Built-in Echo Server failed to start at port ${url.port}:${err}`;
+          printer.error(`[Upstream] ${message}`);
+          callback({ success: true, message: message });
         }
       });
 
       socket.on("stopEmbeddedUpstream", (callback) => {
         try {
           DataHub.upstreamServer?.close();
-          callback({ success: true, message: "Built-in Echo Server successfully stopped" });
+          const message = `Built-in Echo Server successfully stopped`;
+          printer.status(`[Upstream] ${message}`);
+          callback({ success: true, message: message });
         } catch (err) {
-          callback({ success: true, message: `Built-in Echo Server failed to stop:${err}` });
+          const message = `Built-in Echo Server failed to stop:${err}`;
+          printer.error(`[Upstream] ${message}`);
+          callback({ success: true, message: message });
         }
       });
 
@@ -78,7 +88,7 @@ export class DataHub {
       });
 
       socket.on("disconnect", () => {
-        console.log("A Socketio client disconnected");
+        printer.log("A webview client connected");
       });
     });
   }

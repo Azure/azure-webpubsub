@@ -1,7 +1,7 @@
 import express from "express";
 import { Server } from "http";
 import { WebPubSubEventHandler } from "@azure/web-pubsub-express";
-import { logger } from "./logger";
+import { printer } from "./output";
 
 export async function startUpstreamServer(port: number, hub: string, path: string): Promise<Server> {
   return new Promise((resolve, reject) => {
@@ -9,11 +9,11 @@ export async function startUpstreamServer(port: number, hub: string, path: strin
     const handler = new WebPubSubEventHandler(hub, {
       path: path,
       handleConnect(_, res) {
-        logger.info(`Connect triggered`);
+        printer.log(`[Upstream] Connect triggered`);
         res.success();
       },
       handleUserEvent(req, res) {
-        logger.info(`User event triggered`);
+        printer.log(`[Upstream] User event triggered`);
         if (req.dataType === "text") {
           res.success(`Echo back ${req.data}`, req.dataType);
         } else if (req.dataType === "json") {
@@ -23,16 +23,15 @@ export async function startUpstreamServer(port: number, hub: string, path: strin
         }
       },
       onConnected() {
-        logger.info(`Connected triggered`);
+        printer.log(`[Upstream] Connected triggered`);
       },
       onDisconnected() {
-        logger.info(`Disconnected triggered`);
+        printer.log(`[Upstream] Disconnected triggered`);
       },
     });
     app.use(handler.getMiddleware());
     try {
       const server = app.listen(port, () => {
-        logger.info(`Built-in Echo Server started on port ${port}`);
         resolve(server);
       });
     } catch (err) {

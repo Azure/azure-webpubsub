@@ -4,6 +4,7 @@ import path from "path";
 import fs from "fs";
 import packageJson from "./package.json";
 import { getCommand } from "./commander";
+import { checkVersion } from "./checkVersion";
 const name = packageJson["cli-name"];
 
 // /home/user/.config/app on Linux
@@ -17,4 +18,7 @@ const dbFile = path.join(dir, "data.sqlite");
 
 const command = getCommand(appConfigPath, dbFile);
 command.parse(process.argv);
-command.action(() => command.outputHelp());
+command.action(() => {
+  checkVersion();
+  command.outputHelp();
+});

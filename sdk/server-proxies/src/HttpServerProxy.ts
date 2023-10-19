@@ -24,6 +24,7 @@ const apiVersion = "2023-07-01";
 export class HttpServerProxy {
   private _tunnel: TunnelConnection;
   private _client: WebPubSubServiceClient;
+  public id: string;
   static fromConnectionString(connectionString: string, hub: string, options: HttpServerProxyOptions, reverseProxyEndpoint?: string): HttpServerProxy {
     const { credential, endpoint } = parseConnectionString(connectionString);
     return new HttpServerProxy(endpoint, credential, hub, options, reverseProxyEndpoint);
@@ -33,6 +34,7 @@ export class HttpServerProxy {
     this.endpoint = this.endpoint.endsWith("/") ? this.endpoint : this.endpoint + "/";
     this._tunnel = new TunnelConnection(endpoint, credential, hub, undefined, reverseProxyEndpoint);
     this._client = new WebPubSubServiceClient(endpoint, credential as any, hub);
+    this.id = this._tunnel.id;
   }
 
   public runAsync(options: RunOptions, abortSignal?: AbortSignal): Promise<void> {
