@@ -36,17 +36,21 @@ export class DataHub {
 
       socket.on("startEmbeddedUpstream", async (callback) => {
         if (DataHub.upstreamServer) {
-          callback({ success: true, message: "Built-in Echo Server already started" });
+          const message = "Built-in Echo Server already started";
+          printer.status(`[Upstream] ${message}`);
+          callback({ success: true, message: message });
           return;
         }
         const url = new URL(upstreamUrl);
         try {
           DataHub.upstreamServer = await startUpstreamServer(Number.parseInt(url.port), tunnel.hub, "/eventHandler");
+          this.io.emit("reportBuiltinUpstreamServerStarted", DataHub.upstreamServer !== undefined);
           const message = "Built-in Echo Server started at port " + url.port;
           printer.status(`[Upstream] ${message}`);
           callback({ success: true, message: message });
         } catch (err) {
           const message = `Built-in Echo Server failed to start at port ${url.port}:${err}`;
+          this.io.emit("reportBuiltinUpstreamServerStarted", DataHub.upstreamServer !== undefined);
           printer.error(`[Upstream] ${message}`);
           callback({ success: true, message: message });
         }
@@ -55,11 +59,14 @@ export class DataHub {
       socket.on("stopEmbeddedUpstream", (callback) => {
         try {
           DataHub.upstreamServer?.close();
+          DataHub.upstreamServer = undefined;
           const message = `Built-in Echo Server successfully stopped`;
+          this.io.emit("reportBuiltinUpstreamServerStarted", DataHub.upstreamServer !== undefined);
           printer.status(`[Upstream] ${message}`);
           callback({ success: true, message: message });
         } catch (err) {
           const message = `Built-in Echo Server failed to stop:${err}`;
+          this.io.emit("reportBuiltinUpstreamServerStarted", DataHub.upstreamServer !== undefined);
           printer.error(`[Upstream] ${message}`);
           callback({ success: true, message: message });
         }
@@ -77,6 +84,7 @@ export class DataHub {
             tunnelConnectionStatus: this.tunnelConnectionStatus,
             tunnelServerStatus: this.tunnelServerStatus,
             serviceConfiguration: this.serviceConfiguration,
+            builtinUpstreamServerStarted: DataHub.upstreamServer !== undefined,
           },
           trafficHistory: await this.getHttpHistory(),
           logs: [],
