@@ -44,9 +44,9 @@ Commands:
 ## Run
 1. In your Web PubSub service portal, go to Settings tab, specify the event handler URL to start with `tunnel:///` to allow tunnel connection.
 
-    ![Configure Hub Settings](docs/images/hub-settings.png)
+    ![Configure Hub Settings](https://github.com/azure/azure-webpubsub/blob/main/tools/awps-tunnel/server/docs/images/hub-settings.png?raw=true)
 
-1. Start your upstream server, for example, this sample [upstream server](./samples/upstream/), when it starts, the upstream serves requests to http://localhost:3000/eventhandler/.
+1. Start your upstream server, for example, this sample [upstream server](https://github.com/Azure/azure-webpubsub/tree/main/tools/awps-tunnel/server/samples/upstream/), when it starts, the upstream serves requests to http://localhost:3000/eventhandler/.
 
     ```bash
     cd samples/upstream
@@ -63,11 +63,11 @@ Commands:
 
 1. You will see output like `Open webview at: http://localhost:4000`, open the link in your browser and you could see the tunnel status and the traffic.
 
-    ![overview](docs/images/overview-tunnel.png)
+    ![overview](https://github.com/azure/azure-webpubsub/blob/main/tools/awps-tunnel/server/docs/images/overview-tunnel.png?raw=true)
 
 1. In `Client` tab, click `Connect` to start a test WebSocket connection to the Azure Web PubSub service. You would see the traffic goes through Web PubSub to Local Tunnel and finnally reaches your upstream server. The tunnel tab provides the details of the request and responses, providing you a vivid view of what is requesting your upstream server and what is reponding from the upstream server.
 
-    ![overview](docs/images/overview-client.png)
+    ![overview](https://github.com/azure/azure-webpubsub/blob/main/tools/awps-tunnel/server/docs/images/overview-client.png?raw=true)
 
-    ![overview](docs/images/overview-tunnel.png)
+    ![overview](https://github.com/azure/azure-webpubsub/blob/main/tools/awps-tunnel/server/docs/images/overview-tunnel.png?raw=true)
 

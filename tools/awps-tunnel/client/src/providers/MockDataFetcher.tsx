@@ -15,6 +15,7 @@ export class MockDataFetcher implements IDataFetcher {
       statusOut: ConnectionStatus.Connected,
     },
     serviceConfiguration: { loaded: false, resourceName: "abc" },
+    builtinUpstreamServerStarted: false,
     trafficHistory: [],
     logs: [],
   };
@@ -37,6 +38,7 @@ export class MockDataFetcher implements IDataFetcher {
       upstreamServerUrl: "http://localhost:3000",
       tunnelConnectionStatus: ConnectionStatus.Connected,
       tunnelServerStatus: ConnectionStatusPairs.Connected,
+      builtinUpstreamServerStarted: true,
       hub: "chat",
       serviceConfiguration: {
         loaded: true,

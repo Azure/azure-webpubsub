@@ -1,5 +1,5 @@
 import * as sqlite3 from "sqlite3";
-import { logger } from "./logger";
+import { printer } from "./output";
 
 // Define your data model classes here (similar to the C# classes)
 
@@ -49,8 +49,6 @@ export class DataRepo {
           reject(err);
           return;
         }
-        logger.info("Updated data with ID:", (stmt as sqlite3.RunResult).lastID); // <-- Accessing the auto-incremented ID
-
         // Finalize the statement
         stmt.finalize(function (finalizeErr) {
           if (finalizeErr) {
@@ -73,8 +71,6 @@ export class DataRepo {
           return;
         }
         const id = (stmt as sqlite3.RunResult).lastID;
-        logger.info("Inserted data with ID:", id); // <-- Accessing the auto-incremented ID
-
         // Finalize the statement
         stmt.finalize(function (finalizeErr) {
           if (finalizeErr) {
@@ -130,9 +126,9 @@ export class DataRepo {
   public dispose() {
     this.db.close((err) => {
       if (err) {
-        logger.error(`Error closing the database ${this.databaseFile}: ${err.message}`);
+        printer.error(`Error closing the database ${this.databaseFile}: ${err.message}`);
       } else {
-        logger.info(`Database ${this.databaseFile} closed.`);
+        printer.log(`Database ${this.databaseFile} closed.`);
       }
     });
   }

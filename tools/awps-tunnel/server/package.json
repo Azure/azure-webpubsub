@@ -1,6 +1,6 @@
 {
   "name": "@azure/web-pubsub-tunnel-tool",
-  "version": "1.0.0-alpha.20231018.1",
+  "version": "1.0.0-alpha.20231020.1",
   "description": "A local tool to help tunnel Azure Web PubSub traffic to local web app and provide a vivid view to the end to end workflow.",
   "keywords": [
     "azure",
@@ -65,8 +65,8 @@
     "eslint-plugin-prettier": "^4.2.1",
     "eslint-plugin-promise": "^6.1.1",
     "eslint-plugin-tsdoc": "^0.2.17",
-    "prettier": "^2.8.8",
     "jest": "^29.6.1",
+    "prettier": "^2.8.8",
     "ts-jest": "^29.1.1",
     "ts-loader": "^9.4.4",
     "ts-node-dev": "^2.0.0",
@@ -85,10 +85,13 @@
     "@msgpack/msgpack": "^3.0.0-beta2",
     "@types/sqlite3": "^3.1.8",
     "appdirsjs": "^1.2.7",
+    "axios": "^1.5.1",
+    "chalk": "^4.1.2",
     "commander": "^11.0.0",
     "dotenv": "^16.3.1",
     "express": "^4.18.2",
     "jsonwebtoken": "^9.0.2",
+    "semver": "^7.5.4",
     "socket.io": "^4.7.2",
     "sqlite3": "^5.1.6",
     "ws": "^8.13.0"

@@ -113,4 +113,8 @@ export interface DataModel {
    * The service configuration
    */
   serviceConfiguration: ServiceConfiguration;
+  /**
+   * Whether the built-in upstream server is started in the server
+   */
+  builtinUpstreamServerStarted: boolean;
 }
