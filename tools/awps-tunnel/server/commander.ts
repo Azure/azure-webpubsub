@@ -26,13 +26,21 @@ interface Settings {
   };
 }
 
-interface CommandLineArgs {
+interface BindCommandLineArgs {
+  endpoint?: string | boolean;
+  hub?: string | boolean;
+  upstream?: string | boolean;
+  subscription?: string | boolean;
+  resourceGroup?: string | boolean;
+}
+
+interface RunCommandLineArgs {
+  verbose?: boolean;
   endpoint?: string;
   hub?: string;
   upstream?: string;
   subscription?: string;
   resourceGroup?: string;
-  verbose?: boolean;
 }
 
 export function getCommand(appConfigPath: string, dbFile: string): Command {
@@ -42,12 +50,12 @@ export function getCommand(appConfigPath: string, dbFile: string): Command {
   program.command("status").action(() => createStatusAction(settings));
   const bind = program.command("bind");
   bind
-    .option("-e, --endpoint <endpoint>", "Sepcify the Web PubSub service endpoint URL to connect to")
-    .option("--hub <hub>", "Specify the hub to connect to")
-    .option("-u, --upstream <upstream>", "Specify the upstream URL to connect to")
-    .option("-s, --subscription <subscription>", "Specify the subscriptionId your Web PubSub service belongs to. Specify subscriptionId and resource group to let the tool fetch hub settings for you")
+    .option("-e, --endpoint [endpoint]", "Sepcify the Web PubSub service endpoint URL to connect to")
+    .option("--hub [hub]", "Specify the hub to connect to")
+    .option("-u, --upstream [upstream]", "Specify the upstream URL to connect to")
+    .option("-s, --subscription [subscription]", "Specify the subscriptionId your Web PubSub service belongs to. Specify subscriptionId and resource group to let the tool fetch hub settings for you")
     .option(
-      "-g, --resourceGroup <resourceGroup>",
+      "-g, --resourceGroup [resourceGroup]",
       "Specify the resource group your Web PubSub service belongs to. Specify subscriptionId and resource group to let the tool fetch hub settings for you",
     )
     .action((update) =>
@@ -61,14 +69,14 @@ export function getCommand(appConfigPath: string, dbFile: string): Command {
   const run = program.command("run");
   run
     .option(
-      "-e, --endpoint <endpoint>",
+      "-e, --endpoint [endpoint]",
       "Sepcify the Web PubSub service endpoint URL to connect to, you don't need to set it if WebPubSubConnectionString environment variable is set. If both are set, this option will be used.",
     )
-    .option("--hub <hub>", "Specify the hub to connect to")
-    .option("-u, --upstream <upstream>", "Specify the upstream URL to redirect traffic to")
-    .option("-s, --subscription <subscription>", "Specify the subscriptionId your Web PubSub service belongs to. Specify subscriptionId and resource group to let the tool fetch hub settings for you")
+    .option("--hub [hub]", "Specify the hub to connect to")
+    .option("-u, --upstream [upstream]", "Specify the upstream URL to redirect traffic to. If not specified, http://localhost:3000 will be used.")
+    .option("-s, --subscription [subscription]", "Specify the subscriptionId your Web PubSub service belongs to. Specify subscriptionId and resource group to let the tool fetch hub settings for you")
     .option(
-      "-g, --resourceGroup <resourceGroup>",
+      "-g, --resourceGroup [resourceGroup]",
       "Specify the resource group your Web PubSub service belongs to. Specify subscriptionId and resource group to let the tool fetch hub settings for you",
     )
     .option("--verbose", "Enable verbose logs")
@@ -92,41 +100,50 @@ function createStatusAction(settings: Settings) {
   printer.suggestions(`Use ${name} bind to set/reset the settings.`);
 }
 
-function createBindAction(bind: Command, settings: Settings, updated: CommandLineArgs, onDone: (updatedSettings: Settings) => void) {
+function createBindAction(bind: Command, settings: Settings, updated: BindCommandLineArgs, onDone: (updatedSettings: Settings) => void) {
   const endpoint = updated.endpoint;
   const hub = updated.hub;
   const upstream = updated.upstream;
   const subscription = updated.subscription;
   const resourceGroup = updated.resourceGroup;
   if (!endpoint && !hub && !upstream && !subscription && !resourceGroup) {
-    printer.error("Error: none of --endpoint|--hub|--upstream|--subscription|--resourceGroup is specified.");
+    printer.error("Error: Please specify at least one option to bind.");
     bind.outputHelp();
     return;
   }
   if (endpoint) {
-    if (validateEndpoint(endpoint)) {
-      settings.WebPubSub.Endpoint = endpoint;
+    if (endpoint === true) {
+      // the option to clear the endpoint
+      settings.WebPubSub.Endpoint = undefined;
     } else {
-      printer.error(`Error: binding to invalid endpoint: ${endpoint}`);
-      return;
+      if (validateEndpoint(endpoint)) {
+        settings.WebPubSub.Endpoint = endpoint;
+      } else {
+        printer.error(`Error: binding to invalid endpoint: ${endpoint}`);
+        return;
+      }
     }
   }
   if (upstream) {
-    if (validateEndpoint(upstream)) {
-      settings.WebPubSub.Upstream = upstream;
+    if (upstream === true) {
+      settings.WebPubSub.Upstream = undefined;
     } else {
-      printer.error(`Error: binding to invalid upstream: ${upstream}`);
-      return;
+      if (validateEndpoint(upstream)) {
+        settings.WebPubSub.Upstream = upstream;
+      } else {
+        printer.error(`Error: binding to invalid upstream: ${upstream}`);
+        return;
+      }
     }
   }
   if (hub) {
-    settings.WebPubSub.Hub = hub;
+    settings.WebPubSub.Hub = hub === true ? undefined : hub;
   }
   if (subscription) {
-    settings.WebPubSub.SubscriptionId = subscription;
+    settings.WebPubSub.SubscriptionId = subscription === true ? undefined : subscription;
   }
   if (resourceGroup) {
-    settings.WebPubSub.ResourceGroup = resourceGroup;
+    settings.WebPubSub.ResourceGroup = resourceGroup === true ? undefined : resourceGroup;
   }
   onDone(settings);
 }
@@ -164,7 +181,7 @@ async function loadHubSettings(subscriptionId: string | undefined, resourceGroup
   return { message, eventHandlers, subscriptionId, resourceGroup, resourceName, loaded: true };
 }
 
-function createRunCommand(run: Command, dbFile: string, settings: Settings, updated: CommandLineArgs) {
+function createRunCommand(run: Command, dbFile: string, settings: Settings, updated: RunCommandLineArgs) {
   if (updated.verbose) {
     printer.enableVerboseLogging();
   }
@@ -183,14 +200,13 @@ function createRunCommand(run: Command, dbFile: string, settings: Settings, upda
     currentUpstream = upstream;
   }
   if (!currentUpstream) {
-    printer.error(`Error: upstream is not specified. Use -u|--upstream to specify the upstream URL.`);
-    run.outputHelp();
-    return;
+    printer.status(`Upstream is not specified. http://localhost:3000 is used as the default upstream value. Use -u|--upstream to specify the upstream URL.`);
+    currentUpstream = "http://localhost:3000";
   }
 
   const currentHub = hub ?? settings.WebPubSub.Hub;
   if (!currentHub) {
-    printer.error(`Error: hub is not specified. Use --hub to specify the hub.`);
+    printer.error(`Error: hub is neither specified nor binded. Use --hub to specify the hub.`);
     run.outputHelp();
     return;
   }
