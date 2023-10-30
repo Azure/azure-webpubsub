@@ -55,6 +55,7 @@ export class TunnelConnection {
   private readonly _ackMap: Map<number, AckEntity<TunnelHttpResponseMessage>> = new Map<number, AckEntity<TunnelHttpResponseMessage>>();
   private readonly clients = new Map<string, WebPubSubTunnelClient>();
   private readonly lifetimeTcs: PromiseCompletionSource<void> = new PromiseCompletionSource<void>();
+  private _stopped = false;
   private _ackId: number = 0;
   constructor(
     private readonly endpoint: string,
@@ -71,6 +72,7 @@ export class TunnelConnection {
 
   public async runAsync(abortSignal?: AbortSignalLike): Promise<void> {
     // Run the connection
+    this._stopped = false;
     await this.startConnectionAsync(
       {
         endpoint: this.endpoint,
@@ -129,7 +131,7 @@ export class TunnelConnection {
         new TunnelHttpRequestMessage(ackId, true, "", httpRequest.method, httpRequest.url, headers, httpRequest.content),
         abortSignal
       );
-      logger.info(`Sent http request: ackId: ${ackId}, method: ${httpRequest.method}, url: ${httpRequest.url}`);
+      logger.info(`Sent http request: ackId: ${ackId}, method: ${httpRequest.method}, url: ${httpRequest.url}, hub: ${this.hub}`);
       // Wait for the first response which contains status code / headers
       return pcs.promise;
     } catch (err) {
@@ -139,6 +141,12 @@ export class TunnelConnection {
   }
 
   public stop(): void {
+    logger.warning(`Stop the lifetime. Start to close all connections, hub: ${this.hub}`);
+
+    if (this._stopped) {
+      return;
+    }
+    this._stopped = true;
     // Stop the connection
     this.lifetimeTcs.resolve();
 
@@ -174,7 +182,7 @@ export class TunnelConnection {
       switch (message.Type) {
         case TunnelMessageType.HttpResponse: {
           const tunnelResponse = message as TunnelHttpResponseMessage;
-          logger.info(`Getting http response ${tunnelResponse.TracingId ?? ""}: ackId: ${tunnelResponse.AckId}, statusCode: ${tunnelResponse.StatusCode}, notComplete: ${tunnelResponse.NotCompleted}`);
+          logger.info(`Getting http response ${tunnelResponse.TracingId ?? ""}: ackId: ${tunnelResponse.AckId}, statusCode: ${tunnelResponse.StatusCode}, notComplete: ${tunnelResponse.NotCompleted}, hub: ${this.hub}`);
           const ackId = tunnelResponse.AckId;
           if (this._ackMap.has(ackId)) {
             const entity = this._ackMap.get(ackId)!;
@@ -187,14 +195,14 @@ export class TunnelConnection {
         }
         case TunnelMessageType.HttpRequest: {
           const tunnelRequest = message as TunnelHttpRequestMessage;
-          logger.info(`Getting http request ${tunnelRequest.TracingId ?? ""}: ackId: ${tunnelRequest.AckId}, method: ${tunnelRequest.HttpMethod}, url: ${tunnelRequest.Url}`);
+          logger.info(`Getting http request ${tunnelRequest.TracingId ?? ""}: ackId: ${tunnelRequest.AckId}, method: ${tunnelRequest.HttpMethod}, url: ${tunnelRequest.Url}, hub: ${this.hub}`);
           if (!this.requestHandler) {
             throw new Error("Request handler not configured");
           }
   
           const response = await this.requestHandler(tunnelRequest, abortSignal);
           if (response) {
-            logger.info(`Sending response back ${tunnelRequest.TracingId ?? ""}: ackId:${tunnelRequest.AckId}, statusCode: ${response.StatusCode}, content-length: ${response.Content.length}`);
+            logger.info(`Sending response back ${tunnelRequest.TracingId ?? ""}: ackId:${tunnelRequest.AckId}, statusCode: ${response.StatusCode}, content-length: ${response.Content.length}, hub: ${this.hub}`);
             await client.sendAsync(
               new TunnelHttpResponseMessage(
                 tunnelRequest.AckId,
@@ -212,7 +220,7 @@ export class TunnelConnection {
         }
         case TunnelMessageType.ConnectionReconnect: {
           const reconnect = message as TunnelConnectionReconnectMessage;
-          logger.info(`Reconnect the connection ${client.getPrintableIdentifier()}: ${reconnect.Message}`);
+          logger.info(`Reconnect the connection ${client.getPrintableIdentifier()}: ${reconnect.Message}, hub: ${this.hub}`);
           await this.stopConnection(client.id);
           await this.startConnectionAsync(
             {
@@ -225,13 +233,13 @@ export class TunnelConnection {
         }
         case TunnelMessageType.ConnectionClose: {
           const close = message as TunnelConnectionCloseMessage;
-          logger.info(`Close the connection ${client.getPrintableIdentifier()}: ${close.Message}`);
+          logger.info(`Close the connection ${client.getPrintableIdentifier()}: ${close.Message}, hub: ${this.hub}`);
           this.stopConnection(client.id);
           break;
         }
         case TunnelMessageType.ConnectionRebalance: {
           const rebalance = message as TunnelConnectionRebalanceMessage;
-          logger.info(`Start another rebalance connection ${rebalance.Endpoint} -> ${rebalance.TargetId}`);
+          logger.info(`Start another rebalance connection ${rebalance.Endpoint} -> ${rebalance.TargetId}, via connection: ${client.getPrintableIdentifier()}, hub: ${this.hub}`);
           await this.startConnectionAsync(
             {
               endpoint: rebalance.Endpoint,
@@ -242,24 +250,29 @@ export class TunnelConnection {
           break;
         }
         default: {
-          logger.info(`[TunnelConnection] Not Support TBD message type: ${message.Type}`);
+          logger.info(`[TunnelConnection] Not Support TBD message type: ${message.Type}, hub: ${this.hub}`);
           break;
         }
       }
     } catch (err) {
-      logger.warning(`Error processing message: ${err}`); 
+      logger.warning(`Error processing message: ${err}, hub: ${this.hub}`); 
     }
   }
 
   public stopConnection(id: string): void {
+    logger.warning(`Stopping connection: ${id}, hub: ${this.hub}`);
     this.clients.get(id)?.stop();
   }
 
   public async startConnectionAsync(target: ConnectionTarget, abortSignal?: AbortSignalLike): Promise<string> {
+    if (this._stopped) {
+      throw new Error(`Lifetime has stopped, hub: ${this.hub}`);
+    }
     const url = this.getUrl(target, this.hub);
     const client = new WebPubSubTunnelClient(url, this.credential, this.id, target.target);
+    logger.info(`Starting connection: ${client.id}, hub: ${this.hub}`);
     client.on("stop", () => {
-      logger.warning(`Client ${client.getPrintableIdentifier()} stopped`);
+      logger.warning(`Client ${client.getPrintableIdentifier()} stopped, hub: ${this.hub}`);
       this.tryEndLife(client.id);
     });
     client.on("message", () => {
@@ -272,13 +285,16 @@ export class TunnelConnection {
     });
     this.clients.set(client.id, client);
     let retry = 0;
-    while (!(abortSignal?.aborted ?? false)) {
+    while (true) {
+      if (abortSignal?.aborted || this._stopped) {
+        throw new Error(`Stop starting new client for aborted or stopped`);
+      }
       try {
         await client.startAsync(abortSignal);
         break;
       } catch (err) {
         retry++;
-        logger.verbose(`Error starting client ${client.getPrintableIdentifier()}: ${err}, retry ${retry} in 2 seconds`);
+        logger.verbose(`Error starting client ${client.getPrintableIdentifier()}: ${err}, retry ${retry} in 2 seconds, hub: ${this.hub}`);
         await delay(2000);
       }
     }

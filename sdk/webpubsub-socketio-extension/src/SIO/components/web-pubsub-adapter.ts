@@ -15,7 +15,6 @@ import { TextDecoder } from "util";
 const debug = debugModule("wps-sio-ext:SIO:Adapter");
 
 const GROUP_DELIMITER = "~";
-const NotSupportedError = new Error("Not Supported.");
 
 /**
  * Socket.IO Server uses method `io.Adapter(AdapterClass))` to set the adapter. `AdatperClass` is not an instansized object, but a class.
@@ -279,7 +278,7 @@ opts = ${toOptionsString(opts)}, namespace = "${this.nsp.name}, error = ${e}"`);
    * @param rooms - the explicit set of rooms to check.
    */
   public sockets(rooms: Set<Room>): Promise<Set<SocketId>> {
-    throw NotSupportedError;
+    throw new Error(`'sockets' is not supported.`);
   }
 
   /**
@@ -305,7 +304,7 @@ opts = ${toOptionsString(opts)}, namespace = "${this.nsp.name}, error = ${e}"`);
     if (opts.flags.local) {
       return super.fetchSockets(opts);
     } else {
-      throw NotSupportedError;
+      throw new Error(`'fetchSockets' without local flag is not supported`);
     }
   }
 
@@ -335,7 +334,7 @@ opts = ${toOptionsString(opts)}, error = ${e}`);
    * @param packet - an array of arguments, which may include an acknowledgement callback at the end
    */
   public override serverSideEmit(packet: unknown[]): void {
-    throw NotSupportedError;
+    throw new Error(`'serverSideEmit' is not supported.`);
   }
 
   /**

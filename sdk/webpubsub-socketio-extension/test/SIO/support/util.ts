@@ -8,6 +8,7 @@ import type { AddressInfo } from "net";
 import { debugModule } from "../../../src/common/utils";
 import * as wpsExt from "../../../src";
 import "../../../src"; // Otherwise: Error `this.useAzureSocketIO` is not a function
+import { InternalCounter } from "./internal-counter";
 
 export const debug = debugModule("wps-sio-ext:ut:sio:util");
 export const envFilePath = ".env.test";
@@ -21,7 +22,7 @@ export const defaultWpsOptions = {
   connectionString: process.env.WebPubSubConnectionString,
 } as wpsExt.AzureSocketIOOptions;
 
-let internalCounter = process.env.InternalCounter ? parseInt(process.env.InternalCounter) : 0;
+let internalCounter = new InternalCounter();
 
 export const baseServerPort = 3000;
 
@@ -63,30 +64,13 @@ export class Server extends _Server {
 }
 
 export const updateAndGetInternalCounter = () => {
-  // Too large counter => Too large port number
-  internalCounter = (internalCounter + 1) % 5000;
-
-  // Add or update `InternalCounter` in file `.env.test`
-  if (!fs.existsSync(envFilePath)) {
-    fs.writeFileSync(envFilePath, "");
-  }
-  const envContent = fs.readFileSync(envFilePath, "utf8");
-
-  // If existing, replace it. If non-existing, append it.
-  if (envContent.includes("InternalCounter")) {
-    const updatedEnvContent = envContent.replace(/(InternalCounter=).*/, `$1${internalCounter}`);
-    fs.writeFileSync(envFilePath, updatedEnvContent);
-  } else {
-    const dataToAppend = `\nInternalCounter=${internalCounter}\n`;
-    fs.appendFileSync(envFilePath, dataToAppend);
-  }
-  return internalCounter;
+  return internalCounter.updateAndGetInternalCounter();
 };
 
 export function getSioServerOptions(wpsOpts?: wpsExt.AzureSocketIOOptions) {
   return wpsOpts
-    ? { ...wpsOpts, hub: getIndexedHub(internalCounter) }
-    : { ...defaultWpsOptions, hub: getIndexedHub(internalCounter) };
+    ? { ...wpsOpts, hub: getIndexedHub(internalCounter.getInternalCounter()) }
+    : { ...defaultWpsOptions, hub: getIndexedHub(internalCounter.getInternalCounter()) };
 }
 
 export async function getServer(
@@ -97,7 +81,7 @@ export async function getServer(
   debug(`getServer, srv = ${srv}, opts = ${JSON.stringify(opts)}, wpsOpts = ${JSON.stringify(wpsOpts)}`);
   let port = baseServerPort + updateAndGetInternalCounter();
   if (typeof srv === "number") {
-    port = srv > 0 ? srv : internalCounter + baseServerPort;
+    port = srv > 0 ? srv : internalCounter.getInternalCounter() + baseServerPort;
     debug(`getServer, srv is port number, actual port = ${port}`);
   } else {
     port = getPort(srv as HttpServer);
@@ -151,7 +135,7 @@ export function getEndpointFullPath(connectionString: string): string {
 
 export function createClient(nsp: string = "/", opts?: Partial<ManagerOptions & SocketOptions>): ClientSocket {
   const endpointFullPath = getEndpointFullPath(process.env.WebPubSubConnectionString ?? "");
-  opts = { path: getClientConnectPath(internalCounter), ...opts };
+  opts = { path: getClientConnectPath(internalCounter.getInternalCounter()), ...opts };
   let uri = `${endpointFullPath}${nsp}`;
   debug(`createClient, opts = ${JSON.stringify(opts)}, endpointFullPath = ${endpointFullPath}, uri = ${uri}`);
   return ioc(uri, opts);
@@ -263,8 +247,8 @@ export function eioPoll(sid: string): Promise<string> {
  */
 
 export async function spinCheck(
-  check: () => void,
-  maxMilliseconds: number = 2000,
+  check: () => void | Promise<void>,
+  maxMilliseconds: number = 15000,
   intervalMilliseconds: number = 100
 ): Promise<void> {
   debug("spinCheck, start");
@@ -272,7 +256,8 @@ export async function spinCheck(
 
   while (true) {
     try {
-      check();
+      let result = check();
+      await Promise.resolve(result);
       debug(`spinCheck, success, total cost = ${Date.now() - start} ms`);
       return;
     } catch (e) {

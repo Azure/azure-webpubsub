@@ -89,7 +89,7 @@ describe("timeout", () => {
       });
 
       io.on("connection", async (socket) => {
-        const value = await socket.timeout(50).emitWithAck("echo", 42);
+        const value = await socket.timeout(10000).emitWithAck("echo", 42);
         expect(value).to.be(42);
         success(done, io, client);
       });

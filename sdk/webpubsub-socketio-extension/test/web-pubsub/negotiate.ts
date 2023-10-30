@@ -1,6 +1,6 @@
 // Modified from // Modified from https://github.com/socketio/socket.io/blob/4.6.2/test/socket.ts
 
-import { Server, getEndpointFullPath, defaultWpsOptions, getServer, getPort } from "../SIO/support/util";
+import { Server, getEndpointFullPath, defaultWpsOptions, getServer, getPort, success } from "../SIO/support/util";
 import { NegotiateOptions, debugModule } from "../../src/common/utils";
 import { negotiate } from "../../src";
 import { parse } from "url";
@@ -58,7 +58,7 @@ describe("negotiate", () => {
 
           const payload = JSON.parse(Buffer.from(tokenParts[1], "base64").toString());
           expect(payload.sub).to.be(username);
-          done();
+          success(done, io);
         });
     });
   });
