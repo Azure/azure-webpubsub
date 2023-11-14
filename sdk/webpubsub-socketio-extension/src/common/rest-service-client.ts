@@ -1,5 +1,4 @@
 import { WebPubSubServiceClient, GenerateClientTokenOptions, ClientTokenResponse } from "@azure/web-pubsub";
-import { WebPubSubServiceCaller } from "../serverProxies";
 import { getInvokeOperationSpec } from "./azure-api/operation-spec";
 import { debugModule } from "./utils";
 import { isTokenCredential } from "@azure/core-auth";
@@ -20,7 +19,7 @@ const debug = debugModule("wps-sio-ext:common:rest-service-client");
 /**
  * Communicate with Azure Web PubSub service via traditional REST API.
  */
-export class RestServiceClient extends WebPubSubServiceClient implements WebPubSubServiceCaller {
+export class RestServiceClient extends WebPubSubServiceClient {
   async invoke(
     message: string,
     bodyHandler: (data: Uint8Array, end: boolean) => void,
