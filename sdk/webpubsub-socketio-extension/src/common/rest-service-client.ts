@@ -1,5 +1,4 @@
 import { WebPubSubServiceClient, GenerateClientTokenOptions, ClientTokenResponse } from "@azure/web-pubsub";
-import { WebPubSubServiceCaller } from "../serverProxies";
 import { getInvokeOperationSpec } from "./azure-api/operation-spec";
 import { debugModule } from "./utils";
 import { isTokenCredential } from "@azure/core-auth";
