@@ -64,7 +64,7 @@ export class WebPubSubConnectionManager {
   private _candidateSids: Array<string> = [];
 
   constructor(server: WebPubSubEioServer, options: AzureSocketIOOptions | AzureSocketIOCredentialOptions) {
-    this.service = getWebPubSubServiceCaller(options, true);
+    this.service = getWebPubSubServiceCaller(options);
     this.eioServer = server;
     this._webPubSubOptions = options;
 
