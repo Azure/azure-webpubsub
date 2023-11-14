@@ -35,5 +35,5 @@ export {
   ConfigureNegotiateOptions,
   AzureSocketIOCommonOptions,
   AzureSocketIOOptions,
-  AzureSocketIOCredentialOptions
+  AzureSocketIOCredentialOptions,
 };
