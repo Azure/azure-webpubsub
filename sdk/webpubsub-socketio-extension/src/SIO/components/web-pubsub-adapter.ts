@@ -276,7 +276,6 @@ opts = ${toOptionsString(opts)}, namespace = "${this.nsp.name}, error = ${e}"`);
    *
    * @param _rooms - the explicit set of rooms to check.
    */
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   public sockets(_rooms: Set<Room>): Promise<Set<SocketId>> {
     throw new Error(`'sockets' is not supported.`);
   }
@@ -333,7 +332,6 @@ opts = ${toOptionsString(opts)}, error = ${e}`);
    * Send a packet to the other Socket.IO servers in the cluster
    * @param _packet - an array of arguments, which may include an acknowledgement callback at the end
    */
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   public override serverSideEmit(_packet: unknown[]): void {
     throw new Error(`'serverSideEmit' is not supported.`);
   }

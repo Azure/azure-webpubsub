@@ -34,7 +34,6 @@ export function negotiate(
     io instanceof SIO.Server ? io[WEB_PUBSUB_OPTIONS_PROPERY_NAME] : io;
   const serviceClient = getWebPubSubServiceClient(wpsOptions);
 
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   return async (req: IncomingMessage, res: ServerResponse, _next: (err?: Error) => void): Promise<void> => {
     try {
       debug("negotiate, start");

@@ -78,7 +78,6 @@ export class WebPubSubEioServer extends engine.Server {
    * @param _req - handshake request
    * @returns socket id for EIO connection built from handshake request `req`
    */
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   public override generateId = (_req: unknown): string | undefined => this.webPubSubConnectionManager.getNextSid();
 
   /**
@@ -86,7 +85,6 @@ export class WebPubSubEioServer extends engine.Server {
    * @param _transport - transport name
    * @returns a list of available transports for upgrade given a certain Transport `transport`
    */
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   public override upgrades = (_transport: string): Array<string> => [];
 
   public async onConnect(connectionId: string, connectReq: unknown, context: ClientConnectionContext): Promise<void> {
