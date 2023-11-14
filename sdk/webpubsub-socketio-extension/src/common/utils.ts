@@ -125,19 +125,16 @@ function checkRequiredKeys(options: unknown, requiredKeys: string[]): boolean {
 }
 
 export function getWebPubSubServiceCaller(
-  options: AzureSocketIOOptions | AzureSocketIOCredentialOptions,
-  useTunnel = true
+  options: AzureSocketIOOptions | AzureSocketIOCredentialOptions
 ): WebPubSubServiceCaller {
-  debug(`getWebPubSubServiceCaller, ${JSON.stringify(options)}, useTunnel: ${useTunnel}`);
+  debug(`getWebPubSubServiceCaller, ${JSON.stringify(options)}`);
   // if owns connection string, handle as `AzureSocketIOOptions`
   if (Object.keys(options).indexOf("connectionString") !== -1) {
     debug(`getWebPubSubServiceCaller, use connection string`);
     const requiredKeys = ["connectionString", "hub"];
     if (checkRequiredKeys(options, requiredKeys)) {
       const args: [string, string] = [options["connectionString"], options.hub];
-      return useTunnel
-        ? InprocessServerProxy.fromConnectionString(...args)
-        : new RestServiceClient(...args, { reverseProxyEndpoint: options.reverseProxyEndpoint });
+      return InprocessServerProxy.fromConnectionString(...args);
     }
     throw new Error(`Expect valid options with keys ${requiredKeys} are expected, but got null or empty value`);
   } else {
@@ -145,9 +142,7 @@ export function getWebPubSubServiceCaller(
     const requiredKeys = ["endpoint", "credential", "hub"];
     if (checkRequiredKeys(options, requiredKeys)) {
       const args: [string, TokenCredential, string] = [options["endpoint"], options["credential"], options.hub];
-      return useTunnel
-        ? new InprocessServerProxy(...args)
-        : new RestServiceClient(...args, { reverseProxyEndpoint: options.reverseProxyEndpoint });
+      return new InprocessServerProxy(...args);
     }
     throw new Error(`Expect valid options with keys ${requiredKeys} are expected, but got null or empty value`);
   }

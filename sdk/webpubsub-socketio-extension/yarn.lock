@@ -101,10 +101,10 @@
     "@azure/logger" "^1.0.0"
     tslib "^2.2.0"
 
-"@azure/web-pubsub@1.1.3-alpha.20230711.3":
-  version "1.1.3-alpha.20230711.3"
-  resolved "https://registry.yarnpkg.com/@azure/web-pubsub/-/web-pubsub-1.1.3-alpha.20230711.3.tgz#409c6ef327f5255a8a5ca0f3f6931acb74358095"
-  integrity sha512-VOUVQz6csA7sBOq1SXMDTI+Xpe3uu6KppnfbBTMy6tQvNLWNrwdepcd/naJMzD7HAwjg4CneMtno09cQ1J26aA==
+"@azure/web-pubsub@^1.1.1":
+  version "1.1.1"
+  resolved "https://registry.yarnpkg.com/@azure/web-pubsub/-/web-pubsub-1.1.1.tgz#3a53323978e8a2c6d1a73d4d8598d9e13059dc1b"
+  integrity sha512-YqPVPv3KX36LIsboNOlF2qjTj1HMWExcFOOH1QIFpbv9ptXI2McIrr5goScgLTtDWO0JIFJjz0sKSWucWPgb1w==
   dependencies:
     "@azure/core-auth" "^1.3.0"
     "@azure/core-client" "^1.0.0"
