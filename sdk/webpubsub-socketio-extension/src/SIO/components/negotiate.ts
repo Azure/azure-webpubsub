@@ -13,6 +13,7 @@ import * as SIO from "socket.io";
 import { Session } from "express-session";
 import { IncomingMessage, ServerResponse } from "http";
 import { parse } from "url";
+import { ExtendedError } from "socket.io/dist/namespace";
 
 const debug = debugModule("wps-sio-ext:SIO:negotiate");
 const defaultNegotiateOptions: ConfigureNegotiateOptions = async () => ({} as NegotiateOptions);
@@ -27,14 +28,15 @@ const defaultNegotiateOptions: ConfigureNegotiateOptions = async () => ({} as Ne
 export function negotiate(
   io: SIO.Server | AzureSocketIOOptions | AzureSocketIOCredentialOptions,
   configureNegotiateOptions?: ConfigureNegotiateOptions
-): (req: IncomingMessage, res: ServerResponse, next: any) => void {
+): (req: IncomingMessage, res: ServerResponse, next: (err?: ExtendedError) => void) => void {
   debug(`getNegotiateExpressMiddleware`);
 
   const wpsOptions: AzureSocketIOOptions | AzureSocketIOCredentialOptions =
     io instanceof SIO.Server ? io[WEB_PUBSUB_OPTIONS_PROPERY_NAME] : io;
   const serviceClient = getWebPubSubServiceClient(wpsOptions);
 
-  return async (req: IncomingMessage, res: ServerResponse, next: any): Promise<void> => {
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  return async (req: IncomingMessage, res: ServerResponse, _next: (err?: ExtendedError) => void): Promise<void> => {
     try {
       debug("negotiate, start");
 
@@ -90,7 +92,7 @@ export function usePassport(assignProperty = "user"): ConfigureNegotiateOptions 
  * @returns
  */
 export function restorePassport(assignProperty = "user") {
-  return (request: IncomingMessage, response: ServerResponse, next: any) => {
+  return (request: IncomingMessage, response: ServerResponse, next: (err?: ExtendedError) => void) => {
     try {
       const passportUserId = JSON.parse(request["claims"].userId);
       request["session"] = { passport: {} } as unknown as Session;
@@ -107,7 +109,7 @@ export function restorePassport(assignProperty = "user") {
  *
  * @returns
  */ export function restoreClaims() {
-  return (request: IncomingMessage, response: ServerResponse, next: any) => {
+  return (request: IncomingMessage, response: ServerResponse, next: (err?: ExtendedError) => void) => {
     try {
       if (!request["claims"]) return next();
       if (!request["claims"]["customClaims"]) return next();

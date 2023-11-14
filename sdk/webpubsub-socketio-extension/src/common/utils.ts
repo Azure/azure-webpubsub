@@ -8,8 +8,9 @@ import debugModule from "debug";
 import { BroadcastOptions } from "socket.io-adapter";
 import { RestServiceClient } from "./rest-service-client";
 import { InprocessServerProxy, WebPubSubServiceCaller } from "../serverProxies";
-import { Request as ExpressRequest, Response as ExpressResponse } from "express";
+import { Request as ExpressRequest, Response as ExpressResponse, NextFunction } from "express";
 import { Socket } from "socket.io";
+import { ExtendedError } from "socket.io/dist/namespace";
 
 export const T = (now: Date): string => `${now.toLocaleString().replace(" AM", "").replace(" PM", "")}:${now.getMilliseconds().toString().padStart(3, '0')}`; // prettier-ignore
 
@@ -222,10 +223,10 @@ export function writeResponse(
 }
 
 export function getSioMiddlewareFromExpress(
-  middleware: (req: ExpressRequest, res: ExpressResponse, next: unknown) => void
+  middleware: (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => void
 ) {
-  return (socket: Socket, next: any) => {
-    return middleware(socket.request as ExpressRequest, {} as ExpressResponse, next);
+  return (socket: Socket, next: (err?: ExtendedError) => void) => {
+    return middleware(socket.request as ExpressRequest, {} as ExpressResponse, next as NextFunction);
   };
 }
 
