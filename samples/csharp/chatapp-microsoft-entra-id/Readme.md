@@ -62,7 +62,7 @@ Check if the response header contains `webhook-allowed-origin: *`. This curl com
 1. Open [Azure Portal](https://ms.portal.azure.com/), search for and select your `Azure Web PubSub` resource.
 2. Select **Access control (IAM)**.
 3. Click **Add > Add role assignment**.
-4. On **Role** tab, select **Web PubSubServiceOwner**.
+4. On **Role** tab, select **Web PubSub Service Owner**.
 5. Click **Next**.
    ![Screenshot of Select Roles](./media/add-role-assignment-roles.png)
 6. On **Members** tab, select **User, group, or service principal**, then click **Select members**.
