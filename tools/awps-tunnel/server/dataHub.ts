@@ -2,15 +2,20 @@
 // host the website
 // start the server connection
 import { Server, Socket } from "socket.io";
-import { ConnectionStatus, ConnectionStatusPair, HttpHistoryItem, ConnectionStatusPairs } from "../client/src/models";
+import { ConnectionStatus, ConnectionStatusPair, HttpHistoryItem, ConnectionStatusPairs, ServiceConfiguration } from "../client/src/models";
 import http from "http";
 import { HttpServerProxy } from "./serverProxies";
 import { DataRepo } from "./dataRepo";
+import { startUpstreamServer } from "./upstream";
+import { printer } from "./output";
 
 // singleton per hub?
 export class DataHub {
+  // make sure only one server is there
+  public static upstreamServer?: http.Server;
   public tunnelConnectionStatus = ConnectionStatus.Connecting;
-  public tunnelServerStatus = ConnectionStatusPairs.Disconnected;
+  public tunnelServerStatus = ConnectionStatusPairs.None;
+  public serviceConfiguration?: ServiceConfiguration = undefined;
   public livetraceUrl = "";
   public clientUrl = "";
   public endpoint = "";
@@ -20,13 +25,52 @@ export class DataHub {
   private repo: DataRepo;
   constructor(server: http.Server, private tunnel: HttpServerProxy, upstreamUrl: string, dbFile: string) {
     const io = (this.io = new Server(server));
+    printer.log("Webview client connecting to get the latest status");
     this.repo = new DataRepo(dbFile);
     this.endpoint = tunnel.endpoint;
     this.hub = tunnel.hub;
     this.upstreamServerUrl = upstreamUrl;
     // Socket.io event handling
     io.on("connection", (socket: Socket) => {
-      console.log("A Socketio client connected");
+      printer.log("A webview client connected");
+
+      socket.on("startEmbeddedUpstream", async (callback) => {
+        if (DataHub.upstreamServer) {
+          const message = "Built-in Echo Server already started";
+          printer.status(`[Upstream] ${message}`);
+          callback({ success: true, message: message });
+          return;
+        }
+        const url = new URL(upstreamUrl);
+        try {
+          DataHub.upstreamServer = await startUpstreamServer(Number.parseInt(url.port), tunnel.hub, "/eventHandler");
+          this.io.emit("reportBuiltinUpstreamServerStarted", DataHub.upstreamServer !== undefined);
+          const message = "Built-in Echo Server started at port " + url.port;
+          printer.status(`[Upstream] ${message}`);
+          callback({ success: true, message: message });
+        } catch (err) {
+          const message = `Built-in Echo Server failed to start at port ${url.port}:${err}`;
+          this.io.emit("reportBuiltinUpstreamServerStarted", DataHub.upstreamServer !== undefined);
+          printer.error(`[Upstream] ${message}`);
+          callback({ success: true, message: message });
+        }
+      });
+
+      socket.on("stopEmbeddedUpstream", (callback) => {
+        try {
+          DataHub.upstreamServer?.close();
+          DataHub.upstreamServer = undefined;
+          const message = `Built-in Echo Server successfully stopped`;
+          this.io.emit("reportBuiltinUpstreamServerStarted", DataHub.upstreamServer !== undefined);
+          printer.status(`[Upstream] ${message}`);
+          callback({ success: true, message: message });
+        } catch (err) {
+          const message = `Built-in Echo Server failed to stop:${err}`;
+          this.io.emit("reportBuiltinUpstreamServerStarted", DataHub.upstreamServer !== undefined);
+          printer.error(`[Upstream] ${message}`);
+          callback({ success: true, message: message });
+        }
+      });
 
       socket.on("getCurrentModel", async (callback) => {
         callback({
@@ -39,6 +83,8 @@ export class DataHub {
             upstreamServerUrl: this.upstreamServerUrl,
             tunnelConnectionStatus: this.tunnelConnectionStatus,
             tunnelServerStatus: this.tunnelServerStatus,
+            serviceConfiguration: this.serviceConfiguration,
+            builtinUpstreamServerStarted: DataHub.upstreamServer !== undefined,
           },
           trafficHistory: await this.getHttpHistory(),
           logs: [],
@@ -50,7 +96,7 @@ export class DataHub {
       });
 
       socket.on("disconnect", () => {
-        console.log("A Socketio client disconnected");
+        printer.log("A webview client connected");
       });
     });
   }
@@ -65,24 +111,30 @@ export class DataHub {
     return url;
   }
 
-  async UpdateTraffics(trafficHistory: HttpHistoryItem[]) {
-    for (const item of trafficHistory) {
-      item.id = await this.repo.insertDataAsync({
-        Request: {
-          TracingId: item.tracingId,
-          RequestAt: item.requestAtOffset,
-          MethodName: item.methodName,
-          Url: item.url,
-          RequestRaw: item.requestRaw,
-        },
-        Response: {
-          Code: item.code,
-          ResponseRaw: item.responseRaw,
-          RespondAt: item.responseAtOffset,
-        },
-      });
-    }
-    this.io.emit("updateTraffics", trafficHistory);
+  async AddTraffic(item: HttpHistoryItem) {
+    item.id = await this.repo.insertDataAsync({
+      Request: {
+        TracingId: item.tracingId,
+        RequestAt: item.requestAtOffset,
+        MethodName: item.methodName,
+        Url: item.url,
+        RequestRaw: item.requestRaw,
+      },
+    });
+    this.io.emit("addTraffic", item);
+  }
+
+  async UpdateTraffic(item: HttpHistoryItem) {
+    if (!item.id) throw new Error("Id shouldn't be undefined when calling update");
+    await this.repo.updateDataAsync(
+      item.id,
+      JSON.stringify({
+        Code: item.code,
+        ResponseRaw: item.responseRaw,
+        RespondAt: item.responseAtOffset,
+      }),
+    );
+    this.io.emit("updateTraffic", item);
   }
 
   UpdateLogs(logs: string[]) {
@@ -107,6 +159,10 @@ export class DataHub {
   ReportTunnelToLocalServerStatus(status: ConnectionStatusPair) {
     this.tunnelServerStatus = status;
     this.io.emit("reportTunnelToLocalServerStatus", status);
+  }
+  ReportServiceConfiguration(config: ServiceConfiguration) {
+    this.serviceConfiguration = config;
+    this.io.emit("reportServiceConfiguration", config);
   }
 
   async getHttpHistory(): Promise<HttpHistoryItem[]> {

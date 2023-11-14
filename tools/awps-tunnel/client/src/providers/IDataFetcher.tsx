@@ -1,9 +1,9 @@
 import { DataModel } from "../models";
 import { MockDataFetcher } from "./MockDataFetcher";
-import { SignalRDataFetcher } from "./SignalRDataFetcher";
-import { SocketIODataFetcher } from "./SocketIODataFetcher";
+import { SignalRDataFetcher, SocketIODataFetcher } from "./ConnectionBasedDataFether";
 export interface IDataFetcher {
   model: DataModel;
+  invoke: (method: string, ...args: any[]) => Promise<any>;
 }
 
 export function getDataFetcher(onModelUpdate: (model: DataModel) => void): IDataFetcher {

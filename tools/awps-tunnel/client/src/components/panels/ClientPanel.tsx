@@ -6,7 +6,7 @@ export interface ClientPanelProps {
 }
 export const ClientPanel = ({ onStatusChange }: ClientPanelProps) => {
   return (
-    <div className="d-flex flex-column mx-4 flex-fill">
+    <div className="d-flex flex-column mx-4 flex-fill overflow-auto">
       <h5>Client</h5>
       <p>Connect your own client to the Web PubSub service following
       🔗<a target="_blank" rel="noreferrer" href="https://aka.ms/awps/sdks">the SDK documents</a>🔗.

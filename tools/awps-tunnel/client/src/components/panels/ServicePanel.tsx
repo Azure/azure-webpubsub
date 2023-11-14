@@ -1,5 +1,7 @@
 import { Icon } from "@fluentui/react/lib/Icon";
 import { ConnectionStatus } from "../../models";
+import { Switch } from "@fluentui/react-components";
+import { useState } from "react";
 
 export interface ServicePanelProps {
   endpoint?: string;
@@ -8,6 +10,7 @@ export interface ServicePanelProps {
 }
 
 export function ServicePanel({ endpoint, status, liveTraceUrl }: ServicePanelProps) {
+  const [showLiveTrace, setShowLiveTrace] = useState<boolean>(false);
   return (
     <div className="mx-4 d-flex flex-column flex-fill">
       <h5>Web PubSub Live Trace</h5>
@@ -17,7 +20,12 @@ export function ServicePanel({ endpoint, status, liveTraceUrl }: ServicePanelPro
           Open live trace
         </a>
       </p>
-      {liveTraceUrl && <iframe className="flex-fill" src={liveTraceUrl} title="Live trace"></iframe>}
+      {liveTraceUrl && (
+        <>
+          <Switch label={showLiveTrace ? "Disconnect live trace" : "connect to live trace"} checked={showLiveTrace} onChange={(ev) => setShowLiveTrace(ev.currentTarget.checked)}></Switch>
+          {showLiveTrace && <iframe className="flex-fill" src={liveTraceUrl} title="Live trace"></iframe>}
+        </>
+      )}
     </div>
   );
 }
