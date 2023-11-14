@@ -5,7 +5,7 @@ import { debugModule, toAsync } from "../../common/utils";
 import { ClientConnectionContext } from "./client-connection-context";
 import { decodeStringPartial, PartialSioPacket } from "../../SIO/components/decoder";
 import { WEBPUBSUB_CLIENT_CONNECTION_FILED_NAME, WEBPUBSUB_TRANSPORT_NAME } from "./constants";
-import { Transport, Socket as EioSocket } from "engine.io";
+import { Transport } from "engine.io";
 import { Packet as EioPacket, RawData } from "engine.io-parser";
 import { PacketType as SioPacketType } from "socket.io-parser";
 

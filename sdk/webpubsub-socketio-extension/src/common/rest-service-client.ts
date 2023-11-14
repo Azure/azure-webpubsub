@@ -80,7 +80,10 @@ rawResponse = ${JSON.stringify(rawResponse)}`);
       let token: string;
       if (isTokenCredential(credential)) {
         const response = await innerClient.webPubSub.generateClientToken(this.hubName, updatedOptions);
-        token = response.token!;
+        token = response.token;
+        if (token === null || token === undefined) {
+          throw new Error(`Response from "generateClientToken" doesn't contain valid property "token"`);
+        }
       } else {
         const key = credential.key;
         const payload = {

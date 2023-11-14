@@ -1,5 +1,5 @@
 import { debugModule } from "../../common/utils";
-import { Packet, PacketType } from "socket.io-parser";
+import { PacketType } from "socket.io-parser";
 
 const debug = debugModule("wps-sio-ext:SIO:Decoder");
 

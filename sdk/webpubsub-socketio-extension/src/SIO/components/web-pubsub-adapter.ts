@@ -101,7 +101,6 @@ opts = ${toOptionsString(opts)}, namespace = "${this.nsp.name}", error = ${e}`);
    */
   public async addSockets(opts: BroadcastOptions, rooms: Room[]): Promise<void> {
     debug(`addSockets, start, rooms = ${toString(rooms)}, opts = ${toOptionsString(opts)}`);
-    const localSockets = await super.fetchSockets(opts);
     try {
       const oDataFilter = this._buildODataFilter(opts.rooms, opts.except);
       const groupNames = Array.from(rooms).map((room) => this._getGroupName(this.nsp.name, room));
@@ -275,9 +274,9 @@ opts = ${toOptionsString(opts)}, namespace = "${this.nsp.name}, error = ${e}"`);
   /**
    * Gets a list of sockets by sid.
    *
-   * @param rooms - the explicit set of rooms to check.
+   * @param _rooms - the explicit set of rooms to check.
    */
-  public sockets(rooms: Set<Room>): Promise<Set<SocketId>> {
+  public sockets(_rooms: Set<Room>): Promise<Set<SocketId>> {
     throw new Error(`'sockets' is not supported.`);
   }
 
@@ -331,9 +330,9 @@ opts = ${toOptionsString(opts)}, error = ${e}`);
 
   /**
    * Send a packet to the other Socket.IO servers in the cluster
-   * @param packet - an array of arguments, which may include an acknowledgement callback at the end
+   * @param _packet - an array of arguments, which may include an acknowledgement callback at the end
    */
-  public override serverSideEmit(packet: unknown[]): void {
+  public override serverSideEmit(_packet: unknown[]): void {
     throw new Error(`'serverSideEmit' is not supported.`);
   }
 

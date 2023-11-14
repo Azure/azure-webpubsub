@@ -12,12 +12,10 @@ import {
   CONNECTION_ERROR_EVENT_NAME,
   CONNECTION_ERROR_WEBPUBSUB_CODE,
   CONNECTION_ERROR_WEBPUBSUB_MESSAGE,
-  EIO_CONNECTION_ERROR,
   TUNNEL_PATH,
   WEBPUBSUB_CLIENT_CONNECTION_FILED_NAME,
   WEBPUBSUB_TRANSPORT_NAME,
 } from "./constants";
-import type { BaseServer } from "engine.io";
 import { ConnectRequest as WebPubSubConnectRequest, WebPubSubEventHandler } from "@azure/web-pubsub-express";
 import { WebPubSubServiceCaller } from "../../serverProxies";
 import { WebPubSubEioServer } from "..";
@@ -171,7 +169,7 @@ export class WebPubSubConnectionManager {
      * eioMiddleware = (req: IncomingMessage, res: ServerResponse) =\> void;
      * To resolve the difference, So a conversion from express middleware to EIO middleware.
      */
-    const expressMiddleware: any = this._webPubSubEventHandler.getMiddleware();
+    const expressMiddleware = this._webPubSubEventHandler.getMiddleware();
 
     const eioMiddleware = (req, res, errorCallback): void => {
       /**
