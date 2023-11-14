@@ -33,7 +33,7 @@ export interface AzureSocketIOOptions extends AzureSocketIOCommonOptions {
 export type ConfigureNegotiateOptions = (req: IncomingMessage) => Promise<NegotiateOptions>;
 
 // @public
-export function negotiate(io: SIO.Server | AzureSocketIOOptions | AzureSocketIOCredentialOptions, configureNegotiateOptions?: ConfigureNegotiateOptions): (req: IncomingMessage, res: ServerResponse, next: any) => void;
+export function negotiate(io: SIO.Server | AzureSocketIOOptions | AzureSocketIOCredentialOptions, configureNegotiateOptions?: ConfigureNegotiateOptions): (req: IncomingMessage, res: ServerResponse, next: (err?: Error) => void) => void;
 
 // @public
 export interface NegotiateOptions {
@@ -49,7 +49,7 @@ export interface NegotiateResponse {
 }
 
 // @public
-export function restorePassport(assignProperty?: string): (request: IncomingMessage, response: ServerResponse, next: any) => void;
+export function restorePassport(assignProperty?: string): (request: IncomingMessage, response: ServerResponse, next: (err?: Error) => void) => void;
 
 // @public
 export function useAzureSocketIO(io: SIO.Server, azureSocketIOOptions: AzureSocketIOOptions | AzureSocketIOCredentialOptions): Promise<SIO.Server>;

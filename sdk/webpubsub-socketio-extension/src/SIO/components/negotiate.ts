@@ -27,14 +27,14 @@ const defaultNegotiateOptions: ConfigureNegotiateOptions = async () => ({} as Ne
 export function negotiate(
   io: SIO.Server | AzureSocketIOOptions | AzureSocketIOCredentialOptions,
   configureNegotiateOptions?: ConfigureNegotiateOptions
-): (req: IncomingMessage, res: ServerResponse, next: any) => void {
+): (req: IncomingMessage, res: ServerResponse, next: (err?: Error) => void) => void {
   debug(`getNegotiateExpressMiddleware`);
 
   const wpsOptions: AzureSocketIOOptions | AzureSocketIOCredentialOptions =
     io instanceof SIO.Server ? io[WEB_PUBSUB_OPTIONS_PROPERY_NAME] : io;
   const serviceClient = getWebPubSubServiceClient(wpsOptions);
 
-  return async (req: IncomingMessage, res: ServerResponse, next: any): Promise<void> => {
+  return async (req: IncomingMessage, res: ServerResponse, _next: (err?: Error) => void): Promise<void> => {
     try {
       debug("negotiate, start");
 
@@ -90,7 +90,7 @@ export function usePassport(assignProperty = "user"): ConfigureNegotiateOptions 
  * @returns
  */
 export function restorePassport(assignProperty = "user") {
-  return (request: IncomingMessage, response: ServerResponse, next: any) => {
+  return (request: IncomingMessage, response: ServerResponse, next: (err?: Error) => void) => {
     try {
       const passportUserId = JSON.parse(request["claims"].userId);
       request["session"] = { passport: {} } as unknown as Session;
@@ -107,7 +107,7 @@ export function restorePassport(assignProperty = "user") {
  *
  * @returns
  */ export function restoreClaims() {
-  return (request: IncomingMessage, response: ServerResponse, next: any) => {
+  return (request: IncomingMessage, response: ServerResponse, next: (err?: Error) => void) => {
     try {
       if (!request["claims"]) return next();
       if (!request["claims"]["customClaims"]) return next();
