@@ -1,6 +1,6 @@
-# Create a chat app with aad auth
+# Create a chat app with Microsoft Entra ID
 
-This sample is to help you create a chat app with aad auth method.
+This sample is to help you create a chat app using Microsoft Entra authentication.
 
 ## Prerequisites
 
@@ -11,7 +11,7 @@ This sample is to help you create a chat app with aad auth method.
 
 ## Getting started
    
-### 1. Get your Node.JS envronment prepared
+### 1. Get your Node.JS environment prepared
 
 ```bash
 npm install
@@ -50,10 +50,10 @@ Check if the response header contains `webhook-allowed-origin: *`. This curl com
 1. Open [Azure Portal](https://ms.portal.azure.com/), search for and select your `Azure Web PubSub` resource.
 2. Under **Settings** section, click **Settings**.
 3. Click **Add**.
-4. Enter `sample_aadchat` as **Hub name**.
+4. Enter `sample_chat` as **Hub name**.
 5. Set **URL template** to `https://<name>.loca.lt/eventhandler`
 6. Click **System events**, then select **connected** to let the service sends `connected` events to your upstream server.
-    ![Event Handler](../../images/portal_event_handler_aadchat.png)
+    ![Event Handler](../../images/portal_event_handler_chat.png)
 7. Click **Save** to confirm the change.
 
 ### 5. Configure Role-Based Access Control (RBAC)
