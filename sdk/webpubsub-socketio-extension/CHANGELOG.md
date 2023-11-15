@@ -3,6 +3,11 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.0.0] - 2023-11-16
+
+- GA version
+- Downgrade the dependency `@azure/web-pubsub` to stable version
+
 ## [1.0.0-beta.6] - 2023-09-19
 
 ### Features
