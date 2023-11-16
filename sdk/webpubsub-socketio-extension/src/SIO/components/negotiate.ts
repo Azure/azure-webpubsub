@@ -92,7 +92,14 @@ export function usePassport(assignProperty = "user"): ConfigureNegotiateOptions 
 export function restorePassport(assignProperty = "user") {
   return (request: IncomingMessage, response: ServerResponse, next: (err?: Error) => void) => {
     try {
-      const passportUserId = JSON.parse(request["claims"].userId);
+      /**
+       * request["claims"] should be an one-element string array. 
+       * Examples: ['0'], ['bob']
+       **/
+      if (request["claims"]?.userId?.length !== 1) {
+        throw new Error(`Invalid claims.userId = ${request["claims"]?.userId}`);
+      }
+      const passportUserId = request["claims"].userId[0];
       request["session"] = { passport: {} } as unknown as Session;
       request["session"]["passport"][assignProperty] = passportUserId;
     } catch (e) {
