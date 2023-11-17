@@ -3,6 +3,10 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.0.1] - 2023-11-17
+
+- Fix a bug in passport authentication mechanism [#653](https://github.com/Azure/azure-webpubsub/pull/653)
+
 ## [1.0.0] - 2023-11-16
 
 - GA version
