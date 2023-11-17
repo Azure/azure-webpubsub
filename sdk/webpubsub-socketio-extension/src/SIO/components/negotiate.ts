@@ -93,7 +93,7 @@ export function restorePassport(assignProperty = "user") {
   return (request: IncomingMessage, response: ServerResponse, next: (err?: Error) => void) => {
     try {
       /**
-       * request["claims"] should be an one-element string array. 
+       * request["claims"] should be an one-element string array.
        * Examples: ['0'], ['bob']
        **/
       if (request["claims"]?.userId?.length !== 1) {
