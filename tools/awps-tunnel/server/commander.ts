@@ -44,11 +44,20 @@ interface RunCommandLineArgs {
 }
 
 export function getCommand(appConfigPath: string, dbFile: string): Command {
+  function configureHelpOptions(command: Command): Command {
+    const helpText = "Show help details.";
+    command.helpOption("--help", helpText);
+    return command;
+  }
   const settings: Settings = fs.existsSync(appConfigPath) ? (JSON.parse(fs.readFileSync(appConfigPath, "utf-8")) as Settings) : { WebPubSub: {} };
 
-  program.name(name).version(packageJson.version).description(packageJson.description);
-  program.command("status").action(() => createStatusAction(settings));
-  const bind = program.command("bind");
+  program.name(name).version(packageJson.version, undefined, "Show the version number.").description(packageJson.description);
+  const status = program
+    .command("status")
+    .description("Show the current configuration status.")
+    .action(() => createStatusAction(settings));
+  configureHelpOptions(status);
+  const bind = program.command("bind").description("Bind configurations to the tool so that you don't need to specify them every time running the tool.");
   bind
     .option("-e, --endpoint [endpoint]", "Sepcify the Web PubSub service endpoint URL to connect to")
     .option("--hub [hub]", "Specify the hub to connect to")
@@ -65,12 +74,12 @@ export function getCommand(appConfigPath: string, dbFile: string): Command {
         print(updatedSettings);
       }),
     );
-
-  const run = program.command("run");
+  configureHelpOptions(bind);
+  const run = program.command("run").description("Run the tool.");
   run
     .option(
       "-e, --endpoint [endpoint]",
-      "Sepcify the Web PubSub service endpoint URL to connect to, you don't need to set it if WebPubSubConnectionString environment variable is set. If both are set, this option will be used.",
+      "Specify the Web PubSub service endpoint URL to connect to, you don't need to set it if WebPubSubConnectionString environment variable is set. If both are set, this option will be used.",
     )
     .option("--hub [hub]", "Specify the hub to connect to")
     .option("-u, --upstream [upstream]", "Specify the upstream URL to redirect traffic to. If not specified, http://localhost:3000 will be used.")
@@ -83,7 +92,10 @@ export function getCommand(appConfigPath: string, dbFile: string): Command {
     .action((updated) => {
       createRunCommand(run, dbFile, settings, updated);
     });
-  program.addHelpText("after", `You could also set WebPubSubConnectionString environment variable if you don't want to configure endpoint.`);
+  configureHelpOptions(run);
+  configureHelpOptions(program);
+  program.addHelpCommand(true, "Display help details for subcommand.");
+  program.addHelpText("after", `\nYou could also set WebPubSubConnectionString environment variable if you don't want to configure endpoint.`);
   return program;
 }
 
