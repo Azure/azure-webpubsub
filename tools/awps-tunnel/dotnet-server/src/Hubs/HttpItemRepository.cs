@@ -84,7 +84,7 @@ public class StoreContext : DbContext
     }
 }
 
-public class JsonDataConverter<T> : ValueConverter<T, string>
+public class JsonDataConverter<T> : ValueConverter<T?, string>
 {
     public JsonDataConverter() : base(
         v => JsonConvert.SerializeObject(v),

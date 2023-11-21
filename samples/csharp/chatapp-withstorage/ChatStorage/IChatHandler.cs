@@ -5,7 +5,7 @@ namespace Microsoft.Azure.WebPubSub.Samples
 {
     public interface IChatHandler
     {
-        Task<ChatHistory> LoadHistoryMessageAsync(string user, string pair, long? beforeSequenceId);
+        Task<ChatHistory?> LoadHistoryMessageAsync(string user, string pair, long? beforeSequenceId);
 
         Task<long> AddMessageAsync(string from, string to, string text);
 

@@ -7,23 +7,23 @@ public class HttpItem
 {
     public int Id => DataModel.Id;
 
-    public ulong? TracingId => DataModel.Request.TracingId;
+    public ulong? TracingId => DataModel.Request?.TracingId;
 
-    public string MethodName => DataModel.Request.MethodName;
+    public string MethodName => DataModel.Request?.MethodName ?? string.Empty;
 
-    public string Url => DataModel.Request.Url;
+    public string Url => DataModel.Request?.Url ?? string.Empty;
 
-    public string RequestRaw => DataModel.Request.RequestRaw;
+    public string RequestRaw => DataModel.Request?.RequestRaw ?? string.Empty;
 
     public string? Error => DataModel.Response?.Error;
 
     public int? Code => DataModel.Response?.Code;
 
-    public DateTimeOffset RequestAtOffset => new DateTimeOffset(DataModel.Request.RequestAt, TimeSpan.Zero);
+    public DateTimeOffset RequestAtOffset => new(DataModel.Request?.RequestAt ?? DateTime.MinValue, TimeSpan.Zero);
 
     public string? ResponseRaw => DataModel.Response?.ResponseRaw;
 
-    public DateTimeOffset? RespondAtOffset => DataModel.Response?.RespondAt == null ? null : new DateTimeOffset(DataModel.Response.RespondAt.Value, TimeSpan.Zero);
+    public DateTimeOffset? RespondAtOffset => DataModel.Response?.RespondAt == null ? null : new (DataModel.Response.RespondAt.Value, TimeSpan.Zero);
 
     [JsonIgnore]
     [IgnoreDataMember]
@@ -40,7 +40,7 @@ public class HttpDataModel
 {
     public int Id { get; set; } = 0;
 
-    public HttpRequestDetail Request { get; set; }
+    public HttpRequestDetail? Request { get; set; }
 
     public HttpResponseDetail? Response { get; set; }
 }
