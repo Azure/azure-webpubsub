@@ -268,7 +268,7 @@ internal class TunnelConnection : IDisposable
             TunnelMessageProtocol.Instance.GetBytes(message)
             ), WebPubSubDataType.Binary, fireAndForget: true, cancellationToken: token);
 
-        public event Func<WebPubSubStoppedEventArgs, Task> Stopped;
+        public event Func<WebPubSubStoppedEventArgs, Task>? Stopped;
 
         public async Task<string> StartAsync(CancellationToken cancellationToken)
         {

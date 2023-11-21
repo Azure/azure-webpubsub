@@ -250,6 +250,7 @@ function start(run: Command, dbFile: string, connectionString: string | undefine
     tunnel = HttpServerProxy.fromConnectionString(connectionString, hub, { target: upstreamUrl });
   } else {
     printer.status(`Using endpoint ${endpoint} from settings. Please make sure the Access Policy is correctly configured to allow your access.`);
+    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
     tunnel = new HttpServerProxy(endpoint!, new DefaultAzureCredential(), hub, { target: upstreamUrl });
   }
 
