@@ -21,7 +21,7 @@ async function checkVersion() {
   }
   const currentVersion = packageJson.version;
   if (semver.gt(latestVersion, currentVersion)) {
-    printer.info(`Version ${latestVersion} is available. Run "npm i -g ${packageJson.name}" to update.`);
+    printer.info(`Version ${latestVersion} is available. Run "npm update ${packageJson.name}" or "yarn upgrade ${packageJson.name}" to update the package to the latest version.`);
   }
 }
 

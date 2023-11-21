@@ -29,7 +29,7 @@
     "build:cpy:cjs": "cpy . ../../../tools/awps-tunnel/server/dist/server/serverProxies --cwd=../../../sdk/server-proxies/dist",
     "build:cpy:types": "cpy . ../../../tools/awps-tunnel/server/types/server/serverProxies --cwd=../../../sdk/server-proxies/types",
     "build:cpy": "npm run build:cpy:cjs && npm run build:cpy:types",
-    "build:src": "tsc -b .",
+    "build:src": "tsc -b . && rimraf dist/server/serverProxies.js",
     "build:client": "cd ../client && npm run build:npm && npm run lint && cpy build/ ../server/dist/client",
     "build:dsp": "rimraf dist/server/serverProxies.* types/server/serverProxies.* && npm run build:cpy",
     "build": "npm run build:src && npm run lint && npm run build:dsp && npm run build:client",

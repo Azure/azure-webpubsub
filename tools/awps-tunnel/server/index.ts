@@ -17,8 +17,8 @@ const appConfigPath = path.join(dir, "settings.json");
 const dbFile = path.join(dir, "data.sqlite");
 
 const command = getCommand(appConfigPath, dbFile);
-command.parse(process.argv);
 command.action(() => {
   checkVersion();
   command.outputHelp();
 });
+command.parse(process.argv);
