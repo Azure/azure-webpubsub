@@ -47,7 +47,16 @@ namespace Microsoft.Azure.WebPubSub.Samples
                 case "getChatHistory":
                     {
                         var msg = request.Data.ToObject<GetChatHistoryRequest>(JsonObjectSerializer.Default);
+                        if (msg == null)
+                        {
+                            return new UserEventResponse();
+                        }
                         var history = await _chatHandler.LoadHistoryMessageAsync(msg.user, msg.pair, msg.currentSequenceId);
+                        if (history == null)
+                        {
+                            return new UserEventResponse();
+                        }
+
                         return request.CreateResponse(
                             BinaryData.FromObjectAsJson(new
                             {
@@ -59,6 +68,10 @@ namespace Microsoft.Azure.WebPubSub.Samples
                 case "sendToUser":
                     {
                         var msg = request.Data.ToObject<SendToUserRequest>(JsonObjectSerializer.Default);
+                        if (msg == null)
+                        {
+                            return new UserEventResponse();
+                        }
 
                         // Server to generate the sequenceId
                         var sequenceId = await _chatHandler.AddMessageAsync(msg.from, msg.to, msg.text);
@@ -75,24 +88,29 @@ namespace Microsoft.Azure.WebPubSub.Samples
                             BinaryData.FromObjectAsJson(new
                             {
                                 @event = "sequenceId",
-                                invocationId = msg.invocationId,
-                                from = msg.from,
-                                to = msg.to,
-                                sequenceId = sequenceId
+                                msg.invocationId,
+                                msg.from,
+                                msg.to,
+                                sequenceId
                             }), WebPubSubDataType.Json
                             );
                     }
                 case "readTo":
                     {
                         var msg = request.Data.ToObject<ReadToRequest>(JsonObjectSerializer.Default);
+                        if (msg == null)
+                        {
+                            return new UserEventResponse();
+                        }
+
                         await _chatHandler.ReadTo(msg.user, msg.pair, msg.sequenceId);
                         // Tell others (including other connections and the pair user) 
                         await SendToPair(msg.user, msg.pair, new
                         {
                             @event = "readto",
-                            user = msg.user,
-                            pair = msg.pair,
-                            sequenceId = msg.sequenceId
+                            msg.user,
+                            msg.pair,
+                            msg.sequenceId
                         }, request.ConnectionContext.ConnectionId);
                         return new UserEventResponse();
                     }

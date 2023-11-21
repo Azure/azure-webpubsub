@@ -64,7 +64,7 @@ namespace clientpub
                 group = "reliableChat",
                 dataType = "text",
                 data = ackId.ToString(),
-                ackId = ackId
+                ackId
             });
             while(true)
             {
@@ -76,7 +76,7 @@ namespace clientpub
                 }
                 catch (Exception ex)
                 {
-                    Console.WriteLine($"{DateTime.Now}: Retring message with ackId: {ackId}");
+                    Console.WriteLine($"{DateTime.Now}: Error {ex}. \nRetrying message with ackId: {ackId}");
                 }
                 finally
                 {

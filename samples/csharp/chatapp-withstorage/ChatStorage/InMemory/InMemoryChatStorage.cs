@@ -37,17 +37,17 @@ namespace Microsoft.Azure.WebPubSub.Samples
             return Task.FromResult(session.AddMessage(from, to, text));
         }
 
-        public Task<ChatHistory> LoadHistoryMessageAsync(string user, string pair, long? beforeSequenceId)
+        public Task<ChatHistory?> LoadHistoryMessageAsync(string user, string pair, long? beforeSequenceId)
         {
             var key = GetKey(user, pair);
-            if (_chatStorage.TryGetValue(key, out SessionMessage session))
+            if (_chatStorage.TryGetValue(key, out SessionMessage? session) && session != null)
             {
                 var chats = session.GetChats(beforeSequenceId);
-                return Task.FromResult(new ChatHistory(user, pair, session.ReadTo[pair], session.ReadTo[user], chats));
+                return Task.FromResult<ChatHistory?>(new ChatHistory(user, pair, session.ReadTo[pair], session.ReadTo[user], chats));
             }
             else
             {
-                return Task.FromResult<ChatHistory>(default);
+                return Task.FromResult<ChatHistory?>(default);
             }
         }
 

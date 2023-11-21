@@ -124,8 +124,8 @@ namespace Microsoft.Azure.WebPubSub.Samples
             // pk(pair1) - rk(pair2) - sequenceId - pair1 readto pair2
             // sender - pair - sequenceId - readto
             public long ReadToSequenceId { get; set; }
-            public string PartitionKey { get; set; }
-            public string RowKey { get; set; }
+            public string PartitionKey { get; set; } = string.Empty;
+            public string RowKey { get; set; } = string.Empty;
             public DateTimeOffset? Timestamp { get; set; }
             public ETag ETag { get; set; }
 
@@ -141,12 +141,12 @@ namespace Microsoft.Azure.WebPubSub.Samples
 
         private sealed class ChatEntity : ITableEntity
         {
-            public string From { get; set; }
-            public string To { get; set; }
-            public string Text { get; set; }
+            public string From { get; set; } = string.Empty;
+            public string To { get; set; } = string.Empty;
+            public string Text { get; set; } = string.Empty;
             public long SequenceId { get; set;}
-            public string PartitionKey { get; set; }
-            public string RowKey { get; set; }
+            public string PartitionKey { get; set; } = string.Empty;
+            public string RowKey { get; set; } = string.Empty;
             public DateTimeOffset? Timestamp { get; set; }
             public ETag ETag { get; set; }
             public ChatEntity() { }
