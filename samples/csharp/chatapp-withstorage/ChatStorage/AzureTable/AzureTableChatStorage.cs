@@ -37,7 +37,7 @@ namespace Microsoft.Azure.WebPubSub.Samples
             return pairs;
         }
 
-        public async Task<ChatHistory> LoadHistoryMessageAsync(string user, string pair, long? beforeSequenceId)
+        public async Task<ChatHistory?> LoadHistoryMessageAsync(string user, string pair, long? beforeSequenceId)
         {
             var key = GetChatKey(user, pair);
             IAsyncEnumerable<ChatEntity> query;

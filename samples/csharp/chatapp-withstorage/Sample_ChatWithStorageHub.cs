@@ -34,7 +34,7 @@ namespace Microsoft.Azure.WebPubSub.Samples
                 RequestContent.Create(new
                 {
                     @event = "pairs",
-                    pairs = pairs
+                    pairs
                 }), ContentType.ApplicationJson);
 
         }
