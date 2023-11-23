@@ -12,6 +12,7 @@ import fs from "fs";
 
 import { Command, program } from "commander";
 import { DefaultAzureCredential } from "@azure/identity";
+import { parseUrl, dumpRawRequest, getRawResponse, tryParseInt } from "./util";
 
 import packageJson from "./package.json";
 const name = packageJson["cli-name"];
@@ -23,6 +24,8 @@ interface Settings {
     Upstream?: string;
     SubscriptionId?: string;
     ResourceGroup?: string;
+    WebViewPort?: string;
+    WebViewHost?: string;
   };
 }
 
@@ -32,6 +35,8 @@ interface BindCommandLineArgs {
   upstream?: string | boolean;
   subscription?: string | boolean;
   resourceGroup?: string | boolean;
+  webViewPort?: string | boolean;
+  webViewHost?: string | boolean;
 }
 
 interface RunCommandLineArgs {
@@ -41,12 +46,15 @@ interface RunCommandLineArgs {
   upstream?: string;
   subscription?: string;
   resourceGroup?: string;
+  webViewPort?: string;
+  webViewHost?: string;
+  noWebView?: boolean;
 }
 
 export function getCommand(appConfigPath: string, dbFile: string): Command {
   function configureHelpOptions(command: Command): Command {
     const helpText = "Show help details.";
-    command.helpOption("--help", helpText);
+    command.helpOption("-h, --help", helpText);
     return command;
   }
   const settings: Settings = fs.existsSync(appConfigPath) ? (JSON.parse(fs.readFileSync(appConfigPath, "utf-8")) as Settings) : { WebPubSub: {} };
@@ -61,7 +69,9 @@ export function getCommand(appConfigPath: string, dbFile: string): Command {
   bind
     .option("-e, --endpoint [endpoint]", "Sepcify the Web PubSub service endpoint URL to connect to")
     .option("--hub [hub]", "Specify the hub to connect to")
-    .option("-u, --upstream [upstream]", "Specify the upstream URL to connect to")
+    .option("-u, --upstream [upstream]", "Specify the upstream URL to connect to, URL scheme could be ommited, defaults to http, e.g. localhost:3000 or https://localhost:5001")
+    .option("--webViewPort [webViewPort]", "Specify the webview port to use. If not specified, it defaults to [upstreamPort+1000]")
+    .option("--webViewHost [webViewHost]", "Specify the webview hostname to use. If not specified, it defaults to 127.0.0.1")
     .option("-s, --subscription [subscription]", "Specify the subscriptionId your Web PubSub service belongs to. Specify subscriptionId and resource group to let the tool fetch hub settings for you")
     .option(
       "-g, --resourceGroup [resourceGroup]",
@@ -81,8 +91,14 @@ export function getCommand(appConfigPath: string, dbFile: string): Command {
       "-e, --endpoint [endpoint]",
       "Specify the Web PubSub service endpoint URL to connect to, you don't need to set it if WebPubSubConnectionString environment variable is set. If both are set, this option will be used.",
     )
-    .option("--hub [hub]", "Specify the hub to connect to")
-    .option("-u, --upstream [upstream]", "Specify the upstream URL to redirect traffic to. If not specified, http://localhost:3000 will be used.")
+    .option("--hub [hub]", "Specify the hub to connect to. If not specified, the hub value set with `awps-tunnel bind --hub [hub]` will be used.")
+    .option(
+      "-u, --upstream [upstream]",
+      "Specify the upstream URL to connect to, URL scheme could be ommited, defaults to http, e.g. localhost:3000 or https://localhost:5001. If not specified, http://localhost:3000 will be used.",
+    )
+    .option("--webViewPort [webViewPort]", "Specify the webview port to use. If not specified, it defaults to [upstreamPort+1000]")
+    .option("--webViewHost [webViewHost]", "Specify the webview hostname to use. If not specified, it defaults to 127.0.0.1")
+    .option("--noWebView", "Disable the webview")
     .option("-s, --subscription [subscription]", "Specify the subscriptionId your Web PubSub service belongs to. Specify subscriptionId and resource group to let the tool fetch hub settings for you")
     .option(
       "-g, --resourceGroup [resourceGroup]",
@@ -105,6 +121,8 @@ function print(settings: Settings) {
   printer.text(`Current upstream: ${settings?.WebPubSub?.Upstream ?? "<Not binded>"}`);
   printer.text(`Current subscription Id: ${settings?.WebPubSub?.SubscriptionId ?? "<Not binded>"}`);
   printer.text(`Current resource group: ${settings?.WebPubSub?.ResourceGroup ?? "<Not binded>"}`);
+  printer.text(`Current webview port: ${settings?.WebPubSub?.WebViewPort ?? "<Not binded>"}`);
+  printer.text(`Current webview hostname: ${settings?.WebPubSub?.WebViewHost ?? "<Not binded>"}`);
 }
 
 function createStatusAction(settings: Settings) {
@@ -118,7 +136,9 @@ function createBindAction(bind: Command, settings: Settings, updated: BindComman
   const upstream = updated.upstream;
   const subscription = updated.subscription;
   const resourceGroup = updated.resourceGroup;
-  if (!endpoint && !hub && !upstream && !subscription && !resourceGroup) {
+  const webViewPort = updated.webViewPort;
+  const webViewHost = updated.webViewHost;
+  if (!endpoint && !hub && !upstream && !subscription && !resourceGroup && !webViewHost && !webViewPort) {
     printer.error("Error: Please specify at least one option to bind.");
     bind.outputHelp();
     return;
@@ -128,26 +148,43 @@ function createBindAction(bind: Command, settings: Settings, updated: BindComman
       // the option to clear the endpoint
       settings.WebPubSub.Endpoint = undefined;
     } else {
-      if (validateEndpoint(endpoint)) {
-        settings.WebPubSub.Endpoint = endpoint;
-      } else {
+      const parsed = parseUrl(endpoint, "https");
+      if (!parsed) {
         printer.error(`Error: binding to invalid endpoint: ${endpoint}`);
         return;
       }
+      settings.WebPubSub.Endpoint = parsed.toString();
     }
   }
   if (upstream) {
     if (upstream === true) {
       settings.WebPubSub.Upstream = undefined;
     } else {
-      if (validateEndpoint(upstream)) {
-        settings.WebPubSub.Upstream = upstream;
-      } else {
+      const parsed = parseUrl(upstream, "http");
+      if (!parsed) {
         printer.error(`Error: binding to invalid upstream: ${upstream}`);
         return;
       }
+      settings.WebPubSub.Upstream = parsed.toString();
     }
   }
+
+  if (webViewHost) {
+    if (webViewHost === true) {
+      settings.WebPubSub.WebViewHost = undefined;
+    } else {
+      settings.WebPubSub.WebViewHost = webViewHost;
+    }
+  }
+
+  if (webViewPort) {
+    if (webViewPort === true) {
+      settings.WebPubSub.WebViewPort = undefined;
+    } else {
+      settings.WebPubSub.WebViewPort = webViewPort;
+    }
+  }
+
   if (hub) {
     settings.WebPubSub.Hub = hub === true ? undefined : hub;
   }
@@ -193,51 +230,49 @@ async function loadHubSettings(subscriptionId: string | undefined, resourceGroup
   return { message, eventHandlers, subscriptionId, resourceGroup, resourceName, loaded: true };
 }
 
-function createRunCommand(run: Command, dbFile: string, settings: Settings, updated: RunCommandLineArgs) {
-  if (updated.verbose) {
+function createRunCommand(run: Command, dbFile: string, settings: Settings, command: RunCommandLineArgs) {
+  if (command.verbose) {
     printer.enableVerboseLogging();
   }
-  const endpoint = updated.endpoint;
-  const hub = updated.hub;
-  const upstream = updated.upstream;
-  const subscription = updated.subscription ?? settings.WebPubSub.SubscriptionId;
-  const resourceGroup = updated.resourceGroup ?? settings.WebPubSub.ResourceGroup;
 
-  let currentUpstream = settings.WebPubSub.Upstream;
-  if (upstream) {
-    if (!validateEndpoint(upstream)) {
-      printer.error(`Error: invalid upstream: ${upstream}`);
-      return;
-    }
-    currentUpstream = upstream;
-  }
-  if (!currentUpstream) {
-    printer.status(`Upstream is not specified. http://localhost:3000 is used as the default upstream value. Use -u|--upstream to specify the upstream URL.`);
-    currentUpstream = "http://localhost:3000";
-  }
-
-  const currentHub = hub ?? settings.WebPubSub.Hub;
-  if (!currentHub) {
+  const hub = command.hub ?? settings.WebPubSub.Hub;
+  if (!hub) {
     printer.error(`Error: hub is neither specified nor binded. Use --hub to specify the hub.`);
     run.outputHelp();
     return;
   }
 
+  const subscription = command.subscription ?? settings.WebPubSub.SubscriptionId;
+  const resourceGroup = command.resourceGroup ?? settings.WebPubSub.ResourceGroup;
+
+  let currentUpstream = command.upstream ?? settings.WebPubSub.Upstream;
+  let upstream: URL;
+  if (currentUpstream) {
+    const parsed = parseUrl(currentUpstream, "http");
+    if (!parsed) {
+      printer.error(`Error: invalid upstream: ${currentUpstream}. Use -u|--upstream to specify the upstream URL.`);
+      return;
+    }
+    upstream = parsed;
+  } else {
+    printer.status(`Upstream is not specified. http://localhost:3000 is used as the default upstream value. Use -u|--upstream to specify the upstream URL.`);
+    currentUpstream = "http://localhost:3000";
+    upstream = new URL(currentUpstream);
+  }
+
   const connectionString = process.env.WebPubSubConnectionString;
   // endpoint > connectionString > settings.WebPubSub.Endpoint
-  let currentEndpoint = connectionString ? undefined : settings.WebPubSub.Endpoint;
-  if (endpoint) {
-    if (!validateEndpoint(endpoint)) {
-      printer.error(`Error: invalid endpoint: ${endpoint}`);
+  let endpoint = connectionString ? undefined : settings.WebPubSub.Endpoint;
+  if (command.endpoint) {
+    // override the endpoint value if it is set from the command directly
+    if (!parseUrl(command.endpoint)) {
+      printer.error(`Error: invalid endpoint: ${command.endpoint}`);
       return;
     }
 
-    currentEndpoint = endpoint;
+    endpoint = command.endpoint;
   }
-  start(run, dbFile, connectionString, currentEndpoint, currentHub, currentUpstream, subscription, resourceGroup);
-}
 
-function start(run: Command, dbFile: string, connectionString: string | undefined, endpoint: string | undefined, hub: string, upstreamUrl: string, subscription?: string, resourceGroup?: string) {
   if (!connectionString && !endpoint) {
     printer.error(`Error: neither WebPubSubConnectionString env is set nor endpoint is not specified.`);
     run.outputHelp();
@@ -247,17 +282,17 @@ function start(run: Command, dbFile: string, connectionString: string | undefine
   let tunnel: HttpServerProxy;
   if (connectionString) {
     printer.status(`Using endpoint and credential from WebPubSubConnectionString env.`);
-    tunnel = HttpServerProxy.fromConnectionString(connectionString, hub, { target: upstreamUrl });
+    tunnel = HttpServerProxy.fromConnectionString(connectionString, hub, { target: currentUpstream });
   } else {
     printer.status(`Using endpoint ${endpoint} from settings. Please make sure the Access Policy is correctly configured to allow your access.`);
     // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-    tunnel = new HttpServerProxy(endpoint!, new DefaultAzureCredential(), hub, { target: upstreamUrl });
+    tunnel = new HttpServerProxy(endpoint!, new DefaultAzureCredential(), hub, { target: currentUpstream });
   }
 
   const app = express();
   const server = createServer(app);
-  printer.status(`Connecting to ${tunnel.endpoint}, hub: ${tunnel.hub}, upstream: ${upstreamUrl}`);
-  const dataHub = new DataHub(server, tunnel, upstreamUrl, dbFile);
+  printer.status(`Connecting to ${tunnel.endpoint}, hub: ${tunnel.hub}, upstream: ${currentUpstream}`);
+  const dataHub = new DataHub(server, tunnel, upstream, dbFile);
   dataHub.ReportStatusChange(ConnectionStatus.Connecting);
 
   reportServiceConfiguration(dataHub, subscription, resourceGroup, new URL(tunnel.endpoint), tunnel.hub);
@@ -296,44 +331,25 @@ function start(run: Command, dbFile: string, connectionString: string | undefine
       dataHub.ReportStatusChange(ConnectionStatus.Disconnected);
     });
 
-  const upstream = new URL(upstreamUrl);
-  const upstreamPort = parseInt(upstream.port) ?? 7888;
-  const port = process.env.AWPS_TUNNEL_SERVER_PORT || upstreamPort + 1000;
-
-  app.use(express.static(path.join(__dirname, "../client/build")));
-  server.listen(port, () => {
-    printer.text(`Open webview at: http://localhost:${port}`);
-  });
-}
-
-function dumpRawRequest(proxiedUrl: URL, message: { Url: string; HttpMethod: string; Headers?: Record<string, string[]>; Content?: Uint8Array }): string {
-  const headers = message.Headers
-    ? Object.entries(message.Headers)
-        .map(([name, values]) => values.map((value) => `${name}: ${value}`).join("\r\n"))
-        .join("\r\n")
-    : "";
-
-  const content = message.Content ? new TextDecoder().decode(message.Content) : "";
-
-  return `${message.HttpMethod} ${proxiedUrl} HTTP/1.1\r\n${headers}\r\n\r\n${content}`;
-}
-
-function getRawResponse(message: { StatusCode: number; Headers: Record<string, string[]>; Content: Uint8Array }) {
-  const headers = message.Headers
-    ? Object.entries(message.Headers)
-        .map(([name, values]) => values.map((value) => `${name}: ${value}`).join("\r\n"))
-        .join("\r\n")
-    : "";
-
-  const content = message.Content ? new TextDecoder().decode(message.Content) : "";
-  return `HTTP/1.1 ${message.StatusCode}\r\n${headers}\r\n\r\n${content}`;
-}
-
-function validateEndpoint(endpoint: string) {
-  try {
-    new URL(endpoint);
-    return true;
-  } catch (e) {
-    return false;
+  const upstreamPort = tryParseInt(upstream.port) ?? 80;
+  if (!command.noWebView) {
+    const webViewHost = command.webViewHost ?? settings.WebPubSub.WebViewHost ?? "127.0.0.1";
+    const webViewPort = command.webViewPort ?? settings.WebPubSub.WebViewPort ?? process.env.AWPS_TUNNEL_SERVER_PORT;
+    let port: number | undefined = upstreamPort + 1000;
+    if (webViewPort) {
+      port = tryParseInt(webViewPort);
+      if (!port) {
+        printer.error(`Error: invalid webview port: ${webViewPort}`);
+        return;
+      }
+    }
+    app.use(express.static(path.join(__dirname, "../client/build")));
+    server
+      .listen(port, webViewHost, () => {
+        printer.text(`Open webview at: http://${webViewHost}:${webViewPort}`);
+      })
+      .on("error", (err) => {
+        printer.error(`Error on starting webview server: ${err}`);
+      });
   }
 }
