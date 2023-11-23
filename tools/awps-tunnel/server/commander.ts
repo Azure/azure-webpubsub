@@ -24,7 +24,8 @@ interface Settings {
     Upstream?: string;
     SubscriptionId?: string;
     ResourceGroup?: string;
-    WebViewUrl?: string;
+    WebViewPort?: string;
+    WebViewHost?: string;
   };
 }
 
@@ -34,7 +35,8 @@ interface BindCommandLineArgs {
   upstream?: string | boolean;
   subscription?: string | boolean;
   resourceGroup?: string | boolean;
-  webViewUrl?: string | boolean;
+  webViewPort?: string | boolean;
+  webViewHost?: string | boolean;
 }
 
 interface RunCommandLineArgs {
@@ -44,7 +46,8 @@ interface RunCommandLineArgs {
   upstream?: string;
   subscription?: string;
   resourceGroup?: string;
-  webViewUrl?: string;
+  webViewPort?: string;
+  webViewHost?: string;
   noWebView?: boolean;
 }
 
@@ -67,10 +70,8 @@ export function getCommand(appConfigPath: string, dbFile: string): Command {
     .option("-e, --endpoint [endpoint]", "Sepcify the Web PubSub service endpoint URL to connect to")
     .option("--hub [hub]", "Specify the hub to connect to")
     .option("-u, --upstream [upstream]", "Specify the upstream URL to connect to, URL scheme could be ommited, defaults to http, e.g. localhost:3000 or https://localhost:5001")
-    .option(
-      "--webViewUrl [webViewUrl]",
-      "Specify the webview URL to open, URL scheme could be ommited, defaults to http, e.g. localhost:4000 or https://127.0.0.1:5001. If not specified, the default webview listens to http://0.0.0.0:[upstreamPort+1000]",
-    )
+    .option("--webViewPort [webViewPort]", "Specify the webview port to use. If not specified, it defaults to [upstreamPort+1000]")
+    .option("--webViewHost [webViewHost]", "Specify the webview hostname to use. If not specified, it defaults to 127.0.0.1")
     .option("-s, --subscription [subscription]", "Specify the subscriptionId your Web PubSub service belongs to. Specify subscriptionId and resource group to let the tool fetch hub settings for you")
     .option(
       "-g, --resourceGroup [resourceGroup]",
@@ -95,10 +96,8 @@ export function getCommand(appConfigPath: string, dbFile: string): Command {
       "-u, --upstream [upstream]",
       "Specify the upstream URL to connect to, URL scheme could be ommited, defaults to http, e.g. localhost:3000 or https://localhost:5001. If not specified, http://localhost:3000 will be used.",
     )
-    .option(
-      "--webViewUrl [webViewUrl]",
-      "Specify the webview URL to open, URL scheme could be ommited, defaults to http, e.g. 0.0.0.0:4000 or https://0.0.0.0:5001. If not specified, the default webview listens to http://127.0.0.1:[upstreamPort+1000]",
-    )
+    .option("--webViewPort [webViewPort]", "Specify the webview port to use. If not specified, it defaults to [upstreamPort+1000]")
+    .option("--webViewHost [webViewHost]", "Specify the webview hostname to use. If not specified, it defaults to 127.0.0.1")
     .option("--noWebView", "Disable the webview")
     .option("-s, --subscription [subscription]", "Specify the subscriptionId your Web PubSub service belongs to. Specify subscriptionId and resource group to let the tool fetch hub settings for you")
     .option(
@@ -122,7 +121,8 @@ function print(settings: Settings) {
   printer.text(`Current upstream: ${settings?.WebPubSub?.Upstream ?? "<Not binded>"}`);
   printer.text(`Current subscription Id: ${settings?.WebPubSub?.SubscriptionId ?? "<Not binded>"}`);
   printer.text(`Current resource group: ${settings?.WebPubSub?.ResourceGroup ?? "<Not binded>"}`);
-  printer.text(`Current webview URL: ${settings?.WebPubSub?.WebViewUrl ?? "<Not binded>"}`);
+  printer.text(`Current webview port: ${settings?.WebPubSub?.WebViewPort ?? "<Not binded>"}`);
+  printer.text(`Current webview hostname: ${settings?.WebPubSub?.WebViewHost ?? "<Not binded>"}`);
 }
 
 function createStatusAction(settings: Settings) {
@@ -136,8 +136,9 @@ function createBindAction(bind: Command, settings: Settings, updated: BindComman
   const upstream = updated.upstream;
   const subscription = updated.subscription;
   const resourceGroup = updated.resourceGroup;
-  const webViewUrl = updated.webViewUrl;
-  if (!endpoint && !hub && !upstream && !subscription && !resourceGroup && !webViewUrl) {
+  const webViewPort = updated.webViewPort;
+  const webViewHost = updated.webViewHost;
+  if (!endpoint && !hub && !upstream && !subscription && !resourceGroup && !webViewHost && !webViewPort) {
     printer.error("Error: Please specify at least one option to bind.");
     bind.outputHelp();
     return;
@@ -168,16 +169,19 @@ function createBindAction(bind: Command, settings: Settings, updated: BindComman
     }
   }
 
-  if (webViewUrl) {
-    if (webViewUrl === true) {
-      settings.WebPubSub.WebViewUrl = undefined;
+  if (webViewHost) {
+    if (webViewHost === true) {
+      settings.WebPubSub.WebViewHost = undefined;
     } else {
-      const parsed = parseUrl(webViewUrl, "http");
-      if (!parsed) {
-        printer.error(`Error: binding to invalid webview URL: ${webViewUrl}`);
-        return;
-      }
-      settings.WebPubSub.WebViewUrl = parsed.toString();
+      settings.WebPubSub.WebViewHost = webViewHost;
+    }
+  }
+
+  if (webViewPort) {
+    if (webViewPort === true) {
+      settings.WebPubSub.WebViewPort = undefined;
+    } else {
+      settings.WebPubSub.WebViewPort = webViewPort;
     }
   }
 
@@ -329,22 +333,20 @@ function createRunCommand(run: Command, dbFile: string, settings: Settings, comm
 
   const upstreamPort = tryParseInt(upstream.port) ?? 80;
   if (!command.noWebView) {
-    let webViewPort = tryParseInt(process.env.AWPS_TUNNEL_SERVER_PORT) || upstreamPort + 1000;
-    let webViewHostName = "127.0.0.1";
-    const webViewUrl = command.webViewUrl ?? settings.WebPubSub.WebViewUrl;
-    if (webViewUrl) {
-      const parsed = parseUrl(webViewUrl, "http");
-      if (!parsed) {
-        printer.error(`Error: invalid webview URL: ${webViewUrl}`);
+    const webViewHost = command.webViewHost ?? settings.WebPubSub.WebViewHost ?? "127.0.0.1";
+    const webViewPort = command.webViewPort ?? settings.WebPubSub.WebViewPort ?? process.env.AWPS_TUNNEL_SERVER_PORT;
+    let port: number | undefined = upstreamPort + 1000;
+    if (webViewPort) {
+      port = tryParseInt(webViewPort);
+      if (!port) {
+        printer.error(`Error: invalid webview port: ${webViewPort}`);
         return;
       }
-      webViewPort = tryParseInt(parsed.port) ?? webViewPort;
-      webViewHostName = parsed.hostname;
     }
     app.use(express.static(path.join(__dirname, "../client/build")));
     server
-      .listen(webViewPort, webViewHostName, () => {
-        printer.text(`Open webview at: http://${webViewHostName}:${webViewPort}`);
+      .listen(port, webViewHost, () => {
+        printer.text(`Open webview at: http://${webViewHost}:${webViewPort}`);
       })
       .on("error", (err) => {
         printer.error(`Error on starting webview server: ${err}`);
