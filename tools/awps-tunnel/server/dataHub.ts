@@ -23,13 +23,13 @@ export class DataHub {
   public hub = "";
   private io: Server;
   private repo: DataRepo;
-  constructor(server: http.Server, private tunnel: HttpServerProxy, upstreamUrl: string, dbFile: string) {
+  constructor(server: http.Server, private tunnel: HttpServerProxy, upstreamUrl: URL, dbFile: string) {
     const io = (this.io = new Server(server));
     printer.log("Webview client connecting to get the latest status");
     this.repo = new DataRepo(dbFile);
     this.endpoint = tunnel.endpoint;
     this.hub = tunnel.hub;
-    this.upstreamServerUrl = upstreamUrl;
+    this.upstreamServerUrl = upstreamUrl.toString();
     // Socket.io event handling
     io.on("connection", (socket: Socket) => {
       printer.log("A webview client connected");
