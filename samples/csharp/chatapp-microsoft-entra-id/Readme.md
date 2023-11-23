@@ -11,13 +11,11 @@ This sample is to help you create a chat app using Microsoft Entra authenticatio
 
 ## Getting started
 
-### 1. Compile and build your java project.
+### 1. Compile and build your project.
 
 ```bash
 dotnet restore
 ```
-
-For OSX/Linux user, use `source ./.venv/bin/activate` to activate the virtualenv.
 
 ### 2. Login Azure account in your terminal
 
