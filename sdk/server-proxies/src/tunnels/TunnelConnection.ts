@@ -70,7 +70,7 @@ export class TunnelConnection {
     return this._ackId;
   }
 
-  public async runAsync(retryFunc?: (e: unknown, retryCount: number) => boolean, abortSignal?: AbortSignalLike): Promise<void> {
+  public async runAsync(shouldRetry?: (e: unknown, retryCount: number) => boolean, abortSignal?: AbortSignalLike): Promise<void> {
     // Run the connection
     this._stopped = false;
     await this.startConnectionAsync(
@@ -78,7 +78,7 @@ export class TunnelConnection {
         endpoint: this.endpoint,
         reverseProxyEndpoint: this.reverseProxyEndpoint,
       },
-      retryFunc,
+      shouldRetry,
       abortSignal
     );
   }
@@ -267,7 +267,7 @@ export class TunnelConnection {
     this.clients.get(id)?.stop();
   }
 
-  public async startConnectionAsync(target: ConnectionTarget, retryFunc?: (e: unknown, retryCount: number) => boolean, abortSignal?: AbortSignalLike): Promise<string> {
+  public async startConnectionAsync(target: ConnectionTarget, shouldRetry?: (e: unknown, retryCount: number) => boolean, abortSignal?: AbortSignalLike): Promise<string> {
     if (this._stopped) {
       throw new Error(`Lifetime has stopped, hub: ${this.hub}`);
     }
@@ -287,8 +287,8 @@ export class TunnelConnection {
       }
     });
     this.clients.set(client.id, client);
-    let retry = 0;
-    let canRetry = false;
+    let retryAttempt = 0;
+    let retry = false;
     do {
       if (abortSignal?.aborted || this._stopped) {
         throw new Error(`Stop starting new client for aborted or stopped`);
@@ -298,16 +298,16 @@ export class TunnelConnection {
         logger.info(`Connected connections: (${this.clients.size})\n` + Array.from(this.printClientLines()).join("\n"));
         return client.id;
       } catch (err) {
-        retry++;
-        canRetry = retryFunc !== undefined && retryFunc(err, retry);
-        if (canRetry){
-          logger.info(`Error starting client ${client.getPrintableIdentifier()}: ${err}, retry ${retry} in 2 seconds, hub: ${this.hub}`);
+        retryAttempt++;
+        retry = shouldRetry !== undefined && shouldRetry(err, retryAttempt);
+        if (retry){
+          logger.info(`Error starting client ${client.getPrintableIdentifier()}: ${err}, retry ${retryAttempt} in 2 seconds, hub: ${this.hub}`);
           await delay(2000);
         } else {
           throw err;
         }
       }
-    } while(canRetry);
+    } while(retry);
     throw "Unexpected";
   }
 
