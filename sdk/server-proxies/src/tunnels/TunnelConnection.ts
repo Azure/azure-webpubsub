@@ -70,7 +70,7 @@ export class TunnelConnection {
     return this._ackId;
   }
 
-  public async runAsync(abortSignal?: AbortSignalLike): Promise<void> {
+  public async runAsync(shouldRetry?: (e: unknown, retryCount: number) => boolean, abortSignal?: AbortSignalLike): Promise<void> {
     // Run the connection
     this._stopped = false;
     await this.startConnectionAsync(
@@ -78,6 +78,7 @@ export class TunnelConnection {
         endpoint: this.endpoint,
         reverseProxyEndpoint: this.reverseProxyEndpoint,
       },
+      shouldRetry,
       abortSignal
     );
   }
@@ -227,6 +228,7 @@ export class TunnelConnection {
               endpoint: reconnect.Endpoint,
               target: reconnect.TargetId,
             },
+            ()=>true, // keep it retry forever
             abortSignal
           );
           break;
@@ -245,6 +247,7 @@ export class TunnelConnection {
               endpoint: rebalance.Endpoint,
               target: rebalance.TargetId,
             },
+            () => true, // retry forever to be consistent with current logic
             abortSignal
           );
           break;
@@ -264,7 +267,7 @@ export class TunnelConnection {
     this.clients.get(id)?.stop();
   }
 
-  public async startConnectionAsync(target: ConnectionTarget, abortSignal?: AbortSignalLike): Promise<string> {
+  public async startConnectionAsync(target: ConnectionTarget, shouldRetry?: (e: unknown, retryCount: number) => boolean, abortSignal?: AbortSignalLike): Promise<string> {
     if (this._stopped) {
       throw new Error(`Lifetime has stopped, hub: ${this.hub}`);
     }
@@ -284,22 +287,28 @@ export class TunnelConnection {
       }
     });
     this.clients.set(client.id, client);
-    let retry = 0;
-    while (true) {
+    let retryAttempt = 0;
+    let retry = false;
+    do {
       if (abortSignal?.aborted || this._stopped) {
         throw new Error(`Stop starting new client for aborted or stopped`);
       }
       try {
         await client.startAsync(abortSignal);
-        break;
+        logger.info(`Connected connections: (${this.clients.size})\n` + Array.from(this.printClientLines()).join("\n"));
+        return client.id;
       } catch (err) {
-        retry++;
-        logger.verbose(`Error starting client ${client.getPrintableIdentifier()}: ${err}, retry ${retry} in 2 seconds, hub: ${this.hub}`);
-        await delay(2000);
+        retryAttempt++;
+        retry = shouldRetry !== undefined && shouldRetry(err, retryAttempt);
+        if (retry){
+          logger.info(`Error starting client ${client.getPrintableIdentifier()}: ${err}, retry ${retryAttempt} in 2 seconds, hub: ${this.hub}`);
+          await delay(2000);
+        } else {
+          throw err;
+        }
       }
-    }
-    logger.info(`Connected connections: (${this.clients.size})\n` + Array.from(this.printClientLines()).join("\n"));
-    return client.id;
+    } while(retry);
+    throw "Unexpected";
   }
 
   private tryEndLife(clientId: string) {

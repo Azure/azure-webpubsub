@@ -6,12 +6,12 @@ import path from "path";
 import { DataHub } from "./dataHub";
 import { HttpServerProxy } from "./serverProxies";
 import { ConnectionStatus, ConnectionStatusPairs, EventHandlerSetting, HttpHistoryItem, ServiceConfiguration } from "../client/src/models";
-import { printer } from "./output";
+import { printer, setLogLevel } from "./output";
 import { WebPubSubManagementClient } from "@azure/arm-webpubsub";
 import fs from "fs";
 
 import { Command, program } from "commander";
-import { DefaultAzureCredential } from "@azure/identity";
+import { AzureCliCredential, ChainedTokenCredential, EnvironmentCredential, ManagedIdentityCredential } from "@azure/identity";
 import { parseUrl, dumpRawRequest, getRawResponse, tryParseInt } from "./util";
 
 import packageJson from "./package.json";
@@ -24,8 +24,8 @@ interface Settings {
     Upstream?: string;
     SubscriptionId?: string;
     ResourceGroup?: string;
-    WebViewPort?: string;
-    WebViewHost?: string;
+    WebviewPort?: string;
+    WebviewHost?: string;
   };
 }
 
@@ -35,8 +35,8 @@ interface BindCommandLineArgs {
   upstream?: string | boolean;
   subscription?: string | boolean;
   resourceGroup?: string | boolean;
-  webViewPort?: string | boolean;
-  webViewHost?: string | boolean;
+  webviewPort?: string | boolean;
+  webviewHost?: string | boolean;
 }
 
 interface RunCommandLineArgs {
@@ -46,9 +46,9 @@ interface RunCommandLineArgs {
   upstream?: string;
   subscription?: string;
   resourceGroup?: string;
-  webViewPort?: string;
-  webViewHost?: string;
-  noWebView?: boolean;
+  webviewPort?: string;
+  webviewHost?: string;
+  noWebview?: boolean;
 }
 
 export function getCommand(appConfigPath: string, dbFile: string): Command {
@@ -70,8 +70,8 @@ export function getCommand(appConfigPath: string, dbFile: string): Command {
     .option("-e, --endpoint [endpoint]", "Sepcify the Web PubSub service endpoint URL to connect to")
     .option("--hub [hub]", "Specify the hub to connect to")
     .option("-u, --upstream [upstream]", "Specify the upstream URL to connect to, URL scheme could be ommited, defaults to http, e.g. localhost:3000 or https://localhost:5001")
-    .option("--webViewPort [webViewPort]", "Specify the webview port to use. If not specified, it defaults to [upstreamPort+1000]")
-    .option("--webViewHost [webViewHost]", "Specify the webview hostname to use. If not specified, it defaults to 127.0.0.1")
+    .option("--webviewPort [webviewPort]", "Specify the webview port to use. If not specified, it defaults to [upstreamPort+1000]")
+    .option("--webviewHost [webviewHost]", "Specify the webview hostname to use. If not specified, it defaults to 127.0.0.1")
     .option("-s, --subscription [subscription]", "Specify the subscriptionId your Web PubSub service belongs to. Specify subscriptionId and resource group to let the tool fetch hub settings for you")
     .option(
       "-g, --resourceGroup [resourceGroup]",
@@ -96,9 +96,9 @@ export function getCommand(appConfigPath: string, dbFile: string): Command {
       "-u, --upstream [upstream]",
       "Specify the upstream URL to connect to, URL scheme could be ommited, defaults to http, e.g. localhost:3000 or https://localhost:5001. If not specified, http://localhost:3000 will be used.",
     )
-    .option("--webViewPort [webViewPort]", "Specify the webview port to use. If not specified, it defaults to [upstreamPort+1000]")
-    .option("--webViewHost [webViewHost]", "Specify the webview hostname to use. If not specified, it defaults to 127.0.0.1")
-    .option("--noWebView", "Disable the webview")
+    .option("--webviewPort [webviewPort]", "Specify the webview port to use. If not specified, it defaults to [upstreamPort+1000]")
+    .option("--webviewHost [webviewHost]", "Specify the webview hostname to use. If not specified, it defaults to 127.0.0.1")
+    .option("--noWebview", "Disable the webview")
     .option("-s, --subscription [subscription]", "Specify the subscriptionId your Web PubSub service belongs to. Specify subscriptionId and resource group to let the tool fetch hub settings for you")
     .option(
       "-g, --resourceGroup [resourceGroup]",
@@ -121,8 +121,8 @@ function print(settings: Settings) {
   printer.text(`Current upstream: ${settings?.WebPubSub?.Upstream ?? "<Not binded>"}`);
   printer.text(`Current subscription Id: ${settings?.WebPubSub?.SubscriptionId ?? "<Not binded>"}`);
   printer.text(`Current resource group: ${settings?.WebPubSub?.ResourceGroup ?? "<Not binded>"}`);
-  printer.text(`Current webview port: ${settings?.WebPubSub?.WebViewPort ?? "<Not binded>"}`);
-  printer.text(`Current webview hostname: ${settings?.WebPubSub?.WebViewHost ?? "<Not binded>"}`);
+  printer.text(`Current webview port: ${settings?.WebPubSub?.WebviewPort ?? "<Not binded>"}`);
+  printer.text(`Current webview hostname: ${settings?.WebPubSub?.WebviewHost ?? "<Not binded>"}`);
 }
 
 function createStatusAction(settings: Settings) {
@@ -136,9 +136,9 @@ function createBindAction(bind: Command, settings: Settings, updated: BindComman
   const upstream = updated.upstream;
   const subscription = updated.subscription;
   const resourceGroup = updated.resourceGroup;
-  const webViewPort = updated.webViewPort;
-  const webViewHost = updated.webViewHost;
-  if (!endpoint && !hub && !upstream && !subscription && !resourceGroup && !webViewHost && !webViewPort) {
+  const webviewPort = updated.webviewPort;
+  const webviewHost = updated.webviewHost;
+  if (!endpoint && !hub && !upstream && !subscription && !resourceGroup && !webviewHost && !webviewPort) {
     printer.error("Error: Please specify at least one option to bind.");
     bind.outputHelp();
     return;
@@ -169,19 +169,19 @@ function createBindAction(bind: Command, settings: Settings, updated: BindComman
     }
   }
 
-  if (webViewHost) {
-    if (webViewHost === true) {
-      settings.WebPubSub.WebViewHost = undefined;
+  if (webviewHost) {
+    if (webviewHost === true) {
+      settings.WebPubSub.WebviewHost = undefined;
     } else {
-      settings.WebPubSub.WebViewHost = webViewHost;
+      settings.WebPubSub.WebviewHost = webviewHost;
     }
   }
 
-  if (webViewPort) {
-    if (webViewPort === true) {
-      settings.WebPubSub.WebViewPort = undefined;
+  if (webviewPort) {
+    if (webviewPort === true) {
+      settings.WebPubSub.WebviewPort = undefined;
     } else {
-      settings.WebPubSub.WebViewPort = webViewPort;
+      settings.WebPubSub.WebviewPort = webviewPort;
     }
   }
 
@@ -212,8 +212,8 @@ async function loadHubSettings(subscriptionId: string | undefined, resourceGroup
       message = `Unable to get valid resource name from endpoint ${endpoint}, skip fetching hub settings.`;
       printer.warn(message);
     } else {
-      // use DefaultAzureCredential to connect to the control plane
-      const client = new WebPubSubManagementClient(new DefaultAzureCredential(), subscriptionId);
+      // connect to the control plane
+      const client = new WebPubSubManagementClient(getCredential(), subscriptionId);
       try {
         const result = await client.webPubSubHubs.get(hub, resourceGroup, resourceName);
         eventHandlers = result.properties.eventHandlers?.map((s) => s as EventHandlerSetting);
@@ -223,7 +223,7 @@ async function loadHubSettings(subscriptionId: string | undefined, resourceGroup
       }
     }
   } else {
-    message = `Unable to fetch hub settings: subscriptionId and resourceGroup are not specified. You can use options '-s <subscriptionId> -g <resourceGroup>' to set them or call '${name} bind -s <subscriptionId> -g <resourceGroup>' to bind the values.}`;
+    message = `Unable to fetch hub settings: subscriptionId and resourceGroup are not specified. Use '-s <subscriptionId> -g <resourceGroup>' to set or call '${name} bind -s <subscriptionId> -g <resourceGroup>' to bind the values.`;
     printer.warn(message);
   }
 
@@ -233,6 +233,9 @@ async function loadHubSettings(subscriptionId: string | undefined, resourceGroup
 function createRunCommand(run: Command, dbFile: string, settings: Settings, command: RunCommandLineArgs) {
   if (command.verbose) {
     printer.enableVerboseLogging();
+    setLogLevel("verbose");
+  } else {
+    setLogLevel("info");
   }
 
   const hub = command.hub ?? settings.WebPubSub.Hub;
@@ -286,7 +289,7 @@ function createRunCommand(run: Command, dbFile: string, settings: Settings, comm
   } else {
     printer.status(`Using endpoint ${endpoint} from settings. Please make sure the Access Policy is correctly configured to allow your access.`);
     // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-    tunnel = new HttpServerProxy(endpoint!, new DefaultAzureCredential(), hub, { target: currentUpstream });
+    tunnel = new HttpServerProxy(endpoint!, getCredential(), hub, { target: currentUpstream });
   }
 
   const app = express();
@@ -327,29 +330,33 @@ function createRunCommand(run: Command, dbFile: string, settings: Settings, comm
       dataHub.ReportStatusChange(ConnectionStatus.Connected);
     })
     .catch((err) => {
-      printer.error(`Error on tunnel connection: ${err}`);
+      printer.error(`Error establishing tunnel connection: ${err}. Please make sure the Access Policy is correctly configured to allow your access.`);
       dataHub.ReportStatusChange(ConnectionStatus.Disconnected);
     });
 
   const upstreamPort = tryParseInt(upstream.port) ?? 80;
-  if (!command.noWebView) {
-    const webViewHost = command.webViewHost ?? settings.WebPubSub.WebViewHost ?? "127.0.0.1";
-    const webViewPort = command.webViewPort ?? settings.WebPubSub.WebViewPort ?? process.env.AWPS_TUNNEL_SERVER_PORT;
+  if (!command.noWebview) {
+    const webviewHost = command.webviewHost ?? settings.WebPubSub.WebviewHost ?? "127.0.0.1";
+    const webviewPort = command.webviewPort ?? settings.WebPubSub.WebviewPort ?? process.env.AWPS_TUNNEL_SERVER_PORT;
     let port: number | undefined = upstreamPort + 1000;
-    if (webViewPort) {
-      port = tryParseInt(webViewPort);
+    if (webviewPort) {
+      port = tryParseInt(webviewPort);
       if (!port) {
-        printer.error(`Error: invalid webview port: ${webViewPort}`);
+        printer.error(`Error: invalid webview port: ${port}`);
         return;
       }
     }
     app.use(express.static(path.join(__dirname, "../client/build")));
     server
-      .listen(port, webViewHost, () => {
-        printer.text(`Open webview at: http://${webViewHost}:${webViewPort}`);
+      .listen(port, webviewHost, () => {
+        printer.text(`Open webview at: http://${webviewHost}:${port}`);
       })
       .on("error", (err) => {
         printer.error(`Error on starting webview server: ${err}`);
       });
   }
+}
+
+function getCredential() {
+  return new ChainedTokenCredential(new AzureCliCredential(), new EnvironmentCredential(), new ManagedIdentityCredential());
 }

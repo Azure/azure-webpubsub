@@ -37,9 +37,9 @@ export class HttpServerProxy {
     this.id = this._tunnel.id;
   }
 
-  public runAsync(options: RunOptions, abortSignal?: AbortSignal): Promise<void> {
+  public runAsync(options: RunOptions, shouldRetry?: (e: unknown, retryCount: number) => boolean, abortSignal?: AbortSignal): Promise<void> {
     this._tunnel.requestHandler = (r, a) => this.sendHttpRequest(r, options, a);
-    return this._tunnel.runAsync(abortSignal);
+    return this._tunnel.runAsync(shouldRetry, abortSignal);
   }
 
   // still doing the real REST API call to get the token

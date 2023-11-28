@@ -66,7 +66,7 @@ export class WebPubSubTunnelClient {
   }
   
   public getPrintableIdentifier(){
-    return `[${this.id}]${this.currentConnectionId}`
+    return `[${this.id}]${this.currentConnectionId ?? ""}`
   }
   public on(event: "message" | "stop", listener: (...args: any[]) => void): void {
     this._emitter.on(event, listener);
