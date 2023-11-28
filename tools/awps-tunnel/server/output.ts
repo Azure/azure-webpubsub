@@ -10,6 +10,7 @@ const printer = (function () {
     verboseLogging = true;
   }
   return {
+    verboseLoggingEnabled: verboseLogging,
     enableVerboseLogging: enableVerboseLogging,
     info: (...args: unknown[]) => console.log(chalk.green(args)),
     warn: (...args: unknown[]) => console.log(chalk.yellow(args)),
@@ -26,7 +27,19 @@ const printer = (function () {
 })();
 
 AzureLogger.log = (...args) => {
-  console.log(chalk.gray(args));
+  if (printer.verboseLoggingEnabled || isLogDefaultEnabled(args)) {
+    console.log(chalk.gray(args));
+  }
 };
+
+const defaultAllowedLog: string[] = ["azure:awps-server-proxy"];
+
+function isLogDefaultEnabled(...args: unknown[]) {
+  const log = (args[0] as string).toString();
+  if (log) {
+    return defaultAllowedLog.some((i) => log.startsWith(i));
+  }
+  return false;
+}
 
 export { setLogLevel, printer };

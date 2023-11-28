@@ -102,13 +102,23 @@ export class DataHub {
   }
 
   async GetClientAccessUrl(): Promise<string> {
-    const url = (this.clientUrl = await this.tunnel.getClientAccessUrl());
-    return url;
+    try {
+      const url = (this.clientUrl = await this.tunnel.getClientAccessUrl());
+      return url;
+    } catch (err) {
+      printer.error(`Unable to get client access URL: ${err}`);
+      return "";
+    }
   }
 
   async GetLiveTraceUrl(): Promise<string> {
-    const url = (this.livetraceUrl = await this.tunnel.getLiveTraceUrl());
-    return url;
+    try {
+      const url = (this.livetraceUrl = await this.tunnel.getLiveTraceUrl());
+      return url;
+    } catch (err) {
+      printer.error(`Unable to get live trace URL: ${err}`);
+      return "";
+    }
   }
 
   async AddTraffic(item: HttpHistoryItem) {

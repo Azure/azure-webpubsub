@@ -199,7 +199,7 @@ export class InprocessServerProxy implements WebPubSubServiceCaller {
   }
 
   public runAsync(abortSignal?: AbortSignalLike): Promise<void> {
-    return this._tunnel.runAsync(abortSignal);
+    return this._tunnel.runAsync(()=>true, abortSignal); // keep it retry forever now to be consistent with current logic
   }
 
   public stop(): void {
