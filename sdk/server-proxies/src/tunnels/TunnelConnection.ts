@@ -57,6 +57,8 @@ export class TunnelConnection {
   private readonly lifetimeTcs: PromiseCompletionSource<void> = new PromiseCompletionSource<void>();
   private _stopped = false;
   private _ackId: number = 0;
+  private _keyMapping = new Map<string, WebPubSubTunnelClient>();
+
   constructor(
     private readonly endpoint: string,
     private readonly credential: AzureKeyCredential | TokenCredential,
@@ -83,8 +85,8 @@ export class TunnelConnection {
     );
   }
 
-  public async invokeAsync(httpRequest: HttpRequestLike, abortSignal?: AbortSignalLike): Promise<HttpResponseLike> {
-    const client = this.getClient();
+  public async invokeAsync(httpRequest: HttpRequestLike, abortSignal?: AbortSignalLike, key?: string): Promise<HttpResponseLike> {
+    const client = this.getClient(key);
     if (!client) {
       throw new Error("No connection available.");
     }
@@ -165,7 +167,26 @@ export class TunnelConnection {
     return keys[Math.floor(Math.random() * keys.length)];
   }
 
-  private getClient(): WebPubSubTunnelClient | undefined {
+  private getClient(key?: string): WebPubSubTunnelClient | undefined {
+    let client: WebPubSubTunnelClient | undefined;
+
+    if (key) {
+      client = this._keyMapping.get(key);
+      if (!client || client.stopped) {
+        this._keyMapping.delete(key);
+        client = this.getRandomClient();
+        if (client) {
+          this._keyMapping.set(key, client);
+        }
+      }
+    } else {
+      client = this.getRandomClient();
+    }
+
+    return client;
+  }
+
+  private getRandomClient(): WebPubSubTunnelClient | undefined {
     let client: WebPubSubTunnelClient | undefined;
     let i = 0;
     do {

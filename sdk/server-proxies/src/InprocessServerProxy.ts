@@ -18,6 +18,7 @@ const logger = createLogger("InprocessServerProxy");
 const apiVersion = "2023-07-01";
 const httpMethodPost = "POST";
 const httpMethodDelete = "DELETE";
+const consistentKeyForSendToAll = "keyForSendToAll";
 
 export interface WebPubSubServiceCaller {
   sendToConnection: (connectionId: string, message: string, options?: { contentType: string } | undefined) => Promise<void>;
@@ -83,7 +84,7 @@ export class InprocessServerProxy implements WebPubSubServiceCaller {
       content: this._encoder.encode(message),
       contentType: "text/plain",
     } as HttpRequestLike
-    let response = await this._tunnel.invokeAsync(request);
+    let response = await this._tunnel.invokeAsync(request, undefined, connectionId);
     if (response.statusCode !== 202) {
       throw new Error(`sendToConnection got unexpected status code ${response.statusCode}`);
     }
@@ -100,7 +101,7 @@ export class InprocessServerProxy implements WebPubSubServiceCaller {
       content: this._encoder.encode(message),
       contentType: "text/plain",
     } as HttpRequestLike
-    let response = await this._tunnel.invokeAsync(request);
+    let response = await this._tunnel.invokeAsync(request, undefined, consistentKeyForSendToAll);
     if (response.statusCode !== 202) {
       throw new Error(`sendToAll got unexpected status code ${response.statusCode}`);
     }
@@ -145,7 +146,7 @@ export class InprocessServerProxy implements WebPubSubServiceCaller {
       method: httpMethodDelete,
       url: this._getUrl(`/api/hubs/${this._hub}/groups/${groupName}/connections/${connectionId}`),
     } as HttpRequestLike
-    let response = await this._tunnel.invokeAsync(request);
+    let response = await this._tunnel.invokeAsync(request, undefined, groupName);
     if (response.statusCode !== 200 && response.statusCode !== 204) {
       throw new Error(`removeConnectionFromGroup got unexpected status code ${response.statusCode}`);
     }
@@ -162,7 +163,7 @@ export class InprocessServerProxy implements WebPubSubServiceCaller {
       content: this._encoder.encode(message),
       contentType: "text/plain",
     } as HttpRequestLike
-    let response = await this._tunnel.invokeAsync(request);
+    let response = await this._tunnel.invokeAsync(request, undefined, groupName);
     if (response.statusCode !== 202) {
       throw new Error(`sendToGroup got unexpected status code ${response.statusCode}`);
     }
@@ -179,7 +180,7 @@ export class InprocessServerProxy implements WebPubSubServiceCaller {
       content: this._encoder.encode(message),
       contentType: "text/plain",
     } as HttpRequestLike
-    let response = await this._tunnel.invokeAsync(request);
+    let response = await this._tunnel.invokeAsync(request, undefined, consistentKeyForSendToAll);
     if (response.statusCode !== 200) {
       throw new Error(`invoke got unexpected status code ${response.statusCode}`);
     }
@@ -192,10 +193,6 @@ export class InprocessServerProxy implements WebPubSubServiceCaller {
     }
 
     setTimeout(() => readBody(), 0);
-  }
-
-  private _sendAsync(httpRequest: HttpRequestLike) : Promise<HttpResponseLike> {
-    return this._tunnel.invokeAsync(httpRequest);
   }
 
   public runAsync(abortSignal?: AbortSignalLike): Promise<void> {
