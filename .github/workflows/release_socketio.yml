@@ -82,7 +82,7 @@ jobs:
         BUILDNUMBER: ${{ steps.read_current_version.outputs.current_version }}
       run: |
         azcopy login --service-principal --application-id $ID --tenant-id $TENANT
-        azcopy copy ${{ steps.socketio.outputs.packagePath }} "$URL/azure-webpubsub/js/$BUILDNUMBER/"
+        azcopy copy ${{ steps.socketio.outputs.packagePath }} "$URL/azure-webpubsub/sio/$BUILDNUMBER/"
     - name: Publish SocketIO Artifacts
       if: steps.compare_versions.outputs.version_changed == 'true'
       uses: actions/upload-artifact@v2
