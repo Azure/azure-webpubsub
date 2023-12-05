@@ -642,10 +642,41 @@ describe("messaging many", () => {
           success(done, io, socket1, socket2, socket3);
         });
     });
-
     /**
      * Skip: 1 test related to WebSocket frame precomputation. It doesn't make sense for current implementation.
      * "should precompute the WebSocket frame when broadcasting"
      */
+  });
+
+  describe("it should guarantee order", () => {
+    it("when broadcasting to a namespace", (done) => {
+      const ioPromise = getServer(0);
+      ioPromise.then((io) => {
+        const socket1 = createClient("/", { multiplex: false });
+
+        let receivedCount = 0;
+        socket1.on("bc", (a) => {
+          expect(a).to.be(receivedCount);
+          receivedCount++;
+          if (receivedCount === 100) {
+            success(done, io, socket1);
+          }
+        });
+
+        io.on("connection", async () => {
+          await emit();
+        });
+
+        async function emit() {
+          await spinCheck(() => {
+            expect(socket1.connected).to.eql(true);
+          });
+
+          for (let i = 0; i <= 100; i++) {
+            io.emit("bc", i);
+          }
+        }
+      });
+    })
   });
 });
