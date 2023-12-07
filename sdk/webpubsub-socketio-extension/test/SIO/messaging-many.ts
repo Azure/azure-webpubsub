@@ -677,6 +677,6 @@ describe("messaging many", () => {
           }
         }
       });
-    })
+    });
   });
 });

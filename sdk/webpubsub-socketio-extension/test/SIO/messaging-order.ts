@@ -20,7 +20,7 @@ describe("it should guarantee order", () => {
         }
       });
 
-      io.on("connection", async socket => {
+      io.on("connection", async (socket) => {
         await emit(socket);
       });
 
@@ -103,7 +103,7 @@ describe("it should guarantee order", () => {
         });
 
         await socket.join("g1");
-        await socket.join("g2")
+        await socket.join("g2");
 
         for (let i = 0; i <= totalCount; i++) {
           io.to("g1").emit("bc", i, "g1");
@@ -120,7 +120,7 @@ describe("it should guarantee order", () => {
       const totalCount = 200;
 
       let receivedCount = 0;
-      socket1.on("bc", (a ,cb) => {
+      socket1.on("bc", (a, cb) => {
         expect(a).to.be(receivedCount);
         receivedCount++;
         cb(a);
