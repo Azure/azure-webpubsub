@@ -84,7 +84,8 @@ export class InprocessServerProxy implements WebPubSubServiceCaller {
       content: this._encoder.encode(message),
       contentType: "text/plain",
     } as HttpRequestLike
-    let response = await this._tunnel.invokeAsync(request, undefined, connectionId);
+    // Order concern here: web-pubsub-transport.send() has already guarantee the order by a queue
+    let response = await this._tunnel.invokeAsync(request);
     if (response.statusCode !== 202) {
       throw new Error(`sendToConnection got unexpected status code ${response.statusCode}`);
     }
