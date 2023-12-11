@@ -75,10 +75,10 @@ You could also set WebPubSubConnectionString environment variable if you don't w
 
 1. Run the tool with the hub you set before, for example, connect to an endpoint `https://<awps-host-name>.webpubsub.azure.com` with hub `chat`:
     ```bash
-    awps-tunnel run --hub chat --endpoint https:///<awps-host-name>.webpubsub.azure.com
+    awps-tunnel run --hub chat --endpoint https://<awps-host-name>.webpubsub.azure.com
     ```
 
-    You could also use `awps-tunnel bind --hub chat --endpoint https:///<awps-host-name>.webpubsub.azure.com` to save the configuration and then `awps-tunnel run`.
+    You could also use `awps-tunnel bind --hub chat --endpoint https://<awps-host-name>.webpubsub.azure.com` to save the configuration and then `awps-tunnel run`.
     
 1. You see output like `Open webview at: http://127.0.0.1:4000`, open the link in your browser and you could see the tunnel status and the workflow.
 
