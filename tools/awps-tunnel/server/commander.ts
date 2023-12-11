@@ -59,7 +59,7 @@ export function getCommand(appConfigPath: string, dbFile: string): Command {
   }
   const settings: Settings = fs.existsSync(appConfigPath) ? (JSON.parse(fs.readFileSync(appConfigPath, "utf-8")) as Settings) : { WebPubSub: {} };
 
-  program.name(name).version(packageJson.version, undefined, "Show the version number.").description(packageJson.description);
+  program.name(name).version(packageJson.version, "-v, --version", "Show the version number.").description(packageJson.description);
   const status = program
     .command("status")
     .description("Show the current configuration status.")
