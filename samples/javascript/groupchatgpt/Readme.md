@@ -4,7 +4,7 @@
 
 1. [Node.js](https://nodejs.org)
 2. Create an Azure Web PubSub resource
-3. Use GitHub Codespaces
+3. [awps-tunnel](https://learn.microsoft.com/azure/azure-web-pubsub/howto-web-pubsub-tunnel-tool) to tunnel traffic from Web PubSub to your localhost
 
 ## Overview
 The sample demonstrates building a chat app on a webpage with the Web PubSub client SDK and react.
@@ -18,39 +18,40 @@ The functionality of the following files:
 You can use OpenAI API or your own Azure OpenAI service. If you are using Azure OpenAI service, make sure the Model deployment name is the model name `gpt-3.5-turbo`.
 
 ## Setup and run the app
-In some of the other samples, we show how to run the app locally and expose the local app through some local tunnel tools like ngrok or localtunnel.
+In some of the other samples, we show how to run the app locally and use [awps-tunnel](https://learn.microsoft.com/azure/azure-web-pubsub/howto-web-pubsub-tunnel-tool) to route traffic from Web PubSub service to your localhost.
 
-In this sample, we open this project from [GitHub codespace](https://github.com/features/codespaces) and run it from inside the Codespace.
-
-1. In this GitHub repo, click **Code** and choose `Codespaces` tab to open the project in codespace. If there is no codespace yet, click *Create codespace on main* to create one for you. Codespace starts in seconds with up to 60 hours a month free.
-2. In Codespace, switch to the Terminal tab
-    
-    1. Navigate to current folder
-        ```bash
-        cd samples/javascript/groupchatgpt
-        ```
-    2. Copy **Connection String** from **Keys** tab of the created Azure Web PubSub service, and set the value to the environment.
-        ```bash
-        export WebPubSubConnectionString="<your-web-pubsub-service-connection-string>"
-        ```
-    3. Copy your OpenAI API, and set the value to the environment:
-        ```bash
-        export OPENAI_API_KEY="<your-api-key>"
-        export OPENAI_API_Endpoint="<your-api-service-endpoint>" #set if you are using Azure OpenAI
-        export OPENAI_API_Deployment="<your-service-model-deployment-name>" #set if you are using Azure OpenAI
-        ```
-    4. Run the project on port 8080
-        ```bash
-        npm install
-        npm run start
-        ```
-3. Expose port 8080 to public
-    In Codespaces **PORTS** tab (next to the **TERMINAL** tab), right click to change *Port Visibility* to **Public** so that Azure Web PubSub can connect to it. Right click and select *Copy Local Address*, this address will be used in next step for Azure Web PubSub to push events to.
-4. In Azure Web PubSub *settings* tab, add hub setting for `groupchatgpt`
+1. Navigate to current folder
+    ```bash
+    cd samples/javascript/groupchatgpt
+    ```
+2. Copy **Connection String** from **Keys** tab of the created Azure Web PubSub service, and set the value to the environment.
+    ```bash
+    export WebPubSubConnectionString="<your-web-pubsub-service-connection-string>"
+    ```
+3. Copy your OpenAI API, and set the value to the environment:
+    ```bash
+    export OPENAI_API_KEY="<your-api-key>"
+    export OPENAI_API_Endpoint="<your-api-service-endpoint>" #set if you are using Azure OpenAI
+    export OPENAI_API_Deployment="<your-service-model-deployment-name>" #set if you are using Azure OpenAI
+    ```
+4. Run the project on port 8080
+    ```bash
+    npm install
+    npm run start
+    ```
+5. Run awps-tunnel
+   Start a new terminal and run:
+   ```bash
+    npm install -g @azure/web-pubsub-tunnel-tool
+    export WebPubSubConnectionString="<connection_string>"
+    awps-tunnel run --hub groupchatgpt --upstream http://localhost:8080
+   ```
+   
+6. In Azure Web PubSub *settings* tab, add hub setting for `groupchatgpt`
     * Hub: `groupchatgpt`
     * Configure Event Handlers -> Add
-        * URL Template:  `<copied_local_address>/eventhandler` (Don't forget to add path `/eventhandler`)
+        * URL Template:  `tunnel:///eventhandler`
         * User events: **Specify**
         * Specify the user events: `invokegpt`
     * **Confirm** and **Save**
-5. Switch back to your codespace and open the application in multiple browser tabs with your copied local address and start your chat.
+7. Open the application http://localhost:8080/index.html in multiple browser tabs with your copied local address and start your chat.

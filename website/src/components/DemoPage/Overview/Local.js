@@ -3,7 +3,7 @@ import TextBlock from '@site/src/components/DemoPage/TextBlock'
 import CodeBlock from '@site/src/components/DemoPage/CodeBlock'
 import HyperLink from '@site/src/components/Common/HyperLink'
 
-function Local() {
+function Local({hub}) {
   return (
     <div>
       <h2 className="text-4xl">Prerequisites</h2>
@@ -12,7 +12,7 @@ function Local() {
           <li className="mt-0">Node.js</li>
           <li className="mt-0">Create an Azure Web PubSub resource</li>
           <li className="mt-0">
-            <code>Localtunnel</code> to expose our localhost to the internet
+          <HyperLink to="https://learn.microsoft.com/azure/azure-web-pubsub/howto-web-pubsub-tunnel-tool" text="awps-tunnel" /> to tunnel traffic from Web PubSub to your localhost
           </li>
         </ul>
       </TextBlock>
@@ -33,17 +33,14 @@ function Local() {
         language="javascript"
         title="Windows"
       />
-
-      <h2 className="mb-5 mt-10 text-4xl">Use Localtunnel to expose localhost</h2>
+    {hub &&
+      (<><h2 className="mb-5 mt-10 text-4xl">Use <code>awps-tunnel</code> to tunnel traffic from Web PubSub service to localhost</h2>
       <TextBlock>
         <p>
-          <HyperLink to="https://github.com/localtunnel/localtunnel" text="Localtunnel" />
-          is an open-source project that help expose your localhost to public.&nbsp;
-          <HyperLink to="https://github.com/localtunnel/localtunnel#installation" text="Install" />
-          the tool and run:
+          Install and run <HyperLink to="https://learn.microsoft.com/azure/azure-web-pubsub/howto-web-pubsub-tunnel-tool" text="awps-tunnel" />:
         </p>
       </TextBlock>
-      <CodeBlock text="lt --port 8080 --print-requests" language="shell" />
+      <CodeBlock text={`awps-tunnel run --hub ${hub} --upstream http://localhost:8080`} language="shell" />
 
       <h2 className="mb-5 mt-10 text-4xl">Configure the event handler</h2>
       <TextBlock>
@@ -52,7 +49,7 @@ function Local() {
           <HyperLink to="https://docs.microsoft.com/en-us/azure/azure-web-pubsub/howto-develop-eventhandler" text="Here" />
           contains the detailed instructions of how to set it up.
         </p>
-      </TextBlock>
+      </TextBlock></>)}
     </div>
   )
 }
