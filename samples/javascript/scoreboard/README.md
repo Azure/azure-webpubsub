@@ -12,6 +12,12 @@ preview_image_name: Scoreboard
 
 ![live demo](./images/live-demo.jpg)
 
+## Prerequisites
+
+1. [Node.js](https://nodejs.org)
+2. Create an Azure Web PubSub resource
+3. [awps-tunnel](https://learn.microsoft.com/azure/azure-web-pubsub/howto-web-pubsub-tunnel-tool) to tunnel traffic from Web PubSub to your localhost
+
 ## Install npm packages
 
 ```
@@ -38,13 +44,22 @@ SET WebPubSubConnectionString=<connection_string>
 npm run dev:all
 ```
 
-## Expose localhost for local development
-
-See [documentation](../../../docs/references/samples/expose-localhost.md).
 
 ## Configure event handlers
 
-See [documentation](../../../docs/references/samples/configure-event-handler.md).
+Local development uses hub `sample_<your-demo-name>`, so let's set the event handler through Azure CLI with below command (don't forget to replace `<your-unique-resource-name>` and `<your-demo-name>` with your own one):
+
+```azurecli
+az webpubsub hub create --hub-name sample_<your-demo-name> --name "<your-unique-resource-name>" --resource-group "myResourceGroup" --event-handler url-template=tunnel:///eventhandler/{event} user-event-pattern=* system-event=connect system-event=disconnected system-event=connected
+```
+
+## Use `awps-tunnel` to tunnel traffic from Web PubSub service to your localhost
+
+```bash
+npm install -g @azure/web-pubsub-tunnel-tool
+export WebPubSubConnectionString="<connection_string>"
+awps-tunnel run --hub sample_<your-demo-name> --upstream http://localhost:5050
+```
 
 ## Deploy to Azure
 

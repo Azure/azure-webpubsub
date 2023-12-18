@@ -29,7 +29,7 @@ function RealtimeScoreboard() {
       />
 
       <div className="max-w-full overflow-hidden">
-        <DemoTabs overview={<Overview />} local={<Local />} deploy={<Deploy to={onClickDeploy} />} resources={<Resources />} />
+        <DemoTabs overview={<Overview />} local={<Local hub={"sample_scoreboard"} />} deploy={<Deploy to={onClickDeploy} />} resources={<Resources />} />
       </div>
     </>
   )

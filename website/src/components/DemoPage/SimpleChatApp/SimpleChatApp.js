@@ -29,7 +29,7 @@ function SimpleChatApp() {
       />
 
       <div className="max-w-full overflow-hidden">
-        <DemoTabs overview={<Overview />} local={<Local />} resources={<Resources />} deploy={<Deploy to={onClickDeploy} />} />
+        <DemoTabs overview={<Overview />} local={<Local hub={"sample_chat"} />} resources={<Resources />} deploy={<Deploy to={onClickDeploy} />} />
       </div>
     </>
   )

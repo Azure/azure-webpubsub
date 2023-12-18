@@ -3,7 +3,7 @@
 ## Prerequisites
 1. [Azure Function Core Tools(v3)](https://www.npmjs.com/package/azure-functions-core-tools)
 2. [Azure Storage Emulator](https://go.microsoft.com/fwlink/?linkid=717179&clcid=0x409) or valid Azure Storage connection string.
-3. [localtunnel](https://github.com/localtunnel/localtunnel) to expose our localhost to internet
+3. [awps-tunnel](https://learn.microsoft.com/azure/azure-web-pubsub/howto-web-pubsub-tunnel-tool) to tunnel traffic from Web PubSub to your localhost
 
 ## Setup and Run
 
@@ -13,42 +13,29 @@
 
 1. Start app
 
-```bash
-func start
-```
+    ```bash
+    func start
+    ```
 
-1. Use localtunnel to expose localhost
-
-[localtunnel](https://github.com/localtunnel/localtunnel) is an open-source project that help expose your localhost to public. [Install the tool](https://github.com/localtunnel/localtunnel#installation) and run:
-
-```bash
-lt --port 7071 --print-requests
-```
-
-localtunnel will print out an url (`https://<domain-name>.loca.lt`) that can be accessed from internet, e.g. `https://xxx.loca.lt`.
-
-> Tip:
-> There is one known issue that [localtunnel goes offline when the server restarts](https://github.com/localtunnel/localtunnel/issues/466) and [here is the workaround](https://github.com/localtunnel/localtunnel/issues/466#issuecomment-1030599216)  
-
-There are also other tools to choose when debugging the webhook locally, for example, [Dev Tunnels](https://learn.microsoft.com/aspnet/core/test/dev-tunnels), [loophole](https://loophole.cloud/docs/), [TunnelRelay](https://github.com/OfficeDev/microsoft-teams-tunnelrelay) or so. Some tools might have issue returning response headers correctly. Try the following command to see if the tool is working properly:
-
-```bash
-curl https://<domain-name>.loca.lt/api/validate -X OPTIONS -H "WebHook-Request-Origin: *" -H "ce-awpsversion: 1.0" --ssl-no-revoke -i
-```
-
-Check if the response header contains `webhook-allowed-origin: *`. This curl command actually checks if the WebHook [abuse protection request](https://docs.microsoft.com/azure/azure-web-pubsub/reference-cloud-events#webhook-validation) can response with the expected header.
+1. Use `awps-tunnel` to tunnel traffic from Web PubSub service to your localhost
+    
+    ```bash
+    npm install -g @azure/web-pubsub-tunnel-tool
+    export WebPubSubConnectionString="<connection_string>"
+    awps-tunnel run --hub sample_funcchat --upstream http://localhost:7071
+    ```
 
 
 1. Update event handler settings in **Azure Portal** -> **Settings** to enable service route events to current function app.
-
-Property|Value
---|--
-`HubName`| sample_funcchat
-`URL Template`| https://*{random-id}*.loca.lt/api/{event}
-`User Event Pattern`| *
-`System Events`| connect, connected, disconnected
-
-![Event Handler](./../../../../docs/images/portal_event_handler.png)
+    
+    Property|Value
+    --|--
+    `HubName`| sample_funcchat
+    `URL Template`| tunnel:///api/{event}
+    `User Event Pattern`| *
+    `System Events`| connect, connected, disconnected
+    
+    ![Event Handler](./../../../images/portal_event_handler_sample_funcchat.png)
 
 1. Open function hosted page `http://localhost:7071/api/index` to start chat.
 

@@ -4,7 +4,7 @@
 
 1. [python](https://www.python.org/)
 2. Create an Azure Web PubSub resource
-3. [localtunnel](https://github.com/localtunnel/localtunnel) to expose our localhost to internet
+3. [awps-tunnel](https://learn.microsoft.com/azure/azure-web-pubsub/howto-web-pubsub-tunnel-tool) to tunnel traffic from Web PubSub to your localhost
 
 ## Setup
 
@@ -31,26 +31,13 @@ python ./server.py "<connection-string>"
 
 The web app is listening to request at `http://localhost:8080/eventhandler`.
 
-## Use localtunnel to expose localhost
-
-[localtunnel](https://github.com/localtunnel/localtunnel) is an open-source project that help expose your localhost to public. [Install the tool](https://github.com/localtunnel/localtunnel#installation) and run:
+## Use `awps-tunnel` to tunnel traffic from Web PubSub service to your localhost
 
 ```bash
-lt --port 8080 --print-requests
+npm install -g @azure/web-pubsub-tunnel-tool
+export WebPubSubConnectionString="<connection_string>"
+awps-tunnel run --hub sample_chat --upstream http://localhost:8080
 ```
-
-localtunnel will print out an url (`https://<domain-name>.loca.lt`) that can be accessed from internet, e.g. `https://xxx.loca.lt`.
-
-> Tip:
-> There is one known issue that [localtunnel goes offline when the server restarts](https://github.com/localtunnel/localtunnel/issues/466) and [here is the workaround](https://github.com/localtunnel/localtunnel/issues/466#issuecomment-1030599216)  
-
-There are also other tools to choose when debugging the webhook locally, for example, [ngrok](​https://ngrok.com/), [loophole](https://loophole.cloud/docs/), [TunnelRelay](https://github.com/OfficeDev/microsoft-teams-tunnelrelay) or so. Some tools might have issue returning response headers correctly. Try the following command to see if the tool is working properly:
-
-```bash
-curl https://<domain-name>.loca.lt/eventhandler -X OPTIONS -H "WebHook-Request-Origin: *" -H "ce-awpsversion: 1.0" --ssl-no-revoke -i
-```
-
-Check if the response header contains `webhook-allowed-origin: *`. This curl command actually checks if the WebHook [abuse protection request](https://docs.microsoft.com/azure/azure-web-pubsub/reference-cloud-events#webhook-validation) can response with the expected header.
 
 ## Configure the event handler
 
@@ -58,15 +45,15 @@ Go to the **Settings** blade to configure the event handler for this `sample_cha
 
 1. Type the hub name `sample_chat` and click "Add".
 
-2. Set URL Pattern to `https://<domain-name>.loca.lt/eventhandler` and check `connected` in System Event Pattern, click "Save".
+2. Set URL Pattern to `tunnel:///eventhandler` and check `connected` in System Event Pattern, click "Save".
 
-![Event Handler](../../images/portal_event_handler_chat.png)
+![Event Handler](../../images/portal_event_handler_sample_chat.png)
 
 ## Start the chat
 
 Open http://localhost:8080, input your user name, and send messages.
 
-You can see in the localtunnel command window that there are requests coming in with every message sent from the page.
+You could open the webview of the tunnel tool http://127.0.0.1:9080/ to see the requests coming in with every message sent from the page.
 
 ## Client using `json.webpubsub.azure.v1` subprotocol
 Besides the simple WebSocket client we show in [index.html](./public/index.html), [fancy.html](./public/fancy.html) shows a client using `json.webpubsub.azure.v1` achieving the same by sending `message` event to the service. With the help of the subprotocol, the client can get `connected` and `disconnected` messages containing some metadata of the connection.

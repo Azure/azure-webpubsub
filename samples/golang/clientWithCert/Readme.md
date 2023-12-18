@@ -36,12 +36,19 @@ This sample shows how to allow clients to connect with client cert.
 
 3. Go to [server](server/) folder
     1. Run the server using `go run server.go`
-    2. Use tunnel tools to expose localhost, for example, ngrok or localtunnel
+    2. Install and run [awps-tunnel](https://learn.microsoft.com/azure/azure-web-pubsub/howto-web-pubsub-tunnel-tool) locally
+        ```bash
+        npm install -g @azure/web-pubsub-tunnel-tool
+        export WebPubSubConnectionString="<connection_string>"
+        awps-tunnel run --hub cert --upstream http://localhost:8080
+
+        ```
+        
     3. Go to Web PubSub resource portal and update the event handler settings for `cert` hub
         * Hub: `cert`
         * AllowAnonymous: `true`
         * System event: `connect`
-        * Event handler: `<tunnel exposed url>/eventhandler`, e.g. `https://3183.ap.ngrok.io/eventhandler`
+        * Event handler: `tunnel:///eventhandler`
 
 4. Go to [client](client/) folder, replace `<your_cert_password>` in [client.go](client/client.go) with the password you used to create the cert file, and replace `<your_endpoint>` with your service endpoint, and start the client with `go run client.go`.
 

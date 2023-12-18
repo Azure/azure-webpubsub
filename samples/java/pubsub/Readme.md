@@ -5,7 +5,6 @@
 - [Java Development Kit (JDK)](/java/azure/jdk/) version 8 or above
 - [Apache Maven](https://maven.apache.org/download.cgi)
 - Create an Azure Web PubSub resource
-- [localtunnel](https://github.com/localtunnel/localtunnel) to expose our localhost to internet
 
 ## Copy the ConnectionString from portal
 
