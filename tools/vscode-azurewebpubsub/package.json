@@ -5,7 +5,7 @@
     "version": "0.0.1-beta.1",
     "publisher": "ms-azuretools",
     "icon": "resources/azure-web-pubsub.png",
-    "aiKey": "",
+    "aiKey": "this-is-placeholder",
     "engines": {
         "vscode": "^1.76.0"
     },
