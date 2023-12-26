@@ -81,11 +81,6 @@ export interface DataModel {
    */
   hub: string;
   /**
-   * The generated URL for the WebSocket client to connect to, including the access_token
-   * e.g. https://xxx.webpubsub.azure.com/client/hubs/chat?access_token=xxx
-   */
-  clientUrl: string;
-  /**
    * The Live Trace URL that this Web PubSub service uses, it can be opened in a browser
    */
   liveTraceUrl: string;

@@ -6,7 +6,6 @@ export class MockDataFetcher implements IDataFetcher {
     ready: false,
     endpoint: "",
     hub: "",
-    clientUrl: "",
     liveTraceUrl: "",
     upstreamServerUrl: "",
     tunnelConnectionStatus: ConnectionStatus.Connected,
