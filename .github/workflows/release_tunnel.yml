@@ -4,6 +4,7 @@ on:
     branches: [ "main" ]
     paths:
       - 'tools/awps-tunnel/server/package.json'
+      - 'tools/awps-tunnel/server/CHANGELOG.md'
 
 env:
   NODE_VERSION: '18.x'                # set this to the node version to use
@@ -14,34 +15,15 @@ jobs:
     steps:
     - uses: actions/checkout@v3
       with:
-        fetch-depth: 3
+        fetch-depth: 0
 
-    - name: Get previous version of package.json from git
-      id: get_previous_version
-      run: |
-        git log -3
-        previous_hash=$(git log -n 3 --pretty=format:'%H' | tail -n 1)
-        previous_version=$(git show $previous_hash:tools/awps-tunnel/server/package.json | jq -r '.version')
-        echo "Previous version: $previous_version"
-        echo "previous_version=$previous_version" >> $GITHUB_OUTPUT
-
-    - name: Read current version from package.json
-      id: read_current_version
-      run:  |
-        current_version=$(jq -r '.version' tools/awps-tunnel/server/package.json)
-        echo "Current version: $current_version"
-        echo "current_version=$current_version" >> $GITHUB_OUTPUT
-
-    - name: Compare versions
-      id: compare_versions
-      run: |
-        if [[ "${{ steps.get_previous_version.outputs.previous_version }}" != "${{ steps.read_current_version.outputs.current_version }}" ]]; then
-          echo "Version changed. Running the workflow..."
-          echo "version_changed=true" >> $GITHUB_OUTPUT
-        else
-          echo "Version not changed. Skipping the workflow..."
-          echo "version_changed=false" >> $GITHUB_OUTPUT
-        fi
+    - name: Changelog new version to release
+    id: changelog_reader
+    uses: mindsers/changelog-reader-action@v2
+    with:
+      validation_level: error
+      version: ${{ steps.read_current_version.outputs.current_version }}
+      path: tools/awps-tunnel/server/CHANGELOG.md
 
     - name: Set up Node.js
       uses: actions/setup-node@v3
