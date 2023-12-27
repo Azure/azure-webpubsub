@@ -28,6 +28,7 @@ export class DataHub {
     printer.log("Webview client connecting to get the latest status");
     this.repo = new DataRepo(dbFile);
     this.endpoint = tunnel.endpoint;
+    this.livetraceUrl = tunnel.getLiveTraceUrl();
     this.hub = tunnel.hub;
     this.upstreamServerUrl = upstreamUrl.toString();
     // Socket.io event handling
@@ -79,7 +80,7 @@ export class DataHub {
             endpoint: this.endpoint,
             hub: this.hub,
             clientUrl: await this.GetClientAccessUrl(),
-            liveTraceUrl: await this.GetLiveTraceUrl(),
+            liveTraceUrl: this.livetraceUrl,
             upstreamServerUrl: this.upstreamServerUrl,
             tunnelConnectionStatus: this.tunnelConnectionStatus,
             tunnelServerStatus: this.tunnelServerStatus,
@@ -89,12 +90,17 @@ export class DataHub {
           trafficHistory: await this.getHttpHistory(),
           logs: [],
         });
-        socket.on("getClientAccessUrl", async (callback) => {
-          const url = await this.GetClientAccessUrl();
-          callback(url);
-        });
       });
 
+      socket.on("getClientAccessUrl", async (callback) => {
+        const url = await this.GetClientAccessUrl();
+        callback(url);
+      });
+
+      socket.on("generateLiveTraceToken", async (callback) => {
+        const token = await this.tunnel.getLiveTraceToken();
+        callback(token);
+      });
       socket.on("disconnect", () => {
         printer.log("A webview client connected");
       });
@@ -107,16 +113,6 @@ export class DataHub {
       return url;
     } catch (err) {
       printer.error(`Unable to get client access URL: ${err}`);
-      return "";
-    }
-  }
-
-  async GetLiveTraceUrl(): Promise<string> {
-    try {
-      const url = (this.livetraceUrl = await this.tunnel.getLiveTraceUrl());
-      return url;
-    } catch (err) {
-      printer.error(`Unable to get live trace URL: ${err}`);
       return "";
     }
   }

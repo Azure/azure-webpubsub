@@ -79,7 +79,14 @@ export const Dashboard = () => {
         EventHandler({ hub: data.hub, settings: data.serviceConfiguration }),
       ],
       status: data?.tunnelConnectionStatus,
-      content: <ServicePanel endpoint={data.endpoint} status={data.tunnelConnectionStatus} liveTraceUrl={data.liveTraceUrl}></ServicePanel>,
+      content: (
+        <ServicePanel
+          endpoint={data.endpoint}
+          status={data.tunnelConnectionStatus}
+          liveTraceUrl={data.liveTraceUrl}
+          tokenGenerator={() => dataFetcher.invoke("generateLiveTraceToken")}
+        ></ServicePanel>
+      ),
     },
     {
       key: "proxy",

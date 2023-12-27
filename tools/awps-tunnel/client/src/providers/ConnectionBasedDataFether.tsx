@@ -7,7 +7,6 @@ abstract class ConnectionBasedDataFether implements IDataFetcher {
     ready: false,
     endpoint: "",
     hub: "",
-    clientUrl: "",
     liveTraceUrl: "",
     upstreamServerUrl: "",
     tunnelConnectionStatus: ConnectionStatus.None,
@@ -22,19 +21,26 @@ abstract class ConnectionBasedDataFether implements IDataFetcher {
   protected abstract _startConnection(connection: Socket): Promise<void>;
   protected abstract _invoke(connection: Socket, method: string, ...args: any[]): Promise<any>;
   constructor(private setData: (model: DataModel) => void) {
-    this._start();
+    this._start().catch((e) => {
+      this._connectionStartedTcs.reject(e);
+      throw e;
+    });
   }
 
-  public invoke(method: string, ...args: any[]) {
-    if (!this._connection) {
-      throw new Error("Tunnel connection is not yet ready.");
+  public async invoke(method: string, ...args: any[]) {
+    await this._connectionStartedTcs.promise;
+    if (!this._connection){
+      // defense code, should not happen
+      throw new Error("Connection is not established.");
     }
-    return this._invoke(this._connection, method, ...args);
+    return await this._invoke(this._connection, method, ...args);
   }
 
   private _connection: Socket | undefined;
+  private _connectionStartedTcs = new TaskCompletionSource<void>();
+  
   private async _start() {
-    const newConnection = (this._connection = await this._createConnection());
+    const newConnection = this._connection = await this._createConnection();
 
     newConnection.on("updateLogs", (logs) => {
       this.model = { ...this.model, logs: [...this.model.logs, ...logs] };
@@ -90,13 +96,9 @@ abstract class ConnectionBasedDataFether implements IDataFetcher {
     });
 
     await this._startConnection(newConnection);
-
+    // add a tcs for connection started
+    this._connectionStartedTcs.resolve();
     const serverModel = await this._invoke(newConnection, "getCurrentModel");
-    setInterval(async () => {
-      const clientUrl = await this._invoke(newConnection, "getClientAccessUrl");
-      this.model = { ...this.model, clientUrl };
-      this.setData(this.model);
-    }, 3000 * 1000);
     this.model = {
       ...this.model,
       logs: serverModel.logs,
@@ -117,5 +119,38 @@ export class SocketIODataFetcher extends ConnectionBasedDataFether {
   }
   async _invoke(connection: Socket, method: string, ...args: any[]): Promise<any> {
     return (connection as Socket).emitWithAck(method, ...args);
+  }
+}
+
+class TaskCompletionSource<T> {
+  private _promise: Promise<T>;
+  private _resolve: ((value: T | PromiseLike<T>) => void) | undefined = undefined ;
+  private _reject: ((reason: any) => void) | undefined = undefined;
+
+  constructor() {
+    this._promise = new Promise<T>((resolve, reject) => {
+      this._resolve = resolve;
+      this._reject = reject;
+    });
+  }
+
+  get promise(): Promise<T> {
+    return this._promise;
+  }
+
+  resolve(value: T | PromiseLike<T>): void {
+    if (this._resolve) {
+      this._resolve(value);
+      this._resolve = undefined;
+      this._reject = undefined;
+    }
+  }
+
+  reject(reason?: any): void {
+    if (this._reject) {
+      this._reject(reason);
+      this._resolve = undefined;
+      this._reject = undefined;
+    }
   }
 }
