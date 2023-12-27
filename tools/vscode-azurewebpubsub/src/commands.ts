@@ -3,17 +3,11 @@
 *  Licensed under the MIT License. See License.txt in the project root for license information.
 *--------------------------------------------------------------------------------------------*/
 
-import { CommandCallback, IActionContext, IParsedError, parseError, registerCommandWithTreeNodeUnwrapping, registerErrorHandler, registerReportIssueCommand } from '@microsoft/vscode-azext-utils';
+import { CommandCallback, IActionContext, IParsedError, parseError, registerCommandWithTreeNodeUnwrapping } from '@microsoft/vscode-azext-utils';
 import { instrumentOperation } from 'vscode-extension-telemetry-wrapper';
 import { showError } from './utils';
-import { createServiceInPortal } from './workflows/common/createServiceInPortal';
 
 export function registerCommands(): void {
-    registerCommandWithTelemetryWrapper('azureWebPubSub.service.createInPortal', createServiceInPortal);
-
-    // Suppress "Report an Issue" button for all errors in favor of the command
-    registerErrorHandler(c => c.errorHandling.suppressReportIssue = true);
-    registerReportIssueCommand('azureWebPubSub.common.reportIssue');
 }
 
 export function registerCommandWithTelemetryWrapper(commandId: string, callback: CommandCallback): void {

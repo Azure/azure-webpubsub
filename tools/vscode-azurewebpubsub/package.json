@@ -5,7 +5,7 @@
     "version": "0.0.1-beta.1",
     "publisher": "ms-azuretools",
     "icon": "resources/azure-web-pubsub.png",
-    "aiKey": "this-is-placeholder",
+    "aiKey": "<to-be-determined>",
     "engines": {
         "vscode": "^1.76.0"
     },
@@ -43,15 +43,6 @@
                     }
                 ]
             },
-            "commands": [
-                {
-                    "command": "azureWebPubSub.service.createInPortal",
-                    "title": "%azureWebPubSub.service.createInPortal%",
-                    "type": "WebPubSub",
-                    "detail": "%azureWebPubSub.service.createInPortal.detail%",
-                    "icon": "resources/azure-web-pubsub.svg"
-                }
-            ],
             "activation": {
                 "onFetch": [
                     "microsoft.signalrservice/webpubsub"
@@ -61,20 +52,6 @@
                 ]
             }
         },
-        "commands": [
-            {
-                "command": "azureWebPubSub.common.reportIssue",
-                "title": "%azureWebPubSub.common.reportIssue%",
-                "category": "Azure Web PubSub",
-                "icon": "$(report)"
-            },
-            {
-                "command": "azureWebPubSub.service.createInPortal",
-                "title": "%azureWebPubSub.service.createInPortal%",
-                "category": "Azure Web PubSub",
-                "icon": "$(add)"
-            }
-        ],
         "menus": {
             "commandPalette": [],
             "explorer/context": [],
