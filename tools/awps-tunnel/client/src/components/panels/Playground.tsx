@@ -1,4 +1,4 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { DefaultButton, ComboBox, SelectableOptionMenuItemType, Checkbox, DetailsList, DetailsListLayoutMode, SelectionMode, TextField, Dropdown } from "@fluentui/react";
 import { ResizablePanel } from "../ResizablePanel";
 import { TrafficItem, TrafficItemProps } from "../TrafficItem";
@@ -21,7 +21,9 @@ interface PlaygroundState {
 }
 
 export const Playground = ({ onStatusChange }: PlaygroundProps) => {
-  const { data } = useDataContext();
+  const { data, dataFetcher } = useDataContext();
+  const [url, setUrl] = useState<string>("");
+  const [loading, setLoading] = useState<boolean>(true);
   const [state, setState] = useState<PlaygroundState>({
     hub: data.hub,
     connected: false,
@@ -35,9 +37,24 @@ export const Playground = ({ onStatusChange }: PlaygroundProps) => {
 
   const connectionRef = useRef<WebSocket | null>(null);
 
+  useEffect(() => {
+    const fetchUrl = async () => {
+      const url = await dataFetcher.invoke("getClientAccessUrl");
+      setUrl(url);
+      setLoading(false);
+    };
+    fetchUrl();
+    const intervalId = setInterval(() => {
+      fetchUrl();
+    }, 60 * 10 * 1000); // every 1 minute
+
+    // Clean up the interval on component unmount
+    return () => clearInterval(intervalId);
+  }, [dataFetcher]);
+
   const connect = () => {
     try {
-      const connection = new WebSocket(data.clientUrl);
+      const connection = new WebSocket(url);
       connection.onopen = (event) => {
         onStatusChange(ConnectionStatus.Connected);
         setState((prevState) => ({ ...prevState, connected: true, traffic: [], error: "" }));
@@ -108,8 +125,8 @@ export const Playground = ({ onStatusChange }: PlaygroundProps) => {
   const connectPane = (
     <div className="d-flex flex-column websocket-client-container m-2">
       <b>Test Client</b>
-      <input disabled={true} value={data.clientUrl}></input>
-      <DefaultButton hidden={!data.ready || state.connected} onClick={connect}>
+      <input disabled={true} placeholder="Loading" value={url}></input>
+      <DefaultButton hidden={!data.ready || state.connected || loading} onClick={connect}>
         Connect
       </DefaultButton>
       {state.connected && (
@@ -151,7 +168,5 @@ export const Playground = ({ onStatusChange }: PlaygroundProps) => {
     </div>
   );
 
-  return (
-      <ResizablePanel className="flex-fill" left={connectPane} right={trafficPane}></ResizablePanel>
-  );
+  return <ResizablePanel className="flex-fill" left={connectPane} right={trafficPane}></ResizablePanel>;
 };

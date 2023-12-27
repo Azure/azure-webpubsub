@@ -48,39 +48,21 @@ export class HttpServerProxy {
     return cat.url;
   }
 
-  public async getLiveTraceUrl(): Promise<string> {
-    let url = new URL(this.endpoint);
-    let token: string | undefined;
-    let toolToken: string | undefined;
+  public getLiveTraceUrl() : string {
+    return `${this.endpoint}livetrace`;
+  }
+
+  public async getLiveTraceToken(): Promise<string> {
+    let token: string;
     if (isTokenCredential(this.credential)) {
-      toolToken = token = (await this.credential.getToken("https://webpubsub.azure.com"))?.token;
+      return (await this.credential.getToken("https://webpubsub.azure.com"))!.token;
     } else {
-      token = jwt.sign({}, this.credential.key, {
+      return jwt.sign({}, this.credential.key, {
         audience: `${this.endpoint}livetrace`,
         expiresIn: "1h",
         algorithm: "HS256",
       });
-      toolToken = jwt.sign({}, this.credential.key, {
-        audience: `${this.endpoint}livetrace/tool`,
-        expiresIn: "1h",
-        algorithm: "HS256",
-      });
     }
-
-    return `${this.endpoint}livetrace/tool?livetrace_access_token=${token}&access_token=${toolToken}`;
-  }
-
-  private _getUrl(path: string, query?: Record<string, string> | undefined): string {
-    const baseUrl = "https://host";
-    const url = new URL(baseUrl);
-    url.pathname = path;
-    url.searchParams.append("api-version", apiVersion);
-    if (query) {
-      for (const key in query) {
-        url.searchParams.append(key, query[key]);
-      }
-    }
-    return url.toString();
   }
 
   private async sendHttpRequest(request: TunnelIncomingMessage, options?: RunOptions, abortSignal?: AbortSignalLike): Promise<TunnelOutgoingMessage> {
