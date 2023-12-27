@@ -2,12 +2,6 @@ name: Release tunnel changelogs # check if the tag is present in the changelog, 
 on:
   pull_request:
     branches: [ "main" ]
-    paths:
-      - 'tools/awps-tunnel/server/CHANGELOG.md'
-  push:
-    branches: [ "main" ]
-    paths:
-      - 'tools/awps-tunnel/server/CHANGELOG.md'
 jobs:
   version_check:
     runs-on: ubuntu-latest
