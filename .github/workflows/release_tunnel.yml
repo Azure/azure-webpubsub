@@ -1,11 +1,10 @@
 name: Release tunnel package
 on:
-  pull_request:
-    branches: [ "main" ]
   push:
     branches: [ "main" ]
     paths:
       - 'tools/awps-tunnel/server/package.json'
+      - 'tools/awps-tunnel/server/CHANGELOG.md'
 jobs:
   version_check:
     runs-on: ubuntu-latest
