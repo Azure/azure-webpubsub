@@ -6,8 +6,7 @@
     "sdk/**socketio**/",
     "experimental/**",
     "tools/awps-tunnel/client/",
-    "tools/awps-tunnel/server/",
-    "tools/vscode-azurewebpubsub/"
+    "tools/awps-tunnel/server/"
   ],
   "version": "1.0.0",
   "main": "index.js",
