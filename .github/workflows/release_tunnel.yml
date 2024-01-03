@@ -5,8 +5,6 @@ on:
     paths:
       - 'tools/awps-tunnel/server/package.json'
       - 'tools/awps-tunnel/server/CHANGELOG.md'
-  pull_request:
-    branches: [ "main" ]
 jobs:
   version_check:
     runs-on: ubuntu-latest
@@ -47,18 +45,12 @@ jobs:
         echo "tag_version=$VERSION" >> $GITHUB_OUTPUT
     - name: Compare versions
       id: compare_versions
-      if: steps.needs_release.outputs.needs_release == 'true'
+      if: steps.needs_release.outputs.needs_release == 'true' && steps.tag_version.outputs.tag_version != steps.read_current_version.outputs.current_version
       run: |
-        if [[ "${{ steps.tag_version.outputs.tag_version }}" != "${{ steps.read_current_version.outputs.current_version }}" ]]; then
-          echo "Version changed. Running the workflow..."
           echo "version_changed=true" >> $GITHUB_OUTPUT
-        else
-          echo "Version not changed. Skipping the workflow..."
-          echo "version_changed=false" >> $GITHUB_OUTPUT
-        fi
   release:
     needs: version_check
-    if: needs.version_check.outputs.version_changed == 'true1'
+    if: needs.version_check.outputs.version_changed == 'true'
     uses: ./.github/workflows/build-tunnel.yml
     secrets:
       AZURESDKPARTNERDROPS_URL: ${{ secrets.AZURESDKPARTNERDROPS_URL }}
