@@ -1,6 +1,6 @@
 {
   "name": "@azure/web-pubsub-tunnel-tool",
-  "version": "1.0.0-beta.3",
+  "version": "1.0.0-beta.4",
   "description": "A local tool to help tunnel Azure Web PubSub traffic to local web app and provide a vivid view to the end to end workflow.",
   "keywords": [
     "azure",
@@ -18,7 +18,8 @@
   "files": [
     "dist/",
     "README.md",
-    "LICENSE"
+    "LICENSE",
+    "CHANGELOG.md"
   ],
   "bin": {
     "awps-tunnel": "dist/server/index.js"
@@ -102,5 +103,5 @@
     "doc": "docs",
     "test": "test"
   },
-  "author": ""
+  "author": "Microsoft"
 }
