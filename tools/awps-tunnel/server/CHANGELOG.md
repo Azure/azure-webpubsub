@@ -1,8 +1,6 @@
 # Changelog
 
-## [1.0.0-beta.5] - unreleased
-
-## [1.0.0-beta.4] - 2024-01-03
+## [1.0.0-beta.4] - unreleased
 
 ## [1.0.0-beta.3] - 2023-12-27
 ### Fixed
