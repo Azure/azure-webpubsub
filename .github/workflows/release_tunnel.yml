@@ -12,6 +12,7 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       version: ${{ steps.read_current_version.outputs.current_version }}
+      version_changed: ${{ steps.compare_versions.outputs.version_changed }}
     steps:
     - uses: actions/checkout@v3
       with:
@@ -45,8 +46,9 @@ jobs:
           echo "Version not changed. Skipping the workflow..."
           echo "version_changed=false" >> $GITHUB_OUTPUT
         fi
-    - name: Run release workflow
-      if: steps.compare_versions.outputs.version_changed == 'true'
-      uses: ./.github/workflows/build-tunnel.yml
-      with:
-        version: ${{ steps.read_current_version.outputs.current_version }}
+  release:
+    needs: version_check
+    if: needs.version_check.outputs.version_changed == 'true'
+    uses: ./.github/workflows/build-tunnel.yml
+    with:
+      version: ${{ needs.version_check.outputs.version }}
