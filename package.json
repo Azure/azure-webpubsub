@@ -7,7 +7,7 @@
     "experimental/**",
     "tools/awps-tunnel/client/",
     "tools/awps-tunnel/server/",
-    "tools/"
+    "tools/vscode-azurewebpubsub/"
   ],
   "version": "1.0.0",
   "main": "index.js",
