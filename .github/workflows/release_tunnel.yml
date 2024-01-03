@@ -35,7 +35,7 @@ jobs:
       run: echo ${{steps.changelog_reader.outputs.version}}  ${{steps.changelog_reader.outputs.date}} 
     - name: Needs release
       id: needs_release
-      if: steps.changelog_reader.outputs.version == steps.read_current_version.outputs.current_version && steps.changelog_reader.outputs.date != ""
+      if: steps.changelog_reader.outputs.version == steps.read_current_version.outputs.current_version && steps.changelog_reader.outputs.date != ''
       run:  |
         echo "needs_release=true" >> $GITHUB_OUTPUT
     - name: Extract version from tag
