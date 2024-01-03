@@ -50,5 +50,11 @@ jobs:
     needs: version_check
     if: needs.version_check.outputs.version_changed == 'true'
     uses: ./.github/workflows/build-tunnel.yml
+    secrets:
+      AZURESDKPARTNERDROPS_URL: ${{ secrets.AZURESDKPARTNERDROPS_URL }}
+      AZURESDKPARTNERDROPS_SERVICE_PRINCIPAL_KEY: ${{ secrets.AZURESDKPARTNERDROPS_SERVICE_PRINCIPAL_KEY }}
+      AZURESDKPARTNERDROPS_SERVICE_PRINCIPAL_ID: ${{ secrets.AZURESDKPARTNERDROPS_SERVICE_PRINCIPAL_ID }}
+      AZURESDKPARTNERDROPS_TENANT_ID: ${{ secrets.AZURESDKPARTNERDROPS_TENANT_ID }}
     with:
       version: ${{ needs.version_check.outputs.version }}
+    
