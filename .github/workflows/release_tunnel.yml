@@ -47,6 +47,6 @@ jobs:
         fi
     - name: Run release workflow
       if: steps.compare_versions.outputs.version_changed == 'true'
-      uses: ./build-tunnel.yml
+      uses: ./.github/workflows/build-tunnel.yml
       with:
         version: ${{ steps.read_current_version.outputs.current_version }}
