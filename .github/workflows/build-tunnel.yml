@@ -1,4 +1,4 @@
-name: Build tunnel package
+name: Build and release tunnel package
 on:
   workflow_call:
     inputs:
@@ -6,10 +6,17 @@ on:
         description: 'The version of the package to build'
         required: true
         type: string
-
+    secrets:
+      AZURESDKPARTNERDROPS_URL:
+        required: true
+      AZURESDKPARTNERDROPS_SERVICE_PRINCIPAL_KEY:
+        required: true
+      AZURESDKPARTNERDROPS_SERVICE_PRINCIPAL_ID:
+        required: true
+      AZURESDKPARTNERDROPS_TENANT_ID:
+        required: true
 env:
   NODE_VERSION: '18.x'                # set this to the node version to use
-
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -46,7 +53,16 @@ jobs:
         done
         popd
       shell: bash
-  release:
+  upload-artifacts:
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Publish tunnel Artifacts
+        uses: actions/upload-artifact@v2
+        with:
+          name: tunnel package
+          path: ${{ needs.build.outputs.packagePath }} 
+  azcopy:
     needs: build
     runs-on: ubuntu-latest
     steps:
@@ -60,8 +76,3 @@ jobs:
         run: |
           azcopy login --service-principal --application-id $ID --tenant-id $TENANT
           azcopy copy ${{ needs.build.outputs.packagePath }} "$URL/azure-webpubsub/tunnel/$BUILDNUMBER/"
-      - name: Publish tunnel Artifacts
-        uses: actions/upload-artifact@v2
-        with:
-          name: tunnel package
-          path: ${{ needs.build.outputs.packagePath }} 
