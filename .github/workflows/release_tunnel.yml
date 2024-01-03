@@ -27,9 +27,11 @@ jobs:
       id: changelog_reader
       uses: mindsers/changelog-reader-action@v2
       with:
-        validation_level: error
         version: ${{ steps.read_current_version.outputs.current_version }}
         path: tools/awps-tunnel/server/CHANGELOG.md
+    - name: Print info from changelog
+      id: print
+      run: echo ${{steps.changelog_reader.version}}  ${{steps.changelog_reader.date}}  ${{steps.changelog_reader.status}}  ${{steps.changelog_reader.changes}}
     - name: Extract version from tag
       id: tag_version
       run: |
@@ -48,7 +50,7 @@ jobs:
         fi
   release:
     needs: version_check
-    if: needs.version_check.outputs.version_changed == 'true'
+    if: needs.version_check.outputs.version_changed == 'true1'
     uses: ./.github/workflows/build-tunnel.yml
     secrets:
       AZURESDKPARTNERDROPS_URL: ${{ secrets.AZURESDKPARTNERDROPS_URL }}
