@@ -27,7 +27,9 @@ jobs:
       with:
         node-version: ${{ matrix.node-version }}
         cache: 'npm'
-    - run: npm install -g yarn 
+    - name: Test VSCode Extension
+      run:  cd ./tools/vscode-azurewebpubsub && npm install && npm run test && cd ../../
+    - run: npm install -g yarn
     - run: yarn install
     - run: yarn workspaces run test
     - name: Setup .NET ${{ matrix.dotnet-version }}
