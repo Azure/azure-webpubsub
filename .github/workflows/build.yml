@@ -27,7 +27,11 @@ jobs:
       with:
         node-version: ${{ matrix.node-version }}
         cache: 'npm'
-    - run: npm install -g yarn 
+    - name: Test VSCode Extension
+      # See https://code.visualstudio.com/api/working-with-extensions/continuous-integration#github-actions
+      run:  cd ./tools/vscode-azurewebpubsub && npm install && xvfb-run -a npm run test && cd ../../
+      if: runner.os == 'Linux'
+    - run: npm install -g yarn
     - run: yarn install
     - run: yarn workspaces run test
     - name: Setup .NET ${{ matrix.dotnet-version }}
