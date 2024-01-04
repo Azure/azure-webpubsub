@@ -43,6 +43,15 @@
                     }
                 ]
             },
+            "commands": [
+                {
+                    "command": "azureWebPubSub.service.createInPortal",
+                    "title": "%azureWebPubSub.service.createInPortal%",
+                    "type": "WebPubSub",
+                    "detail": "%azureWebPubSub.service.createInPortal.detail%",
+                    "icon": "resources/azure-web-pubsub.svg"
+                }
+            ],
             "activation": {
                 "onFetch": [
                     "microsoft.signalrservice/webpubsub"
@@ -52,6 +61,14 @@
                 ]
             }
         },
+        "commands": [
+            {
+                "command": "azureWebPubSub.service.createInPortal",
+                "title": "%azureWebPubSub.service.createInPortal%",
+                "category": "Azure Web PubSub",
+                "icon": "$(add)"
+            }
+        ],
         "menus": {
             "commandPalette": [],
             "explorer/context": [],
