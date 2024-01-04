@@ -28,7 +28,11 @@ jobs:
         node-version: ${{ matrix.node-version }}
         cache: 'npm'
     - name: Test VSCode Extension
+      run:  cd ./tools/vscode-azurewebpubsub && npm install && xvfb-run -a npm run test && cd ../../
+      if: runner.os == 'Linux'
+    - name: Test VSCode Extension
       run:  cd ./tools/vscode-azurewebpubsub && npm install && npm run test && cd ../../
+      if: runner.os != 'Linux'
     - run: npm install -g yarn
     - run: yarn install
     - run: yarn workspaces run test
