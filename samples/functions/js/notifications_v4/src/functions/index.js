@@ -1,0 +1,24 @@
+const { app } = require('@azure/functions');
+const { readFile } = require('fs/promises');
+//var fs = require('fs');
+
+app.http('index', {
+    methods: ['GET', 'POST'],
+    authLevel: 'anonymous',
+    handler: async (context) => {
+        const content = await readFile('index.html', 'utf8', (err, data) => {
+            if (err) {
+                context.err(err)
+                return
+            }
+        });
+
+        return { 
+            status: 200,
+            headers: { 
+                'Content-Type': 'text/html'
+            }, 
+            body: content, 
+        };
+    }
+});
