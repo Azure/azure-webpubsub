@@ -8,11 +8,10 @@ const wpsMsg = output.generic({
 
 const wpsTrigger = trigger.generic({
     type: 'webPubSubTrigger',
-        name: 'request',
-        hub: 'sample_funcchatv4',
-        eventName: 'message',
-        eventType: 'user',
-        connection: "WpsConnectionString",
+    name: 'request',
+    hub: 'sample_funcchatv4',
+    eventName: 'message',
+    eventType: 'user'
 });
 
 app.generic('message', {

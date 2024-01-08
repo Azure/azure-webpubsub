@@ -10,30 +10,18 @@ const wpsTrigger = trigger.generic({
     type: 'webPubSubTrigger',
     name: 'request',
     hub: 'sample_funcchatv4',
-    eventName: 'connected',
+    eventName: 'disconnected',
     eventType: 'system'
 });
 
-app.generic('connected', {
+app.generic('disconnected', {
     trigger: wpsTrigger,
     extraOutputs: [wpsMsg],
     handler: async (request, context) => {
         context.extraOutputs.set(wpsMsg, [{
             "actionName": "sendToAll",
-            "data": `[SYSTEM] ${request.connectionContext.userId} is connected`,
+            "data": `[SYSTEM] ${request.connectionContext.userId} is disconnected`,
             "dataType": `text`
-        },
-        {
-            "actionName": "addUserToGroup",
-            "group": "group1",
-            "userId": request.connectionContext.userId,
-        },
-        {
-            "actionName": "sendToGroup",
-            "group": "group1",
-            "data": `[SYSTEM] ${request.connectionContext.userId} joined group: group1`,
-            "dataType": `text`
-        }
-    ]);
+        }]);
     }
 });
