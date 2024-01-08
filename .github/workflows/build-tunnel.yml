@@ -18,10 +18,8 @@ on:
 env:
   NODE_VERSION: '18.x'                # set this to the node version to use
 jobs:
-  build:
+  build-release:
     runs-on: ubuntu-latest
-    outputs:
-      packagePath: ${{steps.tunnel.outputs.packagePath}}
     steps:
     - uses: actions/checkout@v3
       with:
@@ -52,27 +50,18 @@ jobs:
           echo "packagePath=$path" >> $GITHUB_OUTPUT
         done
         popd
-      shell: bash
-  upload-artifacts:
-    needs: build
-    runs-on: ubuntu-latest
-    steps:
-      - name: Publish tunnel Artifacts
-        uses: actions/upload-artifact@v2
-        with:
-          name: tunnel package
-          path: ${{ needs.build.outputs.packagePath }} 
-  azcopy:
-    needs: build
-    runs-on: ubuntu-latest
-    steps:
-      - name: AzCopy to shared blob
-        env:
-          URL: ${{ secrets.AZURESDKPARTNERDROPS_URL }}
-          AZCOPY_SPA_CLIENT_SECRET: ${{ secrets.AZURESDKPARTNERDROPS_SERVICE_PRINCIPAL_KEY }}
-          ID: ${{ secrets.AZURESDKPARTNERDROPS_SERVICE_PRINCIPAL_ID }}
-          TENANT: ${{ secrets.AZURESDKPARTNERDROPS_TENANT_ID }}
-          BUILDNUMBER: ${{ inputs.version }}
-        run: |
-          azcopy login --service-principal --application-id $ID --tenant-id $TENANT
-          azcopy copy ${{ needs.build.outputs.packagePath }} "$URL/azure-webpubsub/tunnel/$BUILDNUMBER/"
+    - name: Publish tunnel Artifacts
+      uses: actions/upload-artifact@v2
+      with:
+        name: tunnel package
+        path: ${{ steps.tunnel.outputs.packagePath }} 
+    - name: AzCopy to shared blob
+      env:
+        URL: ${{ secrets.AZURESDKPARTNERDROPS_URL }}
+        AZCOPY_SPA_CLIENT_SECRET: ${{ secrets.AZURESDKPARTNERDROPS_SERVICE_PRINCIPAL_KEY }}
+        ID: ${{ secrets.AZURESDKPARTNERDROPS_SERVICE_PRINCIPAL_ID }}
+        TENANT: ${{ secrets.AZURESDKPARTNERDROPS_TENANT_ID }}
+        BUILDNUMBER: ${{ inputs.version }}
+      run: |
+        azcopy login --service-principal --application-id $ID --tenant-id $TENANT
+        azcopy copy ${{ steps.tunnel.outputs.packagePath }} "$URL/azure-webpubsub/tunnel/$BUILDNUMBER/"

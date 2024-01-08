@@ -10,6 +10,7 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       version: ${{ steps.read_current_version.outputs.current_version }}
+      version_changed: ${{ steps.compare_versions.outputs.version_changed }}
     steps:
     - uses: actions/checkout@v3
       with:
@@ -24,27 +25,38 @@ jobs:
       id: changelog_reader
       uses: mindsers/changelog-reader-action@v2
       with:
-        validation_level: error
+        validation_level: none
         version: ${{ steps.read_current_version.outputs.current_version }}
         path: tools/awps-tunnel/server/CHANGELOG.md
+    - name: Print info from changelog
+      id: print
+      run: echo ${{steps.changelog_reader.outputs.version}}  ${{steps.changelog_reader.outputs.date}} 
+    - name: Needs release
+      id: needs_release
+      if: steps.changelog_reader.outputs.version == steps.read_current_version.outputs.current_version && steps.changelog_reader.outputs.date != ''
+      run:  |
+        echo "needs_release=true" >> $GITHUB_OUTPUT
     - name: Extract version from tag
       id: tag_version
+      if: steps.needs_release.outputs.needs_release == 'true'
       run: |
         TAG_NAME="${GITHUB_REF#refs/tags/}"  # Extract tag name from GITHUB_REF
         VERSION=$(echo "$TAG_NAME" | sed -n 's|^release/awps-tunnel/v\(.*\)$|\1|p')
         echo "tag_version=$VERSION" >> $GITHUB_OUTPUT
     - name: Compare versions
       id: compare_versions
+      if: steps.needs_release.outputs.needs_release == 'true' && steps.tag_version.outputs.tag_version != steps.read_current_version.outputs.current_version
       run: |
-        if [[ "${{ steps.tag_version.outputs.tag_version }}" != "${{ steps.read_current_version.outputs.current_version }}" ]]; then
-          echo "Version changed. Running the workflow..."
           echo "version_changed=true" >> $GITHUB_OUTPUT
-        else
-          echo "Version not changed. Skipping the workflow..."
-          echo "version_changed=false" >> $GITHUB_OUTPUT
-        fi
-    - name: Run release workflow
-      if: steps.compare_versions.outputs.version_changed == 'true'
-      uses: build-tunnel.yml
-      with:
-        version: ${{ steps.read_current_version.outputs.current_version }}
+  release:
+    needs: version_check
+    if: needs.version_check.outputs.version_changed == 'true'
+    uses: ./.github/workflows/build-tunnel.yml
+    secrets:
+      AZURESDKPARTNERDROPS_URL: ${{ secrets.AZURESDKPARTNERDROPS_URL }}
+      AZURESDKPARTNERDROPS_SERVICE_PRINCIPAL_KEY: ${{ secrets.AZURESDKPARTNERDROPS_SERVICE_PRINCIPAL_KEY }}
+      AZURESDKPARTNERDROPS_SERVICE_PRINCIPAL_ID: ${{ secrets.AZURESDKPARTNERDROPS_SERVICE_PRINCIPAL_ID }}
+      AZURESDKPARTNERDROPS_TENANT_ID: ${{ secrets.AZURESDKPARTNERDROPS_TENANT_ID }}
+    with:
+      version: ${{ needs.version_check.outputs.version }}
+    
