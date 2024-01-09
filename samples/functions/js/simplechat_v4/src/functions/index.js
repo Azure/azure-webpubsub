@@ -1,12 +1,11 @@
 const { app } = require('@azure/functions');
-const { readFile, readFileSync } = require('fs');
-let fs = require('fs');
+const { readFile } = require('fs/promises');
 
 app.http('index', {
     methods: ['GET', 'POST'],
     authLevel: 'anonymous',
     handler: async () => {
-        const content = await fs.promises.readFile('index.html', 'utf8', (err, data) => {
+        const content = await readFile('index.html', 'utf8', (err, data) => {
             if (err) {
                 console.error(err)
                 return

@@ -8,6 +8,7 @@
 * [Notification using WebPubSub output binding](./js/notifications)
 * [Notification using WebPubSub output binding(Model v4)](./js/notifications_v4)
 * [IoT data visualization using Event Hub trigger and WebPubSub output binding](./js/iot-hub-data-visualization)
+* [IoT data visualization using Event Hub trigger and WebPubSub output binding(Model v4)](./js/iot-hub-data-visualization_v4)
 
 
 ## Functions in C# 
