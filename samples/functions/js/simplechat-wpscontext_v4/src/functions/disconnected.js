@@ -8,7 +8,7 @@ const wpsContext = input.generic({
 const wpsMsg = output.generic({
     type: 'webPubSub',
     name: 'actions',
-    hub: 'sample_funcchatv4',
+    hub: 'sample_funcchat',
 });
 
 app.http('disconnected', {

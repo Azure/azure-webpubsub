@@ -3,7 +3,7 @@ const { app, trigger } = require('@azure/functions');
 const wpsTrigger = trigger.generic({
     type: 'webPubSubTrigger',
     name: 'request',
-    hub: 'sample_funcchatv4',
+    hub: 'sample_funcchat',
     eventName: 'connect',
     eventType: 'system'
 });

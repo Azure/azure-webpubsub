@@ -30,7 +30,7 @@ func start
     
     Property|Value
     --|--
-    `HubName`| sample_funcchatv4
+    `HubName`| sample_funcchat
     `URL Template`| tunnel:///api/{event}
     `User Event Pattern`| *
     `System Events`| connect, connected, disconnected

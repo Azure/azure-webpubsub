@@ -4,7 +4,7 @@ const connection = input.generic({
     type: 'webPubSubConnection',
     name: 'connection',
     userId: '{query.userId}',
-    hub: 'sample_funcchatv4'
+    hub: 'sample_funcchat'
 });
 
 app.http('negotiate', {
