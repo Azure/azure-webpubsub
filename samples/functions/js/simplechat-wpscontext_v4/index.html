@@ -1,0 +1,61 @@
+<html>
+  <body>
+    <h1>Azure Web PubSub Serverless Chat App</h1>
+    <button id="connect">Connect</button><div id="myName"></div>
+    <p></p>
+    <input id="message" placeholder="Type to chat..." />
+    <div id="messages"></div>
+    <script>
+      (async function () {
+        let connected = false;
+        let name = '';
+        const characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+        const charactersLength = characters.length;
+        let counter = 0;
+        while (counter < 8) {
+          name += characters.charAt(Math.floor(Math.random() * charactersLength));
+          counter += 1;
+        }
+        let myName = document.querySelector("#myName");
+        let login = document.querySelector("#connect");
+        login.addEventListener("click", async () => {
+          if (connected) return;
+          let url = '';
+          let res = await fetch(`${window.location.origin}/api/negotiate?userId=${name}`)
+            .then((response) => response.json())
+            .then((data) => {
+                url = data;
+            });
+          let ws = new WebSocket(url.url);
+          ws.onopen = () => {
+            connected = true;
+            login.innerText = "Connected";
+            login.disabled = true;
+            myName.innerText = `I'm ${name}.`;
+            console.log("connected")
+          };
+          ws.onmessage = (event) => {
+            let m = document.createElement("p");
+            m.innerText = event.data;
+            messages.appendChild(m);
+          };
+          ws.onclose = () => {
+            connected = false;
+            login.innerText = "Connect";
+            myName.innerText = "";
+            login.disabled = false;
+          };
+          ws.onerror = (e) => {
+            console.log(e);
+          };
+          let message = document.querySelector("#message");
+          message.addEventListener("keypress", (e) => {
+          if (e.charCode !== 13) return;
+            ws.send(message.value);
+            message.value = "";
+          });
+        });
+      })();
+    </script>
+  </body>
+</html>

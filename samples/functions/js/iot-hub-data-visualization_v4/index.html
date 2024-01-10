@@ -1,0 +1,192 @@
+<!doctype html>
+
+<html lang="en">
+
+<head>
+    <!-- Required meta tags -->
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@2.8.0/dist/Chart.min.js" type="text/javascript"
+        charset="utf-8"></script>
+    <script>
+        document.addEventListener("DOMContentLoaded", async function (event) {
+            const res = await fetch(`/api/negotiate?id=${1}`);
+            const data = await res.json();
+            const webSocket = new WebSocket(data.url);
+
+            class TrackedDevices {
+                constructor() {
+                    // key as the deviceId, value as the temperature array
+                    this.devices = new Map();
+                    this.maxLen = 50;
+                    this.timeData = new Array(this.maxLen);
+                }
+
+                // Find a device temperature based on its Id
+                findDevice(deviceId) {
+                    return this.devices.get(deviceId);
+                }
+
+                addData(time, temperature, deviceId, dataSet, options) {
+                    let containsDeviceId = false;
+                    this.timeData.push(time);
+                    for (const [key, value] of this.devices) {
+                        if (key === deviceId) {
+                            containsDeviceId = true;
+                            value.push(temperature);
+                        } else {
+                            value.push(null);
+                        }
+                    }
+
+                    if (!containsDeviceId) {
+                        const data = getRandomDataSet(deviceId, 0);
+                        let temperatures = new Array(this.maxLen);
+                        temperatures.push(temperature);
+                        this.devices.set(deviceId, temperatures);
+                        data.data = temperatures;
+                        dataSet.push(data);
+                    }
+
+                    if (this.timeData.length > this.maxLen) {
+                        this.timeData.shift();
+                        this.devices.forEach((value, key) => {
+                            value.shift();
+                        })
+                    }
+                }
+
+                getDevicesCount() {
+                    return this.devices.size;
+                }
+            }
+
+            const trackedDevices = new TrackedDevices();
+            function getRandom(max) {
+                return Math.floor((Math.random() * max) + 1)
+            }
+            function getRandomDataSet(id, axisId) {
+                return getDataSet(id, axisId, getRandom(255), getRandom(255), getRandom(255));
+            }
+            function getDataSet(id, axisId, r, g, b) {
+                return {
+                    fill: false,
+                    label: id,
+                    yAxisID: axisId,
+                    borderColor: `rgba(${r}, ${g}, ${b}, 1)`,
+                    pointBoarderColor: `rgba(${r}, ${g}, ${b}, 1)`,
+                    backgroundColor: `rgba(${r}, ${g}, ${b}, 0.4)`,
+                    pointHoverBackgroundColor: `rgba(${r}, ${g}, ${b}, 1)`,
+                    pointHoverBorderColor: `rgba(${r}, ${g}, ${b}, 1)`,
+                    spanGaps: true,
+                };
+            }
+
+            function getYAxy(id, display) {
+                return {
+                    id: id,
+                    type: "linear",
+                    scaleLabel: {
+                        labelString: display || id,
+                        display: true,
+                    },
+                    position: "left",
+                };
+            }
+
+            // Define the chart axes
+            const chartData = { datasets: [], };
+
+            // Temperature (ºC), id as 0
+            const chartOptions = {
+                responsive: true,
+                animation: {
+                    duration: 250 * 1.5,
+                    easing: 'linear'
+                },
+                scales: {
+                    yAxes: [
+                        getYAxy(0, "Temperature (ºC)"),
+                    ],
+                },
+            };
+            // Get the context of the canvas element we want to select
+            const ctx = document.getElementById("chart").getContext("2d");
+
+            chartData.labels = trackedDevices.timeData;
+            const chart = new Chart(ctx, {
+                type: "line",
+                data: chartData,
+                options: chartOptions,
+            });
+
+            webSocket.onmessage = function onMessage(message) {
+                try {
+                    const messageData = JSON.parse(message.data);
+                    console.log(messageData);
+
+                    // time and either temperature or humidity are required
+                    if (!messageData.MessageDate ||
+                        !messageData.IotData.temperature) {
+                        return;
+                    }
+                    trackedDevices.addData(messageData.MessageDate, messageData.IotData.temperature, messageData.DeviceId, chartData.datasets, chartOptions.scales);
+                    const numDevices = trackedDevices.getDevicesCount();
+                    document.getElementById("deviceCount").innerText =
+                        numDevices === 1 ? `${numDevices} device` : `${numDevices} devices`;
+                    chart.update();
+                } catch (err) {
+                    console.error(err);
+                }
+            };
+        });
+    </script>
+    <style>
+        body {
+            font: 14px "Lucida Grande", Helvetica, Arial, sans-serif;
+            padding: 50px;
+            margin: 0;
+            text-align: center;
+        }
+
+        .flexHeader {
+            display: flex;
+            flex-direction: row;
+            flex-wrap: nowrap;
+            justify-content: space-between;
+        }
+
+        #charts {
+            display: flex;
+            flex-direction: row;
+            flex-wrap: wrap;
+            justify-content: space-around;
+            align-content: stretch;
+        }
+
+        .chartContainer {
+            flex: 1;
+            flex-basis: 40%;
+            min-width: 30%;
+            max-width: 100%;
+        }
+
+        a {
+            color: #00B7FF;
+        }
+    </style>
+
+    <title>Temperature Real-time Data</title>
+</head>
+
+<body>
+    <h1 class="flexHeader">
+        <span>Temperature Real-time Data</span>
+        <span id="deviceCount">0 devices</span>
+    </h1>
+    <div id="charts">
+        <canvas id="chart"></canvas>
+    </div>
+</body>
+
+</html>
