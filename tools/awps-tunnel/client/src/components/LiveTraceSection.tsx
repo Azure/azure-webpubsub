@@ -2,7 +2,19 @@ import { useRef } from "react";
 import * as signalR from "@microsoft/signalr";
 import { useImmer } from "use-immer";
 import { ConnectionStatus } from "../models";
-import { Tooltip, DataGridBody, DataGridRow, DataGrid, DataGridHeader, DataGridHeaderCell, DataGridCell, TableCellLayout, TableColumnDefinition, createTableColumn } from "@fluentui/react-components";
+import {
+  Tooltip,
+  TableColumnSizingOptions,
+  DataGridBody,
+  DataGridRow,
+  DataGrid,
+  DataGridHeader,
+  DataGridHeaderCell,
+  DataGridCell,
+  TableCellLayout,
+  TableColumnDefinition,
+  createTableColumn,
+} from "@fluentui/react-components";
 import { StatusIndicator } from "./workflows/StatusIndicator";
 
 function LiveTraceGrid(props: { headers: Record<string, string>; items: LogDataViewModel[] }) {
@@ -35,15 +47,35 @@ function LiveTraceGrid(props: { headers: Record<string, string>; items: LogDataV
       }),
     );
   }
+
+  function countColumns(items: Record<string, string>): number {
+    const width = (Object.keys(items).length + 4) * 200;
+    return width;
+  }
+
+  function columnSizingOptions(items: Record<string, string>): TableColumnSizingOptions {
+    let options: TableColumnSizingOptions = {};
+    for (const key in items) {
+      options[key] = {
+        defaultWidth: 200,
+        minWidth: 150,
+        idealWidth: 250,
+      };
+    }
+    return options;
+  }
+
   return (
-    <DataGrid items={props.items} columns={columns(props.headers)} sortable resizableColumns focusMode="composite">
-      <DataGridHeader>
-        <DataGridRow>{({ renderHeaderCell }) => <DataGridHeaderCell>{renderHeaderCell()}</DataGridHeaderCell>}</DataGridRow>
-      </DataGridHeader>
-      <DataGridBody<LogDataViewModel>>
-        {({ item }) => <DataGridRow<LogDataViewModel> key={item.eventId.toString()}>{({ renderCell }) => <DataGridCell>{renderCell(item)}</DataGridCell>}</DataGridRow>}
-      </DataGridBody>
-    </DataGrid>
+    <div style={{ overflowX: "auto", width: countColumns(props.headers) }}>
+      <DataGrid items={props.items} columns={columns(props.headers)} sortable resizableColumns columnSizingOptions={columnSizingOptions(props.headers)} focusMode="composite">
+        <DataGridHeader>
+          <DataGridRow>{({ renderHeaderCell }) => <DataGridHeaderCell>{renderHeaderCell()}</DataGridHeaderCell>}</DataGridRow>
+        </DataGridHeader>
+        <DataGridBody<LogDataViewModel>>
+          {({ item }) => <DataGridRow<LogDataViewModel> key={item.eventId.toString()}>{({ renderCell }) => <DataGridCell>{renderCell(item)}</DataGridCell>}</DataGridRow>}
+        </DataGridBody>
+      </DataGrid>
+    </div>
   );
 }
 
