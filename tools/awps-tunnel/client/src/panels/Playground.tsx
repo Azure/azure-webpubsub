@@ -1,9 +1,9 @@
 import { useState, useRef, useEffect } from "react";
 import { DefaultButton, ComboBox, SelectableOptionMenuItemType, Checkbox, DetailsList, DetailsListLayoutMode, SelectionMode, TextField, Dropdown } from "@fluentui/react";
-import { ResizablePanel } from "../ResizablePanel";
-import { TrafficItem, TrafficItemProps } from "../TrafficItem";
-import { ConnectionStatus } from "../../models";
-import { useDataContext } from "../../providers/DataContext";
+import { ResizablePanel } from "../components/ResizablePanel";
+import { TrafficItem, TrafficItemProps } from "../components/TrafficItem";
+import { ConnectionStatus } from "../models";
+import { useDataContext } from "../providers/DataContext";
 
 export interface PlaygroundProps {
   onStatusChange: (status: ConnectionStatus) => void;

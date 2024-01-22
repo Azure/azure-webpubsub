@@ -104,6 +104,11 @@ export class DataHub {
       socket.on("disconnect", () => {
         printer.log("A webview client connected");
       });
+
+      socket.on("clearTrafficHistory", async () => {
+        await this.repo.clearDataAsync();
+        this.io.emit("clearTraffic");
+      });
     });
   }
 

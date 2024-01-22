@@ -25,6 +25,11 @@ export class MockDataFetcher implements IDataFetcher {
     setInterval(() => this._updateModel(this.model), 5000);
   }
   async invoke(method: string, ...args: any[]): Promise<any> {
+    if (method === "clearTrafficHistory") {
+      this.model = { ...this.model, trafficHistory: [] };
+      this.onModelUpdate(this.model);
+      return;
+    }
     await delay(1000);
     return { success: true, message: method };
   }

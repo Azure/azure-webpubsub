@@ -61,6 +61,27 @@ export class DataRepo {
     });
   }
 
+  public clearDataAsync(): Promise<void> {
+    return new Promise<void>((resolve, reject) => {
+      const stmt = this.db.prepare("DELETE FROM HttpItems");
+      // Bind the values to the placeholders
+      stmt.run(function (err: { message: string }) {
+        if (err) {
+          reject(err);
+          return;
+        }
+        // Finalize the statement
+        stmt.finalize(function (finalizeErr) {
+          if (finalizeErr) {
+            reject(finalizeErr);
+          } else {
+            resolve();
+          }
+        });
+      });
+    });
+  }
+
   public insertDataAsync(data: HttpDataModel): Promise<number> {
     return new Promise<number>((resolve, reject) => {
       const stmt = this.db.prepare("INSERT INTO HttpItems (Request, Response) VALUES (?, ?)");

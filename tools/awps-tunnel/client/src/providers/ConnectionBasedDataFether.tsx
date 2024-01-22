@@ -95,6 +95,10 @@ abstract class ConnectionBasedDataFether implements IDataFetcher {
       this.setData(this.model);
     });
 
+    newConnection.on("clearTraffic", () => {
+      this.model = { ...this.model, trafficHistory: [] };
+      this.setData(this.model);
+    });
     await this._startConnection(newConnection);
     // add a tcs for connection started
     this._connectionStartedTcs.resolve();
