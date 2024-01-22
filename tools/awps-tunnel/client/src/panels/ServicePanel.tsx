@@ -1,8 +1,8 @@
 import { Icon } from "@fluentui/react/lib/Icon";
-import { ConnectionStatus } from "../../models";
+import { ConnectionStatus } from "../models";
 import { Switch } from "@fluentui/react-components";
 import { useState } from "react";
-import { LiveTraceSection } from "../LiveTraceSection";
+import { LiveTraceSection } from "../components/LiveTraceSection";
 
 export interface ServicePanelProps {
   endpoint?: string;

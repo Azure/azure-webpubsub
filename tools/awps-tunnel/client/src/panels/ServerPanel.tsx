@@ -2,9 +2,9 @@ import { Icon } from "@fluentui/react/lib/Icon";
 import { Switch, Field, ProgressBar } from "@fluentui/react-components";
 import { useEffect, useState } from "react";
 
-import { ConnectionStatus } from "../../models";
-import CodeTabs from "../CodeTabs";
-import { useDataContext } from "../../providers/DataContext";
+import { ConnectionStatus } from "../models";
+import CodeTabs from "../components/CodeTabs";
+import { useDataContext } from "../providers/DataContext";
 export interface ServerPanelProps {
   endpoint?: string;
   onChange: (checked: boolean) => Promise<{ success: boolean; message: string }>;
@@ -16,9 +16,9 @@ export function ServerPanel({ endpoint, onChange }: ServerPanelProps) {
   const [startEmbeddedServer, setStartEmbeddedServer] = useState<boolean>(data.builtinUpstreamServerStarted);
   const [status, setStatus] = useState<ConnectionStatus>(ConnectionStatus.None);
 
-  useEffect(()=>{
+  useEffect(() => {
     setStartEmbeddedServer(data.builtinUpstreamServerStarted);
-  }, [data.builtinUpstreamServerStarted])
+  }, [data.builtinUpstreamServerStarted]);
   function onSwitch(checked: boolean) {
     async function onSwitchAsync() {
       if (checked) {
