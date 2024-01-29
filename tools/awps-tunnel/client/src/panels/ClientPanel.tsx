@@ -1,4 +1,4 @@
-import { ConnectionStatus } from "../../models";
+import { ConnectionStatus } from "../models";
 import { Playground } from "./Playground";
 
 export interface ClientPanelProps {
