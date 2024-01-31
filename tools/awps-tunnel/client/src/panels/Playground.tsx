@@ -6,7 +6,7 @@ import { useDataContext } from "../providers/DataContext";
 import type { TabValue } from "@fluentui/react-components";
 import { Dialog, DialogTrigger, DialogSurface, DialogTitle, DialogBody, DialogContent, Tab, TabList, CompoundButton, MessageBar, MessageBarBody, Button } from "@fluentui/react-components";
 
-import { Dismiss24Regular, Dismiss16Regular, PlugDisconnected24Regular, PlugDisconnected24Filled, Rss24Regular } from "@fluentui/react-icons";
+import { Dismiss24Regular, Dismiss16Regular, PlugDisconnected24Regular } from "@fluentui/react-icons";
 
 import { SimpleClientSection } from "./sections/SimpleClientSection";
 import { SubprotocolClientSection } from "./sections/SubprotocolClientSection";
