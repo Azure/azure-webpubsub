@@ -30,6 +30,10 @@ export class MockDataFetcher implements IDataFetcher {
       this.onModelUpdate(this.model);
       return;
     }
+
+    if (method === "getClientAccessUrl") {
+      return "wss://ws.postman-echo.com/raw";
+    }
     await delay(1000);
     return { success: true, message: method };
   }
