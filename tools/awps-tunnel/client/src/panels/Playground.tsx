@@ -4,7 +4,7 @@ import { TrafficItemProps } from "../components/TrafficItem";
 import { ConnectionStatus } from "../models";
 import { useDataContext } from "../providers/DataContext";
 import type { TabValue } from "@fluentui/react-components";
-import { Dialog, DialogTrigger, DialogSurface, DialogTitle, DialogBody, DialogContent, Tab, TabList, makeStyles, CompoundButton, MessageBar, MessageBarBody, Button } from "@fluentui/react-components";
+import { Dialog, DialogTrigger, DialogSurface, DialogTitle, DialogBody, DialogContent, Tab, TabList, CompoundButton, MessageBar, MessageBarBody, Button } from "@fluentui/react-components";
 
 import { Dismiss24Regular, Dismiss16Regular, PlugDisconnected24Regular, PlugDisconnected24Filled, Rss24Regular } from "@fluentui/react-icons";
 
@@ -27,17 +27,6 @@ export interface PlaygroundState {
   error: string;
 }
 
-const useStyles = makeStyles({
-  clientDialogLayout: {
-    columnGap: "15px",
-    display: "flex",
-    marginTop: "15px",
-  },
-  clientDiaglogButton: {
-    width: "33%",
-  },
-});
-
 interface ConnectionHandler {
   closeConnection: () => {};
 }
@@ -59,7 +48,6 @@ export const Playground = (props: PlaygroundProps) => {
   const [selectedClient, setSelectedClient] = useState<TabValue>("");
   const [clients, setClients] = useState<TestClientViewModel[]>([]);
   const { dataFetcher } = useDataContext();
-  const styles = useStyles();
   const [url, setUrl] = useState("");
   useEffect(() => {
     const fetchUrl = async () => {
@@ -104,13 +92,13 @@ export const Playground = (props: PlaygroundProps) => {
                   <DialogTrigger action="close">
                     <Button appearance="subtle" aria-label="close" icon={<Dismiss24Regular />} />
                   </DialogTrigger>
-                }
-              ></DialogTitle>
+                } 
+              >Select a Test Client</DialogTitle>
               <DialogContent>
-                <div className={styles.clientDialogLayout}>
+                <div className="m-2 d-flex">
                   {availableClients.map((i) => (
                     <DialogTrigger key={i.id} disableButtonEnhancement>
-                      <CompoundButton onClick={() => addTestClient(i)} className={styles.clientDiaglogButton} icon={i.icon} secondaryContent={i.description}>
+                      <CompoundButton className="m-2 w-100" onClick={() => addTestClient(i)} icon={i.icon} secondaryContent={i.description}>
                         {i.title}
                       </CompoundButton>
                     </DialogTrigger>
