@@ -6,7 +6,7 @@ import { useDataContext } from "../providers/DataContext";
 import type { TabValue } from "@fluentui/react-components";
 import { Dialog, DialogTrigger, DialogSurface, DialogTitle, DialogBody, DialogContent, Tab, TabList, CompoundButton, MessageBar, MessageBarBody, Button } from "@fluentui/react-components";
 
-import { Dismiss24Regular, Dismiss16Regular, PlugDisconnected24Regular } from "@fluentui/react-icons";
+import { Dismiss24Regular, Dismiss16Regular, PlugDisconnected24Regular, PlugDisconnected24Filled } from "@fluentui/react-icons";
 
 import { SimpleClientSection } from "./sections/SimpleClientSection";
 import { SubprotocolClientSection } from "./sections/SubprotocolClientSection";
@@ -21,9 +21,7 @@ export interface ClientPannelProps extends PlaygroundProps {
 
 export interface PlaygroundState {
   traffic: TrafficItemProps[];
-  transferFormat: "text" | "binary" | "json";
   message?: string;
-  subprotocol?: string;
   error: string;
 }
 
@@ -51,13 +49,13 @@ export const Playground = (props: PlaygroundProps) => {
   const [url, setUrl] = useState("");
   useEffect(() => {
     const fetchUrl = async () => {
-      const newUrl = await dataFetcher.invoke("getClientAccessUrl");
+      const newUrl = await dataFetcher.invoke("getClientAccessUrl", undefined, undefined, undefined);
       setUrl(newUrl);
     };
     fetchUrl();
     const intervalId = setInterval(() => {
       fetchUrl();
-    }, 60 * 10 * 1000); // every 10 minute
+    }, 60 * 1 * 1000); // every 10 minute
 
     // Clean up the interval on component unmount
     return () => clearInterval(intervalId);
@@ -74,7 +72,7 @@ export const Playground = (props: PlaygroundProps) => {
 
   const availableClients = [
     { icon: <PlugDisconnected24Regular />, title: "WebSocket", id: "websocket", description: "Simple Web PubSub Client" },
-    // { icon: <PlugDisconnected24Filled />, title: "Web PubSub", id: "webpubsub", description: "Subprotocol Web PubSub Client" }, // TODO: add subprotocol support
+    { icon: <PlugDisconnected24Filled />, title: "Web PubSub", id: "webpubsub", description: "Subprotocol Web PubSub Client" }, // TODO: add subprotocol support
     // { icon: <Rss24Regular />, title: "MQTT V5", id: "mqtt5", description: "MQTT V5 Client" }, // TODO: add mqtt support
   ];
 

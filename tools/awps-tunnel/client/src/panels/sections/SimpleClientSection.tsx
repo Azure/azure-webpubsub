@@ -7,6 +7,10 @@ import { ConnectionStatus } from "../../models";
 import { MessageBar, MessageBarBody } from "@fluentui/react-components";
 import { ClientPannelProps, PlaygroundState } from "../Playground";
 
+interface TrafficItemViewModel {
+  content: string;
+  up: boolean;
+}
 export const SimpleClientSection = ({ onStatusChange, url }: ClientPannelProps) => {
   const transferOptions = [
     { key: "text", text: "Text" },
@@ -15,12 +19,11 @@ export const SimpleClientSection = ({ onStatusChange, url }: ClientPannelProps) 
   const [connected, setConnected] = useState<boolean>(false);
   const [showSubprotocol, setShowSubprotocol] = useState(false);
   const [subprotocol, setSubprotocol] = useState("");
-  const [state, setState] = useState<PlaygroundState>({
-    transferFormat: "json",
-    message: "",
-    traffic: [],
-    error: "",
-  });
+  const [traffic, setTraffic] = useState<TrafficItemViewModel[]>([]);
+  const [message, setMessage] = useState("");
+  const [error, setError] = useState("");
+  const [transferFormat, setTransferFormat] = useState<string>("");
+  const [userId, setUserId] = useState(""); 
 
   const connectionRef = useRef<WebSocket | null>(null);
 
@@ -36,29 +39,21 @@ export const SimpleClientSection = ({ onStatusChange, url }: ClientPannelProps) 
       connection.onopen = (event) => {
         setConnected(true);
         onStatusChange(ConnectionStatus.Connected);
-        setState((prevState) => ({ ...prevState, connected: true, traffic: [], error: "" }));
+        setTraffic([]);
+        setError("");
       };
       connection.onclose = (event) => {
         onStatusChange(ConnectionStatus.Disconnected);
         setConnected(false);
-        setState((prevState) => ({
-          ...prevState,
-          traffic: [],
-          error: `WebSocket connection closed with code ${event.code}, reason ${event.reason}.`,
-        }));
+        setTraffic([]);
+        setError(`WebSocket connection closed with code ${event.code}, reason ${event.reason}.`);
       };
       connection.onmessage = (ev) => {
-        setState((prevState) => ({
-          ...prevState,
-          traffic: [{ content: ev.data }, ...prevState.traffic],
-        }));
+        setTraffic((e) => [{ content: ev.data, up: false }, ...e]);
       };
       connectionRef.current = connection;
     } catch (e) {
-      setState((prevState) => ({
-        ...prevState,
-        error: "Error establishing the WebSocket connection.",
-      }));
+      setError("Error establishing the WebSocket connection.");
     }
   };
 
@@ -67,15 +62,11 @@ export const SimpleClientSection = ({ onStatusChange, url }: ClientPannelProps) 
       console.error("Connection is not connected");
       return;
     }
-    const message = state.message;
     if (message) {
       connectionRef.current.send(message);
     }
-    setState((prevState) => ({
-      ...prevState,
-      message: "",
-      traffic: [{ content: message, up: true }, ...prevState.traffic],
-    }));
+    setMessage("");
+    setTraffic((e) => [{ content: message, up: true }, ...e]);
   };
   const connectPane = (
     <div className="d-flex flex-column websocket-client-container m-2 flex-fill">
@@ -84,10 +75,10 @@ export const SimpleClientSection = ({ onStatusChange, url }: ClientPannelProps) 
           <div>Messages</div>
           <Textarea
             className="flex-fill"
-            value={state.message}
+            value={message}
             placeholder="Enter your message here"
             onChange={(ev, data) => {
-              setState((prevState) => ({ ...prevState, message: data.value }));
+              setMessage(data.value ?? "");
             }}
           />
           <div className="d-flex justify-content-between">
@@ -95,7 +86,7 @@ export const SimpleClientSection = ({ onStatusChange, url }: ClientPannelProps) 
               defaultSelectedOptions={[transferOptions[0].key]}
               placeholder={transferOptions[0].text}
               onOptionSelect={(e, d) => {
-                setState((prevState) => ({ ...prevState, transferFormat: d.optionValue as "text" | "binary" }));
+                setTransferFormat(d.optionValue as string);
               }}
             >
               {transferOptions.map((option) => (
@@ -104,13 +95,13 @@ export const SimpleClientSection = ({ onStatusChange, url }: ClientPannelProps) 
                 </Option>
               ))}
             </Dropdown>
-            <DefaultButton disabled={!connected || !state.message} text="Send" onClick={send}></DefaultButton>
+            <DefaultButton disabled={!connected || !message} text="Send" onClick={send}></DefaultButton>
           </div>
         </div>
       )}
     </div>
   );
-  const trafficList = state.traffic?.map((i) => TrafficItem(i));
+  const trafficList = traffic?.map((i) => TrafficItem(i));
   const trafficPane = (
     <div>
       <DetailsList items={trafficList} selectionMode={SelectionMode.none} layoutMode={DetailsListLayoutMode.justified}></DetailsList>
@@ -156,7 +147,7 @@ export const SimpleClientSection = ({ onStatusChange, url }: ClientPannelProps) 
           <i>Disconnected</i>
         </p>
       )}
-      {state.error && <b className="text-danger">{state.error}</b>}
+      {error && <b className="text-danger">{error}</b>}
       {connected && <ResizablePanel className="flex-fill" left={connectPane} right={trafficPane}></ResizablePanel>}
     </>
   );

@@ -116,13 +116,13 @@ export function getCommand(appConfigPath: string, dbFile: string): Command {
 }
 
 function print(settings: Settings) {
-  printer.text(`Current Web PubSub service endpoint: ${settings?.WebPubSub?.Endpoint ?? "<Not binded>"}`);
-  printer.text(`Current hub: ${settings?.WebPubSub?.Hub ?? "<Not binded>"}`);
-  printer.text(`Current upstream: ${settings?.WebPubSub?.Upstream ?? "<Not binded>"}`);
-  printer.text(`Current subscription Id: ${settings?.WebPubSub?.SubscriptionId ?? "<Not binded>"}`);
-  printer.text(`Current resource group: ${settings?.WebPubSub?.ResourceGroup ?? "<Not binded>"}`);
-  printer.text(`Current webview port: ${settings?.WebPubSub?.WebviewPort ?? "<Not binded>"}`);
-  printer.text(`Current webview hostname: ${settings?.WebPubSub?.WebviewHost ?? "<Not binded>"}`);
+  printer.text(`Current Web PubSub service endpoint: ${settings?.WebPubSub?.Endpoint ?? "<Not binded>"}. Use 'awps-tunnel bind --endpoint [endpoint]' to bind the value.`);
+  printer.text(`Current hub: ${settings?.WebPubSub?.Hub ?? "<Not binded>"}. Use 'awps-tunnel bind --hub [hub]' to bind the value.`);
+  printer.text(`Current upstream: ${settings?.WebPubSub?.Upstream ?? "<Not binded>"}. Use 'awps-tunnel bind --upstream [upstream]' to bind the value.`);
+  printer.text(`Current subscription Id: ${settings?.WebPubSub?.SubscriptionId ?? "<Not binded>. Use 'awps-tunnel bind -s [subscriptionId]' to bind the value."}`);
+  printer.text(`Current resource group: ${settings?.WebPubSub?.ResourceGroup ?? "<Not binded>"}. Use 'awps-tunnel bind -g [resourceGroup]' to bind the value.`);
+  printer.text(`Current webview port: ${settings?.WebPubSub?.WebviewPort ?? "<Not binded>"}. Use 'awps-tunnel bind --webviewPort [port]' to bind the value.`);
+  printer.text(`Current webview hostname: ${settings?.WebPubSub?.WebviewHost ?? "<Not binded>"}. Use 'awps-tunnel bind --webviewHost [hostname]' to bind the value.`);
 }
 
 function createStatusAction(settings: Settings) {
