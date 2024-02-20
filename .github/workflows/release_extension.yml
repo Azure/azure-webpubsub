@@ -15,6 +15,9 @@ on:
 jobs:
   build_pack_upload:
     runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: tools/vscode-azurewebpubsub
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v2
@@ -25,7 +28,6 @@ jobs:
           node-version: 18
 
       - name: Build and Pack
-        working-directory: tools/vscode-azurewebpubsub
         run:  npm install && npm run build && npm run package
 
       - name: Get Metadata
@@ -39,6 +41,6 @@ jobs:
         uses: actions/upload-artifact@v3
         with:
             name: ${{ steps.metadata_step.outputs.vsix_filename }}
-            path: ${{ steps.metadata_step.outputs.vsix_filename }}
+            path: tools/vscode-azurewebpubsub/${{ steps.metadata_step.outputs.vsix_filename }}
 
-        # TODO: release to npm
+      # TODO: release to npm
