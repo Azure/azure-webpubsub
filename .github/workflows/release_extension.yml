@@ -26,7 +26,7 @@ jobs:
 
       - name: Build and Pack
         working-directory: tools/vscode-azurewebpubsub
-        run:  npm run build && npm run package
+        run:  npm install && npm run build && npm run package
 
       - name: Get Metadata
         id: metadata_step
