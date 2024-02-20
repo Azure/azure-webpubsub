@@ -1,172 +1,168 @@
-import { useState, useRef, useEffect } from "react";
-import { DefaultButton, ComboBox, SelectableOptionMenuItemType, Checkbox, DetailsList, DetailsListLayoutMode, SelectionMode, TextField, Dropdown } from "@fluentui/react";
-import { ResizablePanel } from "../components/ResizablePanel";
-import { TrafficItem, TrafficItemProps } from "../components/TrafficItem";
+import { useState, useEffect } from "react";
+
+import { TrafficItemProps } from "../components/TrafficItem";
 import { ConnectionStatus } from "../models";
 import { useDataContext } from "../providers/DataContext";
+import type { TabValue } from "@fluentui/react-components";
+import { Dialog, DialogTrigger, DialogSurface, DialogTitle, DialogBody, DialogContent, Tab, TabList, CompoundButton, MessageBar, MessageBarBody, Button } from "@fluentui/react-components";
 
+import { Dismiss24Regular, Dismiss16Regular, PlugDisconnected24Regular } from "@fluentui/react-icons";
+
+import { SimpleClientSection } from "./sections/SimpleClientSection";
+import { SubprotocolClientSection } from "./sections/SubprotocolClientSection";
+import { MqttClientSection } from "./sections/MqttClientSection";
 export interface PlaygroundProps {
   onStatusChange: (status: ConnectionStatus) => void;
 }
 
-interface PlaygroundState {
+export interface ClientPannelProps extends PlaygroundProps {
+  url: string;
+}
+
+export interface PlaygroundState {
   traffic: TrafficItemProps[];
-  hub: string;
-  connected: boolean;
-  transferFormat?: string;
+  transferFormat: "text" | "binary" | "json";
   message?: string;
-  showSubprotocol: boolean;
   subprotocol?: string;
   error: string;
 }
 
-export const Playground = ({ onStatusChange }: PlaygroundProps) => {
-  const { data, dataFetcher } = useDataContext();
-  const [url, setUrl] = useState<string>("");
-  const [loading, setLoading] = useState<boolean>(true);
-  const [state, setState] = useState<PlaygroundState>({
-    hub: data.hub,
-    connected: false,
-    transferFormat: "json",
-    message: "",
-    showSubprotocol: false,
-    subprotocol: "",
-    traffic: [],
-    error: "",
-  });
+interface ConnectionHandler {
+  closeConnection: () => {};
+}
 
-  const connectionRef = useRef<WebSocket | null>(null);
+interface TestClientTemplate {
+  icon: JSX.Element;
+  title: string;
+  description?: string;
+  id: string;
+}
+interface TestClientViewModel extends TestClientTemplate {
+  connection?: ConnectionHandler;
+  counter: number;
+  type: string;
+}
 
+let clientCounter = 0;
+export const Playground = (props: PlaygroundProps) => {
+  const [selectedClient, setSelectedClient] = useState<TabValue>("");
+  const [clients, setClients] = useState<TestClientViewModel[]>([]);
+  const { dataFetcher } = useDataContext();
+  const [url, setUrl] = useState("");
   useEffect(() => {
     const fetchUrl = async () => {
-      const url = await dataFetcher.invoke("getClientAccessUrl");
-      setUrl(url);
-      setLoading(false);
+      const newUrl = await dataFetcher.invoke("getClientAccessUrl");
+      setUrl(newUrl);
     };
     fetchUrl();
     const intervalId = setInterval(() => {
       fetchUrl();
-    }, 60 * 10 * 1000); // every 1 minute
+    }, 60 * 10 * 1000); // every 10 minute
 
     // Clean up the interval on component unmount
     return () => clearInterval(intervalId);
   }, [dataFetcher]);
 
-  const connect = () => {
-    try {
-      const connection = new WebSocket(url);
-      connection.onopen = (event) => {
-        onStatusChange(ConnectionStatus.Connected);
-        setState((prevState) => ({ ...prevState, connected: true, traffic: [], error: "" }));
-      };
-      connection.onclose = (event) => {
-        onStatusChange(ConnectionStatus.Disconnected);
-        setState((prevState) => ({
-          ...prevState,
-          connected: false,
-          traffic: [],
-          error: `WebSocket connection closed with code ${event.code}, reason ${event.reason}.`,
-        }));
-      };
-      connection.onmessage = (ev) => {
-        setState((prevState) => ({
-          ...prevState,
-          traffic: [{ content: ev.data }, ...prevState.traffic],
-        }));
-      };
-      connectionRef.current = connection;
-    } catch (e) {
-      setState((prevState) => ({
-        ...prevState,
-        error: "Error establishing the WebSocket connection.",
-      }));
-    }
-  };
+  useEffect(() => {}, []);
+  function addTestClient(template: TestClientTemplate) {
+    // TODO: when there are multiple clients with the same type in the future, we need an id generator
+    clientCounter++;
+    const client: TestClientViewModel = { ...template, type: template.id, id: template.id + clientCounter, counter: clientCounter };
+    setClients((i) => [...i, client]);
+    setSelectedClient(client.id);
+  }
 
-  const send = () => {
-    if (!connectionRef.current) {
-      console.error("Connection is not connected");
-      return;
-    }
-    const message = state.message;
-    if (message) {
-      connectionRef.current.send(message);
-    }
-    setState((prevState) => ({
-      ...prevState,
-      message: "",
-      traffic: [{ content: message, up: true }, ...prevState.traffic],
-    }));
-  };
-
-  const options = [
-    {
-      key: "Json",
-      text: "Service supported JSON protocols",
-      itemType: SelectableOptionMenuItemType.Header,
-    },
-    { key: "A", text: "json.webpubsub.azure.v1" },
-    { key: "B", text: "json.reliable.webpubsub.azure.v1" },
-    { key: "divider", text: "-", itemType: SelectableOptionMenuItemType.Divider },
-    {
-      key: "binary",
-      text: "Service supported binary protocols",
-      itemType: SelectableOptionMenuItemType.Header,
-    },
-    { key: "C", text: "protobuf.webpubsub.azure.v1" },
-    { key: "D", text: "protobuf.reliable.webpubsub.azure.v1" },
+  const availableClients = [
+    { icon: <PlugDisconnected24Regular />, title: "WebSocket", id: "websocket", description: "Simple Web PubSub Client" },
+    // { icon: <PlugDisconnected24Filled />, title: "Web PubSub", id: "webpubsub", description: "Subprotocol Web PubSub Client" }, // TODO: add subprotocol support
+    // { icon: <Rss24Regular />, title: "MQTT V5", id: "mqtt5", description: "MQTT V5 Client" }, // TODO: add mqtt support
   ];
 
-  const transferOptions = [
-    { key: "text", text: "Text" },
-    { key: "binary", text: "Binary" },
-  ];
-
-  const connectPane = (
-    <div className="d-flex flex-column websocket-client-container m-2">
-      <b>Test Client</b>
-      <input disabled={true} placeholder="Loading" value={url}></input>
-      <DefaultButton hidden={!data.ready || state.connected || loading} onClick={connect}>
-        Connect
-      </DefaultButton>
-      {state.connected && (
-        <p className="text-success">
-          <i>Connected</i>
-        </p>
+  return (
+    <div className="d-flex flex-column flex-fill">
+      <div>
+        <Dialog>
+          <DialogTrigger disableButtonEnhancement>
+            <Button className="float-right">Add a Test Client</Button>
+          </DialogTrigger>
+          <DialogSurface>
+            <DialogBody>
+              <DialogTitle
+                action={
+                  <DialogTrigger action="close">
+                    <Button appearance="subtle" aria-label="close" icon={<Dismiss24Regular />} />
+                  </DialogTrigger>
+                } 
+              >Select a Test Client</DialogTitle>
+              <DialogContent>
+                <div className="m-2 d-flex">
+                  {availableClients.map((i) => (
+                    <DialogTrigger key={i.id} disableButtonEnhancement>
+                      <CompoundButton className="m-2 w-100" onClick={() => addTestClient(i)} icon={i.icon} secondaryContent={i.description}>
+                        {i.title}
+                      </CompoundButton>
+                    </DialogTrigger>
+                  ))}
+                </div>
+              </DialogContent>
+            </DialogBody>
+          </DialogSurface>
+        </Dialog>
+      </div>
+      {clients.length === 0 && (
+        <MessageBar>
+          <MessageBarBody>Get started with a test client.</MessageBarBody>
+        </MessageBar>
       )}
-      {false && <Checkbox label="Specify subprotocol" checked={state.showSubprotocol} onChange={(e, c) => setState((prevState) => ({ ...prevState, showSubprotocol: c ?? false }))} />}
-      <ComboBox
-        hidden={!state.showSubprotocol}
-        label="Subprotocol"
-        allowFreeform={true}
-        autoComplete="on"
-        options={options}
-        text={state.subprotocol}
-        onChange={(e, c, i, value) => setState((prevState) => ({ ...prevState, subprotocol: value }))}
-      />
-      {state.error && <b className="text-danger">{state.error}</b>}
-      {state.connected && (
-        <div className="controlpane d-flex flex-column">
-          {false && (
-            <Dropdown
-              label="Transfer Format"
-              defaultSelectedKey={state.transferFormat}
-              options={transferOptions}
-              onChange={(e, i) => setState((prevState) => ({ ...prevState, transferFormat: i?.key.toString() }))}
+      <TabList
+        selectedValue={selectedClient}
+        onTabSelect={(_, d) => {
+          setSelectedClient(d.value);
+        }}
+      >
+        {clients.map((section, index) => (
+          <Tab key={section.id} value={section.id}>
+            {section.icon} {section.title} - Client{section.counter}
+            <Dismiss16Regular
+              className="mx-1"
+              onClick={(e) => {
+                e.stopPropagation();
+                section.connection?.closeConnection();
+                setClients((i) => {
+                  if (selectedClient === section.id && clients.length > 1) {
+                    setSelectedClient(clients.find((i) => i.id !== selectedClient)?.id ?? "");
+                  }
+                  return i.filter((i) => i.id !== section.id);
+                });
+              }}
             />
-          )}
-          <TextField label="Messages" multiline autoAdjustHeight value={state.message} onChange={(e, t) => setState((prevState) => ({ ...prevState, message: t }))} />
-          <DefaultButton disabled={!state.connected || !state.message} text="Send" onClick={send}></DefaultButton>
-        </div>
-      )}
+          </Tab>
+        ))}
+      </TabList>
+      {clients.map((section, index) => {
+        switch (section.type) {
+          case "websocket":
+            return (
+              <div className="flex-fill d-flex flex-column" key={section.id} hidden={section.id !== selectedClient}>
+                <SimpleClientSection onStatusChange={props.onStatusChange} url={url}></SimpleClientSection>
+              </div>
+            );
+          case "webpubsub":
+            return (
+              <div className="flex-fill d-flex flex-column" key={section.id} hidden={section.id !== selectedClient}>
+                <SubprotocolClientSection onStatusChange={props.onStatusChange} url={url}></SubprotocolClientSection>
+              </div>
+            );
+          case "mqtt5":
+            return (
+              <div className="flex-fill d-flex flex-column" key={section.id} hidden={section.id !== selectedClient}>
+                <MqttClientSection onStatusChange={props.onStatusChange} url={url}></MqttClientSection>
+              </div>
+            );
+          default:
+            throw new Error("Unknown client type");
+        }
+      })}
     </div>
   );
-  const trafficList = state.traffic.map((i) => TrafficItem(i));
-  const trafficPane = (
-    <div>
-      <DetailsList items={trafficList} selectionMode={SelectionMode.none} layoutMode={DetailsListLayoutMode.justified}></DetailsList>
-    </div>
-  );
-
-  return <ResizablePanel className="flex-fill" left={connectPane} right={trafficPane}></ResizablePanel>;
 };
