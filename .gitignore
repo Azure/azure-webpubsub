@@ -3,6 +3,7 @@
 ##
 ## Get latest from https://github.com/github/gitignore/blob/master/VisualStudio.gitignore
 .vscode/
+!tools/vscode-azurewebpubsub/.vscode
 esm/
 dist-esm/
 .rollup.cache/
