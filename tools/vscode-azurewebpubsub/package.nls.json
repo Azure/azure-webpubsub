@@ -1,3 +1,5 @@
 {
-    "azureWebPubSub.description": "An Azure Web PubSub extension for Visual Studio Code."
+    "azureWebPubSub.description": "An Azure Web PubSub extension for Visual Studio Code.",
+    "azureWebPubSub.service.createInPortal": "Create Web PubSub Service in Portal",
+    "azureWebPubSub.service.createInPortal.detail": "A fully managed service that supports WebSockets for real-time application development."
 }
