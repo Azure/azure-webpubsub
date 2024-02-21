@@ -83,14 +83,7 @@ export class ServicePropertiesItem implements TreeElementBase {
             contextValue: "serviceTls",
             iconPath: new ThemeIcon(tlsNodeDesc.includes("Enabled") ? "check" : "error"),
         }));
-
-        childs.push(createGenericElement({
-            label: localize('serviceVersion', 'Version'),
-            description: this.webPubSub.version,
-            contextValue: "serviceVersion",
-            iconPath: new ThemeIcon("versions"),
-        }));
-
+        
         return childs;
     }
 
