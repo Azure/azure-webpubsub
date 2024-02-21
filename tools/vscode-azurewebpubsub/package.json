@@ -86,7 +86,7 @@
         "build": "tsc && gulp webpack-prod",
         "cleanReadme": "gulp cleanReadme",
         "compile": "tsc -watch",
-        "package": "vsce package --githubBranch main --no-dependencies",
+        "package": "vsce package --no-dependencies",
         "package:pre-release": "vsce package --pre-release",
         "lint": "eslint --ext .ts .",
         "lint-fix": "eslint --ext .ts . --fix",
