@@ -25,7 +25,7 @@ export class ServicePropertiesItem implements TreeElementBase {
             collapsibleState: vscode.TreeItemCollapsibleState.Collapsed
         };
     }
-    
+
     async getChildren(): Promise<TreeElementBase[]> {
         const childs: TreeElementBase[] = [];
         childs.push(createGenericElement({
@@ -38,7 +38,7 @@ export class ServicePropertiesItem implements TreeElementBase {
             label: localize('serviceSku', 'Sku'),
             description: this.webPubSub.sku?.name,
             contextValue: "serviceSku",
-            iconPath: new ThemeIcon("plug")
+            iconPath: new ThemeIcon("settings")
         }));
         childs.push(createGenericElement({
             label: localize('serviceUnitCount', 'Unit'),
