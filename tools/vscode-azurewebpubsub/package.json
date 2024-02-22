@@ -45,6 +45,13 @@
             },
             "commands": [
                 {
+                    "command": "azureWebPubSub.service.create",
+                    "title": "%azureWebPubSub.service.create%",
+                    "type": "WebPubSub",
+                    "detail": "%azureWebPubSub.service.create.detail%",
+                    "icon": "resources/azure-web-pubsub.svg"
+                },
+                {
                     "command": "azureWebPubSub.service.createInPortal",
                     "title": "%azureWebPubSub.service.createInPortal%",
                     "type": "WebPubSub",
@@ -65,6 +72,12 @@
             {
                 "command": "azureWebPubSub.service.createInPortal",
                 "title": "%azureWebPubSub.service.createInPortal%",
+                "category": "Azure Web PubSub",
+                "icon": "$(add)"
+            },
+            {
+                "command": "azureWebPubSub.service.create",
+                "title": "%azureWebPubSub.service.create%",
                 "category": "Azure Web PubSub",
                 "icon": "$(add)"
             }
