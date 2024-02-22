@@ -40,12 +40,14 @@ export class ServicePropertiesItem implements TreeElementBase {
             contextValue: "serviceSku",
             iconPath: new ThemeIcon("settings")
         }));
-        childs.push(createGenericElement({
-            label: localize('serviceUnitCount', 'Unit'),
-            description: (this.webPubSub.sku?.capacity ?? 1).toString(),
-            contextValue: "serviceUnitCount",
-            iconPath: new ThemeIcon("symbol-unit")
-        }));
+        if (this.webPubSub.sku?.tier !== KnownWebPubSubSkuTier.Free) {
+            childs.push(createGenericElement({
+                label: localize('serviceUnitCount', 'Unit'),
+                description: (this.webPubSub.sku?.capacity ?? 1).toString(),
+                contextValue: "serviceUnitCount",
+                iconPath: new ThemeIcon("symbol-unit")
+            }));
+        }
         childs.push(createGenericElement({
             label: localize('serviceStatus', 'Status'),
             description: this.webPubSub.provisioningState,
@@ -64,7 +66,7 @@ export class ServicePropertiesItem implements TreeElementBase {
             case "Failed": return new ThemeIcon("error"); 
             case "Canceled": return new ThemeIcon("close"); 
             case "Unknown": return new ThemeIcon("question"); 
-            default: return new ThemeIcon("error"); 
+            default: return new ThemeIcon("question"); 
         }
     }
 
