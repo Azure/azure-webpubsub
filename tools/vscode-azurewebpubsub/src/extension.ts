@@ -6,10 +6,12 @@
 'use strict';
 
 import { registerAzureUtilsExtensionVariables } from '@microsoft/vscode-azext-azureutils';
-import { IActionContext, callWithTelemetryAndErrorHandling, createAzExtOutputChannel, registerUIExtensionVariables } from '@microsoft/vscode-azext-utils';
+import { IActionContext, TreeElementStateManager, callWithTelemetryAndErrorHandling, createAzExtOutputChannel, registerUIExtensionVariables } from '@microsoft/vscode-azext-utils';
 import * as vscode from 'vscode';
 import { registerCommands } from './commands';
 import { ext } from './extensionVariables';
+import { ServicesDataProvider } from './tree/ServicesDataProvider';
+import { getAzureResourcesExtensionApi } from '@microsoft/vscode-azureresources-api';
 
 export async function activate(context: vscode.ExtensionContext, perfStats: { loadStartTime: number; loadEndTime: number }, ignoreBundle?: boolean): Promise<void> {
     // the entry point for vscode.dev is this activate, not main.js, so we need to instantiate perfStats here
@@ -26,6 +28,11 @@ export async function activate(context: vscode.ExtensionContext, perfStats: { lo
     await callWithTelemetryAndErrorHandling('webPubSub.activate', async (activateContext: IActionContext) => {
         activateContext.telemetry.properties.isActivationEvent = 'true';
         activateContext.telemetry.measurements.mainFileLoad = (perfStats.loadEndTime - perfStats.loadStartTime) / 1000;
+
+        ext.state = new TreeElementStateManager();
+        ext.branchDataProvider = new ServicesDataProvider();
+        ext.rgApiV2 = await getAzureResourcesExtensionApi(context, '2.0.0');
+        ext.rgApiV2.resources.registerAzureResourceBranchDataProvider("WebPubSub" as any, ext.branchDataProvider);
 
         registerCommands();
     });
