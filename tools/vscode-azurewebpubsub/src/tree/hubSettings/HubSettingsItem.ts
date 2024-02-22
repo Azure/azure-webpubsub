@@ -16,7 +16,7 @@ export class HubSettingsItem implements TreeElementBase {
 
     async getChildren(): Promise<HubSettingItem[]> {
         return await callWithTelemetryAndErrorHandling('getChildren', async (context) => {
-            const hubs = await this.List(context);
+            const hubs = await this.list(context);
             return hubs
                 .map(hub => new HubSettingItem(this.service, hub))
                 .sort((a, b) => sortById(a, b));
@@ -37,7 +37,7 @@ export class HubSettingsItem implements TreeElementBase {
         return client.webPubSubHubs.list(resourceGroup, resourceName);
     }
 
-    async List(context: IActionContext): Promise<HubSettingModel[]> {
+    async list(context: IActionContext): Promise<HubSettingModel[]> {
         const hubs = await HubSettingsItem.getHubs(context, this.service.subscription, this.service.resourceGroup, this.service.name);
         const hubIterator = await uiUtils.listAllIterator(hubs);
         return hubIterator

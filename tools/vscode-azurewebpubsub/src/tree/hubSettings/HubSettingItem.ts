@@ -49,7 +49,7 @@ export class HubSettingItem implements AzureResourceModel {
         };
     }
 
-    static async Get(context: IActionContext, subscription: AzureSubscription, resourceGroup: string, resourceName: string, webPubSubHubName: string): Promise<HubSettingModel> {
+    static async get(context: IActionContext, subscription: AzureSubscription, resourceGroup: string, resourceName: string, webPubSubHubName: string): Promise<HubSettingModel> {
         const client = await createWebPubSubAPIClient(context, subscription);
         return createHubModel(await client.webPubSubHubs.get(webPubSubHubName, resourceGroup, resourceName));
     }
