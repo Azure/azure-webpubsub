@@ -6,9 +6,9 @@
 import { KnownWebPubSubSkuTier, WebPubSubSkuTier } from "@azure/arm-webpubsub";
 
 
-export const signalrProvider = 'Microsoft.SignalRService';
-export const webPubSubResourceType = 'WebPubSub';
-export const webPubSubProvider: string = `${signalrProvider}/${webPubSubResourceType}`;;
+export const SIGNALR_PROVIDER = 'Microsoft.SignalRService';
+export const WEB_PUBSUB_RESOURCE_TYPE = 'WebPubSub';
+export const WEB_PUBSUB_PROVIDER = `${SIGNALR_PROVIDER}/${WEB_PUBSUB_RESOURCE_TYPE}`;;
 
 export const VALID_SERVICE_NAME_DESC = "The name is invalid. It can contain only lowercase letters, numbers and hyphens.\n\
 The first character must be a letter.\n\

@@ -45,10 +45,17 @@
             },
             "commands": [
                 {
-                    "command": "azureWebPubSub.service.create",
-                    "title": "%azureWebPubSub.service.create%",
+                    "command": "azureWebPubSub.service.createClassical",
+                    "title": "%azureWebPubSub.service.createClassical%",
                     "type": "WebPubSub",
-                    "detail": "%azureWebPubSub.service.create.detail%",
+                    "detail": "%azureWebPubSub.service.createClassical.detail%",
+                    "icon": "resources/azure-web-pubsub.svg"
+                },
+                {
+                    "command": "azureWebPubSub.service.createSocketIO",
+                    "title": "%azureWebPubSub.service.createSocketIO%",
+                    "type": "WebPubSub",
+                    "detail": "%azureWebPubSub.service.createSocketIO.detail%",
                     "icon": "resources/azure-web-pubsub.svg"
                 },
                 {
@@ -76,8 +83,14 @@
                 "icon": "$(add)"
             },
             {
-                "command": "azureWebPubSub.service.create",
-                "title": "%azureWebPubSub.service.create%",
+                "command": "azureWebPubSub.service.createClassical",
+                "title": "%azureWebPubSub.service.createClassical%",
+                "category": "Azure Web PubSub",
+                "icon": "$(add)"
+            },
+            {
+                "command": "azureWebPubSub.service.createSocketIO",
+                "title": "%azureWebPubSub.service.createSocketIO%",
                 "category": "Azure Web PubSub",
                 "icon": "$(add)"
             }
