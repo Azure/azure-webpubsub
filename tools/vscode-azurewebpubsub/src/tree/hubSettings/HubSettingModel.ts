@@ -7,7 +7,6 @@ import { WebPubSubHub } from "@azure/arm-webpubsub";
 import { getResourceGroupFromId } from "@microsoft/vscode-azext-azureutils";
 import { nonNullProp } from "@microsoft/vscode-azext-utils";
 
-
 export interface HubSettingModel extends WebPubSubHub {
     id: string;
     hubName: string;

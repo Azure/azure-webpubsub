@@ -10,7 +10,6 @@ import { ThemeIcon } from "vscode";
 import { localize } from "../../utils";
 import { ServiceModel } from "./ServiceModel";
 
-
 export class ServicePropertiesItem implements TreeElementBase {
     static readonly contextValue: string = 'servicePropertiesItem';
     static readonly contextValueRegExp: RegExp = new RegExp(ServicePropertiesItem.contextValue);

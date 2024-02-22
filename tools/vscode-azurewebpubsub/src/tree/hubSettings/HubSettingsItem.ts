@@ -4,10 +4,9 @@ import { AzureSubscription } from '@microsoft/vscode-azureresources-api';
 import * as vscode from 'vscode';
 import { ServiceItem } from "../service/ServiceItem";
 import { HubSettingItem } from "./HubSettingItem";
-import { createWebPubSubAPIClient } from "../../utils";
+import { createWebPubSubAPIClient, localize } from "../../utils";
 import { sortById } from "../utils";
 import { HubSettingModel, createHubModel } from "./HubSettingModel";
-
 
 export class HubSettingsItem implements TreeElementBase {
     static readonly contextValue: string = 'webPubSubHubsItem';
@@ -26,7 +25,7 @@ export class HubSettingsItem implements TreeElementBase {
 
     getTreeItem(): vscode.TreeItem {
         return {
-            label: `Hub Settings`,
+            label: localize("hubSettings", "Hub Settings"),
             iconPath: new vscode.ThemeIcon("server"),
             contextValue: createContextValue([HubSettingsItem.contextValue]),
             collapsibleState: vscode.TreeItemCollapsibleState.Collapsed,

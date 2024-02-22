@@ -14,7 +14,6 @@ import { ServicePropertiesItem } from "./ServicePropertiesItem";
 import { ServiceModel } from "./ServiceModel";
 import { HubSettingsItem } from "../hubSettings/HubSettingsItem";
 
-
 export class ServiceItem implements AzureResourceModel {
     static readonly contextValue: string = 'webPubSubServiceItem';
     static readonly contextValueRegExp: RegExp = new RegExp(ServiceItem.contextValue);
@@ -34,7 +33,7 @@ export class ServiceItem implements AzureResourceModel {
     }
 
     async getChildren(): Promise<TreeElementBase[]> {
-        return [this.hubs, this.properties];
+        return [this.properties, this.hubs];
     }
 
     getTreeItem(): vscode.TreeItem {

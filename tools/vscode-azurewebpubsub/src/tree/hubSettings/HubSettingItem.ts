@@ -12,7 +12,6 @@ import { EventHandlersItem } from "./EventHandlers/EventHandlersItem";
 import { EventListenersItem } from "./EventListeners/EventListenersItem";
 import { HubSettingModel, createHubModel } from "./HubSettingModel";
 
-
 export class HubSettingItem implements AzureResourceModel {
     static readonly contextValue: string = 'webPubSubHubItem';
     static readonly contextValueRegExp: RegExp = new RegExp(HubSettingItem.contextValue);
@@ -29,9 +28,9 @@ export class HubSettingItem implements AzureResourceModel {
     async getChildren(): Promise<TreeElementBase[]> {
         const isAllowAnnoy: boolean = this.hub.properties.anonymousConnectPolicy === "allow";
         const element = createGenericElement({
-            label: localize('allowAnnoyClients', `${isAllowAnnoy ? "Allow" : "Deny"} Anonymous Clients`),
+            label: localize('annoymousConnectPolicy',  "{0} Annoymous Clients", isAllowAnnoy ? "Allow" : "Deny"),
             contextValue: "hubAllowAnnoymousClients",
-            iconPath: new vscode.ThemeIcon(isAllowAnnoy ? "check" : "error"),
+            iconPath: new vscode.ThemeIcon(isAllowAnnoy ? "workspace-untrusted" : "workspace-trusted"),
         })
         return [
             element,
@@ -43,11 +42,10 @@ export class HubSettingItem implements AzureResourceModel {
     getTreeItem(): vscode.TreeItem {
         return {
             id: this.hub.id,
-            label: `${this.hub.hubName}`,
+            label: localize("hubWithName", "Hub {0}", this.hub.hubName),
             iconPath: new vscode.ThemeIcon("inbox"),
             contextValue: this.contextValue,
-            collapsibleState: vscode.TreeItemCollapsibleState.Collapsed,
-            tooltip: `Hub ${this.hub.hubName}`
+            collapsibleState: vscode.TreeItemCollapsibleState.Collapsed
         };
     }
 

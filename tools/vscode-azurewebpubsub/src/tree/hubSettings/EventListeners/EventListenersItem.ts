@@ -8,7 +8,7 @@ import { TreeElementBase, createContextValue } from "@microsoft/vscode-azext-uti
 import { ViewPropertiesModel } from "@microsoft/vscode-azureresources-api";
 import * as vscode from 'vscode';
 import { EventListenerItem } from "./EventListenerItem";
-
+import { localize } from "../../../utils";
 
 export class EventListenersItem implements TreeElementBase {
     static readonly contextValue: string = 'webPubSubHubEventListenersItem';
@@ -26,16 +26,16 @@ export class EventListenersItem implements TreeElementBase {
 
     getTreeItem(): vscode.TreeItem {
         return {
-            label: "Event Listeners",
+            label: localize("eventListeners", "Event Listeners"),
             iconPath: new vscode.ThemeIcon("list-ordered"),
             contextValue: createContextValue([EventListenersItem.contextValue]),
             collapsibleState: this.eventListeners.length > 0 ? vscode.TreeItemCollapsibleState.Expanded : vscode.TreeItemCollapsibleState.None,
-            description: `${this.eventListeners.length} Listeners`
+            description: localize("listenersWithNumber", "{0} Listeners", this.eventListeners.length)
         };
     }
 
     viewProperties: ViewPropertiesModel = {
         data: this.eventListeners,
-        label: "Event Listeners"
+        label: localize("eventListeners", "Event Listeners"),
     };
 }

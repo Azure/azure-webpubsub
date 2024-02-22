@@ -9,7 +9,7 @@ import * as vscode from 'vscode';
 import { HubSettingItem } from "../HubSettingItem";
 import { EventHandlerItem } from "./EventHandlerItem";
 import { ViewPropertiesModel } from "@microsoft/vscode-azureresources-api";
-
+import { localize } from "../../../utils";
 
 export class EventHandlersItem implements TreeElementBase {
     static readonly contextValue: string = 'webPubSubHubEventHandlersItem';
@@ -28,11 +28,11 @@ export class EventHandlersItem implements TreeElementBase {
 
     getTreeItem(): vscode.TreeItem {
         return {
-            label: "Event Handlers",
+            label: localize("eventHandlers", "Event Handlers"),
             iconPath: new vscode.ThemeIcon("list-ordered"),
             contextValue: createContextValue([EventHandlersItem.contextValue]),
             collapsibleState: this.eventHandlers.length > 0 ? vscode.TreeItemCollapsibleState.Expanded : vscode.TreeItemCollapsibleState.None,
-            description: `${this.eventHandlers.length} Handlers`
+            description: localize("handlersAmount", "{0} Handlers", this.eventHandlers.length)
         };
     }
 

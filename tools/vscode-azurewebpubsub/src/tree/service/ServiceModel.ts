@@ -6,5 +6,4 @@
 import { WebPubSubResource } from "@azure/arm-webpubsub";
 import { ResourceModel } from "../utils";
 
-
 export type ServiceModel = WebPubSubResource & ResourceModel;

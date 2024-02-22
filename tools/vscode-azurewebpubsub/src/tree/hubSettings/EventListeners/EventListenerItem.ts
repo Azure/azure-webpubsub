@@ -8,7 +8,7 @@ import { TreeElementBase, createContextValue } from "@microsoft/vscode-azext-uti
 import { ViewPropertiesModel } from "@microsoft/vscode-azureresources-api";
 import { HubSettingsItem } from "../HubSettingsItem";
 import * as vscode from 'vscode';
-
+import { localize } from "../../../utils";
 
 export class EventListenerItem implements TreeElementBase {
     static readonly contextValue: string = 'webPubSubHubEventListenerItem';
@@ -20,7 +20,7 @@ export class EventListenerItem implements TreeElementBase {
 
     getTreeItem(): vscode.TreeItem {
         return {
-            label: `Event Listener ${this.order}`,
+            label: localize("eventListenerWithOrder", "Event Listener {0}", this.order),
             iconPath: new vscode.ThemeIcon("send"),
             contextValue: createContextValue([EventListenerItem.contextValue]),
             collapsibleState: vscode.TreeItemCollapsibleState.None,
