@@ -12,6 +12,7 @@ import { createWebPubSubAPIClient } from "../../utils";
 import { getServiceIconPath } from "../utils";
 import { ServicePropertiesItem } from "./ServicePropertiesItem";
 import { ServiceModel } from "./ServiceModel";
+import { HubSettingsItem } from "../hubSettings/HubSettingsItem";
 
 
 export class ServiceItem implements AzureResourceModel {
@@ -21,6 +22,7 @@ export class ServiceItem implements AzureResourceModel {
     id: string;
     resourceGroup: string;
     name: string;
+    hubs: HubSettingsItem;
     properties: ServicePropertiesItem;
 
     constructor(public readonly subscription: AzureSubscription, public readonly resource: AzureResource, public readonly service: ServiceModel) {
@@ -28,10 +30,11 @@ export class ServiceItem implements AzureResourceModel {
         this.name = service.name;
         this.resourceGroup = service.resourceGroup;
         this.properties = new ServicePropertiesItem(this.service);
+        this.hubs = new HubSettingsItem(this);
     }
 
     async getChildren(): Promise<TreeElementBase[]> {
-        return [this.properties];
+        return [this.hubs, this.properties];
     }
 
     getTreeItem(): vscode.TreeItem {
