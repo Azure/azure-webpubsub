@@ -4,10 +4,9 @@
  *--------------------------------------------------------------------------------------------*/
 
 import * as vscode from 'vscode';
-import { TreeItemIconPath } from "@microsoft/vscode-azext-utils";
-import { Resource } from '@azure/arm-webpubsub';
+import  { type TreeItemIconPath } from "@microsoft/vscode-azext-utils";
+import  { type Resource } from '@azure/arm-webpubsub';
 import { ext } from '../extensionVariables';
-
 
 export interface ResourceModel extends Resource {
     id: string;

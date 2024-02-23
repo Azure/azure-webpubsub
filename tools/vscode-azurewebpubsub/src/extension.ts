@@ -6,11 +6,13 @@
 'use strict';
 
 import { registerAzureUtilsExtensionVariables } from '@microsoft/vscode-azext-azureutils';
-import { IActionContext, TreeElementStateManager, callWithTelemetryAndErrorHandling, createAzExtOutputChannel, registerUIExtensionVariables } from '@microsoft/vscode-azext-utils';
-import * as vscode from 'vscode';
+import  { type IActionContext} from '@microsoft/vscode-azext-utils';
+import { TreeElementStateManager, callWithTelemetryAndErrorHandling, createAzExtOutputChannel, registerUIExtensionVariables } from '@microsoft/vscode-azext-utils';
+import type * as vscode from 'vscode';
 import { registerCommands } from './commands';
 import { ext } from './extensionVariables';
 import { ServicesDataProvider } from './tree/ServicesDataProvider';
+import  { type AzExtResourceType} from '@microsoft/vscode-azureresources-api';
 import { getAzureResourcesExtensionApi } from '@microsoft/vscode-azureresources-api';
 
 export async function activate(context: vscode.ExtensionContext, perfStats: { loadStartTime: number; loadEndTime: number }, ignoreBundle?: boolean): Promise<void> {
@@ -32,7 +34,7 @@ export async function activate(context: vscode.ExtensionContext, perfStats: { lo
         ext.state = new TreeElementStateManager();
         ext.branchDataProvider = new ServicesDataProvider();
         ext.rgApiV2 = await getAzureResourcesExtensionApi(context, '2.0.0');
-        ext.rgApiV2.resources.registerAzureResourceBranchDataProvider("WebPubSub" as any, ext.branchDataProvider);
+        ext.rgApiV2.resources.registerAzureResourceBranchDataProvider("WebPubSub" as AzExtResourceType, ext.branchDataProvider);
 
         registerCommands();
     });
