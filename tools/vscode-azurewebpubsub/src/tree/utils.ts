@@ -4,10 +4,9 @@
  *--------------------------------------------------------------------------------------------*/
 
 import * as vscode from 'vscode';
-import { TreeItemIconPath } from "@microsoft/vscode-azext-utils";
-import { Resource } from '@azure/arm-webpubsub';
+import  { type TreeElementBase, type TreeItemIconPath } from "@microsoft/vscode-azext-utils";
+import  { type Resource } from '@azure/arm-webpubsub';
 import { ext } from '../extensionVariables';
-
 
 export interface ResourceModel extends Resource {
     id: string;
@@ -18,3 +17,6 @@ export interface ResourceModel extends Resource {
 const getResourcesUri = () => vscode.Uri.joinPath(ext.context.extensionUri, 'resources');
 export const getIconPath = (iconName: string, suffix: "svg" | "png" = "svg"): TreeItemIconPath => vscode.Uri.joinPath(getResourcesUri(), `${iconName}.${suffix}`);
 export const getServiceIconPath = (isClassical: boolean = true) => isClassical ? getIconPath('azure-web-pubsub') : getIconPath('azure-web-pubsub-socketio');
+export function sortById(a: TreeElementBase, b: TreeElementBase): number {
+    return a.id && b.id ? a.id.localeCompare(b.id) : 0;
+}

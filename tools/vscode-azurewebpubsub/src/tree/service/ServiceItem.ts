@@ -3,16 +3,18 @@
 *  Licensed under the MIT License. See License.txt in the project root for license information.
 *--------------------------------------------------------------------------------------------*/
 
-import { KnownServiceKind, WebPubSubResource } from "@azure/arm-webpubsub";
+import  { type WebPubSubResource } from "@azure/arm-webpubsub";
+import { KnownServiceKind } from "@azure/arm-webpubsub";
 import { getResourceGroupFromId, uiUtils } from "@microsoft/vscode-azext-azureutils";
-import { IActionContext, TreeElementBase, createContextValue } from "@microsoft/vscode-azext-utils";
-import { AzureResource, AzureResourceModel, AzureSubscription, ViewPropertiesModel } from '@microsoft/vscode-azureresources-api';
+import  { type IActionContext, type TreeElementBase} from "@microsoft/vscode-azext-utils";
+import { createContextValue } from "@microsoft/vscode-azext-utils";
+import  { type AzureResource, type AzureResourceModel, type AzureSubscription, type ViewPropertiesModel } from '@microsoft/vscode-azureresources-api';
 import * as vscode from 'vscode';
 import { createWebPubSubAPIClient } from "../../utils";
 import { getServiceIconPath } from "../utils";
 import { ServicePropertiesItem } from "./ServicePropertiesItem";
-import { ServiceModel } from "./ServiceModel";
-
+import  { type ServiceModel } from "./ServiceModel";
+import { HubSettingsItem } from "../hubSettings/HubSettingsItem";
 
 export class ServiceItem implements AzureResourceModel {
     static readonly contextValue: string = 'webPubSubServiceItem';
@@ -21,6 +23,7 @@ export class ServiceItem implements AzureResourceModel {
     id: string;
     resourceGroup: string;
     name: string;
+    hubs: HubSettingsItem;
     properties: ServicePropertiesItem;
 
     constructor(public readonly subscription: AzureSubscription, public readonly resource: AzureResource, public readonly service: ServiceModel) {
@@ -28,10 +31,11 @@ export class ServiceItem implements AzureResourceModel {
         this.name = service.name;
         this.resourceGroup = service.resourceGroup;
         this.properties = new ServicePropertiesItem(this.service);
+        this.hubs = new HubSettingsItem(this);
     }
 
     async getChildren(): Promise<TreeElementBase[]> {
-        return [this.properties];
+        return [this.properties, this.hubs];
     }
 
     getTreeItem(): vscode.TreeItem {
@@ -50,17 +54,17 @@ export class ServiceItem implements AzureResourceModel {
         label: `Properties`
     };
 
-    static async List(context: IActionContext, subscription: AzureSubscription): Promise<WebPubSubResource[]> {
+    static async list(context: IActionContext, subscription: AzureSubscription): Promise<WebPubSubResource[]> {
         const client = await createWebPubSubAPIClient(context, subscription);
         return await uiUtils.listAllIterator(client.webPubSub.listBySubscription());
     }
 
-    static async Get(context: IActionContext, subscription: AzureSubscription, resourceGroup: string, name: string): Promise<ServiceModel> {
+    static async get(context: IActionContext, subscription: AzureSubscription, resourceGroup: string, name: string): Promise<ServiceModel> {
         const client = await createWebPubSubAPIClient(context, subscription);
-        return ServiceItem.CreateWebPubSubModel(await client.webPubSub.get(resourceGroup, name), name);
+        return ServiceItem.createWebPubSubModel(await client.webPubSub.get(resourceGroup, name), name);
     }
 
-    static CreateWebPubSubModel(serviceResource: WebPubSubResource, serviceName: string): ServiceModel {
+    static createWebPubSubModel(serviceResource: WebPubSubResource, serviceName: string): ServiceModel {
         if (!serviceResource.id) {
             throw new Error(`Invalid webPubSub.id: ${serviceResource.id}`);
         }
