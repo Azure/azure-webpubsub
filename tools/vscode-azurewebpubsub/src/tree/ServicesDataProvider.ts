@@ -3,12 +3,12 @@
 *  Licensed under the MIT License. See License.txt in the project root for license information.
 *--------------------------------------------------------------------------------------------*/
 
-import { IActionContext, TreeElementBase, callWithTelemetryAndErrorHandling, nonNullProp } from "@microsoft/vscode-azext-utils";
-import { AzureResource, AzureResourceBranchDataProvider } from '@microsoft/vscode-azureresources-api';
+import  { type IActionContext, type TreeElementBase} from "@microsoft/vscode-azext-utils";
+import { callWithTelemetryAndErrorHandling, nonNullProp } from "@microsoft/vscode-azext-utils";
+import  { type AzureResource, type AzureResourceBranchDataProvider } from '@microsoft/vscode-azureresources-api';
 import * as vscode from 'vscode';
 import { ServiceItem } from "./service/ServiceItem";
 import { ext } from "../extensionVariables";
-
 
 export class ServicesDataProvider extends vscode.Disposable implements AzureResourceBranchDataProvider<TreeElementBase> {
     private readonly onDidChangeTreeDataEmitter = new vscode.EventEmitter<TreeElementBase | undefined>();
@@ -35,7 +35,7 @@ export class ServicesDataProvider extends vscode.Disposable implements AzureReso
             'getResourceItem',
             async (context: IActionContext) => {
                 context.errorHandling.rethrow = true;
-                const serviceModel = await ServiceItem.Get(context, element.subscription, nonNullProp(element, 'resourceGroup'), element.name);
+                const serviceModel = await ServiceItem.get(context, element.subscription, nonNullProp(element, 'resourceGroup'), element.name);
                 return new ServiceItem(element.subscription, element, serviceModel);
             }
         );

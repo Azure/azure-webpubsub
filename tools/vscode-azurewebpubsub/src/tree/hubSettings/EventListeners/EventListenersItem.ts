@@ -3,9 +3,10 @@
 *  Licensed under the MIT License. See License.txt in the project root for license information.
 *--------------------------------------------------------------------------------------------*/
 
-import { EventListener } from "@azure/arm-webpubsub";
-import { TreeElementBase, createContextValue } from "@microsoft/vscode-azext-utils";
-import { ViewPropertiesModel } from "@microsoft/vscode-azureresources-api";
+import  { type EventListener } from "@azure/arm-webpubsub";
+import  { type TreeElementBase} from "@microsoft/vscode-azext-utils";
+import { createContextValue } from "@microsoft/vscode-azext-utils";
+import  { type ViewPropertiesModel } from "@microsoft/vscode-azureresources-api";
 import * as vscode from 'vscode';
 import { EventListenerItem } from "./EventListenerItem";
 import { localize } from "../../../utils";
@@ -30,7 +31,7 @@ export class EventListenersItem implements TreeElementBase {
             iconPath: new vscode.ThemeIcon("list-ordered"),
             contextValue: createContextValue([EventListenersItem.contextValue]),
             collapsibleState: this.eventListeners.length > 0 ? vscode.TreeItemCollapsibleState.Expanded : vscode.TreeItemCollapsibleState.None,
-            description: localize("listenersWithNumber", "{0} Listeners", this.eventListeners.length)
+            description: localize("listenersAmount", "{0} Listeners", this.eventListeners.length)
         };
     }
 

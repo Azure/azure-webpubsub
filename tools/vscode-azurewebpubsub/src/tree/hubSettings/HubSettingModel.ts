@@ -3,7 +3,7 @@
 *  Licensed under the MIT License. See License.txt in the project root for license information.
 *--------------------------------------------------------------------------------------------*/
 
-import { WebPubSubHub } from "@azure/arm-webpubsub";
+import  { type WebPubSubHub } from "@azure/arm-webpubsub";
 import { getResourceGroupFromId } from "@microsoft/vscode-azext-azureutils";
 import { nonNullProp } from "@microsoft/vscode-azext-utils";
 
@@ -17,7 +17,7 @@ export interface HubSettingModel extends WebPubSubHub {
 export function createHubModel(serviceResource: WebPubSubHub): HubSettingModel {
     return {
         id: nonNullProp(serviceResource, 'id'),
-        hubName: nonNullProp(serviceResource as any, 'name'),
+        hubName: nonNullProp(serviceResource, 'name'),
         webPubSubId: nonNullProp(serviceResource, 'id'),
         resourceGroup: getResourceGroupFromId(nonNullProp(serviceResource, 'id')),
         ...serviceResource,

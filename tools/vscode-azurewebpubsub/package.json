@@ -90,7 +90,7 @@
         "package:pre-release": "vsce package --pre-release",
         "lint": "eslint --ext .ts .",
         "lint-fix": "eslint --ext .ts . --fix",
-        "pretest": "npm run webpack-prod && gulp preTest",
+        "pretest": "npm run lint && npm run webpack-prod && gulp preTest",
         "test": "node ./out/test/runTest.js",
         "webpack": "tsc && gulp webpack-dev",
         "webpack-prod": "tsc && gulp webpack-prod",

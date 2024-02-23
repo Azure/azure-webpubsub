@@ -3,12 +3,14 @@
 *  Licensed under the MIT License. See License.txt in the project root for license information.
 *--------------------------------------------------------------------------------------------*/
 
-import { KnownWebPubSubSkuTier, ProvisioningState } from "@azure/arm-webpubsub";
-import { TreeElementBase, TreeItemIconPath, createContextValue, createGenericElement } from "@microsoft/vscode-azext-utils";
+import  { type ProvisioningState } from "@azure/arm-webpubsub";
+import { KnownWebPubSubSkuTier } from "@azure/arm-webpubsub";
+import  { type TreeElementBase, type TreeItemIconPath} from "@microsoft/vscode-azext-utils";
+import { createContextValue, createGenericElement } from "@microsoft/vscode-azext-utils";
 import * as vscode from 'vscode';
 import { ThemeIcon } from "vscode";
 import { localize } from "../../utils";
-import { ServiceModel } from "./ServiceModel";
+import  { type ServiceModel } from "./ServiceModel";
 
 export class ServicePropertiesItem implements TreeElementBase {
     static readonly contextValue: string = 'servicePropertiesItem';

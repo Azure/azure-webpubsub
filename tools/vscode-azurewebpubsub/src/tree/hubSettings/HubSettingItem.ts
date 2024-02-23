@@ -3,14 +3,16 @@
 *  Licensed under the MIT License. See License.txt in the project root for license information.
 *--------------------------------------------------------------------------------------------*/
 
-import { IActionContext, TreeElementBase, createContextValue, createGenericElement, nonNullValueAndProp } from "@microsoft/vscode-azext-utils";
-import { AzureResourceModel, AzureSubscription, ViewPropertiesModel } from '@microsoft/vscode-azureresources-api';
+import  { type IActionContext, type TreeElementBase} from "@microsoft/vscode-azext-utils";
+import { createContextValue, createGenericElement, nonNullValueAndProp } from "@microsoft/vscode-azext-utils";
+import  { type AzureResourceModel, type AzureSubscription, type ViewPropertiesModel } from '@microsoft/vscode-azureresources-api';
 import * as vscode from 'vscode';
 import { createWebPubSubAPIClient, localize } from '../../utils';
-import { ServiceItem } from "../service/ServiceItem";
+import  { type ServiceItem } from "../service/ServiceItem";
 import { EventHandlersItem } from "./EventHandlers/EventHandlersItem";
 import { EventListenersItem } from "./EventListeners/EventListenersItem";
-import { HubSettingModel, createHubModel } from "./HubSettingModel";
+import  { type HubSettingModel} from "./HubSettingModel";
+import { createHubModel } from "./HubSettingModel";
 
 export class HubSettingItem implements AzureResourceModel {
     static readonly contextValue: string = 'webPubSubHubItem';
@@ -30,7 +32,7 @@ export class HubSettingItem implements AzureResourceModel {
         const element = createGenericElement({
             label: localize('annoymousConnectPolicy',  "{0} Annoymous Clients", isAllowAnnoy ? "Allow" : "Deny"),
             contextValue: "hubAllowAnnoymousClients",
-            iconPath: new vscode.ThemeIcon(isAllowAnnoy ? "workspace-untrusted" : "workspace-trusted"),
+            iconPath: new vscode.ThemeIcon(isAllowAnnoy ? "workspace-unknown" : "workspace-trusted"),
         })
         return [
             element,

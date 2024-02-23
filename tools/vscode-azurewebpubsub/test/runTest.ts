@@ -16,6 +16,7 @@ async function main(): Promise<void> {
             ],
             extensionTestsPath: path.resolve(repoRoot, 'dist', 'test', 'index'),
             extensionTestsEnv: {
+                // eslint-disable-next-line @typescript-eslint/naming-convention
                 DEBUGTELEMETRY: 'v'
             }
         });

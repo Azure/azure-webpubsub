@@ -1,10 +1,11 @@
 import { window } from "vscode";
 import * as nls from 'vscode-nls';
 import { WebPubSubManagementClient } from "@azure/arm-webpubsub";
-import { AzExtClientContext, createAzureClient } from "@microsoft/vscode-azext-azureutils";
-import { IActionContext, createSubscriptionContext } from "@microsoft/vscode-azext-utils";
-import { AzureSubscription } from "@microsoft/vscode-azureresources-api";
-
+import  { type AzExtClientContext} from "@microsoft/vscode-azext-azureutils";
+import { createAzureClient } from "@microsoft/vscode-azext-azureutils";
+import  { type IActionContext} from "@microsoft/vscode-azext-utils";
+import { createSubscriptionContext } from "@microsoft/vscode-azext-utils";
+import  { type AzureSubscription } from "@microsoft/vscode-azureresources-api";
 
 export const localize: nls.LocalizeFunc = nls.loadMessageBundle();
 
