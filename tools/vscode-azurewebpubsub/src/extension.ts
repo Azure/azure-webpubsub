@@ -12,8 +12,7 @@ import type * as vscode from 'vscode';
 import { registerCommands } from './commands';
 import { ext } from './extensionVariables';
 import { ServicesDataProvider } from './tree/ServicesDataProvider';
-import  { type AzExtResourceType} from '@microsoft/vscode-azureresources-api';
-import { getAzureResourcesExtensionApi } from '@microsoft/vscode-azureresources-api';
+import { type AzExtResourceType, getAzureResourcesExtensionApi } from '@microsoft/vscode-azureresources-api';
 
 export async function activate(context: vscode.ExtensionContext, perfStats: { loadStartTime: number; loadEndTime: number }, ignoreBundle?: boolean): Promise<void> {
     // the entry point for vscode.dev is this activate, not main.js, so we need to instantiate perfStats here
