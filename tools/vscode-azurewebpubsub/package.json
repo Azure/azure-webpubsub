@@ -48,15 +48,13 @@
                     "command": "azureWebPubSub.service.createClassical",
                     "title": "%azureWebPubSub.service.createClassical%",
                     "type": "WebPubSub",
-                    "detail": "%azureWebPubSub.service.createClassical.detail%",
-                    "icon": "resources/azure-web-pubsub.svg"
+                    "detail": "%azureWebPubSub.service.createClassical.detail%"
                 },
                 {
                     "command": "azureWebPubSub.service.createSocketIO",
                     "title": "%azureWebPubSub.service.createSocketIO%",
                     "type": "WebPubSub",
-                    "detail": "%azureWebPubSub.service.createSocketIO.detail%",
-                    "icon": "resources/azure-web-pubsub.svg"
+                    "detail": "%azureWebPubSub.service.createSocketIO.detail%"
                 },
                 {
                     "command": "azureWebPubSub.service.createInPortal",

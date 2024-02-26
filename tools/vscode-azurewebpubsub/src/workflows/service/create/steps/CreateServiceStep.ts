@@ -3,12 +3,12 @@
 *  Licensed under the MIT License. See License.txt in the project root for license information.
 *--------------------------------------------------------------------------------------------*/
 
-import { WebPubSubManagementClient } from "@azure/arm-webpubsub";
+import  { KnownWebPubSubSkuTier, type WebPubSubManagementClient } from "@azure/arm-webpubsub";
 import { AzureWizardExecuteStep, nonNullProp } from "@microsoft/vscode-azext-utils";
-import { Progress } from "vscode";
+import  { type Progress } from "vscode";
 import { localize } from "../../../../utils";
-import { ICreateServiceContext } from "../ICreateServiceContext";
-
+import  { type ICreateServiceContext } from "../ICreateServiceContext";
+import { KnownWebPubSubSkuName } from "../../../../constants";
 
 export class CreateServiceStep extends AzureWizardExecuteStep<ICreateServiceContext> {
     public priority: number = 135;
@@ -16,13 +16,16 @@ export class CreateServiceStep extends AzureWizardExecuteStep<ICreateServiceCont
     constructor(private readonly client: WebPubSubManagementClient) { super(); }
 
     public async execute(context: ICreateServiceContext, progress: Progress<{ message?: string; increment?: number }>): Promise<void> {
-        if (!(context.Sku?.sku) || !(context.resourceGroup?.name) || !(context.location)) {
-            throw new Error(`Invalid ICreateServiceContext, Sku, Sku = ${context.Sku}, resourceGroup = ${context.resourceGroup}, location = ${context.location}`);
+        if (!(context.resourceGroup?.name) || !(context.location)) {
+            throw new Error(`Invalid ICreateServiceContext, resourceGroup = ${context.resourceGroup}, location = ${context.location}`);
         }
-        
-        const message: string = localize('creatingNewWebPubSub', 'Creating new resource "{0}", please wait...', context.webPubSubName);
+        if (!(context.Sku?.sku)) {
+            context.Sku = { sku: { name: KnownWebPubSubSkuName.Standard_S1, tier: KnownWebPubSubSkuTier.Standard, capacity: 1 }};
+        }
+
+        const message: string = localize('creatingNewWebPubSub', 'Creating new Web PubSub resource "{0}", please wait...', context.webPubSubName);
         progress.report({ message });
-        const response = await this.client.webPubSub.beginCreateOrUpdateAndWait(
+        await this.client.webPubSub.beginCreateOrUpdateAndWait(
             context.resourceGroup.name,
             nonNullProp(context, 'webPubSubName'),
             {

@@ -3,18 +3,20 @@
 *  Licensed under the MIT License. See License.txt in the project root for license information.
 *--------------------------------------------------------------------------------------------*/
 
-import { KnownServiceKind, ResourceSku, WebPubSubManagementClient } from "@azure/arm-webpubsub";
+import  { type ResourceSku} from "@azure/arm-webpubsub";
+import { KnownServiceKind, WebPubSubManagementClient } from "@azure/arm-webpubsub";
 import { LocationListStep, ResourceGroupListStep, VerifyProvidersStep, createAzureClient } from "@microsoft/vscode-azext-azureutils";
-import { AzureWizard, AzureWizardExecuteStep, AzureWizardPromptStep, IActionContext, createSubscriptionContext, nonNullProp, subscriptionExperience } from "@microsoft/vscode-azext-utils";
-import { AzureSubscription } from "@microsoft/vscode-azureresources-api";
+import  { type AzureWizardExecuteStep, type AzureWizardPromptStep, type IActionContext} from "@microsoft/vscode-azext-utils";
+import { AzureWizard, createSubscriptionContext, subscriptionExperience } from "@microsoft/vscode-azext-utils";
+import  { type AzureSubscription } from "@microsoft/vscode-azureresources-api";
 import * as vscode from "vscode";
 import { SIGNALR_PROVIDER, WEB_PUBSUB_PROVIDER, WEB_PUBSUB_RESOURCE_TYPE } from "../../../constants";
 import { ext } from "../../../extensionVariables";
 import { CreateServiceStep } from "./steps/CreateServiceStep";
-import { ICreateServiceContext } from "./ICreateServiceContext";
+import  { type ICreateServiceContext } from "./ICreateServiceContext";
 import { InputSerivceSkuUnitCountStep } from "./steps/InputSerivceSkuUnitCountStep";
 import { InputServiceNameStep } from "./steps/InputServiceNameStep";
-import { InputServiceSkuTierStep } from "./steps/InputServiceSkuTierStep";
+import { InputServiceSkuNameStep } from "./steps/InputServiceSkuNameStep";
 import { createActivityContext } from "../../../utils";
 import { localize } from "../../../utils";
 
@@ -42,7 +44,7 @@ async function createService(isSocketIO: boolean, context: IActionContext, node?
     const subContext = createSubscriptionContext(subscription);
     const client: WebPubSubManagementClient = createAzureClient([context, subContext], WebPubSubManagementClient);
     
-    var promptSteps: AzureWizardPromptStep<ICreateServiceContext>[] = [];
+    let promptSteps: AzureWizardPromptStep<ICreateServiceContext>[] = [];
 
     LocationListStep.addProviderForFiltering(wizardContext, SIGNALR_PROVIDER, WEB_PUBSUB_RESOURCE_TYPE);
     LocationListStep.addStep(wizardContext, promptSteps);
@@ -50,7 +52,7 @@ async function createService(isSocketIO: boolean, context: IActionContext, node?
     promptSteps = promptSteps.concat([
         new ResourceGroupListStep(),
         new InputServiceNameStep(client),
-        new InputServiceSkuTierStep(),
+        new InputServiceSkuNameStep(),
         new InputSerivceSkuUnitCountStep(),
     ]);
     const executeSteps: AzureWizardExecuteStep<ICreateServiceContext>[] = [
@@ -66,10 +68,13 @@ async function createService(isSocketIO: boolean, context: IActionContext, node?
 
     
     await wizard.prompt();
-    wizardContext.location = (await LocationListStep.getLocation(wizardContext, SIGNALR_PROVIDER)).name ?? wizardContext.resourceGroup!.location;
+    if (!wizardContext.resourceGroup) {
+        throw new Error('No resource group was provided.');
+    }
+    wizardContext.location = (await LocationListStep.getLocation(wizardContext, SIGNALR_PROVIDER)).name ?? wizardContext.resourceGroup.location;
     wizardContext.activityTitle = localize('createServiceWithName', 'Create Web PubSub "{0}"', wizardContext.webPubSubName);
     await wizard.execute();
-    
+    // eslint-disable-next-line @typescript-eslint/no-floating-promises
     vscode.window.showInformationMessage(localize('createdService', 'Successfully created Web PubSub "{0}"', wizardContext.webPubSubName));
 
     ext.branchDataProvider.refresh();
