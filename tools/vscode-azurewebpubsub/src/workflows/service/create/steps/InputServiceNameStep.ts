@@ -18,7 +18,7 @@ export class InputServiceNameStep extends AzureNameStep<ICreateServiceContext> {
     }
 
     public async prompt(context: ICreateServiceContext): Promise<void> {
-        const prompt: string = localize('webPubSubNamePrompt', 'Enter a valid and globally unique name for the new Web PubSub resource');
+        const prompt: string = localize('webPubSubNamePrompt', 'Enter a valid and globally unique name for the service');
         context.webPubSubName = (await context.ui.showInputBox({ 
             prompt, 
             validateInput: this.validateServiceNameFormat, 

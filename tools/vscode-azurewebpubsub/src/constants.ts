@@ -47,4 +47,4 @@ export const SKU_NAME_TO_UNIT_COUNT_LIST: {[key in WebPubSubSkuName]: number[]} 
     [KnownWebPubSubSkuName.Premium_P2]: [100, 200, 300, 400, 500, 600, 700, 800, 900, 1000],
 };
 
-export const pricingLink = "https://azure.microsoft.com/en-us/pricing/details/web-pubsub/";
+export const pricingLink = "https://azure.microsoft.com/pricing/details/web-pubsub/";
