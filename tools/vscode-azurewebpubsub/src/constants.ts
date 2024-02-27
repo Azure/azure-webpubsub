@@ -3,6 +3,7 @@
 *  Licensed under the MIT License. See License.txt in the project root for license information.
 *--------------------------------------------------------------------------------------------*/
 
+import { KnownAggregationTypeEnum } from "@azure/arm-monitor";
 import { type WebPubSubSkuTier } from "@azure/arm-webpubsub";
 import { KnownWebPubSubSkuTier } from "@azure/arm-webpubsub";
 
@@ -48,3 +49,15 @@ export const SKU_NAME_TO_UNIT_COUNT_LIST: {[key in WebPubSubSkuName]: number[]} 
 };
 
 export const pricingLink = "https://azure.microsoft.com/pricing/details/web-pubsub/";
+
+
+export const METRIC_AGGREGATION_TYPE_TO_TYPE_ID: { [key: string]: number } = {
+    [KnownAggregationTypeEnum.Total]: 1,
+    [KnownAggregationTypeEnum.Minimum]: 2,
+    [KnownAggregationTypeEnum.Maximum]: 3,
+    [KnownAggregationTypeEnum.Average]: 4,
+    [KnownAggregationTypeEnum.Count]: 5
+};
+export const MINUTE_MILLISECONDS = 60 * 1000;
+export const HOUR_MILLISECONDS = 60 * MINUTE_MILLISECONDS;
+export const DAY_MILLISECONDS = 24 * HOUR_MILLISECONDS;
