@@ -1,5 +1,9 @@
 {
     "azureWebPubSub.description": "An Azure Web PubSub extension for Visual Studio Code.",
     "azureWebPubSub.service.createInPortal": "Create Web PubSub Service in Portal",
-    "azureWebPubSub.service.createInPortal.detail": "A fully managed service that supports WebSockets for real-time application development."
+    "azureWebPubSub.service.createInPortal.detail": "A fully managed service that supports WebSockets for real-time application development.",
+    "azureWebPubSub.service.createClassical": "Create Web PubSub Service",
+    "azureWebPubSub.service.createClassical.detail": "A fully managed service that supports WebSockets for real-time application development.",
+    "azureWebPubSub.service.createSocketIO": "Create Web PubSub Service For Socket.IO",
+    "azureWebPubSub.service.createSocketIO.detail": "Web PubSub for Socket.IO supports Socket.IO protocol, client and server SDKs."
 }

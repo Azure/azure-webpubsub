@@ -7,6 +7,7 @@ import { parseError, registerCommandWithTreeNodeUnwrapping, type CommandCallback
 import { instrumentOperation } from "vscode-extension-telemetry-wrapper";
 import { showError } from "./utils";
 import { createServiceInPortal } from "./workflows/service/create/createServiceInPortal";
+import { createServiceForClassical, createServiceForSocketIO } from "./workflows/service/create/createService";
 
 function registerCommandWithTelemetryWrapper(commandId: string, callback: CommandCallback): void {
     // eslint-disable-next-line @typescript-eslint/no-unsafe-return
@@ -26,5 +27,8 @@ function registerCommandWithTelemetryWrapper(commandId: string, callback: Comman
 }
 
 export function registerCommands(): void {
+    // Service
     registerCommandWithTelemetryWrapper('azureWebPubSub.service.createInPortal', createServiceInPortal);
+    registerCommandWithTelemetryWrapper('azureWebPubSub.service.createClassical', createServiceForClassical);
+    registerCommandWithTelemetryWrapper('azureWebPubSub.service.createSocketIO', createServiceForSocketIO);
 }

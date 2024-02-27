@@ -45,6 +45,18 @@
             },
             "commands": [
                 {
+                    "command": "azureWebPubSub.service.createClassical",
+                    "title": "%azureWebPubSub.service.createClassical%",
+                    "type": "WebPubSub",
+                    "detail": "%azureWebPubSub.service.createClassical.detail%"
+                },
+                {
+                    "command": "azureWebPubSub.service.createSocketIO",
+                    "title": "%azureWebPubSub.service.createSocketIO%",
+                    "type": "WebPubSub",
+                    "detail": "%azureWebPubSub.service.createSocketIO.detail%"
+                },
+                {
                     "command": "azureWebPubSub.service.createInPortal",
                     "title": "%azureWebPubSub.service.createInPortal%",
                     "type": "WebPubSub",
@@ -65,6 +77,18 @@
             {
                 "command": "azureWebPubSub.service.createInPortal",
                 "title": "%azureWebPubSub.service.createInPortal%",
+                "category": "Azure Web PubSub",
+                "icon": "$(add)"
+            },
+            {
+                "command": "azureWebPubSub.service.createClassical",
+                "title": "%azureWebPubSub.service.createClassical%",
+                "category": "Azure Web PubSub",
+                "icon": "$(add)"
+            },
+            {
+                "command": "azureWebPubSub.service.createSocketIO",
+                "title": "%azureWebPubSub.service.createSocketIO%",
                 "category": "Azure Web PubSub",
                 "icon": "$(add)"
             }
