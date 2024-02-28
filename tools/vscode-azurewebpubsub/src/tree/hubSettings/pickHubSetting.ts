@@ -29,8 +29,8 @@ export function getPickHubSteps(): AzureWizardPromptStep<AzureResourceQuickPickW
                 skipIfOne: true,
             },
             {
-                placeHolder: localize('selectHub', 'Select a Hub'),
-                noPicksMessage: localize('noHub', 'Current Web PubSub serivce has no hub'),
+                placeHolder: localize('selectHub', 'Select a hub setting'),
+                noPicksMessage: localize('noHub', 'Current Web PubSub serivce has no hub setting configured'),
             }
         )
     ];

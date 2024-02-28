@@ -33,7 +33,7 @@ export function getPickServiceSteps(): AzureWizardPromptStep<AzureResourceQuickP
                 skipIfOne: false, // user won't skip selection step even if there is only one choice
             },
             {
-                placeHolder: localize('selectService', 'Select an Web PubSub resource'),
+                placeHolder: localize('selectService', 'Select a Web PubSub resource'),
                 noPicksMessage: localize('noServiceInSubscription', 'Current subscription has no Web PubSub resource'),
             }
         )
