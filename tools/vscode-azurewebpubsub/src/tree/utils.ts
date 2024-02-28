@@ -14,6 +14,11 @@ export interface ResourceModel extends Resource {
     resourceGroup: string;
 }
 
+export interface PickItemOptions {
+    title?: string;
+    showLoadingPrompt?: boolean;
+}
+
 const getResourcesUri = () => vscode.Uri.joinPath(ext.context.extensionUri, 'resources');
 export const getIconPath = (iconName: string, suffix: "svg" | "png" = "svg"): TreeItemIconPath => vscode.Uri.joinPath(getResourcesUri(), `${iconName}.${suffix}`);
 export const getServiceIconPath = (isClassical: boolean = true) => isClassical ? getIconPath('azure-web-pubsub') : getIconPath('azure-web-pubsub-socketio');
