@@ -3,10 +3,10 @@
 *  Licensed under the MIT License. See License.txt in the project root for license information.
 *--------------------------------------------------------------------------------------------*/
 
-import  { type IAzExtOutputChannel, type TreeElementStateManager } from "@microsoft/vscode-azext-utils";
-import  { type ExtensionContext } from "vscode";
-import  { type ServicesDataProvider } from "./tree/ServicesDataProvider";
-import  { type AzureResourcesExtensionApi } from "@microsoft/vscode-azureresources-api";
+import { type IAzExtOutputChannel, type TreeElementStateManager } from "@microsoft/vscode-azext-utils";
+import { type ExtensionContext } from "vscode";
+import { type ServicesDataProvider } from "./tree/ServicesDataProvider";
+import { type AzureResourcesExtensionApi } from "@microsoft/vscode-azureresources-api";
 
 /**
  * Namespace for common variables used throughout the extension. They must be initialized in the activate() method of extension.ts

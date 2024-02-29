@@ -3,11 +3,11 @@
 *  Licensed under the MIT License. See License.txt in the project root for license information.
 *--------------------------------------------------------------------------------------------*/
 
-import  { type IAzureQuickPickItem } from "@microsoft/vscode-azext-utils";
+import { type IAzureQuickPickItem } from "@microsoft/vscode-azext-utils";
 import { AzureWizardPromptStep } from "@microsoft/vscode-azext-utils";
 import { pricingLink, SKU_NAME_TO_UNIT_COUNT_LIST } from "../../../../constants";
 import { localize } from "../../../../utils";
-import  { type ICreateServiceContext } from "../ICreateServiceContext";
+import { type ICreateServiceContext } from "../ICreateServiceContext";
 
 export class InputSerivceSkuUnitCountStep extends AzureWizardPromptStep<ICreateServiceContext> {
     public async prompt(context: ICreateServiceContext): Promise<void> {

@@ -3,9 +3,9 @@
 *  Licensed under the MIT License. See License.txt in the project root for license information.
 *--------------------------------------------------------------------------------------------*/
 
-import  { type IActionContext, type TreeElementBase} from "@microsoft/vscode-azext-utils";
+import { type IActionContext, type TreeElementBase} from "@microsoft/vscode-azext-utils";
 import { callWithTelemetryAndErrorHandling, nonNullProp } from "@microsoft/vscode-azext-utils";
-import  { type AzureResource, type AzureResourceBranchDataProvider } from '@microsoft/vscode-azureresources-api';
+import { type AzureResource, type AzureResourceBranchDataProvider } from '@microsoft/vscode-azureresources-api';
 import * as vscode from 'vscode';
 import { ServiceItem } from "./service/ServiceItem";
 import { ext } from "../extensionVariables";
