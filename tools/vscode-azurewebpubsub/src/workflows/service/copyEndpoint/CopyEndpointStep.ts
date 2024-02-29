@@ -7,13 +7,17 @@ import { AzureWizardExecuteStep } from "@microsoft/vscode-azext-utils";
 import * as vscode from 'vscode';
 import { env, type Progress } from "vscode";
 import { type ICopyEndpointContext } from "./ICopyEndpointContext";
+import { localize } from "../../../utils";
 
 export class CopyEndpointStep extends AzureWizardExecuteStep<ICopyEndpointContext> {
     public priority: number = 110;
 
     public async execute(context: ICopyEndpointContext, _progress: Progress<{ message?: string | undefined; increment?: number | undefined }>): Promise<void> {
         if (!context.subscription || !context.serviceName || !context.resourceGroupName || !context.endpoint) {
-            throw new Error(`invalid ICopyEndpointContext, subscription: ${context.subscription}, serviceName: ${context.serviceName}, resourceGroupName: ${context.resourceGroupName}, endpoint: ${context.endpoint}`);
+            throw new Error(localize(
+                "InvalidICopyEndpointContext",
+                'Invalid ICopyEndpointContext, subscription: {0}, serviceName: {1}, resourceGroupName: {2}, endpoint: {3}', context.subscription?.subscriptionId, context.serviceName, context.resourceGroupName, context.endpoint)
+            );
         }
 
         await env.clipboard.writeText(context.endpoint);
