@@ -91,12 +91,23 @@
                 "title": "%azureWebPubSub.service.createSocketIO%",
                 "category": "Azure Web PubSub",
                 "icon": "$(add)"
+            },
+            {
+
+                "command": "azureWebPubSub.service.copyConnectionString",
+                "title": "%azureWebPubSub.service.copyConnectionString%",
+                "category": "Azure Web PubSub"
             }
         ],
         "menus": {
             "commandPalette": [],
             "explorer/context": [],
-            "view/item/context": []
+            "view/item/context": [
+                {
+                    "command": "azureWebPubSub.service.copyConnectionString",
+                    "when": "view =~ /(azureResourceGroups|azureFocusView)/ && viewItem =~ /webPubSubServiceItem/i"
+                }
+            ]
         },
         "configuration": [
             {
