@@ -50,7 +50,6 @@ export const SKU_NAME_TO_UNIT_COUNT_LIST: {[key in WebPubSubSkuName]: number[]} 
 
 export const pricingLink = "https://azure.microsoft.com/pricing/details/web-pubsub/";
 
-
 export const METRIC_AGGREGATION_TYPE_TO_TYPE_ID: { [key: string]: number } = {
     [KnownAggregationTypeEnum.Total]: 1,
     [KnownAggregationTypeEnum.Minimum]: 2,
@@ -58,6 +57,7 @@ export const METRIC_AGGREGATION_TYPE_TO_TYPE_ID: { [key: string]: number } = {
     [KnownAggregationTypeEnum.Average]: 4,
     [KnownAggregationTypeEnum.Count]: 5
 };
+
 export const MINUTE_MILLISECONDS = 60 * 1000;
 export const HOUR_MILLISECONDS = 60 * MINUTE_MILLISECONDS;
 export const DAY_MILLISECONDS = 24 * HOUR_MILLISECONDS;

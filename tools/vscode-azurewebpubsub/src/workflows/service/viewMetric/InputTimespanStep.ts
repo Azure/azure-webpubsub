@@ -1,7 +1,7 @@
-import  { type IAzureQuickPickItem } from "@microsoft/vscode-azext-utils";
+import { type IAzureQuickPickItem } from "@microsoft/vscode-azext-utils";
 import { AzureWizardPromptStep } from "@microsoft/vscode-azext-utils";
 import { localize } from "../../../utils";
-import  { type IPickMetricsContext } from "../../common/contexts";
+import { type IPickMetricsContext } from "../../common/contexts";
 import { DAY_MILLISECONDS, HOUR_MILLISECONDS } from "../../../constants";
 
 const CUSTOM_TIME_RANGE_FLAG = -1;

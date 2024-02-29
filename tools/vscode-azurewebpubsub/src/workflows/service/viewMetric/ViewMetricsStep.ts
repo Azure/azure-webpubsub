@@ -3,9 +3,9 @@
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
-import  { type AggregationType } from "@azure/arm-monitor";
+import { type AggregationType } from "@azure/arm-monitor";
 import { AzureWizardExecuteStep } from "@microsoft/vscode-azext-utils";
-import  { type IPickMetricsContext, type MetricName } from "src/workflows/common/contexts";
+import { type IPickMetricsContext, type MetricName } from "src/workflows/common/contexts";
 import * as vscode from "vscode";
 import { ext } from "../../../extensionVariables";
 import { localize } from "../../../utils";
