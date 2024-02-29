@@ -1,9 +1,9 @@
-import  { type KeyType} from "@azure/arm-webpubsub";
+import { type KeyType} from "@azure/arm-webpubsub";
 import { KnownKeyType } from "@azure/arm-webpubsub";
-import  { type IAzureQuickPickItem } from "@microsoft/vscode-azext-utils";
+import { type IAzureQuickPickItem } from "@microsoft/vscode-azext-utils";
 import { AzureWizardPromptStep } from "@microsoft/vscode-azext-utils";
 import { localize } from "../../utils";
-import  { type IPickKeyContext } from "./contexts";
+import { type IPickKeyContext } from "./contexts";
 
 const keyTypePickItems: IAzureQuickPickItem<KeyType>[] = [
     { label: "Primary", data: KnownKeyType.Primary },

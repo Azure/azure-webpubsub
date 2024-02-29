@@ -5,7 +5,7 @@
 
 import { KnownKeyType } from "@azure/arm-webpubsub";
 import { AzureWizardExecuteStep } from "@microsoft/vscode-azext-utils";
-import  { type IPickKeyContext } from "src/workflows/common/contexts";
+import { type IPickKeyContext } from "src/workflows/common/contexts";
 import * as vscode from 'vscode';
 import { env, type Progress } from "vscode";
 import { createAzureApiClient, localize } from '../../../utils';

@@ -4,12 +4,12 @@
 *--------------------------------------------------------------------------------------------*/
 
 import { AzureWizard, createSubscriptionContext, type IActionContext } from "@microsoft/vscode-azext-utils";
-import  { type ServiceItem } from "../../../tree/service/ServiceItem";
+import { type ServiceItem } from "../../../tree/service/ServiceItem";
 import * as utils from "../../../utils";
 import { CopyConnectionStringStep } from "./CopyConnectionStringStep";
 import { pickService } from "../../../tree/service/pickService";
 import { createActivityContext, localize } from "../../../utils";
-import  { type IPickKeyContext, type IPickServiceContext } from "../../common/contexts";
+import { type IPickKeyContext, type IPickServiceContext } from "../../common/contexts";
 import { GetKeyTypeStep } from "../../common/getKeyTypeStep";
 
 export async function copyConnectionString(context: IActionContext, node?: ServiceItem): Promise<void> {
