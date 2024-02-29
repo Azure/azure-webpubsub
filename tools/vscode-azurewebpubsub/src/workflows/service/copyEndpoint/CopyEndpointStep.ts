@@ -6,7 +6,7 @@
 import { AzureWizardExecuteStep } from "@microsoft/vscode-azext-utils";
 import * as vscode from 'vscode';
 import { env, type Progress } from "vscode";
-import  { type ICopyEndpointContext } from "./ICopyEndpointContext";
+import { type ICopyEndpointContext } from "./ICopyEndpointContext";
 
 export class CopyEndpointStep extends AzureWizardExecuteStep<ICopyEndpointContext> {
     public priority: number = 110;

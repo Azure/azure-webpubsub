@@ -4,11 +4,11 @@
 *--------------------------------------------------------------------------------------------*/
 
 import { AzureWizard, createSubscriptionContext, type IActionContext } from "@microsoft/vscode-azext-utils";
-import  { type ServiceItem } from "../../../tree/service/ServiceItem";
+import { type ServiceItem } from "../../../tree/service/ServiceItem";
 import * as utils from "../../../utils";
 import { createActivityContext, localize } from '../../../utils';
 import { CopyEndpointStep } from "./CopyEndpointStep";
-import  { type ICopyEndpointContext } from "./ICopyEndpointContext";
+import { type ICopyEndpointContext } from "./ICopyEndpointContext";
 import { pickService } from "../../../tree/service/pickService";
 
 export async function copyServiceEndpoint(context: IActionContext, node?: ServiceItem): Promise<void> {
