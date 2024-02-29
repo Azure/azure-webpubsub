@@ -16,8 +16,7 @@ export class GetKeyTypeStep extends AzureWizardPromptStep<IPickKeyContext> {
             placeHolder: localize("key", `Select key type`),
             suppressPersistence: true,
         });
-        const keyType = chosenItem.data;
-        context.keyType = keyType;
+        context.keyType = chosenItem.data;
     }
 
     public shouldPrompt(_context: IPickKeyContext): boolean { return true; }
