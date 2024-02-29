@@ -29,3 +29,11 @@ export async function createActivityContext(): Promise<ExecuteActivityContext> {
 export function showError(commandName: string, error: Error): void {
     void window.showErrorMessage(`Command "${commandName}" fails. ${error.message}`);
 }
+
+export function createEndpointFromHostName(hostName: string, protocol: "http" | "https" = "https"): string {
+    return `${protocol}://${hostName}`;
+}
+
+export function getHealthApiUrl(endpoint: string): string {
+    return `${endpoint}/api/health`;
+}
