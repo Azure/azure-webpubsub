@@ -3,10 +3,10 @@
 *  Licensed under the MIT License. See License.txt in the project root for license information.
 *--------------------------------------------------------------------------------------------*/
 
-import  { type WebPubSubManagementClient } from "@azure/arm-webpubsub";
+import { type WebPubSubManagementClient } from "@azure/arm-webpubsub";
 import { AzureNameStep } from "@microsoft/vscode-azext-utils";
 import { localize } from "../../../../utils";
-import  { type ICreateServiceContext } from "../ICreateServiceContext";
+import { type ICreateServiceContext } from "../ICreateServiceContext";
 import { VALID_SERVICE_NAME_DESC, VALID_SERVICE_NAME_REGEX, WEB_PUBSUB_PROVIDER } from "../../../../constants";
 
 export class InputServiceNameStep extends AzureNameStep<ICreateServiceContext> {

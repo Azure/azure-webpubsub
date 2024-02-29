@@ -3,11 +3,11 @@
 *  Licensed under the MIT License. See License.txt in the project root for license information.
 *--------------------------------------------------------------------------------------------*/
 
-import  { KnownWebPubSubSkuTier, type WebPubSubManagementClient } from "@azure/arm-webpubsub";
+import { KnownWebPubSubSkuTier, type WebPubSubManagementClient } from "@azure/arm-webpubsub";
 import { AzureWizardExecuteStep, nonNullProp } from "@microsoft/vscode-azext-utils";
-import  { type Progress } from "vscode";
+import { type Progress } from "vscode";
 import { localize } from "../../../../utils";
-import  { type ICreateServiceContext } from "../ICreateServiceContext";
+import { type ICreateServiceContext } from "../ICreateServiceContext";
 import { KnownWebPubSubSkuName } from "../../../../constants";
 
 export class CreateServiceStep extends AzureWizardExecuteStep<ICreateServiceContext> {

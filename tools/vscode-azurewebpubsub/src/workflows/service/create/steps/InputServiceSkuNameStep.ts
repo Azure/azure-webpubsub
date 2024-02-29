@@ -3,11 +3,11 @@
 *  Licensed under the MIT License. See License.txt in the project root for license information.
 *--------------------------------------------------------------------------------------------*/
 
-import  { type IAzureQuickPickItem } from "@microsoft/vscode-azext-utils";
+import { type IAzureQuickPickItem } from "@microsoft/vscode-azext-utils";
 import { AzureWizardPromptStep } from "@microsoft/vscode-azext-utils";
 import { localize } from "../../../../utils";
-import  { type ICreateServiceContext } from "../ICreateServiceContext";
-import  { type WebPubSubSkuName} from "../../../../constants";
+import { type ICreateServiceContext } from "../ICreateServiceContext";
+import { type WebPubSubSkuName} from "../../../../constants";
 import { KnownWebPubSubSkuName, SKU_NAME_TO_SKU_TIER, SKU_NAME_TO_DESC, pricingLink } from "../../../../constants";
 
 const skuNamePickItems: IAzureQuickPickItem<WebPubSubSkuName>[] = [

@@ -3,15 +3,15 @@
 *  Licensed under the MIT License. See License.txt in the project root for license information.
 *--------------------------------------------------------------------------------------------*/
 
-import  { type IActionContext, type TreeElementBase} from "@microsoft/vscode-azext-utils";
+import { type IActionContext, type TreeElementBase} from "@microsoft/vscode-azext-utils";
 import { createContextValue, createGenericElement, nonNullValueAndProp } from "@microsoft/vscode-azext-utils";
-import  { type AzureResourceModel, type AzureSubscription, type ViewPropertiesModel } from '@microsoft/vscode-azureresources-api';
+import { type AzureResourceModel, type AzureSubscription, type ViewPropertiesModel } from '@microsoft/vscode-azureresources-api';
 import * as vscode from 'vscode';
 import { createWebPubSubAPIClient, localize } from '../../utils';
-import  { type ServiceItem } from "../service/ServiceItem";
+import { type ServiceItem } from "../service/ServiceItem";
 import { EventHandlersItem } from "./EventHandlers/EventHandlersItem";
 import { EventListenersItem } from "./EventListeners/EventListenersItem";
-import  { type HubSettingModel} from "./HubSettingModel";
+import { type HubSettingModel} from "./HubSettingModel";
 import { createHubModel } from "./HubSettingModel";
 
 export class HubSettingItem implements AzureResourceModel {
@@ -30,7 +30,7 @@ export class HubSettingItem implements AzureResourceModel {
     async getChildren(): Promise<TreeElementBase[]> {
         const isAllowAnnoy: boolean = this.hub.properties.anonymousConnectPolicy === "allow";
         const element = createGenericElement({
-            label: localize('annoymousConnectPolicy',  "{0} Annoymous Clients", isAllowAnnoy ? "Allow" : "Deny"),
+            label: localize('annoymousConnectPolicy', "{0} Annoymous Clients", isAllowAnnoy ? "Allow" : "Deny"),
             contextValue: "hubAllowAnnoymousClients",
             iconPath: new vscode.ThemeIcon(isAllowAnnoy ? "workspace-unknown" : "workspace-trusted"),
         })

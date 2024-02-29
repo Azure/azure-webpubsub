@@ -6,7 +6,7 @@
 import { ContextValueQuickPickStep, runQuickPickWizard, type AzureResourceQuickPickWizardContext, type AzureWizardPromptStep, type IActionContext } from "@microsoft/vscode-azext-utils";
 import { ext } from "../../extensionVariables";
 import { localize } from "../../utils";
-import  { type PickItemOptions } from "../utils";
+import { type PickItemOptions } from "../utils";
 import { getPickServiceSteps } from "../service/pickService";
 import { HubSettingsItem } from "./HubSettingsItem";
 

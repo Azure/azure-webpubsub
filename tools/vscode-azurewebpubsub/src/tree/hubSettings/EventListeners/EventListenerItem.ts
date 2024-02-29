@@ -3,11 +3,11 @@
 *  Licensed under the MIT License. See License.txt in the project root for license information.
 *--------------------------------------------------------------------------------------------*/
 
-import  { type EventListener } from "@azure/arm-webpubsub";
-import  { type TreeElementBase} from "@microsoft/vscode-azext-utils";
+import { type EventListener } from "@azure/arm-webpubsub";
+import { type TreeElementBase} from "@microsoft/vscode-azext-utils";
 import { createContextValue } from "@microsoft/vscode-azext-utils";
-import  { type ViewPropertiesModel } from "@microsoft/vscode-azureresources-api";
-import  { type HubSettingsItem } from "../HubSettingsItem";
+import { type ViewPropertiesModel } from "@microsoft/vscode-azureresources-api";
+import { type HubSettingsItem } from "../HubSettingsItem";
 import * as vscode from 'vscode';
 import { localize } from "../../../utils";
 

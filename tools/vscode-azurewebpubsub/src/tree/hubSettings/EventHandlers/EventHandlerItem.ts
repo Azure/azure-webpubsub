@@ -3,12 +3,12 @@
 *  Licensed under the MIT License. See License.txt in the project root for license information.
 *--------------------------------------------------------------------------------------------*/
 
-import  { type EventHandler } from "@azure/arm-webpubsub";
-import  { type TreeElementBase} from "@microsoft/vscode-azext-utils";
+import { type EventHandler } from "@azure/arm-webpubsub";
+import { type TreeElementBase} from "@microsoft/vscode-azext-utils";
 import { createContextValue } from "@microsoft/vscode-azext-utils";
-import  { type ViewPropertiesModel } from "@microsoft/vscode-azureresources-api";
+import { type ViewPropertiesModel } from "@microsoft/vscode-azureresources-api";
 import * as vscode from 'vscode';
-import  { type EventHandlersItem } from "./EventHandlersItem";
+import { type EventHandlersItem } from "./EventHandlersItem";
 import { localize } from "../../../utils";
 
 export class EventHandlerItem implements TreeElementBase {

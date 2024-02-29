@@ -3,7 +3,7 @@
 *  Licensed under the MIT License. See License.txt in the project root for license information.
 *--------------------------------------------------------------------------------------------*/
 
-import  { type WebPubSubHub } from "@azure/arm-webpubsub";
+import { type WebPubSubHub } from "@azure/arm-webpubsub";
 import { getResourceGroupFromId } from "@microsoft/vscode-azext-azureutils";
 import { nonNullProp } from "@microsoft/vscode-azext-utils";
 
