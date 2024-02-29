@@ -91,12 +91,23 @@
                 "title": "%azureWebPubSub.service.createSocketIO%",
                 "category": "Azure Web PubSub",
                 "icon": "$(add)"
+            },
+            {
+                "command": "azureWebPubSub.service.restart",
+                "title": "%azureWebPubSub.service.restart%",
+                "category": "Azure Web PubSub",
+                "icon": "$(debug-restart)"
             }
         ],
         "menus": {
             "commandPalette": [],
             "explorer/context": [],
-            "view/item/context": []
+            "view/item/context": [
+                {
+                    "command": "azureWebPubSub.service.restart",
+                    "when": "view =~ /(azureResourceGroups|azureFocusView)/ && viewItem =~ /webPubSubServiceItem/i"
+                }
+            ]
         },
         "configuration": [
             {
