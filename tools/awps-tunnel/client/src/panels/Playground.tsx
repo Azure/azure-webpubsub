@@ -39,6 +39,7 @@ interface TestClientViewModel extends TestClientTemplate {
   connection?: ConnectionHandler;
   counter: number;
   type: string;
+  status?: ConnectionStatus;
 }
 
 let clientCounter = 0;
@@ -61,7 +62,9 @@ export const Playground = (props: PlaygroundProps) => {
     return () => clearInterval(intervalId);
   }, [dataFetcher]);
 
-  useEffect(() => {}, []);
+  useEffect(() => {
+    props.onStatusChange(clients.some((i) => i.status === ConnectionStatus.Connected) ? ConnectionStatus.Connected : ConnectionStatus.Disconnected);
+  }, [clients, props]);
   function addTestClient(template: TestClientTemplate) {
     // TODO: when there are multiple clients with the same type in the future, we need an id generator
     clientCounter++;
@@ -90,8 +93,10 @@ export const Playground = (props: PlaygroundProps) => {
                   <DialogTrigger action="close">
                     <Button appearance="subtle" aria-label="close" icon={<Dismiss24Regular />} />
                   </DialogTrigger>
-                } 
-              >Select a Test Client</DialogTitle>
+                }
+              >
+                Select a Test Client
+              </DialogTitle>
               <DialogContent>
                 <div className="m-2 d-flex">
                   {availableClients.map((i) => (
@@ -138,28 +143,24 @@ export const Playground = (props: PlaygroundProps) => {
         ))}
       </TabList>
       {clients.map((section, index) => {
-        switch (section.type) {
-          case "websocket":
-            return (
-              <div className="flex-fill d-flex flex-column" key={section.id} hidden={section.id !== selectedClient}>
-                <SimpleClientSection onStatusChange={props.onStatusChange} url={url}></SimpleClientSection>
-              </div>
-            );
-          case "webpubsub":
-            return (
-              <div className="flex-fill d-flex flex-column" key={section.id} hidden={section.id !== selectedClient}>
-                <SubprotocolClientSection onStatusChange={props.onStatusChange} url={url}></SubprotocolClientSection>
-              </div>
-            );
-          case "mqtt5":
-            return (
-              <div className="flex-fill d-flex flex-column" key={section.id} hidden={section.id !== selectedClient}>
-                <MqttClientSection onStatusChange={props.onStatusChange} url={url}></MqttClientSection>
-              </div>
-            );
-          default:
-            throw new Error("Unknown client type");
-        }
+        const ClientComponent = section.type === "websocket" ? SimpleClientSection : section.type === "webpubsub" ? SubprotocolClientSection : MqttClientSection;
+        return (
+          <div className="flex-fill d-flex flex-column" key={section.id} hidden={section.id !== selectedClient}>
+            <ClientComponent
+              onStatusChange={(s) => {
+                setClients((i) => {
+                  return i.map((c) => {
+                    if (c.id === section.id) {
+                      return { ...c, status: s };
+                    }
+                    return c;
+                  });
+                });
+              }}
+              url={url}
+            ></ClientComponent>
+          </div>
+        );
       })}
     </div>
   );

@@ -1,17 +1,14 @@
-import { useState, useRef, Component, useEffect } from "react";
-import { Checkbox, Dropdown, Option, Textarea, Input, Label, Tab, TabList, TabValue, Divider, Field, InfoLabel, LabelProps } from "@fluentui/react-components";
+import { useState, useRef, useEffect } from "react";
+import { Checkbox, Dropdown, Option, Textarea, Input, Label, Tab, TabList, TabValue, Field, InfoLabel, MessageBar } from "@fluentui/react-components";
 import { DefaultButton, DetailsList, DetailsListLayoutMode, SelectionMode } from "@fluentui/react";
 import { ResizablePanel } from "../../components/ResizablePanel";
 import { TrafficItem } from "../../components/TrafficItem";
 import { ConnectionStatus } from "../../models";
-import { MessageBar, MessageBarBody } from "@fluentui/react-components";
-import { ClientPannelProps, PlaygroundState } from "../Playground";
+import { ClientPannelProps } from "../Playground";
 import { SendMessageError, WebPubSubClient, WebPubSubJsonProtocol, WebPubSubJsonReliableProtocol } from "@azure/web-pubsub-client";
 import { useDataContext } from "../../providers/DataContext";
 import { Card, CardFooter, CardHeader, CardPreview } from "@fluentui/react-components";
-import { error } from "console";
 
-type SupportedAPIType = "event" | "sendToGroup" | "joinGroup" | "leaveGroup";
 interface TrafficItemViewModel {
   content: string;
   up: boolean;
@@ -22,17 +19,20 @@ interface SupportedAPI {
   name: string;
   component: (props: APIComponentProps) => JSX.Element;
 }
+
 // following https://learn.microsoft.com/azure/azure-web-pubsub/reference-json-webpubsub-subprotocol
 type JoinGroupAPIParameters = {
   type: "joinGroup";
   group: string;
   ackId?: number;
 };
+
 type LeaveGroupAPIParameters = {
   type: "leaveGroup";
   group: string;
   ackId?: number;
 };
+
 type SendToGroupAPIParameters = {
   type: "sendToGroup";
   group: string;
@@ -197,16 +197,16 @@ function SendEvent(props: APIComponentProps) {
   );
 }
 
+const supportedAPIs: SupportedAPI[] = [
+  { key: "joinGroup", name: "Join Group", component: JoinGroup },
+  { key: "leaveGroup", name: "Leave Group", component: LeaveGroup },
+  { key: "sendToGroup", name: "Send to Group", component: SendToGroup },
+  { key: "sendEvent", name: "Send Event", component: SendEvent },
+];
+
 function ConnectPane({ connected, onSendingMessage, sendError }: { connected: boolean; sendError: string; onSendingMessage: (message: APIParameters) => void }) {
   const [params, setParams] = useState<APIParameters | undefined>(undefined);
   const [message, setMessage] = useState("");
-
-  const supportedAPIs: SupportedAPI[] = [
-    { key: "joinGroup", name: "Join Group", component: JoinGroup },
-    { key: "leaveGroup", name: "Leave Group", component: LeaveGroup },
-    { key: "sendToGroup", name: "Send to Group", component: SendToGroup },
-    { key: "sendEvent", name: "Send Event", component: SendEvent },
-  ];
   const [selectedAPI, setSelectedAPI] = useState<TabValue>(supportedAPIs[0].key);
 
   const send = () => {
@@ -216,57 +216,55 @@ function ConnectPane({ connected, onSendingMessage, sendError }: { connected: bo
   };
 
   return (
-    <>
-      <div className="d-flex flex-column flex-fill">
-        <b>Supported APIs</b>
-        <div className="d-flex flex-row flex-fill">
-          <TabList
-            defaultSelectedValue={selectedAPI}
-            vertical
-            onTabSelect={(_, d) => {
-              setSelectedAPI(d.value);
-            }}
-          >
-            {supportedAPIs.map((api) => (
-              <Tab value={api.key} key={api.key}>
-                {api.name}
-              </Tab>
-            ))}
-          </TabList>
-          <Card className="d-flex flex-column flex-fill">
-            {supportedAPIs.map((api) => {
-              if (api.key === selectedAPI) {
-                const Component = api.component;
-                return (
-                  <div key={api.key} className="d-flex flex-fill">
-                    <Component
-                      onMessageChange={(message) => {
-                        if (message) {
-                          setParams(message);
-                          setMessage(JSON.stringify(message, null, 2));
-                        } else {
-                          setMessage("");
-                        }
-                      }}
-                      onError={(e) => {
-                        setParams(undefined);
+    <div className="d-flex flex-column flex-fill">
+      <b>Supported APIs</b>
+      <div className="d-flex flex-row flex-fill">
+        <TabList
+          defaultSelectedValue={selectedAPI}
+          vertical
+          onTabSelect={(_, d) => {
+            setSelectedAPI(d.value);
+          }}
+        >
+          {supportedAPIs.map((api) => (
+            <Tab value={api.key} key={api.key}>
+              {api.name}
+            </Tab>
+          ))}
+        </TabList>
+        <Card className="d-flex flex-column flex-fill">
+          {supportedAPIs.map((api) => {
+            if (api.key === selectedAPI) {
+              const Component = api.component;
+              return (
+                <div key={api.key} className="d-flex flex-fill">
+                  <Component
+                    onMessageChange={(message) => {
+                      if (message) {
+                        setParams(message);
+                        setMessage(JSON.stringify(message, null, 2));
+                      } else {
                         setMessage("");
-                      }}
-                    />
-                  </div>
-                );
-              }
-            })}
-          </Card>
-        </div>
-        <div className="d-flex flex-column flex-fill">
-          <b>Generated payload</b>
-          <textarea readOnly className="flex-fill" value={message} />
-        </div>
-        {sendError && <MessageBar intent="warning">{sendError}</MessageBar>}
-        <DefaultButton disabled={!connected || !message} text="Send" onClick={send}></DefaultButton>
+                      }
+                    }}
+                    onError={(e) => {
+                      setParams(undefined);
+                      setMessage("");
+                    }}
+                  />
+                </div>
+              );
+            } else return <></>
+          })}
+        </Card>
       </div>
-    </>
+      <div className="d-flex flex-column flex-fill">
+        <b>Generated payload</b>
+        <textarea readOnly className="flex-fill" value={message} />
+      </div>
+      {sendError && <MessageBar intent="warning">{sendError}</MessageBar>}
+      <DefaultButton disabled={!connected || !message} text="Send" onClick={send}></DefaultButton>
+    </div>
   );
 }
 
@@ -317,13 +315,12 @@ export const SubprotocolClientSection = ({ onStatusChange, url }: ClientPannelPr
     connection.on("server-message", (e) => {
       console.log(`Received message ${e.message.data}`);
       // TODO: data could be ArrayBuffer or JSONTypes
-      setTraffic((t) => [{ content: e.message.data.toString(), up: false }, ...t]);
+      setTraffic((t) => [{ content: JSON.stringify(e.message.data), up: false }, ...t]);
     });
 
     // Registers a listener for the "group-message". The callback will be invoked when the client receives a message from the groups it has joined.
     connection.on("group-message", (e) => {
-      setTraffic((t) => [{ content: e.message.data.toString(), up: false }, ...t]);
-      console.log(`Received message from ${e.message.group}: ${e.message.data}`);
+      setTraffic((t) => [{ content: JSON.stringify(e.message), up: false }, ...t]);
     });
     try {
       await connection.start();
@@ -343,7 +340,6 @@ export const SubprotocolClientSection = ({ onStatusChange, url }: ClientPannelPr
     setSendError("");
     if (!connectionRef.current) {
       setSendError("Connection is not yet connected");
-      console.error("Connection is not connected");
       return;
     }
     try {
