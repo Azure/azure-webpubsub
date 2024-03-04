@@ -97,13 +97,13 @@
                 "title": "%azureWebPubSub.service.delete%",
                 "category": "Azure Web PubSub",
                 "icon": "$(remove)"
-            }
+            },
             {
 
                 "command": "azureWebPubSub.service.copyConnectionString",
                 "title": "%azureWebPubSub.service.copyConnectionString%",
                 "category": "Azure Web PubSub"
-            },
+            }
         ],
         "menus": {
             "commandPalette": [],
