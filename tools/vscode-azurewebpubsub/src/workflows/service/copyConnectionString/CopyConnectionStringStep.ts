@@ -19,7 +19,7 @@ export class CopyConnectionStringStep extends AzureWizardExecuteStep<IPickKeyCon
         }
 
         const client = await createAzureApiClient([context, context.subscription]);
-        progress.report({ message: localize('takeSeveralSeconds', 'Copying connection string, please wait...') });
+        progress.report({ message: localize('copyConnectionString', 'Copying connection string, please wait...') });
 
         const keys = await client.webPubSub.listKeys(context.resourceGroupName, context.serviceName);
         const connString = context.keyType === KnownKeyType.Primary ? keys.primaryConnectionString : keys.secondaryConnectionString;
