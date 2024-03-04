@@ -9,8 +9,9 @@ import { showError } from "./utils";
 import { createServiceInPortal } from "./workflows/service/create/createServiceInPortal";
 import { createServiceForClassical, createServiceForSocketIO } from "./workflows/service/create/createService";
 import { restartService } from "./workflows/service/restart/restartService";
-import { copyConnectionString } from "./workflows/service/copyConnectionString/copyConnectionString";
 import { deleteService } from "./workflows/service/delete/deleteService";
+import { copyServiceEndpoint } from "./workflows/service/copyEndpoint/copyEndpoint";
+import { copyConnectionString } from "./workflows/service/copyConnectionString/copyConnectionString";
 
 function registerCommandWithTelemetryWrapper(commandId: string, callback: CommandCallback): void {
     // eslint-disable-next-line @typescript-eslint/no-unsafe-return
@@ -37,4 +38,5 @@ export function registerCommands(): void {
     registerCommandWithTelemetryWrapper('azureWebPubSub.service.delete', deleteService);
     registerCommandWithTelemetryWrapper('azureWebPubSub.service.restart', restartService);
     registerCommandWithTelemetryWrapper('azureWebPubSub.service.copyConnectionString', copyConnectionString);
+    registerCommandWithTelemetryWrapper('azureWebPubSub.service.copyEndpoint', copyServiceEndpoint);
 }

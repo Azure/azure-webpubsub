@@ -8,6 +8,6 @@
     "azureWebPubSub.service.createSocketIO.detail": "Web PubSub for Socket.IO supports Socket.IO protocol, client and server SDKs.",
     "azureWebPubSub.service.delete": "Delete Service",
     "azureWebPubSub.service.restart": "Restart Service",
-    "azureWebPubSub.service.copyConnectionString": "Copy Connection String"
-    
+    "azureWebPubSub.service.copyConnectionString": "Copy Connection String",
+    "azureWebPubSub.service.copyEndpoint": "Copy Service Endpoint"
 }

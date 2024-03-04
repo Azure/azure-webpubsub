@@ -105,9 +105,13 @@
                 "icon": "$(debug-restart)"
             },
             {
-
                 "command": "azureWebPubSub.service.copyConnectionString",
                 "title": "%azureWebPubSub.service.copyConnectionString%",
+                "category": "Azure Web PubSub"
+            },
+            {
+                "command": "azureWebPubSub.service.copyEndpoint",
+                "title": "%azureWebPubSub.service.copyEndpoint%",
                 "category": "Azure Web PubSub"
             }
         ],
@@ -125,6 +129,10 @@
                 },
                 {
                     "command": "azureWebPubSub.service.copyConnectionString",
+                    "when": "view =~ /(azureResourceGroups|azureFocusView)/ && viewItem =~ /webPubSubServiceItem/i"
+                },
+                {
+                    "command": "azureWebPubSub.service.copyEndpoint",
                     "when": "view =~ /(azureResourceGroups|azureFocusView)/ && viewItem =~ /webPubSubServiceItem/i"
                 }
             ]
