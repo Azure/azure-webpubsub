@@ -99,6 +99,12 @@
                 "icon": "$(remove)"
             },
             {
+                "command": "azureWebPubSub.service.restart",
+                "title": "%azureWebPubSub.service.restart%",
+                "category": "Azure Web PubSub",
+                "icon": "$(debug-restart)"
+            },
+            {
 
                 "command": "azureWebPubSub.service.copyConnectionString",
                 "title": "%azureWebPubSub.service.copyConnectionString%",
@@ -110,7 +116,11 @@
             "explorer/context": [],
             "view/item/context": [
                 {
-                    "command": "azureWebPubSub.service.delete",
+                    "command": "azureWebPubSub.service.delete",                    
+                    "when": "view =~ /(azureResourceGroups|azureFocusView)/ && viewItem =~ /webPubSubServiceItem/i"
+                },
+                {
+                    "command": "azureWebPubSub.service.restart",                    
                     "when": "view =~ /(azureResourceGroups|azureFocusView)/ && viewItem =~ /webPubSubServiceItem/i"
                 },
                 {
