@@ -93,6 +93,17 @@
                 "icon": "$(add)"
             },
             {
+                "command": "azureWebPubSub.service.delete",
+                "title": "%azureWebPubSub.service.delete%",
+                "category": "Azure Web PubSub",
+                "icon": "$(remove)"
+            },
+            {
+                "command": "azureWebPubSub.service.copyConnectionString",
+                "title": "%azureWebPubSub.service.copyConnectionString%",
+                "category": "Azure Web PubSub"
+            },
+            {
                 "command": "azureWebPubSub.service.copyEndpoint",
                 "title": "%azureWebPubSub.service.copyEndpoint%",
                 "category": "Azure Web PubSub"
@@ -102,6 +113,14 @@
             "commandPalette": [],
             "explorer/context": [],
             "view/item/context": [
+                {
+                    "command": "azureWebPubSub.service.delete",
+                    "when": "view =~ /(azureResourceGroups|azureFocusView)/ && viewItem =~ /webPubSubServiceItem/i"
+                },
+                {
+                    "command": "azureWebPubSub.service.copyConnectionString",
+                    "when": "view =~ /(azureResourceGroups|azureFocusView)/ && viewItem =~ /webPubSubServiceItem/i"
+                },
                 {
                     "command": "azureWebPubSub.service.copyEndpoint",
                     "when": "view =~ /(azureResourceGroups|azureFocusView)/ && viewItem =~ /webPubSubServiceItem/i"
