@@ -12,7 +12,7 @@ export class RestartWebPubSubConfirmationStep extends AzureWizardPromptStep<IPic
 
     public async prompt(context: IPickServiceContext): Promise<void> {
         this.serviceName = context.serviceName;
-        const prompt: string = localize('enterToRestart', 'Enter "{0}" to restart this Web PubSub resource', context.serviceName);
+        const prompt: string = localize('confirmRestart', 'Restarting causes the service to be temporarily unavailable. Would you like to continue? Enter "{0}" to confirm', context.serviceName);
 
         const result: string = await context.ui.showInputBox({
             prompt: prompt,
