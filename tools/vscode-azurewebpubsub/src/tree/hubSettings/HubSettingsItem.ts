@@ -1,13 +1,13 @@
 import { uiUtils } from "@microsoft/vscode-azext-azureutils";
-import  { type IActionContext, type TreeElementBase} from "@microsoft/vscode-azext-utils";
+import { type IActionContext, type TreeElementBase} from "@microsoft/vscode-azext-utils";
 import { callWithTelemetryAndErrorHandling, createContextValue } from "@microsoft/vscode-azext-utils";
-import  { type AzureSubscription } from '@microsoft/vscode-azureresources-api';
+import { type AzureSubscription } from '@microsoft/vscode-azureresources-api';
 import * as vscode from 'vscode';
-import  { type ServiceItem } from "../service/ServiceItem";
+import { type ServiceItem } from "../service/ServiceItem";
 import { HubSettingItem } from "./HubSettingItem";
 import { createWebPubSubAPIClient, localize } from "../../utils";
 import { sortById } from "../utils";
-import  { type HubSettingModel} from "./HubSettingModel";
+import { type HubSettingModel} from "./HubSettingModel";
 import { createHubModel } from "./HubSettingModel";
 
 export class HubSettingsItem implements TreeElementBase {

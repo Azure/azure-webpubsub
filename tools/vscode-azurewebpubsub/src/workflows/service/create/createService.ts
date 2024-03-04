@@ -3,17 +3,17 @@
 *  Licensed under the MIT License. See License.txt in the project root for license information.
 *--------------------------------------------------------------------------------------------*/
 
-import  { type ResourceSku} from "@azure/arm-webpubsub";
+import { type ResourceSku} from "@azure/arm-webpubsub";
 import { KnownServiceKind, WebPubSubManagementClient } from "@azure/arm-webpubsub";
 import { LocationListStep, ResourceGroupListStep, VerifyProvidersStep, createAzureClient } from "@microsoft/vscode-azext-azureutils";
-import  { type AzureWizardExecuteStep, type AzureWizardPromptStep, type IActionContext} from "@microsoft/vscode-azext-utils";
+import { type AzureWizardExecuteStep, type AzureWizardPromptStep, type IActionContext} from "@microsoft/vscode-azext-utils";
 import { AzureWizard, createSubscriptionContext, subscriptionExperience } from "@microsoft/vscode-azext-utils";
-import  { type AzureSubscription } from "@microsoft/vscode-azureresources-api";
+import { type AzureSubscription } from "@microsoft/vscode-azureresources-api";
 import * as vscode from "vscode";
 import { SIGNALR_PROVIDER, WEB_PUBSUB_PROVIDER, WEB_PUBSUB_RESOURCE_TYPE } from "../../../constants";
 import { ext } from "../../../extensionVariables";
 import { CreateServiceStep } from "./steps/CreateServiceStep";
-import  { type ICreateServiceContext } from "./ICreateServiceContext";
+import { type ICreateServiceContext } from "./ICreateServiceContext";
 import { InputSerivceSkuUnitCountStep } from "./steps/InputSerivceSkuUnitCountStep";
 import { InputServiceNameStep } from "./steps/InputServiceNameStep";
 import { InputServiceSkuNameStep } from "./steps/InputServiceSkuNameStep";

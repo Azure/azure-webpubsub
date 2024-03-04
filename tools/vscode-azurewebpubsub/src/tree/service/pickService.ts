@@ -4,11 +4,11 @@
 *--------------------------------------------------------------------------------------------*/
 
 import { ContextValueQuickPickStep, QuickPickAzureSubscriptionStep, QuickPickGroupStep, runQuickPickWizard, type AzureResourceQuickPickWizardContext, type AzureWizardPromptStep, type IActionContext } from "@microsoft/vscode-azext-utils";
-import  { type AzExtResourceType } from "@microsoft/vscode-azureresources-api";
+import { type AzExtResourceType } from "@microsoft/vscode-azureresources-api";
 import { ext } from "../../extensionVariables";
 import { localize } from "../../utils";
 import { ServiceItem } from "../service/ServiceItem";
-import  { type PickItemOptions } from "../utils";
+import { type PickItemOptions } from "../utils";
 import { WEB_PUBSUB_RESOURCE_TYPE } from "../../constants";
 
 export async function pickService(context: IActionContext, options?: PickItemOptions): Promise<ServiceItem> {

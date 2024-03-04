@@ -6,7 +6,7 @@
 'use strict';
 
 import { registerAzureUtilsExtensionVariables } from '@microsoft/vscode-azext-azureutils';
-import  { type IActionContext} from '@microsoft/vscode-azext-utils';
+import { type IActionContext} from '@microsoft/vscode-azext-utils';
 import { TreeElementStateManager, callWithTelemetryAndErrorHandling, createAzExtOutputChannel, registerUIExtensionVariables } from '@microsoft/vscode-azext-utils';
 import type * as vscode from 'vscode';
 import { registerCommands } from './commands';

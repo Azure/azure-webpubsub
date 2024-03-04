@@ -3,7 +3,7 @@
 *  Licensed under the MIT License. See License.txt in the project root for license information.
 *--------------------------------------------------------------------------------------------*/
 
-import  { type WebPubSubSkuTier } from "@azure/arm-webpubsub";
+import { type WebPubSubSkuTier } from "@azure/arm-webpubsub";
 import { KnownWebPubSubSkuTier } from "@azure/arm-webpubsub";
 
 export const SIGNALR_PROVIDER = 'Microsoft.SignalRService';

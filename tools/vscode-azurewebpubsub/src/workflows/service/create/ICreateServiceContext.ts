@@ -4,9 +4,9 @@
 *--------------------------------------------------------------------------------------------*/
 
 // eslint-disable-next-line @typescript-eslint/naming-convention
-import  { type Sku } from "@azure/arm-webpubsub";
-import  { type IResourceGroupWizardContext } from '@microsoft/vscode-azext-azureutils';
-import  { type ExecuteActivityContext } from "@microsoft/vscode-azext-utils";
+import { type Sku } from "@azure/arm-webpubsub";
+import { type IResourceGroupWizardContext } from '@microsoft/vscode-azext-azureutils';
+import { type ExecuteActivityContext } from "@microsoft/vscode-azext-utils";
 
 
 export interface ICreateServiceContext extends IResourceGroupWizardContext, ExecuteActivityContext {

@@ -3,17 +3,17 @@
 *  Licensed under the MIT License. See License.txt in the project root for license information.
 *--------------------------------------------------------------------------------------------*/
 
-import  { type WebPubSubResource } from "@azure/arm-webpubsub";
+import { type WebPubSubResource } from "@azure/arm-webpubsub";
 import { KnownServiceKind } from "@azure/arm-webpubsub";
 import { getResourceGroupFromId, uiUtils } from "@microsoft/vscode-azext-azureutils";
-import  { type IActionContext, type TreeElementBase} from "@microsoft/vscode-azext-utils";
+import { type IActionContext, type TreeElementBase} from "@microsoft/vscode-azext-utils";
 import { createContextValue } from "@microsoft/vscode-azext-utils";
-import  { type AzureResource, type AzureResourceModel, type AzureSubscription, type ViewPropertiesModel } from '@microsoft/vscode-azureresources-api';
+import { type AzureResource, type AzureResourceModel, type AzureSubscription, type ViewPropertiesModel } from '@microsoft/vscode-azureresources-api';
 import * as vscode from 'vscode';
 import { createWebPubSubAPIClient } from "../../utils";
 import { getServiceIconPath } from "../utils";
 import { ServicePropertiesItem } from "./ServicePropertiesItem";
-import  { type ServiceModel } from "./ServiceModel";
+import { type ServiceModel } from "./ServiceModel";
 import { HubSettingsItem } from "../hubSettings/HubSettingsItem";
 
 export class ServiceItem implements AzureResourceModel {

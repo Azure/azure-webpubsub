@@ -7,7 +7,7 @@ import { ContextValueQuickPickStep, runQuickPickWizard, type AzureResourceQuickP
 import { ext } from "../../../extensionVariables";
 import { localize } from "../../../utils";
 import { getPickHubSteps } from "../pickHubSetting";
-import  { type PickItemOptions } from "../../utils";
+import { type PickItemOptions } from "../../utils";
 import { EventHandlerItem } from "./EventHandlerItem";
 
 export async function pickEventHandler(context: IActionContext, options?: PickItemOptions): Promise<EventHandlerItem> {

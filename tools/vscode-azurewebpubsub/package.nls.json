@@ -6,5 +6,9 @@
     "azureWebPubSub.service.createClassical.detail": "A fully managed service that supports WebSockets for real-time application development.",
     "azureWebPubSub.service.createSocketIO": "Create Web PubSub Service For Socket.IO",
     "azureWebPubSub.service.createSocketIO.detail": "Web PubSub for Socket.IO supports Socket.IO protocol, client and server SDKs.",
+    "azureWebPubSub.service.delete": "Delete Service",
+    "azureWebPubSub.service.restart": "Restart Service",
+    "azureWebPubSub.service.copyConnectionString": "Copy Connection String",
+    "azureWebPubSub.service.copyEndpoint": "Copy Service Endpoint",
     "azureWebPubSub.service.openLiveTraceTool": "Open Live Trace Tool"
 }

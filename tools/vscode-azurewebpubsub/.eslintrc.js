@@ -9,6 +9,7 @@ module.exports = {
                 ],
                 "format": ["camelCase"],
             }
-        ]
+        ],
+        "no-multi-spaces": ["warn"]
     }
 };
