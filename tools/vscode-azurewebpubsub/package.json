@@ -91,12 +91,23 @@
                 "title": "%azureWebPubSub.service.createSocketIO%",
                 "category": "Azure Web PubSub",
                 "icon": "$(add)"
+            },
+            {
+                "command": "azureWebPubSub.service.delete",
+                "title": "%azureWebPubSub.service.delete%",
+                "category": "Azure Web PubSub",
+                "icon": "$(remove)"
             }
         ],
         "menus": {
             "commandPalette": [],
             "explorer/context": [],
-            "view/item/context": []
+            "view/item/context": [
+                {
+                    "command": "azureWebPubSub.service.delete",
+                    "when": "view =~ /(azureResourceGroups|azureFocusView)/ && viewItem =~ /webPubSubServiceItem/i"
+                }
+            ]
         },
         "configuration": [
             {
