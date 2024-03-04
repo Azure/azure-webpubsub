@@ -4,7 +4,7 @@
  *--------------------------------------------------------------------------------------------*/
 
 import { AzureWizardExecuteStep } from "@microsoft/vscode-azext-utils";
-import  { type IPickServiceContext } from "src/workflows/common/contexts";
+import { type IPickServiceContext } from "src/workflows/common/contexts";
 import * as vscode from 'vscode';
 import { createAzureApiClient, createEndpointFromHostName, localize } from '../../../utils';
 import * as jwt from "jsonwebtoken";
