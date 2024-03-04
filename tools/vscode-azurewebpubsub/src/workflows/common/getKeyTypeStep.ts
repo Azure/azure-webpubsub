@@ -12,12 +12,7 @@ const keyTypePickItems: IAzureQuickPickItem<KeyType>[] = [
 
 export class GetKeyTypeStep extends AzureWizardPromptStep<IPickKeyContext> {
     public async prompt(context: IPickKeyContext): Promise<void> {
-        const chosenItem = await context.ui.showQuickPick(keyTypePickItems, {
-            placeHolder: localize("key", `Select key type`),
-            suppressPersistence: true,
-        });
-        const keyType = chosenItem.data;
-        context.keyType = keyType;
+        context.keyType = (await context.ui.showQuickPick(keyTypePickItems, { placeHolder: localize("key", `Select key type`)})).data;
     }
 
     public shouldPrompt(_context: IPickKeyContext): boolean { return true; }
