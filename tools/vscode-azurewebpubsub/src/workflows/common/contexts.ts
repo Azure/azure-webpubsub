@@ -3,8 +3,9 @@
 *  Licensed under the MIT License. See License.txt in the project root for license information.
 *--------------------------------------------------------------------------------------------*/
 
-import { type EventListener} from "@azure/arm-webpubsub";
-import { type EventHandler} from "@azure/arm-webpubsub";
+import { type KeyType } from "@azure/arm-webpubsub";
+import { type EventListener } from "@azure/arm-webpubsub";
+import { type EventHandler } from "@azure/arm-webpubsub";
 import { type ExecuteActivityContext, type IActionContext, type ISubscriptionContext } from "@microsoft/vscode-azext-utils";
 
 export interface IPickServiceContext extends IActionContext, ExecuteActivityContext {
@@ -23,4 +24,8 @@ export interface IPickEventHandlerContext extends IPickHubSettingContext {
 
 export interface IPickEventListenerContext extends IPickHubSettingContext {
     eventListener?: EventListener;
+}
+
+export interface IPickKeyContext extends IPickServiceContext {
+    keyType?: KeyType;
 }
