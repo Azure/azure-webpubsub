@@ -56,7 +56,7 @@ export const Playground = (props: PlaygroundProps) => {
     fetchUrl();
     const intervalId = setInterval(() => {
       fetchUrl();
-    }, 60 * 1 * 1000); // every 10 minute
+    }, 60 * 10 * 1000); // every 10 minute
 
     // Clean up the interval on component unmount
     return () => clearInterval(intervalId);
