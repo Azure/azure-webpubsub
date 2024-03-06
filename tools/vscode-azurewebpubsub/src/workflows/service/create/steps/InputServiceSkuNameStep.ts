@@ -9,6 +9,7 @@ import { localize } from "../../../../utils";
 import { type ICreateServiceContext } from "../ICreateServiceContext";
 import { type WebPubSubSkuName} from "../../../../constants";
 import { KnownWebPubSubSkuName, SKU_NAME_TO_SKU_TIER, SKU_NAME_TO_DESC, pricingLink } from "../../../../constants";
+import { type IUpdateServiceContext } from "../../../common/contexts";
 
 const skuNamePickItems: IAzureQuickPickItem<WebPubSubSkuName>[] = [
     { label: KnownWebPubSubSkuName.Premium_P1, data: KnownWebPubSubSkuName.Premium_P1, description: SKU_NAME_TO_DESC[KnownWebPubSubSkuName.Premium_P1] },
@@ -17,18 +18,17 @@ const skuNamePickItems: IAzureQuickPickItem<WebPubSubSkuName>[] = [
     { label: KnownWebPubSubSkuName.Free_F1, data: KnownWebPubSubSkuName.Free_F1, description: SKU_NAME_TO_DESC[KnownWebPubSubSkuName.Free_F1] },
 ];
 
-export class InputServiceSkuNameStep extends AzureWizardPromptStep<ICreateServiceContext> {
-    public async prompt(context: ICreateServiceContext): Promise<void> {
-        if (!(context.Sku?.sku)) {
-            throw new Error(`Invalid ICreateServiceContext, context.Sku = ${context.Sku}, context.Sku.sku = ${context.Sku?.sku}`);
-        }
+export class InputServiceSkuNameStep extends AzureWizardPromptStep<ICreateServiceContext | IUpdateServiceContext> {
+    public async prompt(context: ICreateServiceContext | IUpdateServiceContext): Promise<void> {
+        if (!context.resource) throw new Error(localize("notFoundResourceInContext", "Cannot find resource in context"));
+        if (!context.resource.sku) throw new Error(localize("notFoundResourceSkuInResource", "Cannot find resource.sku in context"));
         const chosenItem = await context.ui.showQuickPick(skuNamePickItems, {
             placeHolder: localize("tier", `Select pricing tier for Web PubSub, Click "?" in the top right corner to learn more`),
             learnMoreLink: pricingLink,
             suppressPersistence: true,
         });
-        context.Sku.sku.name = chosenItem.data;
-        context.Sku.sku.tier = SKU_NAME_TO_SKU_TIER[chosenItem.data];
+        context.resource.sku.name = chosenItem.data;
+        context.resource.sku.tier = SKU_NAME_TO_SKU_TIER[chosenItem.data];
     }
 
     public shouldPrompt(_context: ICreateServiceContext): boolean { return true; }
