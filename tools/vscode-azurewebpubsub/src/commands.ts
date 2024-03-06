@@ -12,6 +12,8 @@ import { restartService } from "./workflows/service/restart/restartService";
 import { deleteService } from "./workflows/service/delete/deleteService";
 import { copyServiceEndpoint } from "./workflows/service/copyEndpoint/copyEndpoint";
 import { copyConnectionString } from "./workflows/service/copyConnectionString/copyConnectionString";
+import { scaleUp } from "./workflows/service/scale/scaleUp";
+import { scaleOut } from "./workflows/service/scale/scaleOut";
 
 function registerCommandWithTelemetryWrapper(commandId: string, callback: CommandCallback): void {
     // eslint-disable-next-line @typescript-eslint/no-unsafe-return
@@ -39,4 +41,6 @@ export function registerCommands(): void {
     registerCommandWithTelemetryWrapper('azureWebPubSub.service.restart', restartService);
     registerCommandWithTelemetryWrapper('azureWebPubSub.service.copyConnectionString', copyConnectionString);
     registerCommandWithTelemetryWrapper('azureWebPubSub.service.copyEndpoint', copyServiceEndpoint);
+    registerCommandWithTelemetryWrapper('azureWebPubSub.service.scaleUp', scaleUp);
+    registerCommandWithTelemetryWrapper('azureWebPubSub.service.scaleOut', scaleOut);
 }

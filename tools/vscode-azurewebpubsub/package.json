@@ -113,6 +113,16 @@
                 "command": "azureWebPubSub.service.copyEndpoint",
                 "title": "%azureWebPubSub.service.copyEndpoint%",
                 "category": "Azure Web PubSub"
+            },
+            {
+                "command": "azureWebPubSub.service.scaleUp",
+                "title": "%azureWebPubSub.service.scaleUp%",
+                "category": "Azure Web PubSub"
+            },
+            {
+                "command": "azureWebPubSub.service.scaleOut",
+                "title": "%azureWebPubSub.service.scaleOut%",
+                "category": "Azure Web PubSub"
             }
         ],
         "menus": {
@@ -133,6 +143,14 @@
                 },
                 {
                     "command": "azureWebPubSub.service.copyEndpoint",
+                    "when": "view =~ /(azureResourceGroups|azureFocusView)/ && viewItem =~ /webPubSubServiceItem/i"
+                },
+                {
+                    "command": "azureWebPubSub.service.scaleOut",
+                    "when": "view =~ /(azureResourceGroups|azureFocusView)/ && viewItem =~ /webPubSubServiceItem/i"
+                },
+                {
+                    "command": "azureWebPubSub.service.scaleUp",
                     "when": "view =~ /(azureResourceGroups|azureFocusView)/ && viewItem =~ /webPubSubServiceItem/i"
                 }
             ]
