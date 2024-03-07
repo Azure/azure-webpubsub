@@ -1,12 +1,15 @@
 import { useState, useRef } from "react";
-import { Checkbox, Dropdown, Option, Textarea, Input } from "@fluentui/react-components";
+import { Checkbox, Dropdown, Option, Textarea, Input, MessageBar, MessageBarBody } from "@fluentui/react-components";
 import { DefaultButton, DetailsList, DetailsListLayoutMode, SelectionMode } from "@fluentui/react";
 import { ResizablePanel } from "../../components/ResizablePanel";
 import { TrafficItem } from "../../components/TrafficItem";
 import { ConnectionStatus } from "../../models";
-import { MessageBar, MessageBarBody } from "@fluentui/react-components";
-import { ClientPannelProps, PlaygroundState } from "../Playground";
+import { ClientPannelProps } from "../Playground";
 
+interface TrafficItemViewModel {
+  content: string;
+  up: boolean;
+}
 export const SimpleClientSection = ({ onStatusChange, url }: ClientPannelProps) => {
   const transferOptions = [
     { key: "text", text: "Text" },
@@ -15,12 +18,10 @@ export const SimpleClientSection = ({ onStatusChange, url }: ClientPannelProps) 
   const [connected, setConnected] = useState<boolean>(false);
   const [showSubprotocol, setShowSubprotocol] = useState(false);
   const [subprotocol, setSubprotocol] = useState("");
-  const [state, setState] = useState<PlaygroundState>({
-    transferFormat: "json",
-    message: "",
-    traffic: [],
-    error: "",
-  });
+  const [traffic, setTraffic] = useState<TrafficItemViewModel[]>([]);
+  const [message, setMessage] = useState("");
+  const [error, setError] = useState("");
+  const [transferFormat, setTransferFormat] = useState<string>("");
 
   const connectionRef = useRef<WebSocket | null>(null);
 
@@ -36,46 +37,38 @@ export const SimpleClientSection = ({ onStatusChange, url }: ClientPannelProps) 
       connection.onopen = (event) => {
         setConnected(true);
         onStatusChange(ConnectionStatus.Connected);
-        setState((prevState) => ({ ...prevState, connected: true, traffic: [], error: "" }));
+        setTraffic([]);
+        setError("");
       };
       connection.onclose = (event) => {
         onStatusChange(ConnectionStatus.Disconnected);
         setConnected(false);
-        setState((prevState) => ({
-          ...prevState,
-          traffic: [],
-          error: `WebSocket connection closed with code ${event.code}, reason ${event.reason}.`,
-        }));
+        setTraffic([]);
+        setError(`WebSocket connection closed with code ${event.code}, reason ${event.reason}.`);
       };
       connection.onmessage = (ev) => {
-        setState((prevState) => ({
-          ...prevState,
-          traffic: [{ content: ev.data }, ...prevState.traffic],
-        }));
+        setTraffic((e) => [{ content: ev.data, up: false }, ...e]);
       };
       connectionRef.current = connection;
     } catch (e) {
-      setState((prevState) => ({
-        ...prevState,
-        error: "Error establishing the WebSocket connection.",
-      }));
+      setError("Error establishing the WebSocket connection.");
     }
   };
 
   const send = () => {
     if (!connectionRef.current) {
-      console.error("Connection is not connected");
+      setError("Connection is not yet connected");
       return;
     }
-    const message = state.message;
     if (message) {
-      connectionRef.current.send(message);
+      if (transferFormat === "text") {
+        connectionRef.current.send(message);
+      } else {
+        setError("Binary transfer is not supported yet");
+      }
     }
-    setState((prevState) => ({
-      ...prevState,
-      message: "",
-      traffic: [{ content: message, up: true }, ...prevState.traffic],
-    }));
+    setMessage("");
+    setTraffic((e) => [{ content: message, up: true }, ...e]);
   };
   const connectPane = (
     <div className="d-flex flex-column websocket-client-container m-2 flex-fill">
@@ -84,10 +77,10 @@ export const SimpleClientSection = ({ onStatusChange, url }: ClientPannelProps) 
           <div>Messages</div>
           <Textarea
             className="flex-fill"
-            value={state.message}
+            value={message}
             placeholder="Enter your message here"
             onChange={(ev, data) => {
-              setState((prevState) => ({ ...prevState, message: data.value }));
+              setMessage(data.value ?? "");
             }}
           />
           <div className="d-flex justify-content-between">
@@ -95,7 +88,7 @@ export const SimpleClientSection = ({ onStatusChange, url }: ClientPannelProps) 
               defaultSelectedOptions={[transferOptions[0].key]}
               placeholder={transferOptions[0].text}
               onOptionSelect={(e, d) => {
-                setState((prevState) => ({ ...prevState, transferFormat: d.optionValue as "text" | "binary" }));
+                setTransferFormat(d.optionValue as string);
               }}
             >
               {transferOptions.map((option) => (
@@ -104,13 +97,13 @@ export const SimpleClientSection = ({ onStatusChange, url }: ClientPannelProps) 
                 </Option>
               ))}
             </Dropdown>
-            <DefaultButton disabled={!connected || !state.message} text="Send" onClick={send}></DefaultButton>
+            <DefaultButton disabled={!connected || !message} text="Send" onClick={send}></DefaultButton>
           </div>
         </div>
       )}
     </div>
   );
-  const trafficList = state.traffic?.map((i) => TrafficItem(i));
+  const trafficList = traffic?.map((i) => TrafficItem(i));
   const trafficPane = (
     <div>
       <DetailsList items={trafficList} selectionMode={SelectionMode.none} layoutMode={DetailsListLayoutMode.justified}></DetailsList>
@@ -118,19 +111,8 @@ export const SimpleClientSection = ({ onStatusChange, url }: ClientPannelProps) 
   );
   return (
     <>
-      <div className="d-flex flex-row">
+      <div className="d-flex">
         <Input className="flex-fill" readOnly={true} placeholder="Loading" value={url}></Input>
-        {url && !connected && (
-          <DefaultButton className="flex-right" onClick={connect}>
-            Connect
-          </DefaultButton>
-        )}
-
-        {url && connected && (
-          <DefaultButton className="flex-right" onClick={disconnect}>
-            Disconnect
-          </DefaultButton>
-        )}
       </div>
       {!connected && (
         <div className="d-flex flex-row">
@@ -146,17 +128,16 @@ export const SimpleClientSection = ({ onStatusChange, url }: ClientPannelProps) 
           </MessageBarBody>
         </MessageBar>
       )}
-      {connected && (
-        <p className="text-success">
-          <i>Connected</i>
-        </p>
+
+      <div className="my-2">
+        {url && !connected && <DefaultButton onClick={connect}>Connect</DefaultButton>}
+        {url && connected && <DefaultButton onClick={disconnect}>Disconnect</DefaultButton>}
+      </div>
+      {error && (
+        <MessageBar intent="error" className="text-danger">
+          {error}
+        </MessageBar>
       )}
-      {!connected && (
-        <p className="text-info">
-          <i>Disconnected</i>
-        </p>
-      )}
-      {state.error && <b className="text-danger">{state.error}</b>}
       {connected && <ResizablePanel className="flex-fill" left={connectPane} right={trafficPane}></ResizablePanel>}
     </>
   );

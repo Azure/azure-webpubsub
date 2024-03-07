@@ -6,7 +6,7 @@ import { useDataContext } from "../providers/DataContext";
 import type { TabValue } from "@fluentui/react-components";
 import { Dialog, DialogTrigger, DialogSurface, DialogTitle, DialogBody, DialogContent, Tab, TabList, CompoundButton, MessageBar, MessageBarBody, Button } from "@fluentui/react-components";
 
-import { Dismiss24Regular, Dismiss16Regular, PlugDisconnected24Regular } from "@fluentui/react-icons";
+import { Dismiss24Regular, Dismiss16Regular, PlugDisconnected24Regular, PlugDisconnected24Filled } from "@fluentui/react-icons";
 
 import { SimpleClientSection } from "./sections/SimpleClientSection";
 import { SubprotocolClientSection } from "./sections/SubprotocolClientSection";
@@ -21,9 +21,7 @@ export interface ClientPannelProps extends PlaygroundProps {
 
 export interface PlaygroundState {
   traffic: TrafficItemProps[];
-  transferFormat: "text" | "binary" | "json";
   message?: string;
-  subprotocol?: string;
   error: string;
 }
 
@@ -41,6 +39,7 @@ interface TestClientViewModel extends TestClientTemplate {
   connection?: ConnectionHandler;
   counter: number;
   type: string;
+  status?: ConnectionStatus;
 }
 
 let clientCounter = 0;
@@ -51,7 +50,7 @@ export const Playground = (props: PlaygroundProps) => {
   const [url, setUrl] = useState("");
   useEffect(() => {
     const fetchUrl = async () => {
-      const newUrl = await dataFetcher.invoke("getClientAccessUrl");
+      const newUrl = await dataFetcher.invoke("getClientAccessUrl", undefined, undefined, undefined);
       setUrl(newUrl);
     };
     fetchUrl();
@@ -63,7 +62,9 @@ export const Playground = (props: PlaygroundProps) => {
     return () => clearInterval(intervalId);
   }, [dataFetcher]);
 
-  useEffect(() => {}, []);
+  useEffect(() => {
+    props.onStatusChange(clients.some((i) => i.status === ConnectionStatus.Connected) ? ConnectionStatus.Connected : ConnectionStatus.Disconnected);
+  }, [clients, props]);
   function addTestClient(template: TestClientTemplate) {
     // TODO: when there are multiple clients with the same type in the future, we need an id generator
     clientCounter++;
@@ -74,7 +75,7 @@ export const Playground = (props: PlaygroundProps) => {
 
   const availableClients = [
     { icon: <PlugDisconnected24Regular />, title: "WebSocket", id: "websocket", description: "Simple Web PubSub Client" },
-    // { icon: <PlugDisconnected24Filled />, title: "Web PubSub", id: "webpubsub", description: "Subprotocol Web PubSub Client" }, // TODO: add subprotocol support
+    { icon: <PlugDisconnected24Filled />, title: "Web PubSub", id: "webpubsub", description: "Subprotocol Web PubSub Client" }, // TODO: add subprotocol support
     // { icon: <Rss24Regular />, title: "MQTT V5", id: "mqtt5", description: "MQTT V5 Client" }, // TODO: add mqtt support
   ];
 
@@ -92,8 +93,10 @@ export const Playground = (props: PlaygroundProps) => {
                   <DialogTrigger action="close">
                     <Button appearance="subtle" aria-label="close" icon={<Dismiss24Regular />} />
                   </DialogTrigger>
-                } 
-              >Select a Test Client</DialogTitle>
+                }
+              >
+                Select a Test Client
+              </DialogTitle>
               <DialogContent>
                 <div className="m-2 d-flex">
                   {availableClients.map((i) => (
@@ -140,28 +143,24 @@ export const Playground = (props: PlaygroundProps) => {
         ))}
       </TabList>
       {clients.map((section, index) => {
-        switch (section.type) {
-          case "websocket":
-            return (
-              <div className="flex-fill d-flex flex-column" key={section.id} hidden={section.id !== selectedClient}>
-                <SimpleClientSection onStatusChange={props.onStatusChange} url={url}></SimpleClientSection>
-              </div>
-            );
-          case "webpubsub":
-            return (
-              <div className="flex-fill d-flex flex-column" key={section.id} hidden={section.id !== selectedClient}>
-                <SubprotocolClientSection onStatusChange={props.onStatusChange} url={url}></SubprotocolClientSection>
-              </div>
-            );
-          case "mqtt5":
-            return (
-              <div className="flex-fill d-flex flex-column" key={section.id} hidden={section.id !== selectedClient}>
-                <MqttClientSection onStatusChange={props.onStatusChange} url={url}></MqttClientSection>
-              </div>
-            );
-          default:
-            throw new Error("Unknown client type");
-        }
+        const ClientComponent = section.type === "websocket" ? SimpleClientSection : section.type === "webpubsub" ? SubprotocolClientSection : MqttClientSection;
+        return (
+          <div className="flex-fill d-flex flex-column" key={section.id} hidden={section.id !== selectedClient}>
+            <ClientComponent
+              onStatusChange={(s) => {
+                setClients((i) => {
+                  return i.map((c) => {
+                    if (c.id === section.id) {
+                      return { ...c, status: s };
+                    }
+                    return c;
+                  });
+                });
+              }}
+              url={url}
+            ></ClientComponent>
+          </div>
+        );
       })}
     </div>
   );
