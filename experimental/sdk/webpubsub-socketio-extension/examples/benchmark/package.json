@@ -1,0 +1,19 @@
+{
+    "name": "webpubsub-for-socketio-benchmark",
+    "version": "0.0.0",
+    "main": "index.js",
+    "private": true,
+    "license": "BSD",
+    "dependencies": {
+        "@azure/web-pubsub-socket.io": "1.0.0-alpha.20230803.1",
+        "@socket.io/admin-ui": "^0.5.1",
+        "express": "~4.17.1",
+        "socket.io": "^4.6.1",
+        "socket.io-client": "^4.7.2"
+    },
+    "scripts": {
+        "build": "tsc client.ts server.ts --outDir ./dist",
+        "server": "node ./dist/server.js",
+        "client": "node ./dist/client.js"
+    }
+}

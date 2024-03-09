@@ -1,0 +1,13 @@
+{
+    "uri": "http://localhost:8080/benchmark",
+    "clientOptions": {
+        "path": "/clients/socketio/hubs/eio_hub",
+        "transports": ["websocket"]
+    },
+    "benchmarkOptions": {
+        "maxClients": 1000,
+        "emitPerSecond": 1,
+        "clientCreationIntervalInMs": 100,
+        "totalBenchmarkSeconds": 180
+    }
+}
