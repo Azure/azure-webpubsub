@@ -1,27 +1,20 @@
 import { useState, useRef } from "react";
-import { Checkbox, Dropdown, Option, Textarea, Input, MessageBar, MessageBarBody } from "@fluentui/react-components";
+import { Checkbox, Textarea, Input, MessageBar, MessageBarBody } from "@fluentui/react-components";
 import { DefaultButton, DetailsList, DetailsListLayoutMode, SelectionMode } from "@fluentui/react";
 import { ResizablePanel } from "../../components/ResizablePanel";
-import { TrafficItem } from "../../components/TrafficItem";
+import { TrafficItem, TrafficItemViewModel } from "../../components/TrafficItem";
 import { ConnectionStatus } from "../../models";
 import { ClientPannelProps } from "../Playground";
 
-interface TrafficItemViewModel {
-  content: string;
-  up: boolean;
-}
 export const SimpleClientSection = ({ onStatusChange, url }: ClientPannelProps) => {
-  const transferOptions = [
-    { key: "text", text: "Text" },
-    //   { key: "binary", text: "Binary" }, // TODO: support binary
-  ];
   const [connected, setConnected] = useState<boolean>(false);
   const [showSubprotocol, setShowSubprotocol] = useState(false);
   const [subprotocol, setSubprotocol] = useState("");
   const [traffic, setTraffic] = useState<TrafficItemViewModel[]>([]);
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
-  const [transferFormat, setTransferFormat] = useState<string>("");
+  // TODO: Binary support?
+  const transferFormat = "text";
 
   const connectionRef = useRef<WebSocket | null>(null);
 
@@ -47,7 +40,7 @@ export const SimpleClientSection = ({ onStatusChange, url }: ClientPannelProps) 
         setError(`WebSocket connection closed with code ${event.code}, reason ${event.reason}.`);
       };
       connection.onmessage = (ev) => {
-        setTraffic((e) => [{ content: ev.data, up: false }, ...e]);
+        setTraffic((e) => [TrafficItem(ev.data), ...e]);
       };
       connectionRef.current = connection;
     } catch (e) {
@@ -63,12 +56,13 @@ export const SimpleClientSection = ({ onStatusChange, url }: ClientPannelProps) 
     if (message) {
       if (transferFormat === "text") {
         connectionRef.current.send(message);
+        setTraffic((e) => [TrafficItem(message, true), ...e]);
+        setMessage("");
       } else {
+        console.error("Binary transfer is not supported yet");
         setError("Binary transfer is not supported yet");
       }
     }
-    setMessage("");
-    setTraffic((e) => [{ content: message, up: true }, ...e]);
   };
   const connectPane = (
     <div className="d-flex flex-column websocket-client-container m-2 flex-fill">
@@ -84,29 +78,15 @@ export const SimpleClientSection = ({ onStatusChange, url }: ClientPannelProps) 
             }}
           />
           <div className="d-flex justify-content-between">
-            <Dropdown
-              defaultSelectedOptions={[transferOptions[0].key]}
-              placeholder={transferOptions[0].text}
-              onOptionSelect={(e, d) => {
-                setTransferFormat(d.optionValue as string);
-              }}
-            >
-              {transferOptions.map((option) => (
-                <Option key={option.key} value={option.key}>
-                  {option.text}
-                </Option>
-              ))}
-            </Dropdown>
             <DefaultButton disabled={!connected || !message} text="Send" onClick={send}></DefaultButton>
           </div>
         </div>
       )}
     </div>
   );
-  const trafficList = traffic?.map((i) => TrafficItem(i));
   const trafficPane = (
     <div>
-      <DetailsList items={trafficList} selectionMode={SelectionMode.none} layoutMode={DetailsListLayoutMode.justified}></DetailsList>
+      <DetailsList items={traffic} selectionMode={SelectionMode.none} layoutMode={DetailsListLayoutMode.justified}></DetailsList>
     </div>
   );
   return (

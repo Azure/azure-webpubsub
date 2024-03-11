@@ -1,5 +1,9 @@
 # Changelog
 
+## [1.0.0-beta.5] - 2024-03-11
+### Fixed
+- Fix test client bugs
+
 ## [1.0.0-beta.4] - 2024-03-06
 ### Changed
 - Add subprotocol test client

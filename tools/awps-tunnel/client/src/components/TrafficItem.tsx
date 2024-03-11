@@ -2,15 +2,17 @@ import React from 'react';
 import { Icon } from '@fluentui/react/lib/Icon';
 import moment from 'moment';
 
-export interface TrafficItemProps {
-  content?: string;
-  up?: boolean
+export interface TrafficItemViewModel {
+  Data: JSX.Element;
+  Time: string;
+  Length: number;
 }
-export function TrafficItem({ content = "", up = false }: TrafficItemProps) {
+
+export function TrafficItem(content: string, up = false, time = moment().format()) : TrafficItemViewModel {
   // todo: binary
   return {
     Data: up ? <TrafficUp content={content}></TrafficUp> : <TrafficDown content={content}></TrafficDown>,
-    Time: moment().format(),
+    Time: time,
     Length: content.length,
   };
 }
