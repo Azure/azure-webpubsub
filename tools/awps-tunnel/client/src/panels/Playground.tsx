@@ -1,6 +1,5 @@
 import { useState, useEffect } from "react";
 
-import { TrafficItemProps } from "../components/TrafficItem";
 import { ConnectionStatus } from "../models";
 import { useDataContext } from "../providers/DataContext";
 import type { TabValue } from "@fluentui/react-components";
@@ -17,12 +16,6 @@ export interface PlaygroundProps {
 
 export interface ClientPannelProps extends PlaygroundProps {
   url: string;
-}
-
-export interface PlaygroundState {
-  traffic: TrafficItemProps[];
-  message?: string;
-  error: string;
 }
 
 interface ConnectionHandler {
@@ -80,7 +73,7 @@ export const Playground = (props: PlaygroundProps) => {
   ];
 
   return (
-    <div className="d-flex flex-column flex-fill">
+    <div className="d-flex flex-column flex-fill overflow-auto">
       <div>
         <Dialog>
           <DialogTrigger disableButtonEnhancement>
@@ -145,7 +138,7 @@ export const Playground = (props: PlaygroundProps) => {
       {clients.map((section, index) => {
         const ClientComponent = section.type === "websocket" ? SimpleClientSection : section.type === "webpubsub" ? SubprotocolClientSection : MqttClientSection;
         return (
-          <div className="flex-fill d-flex flex-column" key={section.id} hidden={section.id !== selectedClient}>
+          <div className="flex-fill d-flex flex-column overflow-auto" key={section.id} hidden={section.id !== selectedClient}>
             <ClientComponent
               onStatusChange={(s) => {
                 setClients((i) => {

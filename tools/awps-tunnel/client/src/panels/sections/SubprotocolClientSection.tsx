@@ -2,17 +2,12 @@ import { useState, useRef, useEffect } from "react";
 import { Checkbox, Dropdown, Option, Textarea, Input, Label, Tab, TabList, TabValue, Field, InfoLabel, MessageBar } from "@fluentui/react-components";
 import { DefaultButton, DetailsList, DetailsListLayoutMode, SelectionMode } from "@fluentui/react";
 import { ResizablePanel } from "../../components/ResizablePanel";
-import { TrafficItem } from "../../components/TrafficItem";
+import { TrafficItem, TrafficItemViewModel } from "../../components/TrafficItem";
 import { ConnectionStatus } from "../../models";
 import { ClientPannelProps } from "../Playground";
 import { SendMessageError, WebPubSubClient, WebPubSubJsonProtocol, WebPubSubJsonReliableProtocol } from "@azure/web-pubsub-client";
 import { useDataContext } from "../../providers/DataContext";
-import { Card, CardFooter, CardHeader, CardPreview } from "@fluentui/react-components";
-
-interface TrafficItemViewModel {
-  content: string;
-  up: boolean;
-}
+import { Card } from "@fluentui/react-components";
 
 interface SupportedAPI {
   key: string;
@@ -85,8 +80,21 @@ function InputField({
   validationMessage?: string;
   onChange: (ev: any, data: any) => void;
 }) {
+  const [init, setInit] = useState(true);
+  useEffect(() => {
+    // disable validation check when the component is first mounted
+    if (value && init) {
+      setInit(false);
+    }
+  }, [value, init]);
   return (
-    <Field required={required} label={label} orientation="horizontal" validationState={required && !value ? "error" : "none"} validationMessage={required && !value ? validationMessage : ""}>
+    <Field
+      required={required}
+      label={label}
+      orientation="horizontal"
+      validationState={!init && required && !value ? "error" : "none"}
+      validationMessage={!init && required && !value ? validationMessage : ""}
+    >
       {multiline ? <Textarea placeholder={placeholder} onChange={onChange} /> : <Input placeholder={placeholder} onChange={onChange} />}
     </Field>
   );
@@ -106,31 +114,33 @@ function CheckboxField({ tips, label, onChange }: { tips: string; label: string;
 }
 
 function JoinGroup(props: APIComponentProps) {
+  const [name, setName] = useState<string>("");
+  useEffect(() => {
+    if (name) {
+      props.onMessageChange({ type: "joinGroup", group: name });
+    } else {
+      props.onMessageChange(undefined);
+    }
+  }, [name, props]);
   return (
     <div className="d-flex flex-fill flex-column">
-      <InputField
-        required
-        label="Group"
-        value=""
-        placeholder="Group Name"
-        validationMessage="Group name is required."
-        onChange={(ev, data) => props.onMessageChange({ type: "joinGroup", group: data.value })}
-      />
+      <InputField required label="Group" value={name} placeholder="Group Name" validationMessage="Group name is required." onChange={(ev, data) => setName(data.value)} />
     </div>
   );
 }
 
 function LeaveGroup(props: APIComponentProps) {
+  const [name, setName] = useState<string>("");
+  useEffect(() => {
+    if (name) {
+      props.onMessageChange({ type: "leaveGroup", group: name });
+    } else {
+      props.onMessageChange(undefined);
+    }
+  }, [name, props]);
   return (
     <div className="d-flex flex-fill flex-column">
-      <InputField
-        required
-        label="Group"
-        value=""
-        placeholder="Group Name"
-        validationMessage="Group name is required."
-        onChange={(ev, data) => props.onMessageChange({ type: "leaveGroup", group: data.value })}
-      />
+      <InputField required label="Group" value={name} placeholder="Group Name" validationMessage="Group name is required." onChange={(ev, data) => setName(data.value)} />
     </div>
   );
 }
@@ -216,9 +226,9 @@ function ConnectPane({ connected, onSendingMessage, sendError }: { connected: bo
   };
 
   return (
-    <div className="d-flex flex-column flex-fill">
+    <div className="d-flex flex-column flex-fill overflow-auto">
       <b>Supported APIs</b>
-      <div className="d-flex flex-row flex-fill">
+      <div className="d-flex flex-row flex-fill overflow-auto">
         <TabList
           defaultSelectedValue={selectedAPI}
           vertical
@@ -254,11 +264,11 @@ function ConnectPane({ connected, onSendingMessage, sendError }: { connected: bo
                   />
                 </div>
               );
-            } else return <></>
+            } else return <></>;
           })}
         </Card>
       </div>
-      <div className="d-flex flex-column flex-fill">
+      <div className="d-flex flex-column flex-fill overflow-auto">
         <b>Generated payload</b>
         <textarea readOnly className="flex-fill" value={message} />
       </div>
@@ -291,6 +301,14 @@ export const SubprotocolClientSection = ({ onStatusChange, url }: ClientPannelPr
   const disconnect = () => {
     onStatusChange(ConnectionStatus.Disconnected);
     setConnected(false);
+    setTraffic([]);
+    setError("");
+    setSendError("");
+    setUserId("");
+    setJoinLeaveGroups([]);
+    setPublishGroups([]);
+    setInitialGroups([]);
+
     connectionRef.current?.stop();
     return true;
   };
@@ -315,12 +333,12 @@ export const SubprotocolClientSection = ({ onStatusChange, url }: ClientPannelPr
     connection.on("server-message", (e) => {
       console.log(`Received message ${e.message.data}`);
       // TODO: data could be ArrayBuffer or JSONTypes
-      setTraffic((t) => [{ content: JSON.stringify(e.message.data), up: false }, ...t]);
+      setTraffic((t) => [TrafficItem(JSON.stringify(e.message.data)), ...t]);
     });
 
     // Registers a listener for the "group-message". The callback will be invoked when the client receives a message from the groups it has joined.
     connection.on("group-message", (e) => {
-      setTraffic((t) => [{ content: JSON.stringify(e.message), up: false }, ...t]);
+      setTraffic((t) => [TrafficItem(JSON.stringify(e.message)), ...t]);
     });
     try {
       await connection.start();
@@ -372,7 +390,7 @@ export const SubprotocolClientSection = ({ onStatusChange, url }: ClientPannelPr
           });
           break;
       }
-      setTraffic((e) => [{ content: JSON.stringify(message), up: true }, ...e]);
+      setTraffic((e) => [TrafficItem(JSON.stringify(message), true), ...e]);
     } catch (e) {
       if (e instanceof SendMessageError) {
         setSendError(`Error sending message: ${(e as SendMessageError).errorDetail?.message}`);
@@ -382,10 +400,9 @@ export const SubprotocolClientSection = ({ onStatusChange, url }: ClientPannelPr
     }
   };
 
-  const trafficList = traffic?.map((i) => TrafficItem(i));
   const trafficPane = (
     <div>
-      <DetailsList items={trafficList} selectionMode={SelectionMode.none} layoutMode={DetailsListLayoutMode.justified}></DetailsList>
+      <DetailsList items={traffic} selectionMode={SelectionMode.none} layoutMode={DetailsListLayoutMode.justified}></DetailsList>
     </div>
   );
   return (
@@ -409,62 +426,56 @@ export const SubprotocolClientSection = ({ onStatusChange, url }: ClientPannelPr
         <Input className="flex-fill" readOnly={true} placeholder="Loading" value={url}></Input>
       </div>
       {url && !connected && (
-        <Card className="w-100">
-          <CardHeader header={<b>Advanced Settings</b>}></CardHeader>
-          <CardPreview>
-            <div className="d-flex flex-column">
-              <div>
-                <b className="m-3">Connect with</b>
-                <Label htmlFor="userIdInput" style={{ paddingInline: "12px" }}>
-                  User ID
-                </Label>
-                <Input id="userIdInput" placeholder="(Empty User ID)" onChange={(ev, data) => setUserId(data.value)} />
-                <Label htmlFor="initialGroupsInput" style={{ paddingInline: "12px" }}>
-                  Groups
-                </Label>
-                <Input id="initialGroupsInput" placeholder="Use comma(,) to separate" onChange={(ev, data) => setInitialGroups(getDelimitedArray(data.value))} />
-              </div>
-              <div>
-                <b className="m-3">Permissions</b>
-                <Label htmlFor="joinLeaveGroupInput" style={{ paddingInline: "12px" }}>
-                  Allow join or leave groups
-                </Label>
-                <Input id="joinLeaveGroupInput" placeholder="Use comma(,) to separate" onChange={(ev, data) => setJoinLeaveGroups(getDelimitedArray(data.value))} />
-                <Label htmlFor="publishGroupInput" style={{ paddingInline: "12px" }}>
-                  Allow send to groups
-                </Label>
-                <Input id="publishGroupInput" placeholder="Use comma(,) to separate" onChange={(ev, data) => setPublishGroups(getDelimitedArray(data.value))} />
-              </div>
+        <div>
+          <b>Advanced Settings</b>
+          <div className="d-flex flex-column">
+            <div>
+              <b className="m-3">Connect with</b>
+              <Label htmlFor="userIdInput" style={{ paddingInline: "12px" }}>
+                User ID
+              </Label>
+              <Input id="userIdInput" placeholder="(Empty User ID)" onChange={(ev, data) => setUserId(data.value)} />
+              <Label htmlFor="initialGroupsInput" style={{ paddingInline: "12px" }}>
+                Groups
+              </Label>
+              <Input id="initialGroupsInput" placeholder="Use comma(,) to separate" onChange={(ev, data) => setInitialGroups(getDelimitedArray(data.value))} />
             </div>
-          </CardPreview>
-          <CardFooter>
-            <DefaultButton disabled={!subprotocol} className="flex-right" onClick={connect}>
-              Connect
-            </DefaultButton>
-          </CardFooter>
-        </Card>
+            <div>
+              <b className="m-3">Permissions</b>
+              <Label htmlFor="joinLeaveGroupInput" style={{ paddingInline: "12px" }}>
+                Allow join or leave groups
+              </Label>
+              <Input id="joinLeaveGroupInput" placeholder="Use comma(,) to separate" onChange={(ev, data) => setJoinLeaveGroups(getDelimitedArray(data.value))} />
+              <Label htmlFor="publishGroupInput" style={{ paddingInline: "12px" }}>
+                Allow send to groups
+              </Label>
+              <Input id="publishGroupInput" placeholder="Use comma(,) to separate" onChange={(ev, data) => setPublishGroups(getDelimitedArray(data.value))} />
+            </div>
+          </div>
+          <DefaultButton disabled={!subprotocol} className="flex-right" onClick={connect}>
+            Connect
+          </DefaultButton>
+        </div>
       )}
 
       {url && connected && (
-        <Card>
-          <CardHeader header={<b>Connected With</b>}></CardHeader>
-          <CardPreview>
-            <div>
-              <b className="m-3">
-                Subprotocol <code>{subprotocol}</code>
-              </b>
-              <b className="m-3">User ID:</b> <code>{userId ? userId : "(Anonymous)"}</code>
-              <b className="m-3">Initially joined groups: </b> <code>{initialGroups.length > 0 ? initialGroups.join(", ") : "(None)"}</code>
-              <b className="m-3">Allowed to join or leave groups: </b> <code>{joinLeaveGroups.length > 0 ? joinLeaveGroups.join(", ") : "(None)"}</code>
-              <b className="m-3">Allowed to send to groups: </b> <code>{publishGroups.length > 0 ? publishGroups.join(", ") : "(None)"}</code>
-            </div>
-          </CardPreview>
-          <CardFooter>
+        <div>
+          <b>Connected With</b>
+          <div>
+            <b className="m-3">
+              Subprotocol <code>{subprotocol}</code>
+            </b>
+            <b className="m-3">User ID:</b> <code>{userId ? userId : "(Anonymous)"}</code>
+            <b className="m-3">Initially joined groups: </b> <code>{initialGroups.length > 0 ? initialGroups.join(", ") : "(None)"}</code>
+            <b className="m-3">Allowed to join or leave groups: </b> <code>{joinLeaveGroups.length > 0 ? joinLeaveGroups.join(", ") : "(None)"}</code>
+            <b className="m-3">Allowed to send to groups: </b> <code>{publishGroups.length > 0 ? publishGroups.join(", ") : "(None)"}</code>
+          </div>
+          <div>
             <DefaultButton className="flex-right" onClick={disconnect}>
               Disconnect
             </DefaultButton>
-          </CardFooter>
-        </Card>
+          </div>
+        </div>
       )}
       {error && <b className="text-danger">{error}</b>}
       <MessageBar>Press F12 to view the real network traffic flow</MessageBar>
