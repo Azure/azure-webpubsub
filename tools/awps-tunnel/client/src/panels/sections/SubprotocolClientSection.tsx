@@ -208,10 +208,10 @@ function SendEvent(props: APIComponentProps) {
 }
 
 const supportedAPIs: SupportedAPI[] = [
-  { key: "joinGroup", name: "Join Group", component: JoinGroup },
-  { key: "leaveGroup", name: "Leave Group", component: LeaveGroup },
   { key: "sendToGroup", name: "Send to Group", component: SendToGroup },
   { key: "sendEvent", name: "Send Event", component: SendEvent },
+  { key: "joinGroup", name: "Join Group", component: JoinGroup },
+  { key: "leaveGroup", name: "Leave Group", component: LeaveGroup },
 ];
 
 function ConnectPane({ connected, onSendingMessage, sendError }: { connected: boolean; sendError: string; onSendingMessage: (message: APIParameters) => void }) {
@@ -313,6 +313,10 @@ export const SubprotocolClientSection = ({ onStatusChange, url }: ClientPannelPr
     return true;
   };
   const connect = async () => {
+    // clear the state before start
+    setError("");
+    setSendError("");
+    setTraffic([]);
     const connection = new WebPubSubClient(
       {
         getClientAccessUrl: async () => {
