@@ -114,7 +114,7 @@ export class DataHub {
 
   async GetClientAccessUrl(userId?: string, roles?: string[], groups?: string[]): Promise<string> {
     try {
-      const url = (this.clientUrl = await this.tunnel.getClientAccessUrl(userId, roles, groups));
+      const url = (this.clientUrl = await this.tunnel.getClientAccessUrl(userId, roles || [], groups || []));
       return url;
     } catch (err) {
       printer.error(`Unable to get client access URL: ${err}`);
