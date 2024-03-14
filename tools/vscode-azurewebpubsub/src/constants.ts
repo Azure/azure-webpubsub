@@ -48,3 +48,12 @@ export const SKU_NAME_TO_UNIT_COUNT_LIST: {[key in WebPubSubSkuName]: number[]} 
 };
 
 export const pricingLink = "https://azure.microsoft.com/pricing/details/web-pubsub/";
+export enum KnownSystemEvents { "connect" = "connect", "connected" = "connected", "disconnected" = "disconnected", }
+export enum KnownUserEvents { "None" = "None", "All" = "All", "Specify" = "Specify" }
+export const eventHandlerSystemEvents = [KnownSystemEvents.connect, KnownSystemEvents.connected, KnownSystemEvents.disconnected];
+export const eventHandlerUserEvents = [KnownUserEvents.None, KnownUserEvents.All, KnownUserEvents.Specify];
+export const VALID_HUB_NAME_DESC = "The name is invalid.\n\
+The first character must be a letter.\n\
+The ther characters must be a letter, number, or one of {'_', ',', '.', '/', '\`'}\n\
+The value must be between 1 and 127 characters long."
+export const VALID_HUB_NAME_REGEX: RegExp = /^[A-Za-z][A-Za-z0-9_`,.[/\]]{0,127}$/;

@@ -3,6 +3,7 @@
 *  Licensed under the MIT License. See License.txt in the project root for license information.
 *--------------------------------------------------------------------------------------------*/
 
+import { type WebPubSubHubProperties} from "@azure/arm-webpubsub";
 import { type KeyType } from "@azure/arm-webpubsub";
 import { type EventListener } from "@azure/arm-webpubsub";
 import { type EventHandler } from "@azure/arm-webpubsub";
@@ -28,4 +29,8 @@ export interface IPickEventListenerContext extends IPickHubSettingContext {
 
 export interface IPickKeyContext extends IPickServiceContext {
     keyType?: KeyType;
+}
+
+export interface ICreateOrUpdateHubSettingContext extends IPickHubSettingContext {
+    hubProperties?: WebPubSubHubProperties;
 }

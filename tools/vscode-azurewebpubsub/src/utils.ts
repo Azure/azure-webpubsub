@@ -33,3 +33,13 @@ export function showError(commandName: string, error: Error): void {
 export function createEndpointFromHostName(hostName: string): string {
     return `https://${hostName}`;
 }
+
+export function isUrlValid(url: string): boolean {
+    try {
+        if (!url) throw null;
+        new URL(url);
+        return true;
+    } catch (_err) {
+        return false;
+    }
+}
