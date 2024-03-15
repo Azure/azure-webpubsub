@@ -9,7 +9,7 @@ import { isUrlValid, localize } from "../../../utils";
 import { type ICreateOrUpdateHubSettingContext } from "../../common/contexts";
 import { KnownUserEvents, eventHandlerSystemEvents, eventHandlerUserEvents } from "../../../constants";
 
-export class CreateOrUpdateEventHandlerStep extends AzureWizardPromptStep<ICreateOrUpdateHubSettingContext> {
+export class InputEventHandlerStep extends AzureWizardPromptStep<ICreateOrUpdateHubSettingContext> {
     public constructor(private readonly isNewHandler: boolean) { super(); }
 
     public async prompt(context: ICreateOrUpdateHubSettingContext): Promise<void> {
