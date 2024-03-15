@@ -4,6 +4,7 @@
 *--------------------------------------------------------------------------------------------*/
 
 import { type WebPubSubHubProperties} from "@azure/arm-webpubsub";
+import { type WebPubSubResource } from "@azure/arm-webpubsub";
 import { type KeyType } from "@azure/arm-webpubsub";
 import { type EventListener } from "@azure/arm-webpubsub";
 import { type EventHandler } from "@azure/arm-webpubsub";
@@ -33,4 +34,8 @@ export interface IPickKeyContext extends IPickServiceContext {
 
 export interface ICreateOrUpdateHubSettingContext extends IPickHubSettingContext {
     hubProperties?: WebPubSubHubProperties;
+}
+
+export interface IUpdateServiceContext extends IPickServiceContext {
+    resource: WebPubSubResource;
 }
