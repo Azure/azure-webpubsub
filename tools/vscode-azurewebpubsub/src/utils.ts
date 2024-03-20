@@ -36,7 +36,6 @@ export function createEndpointFromHostName(hostName: string): string {
 
 export function isUrlValid(url: string): boolean {
     try {
-        if (!url) throw null;
         new URL(url);
         return true;
     } catch (_err) {
