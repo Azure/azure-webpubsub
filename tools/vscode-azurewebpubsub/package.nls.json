@@ -10,5 +10,5 @@
     "azureWebPubSub.service.restart": "Restart Service",
     "azureWebPubSub.service.copyConnectionString": "Copy Connection String",
     "azureWebPubSub.service.copyEndpoint": "Copy Service Endpoint",
-    "azureWebPubSub.service.openLiveTraceTool": "Open Live Trace Tool"
+    "azureWebPubSub.service.openLiveTraceTool": "View Live Trace"
 }
