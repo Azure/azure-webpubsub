@@ -20,13 +20,12 @@ export class InputEventHandlerStep extends AzureWizardPromptStep<ICreateOrUpdate
                 JSON.stringify(context.hubProperties)
             ));
         }
-        let updateIndex = -1;
         if (!this.isNewHandler) {
             if (!(context.hubProperties?.eventHandlers?.length)) {
                 throw new Error(localize('emptyEventHandler', 'The event handler list is empty.'));
             }
             const choices = context.hubProperties.eventHandlers.map((handler, index) => ({ label: handler.urlTemplate, data: index}));
-            updateIndex = (await context.ui.showQuickPick(choices, { placeHolder: localize('selectEventHandler', 'Select Event Handler') })).data;
+            const updateIndex = (await context.ui.showQuickPick(choices, { placeHolder: localize('selectEventHandler', 'Select Event Handler') })).data;
             let eventHandler = context.hubProperties.eventHandlers[updateIndex];
             eventHandler = {
                 ...eventHandler,
