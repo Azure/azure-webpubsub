@@ -6,9 +6,10 @@
 import { ContextValueQuickPickStep, runQuickPickWizard, type AzureResourceQuickPickWizardContext, type AzureWizardPromptStep, type IActionContext } from "@microsoft/vscode-azext-utils";
 import { ext } from "../../../extensionVariables";
 import { localize } from "../../../utils";
-import { getPickHubSteps } from "../pickHubSetting";
+import { getPickHubSettingSteps } from "../pickHubSetting";
 import { type PickItemOptions } from "../../utils";
 import { EventHandlerItem } from "./EventHandlerItem";
+import { EventHandlersItem } from "./EventHandlersItem";
 
 export async function pickEventHandler(context: IActionContext, options?: PickItemOptions): Promise<EventHandlerItem> {
     return await runQuickPickWizard(context,
@@ -21,7 +22,14 @@ export async function pickEventHandler(context: IActionContext, options?: PickIt
 
 export function getPickEventHandlerSteps(): AzureWizardPromptStep<AzureResourceQuickPickWizardContext>[] {
     return [
-        ...getPickHubSteps(),
+        ...getPickHubSettingSteps(),
+        new ContextValueQuickPickStep(
+            ext.branchDataProvider,
+            {
+                contextValueFilter: { include: EventHandlersItem.contextValueRegExp },
+                skipIfOne: true,
+            }
+        ),
         new ContextValueQuickPickStep(
             ext.branchDataProvider,
             {
