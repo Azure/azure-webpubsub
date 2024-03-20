@@ -35,10 +35,11 @@ async function createService(isSocketIO: boolean, context: IActionContext, node?
         ...context,
         ...createSubscriptionContext(subscription),
         ...(await createActivityContext()),
-        kind: isSocketIO ? KnownServiceKind.SocketIO : KnownServiceKind.WebPubSub,
-        Sku: { 
+        resource: {
+            location: "",
+            kind: isSocketIO ? KnownServiceKind.SocketIO : KnownServiceKind.WebPubSub,
             sku: { name: "", tier: "", capacity: 0 } as ResourceSku 
-        },
+        }
     };
 
     const subContext = createSubscriptionContext(subscription);
@@ -71,7 +72,7 @@ async function createService(isSocketIO: boolean, context: IActionContext, node?
     if (!wizardContext.resourceGroup) {
         throw new Error('No resource group was provided.');
     }
-    wizardContext.location = (await LocationListStep.getLocation(wizardContext, SIGNALR_PROVIDER)).name ?? wizardContext.resourceGroup.location;
+    wizardContext.resource.location = (await LocationListStep.getLocation(wizardContext, SIGNALR_PROVIDER)).name ?? wizardContext.resourceGroup.location;
     wizardContext.activityTitle = localize('createServiceWithName', 'Create Web PubSub "{0}"', wizardContext.webPubSubName);
     await wizard.execute();
     // eslint-disable-next-line @typescript-eslint/no-floating-promises
