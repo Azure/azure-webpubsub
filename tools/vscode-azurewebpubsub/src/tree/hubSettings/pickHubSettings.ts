@@ -10,16 +10,16 @@ import { type PickItemOptions } from "../utils";
 import { getPickServiceSteps } from "../service/pickService";
 import { HubSettingsItem } from "./HubSettingsItem";
 
-export async function pickHubs(context: IActionContext, options?: PickItemOptions): Promise<HubSettingsItem> {
+export async function pickHubSettings(context: IActionContext, options?: PickItemOptions): Promise<HubSettingsItem> {
     return await runQuickPickWizard(context,
         {
-            promptSteps: getPickHubsSteps(),
+            promptSteps: getPickHubSettingsSteps(),
             title: options?.title,
             showLoadingPrompt: options?.showLoadingPrompt
         });
 }
 
-export function getPickHubsSteps(): AzureWizardPromptStep<AzureResourceQuickPickWizardContext>[] {
+export function getPickHubSettingsSteps(): AzureWizardPromptStep<AzureResourceQuickPickWizardContext>[] {
     return [
         ...getPickServiceSteps(),
         new ContextValueQuickPickStep(
@@ -29,7 +29,7 @@ export function getPickHubsSteps(): AzureWizardPromptStep<AzureResourceQuickPick
                 skipIfOne: true,
             },
             {
-                placeHolder: localize('selectHub', 'Select a hub settings'),
+                placeHolder: localize('selectHub', 'Select to view the hub settings'),
                 noPicksMessage: localize('noHub', 'Current Web PubSub serivce has no hub setting configured'),
             }
         )
