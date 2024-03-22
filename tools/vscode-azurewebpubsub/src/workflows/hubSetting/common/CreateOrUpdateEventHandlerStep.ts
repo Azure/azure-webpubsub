@@ -51,7 +51,7 @@ export class CreateOrUpdateEventHandlerStep extends AzureWizardPromptStep<ICreat
 
 async function inputUrlTemplate(ui: IAzureUserInput, defaultUrlTemplate: string = "https://") {
     return await (ui.showInputBox({
-        prompt: localize('enterEventHandlerUrlTemplate', 'Enter an URL Template for the event Handler.'),
+        prompt: localize('enterEventHandlerUrlTemplate', 'Enter a URL Template for the event Handler.'),
         validateInput: (urlTemplate: string) => {
             return urlTemplate === defaultUrlTemplate || isUrlValid(urlTemplate)
                 ? "" 

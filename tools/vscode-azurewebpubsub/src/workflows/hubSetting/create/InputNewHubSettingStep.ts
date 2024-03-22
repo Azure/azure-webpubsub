@@ -19,7 +19,7 @@ export class InputNewHubSettingStep extends AzureNameStep<ICreateOrUpdateHubSett
 
             const askForMoreEventHandler: boolean = (await context.ui.showQuickPick(
                 [ { label: "No", data: false }, { label: "Yes", data: true } ],
-                { placeHolder: localize('askIfMoreEventHandler', 'Do you want to add more event handler?') }
+                { placeHolder: localize('askIfMoreEventHandler', 'Do you want to add more event handlers?') }
             )).data;
             if (!askForMoreEventHandler) break;
         }
