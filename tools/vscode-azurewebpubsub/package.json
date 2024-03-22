@@ -110,6 +110,11 @@
                 "category": "Azure Web PubSub"
             },
             {
+                "command": "azureWebPubSub.service.regenerateKey",
+                "title": "%azureWebPubSub.service.regenerateKey%",
+                "category": "Azure Web PubSub"
+            },
+            {
                 "command": "azureWebPubSub.service.copyEndpoint",
                 "title": "%azureWebPubSub.service.copyEndpoint%",
                 "category": "Azure Web PubSub"
@@ -139,6 +144,10 @@
                 },
                 {
                     "command": "azureWebPubSub.service.copyConnectionString",
+                    "when": "view =~ /(azureResourceGroups|azureFocusView)/ && viewItem =~ /webPubSubServiceItem/i"
+                },
+                {
+                    "command": "azureWebPubSub.service.regenerateKey",
                     "when": "view =~ /(azureResourceGroups|azureFocusView)/ && viewItem =~ /webPubSubServiceItem/i"
                 },
                 {

@@ -2,19 +2,19 @@
 
 ## Prerequisites
 
-1. [ASP.NET Core 3.1 or above](https://docs.microsoft.com/aspnet/core)
+1. [ASP.NET Core 8 or above](https://docs.microsoft.com/aspnet/core)
 2. Create an [Azure Web PubSub](https://ms.portal.azure.com/#blade/HubsExtension/BrowseResource/resourceType/Microsoft.SignalRService%2FWebPubSub) resource on Azure Portal
 3. [awps-tunnel](https://learn.microsoft.com/azure/azure-web-pubsub/howto-web-pubsub-tunnel-tool) to tunnel traffic from Web PubSub to your localhost
 
 ## Start the server
 
-Copy **Connection String** from **Keys** tab of the created Azure Web PubSub service. Run the below command with the `<connection-string>` replaced by the value of your **Connection String**. We are using [Secret Manager](https://docs.microsoft.com/aspnet/core/security/app-secrets#secret-manager) tool for .NET Core to set the connection string.
+Copy **Connection String** from **Keys** tab of the created Azure Web PubSub service. Run the below command with the `<connection-string>` replaced by the value of your **Connection String** to set Connection String to environment variable.
 
 ![Connection String](./../../../docs/images/portal_conn.png)
 
 ```bash
 dotnet restore
-dotnet user-secrets set Azure:WebPubSub:ConnectionString "<connection-string>"
+export WebPubSubConnectionString="<connection-string>"
 dotnet run --urls http://localhost:8080
 ```
 
