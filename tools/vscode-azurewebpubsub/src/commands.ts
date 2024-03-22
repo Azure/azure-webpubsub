@@ -12,6 +12,9 @@ import { restartService } from "./workflows/service/restart/restartService";
 import { deleteService } from "./workflows/service/delete/deleteService";
 import { copyServiceEndpoint } from "./workflows/service/copyEndpoint/copyEndpoint";
 import { copyConnectionString } from "./workflows/service/copyConnectionString/copyConnectionString";
+import { scaleUp } from "./workflows/service/scale/scaleUp";
+import { scaleOut } from "./workflows/service/scale/scaleOut";
+import { regenerateKey } from "./workflows/service/regenerateKey/regenerateKey";
 import { createHubSetting } from "./workflows/hubSetting/create/createHubSetting";
 import { createEventHandler } from "./workflows/hubSetting/EventHandler/create/createEventHandler";
 
@@ -41,6 +44,9 @@ export function registerCommands(): void {
     registerCommandWithTelemetryWrapper('azureWebPubSub.service.restart', restartService);
     registerCommandWithTelemetryWrapper('azureWebPubSub.service.copyConnectionString', copyConnectionString);
     registerCommandWithTelemetryWrapper('azureWebPubSub.service.copyEndpoint', copyServiceEndpoint);
+    registerCommandWithTelemetryWrapper('azureWebPubSub.service.regenerateKey', regenerateKey);
+    registerCommandWithTelemetryWrapper('azureWebPubSub.service.scaleUp', scaleUp);
+    registerCommandWithTelemetryWrapper('azureWebPubSub.service.scaleOut', scaleOut);
 
     // Service.HubSetting
     registerCommandWithTelemetryWrapper('azureWebPubSub.service.hubSetting.create', createHubSetting);
