@@ -17,6 +17,8 @@ import { scaleOut } from "./workflows/service/scale/scaleOut";
 import { regenerateKey } from "./workflows/service/regenerateKey/regenerateKey";
 import { createHubSetting } from "./workflows/hubSetting/create/createHubSetting";
 import { createEventHandler } from "./workflows/hubSetting/EventHandler/create/createEventHandler";
+import { deleteEventHandler } from "./workflows/hubSetting/EventHandler/delete/deleteEventHandler";
+import { deleteHubSetting } from "./workflows/hubSetting/delete/deleteHubSetting";
 
 function registerCommandWithTelemetryWrapper(commandId: string, callback: CommandCallback): void {
     // eslint-disable-next-line @typescript-eslint/no-unsafe-return
@@ -50,7 +52,9 @@ export function registerCommands(): void {
 
     // Service.HubSetting
     registerCommandWithTelemetryWrapper('azureWebPubSub.service.hubSetting.create', createHubSetting);
+    registerCommandWithTelemetryWrapper('azureWebPubSub.service.hubSetting.delete', deleteHubSetting);
 
     // Service.HubSetting.EventHandler
     registerCommandWithTelemetryWrapper('azureWebPubSub.service.hubSetting.eventHandler.create', createEventHandler);
+    registerCommandWithTelemetryWrapper('azureWebPubSub.service.hubSetting.eventHandler.delete', deleteEventHandler);
 }

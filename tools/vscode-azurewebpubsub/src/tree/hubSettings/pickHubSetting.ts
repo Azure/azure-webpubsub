@@ -7,26 +7,26 @@ import { ContextValueQuickPickStep, runQuickPickWizard, type AzureResourceQuickP
 import { ext } from "../../extensionVariables";
 import { localize } from "../../utils";
 import { type PickItemOptions } from "../utils";
-import { getPickServiceSteps } from "../service/pickService";
 import { HubSettingItem } from "./HubSettingItem";
+import { getPickHubSettingsSteps } from "./pickHubSettings";
 
 export async function pickHubSetting(context: IActionContext, options?: PickItemOptions): Promise<HubSettingItem> {
     return await runQuickPickWizard(context,
         {
-            promptSteps: getPickHubSteps(),
+            promptSteps: getPickHubSettingSteps(),
             title: options?.title,
             showLoadingPrompt: options?.showLoadingPrompt
         });
 }
 
-export function getPickHubSteps(): AzureWizardPromptStep<AzureResourceQuickPickWizardContext>[] {
+export function getPickHubSettingSteps(): AzureWizardPromptStep<AzureResourceQuickPickWizardContext>[] {
     return [
-        ...getPickServiceSteps(),
+        ...getPickHubSettingsSteps(),
         new ContextValueQuickPickStep(
             ext.branchDataProvider,
             {
                 contextValueFilter: { include: [HubSettingItem.contextValueRegExp] },
-                skipIfOne: true,
+                skipIfOne: false,
             },
             {
                 placeHolder: localize('selectHub', 'Select a hub setting'),
