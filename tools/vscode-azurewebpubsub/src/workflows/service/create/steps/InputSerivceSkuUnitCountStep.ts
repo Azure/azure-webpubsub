@@ -8,19 +8,20 @@ import { AzureWizardPromptStep } from "@microsoft/vscode-azext-utils";
 import { pricingLink, SKU_NAME_TO_UNIT_COUNT_LIST } from "../../../../constants";
 import { localize } from "../../../../utils";
 import { type ICreateServiceContext } from "../ICreateServiceContext";
+import { type IUpdateServiceContext } from "../../../common/contexts";
 
-export class InputSerivceSkuUnitCountStep extends AzureWizardPromptStep<ICreateServiceContext> {
-    public async prompt(context: ICreateServiceContext): Promise<void> {
-        if (!(context.Sku?.sku)) {
-            throw new Error("Invalid context or sku");
+export class InputSerivceSkuUnitCountStep extends AzureWizardPromptStep<ICreateServiceContext | IUpdateServiceContext> {
+    public async prompt(context: ICreateServiceContext | IUpdateServiceContext): Promise<void> {
+        if (!context.resource?.sku?.name) {
+            throw new Error(localize("invalidResourceInContext", "Invalid resource in context, resource = {0}", context.resource.toString()));
         }
 
         const picks: IAzureQuickPickItem<number>[] = [];
-        const skuName = context.Sku.sku.name;
+        const skuName = context.resource.sku.name;
         SKU_NAME_TO_UNIT_COUNT_LIST[skuName].forEach((element:number) => { picks.push({ label: `Unit ${element}`, data: element }); });
 
         // selection prompt will be skipped if there is only one choice
-        context.Sku.sku.capacity = (await context.ui.showQuickPick(picks, {
+        context.resource.sku.capacity = (await context.ui.showQuickPick(picks, {
             placeHolder: localize("selectUnitCount", `Select the unit count for your service. Click "?" in the top right corner to learn more`),
             suppressPersistence: true,
             learnMoreLink: pricingLink,

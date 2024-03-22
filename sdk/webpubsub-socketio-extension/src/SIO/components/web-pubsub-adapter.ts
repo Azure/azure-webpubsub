@@ -70,6 +70,7 @@ opts = ${toOptionsString(opts)}, namespace = "${this.nsp.name}"`);
     try {
       packet.nsp = this.nsp.name;
 
+      // Although here's a await, but this method actually return in sync
       const encodedPayload = await getSingleEioEncodedPayload(packet);
 
       // optimize
