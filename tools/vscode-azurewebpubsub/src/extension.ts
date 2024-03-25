@@ -16,7 +16,6 @@ import { loadPackageInfo } from './utils';
 import { dispose as disposeTelemetryWrapper, initialize, instrumentOperation } from 'vscode-extension-telemetry-wrapper';
 
 export async function activate(context: vscode.ExtensionContext, perfStats: { loadStartTime: number; loadEndTime: number }, ignoreBundle?: boolean): Promise<void> {
-    perfStats ||= { loadStartTime: Date.now(), loadEndTime: Date.now() };
     ext.context = context;
     ext.ignoreBundle = ignoreBundle;
     ext.outputChannel = createAzExtOutputChannel('Azure Web PubSub', ext.prefix);
