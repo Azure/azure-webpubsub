@@ -28,7 +28,7 @@ export class CreateOrUpdateEventHandlerStep extends AzureWizardPromptStep<ICreat
             const choices = context.hubProperties.eventHandlers.map((handler, index) => ({
                 label: `Priority ${index + 1}: ${handler.urlTemplate}`,
                 data: index,
-                detail: `User Events = ${handler.userEventPattern ?? ""}\tSystem Events = ${(handler.systemEvents ?? []).join(',')}`
+                detail: `User Events = ${handler.userEventPattern ?? ""}\tSystem Events = ${(handler.systemEvents ?? []).join(',')}` // '\n' not work here, use '\t' instead
             }));
             updateIndex = (await context.ui.showQuickPick(choices, { placeHolder: localize('selectEventHandler', 'Select Event Handler') })).data;
             let eventHandler = context.hubProperties.eventHandlers[updateIndex];

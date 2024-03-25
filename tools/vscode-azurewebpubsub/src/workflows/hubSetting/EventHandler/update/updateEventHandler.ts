@@ -23,6 +23,7 @@ export async function updateEventHandler(context: IActionContext, node?: EventHa
 
     const serivce = parentHubSetting.service;
     const subContext = createSubscriptionContext(serivce.subscription);
+    const client = createAzureClient([context, subContext], WebPubSubManagementClient);
     
     const wizardContext: ICreateOrUpdateHubSettingContext = {
         ...context,
@@ -34,10 +35,8 @@ export async function updateEventHandler(context: IActionContext, node?: EventHa
         hubProperties: parentHubSetting.hub.properties
     };
 
-    const client = createAzureClient([context, subContext], WebPubSubManagementClient);
-
     const wizard: AzureWizard<ICreateOrUpdateHubSettingContext> = new AzureWizard(wizardContext, {
-        title: localize('updateEventHandler', `Update event handler in hub setting ${parentHubSetting.hub.hubName}`),
+        title: localize('updateEventHandler', "Update event handler in hub setting {0}", parentHubSetting.hub.hubName),
         promptSteps: [ new CreateOrUpdateEventHandlerStep(false) ],
         executeSteps: [ new CreateOrUpdateHubSettingStep(client, false) ]
     });
