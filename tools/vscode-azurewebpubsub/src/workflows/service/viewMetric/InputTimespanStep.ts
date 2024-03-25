@@ -25,7 +25,7 @@ export class InputTimespanStep extends AzureWizardPromptStep<IPickMetricsContext
             const startTime = await context.ui.showInputBox({
                 placeHolder: "Start Time (Local Time)",
                 value: InputTimespanStep.formatDate(new Date()),
-                prompt: "Input the start time. Format: yyyy-MM-dd HH:mm:ss. Example: 2024-01-01 00:00:00",
+                prompt: "Input the start time in local timezone. Format: yyyy-MM-dd HH:mm:ss. Example: 2024-01-01 00:00:00",
                 validateInput: InputTimespanStep.validateDateString,
             });
             context.startTime = new Date(startTime);
@@ -33,7 +33,7 @@ export class InputTimespanStep extends AzureWizardPromptStep<IPickMetricsContext
             const endTime = await context.ui.showInputBox({
                 placeHolder: "End Time",
                 value: InputTimespanStep.formatDate(new Date(context.startTime.getTime() - 1 * HOUR_MILLISECONDS)),
-                prompt: "Input the end time. Format: yyyy-MM-dd HH:mm:ss. Example: 2024-01-02 00:00:00",
+                prompt: "Input the end time in local timezone. Format: yyyy-MM-dd HH:mm:ss. Example: 2024-01-02 00:00:00",
                 validateInput: InputTimespanStep.validateDateString,
             });
             context.endTime = new Date(endTime);
