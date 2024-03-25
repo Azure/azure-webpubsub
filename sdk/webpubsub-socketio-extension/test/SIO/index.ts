@@ -38,6 +38,7 @@ describe("socket.io", () => {
   require("./namespace");
   require("./socket"); // For Reviewer: Works well steadily. No need to test specially.
   require("./messaging-many");
+  require("./messaging-order");
   // TODO: If "./close" is put before "./namespace", the test "should fire a `connection` event" will be extremly slow or fail. Need more investigation.
   require("./close");
 

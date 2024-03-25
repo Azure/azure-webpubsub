@@ -4,7 +4,7 @@ const { WebPubSubEventHandler } = require('@azure/web-pubsub-express');
 const { DefaultAzureCredential, ClientSecretCredential, VisualStudioCodeCredential, AzureCliCredential, ClientCertificateCredential } = require('@azure/identity')
 
 const app = express();
-const hubName = 'sample_aadchat';
+const hubName = 'sample_chat';
 
 let endpoint = process.argv[2] // sample: https://<name>.webpubsub.azure.com
 

@@ -29,3 +29,16 @@ export async function createActivityContext(): Promise<ExecuteActivityContext> {
 export function showError(commandName: string, error: Error): void {
     void window.showErrorMessage(`Command "${commandName}" fails. ${error.message}`);
 }
+
+export function createEndpointFromHostName(hostName: string): string {
+    return `https://${hostName}`;
+}
+
+export function isUrlValid(url: string): boolean {
+    try {
+        new URL(url);
+        return true;
+    } catch (_err) {
+        return false;
+    }
+}

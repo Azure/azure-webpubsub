@@ -32,7 +32,8 @@ export class MockDataFetcher implements IDataFetcher {
     }
 
     if (method === "getClientAccessUrl") {
-      return "wss://ws.postman-echo.com/raw";
+      console.log(args);
+      return "wss://mock-free.webpubsub.azure.com/client/hubs/mock";
     }
     await delay(1000);
     return { success: true, message: method };
@@ -40,14 +41,14 @@ export class MockDataFetcher implements IDataFetcher {
   fetch(): Promise<DataModel> {
     const current = {
       ready: true,
-      clientUrl: "ws://abc/client",
+      clientUrl: "wss://mock-free.webpubsub.azure.com/client/hubs/mock",
       liveTraceUrl: "https://xxx.webpubsub.azure.com",
-      endpoint: "https://xxx.webpubsub.azure.com",
+      endpoint: "https://mock-free.webpubsub.azure.com",
       upstreamServerUrl: "http://localhost:3000",
       tunnelConnectionStatus: ConnectionStatus.Connected,
       tunnelServerStatus: ConnectionStatusPairs.Connected,
       builtinUpstreamServerStarted: true,
-      hub: "chat",
+      hub: "mock",
       serviceConfiguration: {
         loaded: true,
         message: "Not configured",

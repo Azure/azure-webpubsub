@@ -15,7 +15,7 @@ import { type HubSettingModel} from "./HubSettingModel";
 import { createHubModel } from "./HubSettingModel";
 
 export class HubSettingItem implements AzureResourceModel {
-    static readonly contextValue: string = 'webPubSubHubItem';
+    static readonly contextValue: string = 'webPubSubHubSettingItem';
     static readonly contextValueRegExp: RegExp = new RegExp(HubSettingItem.contextValue);
 
     constructor(public readonly service: ServiceItem, public readonly hub: HubSettingModel) { }
