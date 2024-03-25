@@ -140,6 +140,11 @@
                 "title": "%azureWebPubSub.service.hubSetting.eventHandler.create%",
                 "category": "Azure Web PubSub",
                 "icon": "$(add)"
+            },
+            {
+                "command": "azureWebPubSub.service.hubSetting.eventHandler.update",
+                "title": "%azureWebPubSub.service.hubSetting.eventHandler.update%",
+                "category": "Azure Web PubSub"
             }
         ],
         "menus": {
@@ -189,6 +194,10 @@
                 {
                     "command": "azureWebPubSub.service.hubSetting.eventHandler.create",
                     "when": "view =~ /(azureResourceGroups|azureFocusView)/ && viewItem =~ /webPubSubHubEventHandlersItem/i"
+                },
+                {
+                    "command": "azureWebPubSub.service.hubSetting.eventHandler.update",
+                    "when": "view =~ /(azureResourceGroups|azureFocusView)/ && viewItem =~ /webPubSubHubEventHandlerItem/i"
                 }
             ]
         },

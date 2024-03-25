@@ -14,5 +14,6 @@
     "azureWebPubSub.service.scaleUp": "Scale Up",
     "azureWebPubSub.service.scaleOut": "Scale Out",
     "azureWebPubSub.service.hubSetting.create": "Create Hub Setting",
-    "azureWebPubSub.service.hubSetting.eventHandler.create": "Create Event Handler"
+    "azureWebPubSub.service.hubSetting.eventHandler.create": "Create Event Handler",
+    "azureWebPubSub.service.hubSetting.eventHandler.update": "Update Event Handler"
 }
