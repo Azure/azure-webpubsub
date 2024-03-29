@@ -46,15 +46,6 @@ export interface ICreateOrUpdateHubSettingContext extends IPickHubSettingContext
 }
 
 export type MetricName = string;
-export enum KnownMetricNameEnum {
-    ServerLoad = "ServerLoad",
-    InboundTraffic = "InboundTraffic",
-    OutboundTraffic = "OutboundTraffic",
-    ConnectionQuotaUtilization = "ConnectionQuotaUtilization",
-    ConnectionCount = "ConnectionCount",
-    ConnectionOpenCount = "ConnectionOpenCount",
-    ConnectionCloseCount = "ConnectionCloseCount",
-}
 
 export interface IPickMetricsContext extends IPickServiceContext {
     startTime?: Date;

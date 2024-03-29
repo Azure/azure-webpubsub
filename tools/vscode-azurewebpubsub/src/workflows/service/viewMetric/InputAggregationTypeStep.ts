@@ -3,7 +3,7 @@ import { KnownAggregationTypeEnum } from "@azure/arm-monitor";
 import { AzureWizardPromptStep } from "@microsoft/vscode-azext-utils";
 import { localize } from "../../../utils";
 import { type IPickMetricsContext, type MetricName } from "../../common/contexts";
-import { KnownMetricNameEnum } from "../../common/contexts";
+import { KnownMetricNameEnum } from "../../../constants";
 
 const METRICS_NAME_TO_AGGREGATION_TYPES: { [key: MetricName]: AggregationType[] } = {
     [KnownMetricNameEnum.ServerLoad]: [KnownAggregationTypeEnum.Minimum, KnownAggregationTypeEnum.Maximum, KnownAggregationTypeEnum.Average],

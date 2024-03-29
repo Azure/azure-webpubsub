@@ -68,6 +68,16 @@ export const METRIC_AGGREGATION_TYPE_TO_TYPE_ID: { [key: string]: number } = {
     [KnownAggregationTypeEnum.Count]: 5
 };
 
+export enum KnownMetricNameEnum {
+    ServerLoad = "ServerLoad",
+    InboundTraffic = "InboundTraffic",
+    OutboundTraffic = "OutboundTraffic",
+    ConnectionQuotaUtilization = "ConnectionQuotaUtilization",
+    ConnectionCount = "TotalConnectionCount",
+    ConnectionOpenCount = "ConnectionOpenCount",
+    ConnectionCloseCount = "ConnectionCloseCount"
+}
+
 export const MINUTE_MILLISECONDS = 60 * 1000;
 export const HOUR_MILLISECONDS = 60 * MINUTE_MILLISECONDS;
 export const DAY_MILLISECONDS = 24 * HOUR_MILLISECONDS;
