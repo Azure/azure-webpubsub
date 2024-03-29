@@ -25,31 +25,26 @@ export class OpenLiveTraceToolStep extends AzureWizardExecuteStep<IPickServiceCo
         if (!resource.hostName) {
             throw new Error(localize('invalidResource', `Invalid resource, hostName {0}`, resource.hostName));
         }
+
         const endpoint = createEndpointFromHostName(resource.hostName);
+        const authType = resource.disableLocalAuth ? "aad" : "key";
+        let token: string | undefined;
 
-        try {
-            let token: string | undefined;
-
-            const authType = resource.disableLocalAuth ? "aad" : "key";
-            if (authType === "aad") {
-                await vscode.window.showInformationMessage(localize(
-                    "unableViewLiveTrace",
-                    `You have disabled access key and using Azure Entra ID to access Live Trace Tool.`
-                    + `\nMake sure you have added correct role assignment. Visit ${LIVE_TRACE_HELP_LINK} for detail.`
-                ), localize("ok", "Ok"));
-            }
-            else {
-                const primaryKey = (await (client.webPubSub.listKeys(context.resourceGroupName, context.serviceName))).primaryKey;
-                if (!primaryKey) throw new Error(localize(`invalidPrimaryKey`, `Invalid primary key, key {0}`, primaryKey));
-                /* eslint-disable */
-                token = jwt.sign({}, primaryKey, { audience: `${endpoint}/livetrace`, expiresIn: "2h", algorithm: "HS256" });
-            }
-            await vscode.env.openExternal(createLiveTraceToolUrl(authType, resource.location, endpoint, token) as any);
-            /* eslint-enable */
+        if (authType === "aad") {
+            await vscode.window.showInformationMessage(localize(
+                "unableViewLiveTrace",
+                `You have disabled access key and using Azure Entra ID to access Live Trace Tool.`
+                + `\nMake sure you have added correct role assignment. Visit ${LIVE_TRACE_HELP_LINK} for detail.`
+            ), localize("ok", "Ok"));
         }
-        catch (err) {
-            throw new Error(localize('viewLiveTraceToolError', "Failed to view Live Trace, error = {0}", err.message));
+        else {
+            const primaryKey = (await (client.webPubSub.listKeys(context.resourceGroupName, context.serviceName))).primaryKey;
+            if (!primaryKey) throw new Error(localize(`invalidPrimaryKey`, `Invalid primary key, key {0}`, primaryKey));
+            /* eslint-disable */
+            token = jwt.sign({}, primaryKey, { audience: `${endpoint}/livetrace`, expiresIn: "2h", algorithm: "HS256" });
         }
+        await vscode.env.openExternal(createLiveTraceToolUrl(authType, resource.location, endpoint, token) as any);
+        /* eslint-enable */
     }
 
     public shouldExecute(_context: IPickServiceContext): boolean { return true; }
