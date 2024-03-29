@@ -57,3 +57,5 @@ The first character must be a letter.\n\
 The ther characters must be a letter, number, or one of {'_', ',', '.', '/', '\`'}\n\
 The value must be between 1 and 127 characters long."
 export const VALID_HUB_NAME_REGEX: RegExp = /^[A-Za-z][A-Za-z0-9_`,.[/\]]{0,127}$/;
+
+export const LIVE_TRACE_HELP_LINK = "https://learn.microsoft.com/azure/azure-web-pubsub/howto-troubleshoot-resource-logs#launch-the-live-trace-tool";

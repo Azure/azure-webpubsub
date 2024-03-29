@@ -125,11 +125,11 @@
             "explorer/context": [],
             "view/item/context": [
                 {
-                    "command": "azureWebPubSub.service.delete",                    
+                    "command": "azureWebPubSub.service.delete",
                     "when": "view =~ /(azureResourceGroups|azureFocusView)/ && viewItem =~ /webPubSubServiceItem/i"
                 },
                 {
-                    "command": "azureWebPubSub.service.restart",                    
+                    "command": "azureWebPubSub.service.restart",
                     "when": "view =~ /(azureResourceGroups|azureFocusView)/ && viewItem =~ /webPubSubServiceItem/i"
                 },
                 {
