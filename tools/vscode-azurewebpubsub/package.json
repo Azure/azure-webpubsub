@@ -130,6 +130,11 @@
                 "category": "Azure Web PubSub"
             },
             {
+                "command": "azureWebPubSub.service.viewMetrics",
+                "title": "%azureWebPubSub.service.viewMetrics%",
+                "category": "Azure Web PubSub"
+            },
+            {
                 "command": "azureWebPubSub.service.hubSetting.create",
                 "title": "%azureWebPubSub.service.hubSetting.create%",
                 "category": "Azure Web PubSub",
@@ -172,6 +177,10 @@
                 },
                 {
                     "command": "azureWebPubSub.service.scaleUp",
+                    "when": "view =~ /(azureResourceGroups|azureFocusView)/ && viewItem =~ /webPubSubServiceItem/i"
+                },
+                {
+                    "command": "azureWebPubSub.service.viewMetrics",
                     "when": "view =~ /(azureResourceGroups|azureFocusView)/ && viewItem =~ /webPubSubServiceItem/i"
                 },
                 {
@@ -242,6 +251,7 @@
         "webpack-cli": "^4.6.0"
     },
     "dependencies": {
+        "@azure/arm-monitor": "^7.0.0",
         "@azure/arm-resources": "^5.0.1",
         "@azure/arm-webpubsub": "^2.0.0-beta.2",
         "@azure/core-rest-pipeline": "1.10.3",
