@@ -40,11 +40,11 @@ export class OpenLiveTraceToolStep extends AzureWizardExecuteStep<IPickServiceCo
         else {
             const primaryKey = (await (client.webPubSub.listKeys(context.resourceGroupName, context.serviceName))).primaryKey;
             if (!primaryKey) throw new Error(localize(`invalidPrimaryKey`, `Invalid primary key, key {0}`, primaryKey));
-            /* eslint-disable */
+            // eslint-disable-next-line
             token = jwt.sign({}, primaryKey, { audience: `${endpoint}/livetrace`, expiresIn: "2h", algorithm: "HS256" });
         }
+        // eslint-disable-next-line
         await vscode.env.openExternal(createLiveTraceToolUrl(authType, resource.location, endpoint, token) as any);
-        /* eslint-enable */
     }
 
     public shouldExecute(_context: IPickServiceContext): boolean { return true; }
