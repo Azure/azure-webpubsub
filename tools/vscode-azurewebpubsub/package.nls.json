@@ -14,6 +14,7 @@
     "azureWebPubSub.service.regenerateKey": "Regenerate key",
     "azureWebPubSub.service.scaleUp": "Scale Up",
     "azureWebPubSub.service.scaleOut": "Scale Out",
+    "azureWebPubSub.service.viewMetrics": "View Metrics",
     "azureWebPubSub.service.hubSetting.create": "Create Hub Setting",
     "azureWebPubSub.service.hubSetting.eventHandler.create": "Create Event Handler"
 }
