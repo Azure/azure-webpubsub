@@ -5,7 +5,7 @@
     "version": "0.0.1-beta.1",
     "publisher": "ms-azuretools",
     "icon": "resources/azure-web-pubsub.png",
-    "aiKey": "<to-be-determined>",
+    "aiKey": "3fc79002-1908-48c5-b7ac-794e604e6590",
     "engines": {
         "vscode": "^1.76.0"
     },
@@ -110,6 +110,11 @@
                 "category": "Azure Web PubSub"
             },
             {
+                "command": "azureWebPubSub.service.regenerateKey",
+                "title": "%azureWebPubSub.service.regenerateKey%",
+                "category": "Azure Web PubSub"
+            },
+            {
                 "command": "azureWebPubSub.service.copyEndpoint",
                 "title": "%azureWebPubSub.service.copyEndpoint%",
                 "category": "Azure Web PubSub"
@@ -118,6 +123,28 @@
                 "command": "azureWebPubSub.service.openLiveTraceTool",
                 "title": "%azureWebPubSub.service.openLiveTraceTool%",
                 "category": "Azure Web PubSub"
+            },
+            {
+                "command": "azureWebPubSub.service.scaleUp",
+                "title": "%azureWebPubSub.service.scaleUp%",
+                "category": "Azure Web PubSub"
+            },
+            {
+                "command": "azureWebPubSub.service.scaleOut",
+                "title": "%azureWebPubSub.service.scaleOut%",
+                "category": "Azure Web PubSub"
+            },
+            {
+                "command": "azureWebPubSub.service.hubSetting.create",
+                "title": "%azureWebPubSub.service.hubSetting.create%",
+                "category": "Azure Web PubSub",
+                "icon": "$(add)"
+            },
+            {
+                "command": "azureWebPubSub.service.hubSetting.eventHandler.create",
+                "title": "%azureWebPubSub.service.hubSetting.eventHandler.create%",
+                "category": "Azure Web PubSub",
+                "icon": "$(add)"
             }
         ],
         "menus": {
@@ -137,12 +164,40 @@
                     "when": "view =~ /(azureResourceGroups|azureFocusView)/ && viewItem =~ /webPubSubServiceItem/i"
                 },
                 {
+                    "command": "azureWebPubSub.service.regenerateKey",
+                    "when": "view =~ /(azureResourceGroups|azureFocusView)/ && viewItem =~ /webPubSubServiceItem/i"
+                },
+                {
                     "command": "azureWebPubSub.service.copyEndpoint",
                     "when": "view =~ /(azureResourceGroups|azureFocusView)/ && viewItem =~ /webPubSubServiceItem/i"
                 },
                 {
                     "command": "azureWebPubSub.service.openLiveTraceTool",
                     "when": "view =~ /(azureResourceGroups|azureFocusView)/ && viewItem =~ /webPubSubServiceItem/i"
+                },
+                {
+                    "command": "azureWebPubSub.service.scaleOut",
+                    "when": "view =~ /(azureResourceGroups|azureFocusView)/ && viewItem =~ /webPubSubServiceItem/i"
+                },
+                {
+                    "command": "azureWebPubSub.service.scaleUp",
+                    "when": "view =~ /(azureResourceGroups|azureFocusView)/ && viewItem =~ /webPubSubServiceItem/i"
+                },
+                {
+                    "command": "azureWebPubSub.service.hubSetting.create",
+                    "when": "view =~ /(azureResourceGroups|azureFocusView)/ && viewItem =~ /webPubSubServiceItem/i"
+                },
+                {
+                    "command": "azureWebPubSub.service.hubSetting.create",
+                    "when": "view =~ /(azureResourceGroups|azureFocusView)/ && viewItem =~ /webPubSubHubSettingsItem/i"
+                },
+                {
+                    "command": "azureWebPubSub.service.hubSetting.eventHandler.create",
+                    "when": "view =~ /(azureResourceGroups|azureFocusView)/ && viewItem =~ /webPubSubHubSettingItem/i"
+                },
+                {
+                    "command": "azureWebPubSub.service.hubSetting.eventHandler.create",
+                    "when": "view =~ /(azureResourceGroups|azureFocusView)/ && viewItem =~ /webPubSubHubEventHandlersItem/i"
                 }
             ]
         },

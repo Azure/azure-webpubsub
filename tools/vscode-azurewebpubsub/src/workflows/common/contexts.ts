@@ -39,3 +39,7 @@ export interface ICreateOrUpdateHubSettingContext extends IPickHubSettingContext
 export interface IUpdateServiceContext extends IPickServiceContext {
     resource: WebPubSubResource;
 }
+
+export interface ICreateOrUpdateHubSettingContext extends IPickHubSettingContext {
+    hubProperties?: WebPubSubHubProperties;
+}

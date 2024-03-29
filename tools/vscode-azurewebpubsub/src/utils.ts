@@ -1,5 +1,7 @@
+import { type ExtensionContext } from "vscode";
 import { window } from "vscode";
 import * as nls from 'vscode-nls';
+import * as fs from "fs";
 import { WebPubSubManagementClient } from "@azure/arm-webpubsub";
 import { type AzExtClientContext} from "@microsoft/vscode-azext-azureutils";
 import { createAzureClient } from "@microsoft/vscode-azext-azureutils";
@@ -41,4 +43,17 @@ export function isUrlValid(url: string): boolean {
     } catch (_err) {
         return false;
     }
+}
+
+export async function loadPackageInfo(context: ExtensionContext) {
+    const raw = await fs.promises.readFile(context.asAbsolutePath("./package.json"), { encoding: 'utf-8' });
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+    const { publisher, name, version, aiKey } = JSON.parse(raw);
+    return {
+        publisher: publisher as string,
+        name: name as string,
+        version: version as string,
+        applicationInsightKey: aiKey as string,
+        extensionId: `${publisher}.${name}`
+    };
 }
