@@ -55,7 +55,7 @@ az login
 
 ```bash
 npm install -g @azure/web-pubsub-tunnel-tool
-awps-tunnel run --endpoint "<endpoint>" --hub Sample_ChatApp --upstream http://localhost:8080 
+awps-tunnel run --endpoint "<endpoint>" --hub sample_chat --upstream http://localhost:8080 
 ```
 
 ### 6. Start your server

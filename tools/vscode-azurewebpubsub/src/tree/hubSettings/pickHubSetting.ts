@@ -10,7 +10,7 @@ import { type PickItemOptions } from "../utils";
 import { getPickServiceSteps } from "../service/pickService";
 import { HubSettingItem } from "./HubSettingItem";
 
-export async function pickHub(context: IActionContext, options?: PickItemOptions): Promise<HubSettingItem> {
+export async function pickHubSetting(context: IActionContext, options?: PickItemOptions): Promise<HubSettingItem> {
     return await runQuickPickWizard(context,
         {
             promptSteps: getPickHubSteps(),

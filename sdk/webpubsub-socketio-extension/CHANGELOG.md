@@ -3,6 +3,10 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.1.0] - 2024-3-19
+
+- Messages sending to the same room or broadcast can guarantee order [#665](https://github.com/Azure/azure-webpubsub/pull/665)
+
 ## [1.0.1] - 2023-11-17
 
 - Fix a bug in passport authentication mechanism [#653](https://github.com/Azure/azure-webpubsub/pull/653)

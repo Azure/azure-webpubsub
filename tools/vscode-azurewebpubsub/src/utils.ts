@@ -1,5 +1,7 @@
+import { type ExtensionContext } from "vscode";
 import { window } from "vscode";
 import * as nls from 'vscode-nls';
+import * as fs from "fs";
 import { WebPubSubManagementClient } from "@azure/arm-webpubsub";
 import { type AzExtClientContext} from "@microsoft/vscode-azext-azureutils";
 import { createAzureClient } from "@microsoft/vscode-azext-azureutils";
@@ -30,10 +32,32 @@ export function showError(commandName: string, error: Error): void {
     void window.showErrorMessage(`Command "${commandName}" fails. ${error.message}`);
 }
 
-export function createEndpointFromHostName(hostName: string, protocol: "http" | "https" = "https"): string {
-    return `${protocol}://${hostName}`;
-}
-
 export function getHealthApiUrl(endpoint: string): string {
     return `${endpoint}/api/health`;
+}
+
+export function createEndpointFromHostName(hostName: string): string {
+    return `https://${hostName}`;
+}
+
+export function isUrlValid(url: string): boolean {
+    try {
+        new URL(url);
+        return true;
+    } catch (_err) {
+        return false;
+    }
+}
+
+export async function loadPackageInfo(context: ExtensionContext) {
+    const raw = await fs.promises.readFile(context.asAbsolutePath("./package.json"), { encoding: 'utf-8' });
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+    const { publisher, name, version, aiKey } = JSON.parse(raw);
+    return {
+        publisher: publisher as string,
+        name: name as string,
+        version: version as string,
+        applicationInsightKey: aiKey as string,
+        extensionId: `${publisher}.${name}`
+    };
 }
