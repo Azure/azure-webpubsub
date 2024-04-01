@@ -19,6 +19,7 @@ import { regenerateKey } from "./workflows/service/regenerateKey/regenerateKey";
 import { createHubSetting } from "./workflows/hubSetting/create/createHubSetting";
 import { createEventHandler } from "./workflows/hubSetting/EventHandler/create/createEventHandler";
 import { viewMetrics } from "./workflows/service/viewMetric/viewMetrics";
+import { checkServiceHealth } from "./workflows/service/checkHealth/checkHealth";
 
 function registerCommandWithTelemetryWrapper(commandId: string, callback: CommandCallback): void {
     // eslint-disable-next-line @typescript-eslint/no-unsafe-return
@@ -51,6 +52,7 @@ export function registerCommands(): void {
     registerCommandWithTelemetryWrapper('azureWebPubSub.service.scaleUp', scaleUp);
     registerCommandWithTelemetryWrapper('azureWebPubSub.service.scaleOut', scaleOut);
     registerCommandWithTelemetryWrapper('azureWebPubSub.service.viewMetrics', viewMetrics);
+    registerCommandWithTelemetryWrapper('azureWebPubSub.service.checkHealth', checkServiceHealth);
 
     // Service.HubSetting
     registerCommandWithTelemetryWrapper('azureWebPubSub.service.hubSetting.create', createHubSetting);

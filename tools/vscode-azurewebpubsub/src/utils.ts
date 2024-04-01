@@ -32,6 +32,10 @@ export function showError(commandName: string, error: Error): void {
     void window.showErrorMessage(`Command "${commandName}" fails. ${error.message}`);
 }
 
+export function getHealthApiUrl(endpoint: string): string {
+    return `${endpoint}/api/health`;
+}
+
 export function createEndpointFromHostName(hostName: string): string {
     return `https://${hostName}`;
 }

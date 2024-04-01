@@ -140,6 +140,11 @@
                 "category": "Azure Web PubSub"
             },
             {
+                "command": "azureWebPubSub.service.checkHealth",
+                "title": "%azureWebPubSub.service.checkHealth%",
+                "category": "Azure Web PubSub"
+            },
+            {
                 "command": "azureWebPubSub.service.hubSetting.create",
                 "title": "%azureWebPubSub.service.hubSetting.create%",
                 "category": "Azure Web PubSub",
@@ -190,6 +195,10 @@
                 },
                 {
                     "command": "azureWebPubSub.service.viewMetrics",
+                    "when": "view =~ /(azureResourceGroups|azureFocusView)/ && viewItem =~ /webPubSubServiceItem/i"
+                },
+                {
+                    "command": "azureWebPubSub.service.checkHealth",
                     "when": "view =~ /(azureResourceGroups|azureFocusView)/ && viewItem =~ /webPubSubServiceItem/i"
                 },
                 {
