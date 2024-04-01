@@ -18,6 +18,7 @@ import { scaleOut } from "./workflows/service/scale/scaleOut";
 import { regenerateKey } from "./workflows/service/regenerateKey/regenerateKey";
 import { createHubSetting } from "./workflows/hubSetting/create/createHubSetting";
 import { createEventHandler } from "./workflows/hubSetting/EventHandler/create/createEventHandler";
+import { updateEventHandler } from "./workflows/hubSetting/EventHandler/update/updateEventHandler";
 import { viewMetrics } from "./workflows/service/viewMetric/viewMetrics";
 import { checkServiceHealth } from "./workflows/service/checkHealth/checkHealth";
 
@@ -59,4 +60,5 @@ export function registerCommands(): void {
 
     // Service.HubSetting.EventHandler
     registerCommandWithTelemetryWrapper('azureWebPubSub.service.hubSetting.eventHandler.create', createEventHandler);
+    registerCommandWithTelemetryWrapper('azureWebPubSub.service.hubSetting.eventHandler.update', updateEventHandler);
 }

@@ -17,5 +17,6 @@
     "azureWebPubSub.service.viewMetrics": "View Metrics",
     "azureWebPubSub.service.checkHealth": "Check Service Health",
     "azureWebPubSub.service.hubSetting.create": "Create Hub Setting",
-    "azureWebPubSub.service.hubSetting.eventHandler.create": "Create Event Handler"
+    "azureWebPubSub.service.hubSetting.eventHandler.create": "Create Event Handler",
+    "azureWebPubSub.service.hubSetting.eventHandler.update": "Update Event Handler"
 }
