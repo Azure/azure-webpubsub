@@ -8,6 +8,7 @@ import { instrumentOperation } from "vscode-extension-telemetry-wrapper";
 import { showError } from "./utils";
 import { createServiceInPortal } from "./workflows/service/create/createServiceInPortal";
 import { createServiceForClassical, createServiceForSocketIO } from "./workflows/service/create/createService";
+import { openLiveTraceTool } from "./workflows/service/openLiveTraceTool/openLiveTraceTool";
 import { restartService } from "./workflows/service/restart/restartService";
 import { deleteService } from "./workflows/service/delete/deleteService";
 import { copyServiceEndpoint } from "./workflows/service/copyEndpoint/copyEndpoint";
@@ -45,6 +46,7 @@ export function registerCommands(): void {
     registerCommandWithTelemetryWrapper('azureWebPubSub.service.restart', restartService);
     registerCommandWithTelemetryWrapper('azureWebPubSub.service.copyConnectionString', copyConnectionString);
     registerCommandWithTelemetryWrapper('azureWebPubSub.service.copyEndpoint', copyServiceEndpoint);
+    registerCommandWithTelemetryWrapper('azureWebPubSub.service.openLiveTraceTool', openLiveTraceTool);
     registerCommandWithTelemetryWrapper('azureWebPubSub.service.regenerateKey', regenerateKey);
     registerCommandWithTelemetryWrapper('azureWebPubSub.service.scaleUp', scaleUp);
     registerCommandWithTelemetryWrapper('azureWebPubSub.service.scaleOut', scaleOut);
