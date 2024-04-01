@@ -10,9 +10,12 @@
     "azureWebPubSub.service.restart": "Restart Service",
     "azureWebPubSub.service.copyConnectionString": "Copy Connection String",
     "azureWebPubSub.service.copyEndpoint": "Copy Service Endpoint",
+    "azureWebPubSub.service.openLiveTraceTool": "View Live Trace",
     "azureWebPubSub.service.regenerateKey": "Regenerate key",
     "azureWebPubSub.service.scaleUp": "Scale Up",
     "azureWebPubSub.service.scaleOut": "Scale Out",
+    "azureWebPubSub.service.viewMetrics": "View Metrics",
+    "azureWebPubSub.service.checkHealth": "Check Service Health",
     "azureWebPubSub.service.hubSetting.create": "Create Hub Setting",
     "azureWebPubSub.service.hubSetting.eventHandler.create": "Create Event Handler",
     "azureWebPubSub.service.hubSetting.eventHandler.update": "Update Event Handler"

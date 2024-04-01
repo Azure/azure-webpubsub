@@ -8,6 +8,7 @@ import { type WebPubSubResource } from "@azure/arm-webpubsub";
 import { type KeyType } from "@azure/arm-webpubsub";
 import { type EventListener } from "@azure/arm-webpubsub";
 import { type EventHandler } from "@azure/arm-webpubsub";
+import { type AggregationType } from "@azure/arm-monitor";
 import { type ExecuteActivityContext, type IActionContext, type ISubscriptionContext } from "@microsoft/vscode-azext-utils";
 
 export interface IPickServiceContext extends IActionContext, ExecuteActivityContext {
@@ -42,4 +43,13 @@ export interface IUpdateServiceContext extends IPickServiceContext {
 
 export interface ICreateOrUpdateHubSettingContext extends IPickHubSettingContext {
     hubProperties?: WebPubSubHubProperties;
+}
+
+export type MetricName = string;
+
+export interface IPickMetricsContext extends IPickServiceContext {
+    startTime?: Date;
+    endTime?: Date;
+    metricName?: MetricName;
+    aggregationType?: AggregationType;
 }

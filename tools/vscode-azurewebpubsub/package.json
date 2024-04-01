@@ -5,7 +5,7 @@
     "version": "0.0.1-beta.1",
     "publisher": "ms-azuretools",
     "icon": "resources/azure-web-pubsub.png",
-    "aiKey": "<to-be-determined>",
+    "aiKey": "3fc79002-1908-48c5-b7ac-794e604e6590",
     "engines": {
         "vscode": "^1.76.0"
     },
@@ -120,6 +120,11 @@
                 "category": "Azure Web PubSub"
             },
             {
+                "command": "azureWebPubSub.service.openLiveTraceTool",
+                "title": "%azureWebPubSub.service.openLiveTraceTool%",
+                "category": "Azure Web PubSub"
+            },
+            {
                 "command": "azureWebPubSub.service.scaleUp",
                 "title": "%azureWebPubSub.service.scaleUp%",
                 "category": "Azure Web PubSub"
@@ -127,6 +132,16 @@
             {
                 "command": "azureWebPubSub.service.scaleOut",
                 "title": "%azureWebPubSub.service.scaleOut%",
+                "category": "Azure Web PubSub"
+            },
+            {
+                "command": "azureWebPubSub.service.viewMetrics",
+                "title": "%azureWebPubSub.service.viewMetrics%",
+                "category": "Azure Web PubSub"
+            },
+            {
+                "command": "azureWebPubSub.service.checkHealth",
+                "title": "%azureWebPubSub.service.checkHealth%",
                 "category": "Azure Web PubSub"
             },
             {
@@ -152,11 +167,11 @@
             "explorer/context": [],
             "view/item/context": [
                 {
-                    "command": "azureWebPubSub.service.delete",                    
+                    "command": "azureWebPubSub.service.delete",
                     "when": "view =~ /(azureResourceGroups|azureFocusView)/ && viewItem =~ /webPubSubServiceItem/i"
                 },
                 {
-                    "command": "azureWebPubSub.service.restart",                    
+                    "command": "azureWebPubSub.service.restart",
                     "when": "view =~ /(azureResourceGroups|azureFocusView)/ && viewItem =~ /webPubSubServiceItem/i"
                 },
                 {
@@ -172,11 +187,23 @@
                     "when": "view =~ /(azureResourceGroups|azureFocusView)/ && viewItem =~ /webPubSubServiceItem/i"
                 },
                 {
+                    "command": "azureWebPubSub.service.openLiveTraceTool",
+                    "when": "view =~ /(azureResourceGroups|azureFocusView)/ && viewItem =~ /webPubSubServiceItem/i"
+                },
+                {
                     "command": "azureWebPubSub.service.scaleOut",
                     "when": "view =~ /(azureResourceGroups|azureFocusView)/ && viewItem =~ /webPubSubServiceItem/i"
                 },
                 {
                     "command": "azureWebPubSub.service.scaleUp",
+                    "when": "view =~ /(azureResourceGroups|azureFocusView)/ && viewItem =~ /webPubSubServiceItem/i"
+                },
+                {
+                    "command": "azureWebPubSub.service.viewMetrics",
+                    "when": "view =~ /(azureResourceGroups|azureFocusView)/ && viewItem =~ /webPubSubServiceItem/i"
+                },
+                {
+                    "command": "azureWebPubSub.service.checkHealth",
                     "when": "view =~ /(azureResourceGroups|azureFocusView)/ && viewItem =~ /webPubSubServiceItem/i"
                 },
                 {
@@ -251,6 +278,7 @@
         "webpack-cli": "^4.6.0"
     },
     "dependencies": {
+        "@azure/arm-monitor": "^7.0.0",
         "@azure/arm-resources": "^5.0.1",
         "@azure/arm-webpubsub": "^2.0.0-beta.2",
         "@azure/core-rest-pipeline": "1.10.3",
@@ -264,6 +292,7 @@
         "deep-eql": "^4.1.3",
         "dotenv": "^16.0.0",
         "fs-extra": "^8.1.0",
+        "jsonwebtoken": "^9.0.2",
         "semver": "^7.5.2",
         "vscode-extension-telemetry-wrapper": "^0.13.3",
         "vscode-nls": "^4.1.1",
