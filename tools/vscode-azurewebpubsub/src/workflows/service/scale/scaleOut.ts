@@ -14,6 +14,7 @@ import { InputSerivceSkuUnitCountStep } from "../create/steps/InputSerivceSkuUni
 import * as vscode from "vscode";
 import { createPortalUri } from "@microsoft/vscode-azext-azureutils";
 import { KnownWebPubSubSkuTier } from "@azure/arm-webpubsub";
+import { ext } from "../../../extensionVariables";
 
 export async function scaleOut(context: IActionContext, node?: ServiceItem): Promise<void> {
     const { subscription, service } = node ?? await pickService(context, {
@@ -53,4 +54,5 @@ export async function scaleOut(context: IActionContext, node?: ServiceItem): Pro
     await wizard.prompt();
     wizardContext.activityTitle = utils.localize('scaleOutWithDetail', 'Scale out {0} from Unit {1} to Unit {2}', wizardContext.serviceName, previousUnitCount, wizardContext.resource.sku?.capacity);
     await wizard.execute();
+    ext.branchDataProvider.refresh();
 }
