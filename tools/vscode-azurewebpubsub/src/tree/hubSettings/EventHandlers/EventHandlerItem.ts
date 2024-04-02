@@ -15,13 +15,13 @@ export class EventHandlerItem implements TreeElementBase {
     static readonly contextValue: string = 'webPubSubHubEventHandlerItem';
     static readonly contextValueRegExp: RegExp = new RegExp(EventHandlerItem.contextValue);
 
-    constructor(public readonly eventHandlersItem: EventHandlersItem, public readonly eventHandler: EventHandler, public readonly order: number) { }
+    constructor(public readonly eventHandlersItem: EventHandlersItem, public readonly eventHandler: EventHandler, public readonly priority: number) { }
 
     async getChildren(): Promise<TreeElementBase[]> { return []; }
 
     getTreeItem(): vscode.TreeItem {
         return {
-            label: localize("eventHandlerWithOrder", "Event Handler {0}", this.order),
+            label: localize("eventHandlerWithOrder", "Event Handler {0}", this.priority),
             iconPath: new vscode.ThemeIcon("send"),
             contextValue: createContextValue([EventHandlerItem.contextValue]),
             collapsibleState: vscode.TreeItemCollapsibleState.None,
@@ -34,6 +34,6 @@ export class EventHandlerItem implements TreeElementBase {
 
     viewProperties: ViewPropertiesModel = {
         data: this.eventHandler,
-        label: `Event Handler ${this.order}`
+        label: `Event Handler ${this.priority}`
     };
 }

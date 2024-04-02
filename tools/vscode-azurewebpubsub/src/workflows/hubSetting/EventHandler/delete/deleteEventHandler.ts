@@ -25,10 +25,9 @@ export async function deleteEventHandler(context: IActionContext, node?: EventHa
     const subContext = createSubscriptionContext(serivce.subscription);
 
     const updatedHubProperties = parentHubSetting.hub.properties;
-    if (updatedHubProperties.eventHandlers) {
-        const targetEventHandlerIndex = updatedHubProperties.eventHandlers.findIndex((eventHandler) => eventHandler.urlTemplate === targetEventHandler.eventHandler.urlTemplate);
-        updatedHubProperties.eventHandlers.splice(targetEventHandlerIndex, 1);
-    }
+    if (!updatedHubProperties.eventHandlers) throw new Error(localize(`noEventHandlers`, 'No event handlers found in hub setting {0}', parentHubSetting.hub.hubName));
+    const targetEventHandlerIndex = targetEventHandler.priority - 1; // priority starts from 1
+    updatedHubProperties.eventHandlers.splice(targetEventHandlerIndex, 1);
     
     const wizardContext: ICreateOrUpdateHubSettingContext = {
         ...context,
