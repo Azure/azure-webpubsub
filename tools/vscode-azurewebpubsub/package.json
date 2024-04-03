@@ -179,48 +179,39 @@
             "explorer/context": [],
             "view/item/context": [
                 {
-                    "command": "azureWebPubSub.service.delete",
-                    "when": "view =~ /(azureResourceGroups|azureFocusView)/ && viewItem =~ /webPubSubServiceItem/i"
-                },
-                {
-                    "command": "azureWebPubSub.service.restart",
-                    "when": "view =~ /(azureResourceGroups|azureFocusView)/ && viewItem =~ /webPubSubServiceItem/i"
+                    "command": "azureWebPubSub.service.hubSetting.create",
+                    "when": "view =~ /(azureResourceGroups|azureFocusView)/ && viewItem =~ /webPubSubServiceItem/i",
+                    "group": "1@1"
                 },
                 {
                     "command": "azureWebPubSub.service.copyConnectionString",
-                    "when": "view =~ /(azureResourceGroups|azureFocusView)/ && viewItem =~ /webPubSubServiceItem/i"
-                },
-                {
-                    "command": "azureWebPubSub.service.regenerateKey",
-                    "when": "view =~ /(azureResourceGroups|azureFocusView)/ && viewItem =~ /webPubSubServiceItem/i"
+                    "when": "view =~ /(azureResourceGroups|azureFocusView)/ && viewItem =~ /webPubSubServiceItem/i",
+                    "group": "1@2"
                 },
                 {
                     "command": "azureWebPubSub.service.copyEndpoint",
-                    "when": "view =~ /(azureResourceGroups|azureFocusView)/ && viewItem =~ /webPubSubServiceItem/i"
+                    "when": "view =~ /(azureResourceGroups|azureFocusView)/ && viewItem =~ /webPubSubServiceItem/i",
+                    "group": "1@3"
                 },
                 {
                     "command": "azureWebPubSub.service.openLiveTraceTool",
-                    "when": "view =~ /(azureResourceGroups|azureFocusView)/ && viewItem =~ /webPubSubServiceItem/i"
+                    "when": "view =~ /(azureResourceGroups|azureFocusView)/ && viewItem =~ /webPubSubServiceItem/i",
+                    "group": "1@4"
                 },
                 {
-                    "command": "azureWebPubSub.service.scaleOut",
-                    "when": "view =~ /(azureResourceGroups|azureFocusView)/ && viewItem =~ /webPubSubServiceItem/i"
+                    "command": "azureWebPubSub.service.delete",
+                    "when": "view =~ /(azureResourceGroups|azureFocusView)/ && viewItem =~ /webPubSubServiceItem/i",
+                    "group": "1@5"
                 },
                 {
-                    "command": "azureWebPubSub.service.scaleUp",
-                    "when": "view =~ /(azureResourceGroups|azureFocusView)/ && viewItem =~ /webPubSubServiceItem/i"
+                    "command": "azureWebPubSub.service.restart",
+                    "when": "view =~ /(azureResourceGroups|azureFocusView)/ && viewItem =~ /webPubSubServiceItem/i",
+                    "group": "1@6"
                 },
                 {
-                    "command": "azureWebPubSub.service.viewMetrics",
-                    "when": "view =~ /(azureResourceGroups|azureFocusView)/ && viewItem =~ /webPubSubServiceItem/i"
-                },
-                {
-                    "command": "azureWebPubSub.service.checkHealth",
-                    "when": "view =~ /(azureResourceGroups|azureFocusView)/ && viewItem =~ /webPubSubServiceItem/i"
-                },
-                {
-                    "command": "azureWebPubSub.service.hubSetting.create",
-                    "when": "view =~ /(azureResourceGroups|azureFocusView)/ && viewItem =~ /webPubSubServiceItem/i"
+                    "submenu": "azureWebPubSub.service.advancedMenu",
+                    "when": "view =~ /(azureResourceGroups|azureFocusView)/ && viewItem =~ /webPubSubServiceItem/i",
+                    "group": "1@7"
                 },
                 {
                     "command": "azureWebPubSub.service.hubSetting.create",
@@ -246,8 +237,41 @@
                     "command": "azureWebPubSub.service.hubSetting.eventHandler.update",
                     "when": "view =~ /(azureResourceGroups|azureFocusView)/ && viewItem =~ /webPubSubHubEventHandlerItem/i"
                 }
+            ],
+            "azureWebPubSub.service.advancedMenu": [
+                {
+                    "command": "azureWebPubSub.service.scaleUp",
+                    "when": "view =~ /(azureResourceGroups|azureFocusView)/ && viewItem =~ /webPubSubServiceItem/i",
+                    "group": "1@1"
+                },
+                {
+                    "command": "azureWebPubSub.service.scaleOut",
+                    "when": "view =~ /(azureResourceGroups|azureFocusView)/ && viewItem =~ /webPubSubServiceItem/i",
+                    "group": "1@2"
+                },
+                {
+                    "command": "azureWebPubSub.service.viewMetrics",
+                    "when": "view =~ /(azureResourceGroups|azureFocusView)/ && viewItem =~ /webPubSubServiceItem/i",
+                    "group": "1@3"
+                },
+                {
+                    "command": "azureWebPubSub.service.checkHealth",
+                    "when": "view =~ /(azureResourceGroups|azureFocusView)/ && viewItem =~ /webPubSubServiceItem/i",
+                    "group": "1@4"
+                },
+                {
+                    "command": "azureWebPubSub.service.regenerateKey",
+                    "when": "view =~ /(azureResourceGroups|azureFocusView)/ && viewItem =~ /webPubSubServiceItem/i",
+                    "group": "1@5"
+                }
             ]
         },
+        "submenus": [
+            {
+                "id": "azureWebPubSub.service.advancedMenu",
+                "label": "%azureWebPubSub.service.advancedMenu%"
+            }
+        ],
         "configuration": [
             {
                 "title": "Azure Web PubSub",
