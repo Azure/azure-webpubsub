@@ -28,10 +28,9 @@ export async function checkServiceHealth(context: IActionContext, node?: Service
         endpoint: service.hostName ? createEndpointFromHostName(service.hostName) : undefined
     };
 
-    const wizard: AzureWizard<ICheckHealthContext> = new AzureWizard(wizardContext, {
-        title: localize('checkHealthWithName', 'Check Service Health of "{0}"', service.name),
+    const wizard: AzureWizard<ICheckHealthContext> = new AzureWizard(wizardContext, { // title property in `IWizardOptions` only works for prompt steps
         executeSteps: [new CheckHealthStep()]
     });
-
+    wizardContext.activityTitle = localize('checkHealthWithName', 'Check Service Health of "{0}"', service.name);
     await wizard.execute();
 }

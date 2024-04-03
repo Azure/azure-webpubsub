@@ -11,6 +11,7 @@ import { createActivityContext, localize } from "../../../utils";
 import { type IUpdateServiceContext } from "../../common/contexts";
 import { InputServiceSkuNameStep } from "../create/steps/InputServiceSkuNameStep";
 import { UpdateServiceStep } from "../../common/UpdateServiceStep";
+import { ext } from "../../../extensionVariables";
 
 export async function scaleUp(context: IActionContext, node?: ServiceItem): Promise<void> {
     const { subscription, service } = node ?? await pickService(context, {
@@ -37,4 +38,5 @@ export async function scaleUp(context: IActionContext, node?: ServiceItem): Prom
     await wizard.prompt();
     wizardContext.activityTitle = utils.localize('scaleUpWithDetail', 'Scale up {0} from {1} to {2}', wizardContext.serviceName, previousSkuName, wizardContext.resource.sku?.name);
     await wizard.execute();
+    ext.branchDataProvider.refresh();
 }
