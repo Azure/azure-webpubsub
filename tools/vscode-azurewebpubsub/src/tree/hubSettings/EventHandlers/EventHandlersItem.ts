@@ -21,7 +21,7 @@ export class EventHandlersItem implements TreeElementBase {
     async getChildren(): Promise<TreeElementBase[]> {
         const result: EventHandlerItem[] = [];
         for (let i = 0; i < this.eventHandlers.length; i++) {
-            result.push(new EventHandlerItem(this, this.eventHandlers[i], i));
+            result.push(new EventHandlerItem(this, this.eventHandlers[i], i + 1));
         }
         return result;
 

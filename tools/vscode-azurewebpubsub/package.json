@@ -151,10 +151,22 @@
                 "icon": "$(add)"
             },
             {
+                "command": "azureWebPubSub.service.hubSetting.delete",
+                "title": "%azureWebPubSub.service.hubSetting.delete%",
+                "category": "Azure Web PubSub",
+                "icon": "$(remove)"
+            },
+            {
                 "command": "azureWebPubSub.service.hubSetting.eventHandler.create",
                 "title": "%azureWebPubSub.service.hubSetting.eventHandler.create%",
                 "category": "Azure Web PubSub",
                 "icon": "$(add)"
+            },
+            {
+                "command": "azureWebPubSub.service.hubSetting.eventHandler.delete",
+                "title": "%azureWebPubSub.service.hubSetting.eventHandler.delete%",
+                "category": "Azure Web PubSub",
+                "icon": "$(remove)"
             },
             {
                 "command": "azureWebPubSub.service.hubSetting.eventHandler.update",
@@ -206,12 +218,20 @@
                     "when": "view =~ /(azureResourceGroups|azureFocusView)/ && viewItem =~ /webPubSubHubSettingsItem/i"
                 },
                 {
+                    "command": "azureWebPubSub.service.hubSetting.delete",
+                    "when": "view =~ /(azureResourceGroups|azureFocusView)/ && viewItem =~ /webPubSubHubSettingItem/i"
+                },
+                {
                     "command": "azureWebPubSub.service.hubSetting.eventHandler.create",
                     "when": "view =~ /(azureResourceGroups|azureFocusView)/ && viewItem =~ /webPubSubHubSettingItem/i"
                 },
                 {
                     "command": "azureWebPubSub.service.hubSetting.eventHandler.create",
                     "when": "view =~ /(azureResourceGroups|azureFocusView)/ && viewItem =~ /webPubSubHubEventHandlersItem/i"
+                },
+                {
+                    "command": "azureWebPubSub.service.hubSetting.eventHandler.delete",
+                    "when": "view =~ /(azureResourceGroups|azureFocusView)/ && viewItem =~ /webPubSubHubEventHandlerItem/i"
                 },
                 {
                     "command": "azureWebPubSub.service.hubSetting.eventHandler.update",
