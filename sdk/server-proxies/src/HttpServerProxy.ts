@@ -108,7 +108,7 @@ export class HttpServerProxy {
               chunks.push(chunk);
             });
             res.on("end", () => {
-              logger.info(`Received proxied response for '${getDisplayUrl(url)}: ${res.statusCode ?? 0}'`);
+              logger.info(`Received proxied response for '${getDisplayUrl(url)}: status code:${res.statusCode ?? 0}'`);
               const tunnelResponse = {
                 StatusCode: res.statusCode ?? 0,
                 Headers: convertHeaders(res.headers),
@@ -135,7 +135,7 @@ export class HttpServerProxy {
     }
 
     const arrivedAt = Date.now();
-    logger.info(`Received request from: '${request.HttpMethod} ${request.Url} ${request.Content?.byteLength ?? 0}`);
+    logger.info(`Received request from: '${request.HttpMethod} ${request.Url} , content-length: ${request.Content?.byteLength ?? 0}`);
     const url = new URL(new URL(request.Url).pathname, this._options.target);
     logger.info(`Proxied request to ${getDisplayUrl(url)}`);
     if (options?.handleProxiedRequest) {
