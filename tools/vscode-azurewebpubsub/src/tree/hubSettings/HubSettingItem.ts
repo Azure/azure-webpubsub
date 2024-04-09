@@ -32,7 +32,7 @@ export class HubSettingItem implements AzureResourceModel {
         const element = createGenericElement({
             label: localize('annoymousConnectPolicy', "{0} Annoymous Clients", isAllowAnnoy ? "Allow" : "Deny"),
             contextValue: "hubAllowAnnoymousClients",
-            // Icon "workspace-unkown" cannot be shown normally for unkown reason though it's listed in https://code.visualstudio.com/api/references/icons-in-labels
+            // Icon "workspace-unknown" cannot be shown normally for unkown reason though it's listed in https://code.visualstudio.com/api/references/icons-in-labels
             iconPath: new vscode.ThemeIcon(isAllowAnnoy ? "workspace-untrusted" : "workspace-trusted"),
         })
         return [
