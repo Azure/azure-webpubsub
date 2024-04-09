@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.0.0-beta.7] - 2024-04-09
+### Added
+- Support passing --connection option when running the tunnel
+
+### Fixed
+- `--endpoint` should override the environment WebPubSubConnectionString variable
+
 ## [1.0.0-beta.6] - 2024-03-15
 ### Fixed
 - Fix test client URL generation when env is used

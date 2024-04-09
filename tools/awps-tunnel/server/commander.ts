@@ -49,6 +49,7 @@ interface RunCommandLineArgs {
   webviewPort?: string;
   webviewHost?: string;
   noWebview?: boolean;
+  connection?: string;
 }
 
 export function getCommand(appConfigPath: string, dbFile: string): Command {
@@ -90,6 +91,10 @@ export function getCommand(appConfigPath: string, dbFile: string): Command {
     .option(
       "-e, --endpoint [endpoint]",
       "Specify the Web PubSub service endpoint URL to connect to, you don't need to set it if WebPubSubConnectionString environment variable is set. If both are set, this option will be used.",
+    )
+    .option(
+      "-c, --connection [connection]",
+      "Specify the Web PubSub service connection string to connection to, this option overrides the --endpoint option or WebPubSubConnectionString environment variable.",
     )
     .option("--hub [hub]", "Specify the hub to connect to. If not specified, the hub value set with `awps-tunnel bind --hub [hub]` will be used.")
     .option(
@@ -263,31 +268,49 @@ function createRunCommand(run: Command, dbFile: string, settings: Settings, comm
     upstream = new URL(currentUpstream);
   }
 
-  const connectionString = process.env.WebPubSubConnectionString;
-  // endpoint > connectionString > settings.WebPubSub.Endpoint
-  let endpoint = connectionString ? undefined : settings.WebPubSub.Endpoint;
-  if (command.endpoint) {
-    // override the endpoint value if it is set from the command directly
-    if (!parseUrl(command.endpoint)) {
-      printer.error(`Error: invalid endpoint: ${command.endpoint}`);
-      return;
+  // --connection > --endpoint > env WebPubSubConnectionString > binded settings.WebPubSub.Endpoint
+  let connectionString: string | undefined = undefined;
+  let endpoint: string | undefined = undefined;
+  if (command.connection) {
+    if (command.endpoint) {
+      printer.warn(`Warning: both --connection and --endpoint are set, --connection will be used.`);
+    } else {
+      printer.status(`Using connection string specified using --connection.`);
     }
-
-    endpoint = command.endpoint;
-  }
-
-  if (!connectionString && !endpoint) {
-    printer.error(`Error: neither WebPubSubConnectionString env is set nor endpoint is not specified.`);
-    run.outputHelp();
-    return;
+    connectionString = command.connection;
+  } else {
+    if (command.endpoint) {
+      // override the endpoint value if it is set from the command directly
+      if (!parseUrl(command.endpoint)) {
+        printer.error(`Error: invalid endpoint: ${command.endpoint}`);
+        return;
+      }
+      if (process.env.WebPubSubConnectionString) {
+        printer.warn(`Warning: both --endpoint and env WebPubSubConnectionString are set, --endpoint will be used.`);
+      } else {
+        printer.status(`Using endpoint specified using --endpoint.`);
+      }
+      endpoint = command.endpoint;
+    } else {
+      connectionString = process.env.WebPubSubConnectionString;
+      if (connectionString) {
+        printer.status(`Using connection string from env WebPubSubConnectionString.`);
+      }
+      endpoint = settings.WebPubSub.Endpoint;
+      if (endpoint) {
+        printer.status(`Using endpoint ${endpoint} from binded settings. Please make sure the Access Policy is correctly configured to allow your access.`);
+      } else {
+        printer.error(`Error: SET WebPubSubConnectionString env or specify --endpoint <endpoint> or specify --connection <connectionString>`);
+        run.outputHelp();
+        return;
+      }
+    }
   }
 
   let tunnel: HttpServerProxy;
   if (connectionString) {
-    printer.status(`Using endpoint and credential from WebPubSubConnectionString env.`);
     tunnel = HttpServerProxy.fromConnectionString(connectionString, hub, { target: currentUpstream });
   } else {
-    printer.status(`Using endpoint ${endpoint} from settings. Please make sure the Access Policy is correctly configured to allow your access.`);
     // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
     tunnel = new HttpServerProxy(endpoint!, getCredential(), hub, { target: currentUpstream });
   }
