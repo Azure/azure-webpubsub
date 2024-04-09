@@ -19,10 +19,12 @@ const skuNamePickItems: IAzureQuickPickItem<WebPubSubSkuName>[] = [
 ];
 
 export class InputServiceSkuNameStep extends AzureWizardPromptStep<ICreateServiceContext | IUpdateServiceContext> {
+    public constructor(public readonly excludedSkuNames: WebPubSubSkuName[] = []) { super(); }
+
     public async prompt(context: ICreateServiceContext | IUpdateServiceContext): Promise<void> {
         if (!context.resource) throw new Error(localize("notFoundResourceInContext", "Cannot find resource in context"));
         if (!context.resource.sku) throw new Error(localize("notFoundResourceSkuInResource", "Cannot find resource.sku in context"));
-        const chosenItem = await context.ui.showQuickPick(skuNamePickItems, {
+        const chosenItem = await context.ui.showQuickPick(skuNamePickItems.filter(item => this.excludedSkuNames.indexOf(item.data) === -1), {
             placeHolder: localize("tier", `Select pricing tier for Web PubSub, Click "?" in the top right corner to learn more`),
             learnMoreLink: pricingLink,
             suppressPersistence: true,
