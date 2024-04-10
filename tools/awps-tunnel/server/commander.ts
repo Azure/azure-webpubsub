@@ -295,14 +295,15 @@ function createRunCommand(run: Command, dbFile: string, settings: Settings, comm
       connectionString = process.env.WebPubSubConnectionString;
       if (connectionString) {
         printer.status(`Using connection string from env WebPubSubConnectionString.`);
-      }
-      endpoint = settings.WebPubSub.Endpoint;
-      if (endpoint) {
-        printer.status(`Using endpoint ${endpoint} from binded settings. Please make sure the Access Policy is correctly configured to allow your access.`);
       } else {
-        printer.error(`Error: SET WebPubSubConnectionString env or specify --endpoint <endpoint> or specify --connection <connectionString>`);
-        run.outputHelp();
-        return;
+        endpoint = settings.WebPubSub.Endpoint;
+        if (endpoint) {
+          printer.status(`Using endpoint ${endpoint} from binded settings. Please make sure the Access Policy is correctly configured to allow your access.`);
+        } else {
+          printer.error(`Error: SET WebPubSubConnectionString env or specify --endpoint <endpoint> or specify --connection <connectionString>`);
+          run.outputHelp();
+          return;
+        }
       }
     }
   }
