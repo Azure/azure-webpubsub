@@ -1,5 +1,9 @@
 # Changelog
 
+## [1.0.0-beta.8] - 2024-04-10
+### Fixed
+- Fix the issue when connection string still set, the tool still tries to read endpoint setting
+- 
 ## [1.0.0-beta.7] - 2024-04-09
 ### Added
 - Support passing --connection option when running the tunnel
