@@ -4,7 +4,7 @@
 *--------------------------------------------------------------------------------------------*/
 
 import { type IActionContext, type TreeElementBase} from "@microsoft/vscode-azext-utils";
-import { createContextValue, createGenericElement, nonNullValueAndProp } from "@microsoft/vscode-azext-utils";
+import { createContextValue, nonNullValueAndProp } from "@microsoft/vscode-azext-utils";
 import { type AzureResourceModel, type AzureSubscription, type ViewPropertiesModel } from '@microsoft/vscode-azureresources-api';
 import * as vscode from 'vscode';
 import { createWebPubSubAPIClient, localize } from '../../utils';
@@ -13,6 +13,7 @@ import { EventHandlersItem } from "./EventHandlers/EventHandlersItem";
 import { EventListenersItem } from "./EventListeners/EventListenersItem";
 import { type HubSettingModel} from "./HubSettingModel";
 import { createHubModel } from "./HubSettingModel";
+import { AnonymousPolicyItem } from "./AnonymousPolicyItem";
 
 export class HubSettingItem implements AzureResourceModel {
     static readonly contextValue: string = 'webPubSubHubSettingItem';
@@ -28,15 +29,8 @@ export class HubSettingItem implements AzureResourceModel {
     }
 
     async getChildren(): Promise<TreeElementBase[]> {
-        const isAllowAnnoy: boolean = this.hub.properties.anonymousConnectPolicy === "allow";
-        const element = createGenericElement({
-            label: localize('annoymousConnectPolicy', "{0} Annoymous Clients", isAllowAnnoy ? "Allow" : "Deny"),
-            contextValue: "hubAllowAnnoymousClients",
-            // Icon "workspace-unknown" cannot be shown normally for unkown reason though it's listed in https://code.visualstudio.com/api/references/icons-in-labels
-            iconPath: new vscode.ThemeIcon(isAllowAnnoy ? "workspace-untrusted" : "workspace-trusted"),
-        })
         return [
-            element,
+            new AnonymousPolicyItem(this),
             new EventHandlersItem(this.hub.properties.eventHandlers ?? [], this),
             new EventListenersItem(this.hub.properties.eventListeners ?? [])
         ];
