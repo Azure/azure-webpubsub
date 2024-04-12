@@ -29,13 +29,6 @@ export class HubSettingItem implements AzureResourceModel {
     }
 
     async getChildren(): Promise<TreeElementBase[]> {
-        const isAllowAnnoy: boolean = this.hub.properties.anonymousConnectPolicy === "allow";
-        const element = createGenericElement({
-            label: localize('annoymousConnectPolicy', "{0} Annoymous Clients", isAllowAnnoy ? "Allow" : "Deny"),
-            contextValue: "hubAllowAnnoymousClients",
-            // Icon "workspace-unknown" cannot be shown normally for unkown reason though it's listed in https://code.visualstudio.com/api/references/icons-in-labels
-            iconPath: new vscode.ThemeIcon(isAllowAnnoy ? "workspace-untrusted" : "workspace-trusted"),
-        })
         return [
             new AnonymousPolicyItem(this),
             new EventHandlersItem(this.hub.properties.eventHandlers ?? [], this),
