@@ -42,7 +42,7 @@ export class ServiceItem implements AzureResourceModel {
         return {
             label: this.service.name,
             id: this.id,
-            iconPath: getServiceIconPath(this.service.kind === KnownServiceKind.WebPubSub),
+            iconPath: getServiceIconPath(this.service.kind !== KnownServiceKind.SocketIO),
             contextValue: createContextValue([ServiceItem.contextValue]),
             collapsibleState: vscode.TreeItemCollapsibleState.Collapsed,
             tooltip: `${this.service.name}, ${this.service.sku?.tier} ${this.service.sku?.capacity} units, ${this.service.location}`,
