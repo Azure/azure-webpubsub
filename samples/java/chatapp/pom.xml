@@ -39,6 +39,12 @@
         <artifactId>azure-messaging-webpubsub</artifactId>
         <version>1.2.12</version>
     </dependency>
+<!-- https://mvnrepository.com/artifact/com.google.code.gson/gson -->
+    <dependency>
+      <groupId>com.google.code.gson</groupId>
+      <artifactId>gson</artifactId>
+      <version>2.10.1</version>
+    </dependency>
     
     <dependency>
       <groupId>junit</groupId>

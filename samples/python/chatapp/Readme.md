@@ -36,18 +36,17 @@ The web app is listening to request at `http://localhost:8080/eventhandler`.
 ```bash
 npm install -g @azure/web-pubsub-tunnel-tool
 export WebPubSubConnectionString="<connection_string>"
-awps-tunnel run --hub sample_chat --upstream http://localhost:8080
+awps-tunnel run --hub Sample_ChatApp --upstream http://localhost:8080
 ```
 
 ## Configure the event handler
 
-Go to the **Settings** blade to configure the event handler for this `sample_chat` hub:
+Go to the **Settings** blade to configure the event handler for this `Sample_ChatApp` hub:
 
-1. Type the hub name `sample_chat` and click "Add".
+1. Type the hub name `Sample_ChatApp` and click "Add".
 
 2. Set URL Pattern to `tunnel:///eventhandler` and check `connected` in System Event Pattern, click "Save".
-
-![Event Handler](../../images/portal_event_handler_sample_chat.png)
+    ![Event Handler](../../images/portal_event_handler_Sample_ChatApp.png)
 
 ## Start the chat
 
