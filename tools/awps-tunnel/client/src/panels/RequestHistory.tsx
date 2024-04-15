@@ -7,6 +7,7 @@ import { useDataContext } from "../providers/DataContext";
 import { HttpHistoryItem } from "../models";
 import { Button } from "@fluentui/react-components";
 import { bundleIcon, Delete24Filled, Delete24Regular } from "@fluentui/react-icons";
+import ReactJson from 'react-json-view'
 
 import { Dialog, DialogTrigger, DialogSurface, DialogTitle, DialogBody, DialogActions, DialogContent } from "@fluentui/react-components";
 
@@ -128,16 +129,34 @@ export function RequestHistory(props: RequestHistoryProps) {
 
 function Details({ item }: { item?: HttpHistoryItem }) {
   if (!item) return <></>;
-  let requestTabItems = [
-    {
-      title: "Request Details",
-      content: (
-        <div className="m-2" style={{ whiteSpace: "pre-wrap" }}>
-          {item.requestRaw}
-        </div>
-      ),
-    },
-  ];
+  let requestTabItems = []
+  if (item.requestRaw.includes('Content-Type: application/json')){
+    const startIndex = item.requestRaw.indexOf('Content-Type: application/json') + 32
+    requestTabItems = [
+      {
+        title: "Request Details",
+        content:(
+          <div>
+            <div className="m-2" style={{ whiteSpace: "pre-wrap" }}>
+              {item.requestRaw.substring(0,startIndex)}
+            </div>
+            <ReactJson src={JSON.parse(item.requestRaw.substring(startIndex))}/>
+          </div>
+        )
+      }
+    ]
+  }else{
+    requestTabItems = [
+      {
+        title: "Request Details",
+        content: (
+          <div className="m-2" style={{ whiteSpace: "pre-wrap" }}>
+            {item.requestRaw}
+          </div>
+        ),
+      },
+    ];
+  }
   let responseTabItems = [
     {
       title: "Response Details",

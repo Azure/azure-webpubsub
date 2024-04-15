@@ -42,6 +42,11 @@ tbody tr:hover {
     margin: 5px;
 }
 
+.request, .response{
+    flex:1;
+    overflow-y: auto;
+}
+
 .resizablePanel {
     border: 1px solid #ccc;
 }
