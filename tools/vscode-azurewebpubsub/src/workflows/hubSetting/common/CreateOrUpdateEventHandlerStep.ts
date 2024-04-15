@@ -7,7 +7,7 @@ import { type IAzureUserInput } from "@microsoft/vscode-azext-utils";
 import { AzureWizardPromptStep } from "@microsoft/vscode-azext-utils";
 import { isUrlValid, localize } from "../../../utils";
 import { type ICreateOrUpdateHubSettingContext } from "../../common/contexts";
-import { KnownUserEvents, eventHandlerSystemEvents, eventHandlerUserEvents } from "../../../constants";
+import { ANONYMOUS_CONNECT_HELP_LINK, KnownAnonymousConnectPolicy, KnownUserEvents, eventHandlerSystemEvents, eventHandlerUserEvents } from "../../../constants";
 
 export class CreateOrUpdateEventHandlerStep extends AzureWizardPromptStep<ICreateOrUpdateHubSettingContext> {
     public constructor(private readonly isNewHandler: boolean) { super(); }
@@ -20,6 +20,7 @@ export class CreateOrUpdateEventHandlerStep extends AzureWizardPromptStep<ICreat
                 JSON.stringify(context.hubProperties)
             ));
         }
+        context.hubProperties.anonymousConnectPolicy = await InputAnonymousPolicy(context.ui);
         let updateIndex = -1;
         if (!this.isNewHandler) {
             if (!(context.hubProperties?.eventHandlers?.length)) {
@@ -97,4 +98,15 @@ export async function inputUserEvents(ui: IAzureUserInput) {
             throw new Error(localize("invalidUserEventType", 'Invalid User Event Type {0}', userEvent));
     }
     return userEventPattern;
+}
+
+export async function InputAnonymousPolicy(ui: IAzureUserInput): Promise<string> {
+    const annoymousConnectPolicyPickItems = [ { label: "Allow", data: KnownAnonymousConnectPolicy.Allow }, { label: "Deny", data: KnownAnonymousConnectPolicy.Deny } ];
+    return (await ui.showQuickPick(
+        annoymousConnectPolicyPickItems,
+        { 
+            placeHolder: localize('selectAnonymousPolicy', 'Select if anonymous clients is allowed. Click "?" in the top right corner to learn more.'),
+            learnMoreLink: ANONYMOUS_CONNECT_HELP_LINK
+        }
+    )).data;
 }
