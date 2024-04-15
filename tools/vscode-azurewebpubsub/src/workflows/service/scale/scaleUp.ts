@@ -28,10 +28,13 @@ export async function scaleUp(context: IActionContext, node?: ServiceItem): Prom
     };
 
     const previousSkuName = service.sku?.name;
+    if (!previousSkuName) {
+        throw new Error(localize('noSkuName', 'Failed to get sku name of the service.'));
+    }
 
     const wizard: AzureWizard<IUpdateServiceContext> = new AzureWizard(wizardContext, {
         title: localize('scaleUpWithName', 'Scale up "{0}"', service.name),
-        promptSteps: [new InputServiceSkuNameStep()],
+        promptSteps: [new InputServiceSkuNameStep([previousSkuName])],
         executeSteps: [new UpdateServiceStep()]
     });
 
