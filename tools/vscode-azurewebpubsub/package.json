@@ -157,6 +157,11 @@
                 "icon": "$(remove)"
             },
             {
+                "command": "azureWebPubSub.service.hubSetting.switchAnonymousPolicy",
+                "title": "%azureWebPubSub.service.hubSetting.switchAnonymousPolicy%",
+                "category": "Azure Web PubSub"
+            },
+            {
                 "command": "azureWebPubSub.service.hubSetting.eventHandler.create",
                 "title": "%azureWebPubSub.service.hubSetting.eventHandler.create%",
                 "category": "Azure Web PubSub",
@@ -220,6 +225,10 @@
                 {
                     "command": "azureWebPubSub.service.hubSetting.delete",
                     "when": "view =~ /(azureResourceGroups|azureFocusView)/ && viewItem =~ /webPubSubHubSettingItem/i"
+                },
+                {
+                    "command": "azureWebPubSub.service.hubSetting.switchAnonymousPolicy",
+                    "when": "view =~ /(azureResourceGroups|azureFocusView)/ && viewItem =~ /webPubSubAnonymousPolicyItem/i"
                 },
                 {
                     "command": "azureWebPubSub.service.hubSetting.eventHandler.create",

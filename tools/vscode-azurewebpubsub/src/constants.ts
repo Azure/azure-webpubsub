@@ -83,3 +83,10 @@ export enum KnownMetricNameEnum {
 export const MINUTE_MILLISECONDS = 60 * 1000;
 export const HOUR_MILLISECONDS = 60 * MINUTE_MILLISECONDS;
 export const DAY_MILLISECONDS = 24 * HOUR_MILLISECONDS;
+
+export enum KnownAnonymousConnectPolicy {
+    Allow = "allow",
+    Deny = "deny",
+}
+
+export const ANONYMOUS_CONNECT_HELP_LINK = "https://learn.microsoft.com/azure/azure-web-pubsub/samples-authenticate-and-connect?pivots=method-sdk-csharp#application-server"
