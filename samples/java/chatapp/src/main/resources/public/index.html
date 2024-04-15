@@ -7,9 +7,18 @@
     <script>
       (async function () {
         let id = prompt('Please input your user name');
+        
+        // **** negotiate and connect to the service *******
         let res = await fetch(`/negotiate?id=${id}`);
         let data = await res.json();
         let ws = new WebSocket(data.url);
+        // **********
+        // **** direct connect ****
+        // Uncomment the below line if you want to connect directly to the service
+        // let hostname = "<your_service_name>.webpubsub.azure.com";
+        // let hub = "Sample_ChatApp";
+        // let ws = new WebSocket(`wss://${hostname}/client/hubs/${hub}?id=${id}`);
+        // ************************
         ws.onopen = () => console.log('connected');
 
         let messages = document.querySelector('#messages');
