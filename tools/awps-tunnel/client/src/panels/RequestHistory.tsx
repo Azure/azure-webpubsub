@@ -43,6 +43,7 @@ export function RequestHistory(props: RequestHistoryProps) {
 
   function clearRequestHistory() {
     dataFetcher.invoke("clearTrafficHistory");
+    setSelectedItem(undefined);
   }
   
   const overviewPanel = (
