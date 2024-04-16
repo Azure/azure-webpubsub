@@ -31,10 +31,13 @@ export async function scaleOut(context: IActionContext, node?: ServiceItem): Pro
     };
 
     const previousUnitCount = service.sku?.capacity;
+    if (!previousUnitCount) {
+        throw new Error(localize('noUnitCount', 'Failed to get unit count of the service.'));
+    }
 
     const wizard: AzureWizard<IUpdateServiceContext> = new AzureWizard(wizardContext, {
         title: localize('scaleOutWithName', 'Scale out "{0}"', service.name),
-        promptSteps: [new InputSerivceSkuUnitCountStep()],
+        promptSteps: [new InputSerivceSkuUnitCountStep([previousUnitCount])],
         executeSteps: [new UpdateServiceStep()]
     });
 
