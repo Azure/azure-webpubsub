@@ -144,10 +144,23 @@ const renderContent = (rawString: string, header: string): ReactNode => {
   </div>
 };
 
+function splitIndex(rawText: string):number{
+  const lines: string[] = rawText.split('\n').map(line => line.trim());
+  const emptyIndex: number = lines.indexOf('');
+  if (emptyIndex !== -1) {
+    let indexInText: number = 0;
+    for (let i: number = 0; i < emptyIndex; i++) {
+      indexInText += lines[i].length + 1;
+    }
+    return indexInText;
+  }
+  return 0;
+}
+
 function Details({ item }: { item?: HttpHistoryItem }) {
   if (!item) return <></>;
-  const requestStartIndex: number = item.requestRaw.indexOf('\n\n');
-  const requestHeader = item.requestRaw.substring(0,requestStartIndex);
+  const requestSplitIndex: number = splitIndex(item.requestRaw);
+  const requestHeader = item.requestRaw.substring(0,requestSplitIndex);
   const requestTabItems = [
     {
       title: "Formatted Request Details",
@@ -158,7 +171,7 @@ function Details({ item }: { item?: HttpHistoryItem }) {
             {requestHeader}
           </div>
           <label style={{fontWeight:"bold"}}>Content</label>
-          {renderContent(item.requestRaw.substring(requestStartIndex),requestHeader)}
+          {renderContent(item.requestRaw.substring(requestSplitIndex),requestHeader)}
         </div>
       )
     },
@@ -169,6 +182,7 @@ function Details({ item }: { item?: HttpHistoryItem }) {
       </div>
     }
   ]
+  const responseSplitIndex = splitIndex(item.responseRaw? item.responseRaw:'');
   const responseTabItems = [
     {
       title: "Formatted Response Details",
@@ -176,10 +190,10 @@ function Details({ item }: { item?: HttpHistoryItem }) {
       <div>
         <label style={{fontWeight:"bold"}}>Header</label>
         <div className="m-2" style={{ whiteSpace: "pre-wrap" }}>
-          {item.responseRaw?.substring(0,item.responseRaw?.indexOf('\n\n'))}
+          {item.responseRaw?.substring(0,responseSplitIndex)}
         </div>
         <label style={{fontWeight:"bold"}}>Header</label>
-        {item.responseRaw && renderContent(item.responseRaw.substring(item.responseRaw.indexOf('\n\n')),item.responseRaw)}
+        {item.responseRaw && renderContent(item.responseRaw.substring(responseSplitIndex),item.responseRaw)}
       </div>
       ),
     },{
