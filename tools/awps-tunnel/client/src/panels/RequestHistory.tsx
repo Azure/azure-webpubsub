@@ -134,9 +134,6 @@ const renderContent = (rawString: string, header: string): ReactNode => {
       const parsedJson = JSON.parse(rawString);
       return <div><ReactJson src={parsedJson} collapsed={1}/></div>;
     } catch (error) {
-      return <div className="m-2" style={{ whiteSpace: "pre-wrap" }}>
-        {rawString}
-      </div>;
     }
   }
   return <div className="m-2" style={{ whiteSpace: "pre-wrap" }}>
