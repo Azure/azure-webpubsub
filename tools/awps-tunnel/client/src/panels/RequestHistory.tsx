@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { ReactNode, useEffect, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import moment from "moment";
 import { ReadonlyTabs } from "../components/Tabs";
@@ -127,46 +127,65 @@ export function RequestHistory(props: RequestHistoryProps) {
   );
 }
 
+const renderContent = (rawString: string, index: number): ReactNode => {
+  try {
+    const parsedJson = JSON.parse(rawString.substring(index));
+    return <div><ReactJson src={parsedJson} collapsed={1}/></div>;
+  } catch (error) {
+    return <div className="m-2" style={{ whiteSpace: "pre-wrap" }}>
+      {rawString.substring(index)}
+    </div>;
+  }
+};
+
 function Details({ item }: { item?: HttpHistoryItem }) {
   if (!item) return <></>;
-  let requestTabItems = []
-  if (item.requestRaw.includes('Content-Type: application/json')){
-    const startIndex = item.requestRaw.indexOf('Content-Type: application/json') + 32
-    requestTabItems = [
-      {
-        title: "Request Details",
-        content:(
-          <div>
-            <div className="m-2" style={{ whiteSpace: "pre-wrap" }}>
-              {item.requestRaw.substring(0,startIndex)}
-            </div>
-            <ReactJson src={JSON.parse(item.requestRaw.substring(startIndex))}/>
-          </div>
-        )
-      }
-    ]
-  }else{
-    requestTabItems = [
-      {
-        title: "Request Details",
-        content: (
-          <div className="m-2" style={{ whiteSpace: "pre-wrap" }}>
-            {item.requestRaw}
-          </div>
-        ),
-      },
-    ];
-  }
-  let responseTabItems = [
+  const requestStartIndex: number = item.requestRaw.indexOf('\n\n');
+  const requestTabItems = [
     {
-      title: "Response Details",
-      content: (
-        <div className="m-2" style={{ whiteSpace: "pre-wrap" }}>
-          {item.responseRaw}
+      title: "Formatted Request Details",
+      content:(
+        <div>
+          <label style={{fontWeight:"bold"}}>Header</label>
+          <div className="m-2" style={{ whiteSpace: "pre-wrap" }}>
+            {item.requestRaw.substring(0,requestStartIndex)}
+          </div>
+          <label style={{fontWeight:"bold"}}>Content</label>
+          {renderContent(item.requestRaw, requestStartIndex)}
         </div>
-      ),
+      )
     },
+    {
+      title: "Raw Request Details",
+      content: <div className="m-2" style={{ whiteSpace: "pre-wrap" }}>
+        {item.requestRaw}
+      </div>
+    }
+  ]
+  const responseTabItems = [
+    {
+      title: "Formatted Response Details",
+      content: (
+      <div>
+        <label style={{fontWeight:"bold"}}>Header</label>
+        <div className="m-2" style={{ whiteSpace: "pre-wrap" }}>
+          {item.responseRaw?.substring(0,item.responseRaw?.indexOf('\n\n'))}
+        </div>
+        <label style={{fontWeight:"bold"}}>Header</label>
+        <div className="m-2" style={{ whiteSpace: "pre-wrap" }}>
+          {item.responseRaw?.substring(item.responseRaw?.indexOf('\n\n'))}
+        </div>
+      </div>
+      ),
+    },{
+      title: "Raw Response Details",
+      content: <div className="m-2" style={{ whiteSpace: "pre-wrap" }}>
+        {item.responseRaw}
+      </div>
+    }
   ];
+
+
   return (
     <div className="panel-container d-flex flex-column flex-fill">
       <div className="banner d-flex">
