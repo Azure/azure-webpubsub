@@ -128,13 +128,13 @@ export function RequestHistory(props: RequestHistoryProps) {
   );
 }
 
-const renderContent = (rawString: string, index: number): ReactNode => {
+const renderContent = (rawString: string): ReactNode => {
   try {
-    const parsedJson = JSON.parse(rawString.substring(index));
+    const parsedJson = JSON.parse(rawString);
     return <div><ReactJson src={parsedJson} collapsed={1}/></div>;
   } catch (error) {
     return <div className="m-2" style={{ whiteSpace: "pre-wrap" }}>
-      {rawString.substring(index)}
+      {rawString}
     </div>;
   }
 };
@@ -152,7 +152,7 @@ function Details({ item }: { item?: HttpHistoryItem }) {
             {item.requestRaw.substring(0,requestStartIndex)}
           </div>
           <label style={{fontWeight:"bold"}}>Content</label>
-          {renderContent(item.requestRaw, requestStartIndex)}
+          {renderContent(item.requestRaw.substring(requestStartIndex))}
         </div>
       )
     },
@@ -173,9 +173,7 @@ function Details({ item }: { item?: HttpHistoryItem }) {
           {item.responseRaw?.substring(0,item.responseRaw?.indexOf('\n\n'))}
         </div>
         <label style={{fontWeight:"bold"}}>Header</label>
-        <div className="m-2" style={{ whiteSpace: "pre-wrap" }}>
-          {item.responseRaw?.substring(item.responseRaw?.indexOf('\n\n'))}
-        </div>
+        {item.responseRaw && renderContent(item.responseRaw.substring(item.responseRaw.indexOf('\n\n')))}
       </div>
       ),
     },{
