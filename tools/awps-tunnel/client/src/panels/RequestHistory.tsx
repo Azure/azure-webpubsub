@@ -7,7 +7,7 @@ import { useDataContext } from "../providers/DataContext";
 import { HttpHistoryItem } from "../models";
 import { Button } from "@fluentui/react-components";
 import { bundleIcon, Delete24Filled, Delete24Regular } from "@fluentui/react-icons";
-import ReactJson from 'react-json-view'
+import ReactJson from "react-json-view";
 
 import { Dialog, DialogTrigger, DialogSurface, DialogTitle, DialogBody, DialogActions, DialogContent } from "@fluentui/react-components";
 
@@ -128,20 +128,26 @@ export function RequestHistory(props: RequestHistoryProps) {
   );
 }
 
-const renderContent = (rawString: string): ReactNode => {
-  try {
-    const parsedJson = JSON.parse(rawString);
-    return <div><ReactJson src={parsedJson} collapsed={1}/></div>;
-  } catch (error) {
-    return <div className="m-2" style={{ whiteSpace: "pre-wrap" }}>
-      {rawString}
-    </div>;
+const renderContent = (rawString: string, header: string): ReactNode => {
+  if(header.includes('json')){
+    try {
+      const parsedJson = JSON.parse(rawString);
+      return <div><ReactJson src={parsedJson} collapsed={1}/></div>;
+    } catch (error) {
+      return <div className="m-2" style={{ whiteSpace: "pre-wrap" }}>
+        {rawString}
+      </div>;
+    }
   }
+  return <div className="m-2" style={{ whiteSpace: "pre-wrap" }}>
+    {rawString}
+  </div>
 };
 
 function Details({ item }: { item?: HttpHistoryItem }) {
   if (!item) return <></>;
   const requestStartIndex: number = item.requestRaw.indexOf('\n\n');
+  const requestHeader = item.requestRaw.substring(0,requestStartIndex);
   const requestTabItems = [
     {
       title: "Formatted Request Details",
@@ -149,10 +155,10 @@ function Details({ item }: { item?: HttpHistoryItem }) {
         <div>
           <label style={{fontWeight:"bold"}}>Header</label>
           <div className="m-2" style={{ whiteSpace: "pre-wrap" }}>
-            {item.requestRaw.substring(0,requestStartIndex)}
+            {requestHeader}
           </div>
           <label style={{fontWeight:"bold"}}>Content</label>
-          {renderContent(item.requestRaw.substring(requestStartIndex))}
+          {renderContent(item.requestRaw.substring(requestStartIndex),requestHeader)}
         </div>
       )
     },
@@ -173,7 +179,7 @@ function Details({ item }: { item?: HttpHistoryItem }) {
           {item.responseRaw?.substring(0,item.responseRaw?.indexOf('\n\n'))}
         </div>
         <label style={{fontWeight:"bold"}}>Header</label>
-        {item.responseRaw && renderContent(item.responseRaw.substring(item.responseRaw.indexOf('\n\n')))}
+        {item.responseRaw && renderContent(item.responseRaw.substring(item.responseRaw.indexOf('\n\n')),item.responseRaw)}
       </div>
       ),
     },{
