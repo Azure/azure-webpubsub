@@ -11,7 +11,6 @@ import { createSubscriptionContext } from "@microsoft/vscode-azext-utils";
 import { type AzureSubscription } from "@microsoft/vscode-azureresources-api";
 import { type AzureResourcesExtensionApiWithActivity } from "@microsoft/vscode-azext-utils/activity";
 import { ext } from "./extensionVariables";
-import { LOCAL_TUNNEL_NODE_PACKAGE_NAME } from "./constants";
 
 export const localize: nls.LocalizeFunc = nls.loadMessageBundle();
 

@@ -11,7 +11,6 @@ import { type IPickHubSettingContext} from "src/workflows/common/contexts";
 import { type ICreateOrUpdateHubSettingContext } from "src/workflows/common/contexts";
 import * as vscode from "vscode";
 import { LOCAL_TUNNEL_INSTALL_OR_UPDATE_COMMAND, LOCAL_TUNNEL_TYPICAL_EVENT_HANDLER, NODEJS_DOWNLOAD_URL, NO_LABEL, YES_LABEL } from "../../../constants";
-import { ext } from "../../../extensionVariables";
 import { inputUserEvents, selectSystemEvents } from "../common/InputEventHandlerStep";
 
 export class AttachLocalTunnelStep extends AzureWizardExecuteStep<IPickHubSettingContext> {
