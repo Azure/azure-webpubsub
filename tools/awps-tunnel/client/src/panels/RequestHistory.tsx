@@ -128,36 +128,41 @@ export function RequestHistory(props: RequestHistoryProps) {
   );
 }
 
-const renderContent = (rawString: string, header: string): ReactNode => {
-  if(header.includes('json')){
+const renderContent = (message: {headers: Record<string, string>, content: string}): ReactNode => {
+  if(message.headers['Content-Type'] === 'application/json' || message.headers['Content-Type'] === 'text/json'){
     try {
-      const parsedJson = JSON.parse(rawString);
+      const parsedJson = JSON.parse(message.content);
       return <div><ReactJson src={parsedJson} collapsed={1}/></div>;
     } catch (error) {
     }
   }
   return <div className="m-2" style={{ whiteSpace: "pre-wrap" }}>
-    {rawString}
+    {message.content}
   </div>
 };
 
-function splitIndex(rawText: string):number{
+function revertRawTextToMessage(rawText: string):{ headers: Record<string, string>, content: string }{
   const lines: string[] = rawText.split('\n').map(line => line.trim());
-  const emptyIndex: number = lines.indexOf('');
-  if (emptyIndex !== -1) {
-    let indexInText: number = 0;
-    for (let i: number = 0; i < emptyIndex; i++) {
-      indexInText += lines[i].length + 1;
+  const emptyIndex: number = lines.indexOf('');  // 找到空行，它分隔了headers和body
+  let headers: Record<string, string> = {};
+  let content: string = '';
+  for (let i: number = 0; i < emptyIndex; i++) {
+    const splitIndex: number = lines[i].indexOf(':');
+    if (splitIndex !== -1) {
+      const key: string = lines[i].substring(0, splitIndex).trim();
+      const value: string = lines[i].substring(splitIndex + 1).trim();
+      headers[key] = value;
     }
-    return indexInText;
   }
-  return 0;
+  if (emptyIndex !== -1) {
+    content = lines.slice(emptyIndex + 1).join('\n').trim();
+  }
+  return { headers, content };
 }
 
 function Details({ item }: { item?: HttpHistoryItem }) {
   if (!item) return <></>;
-  const requestSplitIndex: number = splitIndex(item.requestRaw);
-  const requestHeader = item.requestRaw.substring(0,requestSplitIndex);
+  const requestMessage: { headers:Record<string, string>, content:string } = revertRawTextToMessage(item.requestRaw);
   const requestTabItems = [
     {
       title: "Formatted Request Details",
@@ -165,10 +170,14 @@ function Details({ item }: { item?: HttpHistoryItem }) {
         <div>
           <label style={{fontWeight:"bold"}}>Header</label>
           <div className="m-2" style={{ whiteSpace: "pre-wrap" }}>
-            {requestHeader}
+            {Object.entries(requestMessage.headers).map(([key, value], index) => (
+              <div key={index}>
+                {key}: {value}
+              </div>
+            ))}
           </div>
           <label style={{fontWeight:"bold"}}>Content</label>
-          {renderContent(item.requestRaw.substring(requestSplitIndex),requestHeader)}
+          {renderContent(requestMessage)}
         </div>
       )
     },
@@ -179,7 +188,7 @@ function Details({ item }: { item?: HttpHistoryItem }) {
       </div>
     }
   ]
-  const responseSplitIndex = splitIndex(item.responseRaw? item.responseRaw:'');
+  const responseMessage: { headers:Record<string, string>, content:string } = revertRawTextToMessage(item.responseRaw? item.responseRaw:'');
   const responseTabItems = [
     {
       title: "Formatted Response Details",
@@ -187,10 +196,14 @@ function Details({ item }: { item?: HttpHistoryItem }) {
       <div>
         <label style={{fontWeight:"bold"}}>Header</label>
         <div className="m-2" style={{ whiteSpace: "pre-wrap" }}>
-          {item.responseRaw?.substring(0,responseSplitIndex)}
+          {Object.entries(responseMessage.headers).map(([key, value], index) => (
+            <div key={index}>
+              {key}: {value}
+            </div>
+          ))}
         </div>
         <label style={{fontWeight:"bold"}}>Header</label>
-        {item.responseRaw && renderContent(item.responseRaw.substring(responseSplitIndex),item.responseRaw)}
+        {item.responseRaw && renderContent(responseMessage)}
       </div>
       ),
     },{
