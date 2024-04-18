@@ -1,6 +1,6 @@
 # Azure Web PubSub for Visual Studio Code (Preview)
 
-[Azure Web PubSub](https://azure.microsoft.com/products/web-pubsub) helps developer build real-time messaging web applications using WebSockets and the publish-subscribe pattern easily. Use the Azure Web PubSub extension for VS Code to quickly create, manage and utilize Azure Web PubSub instance and its developer tools such as [Azure Web PubSub local tunnel tool](https://www.npmjs.com/package/@azure/web-pubsub-tunnel-tool).
+[Azure Web PubSub](https://azure.microsoft.com/products/web-pubsub) helps developer build real-time messaging web applications using WebSockets and the publish-subscribe pattern easily. Use the Azure Web PubSub extension for VS Code to quickly create, manage and utilize Azure Web PubSub Service and its developer tools such as [Azure Web PubSub Local Tunnel Tool](https://www.npmjs.com/package/@azure/web-pubsub-tunnel-tool).
 
 > Sign up today for your free Azure account and receive 12 months of free popular services, $200 free credit and 25+ always free services 👉 [Start Free](https://azure.microsoft.com/free/open-source).
 
@@ -29,13 +29,13 @@
 - View, create, delete, and restart Azure Web PubSub
 - View, create, delete hub setting
 - View, create, delete and update event handler
-- Attach [Azure Web PubSub local tunnel tool](https://www.npmjs.com/package/@azure/web-pubsub-tunnel-tool)
 - View metrics
-- View LiveTrace Tool
 - Scale up and scale out
 - Check resource health
 - Regenerate access key
 - Copy connection string or endpoint of the service to clipboard
+- Integration with [Azure Web PubSub local tunnel tool](https://www.npmjs.com/package/@azure/web-pubsub-tunnel-tool)
+- View [LiveTrace Tool](https://learn.microsoft.com/azure/azure-web-pubsub/howto-troubleshoot-resource-logs#steps-for-access-key-enabled)
 
 ## Create a New Hub Setting
 1. Right click the service you want to create a new hub setting.
@@ -55,13 +55,30 @@
 
 2. Click **Scale up** or **Scale Out**
 
-3. Select the new unit count or sku name for your service
+3. Select the new unit count (scale out) or pricing tier (scale up) for your service
+
+   ![Scale Out](./resources/readme/scaleOut.png)
+   ![Scale Up](./resources/readme/scaleUp.png)
 
 ## Attach Local Tunnel Tool
 
 1. Expand the hub setting dropdown list, right click the hub setting you want to attach the tunnel tool and click **Attach Local tunnel**.
 
    ![Attach Local Tunnel](./resources/readme/attachLocalTunnel.png)
+
+2. A tunnel-enabled event handler will be created to support Local Tunnel Tool
+   ![Add Tunnel Handler](./resources/readme/addTunnelEventHandler.png)
+
+   You could customize its system events and user events
+
+   ![View Tunnel Handler](./resources/readme/viewTunnelEventHandler.png)
+
+3. A new terminal will be created and the command to run Local Tunnel Tool on your chosen hub setting will be executed automatically.
+   ![View Tunnel Terminal](./resources/readme/viewTunnelTerminal.png)
+
+4. Click **Open Local Tunnel Portal** to see mroe detail.
+
+   ![Local Tunnel Portal](./resources/readme/openTunnelPortal.png)
 
 ## Contributing
 
