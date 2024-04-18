@@ -157,6 +157,11 @@
                 "icon": "$(remove)"
             },
             {
+                "command": "azureWebPubSub.service.hubSetting.attachLocalTunnel",
+                "title": "%azureWebPubSub.service.hubSetting.attachLocalTunnel%",
+                "category": "Azure Web PubSub"
+            },
+            {
                 "command": "azureWebPubSub.service.hubSetting.switchAnonymousPolicy",
                 "title": "%azureWebPubSub.service.hubSetting.switchAnonymousPolicy%",
                 "category": "Azure Web PubSub"
@@ -224,6 +229,10 @@
                 },
                 {
                     "command": "azureWebPubSub.service.hubSetting.delete",
+                    "when": "view =~ /(azureResourceGroups|azureFocusView)/ && viewItem =~ /webPubSubHubSettingItem/i"
+                },
+                {
+                    "command": "azureWebPubSub.service.hubSetting.attachLocalTunnel",
                     "when": "view =~ /(azureResourceGroups|azureFocusView)/ && viewItem =~ /webPubSubHubSettingItem/i"
                 },
                 {

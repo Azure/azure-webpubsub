@@ -1,5 +1,5 @@
 import { type ExtensionContext } from "vscode";
-import { window } from "vscode";
+import * as vscode from "vscode";
 import * as nls from 'vscode-nls';
 import * as fs from "fs";
 import { WebPubSubManagementClient } from "@azure/arm-webpubsub";
@@ -11,6 +11,7 @@ import { createSubscriptionContext } from "@microsoft/vscode-azext-utils";
 import { type AzureSubscription } from "@microsoft/vscode-azureresources-api";
 import { type AzureResourcesExtensionApiWithActivity } from "@microsoft/vscode-azext-utils/activity";
 import { ext } from "./extensionVariables";
+import { LOCAL_TUNNEL_NODE_PACKAGE_NAME } from "./constants";
 
 export const localize: nls.LocalizeFunc = nls.loadMessageBundle();
 
@@ -29,7 +30,7 @@ export async function createActivityContext(): Promise<ExecuteActivityContext> {
 }
 
 export function showError(commandName: string, error: Error): void {
-    void window.showErrorMessage(`Command "${commandName}" fails. ${error.message}`);
+    void vscode.window.showErrorMessage(`Command "${commandName}" fails. ${error.message}`);
 }
 
 export function getHealthApiUrl(endpoint: string): string {
@@ -60,4 +61,13 @@ export async function loadPackageInfo(context: ExtensionContext) {
         applicationInsightKey: aiKey as string,
         extensionId: `${publisher}.${name}`
     };
+}
+
+export function createTerminalForTunnel(serviceName: string, hubName: string, ifShow: boolean = false): vscode.Terminal {
+    const name = `AWPS Tunnel: ${serviceName} - ${hubName}`;
+    const sameNameTerminal = vscode.window.terminals.filter((t) => t.name === name) ?.[0] ?? undefined;
+    sameNameTerminal && sameNameTerminal.dispose();
+    const terminal = vscode.window.createTerminal({ name });
+    ifShow && terminal.show();
+    return terminal;
 }
