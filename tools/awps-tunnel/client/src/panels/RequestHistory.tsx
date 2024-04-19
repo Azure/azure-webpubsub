@@ -5,7 +5,7 @@ import { ReadonlyTabs } from "../components/Tabs";
 import { ResizablePanel } from "../components/ResizablePanel";
 import { useDataContext } from "../providers/DataContext";
 import { HttpHistoryItem } from "../models";
-import { Button } from "@fluentui/react-components";
+import { Button, Table, TableBody, TableRow, TableCell, TableCellLayout } from "@fluentui/react-components";
 import { bundleIcon, Delete24Filled, Delete24Regular } from "@fluentui/react-icons";
 import ReactJson from "react-json-view";
 
@@ -132,7 +132,7 @@ const renderContent = (message: { headers: Record<string, string>, content: stri
   if (message.contentType.toLowerCase() === "application/json" || message.contentType.toLowerCase() === "text/json") {
     try {
       const parsedJson = JSON.parse(message.content);
-      return <div><ReactJson src={parsedJson} collapsed={1} /></div>;
+      return <div><ReactJson src={parsedJson} collapsed={1} name={"body"}/></div>;
     } catch (error) {
     }
   }
@@ -142,7 +142,7 @@ const renderContent = (message: { headers: Record<string, string>, content: stri
 };
 
 function parseRawMessage(rawText: string): { headers: Record<string, string>, content: string, contentType: string } {
-  const lines: string[] = rawText.split("\n").map(line => line.trim());
+  const lines: string[] = rawText.split("\n");
   const emptyIndex: number = lines.indexOf("");
   let headers: Record<string, string> = {};
   let content: string = "";
@@ -152,7 +152,7 @@ function parseRawMessage(rawText: string): { headers: Record<string, string>, co
     if (splitIndex !== -1) {
       const key: string = lines[i].substring(0, splitIndex).trim();
       const value: string = lines[i].substring(splitIndex + 1).trim();
-      if (key.toLowerCase() === "content-type"){
+      if (key.toLowerCase() === "content-type") {
         contentType = value;
       }
       headers[key] = value;
@@ -161,7 +161,7 @@ function parseRawMessage(rawText: string): { headers: Record<string, string>, co
   if (emptyIndex !== -1) {
     content = lines.slice(emptyIndex + 1).join("\n").trim();
   }
-  return { headers, content , contentType};
+  return { headers, content, contentType };
 }
 
 function Details({ item }: { item?: HttpHistoryItem }) {
@@ -172,15 +172,25 @@ function Details({ item }: { item?: HttpHistoryItem }) {
       title: "Formatted Request Details",
       content: (
         <div>
-          <label style={{ fontWeight: "bold" }}>Header</label>
-          <div className="m-2" style={{ whiteSpace: "pre-wrap" }}>
-            {Object.entries(requestMessage.headers).map(([key, value], index) => (
-              <div key={index}>
-                {key}: {value}
-              </div>
-            ))}
-          </div>
-          <label style={{ fontWeight: "bold" }}>Content</label>
+          <label style={{ fontWeight: "bold" , marginBottom: "10px"}}>Header</label>
+          <Table size={"extra-small"}>
+            <TableBody>
+              {
+                Object.entries(requestMessage.headers).map(([key, value], index) => (
+                  index !== 0 &&
+                  <TableRow key={index}>
+                    <TableCell>
+                      <TableCellLayout>{key}</TableCellLayout>
+                    </TableCell>
+                    <TableCell>
+                      <TableCellLayout>{value}</TableCellLayout>
+                    </TableCell>
+                  </TableRow>
+                ))
+              }
+            </TableBody>
+          </Table>
+          <label style={{ fontWeight: "bold" , marginTop: "10px", marginBottom: "10px"}}>Body</label>
           {renderContent(requestMessage)}
         </div>
       ),
@@ -206,7 +216,7 @@ function Details({ item }: { item?: HttpHistoryItem }) {
               </div>
             ))}
           </div>
-          <label style={{ fontWeight: "bold" }}>Header</label>
+          <label style={{ fontWeight: "bold" }}>Body</label>
           {item.responseRaw && renderContent(responseMessage)}
         </div>
       ),
