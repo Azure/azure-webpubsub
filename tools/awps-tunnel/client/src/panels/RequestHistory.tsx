@@ -141,7 +141,8 @@ const renderContent = (message: { headers: Record<string, string>, content: stri
   </div>;
 };
 
-function parseRawMessage(rawText: string): { headers: Record<string, string>, content: string, contentType: string } {
+export function parseRawMessage(rawText: string): { headers: Record<string, string>, content: string, contentType: string } {
+  rawText = rawText.replace(/\r\n/g, "\n");
   const lines: string[] = rawText.split("\n");
   const emptyIndex: number = lines.indexOf("");
   let headers: Record<string, string> = {};
