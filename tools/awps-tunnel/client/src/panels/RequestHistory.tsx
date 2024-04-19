@@ -128,8 +128,8 @@ export function RequestHistory(props: RequestHistoryProps) {
   );
 }
 
-const renderContent = (message: { headers: Record<string, string>, content: string }): ReactNode => {
-  if (message.headers["Content-Type"] === "application/json" || message.headers["Content-Type"] === "text/json") {
+const renderContent = (message: { headers: Record<string, string>, content: string, contentType: string }): ReactNode => {
+  if (message.contentType.toLowerCase() === "application/json" || message.contentType.toLowerCase() === "text/json") {
     try {
       const parsedJson = JSON.parse(message.content);
       return <div><ReactJson src={parsedJson} collapsed={1} /></div>;
@@ -141,28 +141,32 @@ const renderContent = (message: { headers: Record<string, string>, content: stri
   </div>;
 };
 
-function revertRawTextToMessage(rawText: string): { headers: Record<string, string>, content: string } {
+function parseRawMessage(rawText: string): { headers: Record<string, string>, content: string, contentType: string } {
   const lines: string[] = rawText.split("\n").map(line => line.trim());
   const emptyIndex: number = lines.indexOf("");
   let headers: Record<string, string> = {};
   let content: string = "";
+  let contentType: string = "";
   for (let i: number = 0; i < emptyIndex; i++) {
     const splitIndex: number = lines[i].indexOf(":");
     if (splitIndex !== -1) {
       const key: string = lines[i].substring(0, splitIndex).trim();
       const value: string = lines[i].substring(splitIndex + 1).trim();
+      if (key.toLowerCase() === "content-type"){
+        contentType = value;
+      }
       headers[key] = value;
     }
   }
   if (emptyIndex !== -1) {
     content = lines.slice(emptyIndex + 1).join("\n").trim();
   }
-  return { headers, content };
+  return { headers, content , contentType};
 }
 
 function Details({ item }: { item?: HttpHistoryItem }) {
   if (!item) return <></>;
-  const requestMessage: { headers: Record<string, string>, content: string } = revertRawTextToMessage(item.requestRaw);
+  const requestMessage: { headers: Record<string, string>, content: string, contentType: string} = parseRawMessage(item.requestRaw);
   const requestTabItems = [
     {
       title: "Formatted Request Details",
@@ -188,10 +192,7 @@ function Details({ item }: { item?: HttpHistoryItem }) {
       </div>,
     },
   ];
-  const responseMessage: {
-    headers: Record<string, string>,
-    content: string
-  } = revertRawTextToMessage(item.responseRaw ? item.responseRaw : "");
+  const responseMessage: { headers: Record<string, string>, content: string, contentType: string } = parseRawMessage(item.responseRaw ? item.responseRaw : "");
   const responseTabItems = [
     {
       title: "Formatted Response Details",
