@@ -4,9 +4,12 @@
 *--------------------------------------------------------------------------------------------*/
 
 import { KnownAggregationTypeEnum } from "@azure/arm-monitor";
+import { type EventHandler} from "@azure/arm-webpubsub";
 import { type WebPubSubSkuTier } from "@azure/arm-webpubsub";
 import { KnownWebPubSubSkuTier } from "@azure/arm-webpubsub";
+import * as nls from 'vscode-nls';
 
+const localize: nls.LocalizeFunc = nls.loadMessageBundle();
 export const SIGNALR_PROVIDER = 'Microsoft.SignalRService';
 export const WEB_PUBSUB_RESOURCE_TYPE = 'WebPubSub';
 export const WEB_PUBSUB_PROVIDER = `${SIGNALR_PROVIDER}/${WEB_PUBSUB_RESOURCE_TYPE}`;
@@ -90,3 +93,16 @@ export enum KnownAnonymousConnectPolicy {
 }
 
 export const ANONYMOUS_CONNECT_HELP_LINK = "https://learn.microsoft.com/azure/azure-web-pubsub/samples-authenticate-and-connect?pivots=method-sdk-csharp#application-server"
+
+export const LOCAL_TUNNEL_NODE_PACKAGE_NAME = "@azure/web-pubsub-tunnel-tool";
+export const LOCAL_TUNNEL_TYPICAL_EVENT_HANDLER: EventHandler = {
+    urlTemplate: "tunnel:///eventhandler",
+    userEventPattern: "*",
+    systemEvents: ["connected", "disconnected"]
+}
+export const LOCAL_TUNNEL_INSTALL_OR_UPDATE_COMMAND = "const cp=require('child_process');const packageName='@azure/web-pubsub-tunnel-tool';let isInstalled=0;try{cp.execSync('npm list -g --depth 0 '+packageName);isInstalled=!0}catch(err){}isInstalled?cp.execSync('npm install -g '+packageName+'@latest'):cp.execSync('npm install -g '+packageName);"
+
+export const NODEJS_DOWNLOAD_URL = "https://nodejs.org/";
+
+export const YES_LABEL = localize("Yes", "Yes");
+export const NO_LABEL = localize("No", "No");
