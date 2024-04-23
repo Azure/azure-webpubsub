@@ -15,18 +15,18 @@
 
 ## Create a New Azure Web PubSub Service
 
-1. Once you are signed in, you can create your Azure Virutal machine by clicking the "+" button or by right-clicking your subscription.
+1. Once you are signed in, create your Azure Web PubSub Service by clicking the "+" button or by right-clicking your subscription
 
    ![Create Resource](./resources/readme/createResource.png)
 
-2. Select **Create Web PubSub Service**. If you are using Socket.IO server, select **Create Web PubSub Service For Socket.IO** instead. See [the document](https://learn.microsoft.com/azure/azure-web-pubsub/socketio-overview) for detail.
+2. Select **Create Web PubSub Service**. If you are using Socket.IO server, select **Create Web PubSub Service For Socket.IO** instead. See [the document](https://learn.microsoft.com/azure/azure-web-pubsub/socketio-overview) for detail
 
    ![Create Azure Web PubSub](./resources/readme/createWebPubSub.png)
     
-3. Type a unique name. Then select resource group, location, SKU and unit count for your new service.
+3. Type a unique name for the service. Then select resource group, location, pricing tier and unit count for it
 
 ## Features
-- View, create, delete, and restart Azure Web PubSub
+- View, create, delete, and restart Azure Web PubSub Service
 - View, create, delete hub setting
 - View, create, delete and update event handler
 - View metrics
@@ -34,22 +34,22 @@
 - Check resource health
 - Regenerate access key
 - Copy connection string or endpoint of the service to clipboard
-- Integration with [Azure Web PubSub local tunnel tool](https://www.npmjs.com/package/@azure/web-pubsub-tunnel-tool)
+- Attach [Azure Web PubSub local tunnel tool](https://www.npmjs.com/package/@azure/web-pubsub-tunnel-tool)
 - View [LiveTrace Tool](https://learn.microsoft.com/azure/azure-web-pubsub/howto-troubleshoot-resource-logs#steps-for-access-key-enabled)
 
 ## Create a New Hub Setting
-1. Right click the service you want to create a new hub setting.
+1. Right click the service where you want to create a new hub setting.
 
-   ![createHubSetting](./resources/readme/createHubSetting.png)
+   ![Create Hub Setting](./resources/readme/createHubSetting.png)
 
 2. Click **Create Hub Setting**
-3. Type a name for the hub setting.
-4. Select the annoymous connection policy.
+3. Type a name for the hub setting
+4. Select the annoymous connection policy
 4. (Optional) Create a single or multiple event handlers to the hub setting
 
 ## Scale 
 
-1. Right click the service you want to scale up or scale out and Click **Advanced**.
+1. Right click the service you want to scale up or scale out and then click **Advanced**
 
    ![Advanced](./resources/readme/advanced.png)
 
@@ -62,7 +62,7 @@
 
 ## Attach Local Tunnel Tool
 
-1. Expand the hub setting dropdown list, right click the hub setting you want to attach the tunnel tool and click **Attach Local tunnel**.
+1. Expand the hub setting dropdown list, right click the hub setting you want to attach the tunnel tool and then click **Attach Local tunnel**
 
    ![Attach Local Tunnel](./resources/readme/attachLocalTunnel.png)
 
@@ -73,10 +73,10 @@
 
    ![View Tunnel Handler](./resources/readme/viewTunnelEventHandler.png)
 
-3. A new terminal will be created and the command to run Local Tunnel Tool on your chosen hub setting will be executed automatically.
+3. A new terminal will be created and the command to run Local Tunnel Tool on your chosen hub setting will be executed automatically
    ![View Tunnel Terminal](./resources/readme/viewTunnelTerminal.png)
 
-4. Click **Open Local Tunnel Portal** to see mroe detail.
+4. Click **Open Local Tunnel Portal** to see detail in web browser
 
    ![Local Tunnel Portal](./resources/readme/openTunnelPortal.png)
 
