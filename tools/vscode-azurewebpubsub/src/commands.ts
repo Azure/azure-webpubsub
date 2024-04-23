@@ -23,6 +23,7 @@ import { deleteHubSetting } from "./workflows/hubSetting/delete/deleteHubSetting
 import { updateEventHandler } from "./workflows/hubSetting/EventHandler/update/updateEventHandler";
 import { viewMetrics } from "./workflows/service/viewMetric/viewMetrics";
 import { checkServiceHealth } from "./workflows/service/checkHealth/checkHealth";
+import { attachLocalTunnel } from "./workflows/hubSetting/localTunnel/attachLocalTunnel";
 import { switchAnonymousPolicy } from "./workflows/hubSetting/switchAnonymousPolicy/switchAnonymousPolicy";
 
 function registerCommandWithTelemetryWrapper(commandId: string, callback: CommandCallback): void {
@@ -61,6 +62,7 @@ export function registerCommands(): void {
     // Service.HubSetting
     registerCommandWithTelemetryWrapper('azureWebPubSub.service.hubSetting.create', createHubSetting);
     registerCommandWithTelemetryWrapper('azureWebPubSub.service.hubSetting.delete', deleteHubSetting);
+    registerCommandWithTelemetryWrapper('azureWebPubSub.service.hubSetting.attachLocalTunnel', attachLocalTunnel);
     registerCommandWithTelemetryWrapper('azureWebPubSub.service.hubSetting.switchAnonymousConnectPolicy', switchAnonymousPolicy);
 
     // Service.HubSetting.EventHandler

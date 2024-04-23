@@ -32,7 +32,6 @@ export async function activate(context: vscode.ExtensionContext, perfStats: { lo
         ext.branchDataProvider = new ServicesDataProvider();
         ext.rgApiV2 = await getAzureResourcesExtensionApi(context, '2.0.0');
         ext.rgApiV2.resources.registerAzureResourceBranchDataProvider("WebPubSub" as AzExtResourceType, ext.branchDataProvider);
-
         registerCommands();
     })();
 }
