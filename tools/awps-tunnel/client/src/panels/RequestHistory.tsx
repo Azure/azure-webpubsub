@@ -143,12 +143,12 @@ const renderContent = (message: { headers: Record<string, string>, content: stri
 
 export function parseRawMessage(rawText: string): { headers: Record<string, string>, content: string, contentType: string } {
   rawText = rawText.replace(/\r\n/g, "\n");
-  const lines: string[] = rawText.split("\n");
+  const specingIndex: number = rawText.indexOf("\n\n");
+  const lines: string[] = rawText.substring(0,specingIndex).split("\n");
   const emptyIndex: number = lines.indexOf("");
   let headers: Record<string, string> = {};
-  let content: string = "";
   let contentType: string = "";
-  for (let i: number = 0; i < emptyIndex; i++) {
+  for (let i: number = 0; i < lines.length; i++) {
     const splitIndex: number = lines[i].indexOf(":");
     if (splitIndex !== -1) {
       const key: string = lines[i].substring(0, splitIndex).trim();
@@ -159,9 +159,7 @@ export function parseRawMessage(rawText: string): { headers: Record<string, stri
       headers[key] = value;
     }
   }
-  if (emptyIndex !== -1) {
-    content = lines.slice(emptyIndex + 1).join("\n").trim();
-  }
+  const content: string = rawText.substring(specingIndex+2);
   return { headers, content, contentType };
 }
 
