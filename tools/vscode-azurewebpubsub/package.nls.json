@@ -19,6 +19,7 @@
     "azureWebPubSub.service.checkHealth": "Check Service Health",
     "azureWebPubSub.service.hubSetting.create": "Create Hub Setting",
     "azureWebPubSub.service.hubSetting.delete": "Delete Hub Setting",
+    "azureWebPubSub.service.hubSetting.attachLocalTunnel": "Attach Local Tunnel",
     "azureWebPubSub.service.hubSetting.switchAnonymousPolicy": "Switch Anonymous Connect Policy",
     "azureWebPubSub.service.hubSetting.eventHandler.create": "Create Event Handler",
     "azureWebPubSub.service.hubSetting.eventHandler.delete": "Delete Event Handler",

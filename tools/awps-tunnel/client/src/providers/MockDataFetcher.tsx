@@ -108,9 +108,9 @@ WebHook-Request-Origin: xxx.webpubsub.azure.com
 ce-signature: sha256=xxx
 ce-signature: sha256=xxx
 ce-id: 2
-Content-Type: text/plain; charset=utf-8
+Content-Type: application/json
 
-Hello`,
+{"claims":{},"query":{"id":"aaa"},"headers":{"Connection":["Upgrade"],"Host":["lianwei-preserve.webpubsub.azure.com"],"User-Agent":["Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/123.0.0.0 Safari/537.36 Edg/123.0.0.0"],"Accept-Encoding":["gzip, deflate, br, zstd"],"Accept-Language":["en-US,en;q=0.9,zh-CN;q=0.8,zh;q=0.7"],"Cache-Control":["no-cache"],"Origin":["http://127.0.0.1:8080"],"Pragma":["no-cache"],"traceparent":["00-be2b36b7e46e36dd9baf3d5ad1bfd3ba-5875cb9fb1aef1c0-01"],"tracestate":[""],"Upgrade":["websocket"],"x-request-id":["64b1f8c8061b371cca71fb399d7b8002"],"x-real-ip":["2404:f801:9000:18:6fec:f611"],"x-forwarded-for":["2404:f801:9000:18:6fec:f611"],"x-forwarded-host":["lianwei-preserve.webpubsub.azure.com"],"x-forwarded-port":["443"],"x-forwarded-proto":["https"],"x-scheme":["https"],"Sec-WebSocket-Version":["13"],"Sec-WebSocket-Key":["EYJSkky1qtlq3porGJD6Q=="],"Sec-WebSocket-Extensions":["permessage-deflate; client_max_window_bits"],"subprotocols":[],"clientCertificates":[]}}`,
     responseRaw: `HTTP/1.1 200
 x-powered-by: Express
 content-type: text/plain; charset=utf-8

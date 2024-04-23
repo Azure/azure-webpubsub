@@ -1,12 +1,13 @@
-import React, { useEffect, useState } from "react";
+import React, { ReactNode, useEffect, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import moment from "moment";
 import { ReadonlyTabs } from "../components/Tabs";
 import { ResizablePanel } from "../components/ResizablePanel";
 import { useDataContext } from "../providers/DataContext";
 import { HttpHistoryItem } from "../models";
-import { Button } from "@fluentui/react-components";
+import { Button, Table, TableBody, TableRow, TableCell, TableCellLayout } from "@fluentui/react-components";
 import { bundleIcon, Delete24Filled, Delete24Regular } from "@fluentui/react-icons";
+import ReactJson from "react-json-view";
 
 import { Dialog, DialogTrigger, DialogSurface, DialogTitle, DialogBody, DialogActions, DialogContent } from "@fluentui/react-components";
 
@@ -42,8 +43,9 @@ export function RequestHistory(props: RequestHistoryProps) {
 
   function clearRequestHistory() {
     dataFetcher.invoke("clearTrafficHistory");
+    setSelectedItem(undefined);
   }
-  
+
   const overviewPanel = (
     <table className="table table-hover" aria-labelledby="tabelLabel">
       <thead>
@@ -126,28 +128,105 @@ export function RequestHistory(props: RequestHistoryProps) {
   );
 }
 
+const renderContent = (message: { headers: Record<string, string>, content: string, contentType: string }): ReactNode => {
+  if (message.contentType.toLowerCase() === "application/json" || message.contentType.toLowerCase() === "text/json") {
+    try {
+      const parsedJson = JSON.parse(message.content);
+      return <div><ReactJson src={parsedJson} collapsed={1} name={"body"}/></div>;
+    } catch (error) {
+    }
+  }
+  return <div className="m-2" style={{ whiteSpace: "pre-wrap" }}>
+    {message.content}
+  </div>;
+};
+
+export function parseRawMessage(rawText: string): { headers: Record<string, string>, content: string, contentType: string } {
+  rawText = rawText.replace(/\r\n/g, "\n");
+  const spacingIndex: number = rawText.indexOf("\n\n");
+  const lines: string[] = rawText.substring(0,spacingIndex).split("\n");
+  let headers: Record<string, string> = {};
+  let contentType: string = "";
+  for (let i: number = 0; i < lines.length; i++) {
+    const splitIndex: number = lines[i].indexOf(":");
+    if (splitIndex !== -1) {
+      const key: string = lines[i].substring(0, splitIndex).trim();
+      const value: string = lines[i].substring(splitIndex + 1).trim();
+      if (key.toLowerCase() === "content-type") {
+        contentType = value;
+      }
+      headers[key] = value;
+    }
+  }
+  const content: string = rawText.substring(spacingIndex+2);
+  return { headers, content, contentType };
+}
+
 function Details({ item }: { item?: HttpHistoryItem }) {
   if (!item) return <></>;
-  let requestTabItems = [
+  const requestMessage: { headers: Record<string, string>, content: string, contentType: string} = parseRawMessage(item.requestRaw);
+  const requestTabItems = [
     {
-      title: "Request Details",
+      title: "Formatted Request Details",
       content: (
-        <div className="m-2" style={{ whiteSpace: "pre-wrap" }}>
-          {item.requestRaw}
+        <div>
+          <label style={{ fontWeight: "bold" , marginBottom: "10px"}}>Header</label>
+          <Table size={"extra-small"}>
+            <TableBody>
+              {
+                Object.entries(requestMessage.headers).map(([key, value], index) => (
+                  index !== 0 &&
+                  <TableRow key={index}>
+                    <TableCell>
+                      <TableCellLayout>{key}</TableCellLayout>
+                    </TableCell>
+                    <TableCell>
+                      <TableCellLayout>{value}</TableCellLayout>
+                    </TableCell>
+                  </TableRow>
+                ))
+              }
+            </TableBody>
+          </Table>
+          <label style={{ fontWeight: "bold" , marginTop: "10px", marginBottom: "10px"}}>Body</label>
+          {renderContent(requestMessage)}
         </div>
       ),
     },
-  ];
-  let responseTabItems = [
     {
-      title: "Response Details",
-      content: (
-        <div className="m-2" style={{ whiteSpace: "pre-wrap" }}>
-          {item.responseRaw}
-        </div>
-      ),
+      title: "Raw Request Details",
+      content: <div className="m-2" style={{ whiteSpace: "pre-wrap" }}>
+        {item.requestRaw}
+      </div>,
     },
   ];
+  const responseMessage: { headers: Record<string, string>, content: string, contentType: string } = parseRawMessage(item.responseRaw ? item.responseRaw : "");
+  const responseTabItems = [
+    {
+      title: "Formatted Response Details",
+      content: (
+        <div>
+          <label style={{ fontWeight: "bold" }}>Header</label>
+          <div className="m-2" style={{ whiteSpace: "pre-wrap" }}>
+            {Object.entries(responseMessage.headers).map(([key, value], index) => (
+              <div key={index}>
+                {key}: {value}
+              </div>
+            ))}
+          </div>
+          <label style={{ fontWeight: "bold" }}>Body</label>
+          {item.responseRaw && renderContent(responseMessage)}
+        </div>
+      ),
+    }, {
+      title: "Raw Response Details",
+      content: <div className="m-2" style={{ whiteSpace: "pre-wrap" }}>
+        {item.responseRaw}
+      </div>,
+    },
+  ];
+
+
   return (
     <div className="panel-container d-flex flex-column flex-fill">
       <div className="banner d-flex">
