@@ -45,7 +45,7 @@ export function RequestHistory(props: RequestHistoryProps) {
     dataFetcher.invoke("clearTrafficHistory");
     setSelectedItem(undefined);
   }
-  
+
   const overviewPanel = (
     <table className="table table-hover" aria-labelledby="tabelLabel">
       <thead>
@@ -143,9 +143,8 @@ const renderContent = (message: { headers: Record<string, string>, content: stri
 
 export function parseRawMessage(rawText: string): { headers: Record<string, string>, content: string, contentType: string } {
   rawText = rawText.replace(/\r\n/g, "\n");
-  const specingIndex: number = rawText.indexOf("\n\n");
-  const lines: string[] = rawText.substring(0,specingIndex).split("\n");
-  const emptyIndex: number = lines.indexOf("");
+  const spacingIndex: number = rawText.indexOf("\n\n");
+  const lines: string[] = rawText.substring(0,spacingIndex).split("\n");
   let headers: Record<string, string> = {};
   let contentType: string = "";
   for (let i: number = 0; i < lines.length; i++) {
@@ -159,7 +158,7 @@ export function parseRawMessage(rawText: string): { headers: Record<string, stri
       headers[key] = value;
     }
   }
-  const content: string = rawText.substring(specingIndex+2);
+  const content: string = rawText.substring(spacingIndex+2);
   return { headers, content, contentType };
 }
 
