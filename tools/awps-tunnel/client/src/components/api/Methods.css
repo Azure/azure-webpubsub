@@ -1,0 +1,20 @@
+.card-container {
+    margin: 5px;
+    width: 80%
+}
+
+.card-header {
+    display: flex;
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.method-tag {
+    background-color: green;
+    color: white;
+    border-radius: 6px;
+    padding-left: 5px;
+    padding-right: 5px;
+    font-size: 16px;
+}

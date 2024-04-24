@@ -1,10 +1,13 @@
 import { Icon } from "@fluentui/react/lib/Icon";
 import { Switch, Field, ProgressBar } from "@fluentui/react-components";
+import restapiSpec from '../components/api/restapiSample.json'
 import { useEffect, useState } from "react";
-
-import { ConnectionStatus } from "../models";
+import {ConnectionStatus, PathItem, RESTApi} from "../models";
 import CodeTabs from "../components/CodeTabs";
 import { useDataContext } from "../providers/DataContext";
+import {POST} from "../components/api/Methods";
+import {Path} from "../components/api/Path";
+
 export interface ServerPanelProps {
   endpoint?: string;
   onChange: (checked: boolean) => Promise<{ success: boolean; message: string }>;
@@ -15,7 +18,7 @@ export function ServerPanel({ endpoint, onChange }: ServerPanelProps) {
   const [message, setMessage] = useState<string>();
   const [startEmbeddedServer, setStartEmbeddedServer] = useState<boolean>(data.builtinUpstreamServerStarted);
   const [status, setStatus] = useState<ConnectionStatus>(ConnectionStatus.None);
-
+  const restAPI:RESTApi = restapiSpec as RESTApi;
   useEffect(() => {
     setStartEmbeddedServer(data.builtinUpstreamServerStarted);
   }, [data.builtinUpstreamServerStarted]);
@@ -50,33 +53,34 @@ export function ServerPanel({ endpoint, onChange }: ServerPanelProps) {
     }
     onSwitchAsync();
   }
-
+  // console.log(restAPI.paths[`/api/hubs/{hub}/:addToGroups`])
   return (
     <div className="m-2">
-      <p>
-        <Icon className="mx-2" iconName="ServerEnviroment"></Icon>
-        <b>
-          Requests are sending to
-          {startEmbeddedServer ? " built-in Echo Server." : ` your local server: ${endpoint}`}
-        </b>
-      </p>
-      <Switch
-        label={startEmbeddedServer ? "Built-in Echo Server started" : "Built-in Echo Server stopped"}
-        checked={startEmbeddedServer}
-        disabled={status === ConnectionStatus.Connecting || status === ConnectionStatus.Disconnecting}
-        onChange={(ev) => onSwitch(ev.currentTarget.checked)}
-      ></Switch>
-      {(status === ConnectionStatus.Connecting || status === ConnectionStatus.Disconnecting) && (
-        <Field className="m-2" validationMessage={status === ConnectionStatus.Connecting ? "Starting built-in Echo Server" : "Stopping built-in Echo Server"} validationState="none">
-          <ProgressBar />
-        </Field>
-      )}
-      <div className="m-2">
-        <b>{message}</b>
-        <hr></hr>
-        <b>📋Sample code handling events in your app server:</b>
-        <CodeTabs></CodeTabs>
-      </div>
+      {/*<p>*/}
+      {/*  <Icon className="mx-2" iconName="ServerEnviroment"></Icon>*/}
+      {/*  <b>*/}
+      {/*    Requests are sending to*/}
+      {/*    {startEmbeddedServer ? " built-in Echo Server." : ` your local server: ${endpoint}`}*/}
+      {/*  </b>*/}
+      {/*</p>*/}
+      {/*<Switch*/}
+      {/*  label={startEmbeddedServer ? "Built-in Echo Server started" : "Built-in Echo Server stopped"}*/}
+      {/*  checked={startEmbeddedServer}*/}
+      {/*  disabled={status === ConnectionStatus.Connecting || status === ConnectionStatus.Disconnecting}*/}
+      {/*  onChange={(ev) => onSwitch(ev.currentTarget.checked)}*/}
+      {/*></Switch>*/}
+      {/*{(status === ConnectionStatus.Connecting || status === ConnectionStatus.Disconnecting) && (*/}
+      {/*  <Field className="m-2" validationMessage={status === ConnectionStatus.Connecting ? "Starting built-in Echo Server" : "Stopping built-in Echo Server"} validationState="none">*/}
+      {/*    <ProgressBar />*/}
+      {/*  </Field>*/}
+      {/*)}*/}
+      {/*<div className="m-2">*/}
+      {/*  <b>{message}</b>*/}
+      {/*  <hr></hr>*/}
+      {/*  <b>📋Sample code handling events in your app server:</b>*/}
+      {/*  <CodeTabs></CodeTabs>*/}
+      {/*</div>*/}
+      <Path pathItem = {restAPI.paths[`/api/hubs/{hub}/:addToGroups`]}/>
     </div>
   );
 }
