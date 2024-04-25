@@ -17,11 +17,11 @@
 
 1. Once you are signed in, create your Azure Web PubSub Service by clicking the "+" button or by right-clicking your subscription
 
-   ![Create Resource](https://github.com/Azure/azure-webpubsub/tree/main/tools/vscode-azurewebpubsub/resources/readme/createResource.png?raw=true)
+   ![Create Resource](https://raw.githubusercontent.com/Azure/azure-webpubsub/main/tools/vscode-azurewebpubsub/resources/readme/createResource.png)
 
 2. Select **Create Web PubSub Service**. If you are using Socket.IO server, select **Create Web PubSub Service For Socket.IO** instead. See [the document](https://learn.microsoft.com/azure/azure-web-pubsub/socketio-overview) for detail
 
-   ![Create Azure Web PubSub](https://github.com/Azure/azure-webpubsub/tree/main/tools/vscode-azurewebpubsub/resources/readme/createWebPubSub.png?raw=true)
+   ![Create Azure Web PubSub](https://raw.githubusercontent.com/Azure/azure-webpubsub/main/tools/vscode-azurewebpubsub/resources/readme/createWebPubSub.png)
     
 3. Type a unique name for the service. Then select resource group, location, pricing tier and unit count for it
 
@@ -40,7 +40,7 @@
 ## Create a New Hub Setting
 1. Right click the service where you want to create a new hub setting.
 
-   ![Create Hub Setting](https://github.com/Azure/azure-webpubsub/tree/main/tools/vscode-azurewebpubsub/resources/readme/createHubSetting.png?raw=true)
+   ![Create Hub Setting](https://raw.githubusercontent.com/Azure/azure-webpubsub/main/tools/vscode-azurewebpubsub/resources/readme/createHubSetting.png)
 
 2. Click **Create Hub Setting**
 3. Type a name for the hub setting
@@ -51,34 +51,34 @@
 
 1. Right click the service you want to scale up or scale out and then click **Advanced**
 
-   ![Advanced](https://github.com/Azure/azure-webpubsub/tree/main/tools/vscode-azurewebpubsub/resources/readme/advanced.png?raw=true)
+   ![Advanced](https://raw.githubusercontent.com/Azure/azure-webpubsub/main/tools/vscode-azurewebpubsub/resources/readme/advanced.png)
 
 2. Click **Scale up** or **Scale Out**
 
 3. Select the new unit count (scale out) or pricing tier (scale up) for your service
 
-   ![Scale Out](https://github.com/Azure/azure-webpubsub/tree/main/tools/vscode-azurewebpubsub/resources/readme/scaleOut.png?raw=true)
-   ![Scale Up](https://github.com/Azure/azure-webpubsub/tree/main/tools/vscode-azurewebpubsub/resources/readme/scaleUp.png?raw=true)
+   ![Scale Out](https://raw.githubusercontent.com/Azure/azure-webpubsub/main/tools/vscode-azurewebpubsub/resources/readme/scaleOut.png)
+   ![Scale Up](https://raw.githubusercontent.com/Azure/azure-webpubsub/main/tools/vscode-azurewebpubsub/resources/readme/scaleUp.png)
 
 ## Attach Local Tunnel Tool
 
 1. Expand the hub setting dropdown list, right click the hub setting you want to attach the tunnel tool and then click **Attach Local tunnel**
 
-   ![Attach Local Tunnel](https://github.com/Azure/azure-webpubsub/tree/main/tools/vscode-azurewebpubsub/resources/readme/attachLocalTunnel.png?raw=true)
+   ![Attach Local Tunnel](https://raw.githubusercontent.com/Azure/azure-webpubsub/main/tools/vscode-azurewebpubsub/resources/readme/attachLocalTunnel.png)
 
 2. A tunnel-enabled event handler will be created to support Local Tunnel Tool
-   ![Add Tunnel Handler](https://github.com/Azure/azure-webpubsub/tree/main/tools/vscode-azurewebpubsub/resources/readme/addTunnelEventHandler.png?raw=true)
+   ![Add Tunnel Handler](https://raw.githubusercontent.com/Azure/azure-webpubsub/main/tools/vscode-azurewebpubsub/resources/readme/addTunnelEventHandler.png)
 
    You could customize its system events and user events
 
-   ![View Tunnel Handler](https://github.com/Azure/azure-webpubsub/tree/main/tools/vscode-azurewebpubsub/resources/readme/viewTunnelEventHandler.png?raw=true)
+   ![View Tunnel Handler](https://raw.githubusercontent.com/Azure/azure-webpubsub/main/tools/vscode-azurewebpubsub/resources/readme/viewTunnelEventHandler.png)
 
 3. A new terminal will be created and the command to run Local Tunnel Tool on your chosen hub setting will be executed automatically
-   ![View Tunnel Terminal](https://github.com/Azure/azure-webpubsub/tree/main/tools/vscode-azurewebpubsub/resources/readme/viewTunnelTerminal.png?raw=true)
+   ![View Tunnel Terminal](https://raw.githubusercontent.com/Azure/azure-webpubsub/main/tools/vscode-azurewebpubsub/resources/readme/viewTunnelTerminal.png)
 
 4. Click **Open Local Tunnel Portal** to see detail in web browser
 
-   ![Local Tunnel Portal](https://github.com/Azure/azure-webpubsub/tree/main/tools/vscode-azurewebpubsub/resources/readme/openTunnelPortal.png?raw=true)
+   ![Local Tunnel Portal](https://raw.githubusercontent.com/Azure/azure-webpubsub/main/tools/vscode-azurewebpubsub/resources/readme/openTunnelPortal.png)
 
 ## Contributing
 
