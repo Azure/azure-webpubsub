@@ -70,7 +70,7 @@ export class ServiceItem implements AzureResourceModel {
             siteCacheLastUpdated = Date.now();
         }
 
-        const site = siteCache.get(resource.name.toLowerCase());
+        const site = siteCache.get(resource.id.toLowerCase());
         return ServiceItem.createWebPubSubModel(nonNullValue(site), resource.name);
     }
 
