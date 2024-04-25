@@ -6,7 +6,7 @@
 import { type WebPubSubResource } from "@azure/arm-webpubsub";
 import { KnownServiceKind } from "@azure/arm-webpubsub";
 import { getResourceGroupFromId, uiUtils } from "@microsoft/vscode-azext-azureutils";
-import { type IActionContext, type TreeElementBase} from "@microsoft/vscode-azext-utils";
+import { nonNullProp, nonNullValue, type IActionContext, type TreeElementBase} from "@microsoft/vscode-azext-utils";
 import { createContextValue } from "@microsoft/vscode-azext-utils";
 import { type AzureResource, type AzureResourceModel, type AzureSubscription, type ViewPropertiesModel } from '@microsoft/vscode-azureresources-api';
 import * as vscode from 'vscode';
@@ -15,6 +15,9 @@ import { getServiceIconPath } from "../utils";
 import { ServicePropertiesItem } from "./ServicePropertiesItem";
 import { type ServiceModel } from "./ServiceModel";
 import { HubSettingsItem } from "../hubSettings/HubSettingsItem";
+
+let siteCacheLastUpdated = 0;
+const siteCache: Map<string, WebPubSubResource> = new Map<string, WebPubSubResource>();
 
 export class ServiceItem implements AzureResourceModel {
     static readonly contextValue: string = 'webPubSubServiceItem';
@@ -59,9 +62,16 @@ export class ServiceItem implements AzureResourceModel {
         return await uiUtils.listAllIterator(client.webPubSub.listBySubscription());
     }
 
-    static async get(context: IActionContext, subscription: AzureSubscription, resourceGroup: string, name: string): Promise<ServiceModel> {
-        const client = await createWebPubSubAPIClient(context, subscription);
-        return ServiceItem.createWebPubSubModel(await client.webPubSub.get(resourceGroup, name), name);
+    static async get(context: IActionContext, resource: AzureResource): Promise<ServiceModel> {
+        if (siteCacheLastUpdated < Date.now() - 1000 * 3) {
+            siteCache.clear();
+            const sites = await this.list(context, resource.subscription);
+            sites.forEach(site => siteCache.set(nonNullProp(site, 'id').toLowerCase(), site));
+            siteCacheLastUpdated = Date.now();
+        }
+
+        const site = siteCache.get(resource.name.toLowerCase());
+        return ServiceItem.createWebPubSubModel(nonNullValue(site), resource.name);
     }
 
     static createWebPubSubModel(serviceResource: WebPubSubResource, serviceName: string): ServiceModel {
