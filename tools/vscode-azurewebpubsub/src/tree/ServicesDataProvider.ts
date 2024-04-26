@@ -4,7 +4,7 @@
 *--------------------------------------------------------------------------------------------*/
 
 import { type IActionContext, type TreeElementBase} from "@microsoft/vscode-azext-utils";
-import { callWithTelemetryAndErrorHandling, nonNullProp } from "@microsoft/vscode-azext-utils";
+import { callWithTelemetryAndErrorHandling } from "@microsoft/vscode-azext-utils";
 import { type AzureResource, type AzureResourceBranchDataProvider } from '@microsoft/vscode-azureresources-api';
 import * as vscode from 'vscode';
 import { ServiceItem } from "./service/ServiceItem";
@@ -35,7 +35,7 @@ export class ServicesDataProvider extends vscode.Disposable implements AzureReso
             'getResourceItem',
             async (context: IActionContext) => {
                 context.errorHandling.rethrow = true;
-                const serviceModel = await ServiceItem.get(context, element.subscription, nonNullProp(element, 'resourceGroup'), element.name);
+                const serviceModel = await ServiceItem.get(context, element);
                 return new ServiceItem(element.subscription, element, serviceModel);
             }
         );
