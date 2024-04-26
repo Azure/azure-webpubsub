@@ -8,9 +8,9 @@ import { KnownServiceKind, WebPubSubManagementClient } from "@azure/arm-webpubsu
 import { LocationListStep, ResourceGroupListStep, VerifyProvidersStep, createAzureClient } from "@microsoft/vscode-azext-azureutils";
 import { type AzureWizardExecuteStep, type AzureWizardPromptStep, type IActionContext} from "@microsoft/vscode-azext-utils";
 import { AzureWizard, createSubscriptionContext, subscriptionExperience } from "@microsoft/vscode-azext-utils";
-import { type AzureSubscription } from "@microsoft/vscode-azureresources-api";
+import { AzExtResourceType, type AzureSubscription } from "@microsoft/vscode-azureresources-api";
 import * as vscode from "vscode";
-import { SIGNALR_PROVIDER, WEB_PUBSUB_PROVIDER, WEB_PUBSUB_RESOURCE_TYPE } from "../../../constants";
+import { SIGNALR_PROVIDER, WEB_PUBSUB_PROVIDER } from "../../../constants";
 import { ext } from "../../../extensionVariables";
 import { CreateServiceStep } from "./steps/CreateServiceStep";
 import { type ICreateServiceContext } from "./ICreateServiceContext";
@@ -47,7 +47,7 @@ async function createService(isSocketIO: boolean, context: IActionContext, node?
     
     let promptSteps: AzureWizardPromptStep<ICreateServiceContext>[] = [];
 
-    LocationListStep.addProviderForFiltering(wizardContext, SIGNALR_PROVIDER, WEB_PUBSUB_RESOURCE_TYPE);
+    LocationListStep.addProviderForFiltering(wizardContext, SIGNALR_PROVIDER, AzExtResourceType.WebPubSub);
     LocationListStep.addStep(wizardContext, promptSteps);
     
     promptSteps = promptSteps.concat([

@@ -4,12 +4,11 @@
 *--------------------------------------------------------------------------------------------*/
 
 import { ContextValueQuickPickStep, QuickPickAzureSubscriptionStep, QuickPickGroupStep, runQuickPickWizard, type AzureResourceQuickPickWizardContext, type AzureWizardPromptStep, type IActionContext } from "@microsoft/vscode-azext-utils";
-import { type AzExtResourceType } from "@microsoft/vscode-azureresources-api";
+import { AzExtResourceType } from "@microsoft/vscode-azureresources-api";
 import { ext } from "../../extensionVariables";
 import { localize } from "../../utils";
 import { ServiceItem } from "../service/ServiceItem";
 import { type PickItemOptions } from "../utils";
-import { WEB_PUBSUB_RESOURCE_TYPE } from "../../constants";
 
 export async function pickService(context: IActionContext, options?: PickItemOptions): Promise<ServiceItem> {
     return await runQuickPickWizard(
@@ -25,7 +24,7 @@ export function getPickServiceSteps(): AzureWizardPromptStep<AzureResourceQuickP
     const tdp = ext.rgApiV2.resources.azureResourceTreeDataProvider;
     return [
         new QuickPickAzureSubscriptionStep(tdp),
-        new QuickPickGroupStep(tdp, { groupType: [ WEB_PUBSUB_RESOURCE_TYPE as AzExtResourceType ] }),
+        new QuickPickGroupStep(tdp, { groupType: [ AzExtResourceType.WebPubSub ] }),
         new ContextValueQuickPickStep(
             ext.rgApiV2.resources.azureResourceTreeDataProvider,
             {

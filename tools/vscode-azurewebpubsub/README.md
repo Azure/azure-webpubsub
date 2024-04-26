@@ -34,6 +34,7 @@
 - Check resource health
 - Regenerate access key
 - Copy connection string or endpoint of the service to clipboard
+- Switch the anonymous connect policy of hub setting
 - Attach [Azure Web PubSub local tunnel tool](https://www.npmjs.com/package/@azure/web-pubsub-tunnel-tool)
 - View [LiveTrace Tool](https://learn.microsoft.com/azure/azure-web-pubsub/howto-troubleshoot-resource-logs#steps-for-access-key-enabled)
 
