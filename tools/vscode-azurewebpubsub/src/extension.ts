@@ -11,7 +11,7 @@ import type * as vscode from 'vscode';
 import { registerCommands } from './commands';
 import { ext } from './extensionVariables';
 import { ServicesDataProvider } from './tree/ServicesDataProvider';
-import { type AzExtResourceType, getAzureResourcesExtensionApi } from '@microsoft/vscode-azureresources-api';
+import { AzExtResourceType, getAzureResourcesExtensionApi } from '@microsoft/vscode-azureresources-api';
 import { loadPackageInfo } from './utils';
 import { dispose as disposeTelemetryWrapper, initialize, instrumentOperation } from 'vscode-extension-telemetry-wrapper';
 
@@ -31,7 +31,7 @@ export async function activate(context: vscode.ExtensionContext, perfStats: { lo
         ext.state = new TreeElementStateManager();
         ext.branchDataProvider = new ServicesDataProvider();
         ext.rgApiV2 = await getAzureResourcesExtensionApi(context, '2.0.0');
-        ext.rgApiV2.resources.registerAzureResourceBranchDataProvider("WebPubSub" as AzExtResourceType, ext.branchDataProvider);
+        ext.rgApiV2.resources.registerAzureResourceBranchDataProvider(AzExtResourceType.WebPubSub, ext.branchDataProvider);
         registerCommands();
     })();
 }

@@ -7,12 +7,12 @@ import { KnownAggregationTypeEnum } from "@azure/arm-monitor";
 import { type EventHandler} from "@azure/arm-webpubsub";
 import { type WebPubSubSkuTier } from "@azure/arm-webpubsub";
 import { KnownWebPubSubSkuTier } from "@azure/arm-webpubsub";
+import { AzExtResourceType } from "@microsoft/vscode-azureresources-api";
 import * as nls from 'vscode-nls';
 
 const localize: nls.LocalizeFunc = nls.loadMessageBundle();
 export const SIGNALR_PROVIDER = 'Microsoft.SignalRService';
-export const WEB_PUBSUB_RESOURCE_TYPE = 'WebPubSub';
-export const WEB_PUBSUB_PROVIDER = `${SIGNALR_PROVIDER}/${WEB_PUBSUB_RESOURCE_TYPE}`;
+export const WEB_PUBSUB_PROVIDER = `${SIGNALR_PROVIDER}/${AzExtResourceType.WebPubSub}`;
 
 export const VALID_SERVICE_NAME_DESC = "The name is invalid. It can contain only lowercase letters, numbers and hyphens.\n\
 The first character must be a letter.\n\
