@@ -1,74 +1,40 @@
 import React, {useState} from "react";
-import Card from "react-bootstrap/Card";
-import Tab from 'react-bootstrap/Tab';
-import Tabs from 'react-bootstrap/Tabs';
-import {Nav, Table} from "react-bootstrap";
-import Collapse from "react-bootstrap/Collapse";
 import {APIResponse} from "../../models";
+import {Card, CardHeader, CardPreview, Tab, TabList} from "@fluentui/react-components";
+import type {
+	SelectTabData,
+	SelectTabEvent,
+	TabValue,
+} from "@fluentui/react-components";
 
 export function Response({responses}: { responses: { [status: string]: APIResponse } }): React.JSX.Element {
-	// console.log(responses);
 	const [collapse, setCollapse] = useState(false);
-	
+	const [selectedStatus, setSelectedStatus] = useState<TabValue>();
+	const onTabSelect = (event: SelectTabEvent, data: SelectTabData) => {
+		setSelectedStatus(data.value);
+	};
 	return (
-		<Card style={{margin: 5, width: "95%"}}>
-			<Card.Header style={{display: "flex", justifyContent: "start"}}
-			             onClick={() => setCollapse(!collapse)}><b>Response</b></Card.Header>
-			<Collapse in={collapse}>
-				<div>
-					<Tabs defaultActiveKey="200">
-						<Tab eventKey="200" title="200">
-							<Card.Body>
-								<div style={{display: "flex", justifyContent: "start"}}>
-									RESPONSE SCHEMA: application/json
-								</div>
-								<Table>
-									<tbody>
-									<tr>
-										<td>
-											<b>
-												message
-											</b>
-										
-										</td>
-										<td style={{display: "flex", flexDirection: "column", alignItems: "start"}}>
-											<div>string</div>
-											<div>Success message</div>
-										</td>
-									</tr>
-									</tbody>
-								</Table>
-							</Card.Body>
-						</Tab>
-						<Tab eventKey="404" title="404">
-							<Card.Body>
-								<div style={{display: "flex", justifyContent: "start"}}>
-									RESPONSE SCHEMA: application/json
-								</div>
-								<Table>
-									<tbody>
-									<tr>
-										<td>
-											<b>
-												message
-											</b>
-										
-										</td>
-										<td style={{display: "flex", flexDirection: "column", alignItems: "start"}}>
-											<div>string</div>
-											<div>Error Message</div>
-										</td>
-									</tr>
-									</tbody>
-								</Table>
-							</Card.Body>
-						</Tab>
-					</Tabs>
-				
-				</div>
-			
-			</Collapse>
-		
-		</Card>
+		<div style={{display: "flex"}}>
+			<div style={{flex: 3}}>
+				<Card style={{margin: 5, width: "95%"}}>
+					<CardHeader header={<b style={{fontSize: 20}}>Response</b>}/>
+				</Card>
+			</div>
+			<div style={{flex: 1}}>
+				<Card style={{margin: 5, width: "95%"}}>
+					<CardHeader header={<b style={{fontSize: 15}}>Response Schema</b>}/>
+					<CardPreview>
+						<TabList style={{display: "flex"}} selectedValue={selectedStatus} onTabSelect={onTabSelect}>
+							{Object.entries(responses).map(([status]) => (
+								<Tab id={status} value={status}><div style={{color: status === "200" ? 'green' : 'red'}}>{status}</div></Tab>
+							))}
+						</TabList>
+						{Object.entries(responses).map(([status, response]) => (
+							status === selectedStatus && <div style={{margin: 10}}>{response.description}</div>
+						))}
+					</CardPreview>
+				</Card>
+			</div>
+		</div>
 	)
 }

@@ -120,7 +120,8 @@ export interface RESTApi {
     title: string,
     version: string
   },
-  paths: { [key: string]: PathItem }
+  paths: { [key: string]: PathItem },
+  definitions: { [name: string]: Definition }
 }
 
 export interface PathItem {
@@ -144,7 +145,7 @@ export interface Operation {
   parameters?: Parameter[];
   responses: { [status: string]: APIResponse };
   deprecated?: boolean;
-  // x-ms-examples?: any;
+  'x-ms-examples'?: any;
 }
 
 export interface Parameter {
@@ -166,12 +167,15 @@ export interface Items {
   items?: Items;
   collectionFormat?: 'csv' | 'ssv' | 'tsv' | 'pipes' | 'multi';
   default?: any;
+  description?: string
 }
 
 export interface Schema {
-  $ref?: string;
+  $ref: string;
   type?: string;
   items?: Items;
+  description?: string
+  properties?: {[name: string]: Items}
 }
 
 export interface APIResponse {
@@ -179,7 +183,7 @@ export interface APIResponse {
   schema?: Schema;
   headers?: { [key: string]: Header };
   examples?: any;
-  // x-ms-error-response?: boolean;
+  'x-ms-error-response'?: boolean;
 }
 
 export interface Header {
@@ -191,8 +195,43 @@ export interface Header {
 }
 
 // Definitions could be added here if more details are provided about them
-interface Definitions {
-  ErrorDetail?: any;
-  AddToGroupsRequest?: any;
+interface Definition {
+	description?: string;
+	type: string;
+	properties?: { [name: string]: any };
+	items?: {
+		type: string;
+		$ref?: string;
+	};
+	$ref?: string;
+}
+
+export interface Example{
+  parameters: ExampleParameter
+  responses: any
+}
+
+export interface ExampleParameter{
+  'api-version': string
+  hub: string,
+  groupsToAdd?:{
+    groups: string[]
+    filter: string
+  },
+  group?: string,
+  connectionId?: string,
+  userId?: string,
+  permission?: string,
+  targetName?: string,
+  reason?: string,
+  minutesToExpire?: number,
+  groupsToRemove?: {
+    groups: string[]
+    filter: string
+  },
+  filter?: string
+  messageTtlSeconds?: number,
+  message: string,
+  
 }
 

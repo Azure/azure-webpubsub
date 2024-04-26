@@ -5,7 +5,6 @@ import { useEffect, useState } from "react";
 import {ConnectionStatus, PathItem, RESTApi} from "../models";
 import CodeTabs from "../components/CodeTabs";
 import { useDataContext } from "../providers/DataContext";
-import {POST} from "../components/api/Methods";
 import {Path} from "../components/api/Path";
 
 export interface ServerPanelProps {
