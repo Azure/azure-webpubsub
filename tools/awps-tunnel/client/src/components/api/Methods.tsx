@@ -1,24 +1,16 @@
-import Button from 'react-bootstrap/Button';
-import Card from 'react-bootstrap/Card';
 import 'bootstrap/dist/css/bootstrap.min.css';
 import './Methods.css'
 import React, {useEffect, useState} from "react";
-import Collapse from "react-bootstrap/Collapse";
-import {Form} from "react-bootstrap";
 import {Example, Operation} from "../../models";
 import {Response} from "./Response";
 import { Parameters} from "./Parameters";
 import {Label} from "@fluentui/react-components";
 
 export function POST({post}: { post: Operation }): React.JSX.Element {
-	// console.log(post);
-	const [tryCollapse, setTryCollapse] = useState(false);
 	const [example, setExample] = useState<Example>();
 	useEffect(() => {
-		// @ts-ignore
-		console.log(Object.entries(post["x-ms-examples"])[0][1].$ref);
-		// @ts-ignore
-		const exmaplePath = Object.entries(post["x-ms-examples"])[0][1].$ref
+		const operationId = post.operationId;
+		const exmaplePath = post["x-ms-examples"][operationId].$ref;
 		fetch(exmaplePath).then(res=> res.json()).then(res=>setExample(res))
 	}, [post]);
 	

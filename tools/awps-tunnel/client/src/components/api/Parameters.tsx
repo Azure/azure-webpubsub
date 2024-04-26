@@ -3,14 +3,14 @@ import {
 	Card,
 	CardHeader,
 	CardPreview,
-	Label, Tab, Table, TableBody, TableCell, TableHeader, TableHeaderCell, TableRow
+	Label, Table, TableBody, TableCell, TableHeader, TableHeaderCell, TableRow
 } from "@fluentui/react-components";
 import {TextField} from "@fluentui/react";
-import {Example, ExampleParameter, Parameter, Schema} from "../../models";
+import {ExampleParameter, Parameter, Schema, Definition} from "../../models";
 import 'bootstrap/dist/css/bootstrap.min.css';
 import restapiSpec from '../api/restapiSample.json'
 import JSONInput from "react-json-editor-ajrm/index";
-// @ts-ignore
+// @ts-ignore, dependency for library, don't remove
 import locale from "react-json-editor-ajrm/locale/en";
 
 
@@ -61,7 +61,7 @@ function renderSchema(parameters: Parameter[]): React.JSX.Element {
 	</div>)
 }
 
-function renderBodySchema(schema: Schema): React.JSX.Element {
+function renderBodySchema(schema: Definition): React.JSX.Element {
 	return (
 		<Table>
 			<TableHeader>
@@ -72,8 +72,8 @@ function renderBodySchema(schema: Schema): React.JSX.Element {
 				</TableRow>
 			</TableHeader>
 			<TableBody>
-				{schema.properties && Object.entries(schema.properties).map(([name, item]) => (
-					<TableRow>
+				{schema.properties && Object.entries(schema.properties).map(([name, item], key) => (
+					<TableRow key={key}>
 						<TableCell>{name}</TableCell>
 						<TableCell>{item.type}</TableCell>
 						{item.items && <TableCell>{item.items.type}</TableCell>}
@@ -85,7 +85,10 @@ function renderBodySchema(schema: Schema): React.JSX.Element {
 }
 
 
-export function Parameters({parameters, example}: { parameters: Parameter[] ,example: ExampleParameter}): React.JSX.Element {
+export function Parameters({parameters, example}: {
+	parameters: Parameter[],
+	example: ExampleParameter
+}): React.JSX.Element {
 	const endpoint: string | undefined = process.env.REACT_APP_ENDPOINT;
 	const hub: string | undefined = process.env.REACT_APP_HUB;
 	const queryParameters: Parameter[] = parameters.filter(p => p.in === "query");
@@ -94,15 +97,16 @@ export function Parameters({parameters, example}: { parameters: Parameter[] ,exa
 	const formDataParameters: Parameter[] = parameters.filter(p => p.in === "formData");
 	const bodyParameters: Parameter[] = parameters.filter(p => p.in === "body");
 	const [copyLabel, setCopyLabel] = useState<string>("copy")
-	const [bodySchema, setBodySchema] = useState<Schema>();
+	const [bodySchema, setBodySchema] = useState<Definition>();
 	
 	useEffect(() => {
 		if (bodyParameters[0].schema) {
 			const ref: string = bodyParameters[0].schema.$ref;
-			const path: string[] = ref.substring(2).split('/');
-			// @ts-ignore
-			// todo: fix the model later
-			setBodySchema(path.reduce((acc, key) => acc[key], restapiSpec));
+			const path: string[] = ref.split('/');
+			// todo: removed ts-ignore, may need to be changed in the future
+			if (path[path.length-1] === "AddToGroupsRequest"){
+				setBodySchema(restapiSpec.definitions.AddToGroupsRequest);
+			}
 		}
 	}, [bodyParameters]);
 	

@@ -52,7 +52,6 @@ export function ServerPanel({ endpoint, onChange }: ServerPanelProps) {
     }
     onSwitchAsync();
   }
-  // console.log(restAPI.paths[`/api/hubs/{hub}/:addToGroups`])
   return (
     <div className="m-2">
       {/*<p>*/}

@@ -121,7 +121,7 @@ export interface RESTApi {
     version: string
   },
   paths: { [key: string]: PathItem },
-  definitions: { [name: string]: Definition }
+  definitions: { [name:string]: Definition }
 }
 
 export interface PathItem {
@@ -139,7 +139,7 @@ export interface Operation {
   tags?: string[];
   summary?: string;
   description?: string;
-  operationId?: string;
+  operationId: string;
   consumes?: string[];
   produces?: string[];
   parameters?: Parameter[];
@@ -163,11 +163,12 @@ export interface Parameter {
 }
 
 export interface Items {
-  type: string;
+  type?: string;
   items?: Items;
   collectionFormat?: 'csv' | 'ssv' | 'tsv' | 'pipes' | 'multi';
   default?: any;
-  description?: string
+  description?: string,
+  $ref?: string
 }
 
 export interface Schema {
@@ -182,7 +183,6 @@ export interface APIResponse {
   description: string;
   schema?: Schema;
   headers?: { [key: string]: Header };
-  examples?: any;
   'x-ms-error-response'?: boolean;
 }
 
@@ -194,11 +194,10 @@ export interface Header {
   default?: any;
 }
 
-// Definitions could be added here if more details are provided about them
-interface Definition {
+export interface Definition {
 	description?: string;
 	type: string;
-	properties?: { [name: string]: any };
+	properties: DefinitionProp,
 	items?: {
 		type: string;
 		$ref?: string;
@@ -206,9 +205,20 @@ interface Definition {
 	$ref?: string;
 }
 
+export interface DefinitionProp{
+  groups?: Items,
+  filter?: Items,
+  token?: Items,
+  code?: Items,
+  message?: Items,
+  target?: Items,
+  details?: Items,
+  inner?: Items,
+}
+
 export interface Example{
   parameters: ExampleParameter
-  responses: any
+  responses: {[status: string]: {}}
 }
 
 export interface ExampleParameter{
