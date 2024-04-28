@@ -12,6 +12,7 @@ import restapiSpec from '../api/restapiSample.json'
 import JSONInput from "react-json-editor-ajrm/index";
 // @ts-ignore, dependency for library, don't remove
 import locale from "react-json-editor-ajrm/locale/en";
+import jwt from 'jsonwebtoken'
 
 
 function renderParameter(parameters: Parameter[], inputTag: React.JSX.Element): React.JSX.Element {
@@ -83,9 +84,17 @@ function renderBodySchema(schema: Definition): React.JSX.Element {
 		</Table>
 	)
 }
+interface queryInput {
+	hub?: string,
+	group?: string,
+	userId?: string
+	connectionId?: string,
+	permission?: string,
+}
 
 
-export function Parameters({parameters, example}: {
+export function Parameters({path, parameters, example}: {
+	path: string
 	parameters: Parameter[],
 	example: ExampleParameter
 }): React.JSX.Element {
@@ -98,28 +107,55 @@ export function Parameters({parameters, example}: {
 	const bodyParameters: Parameter[] = parameters.filter(p => p.in === "body");
 	const [copyLabel, setCopyLabel] = useState<string>("copy")
 	const [bodySchema, setBodySchema] = useState<Definition>();
+	const [url, setUrl] = useState<string>();
 	
 	useEffect(() => {
 		if (bodyParameters[0].schema) {
 			const ref: string = bodyParameters[0].schema.$ref;
 			const path: string[] = ref.split('/');
-			// todo: removed ts-ignore, may need to be changed in the future
-			if (path[path.length-1] === "AddToGroupsRequest"){
+			if (path[path.length - 1] === "AddToGroupsRequest") {
 				setBodySchema(restapiSpec.definitions.AddToGroupsRequest);
 			}
 		}
 	}, [bodyParameters]);
 	
+	useEffect(() => {
+		let newPath = path;
+		if (hub) {
+			newPath = newPath.replace('{hub}', hub);
+		}
+		setUrl(`${endpoint}${newPath}?api-version=${restapiSpec.info.version}`)
+	}, [path, hub]);
+	
 	
 	function copyOnClick(): void {
 		setCopyLabel("copied");
-		navigator.clipboard.writeText(`${endpoint}/api/hubs/${hub}/:addToGroups?api-version=${restapiSpec.info.version}`)
+		navigator.clipboard.writeText(url || "")
 			.then(() => {
 				setCopyLabel("copied");
 				setTimeout(() => {
 					setCopyLabel("copy");
 				}, 3000)
 			}).catch(err => console.error("Failed to copy: ", err));
+	}
+	
+	function sendReuqest():void{
+		// if(url){
+		// 	fetch(url, {
+		// 		// todo: change to input later
+		// 		method: 'POST',
+		// 		headers: {
+		// 			'Content-Type': 'application/json',
+		// 			'Authorization': `Bearer AJ9Mut2U9zh43HcZnqVSBLwIJcemF/+R0ju/QYMZ470=`
+		// 		},
+		// 		body: JSON.stringify(bodyParameters)
+		// 	}).then(res => console.log(res))
+		// }
+		const bearerToken = jwt.sign({}, `AJ9Mut2U9zh43HcZnqVSBLwIJcemF/+R0ju/QYMZ470=;Version=1.0;`, {
+			audience: url,
+			expiresIn: "1h",
+			algorithm: "HS256",
+		});
 	}
 	
 	return (
@@ -132,7 +168,7 @@ export function Parameters({parameters, example}: {
 							<Label>HTTP URL</Label>
 							<Label onClick={() => copyOnClick()}>{copyLabel}</Label></div>
 						<TextField readOnly={true}
-						           value={`${endpoint}/api/hubs/${hub}/:addToGroups?api-version=${restapiSpec.info.version}`}/>
+						           value={url}/>
 						{headerParameters.length > 0 && <div><Label><b style={{fontSize: 20}}>Header</b></Label></div>}
 						{queryParameters.length > 0 && <div><Label><b style={{fontSize: 20}}>Query</b></Label>
 							{renderParameter(queryParameters, <TextField value={restapiSpec.info.version}
@@ -152,7 +188,7 @@ export function Parameters({parameters, example}: {
 								           }} height={"auto"}/>)}
 			</div>}
 						<div style={{display: "flex", justifyContent: "end", width: "100%"}}>
-							<button className={"btn btn-primary"} style={{width: "20%"}}>Send</button>
+							<button className={"btn btn-primary"} style={{width: "20%"}} onClick={sendReuqest}>Send</button>
 						</div>
 					</CardPreview>
 				</Card>

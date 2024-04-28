@@ -3,15 +3,15 @@ import './Methods.css'
 import React, {useEffect, useState} from "react";
 import {Example, Operation} from "../../models";
 import {Response} from "./Response";
-import { Parameters} from "./Parameters";
+import {Parameters} from "./Parameters";
 import {Label} from "@fluentui/react-components";
 
-export function POST({post}: { post: Operation }): React.JSX.Element {
+export function POST({post, path}: { post: Operation, path: string }): React.JSX.Element {
 	const [example, setExample] = useState<Example>();
 	useEffect(() => {
 		const operationId = post.operationId;
 		const exmaplePath = post["x-ms-examples"][operationId].$ref;
-		fetch(exmaplePath).then(res=> res.json()).then(res=>setExample(res))
+		fetch(exmaplePath).then(res => res.json()).then(res => setExample(res))
 	}, [post]);
 	
 	return (
@@ -31,7 +31,7 @@ export function POST({post}: { post: Operation }): React.JSX.Element {
 				</div>
 				
 				
-				{post.parameters && example && <Parameters parameters={post.parameters} example={example.parameters}/>}
+				{post.parameters && example && <Parameters path={path} parameters={post.parameters} example={example.parameters}/>}
 				<Response responses={post.responses}/>
 			</div>
 		</div>

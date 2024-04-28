@@ -78,7 +78,7 @@ export function ServerPanel({ endpoint, onChange }: ServerPanelProps) {
       {/*  <b>📋Sample code handling events in your app server:</b>*/}
       {/*  <CodeTabs></CodeTabs>*/}
       {/*</div>*/}
-      <Path pathItem = {restAPI.paths[`/api/hubs/{hub}/:addToGroups`]}/>
+      <Path pathItem = {restAPI.paths[`/api/hubs/{hub}/:addToGroups`]}  path={`/api/hubs/{hub}/:addToGroups`}/>
     </div>
   );
 }
