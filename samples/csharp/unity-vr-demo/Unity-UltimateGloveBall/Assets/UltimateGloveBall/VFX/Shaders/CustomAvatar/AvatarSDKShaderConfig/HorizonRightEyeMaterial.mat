@@ -1,0 +1,163 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!21 &2100000
+Material:
+  serializedVersion: 8
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_Name: HorizonRightEyeMaterial
+  m_Shader: {fileID: 4800000, guid: 52f661668f7a7c24b8d23d27b49d7aaa, type: 3}
+  m_ValidKeywords:
+  - INVERT
+  - MATERIAL_MODE_TEXTURE
+  - _LIGHTING_SYSTEM_UNITY
+  - _SHADER_TYPE_RIGHT_EYE
+  m_InvalidKeywords: []
+  m_LightmapFlags: 4
+  m_EnableInstancingVariants: 0
+  m_DoubleSidedGI: 0
+  m_CustomRenderQueue: -1
+  stringTagMap: {}
+  disabledShaderPasses: []
+  m_SavedProperties:
+    serializedVersion: 3
+    m_TexEnvs:
+    - FresnelNoise:
+        m_Texture: {fileID: 2800000, guid: 3eb9906f5b37e5248ba701b12c1accc1, type: 3}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    - Texture2D_1236DA5:
+        m_Texture: {fileID: 2800000, guid: 3eb9906f5b37e5248ba701b12c1accc1, type: 3}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    - _BumpMap:
+        m_Texture: {fileID: 0}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    - _DetailAlbedoMap:
+        m_Texture: {fileID: 0}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    - _DetailMask:
+        m_Texture: {fileID: 0}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    - _DetailNormalMap:
+        m_Texture: {fileID: 0}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    - _EffectsMap:
+        m_Texture: {fileID: 0}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    - _EmissionMap:
+        m_Texture: {fileID: 0}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    - _MainTex:
+        m_Texture: {fileID: 0}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    - _MetallicGlossMap:
+        m_Texture: {fileID: 0}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    - _NoiseTex:
+        m_Texture: {fileID: 2800000, guid: e17abe66c495e0d489f521c8a525a85e, type: 3}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    - _OcclusionMap:
+        m_Texture: {fileID: 0}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    - _ParallaxMap:
+        m_Texture: {fileID: 0}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    - _PropertiesMap:
+        m_Texture: {fileID: 0}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    m_Ints: []
+    m_Floats:
+    - DisAmount: 2
+    - ENABLE_CUSTOM_EFFECT: 0
+    - ENABLE_GHOST_EFFECT: 0
+    - Edge_Brightness: 10
+    - Edge_Width: 0.113
+    - Fresnel_Power: 0.4
+    - INVERT: 1
+    - Material_Mode: 0
+    - Noise_Cutoff: 0.715
+    - Noise_Cutoff_Smoothness: 0.22
+    - Noise_Scale: 5
+    - Noise_Scroll_Speed: 1
+    - Vector1_D6768803: 1
+    - _AmbientOcclusionEffect: 1
+    - _BacklightScale: 0.2
+    - _BumpScale: 1
+    - _Cutoff: 0.5
+    - _DesatAmount: 0
+    - _DesatLerp: 0
+    - _DetailNormalMapScale: 1
+    - _DirectOcclusionEffect: 1
+    - _DisAmount: 2
+    - _Distortion: 0.5
+    - _DstBlend: 0
+    - _EyeGlintFactor: 10
+    - _EyeUVScale: 0.5
+    - _EyeXMax: 1
+    - _EyeXMid: 0.5
+    - _EyeXMin: 0
+    - _EyeYMax: 1
+    - _EyeYMid: 0.5
+    - _EyeYMin: 0
+    - _GlossMapScale: 1
+    - _Glossiness: 0.5
+    - _GlossyReflections: 1
+    - _HeadC: 0
+    - _IrisScale: 0.5
+    - _LeftEyeRight: 0
+    - _LeftEyeTX: 0
+    - _LeftEyeTY: 0
+    - _LeftEyeUp: 0
+    - _Lighting_System: 0
+    - _Metallic: 0
+    - _MinDiffuse: 0.5
+    - _Mode: 0
+    - _OcclusionStrength: 1
+    - _Opacity: 0.8
+    - _Parallax: 0.02
+    - _PupilScale: 0.5
+    - _RightEyeRight: 0
+    - _RightEyeTX: 0
+    - _RightEyeTY: 0
+    - _RightEyeUp: 0
+    - _Shader_Type: 5
+    - _SmoothnessTextureChannel: 0
+    - _SpecularHighlights: 1
+    - _SrcBlend: 1
+    - _TranslucencyPower: 1
+    - _TranslucencyScale: 1
+    - _UVScale: 1
+    - _UVSec: 0
+    - _ZWrite: 1
+    m_Colors:
+    - Caustics_Color: {r: 0.9433962, g: 0.56585246, b: 0.35065857, a: 1}
+    - Color_CD9DA168: {r: 2.1333334, g: 3.3254902, b: 11.984314, a: 1}
+    - Color_DA10CA39: {r: 1.6538467, g: 0.29271623, b: 2.1221929, a: 1}
+    - Edge_Color: {r: 0, g: 1, b: 1, a: 0}
+    - Fresnel_Color: {r: 0.75424725, g: 1.1757383, b: 4.237095, a: 1}
+    - Fresnel_Noise_Scale: {r: 2, g: 2, b: 0, a: 0}
+    - Fresnel_Noise_Speed: {r: 0, g: 0.2, b: 0, a: 0}
+    - Interior_Color: {r: 2.484069, g: 0.79033375, b: 5.5908804, a: 1}
+    - Vector2_1AFF66C3: {r: 2, g: 2, b: 0, a: 0}
+    - Vector2_FF6D2A34: {r: 0, g: 0.2, b: 0, a: 0}
+    - _Color: {r: 1, g: 1, b: 1, a: 1}
+    - _DesatTint: {r: 0.255, g: 0.314, b: 0.502, a: 1}
+    - _EmissionColor: {r: 0, g: 0, b: 0, a: 1}
+    - _SecondaryColor: {r: 1, g: 1, b: 1, a: 1}
+    - _TertiaryColor: {r: 1, g: 1, b: 1, a: 0}
+  m_BuildTextureStacks: []

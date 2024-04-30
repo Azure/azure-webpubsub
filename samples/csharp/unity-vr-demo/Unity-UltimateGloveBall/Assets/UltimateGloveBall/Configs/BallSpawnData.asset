@@ -1,0 +1,25 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 0
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: db0e928c1cb74bcaa0cfaad86080bfc1, type: 3}
+  m_Name: BallSpawnData
+  m_EditorClassIdentifier: 
+  m_ballsToSpawn:
+  - BallPrefab: {fileID: 4111956852610528641, guid: dff229e1c577af44c8d223d01ab9488c, type: 3}
+    Weight: 55
+  - BallPrefab: {fileID: 5130732333530550574, guid: 4b889661680d47c41a93ac7f06c15e83, type: 3}
+    Weight: 15
+  - BallPrefab: {fileID: 4111956852610528641, guid: c2a1956ba8bac2d4bb54dbfcd1866ac7, type: 3}
+    Weight: 15
+  - BallPrefab: {fileID: 8996471287541171626, guid: 1c658a709ba9f154999501d5a47df9a9, type: 3}
+    Weight: 10
+  - BallPrefab: {fileID: 4111956852610528641, guid: b6cce23aa73ed6f498f0d2b076c8201e, type: 3}
+    Weight: 5

@@ -1,0 +1,321 @@
+{
+    "name": "GloveBall",
+    "maps": [
+        {
+            "name": "Player",
+            "id": "f7d4d69e-2edf-4d69-9129-f79c215c3f81",
+            "actions": [
+                {
+                    "name": "Move",
+                    "type": "Value",
+                    "id": "42947c23-5af4-4df9-9b2a-580ff4266752",
+                    "expectedControlType": "Vector2",
+                    "processors": "",
+                    "interactions": "",
+                    "initialStateCheck": true
+                },
+                {
+                    "name": "ThrowLeft",
+                    "type": "Button",
+                    "id": "30e0a680-7c11-4ac5-a523-95848d00f2da",
+                    "expectedControlType": "Button",
+                    "processors": "",
+                    "interactions": "",
+                    "initialStateCheck": true
+                },
+                {
+                    "name": "ThrowRight",
+                    "type": "Button",
+                    "id": "85154e87-06eb-48c0-9ad5-7a76071ec731",
+                    "expectedControlType": "Button",
+                    "processors": "",
+                    "interactions": "",
+                    "initialStateCheck": true
+                },
+                {
+                    "name": "ShieldLeft",
+                    "type": "Button",
+                    "id": "0e1d8885-42b0-483c-9f44-8ef0b023c087",
+                    "expectedControlType": "Button",
+                    "processors": "",
+                    "interactions": "",
+                    "initialStateCheck": true
+                },
+                {
+                    "name": "ShieldRight",
+                    "type": "Button",
+                    "id": "84096421-688d-4ce0-98eb-c26d43081ccb",
+                    "expectedControlType": "Button",
+                    "processors": "",
+                    "interactions": "",
+                    "initialStateCheck": true
+                },
+                {
+                    "name": "Menu",
+                    "type": "Button",
+                    "id": "999be9ba-e78e-4e1c-ac8d-f659cd0e4d29",
+                    "expectedControlType": "Button",
+                    "processors": "",
+                    "interactions": "",
+                    "initialStateCheck": false
+                },
+                {
+                    "name": "SnapTurnLeft",
+                    "type": "Value",
+                    "id": "f0c0f50b-8803-469f-b9f7-743f567785af",
+                    "expectedControlType": "",
+                    "processors": "",
+                    "interactions": "Sector(directions=8)",
+                    "initialStateCheck": true
+                },
+                {
+                    "name": "SnapTurnLeftNoFree",
+                    "type": "Value",
+                    "id": "67aef3b7-4851-4f4f-95b1-01380da63813",
+                    "expectedControlType": "",
+                    "processors": "",
+                    "interactions": "Sector(directions=8)",
+                    "initialStateCheck": true
+                },
+                {
+                    "name": "SnapTurnRight",
+                    "type": "Value",
+                    "id": "8a0dd97d-76c6-40f4-af11-5e083eccd44c",
+                    "expectedControlType": "",
+                    "processors": "",
+                    "interactions": "Sector(directions=4)",
+                    "initialStateCheck": true
+                },
+                {
+                    "name": "SnapTurnRightNoFree",
+                    "type": "Value",
+                    "id": "b02c2b4c-2f9d-46e9-9d4b-89fc8b4fdd21",
+                    "expectedControlType": "",
+                    "processors": "",
+                    "interactions": "Sector(directions=4)",
+                    "initialStateCheck": true
+                }
+            ],
+            "bindings": [
+                {
+                    "name": "",
+                    "id": "1635d3fe-58b6-4ba9-a4e2-f4b964f6b5c8",
+                    "path": "<XRController>{LeftHand}/primary2DAxis",
+                    "interactions": "",
+                    "processors": "",
+                    "groups": "",
+                    "action": "Move",
+                    "isComposite": false,
+                    "isPartOfComposite": false
+                },
+                {
+                    "name": "",
+                    "id": "febab1ac-fe11-4286-9902-bd10a6e5ca2c",
+                    "path": "<XRController>{LeftHand}/triggerPressed",
+                    "interactions": "",
+                    "processors": "",
+                    "groups": "",
+                    "action": "ThrowLeft",
+                    "isComposite": false,
+                    "isPartOfComposite": false
+                },
+                {
+                    "name": "",
+                    "id": "c8eb0733-cd25-4add-b706-e67b8b69a8fc",
+                    "path": "<XRController>{RightHand}/triggerPressed",
+                    "interactions": "",
+                    "processors": "",
+                    "groups": "",
+                    "action": "ThrowRight",
+                    "isComposite": false,
+                    "isPartOfComposite": false
+                },
+                {
+                    "name": "",
+                    "id": "b9ddf33a-4bfe-483e-9d88-c453c8f13c8a",
+                    "path": "<XRController>{LeftHand}/gripButton",
+                    "interactions": "",
+                    "processors": "",
+                    "groups": "",
+                    "action": "ShieldLeft",
+                    "isComposite": false,
+                    "isPartOfComposite": false
+                },
+                {
+                    "name": "",
+                    "id": "03d0b4cf-6731-4bc6-b1e2-788f63815524",
+                    "path": "<XRController>{RightHand}/gripButton",
+                    "interactions": "",
+                    "processors": "",
+                    "groups": "",
+                    "action": "ShieldRight",
+                    "isComposite": false,
+                    "isPartOfComposite": false
+                },
+                {
+                    "name": "",
+                    "id": "f942f402-eef3-462a-8ba8-7335bc79bf35",
+                    "path": "<XRController>/start",
+                    "interactions": "",
+                    "processors": "",
+                    "groups": "",
+                    "action": "Menu",
+                    "isComposite": false,
+                    "isPartOfComposite": false
+                },
+                {
+                    "name": "",
+                    "id": "b31cc404-c663-4f18-9d46-ea7add3edb2b",
+                    "path": "<XRController>/menuButton",
+                    "interactions": "",
+                    "processors": "",
+                    "groups": "",
+                    "action": "Menu",
+                    "isComposite": false,
+                    "isPartOfComposite": false
+                },
+                {
+                    "name": "",
+                    "id": "a5935861-56e4-434b-96d8-c443a57770c7",
+                    "path": "<XRController>{RightHand}/primary2DAxis",
+                    "interactions": "",
+                    "processors": "",
+                    "groups": "",
+                    "action": "SnapTurnLeft",
+                    "isComposite": false,
+                    "isPartOfComposite": false
+                },
+                {
+                    "name": "",
+                    "id": "d145a6f4-7db2-416b-9246-0c40385c4a04",
+                    "path": "<XRController>{RightHand}/primary2DAxis",
+                    "interactions": "",
+                    "processors": "",
+                    "groups": "",
+                    "action": "SnapTurnRight",
+                    "isComposite": false,
+                    "isPartOfComposite": false
+                },
+                {
+                    "name": "",
+                    "id": "5736587d-0169-4a44-8c21-0b97ea611e2d",
+                    "path": "<XRController>{LeftHand}/primary2DAxis",
+                    "interactions": "",
+                    "processors": "",
+                    "groups": "",
+                    "action": "SnapTurnLeftNoFree",
+                    "isComposite": false,
+                    "isPartOfComposite": false
+                },
+                {
+                    "name": "",
+                    "id": "dd9d7f48-861e-4e6c-9960-fae205a68bcd",
+                    "path": "<XRController>{LeftHand}/primary2DAxis",
+                    "interactions": "",
+                    "processors": "",
+                    "groups": "",
+                    "action": "SnapTurnRightNoFree",
+                    "isComposite": false,
+                    "isPartOfComposite": false
+                }
+            ]
+        },
+        {
+            "name": "Spectator",
+            "id": "48d44053-1f24-428d-a43a-6dc767bac9a8",
+            "actions": [
+                {
+                    "name": "TriggerLeft",
+                    "type": "Button",
+                    "id": "7cc6b9a2-6202-419e-b57e-23c866fdb1f7",
+                    "expectedControlType": "Button",
+                    "processors": "",
+                    "interactions": "",
+                    "initialStateCheck": true
+                },
+                {
+                    "name": "TriggerRight",
+                    "type": "Button",
+                    "id": "3200551e-ccac-4a28-bf65-aa65c6e281f8",
+                    "expectedControlType": "Button",
+                    "processors": "",
+                    "interactions": "",
+                    "initialStateCheck": true
+                },
+                {
+                    "name": "Menu",
+                    "type": "Button",
+                    "id": "9e0c4000-124a-4733-a3e6-b8b634c02740",
+                    "expectedControlType": "Button",
+                    "processors": "",
+                    "interactions": "",
+                    "initialStateCheck": false
+                }
+            ],
+            "bindings": [
+                {
+                    "name": "",
+                    "id": "ed59ac3b-73be-43cd-ad41-a6be813fb79b",
+                    "path": "<XRController>{LeftHand}/triggerPressed",
+                    "interactions": "",
+                    "processors": "",
+                    "groups": "",
+                    "action": "TriggerLeft",
+                    "isComposite": false,
+                    "isPartOfComposite": false
+                },
+                {
+                    "name": "",
+                    "id": "637dc70c-a563-4082-be50-de41516eb7b9",
+                    "path": "<XRController>{RightHand}/triggerPressed",
+                    "interactions": "",
+                    "processors": "",
+                    "groups": "",
+                    "action": "TriggerRight",
+                    "isComposite": false,
+                    "isPartOfComposite": false
+                },
+                {
+                    "name": "",
+                    "id": "14dcf442-e67d-4236-a328-07d34db53f16",
+                    "path": "<XRController>/start",
+                    "interactions": "",
+                    "processors": "",
+                    "groups": "",
+                    "action": "Menu",
+                    "isComposite": false,
+                    "isPartOfComposite": false
+                },
+                {
+                    "name": "",
+                    "id": "aa11d038-b9b8-4636-8e0c-1a79b90a3bb4",
+                    "path": "<XRController>/menuButton",
+                    "interactions": "",
+                    "processors": "",
+                    "groups": "",
+                    "action": "Menu",
+                    "isComposite": false,
+                    "isPartOfComposite": false
+                }
+            ]
+        }
+    ],
+    "controlSchemes": [
+        {
+            "name": "XR",
+            "bindingGroup": "XR",
+            "devices": [
+                {
+                    "devicePath": "<XRController>{LeftHand}",
+                    "isOptional": false,
+                    "isOR": false
+                },
+                {
+                    "devicePath": "<XRController>{RightHand}",
+                    "isOptional": false,
+                    "isOR": false
+                }
+            ]
+        }
+    ]
+}

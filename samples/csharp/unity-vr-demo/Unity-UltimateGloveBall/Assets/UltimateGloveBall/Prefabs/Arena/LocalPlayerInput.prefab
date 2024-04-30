@@ -1,0 +1,300 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!1 &5570727583901631806
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 5570727583901631804}
+  - component: {fileID: 5570727583901631805}
+  - component: {fileID: 3785667813221262298}
+  m_Layer: 0
+  m_Name: LocalPlayerInput
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &5570727583901631804
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5570727583901631806}
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_RootOrder: 0
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &5570727583901631805
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5570727583901631806}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 290dbad72670429fad2f6e49c99f9abb, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  m_input: {fileID: 3785667813221262298}
+  m_playerMenu: {fileID: 0}
+--- !u!114 &3785667813221262298
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5570727583901631806}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 62899f850307741f2a39c98a8b639597, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  m_Actions: {fileID: -944628639613478452, guid: 7e73876a7e99e0645b4a85a1987d4e88, type: 3}
+  m_NotificationBehavior: 2
+  m_UIInputModule: {fileID: 0}
+  m_DeviceLostEvent:
+    m_PersistentCalls:
+      m_Calls: []
+  m_DeviceRegainedEvent:
+    m_PersistentCalls:
+      m_Calls: []
+  m_ControlsChangedEvent:
+    m_PersistentCalls:
+      m_Calls: []
+  m_ActionEvents:
+  - m_PersistentCalls:
+      m_Calls:
+      - m_Target: {fileID: 5570727583901631805}
+        m_TargetAssemblyTypeName: UltimateGloveBall.Arena.Player.PlayerInputController,
+          Assembly-CSharp
+        m_MethodName: OnMove
+        m_Mode: 0
+        m_Arguments:
+          m_ObjectArgument: {fileID: 0}
+          m_ObjectArgumentAssemblyTypeName: UnityEngine.Object, UnityEngine
+          m_IntArgument: 0
+          m_FloatArgument: 0
+          m_StringArgument: 
+          m_BoolArgument: 0
+        m_CallState: 2
+    m_ActionId: 42947c23-5af4-4df9-9b2a-580ff4266752
+    m_ActionName: Player/Move[/Keyboard/w,/Keyboard/upArrow,/Keyboard/s,/Keyboard/downArrow,/Keyboard/a,/Keyboard/leftArrow,/Keyboard/d,/Keyboard/rightArrow]
+  - m_PersistentCalls:
+      m_Calls:
+      - m_Target: {fileID: 5570727583901631805}
+        m_TargetAssemblyTypeName: UltimateGloveBall.Arena.Player.PlayerInputController,
+          Assembly-CSharp
+        m_MethodName: OnThrowLeft
+        m_Mode: 0
+        m_Arguments:
+          m_ObjectArgument: {fileID: 0}
+          m_ObjectArgumentAssemblyTypeName: UnityEngine.Object, UnityEngine
+          m_IntArgument: 0
+          m_FloatArgument: 0
+          m_StringArgument: 
+          m_BoolArgument: 0
+        m_CallState: 2
+    m_ActionId: 30e0a680-7c11-4ac5-a523-95848d00f2da
+    m_ActionName: Player/ThrowLeft
+  - m_PersistentCalls:
+      m_Calls:
+      - m_Target: {fileID: 5570727583901631805}
+        m_TargetAssemblyTypeName: UltimateGloveBall.Arena.Player.PlayerInputController,
+          Assembly-CSharp
+        m_MethodName: OnThrowRight
+        m_Mode: 0
+        m_Arguments:
+          m_ObjectArgument: {fileID: 0}
+          m_ObjectArgumentAssemblyTypeName: UnityEngine.Object, UnityEngine
+          m_IntArgument: 0
+          m_FloatArgument: 0
+          m_StringArgument: 
+          m_BoolArgument: 0
+        m_CallState: 2
+    m_ActionId: 85154e87-06eb-48c0-9ad5-7a76071ec731
+    m_ActionName: Player/ThrowRight
+  - m_PersistentCalls:
+      m_Calls:
+      - m_Target: {fileID: 5570727583901631805}
+        m_TargetAssemblyTypeName: UltimateGloveBall.Arena.Player.PlayerInputController,
+          Assembly-CSharp
+        m_MethodName: OnShieldLeft
+        m_Mode: 0
+        m_Arguments:
+          m_ObjectArgument: {fileID: 0}
+          m_ObjectArgumentAssemblyTypeName: UnityEngine.Object, UnityEngine
+          m_IntArgument: 0
+          m_FloatArgument: 0
+          m_StringArgument: 
+          m_BoolArgument: 0
+        m_CallState: 2
+    m_ActionId: 0e1d8885-42b0-483c-9f44-8ef0b023c087
+    m_ActionName: Player/ShieldLeft
+  - m_PersistentCalls:
+      m_Calls:
+      - m_Target: {fileID: 5570727583901631805}
+        m_TargetAssemblyTypeName: UltimateGloveBall.Arena.Player.PlayerInputController,
+          Assembly-CSharp
+        m_MethodName: OnShieldRight
+        m_Mode: 0
+        m_Arguments:
+          m_ObjectArgument: {fileID: 0}
+          m_ObjectArgumentAssemblyTypeName: UnityEngine.Object, UnityEngine
+          m_IntArgument: 0
+          m_FloatArgument: 0
+          m_StringArgument: 
+          m_BoolArgument: 0
+        m_CallState: 2
+    m_ActionId: 84096421-688d-4ce0-98eb-c26d43081ccb
+    m_ActionName: Player/ShieldRight
+  - m_PersistentCalls:
+      m_Calls:
+      - m_Target: {fileID: 5570727583901631805}
+        m_TargetAssemblyTypeName: UltimateGloveBall.Arena.Player.PlayerInputController,
+          Assembly-CSharp
+        m_MethodName: OnSpectatorTriggerLeft
+        m_Mode: 0
+        m_Arguments:
+          m_ObjectArgument: {fileID: 0}
+          m_ObjectArgumentAssemblyTypeName: UnityEngine.Object, UnityEngine
+          m_IntArgument: 0
+          m_FloatArgument: 0
+          m_StringArgument: 
+          m_BoolArgument: 0
+        m_CallState: 2
+    m_ActionId: 7cc6b9a2-6202-419e-b57e-23c866fdb1f7
+    m_ActionName: Spectator/TriggerLeft
+  - m_PersistentCalls:
+      m_Calls:
+      - m_Target: {fileID: 5570727583901631805}
+        m_TargetAssemblyTypeName: UltimateGloveBall.Arena.Player.PlayerInputController,
+          Assembly-CSharp
+        m_MethodName: OnSpectatorTriggerRight
+        m_Mode: 0
+        m_Arguments:
+          m_ObjectArgument: {fileID: 0}
+          m_ObjectArgumentAssemblyTypeName: UnityEngine.Object, UnityEngine
+          m_IntArgument: 0
+          m_FloatArgument: 0
+          m_StringArgument: 
+          m_BoolArgument: 0
+        m_CallState: 2
+    m_ActionId: 3200551e-ccac-4a28-bf65-aa65c6e281f8
+    m_ActionName: Spectator/TriggerRight
+  - m_PersistentCalls:
+      m_Calls:
+      - m_Target: {fileID: 5570727583901631805}
+        m_TargetAssemblyTypeName: UltimateGloveBall.Arena.Player.PlayerInputController,
+          Assembly-CSharp
+        m_MethodName: OnMenuButton
+        m_Mode: 0
+        m_Arguments:
+          m_ObjectArgument: {fileID: 0}
+          m_ObjectArgumentAssemblyTypeName: UnityEngine.Object, UnityEngine
+          m_IntArgument: 0
+          m_FloatArgument: 0
+          m_StringArgument: 
+          m_BoolArgument: 0
+        m_CallState: 2
+    m_ActionId: 999be9ba-e78e-4e1c-ac8d-f659cd0e4d29
+    m_ActionName: Player/Menu
+  - m_PersistentCalls:
+      m_Calls:
+      - m_Target: {fileID: 5570727583901631805}
+        m_TargetAssemblyTypeName: UltimateGloveBall.Arena.Player.PlayerInputController,
+          Assembly-CSharp
+        m_MethodName: OnMenuButton
+        m_Mode: 0
+        m_Arguments:
+          m_ObjectArgument: {fileID: 0}
+          m_ObjectArgumentAssemblyTypeName: UnityEngine.Object, UnityEngine
+          m_IntArgument: 0
+          m_FloatArgument: 0
+          m_StringArgument: 
+          m_BoolArgument: 0
+        m_CallState: 2
+    m_ActionId: 9e0c4000-124a-4733-a3e6-b8b634c02740
+    m_ActionName: Spectator/Menu
+  - m_PersistentCalls:
+      m_Calls:
+      - m_Target: {fileID: 5570727583901631805}
+        m_TargetAssemblyTypeName: UltimateGloveBall.Arena.Player.PlayerInputController,
+          Assembly-CSharp
+        m_MethodName: OnSnapTurnLeft
+        m_Mode: 0
+        m_Arguments:
+          m_ObjectArgument: {fileID: 0}
+          m_ObjectArgumentAssemblyTypeName: UnityEngine.Object, UnityEngine
+          m_IntArgument: 0
+          m_FloatArgument: 0
+          m_StringArgument: 
+          m_BoolArgument: 0
+        m_CallState: 2
+    m_ActionId: f0c0f50b-8803-469f-b9f7-743f567785af
+    m_ActionName: Player/SnapTurnLeft
+  - m_PersistentCalls:
+      m_Calls:
+      - m_Target: {fileID: 5570727583901631805}
+        m_TargetAssemblyTypeName: UltimateGloveBall.Arena.Player.PlayerInputController,
+          Assembly-CSharp
+        m_MethodName: OnSnapTurnLeftNoFree
+        m_Mode: 0
+        m_Arguments:
+          m_ObjectArgument: {fileID: 0}
+          m_ObjectArgumentAssemblyTypeName: UnityEngine.Object, UnityEngine
+          m_IntArgument: 0
+          m_FloatArgument: 0
+          m_StringArgument: 
+          m_BoolArgument: 0
+        m_CallState: 2
+    m_ActionId: 67aef3b7-4851-4f4f-95b1-01380da63813
+    m_ActionName: Player/SnapTurnLeftNoFree
+  - m_PersistentCalls:
+      m_Calls:
+      - m_Target: {fileID: 5570727583901631805}
+        m_TargetAssemblyTypeName: UltimateGloveBall.Arena.Player.PlayerInputController,
+          Assembly-CSharp
+        m_MethodName: OnSnapTurnRight
+        m_Mode: 0
+        m_Arguments:
+          m_ObjectArgument: {fileID: 0}
+          m_ObjectArgumentAssemblyTypeName: UnityEngine.Object, UnityEngine
+          m_IntArgument: 0
+          m_FloatArgument: 0
+          m_StringArgument: 
+          m_BoolArgument: 0
+        m_CallState: 2
+    m_ActionId: 8a0dd97d-76c6-40f4-af11-5e083eccd44c
+    m_ActionName: Player/SnapTurnRight
+  - m_PersistentCalls:
+      m_Calls:
+      - m_Target: {fileID: 5570727583901631805}
+        m_TargetAssemblyTypeName: UltimateGloveBall.Arena.Player.PlayerInputController,
+          Assembly-CSharp
+        m_MethodName: OnSnapTurnRightNoFree
+        m_Mode: 0
+        m_Arguments:
+          m_ObjectArgument: {fileID: 0}
+          m_ObjectArgumentAssemblyTypeName: UnityEngine.Object, UnityEngine
+          m_IntArgument: 0
+          m_FloatArgument: 0
+          m_StringArgument: 
+          m_BoolArgument: 0
+        m_CallState: 2
+    m_ActionId: b02c2b4c-2f9d-46e9-9d4b-89fc8b4fdd21
+    m_ActionName: Player/SnapTurnRightNoFree
+  m_NeverAutoSwitchControlSchemes: 1
+  m_DefaultControlScheme: XR
+  m_DefaultActionMap: Player
+  m_SplitScreenIndex: -1
+  m_Camera: {fileID: 0}

@@ -1,0 +1,30 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: a389b614f52fbf347a1533dbbf245033, type: 3}
+  m_Name: PhotonAppSettings
+  m_EditorClassIdentifier: 
+  AppSettings:
+    AppIdRealtime: 5683da4a-c7e7-40b3-a5d5-e28c3201ffbc
+    AppIdChat: cf07c4fe-bb2e-478b-8e75-7a6e8257bfbe
+    AppIdVoice: a28eb91b-0f0f-40d0-8ec0-61cde79c5f60
+    AppVersion: 1.0.0
+    UseNameServer: 1
+    FixedRegion: 
+    Server: 
+    Port: 0
+    ProxyServer: 
+    Protocol: 0
+    EnableProtocolFallback: 1
+    AuthMode: 0
+    EnableLobbyStatistics: 0
+    NetworkLogging: 0
+  DisableAutoOpenWizard: 1

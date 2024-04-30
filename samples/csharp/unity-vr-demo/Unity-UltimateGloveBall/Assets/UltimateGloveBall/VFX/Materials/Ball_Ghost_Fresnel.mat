@@ -1,0 +1,83 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!21 &2100000
+Material:
+  serializedVersion: 8
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_Name: Ball_Ghost_Fresnel
+  m_Shader: {fileID: -6465566751694194690, guid: ef0dc7d03fd297b40b93121aea643d67, type: 3}
+  m_ValidKeywords: []
+  m_InvalidKeywords: []
+  m_LightmapFlags: 4
+  m_EnableInstancingVariants: 0
+  m_DoubleSidedGI: 0
+  m_CustomRenderQueue: -1
+  stringTagMap: {}
+  disabledShaderPasses: []
+  m_SavedProperties:
+    serializedVersion: 3
+    m_TexEnvs:
+    - Texture2D_1236DA5:
+        m_Texture: {fileID: 2800000, guid: 3eb9906f5b37e5248ba701b12c1accc1, type: 3}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    - Texture2D_65E30A08:
+        m_Texture: {fileID: 2800000, guid: 3eb9906f5b37e5248ba701b12c1accc1, type: 3}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    - unity_Lightmaps:
+        m_Texture: {fileID: 0}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    - unity_LightmapsInd:
+        m_Texture: {fileID: 0}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    - unity_ShadowMasks:
+        m_Texture: {fileID: 0}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    m_Ints: []
+    m_Floats:
+    - Vector1_1594F0E3: 0.43
+    - Vector1_23E855DE: 10
+    - Vector1_2A74112B: 2.93
+    - Vector1_392DA267: 0.09
+    - Vector1_3F34F0F7: 1
+    - Vector1_6840080B: 0.6
+    - Vector1_73CEA698: 0
+    - Vector1_8FC003C4: 0
+    - Vector1_9889395: 0.63
+    - Vector1_A2C30C07: 20
+    - Vector1_B4A204D: -0.11
+    - Vector1_C44528E1: 4
+    - Vector1_D9F80A91: 6.19
+    - Vector1_DB8FA5C5: 0
+    - Vector1_DE026323: 0
+    - _QueueControl: 0
+    - _QueueOffset: 0
+    m_Colors:
+    - Color_21C8C790: {r: 1.4533864, g: 0.69278264, b: 8.639405, a: 1}
+    - Color_F0F0F5E7: {r: 1, g: 1, b: 1, a: 1}
+    - Vector2_1AFF66C3: {r: 2, g: 2, b: 0, a: 0}
+    - Vector2_5A0915D5: {r: 0.1, g: 0.25, b: 0, a: 0}
+    - Vector2_7EF1A563: {r: 3, g: 3, b: 0, a: 0}
+    - Vector2_FF6D2A34: {r: 0, g: 0.2, b: 0, a: 0}
+    - Vector3_5B14240: {r: 0, g: 0, b: 0, a: 0}
+  m_BuildTextureStacks: []
+--- !u!114 &9036390932901894253
+MonoBehaviour:
+  m_ObjectHideFlags: 11
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d0353a89b1f911e48b9e16bdc9f2e058, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  version: 5
