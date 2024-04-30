@@ -36,7 +36,6 @@ This sample show off how to use [Azure Realtime Transport for Unity](https://git
    4. Rename `appsettings.sample.json` to `appsettings.json`
    5. Replace `<connection-string>` by your connection string
    6. Run `dotnet run` in Windows terminal
-      ![Go to negotiate server](./Images/go-to-negotiate-server.png)
    7. Follow [this guide](https://github.com/oculus-samples/Unity-UltimateGloveBall?tab=readme-ov-file#how-to-run-the-project-in-unity) to run game.
 
 ## TODO: add more details
