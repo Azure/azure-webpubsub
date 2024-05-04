@@ -1,13 +1,14 @@
 import 'bootstrap/dist/css/bootstrap.min.css';
 import './Methods.css'
 import React, {useEffect, useState} from "react";
-import {Example, Operation} from "../../models";
+import {APIResponse, Example, Operation} from "../../models";
 import {Response} from "./Response";
 import {Parameters} from "./Parameters";
 import {Label} from "@fluentui/react-components";
 
 export function POST({post, path}: { post: Operation, path: string }): React.JSX.Element {
 	const [example, setExample] = useState<Example>();
+	const [response, setResponse] = useState<Response | undefined>(undefined);
 	useEffect(() => {
 		const operationId = post.operationId;
 		const exmaplePath = post["x-ms-examples"][operationId].$ref;
@@ -31,8 +32,9 @@ export function POST({post, path}: { post: Operation, path: string }): React.JSX
 				</div>
 				
 				
-				{post.parameters && example && <Parameters path={path} parameters={post.parameters} example={example.parameters}/>}
-				<Response responses={post.responses}/>
+				{post.parameters && example &&
+			<Parameters path={path} parameters={post.parameters} example={example.parameters} setResponse={setResponse}/>}
+				<Response responseSchema={post.responses} response={response}/>
 			</div>
 		</div>
 	)

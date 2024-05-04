@@ -6,13 +6,13 @@ import {
 	Label, Table, TableBody, TableCell, TableHeader, TableHeaderCell, TableRow
 } from "@fluentui/react-components";
 import {TextField} from "@fluentui/react";
-import {ExampleParameter, Parameter, Schema, Definition} from "../../models";
+import {ExampleParameter, Parameter, Schema, Definition, APIResponse} from "../../models";
 import 'bootstrap/dist/css/bootstrap.min.css';
 import restapiSpec from '../api/restapiSample.json'
 import JSONInput from "react-json-editor-ajrm/index";
 // @ts-ignore, dependency for library, don't remove
 import locale from "react-json-editor-ajrm/locale/en";
-import jwt from 'jsonwebtoken'
+import {generateJWT} from '../../utils/jwt';
 
 
 function renderParameter(parameters: Parameter[], inputTag: React.JSX.Element): React.JSX.Element {
@@ -84,6 +84,7 @@ function renderBodySchema(schema: Definition): React.JSX.Element {
 		</Table>
 	)
 }
+
 interface queryInput {
 	hub?: string,
 	group?: string,
@@ -93,10 +94,11 @@ interface queryInput {
 }
 
 
-export function Parameters({path, parameters, example}: {
+export function Parameters({path, parameters, example, setResponse}: {
 	path: string
 	parameters: Parameter[],
-	example: ExampleParameter
+	example: ExampleParameter,
+	setResponse: React.Dispatch<React.SetStateAction<Response | undefined>>
 }): React.JSX.Element {
 	const endpoint: string | undefined = process.env.REACT_APP_ENDPOINT;
 	const hub: string | undefined = process.env.REACT_APP_HUB;
@@ -139,23 +141,19 @@ export function Parameters({path, parameters, example}: {
 			}).catch(err => console.error("Failed to copy: ", err));
 	}
 	
-	function sendReuqest():void{
-		// if(url){
-		// 	fetch(url, {
-		// 		// todo: change to input later
-		// 		method: 'POST',
-		// 		headers: {
-		// 			'Content-Type': 'application/json',
-		// 			'Authorization': `Bearer AJ9Mut2U9zh43HcZnqVSBLwIJcemF/+R0ju/QYMZ470=`
-		// 		},
-		// 		body: JSON.stringify(bodyParameters)
-		// 	}).then(res => console.log(res))
-		// }
-		const bearerToken = jwt.sign({}, `AJ9Mut2U9zh43HcZnqVSBLwIJcemF/+R0ju/QYMZ470=;Version=1.0;`, {
-			audience: url,
-			expiresIn: "1h",
-			algorithm: "HS256",
-		});
+	async function sendReuqest(): Promise<void> {
+		const token: string = await generateJWT("user Id: CHANGE ME", `${url}`);
+		if (url) {
+			fetch(url, {
+				// todo: change "POST" to parameter input later
+				method: 'POST',
+				headers: {
+					'Content-Type': 'application/json',
+					'Authorization': `Bearer ${token}`
+				},
+				body: JSON.stringify(example["groupsToAdd"])
+			}).then(res => setResponse(res))
+		}
 	}
 	
 	return (

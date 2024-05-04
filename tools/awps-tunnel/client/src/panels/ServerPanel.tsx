@@ -6,6 +6,7 @@ import {ConnectionStatus, PathItem, RESTApi} from "../models";
 import CodeTabs from "../components/CodeTabs";
 import { useDataContext } from "../providers/DataContext";
 import {Path} from "../components/api/Path";
+import {EndpointNav} from "../components/api/EndpointNav";
 
 export interface ServerPanelProps {
   endpoint?: string;
@@ -53,7 +54,7 @@ export function ServerPanel({ endpoint, onChange }: ServerPanelProps) {
     onSwitchAsync();
   }
   return (
-    <div className="m-2">
+    <div className="m-2" style={{display:"flex"}}>
       {/*<p>*/}
       {/*  <Icon className="mx-2" iconName="ServerEnviroment"></Icon>*/}
       {/*  <b>*/}
@@ -78,6 +79,7 @@ export function ServerPanel({ endpoint, onChange }: ServerPanelProps) {
       {/*  <b>📋Sample code handling events in your app server:</b>*/}
       {/*  <CodeTabs></CodeTabs>*/}
       {/*</div>*/}
+      <EndpointNav></EndpointNav>
       <Path pathItem = {restAPI.paths[`/api/hubs/{hub}/:addToGroups`]}  path={`/api/hubs/{hub}/:addToGroups`}/>
     </div>
   );
