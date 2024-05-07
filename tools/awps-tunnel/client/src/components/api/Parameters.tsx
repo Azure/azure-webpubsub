@@ -6,7 +6,7 @@ import {
 	Label, Table, TableBody, TableCell, TableHeader, TableHeaderCell, TableRow
 } from "@fluentui/react-components";
 import {TextField} from "@fluentui/react";
-import {ExampleParameter, Parameter, Schema, Definition, APIResponse} from "../../models";
+import {ExampleParameter, Parameter, Definition} from "../../models";
 import 'bootstrap/dist/css/bootstrap.min.css';
 import restapiSpec from '../api/restapiSample.json'
 import JSONInput from "react-json-editor-ajrm/index";
@@ -24,7 +24,9 @@ function renderParameter(parameters: Parameter[], inputTag: React.JSX.Element): 
 						<Label style={{fontSize: 18, marginRight: 10}}>{p.name}</Label>
 						{p.required && <Label style={{color: "red"}}>required</Label>}
 					</div>
-					{inputTag}
+					{p.name === "api-version" && <TextField value={restapiSpec.info.version} readOnly={true}/>}
+					{p.name === "hub" && <TextField value={process.env.REACT_APP_HUB} readOnly={true}/>}
+					{p.name !== "hub" && p.name !== "api-version" && <TextField/>}
 					{p.description && <small className={"form-text"}>{p.description}</small>}
 				</div>
 			)
@@ -85,15 +87,6 @@ function renderBodySchema(schema: Definition): React.JSX.Element {
 	)
 }
 
-interface queryInput {
-	hub?: string,
-	group?: string,
-	userId?: string
-	connectionId?: string,
-	permission?: string,
-}
-
-
 export function Parameters({path, parameters, example, setResponse}: {
 	path: string
 	parameters: Parameter[],
@@ -112,7 +105,7 @@ export function Parameters({path, parameters, example, setResponse}: {
 	const [url, setUrl] = useState<string>();
 	
 	useEffect(() => {
-		if (bodyParameters[0].schema) {
+		if (bodyParameters.length > 0 && bodyParameters[0].schema) {
 			const ref: string = bodyParameters[0].schema.$ref;
 			const path: string[] = ref.split('/');
 			if (path[path.length - 1] === "AddToGroupsRequest") {
@@ -169,8 +162,7 @@ export function Parameters({path, parameters, example, setResponse}: {
 						           value={url}/>
 						{headerParameters.length > 0 && <div><Label><b style={{fontSize: 20}}>Header</b></Label></div>}
 						{queryParameters.length > 0 && <div><Label><b style={{fontSize: 20}}>Query</b></Label>
-							{renderParameter(queryParameters, <TextField value={restapiSpec.info.version}
-							                                             readOnly={true}/>)}</div>}
+							{renderParameter(queryParameters, <TextField/>)}</div>}
 						{pathParameters.length > 0 && <div><Label><b style={{fontSize: 20}}>Path</b></Label>
 							{renderParameter(pathParameters, <TextField value={`hub name`} readOnly={true}/>)}</div>}
 						{formDataParameters.length > 0 && <div><Label><b style={{fontSize: 20}}>Form Data</b></Label></div>}

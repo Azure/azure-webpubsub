@@ -19,9 +19,19 @@ export function ServerPanel({ endpoint, onChange }: ServerPanelProps) {
   const [startEmbeddedServer, setStartEmbeddedServer] = useState<boolean>(data.builtinUpstreamServerStarted);
   const [status, setStatus] = useState<ConnectionStatus>(ConnectionStatus.None);
   const restAPI:RESTApi = restapiSpec as RESTApi;
+  const [selectedPath, setSelectedPath] = useState<string>();
+	const [pathUrl, setPathUrl] = useState<string>();
+	const [method, setMethod] = useState<string>();
   useEffect(() => {
     setStartEmbeddedServer(data.builtinUpstreamServerStarted);
   }, [data.builtinUpstreamServerStarted]);
+	useEffect(() => {
+		if(selectedPath){
+      const [extractedPathUrl, extractedMethod] = selectedPath.split('-');
+      setPathUrl(extractedPathUrl);
+      setMethod(extractedMethod);
+		}
+	}, [selectedPath]);
   function onSwitch(checked: boolean) {
     async function onSwitchAsync() {
       if (checked) {
@@ -53,6 +63,7 @@ export function ServerPanel({ endpoint, onChange }: ServerPanelProps) {
     }
     onSwitchAsync();
   }
+  // console.log(selectedPath);
   return (
     <div className="m-2" style={{display:"flex"}}>
       {/*<p>*/}
@@ -79,8 +90,8 @@ export function ServerPanel({ endpoint, onChange }: ServerPanelProps) {
       {/*  <b>📋Sample code handling events in your app server:</b>*/}
       {/*  <CodeTabs></CodeTabs>*/}
       {/*</div>*/}
-      <EndpointNav></EndpointNav>
-      <Path pathItem = {restAPI.paths[`/api/hubs/{hub}/:addToGroups`]}  path={`/api/hubs/{hub}/:addToGroups`}/>
+      <EndpointNav setSelectedPath={setSelectedPath}></EndpointNav>
+      {pathUrl && <Path pathItem = {restAPI.paths[pathUrl]}  path={pathUrl} />}
     </div>
   );
 }
