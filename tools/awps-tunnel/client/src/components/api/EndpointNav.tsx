@@ -1,27 +1,41 @@
 import restapiSpec from '../api/restapiSample.json'
-import {Tab, TabList, Accordion, AccordionItem, AccordionHeader, AccordionPanel} from "@fluentui/react-components";
+import {
+	Tab,
+	TabList,
+	Accordion,
+	AccordionItem,
+	AccordionHeader,
+	AccordionPanel,
+	Label
+} from "@fluentui/react-components";
 import React, {useEffect, useState} from "react";
 import {PathItem} from "../../models";
 
 export function EndpointNav({setSelectedPath}: {
 	setSelectedPath: React.Dispatch<React.SetStateAction<string | undefined>>
 }): React.JSX.Element {
+	const [categories, setCategories] = useState<{
+		general: { pathUrl: string, path: PathItem }[];
+		groups: { pathUrl: string, path: PathItem }[];
+		connections: { pathUrl: string, path: PathItem }[];
+		users: { pathUrl: string, path: PathItem }[];
+		permissions: { pathUrl: string, path: PathItem }[];
+	}>();
 	
-	let categories: {
-		general: { pathUrl: string, path: PathItem }[],
-		groups: { pathUrl: string, path: PathItem }[],
-		connections: { pathUrl: string, path: PathItem }[],
-		users: { pathUrl: string, path: PathItem }[],
-		permissions: { pathUrl: string, path: PathItem }[]
-	} = {
-		general: [],
-		groups: [],
-		connections: [],
-		users: [],
-		permissions: []
-	};
-
 	useEffect(() => {
+		let categories: {
+			general: { pathUrl: string, path: PathItem }[],
+			groups: { pathUrl: string, path: PathItem }[],
+			connections: { pathUrl: string, path: PathItem }[],
+			users: { pathUrl: string, path: PathItem }[],
+			permissions: { pathUrl: string, path: PathItem }[]
+		} = {
+			general: [],
+			groups: [],
+			connections: [],
+			users: [],
+			permissions: []
+		};
 		Object.entries(restapiSpec.paths).forEach(([pathUrl, path]) => {
 			const segments = pathUrl.split('/');
 			const category = segments[4] || 'general'; // Default to 'general' if no fourth segment
@@ -43,69 +57,58 @@ export function EndpointNav({setSelectedPath}: {
 					break;
 			}
 		});
+		setCategories(categories);
 	}, []);
 	
 	return (<div style={{flex: 1, display: "flex"}}>
-		<Accordion>
-			<TabList onTabSelect={(e, data) => setSelectedPath(data.value as string)} vertical>
-				{Object.entries(restapiSpec.paths).map(([pathUrl, path]) => (
-					Object.entries(path).map(([method, details]) => (
-						<Tab key={`${pathUrl}-${method}`} value={`${pathUrl}-${method}`}>
-							{method === 'post' && <div style={{display: "flex"}}>
-				  <div style={{
-										backgroundColor: "#ffe073",
-										color: "white",
-										borderRadius: 5,
-										paddingLeft: 2,
-										paddingRight: 2,
-										margin: 2
-									}}>POST
-				  </div>
-				  <div>{details.operationId.replace("WebPubSub_", "")}</div>
-			  </div>}
-							{method === 'put' && <div style={{display: "flex"}}>
-				  <div style={{
-										backgroundColor: "#4385d9",
-										color: "white",
-										borderRadius: 5,
-										paddingLeft: 2,
-										paddingRight: 2,
-										margin: 2
-									}}>PUT
-				  </div>
-				  <div>{details.operationId.replace("WebPubSub_", "")}</div>
-			  </div>}
-							{method === 'delete' && <div style={{display: "flex"}}>
-				  <div
-					  style={{
-												backgroundColor: "#f27263",
-												color: "white",
-												borderRadius: 5,
-												paddingLeft: 2,
-												paddingRight: 2,
-												margin: 2
-											}}>DELETE
-				  </div>
-				  <div>{details.operationId.replace("WebPubSub_", "")}</div>
-			  </div>}
-							{method === 'head' && <div style={{display: "flex"}}>
-				  <div style={{
-										backgroundColor: "#a887c9",
-										color: "white",
-										borderRadius: 5,
-										paddingLeft: 2,
-										paddingRight: 2,
-										margin: 2
-									}}>HEAD
-				  </div>
-				  <div>{details.operationId.replace("WebPubSub_", "")}</div>
-			  </div>}
-						</Tab>
-					))
-				
+		
+		<TabList onTabSelect={(e, data) => {
+			setSelectedPath(data.value as string)
+		}} vertical>
+			<Accordion multiple>
+				{categories && Object.entries(categories).map(([category, path]) => (
+					<AccordionItem value={category}>
+						<AccordionHeader><Label size={"large"}>{category}</Label></AccordionHeader>
+						<AccordionPanel>
+							{Object.entries(path).map(([pathUrl, p]) => (
+								Object.entries(p.path).map(([method, details]) => (
+									<Tab key={`${p.pathUrl}-${method}`} value={`${p.pathUrl}-${method}`}>
+										{method === 'post' && <div style={{display: "flex"}}>
+						<div style={{
+													color: "#ffd02b",
+													fontSize: 15, marginRight: 5
+												}}>POST
+						</div>
+						<div>{details.operationId.replace("WebPubSub_", "")}</div>
+					</div>}
+										{method === 'put' && <div style={{display: "flex"}}>
+						<div style={{color: "#4385d9", fontSize: 15, marginRight: 5}}>PUT
+						</div>
+						<div>{details.operationId.replace("WebPubSub_", "")}</div>
+					</div>}
+										{method === 'delete' && <div style={{display: "flex"}}>
+						<div
+							style={{color: "#f27263", fontSize: 15, marginRight: 5}}>DELETE
+						</div>
+						<div>{details.operationId.replace("WebPubSub_", "")}</div>
+					</div>}
+										{method === 'head' && <div style={{display: "flex"}}>
+						<div style={{
+													color: "#a887c9",
+													fontSize: 15, marginRight: 5
+												}}>HEAD
+						</div>
+						<div>{details.operationId.replace("WebPubSub_", "")}</div>
+					</div>}
+									</Tab>
+								))
+							))}
+						</AccordionPanel>
+					</AccordionItem>
 				))}
-			</TabList>
-		</Accordion>
+			</Accordion>
+		</TabList>
+	
 	
 	</div>)
 }

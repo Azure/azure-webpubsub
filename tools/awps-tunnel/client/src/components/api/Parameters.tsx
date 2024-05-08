@@ -26,7 +26,7 @@ function renderParameter(parameters: Parameter[], inputTag: React.JSX.Element): 
 					</div>
 					{p.name === "api-version" && <TextField value={restapiSpec.info.version} readOnly={true}/>}
 					{p.name === "hub" && <TextField value={process.env.REACT_APP_HUB} readOnly={true}/>}
-					{p.name !== "hub" && p.name !== "api-version" && <TextField/>}
+					{p.name !== "hub" && p.name !== "api-version" && inputTag}
 					{p.description && <small className={"form-text"}>{p.description}</small>}
 				</div>
 			)
@@ -95,17 +95,48 @@ export function Parameters({path, parameters, example, setResponse}: {
 }): React.JSX.Element {
 	const endpoint: string | undefined = process.env.REACT_APP_ENDPOINT;
 	const hub: string | undefined = process.env.REACT_APP_HUB;
-	const queryParameters: Parameter[] = parameters.filter(p => p.in === "query");
-	const headerParameters: Parameter[] = parameters.filter(p => p.in === "header");
-	const pathParameters: Parameter[] = parameters.filter(p => p.in === "path");
-	const formDataParameters: Parameter[] = parameters.filter(p => p.in === "formData");
-	const bodyParameters: Parameter[] = parameters.filter(p => p.in === "body");
+	const [queryParameters, setQueryParameters] = useState<{
+		parameter: Parameter,
+		inputComponent: React.JSX.Element
+	}[]>()
+	const [pathParameters, setPathParameters] = useState<Parameter[]>()
+	const [bodyParameters, setBodyParameters] = useState<Parameter[]>()
 	const [copyLabel, setCopyLabel] = useState<string>("copy")
 	const [bodySchema, setBodySchema] = useState<Definition>();
 	const [url, setUrl] = useState<string>();
+	const [queryParameterInputs, setQueryParameterInputs] = useState<{ [name: string]: string }>()
+	
+	function handleQueryInputOnChange(name: string, input: string): void {
+		if (queryParameterInputs) {
+			setQueryParameterInputs(prevInputs => ({
+				...prevInputs,
+				[name]: input
+			}));
+		}
+	}
 	
 	useEffect(() => {
-		if (bodyParameters.length > 0 && bodyParameters[0].schema) {
+		let temp_query_parameter: { parameter: Parameter, inputComponent: React.JSX.Element }[] = []
+		let temp_query_parameter_input: { [name: string]: string } = {}
+		parameters.filter(p => p.in === "query").map((p, index) => {
+			if (p.name !== "api-version") {
+				temp_query_parameter_input[p.name] = ""
+			}
+			temp_query_parameter.push({
+				parameter: p,
+				inputComponent: <TextField onChange={(e, value) => handleQueryInputOnChange(p.name, value ? value : "")}/>
+			});
+			
+		})
+		setQueryParameters(temp_query_parameter);
+		setQueryParameterInputs(temp_query_parameter_input);
+		setPathParameters(parameters.filter(p => p.in === "path"))
+		setBodyParameters(parameters.filter(p => p.in === "body"))
+	}, [parameters]);
+	
+	
+	useEffect(() => {
+		if (bodyParameters && bodyParameters.length > 0 && bodyParameters[0].schema) {
 			const ref: string = bodyParameters[0].schema.$ref;
 			const path: string[] = ref.split('/');
 			if (path[path.length - 1] === "AddToGroupsRequest") {
@@ -119,8 +150,16 @@ export function Parameters({path, parameters, example, setResponse}: {
 		if (hub) {
 			newPath = newPath.replace('{hub}', hub);
 		}
-		setUrl(`${endpoint}${newPath}?api-version=${restapiSpec.info.version}`)
-	}, [path, hub]);
+		let query: string = ""
+		if (queryParameterInputs) {
+			Object.entries(queryParameterInputs).map(([name, input]) => {
+				if (input !== "") {
+					query += `${name}=${input}&`
+				}
+			})
+		}
+		setUrl(`${endpoint}${newPath}?${query}api-version=${restapiSpec.info.version}`);
+	}, [path, hub, queryParameterInputs]);
 	
 	
 	function copyOnClick(): void {
@@ -160,13 +199,21 @@ export function Parameters({path, parameters, example, setResponse}: {
 							<Label onClick={() => copyOnClick()}>{copyLabel}</Label></div>
 						<TextField readOnly={true}
 						           value={url}/>
-						{headerParameters.length > 0 && <div><Label><b style={{fontSize: 20}}>Header</b></Label></div>}
-						{queryParameters.length > 0 && <div><Label><b style={{fontSize: 20}}>Query</b></Label>
-							{renderParameter(queryParameters, <TextField/>)}</div>}
-						{pathParameters.length > 0 && <div><Label><b style={{fontSize: 20}}>Path</b></Label>
+						{queryParameters && <div><Label><b style={{fontSize: 20}}>Query</b></Label></div>}
+						{queryParameters && queryParameters.map((p) => (
+							<div>
+								<div style={{display: "flex"}}>
+									<Label style={{fontSize: 18, marginRight: 10}}>{p.parameter.name}</Label>
+									{p.parameter.required && <Label style={{color: "red"}}>required</Label>}
+								</div>
+								{p.parameter.name === "api-version" && <TextField value={restapiSpec.info.version} readOnly={true}/>}
+								{p.parameter.name !== "api-version" && p.inputComponent}
+								{p.parameter.description && <small className={"form-text"}>{p.parameter.description}</small>}
+							</div>
+						))}
+						{pathParameters && <div><Label><b style={{fontSize: 20}}>Path</b></Label>
 							{renderParameter(pathParameters, <TextField value={`hub name`} readOnly={true}/>)}</div>}
-						{formDataParameters.length > 0 && <div><Label><b style={{fontSize: 20}}>Form Data</b></Label></div>}
-						{bodyParameters.length > 0 && <div><Label><b style={{fontSize: 20}}>Body</b></Label>
+						{bodyParameters && <div><Label><b style={{fontSize: 20}}>Body</b></Label>
 							{renderParameter(bodyParameters,
 								<JSONInput locale={locale} placeholder={example["groupsToAdd"]}
 								           colors={{
@@ -187,12 +234,10 @@ export function Parameters({path, parameters, example, setResponse}: {
 				<Card style={{margin: 5, width: "95%"}}>
 					<CardHeader header={<b style={{fontSize: 15}}>Parameter Schema</b>}/>
 					<CardPreview style={{display: "flex", flexDirection: "column", alignItems: "start", padding: 15}}>
-						{headerParameters.length > 0 && <div><Label><b style={{fontSize: 15}}>Header</b></Label></div>}
-						{queryParameters.length > 0 && <div><Label><b style={{fontSize: 15}}>Query</b></Label>
-							{renderSchema(queryParameters)}</div>}
-						{pathParameters.length > 0 && <div><Label><b style={{fontSize: 15}}>Path</b></Label>
+						{queryParameters && <div><Label><b style={{fontSize: 15}}>Query</b></Label>
+							{renderSchema(queryParameters.map(p => p.parameter))}</div>}
+						{pathParameters && <div><Label><b style={{fontSize: 15}}>Path</b></Label>
 							{renderSchema(pathParameters)}</div>}
-						{formDataParameters.length > 0 && <div><Label><b style={{fontSize: 15}}>Form Data</b></Label></div>}
 						{bodySchema && <div><Label><b style={{fontSize: 15}}>Body</b></Label>
 							{renderBodySchema(bodySchema)}</div>}
 					

@@ -63,7 +63,6 @@ export function ServerPanel({ endpoint, onChange }: ServerPanelProps) {
     }
     onSwitchAsync();
   }
-  // console.log(selectedPath);
   return (
     <div className="m-2" style={{display:"flex"}}>
       {/*<p>*/}
