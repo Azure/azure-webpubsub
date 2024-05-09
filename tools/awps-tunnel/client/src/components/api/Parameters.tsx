@@ -104,10 +104,10 @@ export function Parameters({path, parameters, example, setResponse}: {
 	const [copyLabel, setCopyLabel] = useState<string>("copy")
 	const [bodySchema, setBodySchema] = useState<Definition>();
 	const [url, setUrl] = useState<string>();
-	const [queryParameterInputs, setQueryParameterInputs] = useState<{ [name: string]: string }>({})
+	const [queryParameterInputs, setQueryParameterInputs] = useState<{ [name: string]: string }>({});
+	const [pathParameterInputs, setpathParameterInput] = useState<{ [name: string]: string }>({});
 	
 	function handleQueryInputOnChange(name: string, input: string): void {
-		console.log(name, input, queryParameterInputs);
 		setQueryParameterInputs(prevInputs => ({
 			...prevInputs,
 			[name]: input
@@ -115,23 +115,28 @@ export function Parameters({path, parameters, example, setResponse}: {
 	}
 	
 	useEffect(() => {
-		let temp_query_parameter: { parameter: Parameter, inputComponent: React.JSX.Element }[] = []
 		let temp_query_parameter_input: { [name: string]: string } = {}
 		parameters.filter(p => p.in === "query").map((p, index) => {
 			if (p.name !== "api-version") {
 				temp_query_parameter_input[p.name] = ""
 			}
+		})
+		setQueryParameterInputs(temp_query_parameter_input);
+	}, [parameters]);
+	
+	useEffect(() => {
+		let temp_query_parameter: { parameter: Parameter, inputComponent: React.JSX.Element }[] = []
+		parameters.filter(p => p.in === "query").map((p, index) => {
 			temp_query_parameter.push({
 				parameter: p,
-				inputComponent: <TextField onChange={(e, value) => handleQueryInputOnChange(p.name, value ? value : "")}/>
+				inputComponent: <TextField value={queryParameterInputs[p.name]}  onChange={(e, value) => handleQueryInputOnChange(p.name, value ? value : "")}/>
 			});
-			
 		})
 		setQueryParameters(temp_query_parameter);
-		setQueryParameterInputs(temp_query_parameter_input);
 		setPathParameters(parameters.filter(p => p.in === "path"))
 		setBodyParameters(parameters.filter(p => p.in === "body"))
-	}, [parameters]);
+		console.log(queryParameterInputs);
+	}, [parameters, queryParameterInputs]);
 	
 	
 	useEffect(() => {
@@ -186,6 +191,7 @@ export function Parameters({path, parameters, example, setResponse}: {
 			}).then(res => setResponse(res))
 		}
 	}
+	
 	return (
 		<div style={{display: "flex"}}>
 			<div style={{flex: 3}}>
@@ -211,37 +217,48 @@ export function Parameters({path, parameters, example, setResponse}: {
 						))}
 						{pathParameters && <div><Label><b style={{fontSize: 20}}>Path</b></Label>
 							{renderParameter(pathParameters, <TextField value={`hub name`} readOnly={true}/>)}</div>}
-						{bodyParameters && bodyParameters.length > 0 && <div><Label><b style={{fontSize: 20}}>Body</b></Label>
-							{renderParameter(bodyParameters,
-								<JSONInput locale={locale} placeholder={example["groupsToAdd"]}
-								           colors={{
-									           default: "black",
-									           background: "white",
-									           keys: "#8b1853",
-									           string: "#4a50a3",
-									           colon: "black"
-								           }} height={"auto"}/>)}
-			</div>}
-						<div style={{display: "flex", justifyContent: "end", width: "100%"}}>
-							<button className={"btn btn-primary"} style={{width: "20%"}} onClick={sendReuqest}>Send</button>
-						</div>
-					</CardPreview>
-				</Card>
-			</div>
-			<div style={{flex: 1}}>
-				<Card style={{margin: 5, width: "95%"}}>
-					<CardHeader header={<b style={{fontSize: 15}}>Parameter Schema</b>}/>
-					<CardPreview style={{display: "flex", flexDirection: "column", alignItems: "start", padding: 15}}>
-						{queryParameters && <div><Label><b style={{fontSize: 15}}>Query</b></Label>
-							{renderSchema(queryParameters.map(p => p.parameter))}</div>}
-						{pathParameters && <div><Label><b style={{fontSize: 15}}>Path</b></Label>
-							{renderSchema(pathParameters)}</div>}
-						{bodySchema && <div><Label><b style={{fontSize: 15}}>Body</b></Label>
-							{renderBodySchema(bodySchema)}</div>}
-					</CardPreview>
-				</Card>
+							{/*{pathParameters && pathParameters.map((p) => (*/}
+							{/*	<div>*/}
+							{/*		<div style={{display: "flex"}}>*/}
+							{/*			<Label style={{fontSize: 18, marginRight: 10}}>{p.parameter.name}</Label>*/}
+							{/*			{p.parameter.required && <Label style={{color: "red"}}>required</Label>}*/}
+							{/*		</div>*/}
+							{/*		{p.parameter.name === "hub" && <TextField value={restapiSpec.info.version} readOnly={true}/>}*/}
+							{/*		{p.parameter.name !== "hub" && p.inputComponent}*/}
+							{/*		{p.parameter.description && <small className={"form-text"}>{p.parameter.description}</small>}*/}
+							{/*	</div>*/}
+							{/*))}*/}
+							{bodyParameters && bodyParameters.length > 0 && <div><Label><b style={{fontSize: 20}}>Body</b></Label>
+								{renderParameter(bodyParameters,
+									<JSONInput locale={locale} placeholder={example["groupsToAdd"]}
+									           colors={{
+										           default: "black",
+										           background: "white",
+										           keys: "#8b1853",
+										           string: "#4a50a3",
+										           colon: "black"
+									           }} height={"auto"}/>)}
+			  </div>}
+				<div style={{display: "flex", justifyContent: "end", width: "100%"}}>
+					<button className={"btn btn-primary"} style={{width: "20%"}} onClick={sendReuqest}>Send</button>
+				</div>
+			</CardPreview>
+							</Card>
+							</div>
+							<div style={{flex: 1}}>
+						<Card style={{margin: 5, width: "95%"}}>
+							<CardHeader header={<b style={{fontSize: 15}}>Parameter Schema</b>}/>
+							<CardPreview style={{display: "flex", flexDirection: "column", alignItems: "start", padding: 15}}>
+								{queryParameters && <div><Label><b style={{fontSize: 15}}>Query</b></Label>
+									{renderSchema(queryParameters.map(p => p.parameter))}</div>}
+								{pathParameters && <div><Label><b style={{fontSize: 15}}>Path</b></Label>
+									{renderSchema(pathParameters)}</div>}
+								{bodySchema && <div><Label><b style={{fontSize: 15}}>Body</b></Label>
+									{renderBodySchema(bodySchema)}</div>}
+							</CardPreview>
+						</Card>
 			</div>
 		</div>
-	
-	)
+
+)
 }
