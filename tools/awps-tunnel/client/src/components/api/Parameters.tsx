@@ -104,15 +104,14 @@ export function Parameters({path, parameters, example, setResponse}: {
 	const [copyLabel, setCopyLabel] = useState<string>("copy")
 	const [bodySchema, setBodySchema] = useState<Definition>();
 	const [url, setUrl] = useState<string>();
-	const [queryParameterInputs, setQueryParameterInputs] = useState<{ [name: string]: string }>()
+	const [queryParameterInputs, setQueryParameterInputs] = useState<{ [name: string]: string }>({})
 	
 	function handleQueryInputOnChange(name: string, input: string): void {
-		if (queryParameterInputs) {
-			setQueryParameterInputs(prevInputs => ({
-				...prevInputs,
-				[name]: input
-			}));
-		}
+		console.log(name, input, queryParameterInputs);
+		setQueryParameterInputs(prevInputs => ({
+			...prevInputs,
+			[name]: input
+		}));
 	}
 	
 	useEffect(() => {
@@ -187,7 +186,6 @@ export function Parameters({path, parameters, example, setResponse}: {
 			}).then(res => setResponse(res))
 		}
 	}
-	
 	return (
 		<div style={{display: "flex"}}>
 			<div style={{flex: 3}}>
@@ -213,7 +211,7 @@ export function Parameters({path, parameters, example, setResponse}: {
 						))}
 						{pathParameters && <div><Label><b style={{fontSize: 20}}>Path</b></Label>
 							{renderParameter(pathParameters, <TextField value={`hub name`} readOnly={true}/>)}</div>}
-						{bodyParameters && <div><Label><b style={{fontSize: 20}}>Body</b></Label>
+						{bodyParameters && bodyParameters.length > 0 && <div><Label><b style={{fontSize: 20}}>Body</b></Label>
 							{renderParameter(bodyParameters,
 								<JSONInput locale={locale} placeholder={example["groupsToAdd"]}
 								           colors={{
@@ -240,7 +238,6 @@ export function Parameters({path, parameters, example, setResponse}: {
 							{renderSchema(pathParameters)}</div>}
 						{bodySchema && <div><Label><b style={{fontSize: 15}}>Body</b></Label>
 							{renderBodySchema(bodySchema)}</div>}
-					
 					</CardPreview>
 				</Card>
 			</div>
