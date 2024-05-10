@@ -143,7 +143,7 @@ export interface Operation {
   consumes?: string[];
   produces?: string[];
   parameters?: Parameter[];
-  responses: { [status: string]: APIResponse };
+  responses: { [status: string]: ResponseSchema };
   deprecated?: boolean;
   'x-ms-examples'?: any;
 }
@@ -179,11 +179,22 @@ export interface Schema {
   properties?: {[name: string]: Items}
 }
 
-export interface APIResponse {
+export interface ResponseSchema {
   description: string;
   schema?: Schema;
   headers?: { [key: string]: Header };
   'x-ms-error-response'?: boolean;
+}
+
+export interface APIResponse {
+  code: string;
+	detail: string | undefined;
+	errors: {[error: string] : string[]};
+	message: string;
+	status: number;
+	target: string;
+	title: string;
+	type: string | undefined;
 }
 
 export interface Header {
@@ -228,20 +239,10 @@ export interface ExampleParameter{
     groups: string[]
     filter: string
   },
-  group?: string,
-  connectionId?: string,
-  userId?: string,
-  permission?: string,
-  targetName?: string,
-  reason?: string,
-  minutesToExpire?: number,
   groupsToRemove?: {
     groups: string[]
     filter: string
   },
-  filter?: string
-  messageTtlSeconds?: number,
-  message: string,
-  
+  message?: string,
 }
 

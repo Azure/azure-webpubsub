@@ -1,19 +1,20 @@
 import 'bootstrap/dist/css/bootstrap.min.css';
 import './Methods.css'
 import React, {useEffect, useState} from "react";
-import {APIResponse, Example, Operation} from "../../models";
+import {ResponseSchema, Example, Operation, APIResponse} from "../../models";
 import {Response} from "./Response";
 import {Parameters} from "./Parameters";
 import {Label} from "@fluentui/react-components";
 
 export function POST({post, path}: { post: Operation, path: string }): React.JSX.Element {
 	const [example, setExample] = useState<Example>();
-	const [response, setResponse] = useState<Response | undefined>(undefined);
+	const [response, setResponse] = useState<APIResponse| undefined>(undefined);
 	useEffect(() => {
 		const operationId = post.operationId;
 		const exmaplePath = post["x-ms-examples"][operationId].$ref;
 		fetch(exmaplePath).then(res => res.json()).then(res => setExample(res))
-	}, [post]);
+		setResponse(undefined);
+	}, [post, path]);
 	
 	return (
 		<div style={{display: "flex"}}>
