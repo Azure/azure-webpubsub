@@ -1,10 +1,10 @@
 
 # Azure Socket.IO Admin UI Simple Benchmark
 
-This sample is a server for a simple echo performance benchmark.
+This sample is an Azure Socket.IO server to run a simple echo performance benchmark cooperating with Azure Socket.IO Admin UI.
 
 ## How to use 
-1. Open Azure Socket.IO Admin UI website ((it's URL is not determined so far) in your browser.
+1. Open Azure Socket.IO Admin UI website (its URL is not determined so far) in your browser.
 2. Click the "Update" button in the right top corner and fill in the service endpoint of your resource.
 3. Install the dependencies and start the server
     ```bash
