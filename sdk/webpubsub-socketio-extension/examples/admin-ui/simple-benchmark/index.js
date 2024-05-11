@@ -19,6 +19,7 @@ async function main() {
     app.use(express.static(path.join(__dirname, 'public')));
     app.get("/negotiate", azure.negotiate(io, () => {}));
 
+    // Add Support for Azure Socket.IO Admin UI
     instrument(io, { auth: false, mode: "development", username: "username", password: "assword"});
     Namespace.prototype["fetchSockets"] = async function() { return this.local.fetchSockets(); };
 
