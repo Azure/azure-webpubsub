@@ -7,13 +7,22 @@ import { AzureNameStep } from "@microsoft/vscode-azext-utils";
 import { localize } from "../../../utils";
 import { type ICreateOrUpdateHubSettingContext } from "../../common/contexts";
 import { InputHubNameStep } from "../common/InputHubNameStep";
-import { CreateOrUpdateEventHandlerStep } from "../common/CreateOrUpdateEventHandlerStep";
+import { CreateOrUpdateEventHandlerStep, InputAnonymousPolicy } from "../common/CreateOrUpdateEventHandlerStep";
 
 export class InputNewHubSettingStep extends AzureNameStep<ICreateOrUpdateHubSettingContext> {
 
     public async prompt(context: ICreateOrUpdateHubSettingContext): Promise<void> {
         if (!(context.hubProperties?.eventHandlers)) throw new Error(`Invalid hub properties ${context.hubProperties} or hub name ${context.hubName}`);
         await new InputHubNameStep(context).prompt(context);
+        context.hubProperties.anonymousConnectPolicy = await InputAnonymousPolicy(context.ui);
+        
+        if (!(await context.ui.showQuickPick(
+            [{ label: "No", data: false }, { label: "Yes", data: true }],
+            { placeHolder: localize('askIfNeedEventHandler', 'Do you want to add event handlers?') }
+        )).data) {
+            return;
+        }
+
         while (true) {
             await new CreateOrUpdateEventHandlerStep(true).prompt(context);
 
