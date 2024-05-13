@@ -20,7 +20,7 @@ async function main() {
     app.get("/negotiate", azure.negotiate(io, () => {}));
 
     // Add Support for Azure Socket.IO Admin UI
-    instrument(io, { auth: false, mode: "development", username: "username", password: "assword"});
+    instrument(io, { auth: false, mode: "development" });
     Namespace.prototype["fetchSockets"] = async function() { return this.local.fetchSockets(); };
 
     const echoBenchmark = io.of("/echoBenchmark");
