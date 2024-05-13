@@ -70,9 +70,9 @@ export function EndpointNav({setSelectedPath}: {
 					<AccordionItem value={category}>
 						<AccordionHeader><Label size={"large"}>{category}</Label></AccordionHeader>
 						<AccordionPanel>
-							{Object.entries(path).map(([pathUrl, p]) => (
-								Object.entries(p.path).map(([method, details]) => (
-									<Tab key={`${p.pathUrl}-${method}`} value={`${p.pathUrl}-${method}`}>
+							{Object.entries(path).map(([url, {pathUrl, path}]) => (
+								Object.entries(path).map(([method, details]) => (
+									<Tab key={`${pathUrl}-${method}`} value={`${pathUrl}-${method}`}>
 										{method === 'post' && <div style={{display: "flex"}}>
 						<div style={{
 													color: "#ffd02b",

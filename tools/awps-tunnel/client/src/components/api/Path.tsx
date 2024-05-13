@@ -1,10 +1,17 @@
 import {PathItem} from "../../models";
-import {POST} from "./Methods";
+import {Method} from "./Methods";
 
-export function Path({pathItem, path}: { pathItem: PathItem, path: string }): React.JSX.Element {
-	return (<div style={{flex:5}}>
+export function Path({pathItem, path, methodName}: {
+	pathItem: PathItem,
+	path: string,
+	methodName: string
+}): React.JSX.Element {
+	return (<div style={{flex: 5}}>
 		<div>
-			{pathItem.post && <POST post={pathItem.post} path={path}/>}
+			{pathItem.post && methodName === "post" && <Method method={pathItem.post} path={path} methodName={methodName}/>}
+			{pathItem.put && methodName === "put" && <Method method={pathItem.put} path={path} methodName={methodName}/>}
+			{pathItem.delete && methodName === "delete" && <Method method={pathItem.delete} path={path} methodName={methodName}/>}
+			{pathItem.head && methodName === "head" && <Method method={pathItem.head} path={path} methodName={methodName}/>}
 		</div>
 	
 	</div>)

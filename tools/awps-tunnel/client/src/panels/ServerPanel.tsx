@@ -20,8 +20,8 @@ export function ServerPanel({ endpoint, onChange }: ServerPanelProps) {
   const [status, setStatus] = useState<ConnectionStatus>(ConnectionStatus.None);
   const restAPI:RESTApi = restapiSpec as RESTApi;
   const [selectedPath, setSelectedPath] = useState<string>();
-	const [pathUrl, setPathUrl] = useState<string>();
-	const [method, setMethod] = useState<string>();
+	const [pathUrl, setPathUrl] = useState<string>("");
+	const [method, setMethod] = useState<string>("");
   useEffect(() => {
     setStartEmbeddedServer(data.builtinUpstreamServerStarted);
   }, [data.builtinUpstreamServerStarted]);
@@ -63,7 +63,7 @@ export function ServerPanel({ endpoint, onChange }: ServerPanelProps) {
     }
     onSwitchAsync();
   }
-  return (
+   return (
     <div className="m-2" style={{display:"flex"}}>
       {/*<p>*/}
       {/*  <Icon className="mx-2" iconName="ServerEnviroment"></Icon>*/}
@@ -90,7 +90,7 @@ export function ServerPanel({ endpoint, onChange }: ServerPanelProps) {
       {/*  <CodeTabs></CodeTabs>*/}
       {/*</div>*/}
       <EndpointNav setSelectedPath={setSelectedPath}></EndpointNav>
-      {pathUrl && <Path pathItem = {restAPI.paths[pathUrl]}  path={pathUrl} />}
+      {pathUrl && <Path pathItem = {restAPI.paths[pathUrl]}  path={pathUrl} methodName ={method}/>}
     </div>
   );
 }

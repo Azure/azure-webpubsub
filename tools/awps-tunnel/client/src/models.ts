@@ -206,6 +206,7 @@ export interface Header {
 }
 
 export interface Definition {
+  name?: string
 	description?: string;
 	type: string;
 	properties: DefinitionProp,

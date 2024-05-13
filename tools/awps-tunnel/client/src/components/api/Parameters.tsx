@@ -85,11 +85,12 @@ function renderBodySchema(schema: Definition): React.JSX.Element {
 	)
 }
 
-export function Parameters({path, parameters, example, setResponse}: {
+export function Parameters({path, parameters, example, setResponse, methodName}: {
 	path: string
 	parameters: Parameter[],
 	example: ExampleParameter,
-	setResponse: React.Dispatch<React.SetStateAction<APIResponse | undefined>>
+	setResponse: React.Dispatch<React.SetStateAction<APIResponse | undefined>>,
+	methodName: string
 }): React.JSX.Element {
 	const endpoint: string | undefined = process.env.REACT_APP_ENDPOINT;
 	const hub: string | undefined = process.env.REACT_APP_HUB;
@@ -97,20 +98,30 @@ export function Parameters({path, parameters, example, setResponse}: {
 		parameter: Parameter,
 		inputComponent: React.JSX.Element
 	}[]>()
-	const [pathParameters, setPathParameters] = useState<Parameter[]>()
+	const [pathParameters, setPathParameters] = useState<{
+		parameter: Parameter,
+		inputComponent: React.JSX.Element
+	}[]>()
 	const [bodyParameters, setBodyParameters] = useState<Parameter[]>()
 	const [copyLabel, setCopyLabel] = useState<string>("copy")
 	const [bodySchema, setBodySchema] = useState<Definition>();
 	const [url, setUrl] = useState<string>();
 	const [queryParameterInputs, setQueryParameterInputs] = useState<{ [name: string]: string }>({});
-	const [pathParameterInputs, setpathParameterInput] = useState<{ [name: string]: string }>({});
-	const [bodyParameterInputs, setBodyParameterInputs] = useState<{ groups: string[]; filter: string; } | string>();
-	
-	// console.log(example);
+	const [pathParameterInputs, setpathParameterInputs] = useState<{ [name: string]: string }>({});
+	const [bodyParameterInputs, setBodyParameterInputs] = useState<{ groups: string[]; filter: string; } | {
+		message: string | undefined
+	}>();
 	
 	function handleQueryInputOnChange(name: string, input: string): void {
 		setQueryParameterInputs(prevInputs => ({
 			...prevInputs,
+			[name]: input
+		}));
+	}
+	
+	function handlePathInputOnChange(name: string, input: string): void {
+		setpathParameterInputs(precInputs => ({
+			...precInputs,
 			[name]: input
 		}));
 	}
@@ -123,14 +134,23 @@ export function Parameters({path, parameters, example, setResponse}: {
 			}
 		})
 		setQueryParameterInputs(temp_query_parameter_input);
+		
+		let temp_path_parameter_input: { [name: string]: string } = {}
+		parameters.filter(p => p.in === "path").map((p) => {
+			if (p.name !== "hub") {
+				temp_path_parameter_input[p.name] = ""
+			}
+		})
+		setpathParameterInputs(temp_path_parameter_input);
+		
 		if (example.groupsToAdd || example.groupsToRemove || example.message) {
-			setBodyParameterInputs(example.groupsToAdd || example.groupsToRemove || example.message);
+			setBodyParameterInputs(example.groupsToAdd || example.groupsToRemove || {message: example.message});
 		}
 	}, [parameters, example]);
 	
 	useEffect(() => {
-		let temp_query_parameter: { parameter: Parameter, inputComponent: React.JSX.Element }[] = []
-		parameters.filter(p => p.in === "query").map((p, index) => {
+		let temp_query_parameter: { parameter: Parameter, inputComponent: React.JSX.Element }[] = [];
+		parameters.filter(p => p.in === "query").map((p) => {
 			temp_query_parameter.push({
 				parameter: p,
 				inputComponent: <TextField value={queryParameterInputs[p.name]}
@@ -138,20 +158,33 @@ export function Parameters({path, parameters, example, setResponse}: {
 			});
 		})
 		setQueryParameters(temp_query_parameter);
-		setPathParameters(parameters.filter(p => p.in === "path"));
+		let temp_path_parameter: { parameter: Parameter, inputComponent: React.JSX.Element }[] = [];
+		parameters.filter(p => p.in === "path").map((p) => {
+			temp_path_parameter.push({
+				parameter: p,
+				inputComponent: <TextField value={pathParameterInputs[p.name]}
+				                           onChange={(e, value) => handlePathInputOnChange(p.name, value ? value: "")}></TextField>
+			})
+		})
+		setPathParameters(temp_path_parameter);
 		setBodyParameters(parameters.filter(p => p.in === "body"));
-	}, [parameters, queryParameterInputs]);
+	}, [parameters, queryParameterInputs, pathParameterInputs]);
 	
 	
 	useEffect(() => {
 		if (bodyParameters && bodyParameters.length > 0 && bodyParameters[0].schema) {
-			const ref: string = bodyParameters[0].schema.$ref;
-			const path: string[] = ref.split('/');
-			const defName: string = path[path.length - 1];
-			if (defName === "AddToGroupsRequest") {
-				setBodySchema(restapiSpec.definitions["AddToGroupsRequest"]);
-			} else if (defName === "RemoveFromGroupsRequest") {
-				setBodySchema(restapiSpec.definitions["RemoveFromGroupsRequest"]);
+			if (bodyParameters[0].schema.type === "string") {
+				const bodyParameter: Parameter = bodyParameters[0];
+				setBodySchema({name: bodyParameter.name, type: bodyParameter.schema?.type} as Definition)
+			} else {
+				const ref: string = bodyParameters[0].schema.$ref;
+				const path: string[] = ref.split('/');
+				const defName: string = path[path.length - 1];
+				if (defName === "AddToGroupsRequest") {
+					setBodySchema(restapiSpec.definitions["AddToGroupsRequest"]);
+				} else if (defName === "RemoveFromGroupsRequest") {
+					setBodySchema(restapiSpec.definitions["RemoveFromGroupsRequest"]);
+				}
 			}
 		} else {
 			setBodySchema(undefined);
@@ -160,8 +193,11 @@ export function Parameters({path, parameters, example, setResponse}: {
 	
 	useEffect(() => {
 		let newPath = path;
-		if (hub) {
+		if (hub && pathParameterInputs) {
 			newPath = newPath.replace('{hub}', hub);
+			Object.entries(pathParameterInputs).map(([name, input]) => {
+				newPath = newPath.replace(`{${name}}`, input);
+			})
 		}
 		let query: string = ""
 		if (queryParameterInputs) {
@@ -172,7 +208,7 @@ export function Parameters({path, parameters, example, setResponse}: {
 			})
 		}
 		setUrl(`${endpoint}${newPath}?${query}api-version=${restapiSpec.info.version}`);
-	}, [path, hub, queryParameterInputs]);
+	}, [path, hub, queryParameterInputs, pathParameterInputs]);
 	
 	
 	function copyOnClick(): void {
@@ -187,19 +223,23 @@ export function Parameters({path, parameters, example, setResponse}: {
 	}
 	
 	async function sendRequest(): Promise<void> {
-		console.log(bodyParameterInputs);
 		const token: string = await generateJWT("user Id: CHANGE ME", `${url}`);
 		if (url) {
 			fetch(url, {
-				// todo: change "POST" to parameter input later
-				method: 'POST',
+				method: methodName,
 				headers: {
 					'Content-Type': 'application/json',
 					'Authorization': `Bearer ${token}`
 				},
 				body: JSON.stringify(bodyParameterInputs)
-			}).then(res => res.json())
-				.then(res => setResponse(res as APIResponse));
+			}).then(res => {
+					if (res.headers.get("content-type")?.includes("application/json")) {
+						return res.json();
+					} else {
+						return res;
+					}
+				})
+				.then(res => setResponse(res));
 		}
 	}
 	
@@ -229,19 +269,18 @@ export function Parameters({path, parameters, example, setResponse}: {
 									{parameter.description && <small className={"form-text"}>{parameter.description}</small>}
 				</div>
 						))}
-						{/*{pathParameters && <div><Label><b style={{fontSize: 20}}>Path</b></Label>*/}
-						{/*	{renderParameter(pathParameters, <TextField value={`hub name`} readOnly={true}/>)}</div>}*/}
-						{/*{pathParameters && pathParameters.map((p) => (*/}
-						{/*	<div>*/}
-						{/*		<div style={{display: "flex"}}>*/}
-						{/*			<Label style={{fontSize: 18, marginRight: 10}}>{p.parameter.name}</Label>*/}
-						{/*			{p.parameter.required && <Label style={{color: "red"}}>required</Label>}*/}
-						{/*		</div>*/}
-						{/*		{p.parameter.name === "hub" && <TextField value={restapiSpec.info.version} readOnly={true}/>}*/}
-						{/*		{p.parameter.name !== "hub" && p.inputComponent}*/}
-						{/*		{p.parameter.description && <small className={"form-text"}>{p.parameter.description}</small>}*/}
-						{/*	</div>*/}
-						{/*))}*/}
+						{pathParameters && pathParameters.length > 1 &&
+				<div><Label><b style={{fontSize: 20}}>Path</b></Label></div>}
+						{pathParameters && pathParameters.length > 1 && pathParameters.map(({parameter, inputComponent}) => (
+							parameter.name !== "hub" && <div>
+				  <div style={{display: "flex"}}>
+					  <Label style={{fontSize: 18, marginRight: 10}}>{parameter.name}</Label>
+										{parameter.required && <Label style={{color: "red"}}>required</Label>}
+				  </div>
+								{inputComponent}
+								{parameter.description && <small className={"form-text"}>{parameter.description}</small>}
+			  </div>
+						))}
 						{bodyParameters && bodyParameters.length > 0 && <div><Label><b style={{fontSize: 20}}>Body</b></Label>
 							{renderParameter(bodyParameters,
 								<JSONInput locale={locale}
@@ -252,7 +291,8 @@ export function Parameters({path, parameters, example, setResponse}: {
 									           keys: "#8b1853",
 									           string: "#4a50a3",
 									           colon: "black"
-								           }} onChange={(e:any) => setBodyParameterInputs(e.jsObject)} height={"auto"} confirmGood={false}/>)}
+								           }} onChange={(e: any) => setBodyParameterInputs(e.jsObject)} height={"auto"}
+								           confirmGood={false}/>)}
 			</div>}
 						<div style={{display: "flex", justifyContent: "end", width: "100%"}}>
 							<button className={"btn btn-primary"} style={{width: "20%"}} onClick={sendRequest}>Send</button>
@@ -267,7 +307,7 @@ export function Parameters({path, parameters, example, setResponse}: {
 						{queryParameters && <div><Label><b style={{fontSize: 15}}>Query</b></Label>
 							{renderSchema(queryParameters.map(p => p.parameter))}</div>}
 						{pathParameters && <div><Label><b style={{fontSize: 15}}>Path</b></Label>
-							{renderSchema(pathParameters)}</div>}
+							{renderSchema(pathParameters.map(p => p.parameter))}</div>}
 						{bodySchema && <div><Label><b style={{fontSize: 15}}>Body</b></Label>
 							{renderBodySchema(bodySchema)}</div>}
 					</CardPreview>
