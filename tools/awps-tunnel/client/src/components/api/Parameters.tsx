@@ -64,6 +64,7 @@ function renderSchema(parameters: Parameter[]): React.JSX.Element {
 }
 
 function renderBodySchema(schema: Definition): React.JSX.Element {
+	// console.log(schema);
 	return (
 		<Table>
 			<TableHeader>
@@ -73,7 +74,14 @@ function renderBodySchema(schema: Definition): React.JSX.Element {
 					<TableHeaderCell>items type</TableHeaderCell>
 				</TableRow>
 			</TableHeader>
-			<TableBody>
+			{schema.name ?
+				<TableBody>
+					<TableRow>
+						<TableCell>{schema.name}</TableCell>
+						<TableCell>{schema.type}</TableCell>
+					</TableRow>
+				</TableBody> :
+				<TableBody>
 				{schema.properties && Object.entries(schema.properties).map(([name, item], key) => (
 					<TableRow key={key}>
 						<TableCell>{name}</TableCell>
@@ -81,7 +89,7 @@ function renderBodySchema(schema: Definition): React.JSX.Element {
 						{item.items && <TableCell>{item.items.type}</TableCell>}
 					</TableRow>
 				))}
-			</TableBody>
+			</TableBody>}
 		</Table>
 	)
 }
