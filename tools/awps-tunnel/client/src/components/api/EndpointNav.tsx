@@ -11,6 +11,12 @@ import {
 import React, {useEffect, useState} from "react";
 import {PathItem} from "../../models";
 
+const methodColors: { [method: string]: string } = {
+	post: "#ffd02b",
+	put: "#4385d9",
+	delete: "#f27263",
+	head: "#a887c9"
+};
 export function EndpointNav({setSelectedPath}: {
 	setSelectedPath: React.Dispatch<React.SetStateAction<string | undefined>>
 }): React.JSX.Element {
@@ -60,8 +66,7 @@ export function EndpointNav({setSelectedPath}: {
 		setCategories(categories);
 	}, []);
 	
-	return (<div style={{flex: 1, display: "flex"}}>
-		
+	return (<div className="d-flex overflow-hidden" style={{flex: 1}}>
 		<TabList onTabSelect={(e, data) => {
 			setSelectedPath(data.value as string)
 		}} vertical>
@@ -73,33 +78,12 @@ export function EndpointNav({setSelectedPath}: {
 							{Object.entries(path).map(([url, {pathUrl, path}]) => (
 								Object.entries(path).map(([method, details]) => (
 									<Tab key={`${pathUrl}-${method}`} value={`${pathUrl}-${method}`}>
-										{method === 'post' && <div style={{display: "flex"}}>
-						<div style={{
-													color: "#ffd02b",
-													fontSize: 15, marginRight: 5
-												}}>POST
-						</div>
-						<div>{details.operationId.replace("WebPubSub_", "")}</div>
-					</div>}
-										{method === 'put' && <div style={{display: "flex"}}>
-						<div style={{color: "#4385d9", fontSize: 15, marginRight: 5}}>PUT
-						</div>
-						<div>{details.operationId.replace("WebPubSub_", "")}</div>
-					</div>}
-										{method === 'delete' && <div style={{display: "flex"}}>
-						<div
-							style={{color: "#f27263", fontSize: 15, marginRight: 5}}>DELETE
-						</div>
-						<div>{details.operationId.replace("WebPubSub_", "")}</div>
-					</div>}
-										{method === 'head' && <div style={{display: "flex"}}>
-						<div style={{
-													color: "#a887c9",
-													fontSize: 15, marginRight: 5
-												}}>HEAD
-						</div>
-						<div>{details.operationId.replace("WebPubSub_", "")}</div>
-					</div>}
+										<div className="d-flex">
+											<div
+												className="fs-6 me-2"
+												style={{color: methodColors[method]}}>{method.toUpperCase()}</div>
+											<div>{details.operationId.replace("WebPubSub_", "")}</div>
+										</div>
 									</Tab>
 								))
 							))}
@@ -108,7 +92,5 @@ export function EndpointNav({setSelectedPath}: {
 				))}
 			</Accordion>
 		</TabList>
-	
-	
 	</div>)
 }

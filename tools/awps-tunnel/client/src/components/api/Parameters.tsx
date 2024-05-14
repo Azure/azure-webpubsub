@@ -10,6 +10,7 @@ import {ExampleParameter, Parameter, Definition, APIResponse} from "../../models
 import 'bootstrap/dist/css/bootstrap.min.css';
 import restapiSpec from '../api/restapiSample.json'
 import JSONInput from "react-json-editor-ajrm/index";
+import './Parameters.css'
 // @ts-ignore, dependency for library, don't remove
 import locale from "react-json-editor-ajrm/locale/en";
 import {generateJWT} from '../../utils/jwt';
@@ -19,9 +20,9 @@ function renderParameter(parameters: Parameter[], inputTag: React.JSX.Element): 
 		<div>{parameters.map((p, key) => {
 			return (
 				<div key={key}>
-					<div style={{display: "flex"}}>
-						<Label style={{fontSize: 18, marginRight: 10}}>{p.name}</Label>
-						{p.required && <Label style={{color: "red"}}>required</Label>}
+					<div className="d-flex">
+						<Label className="fs-6 me-2">{p.name}</Label>
+						{p.required && <Label className={"red-text"}>required</Label>}
 					</div>
 					{p.name === "hub" && <TextField value={process.env.REACT_APP_HUB} readOnly={true}/>}
 					{p.name !== "hub" && p.name !== "api-version" && inputTag}
@@ -34,7 +35,7 @@ function renderParameter(parameters: Parameter[], inputTag: React.JSX.Element): 
 
 function renderSchema(parameters: Parameter[]): React.JSX.Element {
 	return (<div>
-		<Table style={{marginBottom: 5}}>
+		<Table className="mb-2">
 			<TableHeader>
 				<TableRow>
 					<TableHeaderCell>name</TableHeaderCell>
@@ -50,7 +51,7 @@ function renderSchema(parameters: Parameter[]): React.JSX.Element {
 									<div>
 										{p.name}
 									</div>
-									{p.required && <div style={{color: "red"}}>required</div>}
+									{p.required && <div className="red-text">required</div>}
 								</div>
 							</TableCell>
 							<TableCell>{p.type}</TableCell>
@@ -163,7 +164,7 @@ export function Parameters({path, parameters, example, setResponse, methodName}:
 			temp_path_parameter.push({
 				parameter: p,
 				inputComponent: <TextField value={pathParameterInputs[p.name]}
-				                           onChange={(e, value) => handlePathInputOnChange(p.name, value ? value: "")}></TextField>
+				                           onChange={(e, value) => handlePathInputOnChange(p.name, value ? value : "")}></TextField>
 			})
 		})
 		setPathParameters(temp_path_parameter);
@@ -233,55 +234,56 @@ export function Parameters({path, parameters, example, setResponse, methodName}:
 				},
 				body: JSON.stringify(bodyParameterInputs)
 			}).then(res => {
-					if (res.headers.get("content-type")?.includes("application/json")) {
+					const contentType: string | null = res.headers.get("Content-Type");
+					if (contentType && (contentType.includes("application/json") || contentType.includes("text/json") || contentType.includes("application/problem+json"))) {
 						return res.json();
 					} else {
 						return res;
 					}
 				})
-				.then(res => setResponse(res));
+				.then(res => setResponse(res as APIResponse));
 		}
 	}
 	
 	return (
-		<div style={{display: "flex"}}>
-			<div style={{flex: 3}}>
-				<Card style={{margin: 5, width: "95%"}}>
-					<CardHeader header={<b style={{fontSize: 20}}>Parameters</b>}/>
-					<CardPreview style={{display: "flex", flexDirection: "column", alignItems: "start", padding: 15}}>
-						<div style={{display: "flex", justifyContent: "space-between", width: "100%"}}>
+		<div className="d-flex">
+			<div className="flex-3">
+				<Card className="w-95 m-2">
+					<CardHeader header={<b className="fs-5">Parameters</b>}/>
+					<CardPreview className="d-flex flex-column align-items-start p-3">
+						<div className="d-flex justify-content-between w-100">
 							<Label>HTTP URL</Label>
 							<Label onClick={() => copyOnClick()}>{copyLabel}</Label></div>
 						<TextField readOnly={true}
 						           value={url}/>
 						{queryParameters && queryParameters.length > 1 &&
-				<div><Label><b style={{fontSize: 20}}>Query</b></Label></div>}
+				<div><Label><b className="fs-5">Query</b></Label></div>}
 						{queryParameters && queryParameters.length > 1 && queryParameters.map(({
 							                                                                       parameter,
 							                                                                       inputComponent
 						                                                                       }) => (parameter.name !== "api-version" &&
 				<div>
-					<div style={{display: "flex"}}>
-						<Label style={{fontSize: 18, marginRight: 10}}>{parameter.name}</Label>
-											{parameter.required && <Label style={{color: "red"}}>required</Label>}
+					<div className="d-flex">
+						<Label className="fs-6 me-2">{parameter.name}</Label>
+											{parameter.required && <Label className="red-text">required</Label>}
 					</div>
 									{inputComponent}
 									{parameter.description && <small className={"form-text"}>{parameter.description}</small>}
 				</div>
 						))}
 						{pathParameters && pathParameters.length > 1 &&
-				<div><Label><b style={{fontSize: 20}}>Path</b></Label></div>}
+				<div><Label><b className="fs-5">Path</b></Label></div>}
 						{pathParameters && pathParameters.length > 1 && pathParameters.map(({parameter, inputComponent}) => (
 							parameter.name !== "hub" && <div>
-				  <div style={{display: "flex"}}>
-					  <Label style={{fontSize: 18, marginRight: 10}}>{parameter.name}</Label>
-										{parameter.required && <Label style={{color: "red"}}>required</Label>}
+				  <div className="d-flex">
+					  <Label className="fs-6 me-2">{parameter.name}</Label>
+										{parameter.required && <Label className="red-text">required</Label>}
 				  </div>
 								{inputComponent}
 								{parameter.description && <small className={"form-text"}>{parameter.description}</small>}
 			  </div>
 						))}
-						{bodyParameters && bodyParameters.length > 0 && <div><Label><b style={{fontSize: 20}}>Body</b></Label>
+						{bodyParameters && bodyParameters.length > 0 && <div><Label><b className="fs-5">Body</b></Label>
 							{renderParameter(bodyParameters,
 								<JSONInput locale={locale}
 								           placeholder={bodyParameterInputs}
@@ -294,21 +296,21 @@ export function Parameters({path, parameters, example, setResponse, methodName}:
 								           }} onChange={(e: any) => setBodyParameterInputs(e.jsObject)} height={"auto"}
 								           confirmGood={false}/>)}
 			</div>}
-						<div style={{display: "flex", justifyContent: "end", width: "100%"}}>
-							<button className={"btn btn-primary"} style={{width: "20%"}} onClick={sendRequest}>Send</button>
+						<div className="d-flex justify-content-end w-100">
+							<button className={"btn btn-primary w-20"} onClick={sendRequest}>Send</button>
 						</div>
 					</CardPreview>
 				</Card>
 			</div>
-			<div style={{flex: 1}}>
-				<Card style={{margin: 5, width: "95%"}}>
-					<CardHeader header={<b style={{fontSize: 15}}>Parameter Schema</b>}/>
-					<CardPreview style={{display: "flex", flexDirection: "column", alignItems: "start", padding: 15}}>
-						{queryParameters && <div><Label><b style={{fontSize: 15}}>Query</b></Label>
+			<div className="flex-1">
+				<Card className="m-2 w-95">
+					<CardHeader header={<b className="fs-6">Parameter Schema</b>}/>
+					<CardPreview className="d-flex flex-column align-items-start p-3">
+						{queryParameters && <div><Label><b className="fs-6">Query</b></Label>
 							{renderSchema(queryParameters.map(p => p.parameter))}</div>}
-						{pathParameters && <div><Label><b style={{fontSize: 15}}>Path</b></Label>
+						{pathParameters && <div><Label><b className="fs-6">Path</b></Label>
 							{renderSchema(pathParameters.map(p => p.parameter))}</div>}
-						{bodySchema && <div><Label><b style={{fontSize: 15}}>Body</b></Label>
+						{bodySchema && <div><Label><b className="fs-6">Body</b></Label>
 							{renderBodySchema(bodySchema)}</div>}
 					</CardPreview>
 				</Card>

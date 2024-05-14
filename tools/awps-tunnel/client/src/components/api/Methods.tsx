@@ -15,25 +15,20 @@ export function Method({method, path, methodName}: {
 	const [response, setResponse] = useState<APIResponse | undefined>(undefined);
 	useEffect(() => {
 		const operationId = method.operationId;
-		const exmaplePath = method["x-ms-examples"][operationId].$ref;
-		fetch(exmaplePath).then(res => res.json()).then(res => setExample(res))
+		const example = method["x-ms-examples"][operationId].$ref;
+		fetch(example).then(res => res.json()).then(res => setExample(res))
 		setResponse(undefined);
 	}, [method, path]);
 	
 	return (
-		<div style={{display: "flex"}}>
-			<div style={{padding: 15}}>
-				<Label style={{fontSize: 25, fontWeight: "bold"}}>{method.summary}</Label>
+		<div className="d-flex">
+			<div className="p-3">
+				<Label className="fs-4 fw-bold ms-2">{method.summary}</Label>
 				
-				<div style={{
-					display: "flex",
-					flexDirection: "row",
-					justifyContent: "start",
-					alignItems: "center"
-				}}>
+				<div className="d-flex flex-row justify-content-start align-items-center ms-2">
 					<div className={"method-tag"}>{methodName.toUpperCase()}
 					</div>
-					<div style={{marginLeft: 10, marginRight: 10}}>{path}</div>
+					<div className="mx-2">{path}</div>
 				</div>
 				
 				
