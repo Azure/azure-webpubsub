@@ -101,6 +101,10 @@ export class DataHub {
         const token = await this.tunnel.getLiveTraceToken();
         callback(token);
       });
+      socket.on("getRestApiToken", async (url, callback) => {
+        const token = await this.tunnel.getRestApiToken(url);
+        callback(token);
+      });
       socket.on("disconnect", () => {
         printer.log("A webview client connected");
       });
