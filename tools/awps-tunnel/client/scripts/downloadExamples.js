@@ -2,43 +2,38 @@ const axios = require('axios');
 const fs = require('fs');
 const path = require('path');
 
-const examplesDir = path.join(__dirname, '../public/examples');
-const apiDir = path.join(__dirname, '../public/examples');
+const targetDir = path.join(__dirname, '../public/examples');
 
-if (!fs.existsSync(examplesDir)) {
-	fs.mkdirSync(examplesDir, { recursive: true });
-}
-if (!fs.existsSync(apiDir)) {
-	fs.mkdirSync(apiDir, { recursive: true });
+if (!fs.existsSync(targetDir)) {
+	fs.mkdirSync(targetDir, { recursive: true });
 }
 
 const repoPath = 'Azure/azure-rest-api-specs';
 const ref = 'main';
-const examplesPath = 'specification/webpubsub/data-plane/WebPubSub/stable/2023-07-01/examples';
-const apiFilePath = 'specification/webpubsub/data-plane/WebPubSub/stable/2023-07-01/webpubsub.json';
+const basePath = 'specification/webpubsub/data-plane/WebPubSub/stable';
 
-async function downloadFiles() {
+async function downloadFiles(url, savePath) {
 	try {
-		const examplesUrl = `https://api.github.com/repos/${repoPath}/contents/${examplesPath}?ref=${ref}`;
-		const examplesResponse = await axios.get(examplesUrl);
-		const files = examplesResponse.data;
-		
-		for (const file of files) {
-			if (file.type === 'file') {
-				const fileResponse = await axios.get(file.download_url, { responseType: 'arraybuffer' });
-				fs.writeFileSync(path.join(examplesDir, file.name), fileResponse.data);
+		const response = await axios.get(url, { responseType: 'json' });
+		const items = response.data;
+		for (const item of items) {
+			const filePath = path.join(savePath, item.name);
+			
+			if (item.type === 'dir') {
+				if (!fs.existsSync(filePath)) {
+					fs.mkdirSync(filePath, { recursive: true });
+				}
+				const nextUrl = `https://api.github.com/repos/${repoPath}/contents/${item.path}?ref=${ref}`;
+				await downloadFiles(nextUrl, filePath);
+			} else if (item.type === 'file') {
+				const fileResponse = await axios.get(item.download_url, { responseType: 'arraybuffer' });
+				fs.writeFileSync(filePath, fileResponse.data);
 			}
 		}
-		console.log("All example files downloaded successfully.")
-		
-		const apiUrl = `https://api.github.com/repos/${repoPath}/contents/${apiFilePath}?ref=${ref}`;
-		const apiResponse = await axios.get(apiUrl, { responseType: 'json' });
-		const apiFileResponse = await axios.get(apiResponse.data.download_url, { responseType: 'arraybuffer' });
-		fs.writeFileSync(path.join(apiDir, 'restapiSample.json'), apiFileResponse.data);
-		console.log('api spec downloaded successfully.');
 	} catch (error) {
 		console.error('Error downloading files:', error);
 	}
 }
 
-downloadFiles();
+const initialUrl = `https://api.github.com/repos/${repoPath}/contents/${basePath}?ref=${ref}`;
+downloadFiles(initialUrl, targetDir);
