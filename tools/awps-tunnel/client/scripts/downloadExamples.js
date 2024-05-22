@@ -3,7 +3,7 @@ const fs = require('fs');
 const path = require('path');
 
 const examplesDir = path.join(__dirname, '../public/examples');
-const apiDir = path.join(__dirname, '../src/components/api');
+const apiDir = path.join(__dirname, '../public/examples');
 
 if (!fs.existsSync(examplesDir)) {
 	fs.mkdirSync(examplesDir, { recursive: true });
