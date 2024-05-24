@@ -1,0 +1,115 @@
+{
+  "separator": " : ",
+  "id": "ID",
+  "update": "Mettre à jour",
+  "details": "Détails",
+  "actions": "Actions",
+  "select-namespace": "Sélection de l'espace de noms",
+  "namespace": "Espace de noms",
+  "namespaces": "Espaces de noms",
+  "disconnect": "Déconnexion",
+  "name": "Nom",
+  "value": "Valeur",
+  "type": "Type",
+  "status": "Statut",
+  "connected": "connecté",
+  "disconnected": "déconnecté",
+  "data": "Données",
+  "timestamp": "Horodatage",
+  "args": "Arguments",
+  "connection": {
+    "title": "Connexion",
+    "serverUrl": "URL du serveur",
+    "username": "Nom d'utilisateur",
+    "password": "Mot de passe",
+    "connect": "Se connecter",
+    "invalid-credentials": "Identifiants invalides",
+    "error": "Erreur",
+    "websocket-only": "WebSocket uniquement ?",
+    "path": "Chemin HTTP",
+    "parser": "Encodeur",
+    "default-parser": "Encodeur par défaut",
+    "msgpack-parser": "Encodeur basé sur MessagePack",
+    "namespace": "Espace de nom d'administration",
+    "advanced-options": "Options avancées"
+  },
+  "dashboard": {
+    "title": "Accueil",
+    "connectionsHistogram": {
+      "title": "Évènements de connexion et de déconnexion"
+    },
+    "bytesHistogram": {
+      "title": "Octets reçus et envoyés",
+      "bytesIn": "Octets reçus",
+      "bytesOut": "Octets envoyés"
+    }
+  },
+  "sockets": {
+    "title": "Connexions",
+    "details": "Détails de la connexion",
+    "address": "Adresse IP",
+    "transport": "Transport",
+    "disconnect": "Termine cette connexion",
+    "displayDetails": "Voir les détails de cette connexion",
+    "client": "Client",
+    "socket": "Connexion",
+    "creation-date": "Date de création",
+    "leave": "Quitter cette salle",
+    "join": "Rejoindre",
+    "join-a-room": "Rejoindre une salle",
+    "initial-request": "Requête HTTP initiale",
+    "headers": "Entêtes HTTP",
+    "query-params": "Paramètres de requête"
+  },
+  "rooms": {
+    "title": "Salles",
+    "details": "Détails de la salle",
+    "active": "Active",
+    "deleted": "Supprimée",
+    "public": "Publique",
+    "private": "Privée",
+    "show-private": "Afficher les salles privées ?",
+    "sockets-count": "# de connexions",
+    "clear": "Vider cette salle",
+    "leave": "Sortir cette connexion de la salle",
+    "disconnect": "Sortir toutes les connexions de cette salle",
+    "displayDetails": "Voir les détails de cette salle"
+  },
+  "clients": {
+    "title": "Clients",
+    "details": "Détails du client",
+    "sockets-count": "# de connexions",
+    "disconnect": "Déconnecte ce client (et toutes les connexions liées)",
+    "displayDetails": "Voir les détails de ce client"
+  },
+  "servers": {
+    "title": "Serveurs",
+    "hostname": "Nom d'hôte",
+    "pid": "PID",
+    "uptime": "Uptime",
+    "clients-count": "# de clients",
+    "last-ping": "Dernier ping",
+    "healthy": "Actif",
+    "unhealthy": "Inactif"
+  },
+  "config": {
+    "language": "Langue",
+    "readonly": "Lecture seule ?",
+    "dark-theme": "Mode sombre ?"
+  },
+  "events": {
+    "title": "Évènements",
+    "type": {
+      "connection": "Connexion",
+      "disconnection": "Déconnexion",
+      "room_joined": "Salle rejointe",
+      "room_left": "Salle quittée",
+      "event_received": "Évènement reçu",
+      "event_sent": "Évènement envoyé"
+    },
+    "eventName": "Nom de l'évènement",
+    "eventArgs": "Argument de l'évènement",
+    "reason": "Raison",
+    "room": "Salle"
+  }
+}

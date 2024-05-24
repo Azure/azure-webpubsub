@@ -1,0 +1,115 @@
+{
+  "separator": ": ",
+  "id": "ID",
+  "update": "업데이트",
+  "details": "상세정보",
+  "actions": "액션",
+  "select-namespace": "네임 스페이스 선택",
+  "namespace": "네임 스페이스",
+  "namespaces": "네임 스페이스",
+  "disconnect": "연결 끊기",
+  "name": "이름",
+  "value": "값",
+  "type": "타입",
+  "status": "상태",
+  "connected": "연결됨",
+  "disconnected": "연결되지 않음",
+  "data": "데이터",
+  "timestamp": "타임스탬프",
+  "args": "전달 인자 (Arguments)",
+  "connection": {
+    "title": "접속",
+    "serverUrl": "서버 URL",
+    "username": "유저 이름 (Username)",
+    "password": "비밀번호 (Password)",
+    "connect": "접속하기",
+    "invalid-credentials": "올바르지 않은 인증",
+    "error": "에러",
+    "websocket-only": "웹소켓 전용?",
+    "path": "경로",
+    "parser": "파서 (Parser)",
+    "default-parser": "Built-in parser",
+    "msgpack-parser": "MessagePack parser",
+    "namespace": "관리자 네임 스페이스",
+    "advanced-options": "고급 옵션"
+  },
+  "dashboard": {
+    "title": "대시보드",
+    "connectionsHistogram": {
+      "title": "Connection 및 Disconnection 이벤트"
+    },
+    "bytesHistogram": {
+      "title": "수신 및 전송된 바이트",
+      "bytesIn": "수신된 바이트",
+      "bytesOut": "전송된 바이트"
+    }
+  },
+  "sockets": {
+    "title": "소켓",
+    "details": "소켓 상세정보",
+    "address": "IP 주소",
+    "transport": "통신 방식 (Transport)",
+    "disconnect": "소켓 인스턴스 연결 끊기",
+    "displayDetails": "소켓 인스턴스 상세정보",
+    "client": "클라이언트",
+    "socket": "소켓",
+    "creation-date": "생성일",
+    "leave": "룸 떠나기",
+    "join": "참여",
+    "join-a-room": "룸에 참여",
+    "initial-request": "초기 HTTP 요청",
+    "headers": "헤더",
+    "query-params": "쿼리 파라미터"
+  },
+  "rooms": {
+    "title": "룸",
+    "details": "룸 상세정보",
+    "active": "활성화",
+    "deleted": "삭제됨",
+    "public": "Public",
+    "private": "Private",
+    "show-private": "프라이빗(Private) 룸 보기?",
+    "sockets-count": "소켓 수",
+    "clear": "룸에서 모든 소켓 인스턴스 제거",
+    "leave": "룸에서 소켓 인스턴스 제거",
+    "disconnect": "룸의 모든 소켓 인스턴스 연결 끊기",
+    "displayDetails": "룸 상세정보"
+  },
+  "clients": {
+    "title": "클라이언트",
+    "details": "클라언트 상세정보",
+    "sockets-count": "소켓 수",
+    "disconnect": "클라이언트 연결 끊기 (연결된 모든 소켓 인스턴스 끊기)",
+    "displayDetails": "클라이언트 상세정보"
+  },
+  "servers": {
+    "title": "서버",
+    "hostname": "호스트이름",
+    "pid": "PID",
+    "uptime": "가동 시간",
+    "clients-count": "클라이언트 수",
+    "last-ping": "마지막 ping",
+    "healthy": "Healthy",
+    "unhealthy": "Unhealthy"
+  },
+  "config": {
+    "language": "언어",
+    "readonly": "읽기 전용?",
+    "dark-theme": "다크 테마?"
+  },
+  "events": {
+    "title": "이벤트",
+    "type": {
+      "connection": "연결 (Connection)",
+      "disconnection": "연결 해제 (Disconnection)",
+      "room_joined": "참여중인 룸(Room joined)",
+      "room_left": "나간 룸(Room left)",
+      "event_received": "수신한 이벤트",
+      "event_sent": "전송한 이벤트"
+    },
+    "eventName": "이벤트 이름",
+    "eventArgs": "이벤트 전달 인자 (Event Arguments)",
+    "reason": "원인 (Reason)",
+    "room": "룸"
+  }
+}

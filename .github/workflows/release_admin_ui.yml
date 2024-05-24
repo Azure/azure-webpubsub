@@ -1,0 +1,44 @@
+name: Release Socket.IO Admin UI
+
+on: 
+  push:
+    branches:
+      - main
+    paths:
+        - 'tools/socketio-admin-ui/**'
+  pull_request:
+    branches:
+      - main
+    paths:
+      - 'tools/socketio-admin-ui/**'
+
+jobs:
+  build_pack_upload:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: tools/socketio-admin-ui
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v2
+    
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: 16
+
+      - name: Build and Pack
+        run:  yarn install && yarn build
+
+      - name: Get Metadata
+        id: metadata_step
+        run: |
+            package_version=$(node -p "require('./package.json').version")
+            echo "package_version=${package_version}" >> $GITHUB_OUTPUT
+            echo "filename=azure-socketio-admin-ui-${package_version}" >> $GITHUB_OUTPUT
+
+      - name: Upload to Artifact
+        uses: actions/upload-artifact@v3
+        with:
+            name: ${{ steps.metadata_step.outputs.filename }}
+            path: tools/socketio-admin-ui/dist
