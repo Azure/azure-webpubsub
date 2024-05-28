@@ -33,6 +33,12 @@ jobs:
       if: runner.os == 'Linux'
     - run: npm install -g yarn
     - run: yarn install
+    - run: |
+        cd tools/awps-tunnel/client
+        yarn install
+    - run: |
+        cd tools/awps-tunnel/client
+        yarn test
     - run: yarn workspaces run test
     - name: Setup .NET ${{ matrix.dotnet-version }}
       uses: actions/setup-dotnet@v3
