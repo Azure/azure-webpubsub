@@ -362,3 +362,4 @@ env/
 website/docusaurus/
 
 tools/awps-tunnel/client/public/examples/
+tools/awps-tunnel/client/src/components/api/restapiSample.json
