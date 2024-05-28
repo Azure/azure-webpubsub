@@ -41,7 +41,7 @@ export class MockDataFetcher implements IDataFetcher {
   fetch(): Promise<DataModel> {
     const current = {
       ready: true,
-      clientUrl: "wss://mock-free.webpubsub.azure.com/client/hubs/mock",
+      clientUrl: "wss://mock-free.webpubsub.azure.com/client/hubs/mock/",
       liveTraceUrl: "https://xxx.webpubsub.azure.com",
       endpoint: "https://mock-free.webpubsub.azure.com",
       upstreamServerUrl: "http://localhost:3000",
