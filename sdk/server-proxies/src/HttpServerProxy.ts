@@ -64,6 +64,18 @@ export class HttpServerProxy {
       });
     }
   }
+  
+  public async getRestApiToken(url: string): Promise<string> {
+    if (isTokenCredential(this.credential)) {
+      return (await this.credential.getToken("https://webpubsub.azure.com"))!.token;
+    }else{
+      return jwt.sign({}, this.credential.key, {
+        audience: url,
+        expiresIn: "1h",
+        algorithm: "HS256",
+      });
+    }
+  }
 
   private async sendHttpRequest(request: TunnelIncomingMessage, options?: RunOptions, abortSignal?: AbortSignalLike): Promise<TunnelOutgoingMessage> {
     function convertHeaders(headers: http.IncomingHttpHeaders): Record<string, string[]> {
