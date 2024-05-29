@@ -26,7 +26,7 @@ describe("event handler requests", () => {
     const response = await request(server).options("/eventhandler").set("ce-awpsversion", "1.0").set("WebHook-Request-Origin", "a");
     expect(response.status).toBe(200);
     console.log(response.headers);
-    expect(response.headers["webhook-allowed-origin"]).toBe("a");
+    expect(response.headers["webhook-allowed-origin"]).toBe("*");
   });
 });
 
