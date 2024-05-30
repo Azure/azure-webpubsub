@@ -8,6 +8,7 @@
     "@fluentui/react-components": "^9.34.1",
     "@microsoft/signalr": "^8.0.0",
     "@popperjs/core": "2.11.8",
+    "axios": "^1.7.2",
     "bootstrap": "^5.1.3",
     "http-proxy-middleware": "^2.0.6",
     "jquery": "^3.6.0",
@@ -76,7 +77,8 @@
   "scripts": {
     "clean": "rimraf ./build",
     "start": "cross-env REACT_APP_DATA_FETCHER=mock react-scripts start",
-    "build": "npm run build:mock",
+    "prebuild": "node scripts/downloadExamples.js",
+    "build": "npm run prebuild && npm run build:mock",
     "build:npm": "cross-env REACT_APP_DATA_FETCHER=npm react-scripts build",
     "build:mock": "cross-env REACT_APP_DATA_FETCHER=mock react-scripts build",
     "test": "cross-env CI=true REACT_APP_DATA_FETCHER=mock react-scripts test",
