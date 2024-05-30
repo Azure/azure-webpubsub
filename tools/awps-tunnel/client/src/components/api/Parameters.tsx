@@ -13,7 +13,6 @@ import {
 	Input
 } from "@fluentui/react-components";
 import {Icon} from '@fluentui/react/lib/Icon';
-import {TextField} from "@fluentui/react";
 import {ExampleParameter, Parameter, Definition, APIResponse} from "../../models";
 import 'bootstrap/dist/css/bootstrap.min.css';
 import restapiSpec from '../api/restapiSample.json'
@@ -92,92 +91,60 @@ export function Parameters({path, parameters, example, setResponse, methodName}:
 	const {data, dataFetcher} = useDataContext();
 	const [token, setToken] = useState("");
 	const [tokenVisible, setTokenVisible] = useState(false);
-	const [queryParameters, setQueryParameters] = useState<{
+	const [requestParameters, setRequestParameters] = useState<{
 		parameter: Parameter,
 		inputComponent: React.JSX.Element
-	}[]>()
-	const [pathParameters, setPathParameters] = useState<{
-		parameter: Parameter,
-		inputComponent: React.JSX.Element
-	}[]>()
-	const [bodyParameters, setBodyParameters] = useState<Parameter[]>()
-	// const [copyLabel, setCopyLabel] = useState<string>("copy")
+	}[]>([])
+	const [requestBody, setRequestBody] = useState<Parameter[]>([]);
 	const [urlCopied, setUrlCopied] = useState<boolean>(false);
 	const [tokenCopied, setTokenCopied] = useState<boolean>(false);
 	const [bodySchema, setBodySchema] = useState<Definition>();
 	const [url, setUrl] = useState<string>("");
-	const [queryParameterInputs, setQueryParameterInputs] = useState<{ [name: string]: string }>({});
-	const [pathParameterInputs, setpathParameterInputs] = useState<{ [name: string]: string }>({});
+	const [requestParameterInputs, setRequestParameterInputs] = useState<{ [name: string]: string }>({});
 	const [bodyParameterInputs, setBodyParameterInputs] = useState<{ groups: string[]; filter: string; } | {
 		message: string | undefined
 	}>();
 	
-	function handleQueryInputOnChange(name: string, input: string): void {
-		setQueryParameterInputs(prevInputs => ({
-			...prevInputs,
-			[name]: input
-		}));
-	}
-	
-	function handlePathInputOnChange(name: string, input: string): void {
-		setpathParameterInputs(precInputs => ({
-			...precInputs,
-			[name]: input
-		}));
+	function handleParameterOnChange(e: React.ChangeEvent<HTMLInputElement>, name: string): void {
+		setRequestParameterInputs(prev => ({
+			...prev, [name]: e.target.value
+		}))
 	}
 	
 	useEffect(() => {
-		let temp_query_parameter_input: { [name: string]: string } = {}
-		parameters.filter(p => p.in === "query").forEach((p, index): void => {
-			if (p.name !== "api-version") {
-				temp_query_parameter_input[p.name] = ""
+		let temp_parameter_input: { [name: string]: string } = {}
+		parameters.filter(p => p.in === "query" || p.in === "path").forEach((p) => {
+			if (p.name !== "api-version" && p.name !== "hub") {
+				temp_parameter_input[p.name] = ""
 			}
 		})
-		setQueryParameterInputs(temp_query_parameter_input);
-		
-		let temp_path_parameter_input: { [name: string]: string } = {}
-		parameters.filter(p => p.in === "path").forEach((p): void => {
-			if (p.name !== "hub") {
-				temp_path_parameter_input[p.name] = ""
-			}
-		})
-		setpathParameterInputs(temp_path_parameter_input);
-		
+		setRequestParameterInputs(temp_parameter_input);
 		if (example.groupsToAdd || example.groupsToRemove || example.message) {
 			setBodyParameterInputs(example.groupsToAdd || example.groupsToRemove || {message: example.message});
 		}
+		
 	}, [parameters, example]);
 	
 	useEffect(() => {
-		let temp_query_parameter: { parameter: Parameter, inputComponent: React.JSX.Element }[] = [];
-		parameters.filter(p => p.in === "query").forEach((p): void => {
-			temp_query_parameter.push({
+		let temp_parameter: { parameter: Parameter, inputComponent: React.JSX.Element }[] = [];
+		parameters.filter(p => p.in === "query" || p.in === "path").forEach((p) => {
+			temp_parameter.push({
 				parameter: p,
-				inputComponent: <TextField value={queryParameterInputs[p.name]}
-				                           onChange={(e, value) => handleQueryInputOnChange(p.name, value ? value : "")}/>
-			});
-		})
-		setQueryParameters(temp_query_parameter);
-		let temp_path_parameter: { parameter: Parameter, inputComponent: React.JSX.Element }[] = [];
-		parameters.filter(p => p.in === "path").forEach((p): void => {
-			temp_path_parameter.push({
-				parameter: p,
-				inputComponent: <TextField value={pathParameterInputs[p.name]}
-				                           onChange={(e, value) => handlePathInputOnChange(p.name, value ? value : "")}></TextField>
+				inputComponent: <Input value={requestParameterInputs[p.name] || ""}
+				                       onChange={e => handleParameterOnChange(e, p.name)}/>
 			})
 		})
-		setPathParameters(temp_path_parameter);
-		setBodyParameters(parameters.filter(p => p.in === "body"));
-	}, [parameters, queryParameterInputs, pathParameterInputs]);
-	
+		setRequestParameters(temp_parameter);
+		setRequestBody(parameters.filter(p => p.in === "body"));
+	}, [parameters, requestParameterInputs]);
 	
 	useEffect(() => {
-		if (bodyParameters && bodyParameters.length > 0 && bodyParameters[0].schema) {
-			if (bodyParameters[0].schema.type === "string") {
-				const bodyParameter: Parameter = bodyParameters[0];
+		if (requestBody.length > 0 && requestBody[0].schema) {
+			if (requestBody[0].schema.type === "string") {
+				const bodyParameter: Parameter = requestBody[0];
 				setBodySchema({name: bodyParameter.name, type: bodyParameter.schema?.type} as Definition)
 			} else {
-				const ref: string = bodyParameters[0].schema.$ref;
+				const ref: string = requestBody[0].schema.$ref;
 				const path: string[] = ref.split('/');
 				const defName: string = path[path.length - 1];
 				if (defName === "AddToGroupsRequest") {
@@ -189,31 +156,37 @@ export function Parameters({path, parameters, example, setResponse, methodName}:
 		} else {
 			setBodySchema(undefined);
 		}
-	}, [bodyParameters]);
+	}, [requestBody]);
 	
 	useEffect(() => {
 		let newPath = path;
-		if (data.hub && pathParameterInputs) {
+		if (data.hub) {
 			newPath = newPath.replace('{hub}', data.hub);
-			Object.entries(pathParameterInputs).forEach(([name, input]): void => {
-				newPath = newPath.replace(`{${name}}`, input);
-			})
 		}
-		let query: string = ""
-		if (queryParameterInputs) {
-			Object.entries(queryParameterInputs).forEach(([name, input]): void => {
-				if (input !== "") {
-					query += `${name}=${input}&`
+		console.log(newPath)
+		let query: string = "";
+		requestParameters.forEach(({parameter}): void => {
+			if (parameter.in === "path") {
+				console.log(newPath.includes(`{${parameter.name}}`));
+				newPath = newPath.replace(`{${parameter.name}}`, requestParameterInputs[parameter.name])
+			} else {
+				if (requestParameterInputs[parameter.name]) {
+					query += `${parameter.name}=${requestParameterInputs[parameter.name]}&`
 				}
-			})
-		}
+			}
+		})
 		setUrl(`${data.endpoint.slice(0, -1)}${newPath}?${query}api-version=${restapiSpec.info.version}`);
-	}, [path, data.hub, queryParameterInputs, pathParameterInputs, data.endpoint]);
+	}, [path, data.hub, data.endpoint, requestParameterInputs, requestParameters]);
 	
 	useEffect(() => {
 		async function getToken() {
-			const token: string = await dataFetcher.invoke("getRestApiToken", url);
-			setToken(token);
+			// if no server connected, typeof token if object
+			const token: any = await dataFetcher.invoke("getRestApiToken", url);
+			if (typeof (token) === "string") {
+				setToken(token);
+			} else {
+				setToken("please connect to server to get the token")
+			}
 		}
 		
 		getToken();
@@ -270,45 +243,38 @@ export function Parameters({path, parameters, example, setResponse, methodName}:
 				       contentAfter={<Icon iconName={urlCopied ? "checkmark" : "copy"} style={{cursor: "pointer"}}
 				                           onClick={copyUrl}/>}
 				       value={url}/>
+				<div><Label><b>Headers</b></Label></div>
 				<div className="d-flex justify-content-between w-100">
-					<Label>Preflight Authentication Token</Label>
+					<Label>Authorization</Label>
 				</div>
 				<Input className="d-inline-flex" readOnly={true}
 				       contentAfter={<Icon iconName={tokenCopied ? "checkmark" : "copy"} style={{cursor: "pointer"}}
 				                           onClick={copyHeaderToken}/>}
 				       value={token} type={tokenVisible ? "text" : "password"}
 				       onClick={() => setTokenVisible(!tokenVisible)}/>
-				{queryParameters && queryParameters.length > 1 &&
-			<div><Label><b>Query</b></Label></div>}
-				{queryParameters && queryParameters.length > 1 && queryParameters.map(({
-					                                                                       parameter,
-					                                                                       inputComponent
-				                                                                       }) => (parameter.name !== "api-version" &&
+				<div className="d-flex">
+				
+				</div>
+				{requestParameters.length > 2 && <div><Label><b>Parameters</b></Label></div>}
+				{requestParameters.length > 2 && requestParameters.map(({
+					                                                        parameter,
+					                                                        inputComponent
+				                                                        }) => (parameter.name !== "api-version" && parameter.name !== "hub" &&
 			<div>
 				<div className="d-flex">
 					<Label className="fs-6 me-2">{parameter.name}</Label>
 									{parameter.required && <Label className="text-danger">required</Label>}
 				</div>
-							{inputComponent}
-							{parameter.description && <small className={"form-text"}>{parameter.description}</small>}
+				<div className="d-flex flex-column">
+									{inputComponent}
+									{parameter.description && <small className={"form-text"}>{parameter.description}</small>}
+				</div>
 			</div>
 				))}
-				{pathParameters && pathParameters.length > 1 &&
-			<div><Label><b>Path</b></Label></div>}
-				{pathParameters && pathParameters.length > 1 && pathParameters.map(({parameter, inputComponent}) => (
-					parameter.name !== "hub" && <div>
-			  <div className="d-flex">
-				  <Label className="fs-6 me-2">{parameter.name}</Label>
-								{parameter.required && <Label className="text-danger">required</Label>}
-			  </div>
-						{inputComponent}
-						{parameter.description && <small className={"form-text"}>{parameter.description}</small>}
-		  </div>
-				))}
-				{bodyParameters && bodyParameters.length > 0 && <div><Label><b>Body</b></Label>
+				{requestBody && requestBody.length > 0 && <div><Label><b>Body</b></Label>
 			<div className="d-flex">
-				<Label className="fs-6 me-2">{bodyParameters[0].name}</Label>{}
-							{bodyParameters[0].required && <Label className="text-danger">required</Label>}
+				<Label className="fs-6 me-2">{requestBody[0].name}</Label>{}
+							{requestBody[0].required && <Label className="text-danger">required</Label>}
 			</div>
 			<JSONInput locale={locale}
 			           placeholder={bodyParameterInputs}
@@ -320,7 +286,6 @@ export function Parameters({path, parameters, example, setResponse, methodName}:
 							           colon: "black"
 						           }} onChange={(e: any) => setBodyParameterInputs(e.jsObject)} height={"auto"}
 			           confirmGood={false}/>
-		
 		</div>}
 				<div className="d-flex justify-content-end w-100">
 					<button className={"btn btn-primary w-20 mt-1"} onClick={sendRequest}>{methodName.toUpperCase()}</button>
@@ -333,10 +298,8 @@ export function Parameters({path, parameters, example, setResponse, methodName}:
 		<Card className="m-2 w-95">
 			<CardHeader header={<b className="fs-6">Parameter Schema</b>}/>
 			<CardPreview className="d-flex flex-column align-items-start p-3">
-				{queryParameters && <div><Label><b className="fs-6">Query</b></Label>
-					{renderSchema(queryParameters.map(p => p.parameter))}</div>}
-				{pathParameters && <div><Label><b className="fs-6">Path</b></Label>
-					{renderSchema(pathParameters.map(p => p.parameter))}</div>}
+				{<div><Label><b className="fs-6">Query</b></Label>
+					{renderSchema(requestParameters.map(p => p.parameter))}</div>}
 				{bodySchema && <div><Label><b className="fs-6">Body</b></Label>
 					{renderBodySchema(bodySchema)}</div>}
 			</CardPreview>

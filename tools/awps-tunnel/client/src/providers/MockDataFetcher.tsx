@@ -42,8 +42,8 @@ export class MockDataFetcher implements IDataFetcher {
     const current = {
       ready: true,
       clientUrl: "wss://mock-free.webpubsub.azure.com/client/hubs/mock/",
-      liveTraceUrl: "https://xxx.webpubsub.azure.com",
-      endpoint: "https://mock-free.webpubsub.azure.com",
+      liveTraceUrl: "https://xxx.webpubsub.azure.com/",
+      endpoint: "https://mock-free.webpubsub.azure.com/",
       upstreamServerUrl: "http://localhost:3000",
       tunnelConnectionStatus: ConnectionStatus.Connected,
       tunnelServerStatus: ConnectionStatusPairs.Connected,
