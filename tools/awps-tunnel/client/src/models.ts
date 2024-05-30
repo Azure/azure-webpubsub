@@ -188,13 +188,13 @@ export interface ResponseSchema {
 
 export interface APIResponse {
   code: string;
-	detail: string | undefined;
-	errors: {[error: string] : string[]};
-	message: string;
-	status: number;
-	target: string;
-	title: string;
-	type: string | undefined;
+  detail: string | undefined;
+  errors: {[error: string] : string[]};
+  message: string;
+  status: number;
+  target: string;
+  title: string;
+  type: string | undefined;
 }
 
 export interface Header {
@@ -207,14 +207,14 @@ export interface Header {
 
 export interface Definition {
   name?: string
-	description?: string;
-	type: string;
-	properties: DefinitionProp,
-	items?: {
-		type: string;
-		$ref?: string;
-	};
-	$ref?: string;
+  description?: string;
+  type: string;
+  properties: DefinitionProp,
+  items?: {
+    type: string;
+    $ref?: string;
+  };
+  $ref?: string;
 }
 
 export interface DefinitionProp{
@@ -246,4 +246,3 @@ export interface ExampleParameter{
   },
   message?: string,
 }
-
