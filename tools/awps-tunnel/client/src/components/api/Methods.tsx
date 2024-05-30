@@ -22,7 +22,7 @@ export function Method({method, path, methodName}: {
 	useEffect(() => {
 		const operationId = method.operationId;
 		const example = method["x-ms-examples"][operationId].$ref;
-		fetch(example).then(res => res.json()).then(res => setExample(res))
+		fetch(`./api/${example}`).then(res => res.json()).then(res => setExample(res))
 		setResponse(undefined);
 	}, [method, path]);
 	

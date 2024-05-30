@@ -163,11 +163,9 @@ export function Parameters({path, parameters, example, setResponse, methodName}:
 		if (data.hub) {
 			newPath = newPath.replace('{hub}', data.hub);
 		}
-		console.log(newPath)
 		let query: string = "";
 		requestParameters.forEach(({parameter}): void => {
 			if (parameter.in === "path") {
-				console.log(newPath.includes(`{${parameter.name}}`));
 				newPath = newPath.replace(`{${parameter.name}}`, requestParameterInputs[parameter.name])
 			} else {
 				if (requestParameterInputs[parameter.name]) {
