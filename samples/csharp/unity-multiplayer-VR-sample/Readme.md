@@ -11,7 +11,7 @@ his sample show off how to use [Azure Realtime Transport for Unity](https://gith
 1. Copy connection string in `Keys` page of your Web PubSub service you just created.
 2. Install [dotnet runtime](https://learn.microsoft.com/dotnet/core/install/) if you don't have one.
 3. In `Proejct` view, right click `Packages/Azure Web PubSub Transport for Netcode for Gameobjects`, and click `Show in Explorer`.
-4. Extact `Resources/NegotiateServersSource~.zip`  and go into the extracted folder `NegotiateServersSource~/AWPSNegotiateServer`, rename `appseetings.sample.json` to  `appsettings.json `, fill the connection string in `ConnectionString` section.
+4. Extact `Resources/NegotiateServersSource~.zip`  and go into the extracted folder `NegotiateServersSource~/AWPSNegotiateServer`, rename `appsettings.sample.json` to  `appsettings.json `, fill the connection string in `ConnectionString` section.
 5. In terminal app, run `dotnet run` to start negotiation server.
 6. Get listening URL in console log. For example: `Now listening on: https://localhost:7172`
 
