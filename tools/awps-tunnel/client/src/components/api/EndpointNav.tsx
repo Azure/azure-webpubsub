@@ -71,8 +71,8 @@ export function EndpointNav({setSelectedPath}: {
 			setSelectedPath(data.value as string)
 		}} vertical>
 			<Accordion multiple>
-				{categories && Object.entries(categories).map(([category, path]) => (
-					<AccordionItem value={category}>
+				{categories && Object.entries(categories).map(([category, path], index) => (
+					<AccordionItem key={index} value={category}>
 						<AccordionHeader><Label size={"large"}>{category}</Label></AccordionHeader>
 						<AccordionPanel>
 							{Object.entries(path).map(([url, {pathUrl, path}]) => (

@@ -32,8 +32,8 @@ function renderSchema(parameters: Parameter[]): React.JSX.Element {
 				</TableRow>
 			</TableHeader>
 			<TableBody>
-				{parameters.map((p, key) => (
-						<TableRow key={key}>
+				{parameters.map((p, index) => (
+						<TableRow key={index}>
 							<TableCell>
 								<div>
 									<div>
@@ -69,8 +69,8 @@ function renderBodySchema(schema: Definition): React.JSX.Element {
 					</TableRow>
 				</TableBody> :
 				<TableBody>
-					{schema.properties && Object.entries(schema.properties).map(([name, item], key) => (
-						<TableRow key={key}>
+					{schema.properties && Object.entries(schema.properties).map(([name, item], index) => (
+						<TableRow key={index}>
 							<TableCell>{name}</TableCell>
 							<TableCell>{item.type}</TableCell>
 							{item.items && <TableCell>{item.items.type}</TableCell>}
@@ -257,8 +257,8 @@ export function Parameters({path, parameters, example, setResponse, methodName}:
 				{requestParameters.length > 2 && requestParameters.map(({
 					                                                        parameter,
 					                                                        inputComponent
-				                                                        }) => (parameter.name !== "api-version" && parameter.name !== "hub" &&
-			<div>
+				                                                        }, index) => (parameter.name !== "api-version" && parameter.name !== "hub" &&
+			<div key={index}>
 				<div className="d-flex">
 					<Label className="fs-6 me-2">{parameter.name}</Label>
 									{parameter.required && <Label className="text-danger">required</Label>}
