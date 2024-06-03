@@ -1,5 +1,10 @@
 # Change Log
 
+## 0.1.1 - 2024-05-13
+- Support creating a hub setting without any event handler
+- Remove useless dependency to Azure Account Extension
+- Fix Github repository URL
+
 ## 0.1.0 - 2024-04-26
 
 ### Added

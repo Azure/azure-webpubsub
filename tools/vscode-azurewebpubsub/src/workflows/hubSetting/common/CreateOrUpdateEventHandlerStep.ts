@@ -20,7 +20,7 @@ export class CreateOrUpdateEventHandlerStep extends AzureWizardPromptStep<ICreat
                 JSON.stringify(context.hubProperties)
             ));
         }
-        context.hubProperties.anonymousConnectPolicy = await InputAnonymousPolicy(context.ui);
+        
         let updateIndex = -1;
         if (!this.isNewHandler) {
             if (!(context.hubProperties?.eventHandlers?.length)) {
