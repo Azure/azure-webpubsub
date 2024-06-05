@@ -45,9 +45,10 @@ sealed class Sample_ChatApp : WebPubSubHub
         _serviceClient = serviceClient;
     }
 
-    public override async Task OnConnectedAsync(ConnectedEventRequest request)
+    public override Task OnConnectedAsync(ConnectedEventRequest request)
     {
         Console.WriteLine($"[SYSTEM] {request.ConnectionContext.UserId} joined.");
+        return Task.CompletedTask;
     }
 
     public override async ValueTask<UserEventResponse> OnMessageReceivedAsync(UserEventRequest request, CancellationToken cancellationToken)
