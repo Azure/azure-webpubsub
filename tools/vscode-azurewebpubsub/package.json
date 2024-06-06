@@ -125,6 +125,11 @@
                 "category": "Azure Web PubSub"
             },
             {
+                "command": "azureWebPubSub.service.testClient",
+                "title": "%azureWebPubSub.service.testClient%",
+                "category": "Azure Web PubSub"
+            },
+            {
                 "command": "azureWebPubSub.service.scaleUp",
                 "title": "%azureWebPubSub.service.scaleUp%",
                 "category": "Azure Web PubSub"
@@ -258,6 +263,11 @@
             ],
             "azureWebPubSub.service.advancedMenu": [
                 {
+                    "command": "azureWebPubSub.service.testClient",
+                    "when": "view =~ /(azureResourceGroups|azureFocusView)/ && viewItem =~ /webPubSubServiceItem/i",
+                    "group": "1@1"
+                },
+                {
                     "command": "azureWebPubSub.service.scaleUp",
                     "when": "view =~ /(azureResourceGroups|azureFocusView)/ && viewItem =~ /webPubSubServiceItem/i",
                     "group": "1@1"
@@ -321,6 +331,8 @@
         "@types/gulp": "^4.0.6",
         "@types/mocha": "^8.2.2",
         "@types/node": "^18.19.9",
+        "@types/react": "^18.3.3",
+        "@types/react-dom": "^18.3.0",
         "@types/semver": "^7.3.8",
         "@types/vscode": "1.76.0",
         "@typescript-eslint/eslint-plugin": "^5.59.11",
@@ -355,6 +367,8 @@
         "dotenv": "^16.0.0",
         "fs-extra": "^8.1.0",
         "jsonwebtoken": "^9.0.2",
+        "react": "^18.3.1",
+        "react-dom": "^18.3.1",
         "semver": "^7.5.2",
         "vscode-extension-telemetry-wrapper": "^0.13.3",
         "vscode-nls": "^4.1.1",
