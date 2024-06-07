@@ -1,22 +1,17 @@
-import restapiSpec from '../api/restapiSample.json'
 import {
-	Tab,
-	TabList,
 	Accordion,
-	AccordionItem,
 	AccordionHeader,
+	AccordionItem,
 	AccordionPanel,
-	Label
+	Label,
+	Tab,
+	TabList
 } from "@fluentui/react-components";
-import React, {useEffect, useState} from "react";
-import {PathItem} from "../../models";
+import React, { useEffect, useState } from "react";
+import { PathItem } from "../../models";
+import restapiSpec from '../api/restapiSample.json';
+import { methodColors } from './Methods';
 
-const methodColors: { [method: string]: string } = {
-	post: "#ffd02b",
-	put: "#4385d9",
-	delete: "#f27263",
-	head: "#a887c9"
-};
 export function EndpointNav({setSelectedPath}: {
 	setSelectedPath: React.Dispatch<React.SetStateAction<string | undefined>>
 }): React.JSX.Element {

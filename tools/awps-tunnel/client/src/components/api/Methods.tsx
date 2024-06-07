@@ -1,11 +1,11 @@
+import { Label } from "@fluentui/react-components";
 import 'bootstrap/dist/css/bootstrap.min.css';
-import React, {useEffect, useState} from "react";
-import {Example, Operation, APIResponse} from "../../models";
-import {Response} from "./Response";
-import {Parameters} from "./Parameters";
-import {Label} from "@fluentui/react-components";
+import React, { useEffect, useState } from "react";
+import { APIResponse, Example, Operation } from "../../models";
+import { Parameters } from "./Parameters";
+import { Response } from "./Response";
 
-const methodColors: { [method: string]: string } = {
+export const methodColors: { [method: string]: string } = {
 	post: "#ffd02b",
 	put: "#4385d9",
 	delete: "#f27263",
