@@ -62,7 +62,7 @@ export function EndpointNav({setSelectedPath}: {
 	}, []);
 	
 	return (<div className="d-flex overflow-hidden" style={{flex: 1}}>
-		<TabList onTabSelect={(e, data) => {
+		<TabList onTabSelect={(_e, data) => {
 			setSelectedPath(data.value as string)
 		}} vertical>
 			<Accordion multiple>
@@ -70,7 +70,7 @@ export function EndpointNav({setSelectedPath}: {
 					<AccordionItem key={index} value={category}>
 						<AccordionHeader><Label size={"large"}>{category}</Label></AccordionHeader>
 						<AccordionPanel>
-							{Object.entries(path).map(([url, {pathUrl, path}]) => (
+							{Object.entries(path).map(([_url, {pathUrl, path}]) => (
 								Object.entries(path).map(([method, details]) => (
 									<Tab key={`${pathUrl}-${method}`} value={`${pathUrl}-${method}`}>
 										<div className="d-flex">
