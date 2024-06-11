@@ -5,7 +5,7 @@ import { useEffect, useState } from "react";
 import { ConnectionStatus, RESTApi } from "../models";
 import CodeTabs from "../components/CodeTabs";
 import { useDataContext } from "../providers/DataContext";
-import restapiSpec from '../components/api/restapiSample.json'
+import restapiSpec from '../components/api/webpubsub.json';
 import { Path } from "../components/api/Path";
 import { EndpointNav } from "../components/api/EndpointNav";
 import type { TabValue } from "@fluentui/react-components";

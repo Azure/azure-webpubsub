@@ -15,7 +15,7 @@ import {
 import {Icon} from '@fluentui/react/lib/Icon';
 import {ExampleParameter, Parameter, Definition, APIResponse} from "../../models";
 import 'bootstrap/dist/css/bootstrap.min.css';
-import restapiSpec from '../api/restapiSample.json'
+import restapiSpec from './webpubsub.json';
 import JSONInput from "react-json-editor-ajrm/index";
 // @ts-ignore, dependency for library, don't remove
 import locale from "react-json-editor-ajrm/locale/en";

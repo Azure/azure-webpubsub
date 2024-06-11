@@ -361,5 +361,5 @@ MigrationBackup/
 env/
 website/docusaurus/
 
-tools/awps-tunnel/client/src/components/api/restapiSample.json
+tools/awps-tunnel/client/src/components/api/webpubsub.json
 tools/awps-tunnel/client/public/api/examples/

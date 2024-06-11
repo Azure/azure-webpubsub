@@ -10,7 +10,6 @@ import type {
 import locale from "react-json-editor-ajrm/locale/en";
 import JSONInput from "react-json-editor-ajrm";
 
-
 export function Response({responseSchema, response}: {
 	responseSchema: { [status: string]: ResponseSchema },
 	response: APIResponse | undefined

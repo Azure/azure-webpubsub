@@ -9,7 +9,7 @@ import {
 } from "@fluentui/react-components";
 import React, { useEffect, useState } from "react";
 import { PathItem } from "../../models";
-import restapiSpec from '../api/restapiSample.json';
+import restapiSpec from './webpubsub.json';
 import { methodColors } from './Methods';
 
 export function EndpointNav({setSelectedPath}: {

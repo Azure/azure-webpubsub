@@ -35,7 +35,7 @@ async function downloadFiles() {
 		const apiUrl = `https://api.github.com/repos/${repoPath}/contents/${apiFilePath}?ref=${ref}`;
 		const apiResponse = await axios.get(apiUrl, { responseType: 'json' });
 		const apiFileResponse = await axios.get(apiResponse.data.download_url, { responseType: 'arraybuffer' });
-		fs.writeFileSync(path.join(apiDir, 'restapiSample.json'), apiFileResponse.data);
+		fs.writeFileSync(path.join(apiDir, 'webpubsub.json'), apiFileResponse.data);
 		console.log('api spec downloaded successfully.');
 	} catch (error) {
 		console.error('Error downloading files:', error);
