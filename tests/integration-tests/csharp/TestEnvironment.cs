@@ -15,7 +15,7 @@ namespace csharp
             // What if multiple different resources needed?
             DotEnv.Load();
 
-            ConnectionString = Environment.GetEnvironmentVariable("CONNECTION_STRING") ?? throw new InvalidOperationException("Please set the WEB_PUBSUB_CONNECTION_STRING environment variable.");
+            ConnectionString = Environment.GetEnvironmentVariable("WEB_PUBSUB_CONNECTION_STRING") ?? throw new InvalidOperationException("Please set the WEB_PUBSUB_CONNECTION_STRING environment variable.");
         }
 
         [OneTimeTearDown]
