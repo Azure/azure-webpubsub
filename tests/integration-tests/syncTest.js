@@ -3,9 +3,8 @@ import { Octokit } from "@octokit/rest";
 const githubToken = process.env.GITHUB_TOKEN;
 const apiKey = process.env.API_KEY;
 const prId = process.env.PR_ID;
-const targetRepoOwner = "jiangy10";
-const targetRepo = "monitor-test";
-
+const targetRepoOwner = "Azure";
+const targetRepo = "azure-webpubsub"
 const octokit = new Octokit({
     auth: githubToken,
 });
@@ -40,21 +39,21 @@ async function createChangeBranch(owner, repo, sha) {
         const { data } = await octokit.rest.git.getRef({
             owner,
             repo,
-            ref: "refs/heads/dp-sync-change",
+            ref: "refs/heads/[auto-generated]python integration test",
         });
         console.log("Branch already exists, using existing branch SHA:", data.object.sha);
         return data.object.sha;
     } catch (error) {
-        // If the branch does not exist, create new branch called "dp-sync-change"
+        // If the branch does not exist, create new branch called "[auto-generated]python integration test"
         if (error.status === 404) {
             try {
                 const { data: newData } = await octokit.rest.git.createRef({
                     owner,
                     repo,
-                    ref: "refs/heads/dp-sync-change",
+                    ref: "refs/heads/[auto-generated]python integration test",
                     sha,
                 });
-                console.log("Branch dp-sync-change created successfully, new branch SHA:", newData.object.sha);
+                console.log("Branch [auto-generated]python integration test created successfully, new branch SHA:", newData.object.sha);
                 return newData.object.sha;
             } catch (error) {
                 console.error("Failed to create branch:", error.message);
@@ -126,7 +125,7 @@ async function updateBranch(owner, repo, commitSha) {
         await octokit.rest.git.updateRef({
             owner,
             repo,
-            ref: "heads/dp-sync-change",
+            ref: "heads/[auto-generated]python integration test",
             sha: commitSha,
         });
     } catch (error) {
@@ -140,8 +139,8 @@ async function createPR(owner, repo) {
         const { data } = await octokit.rest.pulls.create({
             owner,
             repo,
-            title: "[deep prompt] Sync Python PR",
-            head: "dp-sync-change",
+            title: "[auto-generated]Sync Python test",
+            head: "[auto-generated]python integration test",
             base: "main",
             body: "Please pull these awesome changes in!",
             draft: false,
@@ -193,7 +192,7 @@ async function syncPrChange() {
     await updateBranch(targetRepoOwner, targetRepo, commitSha);
 
     //create pr
-    await createPR(targetRepoOwner, targetRepo);
+//    await createPR(targetRepoOwner, targetRepo);
 }
 
 async function translate(file, sessionId, accessToken) {
@@ -201,6 +200,7 @@ async function translate(file, sessionId, accessToken) {
                 Below is a file change patch from github pull request.
                 Go through this file name and file patch then translate the file content to python using pytest for live tests.
                 Return the file name and file content in your response.
+                The file name should begin with path "tests/integration-tests/python"
                 For your response, use same environment variable(hub, connection string, messages etc.) as the original file.
                 Do not omit any file content. The response should contain as many tests as the original document.
 

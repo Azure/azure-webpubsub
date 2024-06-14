@@ -40,7 +40,8 @@ jobs:
       - name: Test csharp tests
         run: dotnet test tests/integration-tests/csharp/csharp.csproj
       - name: Sync Tests
-        run: cd tests && npm install -g yarn && yarn install && yarn run sync
+        if: !contains(github.event.pull_request.title, '[auto-generated]')
+        run: cd tests/integration-tests && npm install -g yarn && yarn install && yarn run sync
         env:
           PR_ID: ${{ github.event.pull_request.number }}
           GITHUB_TOKEN: ${{ secrets.TOKEN }}

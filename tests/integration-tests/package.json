@@ -3,6 +3,7 @@
   "version": "1.0.0",
   "description": "",
   "main": "syncTest.js",
+  "type": "module",
   "scripts": {
     "sync": "node syncTest.js"
   },
