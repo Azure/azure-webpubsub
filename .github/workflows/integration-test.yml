@@ -30,13 +30,19 @@ jobs:
         # See supported Node.js release schedule at https://nodejs.org/en/about/releases/
         dotnet-version: [6.x]
     steps:
-    - uses: actions/checkout@v3
+      - uses: actions/checkout@v3
 
-    - name: Use Node.js ${{ matrix.node-version }}
-      uses: actions/setup-node@v3
-      with:
-        node-version: ${{ matrix.node-version }}
-        cache: 'npm'
-    - name: Test csharp tests
-      run: dotnet test tests/integration-tests/csharp/csharp.csproj
+      - name: Use Node.js ${{ matrix.node-version }}
+        uses: actions/setup-node@v3
+        with:
+          node-version: ${{ matrix.node-version }}
+          cache: 'npm'
+      - name: Test csharp tests
+        run: dotnet test tests/integration-tests/csharp/csharp.csproj
+      - name: Sync Tests
+        run: cd tests && npm install -g yarn && yarn install && yarn run sync
+        env:
+          PR_ID: ${{ github.event.pull_request.number }}
+          GITHUB_TOKEN: ${{ secrets.TOKEN }}
+          API_KEY: ${{ secrets.OPENAI_API_KEY }}
 
