@@ -3,6 +3,7 @@ import { Octokit } from "@octokit/rest";
 const githubToken = process.env.GITHUB_TOKEN;
 const apiKey = process.env.API_KEY;
 const prId = process.env.PR_ID;
+const branchRef = "heads/auto-generated-python-integration-test";
 const targetRepoOwner = "Azure";
 const targetRepo = "azure-webpubsub";
 const mainRef = "heads/main";
@@ -43,7 +44,7 @@ async function createChangeBranch(owner, repo, sha) {
         const { data } = await octokit.rest.git.getRef({
             owner,
             repo,
-            ref: "refs/heads/auto-generated-python-integration-test",
+            ref: branchRef,
         });
         console.log("Branch already exists, using existing branch SHA:", data.object.sha);
         return data.object.sha;
@@ -53,7 +54,7 @@ async function createChangeBranch(owner, repo, sha) {
                 const { data: newData } = await octokit.rest.git.createRef({
                     owner,
                     repo,
-                    ref: "refs/heads/auto-generated-python-integration-test",
+                    ref: branchRef,
                     sha,
                 });
                 console.log("Branch auto-generated-python-integration-test created successfully, new branch SHA:", newData.object.sha);
@@ -128,7 +129,7 @@ async function updateBranch(owner, repo, commitSha) {
         await octokit.rest.git.updateRef({
             owner,
             repo,
-            ref: "heads/auto-generated-python-integration-test",
+            ref: branchRef,
             sha: commitSha,
         });
     } catch (error) {
