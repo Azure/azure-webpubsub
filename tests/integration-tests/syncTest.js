@@ -4,7 +4,6 @@ import prompt from "./query.json" assert { type: "json" };
 const githubToken = process.env.GITHUB_TOKEN;
 const apiKey = process.env.API_KEY;
 const prId = process.env.PR_ID;
-const changedFileLanguage = process.env.LANGUAGE;
 const branchRef = "heads/auto-generated-integration-test";
 const targetRepoOwner = "Azure";
 const targetRepo = "azure-webpubsub";
@@ -174,10 +173,27 @@ async function getSessionAccess() {
     }
 }
 
+function getChangedFileLanguage(changedFiles) {
+    for (const file of changedFiles) {
+        if (file.fileName.includes(".java")) {
+            return "java";
+        } else if (file.fileName.includes(".py")) {
+            return "python";
+        } else if (file.fileName.includes(".js")) {
+            return "javascript";
+        } else if (file.fileName.includes(".go")) {
+            return "go";
+        } else {
+            return "csharp";
+        }
+    }
+}
+
 async function syncPrChange() {
     const languages = ["javascript", "python", "csharp", "go", "java"];
     const accessSession = await getSessionAccess();
     const changedFiles = await getChangedFiles("Azure", "azure-webpubsub", prId);
+    const changedFileLanguage = getChangedFileLanguage(changedFiles);
     let translatedFiles = [];
     for (const language of languages) {
         if (language !== changedFileLanguage) {
