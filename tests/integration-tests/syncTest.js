@@ -1,9 +1,11 @@
 import { Octokit } from "@octokit/rest";
+import prompt from "./query.json" assert { type: "json" };
 
 const githubToken = process.env.GITHUB_TOKEN;
 const apiKey = process.env.API_KEY;
 const prId = process.env.PR_ID;
-const branchRef = "heads/auto-generated-python-integration-test";
+const changedFileLanguage = process.env.LANGUAGE;
+const branchRef = "heads/auto-generated-integration-test";
 const targetRepoOwner = "Azure";
 const targetRepo = "azure-webpubsub";
 const mainRef = "heads/main";
@@ -44,7 +46,7 @@ async function createChangeBranch(owner, repo, sha) {
         const { data } = await octokit.rest.git.getRef({
             owner,
             repo,
-            ref: branchRef,
+            ref: `refs/${branchRef}`,
         });
         console.log("Branch already exists, using existing branch SHA:", data.object.sha);
         return data.object.sha;
@@ -54,10 +56,10 @@ async function createChangeBranch(owner, repo, sha) {
                 const { data: newData } = await octokit.rest.git.createRef({
                     owner,
                     repo,
-                    ref: branchRef,
+                    ref: `refs/${branchRef}`,
                     sha,
                 });
-                console.log("Branch auto-generated-python-integration-test created successfully, new branch SHA:", newData.object.sha);
+                console.log("Branch auto-generated-integration-test created successfully, new branch SHA:", newData.object.sha);
                 return newData.object.sha;
             } catch (error) {
                 console.error("Failed to create branch:", error.message);
@@ -113,7 +115,7 @@ async function createCommit(owner, repo, treeSha, branchSha) {
         const { data } = await octokit.rest.git.createCommit({
             owner,
             repo,
-            message: "[auto-generated]sync python pull request",
+            message: "[auto-generated]sync translation pull request",
             tree: treeSha,
             parents: [branchSha],
         });
@@ -143,8 +145,8 @@ async function createPR(owner, repo) {
         const { data } = await octokit.rest.pulls.create({
             owner,
             repo,
-            title: "auto-generated-Sync Python test",
-            head: "auto-generated-python-integration-test",
+            title: "auto-generated-Sync test",
+            head: "auto-generated-integration-test",
             base: "main",
             body: "Please pull these awesome changes in!",
             draft: false,
@@ -173,17 +175,24 @@ async function getSessionAccess() {
 }
 
 async function syncPrChange() {
+    const languages = ["javascript", "python", "csharp", "go", "java"];
     const accessSession = await getSessionAccess();
     const changedFiles = await getChangedFiles("Azure", "azure-webpubsub", prId);
     let translatedFiles = [];
-    for (const file of changedFiles) {
-        if (file.filename.includes(".cs")) {
-            console.log(`start translating ${file.filename} ...`);
-            const dpResponse = await translate(file, accessSession.session_id, accessSession.access_token);
-            translatedFiles.push(dpResponse);
-            console.log(`${file.filename} translation complete`);
+    for (const language of languages) {
+        if (language !== changedFileLanguage) {
+            for (const file of changedFiles) {
+                if (file.filename.includes(".cs") || file.filename.includes(".py") || file.filename.includes(".js") || file.filename.includes(".go") || file.filename.includes(".java")) {
+                    console.log(`start translating ${file.filename} ...`);
+                    const dpResponse = await translate(file, accessSession.session_id, accessSession.access_token, language);
+                    translatedFiles.push(dpResponse);
+                    console.log(`[${changedFileLanguage} => ${language}]${file.filename} translation complete`);
+//                    console.log(dpResponse);
+                }
+            }
         }
     }
+
 
     //prepare for github commit
     const sha = await getLatestCommitSha(targetRepoOwner, targetRepo);
@@ -199,24 +208,18 @@ async function syncPrChange() {
 //    await createPR(targetRepoOwner, targetRepo);
 }
 
-async function translate(file, sessionId, accessToken) {
+async function translate(file, sessionId, accessToken, targetLanguage) {
     const query = `
                 Below is a file change patch from github pull request.
-                Go through this file name and file patch then translate the file content to python using pytest for live tests.
+                Go through this file name and file patch then translate the file content to ${targetLanguage}.
                 Return the response in stringfied json format, with fileName and fileContent.
-                The file name should begin with path "tests/integration-tests/python"
+                The file name should begin with path tests/integration-tests/${targetLanguage}
                 For your response, use same environment variable(hub, connection string, messages etc.) as the original file.
                 Do not omit any file content. The response should contain as many tests as the original document.
 
                 Include these import statement as necessary in your response:
                 ###
-                import json
-                import pytest
-                from azure.core.exceptions import HttpResponseError, ServiceRequestError
-                from azure.messaging.webpubsubservice._operations._operations import \
-                build_send_to_all_request
-                from devtools_testutils import recorded_by_proxy
-                from testcase import WebpubsubPowerShellPreparer, WebpubsubTest
+                ${prompt[targetLanguage]}
                 ###`;
     try {
         while (true) {
@@ -234,6 +237,7 @@ async function translate(file, sessionId, accessToken) {
                     query: `${query}\n File Name: ###${file.filename}\n ###File patch:\n ###${file.patch}###`,
                 }),
             }).then(res => res.json());
+            console.log(dpResponse.response_text);
             if (dpResponse.response_text.includes("fileName") && dpResponse.response_text.includes("fileContent")) {
                 return parseResponseToJson(dpResponse.response_text);
             }
