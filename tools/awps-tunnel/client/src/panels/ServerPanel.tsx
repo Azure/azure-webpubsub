@@ -1,14 +1,14 @@
+import { Field, ProgressBar, Switch, Tab, TabList } from "@fluentui/react-components";
 import { Icon } from "@fluentui/react/lib/Icon";
-import { Switch, Field, ProgressBar, TabList, Tab } from "@fluentui/react-components";
 import { useEffect, useState } from "react";
 
-import { ConnectionStatus, RESTApi } from "../models";
-import CodeTabs from "../components/CodeTabs";
-import { useDataContext } from "../providers/DataContext";
-import restapiSpec from '../components/api/webpubsub.json';
-import { Path } from "../components/api/Path";
-import { EndpointNav } from "../components/api/EndpointNav";
 import type { TabValue } from "@fluentui/react-components";
+import CodeTabs from "../components/CodeTabs";
+import { EndpointNav } from "../components/api/EndpointNav";
+import { Path } from "../components/api/Path";
+import restapiSpec from '../components/api/webpubsub.json';
+import { ConnectionStatus, RESTApi } from "../models";
+import { useDataContext } from "../providers/DataContext";
 export interface ServerPanelProps {
   endpoint?: string;
   onChange: (checked: boolean) => Promise<{ success: boolean; message: string }>;
@@ -73,8 +73,8 @@ export function ServerPanel({ endpoint, onChange }: ServerPanelProps) {
       <TabList className="mb-2" selectedValue={selectedPanel} onTabSelect={(e, data) => {
         setSelectedPanel(data.value)
       }}>
-        <Tab id={"server"} value={"server"}>Server</Tab>
-        <Tab id={"api"} value={"api"}>API</Tab>
+        <Tab id={"server"} value={"server"}>Handle events</Tab>
+        <Tab id={"api"} value={"api"}>Invoke Web Pubsub service</Tab>
       </TabList>
       {selectedPanel === "server" && <div className="m-2">
         <p>

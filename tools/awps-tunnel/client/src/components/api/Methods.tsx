@@ -20,10 +20,12 @@ export function Method({ method, path, methodName }: {
 	const [example, setExample] = useState<Example>();
 	const [response, setResponse] = useState<APIResponse | undefined>(undefined);
 	useEffect(() => {
-		const operationId = method.operationId;
-		const example = method["x-ms-examples"][operationId].$ref;
-		fetch(`./api/${example}`).then(res => res.json()).then(res => setExample(res))
-		setResponse(undefined);
+		if (method.operationId) {
+			const operationId = method.operationId;
+			const example = method["x-ms-examples"][operationId].$ref;
+			fetch(`./api/${example}`).then(res => res.json()).then(res => setExample(res))
+			setResponse(undefined);
+		}
 	}, [method, path]);
 
 	return (
