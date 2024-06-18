@@ -20,7 +20,7 @@ import restapiSpec from './webpubsub.json';
 // @ts-ignore, dependency for library, don't remove
 import locale from "react-json-editor-ajrm/locale/en";
 import { useDataContext } from "../../providers/DataContext";
-
+import { jsonColor } from "./Response";
 
 function renderSchema(parameters: Parameter[]): React.JSX.Element {
 	return (<div>
@@ -276,13 +276,7 @@ export function Parameters({ path, parameters, example, setResponse, methodName 
 					</div>
 					<JSONInput locale={locale}
 						placeholder={bodyParameterInputs}
-						colors={{
-							default: "black",
-							background: "white",
-							keys: "#8b1853",
-							string: "#4a50a3",
-							colon: "black"
-						}} onChange={(e: any) => setBodyParameterInputs(e.jsObject)} height={"auto"}
+						colors={jsonColor} onChange={(e: any) => setBodyParameterInputs(e.jsObject)} height={"auto"}
 						confirmGood={false} />
 				</div>}
 				<div className="d-flex justify-content-end w-100">

@@ -10,7 +10,7 @@ import { APIResponse, ResponseSchema } from "../../models";
 // @ts-ignore, dependency for library, don't remove
 import locale from "react-json-editor-ajrm/locale/en";
 
-var jsonColor =
+export var jsonColor =
 {
 	default: "black",
 	background: "white",
