@@ -9,10 +9,10 @@ import {
 } from "@fluentui/react-components";
 import React, { useEffect, useState } from "react";
 import { PathItem } from "../../models";
-import restapiSpec from './webpubsub.json';
 import { methodColors } from './Methods';
+import restapiSpec from './webpubsub.json';
 
-export function EndpointNav({setSelectedPath}: {
+export function EndpointNav({ setSelectedPath }: {
 	setSelectedPath: React.Dispatch<React.SetStateAction<string | undefined>>
 }): React.JSX.Element {
 	const [categories, setCategories] = useState<{
@@ -22,7 +22,7 @@ export function EndpointNav({setSelectedPath}: {
 		users: { pathUrl: string, path: PathItem }[];
 		permissions: { pathUrl: string, path: PathItem }[];
 	}>();
-	
+
 	useEffect(() => {
 		let categories: {
 			general: { pathUrl: string, path: PathItem }[],
@@ -42,26 +42,26 @@ export function EndpointNav({setSelectedPath}: {
 			const category = segments[4] || 'general'; // Default to 'general' if no fourth segment
 			switch (category) {
 				case 'groups':
-					categories.groups.push({pathUrl: pathUrl, path: path as PathItem});
+					categories.groups.push({ pathUrl: pathUrl, path: path as PathItem });
 					break;
 				case 'connections':
-					categories.connections.push({pathUrl: pathUrl, path: path as PathItem});
+					categories.connections.push({ pathUrl: pathUrl, path: path as PathItem });
 					break;
 				case 'users':
-					categories.users.push({pathUrl: pathUrl, path: path as PathItem});
+					categories.users.push({ pathUrl: pathUrl, path: path as PathItem });
 					break;
 				case 'permissions':
-					categories.permissions.push({pathUrl: pathUrl, path: path as PathItem});
+					categories.permissions.push({ pathUrl: pathUrl, path: path as PathItem });
 					break;
 				default:
-					categories.general.push({pathUrl: pathUrl, path: path as PathItem});
+					categories.general.push({ pathUrl: pathUrl, path: path as PathItem });
 					break;
 			}
 		});
 		setCategories(categories);
 	}, []);
-	
-	return (<div className="d-flex overflow-hidden" style={{flex: 1}}>
+
+	return (<div className="d-flex overflow-hidden" style={{ flex: 1 }}>
 		<TabList onTabSelect={(_e, data) => {
 			setSelectedPath(data.value as string)
 		}} vertical>
@@ -70,13 +70,13 @@ export function EndpointNav({setSelectedPath}: {
 					<AccordionItem key={index} value={category}>
 						<AccordionHeader><Label size={"large"}>{category}</Label></AccordionHeader>
 						<AccordionPanel>
-							{Object.entries(path).map(([_url, {pathUrl, path}]) => (
+							{Object.entries(path).map(([_url, { pathUrl, path }]) => (
 								Object.entries(path).map(([method, details]) => (
 									<Tab key={`${pathUrl}-${method}`} value={`${pathUrl}-${method}`}>
 										<div className="d-flex">
 											<div
 												className="fs-6 me-2"
-												style={{color: methodColors[method]}}>{method.toUpperCase()}</div>
+												style={{ color: methodColors[method] }}>{method.toUpperCase()}</div>
 											<div>{details.operationId.replace("WebPubSub_", "")}</div>
 										</div>
 									</Tab>

@@ -12,7 +12,7 @@ export const methodColors: { [method: string]: string } = {
 	head: "#a887c9"
 };
 
-export function Method({method, path, methodName}: {
+export function Method({ method, path, methodName }: {
 	method: Operation,
 	path: string,
 	methodName: string
@@ -25,23 +25,23 @@ export function Method({method, path, methodName}: {
 		fetch(`./api/${example}`).then(res => res.json()).then(res => setExample(res))
 		setResponse(undefined);
 	}, [method, path]);
-	
+
 	return (
 		<div className="d-flex">
 			<div className="p-3">
 				<Label className="fs-4 fw-bold ms-2">{method.summary}</Label>
-				
+
 				<div className="d-flex flex-row justify-content-start align-items-center ms-2">
-					<div className={"g-primary text-white rounded px-1 fs-6"} style={{backgroundColor: methodColors[methodName]}}>{methodName.toUpperCase()}
+					<div className={"g-primary text-white rounded px-1 fs-6"} style={{ backgroundColor: methodColors[methodName] }}>{methodName.toUpperCase()}
 					</div>
 					<div className="mx-2">{path}</div>
 				</div>
-				
-				
+
+
 				{method.parameters && example &&
-			<Parameters path={path} parameters={method.parameters} example={example.parameters}
-			            setResponse={setResponse} methodName={methodName}/>}
-				<Response responseSchema={method.responses} response={response}/>
+					<Parameters path={path} parameters={method.parameters} example={example.parameters}
+						setResponse={setResponse} methodName={methodName} />}
+				<Response responseSchema={method.responses} response={response} />
 			</div>
 		</div>
 	)
