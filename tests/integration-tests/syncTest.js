@@ -3,6 +3,7 @@ import prompt from "./query.json" assert { type: "json" };
 
 const githubToken = process.env.GITHUB_TOKEN;
 const apiKey = process.env.API_KEY;
+const apiBase = process.env.API_BASE;
 const prId = process.env.PR_ID;
 const branchRef = "heads/auto-generated-integration-test";
 const targetRepoOwner = "Azure";
@@ -183,10 +184,11 @@ function getChangedFileLanguage(changedFiles) {
             return "javascript";
         } else if (file.fileName.includes(".go")) {
             return "go";
-        } else {
+        } else if (file.fileName.includes(".cs")) {
             return "csharp";
         }
     }
+    return ""
 }
 
 async function syncPrChange() {
@@ -203,7 +205,6 @@ async function syncPrChange() {
                     const dpResponse = await translate(file, accessSession.session_id, accessSession.access_token, language);
                     translatedFiles.push(dpResponse);
                     console.log(`[${changedFileLanguage} => ${language}]${file.filename} translation complete`);
-//                    console.log(dpResponse);
                 }
             }
         }
@@ -245,7 +246,7 @@ async function translate(file, sessionId, accessToken, targetLanguage) {
                     "Content-Type": "application/json",
                     "DeepPrompt-Session-ID": sessionId,
                     "Authorization": `Bearer ${accessToken}`,
-                    "DeepPrompt-OpenAI-API-Base": "https://lianwei-ai-aiservices.openai.azure.com/",
+                    "DeepPrompt-OpenAI-API-Base": apiBase,
                     "DeepPrompt-OpenAI-API-Key": apiKey,
                     "DeepPrompt-OpenAI-Deployment": "gpt-4o",
                 },
