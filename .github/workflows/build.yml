@@ -6,12 +6,18 @@ name: Build
 on:
   push:
     branches: [ "main" ]
-    paths-ignore:
-      - 'tests/integration-tests/**'
+    paths:
+      - 'sdk/**'
+      - 'tools/**'
+      - 'samples/**'
+      - 'experimental/**'
   pull_request:
     branches: [ "main" ]
-    paths-ignore:
-      - 'tests/integration-tests/**'
+    paths:
+      - 'sdk/**'
+      - 'tools/**'
+      - 'samples/**'
+      - 'experimental/**'
 
 jobs:
   build:
