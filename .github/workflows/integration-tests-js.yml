@@ -28,7 +28,7 @@ jobs:
       matrix:
         node-version: [18.x]
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
 
     - name: Use Node.js ${{ matrix.node-version }}
       uses: actions/setup-node@v3
@@ -37,7 +37,7 @@ jobs:
         cache: 'npm'
     - name: Test js tests
       run: 
-        pushd tests\integration-tests\js |
+        pushd tests/integration-tests/js |
         npm run test |
         popd
 
