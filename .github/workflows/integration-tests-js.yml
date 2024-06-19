@@ -38,4 +38,5 @@ jobs:
     - name: Test js tests
       run: |
         cd tests/integration-tests/js
+        npm install
         npm run test

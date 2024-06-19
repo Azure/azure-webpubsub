@@ -26,7 +26,7 @@ jobs:
       WEB_PUBSUB_CONNECTION_STRING: ${{ github.event.inputs.web_pubsub_connection_string || secrets.WEB_PUBSUB_CONNECTION_STRING }}
     strategy:
       matrix:
-        python-version: [3.10]
+        python-version: [3.9]
     steps:
     - uses: actions/checkout@v4
     - name: Set up Python ${{ matrix.python-version }}
