@@ -1,0 +1,1 @@
+azure-messaging-webpubsubservice==1.1.0

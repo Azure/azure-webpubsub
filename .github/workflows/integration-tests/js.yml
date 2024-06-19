@@ -1,7 +1,7 @@
 # This workflow will do a clean installation of node dependencies, cache/restore them, build the source code and run tests across different versions of node
 # For more information see: https://docs.github.com/en/actions/automating-builds-and-tests/building-and-testing-nodejs
 
-name: Integration tests
+name: Integration tests for JavaScript
 
 on:
   workflow_dispatch:
@@ -13,11 +13,11 @@ on:
   push:
     branches: [ "main" ]
     paths:
-      - 'tests/integration-tests/**'
+      - 'tests/integration-tests/js/**'
   pull_request:
     branches: [ "main" ]
     paths:
-      - 'tests/integration-tests/**'
+      - 'tests/integration-tests/js/**'
 
 jobs:
   test:
@@ -27,8 +27,6 @@ jobs:
     strategy:
       matrix:
         node-version: [18.x]
-        # See supported Node.js release schedule at https://nodejs.org/en/about/releases/
-        dotnet-version: [6.x]
     steps:
     - uses: actions/checkout@v3
 
@@ -37,6 +35,9 @@ jobs:
       with:
         node-version: ${{ matrix.node-version }}
         cache: 'npm'
-    - name: Test csharp tests
-      run: dotnet test tests/integration-tests/csharp/csharp.csproj
+    - name: Test js tests
+      run: 
+        pushd tests\integration-tests\js |
+        npm run test |
+        popd
 
