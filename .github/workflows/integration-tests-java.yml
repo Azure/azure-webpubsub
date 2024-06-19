@@ -37,10 +37,9 @@ jobs:
         cache: maven
 
     - name: Build and test with Maven
-      run: 
-        pushd tests/integration-tests/java/integration-tests |
-        mvn -B verify --file pom.xml |
-        popd
+      run: |
+        cd tests/integration-tests/java/integration-tests
+        mvn -B verify --file pom.xml
 
     # Optional: Uploads the full dependency graph to GitHub to improve the quality of Dependabot alerts this repository can receive
     - name: Update dependency graph

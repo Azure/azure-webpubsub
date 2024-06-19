@@ -36,8 +36,6 @@ jobs:
         node-version: ${{ matrix.node-version }}
         cache: 'npm'
     - name: Test js tests
-      run: 
-        pushd tests/integration-tests/js |
-        npm run test |
-        popd
-
+      run: |
+        cd tests/integration-tests/js
+        npm run test
