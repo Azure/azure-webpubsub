@@ -1,2 +1,2 @@
 azure-messaging-webpubsubservice==1.1.0
-pytest
+pytest==8.2.2
