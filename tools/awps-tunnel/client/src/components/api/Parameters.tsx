@@ -14,13 +14,10 @@ import {
 import { Icon } from '@fluentui/react/lib/Icon';
 import 'bootstrap/dist/css/bootstrap.min.css';
 import React, { useEffect, useState } from "react";
-import JSONInput from "react-json-editor-ajrm/index";
+import Editor from '@monaco-editor/react';
 import { APIResponse, Definition, ExampleParameter, Parameter } from "../../models";
 import restapiSpec from './webpubsub.json';
-// @ts-ignore, dependency for library, don't remove
-import locale from "react-json-editor-ajrm/locale/en";
 import { useDataContext } from "../../providers/DataContext";
-import { jsonColor } from "./Response";
 
 function renderSchema(parameters: Parameter[]): React.JSX.Element {
 	return (<div>
@@ -274,10 +271,16 @@ export function Parameters({ path, parameters, example, setResponse, methodName 
 						<Label className="fs-6 me-2">{requestBody[0].name}</Label>{ }
 						{requestBody[0].required && <Label className="text-danger">required</Label>}
 					</div>
-					<JSONInput locale={locale}
-						placeholder={bodyParameterInputs}
-						colors={jsonColor} onChange={(e: any) => setBodyParameterInputs(e.jsObject)} height={"auto"}
-						confirmGood={false} />
+					<Editor
+						height={"15vh"}
+						defaultLanguage="json"
+						value={JSON.stringify(bodyParameterInputs, null, 2)}
+						onChange={(value) => {
+							if (value) {
+								setBodyParameterInputs(JSON.parse(value))
+							}
+						}}
+					/>
 				</div>}
 				<div className="d-flex justify-content-end w-100">
 					<button className={"btn btn-primary w-20 mt-1"} onClick={sendRequest}>{methodName.toUpperCase()}</button>

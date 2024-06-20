@@ -7,6 +7,7 @@
     "@fluentui/react": "^8.106.3",
     "@fluentui/react-components": "^9.34.1",
     "@microsoft/signalr": "^8.0.0",
+    "@monaco-editor/react": "^4.6.0",
     "@popperjs/core": "2.11.8",
     "axios": "^1.7.2",
     "bootstrap": "^5.1.3",
