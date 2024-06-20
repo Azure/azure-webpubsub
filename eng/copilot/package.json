@@ -1,11 +1,10 @@
 {
-  "name": "tests",
+  "name": "copilot",
   "version": "1.0.0",
   "description": "",
-  "main": "syncTest.js",
-  "type": "module",
+  "main": "testTranslation.js",
   "scripts": {
-    "sync": "node syncTest.js"
+    "translate": "node testTranslation.js"
   },
   "author": "",
   "license": "ISC",

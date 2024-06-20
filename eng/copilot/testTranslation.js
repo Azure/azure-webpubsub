@@ -1,11 +1,11 @@
 import { Octokit } from "@octokit/rest";
-import prompt from "./query.json" assert { type: "json" };
+import prompt from "../../tests/integration-tests/query.json" assert { type: "json" };
 
 const githubToken = process.env.GITHUB_TOKEN;
 const apiKey = process.env.API_KEY;
 const apiBase = process.env.API_BASE;
 const prId = process.env.PR_ID;
-const branchRef = "heads/auto-generated-integration-test";
+const branchRef = `heads/auto-generated-integration-test-from-pr${prId}`;
 const targetRepoOwner = "Azure";
 const targetRepo = "azure-webpubsub";
 const mainRef = "heads/main";
@@ -213,6 +213,7 @@ async function syncPrChange() {
 
     //prepare for github commit
     const sha = await getLatestCommitSha(targetRepoOwner, targetRepo);
+    //todo: comapre sha of pr with the latest commit sha in the target repo
     const changeSha = await createChangeBranch(targetRepoOwner, targetRepo, sha);
 
     //stash files -> commit -> push
