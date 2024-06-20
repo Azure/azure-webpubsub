@@ -1,5 +1,5 @@
 import { Octokit } from "@octokit/rest";
-import prompt from "../../tests/integration-tests/query.json" assert { type: "json" };
+import prompt from "./query.json" assert { type: "json" };
 
 const githubToken = process.env.GITHUB_TOKEN;
 const apiKey = process.env.API_KEY;
@@ -176,15 +176,15 @@ async function getSessionAccess() {
 
 function getChangedFileLanguage(changedFiles) {
     for (const file of changedFiles) {
-        if (file.fileName.includes(".java")) {
+        if (file.filename.includes(".java")) {
             return "java";
-        } else if (file.fileName.includes(".py")) {
+        } else if (file.filename.includes(".py")) {
             return "python";
-        } else if (file.fileName.includes(".js")) {
+        } else if (file.filename.includes(".js")) {
             return "javascript";
-        } else if (file.fileName.includes(".go")) {
+        } else if (file.filename.includes(".go")) {
             return "go";
-        } else if (file.fileName.includes(".cs")) {
+        } else if (file.filename.includes(".cs")) {
             return "csharp";
         }
     }
@@ -197,23 +197,24 @@ async function syncPrChange() {
     const changedFiles = await getChangedFiles("Azure", "azure-webpubsub", prId);
     const changedFileLanguage = getChangedFileLanguage(changedFiles);
     let translatedFiles = [];
-    for (const language of languages) {
+    const translationPromises = languages.map(async (language) => {
         if (language !== changedFileLanguage) {
-            for (const file of changedFiles) {
-                if (file.filename.includes(".cs") || file.filename.includes(".py") || file.filename.includes(".js") || file.filename.includes(".go") || file.filename.includes(".java")) {
-                    console.log(`start translating ${file.filename} ...`);
-                    const dpResponse = await translate(file, accessSession.session_id, accessSession.access_token, language);
-                    translatedFiles.push(dpResponse);
-                    console.log(`[${changedFileLanguage} => ${language}]${file.filename} translation complete`);
-                }
-            }
+            const languageFiles = changedFiles.filter(file => file.filename.includes(".cs") || file.filename.includes(".py") || file.filename.includes(".js") || file.filename.includes(".go") || file.filename.includes(".java"));
+            const translationPromises = languageFiles.map(async (file) => {
+                console.log(`[${changedFileLanguage} => ${language}]\tstart translating ${file.filename} ...`);
+                const dpResponse = await translate(file, accessSession.session_id, accessSession.access_token, language);
+                console.log(`[${changedFileLanguage} => ${language}]\t${file.filename} translation complete`);
+                return dpResponse;
+            });
+            const translatedFilesForLanguage = await Promise.all(translationPromises);
+            translatedFiles.push(...translatedFilesForLanguage);
         }
-    }
+    });
+    await Promise.all(translationPromises);
 
 
     //prepare for github commit
     const sha = await getLatestCommitSha(targetRepoOwner, targetRepo);
-    //todo: comapre sha of pr with the latest commit sha in the target repo
     const changeSha = await createChangeBranch(targetRepoOwner, targetRepo, sha);
 
     //stash files -> commit -> push
@@ -255,8 +256,7 @@ async function translate(file, sessionId, accessToken, targetLanguage) {
                     query: `${query}\n File Name: ###${file.filename}\n ###File patch:\n ###${file.patch}###`,
                 }),
             }).then(res => res.json());
-            console.log(dpResponse.response_text);
-            if (dpResponse.response_text.includes("fileName") && dpResponse.response_text.includes("fileContent")) {
+            if (dpResponse.response_text && dpResponse.response_text.includes("fileName") && dpResponse.response_text.includes("fileContent")) {
                 return parseResponseToJson(dpResponse.response_text);
             }
         }
