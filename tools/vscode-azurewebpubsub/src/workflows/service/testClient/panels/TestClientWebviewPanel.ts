@@ -1,6 +1,8 @@
 import { Disposable, Webview, WebviewPanel, window, Uri, ViewColumn } from "vscode";
 import { getUri } from "../utilities/getUri";
 import { getNonce } from "../utilities/getNonce";
+import { ServiceModel } from "../../../../tree/service/ServiceModel";
+import { WebPubSubManagementClient } from "@azure/arm-webpubsub";
 
 /**
  * This class manages the state and behavior of HelloWorld webview panels.
@@ -12,10 +14,12 @@ import { getNonce } from "../utilities/getNonce";
  * - Setting the HTML (and by proxy CSS/JavaScript) content of the webview panel
  * - Setting message listeners so data can be passed between the webview and extension
  */
-export class HelloWorldPanel {
-  public static currentPanel: HelloWorldPanel | undefined;
+export class TestClientWebviewPanel {
+  public static currentPanel: TestClientWebviewPanel | undefined;
   private readonly _panel: WebviewPanel;
   private _disposables: Disposable[] = [];
+  private readonly _service: ServiceModel;
+  private readonly _managementClient: WebPubSubManagementClient;
 
   /**
    * The HelloWorldPanel class private constructor (called only from the render method).
@@ -23,9 +27,9 @@ export class HelloWorldPanel {
    * @param panel A reference to the webview panel
    * @param extensionUri The URI of the directory containing the extension
    */
-  private constructor(panel: WebviewPanel, extensionUri: Uri) {
+  private constructor(panel: WebviewPanel, extensionUri: Uri, service: ServiceModel, managementClient: WebPubSubManagementClient) {
     this._panel = panel;
-
+    
     // Set an event listener to listen for when the panel is disposed (i.e. when the user closes
     // the panel or when the panel is closed programmatically)
     this._panel.onDidDispose(() => this.dispose(), null, this._disposables);
@@ -35,6 +39,9 @@ export class HelloWorldPanel {
 
     // Set an event listener to listen for messages passed from the webview context
     this._setWebviewMessageListener(this._panel.webview);
+
+    this._service = service;
+    this._managementClient = managementClient;
   }
 
   /**
@@ -43,17 +50,17 @@ export class HelloWorldPanel {
    *
    * @param extensionUri The URI of the directory containing the extension.
    */
-  public static render(extensionUri: Uri) {
-    if (HelloWorldPanel.currentPanel) {
+  public static render(extensionUri: Uri, service: ServiceModel, managementClient: WebPubSubManagementClient) {
+    if (TestClientWebviewPanel.currentPanel) {
       // If the webview panel already exists reveal it
-      HelloWorldPanel.currentPanel._panel.reveal(ViewColumn.One);
+      TestClientWebviewPanel.currentPanel._panel.reveal(ViewColumn.One);
     } else {
       // If a webview panel does not already exist create and show a new one
       const panel = window.createWebviewPanel(
         // Panel view type
         "testClientView",
         // Panel title
-        "Web PubSub Test Client",
+        `Test Client for ${service.name}`,
         // The editor column the panel should be displayed in
         ViewColumn.One,
         // Extra panel configurations
@@ -68,7 +75,7 @@ export class HelloWorldPanel {
         }
       );
 
-      HelloWorldPanel.currentPanel = new HelloWorldPanel(panel, extensionUri);
+      TestClientWebviewPanel.currentPanel = new TestClientWebviewPanel(panel, extensionUri, service, managementClient);
     }
   }
 
@@ -76,7 +83,7 @@ export class HelloWorldPanel {
    * Cleans up and disposes of webview resources when the webview panel is closed.
    */
   public dispose() {
-    HelloWorldPanel.currentPanel = undefined;
+    TestClientWebviewPanel.currentPanel = undefined;
 
     // Dispose of the current webview panel
     this._panel.dispose();
@@ -140,15 +147,27 @@ export class HelloWorldPanel {
     webview.onDidReceiveMessage(
       (message: any) => {
         const command = message.command;
-        const text = message.text;
+        const payload = message.payload;
+        window.showInformationMessage(`Receive message from webview: ${command} with payload: ${JSON.stringify(payload)}`);
 
         switch (command) {
-          case "hello":
+          case "getServiceInformation":
             // Code that should run in response to the hello message command
-            window.showInformationMessage(text);
+            webview.postMessage({
+              command: "setServiceInformation",
+              payload: {
+                resourceGroupName: this._service.resourceGroup,
+                serviceName: this._service.name
+              }
+            });
             return;
-          // Add more switch case statements here as more webview message commands
-          // are created within the webview context (i.e. inside media/main.js)
+
+          case "getClientAccessUrl":
+            webview.postMessage({
+              command: "setClientAccessUrl",
+              payload: "dummy-url"
+            });
+            return ;
         }
       },
       undefined,

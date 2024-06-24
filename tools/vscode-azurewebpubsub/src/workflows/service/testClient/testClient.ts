@@ -6,8 +6,14 @@
 import { AzureWizard, createSubscriptionContext, type IActionContext } from "@microsoft/vscode-azext-utils";
 import { type ServiceItem } from "../../../tree/service/ServiceItem";
 import { commands, ExtensionContext, Uri } from "vscode";
-import { HelloWorldPanel } from "./panels/HelloWorldPanel";
+import { TestClientWebviewPanel } from "./panels/TestClientWebviewPanel";
+import { pickService } from "../../../tree/service/pickService";
+import { createWebPubSubAPIClient, localize } from "../../../utils";
 
-export async function testClient(extensionUri: Uri): Promise<void> {
-    HelloWorldPanel.render(extensionUri);
+export async function testClient(extensionUri: Uri, actionContext: IActionContext, node?: ServiceItem): Promise<void> {
+    const { subscription, service } = node ?? await pickService(actionContext, {
+        title: localize('startTestClient', 'Start Test Client'),
+    });
+    const managementClient = await createWebPubSubAPIClient(actionContext, subscription);
+    TestClientWebviewPanel.render(extensionUri, service, managementClient);
 }

@@ -10,6 +10,7 @@ import { Dismiss24Regular, Dismiss16Regular, PlugDisconnected24Regular, PlugDisc
 import { SimpleClientSection } from "./sections/SimpleClientSection";
 import { SubprotocolClientSection } from "./sections/SubprotocolClientSection";
 import { VSCodeBadge, VSCodeButton, VSCodeDivider, VSCodePanelTab, VSCodeTag, VSCodeTextArea, VSCodeTextField } from "@vscode/webview-ui-toolkit/react";
+import { vscode } from "../utilities/vscode";
 export interface PlaygroundProps {
   onStatusChange: (status: ConnectionStatus) => void;
 }
@@ -41,11 +42,29 @@ export const Playground = (props: PlaygroundProps) => {
   const [clients, setClients] = useState<TestClientViewModel[]>([]);
   // const { dataFetcher } = useDataContext();
   const [url, setUrl] = useState("");
+
+  window.addEventListener("message", (event) => {
+    const message = event.data;
+    console.log(`Received message: ${JSON.stringify(message)}`);
+    switch (message.command) {
+      case 'setClientAccessUrl':
+        setUrl(message.payload);
+        break;
+
+      case 'setServiceInformation':
+        console.log(`Received service information: ${JSON.stringify(message.payload)}`);
+        break;
+    }
+  });
+
+  vscode.postMessage({ command: 'getServiceInformation' });
+
   useEffect(() => {
     const fetchUrl = async () => {
       // const newUrl = await dataFetcher.invoke("getClientAccessUrl", undefined, undefined, undefined);
-      const newUrl = "wss://my-wps.webpubsub.azure.com/client/hubs/chat?access_token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJyb2xlIjpbXSwid2VicHVic3ViLmdyb3VwIjpbXSwiaWF0IjoxNzE5MTcwNDQzLCJleHAiOjE3MTkxNzQwNDMsImF1ZCI6Imh0dHBzOi8vbXktd3BzLndlYnB1YnN1Yi5henVyZS5jb20vY2xpZW50L2h1YnMvY2hhdCJ9.41fwDAjk5nwmnTxs82xJ2TZ3PxaAfdpIT3qsV8IOwho";
-      setUrl(newUrl);
+      // const newUrl = "wss://my-wps.webpubsub.azure.com/client/hubs/chat?access_token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJyb2xlIjpbXSwid2VicHVic3ViLmdyb3VwIjpbXSwiaWF0IjoxNzE5MTcwNDQzLCJleHAiOjE3MTkxNzQwNDMsImF1ZCI6Imh0dHBzOi8vbXktd3BzLndlYnB1YnN1Yi5henVyZS5jb20vY2xpZW50L2h1YnMvY2hhdCJ9.41fwDAjk5nwmnTxs82xJ2TZ3PxaAfdpIT3qsV8IOwho";
+      // setUrl(newUrl);
+      vscode.postMessage({ command: 'getClientAccessUrl' });
     };
     fetchUrl();
     const intervalId = setInterval(() => {

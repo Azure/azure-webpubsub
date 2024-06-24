@@ -27,6 +27,7 @@ import { attachLocalTunnel } from "./workflows/hubSetting/localTunnel/attachLoca
 import { switchAnonymousPolicy } from "./workflows/hubSetting/switchAnonymousPolicy/switchAnonymousPolicy";
 import { testClient } from "./workflows/service/testClient/testClient";
 import { ExtensionContext, commands } from "vscode";
+import { ServiceItem } from "./tree/service/ServiceItem";
 
 function registerCommandWithTelemetryWrapper(commandId: string, callback: CommandCallback): void {
     // eslint-disable-next-line @typescript-eslint/no-unsafe-return
@@ -45,13 +46,16 @@ function registerCommandWithTelemetryWrapper(commandId: string, callback: Comman
     registerCommandWithTreeNodeUnwrapping(commandId, callbackWithTroubleshooting);
 }
 
-export function registerCommands(context: ExtensionContext): void {
+export function registerCommands(extensionContext: ExtensionContext): void {
     // Service
-    // registerCommandWithTelemetryWrapper('azureWebPubSub.service.testClient', testClient, context.extensionUri);
-    const showHelloWorldCommand = commands.registerCommand("azureWebPubSub.service.testClient", () => {
-        testClient(context.extensionUri);
+    registerCommandWithTelemetryWrapper('azureWebPubSub.service.testClient', async (actionContext: IActionContext, node?: ServiceItem) => {
+        testClient(extensionContext.extensionUri, actionContext, node);
     });
-    context.subscriptions.push(showHelloWorldCommand);
+
+    // const showHelloWorldCommand = commands.registerCommand("azureWebPubSub.service.testClient", () => {
+    //     testClient(context.extensionUri);
+    // });
+    // extensionContext.subscriptions.push(showHelloWorldCommand);
 
     registerCommandWithTelemetryWrapper('azureWebPubSub.service.createInPortal', createServiceInPortal);
     registerCommandWithTelemetryWrapper('azureWebPubSub.service.createClassical', createServiceForClassical);
