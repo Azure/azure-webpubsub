@@ -5,8 +5,7 @@
         "outDir": "out",
         "lib": [
             "es6",
-            "DOM",
-            "DOM.Iterable"
+            "DOM"
         ],
         "sourceMap": true,
         "rootDir": ".",
@@ -16,19 +15,13 @@
         "noImplicitReturns": true,
         "strictNullChecks": true,
         "noUnusedParameters": false,
-        "baseUrl": "./",
-        "jsx": "react-jsx",
-        "paths": {
-            "*": [
-                "node_modules/vscode/*",
-                "*"
-            ]
-        }
+        "baseUrl": "./"
     },
     "exclude": [
         "node_modules",
         ".vscode-test",
         "gulpfile.ts",
-        "test/testProject"
+        "test/testProject",
+        "webview-ui"
     ]
 }
