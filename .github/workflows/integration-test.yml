@@ -39,12 +39,4 @@ jobs:
           cache: 'npm'
       - name: Test csharp tests
         run: dotnet test tests/integration-tests/csharp/csharp.csproj
-      - name: Sync Tests
-        if: !contains(github.event.pull_request.title, '[auto-generated]')
-        run: cd tests/integration-tests && npm install -g yarn && yarn install && yarn run sync
-        env:
-          PR_ID: ${{ github.event.pull_request.number }}
-          GITHUB_TOKEN: ${{ secrets.TOKEN }}
-          API_KEY: ${{ secrets.OPENAI_API_KEY }}
-          API_BASE: ${{ secrets.OPENAI_API_BASE }}
 
