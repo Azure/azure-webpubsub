@@ -48,7 +48,7 @@ async function syncPrChange() {
 
     //prepare for github commit
     const sha = await getLatestCommitSha(targetRepoOwner, targetRepo);
-    const changeSha = await createChangeBranch(targetRepoOwner, targetRepo, sha);
+    let changeSha = await createChangeBranch(targetRepoOwner, targetRepo, sha);
 
     //stash files -> commit -> push
     const blobs = await createBlob(targetRepoOwner, targetRepo, translatedFiles);
@@ -57,7 +57,11 @@ async function syncPrChange() {
     await updateBranch(targetRepoOwner, targetRepo, commitSha);
 
     //create pr
-    //    await createPR(targetRepoOwner, targetRepo);
+    if (changeSha === sha) {
+        console.log("Branch already exists. Skipping PR creation.");
+    } else {
+        await createPR(targetRepoOwner, targetRepo);
+    }
 }
 
 async function translate(file, sessionId, accessToken, targetLanguage) {
