@@ -46,8 +46,9 @@ namespace aadchat
             // read value from settings
             var hub = Environment.GetEnvironmentVariable("Hub");
             var host = Environment.GetEnvironmentVariable("WebPubSubEndpoint");
+            var functionuai = Environment.GetEnvironmentVariable("FunctionUserAssignedIdentityClientId");
 
-            var service = new WebPubSubServiceClient(new Uri(host), hub, new DefaultAzureCredential());
+            var service = new WebPubSubServiceClient(new Uri(host), hub, new DefaultAzureCredential(new DefaultAzureCredentialOptions { ManagedIdentityClientId = functionuai }));
 
             // Instead of using output binding, use the SDK to send messages
             await service.SendToAllAsync($"[{request.ConnectionContext.UserId}] {data}", dataType == WebPubSubDataType.Json ? Azure.Core.ContentType.ApplicationJson : Azure.Core.ContentType.TextPlain);
