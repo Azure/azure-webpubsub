@@ -5,7 +5,10 @@ All notable changes to this project will be documented in this file.
 
 ## [1.2.0] - 2024-6-25
 
-- Fix dependency issue [#762](https://github.com/Azure/azure-webpubsub/pull/762)
+## Dependencies
+- [`socket.io@~4.7.2`](https://github.com/socketio/socket.io/tree/4.7.2) ([diff](https://github.com/socketio/socket.io/compare/4.6.1...4.7.2)) [#762](https://github.com/Azure/azure-webpubsub/pull/762)
+
+## Bug Fixes
 - Avoid using private method from Engine.IO [#763](https://github.com/Azure/azure-webpubsub/pull/763)
 
 ## [1.1.0] - 2024-3-19
