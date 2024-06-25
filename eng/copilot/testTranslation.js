@@ -1,19 +1,11 @@
-import { Octokit } from "@octokit/rest";
 import prompt from "./query.json" assert { type: "json" };
 import { getSessionAccess, fetchDeepPromptWithQuery, parseResponseToJson } from './deepPromptFunctions.js'
 import { getLatestCommitSha, getChangedFiles, createChangeBranch, createBlob, createCommit, updateBranch, createPR } from './octokitFunctions.js'
 
 const githubToken = process.env.GITHUB_TOKEN;
-const apiKey = process.env.API_KEY;
-const apiBase = process.env.API_BASE;
 const prId = process.env.PR_ID;
-const branchRef = `heads/auto-generated-integration-test-from-pr${prId}`;
 const targetRepoOwner = "Azure";
 const targetRepo = "azure-webpubsub";
-const mainRef = "heads/main";
-const octokit = new Octokit({
-    auth: githubToken,
-});
 
 function getChangedFileLanguage(changedFiles) {
     for (const file of changedFiles) {
@@ -85,27 +77,13 @@ async function translate(file, sessionId, accessToken, targetLanguage) {
                 File patch:###${file.patch}###`;
     try {
         while (true) {
-            const dpResponse = fetchDeepPromptWithQuery(query, sessionId, accessToken);
+            const dpResponse = await fetchDeepPromptWithQuery(query, sessionId, accessToken);
             if (dpResponse && dpResponse.includes("fileName") && dpResponse.includes("fileContent")) {
                 return parseResponseToJson(dpResponse.response_text);
             }
         }
     } catch (error) {
         console.error("Failed to fetch deep prompt rest api, ", error.message);
-        throw error;
-    }
-}
-
-async function getChangedFiles(owner, repo, prId) {
-    try {
-        const { data: files } = await octokit.rest.pulls.listFiles({
-            owner,
-            repo,
-            pull_number: prId,
-        });
-        return files;
-    } catch (error) {
-        console.error(`Faield to load pull request ${prId}: `, error.message);
         throw error;
     }
 }
