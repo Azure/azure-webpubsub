@@ -3,8 +3,6 @@ import { Octokit } from "@octokit/rest";
 const githubToken = process.env.GITHUB_TOKEN;
 const prId = process.env.PR_ID;
 const branchRef = `heads/auto-generated-integration-test-from-pr${prId}`;
-const targetRepoOwner = "Azure";
-const targetRepo = "azure-webpubsub";
 const mainRef = "heads/main";
 
 const octokit = new Octokit({
