@@ -18,7 +18,7 @@ export async function getSessionAccess() {
     }
 }
 
-export async function fetchDeepPromptWithQuery(query, sessionId, access_token){
+export async function fetchDeepPromptWithQuery(query, sessionId, accessToken){
     try {
         const dpResponse = await fetch("https://data-ai.microsoft.com/deepprompt/api/v1/query", {
             method: "POST",
@@ -38,6 +38,7 @@ export async function fetchDeepPromptWithQuery(query, sessionId, access_token){
 
     } catch (err) {
         console.error("Failed to fetch deep prompt rest api:", err.message);
+        throw error;
     }
 }
 
@@ -51,6 +52,6 @@ export function parseResponseToJson(response) {
         return JSON.parse(trimmed);
     } catch (error) {
         console.error("Failed to parse the deep prompt response to JSON:", error);
-        return null;
+        throw error;
     }
 }
