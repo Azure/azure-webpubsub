@@ -3,6 +3,11 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.2.0] - 2024-6-25
+
+- Fix dependency issue [#762](https://github.com/Azure/azure-webpubsub/pull/762)
+- Avoid using private method from Engine.IO [#763](https://github.com/Azure/azure-webpubsub/pull/763)
+
 ## [1.1.0] - 2024-3-19
 
 - Messages sending to the same room or broadcast can guarantee order [#665](https://github.com/Azure/azure-webpubsub/pull/665)
