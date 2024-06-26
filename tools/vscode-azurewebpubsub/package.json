@@ -2,7 +2,7 @@
     "name": "vscode-azurewebpubsub",
     "displayName": "Azure Web PubSub",
     "description": "%azureWebPubSub.description%",
-    "version": "0.1.0",
+    "version": "0.1.1",
     "publisher": "ms-azuretools",
     "icon": "resources/azure-web-pubsub.png",
     "aiKey": "3fc79002-1908-48c5-b7ac-794e604e6590",
@@ -11,13 +11,13 @@
     },
     "repository": {
         "type": "git",
-        "url": "https://github.com/azure/azure-webpubsub/tools/vscode-azurewebpubsub"
+        "url": "https://github.com/Azure/azure-webpubsub"
     },
     "galleryBanner": {
         "color": "#3a3d41",
         "theme": "dark"
     },
-    "homepage": "https://github.com/azure/azure-webpubsub/tools/vscode-azurewebpubsub/blob/main/README.md",
+    "homepage": "https://github.com/Azure/azure-webpubsub/blob/main/tools/vscode-azurewebpubsub/README.md",
     "license": "SEE LICENSE IN LICENSE.txt",
     "categories": [
         "Azure"
@@ -361,7 +361,6 @@
         "vscode-uri": "^3.0.2"
     },
     "extensionDependencies": [
-        "ms-vscode.azure-account",
         "ms-azuretools.vscode-azureresourcegroups"
     ],
     "optionalDependencies": {

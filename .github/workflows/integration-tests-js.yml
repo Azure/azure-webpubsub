@@ -1,0 +1,42 @@
+# This workflow will do a clean installation of node dependencies, cache/restore them, build the source code and run tests across different versions of node
+# For more information see: https://docs.github.com/en/actions/automating-builds-and-tests/building-and-testing-nodejs
+
+name: Integration tests for JavaScript
+
+on:
+  workflow_dispatch:
+    inputs:
+      web_pubsub_connection_string:
+        description: 'Azure Web PubSub Connection String'
+        required: true
+        type: string
+  push:
+    branches: [ "main" ]
+    paths:
+      - 'tests/integration-tests/js/**'
+  pull_request:
+    branches: [ "main" ]
+    paths:
+      - 'tests/integration-tests/js/**'
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    env:
+      WEB_PUBSUB_CONNECTION_STRING: ${{ github.event.inputs.web_pubsub_connection_string || secrets.WEB_PUBSUB_CONNECTION_STRING }}
+    strategy:
+      matrix:
+        node-version: [18.x]
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Use Node.js ${{ matrix.node-version }}
+      uses: actions/setup-node@v3
+      with:
+        node-version: ${{ matrix.node-version }}
+        cache: 'npm'
+    - name: Test js tests
+      run: |
+        cd tests/integration-tests/js
+        npm install
+        npm run test

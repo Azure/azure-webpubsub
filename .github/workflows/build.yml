@@ -6,8 +6,18 @@ name: Build
 on:
   push:
     branches: [ "main" ]
+    paths:
+      - 'sdk/**'
+      - 'tools/**'
+      - 'samples/**'
+      - 'experimental/**'
   pull_request:
     branches: [ "main" ]
+    paths:
+      - 'sdk/**'
+      - 'tools/**'
+      - 'samples/**'
+      - 'experimental/**'
 
 jobs:
   build:

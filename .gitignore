@@ -16,6 +16,12 @@ types/
 *.userosscache
 *.sln.docstates
 
+# python env
+venv/
+
+# Java output
+target/
+
 # User-specific files (MonoDevelop/Xamarin Studio)
 *.userprefs
 
