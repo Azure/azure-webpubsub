@@ -10,11 +10,12 @@ import {
 import React, { useEffect, useState } from "react";
 import { PathItem } from "../../models";
 import { methodColors } from './Methods';
-import restapiSpec from './webpubsub.json';
+import { useDataContext } from "../../providers/DataContext";
 
 export function EndpointNav({ setSelectedPath }: {
 	setSelectedPath: React.Dispatch<React.SetStateAction<string | undefined>>
 }): React.JSX.Element {
+	const { data } = useDataContext();
 	const [categories, setCategories] = useState<{
 		general: { pathUrl: string, path: PathItem }[];
 		groups: { pathUrl: string, path: PathItem }[];
@@ -37,7 +38,7 @@ export function EndpointNav({ setSelectedPath }: {
 			users: [],
 			permissions: []
 		};
-		Object.entries(restapiSpec.paths).forEach(([pathUrl, path]) => {
+		Object.entries(data.apiSpec.paths).forEach(([pathUrl, path]) => {
 			const segments = pathUrl.split('/');
 			const category = segments[4] || 'general'; // Default to 'general' if no fourth segment
 			switch (category) {
@@ -59,7 +60,7 @@ export function EndpointNav({ setSelectedPath }: {
 			}
 		});
 		setCategories(categories);
-	}, []);
+	}, [data.apiSpec]);
 
 	return (<div className="d-flex overflow-hidden" style={{ flex: 1 }}>
 		<TabList onTabSelect={(_e, data) => {

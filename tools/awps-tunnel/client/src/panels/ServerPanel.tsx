@@ -6,8 +6,7 @@ import type { TabValue } from "@fluentui/react-components";
 import CodeTabs from "../components/CodeTabs";
 import { EndpointNav } from "../components/api/EndpointNav";
 import { Path } from "../components/api/Path";
-import restapiSpec from '../components/api/webpubsub.json';
-import { ConnectionStatus, RESTApi } from "../models";
+import { ConnectionStatus } from "../models";
 import { useDataContext } from "../providers/DataContext";
 export interface ServerPanelProps {
   endpoint?: string;
@@ -19,7 +18,6 @@ export function ServerPanel({ endpoint, onChange }: ServerPanelProps) {
   const [message, setMessage] = useState<string>();
   const [startEmbeddedServer, setStartEmbeddedServer] = useState<boolean>(data.builtinUpstreamServerStarted);
   const [status, setStatus] = useState<ConnectionStatus>(ConnectionStatus.None);
-  const restAPI: RESTApi = restapiSpec as RESTApi;
   const [selectedPath, setSelectedPath] = useState<string>();
   const [pathUrl, setPathUrl] = useState<string>("");
   const [method, setMethod] = useState<string>("");
@@ -104,7 +102,7 @@ export function ServerPanel({ endpoint, onChange }: ServerPanelProps) {
       </div>}
       {selectedPanel === "api" && <div className="d-flex align-items-stretch m-2">
         <EndpointNav setSelectedPath={setSelectedPath}></EndpointNav>
-        {pathUrl && <Path pathItem={restAPI.paths[pathUrl]} path={pathUrl} methodName={method}/>}
+        {pathUrl && <Path pathItem={data.apiSpec.paths[pathUrl]} path={pathUrl} methodName={method}/>}
       </div>}
     </div>
   );

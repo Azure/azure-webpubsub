@@ -16,7 +16,6 @@ import 'bootstrap/dist/css/bootstrap.min.css';
 import React, { useEffect, useState } from "react";
 import Editor from '@monaco-editor/react';
 import { APIResponse, Definition, ExampleParameter, Parameter } from "../../models";
-import restapiSpec from './webpubsub.json';
 import { useDataContext } from "../../providers/DataContext";
 
 function renderSchema(parameters: Parameter[]): React.JSX.Element {
@@ -144,16 +143,14 @@ export function Parameters({ path, parameters, example, setResponse, methodName 
 				const ref: string = requestBody[0].schema.$ref;
 				const path: string[] = ref.split('/');
 				const defName: string = path[path.length - 1];
-				if (defName === "AddToGroupsRequest") {
-					setBodySchema(restapiSpec.definitions["AddToGroupsRequest"]);
-				} else if (defName === "RemoveFromGroupsRequest") {
-					setBodySchema(restapiSpec.definitions["RemoveFromGroupsRequest"]);
+				if (defName in data.apiSpec.definitions) {
+					setBodySchema(data.apiSpec.definitions[defName]);
 				}
 			}
 		} else {
 			setBodySchema(undefined);
 		}
-	}, [requestBody]);
+	}, [requestBody, data.apiSpec]);
 
 	useEffect(() => {
 		let newPath = path;
@@ -170,8 +167,8 @@ export function Parameters({ path, parameters, example, setResponse, methodName 
 				}
 			}
 		})
-		setUrl(`${data.endpoint.slice(0, -1)}${newPath}?${query}api-version=${restapiSpec.info.version}`);
-	}, [path, data.hub, data.endpoint, requestParameterInputs, requestParameters]);
+		setUrl(`${data.endpoint.slice(0, -1)}${newPath}?${query}api-version=${data.apiSpec.info.version}`);
+	}, [path, data.hub, data.endpoint, requestParameterInputs, requestParameters, data.apiSpec]);
 
 	useEffect(() => {
 		async function getToken() {

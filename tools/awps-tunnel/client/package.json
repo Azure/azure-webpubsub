@@ -80,12 +80,12 @@
   },
   "scripts": {
     "clean": "rimraf ./build",
-    "start": "cross-env REACT_APP_DATA_FETCHER=mock react-scripts start",
+    "start": "cross-env REACT_APP_DATA_FETCHER=mock REACT_APP_API_VERSION=2023-07-01 react-scripts start",
     "prebuild": "node scripts/downloadExamples.js",
     "build": "npm run prebuild && npm run build:mock",
-    "build:npm": "cross-env REACT_APP_DATA_FETCHER=npm react-scripts build",
-    "build:mock": "cross-env REACT_APP_DATA_FETCHER=mock react-scripts build",
-    "test": "cross-env CI=true REACT_APP_DATA_FETCHER=mock react-scripts test",
+    "build:npm": "cross-env REACT_APP_DATA_FETCHER=npm REACT_APP_API_VERSION=2023-07-01 react-scripts build",
+    "build:mock": "cross-env REACT_APP_DATA_FETCHER=mock REACT_APP_API_VERSION=2023-07-01 react-scripts build",
+    "test": "cross-env CI=true REACT_APP_DATA_FETCHER=mock REACT_APP_API_VERSION=2023-07-01 react-scripts test",
     "eject": "react-scripts eject",
     "lint": "eslint ./src/"
   },
