@@ -112,6 +112,7 @@ export interface DataModel {
    * Whether the built-in upstream server is started in the server
    */
   builtinUpstreamServerStarted: boolean;
+  apiSpec: RESTApi;
 }
 
 export interface RESTApi {

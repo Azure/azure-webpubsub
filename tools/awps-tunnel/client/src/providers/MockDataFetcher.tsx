@@ -1,4 +1,4 @@
-import { ConnectionStatus, LogLevel, HttpHistoryItem, DataModel, SystemEvent, ConnectionStatusPairs } from "../models";
+import { ConnectionStatus, LogLevel, HttpHistoryItem, DataModel, SystemEvent, ConnectionStatusPairs, RESTApi } from "../models";
 import { IDataFetcher } from "./IDataFetcher";
 
 export class MockDataFetcher implements IDataFetcher {
@@ -17,6 +17,7 @@ export class MockDataFetcher implements IDataFetcher {
     builtinUpstreamServerStarted: false,
     trafficHistory: [],
     logs: [],
+    apiSpec: {} as RESTApi,
   };
   constructor(private onModelUpdate: (model: DataModel) => void) {
     this.fetch().then((s) => {
@@ -38,12 +39,16 @@ export class MockDataFetcher implements IDataFetcher {
     await delay(1000);
     return { success: true, message: method };
   }
-  fetch(): Promise<DataModel> {
+  async fetch(): Promise<DataModel> {
+
+    const response = await fetch(`./api/${process.env.REACT_APP_API_VERSION}/webpubsub.json`);
+    const restApiSpec: RESTApi = await response.json();
+
     const current = {
       ready: true,
-      clientUrl: "wss://mock-free.webpubsub.azure.com/client/hubs/mock",
-      liveTraceUrl: "https://xxx.webpubsub.azure.com",
-      endpoint: "https://mock-free.webpubsub.azure.com",
+      clientUrl: "wss://mock-free.webpubsub.azure.com/client/hubs/mock/",
+      liveTraceUrl: "https://xxx.webpubsub.azure.com/",
+      endpoint: "https://mock-free.webpubsub.azure.com/",
       upstreamServerUrl: "http://localhost:3000",
       tunnelConnectionStatus: ConnectionStatus.Connected,
       tunnelServerStatus: ConnectionStatusPairs.Connected,
@@ -74,6 +79,7 @@ export class MockDataFetcher implements IDataFetcher {
           time: new Date(),
         },
       ],
+      apiSpec: restApiSpec,
     };
     return new Promise((resolve, reject) => {
       resolve(current);

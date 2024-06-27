@@ -2,9 +2,9 @@ const axios = require('axios');
 const fs = require('fs');
 const path = require('path');
 
-const examplesDir = path.join(__dirname, '../public/api/examples');
-const apiDir = path.join(__dirname, '../src/components/api');
 const version = process.argv[2] || '2023-07-01';
+const examplesDir = path.join(__dirname, `../public/api/${version}/examples/`);
+const apiDir = path.join(__dirname, `../public/api/${version}`);
 
 if (!fs.existsSync(examplesDir)) {
 	fs.mkdirSync(examplesDir, { recursive: true });
@@ -35,7 +35,7 @@ async function downloadFiles() {
 		const apiUrl = `https://api.github.com/repos/${repoPath}/contents/${apiFilePath}?ref=${ref}`;
 		const apiResponse = await axios.get(apiUrl, { responseType: 'json' });
 		const apiFileResponse = await axios.get(apiResponse.data.download_url, { responseType: 'arraybuffer' });
-		fs.writeFileSync(path.join(apiDir, 'restapiSample.json'), apiFileResponse.data);
+		fs.writeFileSync(path.join(apiDir, apiResponse.data.name), apiFileResponse.data);
 		console.log('api spec downloaded successfully.');
 	} catch (error) {
 		console.error('Error downloading files:', error);
