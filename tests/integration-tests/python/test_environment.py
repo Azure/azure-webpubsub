@@ -1,6 +1,5 @@
 import os
 import pytest
-from dotenv import load_dotenv
 
 class TestEnvironment:
     connection_string = None
@@ -9,8 +8,6 @@ class TestEnvironment:
     def global_setup(self):
         # TODO: provision the resources?
         # What if multiple different resources needed?
-        load_dotenv()
-
         self.connection_string = os.getenv('WEB_PUBSUB_CONNECTION_STRING')
         if not self.connection_string:
             raise ValueError('Please set the WEB_PUBSUB_CONNECTION_STRING environment variable.')

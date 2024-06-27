@@ -3,7 +3,7 @@ import pytest
 import asyncio
 from azure.core.exceptions import HttpResponseError, ServiceRequestError
 from azure.messaging.webpubsubservice._operations._operations import build_send_to_all_request
-from devtools_testutils import recorded_by_proxy
+# from devtools_testutils import recorded_by_proxy
 from testcase import WebpubsubPowerShellPreparer, WebpubsubTest
 import websockets
 
