@@ -1,8 +1,6 @@
 import { Octokit } from "@octokit/rest";
+import { githubToken, basePrId,  } from "./constants";
 
-const githubToken = process.env.GITHUB_TOKEN;
-const prId = process.env.PR_ID;
-const basePrId = process.env.BASE_PR_ID;
 const branchRef = `heads/auto-generated-integration-test-from-pr${basePrId}`;
 const mainRef = "heads/main";
 

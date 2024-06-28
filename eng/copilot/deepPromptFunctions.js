@@ -1,6 +1,4 @@
-const githubToken = process.env.GITHUB_TOKEN;
-const apiKey = process.env.API_KEY;
-const apiBase = process.env.API_BASE;
+import { githubToken, apiBase, apiKey } from "./constants";
 
 export async function getSessionAccess() {
     try {

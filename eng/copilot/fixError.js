@@ -1,18 +1,7 @@
 import { Octokit } from "@octokit/rest";
 import { getSessionAccess, fetchDeepPromptWithQuery, parseResponseToJson } from './deepPromptFunctions.js'
-import { getLatestCommitSha, getChangedFiles, createChangeBranch, createBlob, createCommit, updateBranch, createPR, getLatestCommitShaOnPr, createTree } from './octokitFunctions.js'
-
-const githubToken = process.env.GITHUB_TOKEN;
-const apiKey = process.env.API_KEY;
-const apiBase = process.env.API_BASE;
-const prId = process.env.PR_ID;
-const errorMessage = process.env.TEST_OUTPUT;
-const targetRepoOwner = "Azure";
-const targetRepo = "azure-webpubsub";
-
-const octokit = new Octokit({
-    auth: githubToken,
-});
+import { getChangedFiles, createChangeBranch, createBlob, createCommit, updateBranch, createPR, getLatestCommitShaOnPr, createTree } from './octokitFunctions.js'
+import { githubToken, prId, errorMessage } from "./constants.js";
 
 function getErrorMessage(ciError) {
     const lines = ciError.split('\n');
@@ -80,12 +69,12 @@ async function fix() {
             fixedFiles.push(...fixedFilesForError);
         });
         await Promise.all(errorFixPromises);
-        const sha = await getLatestCommitShaOnPr(targetRepoOwner, targetRepo, prId);
-        const blobs = await createBlob(targetRepoOwner, targetRepo, fixedFiles);
-        const treeSha = await createTree(targetRepoOwner, targetRepo, blobs, sha);
-        const commitSha = await createCommit(targetRepoOwner, targetRepo, treeSha, sha);
-        await updateBranch(targetRepoOwner, targetRepo, commitSha);
-        console.log(`fix attempt completed and pushed to pr ${prId}`);
+        // const sha = await getLatestCommitShaOnPr(targetRepoOwner, targetRepo, prId);
+        // const blobs = await createBlob(targetRepoOwner, targetRepo, fixedFiles);
+        // const treeSha = await createTree(targetRepoOwner, targetRepo, blobs, sha);
+        // const commitSha = await createCommit(targetRepoOwner, targetRepo, treeSha, sha);
+        // await updateBranch(targetRepoOwner, targetRepo, commitSha);
+        // console.log(`fix attempt completed and pushed to pr ${prId}`);
 
     } catch (error) {
         console.error('Error occurred during fix:', error.message);

@@ -1,10 +1,7 @@
 import prompt from "./query.json" assert { type: "json" };
 import { getSessionAccess, fetchDeepPromptWithQuery, parseResponseToJson } from './deepPromptFunctions.js'
 import { getLatestCommitSha, getChangedFiles, createChangeBranch, createBlob, createCommit, updateBranch, createPR } from './octokitFunctions.js'
-
-const prId = process.env.PR_ID;
-const targetRepoOwner = "Azure";
-const targetRepo = "azure-webpubsub";
+import { prId, targetRepoOwner, targetRepo } from "./constants.js";
 
 function getChangedFileLanguage(changedFiles) {
     for (const file of changedFiles) {
