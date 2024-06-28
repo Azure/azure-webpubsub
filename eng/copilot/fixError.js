@@ -1,10 +1,15 @@
 import { Octokit } from "@octokit/rest";
 import { getSessionAccess, fetchDeepPromptWithQuery, parseResponseToJson } from './deepPromptFunctions.js'
-import { getLatestCommitSha, getChangedFiles, createChangeBranch, createBlob, createCommit, updateBranch, createPR } from './octokitFunctions.js'
+import { getLatestCommitSha, getChangedFiles, createChangeBranch, createBlob, createCommit, updateBranch, createPR, getLatestCommitShaOnPr, createTree } from './octokitFunctions.js'
 
 const githubToken = process.env.GITHUB_TOKEN;
 const apiKey = process.env.API_KEY;
 const apiBase = process.env.API_BASE;
+const prId = process.env.PR_ID;
+const errorMessage = process.env.TEST_OUTPUT;
+const targetRepoOwner = "Azure";
+const targetRepo = "azure-webpubsub";
+
 const octokit = new Octokit({
     auth: githubToken,
 });
@@ -45,10 +50,13 @@ async function fixErrorWithDP(file, errorMessage, sessionId, accessToken) {
                 file dispatch: ###${file.patch}###
                 error message: ###${errorMessage}###`;
     try {
-        const dpResponse = await fetchDeepPromptWithQuery(query, sessionId, accessToken);
-        if (dpResponse && dpResponse.includes("fileName") && dpResponse.includes("fileContent")) {
-            return parseResponseToJson(dpResponse);
+        while (true) {
+            const dpResponse = await fetchDeepPromptWithQuery(query, sessionId, accessToken);
+            if (dpResponse && dpResponse.includes("fileName") && dpResponse.includes("fileContent")) {
+                return parseResponseToJson(dpResponse);
+            }
         }
+
     } catch (err) {
         console.error("Failed to fetch deep prompt rest api:", err.message);
     }
@@ -56,9 +64,9 @@ async function fixErrorWithDP(file, errorMessage, sessionId, accessToken) {
 
 async function fix() {
     try {
-        const errors = getErrorMessage(process.env.TEST_OUTPUT);
+        const errors = getErrorMessage(errorMessage);
         const accessSession = await getSessionAccess();
-        const files = await getChangedFiles("Azure", "azure-webpubsub", 759);
+        const files = await getChangedFiles("Azure", "azure-webpubsub", prId);
         const fixedFiles = [];
         const errorFixPromises = errors.map(async (error) => {
             const filesWithError = files.filter(file => file.filename.includes(error.filename));
@@ -72,7 +80,13 @@ async function fix() {
             fixedFiles.push(...fixedFilesForError);
         });
         await Promise.all(errorFixPromises);
-        console.log(fixedFiles);
+        const sha = await getLatestCommitShaOnPr(targetRepoOwner, targetRepo, prId);
+        const blobs = await createBlob(targetRepoOwner, targetRepo, fixedFiles);
+        const treeSha = await createTree(targetRepoOwner, targetRepo, blobs, sha);
+        const commitSha = await createCommit(targetRepoOwner, targetRepo, treeSha, sha);
+        await updateBranch(targetRepoOwner, targetRepo, commitSha);
+        console.log(`fix attempt completed and pushed to pr ${prId}`);
+
     } catch (error) {
         console.error('Error occurred during fix:', error.message);
     }
