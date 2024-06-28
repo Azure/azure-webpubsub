@@ -2,7 +2,6 @@ import prompt from "./query.json" assert { type: "json" };
 import { getSessionAccess, fetchDeepPromptWithQuery, parseResponseToJson } from './deepPromptFunctions.js'
 import { getLatestCommitSha, getChangedFiles, createChangeBranch, createBlob, createCommit, updateBranch, createPR } from './octokitFunctions.js'
 
-const githubToken = process.env.GITHUB_TOKEN;
 const prId = process.env.PR_ID;
 const targetRepoOwner = "Azure";
 const targetRepo = "azure-webpubsub";
