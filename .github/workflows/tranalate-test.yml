@@ -1,8 +1,7 @@
-name: Translation Workflow
+name: Translate tests with deep prompt  
 
 on:
-  pull_request_review:
-    types: [submitted]
+  push:
     branches:
       - main
 
