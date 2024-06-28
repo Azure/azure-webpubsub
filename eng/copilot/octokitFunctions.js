@@ -2,7 +2,8 @@ import { Octokit } from "@octokit/rest";
 
 const githubToken = process.env.GITHUB_TOKEN;
 const prId = process.env.PR_ID;
-const branchRef = `heads/auto-generated-integration-test-from-pr${prId}`;
+const basePrId = process.env.BASE_PR_ID;
+const branchRef = `heads/auto-generated-integration-test-from-pr${basePrId}`;
 const mainRef = "heads/main";
 
 const octokit = new Octokit({
@@ -19,6 +20,21 @@ export async function getLatestCommitSha(owner, repo) {
         return data.object.sha;
     } catch (error) {
         console.error("Failed to get latest commit SHA:", error.message);
+        throw error;
+    }
+}
+
+export async function getLatestCommitShaOnPr(owner, repo, prId) {
+    try {
+        const { data: prInfo } = await octokit.rest.pulls.get({
+            owner,
+            repo,
+            pull_number: prId,
+        });
+        const latestCommitSha = prInfo.head.sha;
+        return latestCommitSha;
+    } catch (error) {
+        console.error(`Failed to get latest commit SHA for PR ${prNumber}:`, error.message);
         throw error;
     }
 }
@@ -110,7 +126,7 @@ export async function createCommit(owner, repo, treeSha, branchSha) {
         const { data } = await octokit.rest.git.createCommit({
             owner,
             repo,
-            message: "[auto-generated]sync translation pull request",
+            message: "[auto-generated]sync translation fix attempt",
             tree: treeSha,
             parents: [branchSha],
         });
