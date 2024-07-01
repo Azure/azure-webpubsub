@@ -1,4 +1,4 @@
-import { githubToken, apiBase, apiKey } from "./constants";
+import { githubToken, apiBase, apiKey } from "./constants.js";
 
 export async function getSessionAccess() {
     try {

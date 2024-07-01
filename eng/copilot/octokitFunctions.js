@@ -1,5 +1,5 @@
 import { Octokit } from "@octokit/rest";
-import { githubToken, basePrId,  } from "./constants";
+import { githubToken, basePrId,  } from "./constants.js";
 
 const branchRef = `heads/auto-generated-integration-test-from-pr${basePrId}`;
 const mainRef = "heads/main";
