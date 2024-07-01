@@ -22,6 +22,25 @@ export async function getLatestCommitSha(owner, repo) {
     }
 }
 
+export async function getLastTestFolderCommitSha(owner, repo, mainSha) {
+    try {
+        const { data: commits } = await octokit.rest.repos.listCommits({
+            owner,
+            repo,
+            sha: mainSha,
+            path: 'tests'
+        });
+        if (commits.length > 0) {
+            return commits[0].sha;
+        } else {
+            return null;
+        }
+    } catch (error) {
+        console.error("Failed to get last commit SHA for /test folder:", error.message);
+        throw error;
+    }
+}
+
 export async function getLatestCommitShaOnPr(owner, repo, prId) {
     try {
         const { data: prInfo } = await octokit.rest.pulls.get({
@@ -37,16 +56,17 @@ export async function getLatestCommitShaOnPr(owner, repo, prId) {
     }
 }
 
-export async function getChangedFiles(owner, repo, prId) {
+export async function getChangedFiles(owner, repo, commitSha) {
     try {
-        const { data: files } = await octokit.rest.pulls.listFiles({
+        const { data: commit } = await octokit.rest.repos.getCommit({
             owner,
             repo,
-            pull_number: prId,
+            ref: commitSha,
         });
+        const files = commit.files;
         return files;
     } catch (error) {
-        console.error(`Faield to load pull request ${prId}: `, error.message);
+        console.error(`Failed to load commit ${commitSha}: `, error.message);
         throw error;
     }
 }

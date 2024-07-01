@@ -1,8 +1,9 @@
 import prompt from "./query.json" assert { type: "json" };
 import { getSessionAccess, fetchDeepPromptWithQuery, parseResponseToJson } from './deepPromptFunctions.js'
-import { getLatestCommitSha, getChangedFiles, createChangeBranch, createBlob, createCommit, updateBranch, createPR } from './octokitFunctions.js'
+import { getLatestCommitSha, getLastTestFolderCommitSha, getChangedFiles, createChangeBranch, createBlob, createCommit, updateBranch, createPR } from './octokitFunctions.js'
 import { prId, targetRepoOwner, targetRepo } from "./constants.js";
 
+// this function assumes that all the files in this commit have the same programming language
 function getChangedFileLanguage(changedFiles) {
     for (const file of changedFiles) {
         if (file.filename.includes("java")) {
@@ -23,7 +24,8 @@ function getChangedFileLanguage(changedFiles) {
 async function syncPrChange() {
     const languages = ["javascript", "python", "csharp", "go", "java"];
     const accessSession = await getSessionAccess();
-    const changedFiles = await getChangedFiles("Azure", "azure-webpubsub", prId);
+    const lastSha = await getLastTestFolderCommitSha(targetRepoOwner, targetRepo);
+    const changedFiles = await getChangedFiles("Azure", "azure-webpubsub", lastSha);
     const changedFileLanguage = getChangedFileLanguage(changedFiles);
     let translatedFiles = [];
     const translationPromises = languages.map(async (language) => {
@@ -43,8 +45,8 @@ async function syncPrChange() {
 
 
     //prepare for github commit
-    const sha = await getLatestCommitSha(targetRepoOwner, targetRepo);
-    let changeSha = await createChangeBranch(targetRepoOwner, targetRepo, sha);
+    const mainSha = await getLatestCommitSha(targetRepoOwner, targetRepo);
+    let changeSha = await createChangeBranch(targetRepoOwner, targetRepo, mainSha);
 
     //stash files -> commit -> push
     const blobs = await createBlob(targetRepoOwner, targetRepo, translatedFiles);
