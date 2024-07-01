@@ -5,15 +5,15 @@ import { prId, targetRepoOwner, targetRepo } from "./constants.js";
 
 function getChangedFileLanguage(changedFiles) {
     for (const file of changedFiles) {
-        if (file.filename.includes(".java")) {
+        if (file.filename.includes("java")) {
             return "java";
-        } else if (file.filename.includes(".py")) {
+        } else if (file.filename.includes("python")) {
             return "python";
-        } else if (file.filename.includes(".js")) {
+        } else if (file.filename.includes("js")) {
             return "javascript";
-        } else if (file.filename.includes(".go")) {
+        } else if (file.filename.includes("go")) {
             return "go";
-        } else if (file.filename.includes(".cs")) {
+        } else if (file.filename.includes("csharp")) {
             return "csharp";
         }
     }
