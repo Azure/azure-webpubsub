@@ -73,7 +73,7 @@ async function translate(file, sessionId, accessToken, targetLanguage) {
                 ###
                 ${prompt[targetLanguage]}
                 ###
-                File Name: ###${file.filename}###
+                File name: ###${file.filename}###
                 File patch:###${file.patch}###`;
     try {
         while (true) {
