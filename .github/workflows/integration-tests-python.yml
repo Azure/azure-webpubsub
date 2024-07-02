@@ -40,4 +40,27 @@ jobs:
         python -m pip install --upgrade pip
         pip install -r requirements.txt
         pytest
-
+  post-test:
+    runs-on: ubuntu-latest
+    needs: test
+    if: failure()
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      - name: Download test output
+        uses: actions/download-artifact@v3
+        with:
+          name: test-output
+          path: ./test-output
+      - name: Read test output
+        id: read-test-output
+        run: echo "TEST_OUTPUT=$(cat ./test-output/test-output.txt)" >> $GITHUB_ENV
+      - name: Fix error with deep prompt
+        run: |
+          node eng/copilot/fixErrorWithDeepPrompt.js
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          API_BASE: ${{ secrets.OPENAI_API_BASE }}
+          PR_ID: ${{ github.event.pull_request.number }}
+          TEST_OUTPUT: ${{ env.TEST_OUTPUT }}
