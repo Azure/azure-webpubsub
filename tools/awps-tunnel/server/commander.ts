@@ -68,15 +68,15 @@ export function getCommand(appConfigPath: string, dbFile: string): Command {
   configureHelpOptions(status);
   const bind = program.command("bind").description("Bind configurations to the tool so that you don't need to specify them every time running the tool.");
   bind
-    .option("-e, --endpoint [endpoint]", "Sepcify the Web PubSub service endpoint URL to connect to")
-    .option("--hub [hub]", "Specify the hub to connect to")
-    .option("-u, --upstream [upstream]", "Specify the upstream URL to connect to, URL scheme could be ommited, defaults to http, e.g. localhost:3000 or https://localhost:5001")
-    .option("--webviewPort [webviewPort]", "Specify the webview port to use. If not specified, it defaults to [upstreamPort+1000]")
-    .option("--webviewHost [webviewHost]", "Specify the webview hostname to use. If not specified, it defaults to 127.0.0.1")
-    .option("-s, --subscription [subscription]", "Specify the subscriptionId your Web PubSub service belongs to. Specify subscriptionId and resource group to let the tool fetch hub settings for you")
+    .option("-e, --endpoint [endpoint]", "Sepcify the Web PubSub service endpoint URL to connect to.")
+    .option("--hub [hub]", "Specify the hub to connect to.")
+    .option("-u, --upstream [upstream]", "Specify the upstream URL to connect to, URL scheme could be ommited, defaults to http, e.g. localhost:3000 or https://localhost:5001.")
+    .option("--webviewPort [webviewPort]", "Specify the webview port to use. If not specified, it defaults to [upstreamPort+1000].")
+    .option("--webviewHost [webviewHost]", "Specify the webview hostname to use. If not specified, it defaults to 127.0.0.1.")
+    .option("-s, --subscription [subscription]", "Specify the subscriptionId your Web PubSub service belongs to. Specify subscriptionId and resource group to let the tool fetch hub settings for you.")
     .option(
       "-g, --resourceGroup [resourceGroup]",
-      "Specify the resource group your Web PubSub service belongs to. Specify subscriptionId and resource group to let the tool fetch hub settings for you",
+      "Specify the resource group your Web PubSub service belongs to. Specify subscriptionId and resource group to let the tool fetch hub settings for you.",
     )
     .action((update) =>
       createBindAction(bind, settings, update, (updatedSettings) => {
@@ -101,13 +101,13 @@ export function getCommand(appConfigPath: string, dbFile: string): Command {
       "-u, --upstream [upstream]",
       "Specify the upstream URL to connect to, URL scheme could be ommited, defaults to http, e.g. localhost:3000 or https://localhost:5001. If not specified, http://localhost:3000 will be used.",
     )
-    .option("--webviewPort [webviewPort]", "Specify the webview port to use. If not specified, it defaults to [upstreamPort+1000]")
-    .option("--webviewHost [webviewHost]", "Specify the webview hostname to use. If not specified, it defaults to 127.0.0.1")
+    .option("--webviewPort [webviewPort]", "Specify the webview port to use. If not specified, it defaults to [upstreamPort+1000].")
+    .option("--webviewHost [webviewHost]", "Specify the webview hostname to use. If not specified, it defaults to 127.0.0.1.")
     .option("--noWebview", "Disable the webview")
-    .option("-s, --subscription [subscription]", "Specify the subscriptionId your Web PubSub service belongs to. Specify subscriptionId and resource group to let the tool fetch hub settings for you")
+    .option("-s, --subscription [subscription]", "Specify the subscriptionId your Web PubSub service belongs to. Specify subscriptionId and resource group to let the tool fetch hub settings for you.")
     .option(
       "-g, --resourceGroup [resourceGroup]",
-      "Specify the resource group your Web PubSub service belongs to. Specify subscriptionId and resource group to let the tool fetch hub settings for you",
+      "Specify the resource group your Web PubSub service belongs to. Specify subscriptionId and resource group to let the tool fetch hub settings for you.",
     )
     .option("--verbose", "Enable verbose logs")
     .action((updated) => {

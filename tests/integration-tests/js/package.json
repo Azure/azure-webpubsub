@@ -1,0 +1,20 @@
+{
+  "name": "integration-tests-js",
+  "version": "1.0.0",
+  "description": "Integration tests for js SDKs",
+  "main": "index.js",
+  "scripts": {
+    "test": "jest"
+  },
+  "author": "",
+  "license": "MIT",
+  "devDependencies": {
+    "jest": "^29.7.0"
+  },
+  "dependencies": {
+    "@azure/web-pubsub": "^1.1.1",
+    "@azure/web-pubsub-client": "^1.0.1",
+    "@azure/web-pubsub-express": "^1.0.5",
+    "dotenv": "^16.4.5"
+  }
+}

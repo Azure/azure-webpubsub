@@ -65,10 +65,12 @@ export class AttachLocalTunnelStep extends AzureWizardExecuteStep<IPickHubSettin
             }
             tunnelOptionalParameter.connectionString = connString;
         }
-        else {
+        else if (resource.hostName) {
             // eslint-disable-next-line
             vscode.window.showInformationMessage(localize(`confirmLocalTunnelAad`, `You have disabled access key. The tool will use Azure Identity.`));
-            tunnelOptionalParameter.endpoint = createEndpointFromHostName(resource.hostName!);
+            tunnelOptionalParameter.endpoint = createEndpointFromHostName(resource.hostName);
+        } else {
+            throw new Error(localize(`noHostName`, `No host name found for service {0}`, context.serviceName));
         }
 
         // Step 3: create a new terminal to run tunnel tool. If exists, dispose the old one.

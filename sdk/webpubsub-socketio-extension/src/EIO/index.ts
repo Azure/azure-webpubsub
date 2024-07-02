@@ -102,7 +102,8 @@ export class WebPubSubEioServer extends engine.Server {
     const packets = await client.transport.parser.decodePayload(content);
 
     for (const packet of packets) {
-      client.onPacket(packet);
+      // Reference: https://github.com/socketio/engine.io/blob/6.5.3/lib/socket.ts#L238
+      (client.transport as engine.Transport).emit("packet", packet);
     }
   }
 
