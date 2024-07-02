@@ -1,0 +1,133 @@
+{
+  "separator": ": ",
+  "id": "ID",
+  "update": "Update",
+  "details": "Details",
+  "actions": "Actions",
+  "select-namespace": "Select namespace",
+  "namespace": "Namespace",
+  "namespaces": "Namespaces",
+  "disconnect": "Disconnect",
+  "name": "Name",
+  "value": "Value",
+  "type": "Type",
+  "status": "Status",
+  "connected": "connected",
+  "disconnected": "disconnected",
+  "data": "Data",
+  "timestamp": "Timestamp",
+  "args": "Arguments",
+  "connection": {
+    "title": "Connection",
+    "hub": "Hub",
+    "serviceEndpoint": "Service Endpoint",
+    "username": "Username",
+    "password": "Password",
+    "connect": "Connect",
+    "invalid-credentials": "Invalid credentials",
+    "error": "Error",
+    "websocket-only": "WebSocket only?",
+    "queryString": "Connect Query String (Example: access_token=a.b.c&k=v)",
+    "path": "Path",
+    "parser": "Parser",
+    "default-parser": "Built-in parser",
+    "msgpack-parser": "MessagePack parser",
+    "namespace": "Admin namespace",
+    "advanced-options": "Advanced options"
+  },
+  "dashboard": {
+    "title": "Dashboard",
+    "connectionsHistogram": {
+      "title": "Connection and disconnection events"
+    },
+    "bytesHistogram": {
+      "title": "Bytes received and sent",
+      "bytesIn": "Bytes received",
+      "bytesOut": "Bytes sent"
+    },
+    "benchmarkHistogram": {
+      "title": "Benchmark",
+      "PPS": "Packets per second (AVG)",
+      "RTT": "Round-trip time (AVG)",
+      "MRTT": "Round-trip time (MAX)"
+    }
+  },
+  "sockets": {
+    "title": "Sockets",
+    "details": "Socket details",
+    "address": "IP address",
+    "transport": "Transport",
+    "disconnect": "Disconnect this Socket instance",
+    "displayDetails": "Display the details of this Socket instance",
+    "client": "Client",
+    "socket": "Socket",
+    "creation-date": "Creation date",
+    "leave": "Leave this room",
+    "join": "Join",
+    "join-a-room": "Join a room",
+    "initial-request": "Initial HTTP request",
+    "headers": "Headers",
+    "query-params": "Query parameters"
+  },
+  "rooms": {
+    "title": "Rooms",
+    "details": "Room details",
+    "active": "Active",
+    "deleted": "Deleted",
+    "public": "Public",
+    "private": "Private",
+    "show-private": "Show private rooms?",
+    "sockets-count": "# of sockets",
+    "clear": "Remove all the Socket instances from this room",
+    "leave": "Remove the Socket instance from this room",
+    "disconnect": "Disconnect all the Socket instances that are in this room",
+    "displayDetails": "Display the details of this room"
+  },
+  "clients": {
+    "title": "Clients",
+    "details": "Client details",
+    "sockets-count": "# of sockets",
+    "disconnect": "Disconnect this client (and all attached Socket instances)",
+    "displayDetails": "Display the details of this client"
+  },
+  "servers": {
+    "title": "Servers",
+    "hostname": "Hostname",
+    "pid": "PID",
+    "uptime": "Uptime",
+    "clients-count": "# of clients",
+    "last-ping": "Last ping",
+    "healthy": "Healthy",
+    "unhealthy": "Unhealthy"
+  },
+  "config": {
+    "language": "Language",
+    "readonly": "Read-only?",
+    "dark-theme": "Dark theme?"
+  },
+  "events": {
+    "title": "Events",
+    "type": {
+      "connection": "Connection",
+      "disconnection": "Disconnection",
+      "room_joined": "Room joined",
+      "room_left": "Room left",
+      "event_received": "Event received",
+      "event_sent": "Event sent"
+    },
+    "eventName": "Event name",
+    "eventArgs": "Event arguments",
+    "reason": "Reason",
+    "room": "Room"
+  },
+  "benchmark": {
+    "title": "Benchmark",
+    "detailedTitle": "Simple Echo Benchmark",
+    "benchmarkHistogram": {
+      "title": "Benchmark",
+      "PPS": "Packets per second (AVG)",
+      "RTT": "Round-trip time (AVG)",
+      "MRTT": "Round-trip time (MAX)"
+    }
+  }
+}
