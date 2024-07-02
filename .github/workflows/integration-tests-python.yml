@@ -57,7 +57,7 @@ jobs:
         run: echo "TEST_OUTPUT=$(cat ./test-output/test-output.txt)" >> $GITHUB_ENV
       - name: Fix error with deep prompt
         run: |
-          node eng/copilot/fixError.js
+          node eng/copilot/fixErrorWithDeepPrompt.js
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           API_KEY: ${{ secrets.OPENAI_API_KEY }}
