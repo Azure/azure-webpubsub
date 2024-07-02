@@ -46,7 +46,7 @@ async function syncPrChange() {
 
     //prepare for github commit
     const mainSha = await getLatestCommitSha(targetRepoOwner, targetRepo);
-    let changeSha = await createChangeBranch(targetRepoOwner, targetRepo, mainSha);
+    let changeSha = await createChangeBranch(targetRepoOwner, targetRepo, mainSha, lastSha.substring(0, 7));
 
     //stash files -> commit -> push
     const blobs = await createBlob(targetRepoOwner, targetRepo, translatedFiles);

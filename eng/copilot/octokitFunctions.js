@@ -1,7 +1,7 @@
 import { Octokit } from "@octokit/rest";
 import { githubToken, basePrId,  } from "./constants.js";
 
-const branchRef = `heads/auto-generated-integration-test-from-pr${basePrId}`;
+const branchRef = "heads/auto-generated-integration-test-from-";
 const mainRef = "heads/main";
 
 const octokit = new Octokit({
@@ -71,12 +71,12 @@ export async function getChangedFiles(owner, repo, commitSha) {
     }
 }
 
-export async function createChangeBranch(owner, repo, sha) {
+export async function createChangeBranch(owner, repo, mainSha, originSha) {
     try {
         const { data } = await octokit.rest.git.getRef({
             owner,
             repo,
-            ref: `refs/${branchRef}`,
+            ref: `refs/${branchRef}${originSha}`,
         });
         console.log("Branch already exists, using existing branch SHA:", data.object.sha);
         return data.object.sha;
@@ -87,7 +87,7 @@ export async function createChangeBranch(owner, repo, sha) {
                     owner,
                     repo,
                     ref: `refs/${branchRef}`,
-                    sha,
+                    mainSha,
                 });
                 console.log("Branch auto-generated-integration-test created successfully, new branch SHA:", newData.object.sha);
                 return newData.object.sha;
