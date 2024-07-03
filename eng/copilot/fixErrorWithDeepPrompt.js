@@ -56,7 +56,7 @@ async function fix() {
         const errors = getErrorMessage(errorMessage);
         const accessSession = await getSessionAccess();
         const files = await getChangedFiles("Azure", "azure-webpubsub", prId);
-        const fixedFiles = [];
+        let fixedFiles = [];
         const errorFixPromises = errors.map(async (error) => {
             const filesWithError = files.filter(file => file.filename.includes(error.filename));
             const fileFixPromises = filesWithError.map(async (file) => {

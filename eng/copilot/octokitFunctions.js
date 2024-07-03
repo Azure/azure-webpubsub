@@ -1,5 +1,5 @@
 import { Octokit } from "@octokit/rest";
-import { githubToken, basePrId,  } from "./constants.js";
+import { githubToken, basePrId } from "./constants.js";
 
 const branchRef = "heads/auto-generated-integration-test-from-";
 const mainRef = "heads/main";
@@ -8,7 +8,7 @@ const octokit = new Octokit({
     auth: githubToken,
 });
 
-export async function getLatestCommitSha(owner, repo) {
+export async function getLatestCommitShaOnMain(owner, repo) {
     try {
         const { data } = await octokit.rest.git.getRef({
             owner,
@@ -22,7 +22,7 @@ export async function getLatestCommitSha(owner, repo) {
     }
 }
 
-export async function getLastTestFolderCommitSha(owner, repo, mainSha) {
+export async function getLatestCommitShaOnTestFolder(owner, repo, mainSha) {
     try {
         const { data: commits } = await octokit.rest.repos.listCommits({
             owner,
