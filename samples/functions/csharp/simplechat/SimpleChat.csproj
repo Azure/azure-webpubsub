@@ -5,7 +5,7 @@
   </PropertyGroup>
   <ItemGroup>
     <FrameworkReference Include="Microsoft.AspNetCore.App" />
-    <PackageReference Include="Microsoft.NET.Sdk.Functions" Version="4.2.0" />
+    <PackageReference Include="Microsoft.NET.Sdk.Functions" Version="4.4.0" />
     <PackageReference Include="Microsoft.Azure.WebJobs.Extensions.WebPubSub" Version="1.7.0" />
   </ItemGroup>
   <ItemGroup>
