@@ -4,6 +4,7 @@ on:
     branches: [ "main" ]
     paths:
       - 'sdk/webpubsub-socketio-extension/package.json'
+      - 'sdk/webpubsub-socketio-extension/CHANGELOG.md'
 
 env:
   NODE_VERSION: '18.x'                # set this to the node version to use
@@ -11,38 +12,46 @@ env:
 jobs:
   build:
     runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.read_current_version.outputs.current_version }}
+      version_changed: ${{ steps.compare_versions.outputs.version_changed }}
     steps:
     - uses: actions/checkout@v3
       with:
-        fetch-depth: 3
-
-    - name: Get previous version of package.json from git
-      id: get_previous_version
-      run: |
-        git log -3
-        previous_hash=$(git log -n 3 --pretty=format:'%H' | tail -n 1)
-        previous_version=$(git show $previous_hash:sdk/webpubsub-socketio-extension/package.json | jq -r '.version')
-        echo "Previous version: $previous_version"
-        echo "previous_version=$previous_version" >> $GITHUB_OUTPUT
-
+        fetch-depth: 0
     - name: Read current version from package.json
       id: read_current_version
       run:  |
         current_version=$(jq -r '.version' sdk/webpubsub-socketio-extension/package.json)
         echo "Current version: $current_version"
         echo "current_version=$current_version" >> $GITHUB_OUTPUT
-
+    - name: Validate version in change log #Changelog should contain the matching description
+      id: changelog_reader
+      uses: mindsers/changelog-reader-action@v2
+      with:
+        validation_level: none
+        version: ${{ steps.read_current_version.outputs.current_version }}
+        path: sdk/webpubsub-socketio-extension/CHANGELOG.md
+    - name: Print info from changelog
+      id: print
+      run: echo ${{steps.changelog_reader.outputs.version}}  ${{steps.changelog_reader.outputs.date}} 
+    - name: Needs release
+      id: needs_release
+      if: steps.changelog_reader.outputs.version == steps.read_current_version.outputs.current_version && steps.changelog_reader.outputs.date != ''
+      run:  |
+        echo "needs_release=true" >> $GITHUB_OUTPUT
+    - name: Extract version from tag
+      id: tag_version
+      if: steps.needs_release.outputs.needs_release == 'true'
+      run: |
+        TAG_NAME="${GITHUB_REF#refs/tags/}"  # Extract tag name from GITHUB_REF
+        VERSION=$(echo "$TAG_NAME" | sed -n 's|^release/webpubsub-socketio-extension/v\(.*\)$|\1|p')
+        echo "tag_version=$VERSION" >> $GITHUB_OUTPUT
     - name: Compare versions
       id: compare_versions
+      if: steps.needs_release.outputs.needs_release == 'true' && steps.tag_version.outputs.tag_version != steps.read_current_version.outputs.current_version
       run: |
-        if [[ "${{ steps.get_previous_version.outputs.previous_version }}" != "${{ steps.read_current_version.outputs.current_version }}" ]]; then
-          echo "Version changed. Running the workflow..."
           echo "version_changed=true" >> $GITHUB_OUTPUT
-        else
-          echo "Version not changed. Skipping the workflow..."
-          echo "version_changed=false" >> $GITHUB_OUTPUT
-        fi
-
     - name: Set up Node.js
       uses: actions/setup-node@v3
       with:
