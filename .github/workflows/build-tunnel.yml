@@ -65,11 +65,6 @@ jobs:
           subscription-id: ${{ secrets.AZURESDKPARTNERDROPS_SUBSCRIPTION_ID }}
     - name: AzCopy to shared blob
       env:
-        URL: ${{ secrets.AZURESDKPARTNERDROPS_URL }}
-        CLIENT_ID: ${{ secrets.AZURESDKPARTNERDROPS_CLIENT_ID }}
-        SUBSCRIPTION_ID: ${{ secrets.AZURESDKPARTNERDROPS_SUBSCRIPTION_ID }}
-        PRINCIPAL_ID: ${{ secrets.AZURESDKPARTNERDROPS_SERVICE_PRINCIPAL_ID }}
-        TENANT_ID: ${{ secrets.AZURESDKPARTNERDROPS_TENANT_ID }}
         BUILDNUMBER: ${{ inputs.version }}
       run: |
         azcopy copy ${{ steps.tunnel.outputs.packagePath }} "$URL/azure-webpubsub/tunnel/$BUILDNUMBER/"
