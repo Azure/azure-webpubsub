@@ -9,7 +9,9 @@ on:
     secrets:
       AZURESDKPARTNERDROPS_URL:
         required: true
-      AZURESDKPARTNERDROPS_SERVICE_PRINCIPAL_KEY:
+      AZURESDKPARTNERDROPS_CLIENT_ID:
+        required: true
+      AZURESDKPARTNERDROPS_SUBSCRIPTION_ID:
         required: true
       AZURESDKPARTNERDROPS_SERVICE_PRINCIPAL_ID:
         required: true
@@ -55,13 +57,19 @@ jobs:
       with:
         name: tunnel package
         path: ${{ steps.tunnel.outputs.packagePath }} 
+    - name: 'Az CLI login'
+      uses: azure/login@v1
+      with:
+          client-id: ${{ secrets.AZURESDKPARTNERDROPS_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURESDKPARTNERDROPS_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURESDKPARTNERDROPS_SUBSCRIPTION_ID }}
     - name: AzCopy to shared blob
       env:
         URL: ${{ secrets.AZURESDKPARTNERDROPS_URL }}
-        AZCOPY_SPA_CLIENT_SECRET: ${{ secrets.AZURESDKPARTNERDROPS_SERVICE_PRINCIPAL_KEY }}
-        ID: ${{ secrets.AZURESDKPARTNERDROPS_SERVICE_PRINCIPAL_ID }}
-        TENANT: ${{ secrets.AZURESDKPARTNERDROPS_TENANT_ID }}
+        CLIENT_ID: ${{ secrets.AZURESDKPARTNERDROPS_CLIENT_ID }}
+        SUBSCRIPTION_ID: ${{ secrets.AZURESDKPARTNERDROPS_SUBSCRIPTION_ID }}
+        PRINCIPAL_ID: ${{ secrets.AZURESDKPARTNERDROPS_SERVICE_PRINCIPAL_ID }}
+        TENANT_ID: ${{ secrets.AZURESDKPARTNERDROPS_TENANT_ID }}
         BUILDNUMBER: ${{ inputs.version }}
       run: |
-        azcopy login --service-principal --application-id $ID --tenant-id $TENANT
         azcopy copy ${{ steps.tunnel.outputs.packagePath }} "$URL/azure-webpubsub/tunnel/$BUILDNUMBER/"
