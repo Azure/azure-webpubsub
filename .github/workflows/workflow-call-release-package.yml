@@ -29,7 +29,7 @@ jobs:
       needs_release: ${{ steps.compare_versions.outputs.needs_release }}
       release_version: ${{ steps.read_current_version.outputs.current_version }}
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
       with:
         fetch-depth: 0
 
@@ -78,11 +78,11 @@ jobs:
     needs: check_version
     if: ${{ needs.check_version.outputs.needs_release == 'true' }}
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
       with:
         fetch-depth: 0
     - name: Set up Node.js
-      uses: actions/setup-node@v3
+      uses: actions/setup-node@v4
       with:
         node-version: ${{ env.NODE_VERSION }}
         cache: 'npm'
@@ -106,7 +106,7 @@ jobs:
         popd
       shell: bash
     - name: Publish Artifacts
-      uses: actions/upload-artifact@v2
+      uses: actions/upload-artifact@v4
       with:
         name: ${{ inputs.package_name }}
         path: ${{ steps.pack_package.outputs.packagePath }}
@@ -120,7 +120,6 @@ jobs:
       uses: actions/download-artifact@v4
       with:
         name: ${{ inputs.package_name }}
-        download-path: ${{ inputs.package_name }}
     - name: 'Az CLI login'
       uses: azure/login@v2
       with:
