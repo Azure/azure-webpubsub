@@ -127,8 +127,12 @@ jobs:
           tenant-id: ${{ secrets.AZURESDKPARTNERDROPS_TENANT_ID }}
           subscription-id: ${{ secrets.AZURESDKPARTNERDROPS_SUBSCRIPTION_ID }}
     - name: AzCopy to shared blob
-      uses: azure/cli@v2
-      with:
-        azcliversion: latest
-        inlineScript: |
-          azcopy copy ${{ inputs.package_name }} "${{ secrets.AZURESDKPARTNERDROPS_URL }}/azure-webpubsub/${{ inputs.package_name }}/${{ needs.check_version.outputs.release_version }}/"
+      env: 
+        ClientID: ${{ secrets.AZURESDKPARTNERDROPS_CLIENT_ID }}
+        TenantId: ${{ secrets.AZURESDKPARTNERDROPS_TENANT_ID }}
+        AZCOPY_AUTO_LOGIN_TYPE: WORKLOAD
+      run: |
+        azcopy --version
+        azcopy copy ${{ inputs.package_name }} "$AZURESDKPARTNERDROPS_URL/azure-webpubsub/${{ inputs.package_name }}/${{ needs.check_version.outputs.release_version }}/"
+
+
