@@ -122,7 +122,11 @@ jobs:
         ClientID: ${{ secrets.AZURESDKPARTNERDROPS_CLIENT_ID }}
         TenantId: ${{ secrets.AZURESDKPARTNERDROPS_TENANT_ID }}
         AZCOPY_AUTO_LOGIN_TYPE: WORKLOAD
+        AZCOPY_TENANT_ID: ${{ secrets.AZURESDKPARTNERDROPS_TENANT_ID }}
+        AZCOPY_CLIENT_ID: ${{ secrets.AZURESDKPARTNERDROPS_CLIENT_ID }}
+        AZCOPY_SPA_CLIENT_ID: ${{ secrets.AZURESDKPARTNERDROPS_CLIENT_ID }}
       run: |
+        echo $AZCOPY_AUTO_LOGIN_TYPE
         azcopy --version
         azcopy copy ${{ steps.pack_package.outputs.packagePath }} "${{ secrets.AZURESDKPARTNERDROPS_URL }}/azure-webpubsub/${{ inputs.package_name }}/${{ needs.check_version.outputs.release_version }}/"
 
