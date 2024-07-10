@@ -2,10 +2,6 @@ name: Release Azure SocketIO package
 permissions:
   id-token: write # This is required for requesting the JWT
 on:
-  pull_request:
-    branches: [ "main" ]
-    paths:
-      - '.github/workflows/release_socketio.yml'
   push:
     branches: [ "main" ]
     paths:
