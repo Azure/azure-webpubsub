@@ -12,30 +12,15 @@ on:
       - '.github/workflows/release_socketio.yml'
       - 'sdk/webpubsub-socketio-extension/package.json'
       - 'sdk/webpubsub-socketio-extension/CHANGELOG.md'
-
-env:
-  NODE_VERSION: '18.x'                # set this to the node version to use
-
 jobs:
   build:
     runs-on: ubuntu-latest
-    environment: Cloud
-    steps:
-    - name: Compare versions
-      id: compare_versions
-      run: |
-          echo "version_changed=true" >> $GITHUB_OUTPUT
-    - name: 'Az CLI login'
-      if: steps.compare_versions.outputs.version_changed == 'true'
-      uses: azure/login@v2
-      with:
-          client-id: ${{ secrets.AZURESDKPARTNERDROPS_CLIENT_ID }}
-          tenant-id: ${{ secrets.AZURESDKPARTNERDROPS_TENANT_ID }}
-          subscription-id: ${{ secrets.AZURESDKPARTNERDROPS_SUBSCRIPTION_ID }}
-          
-    - name: AzCopy to shared blob
-      if: steps.compare_versions.outputs.version_changed == 'true'
-      env:
-        BUILDNUMBER: ${{ steps.read_current_version.outputs.current_version }}
-      run: |
-        azcopy copy ${{ steps.socketio.outputs.packagePath }} "$URL/azure-webpubsub/sio/$BUILDNUMBER/"
+    uses: ./.github/workflows/workflow-call-release-package.yml
+    secrets:
+      AZURESDKPARTNERDROPS_URL: ${{ secrets.AZURESDKPARTNERDROPS_URL }}
+      AZURESDKPARTNERDROPS_CLIENT_ID: ${{ secrets.AZURESDKPARTNERDROPS_CLIENT_ID }}
+      AZURESDKPARTNERDROPS_SUBSCRIPTION_ID: ${{ secrets.AZURESDKPARTNERDROPS_SUBSCRIPTION_ID }}
+      AZURESDKPARTNERDROPS_TENANT_ID: ${{ secrets.AZURESDKPARTNERDROPS_TENANT_ID }}
+    with:
+      package_name: webpubsub-socketio-extension
+      package_folder: sdk/webpubsub-socketio-extension
