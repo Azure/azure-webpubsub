@@ -124,6 +124,6 @@ jobs:
         AZCOPY_AUTO_LOGIN_TYPE: WORKLOAD
       run: |
         azcopy --version
-        azcopy copy ${{ steps.pack_package.outputs.packagePath }} "$AZURESDKPARTNERDROPS_URL/azure-webpubsub/${{ inputs.package_name }}/${{ needs.check_version.outputs.release_version }}/"
+        azcopy copy ${{ steps.pack_package.outputs.packagePath }} "${{ secrets.AZURESDKPARTNERDROPS_URL }}/azure-webpubsub/${{ inputs.package_name }}/${{ needs.check_version.outputs.release_version }}/"
 
 
