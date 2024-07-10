@@ -41,6 +41,7 @@ jobs:
     - name: 'Run Azure CLI commands'
       run: |
           az account show
+          echo "test" > 1.test
           az storage blob upload --auth-mode login \
            --container-name test --account-name  https://blob4blob.blob.core.windows.net \
            --file 1.test --name a/test
