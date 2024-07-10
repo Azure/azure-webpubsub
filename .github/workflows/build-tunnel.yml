@@ -1,4 +1,6 @@
 name: Build and release tunnel package
+permissions:
+  id-token: write # This is required for requesting the JWT
 on:
   workflow_call:
     inputs:
