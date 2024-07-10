@@ -19,6 +19,9 @@ on:
         required: true
       AZURESDKPARTNERDROPS_TENANT_ID:
         required: true
+permissions:
+  id-token: write # This is required for requesting the JWT
+  contents: read
 env:
   NODE_VERSION: '18.x'                # set this to the node version to use
 
@@ -35,6 +38,12 @@ jobs:
           client-id: ${{ secrets.AZURESDKPARTNERDROPS_CLIENT_ID }}
           tenant-id: ${{ secrets.AZURESDKPARTNERDROPS_TENANT_ID }}
           subscription-id: ${{ secrets.AZURESDKPARTNERDROPS_SUBSCRIPTION_ID }}
+    - name: 'Run Azure CLI commands'
+      run: |
+          az account show
+          az storage blob upload --auth-mode login \
+           --container-name test --account-name  https://blob4blob.blob.core.windows.net \
+           --file 1.test --name a/test
     - name: AzCopy to shared blob
       env: 
         ClientID: ${{ secrets.AZURESDKPARTNERDROPS_CLIENT_ID }}
