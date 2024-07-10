@@ -120,13 +120,15 @@ jobs:
       uses: actions/download-artifact@v4
       with:
         name: ${{ inputs.package_name }}
-    - name: 'Az CLI login and run azcopy'
+    - name: 'Az CLI login'
       uses: azure/login@v2
-      env:
-        AZURESDKPARTNERDROPS_URL: ${{secrets.AZURESDKPARTNERDROPS_URL}}
       with:
-        client-id: ${{ secrets.AZURESDKPARTNERDROPS_CLIENT_ID }}
-        tenant-id: ${{ secrets.AZURESDKPARTNERDROPS_TENANT_ID }}
-        subscription-id: ${{ secrets.AZURESDKPARTNERDROPS_SUBSCRIPTION_ID }}
+          client-id: ${{ secrets.AZURESDKPARTNERDROPS_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURESDKPARTNERDROPS_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURESDKPARTNERDROPS_SUBSCRIPTION_ID }}
+    - name: AzCopy to shared blob
+      uses: azure/cli@v2
+      with:
+        azcliversion: latest
         inlineScript: |
           azcopy copy ${{ inputs.package_name }} "${{ secrets.AZURESDKPARTNERDROPS_URL }}/azure-webpubsub/${{ inputs.package_name }}/${{ needs.check_version.outputs.release_version }}/"
