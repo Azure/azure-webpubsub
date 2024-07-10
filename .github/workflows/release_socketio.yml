@@ -2,6 +2,10 @@ name: Release Azure SocketIO package
 permissions:
   id-token: write # This is required for requesting the JWT
 on:
+  pull_request:
+    branches: [ "main" ]
+    paths:
+      - '.github/workflows/release_socketio.yml'
   push:
     branches: [ "main" ]
     paths:
@@ -13,6 +17,25 @@ env:
   NODE_VERSION: '18.x'                # set this to the node version to use
 
 jobs:
+  validation:
+    runs-on: ubuntu-latest
+    environment: Cloud
+    steps:
+    - name: 'Az CLI login'
+      uses: azure/login@v2
+      with:
+          client-id: ${{ secrets.AZURESDKPARTNERDROPS_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURESDKPARTNERDROPS_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURESDKPARTNERDROPS_SUBSCRIPTION_ID }}
+    - name: AzCopy 
+      env:
+        AZCOPY_AUTO_LOGIN_TYPE: WORKLOAD
+        AZCOPY_TENANT_ID: ${{ secrets.AZURESDKPARTNERDROPS_TENANT_ID }}
+        AZCOPY_CLIENT_ID: ${{ secrets.AZURESDKPARTNERDROPS_TENANT_ID }}
+        AZCOPY_SUBSCRIPTION_ID: ${{ secrets.AZURESDKPARTNERDROPS_SUBSCRIPTION_ID }}
+      run: |
+        azcopy --version
+        azcopy login
   build:
     runs-on: ubuntu-latest
     environment: Cloud
