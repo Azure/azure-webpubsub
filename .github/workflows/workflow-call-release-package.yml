@@ -21,6 +21,7 @@ on:
         required: true
 env:
   NODE_VERSION: '18.x'                # set this to the node version to use
+  AZCOPY_AUTO_LOGIN_TYPE: WORKLOAD
 
 jobs:
   check_version:
@@ -121,12 +122,12 @@ jobs:
       env: 
         ClientID: ${{ secrets.AZURESDKPARTNERDROPS_CLIENT_ID }}
         TenantId: ${{ secrets.AZURESDKPARTNERDROPS_TENANT_ID }}
-        AZCOPY_AUTO_LOGIN_TYPE: WORKLOAD
+        AZCOPY_AUTO_LOGIN_TYPE1: WORKLOAD
         AZCOPY_TENANT_ID: ${{ secrets.AZURESDKPARTNERDROPS_TENANT_ID }}
         AZCOPY_CLIENT_ID: ${{ secrets.AZURESDKPARTNERDROPS_CLIENT_ID }}
         AZCOPY_SPA_CLIENT_ID: ${{ secrets.AZURESDKPARTNERDROPS_CLIENT_ID }}
       run: |
-        echo $AZCOPY_AUTO_LOGIN_TYPE
+        echo "$AZCOPY_AUTO_LOGIN_TYPE $AZCOPY_AUTO_LOGIN_TYPE1"
         azcopy --version
         azcopy copy ${{ steps.pack_package.outputs.packagePath }} "${{ secrets.AZURESDKPARTNERDROPS_URL }}/azure-webpubsub/${{ inputs.package_name }}/${{ needs.check_version.outputs.release_version }}/"
 
