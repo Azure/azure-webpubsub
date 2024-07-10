@@ -99,7 +99,8 @@ jobs:
       id: compare_versions
       if: steps.needs_release.outputs.needs_release == 'true' && steps.tag_version.outputs.tag_version != steps.read_current_version.outputs.current_version
       run: |
-          echo "needs_release=true" >> $GITHUB_OUTPUTbuild-deploy:
+          echo "needs_release=true" >> $GITHUB_OUTPUT
+  build-deploy:
     runs-on: ubuntu-latest
     needs: check_version
     environment: Cloud
