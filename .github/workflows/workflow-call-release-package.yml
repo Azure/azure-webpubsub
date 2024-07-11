@@ -93,8 +93,12 @@ jobs:
       run: npm install -g yarn 
     - name: Pack the package
       id: pack_package
+      # TODO: how to setup yarn install in caller workflow
       run: |
         pushd sdk/server-proxies
+        yarn
+        popd        
+        pushd tools/awps-tunnel/client
         yarn
         popd
         pushd ${{ inputs.package_folder }}
