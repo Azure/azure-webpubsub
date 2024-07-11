@@ -17,6 +17,7 @@ jobs:
   # Testing tag feature, to be deleted later
   pre:
     runs-on: ubuntu-latest
+    environment: Tag
     outputs:
       goon: false
     permissions:
@@ -24,12 +25,6 @@ jobs:
     env: 
       release_tag: release/awps-tunnel/v1.0.0-beta.8
     steps:
-    - name: Approval after release for adding release tag
-      id: approval
-      uses: trstringer/manual-approval@v1
-      with:
-        minimum-approvals: 1
-        issue-body: "Approve to add release tag to the current repo"
     - name: Check if tag exists
       id: check_tag
       run: |
