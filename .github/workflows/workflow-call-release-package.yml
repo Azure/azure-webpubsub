@@ -26,42 +26,7 @@ env:
   NODE_VERSION: '18.x'                # set this to the node version to use
 
 jobs:
-  pre:
-    runs-on: ubuntu-latest
-    environment: Cloud
-    outputs:
-      goon: false
-    steps:
-    - name: 'Az CLI login'
-      uses: azure/login@v2
-      with:
-          client-id: ${{ secrets.AZURESDKPARTNERDROPS_CLIENT_ID }}
-          tenant-id: ${{ secrets.AZURESDKPARTNERDROPS_TENANT_ID }}
-          subscription-id: ${{ secrets.AZURESDKPARTNERDROPS_SUBSCRIPTION_ID }}
-    - name: 'Run Azure CLI commands'
-      run: |
-          az account show
-          echo "test" > 1.test
-          az storage blob upload --auth-mode login \
-           --container-name test --account-name  https://blob4blob.blob.core.windows.net \
-           --file 1.test --name a/test
-    - name: AzCopy to shared blob
-      env: 
-        ClientID: ${{ secrets.AZURESDKPARTNERDROPS_CLIENT_ID }}
-        TenantId: ${{ secrets.AZURESDKPARTNERDROPS_TENANT_ID }}
-        AZCOPY_TENANT_ID: ${{ secrets.AZURESDKPARTNERDROPS_TENANT_ID }}
-        AZCOPY_CLIENT_ID: ${{ secrets.AZURESDKPARTNERDROPS_CLIENT_ID }}
-        AZCOPY_SPA_APPLICATION_ID: ${{ secrets.AZURESDKPARTNERDROPS_CLIENT_ID }}
-        AZCOPY_SPA_CLIENT_ID: ${{ secrets.AZURESDKPARTNERDROPS_CLIENT_ID }}
-        AZCOPY_MSI_CLIENT_ID: ${{ secrets.AZURESDKPARTNERDROPS_CLIENT_ID }}
-        AZCOPY_AUTO_LOGIN_TYPE: workload
-      run: |
-        echo "$AZCOPY_AUTO_LOGIN_TYPE"
-        azcopy copy test.1 "${{ secrets.AZURESDKPARTNERDROPS_URL }}/azure-webpubsub/test/1/"
-  
   check_version:
-    needs: pre
-    if: ${{ needs.pre.outputs.goon == 'true' }}
     runs-on: ubuntu-latest
     outputs:
       needs_release: ${{ steps.compare_versions.outputs.needs_release }}
@@ -154,17 +119,7 @@ jobs:
           client-id: ${{ secrets.AZURESDKPARTNERDROPS_CLIENT_ID }}
           tenant-id: ${{ secrets.AZURESDKPARTNERDROPS_TENANT_ID }}
           subscription-id: ${{ secrets.AZURESDKPARTNERDROPS_SUBSCRIPTION_ID }}
-    - name: AzCopy to shared blob
-      env: 
-        ClientID: ${{ secrets.AZURESDKPARTNERDROPS_CLIENT_ID }}
-        TenantId: ${{ secrets.AZURESDKPARTNERDROPS_TENANT_ID }}
-        AZCOPY_AUTO_LOGIN_TYPE1: WORKLOAD
-        AZCOPY_TENANT_ID: ${{ secrets.AZURESDKPARTNERDROPS_TENANT_ID }}
-        AZCOPY_CLIENT_ID: ${{ secrets.AZURESDKPARTNERDROPS_CLIENT_ID }}
-        AZCOPY_SPA_CLIENT_ID: ${{ secrets.AZURESDKPARTNERDROPS_CLIENT_ID }}
+          
+    - name: 'AzCopy to shared blob'
       run: |
-        echo "$AZCOPY_AUTO_LOGIN_TYPE $AZCOPY_AUTO_LOGIN_TYPE1"
-        azcopy --version
-        azcopy copy ${{ steps.pack_package.outputs.packagePath }} "${{ secrets.AZURESDKPARTNERDROPS_URL }}/azure-webpubsub/${{ inputs.package_name }}/${{ needs.check_version.outputs.release_version }}/"
-
-
+          az storage blob upload --auth-mode login -f ${{ steps.pack_package.outputs.packagePath }} --blob-url "${{ secrets.AZURESDKPARTNERDROPS_URL }}/azure-webpubsub/${{ inputs.package_name }}/${{ needs.check_version.outputs.release_version }}/"
