@@ -129,7 +129,7 @@ jobs:
           
     - name: 'AzCopy to shared blob'
       run: |
-          az storage blob upload --auth-mode login -f ${{ steps.pack_package.outputs.packagePath }} --blob-url "${{ secrets.AZURESDKPARTNERDROPS_URL }}/azure-webpubsub/${{ inputs.package_name }}/${{ needs.check_version.outputs.release_version }}/${{ steps.pack_package.outputs.packageName }}"
+          az storage blob upload --overwrite --auth-mode login -f ${{ steps.pack_package.outputs.packagePath }} --blob-url "${{ secrets.AZURESDKPARTNERDROPS_URL }}/azure-webpubsub/${{ inputs.package_name }}/${{ needs.check_version.outputs.release_version }}/${{ steps.pack_package.outputs.packageName }}"
     - name: 'Caculate tag to create'
       id: tag
       run: |
