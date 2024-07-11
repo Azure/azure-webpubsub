@@ -127,3 +127,19 @@ jobs:
     - name: 'AzCopy to shared blob'
       run: |
           az storage blob upload --auth-mode login -f ${{ steps.pack_package.outputs.packagePath }} --blob-url "${{ secrets.AZURESDKPARTNERDROPS_URL }}/azure-webpubsub/${{ inputs.package_name }}/${{ needs.check_version.outputs.release_version }}/${{ steps.pack_package.outputs.packageName }}"
+  post-deploy:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Approval after release for adding release tag
+      id: approval
+      uses: reviewdog/action-yamllint@v1
+      with:
+        approval: true
+    - name: Checkout repository
+      uses: actions/checkout@v4
+    - name: Create and push release tag
+      run: |
+        git config --global user.name "github-actions"
+        git config --global user.email "github-actions@github.com"
+        git tag ${{ github.event.inputs.release_tag }}
+        git push origin ${{ github.event.inputs.release_tag }}
