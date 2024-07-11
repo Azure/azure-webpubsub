@@ -135,11 +135,4 @@ jobs:
       uses: reviewdog/action-yamllint@v1
       with:
         approval: true
-    - name: Checkout repository
-      uses: actions/checkout@v4
-    - name: Create and push release tag
-      run: |
-        git config --global user.name "github-actions"
-        git config --global user.email "github-actions@github.com"
-        git tag ${{ github.event.inputs.release_tag }}
-        git push origin ${{ github.event.inputs.release_tag }}
+    - name: TODO-Create and push release tag
