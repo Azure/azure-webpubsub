@@ -169,9 +169,6 @@ jobs:
     needs: build_deploy
     env:
       package_path: ${{ needs.build_deploy.outputs.package_path }}
-    permissions:
-      contents: write
-      pull-requests: write
     steps:
     - name: Checkout repository
       uses: actions/checkout@v4
