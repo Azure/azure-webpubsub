@@ -19,6 +19,8 @@ on:
         required: true
       AZURESDKPARTNERDROPS_TENANT_ID:
         required: true
+      GH_PAT:
+        required: true
 permissions:
   id-token: write # This is required for requesting the JWT
   contents: read
@@ -153,10 +155,13 @@ jobs:
           echo "Tag already exists."
           echo "tag_exists=true" >> $GITHUB_ENV
         else
+          echo "Creating tag $release_tag"
           echo "tag_exists=false" >> $GITHUB_ENV
         fi
+        echo tag_exists=$tag_exists
     - name: Checkout repository
       uses: actions/checkout@v4
+      if: steps.check_tag.outputs.tag_exists == 'false'
     - name: Create and push release tag
       if: steps.check_tag.outputs.tag_exists == 'false'
       run: |

@@ -21,6 +21,7 @@ jobs:
       AZURESDKPARTNERDROPS_CLIENT_ID: ${{ secrets.AZURESDKPARTNERDROPS_CLIENT_ID }}
       AZURESDKPARTNERDROPS_SUBSCRIPTION_ID: ${{ secrets.AZURESDKPARTNERDROPS_SUBSCRIPTION_ID }}
       AZURESDKPARTNERDROPS_TENANT_ID: ${{ secrets.AZURESDKPARTNERDROPS_TENANT_ID }}
+      GH_PAT: ${{ secrets.GH_PAT }}
     with:
       package_name: awps-tunnel
       package_folder: tools/awps-tunnel/server
