@@ -40,10 +40,18 @@ jobs:
     - name: Update package.json to next beta version
       id: new_version
       run: |
-        NEW_VERSION=$(jq -r '.version' package.json | awk -F. -v OFS=. '{print $1,$2,$3+1"-beta"}')
-        echo $NEW_VERSION
-        echo "version=$NEW_VERSION" >> $GITHUB_OUTPUT
+        CURRENT_VERSION=$(jq -r '.version' package.json)
+        if [[ "$CURRENT_VERSION" =~ -beta ]]; then
+          NEW_VERSION=$(echo $CURRENT_VERSION | awk -F- -v OFS=- '{split($2,a,".");$2="beta."a[2]+1;print $1,$2}')
+        else
+          NEW_VERSION=$(echo $CURRENT_VERSION | awk -F. -v OFS=. '{print $1,$2,$3+1"-beta.1"}')
+        fi
         jq ".version = \"$NEW_VERSION\"" package.json > tmp.json && mv tmp.json package.json
+        BRANCH_NAME=update-package-version-$NEW_VERSION
+        echo $NEW_VERSION
+        echo $BRANCH_NAME
+        echo "version=$NEW_VERSION" >> $GITHUB_OUTPUT
+        echo "branch=$BRANCH_NAME" >> $GITHUB_OUTPUT
 
     - name: Commit changes
       run: |
@@ -54,13 +62,13 @@ jobs:
     
     - name: Push changes
       run: |
-        git push origin HEAD:update-package-version-${{steps.new_version.outputs.version}}
+        git push origin HEAD:refs/heads/${{steps.new_version.outputs.branch}}
 
     - name: Create Pull Request
       uses: peter-evans/create-pull-request@v5
       with:
         token: ${{ secrets.GITHUB_TOKEN }}
-        branch: update-package-version-${{steps.new_version.outputs.version}}
+        branch: ${{steps.new_version.outputs.branch}}
         commit-message: Update package.json to next beta version 
         title: Update package.json to next beta version ${{steps.new_version.outputs.version}}
         body: This PR updates the package.json version to the next beta version.
