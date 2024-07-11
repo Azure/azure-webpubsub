@@ -50,6 +50,8 @@ jobs:
       release_tag: release/awps-tunnel/v1.0.0-beta.8
       package_path: package.json
     steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
     - name: Update package.json to next beta version
       id: new_version
       run: |
