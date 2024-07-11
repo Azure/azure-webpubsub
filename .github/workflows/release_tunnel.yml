@@ -52,7 +52,7 @@ jobs:
     steps:
     - name: Checkout repository
       uses: actions/checkout@v4
-    - name: Get the next beta version
+    - name: Get and update to the next beta version
       id: new_version
       run: |
         CURRENT_VERSION=$(jq -r '.version' $package_path)
@@ -73,7 +73,7 @@ jobs:
       id: cpr
       uses: peter-evans/create-pull-request@v5
       with:
-        token: ${{ secrets.GITHUB_TOKEN }}
+        token: ${{ secrets.GH_PAT }}
         branch: ${{steps.new_version.outputs.branch}}
         base: main
         commit-message: Update package.json to next beta version 
