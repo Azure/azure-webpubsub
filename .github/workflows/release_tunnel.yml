@@ -65,8 +65,8 @@ jobs:
         body: This PR updates the package.json version to the next beta version.
         labels: 'release, beta'
   release:
-    needs: test
-    if: ${{needs.test.outputs.goon == 'true'}}
+    needs: pre
+    if: ${{needs.pre.outputs.goon == 'true'}}
     uses: ./.github/workflows/workflow-call-release-package.yml
     secrets:
       AZURESDKPARTNERDROPS_URL: ${{ secrets.AZURESDKPARTNERDROPS_URL }}
