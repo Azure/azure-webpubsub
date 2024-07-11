@@ -16,7 +16,8 @@ on:
 jobs: 
   pre:
     runs-on: ubuntu-latest
-    goon: false
+    outputs:
+      goon: false
     env: 
       GITHUB_TOKEN: ${{ secrets.GH_PAT }}
     steps:
