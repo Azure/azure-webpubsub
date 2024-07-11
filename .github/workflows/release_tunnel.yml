@@ -1,65 +1,75 @@
 name: Release tunnel package
 permissions:
   id-token: write # This is required for requesting the JWT
+  contents: read
 on:
   push:
     branches: [ "main" ]
     paths:
+      - '.github/workflows/release_tunnel.yml'
       - 'tools/awps-tunnel/server/package.json'
       - 'tools/awps-tunnel/server/CHANGELOG.md'
-jobs:
-  version_check:
+jobs: 
+  # Testing tag feature, to be deleted later
+  pre:
     runs-on: ubuntu-latest
     outputs:
-      version: ${{ steps.read_current_version.outputs.current_version }}
-      version_changed: ${{ steps.compare_versions.outputs.version_changed }}
+      goon: false
+    env: 
+      GITHUB_TOKEN: ${{ secrets.GH_PAT }}
     steps:
-    - uses: actions/checkout@v3
+    - name: Approval after release for adding release tag
+      id: approval
+      uses: reviewdog/action-yamllint@v1
       with:
-        fetch-depth: 0
-    - name: Read current version from package.json
-      id: read_current_version
-      run:  |
-        current_version=$(jq -r '.version' tools/awps-tunnel/server/package.json)
-        echo "Current version: $current_version"
-        echo "current_version=$current_version" >> $GITHUB_OUTPUT
-    - name: Validate version in change log #Changelog should contain the matching description
-      id: changelog_reader
-      uses: mindsers/changelog-reader-action@v2
+        approval: true
+    - name: Checkout repository
+      uses: actions/checkout@v4
+    - name: Create and push release tag
+      env: 
+        release_tag: release/awps-tunnel/v1.0.0-beta.8
+      run: |
+        git config --global user.name "Actions robot"
+        git config --global user.email "github-actions-robot@github.com"
+        git tag $release_tag
+        git push origin $release_tag
+    - name: Update package.json to next beta version
+      id: new_version
+      run: |
+        NEW_VERSION=$(jq -r '.version' package.json | awk -F. -v OFS=. '{print $1,$2,$3+1"-beta"}')
+        echo $NEW_VERSION
+        echo "version=$NEW_VERSION" >> $GITHUB_OUTPUT
+        jq ".version = \"$NEW_VERSION\"" package.json > tmp.json && mv tmp.json package.json
+
+    - name: Commit changes
+      run: |
+        git config --global user.name "Actions robot"
+        git config --global user.email "github-actions-robot@github.com"
+        git add package.json
+        git commit -m "Update package.json to next beta version"
+    
+    - name: Push changes
+      run: |
+        git push origin HEAD:update-package-version-${{steps.new_version.outputs.version}}
+
+    - name: Create Pull Request
+      uses: peter-evans/create-pull-request@v5
       with:
-        validation_level: none
-        version: ${{ steps.read_current_version.outputs.current_version }}
-        path: tools/awps-tunnel/server/CHANGELOG.md
-    - name: Print info from changelog
-      id: print
-      run: echo ${{steps.changelog_reader.outputs.version}}  ${{steps.changelog_reader.outputs.date}} 
-    - name: Needs release
-      id: needs_release
-      if: steps.changelog_reader.outputs.version == steps.read_current_version.outputs.current_version && steps.changelog_reader.outputs.date != ''
-      run:  |
-        echo "needs_release=true" >> $GITHUB_OUTPUT
-    - name: Extract version from tag
-      id: tag_version
-      if: steps.needs_release.outputs.needs_release == 'true'
-      run: |
-        TAG_NAME="${GITHUB_REF#refs/tags/}"  # Extract tag name from GITHUB_REF
-        VERSION=$(echo "$TAG_NAME" | sed -n 's|^release/awps-tunnel/v\(.*\)$|\1|p')
-        echo "tag_version=$VERSION" >> $GITHUB_OUTPUT
-    - name: Compare versions
-      id: compare_versions
-      if: steps.needs_release.outputs.needs_release == 'true' && steps.tag_version.outputs.tag_version != steps.read_current_version.outputs.current_version
-      run: |
-          echo "version_changed=true" >> $GITHUB_OUTPUT
+        token: ${{ secrets.GH_PAT }}
+        branch: update-package-version-${{steps.new_version.outputs.version}}
+        commit-message: Update package.json to next beta version 
+        title: Update package.json to next beta version ${{steps.new_version.outputs.version}}
+        body: This PR updates the package.json version to the next beta version.
+        labels: 'release, beta'
   release:
-    needs: version_check
-    if: needs.version_check.outputs.version_changed == 'true'
-    uses: ./.github/workflows/build-tunnel.yml
+    needs: pre
+    if: ${{needs.pre.outputs.goon == 'true'}}
+    uses: ./.github/workflows/workflow-call-release-package.yml
     secrets:
       AZURESDKPARTNERDROPS_URL: ${{ secrets.AZURESDKPARTNERDROPS_URL }}
       AZURESDKPARTNERDROPS_CLIENT_ID: ${{ secrets.AZURESDKPARTNERDROPS_CLIENT_ID }}
       AZURESDKPARTNERDROPS_SUBSCRIPTION_ID: ${{ secrets.AZURESDKPARTNERDROPS_SUBSCRIPTION_ID }}
-      AZURESDKPARTNERDROPS_SERVICE_PRINCIPAL_ID: ${{ secrets.AZURESDKPARTNERDROPS_SERVICE_PRINCIPAL_ID }}
       AZURESDKPARTNERDROPS_TENANT_ID: ${{ secrets.AZURESDKPARTNERDROPS_TENANT_ID }}
     with:
-      version: ${{ needs.version_check.outputs.version }}
-    
+      package_name: awps-tunnel
+      package_folder: tools/awps-tunnel/server

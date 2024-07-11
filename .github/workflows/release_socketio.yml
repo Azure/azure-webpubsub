@@ -1,6 +1,7 @@
 name: Release Azure SocketIO package
 permissions:
   id-token: write # This is required for requesting the JWT
+  contents: read
 on:
   push:
     branches: [ "main" ]
@@ -9,8 +10,7 @@ on:
       - 'sdk/webpubsub-socketio-extension/package.json'
       - 'sdk/webpubsub-socketio-extension/CHANGELOG.md'
 jobs:
-  build:
-    runs-on: ubuntu-latest
+  release:
     uses: ./.github/workflows/workflow-call-release-package.yml
     secrets:
       AZURESDKPARTNERDROPS_URL: ${{ secrets.AZURESDKPARTNERDROPS_URL }}

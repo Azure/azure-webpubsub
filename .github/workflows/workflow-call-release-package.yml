@@ -19,6 +19,9 @@ on:
         required: true
       AZURESDKPARTNERDROPS_TENANT_ID:
         required: true
+permissions:
+  id-token: write # This is required for requesting the JWT
+  contents: read
 env:
   NODE_VERSION: '18.x'                # set this to the node version to use
 
@@ -29,7 +32,7 @@ jobs:
       needs_release: ${{ steps.compare_versions.outputs.needs_release }}
       release_version: ${{ steps.read_current_version.outputs.current_version }}
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
       with:
         fetch-depth: 0
 
@@ -72,17 +75,17 @@ jobs:
       if: steps.needs_release.outputs.needs_release == 'true' && steps.tag_version.outputs.tag_version != steps.read_current_version.outputs.current_version
       run: |
           echo "needs_release=true" >> $GITHUB_OUTPUT
-
-  build:
+  build-deploy:
     runs-on: ubuntu-latest
     needs: check_version
+    environment: Cloud
     if: ${{ needs.check_version.outputs.needs_release == 'true' }}
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
       with:
         fetch-depth: 0
     - name: Set up Node.js
-      uses: actions/setup-node@v3
+      uses: actions/setup-node@v4
       with:
         node-version: ${{ env.NODE_VERSION }}
         cache: 'npm'
@@ -90,8 +93,12 @@ jobs:
       run: npm install -g yarn 
     - name: Pack the package
       id: pack_package
+      # TODO: how to setup yarn install in caller workflow
       run: |
         pushd sdk/server-proxies
+        yarn
+        popd        
+        pushd tools/awps-tunnel/client
         yarn
         popd
         pushd ${{ inputs.package_folder }}
@@ -106,32 +113,26 @@ jobs:
         popd
       shell: bash
     - name: Publish Artifacts
-      uses: actions/upload-artifact@v2
+      uses: actions/upload-artifact@v4
       with:
         name: ${{ inputs.package_name }}
         path: ${{ steps.pack_package.outputs.packagePath }}
-
-  deploy:
-    runs-on: ubuntu-latest
-    needs: [ check_version, build ]
-    environment: Cloud
-    steps:
-    - name: Download Artifacts
-      uses: actions/download-artifact@v4
-      with:
-        name: ${{ inputs.package_name }}
-        download-path: ${{ inputs.package_name }}
     - name: 'Az CLI login'
       uses: azure/login@v2
       with:
           client-id: ${{ secrets.AZURESDKPARTNERDROPS_CLIENT_ID }}
           tenant-id: ${{ secrets.AZURESDKPARTNERDROPS_TENANT_ID }}
           subscription-id: ${{ secrets.AZURESDKPARTNERDROPS_SUBSCRIPTION_ID }}
-    - name: AzCopy to shared blob
-      env:
-        BUILDNUMBER: ${{ steps.read_current_version.outputs.current_version }}
-        AZURESDKPARTNERDROPS_URL: ${{secrets.AZURESDKPARTNERDROPS_URL}}
+          
+    - name: 'AzCopy to shared blob'
       run: |
-        azcopy copy ${{ inputs.package_name }} "$AZURESDKPARTNERDROPS_URL/azure-webpubsub/${{ inputs.package_name }}/${{ needs.check_version.outputs.release_version }}/"
-
-
+          az storage blob upload --auth-mode login -f ${{ steps.pack_package.outputs.packagePath }} --blob-url "${{ secrets.AZURESDKPARTNERDROPS_URL }}/azure-webpubsub/${{ inputs.package_name }}/${{ needs.check_version.outputs.release_version }}/${{ steps.pack_package.outputs.packageName }}"
+  post-deploy:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Approval after release for adding release tag
+      id: approval
+      uses: reviewdog/action-yamllint@v1
+      with:
+        approval: true
+    - name: TODO-Create and push release tag
