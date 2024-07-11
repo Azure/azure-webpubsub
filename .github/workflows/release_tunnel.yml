@@ -19,8 +19,8 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       goon: false
-    env: 
-      GITHUB_TOKEN: ${{ secrets.GH_PAT }}
+    permissions:
+      contents: write
     steps:
     - name: Approval after release for adding release tag
       id: approval
@@ -59,7 +59,7 @@ jobs:
     - name: Create Pull Request
       uses: peter-evans/create-pull-request@v5
       with:
-        token: ${{ secrets.GH_PAT }}
+        token: ${{ secrets.GITHUB_TOKEN }}
         branch: update-package-version-${{steps.new_version.outputs.version}}
         commit-message: Update package.json to next beta version 
         title: Update package.json to next beta version ${{steps.new_version.outputs.version}}
