@@ -153,12 +153,11 @@ jobs:
       run: |
         if git rev-parse "refs/tags/$release_tag" >/dev/null 2>&1; then
           echo "Tag already exists."
-          echo "tag_exists=true" >> $GITHUB_ENV
+          echo "tag_exists=true" >> $GITHUB_OUTPUT
         else
           echo "Creating tag $release_tag"
-          echo "tag_exists=false" >> $GITHUB_ENV
+          echo "tag_exists=false" >> $GITHUB_OUTPUT
         fi
-        echo tag_exists=$tag_exists
     - name: Checkout repository
       uses: actions/checkout@v4
       if: steps.check_tag.outputs.tag_exists == 'false'
