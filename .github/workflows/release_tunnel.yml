@@ -21,17 +21,28 @@ jobs:
       goon: false
     permissions:
       contents: write
+    env: 
+      release_tag: release/awps-tunnel/v1.0.0-beta.8
     steps:
     - name: Approval after release for adding release tag
       id: approval
-      uses: reviewdog/action-yamllint@v1
+      uses: trstringer/manual-approval@v1
       with:
-        approval: true
+        minimum-approvals: 1
+        issue-body: "Approve to add release tag to the current repo"
+    - name: Check if tag exists
+      id: check_tag
+      run: |
+        if git rev-parse "refs/tags/$release_tag" >/dev/null 2>&1; then
+          echo "Tag already exists."
+          echo "tag_exists=true" >> $GITHUB_ENV
+        else
+          echo "tag_exists=false" >> $GITHUB_ENV
+        fi
     - name: Checkout repository
       uses: actions/checkout@v4
     - name: Create and push release tag
-      env: 
-        release_tag: release/awps-tunnel/v1.0.0-beta.8
+      if: steps.check_tag.outputs.tag_exists == 'false'
       run: |
         git config --global user.name "Actions robot"
         git config --global user.email "github-actions-robot@github.com"
