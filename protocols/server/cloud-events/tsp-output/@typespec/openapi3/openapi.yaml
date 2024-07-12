@@ -1,0 +1,285 @@
+openapi: 3.0.0
+info:
+  title: (title)
+  version: 0.0.0
+tags: []
+paths:
+  /OnMqttClientConnect:
+    post:
+      operationId: OnMqttClientConnect
+      description: This event is triggered when the service receive an MQTT CONNECT packet.
+      parameters:
+        - $ref: '#/components/parameters/CommonRequestHeaders.userId'
+        - $ref: '#/components/parameters/CommonRequestHeaders.hub'
+        - $ref: '#/components/parameters/CommonRequestHeaders.connectionId'
+        - $ref: '#/components/parameters/CommonRequestHeaders.eventName'
+        - $ref: '#/components/parameters/CommonRequestHeaders.subprotocol'
+        - $ref: '#/components/parameters/CommonRequestHeaders.connectionState'
+        - $ref: '#/components/parameters/CommonRequestHeaders.signature'
+      responses:
+        '200':
+          description: The request has succeeded.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MqttConnectEventSuccessResponse'
+        '202':
+          description: The request has been accepted for processing, but processing has not yet completed.
+        '401':
+          description: Access is unauthorized.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MqttConnectEventFailureResponse'
+        '403':
+          description: Access is forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MqttConnectEventFailureResponse'
+        '500':
+          description: Server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MqttConnectEventFailureResponse'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                req:
+                  type: object
+                  properties:
+                    mqtt:
+                      $ref: '#/components/schemas/MqttProperties'
+                    claims:
+                      type: object
+                      additionalProperties:
+                        type: array
+                        items:
+                          type: string
+                    query:
+                      type: object
+                      additionalProperties:
+                        type: array
+                        items:
+                          type: string
+                    headers:
+                      type: object
+                      additionalProperties:
+                        type: array
+                        items:
+                          type: string
+                    subprotocols:
+                      type: array
+                      items:
+                        type: string
+                    clientCertificates:
+                      type: array
+                      items:
+                        $ref: '#/components/schemas/ClientCertificateInfo'
+                  required:
+                    - mqtt
+                    - claims
+                    - query
+                    - headers
+                    - subprotocols
+                    - clientCertificates
+              required:
+                - req
+components:
+  parameters:
+    CommonRequestHeaders.connectionId:
+      name: ce-connectionId
+      in: header
+      required: true
+      description: The connectionId is unique for the client connection.
+      schema:
+        type: string
+    CommonRequestHeaders.connectionState:
+      name: ce-connectionState
+      in: header
+      required: true
+      description: Defines the state for the connection. You can use the same response header to reset the value of the state. Multiple `connectionState` headers aren't allowed. Do base64 encode the string value if it contains complex characters inside, for example, `base64(jsonString)` to pass complex object using this attribute.
+      schema:
+        type: string
+    CommonRequestHeaders.eventName:
+      name: ce-eventName
+      in: header
+      required: true
+      description: The name of the event without prefix.
+      schema:
+        type: string
+    CommonRequestHeaders.hub:
+      name: ce-hub
+      in: header
+      required: true
+      description: The hub the connection belongs to.
+      schema:
+        type: string
+    CommonRequestHeaders.signature:
+      name: ce-signature
+      in: header
+      required: true
+      description: 'The signature for the upstream webhook to validate if the incoming request is from the expected origin. The service calculates the value using both primary access key and secondary access key as the `HMAC` key: `Hex_encoded(HMAC_SHA256(accessKey, connectionId))`. The upstream should check if the request is valid before processing it.'
+      schema:
+        type: string
+    CommonRequestHeaders.subprotocol:
+      name: ce-subprotocol
+      in: header
+      required: true
+      description: The subprotocol the client is using if any.
+      schema:
+        type: string
+    CommonRequestHeaders.userId:
+      name: ce-userId
+      in: header
+      required: true
+      description: The user the connection authed.
+      schema:
+        type: string
+  schemas:
+    ClientCertificateInfo:
+      type: object
+      required:
+        - thumbprint
+        - content
+      properties:
+        thumbprint:
+          type: string
+        content:
+          type: string
+    ConnectEventRequest:
+      type: object
+      required:
+        - claims
+        - query
+        - headers
+        - subprotocols
+        - clientCertificates
+      properties:
+        claims:
+          type: object
+          additionalProperties:
+            type: array
+            items:
+              type: string
+        query:
+          type: object
+          additionalProperties:
+            type: array
+            items:
+              type: string
+        headers:
+          type: object
+          additionalProperties:
+            type: array
+            items:
+              type: string
+        subprotocols:
+          type: array
+          items:
+            type: string
+        clientCertificates:
+          type: array
+          items:
+            $ref: '#/components/schemas/ClientCertificateInfo'
+      description: Represents a request for a connection event.
+    MqttConnectEventFailureResponse:
+      type: object
+      required:
+        - mqtt
+      properties:
+        mqtt:
+          $ref: '#/components/schemas/MqttConnectEventFailureResponseProperties'
+      description: Represents the response properties of an MQTT connection failure.
+    MqttConnectEventFailureResponseProperties:
+      type: object
+      required:
+        - code
+      properties:
+        code:
+          type: integer
+          description: The failure code.
+        reason:
+          type: string
+          description: The reason for the failure.
+        userProperties:
+          type: array
+          items:
+            $ref: '#/components/schemas/MqttUserProperty'
+          description: The user properties associated with the failure.
+      description: Represents the properties of an MQTT connection failure response.
+    MqttConnectEventRequest:
+      type: object
+      required:
+        - mqtt
+      properties:
+        mqtt:
+          $ref: '#/components/schemas/MqttProperties'
+      allOf:
+        - $ref: '#/components/schemas/ConnectEventRequest'
+      description: Represents a request for an MQTT connection event.
+    MqttConnectEventSuccessResponse:
+      type: object
+      properties:
+        roles:
+          type: array
+          items:
+            type: string
+        subprotocol:
+          type: string
+          description: It should be "mqtt" or omitted.
+        userId:
+          type: string
+        groups:
+          type: array
+          items:
+            type: string
+        mqtt:
+          $ref: '#/components/schemas/MqttConnectEventSuccessResponseProperties'
+      description: Represents a successful response to an MQTT connection event.
+    MqttConnectEventSuccessResponseProperties:
+      type: object
+      properties:
+        userProperties:
+          type: array
+          items:
+            $ref: '#/components/schemas/MqttUserProperty'
+      description: Represents the MQTT specific properties in a successful MQTT connection event response.
+    MqttProperties:
+      type: object
+      required:
+        - protocolVersion
+      properties:
+        protocolVersion:
+          type: integer
+          description: |-
+            MQTT protocol version. The same as the CONNECT packet's ProtocolVersion.
+            MQTT 3.1.1 is 4, MQTT 5.0 is 5.
+        username:
+          type: string
+          description: The username field in the MQTT CONNECT packet.
+        password:
+          type: string
+          description: The base64 encoded password field in the MQTT CONNECT packet.
+        userProperties:
+          type: array
+          items:
+            $ref: '#/components/schemas/MqttUserProperty'
+          description: The user properties in the MQTT CONNECT packet.
+      description: Represents the properties of an MQTT connection.
+    MqttUserProperty:
+      type: object
+      required:
+        - name
+        - value
+      properties:
+        name:
+          type: string
+        value:
+          type: string
+      description: Represents a user property in an MQTT connection.
