@@ -1,7 +1,7 @@
 name: Release tunnel package
 permissions:
   id-token: write # This is required for requesting the JWT
-  contents: read
+  contents: write
 on:
   push:
     branches: [ "main" ]
@@ -10,66 +10,14 @@ on:
       - 'tools/awps-tunnel/server/package.json'
       - 'tools/awps-tunnel/server/CHANGELOG.md'
 jobs: 
-  # Testing tag feature, to be deleted later
-  pre:
-    runs-on: ubuntu-latest
-    outputs:
-      goon: false
-    env: 
-      GITHUB_TOKEN: ${{ secrets.GH_PAT }}
-    steps:
-    - name: Approval after release for adding release tag
-      id: approval
-      uses: reviewdog/action-yamllint@v1
-      with:
-        approval: true
-    - name: Checkout repository
-      uses: actions/checkout@v4
-    - name: Create and push release tag
-      env: 
-        release_tag: release/awps-tunnel/v1.0.0-beta.8
-      run: |
-        git config --global user.name "Actions robot"
-        git config --global user.email "github-actions-robot@github.com"
-        git tag $release_tag
-        git push origin $release_tag
-    - name: Update package.json to next beta version
-      id: new_version
-      run: |
-        NEW_VERSION=$(jq -r '.version' package.json | awk -F. -v OFS=. '{print $1,$2,$3+1"-beta"}')
-        echo $NEW_VERSION
-        echo "version=$NEW_VERSION" >> $GITHUB_OUTPUT
-        jq ".version = \"$NEW_VERSION\"" package.json > tmp.json && mv tmp.json package.json
-
-    - name: Commit changes
-      run: |
-        git config --global user.name "Actions robot"
-        git config --global user.email "github-actions-robot@github.com"
-        git add package.json
-        git commit -m "Update package.json to next beta version"
-    
-    - name: Push changes
-      run: |
-        git push origin HEAD:update-package-version-${{steps.new_version.outputs.version}}
-
-    - name: Create Pull Request
-      uses: peter-evans/create-pull-request@v5
-      with:
-        token: ${{ secrets.GH_PAT }}
-        branch: update-package-version-${{steps.new_version.outputs.version}}
-        commit-message: Update package.json to next beta version 
-        title: Update package.json to next beta version ${{steps.new_version.outputs.version}}
-        body: This PR updates the package.json version to the next beta version.
-        labels: 'release, beta'
   release:
-    needs: pre
-    if: ${{needs.pre.outputs.goon == 'true'}}
     uses: ./.github/workflows/workflow-call-release-package.yml
     secrets:
       AZURESDKPARTNERDROPS_URL: ${{ secrets.AZURESDKPARTNERDROPS_URL }}
       AZURESDKPARTNERDROPS_CLIENT_ID: ${{ secrets.AZURESDKPARTNERDROPS_CLIENT_ID }}
       AZURESDKPARTNERDROPS_SUBSCRIPTION_ID: ${{ secrets.AZURESDKPARTNERDROPS_SUBSCRIPTION_ID }}
       AZURESDKPARTNERDROPS_TENANT_ID: ${{ secrets.AZURESDKPARTNERDROPS_TENANT_ID }}
+      GH_PAT: ${{ secrets.GH_PAT }}
     with:
       package_name: awps-tunnel
       package_folder: tools/awps-tunnel/server
