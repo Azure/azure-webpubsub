@@ -7,7 +7,7 @@ using TypeSpec.Http;
  * This event is triggered when the service receive an MQTT CONNECT packet.
  */
 @route("OnMqttClientConnect")
-op OnMqttClientConnect(req: MqttConnectEventRequest & CommonRequestHeaders): {
+op OnMqttConnect(req: MqttConnectEventRequest & CommonRequestHeaders): {
     @statusCode _: 202;
 } | {
     @statusCode _: 200;
