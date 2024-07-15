@@ -1,6 +1,6 @@
 parameters:  
   "service-dir":
-    default: "sdk/cloud-events"
+    default: "sdk/test"
   "dependencies":
     "additionalDirectories": []
     default: ""
@@ -9,7 +9,7 @@ emit:
 options:
   "@azure-tools/typespec-autorest":
     azure-resource-provider-folder: "data-plane"
-    emitter-output-dir: "{project-root}/.."
+    ## emitter-output-dir: "{project-root}/.."
     examples-directory: "{project-root}/examples"
     output-file: "{azure-resource-provider-folder}/{service-name}/{version-status}/{version}/openapi.json"
   "@azure-tools/typespec-python":    
@@ -31,6 +31,3 @@ options:
   "@azure-tools/typespec-java":
     package-dir: "azure-webpubsub"
     namespace: com.azure.webpubsub
-linter:
-  extends:
-    - "@azure-tools/typespec-azure-rulesets/data-plane"
