@@ -325,7 +325,7 @@
         "webpack": "tsc && gulp webpack-dev",
         "webpack-prod": "tsc && gulp webpack-prod",
         "webpack-profile": "webpack --profile --json --mode production > webpack-stats.json && echo Use http://webpack.github.io/analyse to analyze the stats",
-        "install:all": "npm install && cd webview-ui && npm install --legacy-peer-deps",
+        "install:all": "npm install && cd webview-ui && npm install --force",
         "start:webview": "cd webview-ui && npm run start",
         "build:webview": "cd webview-ui && npm run build"
     },
