@@ -4,7 +4,7 @@ info:
   version: 0.0.0
 tags: []
 paths:
-  /OnMqttClientConnect/Doesn'tMatter/DependOnYourEventHandlerSettings:
+  /OnMqttClientConnect/DoesNotMatter/DependOnYourEventHandlerSettings:
     post:
       operationId: OnMqttConnect
       description: This event is triggered when the service receive an MQTT CONNECT packet.
@@ -55,7 +55,7 @@ paths:
           application/json:
             schema:
               $ref: '#/components/schemas/MqttConnectEventRequest'
-  /OnMqttClientConnected/Doesn'tMatter/DependOnYourEventHandlerSettings:
+  /OnMqttClientConnected/DoesNotMatter/DependOnYourEventHandlerSettings:
     post:
       operationId: OnMqttClientConnected
       description: This event is triggered when the service establishes a Web PubSub CONNECTION(aka. session, not a network connection) with a client.
@@ -82,7 +82,7 @@ paths:
           application/json:
             schema:
               type: object
-  /OnMqttClientDisconnected/Doesn'tMatter/DependOnYourEventHandlerSettings:
+  /OnMqttClientDisconnected/DoesNotMatter/DependOnYourEventHandlerSettings:
     post:
       operationId: OnMqttClientDisconnected
       description: This event is triggered when a Web PubSub CONNECTION(aka. session, not a network connection) is ended.
@@ -121,7 +121,7 @@ components:
     CommonRequestHeaders.connectionState:
       name: ce-connectionState
       in: header
-      required: true
+      required: false
       description: Defines the state for the connection. You can use the same response header to reset the value of the state. Multiple `connectionState` headers aren't allowed. Do base64 encode the string value if it contains complex characters inside, for example, `base64(jsonString)` to pass complex object using this attribute.
       schema:
         type: string
@@ -142,21 +142,21 @@ components:
     CommonRequestHeaders.signature:
       name: ce-signature
       in: header
-      required: true
+      required: false
       description: 'The signature for the upstream webhook to validate if the incoming request is from the expected origin. The service calculates the value using both primary access key and secondary access key as the `HMAC` key: `Hex_encoded(HMAC_SHA256(accessKey, connectionId))`. The upstream should check if the request is valid before processing it.'
       schema:
         type: string
     CommonRequestHeaders.subprotocol:
       name: ce-subprotocol
       in: header
-      required: true
+      required: false
       description: The subprotocol the client is using if any.
       schema:
         type: string
     CommonRequestHeaders.userId:
       name: ce-userId
       in: header
-      required: true
+      required: false
       description: The user the connection authed.
       schema:
         type: string
@@ -215,21 +215,6 @@ components:
         reason:
           type: string
       description: Represents a request for a disconnection event.
-    DisconnectedEventMqttProperties:
-      type: object
-      required:
-        - initiatedByClient
-      properties:
-        initiatedByClient:
-          type: boolean
-          description: Indicates whether the disconnection is initiated by the client.
-        disconnectPacket:
-          allOf:
-            - $ref: '#/components/schemas/MqttDisconnectPacketProperties'
-          description: |-
-            The DISCONNECT packet properties to end the last physical connection.
-            It may be sent by the client or server.
-      description: Represents the properties of an MQTT disconnection event.
     EmptyConnectedEventRequest:
       type: object
     MqttConnectEventFailureResponse:
@@ -247,82 +232,17 @@ components:
       properties:
         code:
           type: integer
-          description: The failure code.
+          description: The failure code. It will be sent to the clients in the CONNACK packet as a return code (MQTT 3.1.1) or reason code (MQTT 5.0). Upstream webhook should select a valid integer value defined the MQTT protocols according to the protocol versions of the clients. If Upstream webhook sets an invalid value, clients will receive "unspecified error" in the CONNACK packet.
         reason:
           type: string
-          description: The reason for the failure.
+          description: The reason for the failure. It's a human readable failure reason string designed for diagnostics. It will be sent to those clients whose protocols support reason string in the CONNACK packet. Now only MQTT 5.0 supports it.
         userProperties:
           type: array
           items:
             $ref: '#/components/schemas/MqttUserProperty'
-          description: The user properties associated with the failure.
+          description: The user properties associated with the failure. They'll be converted to user properties in the CONNACK packet, and sent to clients whose protocols support user properties. Now only MQTT 5.0 supports user properties. Upstream webhook can use the property for additional diagnostic or other information.
       description: Represents the properties of an MQTT connection failure response.
-    MqttConnectEventRequest:
-      type: object
-      required:
-        - mqtt
-      properties:
-        mqtt:
-          $ref: '#/components/schemas/MqttProperties'
-      allOf:
-        - $ref: '#/components/schemas/ConnectEventRequest'
-      description: Represents a request for an MQTT connection event.
-    MqttConnectEventSuccessResponse:
-      type: object
-      properties:
-        roles:
-          type: array
-          items:
-            type: string
-        subprotocol:
-          type: string
-          description: It should be "mqtt" or omitted.
-        userId:
-          type: string
-        groups:
-          type: array
-          items:
-            type: string
-        mqtt:
-          $ref: '#/components/schemas/MqttConnectEventSuccessResponseProperties'
-      description: Represents a successful response to an MQTT connection event.
-    MqttConnectEventSuccessResponseProperties:
-      type: object
-      properties:
-        userProperties:
-          type: array
-          items:
-            $ref: '#/components/schemas/MqttUserProperty'
-      description: Represents the MQTT specific properties in a successful MQTT connection event response.
-    MqttDisconnectPacketProperties:
-      type: object
-      required:
-        - code
-      properties:
-        code:
-          type: integer
-          description: |-
-            The DISCONNECT reason code defined in MQTT 5.0 spec.
-            For MQTT 3.1.1 clients, it's always the default value 0.
-        userProperties:
-          type: array
-          items:
-            $ref: '#/components/schemas/MqttUserProperty'
-          description: |-
-            The user properties in the DISCONNECT packet sent by the client.
-            The value is not null only if the client sent a DISCONNECT packet with user properties.
-      description: Represents the properties of an MQTT DISCONNECT packet.
-    MqttDisconnectedEventRequest:
-      type: object
-      required:
-        - mqtt
-      properties:
-        mqtt:
-          $ref: '#/components/schemas/DisconnectedEventMqttProperties'
-      allOf:
-        - $ref: '#/components/schemas/DisconnectEventRequest'
-      description: Represents a request for an MQTT disconnection event.
-    MqttProperties:
+    MqttConnectEventProperties:
       type: object
       required:
         - protocolVersion
@@ -344,6 +264,90 @@ components:
             $ref: '#/components/schemas/MqttUserProperty'
           description: The user properties in the MQTT CONNECT packet.
       description: Represents the properties of an MQTT connection.
+    MqttConnectEventRequest:
+      type: object
+      required:
+        - mqtt
+      properties:
+        mqtt:
+          $ref: '#/components/schemas/MqttConnectEventProperties'
+      allOf:
+        - $ref: '#/components/schemas/ConnectEventRequest'
+      description: Represents a request for an MQTT connection event.
+    MqttConnectEventSuccessResponse:
+      type: object
+      properties:
+        roles:
+          type: array
+          items:
+            type: string
+          description: The property provides a way for the upstream Webhook to authorize the client. There are different roles to grant initial permissions for PubSub WebSocket clients. See details in https://learn.microsoft.com/azure/azure-web-pubsub/concept-client-protocols#permissions
+        subprotocol:
+          type: string
+          description: It should be "mqtt" or omitted.
+        userId:
+          type: string
+          description: As the service allows anonymous connections, it's the connect event's responsibility to tell the service the user ID of the client connection. The service reads the user ID from the response payload userId if it exists.
+        groups:
+          type: array
+          items:
+            type: string
+          description: Initial groups the client joins. The property provides a convenient way for user to add the client to one or multiple groups. In this way, there's no need to have another call to add this connection to some groups.
+        mqtt:
+          $ref: '#/components/schemas/MqttConnectEventSuccessResponseProperties'
+      description: Represents a successful response to an MQTT connection event.
+    MqttConnectEventSuccessResponseProperties:
+      type: object
+      properties:
+        userProperties:
+          type: array
+          items:
+            $ref: '#/components/schemas/MqttUserProperty'
+          description: It's additional diagnostic or other information provided by upstream server. They'll be converted to the user properties field in the CONNACK packet, and sent to clients whose protocols support user properties. Now only MQTT 5.0 supports user properties. Upstream webhook can use the property to communicate additional diagnostic or other information with clients.
+      description: Represents the MQTT specific properties in a successful MQTT connection event response.
+    MqttDisconnectPacketProperties:
+      type: object
+      required:
+        - code
+      properties:
+        code:
+          type: integer
+          description: |-
+            The DISCONNECT reason code defined in MQTT 5.0 spec.
+            For MQTT 3.1.1 clients, it's always the default value 0.
+        userProperties:
+          type: array
+          items:
+            $ref: '#/components/schemas/MqttUserProperty'
+          description: |-
+            The user properties in the DISCONNECT packet sent by the client.
+            The value is not null only if the client sent a DISCONNECT packet with user properties.
+      description: Represents the properties of an MQTT DISCONNECT packet.
+    MqttDisconnectedEventProperties:
+      type: object
+      required:
+        - initiatedByClient
+      properties:
+        initiatedByClient:
+          type: boolean
+          description: Indicates whether the disconnection is initiated by the client.
+        disconnectPacket:
+          allOf:
+            - $ref: '#/components/schemas/MqttDisconnectPacketProperties'
+          description: |-
+            The DISCONNECT packet properties to end the last physical connection.
+            It may be sent by the client or server.
+      description: Represents the properties of an MQTT disconnection event.
+    MqttDisconnectedEventRequest:
+      type: object
+      required:
+        - mqtt
+      properties:
+        mqtt:
+          $ref: '#/components/schemas/MqttDisconnectedEventProperties'
+      allOf:
+        - $ref: '#/components/schemas/DisconnectEventRequest'
+      description: Represents a request for an MQTT disconnection event.
     MqttUserProperty:
       type: object
       required:
