@@ -28,7 +28,7 @@ jobs:
           node-version: 18
 
       - name: Build and Pack
-        run:  npm install:all && npm run build:all && npm run package
+        run:  npm run install:all && npm run build:all && npm run package
 
       - name: Get Metadata
         id: metadata_step
