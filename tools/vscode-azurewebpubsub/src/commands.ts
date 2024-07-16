@@ -26,8 +26,8 @@ import { checkServiceHealth } from "./workflows/service/checkHealth/checkHealth"
 import { attachLocalTunnel } from "./workflows/hubSetting/localTunnel/attachLocalTunnel";
 import { switchAnonymousPolicy } from "./workflows/hubSetting/switchAnonymousPolicy/switchAnonymousPolicy";
 import { testClient } from "./workflows/service/testClient/testClient";
-import { ExtensionContext, commands } from "vscode";
-import { ServiceItem } from "./tree/service/ServiceItem";
+import { type ExtensionContext} from "vscode";
+import { type ServiceItem } from "./tree/service/ServiceItem";
 
 function registerCommandWithTelemetryWrapper(commandId: string, callback: CommandCallback): void {
     // eslint-disable-next-line @typescript-eslint/no-unsafe-return
@@ -49,7 +49,7 @@ function registerCommandWithTelemetryWrapper(commandId: string, callback: Comman
 export function registerCommands(extensionContext: ExtensionContext): void {
     // Service
     registerCommandWithTelemetryWrapper('azureWebPubSub.service.testClient', async (actionContext: IActionContext, node?: ServiceItem) => {
-        testClient(extensionContext.extensionUri, actionContext, node);
+        await testClient(extensionContext.extensionUri, actionContext, node);
     });
     registerCommandWithTelemetryWrapper('azureWebPubSub.service.createInPortal', createServiceInPortal);
     registerCommandWithTelemetryWrapper('azureWebPubSub.service.createClassical', createServiceForClassical);

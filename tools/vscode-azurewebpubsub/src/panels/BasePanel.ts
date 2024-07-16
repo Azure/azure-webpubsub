@@ -1,4 +1,5 @@
-import { Disposable, Webview, WebviewPanel, window, Uri, ViewColumn } from "vscode";
+import { type Disposable, type Webview, type WebviewPanel} from "vscode";
+import { window, Uri, ViewColumn } from "vscode";
 import { ext } from "../extensionVariables";
 import { getNonce, getWebviewUri } from "../utils";
 
@@ -20,10 +21,10 @@ export class BasePanel {
         this._panel.onDidDispose(() => this.dispose(), null, this._disposables);
 
         // Set the HTML content for the webview panel
-        this._panel.webview.html = this._getWebviewContent(this._panel.webview, extensionUri);
+        this._panel.webview.html = this.getWebviewContent(this._panel.webview, extensionUri);
 
         // Set an event listener to listen for messages passed from the webview context
-        this._setWebviewMessageListener(this._panel.webview);
+        this.setWebviewMessageListener(this._panel.webview);
     }
 
     /**
@@ -32,7 +33,7 @@ export class BasePanel {
      *
      * @param extensionUri The URI of the directory containing the extension.
      */
-    protected static _render(extensionUri: Uri, viewType: string, title: string) {
+    protected static renderNew(extensionUri: Uri, viewType: string, title: string) {
         return window.createWebviewPanel(
             viewType,
             title,
@@ -72,7 +73,7 @@ export class BasePanel {
      * @returns A template string literal containing the HTML that should be
      * rendered within the webview panel
      */
-    protected _getWebviewContent(webview: Webview, extensionUri: Uri) {
+    protected getWebviewContent(webview: Webview, extensionUri: Uri) {
         const assetsPath = ["webview-ui", "build", "assets"];
         const stylesUri = getWebviewUri(webview, extensionUri, [...assetsPath, "index.css"]);
         const scriptUri = getWebviewUri(webview, extensionUri, [...assetsPath, "index.js"]);
@@ -98,15 +99,17 @@ export class BasePanel {
         `;
     }
 
-    protected _setWebviewMessageListener(webview: Webview) {
+    protected setWebviewMessageListener(webview: Webview) {
         webview.onDidReceiveMessage(
+            /* eslint-disable */
             async (message: any) => {
                 const command = message.command;
-                let payload = message.payload;
+                const payload = message.payload;
                 ext.outputChannel.appendLog(`Received a message from webview, command = ${command}, payload = ${JSON.stringify(payload)}`);
             },
             undefined,
             this._disposables
+            /* eslint-enable */
         );
     }
 }

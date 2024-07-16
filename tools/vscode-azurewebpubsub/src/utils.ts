@@ -110,7 +110,7 @@ export function getWebviewUri(webview: vscode.Webview, extensionUri: vscode.Uri,
   return webview.asWebviewUri(vscode.Uri.joinPath(extensionUri, ...pathList));
 }
 
-export function postMessageToWebviewWithLog(webview: vscode.Webview, message: any) {
+export async function postMessageToWebviewWithLog(webview: vscode.Webview, message: unknown) {
     ext.outputChannel.appendLog(`Post message to webview: ${JSON.stringify(message)}`);
-    webview.postMessage(message);
+    await webview.postMessage(message);
 }

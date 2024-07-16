@@ -1,6 +1,7 @@
-import { Webview, WebviewPanel, window, Uri, ViewColumn } from "vscode";
-import { ServiceModel } from "../tree/service/ServiceModel";
-import { WebPubSubManagementClient } from "@azure/arm-webpubsub";
+import { type Webview, type WebviewPanel, type Uri} from "vscode";
+import { ViewColumn } from "vscode";
+import { type ServiceModel } from "../tree/service/ServiceModel";
+import { type WebPubSubManagementClient } from "@azure/arm-webpubsub";
 import { getClientAccessUrl, localize, postMessageToWebviewWithLog } from "../utils";
 import { BasePanel } from "./BasePanel";
 import { ext } from "../extensionVariables";
@@ -21,7 +22,7 @@ export class TestClientWebviewPanel extends BasePanel {
     if (TestClientWebviewPanel.currentPanel) {
       return TestClientWebviewPanel.currentPanel._panel.reveal(ViewColumn.One);
     }
-    const panel = super._render(extensionUri, "testClientView", `Test Client for ${service.name}`);
+    const panel = super.renderNew(extensionUri, "testClientView", `Test Client for ${service.name}`);
     TestClientWebviewPanel.currentPanel = new TestClientWebviewPanel(panel, extensionUri, service, managementClient);
   }
 
@@ -30,8 +31,9 @@ export class TestClientWebviewPanel extends BasePanel {
     return super.dispose();
   }
 
-  protected override  _setWebviewMessageListener(webview: Webview) {
+  protected override setWebviewMessageListener(webview: Webview) {
     webview.onDidReceiveMessage(
+      /* eslint-disable */
       async (message: any) => {
         const command = message.command;
         let payload = message.payload;
@@ -42,11 +44,11 @@ export class TestClientWebviewPanel extends BasePanel {
         switch (commandName) {
           case "reportServiceConfiguration":
             const hubsIterator = this._managementClient.webPubSubHubs.list(this._service.resourceGroup, this._service.name);
-            let hubNames: string[] = [];
+            const hubNames: string[] = [];
             for await (const hub of hubsIterator) {
               hub.name && hubNames.push(hub.name);
             }
-            postMessageToWebviewWithLog(webview, {
+            await postMessageToWebviewWithLog(webview, {
               command: `ack-reportServiceConfiguration-${commandIdx}`,
               payload: {
                 resourceGroup: this._service.resourceGroup,
@@ -58,7 +60,6 @@ export class TestClientWebviewPanel extends BasePanel {
 
           case "getClientAccessUrl":
             payload = { hub: payload.hub ?? "", userId: payload.userId ?? "", roles: payload.roles ?? [], groups: payload.groups ?? []};
-            console.log("[webview] payload = ", payload);
             const { hub, userId, roles, groups } = payload;
             const connectionString = (await (this._managementClient.webPubSub.listKeys(this._service.resourceGroup, this._service.name))).primaryConnectionString;
             if (!connectionString) {
@@ -72,6 +73,7 @@ export class TestClientWebviewPanel extends BasePanel {
             return ;
         }
       },
+      /* eslint-enable */
       undefined,
       this._disposables
     );

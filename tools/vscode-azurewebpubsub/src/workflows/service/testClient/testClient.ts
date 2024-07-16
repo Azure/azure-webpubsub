@@ -5,7 +5,7 @@
 
 import { type IActionContext } from "@microsoft/vscode-azext-utils";
 import { type ServiceItem } from "../../../tree/service/ServiceItem";
-import { Uri } from "vscode";
+import { type Uri } from "vscode";
 import { TestClientWebviewPanel } from "../../../panels/TestClientWebviewPanel";
 import { pickService } from "../../../tree/service/pickService";
 import { createWebPubSubAPIClient, localize } from "../../../utils";
