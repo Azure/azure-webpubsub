@@ -3,14 +3,15 @@ import * as vscode from "vscode";
 import * as nls from 'vscode-nls';
 import * as fs from "fs";
 import { WebPubSubManagementClient } from "@azure/arm-webpubsub";
-import { type AzExtClientContext} from "@microsoft/vscode-azext-azureutils";
+import { type AzExtClientContext } from "@microsoft/vscode-azext-azureutils";
 import { createAzureClient } from "@microsoft/vscode-azext-azureutils";
-import { type IActionContext} from "@microsoft/vscode-azext-utils";
-import { type ExecuteActivityContext} from "@microsoft/vscode-azext-utils";
+import { type IActionContext } from "@microsoft/vscode-azext-utils";
+import { type ExecuteActivityContext } from "@microsoft/vscode-azext-utils";
 import { createSubscriptionContext } from "@microsoft/vscode-azext-utils";
 import { type AzureSubscription } from "@microsoft/vscode-azureresources-api";
 import { type AzureResourcesExtensionApiWithActivity } from "@microsoft/vscode-azext-utils/activity";
 import { ext } from "./extensionVariables";
+import { WebPubSubServiceClient } from "@azure/web-pubsub";
 
 export const localize: nls.LocalizeFunc = nls.loadMessageBundle();
 
@@ -64,9 +65,52 @@ export async function loadPackageInfo(context: ExtensionContext) {
 
 export function createTerminalForTunnel(serviceName: string, hubName: string, ifShow: boolean = false): vscode.Terminal {
     const name = `AWPS Tunnel: ${serviceName} - ${hubName}`;
-    const sameNameTerminal = vscode.window.terminals.filter((t) => t.name === name) ?.[0] ?? undefined;
+    const sameNameTerminal = vscode.window.terminals.filter((t) => t.name === name)?.[0] ?? undefined;
     sameNameTerminal && sameNameTerminal.dispose();
     const terminal = vscode.window.createTerminal({ name });
     ifShow && terminal.show();
     return terminal;
+}
+
+export async function getClientAccessUrl(connectionString: string, hubName: string, userId?: string, roles?: string[], groups?: string[]): Promise<string> {
+    const client = new WebPubSubServiceClient(connectionString, hubName)
+    const cat = await client.getClientAccessToken({ userId, roles, groups });
+    return cat.url;
+}
+
+/**
+ * A helper function that returns a unique alphanumeric identifier called a nonce.
+ *
+ * @remarks This function is primarily used to help enforce content security
+ * policies for resources/scripts being executed in a webview context.
+ *
+ * @returns A nonce
+ */
+export function getNonce() {
+    let text = "";
+    const possible = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
+    for (let i = 0; i < 32; i++) {
+        text += possible.charAt(Math.floor(Math.random() * possible.length));
+    }
+    return text;
+}
+
+/**
+ * A helper function which will get the webview URI of a given file or resource.
+ *
+ * @remarks This URI can be used within a webview's HTML as a link to the
+ * given file/resource.
+ *
+ * @param webview A reference to the extension webview
+ * @param extensionUri The URI of the directory containing the extension
+ * @param pathList An array of strings representing the path to a file/resource
+ * @returns A URI pointing to the file/resource
+ */
+export function getWebviewUri(webview: vscode.Webview, extensionUri: vscode.Uri, pathList: string[]) {
+  return webview.asWebviewUri(vscode.Uri.joinPath(extensionUri, ...pathList));
+}
+
+export function postMessageToWebviewWithLog(webview: vscode.Webview, message: any) {
+    ext.outputChannel.appendLog(`Post message to webview: ${JSON.stringify(message)}`);
+    webview.postMessage(message);
 }
