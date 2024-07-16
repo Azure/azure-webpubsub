@@ -16,6 +16,7 @@
     "@fluentui/react-components": "9.43.3",
     "@vscode/webview-ui-toolkit": "^1.2.2",
     "jose": "^5.4.1",
+    "moment": "^2.30.1",
     "react": "18.2.0",
     "react-dom": "18.2.0",
     "react-json-view": "1.21.3",
