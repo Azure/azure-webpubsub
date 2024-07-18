@@ -4,20 +4,7 @@ using Microsoft.Azure.WebPubSub.CloudEvents;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Add services to the container.
-// Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
-builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddSwaggerGen();
-
 var app = builder.Build();
-
-// Configure the HTTP request pipeline.
-if (app.Environment.IsDevelopment())
-{
-    app.UseSwagger();
-    app.UseSwaggerUI();
-}
-
 
 app.MapMethods("/MqttConnect",
     ["OPTIONS"], (HttpContext httpContext) =>
@@ -31,7 +18,7 @@ app.MapPost("/MqttConnect", async (HttpContext httpContext) =>
 
     var certificates = request.ClientCertificates.Select(cert => GetCertificateFromBase64String(cert.Content));
     // Simulate Logic to validate client certificate
-    if (request.Query.TryGetValue("success", out _))
+    if (!request.Query.TryGetValue("failure", out _))
     {
         // As a demo, we just accept all client certificates and grant the clients with permissions to publish and subscribe to all the topics when the query parameter "success" is present.
         await httpContext.Response.WriteAsJsonAsync(new MqttConnectEventSuccessResponse()
@@ -44,7 +31,7 @@ app.MapPost("/MqttConnect", async (HttpContext httpContext) =>
         // If you want to reject the connection, you can return a MqttConnectEventFailureResponse
         var mqttCodeForUnauthorized = request.Mqtt.ProtocolVersion switch
         {
-            3 => 4, // UnAuthorized Return Code in Mqtt 3.1.1
+            4 => 5, // UnAuthorized Return Code in Mqtt 3.1.1
             5 => 0x87, // UnAuthorized Reason Code in Mqtt 5.0
             _ => throw new NotSupportedException($"{request.Mqtt.ProtocolVersion} is not supported.")
         };
