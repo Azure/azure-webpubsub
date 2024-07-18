@@ -4,7 +4,7 @@
     <TargetFramework>net8.0</TargetFramework>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
-    <RootNamespace>csharp_server</RootNamespace>
+    <RootNamespace>Microsoft.Azure.WebPubSub.MqttAuthServer </RootNamespace>
   </PropertyGroup>
 
   <ItemGroup>

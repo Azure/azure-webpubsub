@@ -36,6 +36,5 @@ public class MqttDisconnectPacketProperties
     /// The user properties in the DISCONNECT packet sent by the client. The value is not null only if the client sent a DISCONNECT packet with user properties.
     /// </summary>
     [JsonProperty("userProperties")]
-    [JsonConverter(typeof(MqttUserPropertyJsonConverter))]
     public IReadOnlyList<MqttUserProperty>? UserProperties { get; init; }
 }

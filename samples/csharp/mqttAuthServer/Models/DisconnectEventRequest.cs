@@ -6,5 +6,9 @@ namespace Microsoft.Azure.WebPubSub.CloudEvents
     {
         [JsonProperty("reason")]
         public string Reason { get; set; }
+        public DisconnectEventRequest(string reason)
+        {
+            Reason = reason;
+        }
     }
 }

@@ -25,6 +25,5 @@ public class MqttConnectEventSuccessResponse : MqttConnectEventResponse
 public class MqttConnectEventSuccessResponseProperties
 {
     [JsonProperty("userProperties")]
-    [JsonConverter(typeof(MqttUserPropertyJsonConverter))]
     public IReadOnlyList<MqttUserProperty>? UserProperties { get; init; }
 }

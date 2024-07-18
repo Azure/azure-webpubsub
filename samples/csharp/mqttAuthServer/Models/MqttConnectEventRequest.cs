@@ -32,13 +32,12 @@ public class MqttProperties
 
     /// <summary>
     ///The password field in the MQTT CONNECT packet.
-    /// Use string type instead of byte[] to avoid the problem of serialization. 
+    /// Use string type instead of byte[] to avoid the problem of serialization.
     /// Although System.Text.Json serializes byte[] to base64 string by default, it is not explicitly documented.
     /// </summary>
     [JsonProperty("password")]
     public string? Password { get; set; }
 
     [JsonProperty("userProperties")]
-    [JsonConverter(typeof(MqttUserPropertyJsonConverter))]
     public IReadOnlyList<MqttUserProperty>? UserProperties { get; init; }
 }

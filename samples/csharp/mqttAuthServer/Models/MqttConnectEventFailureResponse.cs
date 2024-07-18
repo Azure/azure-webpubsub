@@ -8,6 +8,10 @@ public class MqttConnectEventFailureResponse : MqttConnectEventResponse
 {
     [JsonProperty("mqtt")]
     public MqttConnectEventFailureResponseProperties Mqtt { get; init; }
+    public MqttConnectEventFailureResponse(MqttConnectEventFailureResponseProperties mqtt)
+    {
+        Mqtt = mqtt;
+    }
 }
 
 public class MqttConnectEventFailureResponseProperties
@@ -19,6 +23,5 @@ public class MqttConnectEventFailureResponseProperties
     public string? Reason { get; set; }
 
     [JsonProperty("userProperties")]
-    [JsonConverter(typeof(MqttUserPropertyJsonConverter))]
     public IReadOnlyList<MqttUserProperty>? UserProperties { get; init; }
 }

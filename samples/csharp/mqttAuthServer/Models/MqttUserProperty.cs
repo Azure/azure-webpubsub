@@ -1,4 +1,5 @@
-﻿namespace Microsoft.Azure.WebPubSub.CloudEvents;
+﻿using Newtonsoft.Json;
+namespace Microsoft.Azure.WebPubSub.CloudEvents;
 
 public record MqttUserProperty
 {
