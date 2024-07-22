@@ -1,5 +1,3 @@
-using System.Net;
-using System.Security.Cryptography.X509Certificates;
 using Microsoft.Azure.WebPubSub.CloudEvents;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -16,7 +14,7 @@ app.MapPost("/MqttConnect", async (HttpContext httpContext) =>
 {
     var request = await httpContext.Request.ReadFromJsonAsync<MqttConnectEventRequest>();
 
-    var certificates = request.ClientCertificates.Select(cert => GetCertificateFromBase64String(cert.Content));
+    var certificates = request.ClientCertificates.Select(cert => GetCertificateFromPemString(cert.Content));
     // Simulate Logic to validate client certificate
     if (!request.Query.TryGetValue("failure", out _))
     {
@@ -47,4 +45,4 @@ app.MapPost("/MqttConnect", async (HttpContext httpContext) =>
 
 app.Run();
 
-static X509Certificate2 GetCertificateFromBase64String(string certificate) => X509Certificate2.CreateFromPem(certificate);
+static X509Certificate2 GetCertificateFromPemString(string certificate) => X509Certificate2.CreateFromPem(certificate);

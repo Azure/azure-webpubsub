@@ -1,14 +1,8 @@
-﻿
-using Newtonsoft.Json;
+﻿namespace Microsoft.Azure.WebPubSub.CloudEvents;
 
-namespace Microsoft.Azure.WebPubSub.CloudEvents
+public sealed class ClientCertificateInfo
 {
-    public sealed class ClientCertificateInfo
-    {
-        [JsonProperty("thumbprint")]
-        public string Thumbprint { get; set; }
+    public string Thumbprint { get; set; }
 
-        [JsonProperty("content")]
-        public string Content { get; set; }
-    }
+    public string Content { get; set; }
 }
