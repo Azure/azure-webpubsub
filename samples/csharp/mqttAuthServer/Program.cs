@@ -1,5 +1,3 @@
-using Microsoft.Azure.WebPubSub.CloudEvents;
-
 var builder = WebApplication.CreateBuilder(args);
 
 var app = builder.Build();

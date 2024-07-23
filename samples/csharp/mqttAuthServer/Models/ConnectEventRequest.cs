@@ -1,6 +1,4 @@
-﻿namespace Microsoft.Azure.WebPubSub.CloudEvents;
-
-public class ConnectEventRequest
+﻿public class ConnectEventRequest
 {
     public IDictionary<string, string[]> Claims { get; init; } = new Dictionary<string, string[]>();
 

@@ -1,5 +1,3 @@
-﻿namespace Microsoft.Azure.WebPubSub.CloudEvents;
-
-public class MqttConnectEventResponse
+﻿public class MqttConnectEventResponse
 {
 }

@@ -1,4 +1,4 @@
-﻿namespace Microsoft.Azure.WebPubSub.CloudEvents;
+﻿
 
 #nullable enable
 

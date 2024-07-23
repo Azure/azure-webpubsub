@@ -1,6 +1,4 @@
-﻿namespace Microsoft.Azure.WebPubSub.CloudEvents;
-
-public record MqttUserProperty
+﻿public record MqttUserProperty
 {
     public string Name { get; init; }
 

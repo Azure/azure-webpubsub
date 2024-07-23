@@ -1,6 +1,4 @@
-﻿namespace Microsoft.Azure.WebPubSub.CloudEvents;
-
-public sealed class ClientCertificateInfo
+﻿public sealed class ClientCertificateInfo
 {
     public string Thumbprint { get; set; }
 

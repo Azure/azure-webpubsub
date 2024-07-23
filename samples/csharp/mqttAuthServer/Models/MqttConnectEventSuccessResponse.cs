@@ -1,6 +1,4 @@
-﻿namespace Microsoft.Azure.WebPubSub.CloudEvents;
-
-#nullable enable
+﻿#nullable enable
 
 public class MqttConnectEventSuccessResponse : MqttConnectEventResponse
 {

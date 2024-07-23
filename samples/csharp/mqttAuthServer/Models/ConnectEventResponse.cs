@@ -1,6 +1,4 @@
-﻿namespace Microsoft.Azure.WebPubSub.CloudEvents;
-
-public sealed class ConnectEventResponse
+﻿public sealed class ConnectEventResponse
 {
     public string Subprotocol { get; set; }
 
