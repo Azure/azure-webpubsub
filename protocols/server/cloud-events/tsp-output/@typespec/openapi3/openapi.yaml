@@ -4,10 +4,12 @@ info:
   version: 0.0.0
 tags: []
 paths:
-  /OnMqttClientConnect/DoesNotMatter/DependOnYourEventHandlerSettings:
+  /MqttConnect:
     post:
-      operationId: OnMqttConnect
-      description: This event is triggered when the service receive an MQTT CONNECT packet.
+      operationId: onMqttConnect
+      description: |-
+        This event is triggered when the service receive an MQTT CONNECT packet.
+        The route value isn't part of the specification, just required to distinguish different operations when generating the OpenAPI document.
       parameters:
         - name: ce-physicalConnectionId
           in: header
@@ -55,10 +57,12 @@ paths:
           application/json:
             schema:
               $ref: '#/components/schemas/MqttConnectEventRequest'
-  /OnMqttClientConnected/DoesNotMatter/DependOnYourEventHandlerSettings:
+  /MqttConnected:
     post:
-      operationId: OnMqttClientConnected
-      description: This event is triggered when the service establishes a Web PubSub CONNECTION(aka. session, not a network connection) with a client.
+      operationId: onMqttConnected
+      description: |-
+        This event is triggered when the service establishes a Web PubSub CONNECTION(aka. session, not a network connection) with a client.
+        The route value isn't part of the specification, just required to distinguish different operations when generating the OpenAPI document.
       parameters:
         - name: ce-physicalConnectionId
           in: header
@@ -82,10 +86,12 @@ paths:
           application/json:
             schema:
               type: object
-  /OnMqttClientDisconnected/DoesNotMatter/DependOnYourEventHandlerSettings:
+  /MqttDisconnected:
     post:
-      operationId: OnMqttClientDisconnected
-      description: This event is triggered when a Web PubSub CONNECTION(aka. session, not a network connection) is ended.
+      operationId: onMqttDisconnected
+      description: |-
+        This event is triggered when a Web PubSub CONNECTION(aka. session, not a network connection) is ended.
+        The route value isn't part of the specification, just required to distinguish different operations when generating the OpenAPI document.
       parameters:
         - name: ce-physicalConnectionId
           in: header

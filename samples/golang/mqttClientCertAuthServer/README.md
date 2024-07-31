@@ -32,7 +32,7 @@ openapi-generator-cli generate -i ..\..\..\\protocols\server\cloud-events\tsp-ou
 ```
 
 The following files are cutomized:
-1. [api_default_service.go](./go/api_default_service.go) is updated to read and parse the client certificates, and return proper struct.
+1. [api_default_service.go](./go/api_default_service.go) contains the business logic to auth clients based on client certificates.
 2. The [generated code](./go/api_default.go) to disallow unknwon properties is already made into comment. **As it's expected to have new properties added in the Web PubSub CloudEvents protocol, you MUST allow unknown properties when deserializing request payload from Web PubSub.**
 1. The [route()](./go/api_default.go) function is updated to modify exposed endpoints.
 3. [go.mod](./go.mod) is updated to add required dependencies.
