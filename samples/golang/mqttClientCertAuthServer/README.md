@@ -31,9 +31,8 @@ After installing the Open API generator, you can generate the code with the foll
 openapi-generator-cli generate -i ..\..\..\\protocols\server\cloud-events\tsp-output\@typespec\openapi3\openapi.yaml -g go-server -o .
 ```
 
-The following files are cutomized:
-1. [api_default_service.go](./go/api_default_service.go) contains the business logic to auth clients based on client certificates.
-2. The [generated code](./go/api_default.go) to disallow unknwon properties is already made into comment. **As it's expected to have new properties added in the Web PubSub CloudEvents protocol, you MUST allow unknown properties when deserializing request payload from Web PubSub.**
-1. The [route()](./go/api_default.go) function is updated to modify exposed endpoints.
-3. [go.mod](./go.mod) is updated to add required dependencies.
+The following files are customized:
+1. In [api_default_service.go](./go/api_default_service.go), func `OnMqttConnect` is updated to show how to auth clients based on client certificates.
+2. In [api_default.go], the generated code `d.DisallowUnknownFields()` to disallow unknwon properties is already made into comment. **As it's expected to have new properties added in the Web PubSub CloudEvents protocol, you MUST allow unknown properties when deserializing request payload from Web PubSub.**
+3. In [go.mod](./go.mod), required dependencies are added.
 4. All the above files are added into[.openapi-generator-ignore](./.openapi-generator-ignore) so that regeneration won't override the cutomization part.
