@@ -367,5 +367,5 @@ MigrationBackup/
 env/
 website/docusaurus/
 
-tools/awps-tunnel/client/public/examples/
-tools/awps-tunnel/client/src/components/api/restapiSample.json
+# Azure Web PubSub tunnel API visulization tool resources
+tools/awps-tunnel/client/public/api/
