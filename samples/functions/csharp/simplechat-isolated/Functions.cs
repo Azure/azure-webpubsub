@@ -35,6 +35,15 @@ namespace simplechat_isolated
             return response;
         }
 
+        // [Function("connect")]
+        // public static ConnectEventResponse Connect(
+        //     [WebPubSubTrigger("sample_funcchat", WebPubSubEventType.System, "connect")] ConnectEventRequest request)
+        // {
+        //     var response = ConnectEventRequest.CreateResponse(request.ConnectionContext.UserId, null, null, null);
+        //     response.SetState("StatusKey", "StatusValue");
+        //     return response;
+        // }
+
         [Function("connected")]
         [WebPubSubOutput(Hub = "sample_funcchat")]
         public WebPubSubAction[] Connected(
