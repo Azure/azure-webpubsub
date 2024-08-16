@@ -16,9 +16,15 @@ async function main() {
   const $loginPage = $('.login.page');        // The login page
   const $chatPage = $('.chat.page');          // The chatroom page
 
-  const webPubSubEndpoint = "http://localhost:8080/";
-  var socket = io(webPubSubEndpoint, {
-    path: "/clients/socketio/hubs/hub",
+  const negotiateResponse = await fetch(`http://localhost:7084/api/negotiate/`);
+  if (!negotiateResponse.ok) {
+    console.log("Failed to negotiate, status code =", negotiateResponse.status);
+    return;
+  }
+  const negotiateJson = await negotiateResponse.json();
+  var socket = io(negotiateJson.endpoint, {
+    path: negotiateJson.path,
+    query: { access_token: negotiateJson.token}
   });
   console.log(socket);
   setInterval(() => {console.log(socket);}, 3000);
@@ -50,7 +56,7 @@ async function main() {
       $currentInput = $inputMessage.focus();
 
       // Tell the server your username
-      // socket.emit('add user', username);
+      socket.emit('add user', username);
     }
   }
 

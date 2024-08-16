@@ -15,7 +15,7 @@ const webPubSubEndpoint = "https://<host name of web pubsub for socket.io>";
 
 ```bash
 npm install
-npm run start -- "<connection-string>"
+npm run start
 ```
 
 And point your browser to `http://localhost:3000`.
