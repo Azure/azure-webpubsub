@@ -4,9 +4,5 @@
     "http": {
       "routePrefix": "api"
     }
-  },
-  "extensionBundle": {
-    "id": "Microsoft.Azure.Functions.ExtensionBundle",
-    "version": "[3.3.*, 4.0.0)"
   }
 }
