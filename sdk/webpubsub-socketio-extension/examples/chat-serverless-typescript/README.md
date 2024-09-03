@@ -1,5 +1,5 @@
 
-# Socket.IO Chat in Serverless Mode (C#)
+# Socket.IO Chat in Serverless Mode (TS)
 
 This project is an Azure Function-based group chat application that leverages WebPubSub for Socket.IO to enable real-time communication between clients.
 
@@ -11,10 +11,12 @@ This project is an Azure Function-based group chat application that leverages We
 func settings add WebPubSubForSocketIOConnectionString "<connection string>"
 ```
 
-## Run the sample
+# How to run
 
 ```bash
-func start
+func extensions sync
+npm install
+npm start
 ```
 
-Visit the url pointing to `index` function.
+Visit `http://localhost:7084/api/index` to play with the sample.

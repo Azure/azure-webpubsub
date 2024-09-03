@@ -5,20 +5,17 @@ This project is an Azure Function-based group chat application that leverages We
 
 ## Setup
 
-### Update Connection String in `local.settings.json`
+### Update Connection String
 
-```json
-{
-"WebPubSubForSocketIOConnectionString": "<connection string>"
-}
+```bash
+func settings add WebPubSubForSocketIOConnectionString "<connection string>"
 ```
 
 # How to run
 
 ```bash
 func extensions sync
-npm install
-npm start
+func start
 ```
 
 Visit `http://localhost:7084/api/index` to play with the sample.
