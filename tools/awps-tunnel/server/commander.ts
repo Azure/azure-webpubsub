@@ -11,7 +11,7 @@ import { WebPubSubManagementClient } from "@azure/arm-webpubsub";
 import fs from "fs";
 
 import { Command, program } from "commander";
-import { AzureCliCredential, ChainedTokenCredential, EnvironmentCredential, ManagedIdentityCredential } from "@azure/identity";
+import { AzureCliCredential, ChainedTokenCredential, EnvironmentCredential, ManagedIdentityCredential, AzurePowerShellCredential } from "@azure/identity";
 import { parseUrl, dumpRawRequest, getRawResponse, tryParseInt } from "./util";
 
 import packageJson from "./package.json";
@@ -382,5 +382,5 @@ function createRunCommand(run: Command, dbFile: string, settings: Settings, comm
 }
 
 function getCredential() {
-  return new ChainedTokenCredential(new AzureCliCredential(), new EnvironmentCredential(), new ManagedIdentityCredential());
+  return new ChainedTokenCredential(new AzureCliCredential(), new AzurePowerShellCredential(), new EnvironmentCredential(), new ManagedIdentityCredential());
 }

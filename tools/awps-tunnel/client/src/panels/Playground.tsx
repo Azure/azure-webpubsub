@@ -67,8 +67,8 @@ export const Playground = (props: PlaygroundProps) => {
   }
 
   const availableClients = [
-    { icon: <PlugDisconnected24Regular />, title: "WebSocket", id: "websocket", description: "Simple Web PubSub Client" },
-    { icon: <PlugDisconnected24Filled />, title: "Web PubSub", id: "webpubsub", description: "Subprotocol Web PubSub Client" }, // TODO: add subprotocol support
+    { icon: <PlugDisconnected24Regular />, title: "Raw", id: "websocket", description: "The Raw WebSocket Client" },
+    { icon: <PlugDisconnected24Filled />, title: "PubSub", id: "webpubsub", description: "The PubSub WebSocket Client" }, // TODO: add subprotocol support
     // { icon: <Rss24Regular />, title: "MQTT V5", id: "mqtt5", description: "MQTT V5 Client" }, // TODO: add mqtt support
   ];
 
