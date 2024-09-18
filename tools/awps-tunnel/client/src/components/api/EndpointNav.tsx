@@ -55,7 +55,6 @@ function ToApiSpec(apiSpec: RESTApi) : ApiSpec {
         });
     });
 
-    console.log(spec);
     return spec;
 }
 export function EndpointNav({ setSelectedItem }: {

@@ -177,7 +177,7 @@ export function Parameters({ path, parameters, example, setResponse, methodName 
         async function getToken() {
             // if no server connected, typeof token if object
             const token: any = await dataFetcher.invoke("getRestApiToken", url);
-            if (typeof (token) === "string") {
+            if (token) {
                 setToken(token);
             } else {
                 setToken("please connect to server to get the token")
@@ -221,10 +221,10 @@ export function Parameters({ path, parameters, example, setResponse, methodName 
             if (methodName !== "head" && contentType && (contentType.includes("application/json") || contentType.includes("text/json") || contentType.includes("application/problem+json"))) {
                 return res.json();
             } else {
-                return res;
+                return res; // super tricky, should improve
             }
         })
-            .then(res => setResponse(res as APIResponse));
+            .then(res => {setResponse(res as APIResponse);});
     }
 
     const tryIt: React.JSX.Element = <div style={{ flex: 3 }}>

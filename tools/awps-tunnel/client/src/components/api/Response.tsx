@@ -5,10 +5,8 @@ import type {
 } from "@fluentui/react-components";
 import { Card, CardHeader, CardPreview, Label, Tab, TabList } from "@fluentui/react-components";
 import React, { useEffect, useState } from "react";
-import JSONInput from "react-json-editor-ajrm";
 import { APIResponse, ResponseSchema } from "../../models";
-// @ts-ignore, dependency for library, don't remove
-import locale from "react-json-editor-ajrm/locale/en";
+import { Editor } from "@monaco-editor/react";
 
 export var jsonColor =
 {
@@ -46,13 +44,24 @@ export function Response({ responseSchema, response }: {
 
                     {response &&
                         <CardPreview className="d-flex flex-column align-items-start p-3">
-                            {response && (
-                                <Label className={response.status.toString()[0] === "2" ? "text-success" : "text-danger"}>
-                                    {response.status} {response.status.toString()[0] !== "2" && response.code}
-                                </Label>
-                            )}
-                            {response.code && <JSONInput locale={locale} placeholder={response}
-                                colors={jsonColor} height={"auto"} viewOnly={true} confirmGood={false} />}
+                            <Label className={response.status >= 400 ? "text-danger" : "text-success"}>
+                                {response.status}
+                            </Label>
+                            {response.code &&
+                                <Editor
+                                    height={"10vh"}
+                                    defaultLanguage="json"
+                                    options={
+                                        {
+                                            lineNumbers: "off",
+                                            folding: false,
+                                            minimap: {
+                                                enabled: false
+                                            }
+                                        }}
+                                    value={response ? JSON.stringify(response, null, 2) : ""} />
+                            }
+
                         </CardPreview>}
                 </Card>
             </div>
