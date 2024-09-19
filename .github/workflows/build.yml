@@ -59,7 +59,6 @@ jobs:
         done
     - run: npm install -g yarn
     - run: yarn install
-    - run: yarn workspaces run build
     - run: yarn workspaces run test
     - name: Setup .NET ${{ matrix.dotnet-version }}
       uses: actions/setup-dotnet@v3
@@ -101,7 +100,7 @@ jobs:
 
       - name: Build and Test Java Projects
         run: |
-          find ./samples/javas -name 'pom.xml' -print0 | while IFS= read -r -d '' file; do
+          find ./samples/java -name 'pom.xml' -print0 | while IFS= read -r -d '' file; do
             dir=$(dirname "$file")
             echo "Building and testing Java project in $dir"
             cd "$dir"
@@ -113,7 +112,6 @@ jobs:
   # Python Stage
   python:
     name: Build and Test Python
-    if: false  # Disable the stage for now until we have tests for python
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
