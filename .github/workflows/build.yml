@@ -20,8 +20,8 @@ on:
       - 'experimental/**'
 
 jobs:
-  build:
-
+  javascript:
+    name: Build and Test JS code and samples
     runs-on: ubuntu-latest
 
     strategy:
@@ -30,7 +30,7 @@ jobs:
         # See supported Node.js release schedule at https://nodejs.org/en/about/releases/
         dotnet-version: [6.x]
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
 
     - name: Use Node.js ${{ matrix.node-version }}
       uses: actions/setup-node@v3
@@ -41,13 +41,25 @@ jobs:
       # See https://code.visualstudio.com/api/working-with-extensions/continuous-integration#github-actions
       run:  cd ./tools/vscode-azurewebpubsub && npm install && xvfb-run -a npm run test && cd ../../
       if: runner.os == 'Linux'
+    - name: Install and Test All Samples
+      run: |
+        find ./samples/javascript ./experimental -name 'node_modules' -prune -o -name 'package.json' -print0 | while IFS= read -r -d '' file; do
+          dir=$(dirname "$file")
+          echo "Processing directory: $dir"
+          cd "$dir"
+          
+          echo "Installing dependencies in $dir"
+          npm install
+          
+          echo "Running tests in $dir"
+          npm run test
+          
+          echo "Finished tests in $dir"
+          cd - > /dev/null
+        done
     - run: npm install -g yarn
     - run: yarn install
-    - run: |
-        cd tools/awps-tunnel/client
-        yarn install
-        yarn run build
-        yarn test
+    - run: yarn workspaces run build
     - run: yarn workspaces run test
     - name: Setup .NET ${{ matrix.dotnet-version }}
       uses: actions/setup-dotnet@v3
@@ -56,4 +68,67 @@ jobs:
 
     - name: Build C# samples
       run: dotnet build samples/csharp/samples.sln
+      
+  csharp:
+    name: Build and Test C#
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        dotnet-version: [6.x]
+    steps:
+      - uses: actions/checkout@v4
+      - name: Setup .NET ${{ matrix.dotnet-version }}
+        uses: actions/setup-dotnet@v3
+        with:
+          dotnet-version: ${{ matrix.dotnet-version }}
+      - name: Build C# samples
+        run: dotnet build samples/csharp/samples.sln
 
+  # Java Stage
+  java:
+    name: Build and Test Java
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up JDK
+        uses: actions/setup-java@v3
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+          cache: maven
+
+      - name: Build and Test Java Projects
+        run: |
+          find ./samples/javas -name 'pom.xml' -print0 | while IFS= read -r -d '' file; do
+            dir=$(dirname "$file")
+            echo "Building and testing Java project in $dir"
+            cd "$dir"
+            mvn clean install
+            mvn test
+            cd - > /dev/null
+          done
+
+  # Python Stage
+  python:
+    name: Build and Test Python
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.x'
+
+      - name: Install dependencies and Test Python Projects
+        run: |
+          find ./samples/python -name 'requirements.txt' -print0 | while IFS= read -r -d '' file; do
+            dir=$(dirname "$file")
+            echo "Installing dependencies for Python project in $dir"
+            cd "$dir"
+            pip install -r requirements.txt
+            echo "Running tests for Python project in $dir"
+            pytest
+            cd - > /dev/null
+          done

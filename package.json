@@ -1,10 +1,8 @@
 {
-  "name": "azure-webpubsub",
+  "name": "azure-webpubsub-workspace",
   "private": true,
   "workspaces": [
-    "samples/javascript/**",
     "sdk/**socketio**/",
-    "experimental/**",
     "tools/awps-tunnel/client/",
     "tools/awps-tunnel/server/"
   ],
