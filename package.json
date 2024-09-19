@@ -2,7 +2,7 @@
   "name": "azure-webpubsub-workspace",
   "private": true,
   "workspaces": [
-    "sdk/**socketio**/",
+    "sdk/",
     "tools/awps-tunnel/client/",
     "tools/awps-tunnel/server/"
   ],

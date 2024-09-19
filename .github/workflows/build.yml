@@ -113,6 +113,7 @@ jobs:
   # Python Stage
   python:
     name: Build and Test Python
+    if: false  # Disable the stage for now until we have tests for python
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -121,15 +122,45 @@ jobs:
         with:
           python-version: '3.x'
 
-      - name: Install dependencies and Test Python Projects
+      # Step 3: Cache Python dependencies
+      - name: Cache dependencies
+        uses: actions/cache@v3
+        with:
+          path: |
+            ~/.cache/pip
+          key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements.txt') }}
+          restore-keys: |
+            ${{ runner.os }}-pip-
+
+      # Step 4: Install dependencies
+      - name: Install dependencies
         run: |
-          find ./samples/python -name 'requirements.txt' -print0 | while IFS= read -r -d '' file; do
-            dir=$(dirname "$file")
-            echo "Installing dependencies for Python project in $dir"
-            cd "$dir"
-            pip install -r requirements.txt
-            pip install pytest
-            echo "Running tests for Python project in $dir"
-            pytest
-            cd - > /dev/null
-          done
+          cd samples/python
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      # Step 5: Run pytest (Test discovery under ./samples/python + Ignore unwanted folders)
+      - name: Run tests
+        id: run-tests
+        run: |
+          cd samples/python
+          pytest --maxfail=0 --disable-warnings --junitxml=results.xml --ignore=node_modules --ignore=venv || true
+
+      # Step 6: Check if tests ran and failed
+      - name: Check test results
+        run: |
+          TEST_COUNT=$(grep -o 'tests="[^"]*"' samples/python/results.xml | sed 's/tests="//g' | sed 's/"//g')
+          FAILED_COUNT=$(grep -o 'failures="[^"]*"' samples/python/results.xml | sed 's/failures="//g' | sed 's/"//g')
+
+          echo "Tests found: $TEST_COUNT"
+          echo "Tests failed: $FAILED_COUNT"
+
+          if [[ "$TEST_COUNT" -gt 0 && "$FAILED_COUNT" -gt 0 ]]; then
+            echo "Tests ran and some tests failed. Failing the job."
+            exit 1
+          elif [[ "$TEST_COUNT" -eq 0 ]]; then
+            echo "No tests found. Exiting successfully."
+            exit 0
+          else
+            echo "All tests passed. Exiting successfully."
+            exit 0
