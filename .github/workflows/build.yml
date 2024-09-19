@@ -120,7 +120,6 @@ jobs:
         with:
           python-version: '3.x'
 
-      # Step 3: Cache Python dependencies
       - name: Cache dependencies
         uses: actions/cache@v3
         with:
@@ -152,5 +151,6 @@ jobs:
               echo "No tests found for $dir. Exiting successfully."
             else
               echo "All tests passed in $dir. Exiting successfully."
+            fi
             cd - > /dev/null
           done
