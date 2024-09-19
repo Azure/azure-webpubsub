@@ -128,6 +128,7 @@ jobs:
             echo "Installing dependencies for Python project in $dir"
             cd "$dir"
             pip install -r requirements.txt
+            pip install pytest
             echo "Running tests for Python project in $dir"
             pytest
             cd - > /dev/null
