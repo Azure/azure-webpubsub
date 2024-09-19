@@ -33,8 +33,10 @@ export class MockDataFetcher implements IDataFetcher {
     }
 
     if (method === "getClientAccessUrl") {
-      console.log(args);
       return "wss://mock-free.webpubsub.azure.com/client/hubs/mock";
+    }
+    if (method === "getRestApiToken") {
+      return "";
     }
     await delay(1000);
     return { success: true, message: method };
