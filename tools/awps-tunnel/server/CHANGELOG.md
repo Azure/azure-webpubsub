@@ -1,5 +1,9 @@
 # Changelog
 
+## [1.0.0-beta.10] - 2024-09-21
+### Improved
+- Some improvements to the REST API tab
+
 ## [1.0.0-beta.9] - 2024-09-20
 ### Improved
 - Add a format view of the upstream requests and response
