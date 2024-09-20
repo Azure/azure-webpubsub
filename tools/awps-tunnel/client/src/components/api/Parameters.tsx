@@ -3,152 +3,27 @@ import {
     Card,
     CardHeader,
     CardPreview,
+    Dropdown,
     Input,
     Label,
-    Table,
-    TableBody,
-    TableCell,
-    TableHeader,
-    TableHeaderCell,
-    TableRow
 } from "@fluentui/react-components";
-import { Icon } from '@fluentui/react/lib/Icon';
 import 'bootstrap/dist/css/bootstrap.min.css';
 import React, { useEffect, useState } from "react";
 import Editor from '@monaco-editor/react';
-import { APIResponse, Definition, ExampleParameter, Parameter } from "../../models";
+import { APIResponse, Definition, Example, Parameter } from "../../models";
 import { useDataContext } from "../../providers/DataContext";
 import {
     Send24Regular,
 } from "@fluentui/react-icons";
-
-export function Parameters({ path, parameters, example, setResponse, methodName }: {
+import { hasJsonBody, isJsonContent } from "../../utils";
+import { Icon } from "@fluentui/react";
+export function Parameters({ path, parameters, example, setResponse, methodName, consumes }: {
     path: string
     parameters: Parameter[],
-    example: ExampleParameter,
+    example: Example,
     setResponse: React.Dispatch<React.SetStateAction<APIResponse | undefined>>,
-    methodName: string
-}): React.JSX.Element {
-    return (
-        <div className="d-flex">
-            <TryIt methodName={methodName} path={path} parameters={parameters} example={example} setResponse={setResponse} ></TryIt>
-        </div>
-    )
-}
-
-function Schema({ parameters, bodySchema }: { parameters: Parameter[], bodySchema: Definition | undefined }): React.JSX.Element {
-    return <div style={{ flex: 1 }}>
-        <Card className="m-2 w-95">
-            <CardHeader header={<b className="fs-6">Parameter Schema</b>} />
-            <CardPreview className="d-flex flex-column align-items-start p-3">
-                <><Label><b className="fs-6">Query</b></Label>
-                    <Table className="mb-2">
-                        <TableHeader>
-                            <TableRow>
-                                <TableHeaderCell>name</TableHeaderCell>
-                                <TableHeaderCell>type</TableHeaderCell>
-                            </TableRow>
-                        </TableHeader>
-                        <TableBody>
-                            {parameters.map((p, index) => (
-                                <TableRow key={index}>
-                                    <TableCell>
-                                        <div>
-                                            <div>
-                                                {p.name}
-                                            </div>
-                                            {p.required && <div className="text-danger">required</div>}
-                                        </div>
-                                    </TableCell>
-                                    <TableCell>{p.type}</TableCell>
-                                </TableRow>
-                            )
-                            )}
-                        </TableBody>
-                    </Table></>
-                {bodySchema && <><Label><b className="fs-6">Body</b></Label>
-                    <Table>
-                        <TableHeader>
-                            <TableRow>
-                                <TableHeaderCell>name</TableHeaderCell>
-                                <TableHeaderCell>type</TableHeaderCell>
-                                <TableHeaderCell>items type</TableHeaderCell>
-                            </TableRow>
-                        </TableHeader>
-                        {bodySchema.name ?
-                            <TableBody>
-                                <TableRow>
-                                    <TableCell>{bodySchema.name}</TableCell>
-                                    <TableCell>{bodySchema.type}</TableCell>
-                                </TableRow>
-                            </TableBody> :
-                            <TableBody>
-                                {bodySchema.properties && Object.entries(bodySchema.properties).map(([name, item], index) => (
-                                    <TableRow key={index}>
-                                        <TableCell>{name}</TableCell>
-                                        <TableCell>{item.type}</TableCell>
-                                        {item.items && <TableCell>{item.items.type}</TableCell>}
-                                    </TableRow>
-                                ))}
-                            </TableBody>}
-                    </Table></>}
-            </CardPreview>
-        </Card>
-    </div>;
-}
-
-interface TryItModel {
-    body?: TryItParameterModel,
-    path?: Record<string, TryItParameterModel>,
-    query?: Record<string, TryItParameterModel>,
-    header?: Record<string, TryItParameterModel>,
-    hasParameter: boolean
-}
-interface TryItParameterModel {
-    parameterDefinition: Parameter,
-    value: any,
-    name: string,
-    description?: string,
-    required: boolean
-}
-
-function isKnownParameter(element: Parameter): boolean {
-    return element.name === "api-version" || element.name === "hub"
-}
-
-function getTryItModel(parameter: Parameter[]): TryItModel {
-    let m: TryItModel = { hasParameter: false };
-    parameter.forEach(element => {
-        const i = { value: element.default, required: element.required ?? false, name: element.name, description: element.description, parameterDefinition: element };
-        if (element.in === "body" || element.in === "formData") {
-            m.body = i;
-        } else if (element.in === "path") {
-            if (!isKnownParameter(element)) {
-                // these 2 are known parameters
-                m.path ??= {};
-                m.path[element.name] = i;
-                m.hasParameter = true;
-            }
-        } else if (element.in === "query") {
-            if (!isKnownParameter(element)) {
-                m.query ??= {};
-                m.query[element.name] = i;
-                m.hasParameter = true;
-            }
-        } else if (element.in === "header") {
-            throw new Error("Header parameters are not yet supported");
-        }
-    });
-    console.log(m)
-    return m;
-}
-
-function TryIt({ path, parameters, example, setResponse, methodName }: {
-    path: string
-    parameters: Parameter[],
-    example: ExampleParameter,
-    setResponse: React.Dispatch<React.SetStateAction<APIResponse | undefined>>,
-    methodName: string
+    methodName: string,
+    consumes?: string[]
 }): React.JSX.Element {
     const { data, dataFetcher } = useDataContext();
     const [urlCopied, setUrlCopied] = useState<boolean>(false);
@@ -161,7 +36,14 @@ function TryIt({ path, parameters, example, setResponse, methodName }: {
 
     // special logic for health check api
     const needAuth = !path.endsWith("/api/health");
-    const contentType = parameters.find((i) => i.in === "body") ? "application/json" : undefined;
+    const [contentType, setContentType] = React.useState<string>("");
+    useEffect(() => {
+        if (consumes && consumes.length > 0){
+            setContentType(consumes[0]);
+        }else {
+            setContentType("");
+        }
+    }, [consumes]);
 
     useEffect(() => {
         setModel(getTryItModel(parameters));
@@ -170,11 +52,16 @@ function TryIt({ path, parameters, example, setResponse, methodName }: {
         // todo: make it a general logic instead of hardcode
         setModel(prev => {
             if (!prev.body) return prev;
-            const body = (example.groupsToAdd || example.groupsToRemove || example.message) ? (example.groupsToAdd || example.groupsToRemove || { message: example.message }) : undefined;
-            return ({
-                ...prev,
-                body: { ...prev.body, value: body },
-            });
+            const parameterName = prev.body.name;
+            // find the example data
+            const exampleData = example.parameters[parameterName];
+            if (exampleData) {
+                return ({
+                    ...prev,
+                    body: { ...prev.body, value: exampleData },
+                });
+            }
+            return prev;
         });
 
     }, [parameters, example]);
@@ -187,7 +74,9 @@ function TryIt({ path, parameters, example, setResponse, methodName }: {
         let query: string = "";
         if (model.path) {
             Object.entries(model.path).forEach(([k, parameter]) => {
-                newPath = newPath.replace(`{${parameter.name}}`, parameter.value);
+                if (parameter.value !== undefined) {
+                    newPath = newPath.replace(`{${parameter.name}}`, parameter.value);
+                }
             });
         }
         if (model.query) {
@@ -223,29 +112,30 @@ function TryIt({ path, parameters, example, setResponse, methodName }: {
         if (model.header) {
             let i = Object.entries(model.header).find(([k, i]) => i.required && !i.value);
             if (i && i.length > 0) {
-            console.log(i);
-            setInvokeDisabled(true);
+                console.log(i);
+                setInvokeDisabled(true);
                 return;
             }
         }
         if (model.path) {
             let i = Object.entries(model.path).find(([k, i]) => i.required && !i.value);
             if (i && i.length > 0) {
-            console.log(i);
-            setInvokeDisabled(true);
+                console.log(i);
+                setInvokeDisabled(true);
                 return;
             }
         }
         if (model.query) {
             let i = Object.entries(model.query).find(([k, i]) => i.required && !i.value);
             if (i && i.length > 0) {
-            console.log(i);
-            setInvokeDisabled(true);
+                console.log(i);
+                setInvokeDisabled(true);
                 return;
             }
         }
         setInvokeDisabled(false);
     }, [model]);
+
     function copyUrl(): void {
         navigator.clipboard.writeText(url || "")
             .then(() => {
@@ -274,20 +164,12 @@ function TryIt({ path, parameters, example, setResponse, methodName }: {
         } else {
             setModel(prev => ({
                 ...prev,
-                [param.name]: { ...param, value: value },
+                [type]: {
+                    ...prev[type],
+                    [param.name]: { ...param, value: value },
+                }
             }));
         }
-    }
-
-    function hasJsonBody(methodName: string, header: Headers): boolean {
-        if (methodName === "head") {
-            return false;
-        }
-        const contentType = header.get("Content-Type");
-        if (!contentType) {
-            return false;
-        }
-        return contentType.includes("application/json") || contentType.includes("text/json") || contentType.includes("application/problem+json");
     }
 
     async function sendRequest(methodName: string, model: TryItModel, needAuth: boolean, contentType?: string): Promise<void> {
@@ -324,16 +206,35 @@ function TryIt({ path, parameters, example, setResponse, methodName }: {
                     contentAfter={<Icon iconName={urlCopied ? "checkmark" : "copy"} style={{ cursor: "pointer" }}
                         onClick={copyUrl} />}
                     value={url} />
-                <div><Label><b>Headers</b></Label></div>
-                {needAuth && <><div className="d-flex justify-content-between w-100">
-                    <Label>Authorization</Label>
-                </div>
-                    <Input className="d-inline-flex" readOnly={true}
-                        contentAfter={<Icon iconName={tokenCopied ? "checkmark" : "copy"} style={{ cursor: "pointer" }}
-                            onClick={copyHeaderToken} />}
-                        value={token} type={tokenVisible ? "text" : "password"}
-                        onClick={() => setTokenVisible(!tokenVisible)} /></>}
-                {model.hasParameter && <><Label><b>Parameters</b></Label>
+                {(needAuth || consumes) && <><b>Headers</b>
+                    {needAuth && <><div className="d-flex justify-content-between w-100">
+                        <Label>Authorization</Label>
+                    </div>
+                        <Input className="d-inline-flex" readOnly={true}
+                            contentAfter={<Icon iconName={tokenCopied ? "checkmark" : "copy"} style={{ cursor: "pointer" }}
+                                onClick={copyHeaderToken} />}
+                            value={token} type={tokenVisible ? "text" : "password"}
+                            onClick={() => setTokenVisible(!tokenVisible)} /></>}
+                    {consumes && consumes.length > 0 && <div className="form-group">
+                        <div className="d-flex justify-content-between w-100">
+                            <Label>Content-Type</Label>
+                        </div>
+                        <select className="form-select"
+                            style={{ boxShadow: "none", outline: "none" }} 
+                            aria-labelledby="ct1"
+                            value={contentType} 
+                            onChange={(ev) => {
+                                setContentType(ev.target.value); // handle the selected value
+                              }}>
+                            {consumes.map((option) => (
+                                <option key={option} >
+                                    {option}
+                                </option>
+                            ))}
+                        </select>
+                    </div>}
+                </>}
+                {model.hasParameter && <><b>Parameters</b>
                     {model.path && Object.entries(model.path).map(([key, parameter], index) => (
                         <ParameterInput key={key} parameter={parameter} type="path" onChange={onSetValue}></ParameterInput>
                     ))}
@@ -342,17 +243,65 @@ function TryIt({ path, parameters, example, setResponse, methodName }: {
                     ))}
                 </>}
 
-                {model.body && <ParameterInput parameter={model.body} type="body" onChange={onSetValue}></ParameterInput>}
+                {model.body && <ParameterInput parameter={model.body} type="body" onChange={onSetValue} contentType={contentType}></ParameterInput>}
                 <div className="m-2 d-flex justify-content-end ">
                     <Button icon={<Send24Regular />} disabled={invokeDisabled} onClick={() => sendRequest(methodName, model, needAuth, contentType)}>Invoke</Button>
                 </div>
             </CardPreview>
         </Card>
     </div>
-
 }
 
-function ParameterInput({ parameter, type, onChange }: { parameter: TryItParameterModel, type: "path" | "query" | "body", onChange: (param: TryItParameterModel, value: any, type: "path" | "query" | "body") => void }) {
+interface TryItModel {
+    body?: TryItParameterModel,
+    path?: Record<string, TryItParameterModel>,
+    query?: Record<string, TryItParameterModel>,
+    header?: Record<string, TryItParameterModel>,
+    hasParameter: boolean
+}
+interface TryItParameterModel {
+    parameterDefinition: Parameter,
+    value: any,
+    name: string,
+    type: string,
+    description?: string,
+    required: boolean,
+    schema?: Definition,
+    consumes?: string[]
+}
+
+function isKnownParameter(element: Parameter): boolean {
+    return element.name === "api-version" || element.name === "hub"
+}
+
+function getTryItModel(parameter: Parameter[]): TryItModel {
+    let m: TryItModel = { hasParameter: false };
+    parameter.forEach(element => {
+        const i = { value: element.default, type: element.type ?? "object", required: element.required ?? false, name: element.name, description: element.description, parameterDefinition: element };
+        if (element.in === "body" || element.in === "formData") {
+            m.body = i;
+        } else if (element.in === "path") {
+            if (!isKnownParameter(element)) {
+                // these 2 are known parameters
+                m.path ??= {};
+                m.path[element.name] = i;
+                m.hasParameter = true;
+            }
+        } else if (element.in === "query") {
+            if (!isKnownParameter(element)) {
+                m.query ??= {};
+                m.query[element.name] = i;
+                m.hasParameter = true;
+            }
+        } else if (element.in === "header") {
+            throw new Error("Header parameters are not yet supported");
+        }
+    });
+    return m;
+}
+
+function ParameterInput({ parameter, type, onChange, contentType }: { parameter: TryItParameterModel, type: "path" | "query" | "body", onChange: (param: TryItParameterModel, value: any, type: "path" | "query" | "body") => void, contentType?: string }) {
+    const language = isJsonContent(contentType) ? "json" : "text";
     if (type !== "body")
         return <>
             <div className="d-flex">
@@ -367,23 +316,40 @@ function ParameterInput({ parameter, type, onChange }: { parameter: TryItParamet
     return <>
         <div><Label><b>Body</b></Label>
             <div className="d-flex">
-                <Label className="me-2">{parameter.name}</Label>{ }
-                {parameter.required && <Label className="text-danger">required</Label>}
+                <Label className="me-2" required={parameter.required}>{parameter.name}</Label>{ }
+                <Label size="small" className="text-info mx-1">{parameter.type}</Label>
             </div>
-            <Editor
-                height={"15vh"}
-                defaultLanguage="json"
-                options={
-                    {
-                        lineNumbers: "off",
-                        folding: false,
-                        minimap: {
-                            enabled: false
-                        }
-                    }}
-                value={parameter.value ? JSON.stringify(parameter.value, null, 2) : ""}
-                onChange={(value) => onChange(parameter, tryGetJsonValue(value), type)}
-            />
+            {language === "json" &&
+                < Editor
+                    height={"15vh"}
+                    defaultLanguage={language}
+                    options={
+                        {
+                            lineNumbers: "off",
+                            folding: false,
+                            minimap: {
+                                enabled: false
+                            }
+                        }}
+                    value={parameter.value ? JSON.stringify(parameter.value, null, 2) : ""}
+                    onChange={(value) => onChange(parameter, tryGetJsonValue(value), type)}
+                />
+            }
+            {language === "text" &&
+                < Editor
+                    height={"15vh"}
+                    options={
+                        {
+                            lineNumbers: "off",
+                            folding: false,
+                            minimap: {
+                                enabled: false
+                            }
+                        }}
+                    value={parameter.value ?? ""}
+                    onChange={(value) => onChange(parameter, value, type)}
+                />
+            }
         </div></>
 }
 

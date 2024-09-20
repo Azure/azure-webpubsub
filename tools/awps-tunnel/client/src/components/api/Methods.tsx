@@ -17,17 +17,17 @@ export function Method({ method, path, methodName }: {
     path: string,
     methodName: string
 }): React.JSX.Element {
-    const [example, setExample] = useState<Example>();
+    const [example, setExample] = useState<Example>({ parameters: {}, responses: {} });
     const [response, setResponse] = useState<APIResponse | undefined>(undefined);
     useEffect(() => {
+        setResponse(undefined);
         if (method.operationId) {
             const operationId = method.operationId;
             const example = method["x-ms-examples"][operationId].$ref;
-            fetch(`./api/${process.env.REACT_APP_API_VERSION}/${example}`).then(res => res.json()).then(res => setExample(res))
-            setResponse(undefined);
+            fetch(`./api/${process.env.REACT_APP_API_VERSION}/${example}`)
+                .then(res => res.json()).then(res => setExample(res))
         }
     }, [method, path]);
-
     return (
         <div className="overflow-auto d-flex flex-column">
             <Label className="fs-4 fw-bold m-2">{method.summary}</Label>
@@ -38,9 +38,8 @@ export function Method({ method, path, methodName }: {
                 <div className="mx-2">{path}</div>
             </div>
             <div className="overflow-auto d-flex flex-column">
-                {method.parameters && example &&
-                    <Parameters path={path} parameters={method.parameters} example={example.parameters}
-                        setResponse={setResponse} methodName={methodName} />}
+                <Parameters path={path} parameters={method.parameters} example={example}
+                    setResponse={setResponse} methodName={methodName} consumes={method.consumes} />
                 <Response responseSchema={method.responses} response={response} />
             </div>
         </div>
