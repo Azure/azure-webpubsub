@@ -167,17 +167,6 @@ export interface ResponseSchema {
   'x-ms-error-response'?: boolean;
 }
 
-export interface APIResponse {
-  code: string;
-  detail: string | undefined;
-  errors: {[error: string] : string[]};
-  message: string;
-  status: number;
-  target: string;
-  title: string;
-  type: string | undefined;
-}
-
 export interface Header {
   type: string;
   format?: string;

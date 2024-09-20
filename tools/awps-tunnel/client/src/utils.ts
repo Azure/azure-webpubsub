@@ -34,7 +34,7 @@ export async function loadApiSpec(): Promise<RESTApi> {
   return apiSpec;
 }
 
-export function hasJsonBody(methodName: string, header: Headers): boolean {
+export function hasJsonBody(header: Headers, methodName?: string): boolean {
     if (methodName === "head") {
         return false;
     }

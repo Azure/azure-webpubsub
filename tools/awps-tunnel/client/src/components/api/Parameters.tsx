@@ -3,25 +3,32 @@ import {
     Card,
     CardHeader,
     CardPreview,
-    Dropdown,
     Input,
     Label,
 } from "@fluentui/react-components";
 import 'bootstrap/dist/css/bootstrap.min.css';
 import React, { useEffect, useState } from "react";
 import Editor from '@monaco-editor/react';
-import { APIResponse, Definition, Example, Parameter } from "../../models";
+import { Definition, Example, Parameter } from "../../models";
 import { useDataContext } from "../../providers/DataContext";
 import {
     Send24Regular,
 } from "@fluentui/react-icons";
 import { hasJsonBody, isJsonContent } from "../../utils";
 import { Icon } from "@fluentui/react";
+
+export interface ApiResponse {
+    status: number;
+    ok: boolean;
+    body?: string;
+    isJson: boolean;
+}
+
 export function Parameters({ path, parameters, example, setResponse, methodName, consumes }: {
     path: string
     parameters: Parameter[],
     example: Example,
-    setResponse: React.Dispatch<React.SetStateAction<APIResponse | undefined>>,
+    setResponse: React.Dispatch<React.SetStateAction<ApiResponse | undefined>>,
     methodName: string,
     consumes?: string[]
 }): React.JSX.Element {
@@ -31,39 +38,22 @@ export function Parameters({ path, parameters, example, setResponse, methodName,
     const [url, setUrl] = useState<string>("");
     const [token, setToken] = useState("");
     const [tokenVisible, setTokenVisible] = useState(false);
-    const [model, setModel] = useState(getTryItModel(parameters));
+    const [model, setModel] = useState<TryItModel>({ hasParameter: false });
     const [invokeDisabled, setInvokeDisabled] = useState(true);
 
     // special logic for health check api
     const needAuth = !path.endsWith("/api/health");
     const [contentType, setContentType] = React.useState<string>("");
     useEffect(() => {
-        if (consumes && consumes.length > 0){
+        if (consumes && consumes.length > 0) {
             setContentType(consumes[0]);
-        }else {
+        } else {
             setContentType("");
         }
     }, [consumes]);
 
     useEffect(() => {
-        setModel(getTryItModel(parameters));
-    }, [parameters]);
-    useEffect(() => {
-        // todo: make it a general logic instead of hardcode
-        setModel(prev => {
-            if (!prev.body) return prev;
-            const parameterName = prev.body.name;
-            // find the example data
-            const exampleData = example.parameters[parameterName];
-            if (exampleData) {
-                return ({
-                    ...prev,
-                    body: { ...prev.body, value: exampleData },
-                });
-            }
-            return prev;
-        });
-
+        setModel(getTryItModel(parameters, example));
     }, [parameters, example]);
 
     useEffect(() => {
@@ -185,14 +175,21 @@ export function Parameters({ path, parameters, example, setResponse, methodName,
             method: methodName,
             headers: headers,
             body: model.body?.value
-        }).then(res => {
-            if (hasJsonBody(methodName, res.headers)) {
-                return res.json();
-            } else {
-                return res; // super tricky, should improve
+        }).then(async response => {
+            let res: ApiResponse = {
+                ok: response.ok,
+                status: response.status,
+                isJson: hasJsonBody(response.headers, methodName)
             }
-        })
-            .then(res => { setResponse(res as APIResponse); });
+            if (response.body !== null) {
+                // always use text to read
+                const body = await response.text();
+                if (body.length > 0) {
+                    res.body = body;
+                }
+            }
+            setResponse(res);
+        });
     }
 
     return <div style={{ flex: 3 }}>
@@ -220,12 +217,12 @@ export function Parameters({ path, parameters, example, setResponse, methodName,
                             <Label>Content-Type</Label>
                         </div>
                         <select className="form-select"
-                            style={{ boxShadow: "none", outline: "none" }} 
+                            style={{ boxShadow: "none", outline: "none" }}
                             aria-labelledby="ct1"
-                            value={contentType} 
+                            value={contentType}
                             onChange={(ev) => {
                                 setContentType(ev.target.value); // handle the selected value
-                              }}>
+                            }}>
                             {consumes.map((option) => (
                                 <option key={option} >
                                     {option}
@@ -236,14 +233,14 @@ export function Parameters({ path, parameters, example, setResponse, methodName,
                 </>}
                 {model.hasParameter && <><b>Parameters</b>
                     {model.path && Object.entries(model.path).map(([key, parameter], index) => (
-                        <ParameterInput key={key} parameter={parameter} type="path" onChange={onSetValue}></ParameterInput>
+                        <ParameterInput key={parameter.name} parameter={parameter} type="path" onChange={onSetValue}></ParameterInput>
                     ))}
                     {model.query && Object.entries(model.query).map(([key, parameter], index) => (
-                        <ParameterInput key={key} parameter={parameter} type="query" onChange={onSetValue}></ParameterInput>
+                        <ParameterInput key={parameter.name} parameter={parameter} type="query" onChange={onSetValue}></ParameterInput>
                     ))}
                 </>}
 
-                {model.body && <ParameterInput parameter={model.body} type="body" onChange={onSetValue} contentType={contentType}></ParameterInput>}
+                {model.body && <ParameterInput key={model.body.name} parameter={model.body} type="body" onChange={onSetValue} contentType={contentType}></ParameterInput>}
                 <div className="m-2 d-flex justify-content-end ">
                     <Button icon={<Send24Regular />} disabled={invokeDisabled} onClick={() => sendRequest(methodName, model, needAuth, contentType)}>Invoke</Button>
                 </div>
@@ -274,39 +271,61 @@ function isKnownParameter(element: Parameter): boolean {
     return element.name === "api-version" || element.name === "hub"
 }
 
-function getTryItModel(parameter: Parameter[]): TryItModel {
+function getTryItModel(parameter: Parameter[], example: Example): TryItModel {
     let m: TryItModel = { hasParameter: false };
     parameter.forEach(element => {
-        const i = { value: element.default, type: element.type ?? "object", required: element.required ?? false, name: element.name, description: element.description, parameterDefinition: element };
+        const i = { value: element.default ?? "", type: element.type ?? "object", required: element.required ?? false, name: element.name, description: element.description, parameterDefinition: element };
         if (element.in === "body" || element.in === "formData") {
             m.body = i;
+            if (!i.value && example) {
+                // find the example data
+                const exampleData = example.parameters[i.name];
+                if (exampleData) {
+                    i.value = JSON.stringify(exampleData, null, 2);
+                }
+            }
         } else if (element.in === "path") {
             if (!isKnownParameter(element)) {
                 // these 2 are known parameters
                 m.path ??= {};
                 m.path[element.name] = i;
                 m.hasParameter = true;
+                if (!i.value && example) {
+                    // find the example data
+                    const exampleData = example.parameters[i.name];
+                    if (exampleData) {
+                        i.value = exampleData;
+                    }
+                }
             }
         } else if (element.in === "query") {
             if (!isKnownParameter(element)) {
                 m.query ??= {};
                 m.query[element.name] = i;
                 m.hasParameter = true;
+                if (!i.value && example) {
+                    // find the example data
+                    const exampleData = example.parameters[i.name];
+                    if (exampleData) {
+                        i.value = exampleData;
+                    }
+                }
             }
         } else if (element.in === "header") {
             throw new Error("Header parameters are not yet supported");
         }
     });
+    console.log(m);
     return m;
 }
 
 function ParameterInput({ parameter, type, onChange, contentType }: { parameter: TryItParameterModel, type: "path" | "query" | "body", onChange: (param: TryItParameterModel, value: any, type: "path" | "query" | "body") => void, contentType?: string }) {
-    const language = isJsonContent(contentType) ? "json" : "text";
+    const language = isJsonContent(contentType) ? "json" : undefined;
     if (type !== "body")
         return <>
             <div className="d-flex">
-                <Label className="me-2">{parameter.name}</Label>
-                {parameter.required && <Label className="text-danger">required</Label>}
+                <Label className="me-2" required={parameter.required}>{parameter.name}</Label>
+                <Label className="text-info mx-1">{parameter.type}</Label>
             </div>
             <div className="d-flex flex-column">
                 <Input value={parameter.value} onChange={e => onChange(parameter, e.target.value, type)} />
@@ -317,47 +336,21 @@ function ParameterInput({ parameter, type, onChange, contentType }: { parameter:
         <div><Label><b>Body</b></Label>
             <div className="d-flex">
                 <Label className="me-2" required={parameter.required}>{parameter.name}</Label>{ }
-                <Label size="small" className="text-info mx-1">{parameter.type}</Label>
+                <Label className="text-info mx-1">{parameter.type}</Label>
             </div>
-            {language === "json" &&
-                < Editor
-                    height={"15vh"}
-                    defaultLanguage={language}
-                    options={
-                        {
-                            lineNumbers: "off",
-                            folding: false,
-                            minimap: {
-                                enabled: false
-                            }
-                        }}
-                    value={parameter.value ? JSON.stringify(parameter.value, null, 2) : ""}
-                    onChange={(value) => onChange(parameter, tryGetJsonValue(value), type)}
-                />
-            }
-            {language === "text" &&
-                < Editor
-                    height={"15vh"}
-                    options={
-                        {
-                            lineNumbers: "off",
-                            folding: false,
-                            minimap: {
-                                enabled: false
-                            }
-                        }}
-                    value={parameter.value ?? ""}
-                    onChange={(value) => onChange(parameter, value, type)}
-                />
-            }
+            <Editor
+                height={"15vh"}
+                defaultLanguage={language}
+                options={
+                    {
+                        lineNumbers: "off",
+                        folding: false,
+                        minimap: {
+                            enabled: false
+                        }
+                    }}
+                value={parameter.value ?? ""}
+                onChange={(value) => onChange(parameter, value, type)}
+            />
         </div></>
-}
-
-function tryGetJsonValue(value: string | undefined) {
-    if (!value) return value;
-    try {
-        return JSON.parse(value);
-    } catch {
-        return value;
-    }
 }

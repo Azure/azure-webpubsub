@@ -5,8 +5,9 @@ import type {
 } from "@fluentui/react-components";
 import { Card, CardHeader, CardPreview, Label, Tab, TabList } from "@fluentui/react-components";
 import React, { useEffect, useState } from "react";
-import { APIResponse, ResponseSchema } from "../../models";
+import { ResponseSchema } from "../../models";
 import { Editor } from "@monaco-editor/react";
+import { ApiResponse } from "./Parameters";
 
 export var jsonColor =
 {
@@ -25,7 +26,7 @@ function getFirstOrDefaultKey<T>(record: Record<string, T>): string | undefined 
 
 export function Response({ responseSchema, response }: {
     responseSchema: { [status: string]: ResponseSchema },
-    response: APIResponse | undefined
+    response: ApiResponse | undefined
 }): React.JSX.Element {
     const [selectedStatus, setSelectedStatus] = useState<TabValue>(getFirstOrDefaultKey(responseSchema));
     useEffect(() => {
@@ -44,13 +45,13 @@ export function Response({ responseSchema, response }: {
 
                     {response &&
                         <CardPreview className="d-flex flex-column align-items-start p-3">
-                            <Label className={response.status >= 400 ? "text-danger" : "text-success"}>
+                            <Label className={response.ok ? "text-success" : "text-danger"}>
                                 {response.status}
                             </Label>
-                            {response.code &&
+                            {response.body &&
                                 <Editor
                                     height={"10vh"}
-                                    defaultLanguage="json"
+                                    defaultLanguage={response.isJson ? "json" : undefined}
                                     options={
                                         {
                                             lineNumbers: "off",
@@ -59,7 +60,7 @@ export function Response({ responseSchema, response }: {
                                                 enabled: false
                                             }
                                         }}
-                                    value={response ? JSON.stringify(response, null, 2) : ""} />
+                                    value={response.body} />
                             }
 
                         </CardPreview>}
@@ -77,7 +78,7 @@ export function Response({ responseSchema, response }: {
                             ))}
                         </TabList>
                         {Object.entries(responseSchema).map(([status, response]) => (
-                            status === selectedStatus && <div style={{ margin: 10 }}>{response.description}</div>
+                            status === selectedStatus && <div key={status} style={{ margin: 10 }}>{response.description}</div>
                         ))}
                     </CardPreview>}
                 </Card>

@@ -1,8 +1,8 @@
 import { Label } from "@fluentui/react-components";
 import 'bootstrap/dist/css/bootstrap.min.css';
 import React, { useEffect, useState } from "react";
-import { APIResponse, Example, Operation } from "../../models";
-import { Parameters } from "./Parameters";
+import { Example, Operation } from "../../models";
+import { ApiResponse, Parameters } from "./Parameters";
 import { Response } from "./Response";
 
 export const methodColors: { [method: string]: string } = {
@@ -18,7 +18,7 @@ export function Method({ method, path, methodName }: {
     methodName: string
 }): React.JSX.Element {
     const [example, setExample] = useState<Example>({ parameters: {}, responses: {} });
-    const [response, setResponse] = useState<APIResponse | undefined>(undefined);
+    const [response, setResponse] = useState<ApiResponse>();
     useEffect(() => {
         setResponse(undefined);
         if (method.operationId) {
