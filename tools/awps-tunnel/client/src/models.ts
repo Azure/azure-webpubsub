@@ -121,21 +121,9 @@ export interface RESTApi {
     title: string,
     version: string
   },
-  paths: { [key: string]: PathItem },
+  paths: { [key: string]: Record<"get" | "post" | "delete" | "options" | "patch" | "put" | "head", Operation> },
   definitions: { [name:string]: Definition }
 }
-
-export interface PathItem {
-  get?: Operation
-  post?: Operation;
-  delete?: Operation;
-  options?: Operation;
-  head?: Operation;
-  patch?: Operation;
-  put?: Operation;
-  parameters?: Parameter[];
-}
-
 export interface Operation {
   tags?: string[];
   summary?: string;
@@ -143,7 +131,7 @@ export interface Operation {
   operationId: string;
   consumes?: string[];
   produces?: string[];
-  parameters?: Parameter[];
+  parameters: Parameter[];
   responses: { [status: string]: ResponseSchema };
   deprecated?: boolean;
   'x-ms-examples'?: any;
@@ -156,7 +144,7 @@ export interface Parameter {
   required?: boolean;
   type?: string;
   format?: string;
-  schema?: Schema;
+  schema?: Definition;
   items?: Items;
   collectionFormat?: 'csv' | 'ssv' | 'tsv' | 'pipes' | 'multi';
   default?: any;
@@ -172,30 +160,11 @@ export interface Items {
   $ref?: string
 }
 
-export interface Schema {
-  $ref: string;
-  type?: string;
-  items?: Items;
-  description?: string
-  properties?: {[name: string]: Items}
-}
-
 export interface ResponseSchema {
   description: string;
-  schema?: Schema;
+  schema?: Definition;
   headers?: { [key: string]: Header };
   'x-ms-error-response'?: boolean;
-}
-
-export interface APIResponse {
-  code: string;
-  detail: string | undefined;
-  errors: {[error: string] : string[]};
-  message: string;
-  status: number;
-  target: string;
-  title: string;
-  type: string | undefined;
 }
 
 export interface Header {
@@ -210,7 +179,7 @@ export interface Definition {
   name?: string
   description?: string;
   type: string;
-  properties: DefinitionProp,
+  properties?: Record<string, Items>,
   items?: {
     type: string;
     $ref?: string;
@@ -218,32 +187,7 @@ export interface Definition {
   $ref?: string;
 }
 
-export interface DefinitionProp{
-  groups?: Items,
-  filter?: Items,
-  token?: Items,
-  code?: Items,
-  message?: Items,
-  target?: Items,
-  details?: Items,
-  inner?: Items,
-}
-
 export interface Example{
-  parameters: ExampleParameter
+  parameters: Record<string, any>;
   responses: {[status: string]: {}}
-}
-
-export interface ExampleParameter{
-  'api-version': string
-  hub: string,
-  groupsToAdd?:{
-    groups: string[]
-    filter: string
-  },
-  groupsToRemove?: {
-    groups: string[]
-    filter: string
-  },
-  message?: string,
 }

@@ -1,0 +1,6 @@
+/* Mask to block interactions */
+.loading-mask {
+    position: absolute;
+    background-color: rgba(180, 180, 180, 0.5); /* Semi-transparent overlay */
+    z-index: 1000; /* Higher than the content */
+}

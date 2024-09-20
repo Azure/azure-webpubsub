@@ -1,4 +1,4 @@
-import { Icon } from "@fluentui/react/lib/Icon";
+import { Icon } from "@fluentui/react";
 import { ConnectionStatus, ConnectionStatusPair } from "../../models";
 
 export function StatusIndicator({ status }: { status?: ConnectionStatus }) {

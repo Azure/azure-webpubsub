@@ -1,4 +1,5 @@
 import { ConnectionStatus, LogLevel, HttpHistoryItem, DataModel, SystemEvent, ConnectionStatusPairs, RESTApi } from "../models";
+import { loadApiSpec } from "../utils";
 import { IDataFetcher } from "./IDataFetcher";
 
 export class MockDataFetcher implements IDataFetcher {
@@ -42,10 +43,6 @@ export class MockDataFetcher implements IDataFetcher {
     return { success: true, message: method };
   }
   async fetch(): Promise<DataModel> {
-
-    const response = await fetch(`./api/${process.env.REACT_APP_API_VERSION}/webpubsub.json`);
-    const restApiSpec: RESTApi = await response.json();
-
     const current = {
       ready: true,
       clientUrl: "wss://mock-free.webpubsub.azure.com/client/hubs/mock/",
@@ -81,7 +78,7 @@ export class MockDataFetcher implements IDataFetcher {
           time: new Date(),
         },
       ],
-      apiSpec: restApiSpec,
+      apiSpec: await loadApiSpec(),
     };
     return new Promise((resolve, reject) => {
       resolve(current);
