@@ -7,7 +7,7 @@ import {
     Label,
 } from "@fluentui/react-components";
 import 'bootstrap/dist/css/bootstrap.min.css';
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useRef } from "react";
 import Editor from '@monaco-editor/react';
 import { Definition, Example, Parameter } from "../../models";
 import { useDataContext } from "../../providers/DataContext";
@@ -16,6 +16,7 @@ import {
 } from "@fluentui/react-icons";
 import { hasJsonBody, isJsonContent } from "../../utils";
 import { Icon } from "@fluentui/react";
+import "./Parameters.css";
 
 export interface ApiResponse {
     status: number;
@@ -40,10 +41,12 @@ export function Parameters({ path, parameters, example, setResponse, methodName,
     const [tokenVisible, setTokenVisible] = useState(false);
     const [model, setModel] = useState<TryItModel>({ hasParameter: false });
     const [invokeDisabled, setInvokeDisabled] = useState(true);
-
+    const [invoking, setInvoking] = useState(false);
     // special logic for health check api
     const needAuth = !path.endsWith("/api/health");
     const [contentType, setContentType] = React.useState<string>("");
+    const contentRef = useRef<HTMLDivElement | null>(null);
+    const maskRef = useRef<HTMLDivElement | null>(null);
     useEffect(() => {
         if (consumes && consumes.length > 0) {
             setContentType(consumes[0]);
@@ -71,7 +74,7 @@ export function Parameters({ path, parameters, example, setResponse, methodName,
         }
         if (model.query) {
             Object.entries(model.query).forEach(([k, parameter]) => {
-                if (parameter.value !== undefined) {
+                if (parameter.value) {
                     query += `${parameter.name}=${parameter.value}&`;
                 }
             });
@@ -126,6 +129,23 @@ export function Parameters({ path, parameters, example, setResponse, methodName,
         setInvokeDisabled(false);
     }, [model]);
 
+    const updateMaskSize = () => {
+        if (contentRef.current && maskRef.current) {
+            const { width, height, top, left } = contentRef.current.getBoundingClientRect();
+
+            maskRef.current.style.width = `${width}px`;
+            maskRef.current.style.height = `${height}px`;
+            maskRef.current.style.top = `${top}px`;
+            maskRef.current.style.left = `${left}px`;
+        }
+    };
+
+    useEffect(() => {
+        if (invoking) {
+            updateMaskSize();
+        }
+    }, [invoking]);
+
     function copyUrl(): void {
         navigator.clipboard.writeText(url || "")
             .then(() => {
@@ -163,6 +183,7 @@ export function Parameters({ path, parameters, example, setResponse, methodName,
     }
 
     async function sendRequest(methodName: string, model: TryItModel, needAuth: boolean, contentType?: string): Promise<void> {
+        setInvoking(true);
         let headers: HeadersInit = {};
         if (contentType) {
             headers["Content-Type"] = contentType;
@@ -189,11 +210,14 @@ export function Parameters({ path, parameters, example, setResponse, methodName,
                 }
             }
             setResponse(res);
+        }).finally(() => {
+            setInvoking(false);
         });
     }
 
-    return <div style={{ flex: 3 }}>
-        <Card className="w-95 m-2">
+    return <div className="d-flex align-items-stretch">
+        <div hidden={!invoking} className="loading-mask" id="loadingMask" ref={maskRef}></div>
+        <Card className="m-2" style={{ flex: 1 }} ref={contentRef}>
             <CardHeader header={<b className="fs-6">Try It</b>} />
             <CardPreview className="d-flex flex-column align-items-start p-3">
                 <div className="d-flex justify-content-between w-100">
@@ -290,26 +314,14 @@ function getTryItModel(parameter: Parameter[], example: Example): TryItModel {
                 m.path ??= {};
                 m.path[element.name] = i;
                 m.hasParameter = true;
-                if (!i.value && example) {
-                    // find the example data
-                    const exampleData = example.parameters[i.name];
-                    if (exampleData) {
-                        i.value = exampleData;
-                    }
-                }
+                // do not load example data for path
             }
         } else if (element.in === "query") {
             if (!isKnownParameter(element)) {
                 m.query ??= {};
                 m.query[element.name] = i;
                 m.hasParameter = true;
-                if (!i.value && example) {
-                    // find the example data
-                    const exampleData = example.parameters[i.name];
-                    if (exampleData) {
-                        i.value = exampleData;
-                    }
-                }
+                // do not load example data for query
             }
         } else if (element.in === "header") {
             throw new Error("Header parameters are not yet supported");
@@ -325,7 +337,7 @@ function ParameterInput({ parameter, type, onChange, contentType }: { parameter:
         return <>
             <div className="d-flex">
                 <Label className="me-2" required={parameter.required}>{parameter.name}</Label>
-                <Label className="text-info mx-1">{parameter.type}</Label>
+                <Label className="text-success mx-1">{parameter.type}</Label>
             </div>
             <div className="d-flex flex-column">
                 <Input value={parameter.value} onChange={e => onChange(parameter, e.target.value, type)} />
@@ -336,7 +348,7 @@ function ParameterInput({ parameter, type, onChange, contentType }: { parameter:
         <div><Label><b>Body</b></Label>
             <div className="d-flex">
                 <Label className="me-2" required={parameter.required}>{parameter.name}</Label>{ }
-                <Label className="text-info mx-1">{parameter.type}</Label>
+                <Label className="text-success mx-1">{parameter.type}</Label>
             </div>
             <Editor
                 height={"15vh"}
