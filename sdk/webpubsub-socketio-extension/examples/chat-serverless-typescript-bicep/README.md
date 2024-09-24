@@ -20,3 +20,20 @@ npm start
 ```
 
 Visit `http://localhost:7084/api/index` to play with the sample.
+
+## Running Online
+
+Current `azd up` is not work in this sample. 
+
+### Deploying the Infrastructure
+
+```azurecli
+az deployment sub create -n "<deployment-name>" --template-file ./infra/main.bicep --parameters environmentName="<env-name>" location="<location>"
+```
+
+### Deploy Functions to Function App
+
+```bash
+./deploy.sh "<deployment-name>"
+```
+

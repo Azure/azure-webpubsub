@@ -108,3 +108,8 @@ output functionName string = function.outputs.SERVICE_PROCESSOR_NAME
 output resourceGroup string = rg.name
 output socketioName string = socketio.outputs.name
 output funcAuthClientId string = federatedApplication.outputs.applicationClientId
+
+// For azd
+output AZURE_LOCATION string = location
+output AZURE_TENANT_ID string = tenant().tenantId
+output SERVICE_PROCESSOR_NAME string = function.outputs.SERVICE_PROCESSOR_NAME

@@ -10,4 +10,4 @@ services:
     host: function
     hooks:
       postdeploy: 
-        run: ./hooks/deploy.sh
+        run: ./deploy/postDeploy.sh

@@ -18,7 +18,7 @@ param storageName string
 param appServicePlanName string
 
 var applicationInsightsIdentity = 'ClientId=${identityClientId};Authorization=AAD'
-
+param serviceName string = 'processor'
 var containers = [{name: 'deploymentpackage'}]
 // Create an Azure Storage account, which is required by Functions.
 resource storage 'Microsoft.Storage/storageAccounts@2023-01-01' = {
@@ -101,7 +101,7 @@ module appServicePlan '../core/host/appserviceplan.bicep' = {
 resource functions 'Microsoft.Web/sites@2023-12-01' = {
   name: name
   location: location
-  tags: tags
+  tags: union(tags, { 'azd-service-name': serviceName })
   kind: 'functionapp'
   identity: {
     type: 'UserAssigned'
