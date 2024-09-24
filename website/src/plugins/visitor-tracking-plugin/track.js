@@ -31,6 +31,7 @@ function AnalyticsCookie(setString) {
     expireCookie('_ga', '/', '.azure.github.io')
     expireCookie(`_ga_${trackingIndex}`, '/', '.azure.github.io')
     expireCookie('_mid', '/')
+    expireCookie('_mid', '/azure-webpubsub')
     expireCookie('_mid', normalizePath(location.pathname))
     expireCookie('_mid', getParentPath())
   }
