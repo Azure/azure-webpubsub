@@ -1,0 +1,13 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/Azure/azure-dev/main/schemas/v1.0/azure.yaml.json
+
+name: functions-quickstart-typescript-azd
+metadata:
+  template: functions-quickstart-typescript-azd@1.0.0-beta
+services:
+  processor:
+    project: .
+    language: js
+    host: function
+    hooks:
+      postdeploy: 
+        run: ./hooks/deploy.sh
