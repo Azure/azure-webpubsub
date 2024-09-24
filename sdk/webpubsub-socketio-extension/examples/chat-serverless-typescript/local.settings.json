@@ -4,7 +4,8 @@
     "FUNCTIONS_WORKER_RUNTIME": "node",
     "AzureWebJobsFeatureFlags": "EnableWorkerIndexing",
     "AzureWebJobsStorage": "UseDevelopmentStorage=true",
-    "WebPubSubForSocketIOConnectionString": ""
+    "WebPubSubForSocketIOConnectionString__endpoint": "https://sio-5kkfcgr2obqvm.webpubsub.azure.com",
+    "WebPubSubForSocketIOConnectionString__tenant": "72f988bf-86f1-41af-91ab-2d7cd011db47"
   },
   "ConnectionStrings": {}
 }
