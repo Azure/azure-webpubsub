@@ -203,7 +203,6 @@
         function sendMessage() {
             const message = document.getElementById('chatInput').value;
             if (message) {
-                // appendMessage(true, message);
                 document.getElementById('chatInput').value = '';
                 socket.emit('chat', message);
             }

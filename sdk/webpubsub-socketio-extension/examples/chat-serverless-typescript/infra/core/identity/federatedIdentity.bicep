@@ -1,7 +1,6 @@
 extension microsoftGraph
-// Find document https://learn.microsoft.com/en-us/graph/templates/reference/serviceprincipals?view=graph-bicep-1.0
-// Find example: https://github.com/microsoftgraph/msgraph-bicep-types/blob/main/quickstart-templates/create-fic-for-github-actions/main.bicep
-// missing the callback
+// document https://learn.microsoft.com/en-us/graph/templates/reference/serviceprincipals?view=graph-bicep-1.0
+// example: https://github.com/microsoftgraph/msgraph-bicep-types/blob/main/quickstart-templates/create-fic-for-github-actions/main.bicep
 
 param identityName string
 param federatedIdentityObjectId string
