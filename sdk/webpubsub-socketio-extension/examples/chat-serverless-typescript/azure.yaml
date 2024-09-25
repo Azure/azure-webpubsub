@@ -4,7 +4,7 @@ name: functions-quickstart-typescript-azd
 metadata:
   template: functions-quickstart-typescript-azd@1.0.0-beta
 services:
-  processor:
+  sioserverless:
     project: .
     language: js
     host: function

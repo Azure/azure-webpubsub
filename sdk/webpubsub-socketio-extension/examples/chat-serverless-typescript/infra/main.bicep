@@ -26,7 +26,7 @@ param storageAccountName string = ''
 var abbrs = loadJsonContent('./abbreviations.json')
 var resourceToken = toLower(uniqueString(subscription().id, environmentName, location))
 var tags = { 'azd-env-name': environmentName }
-var functionName = !empty(functionServiceName) ? functionServiceName : '${abbrs.webSitesFunctions}processor-${resourceToken}'
+var functionName = !empty(functionServiceName) ? functionServiceName : '${abbrs.webSitesFunctions}sioserverless-${resourceToken}'
 
 // Organize resources in a resource group
 resource rg 'Microsoft.Resources/resourceGroups@2021-04-01' = {
@@ -36,13 +36,13 @@ resource rg 'Microsoft.Resources/resourceGroups@2021-04-01' = {
 }
 
 // User assigned managed identity to be used by the Function App to reach storage and service bus
-module processorUserAssignedIdentity './core/identity/userAssignedIdentity.bicep' = {
-  name: 'processorUserAssignedIdentity'
+module sioUserAssignedIdentity './core/identity/userAssignedIdentity.bicep' = {
+  name: 'sioUserAssignedIdentity'
   scope: rg
   params: {
     location: location
     tags: tags
-    identityName: !empty(functionUserAssignedIdentityName) ? functionUserAssignedIdentityName : '${abbrs.managedIdentityUserAssignedIdentities}processor-${resourceToken}'
+    identityName: !empty(functionUserAssignedIdentityName) ? functionUserAssignedIdentityName : '${abbrs.managedIdentityUserAssignedIdentities}sioserverless-${resourceToken}'
   }
 }
 
@@ -52,7 +52,7 @@ module federatedApplication './core/identity/federatedIdentity.bicep' = {
   scope: rg
   params: {
     identityName: '${abbrs.servicePrincipal}api-${resourceToken}'
-    federatedIdentityObjectId: processorUserAssignedIdentity.outputs.identityPrincipalId
+    federatedIdentityObjectId: sioUserAssignedIdentity.outputs.identityPrincipalId
     redirectUri: 'https://${functionName}.azurewebsites.net/.auth/login/aad/callback'
   }
 }
@@ -63,7 +63,7 @@ module socketio './app/socketio.bicep' = {
   params: {
     name:'${abbrs.socketio}${resourceToken}'
     location: location
-    identityId: processorUserAssignedIdentity.outputs.identityId
+    identityId: sioUserAssignedIdentity.outputs.identityId
   }
 }
 
@@ -78,9 +78,9 @@ module function './app/function.bicep' = {
     applicationInsightsName:!empty(applicationInsightsName) ? applicationInsightsName : '${abbrs.insightsComponents}${resourceToken}'
     logAnalyticsName: !empty(logAnalyticsName) ? logAnalyticsName : '${abbrs.operationalInsightsWorkspaces}${resourceToken}'
     workerRuntime: 'node'
-    identityId: processorUserAssignedIdentity.outputs.identityId
-    identityClientId: processorUserAssignedIdentity.outputs.identityClientId
-    identityPrincipalId: processorUserAssignedIdentity.outputs.identityPrincipalId
+    identityId: sioUserAssignedIdentity.outputs.identityId
+    identityClientId: sioUserAssignedIdentity.outputs.identityClientId
+    identityPrincipalId: sioUserAssignedIdentity.outputs.identityPrincipalId
     authApplicationClientId: federatedApplication.outputs.applicationClientId
     storageName: !empty(storageAccountName) ? storageAccountName : '${abbrs.storageStorageAccounts}${resourceToken}'
     appServicePlanName: !empty(appServicePlanName) ? appServicePlanName : '${abbrs.webServerFarms}${resourceToken}'
@@ -92,19 +92,19 @@ module function './app/function.bicep' = {
 
 var WebPubSubServiceOwnerDefinitionId = '12cf5a90-567b-43ae-8102-96cf46c7d9b4' // Web PubSub Service Owner role ID
 
-// Allow access from processor to socketio using a managed identity
+// Allow access from function to socketio using a managed identity
 module socketioRoleAssignmentApi './core/identity/role.bicep' = {
   name: 'socketio-owner'
   scope: rg
   params: {
-    principalId: processorUserAssignedIdentity.outputs.identityPrincipalId
+    principalId: sioUserAssignedIdentity.outputs.identityPrincipalId
     roleDefinitionId: WebPubSubServiceOwnerDefinitionId
     principalType: 'ServicePrincipal'
   }
 }
 
 // App outputs
-output functionName string = function.outputs.SERVICE_PROCESSOR_NAME
+output functionName string = function.outputs.SERVICE_SIOSERVERLESS_NAME
 output resourceGroup string = rg.name
 output socketioName string = socketio.outputs.name
 output funcAuthClientId string = federatedApplication.outputs.applicationClientId
@@ -112,4 +112,4 @@ output funcAuthClientId string = federatedApplication.outputs.applicationClientI
 // For azd
 output AZURE_LOCATION string = location
 output AZURE_TENANT_ID string = tenant().tenantId
-output SERVICE_PROCESSOR_NAME string = function.outputs.SERVICE_PROCESSOR_NAME
+output SERVICE_SIOSERVERLESS_NAME string = function.outputs.SERVICE_SIOSERVERLESS_NAME

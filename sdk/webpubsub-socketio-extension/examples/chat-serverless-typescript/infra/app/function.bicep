@@ -18,7 +18,7 @@ param storageName string
 param appServicePlanName string
 
 var applicationInsightsIdentity = 'ClientId=${identityClientId};Authorization=AAD'
-param serviceName string = 'processor'
+param serviceName string = 'sioserverless'
 var containers = [{name: 'deploymentpackage'}]
 // Create an Azure Storage account, which is required by Functions.
 resource storage 'Microsoft.Storage/storageAccounts@2023-01-01' = {
@@ -50,9 +50,9 @@ resource storage 'Microsoft.Storage/storageAccounts@2023-01-01' = {
 
 var storageRoleDefinitionId  = 'b7e6dc6d-f1e8-4753-8033-0f276bb0955b' //Storage Blob Data Owner role
 
-// Allow access from processor to storage account using a managed identity
+// Allow access from function to storage account using a managed identity
 module storageRoleAssignmentApi './storage-Access.bicep' = {
-  name: 'storageRoleAssignmentPRocessor'
+  name: 'storageRoleAssignmentApi'
   params: {
     storageAccountName: storage.name
     roleDefinitionID: storageRoleDefinitionId
@@ -74,9 +74,9 @@ module monitoring '../core/monitor/monitoring.bicep' = {
 
 var monitoringRoleDefinitionId = '3913510d-42f4-4e42-8a64-420c390055eb' // Monitoring Metrics Publisher role ID
 
-// Allow access from processor to application insights using a managed identity
+// Allow access from function to application insights using a managed identity
 module appInsightsRoleAssignmentApi '../core/monitor/appinsights-access.bicep' = {
-  name: 'appInsightsRoleAssignmentPRocessor'
+  name: 'appInsightsRoleAssignmentApi'
   params: {
     appInsightsName: monitoring.outputs.applicationInsightsName
     roleDefinitionID: monitoringRoleDefinitionId
@@ -172,5 +172,5 @@ resource functions 'Microsoft.Web/sites@2023-12-01' = {
   }
 }
 
-output SERVICE_PROCESSOR_NAME string = functions.name
+output SERVICE_SIOSERVERLESS_NAME string = functions.name
 output APPLICATIONINSIGHTS_CONNECTION_STRING string = monitoring.outputs.applicationInsightsConnectionString

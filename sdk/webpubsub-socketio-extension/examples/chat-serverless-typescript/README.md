@@ -3,40 +3,46 @@
 
 This project is an Azure Function-based group chat application that leverages WebPubSub for Socket.IO to enable real-time communication between clients.
 
-## Setup
+## Prerequisites
 
-### Update Connection String
+- [Node.js 18](https://nodejs.org/)
+- [Azure CLI](https://docs.microsoft.com/cli/azure/install-azure-cli)
+- [Azure Functions Core Tools](https://docs.microsoft.com/azure/azure-functions/functions-run-local)
 
-```bash
-func settings add WebPubSubForSocketIOConnectionString "<connection string>"
-```
+## Setup and running online
 
-# How to run
+The sample uses [Bicep](https://learn.microsoft.com/azure/azure-resource-manager/bicep/overview?tabs=bicep) to deploy the infrastructure. The related Bicep file is located in the `./infra` folder.
 
-```bash
-func extensions sync
-npm install
-npm start
-```
-
-Visit `http://localhost:7084/api/index` to play with the sample.
-
-## Running Online
-
-Current `azd up` is not work in this sample. 
-
-### Deploying the Infrastructure
-
-```azurecli
-func extensions sync
-npm install
-npm run build
-az deployment sub create -n "<deployment-name>" --template-file ./infra/main.bicep --parameters environmentName="<env-name>" location="<location>"
-```
-
-### Deploy Functions to Function App
+### Deploy the infrastructure
 
 ```bash
-./deploy.sh "<deployment-name>"
+az deployment sub create -n "<deployment-name>" -l "<deployment-location>" --template-file ./infra/main.bicep --parameters environmentName="<env-name>" location="<location>"
 ```
 
+- `<deployment-name>`: The name of the deployment.
+- `<deployment-location>`: The location of the deployment metadata.
+- `<env-name>`: The name will be a part of the resource group name and resource name.
+- `<location>`: The location of the resources.
+
+After the deployment is completed, you will get the following resources:
+
+- Azure Function App
+- Web PubSub for Socket.IO
+- Managed Identity
+
+### Deploy the code to the Function App
+
+```bash
+# Deploy the project
+./deploy/deploy.sh "<deployment-name>"
+```
+
+### Run the project
+
+Open the url:
+
+```text
+https://<function-endpoint>/api/index
+```
+
+:::image type="content" source="chatsample.png" alt-text="Chat sample snapshot":::
