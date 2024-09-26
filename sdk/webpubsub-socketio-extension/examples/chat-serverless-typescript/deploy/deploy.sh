@@ -1,4 +1,3 @@
-set -x
 set -e
 
 BASEDIR=$(dirname $0)
@@ -20,7 +19,7 @@ func azure functionapp publish $functionName
 
 echo "Configuring Web PubSub for Socket.IO hub settings for $sioName"
 code=$(az functionapp keys list -g $resourceGroupName -n $functionName --query systemKeys.socketio_extension -o tsv)
-az webpubsub hub create -n $sioName -g $resourceGroupName --hub-name "hub" --event-handler url-template="https://${functionName}.azurewebsites.net/runtime/webhooks/socketio?code=${code}" user-event-pattern="*" auth-type="ManagedIdentity" auth-resource="$functionAuthClientId"
+az webpubsub hub create -n $sioName -g $resourceGroupName --hub-name "hub" --event-handler url-template="https://${functionName}.azurewebsites.net/runtime/webhooks/socketio?code=${code}" system-event="connect" system-event="connected" system-event="disconnected" user-event-pattern="*" auth-type="ManagedIdentity" auth-resource="$functionAuthClientId"
 
 echo "Finished"
 popd

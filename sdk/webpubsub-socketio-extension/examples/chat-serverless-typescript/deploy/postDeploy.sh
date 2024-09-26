@@ -8,4 +8,4 @@ $(azd env get-values)
 EOF
 
 code=$(az functionapp keys list -g $resourceGroup -n $functionName --query systemKeys.socketio_extension -o tsv)
-az webpubsub hub create -n $socketioName -g $resourceGroup --hub-name "hub" --event-handler url-template="https://${functionName}.azurewebsites.net/runtime/webhooks/socketio?code=${code}" user-event-pattern="*" auth-type="ManagedIdentity" auth-resource="$funcAuthClientId"
+az webpubsub hub create -n $socketioName -g $resourceGroup --hub-name "hub" --event-handler url-template="https://${functionName}.azurewebsites.net/runtime/webhooks/socketio?code=${code}" user-event-pattern="*" system-event="connect" system-event="connected" system-event="disconnected" auth-type="ManagedIdentity" auth-resource="$funcAuthClientId"
