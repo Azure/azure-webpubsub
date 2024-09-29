@@ -4,6 +4,8 @@ const cookies = require('browser-cookies')
 const trackingIndex = '9DVQRCY9L7'
 const SET = 'set'
 const RESET = 'reset'
+const originalCookieSetter = Object.getOwnPropertyDescriptor(Document.prototype, 'cookie').set;
+const originalCookieGetter = Object.getOwnPropertyDescriptor(Document.prototype, 'cookie').get;
 
 function SocialMediaCookie(setString) {
   // todo
@@ -11,7 +13,13 @@ function SocialMediaCookie(setString) {
 
 function AnalyticsCookie(setString) {
   const enable = setString === SET
+  document.__defineGetter__('cookie', function () {
+    return originalCookieGetter.call(document);
+  });
   if (enable) {
+    document.__defineSetter__('cookie', function (value) {
+        originalCookieSetter.call(document, value);
+    });
     window[`ga-disable-G-${trackingIndex}`] = false
     if (window['_ga']) cookies.set('_ga', window['_ga'], { domain: '.azure.github.io', expires: 365, path: '/' })
     if (window[`_ga_${trackingIndex}`]) cookies.set(`_ga_${trackingIndex}`, window[`_ga_${trackingIndex}`], { domain: '.azure.github.io', expires: 365, path: '/' })
@@ -33,6 +41,14 @@ function AnalyticsCookie(setString) {
     expireCookie('_mid', '/')
     expireCookie('_mid', normalizePath(location.pathname))
     expireCookie('_mid', getParentPath())
+    document.__defineSetter__('cookie', function (value) {
+      const cookieName = value.split('=')[0].trim();
+      // Block _mid cookie if consent is not given
+      if (cookieName === '_mid') return;
+
+      // Proceed with setting the cookie using the original setter
+      originalCookieSetter.call(document, value);
+    });
   }
 }
 
@@ -106,6 +122,9 @@ function onConsentChanged(categoryPreferences) {
 }
 
 function initConsent() {
+  expireCookie('_mid', '/')
+  expireCookie('_mid', normalizePath(location.pathname))
+  expireCookie('_mid', getParentPath())
   window.siteConsent = null
   window.WcpConsent &&
     WcpConsent.init(

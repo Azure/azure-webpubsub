@@ -3,7 +3,7 @@ import React, { useState, useEffect } from 'react'
 function Footer() {
   const [visible, setVisible] = useState(true)
   useEffect(() => {
-    setVisible(window.siteConsent.isConsentRequired)
+    setVisible(window.siteConsent && window.siteConsent.isConsentRequired)
   })
 
   return (
@@ -22,7 +22,6 @@ function Footer() {
           <li
             className="cursor-pointer"
             onClick={() => {
-              console.log('hello.')
               window.siteConsent.manageConsent()
             }}
           >
