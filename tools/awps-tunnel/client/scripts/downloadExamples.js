@@ -5,6 +5,11 @@ const path = require('path');
 const version = process.argv[2] || '2023-07-01';
 const examplesDir = path.join(__dirname, `../public/api/${version}/examples/`);
 const apiDir = path.join(__dirname, `../public/api/${version}`);
+const swaggerFilePath = path.join(apiDir, "webpubsub.json");
+if (fs.existsSync(swaggerFilePath)){
+	console.log(`Swagger file ${swaggerFilePath} exists, no need to download.`);
+	return;
+}
 
 if (!fs.existsSync(examplesDir)) {
 	fs.mkdirSync(examplesDir, { recursive: true });

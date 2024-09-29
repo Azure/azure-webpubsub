@@ -1,6 +1,7 @@
 import { Socket, io } from "socket.io-client";
 import { ConnectionStatus, ConnectionStatusPairs, DataModel, RESTApi } from "../models";
 import { IDataFetcher } from "./IDataFetcher";
+import { loadApiSpec } from "../utils";
 
 abstract class ConnectionBasedDataFether implements IDataFetcher {
   public model: DataModel = {
@@ -42,8 +43,7 @@ abstract class ConnectionBasedDataFether implements IDataFetcher {
   
   private async _start() {
     const newConnection = this._connection = await this._createConnection();
-    const response = await fetch(`./api/${process.env.REACT_APP_API_VERSION}/webpubsub.json`);
-    const apiSpec = await response.json();
+    const apiSpec = await loadApiSpec();
     this.model = { ...this.model, apiSpec };
     this.setData(this.model);
 

@@ -4,10 +4,11 @@ import { useEffect, useState } from "react";
 
 import type { TabValue } from "@fluentui/react-components";
 import CodeTabs from "../components/CodeTabs";
-import { EndpointNav } from "../components/api/EndpointNav";
-import { Path } from "../components/api/Path";
+import { ApiItem, EndpointNav } from "../components/api/EndpointNav";
 import { ConnectionStatus } from "../models";
 import { useDataContext } from "../providers/DataContext";
+import { Method } from "../components/api/Methods";
+import { ResizablePanel } from "../components/ResizablePanel";
 export interface ServerPanelProps {
   endpoint?: string;
   onChange: (checked: boolean) => Promise<{ success: boolean; message: string }>;
@@ -18,22 +19,13 @@ export function ServerPanel({ endpoint, onChange }: ServerPanelProps) {
   const [message, setMessage] = useState<string>();
   const [startEmbeddedServer, setStartEmbeddedServer] = useState<boolean>(data.builtinUpstreamServerStarted);
   const [status, setStatus] = useState<ConnectionStatus>(ConnectionStatus.None);
-  const [selectedPath, setSelectedPath] = useState<string>();
-  const [pathUrl, setPathUrl] = useState<string>("");
-  const [method, setMethod] = useState<string>("");
-  const [selectedPanel, setSelectedPanel] = useState<TabValue>("");
+  const [selectedItem, setSelectedItem] = useState<ApiItem>();
+  const [selectedPanel, setSelectedPanel] = useState<TabValue>("api");
 
   useEffect(() => {
     setStartEmbeddedServer(data.builtinUpstreamServerStarted);
   }, [data.builtinUpstreamServerStarted]);
-  
-  useEffect(() => {
-    if (selectedPath) {
-      const [extractedPathUrl, extractedMethod] = selectedPath.split('-');
-      setPathUrl(extractedPathUrl);
-      setMethod(extractedMethod);
-    }
-  }, [selectedPath]);
+
   function onSwitch(checked: boolean) {
     async function onSwitchAsync() {
       if (checked) {
@@ -67,14 +59,18 @@ export function ServerPanel({ endpoint, onChange }: ServerPanelProps) {
   }
 
   return (
-    <div>
+    <div className="d-flex overflow-auto flex-column flex-fill">
       <TabList className="mb-2" selectedValue={selectedPanel} onTabSelect={(e, data) => {
         setSelectedPanel(data.value)
       }}>
-        <Tab id={"server"} value={"server"}>Handle events</Tab>
-        <Tab id={"api"} value={"api"}>Invoke Web Pubsub service</Tab>
+        <Tab id={"server"} value={"server"}>
+          <Icon className="mx-2" iconName="TriggerUser"></Icon>
+          Handle events</Tab>
+        <Tab id={"api"} value={"api"}>
+          <Icon className="mx-2" iconName="DecreaseIndentLegacy"></Icon>
+          Invoke Web PubSub</Tab>
       </TabList>
-      {selectedPanel === "server" && <div className="m-2">
+      <div className="m-2 overflow-auto d-flex flex-column" hidden={selectedPanel !== "server"}>
         <p>
           <Icon className="mx-2" iconName="ServerEnviroment"></Icon>
           <b>
@@ -93,17 +89,20 @@ export function ServerPanel({ endpoint, onChange }: ServerPanelProps) {
             <ProgressBar />
           </Field>
         )}
-        <div className="m-2">
+        <div className="m-2 overflow-auto d-flex flex-column">
           <b>{message}</b>
           <hr></hr>
           <b>📋Sample code handling events in your app server:</b>
-          <CodeTabs></CodeTabs>
+          <CodeTabs className="overflow-auto d-flex flex-column"></CodeTabs>
         </div>
-      </div>}
-      {selectedPanel === "api" && <div className="d-flex align-items-stretch m-2">
-        <EndpointNav setSelectedPath={setSelectedPath}></EndpointNav>
-        {pathUrl && <Path pathItem={data.apiSpec.paths[pathUrl]} path={pathUrl} methodName={method}/>}
-      </div>}
+      </div>
+      <div className="d-flex overflow-auto flex-fill" hidden={selectedPanel !== "api"}>
+        <ResizablePanel className="d-flex overflow-auto flex-fill"
+          left={<EndpointNav setSelectedItem={setSelectedItem}></EndpointNav>}
+          right={selectedItem && <Method method={selectedItem.operation} path={selectedItem.pathUrl}
+            methodName={selectedItem.method} />}
+        />
+      </div>
     </div>
   );
 }

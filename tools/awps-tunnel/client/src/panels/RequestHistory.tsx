@@ -7,14 +7,23 @@ import { useDataContext } from "../providers/DataContext";
 import { HttpHistoryItem } from "../models";
 import { Button, Table, TableBody, TableRow, TableCell, TableCellLayout } from "@fluentui/react-components";
 import { bundleIcon, Delete24Filled, Delete24Regular } from "@fluentui/react-icons";
-import ReactJson from "react-json-view";
 
 import { Dialog, DialogTrigger, DialogSurface, DialogTitle, DialogBody, DialogActions, DialogContent } from "@fluentui/react-components";
+import { Editor } from "@monaco-editor/react";
 
 const ClearHistoryIcon = bundleIcon(Delete24Filled, Delete24Regular);
 
 export interface RequestHistoryProps {
   onUnreadChange: (unread: number) => void;
+}
+
+export function formatJSON(val: string) {
+  try {
+    const res = JSON.parse(val);
+    return JSON.stringify(res, null, 2)
+  } catch {
+    return val;
+  }
 }
 
 export function RequestHistory(props: RequestHistoryProps) {
@@ -24,7 +33,7 @@ export function RequestHistory(props: RequestHistoryProps) {
   const [searchParams] = useSearchParams();
   const detailId = parseInt(searchParams.get("detailId") ?? "-1");
   const { data, dataFetcher } = useDataContext();
-
+  
   useEffect(() => {
     setItems(data.trafficHistory);
     props.onUnreadChange(data.trafficHistory.filter((s) => s.unread).length);
@@ -81,10 +90,10 @@ export function RequestHistory(props: RequestHistoryProps) {
   const detailPanel = <Details item={selectedItem}></Details>;
 
   return (
-    <div className="mx-4 d-flex flex-row server-container overflow-auto">
+    <div className="d-flex flex-row server-container overflow-auto flex-fill">
       <div className="table-container flex-fill d-flex flex-column">
         <div className="d-flex flex-row">
-          <h5>All requests</h5>
+          <h5 className="m-2">All requests</h5>
           <div className="flex-fill"></div>
           <div className="flex-right">
             <Dialog open={openDialog} onOpenChange={(event, data) => setOpenDialog(data.open)}>
@@ -131,8 +140,21 @@ export function RequestHistory(props: RequestHistoryProps) {
 const renderContent = (message: { headers: Record<string, string>, content: string, contentType: string }): ReactNode => {
   if (message.contentType.toLowerCase() === "application/json" || message.contentType.toLowerCase() === "text/json") {
     try {
-      const parsedJson = JSON.parse(message.content);
-      return <div><ReactJson src={parsedJson} collapsed={1} name={"body"}/></div>;
+      return <div>
+        <Editor
+          height={"15vh"}
+          defaultLanguage="json"
+          options={
+            {
+              lineNumbers: "on",
+              folding: true,
+              minimap: {
+                enabled: false
+              },
+            }}
+          value={formatJSON(message.content)}
+        />
+      </div>;
     } catch (error) {
     }
   }
@@ -144,7 +166,7 @@ const renderContent = (message: { headers: Record<string, string>, content: stri
 export function parseRawMessage(rawText: string): { headers: Record<string, string>, content: string, contentType: string } {
   rawText = rawText.replace(/\r\n/g, "\n");
   const spacingIndex: number = rawText.indexOf("\n\n");
-  const lines: string[] = rawText.substring(0,spacingIndex).split("\n");
+  const lines: string[] = rawText.substring(0, spacingIndex).split("\n");
   let headers: Record<string, string> = {};
   let contentType: string = "";
   for (let i: number = 0; i < lines.length; i++) {
@@ -158,19 +180,19 @@ export function parseRawMessage(rawText: string): { headers: Record<string, stri
       headers[key] = value;
     }
   }
-  const content: string = rawText.substring(spacingIndex+2);
+  const content: string = rawText.substring(spacingIndex + 2);
   return { headers, content, contentType };
 }
 
 function Details({ item }: { item?: HttpHistoryItem }) {
   if (!item) return <></>;
-  const requestMessage: { headers: Record<string, string>, content: string, contentType: string} = parseRawMessage(item.requestRaw);
+  const requestMessage: { headers: Record<string, string>, content: string, contentType: string } = parseRawMessage(item.requestRaw);
   const requestTabItems = [
     {
       title: "Formatted Request Details",
       content: (
         <div>
-          <label style={{ fontWeight: "bold" , marginBottom: "10px"}}>Header</label>
+          <label style={{ fontWeight: "bold", marginBottom: "10px" }}>Header</label>
           <Table size={"extra-small"}>
             <TableBody>
               {
@@ -188,7 +210,7 @@ function Details({ item }: { item?: HttpHistoryItem }) {
               }
             </TableBody>
           </Table>
-          <label style={{ fontWeight: "bold" , marginTop: "10px", marginBottom: "10px"}}>Body</label>
+          <label style={{ fontWeight: "bold", marginTop: "10px", marginBottom: "10px" }}>Body</label>
           {renderContent(requestMessage)}
         </div>
       ),

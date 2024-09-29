@@ -48,7 +48,7 @@ tbody tr:hover {
 }
 
 .resizablePanel {
-    border: 1px solid #ccc;
+    border-top: 1px solid #ccc;
 }
 
 .playground {

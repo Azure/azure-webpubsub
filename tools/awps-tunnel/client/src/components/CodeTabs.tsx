@@ -6,7 +6,7 @@ import type { TabValue } from "@fluentui/react-components";
 // Non greedy
 const regex = /(?<=^|\n)#\s+(.+)\r?\n([\s\S]+?)(?=\n# |$)/g;
 
-const CodeTabs = () => {
+const CodeTabs = ({ className }: { className?: string | undefined }) => {
   const [markdownContent, setMarkdownContent] = useState("");
 
   const [htmlSections, setHtmlSections] = useState<{ title: string; html: string }[]>([]);
@@ -40,7 +40,7 @@ const CodeTabs = () => {
 
   return (
     htmlSections.length > 0 && (
-      <div>
+      <div className={className}>
         <TabList selectedValue={selectedValue} onTabSelect={(_, d) => setSelectedValue(d.value)}>
           {htmlSections.map((section, index) => (
             <Tab key={index} value={index}>
@@ -48,7 +48,7 @@ const CodeTabs = () => {
             </Tab>
           ))}
         </TabList>
-        <div className="m-2 p-2 bg-light" dangerouslySetInnerHTML={{ __html: htmlSections[selectedValue as any].html }} />
+        <div className="m-2 p-2 bg-light overflow-auto" dangerouslySetInnerHTML={{ __html: htmlSections[selectedValue as any].html }} />
       </div>
     )
   );

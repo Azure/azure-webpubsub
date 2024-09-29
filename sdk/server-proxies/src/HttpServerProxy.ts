@@ -1,4 +1,3 @@
-import { AbortSignal } from "@azure/abort-controller";
 import { TokenCredential, AzureKeyCredential, isTokenCredential } from "@azure/core-auth";
 import { AbortSignalLike } from "@azure/abort-controller";
 import { parseConnectionString } from "./utils";

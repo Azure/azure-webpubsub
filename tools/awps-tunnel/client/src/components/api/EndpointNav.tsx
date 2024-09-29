@@ -1,92 +1,109 @@
 import {
-	Accordion,
-	AccordionHeader,
-	AccordionItem,
-	AccordionPanel,
-	Label,
-	Tab,
-	TabList
+    Accordion,
+    AccordionHeader,
+    AccordionItem,
+    AccordionPanel,
+    Tab,
+    TabList
 } from "@fluentui/react-components";
 import React, { useEffect, useState } from "react";
-import { PathItem } from "../../models";
-import { methodColors } from './Methods';
+import { Operation, RESTApi } from "../../models";
 import { useDataContext } from "../../providers/DataContext";
+import { Badge } from "@fluentui/react-components";
 
-export function EndpointNav({ setSelectedPath }: {
-	setSelectedPath: React.Dispatch<React.SetStateAction<string | undefined>>
-}): React.JSX.Element {
-	const { data } = useDataContext();
-	const [categories, setCategories] = useState<{
-		general: { pathUrl: string, path: PathItem }[];
-		groups: { pathUrl: string, path: PathItem }[];
-		connections: { pathUrl: string, path: PathItem }[];
-		users: { pathUrl: string, path: PathItem }[];
-		permissions: { pathUrl: string, path: PathItem }[];
-	}>();
-
-	useEffect(() => {
-		let categories: {
-			general: { pathUrl: string, path: PathItem }[],
-			groups: { pathUrl: string, path: PathItem }[],
-			connections: { pathUrl: string, path: PathItem }[],
-			users: { pathUrl: string, path: PathItem }[],
-			permissions: { pathUrl: string, path: PathItem }[]
-		} = {
-			general: [],
-			groups: [],
-			connections: [],
-			users: [],
-			permissions: []
-		};
-		Object.entries(data.apiSpec.paths).forEach(([pathUrl, path]) => {
-			const segments = pathUrl.split('/');
-			const category = segments[4] || 'general'; // Default to 'general' if no fourth segment
-			switch (category) {
-				case 'groups':
-					categories.groups.push({ pathUrl: pathUrl, path: path as PathItem });
-					break;
-				case 'connections':
-					categories.connections.push({ pathUrl: pathUrl, path: path as PathItem });
-					break;
-				case 'users':
-					categories.users.push({ pathUrl: pathUrl, path: path as PathItem });
-					break;
-				case 'permissions':
-					categories.permissions.push({ pathUrl: pathUrl, path: path as PathItem });
-					break;
-				default:
-					categories.general.push({ pathUrl: pathUrl, path: path as PathItem });
-					break;
-			}
-		});
-		setCategories(categories);
-	}, [data.apiSpec]);
-
-	return (<div className="d-flex overflow-hidden" style={{ flex: 1 }}>
-		<TabList onTabSelect={(_e, data) => {
-			setSelectedPath(data.value as string)
-		}} vertical>
-			<Accordion multiple>
-				{categories && Object.entries(categories).map(([category, path], index) => (
-					<AccordionItem key={index} value={category}>
-						<AccordionHeader><Label size={"large"}>{category}</Label></AccordionHeader>
-						<AccordionPanel>
-							{Object.entries(path).map(([_url, { pathUrl, path }]) => (
-								Object.entries(path).map(([method, details]) => (
-									<Tab key={`${pathUrl}-${method}`} value={`${pathUrl}-${method}`}>
-										<div className="d-flex">
-											<div
-												className="fs-6 me-2"
-												style={{ color: methodColors[method] }}>{method.toUpperCase()}</div>
-											<div>{details.operationId.replace("WebPubSub_", "")}</div>
-										</div>
-									</Tab>
-								))
-							))}
-						</AccordionPanel>
-					</AccordionItem>
-				))}
-			</Accordion>
-		</TabList>
-	</div>)
+export interface ApiItem{ 
+    id: string, 
+    pathUrl: string,
+    operation: Operation, 
+    method: string,
 }
+interface ApiCategoryItem{
+    header: string;
+    items: ApiItem[];
+}
+interface ApiSpec
+{
+    groups: Record<string, ApiCategoryItem>
+    apiMap : Record<string, ApiItem>
+}
+
+function getGroups(item: ApiItem, spec: ApiSpec): string[]{
+    const groups = Object.keys(spec.groups)
+    .filter(i=> item.id.toLowerCase().includes(i));
+    return groups.length > 0 ? groups : [Object.keys(spec.groups)[0]];
+}
+function ToApiSpec(apiSpec: RESTApi) : ApiSpec {
+    var spec : ApiSpec = {
+        groups:{
+            "general": {header: "Default", items: []},
+            "groups": {header: "Manage Groups", items: []},
+            "connections": {header: "Manage Connections", items: []},
+            "users": {header: "Manage Users", items: []},
+            "permissions": {header: "Manage Permissions", items: []},
+        },
+        apiMap: {}
+    };
+    if (!apiSpec || !apiSpec.paths) return spec;
+    Object.entries(apiSpec.paths).forEach(([pathUrl, path]) => {
+        Object.entries(path).forEach(([method, operation])=>{
+            const item = {id: `${pathUrl}-${method}`, pathUrl, operation, method,};
+            spec.apiMap[item.id] = item;
+            const groups = getGroups(item, spec);
+            groups.forEach((v, i)=>{
+                spec.groups[v].items.push(item);
+            })
+        });
+    });
+
+    return spec;
+}
+export function EndpointNav({ setSelectedItem }: {
+    setSelectedItem: React.Dispatch<React.SetStateAction<ApiItem | undefined>>
+}): React.JSX.Element {
+    const { data } = useDataContext();
+    const [categories, setCategories] = useState<ApiSpec>();
+
+    useEffect(() => {
+        setCategories(ToApiSpec(data.apiSpec));
+    }, [data.apiSpec]);
+
+    return (<div className="d-flex overflow-auto" style={{ flex: 1 }}>
+        <TabList onTabSelect={(_e, data) => {
+            const selectedId = data.value as string;
+            setSelectedItem(categories?.apiMap[selectedId])
+        }} vertical>
+            <Accordion multiple defaultOpenItems="general" >
+                {categories && Object.entries(categories.groups).map(([category, item], index) => (
+                    <AccordionItem key={index} value={category}>
+                        <AccordionHeader>{item.header}</AccordionHeader>
+                        <AccordionPanel>
+                            {item.items.map((i) => (
+                                <Tab key={i.id} value={i.id}>
+                                    <span>{i.operation.operationId.replace("WebPubSub_", "")}
+                                        <Badge size="small" color={getbadgeColors(i.method)}>{i.method.toUpperCase()}</Badge></span>
+                                        
+                                </Tab>
+                            ))}
+                        </AccordionPanel>
+                    </AccordionItem>
+                ))}
+            </Accordion>
+        </TabList>
+    </div>)
+}
+
+function getbadgeColors(method: string) {
+    switch (method.toLowerCase()){
+        case "post":
+            return "success";
+        case "put":
+            return "important";
+        case "delete":
+            return "danger";
+        case "get":
+            return "brand";
+        case "head":
+            default:
+            return "informative";
+    }
+};
