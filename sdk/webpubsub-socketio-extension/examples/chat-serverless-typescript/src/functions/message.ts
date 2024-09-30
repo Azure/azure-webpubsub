@@ -15,7 +15,6 @@ export async function chat(request: any, context: InvocationContext): Promise<vo
         context.triggerMetadata.userId,
         context.triggerMetadata.message
       ],
-      exceptRooms: [request.socketId],
     });
 }
 
