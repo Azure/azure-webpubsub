@@ -262,6 +262,7 @@ function createRunCommand(run: Command, dbFile: string, settings: Settings, comm
       return;
     }
     upstream = parsed;
+    currentUpstream = parsed.toString();
   } else {
     printer.status(`Upstream is not specified. http://localhost:3000 is used as the default upstream value. Use -u|--upstream to specify the upstream URL.`);
     currentUpstream = "http://localhost:3000";

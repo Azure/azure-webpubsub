@@ -1,4 +1,9 @@
 # JavaScript
+
+**0. Prerequisites:**
+
+In Azure portal, configure your hub settings to set upstream URL to `tunnel:///eventhandler`.
+
 **1. Install the package:**
 
 ```bash
@@ -10,7 +15,7 @@ npm install @azure/web-pubsub-express
 ```js
 const app = express();
 const handler = new WebPubSubEventHandler(hub, {
-  path: path,
+  path: "/eventhandler",
   handleConnect(_, res) {
     console.log(`Connect triggered`);
     res.success();
@@ -38,6 +43,10 @@ app.listen(8080, () => {});
 
 # C#
 
+**0. Prerequisites:**
+* In Azure portal, configure your hub settings to set upstream URL to `tunnel:///eventhandler`.
+* [ASP.NET Core 8](https://learn.microsoft.com/aspnet/core)
+
 **1. Install the package:**
 
 ```bash
@@ -45,6 +54,8 @@ dotnet add package Microsoft.Azure.WebPubSub.AspNetCore
 ```
 
 **2. Use `MapWebPubSubHub`**
+
+The below sample shows how to handle hub `chat` (hub is case-insensitive). Don't forget to rename the `Chat` class to your hub name.
 
 In `Program.cs`:
 
@@ -57,36 +68,33 @@ builder.Services.AddWebPubSub();
 
 var app = builder.Build();
 
-app.UseRouting();
-
-app.UseEndpoints(endpoints =>
-{
-    endpoints.MapWebPubSubHub<Chat>("/eventhandler/{*path}");
-});
+app.MapWebPubSubHub<Chat>("/eventhandler/{*path}");
 
 app.Run();
 
 class Chat : WebPubSubHub
 {
-    public override async ValueTask<ConnectEventResponse> OnConnectAsync(ConnectEventRequest request, CancellationToken cancellationToken)
+    public override ValueTask<ConnectEventResponse> OnConnectAsync(ConnectEventRequest request, CancellationToken cancellationToken)
     {
         Console.WriteLine("Connect triggered");
-        return new ConnectEventResponse();
+        return new ValueTask<ConnectEventResponse>(new ConnectEventResponse());
     }
 
-    public override async ValueTask<UserEventResponse> OnMessageReceivedAsync(UserEventRequest request, CancellationToken cancellationToken)
+    public override ValueTask<UserEventResponse> OnMessageReceivedAsync(UserEventRequest request, CancellationToken cancellationToken)
     {
-        return request.CreateResponse(request.Data, request.DataType);
+        return new ValueTask<UserEventResponse>(request.CreateResponse(request.Data, request.DataType));
     }
 
-    public override async Task OnConnectedAsync(ConnectedEventRequest request)
+    public override Task OnConnectedAsync(ConnectedEventRequest request)
     {
         Console.WriteLine("Connected triggered");
+        return Task.CompletedTask;
     }
 
-    public override async Task OnDisconnectedAsync(DisconnectedEventRequest request)
+    public override Task OnDisconnectedAsync(DisconnectedEventRequest request)
     {
-        Console.WriteLine("Diesconnected triggered");
+        Console.WriteLine("Disconnected triggered");
+        return Task.CompletedTask;
     }
 }
 ```
