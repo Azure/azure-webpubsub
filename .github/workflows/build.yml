@@ -60,13 +60,19 @@ jobs:
     - run: npm install -g yarn
     - run: yarn install
     - run: yarn workspaces run test
-    - name: Setup .NET ${{ matrix.dotnet-version }}
-      uses: actions/setup-dotnet@v3
-      with:
-        dotnet-version: ${{ matrix.dotnet-version }}
-
-    - name: Build C# samples
-      run: dotnet build samples/csharp/samples.sln
+    - name: Build awps-tunnel
+      run: |
+        pushd sdk/server-proxies
+        yarn
+        popd        
+        pushd tools/awps-tunnel/client
+        yarn
+        popd
+        pushd tools/awps-tunnel/server
+        yarn
+        yarn build
+        popd
+      shell: bash
       
   csharp:
     name: Build and Test C#
