@@ -213,16 +213,16 @@ export class InprocessServerProxy implements WebPubSubServiceCaller {
       return undefined;
     }
     return function (request, abortSignal) {
-      const req = buildRequest(request) as Request;
+      const req = {
+        ...buildRequest(request),
+        baseUrl: "",
+        path: new URL(request.Url).pathname,
+      } as Request;
       const res = new ContentInterpreteResponse(req);
-
-      var url = new URL(request.Url);
-      req.baseUrl = "";
-      req.path = url.pathname;
       const responseReader = readResponse(res, abortSignal);
       handler(req, res as unknown as Response, (err?: any) => {
         // end the response
-        err = "Not correctly handled. " + err ?? "";
+        err = "Not correctly handled. " + (err ?? "");
         logger.error(err);
         res.statusCode = 500;
         res.end(err);
