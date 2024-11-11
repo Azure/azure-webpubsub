@@ -1,6 +1,6 @@
 # Changelog
 
-## [1.0.0-beta.11] - 2024-11-06
+## [1.0.0-beta.11] - 2024-11-11
 ### Improved
 - Improve upstream sample code for net8
 - Support optional scheme for -u upstream url
