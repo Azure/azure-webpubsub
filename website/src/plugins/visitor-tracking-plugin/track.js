@@ -4,8 +4,8 @@ const cookies = require('browser-cookies')
 const trackingIndex = '9DVQRCY9L7'
 const SET = 'set'
 const RESET = 'reset'
-const originalCookieSetter = Object.getOwnPropertyDescriptor(Document.prototype, 'cookie').set;
-const originalCookieGetter = Object.getOwnPropertyDescriptor(Document.prototype, 'cookie').get;
+const originalCookieSetter = Object.getOwnPropertyDescriptor(Document.prototype, 'cookie')?.set;
+const originalCookieGetter = Object.getOwnPropertyDescriptor(Document.prototype, 'cookie')?.get;
 
 function SocialMediaCookie(setString) {
   // todo
@@ -46,7 +46,7 @@ function AnalyticsCookie(setString) {
     expireCookie('_mid', '/')
     expireCookie('_mid', normalizePath(location.pathname))
     expireCookie('_mid', getParentPath())
-    if (enable) {
+    if (documentExist) {
       document.__defineSetter__('cookie', function (value) {
         const cookieName = value.split('=')[0].trim();
         // Block _mid cookie if consent is not given
