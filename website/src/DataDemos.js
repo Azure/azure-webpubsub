@@ -11,7 +11,7 @@ export let DataDemos = [
     githubRepo: 'https://github.com/Azure/azure-webpubsub/tree/main/samples/javascript/chatapp',
     buttonAriaLabel: 'view demo of simple chat app',
     deployLink:
-      'https://portal.azure.com/#create/Microsoft.Template/uri/https%3A%2F%2Flivedemopackages.blob.core.windows.net%2Ftemplate%2Fchatapp-containerapp-deploy.json',
+      'https://portal.azure.com/#create/Microsoft.Template/uri/https%3A%2F%2Flivedemopackages.z13.web.core.windows.net%2Ftemplate%2Fchatapp-containerapp-deploy.json',
   },
   {
     id: 2,
@@ -25,7 +25,7 @@ export let DataDemos = [
     githubRepo: 'https://github.com/Azure/azure-webpubsub/tree/main/samples/javascript/whiteboard',
     buttonAriaLabel: 'view demo of collaborative whiteboard',
     deployLink:
-      'https://portal.azure.com/#create/Microsoft.Template/uri/https%3A%2F%2Flivedemopackages.blob.core.windows.net%2Ftemplate%2Fwhiteboard-containerapp-deploy.json',
+      'https://portal.azure.com/#create/Microsoft.Template/uri/https%3A%2F%2Flivedemopackages.z13.web.core.windows.net%2Ftemplate%2Fwhiteboard-containerapp-deploy.json',
   },
   {
     id: 3,
@@ -51,7 +51,7 @@ export let DataDemos = [
     githubRepo: 'https://github.com/Azure/azure-webpubsub/tree/main/samples/javascript/codestream',
     buttonAriaLabel: 'view demo of code stream',
     deployLink:
-      'https://portal.azure.com/#create/Microsoft.Template/uri/https%3A%2F%2Flivedemopackages.blob.core.windows.net%2Ftemplate%2Fcodestream-containerapp-deploy.json',
+      'https://portal.azure.com/#create/Microsoft.Template/uri/https%3A%2F%2Flivedemopackages.z13.web.core.windows.net%2Ftemplate%2Fcodestream-containerapp-deploy.json',
   },
   {
     id: 5,
@@ -75,7 +75,7 @@ export let DataDemos = [
     detailURL: 'demos/scoreboard',
     thumbnailURL: 'img/thumbnails/scoreboard.jpeg',
     githubRepo: 'https://github.com/Azure/azure-webpubsub/tree/main/samples/javascript/scoreboard',
-    deployLink:'https://portal.azure.com/#create/Microsoft.Template/uri/https%3A%2F%2Flivedemopackages.blob.core.windows.net%2Ftemplate%2Fscoreboard-deploy.json',
+    deployLink:'https://portal.azure.com/#create/Microsoft.Template/uri/https%3A%2F%2Flivedemopackages.z13.web.core.windows.net%2Ftemplate%2Fscoreboard-deploy.json',
     buttonAriaLabel: 'view demo of real-time scoreboard'
   },
 ]
