@@ -4,8 +4,13 @@ const cookies = require('browser-cookies')
 const trackingIndex = '9DVQRCY9L7'
 const SET = 'set'
 const RESET = 'reset'
-const originalCookieSetter = Object.getOwnPropertyDescriptor(Document.prototype, 'cookie')?.set;
-const originalCookieGetter = Object.getOwnPropertyDescriptor(Document.prototype, 'cookie')?.get;
+let originalCookieSetter;
+let originalCookieGetter;
+
+if (typeof document !== 'undefined') {
+    originalCookieSetter = Object.getOwnPropertyDescriptor(Document.prototype, 'cookie')?.set;
+    originalCookieGetter = Object.getOwnPropertyDescriptor(Document.prototype, 'cookie')?.get;
+}
 
 function SocialMediaCookie(setString) {
   // todo
@@ -14,13 +19,13 @@ function SocialMediaCookie(setString) {
 function AnalyticsCookie(setString) {
   const enable = setString === SET
   var documentExist = typeof document !== 'undefined'
-  if (documentExist) {
+  if (documentExist && originalCookieGetter) {
     document.__defineGetter__('cookie', function () {
       return originalCookieGetter.call(document);
     });
   }
   if (enable) {
-    if (documentExist) {
+    if (documentExist && originalCookieSetter) {
       document.__defineSetter__('cookie', function (value) {
         originalCookieSetter.call(document, value);
       });
@@ -46,7 +51,7 @@ function AnalyticsCookie(setString) {
     expireCookie('_mid', '/')
     expireCookie('_mid', normalizePath(location.pathname))
     expireCookie('_mid', getParentPath())
-    if (documentExist) {
+    if (documentExist && originalCookieSetter) {
       document.__defineSetter__('cookie', function (value) {
         const cookieName = value.split('=')[0].trim();
         // Block _mid cookie if consent is not given
