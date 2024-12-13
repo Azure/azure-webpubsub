@@ -44,7 +44,7 @@ namespace aadchat
             }
             else
             {
-                log.LogWarning("No x-ms-client-principal-name: " + req.Headers);
+                log.LogWarning("No x-ms-client-principal-name found in request headers.");
                 return new UnauthorizedResult();
             }
         }

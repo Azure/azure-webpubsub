@@ -4,6 +4,7 @@ const session = require("express-session");
 const bodyParser = require("body-parser");
 const passport = require("passport");
 const LocalStrategy = require("passport-local").Strategy;
+const RateLimit = require('express-rate-limit');
 const { useAzureSocketIO, negotiate, usePassport, restorePassport } = require("@azure/web-pubsub-socket.io");
 const wrap = middleware => (socket, next) => middleware(socket.request, {}, next);
 
@@ -16,6 +17,11 @@ app.use(sessionMiddleware);
 app.use(bodyParser.urlencoded({ extended: false }));
 app.use(passport.initialize());
 app.use(passport.session());
+
+const limiter = RateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 100, // max 100 requests per windowMs
+});
 
 const USERS = [
   { id: 0, username: "john", password: "doe", age: 18 }
@@ -33,7 +39,7 @@ passport.use(
   })
 );
 
-app.get("/", (req, res) => {
+app.get("/", limiter, (req, res) => {
   const isAuthenticated = !!req.user;
   if (isAuthenticated) {
     console.log(`user is authenticated, session is ${req.session.id}`);
