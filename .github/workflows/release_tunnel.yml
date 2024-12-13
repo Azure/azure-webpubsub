@@ -11,6 +11,7 @@ on:
       - 'tools/awps-tunnel/server/CHANGELOG.md'
 jobs: 
   release:
+    name: Release awps-tunnel package
     uses: ./.github/workflows/workflow-call-release-package.yml
     secrets:
       AZURESDKPARTNERDROPS_URL: ${{ secrets.AZURESDKPARTNERDROPS_URL }}

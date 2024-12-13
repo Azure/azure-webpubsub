@@ -23,12 +23,9 @@ jobs:
   javascript:
     name: Build and Test JS code and samples
     runs-on: ubuntu-latest
-
     strategy:
       matrix:
         node-version: [18.x]
-        # See supported Node.js release schedule at https://nodejs.org/en/about/releases/
-        dotnet-version: [6.x]
     steps:
     - uses: actions/checkout@v4
 
