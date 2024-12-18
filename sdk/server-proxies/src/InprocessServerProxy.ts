@@ -213,12 +213,10 @@ export class InprocessServerProxy implements WebPubSubServiceCaller {
       return undefined;
     }
     return function (request, abortSignal) {
-      const req = {
-        ...buildRequest(request),
-        baseUrl: "",
-        path: new URL(request.Url).pathname,
-      } as Request;
+      const req = buildRequest(request) as Request;
       const res = new ContentInterpreteResponse(req);
+      req.baseUrl = "";
+      (req as any).path = (new URL(request.Url)).pathname;
       const responseReader = readResponse(res, abortSignal);
       handler(req, res as unknown as Response, (err?: any) => {
         // end the response
