@@ -79,6 +79,17 @@ app
     if (!allowedMimeTypes.includes(file.mimetype)) {
       return res.status(400).send('Invalid file type.');
     }
+    // Validate file content (e.g., check for valid image headers)
+    const isValidImage = (data) => {
+      // Simple check for JPEG, PNG, GIF headers
+      const jpegHeader = Buffer.from([0xff, 0xd8, 0xff]);
+      const pngHeader = Buffer.from([0x89, 0x50, 0x4e, 0x47]);
+      const gifHeader = Buffer.from([0x47, 0x49, 0x46, 0x38]);
+      return data.slice(0, 3).equals(jpegHeader) || data.slice(0, 4).equals(pngHeader) || data.slice(0, 3).equals(gifHeader);
+    };
+    if (!isValidImage(file.data)) {
+      return res.status(400).send('Invalid file content.');
+    }
     diagram.background = {
       id: Math.random().toString(36).substr(2, 8),
       data: file.data,
@@ -93,7 +104,8 @@ app
   .get('/background/:id', (req, res) => {
     if (diagram.background && diagram.background.id === req.params.id) {
       res.setHeader('Content-Disposition', 'attachment; filename="background"');
-      res.type(diagram.background.contentType);
+      res.setHeader('Content-Type', diagram.background.contentType);
+      res.setHeader('X-Content-Type-Options', 'nosniff');
       res.send(diagram.background.data);
     } else res.status(404).end();
   });
