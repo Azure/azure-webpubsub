@@ -1,6 +1,7 @@
 import { AbortSignalLike } from "@azure/abort-controller";
 import { AzureKeyCredential } from "@azure/core-auth";
 import { URL } from "url";
+import { randomBytes } from "crypto";
 
 interface ParsedConnectionString {
   credential: AzureKeyCredential;
@@ -49,7 +50,7 @@ export class PromiseCompletionSource<T> {
 export class Guid {
   public static newGuid(): string {
     return "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, function (c) {
-      const r = (Math.random() * 16) | 0;
+      const r = randomBytes(1)[0] % 16;
       const v = c === "x" ? r : (r & 0x3) | 0x8;
       return v.toString(16);
     });

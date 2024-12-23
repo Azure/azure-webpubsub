@@ -38,7 +38,7 @@ def handle_event():
     elif request.method == 'POST':
         user_id = request.headers.get('ce-userid')
         if request.headers.get('ce-type') == 'azure.webpubsub.sys.connected':
-            return user_id + ' connected', 200
+            return 'connected', 200
         elif request.headers.get('ce-type') == 'azure.webpubsub.user.message':
             service.send_to_all(content_type="application/json", message={
                 'from': user_id,

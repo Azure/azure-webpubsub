@@ -74,10 +74,15 @@ app
     });
   })
   .post('/background/upload', async (req, res) => {
+    const file = req.files['file'];
+    const allowedMimeTypes = ['image/jpeg', 'image/png', 'image/gif'];
+    if (!allowedMimeTypes.includes(file.mimetype)) {
+      return res.status(400).send('Invalid file type.');
+    }
     diagram.background = {
       id: Math.random().toString(36).substr(2, 8),
-      data: req.files['file'].data,
-      contentType: req.files['file'].mimetype
+      data: file.data,
+      contentType: file.mimetype
     };
     await serviceClient.sendToAll({
       name: 'updateBackground',
@@ -87,6 +92,7 @@ app
   })
   .get('/background/:id', (req, res) => {
     if (diagram.background && diagram.background.id === req.params.id) {
+      res.setHeader('Content-Disposition', 'attachment; filename="background"');
       res.type(diagram.background.contentType);
       res.send(diagram.background.data);
     } else res.status(404).end();

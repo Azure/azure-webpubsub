@@ -69,10 +69,6 @@ app.set('port', port)
 app.use(express.static(staticRoot))
 app.use(handler.getMiddleware())
 
-app.get('/', function (req, res) {
-    res.sendFile(path.join(path.join(staticRoot, '/index.html')))
-})
-
 // return negotiate response to redirect websocket client to Azure Web PubSub service
 app.get('/negotiate', async (req, res) => {
     const userId = req.query.id as string

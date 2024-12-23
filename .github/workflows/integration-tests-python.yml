@@ -21,6 +21,7 @@ on:
 
 jobs:
   test:
+    name: Integration tests for Python
     runs-on: ubuntu-latest
     env:
       WEB_PUBSUB_CONNECTION_STRING: ${{ github.event.inputs.web_pubsub_connection_string || secrets.WEB_PUBSUB_CONNECTION_STRING }}
