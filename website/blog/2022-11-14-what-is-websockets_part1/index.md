@@ -4,6 +4,7 @@ title: What is WebSocket? (part 1/2)
 authors: [JialinX, KevinG]
 custom_edit_url: null
 ---
+<main>
 
 ## **Summary**  
 This article is the first of a two-part series that describes the values of WebSocket on a high-level.
@@ -45,3 +46,4 @@ In the second part, we will explore the idea of “full-duplex”.
 The bicycle photograph is taken by __[:link: Philipp M](https://www.pexels.com/@luftschnitzel/)__.  
 The bi-fold door photograph is taken by __[:link: sena](https://www.pexels.com/@sena-124356903/)__.
 
+</main>

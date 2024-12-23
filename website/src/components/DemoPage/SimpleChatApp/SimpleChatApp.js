@@ -38,7 +38,7 @@ function SimpleChatApp() {
 function Overview() {
   return (
     <div>
-      <h2 className="text-4xl">Overview</h2>
+      <h1 className="text-4xl">Overview</h1>
       <TextBlock title="About the app">
         <p>A simple real-time chat app demonstrating the use of JavaScript server SDK provided by Azure Web PubSub</p>
       </TextBlock>

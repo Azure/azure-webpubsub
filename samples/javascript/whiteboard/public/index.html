@@ -109,7 +109,7 @@
           <input class="form-control" type="text" placeholder="Type here to chat..." v-model="draft"
             v-on:keypress.enter="sendMessage" aria-label="text input place">
           <div class="input-group-append">
-              <button class="btn btn-outline-success" v-bind:disabled="!draft" v-on:click="sendMessage" aria-label="send message button">
+              <button class="btn btn-outline-success" v-bind:disabled="!draft" v-on:click="sendMessage" aria-label="message sent">
                   <i class="fas fa-arrow-right"></i>
               </button>
           </div>
@@ -127,7 +127,7 @@
               v-on:keypress.enter="setName">
           </div>
           <div class="modal-footer">
-            <button type="button" class="btn btn-primary" v-bind:disabled="!name" data-dismiss="modal" aria-label="ok bottom">OK</button>
+            <button type="button" class="btn btn-primary" v-bind:disabled="!name" data-dismiss="modal" aria-label="ok">OK</button>
           </div>
         </div>
       </div>

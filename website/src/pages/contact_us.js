@@ -19,10 +19,13 @@ function ContactUs() {
 
           <section>
             <h2 className="mt-10 py-1 text-3xl font-bold">Documentation</h2>
-            <p className="text-gray-800">
-              You can visit the documentation of Azure Web PubSub service from&nbsp;
-              <HyperLink to="https://docs.microsoft.com/en-us/azure/azure-web-pubsub/overview" />.
-            </p>
+              <p className="text-gray-800">
+                You can visit the{' '}
+                <HyperLink
+                  to="https://docs.microsoft.com/en-us/azure/azure-web-pubsub/overview"
+                  text="Azure Web PubSub Documentation link"
+                />.
+              </p>
           </section>
 
           <section>
@@ -33,16 +36,22 @@ function ContactUs() {
               issue
             </h3>
             <p className="text-gray-800">
-              The product team monitors GitHub issues on a daily basis. It’s the best way to reach out the team and ... Create a GitHub issue&nbsp;
-              <HyperLink to="https://github.com/Azure/azure-webpubsub" />.
+              The product team monitors GitHub issues on a daily basis. It’s the best way to reach out to the team and share your feedback. Create an issue on&nbsp;
+              <HyperLink
+                to="https://github.com/Azure/azure-webpubsub"
+                text="the Azure Web PubSub GitHub Repository link"
+              />.
             </p>
           </section>
 
           <section>
             <h2 className="mt-10 py-1 text-3xl font-bold">Suggest a demo</h2>
             <p className="text-gray-800">
-              Have a demo you’d like to see on this site. Share your idea with us and creating a GitHub issue&nbsp;
-              <HyperLink to="https://github.com/Azure/azure-webpubsub" />.
+              Have a demo you’d like to see on this site? Share your idea with us by creating an issue on&nbsp;
+              <HyperLink
+                to="https://github.com/Azure/azure-webpubsub"
+                text="the Azure Web PubSub GitHub Repository link"
+              />.
             </p>
             <h3 className="pt-2 font-bold">Demos we are currently working on</h3>
             <ul className="list-inside list-disc">

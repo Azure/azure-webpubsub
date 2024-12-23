@@ -4,6 +4,7 @@ title: What is WebSocket? (part 2/2)
 authors: [JialinX, KevinG]
 custom_edit_url: null
 ---
+<main>
 
 ## **Summary**  
 This article is the second of a two-part series that describes the values of WebSocket on a high-level.
@@ -46,3 +47,4 @@ The walkie-talkie style of the early web was fine when communication was largely
 **Credits:**  
 The walkie-talkie and the grandma photographs were taken by __[:link: cottonbro studio](https://www.pexels.com/@cottonbro/)__.  
 
+</main>
