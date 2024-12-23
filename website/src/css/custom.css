@@ -107,3 +107,24 @@ code {
   margin-right: 2px;
   margin-bottom: 4px;
 }
+
+
+article[itemtype="http://schema.org/BlogPosting"] .markdown a {
+    color: #005a9e; /* High contrast blue color */
+    text-decoration: underline; /* Ensure links are visibly distinguishable */
+}
+
+article[itemtype="http://schema.org/BlogPosting"] .markdown a:hover,
+article[itemtype="http://schema.org/BlogPosting"] .markdown a:focus {
+    color: #004080; /* Slightly darker blue on hover/focus */
+}
+
+/* Remove focus outline for code blocks */
+pre:focus {
+    outline: none;
+}
+
+/* Prevent code blocks from being focusable */
+pre {
+    tabindex: -1; /* Remove tabindex from non-interactive elements */
+}

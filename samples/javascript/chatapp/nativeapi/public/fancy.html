@@ -87,11 +87,12 @@
         <main role="main" class="col p-md-4 p-2">
             <div class="d-flex flex-column flex-nowrap p-2">
                 <form v-on:submit.prevent="connect(client)" class="py-2">
-                    <div class="input-group">
+                    <div class="input-group align-items-center">
+                        <label for="endpointInput" class="mr-2 font-weight-bold" style="font-size: 1rem;">User Name:</label>
                         <input type="text" class="form-control" v-model="client.endpoint" id="endpointInput"
-                            aria-describedby="endpointHelp" placeholder="Type Your User Name Here">
+                            aria-describedby="endpointHelp">
                         <button type="submit" class="btn btn-primary" style="width: 100px;"
-                            :disabled="!client.endpoint">Connect</button>
+                             :disabled="!client.endpoint">Connect</button>
                     </div>
                 </form>
                 <div class="bg-light chat" v-bind:scrollTop="$attrs.scrollHeight">

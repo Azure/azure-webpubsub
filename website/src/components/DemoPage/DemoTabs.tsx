@@ -12,7 +12,7 @@ function DemoTabs({ overview, local, deploy, resources }) {
 
   return (
     <div>
-      <div className="mb-8 w-full overflow-y-hidden overflow-x-scroll">
+      <div className="mb-8 w-full overflow-visible" style={{ margin: '20px' }}>
         <Pivot aria-label="Details about the demo" selectedKey={selectedKey} onLinkClick={handleLinkClick} headersOnly={true}>
           {overview && <PivotItem headerText="Overview" itemKey="overview" />}
           {local && <PivotItem headerText="Run locally" itemKey="local" />}
