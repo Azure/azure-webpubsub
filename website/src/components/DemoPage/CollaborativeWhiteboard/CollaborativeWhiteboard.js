@@ -38,7 +38,7 @@ function CollaborativeWhiteboard() {
 function Overview() {
   return (
     <div>
-      <h2 className="text-4xl">Overview</h2>
+      <h1 className="text-4xl">Overview</h1>
       <TextBlock title="About the app">
         <p>
           This is a sample project to demonstrate how to build a web application for real time collaboration using Azure, Node.js and other related

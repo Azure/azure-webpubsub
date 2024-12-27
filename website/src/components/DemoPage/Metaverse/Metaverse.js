@@ -32,7 +32,7 @@ function Metaverse() {
 function Overview() {
   return (
     <div>
-      <h2 className="text-4xl">Overview</h2>
+      <h1 className="text-4xl">Overview</h1>
       <TextBlock title="About the app">
         <p>An app demonstrating how Azure Web PubSub can be used to enable multi-player experience in Metaverse (coming soon)</p>
       </TextBlock>
