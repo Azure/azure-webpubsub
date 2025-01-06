@@ -1,0 +1,35 @@
+{
+  "name": "vscode-azurewebpubsub-webview-ui",
+  "version": "0.0.1",
+  "private": true,
+  "scripts": {
+    "start": "vite",
+    "build": "tsc && vite build",
+    "preview": "vite preview",
+    "dev": "vite --host",
+    "lint": "eslint ./src",
+    "lint-fix": "eslint ./src --fix"
+  },
+  "dependencies": {
+    "@azure/web-pubsub-client": "^1.0.1",
+    "@fluentui/react": "8.114.0",
+    "@fluentui/react-components": "9.43.3",
+    "@vscode/webview-ui-toolkit": "^1.2.2",
+    "jose": "^5.4.1",
+    "moment": "^2.30.1",
+    "react": "18.2.0",
+    "react-dom": "18.2.0",
+    "react-json-view": "1.21.3",
+    "react-router-dom": "^6.23.0",
+    "react-scripts": "5.0.1",
+    "reactstrap": "9.2.1"
+  },
+  "devDependencies": {
+    "@types/react": "18.2.45",
+    "@types/react-dom": "18.2.18",
+    "@types/vscode-webview": "^1.57.0",
+    "@vitejs/plugin-react": "^1.0.7",
+    "typescript": "^4.4.4",
+    "vite": "^2.9.13"
+  }
+}
