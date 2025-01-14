@@ -11,6 +11,7 @@ const wpsOptions = {
 };
 const optS = JSON.stringify(wpsOptions);
 console.debug(`Test Config = ${optS.substring(0, 60)}***${optS.slice(-20)}`);
+console.log("hiiiiiii");
 
 if (wpsOptions.hub !== undefined || wpsOptions.connectionString !== undefined) {
   describe("WebPubSub Socket.IO Extension", () => {

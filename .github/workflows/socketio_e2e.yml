@@ -1,6 +1,4 @@
-# This workflow will do a clean installation of node dependencies, cache/restore them, build the source code and run tests across different versions of node
 # For more information see: https://docs.github.com/en/actions/automating-builds-and-tests/building-and-testing-nodejs
-
 name: Socket.IO E2E test
 on:
   push:
@@ -12,7 +10,8 @@ on:
     paths:
      - 'sdk/**'
 env:
-  NODE_VERSION: '18.x'                # set this to the node version to use
+  NODE_VERSION: '18.x'
+
 jobs:
   build:
     name: Socket.IO E2E tests
@@ -21,17 +20,60 @@ jobs:
     strategy:
       matrix:
         node-version: [18.x]
+
+    # Add permissions if needed
+    permissions:
+      contents: read
+      pull-requests: read
+
     steps:
-    - uses: actions/checkout@v3
+    # Security check for PRs
+    - name: Check if PR is from a fork
+      if: github.event_name == 'pull_request_target'
+      run: |
+        if [ "${{ github.event.pull_request.head.repo.full_name }}" != "${{ github.repository }}" ]; then
+          echo "PR is from a fork - checking if author has write access"
+          if [ "${{ github.event.pull_request.author_association }}" != "CONTRIBUTOR" ] && 
+             [ "${{ github.event.pull_request.author_association }}" != "MEMBER" ] && 
+             [ "${{ github.event.pull_request.author_association }}" != "OWNER" ]; then
+            echo "PR author doesn't have required permissions"
+            exit 1
+          fi
+        fi
+
+    # First checkout the base repo to get workflow files
+    - name: Checkout base repository
+      uses: actions/checkout@v3
+      if: github.event_name == 'pull_request_target'
+      with:
+        ref: main
+        fetch-depth: 3
+
+    # Then checkout the PR code
+    - name: Checkout PR
+      uses: actions/checkout@v3
+      if: github.event_name == 'pull_request_target'
+      with:
+        ref: ${{ github.event.pull_request.head.sha }}
+        repository: ${{ github.event.pull_request.head.repo.full_name }}
+        fetch-depth: 3
+
+    # For push events, just do normal checkout
+    - name: Checkout for push
+      uses: actions/checkout@v3
+      if: github.event_name == 'push'
       with:
         fetch-depth: 3
+
     - name: Set up Node.js
       uses: actions/setup-node@v3
       with:
         node-version: ${{ env.NODE_VERSION }}
         cache: 'npm'
+
     - name: Install dependencies
       run: npm install -g yarn
+
     - name: Install SocketIO SDK
       id: socketio
       run: |
@@ -43,6 +85,7 @@ jobs:
         yarn build
         popd
       shell: bash
+
     - name: Test
       env:
         WebPubSubConnectionString: ${{ secrets.SOCKETIO_E2E_CONNECTION_STRING }}
