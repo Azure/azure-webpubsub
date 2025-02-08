@@ -6,6 +6,7 @@ import HyperLink from '@site/src/components/Common/HyperLink'
 function Local({hub}) {
   return (
     <div>
+      <h1>Local development instruction</h1>
       <h2 className="text-4xl">Prerequisites</h2>
       <TextBlock title="To run this app locally, you will need the following">
         <ul className="ml-5 list-disc ">
