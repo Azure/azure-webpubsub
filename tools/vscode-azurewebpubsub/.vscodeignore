@@ -24,3 +24,5 @@ tsconfig.json
 tslint.json
 typings/**
 webpack.config*
+webview-ui/**
+!webview-ui/build
