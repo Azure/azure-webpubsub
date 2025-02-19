@@ -25,18 +25,21 @@ function CodeBlock({ text, language, title }) {
             border-radius: 4px;               /* Rounded edges for accessibility */
             transition: background-color 0.2s ease-in-out;
             }
-            /* Focus State - Ensures good keyboard navigation */
+
+            /* Updated Focus State - Meets WCAG 3:1 contrast */
             .mb-3 button[type="button"]:focus,
             .mb-3 button[type="button"]:focus-visible {
-            outline: 3px solid #FFD700 !important; /* Bright yellow outline */
+            outline: 3px solid #005A9C !important; /* Stronger contrast blue */
             outline-offset: 4px !important;
-            box-shadow: 0 0 6px 2px rgba(255, 215, 0, 0.8) !important;
+            box-shadow: 0 0 8px 3px rgba(0, 90, 156, 0.9) !important; /* Accessible blue glow */
             }
+
             /* Hover State - Improve visibility on hover */
             .mb-3 button[type="button"]:hover {
             background-color: #555 !important; /* Slightly lighter for contrast */
             box-shadow: 0 0 6px 2px rgba(255, 184, 0, 0.8);
             }
+
             /* Active State - Ensure it's clearly visible when clicked */
             .mb-3 button[type="button"]:active {
             background-color: #777 !important;
