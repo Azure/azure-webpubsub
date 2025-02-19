@@ -76,7 +76,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        dotnet-version: [6.x]
+        dotnet-version: [8.x]
     steps:
       - uses: actions/checkout@v4
       - name: Setup .NET ${{ matrix.dotnet-version }}
