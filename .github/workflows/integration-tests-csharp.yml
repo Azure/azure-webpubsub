@@ -28,7 +28,7 @@ jobs:
     strategy:
       matrix:
         # See supported Node.js release schedule at https://nodejs.org/en/about/releases/
-        dotnet-version: [6.x]
+        dotnet-version: [8.x]
     steps:
     - uses: actions/checkout@v4
     - name: Test csharp tests
