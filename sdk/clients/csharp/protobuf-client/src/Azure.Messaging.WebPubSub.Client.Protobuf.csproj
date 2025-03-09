@@ -1,0 +1,29 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <Version>1.0.0-beta.1</Version>
+    <PackageId>Azure.Messaging.WebPubSub.Client.Protobuf</PackageId>
+    <Description>Client Protobuf Protocol for Azure WebPubSub</Description>
+    <PackageTags>azure;webpubsub.client</PackageTags>
+    <NoWarn>$(NoWarn);0067</NoWarn>
+    <TargetFrameworks>net8.0</TargetFrameworks>
+    <LangVersion>latest</LangVersion>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+  <ItemGroup>
+    <None Remove="Protos\webpubsub.client.proto" />
+  </ItemGroup>
+  <ItemGroup>
+    <PackageReference Include="System.Threading.Channels" Version="7.0.0" />
+    <PackageReference Include="Azure.Messaging.WebPubSub.Client" Version="1.0.0-beta.2"/>
+    <PackageReference Include="Google.Protobuf" Version="3.21.9" />
+    <PackageReference Include="Grpc.Tools" Version="2.50.0">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    </PackageReference>
+  </ItemGroup>
+  
+  <ItemGroup>
+    <Protobuf Include="Protos\webpubsub.client.proto" />
+  </ItemGroup>
+</Project>

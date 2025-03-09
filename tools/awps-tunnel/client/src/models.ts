@@ -115,7 +115,7 @@ export interface DataModel {
   apiSpec: RESTApi;
 }
 
-export interface RESTApi {
+export interface RESTApi   {
   swagger: string,
   info: {
     title: string,
