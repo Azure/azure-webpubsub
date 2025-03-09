@@ -20,7 +20,7 @@ namespace Azure.Messaging.WebPubSub.Client.Protobuf
         /// <inheritdoc/>
         public static ReadOnlyMemory<byte> GetMessageBytes(WebPubSubMessage message)
         {
-            var writer = new System.Buffers.ArrayBufferWriter<byte>();
+            var writer = new ArrayBufferWriter<byte>();
             WriteMessage(message, writer);
             return writer.WrittenMemory;
         }
