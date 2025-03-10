@@ -17,7 +17,6 @@ namespace Azure.Messaging.WebPubSub.Client.Protobuf
     /// </summary>
     internal class WebPubSubProtobufProtocolHelper
     {
-        /// <inheritdoc/>
         public static ReadOnlyMemory<byte> GetMessageBytes(WebPubSubMessage message)
         {
             var writer = new ArrayBufferWriter<byte>();
@@ -25,7 +24,6 @@ namespace Azure.Messaging.WebPubSub.Client.Protobuf
             return writer.WrittenMemory;
         }
 
-        /// <inheritdoc/>
         public static WebPubSubMessage? ParseMessage(ReadOnlySequence<byte> input)
         {
             var downstreamMessage = DownstreamMessage.Parser.ParseFrom(input);
@@ -78,7 +76,6 @@ namespace Azure.Messaging.WebPubSub.Client.Protobuf
             }
         }
 
-        /// <inheritdoc/>
         public static void WriteMessage(WebPubSubMessage message, IBufferWriter<byte> output)
         {
             switch (message)
