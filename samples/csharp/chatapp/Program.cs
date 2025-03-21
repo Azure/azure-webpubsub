@@ -1,6 +1,4 @@
-using Azure.Core;
 using Microsoft.Azure.WebPubSub.AspNetCore;
-using Microsoft.Azure.WebPubSub.Common;
 using Microsoft.Extensions.Primitives;
 
 // Read connection string from environment
@@ -35,32 +33,3 @@ app.MapGet("/negotiate", (WebPubSubServiceClient<Sample_ChatApp> service, HttpCo
 
 app.MapWebPubSubHub<Sample_ChatApp>("/eventhandler/{*path}");
 app.Run();
-
-sealed class Sample_ChatApp : WebPubSubHub
-{
-    private readonly WebPubSubServiceClient<Sample_ChatApp> _serviceClient;
-
-    public Sample_ChatApp(WebPubSubServiceClient<Sample_ChatApp> serviceClient)
-    {
-        _serviceClient = serviceClient;
-    }
-
-    public override Task OnConnectedAsync(ConnectedEventRequest request)
-    {
-        Console.WriteLine($"[SYSTEM] {request.ConnectionContext.UserId} joined.");
-        return Task.CompletedTask;
-    }
-
-    public override async ValueTask<UserEventResponse> OnMessageReceivedAsync(UserEventRequest request, CancellationToken cancellationToken)
-    {
-        await _serviceClient.SendToAllAsync(RequestContent.Create(
-        new
-        {
-            from = request.ConnectionContext.UserId,
-            message = request.Data.ToString()
-        }),
-        ContentType.ApplicationJson);
-
-        return new UserEventResponse();
-    }
-}
