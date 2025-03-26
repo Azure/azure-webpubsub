@@ -3,6 +3,8 @@
 
 using System;
 using System.Buffers;
+using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Text;
 using Azure.Core;
@@ -24,7 +26,7 @@ namespace Azure.Messaging.WebPubSub.Client.Protobuf
             return writer.WrittenMemory;
         }
 
-        public static WebPubSubMessage? ParseMessage(ReadOnlySequence<byte> input)
+        public static IReadOnlyList<WebPubSubMessage> ParseMessage(ReadOnlySequence<byte> input)
         {
             var downstreamMessage = DownstreamMessage.Parser.ParseFrom(input);
             switch (downstreamMessage.MessageCase)
@@ -35,27 +37,27 @@ namespace Azure.Messaging.WebPubSub.Client.Protobuf
                     {
                         error = new AckMessageError(downstreamMessage.AckMessage.Error.Name, downstreamMessage.AckMessage.Error.Message);
                     }
-                    return new AckMessage(downstreamMessage.AckMessage.AckId, downstreamMessage.AckMessage.Success, error!);
+                    return [ new AckMessage(downstreamMessage.AckMessage.AckId, downstreamMessage.AckMessage.Success, error!) ];
 
                 case DownstreamMessage.MessageOneofCase.DataMessage:
                     var from = downstreamMessage.DataMessage.From;
                     var sequenceId = downstreamMessage.DataMessage.SequenceId;
                     if (!TryParseMessageData(downstreamMessage.DataMessage.Data, out var dataType, out var binaryData))
                     {
-                        return null;
+                        throw new InvalidDataException($"Invalid data type: {downstreamMessage.DataMessage.Data.DataCase}");
                     }
                     if (from == "group")
                     {
                         var group = downstreamMessage.DataMessage.Group;
-                        return new GroupDataMessage(group, dataType, binaryData, sequenceId, null);
+                        return [ new GroupDataMessage(group, dataType, binaryData, sequenceId, null) ];
                     }
                     else if (from == "server")
                     {
-                        return new ServerDataMessage(dataType, binaryData, sequenceId);
+                        return [new ServerDataMessage(dataType, binaryData, sequenceId)];
                     }
                     else
                     {
-                        return null;
+                        throw new InvalidDataException($"Invalid data type: {downstreamMessage.DataMessage.Data.DataCase}");
                     }
 
                 case DownstreamMessage.MessageOneofCase.SystemMessage:
@@ -63,16 +65,16 @@ namespace Azure.Messaging.WebPubSub.Client.Protobuf
                     {
                         case DownstreamMessage.Types.SystemMessage.MessageOneofCase.ConnectedMessage:
                             var connectedMsg = downstreamMessage.SystemMessage.ConnectedMessage;
-                            return new ConnectedMessage(connectedMsg.UserId, connectedMsg.ConnectionId, connectedMsg.ReconnectionToken);
+                            return [ new ConnectedMessage(connectedMsg.UserId, connectedMsg.ConnectionId, connectedMsg.ReconnectionToken) ];
 
                         case DownstreamMessage.Types.SystemMessage.MessageOneofCase.DisconnectedMessage:
                             var disconnectedMsg = downstreamMessage.SystemMessage.DisconnectedMessage;
-                            return new DisconnectedMessage(disconnectedMsg.Reason);
+                            return [ new DisconnectedMessage(disconnectedMsg.Reason) ];
                         default:
-                            return null;
+                            throw new InvalidDataException($"Invalid system message type: {downstreamMessage.SystemMessage.MessageCase}");
                     }
                 default:
-                    return null;
+                    throw new InvalidDataException($"Invalid message type: {downstreamMessage.MessageCase}");
             }
         }
 

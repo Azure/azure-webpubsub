@@ -3,9 +3,7 @@
 
 using System;
 using System.Buffers;
-using System.Collections.Generic;
-using System.Text;
-using Azure.Core;
+using System.Linq;
 using Azure.Messaging.WebPubSub.Clients;
 using Xunit;
 
@@ -112,25 +110,27 @@ namespace Azure.Messaging.WebPubSub.Client.Protobuf.Tests
             var bytes2 = Convert.FromBase64String("ChoIexAAGhQKCUZvcmJpZGRlbhIHbWVzc2FnZQ==");
 
             // Act
-            var message1 = _protocol.ParseMessage(new ReadOnlySequence<byte>(bytes1));
-            var message2 = _protocol.ParseMessage(new ReadOnlySequence<byte>(bytes2));
+            var messages1 = _protocol.ParseMessage(new ReadOnlySequence<byte>(bytes1));
+            var messages2 = _protocol.ParseMessage(new ReadOnlySequence<byte>(bytes2));
 
             // Assert
-            Assert.NotNull(message1);
-            Assert.IsType<AckMessage>(message1);
-            var ackMessage1 = message1 as AckMessage;
-            Assert.Equal(123UL, ackMessage1?.AckId);
-            Assert.True(ackMessage1?.Success);
-            Assert.Null(ackMessage1?.Error);
+            Assert.NotNull(messages1);
+            Assert.True(messages1.Count > 0);
+            var ackMessage1 = messages1.First() as AckMessage;
+            Assert.NotNull(ackMessage1);
+            Assert.Equal(123, ackMessage1.AckId);
+            Assert.True(ackMessage1.Success);
+            Assert.Null(ackMessage1.Error);
 
-            Assert.NotNull(message2);
-            Assert.IsType<AckMessage>(message2);
-            var ackMessage2 = message2 as AckMessage;
-            Assert.Equal(123UL, ackMessage2?.AckId);
-            Assert.False(ackMessage2?.Success);
-            Assert.NotNull(ackMessage2?.Error);
-            Assert.Equal("Forbidden", ackMessage2?.Error.Name);
-            Assert.Equal("message", ackMessage2?.Error.Message);
+            Assert.NotNull(messages2);
+            Assert.True(messages2.Count > 0);
+            var ackMessage2 = messages2[0] as AckMessage;
+            Assert.NotNull(ackMessage2);
+            Assert.Equal(123, ackMessage2.AckId);
+            Assert.False(ackMessage2.Success);
+            Assert.NotNull(ackMessage2.Error);
+            Assert.Equal("Forbidden", ackMessage2.Error.Name);
+            Assert.Equal("message", ackMessage2.Error.Message);
         }
 
         [Fact]
@@ -140,16 +140,17 @@ namespace Azure.Messaging.WebPubSub.Client.Protobuf.Tests
             var bytes1 = Convert.FromBase64String("EhwKBWdyb3VwEglncm91cE5hbWUaBQoDeHl6ILlg");
 
             // Act
-            var message1 = _protocol.ParseMessage(new ReadOnlySequence<byte>(bytes1));
+            var messages = _protocol.ParseMessage(new ReadOnlySequence<byte>(bytes1));
 
             // Assert
-            Assert.NotNull(message1);
-            Assert.IsType<GroupDataMessage>(message1);
-            var groupDataMessage = message1 as GroupDataMessage;
-            Assert.Equal("groupName", groupDataMessage?.Group);
-            Assert.Equal(12345UL, groupDataMessage?.SequenceId);
-            Assert.Equal(WebPubSubDataType.Text, groupDataMessage?.DataType);
-            Assert.Equal("xyz", groupDataMessage?.Data.ToString());
+            Assert.NotNull(messages);
+            Assert.True(messages.Count > 0);
+            var groupDataMessage = messages.First() as GroupDataMessage;
+            Assert.NotNull(groupDataMessage);
+            Assert.Equal("groupName", groupDataMessage.Group);
+            Assert.Equal(12345, groupDataMessage.SequenceId);
+            Assert.Equal(WebPubSubDataType.Text, groupDataMessage.DataType);
+            Assert.Equal("xyz", groupDataMessage.Data.ToString());
         }
 
         [Fact]
@@ -159,15 +160,16 @@ namespace Azure.Messaging.WebPubSub.Client.Protobuf.Tests
             var bytes1 = Convert.FromBase64String("EhIKBnNlcnZlchoFCgN4eXoguWA=");
 
             // Act
-            var message1 = _protocol.ParseMessage(new ReadOnlySequence<byte>(bytes1));
+            var messages = _protocol.ParseMessage(new ReadOnlySequence<byte>(bytes1));
 
             // Assert
-            Assert.NotNull(message1);
-            Assert.IsType<ServerDataMessage>(message1);
-            var serverDataMessage = message1 as ServerDataMessage;
-            Assert.Equal(12345UL, serverDataMessage?.SequenceId);
-            Assert.Equal(WebPubSubDataType.Text, serverDataMessage?.DataType);
-            Assert.Equal("xyz", serverDataMessage?.Data.ToString());
+            Assert.NotNull(messages);
+            Assert.True(messages.Count > 0);
+            var serverDataMessage = messages.First() as ServerDataMessage;
+            Assert.NotNull(serverDataMessage);
+            Assert.Equal(12345, serverDataMessage.SequenceId);
+            Assert.Equal(WebPubSubDataType.Text, serverDataMessage.DataType);
+            Assert.Equal("xyz", serverDataMessage.Data.ToString());
         }
 
         [Fact]
@@ -179,29 +181,32 @@ namespace Azure.Messaging.WebPubSub.Client.Protobuf.Tests
             var bytes3 = Convert.FromBase64String("GgcSBRIDbXNn");
 
             // Act
-            var message1 = _protocol.ParseMessage(new ReadOnlySequence<byte>(bytes1));
-            var message2 = _protocol.ParseMessage(new ReadOnlySequence<byte>(bytes2));
-            var message3 = _protocol.ParseMessage(new ReadOnlySequence<byte>(bytes3));
+            var messages1 = _protocol.ParseMessage(new ReadOnlySequence<byte>(bytes1));
+            var messages2 = _protocol.ParseMessage(new ReadOnlySequence<byte>(bytes2));
+            var messages3 = _protocol.ParseMessage(new ReadOnlySequence<byte>(bytes3));
 
             // Assert
-            Assert.NotNull(message1);
-            Assert.IsType<ConnectedMessage>(message1);
-            var connectedMessage1 = message1 as ConnectedMessage;
-            Assert.Equal("user", connectedMessage1?.UserId);
-            Assert.Equal("connection", connectedMessage1?.ConnectionId);
-            Assert.Empty(connectedMessage1?.ReconnectionToken);
+            Assert.NotNull(messages1);
+            Assert.True(messages1.Count > 0);
+            var connectedMessage1 = messages1.First() as ConnectedMessage;
+            Assert.NotNull(connectedMessage1);
+            Assert.Equal("user", connectedMessage1.UserId);
+            Assert.Equal("connection", connectedMessage1.ConnectionId);
+            Assert.Empty(connectedMessage1.ReconnectionToken);
 
-            Assert.NotNull(message2);
-            Assert.IsType<ConnectedMessage>(message2);
-            var connectedMessage2 = message2 as ConnectedMessage;
-            Assert.Equal("user", connectedMessage2?.UserId);
-            Assert.Equal("connection", connectedMessage2?.ConnectionId);
-            Assert.Equal("rec", connectedMessage2?.ReconnectionToken);
+            Assert.NotNull(messages2);
+            Assert.True(messages2.Count > 0);
+            var connectedMessage2 = messages2.First() as ConnectedMessage;
+            Assert.NotNull(connectedMessage2);
+            Assert.Equal("user", connectedMessage2.UserId);
+            Assert.Equal("connection", connectedMessage2.ConnectionId);
+            Assert.Equal("rec", connectedMessage2.ReconnectionToken);
 
-            Assert.NotNull(message3);
-            Assert.IsType<DisconnectedMessage>(message3);
-            var disconnectedMessage = message3 as DisconnectedMessage;
-            Assert.Equal("msg", disconnectedMessage?.Reason);
+            Assert.NotNull(messages3);
+            Assert.True(messages3.Count > 0);
+            var disconnectedMessage = messages3.First() as DisconnectedMessage;
+            Assert.NotNull(disconnectedMessage);
+            Assert.Equal("msg", disconnectedMessage.Reason);
         }
     }
 }

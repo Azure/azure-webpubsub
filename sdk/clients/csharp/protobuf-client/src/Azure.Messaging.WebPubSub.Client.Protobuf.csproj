@@ -12,17 +12,11 @@
   </PropertyGroup>
   
   <ItemGroup>
-    <AssemblyAttribute Include="System.Runtime.CompilerServices.InternalsVisibleToAttribute">
-      <_Parameter1>Azure.Messaging.WebPubSub.Client.Protobuf.Tests</_Parameter1>
-    </AssemblyAttribute>
-  </ItemGroup>
-  
-  <ItemGroup>
     <None Remove="Protos\webpubsub.client.proto" />
   </ItemGroup>
   <ItemGroup>
     <PackageReference Include="System.Threading.Channels" Version="7.0.0" />
-    <PackageReference Include="Azure.Messaging.WebPubSub.Client" Version="1.0.0-beta.2"/>
+    <PackageReference Include="Azure.Messaging.WebPubSub.Client" Version="1.0.0"/>
     <PackageReference Include="Google.Protobuf" Version="3.21.9" />
     <PackageReference Include="Grpc.Tools" Version="2.50.0">
       <PrivateAssets>all</PrivateAssets>

@@ -3,6 +3,7 @@
 
 using System;
 using System.Buffers;
+using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using Azure.Messaging.WebPubSub.Clients;
@@ -36,7 +37,7 @@ namespace Azure.Messaging.WebPubSub.Client.Protobuf
         }
 
         /// <inheritdoc/>
-        public override WebPubSubMessage? ParseMessage(ReadOnlySequence<byte> input)
+        public override IReadOnlyList<WebPubSubMessage> ParseMessage(ReadOnlySequence<byte> input)
         {
             return WebPubSubProtobufProtocolHelper.ParseMessage(input);
         }
