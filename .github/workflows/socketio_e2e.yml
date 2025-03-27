@@ -15,6 +15,7 @@ env:
   NODE_VERSION: '18.x'                # set this to the node version to use
 jobs:
   build:
+    name: Socket.IO E2E tests
     runs-on: ubuntu-latest
     timeout-minutes: 15
     strategy:

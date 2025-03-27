@@ -38,7 +38,7 @@ function RealtimeScoreboard() {
 function Overview() {
   return (
     <div>
-      <h2 className="text-4xl">Overview</h2>
+      <h1 className="text-4xl">Overview</h1>
       <TextBlock title="About the app">
         <p>This app demonstrates how to push data from server to connected clients using Azure Web PubSub</p>
       </TextBlock>

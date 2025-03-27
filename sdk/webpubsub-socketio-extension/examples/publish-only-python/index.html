@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Nasdaq Index</title>
+    <style>
+        /* Reset some default styles */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #f5f7fa, #c3cfe2);
+            height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .container {
+            background-color: white;
+            padding: 40px;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            text-align: center;
+            max-width: 300px;
+            width: 100%;
+        }
+
+        .nasdaq-title {
+            font-size: 2em;
+            color: #003087;
+            margin-bottom: 20px;
+        }
+
+        .index-value {
+            font-size: 3em;
+            color: #16a34a;
+            margin-bottom: 30px;
+            transition: color 0.3s ease;
+        }
+
+        .update-button {
+            padding: 10px 20px;
+            font-size: 1em;
+            color: white;
+            background-color: #003087;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+        }
+
+        .update-button:hover {
+            background-color: #002070;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="nasdaq-title">NASDAQ</div>
+        <div id="nasdaqIndex" class="index-value">14,000.00</div>
+    </div>
+
+    <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
+    <script>
+        function updateIndexCore(newIndex) {
+            newIndex = parseFloat(newIndex);
+            currentIndex = parseFloat(document.getElementById('nasdaqIndex').innerText.replace(/,/g, ''))
+            change = newIndex - currentIndex;
+            // Update the index value in the DOM
+            document.getElementById('nasdaqIndex').innerText = newIndex.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+            
+            // Optionally, change the color based on increase or decrease
+            const indexElement = document.getElementById('nasdaqIndex');
+            if (change > 0) {
+                indexElement.style.color = '#16a34a'; // Green for increase
+            } else if (change < 0) {
+                indexElement.style.color = '#dc2626'; // Red for decrease
+            } else {
+                indexElement.style.color = '#16a34a'; // Neutral color
+            }
+        }
+
+        async function init() {
+            const negotiateResponse = await fetch(`/api/negotiate`);
+            if (!negotiateResponse.ok) {
+                console.log("Failed to negotiate, status code =", negotiateResponse.status);
+                return;
+            }
+            const negotiateJson = await negotiateResponse.json();
+            socket = io(negotiateJson.endpoint, {
+                path: negotiateJson.path,
+                query: { access_token: negotiateJson.token}
+            });
+
+            socket.on('update', (index) => {
+                updateIndexCore(index);
+            });
+        }
+
+        init();
+    </script>
+</body>
+</html>
