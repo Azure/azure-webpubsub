@@ -41,7 +41,7 @@ namespace Azure.Messaging.WebPubSub.Client.Protobuf
 
                 case DownstreamMessage.MessageOneofCase.DataMessage:
                     var from = downstreamMessage.DataMessage.From;
-                    var sequenceId = downstreamMessage.DataMessage.SequenceId;
+                    long? sequenceId = downstreamMessage.DataMessage.HasSequenceId ? downstreamMessage.DataMessage.SequenceId : null;
                     if (!TryParseMessageData(downstreamMessage.DataMessage.Data, out var dataType, out var binaryData))
                     {
                         throw new InvalidDataException($"Invalid data type: {downstreamMessage.DataMessage.Data.DataCase}");

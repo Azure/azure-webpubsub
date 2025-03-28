@@ -51,7 +51,7 @@ namespace WebPubSubProtobufSample
             // Create a WebPubSub client with the Protobuf reliable protocol
             var client = new WebPubSubClient(clientAccessUri, new WebPubSubClientOptions
             {
-                Protocol = new WebPubSubProtobufReliableProtocol()
+                Protocol = new WebPubSubProtobufProtocol()
             });
 
             // Set up event handlers
