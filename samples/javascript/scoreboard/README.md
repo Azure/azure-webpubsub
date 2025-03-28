@@ -67,7 +67,7 @@ You can deploy to Azure by using the `Deploy to Azure` button or Bicep file with
 
 ### Deploy all with one click
 
-[![Deploy to Azure](https://aka.ms/deploytoazurebutton)](https://portal.azure.com/#create/Microsoft.Template/uri/https%3A%2F%2Flivedemopackages.blob.core.windows.net%2Ftemplate%2Fscoreboard-deploy.json)
+[![Deploy to Azure](https://aka.ms/deploytoazurebutton)](https://portal.azure.com/#create/Microsoft.Template/uri/https%3A%2F%2Flivedemopackages.z13.web.core.windows.net%2Ftemplate%2Fscoreboard-deploy.json)
 
 #### Visit your live demo
 

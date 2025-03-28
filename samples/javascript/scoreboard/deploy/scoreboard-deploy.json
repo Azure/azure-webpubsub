@@ -57,7 +57,7 @@
     },
     "packageUri": {
       "type": "string",
-      "defaultValue": "https://livedemopackages.blob.core.windows.net/packages/scoreboard_0.1.0.zip",
+      "defaultValue": "https://livedemopackages.z13.web.core.windows.net/packages/scoreboard_0.1.0.zip",
       "metadata": {
         "description": "Demo package to be deployed."
       }

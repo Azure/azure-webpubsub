@@ -29,7 +29,7 @@ function Chatr() {
 function Overview() {
   return (
     <div>
-      <h2 className="text-4xl">Overview</h2>
+      <h1 className="text-4xl">Overview</h1>
       <TextBlock title="About the app">
         <p>
           This demo is developed by &nbsp;

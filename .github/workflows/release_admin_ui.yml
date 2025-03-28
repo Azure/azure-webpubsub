@@ -14,6 +14,7 @@ on:
 
 jobs:
   build_pack_upload:
+    name: Release Socket.IO Admin UI
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -38,7 +39,7 @@ jobs:
             echo "filename=azure-socketio-admin-ui-${package_version}" >> $GITHUB_OUTPUT
 
       - name: Upload to Artifact
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
             name: ${{ steps.metadata_step.outputs.filename }}
             path: tools/azure-socketio-admin-ui/dist

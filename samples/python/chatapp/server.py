@@ -1,6 +1,7 @@
 import os
 import sys
 import json
+import html
 
 from flask import (
     Flask, 
@@ -53,13 +54,13 @@ def handle_event():
             id_element = query.get('id')
             user_id = id_element[0] if id_element else None
             if user_id:
-                return {'userId': user_id}, 200
+                return {'userId': html.escape(user_id)}, 200
             return 'missing user id', 401
         elif type == 'azure.webpubsub.sys.connected':
-            return user_id + ' connected', 200
+            return 'connected', 200
         elif type == 'azure.webpubsub.user.message':
             service.send_to_all(content_type="application/json", message={
-                'from': user_id,
+                'from': html.escape(user_id),
                 'message': request.data.decode('UTF-8')
             })
             return Response(status=204, content_type='text/plain')

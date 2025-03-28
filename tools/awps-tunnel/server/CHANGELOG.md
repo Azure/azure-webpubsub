@@ -1,5 +1,11 @@
 # Changelog
 
+## [1.0.0-beta.11] - 2024-11-11
+### Improved
+- Improve upstream sample code for net8
+- Support optional scheme for -u upstream url
+- Demote connection logs to verbose
+
 ## [1.0.0-beta.10] - 2024-09-21
 ### Improved
 - Some improvements to the REST API tab

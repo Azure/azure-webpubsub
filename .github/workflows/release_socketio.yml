@@ -11,12 +11,14 @@ on:
       - 'sdk/webpubsub-socketio-extension/CHANGELOG.md'
 jobs:
   release:
+    name: Release Azure SocketIO package
     uses: ./.github/workflows/workflow-call-release-package.yml
     secrets:
       AZURESDKPARTNERDROPS_URL: ${{ secrets.AZURESDKPARTNERDROPS_URL }}
       AZURESDKPARTNERDROPS_CLIENT_ID: ${{ secrets.AZURESDKPARTNERDROPS_CLIENT_ID }}
       AZURESDKPARTNERDROPS_SUBSCRIPTION_ID: ${{ secrets.AZURESDKPARTNERDROPS_SUBSCRIPTION_ID }}
       AZURESDKPARTNERDROPS_TENANT_ID: ${{ secrets.AZURESDKPARTNERDROPS_TENANT_ID }}
+      GH_PAT: ${{ secrets.GH_PAT }}
     with:
       package_name: webpubsub-socketio-extension
       package_folder: sdk/webpubsub-socketio-extension

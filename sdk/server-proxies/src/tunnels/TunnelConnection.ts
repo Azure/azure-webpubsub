@@ -323,7 +323,7 @@ export class TunnelConnection {
     }
     const url = this.getUrl(target, this.hub);
     const client = new WebPubSubTunnelClient(url, this.credential, this.id, target.target);
-    logger.info(`Starting connection: ${client.id}, hub: ${this.hub}`);
+    logger.verbose(`Starting connection: ${client.id}, hub: ${this.hub}`);
     client.on("stop", () => {
       logger.warning(`Client ${client.getPrintableIdentifier()} stopped, hub: ${this.hub}`);
       this.tryEndLife(client.id);
@@ -345,7 +345,8 @@ export class TunnelConnection {
       }
       try {
         await client.startAsync(abortSignal);
-        logger.info(`Connected connections: (${this.clients.size})\n` + Array.from(this.printClientLines()).join("\n"));
+        logger.info(`Connected connections: (${this.clients.size})`);
+        logger.verbose(Array.from(this.printClientLines()).join("\n"));
         return client.id;
       } catch (err) {
         retryAttempt++;
@@ -372,7 +373,7 @@ export class TunnelConnection {
 
   private *printClientLines(): IterableIterator<string> {
     for (const [clientId, client] of this.clients) {
-      yield `${client.getPrintableIdentifier()}: connectionId: ${client.currentConnectionId}; userId: ${client.userId}; ended: ${
+      yield `\t${client.getPrintableIdentifier()}: connectionId: ${client.currentConnectionId}; userId: ${client.userId}; ended: ${
         client.stopped
       }; target: ${client.target ?? "<random>"}; `;
     }
@@ -384,7 +385,7 @@ export class TunnelConnection {
     if (target.endpoint) {
       endpoint = target.endpoint;
     } else {
-      logger.info(`No endpoint specified, use original endpoint ${this.endpoint}`);
+      logger.verbose(`No endpoint specified, use the original endpoint ${this.endpoint}`);
       endpoint = this.endpoint;
     }
     const uriBuilder = new URL(endpoint);

@@ -21,13 +21,14 @@ on:
 
 jobs:
   test:
+    name: Integration tests for C#
     runs-on: ubuntu-latest
     env:
       WEB_PUBSUB_CONNECTION_STRING: ${{ github.event.inputs.web_pubsub_connection_string || secrets.WEB_PUBSUB_CONNECTION_STRING }}
     strategy:
       matrix:
         # See supported Node.js release schedule at https://nodejs.org/en/about/releases/
-        dotnet-version: [6.x]
+        dotnet-version: [8.x]
     steps:
     - uses: actions/checkout@v4
     - name: Test csharp tests
