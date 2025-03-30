@@ -33,3 +33,7 @@ jobs:
 
       - name: Run tests
         run: dotnet test sdk/clients/csharp/protobuf-client/Azure.Messaging.WebPubSub.Client.Protobuf.sln --no-build --configuration Release --logger "trx"
+
+      - name: Build Samples
+        run: |
+          dotnet build sdk/clients/csharp/protobuf-client/samples/WebPubSubProtobufSample/WebPubSubProtobufSample.csproj --configuration Release
