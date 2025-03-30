@@ -29,11 +29,11 @@ jobs:
         run: dotnet restore sdk/clients/csharp/protobuf-client/Azure.Messaging.WebPubSub.Client.Protobuf.sln
 
       - name: Build solution
-        run: dotnet build sdk/clients/csharp/protobuf-client/Azure.Messaging.WebPubSub.Client.Protobuf.sln --no-restore --configuration Release
+        run: dotnet build sdk/clients/csharp/protobuf-client/Azure.Messaging.WebPubSub.Client.Protobuf.sln --no-restore
 
       - name: Run tests
-        run: dotnet test sdk/clients/csharp/protobuf-client/Azure.Messaging.WebPubSub.Client.Protobuf.sln --no-build --configuration Release --logger "trx"
+        run: dotnet test sdk/clients/csharp/protobuf-client/Azure.Messaging.WebPubSub.Client.Protobuf.sln --no-build
 
       - name: Build Samples
         run: |
-          dotnet build sdk/clients/csharp/protobuf-client/samples/WebPubSubProtobufSample/WebPubSubProtobufSample.csproj --configuration Release
+          dotnet build sdk/clients/csharp/protobuf-client/samples/WebPubSubProtobufSample/WebPubSubProtobufSample.csproj
