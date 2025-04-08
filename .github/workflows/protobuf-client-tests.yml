@@ -1,0 +1,39 @@
+name: Protobuf Client Tests
+
+on:
+  push:
+    branches: ["main"]
+    paths:
+      - 'sdk/clients/csharp/protobuf-client/**'
+  pull_request:
+    branches: ["main"]
+    paths:
+      - 'sdk/clients/csharp/protobuf-client/**'
+
+jobs:
+  test:
+    name: Build and Test Protobuf Client
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        dotnet-version: [8.x]
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup .NET ${{ matrix.dotnet-version }}
+        uses: actions/setup-dotnet@v3
+        with:
+          dotnet-version: ${{ matrix.dotnet-version }}
+
+      - name: Restore dependencies
+        run: dotnet restore sdk/clients/csharp/protobuf-client/Azure.Messaging.WebPubSub.Client.Protobuf.sln
+
+      - name: Build solution
+        run: dotnet build sdk/clients/csharp/protobuf-client/Azure.Messaging.WebPubSub.Client.Protobuf.sln --no-restore
+
+      - name: Run tests
+        run: dotnet test sdk/clients/csharp/protobuf-client/Azure.Messaging.WebPubSub.Client.Protobuf.sln --no-build
+
+      - name: Build Samples
+        run: |
+          dotnet build sdk/clients/csharp/protobuf-client/samples/WebPubSubProtobufSample/WebPubSubProtobufSample.csproj
