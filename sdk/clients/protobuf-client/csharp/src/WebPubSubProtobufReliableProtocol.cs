@@ -4,8 +4,6 @@
 using System;
 using System.Buffers;
 using System.Collections.Generic;
-using System.Linq;
-using System.Text;
 using Azure.Messaging.WebPubSub.Clients;
 
 namespace Azure.Messaging.WebPubSub.Client.Protobuf;

@@ -6,8 +6,6 @@ using System.Buffers;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using System.Text;
-using Azure.Core;
 using Azure.Messaging.WebPubSub.Clients;
 using Google.Protobuf;
 using Google.Protobuf.WellKnownTypes;
@@ -53,7 +51,7 @@ internal static class WebPubSubProtobufProtocolHelper
                 }
                 else if (from == "server")
                 {
-                    return [new ServerDataMessage(dataType, binaryData, sequenceId)];
+                    return [ new ServerDataMessage(dataType, binaryData, sequenceId) ];
                 }
                 else
                 {
