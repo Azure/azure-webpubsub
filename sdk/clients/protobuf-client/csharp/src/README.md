@@ -11,25 +11,6 @@ You can use this library to add protobuf subprotocols including `protobuf.reliab
 You can choose between the standard protobuf protocol or the reliable protobuf protocol based on your needs:
 
 ```csharp
-using Azure.Messaging.WebPubSub.Client;
-using Azure.Messaging.WebPubSub.Client.Protobuf;
-
-// Create a WebPubSub service client first to get an access token
-string connectionString = "<your-connection-string>";
-string hubName = "sample_chat";
-
-// Create a service client to get an access token
-var serviceClient = new WebPubSubServiceClient(connectionString, hubName);
-            
-// Generate a client access URL with appropriate permissions
-var clientAccessUri = await serviceClient.GetClientAccessUriAsync(
-    userId: Guid.NewGuid().ToString(), 
-    roles: new[] 
-    { 
-        "webpubsub.joinLeaveGroup.testGroup", 
-        "webpubsub.sendToGroup.testGroup" 
-    });
-
 // Create a client with the standard protobuf protocol
 var client = new WebPubSubClient(clientAccessUri, new WebPubSubClientOptions
 {
@@ -41,9 +22,6 @@ var reliableClient = new WebPubSubClient(clientAccessUri, new WebPubSubClientOpt
 {
     Protocol = new WebPubSubProtobufReliableProtocol()
 });
-
-// Connect to the service
-await client.StartAsync();
 ```
 
 ### Receiving messages
@@ -51,20 +29,6 @@ await client.StartAsync();
 Set up event handlers before starting the connection:
 
 ```csharp
-// Handle connection established event
-client.Connected += eventArgs =>
-{
-    Console.WriteLine($"Connection {eventArgs.ConnectionId} is connected.");
-    return Task.CompletedTask;
-};
-
-// Handle disconnection event
-client.Disconnected += eventArgs =>
-{
-    Console.WriteLine($"Connection disconnected: {eventArgs.DisconnectedMessage}");
-    return Task.CompletedTask;
-};
-
 // Handle server messages
 client.ServerMessageReceived += eventArgs =>
 {
