@@ -118,19 +118,19 @@ public class WebPubSubProtobufProtocolMessageTests
         Assert.True(messages1.Count > 0);
         var ackMessage1 = messages1.First() as AckMessage;
         Assert.NotNull(ackMessage1);
-        Assert.Equal(123, ackMessage1.AckId);
-        Assert.True(ackMessage1.Success);
-        Assert.Null(ackMessage1.Error);
+        Assert.Equal(123, ackMessage1?.AckId);
+        Assert.True(ackMessage1?.Success);
+        Assert.Null(ackMessage1?.Error);
 
         Assert.NotNull(messages2);
         Assert.True(messages2.Count > 0);
         var ackMessage2 = messages2[0] as AckMessage;
         Assert.NotNull(ackMessage2);
-        Assert.Equal(123, ackMessage2.AckId);
-        Assert.False(ackMessage2.Success);
-        Assert.NotNull(ackMessage2.Error);
-        Assert.Equal("Forbidden", ackMessage2.Error.Name);
-        Assert.Equal("message", ackMessage2.Error.Message);
+        Assert.Equal(123, ackMessage2?.AckId);
+        Assert.False(ackMessage2?.Success);
+        Assert.NotNull(ackMessage2?.Error);
+        Assert.Equal("Forbidden", ackMessage2?.Error.Name);
+        Assert.Equal("message", ackMessage2?.Error.Message);
     }
 
     [Fact]
@@ -147,10 +147,10 @@ public class WebPubSubProtobufProtocolMessageTests
         Assert.True(messages.Count > 0);
         var groupDataMessage = messages.First() as GroupDataMessage;
         Assert.NotNull(groupDataMessage);
-        Assert.Equal("groupName", groupDataMessage.Group);
-        Assert.Equal(12345, groupDataMessage.SequenceId);
-        Assert.Equal(WebPubSubDataType.Text, groupDataMessage.DataType);
-        Assert.Equal("xyz", groupDataMessage.Data.ToString());
+        Assert.Equal("groupName", groupDataMessage?.Group);
+        Assert.Equal(12345, groupDataMessage?.SequenceId);
+        Assert.Equal(WebPubSubDataType.Text, groupDataMessage?.DataType);
+        Assert.Equal("xyz", groupDataMessage?.Data.ToString());
     }
 
     [Fact]
@@ -167,9 +167,9 @@ public class WebPubSubProtobufProtocolMessageTests
         Assert.True(messages.Count > 0);
         var serverDataMessage = messages.First() as ServerDataMessage;
         Assert.NotNull(serverDataMessage);
-        Assert.Equal(12345, serverDataMessage.SequenceId);
-        Assert.Equal(WebPubSubDataType.Text, serverDataMessage.DataType);
-        Assert.Equal("xyz", serverDataMessage.Data.ToString());
+        Assert.Equal(12345, serverDataMessage?.SequenceId);
+        Assert.Equal(WebPubSubDataType.Text, serverDataMessage?.DataType);
+        Assert.Equal("xyz", serverDataMessage?.Data.ToString());
     }
 
     [Fact]
@@ -190,22 +190,22 @@ public class WebPubSubProtobufProtocolMessageTests
         Assert.True(messages1.Count > 0);
         var connectedMessage1 = messages1.First() as ConnectedMessage;
         Assert.NotNull(connectedMessage1);
-        Assert.Equal("user", connectedMessage1.UserId);
-        Assert.Equal("connection", connectedMessage1.ConnectionId);
-        Assert.Empty(connectedMessage1.ReconnectionToken);
+        Assert.Equal("user", connectedMessage1?.UserId);
+        Assert.Equal("connection", connectedMessage1?.ConnectionId);
+        Assert.Empty(connectedMessage1?.ReconnectionToken);
 
         Assert.NotNull(messages2);
         Assert.True(messages2.Count > 0);
         var connectedMessage2 = messages2.First() as ConnectedMessage;
         Assert.NotNull(connectedMessage2);
-        Assert.Equal("user", connectedMessage2.UserId);
-        Assert.Equal("connection", connectedMessage2.ConnectionId);
-        Assert.Equal("rec", connectedMessage2.ReconnectionToken);
+        Assert.Equal("user", connectedMessage2?.UserId);
+        Assert.Equal("connection", connectedMessage2?.ConnectionId);
+        Assert.Equal("rec", connectedMessage2?.ReconnectionToken);
 
         Assert.NotNull(messages3);
         Assert.True(messages3.Count > 0);
         var disconnectedMessage = messages3.First() as DisconnectedMessage;
         Assert.NotNull(disconnectedMessage);
-        Assert.Equal("msg", disconnectedMessage.Reason);
+        Assert.Equal("msg", disconnectedMessage?.Reason);
     }
 }
