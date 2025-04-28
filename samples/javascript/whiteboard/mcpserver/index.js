@@ -27,27 +27,23 @@ server.tool(
   {
     id: z.string().describe("unique identifier of the shape"),
     patchMode: z.enum(["add", "update"]).describe("Mode to add or update the shape, choose 'update' when the id of an existing shape is used"),
-    shapeType: z.enum(["polyline", "line", "rect", "circle", "ellipse"]).describe("Type of shape to draw"),
+    shapeType: z.enum(["polyline", "line", "rect", "circle", "ellipse", "polygon"]).describe("Type of shape to draw"),
     color: z.string().describe("Color of the shape"),
     fillColor: z.string().describe("Color to fill in the shape"),
+    opacity: z.number().optional().describe("Opacity of the shape, range from 0 to 1"),
     width: z.number().describe("Width of the shape border or line"),
-    coordinates: z.array(z.number()).describe("Coordinates for the shape for line or polyline or rect or ellipse"),
-    additionalParams: z
-      .object({
-        radius: z.number().optional().describe("Radius for circle"),
-      })
-      .optional()
-      .describe("Additional parameters for specific shapes"),
+    coordinates: z.array(z.number()).describe("Coordinates for the shapes. For a rectangle, it is [x1, y1, x2, y2]; for a circle, it is [cx, cy, radius]; for a line, it is [x1, y1, x2, y]; for a polyline, it is [x1, y1, x2, y2, ...]; for an ellipse, it is [cx, cy, rx, ry]; for a polygon, it is [x1, y1, x2, y2, ...]; "),
     description: z.string().optional().describe("Description of the shape"),
   },
-  async ({ id, shapeType, color, fillColor, width, coordinates, additionalParams, description }) => {
+  async ({ id, patchMode, shapeType, color, fillColor, opacity, width, coordinates, description }) => {
     // Simulate drawing the shape on the whiteboard
     const message = {
       kind: shapeType,
       color: color,
       fillColor: fillColor,
+      opacity: opacity,
       width: width,
-      data: [...coordinates, ...(additionalParams?.radius ? [additionalParams.radius] : []), ...(additionalParams?.height ? [additionalParams.height] : [])],
+      data: coordinates,
     };
     ws.sendToGroup(
       "draw",

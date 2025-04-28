@@ -105,7 +105,7 @@ Now your whiteboard is running in Azure at `https://<app-name>.azurewebsites.net
 
 [Model Context Protocol](https://github.com/modelcontextprotocol) (MCP) is an open protocol that enables seamless integration between LLM applications and external data sources and tools. With MCP we can expose the painting capability of whiteboard to LLM so it can draw the picture for you!
 
-![mcp](./mcp.gif)
+![mcp](./mcp-demo.gif)
 
 [MCPServer](mcpserver/) shows how Whiteboard can be a MCP server that allow LLM to directly operate on the whiteboard, connecting as a Web PubSub client.
 
@@ -123,7 +123,7 @@ To install the MCP server:
 
    ```json
    "mcpServers": {
-     "Whiteboard": {
+     "whiteboard": {
        "command": "node",
          "args": [
            "<path-to-MCPServer-project>/index.js"
@@ -132,7 +132,7 @@ To install the MCP server:
     }
    ```
 
-   > Change `mcpServers` to `mcp` if you're using VS Code
+   > Change `mcpServers` to `"mcp":{"servers": ...}` if you're using VS Code
 
 4. Start the server if it's not automatically started (like in VS Code)
 

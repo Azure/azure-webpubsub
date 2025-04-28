@@ -19,8 +19,8 @@ function generateId() {
     .substring(1);
 }
 
-function applyStyle(e, c, w, f) {
-  return e.fill(f || "none").stroke({ color: c, width: w, linecap: "round" });
+function applyStyle(e, c, w, f, o = 1) {
+  return e.fill(f || "none").stroke({ color: c, width: w, linecap: "round" }).opacity(o);
 }
 
 Diagram.prototype._tryNotify = function (c) {
@@ -43,7 +43,7 @@ Diagram.prototype.startShape = function (k, c, w, x, y) {
   this._id = generateId();
   [x, y] = this._translate(x, y);
   let m = { kind: k, color: c, width: w, data: this._tools[k].start(x, y) };
-  this._shapes[this._id] = { view: applyStyle(this._tools[k].draw(this._element, m.data), c, w), model: m };
+  this._shapes[this._id] = { view: applyStyle(this._tools[k].draw(this._element, m.data), c, w, m.fillColor, m.opacity), model: m };
   this._future = [];
   this._past.push(this._id);
   this._historyChange();
@@ -78,7 +78,7 @@ Diagram.prototype.endShape = function () {
 
 Diagram.prototype.updateShape = function (i, m) {
   if (this._shapes[i]) this._tools[m.kind].update(this._shapes[i].view, (this._shapes[i].model.data = m.data));
-  else this._shapes[i] = { view: applyStyle(this._tools[m.kind].draw(this._element, m.data), m.color, m.width, m.fillColor), model: m };
+  else this._shapes[i] = { view: applyStyle(this._tools[m.kind].draw(this._element, m.data), m.color, m.width, m.fillColor, m.opacity), model: m };
 };
 
 Diagram.prototype.patchShape = function (i, d) {
