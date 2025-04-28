@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16">
+  <title>ExternalLink</title>
+  <path d="M0 0h16v16h-16z" fill="none" />
+  <path d="M12 13h-8a1 1 0 0 1-1-1v-8a1 1 0 0 0-2 0v8a3 3 0 0 0 3 3h8a1 1 0 0 0 0-2zM14.924 1.619a1 1 0 0 0-.924-.619h-5.5a1 1 0 0 0 0 2h3.086l-6.293 6.293a1 1 0 0 0 1.414 1.414l6.293-6.293v3.086a1 1 0 0 0 2 0v-5.5a1 1 0 0 0-.076-.381z" />
+</svg>
