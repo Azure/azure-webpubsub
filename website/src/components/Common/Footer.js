@@ -10,13 +10,13 @@ function Footer() {
     <footer className="flex justify-center bg-gray-100  py-2 text-xs tracking-wider text-gray-600">
       <ul className="flex gap-3">
         <li>
-          <h6><a href="https://privacy.microsoft.com/en-us/privacystatement"><u>Privacy</u></a></h6>
+          <h6><a href="https://go.microsoft.com/fwlink/?LinkId=521839"><u>Privacy</u></a></h6>
         </li>
         <li>
-          <h6><a href="https://www.microsoft.com/en-us/legal/terms-of-use"><u>Terms of Use</u></a></h6>
+          <h6><a href="https://www.microsoft.com/legal/terms-of-use"><u>Terms of Use</u></a></h6>
         </li>
         <li>
-          <h6><a href="https://www.microsoft.com/en-us/legal/intellectualproperty/trademarks"><u>Trademarks</u></a></h6>
+          <h6><a href="https://www.microsoft.com/trademarks"><u>Trademarks</u></a></h6>
         </li>
         {visible && (
           <li

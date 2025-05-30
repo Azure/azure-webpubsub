@@ -94,11 +94,12 @@ function setNonEssentialCookies(categoryPreferences) {
     SocialMediaCookie(RESET)
   }
 
-  if (categoryPreferences.Analytics) {
-    AnalyticsCookie(SET)
-  } else {
-    AnalyticsCookie(RESET)
-  }
+  // TODO: replace with first-party tracking.
+  //if (categoryPreferences.Analytics) {
+  //  AnalyticsCookie(SET)
+  //} else {
+  //  AnalyticsCookie(RESET)
+  //}
 }
 
 function onConsentChanged(categoryPreferences) {
