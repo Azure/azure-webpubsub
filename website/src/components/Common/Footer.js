@@ -13,10 +13,10 @@ function Footer() {
           <h6><a href="https://go.microsoft.com/fwlink/?LinkId=521839"><u>Privacy</u></a></h6>
         </li>
         <li>
-          <h6><a href="https://www.microsoft.com/legal/terms-of-use"><u>Terms of Use</u></a></h6>
+          <h6><a href="https://go.microsoft.com/fwlink/?LinkID=206977"><u>Terms of Use</u></a></h6>
         </li>
         <li>
-          <h6><a href="https://www.microsoft.com/trademarks"><u>Trademarks</u></a></h6>
+          <h6><a href="https://go.microsoft.com/fwlink/?linkid=2196228"><u>Trademarks</u></a></h6>
         </li>
         {visible && (
           <li
