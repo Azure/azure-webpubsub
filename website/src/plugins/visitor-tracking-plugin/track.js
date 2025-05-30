@@ -10,6 +10,7 @@ function SocialMediaCookie(setString) {
 }
 
 function AnalyticsCookie(setString) {
+  /* TODO: replace with first-party tracking.
   const enable = setString === SET
   if (enable) {
     window[`ga-disable-G-${trackingIndex}`] = false
@@ -34,6 +35,7 @@ function AnalyticsCookie(setString) {
     expireCookie('_mid', normalizePath(location.pathname))
     expireCookie('_mid', getParentPath())
   }
+  */
 }
 
 function normalizePath(path) {
@@ -94,12 +96,11 @@ function setNonEssentialCookies(categoryPreferences) {
     SocialMediaCookie(RESET)
   }
 
-  // TODO: replace with first-party tracking.
-  //if (categoryPreferences.Analytics) {
-  //  AnalyticsCookie(SET)
-  //} else {
-  //  AnalyticsCookie(RESET)
-  //}
+  if (categoryPreferences.Analytics) {
+    AnalyticsCookie(SET)
+  } else {
+    AnalyticsCookie(RESET)
+  }
 }
 
 function onConsentChanged(categoryPreferences) {
@@ -150,6 +151,6 @@ function sendEventsToGoogleAnalytics(location, previousLocation) {
 module.exports = clientModule = {
   onRouteDidUpdate: function ({ location, previousLocation }) {
     initConsent()
-    sendEventsToGoogleAnalytics(location, previousLocation)
+    //sendEventsToGoogleAnalytics(location, previousLocation)
   },
 }
