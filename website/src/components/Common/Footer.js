@@ -1,10 +1,12 @@
 import React, { useState, useEffect } from 'react'
 
 function Footer() {
-  const [visible, setVisible] = useState(true)
-  useEffect(() => {
-    setVisible(window.siteConsent.isConsentRequired)
-  })
+  const [visible, setVisible] = useState(false)
+  // This state is used to determine if the "Manage cookies" link should be displayed
+  // TODO: Uncomment to toggle management when first-party tracking is implemented and use cookies.
+  // useEffect(() => {
+  //   setVisible(window.siteConsent.isConsentRequired)
+  // })
 
   return (
     <footer className="flex justify-center bg-gray-100  py-2 text-xs tracking-wider text-gray-600">
