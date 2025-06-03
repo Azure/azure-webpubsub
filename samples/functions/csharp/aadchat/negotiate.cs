@@ -30,11 +30,12 @@ namespace aadchat
             // read value from settings
             var hub = Environment.GetEnvironmentVariable("Hub");
             var host = Environment.GetEnvironmentVariable("WebPubSubEndpoint");
+            var functionuai = Environment.GetEnvironmentVariable("FunctionUserAssignedIdentityClientId");
 
             // Check if AAD user identity header exists
             // When AAD auth is enabled, Function set this header
             if (req.Headers.TryGetValue("x-ms-client-principal-name", out var userId)){
-                var service = new WebPubSubServiceClient(new Uri(host), hub, new DefaultAzureCredential());
+                var service = new WebPubSubServiceClient(new Uri(host), hub, new DefaultAzureCredential(new DefaultAzureCredentialOptions { ManagedIdentityClientId = functionuai }));
                 var accessUrl = await service.GetClientAccessUriAsync(userId: userId);
                 return new JsonResult(new
                 {
@@ -43,7 +44,7 @@ namespace aadchat
             }
             else
             {
-                log.LogWarning("No x-ms-client-principal-name: " + req.Headers);
+                log.LogWarning("No x-ms-client-principal-name found in request headers.");
                 return new UnauthorizedResult();
             }
         }

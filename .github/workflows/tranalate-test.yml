@@ -1,0 +1,37 @@
+name: Translate tests with deep prompt  
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  check-and-translate:
+    name: Translate tests with DeepPrompt
+    runs-on: ubuntu-latest
+    if: github.event.review.state == 'approved'
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+      
+      - name: Check if all checks passed
+        id: checks
+        uses: LouisBrunner/checks-action@v1.1.1
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          ref: ${{ github.event.pull_request.head.sha }}
+          timeout: 300
+
+      - name: Run translation only if all checks are successful
+        if: steps.checks.outputs.conclusion == 'success'
+        run: |
+          echo "All checks passed. Starting translation."
+          cd eng/translation
+          yarn install
+          node translate.js
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          API_BASE: ${{ secrets.OPENAI_API_BASE }}
+          PR_ID: ${{ github.event.pull_request.number }}

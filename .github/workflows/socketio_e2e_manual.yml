@@ -1,0 +1,53 @@
+# This workflow will do a clean installation of node dependencies, cache/restore them, build the source code and run tests across different versions of node
+# For more information see: https://docs.github.com/en/actions/automating-builds-and-tests/building-and-testing-nodejs
+
+name: Socket.IO E2E Manual test
+on:
+  workflow_dispatch:
+    inputs:
+      connection_string:
+        description: 'Connection String'
+        required: true
+        default: ''
+
+env:
+  NODE_VERSION: '18.x'                # set this to the node version to use
+
+jobs:
+  build:
+    name: Socket.IO E2E tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    strategy:
+      matrix:
+        node-version: [18.x]
+    steps:
+    - uses: actions/checkout@v3
+      with:
+        fetch-depth: 3
+    - name: Set up Node.js
+      uses: actions/setup-node@v3
+      with:
+        node-version: ${{ env.NODE_VERSION }}
+        cache: 'npm'
+    - name: Install dependencies
+      run: npm install -g yarn
+    - name: Install SocketIO SDK
+      id: socketio
+      run: |
+        pushd sdk/server-proxies
+        yarn
+        popd
+        pushd sdk/webpubsub-socketio-extension
+        yarn
+        yarn build
+        popd
+      shell: bash
+    - name: Test
+      env:
+        WebPubSubConnectionString: ${{ github.event.inputs.connection_string }}
+        WebPubSubHub: eio_hub
+        SocketIoPort: 3000
+      run: |
+        pushd sdk/webpubsub-socketio-extension
+        yarn run test

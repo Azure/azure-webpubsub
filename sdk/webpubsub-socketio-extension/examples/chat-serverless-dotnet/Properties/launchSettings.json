@@ -1,0 +1,9 @@
+{
+  "profiles": {
+    "chat_serverless_dotnet": {
+      "commandName": "Project",
+      "commandLineArgs": "--port 7204",
+      "launchBrowser": false
+    }
+  }
+}

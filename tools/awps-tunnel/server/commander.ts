@@ -11,7 +11,7 @@ import { WebPubSubManagementClient } from "@azure/arm-webpubsub";
 import fs from "fs";
 
 import { Command, program } from "commander";
-import { AzureCliCredential, ChainedTokenCredential, EnvironmentCredential, ManagedIdentityCredential } from "@azure/identity";
+import { AzureCliCredential, ChainedTokenCredential, EnvironmentCredential, ManagedIdentityCredential, AzurePowerShellCredential } from "@azure/identity";
 import { parseUrl, dumpRawRequest, getRawResponse, tryParseInt } from "./util";
 
 import packageJson from "./package.json";
@@ -49,6 +49,7 @@ interface RunCommandLineArgs {
   webviewPort?: string;
   webviewHost?: string;
   noWebview?: boolean;
+  connection?: string;
 }
 
 export function getCommand(appConfigPath: string, dbFile: string): Command {
@@ -67,15 +68,15 @@ export function getCommand(appConfigPath: string, dbFile: string): Command {
   configureHelpOptions(status);
   const bind = program.command("bind").description("Bind configurations to the tool so that you don't need to specify them every time running the tool.");
   bind
-    .option("-e, --endpoint [endpoint]", "Sepcify the Web PubSub service endpoint URL to connect to")
-    .option("--hub [hub]", "Specify the hub to connect to")
-    .option("-u, --upstream [upstream]", "Specify the upstream URL to connect to, URL scheme could be ommited, defaults to http, e.g. localhost:3000 or https://localhost:5001")
-    .option("--webviewPort [webviewPort]", "Specify the webview port to use. If not specified, it defaults to [upstreamPort+1000]")
-    .option("--webviewHost [webviewHost]", "Specify the webview hostname to use. If not specified, it defaults to 127.0.0.1")
-    .option("-s, --subscription [subscription]", "Specify the subscriptionId your Web PubSub service belongs to. Specify subscriptionId and resource group to let the tool fetch hub settings for you")
+    .option("-e, --endpoint [endpoint]", "Sepcify the Web PubSub service endpoint URL to connect to.")
+    .option("--hub [hub]", "Specify the hub to connect to.")
+    .option("-u, --upstream [upstream]", "Specify the upstream URL to connect to, URL scheme could be ommited, defaults to http, e.g. localhost:3000 or https://localhost:5001.")
+    .option("--webviewPort [webviewPort]", "Specify the webview port to use. If not specified, it defaults to [upstreamPort+1000].")
+    .option("--webviewHost [webviewHost]", "Specify the webview hostname to use. If not specified, it defaults to 127.0.0.1.")
+    .option("-s, --subscription [subscription]", "Specify the subscriptionId your Web PubSub service belongs to. Specify subscriptionId and resource group to let the tool fetch hub settings for you.")
     .option(
       "-g, --resourceGroup [resourceGroup]",
-      "Specify the resource group your Web PubSub service belongs to. Specify subscriptionId and resource group to let the tool fetch hub settings for you",
+      "Specify the resource group your Web PubSub service belongs to. Specify subscriptionId and resource group to let the tool fetch hub settings for you.",
     )
     .action((update) =>
       createBindAction(bind, settings, update, (updatedSettings) => {
@@ -91,18 +92,22 @@ export function getCommand(appConfigPath: string, dbFile: string): Command {
       "-e, --endpoint [endpoint]",
       "Specify the Web PubSub service endpoint URL to connect to, you don't need to set it if WebPubSubConnectionString environment variable is set. If both are set, this option will be used.",
     )
+    .option(
+      "-c, --connection [connection]",
+      "Specify the Web PubSub service connection string to connection to, this option overrides the --endpoint option or WebPubSubConnectionString environment variable.",
+    )
     .option("--hub [hub]", "Specify the hub to connect to. If not specified, the hub value set with `awps-tunnel bind --hub [hub]` will be used.")
     .option(
       "-u, --upstream [upstream]",
       "Specify the upstream URL to connect to, URL scheme could be ommited, defaults to http, e.g. localhost:3000 or https://localhost:5001. If not specified, http://localhost:3000 will be used.",
     )
-    .option("--webviewPort [webviewPort]", "Specify the webview port to use. If not specified, it defaults to [upstreamPort+1000]")
-    .option("--webviewHost [webviewHost]", "Specify the webview hostname to use. If not specified, it defaults to 127.0.0.1")
+    .option("--webviewPort [webviewPort]", "Specify the webview port to use. If not specified, it defaults to [upstreamPort+1000].")
+    .option("--webviewHost [webviewHost]", "Specify the webview hostname to use. If not specified, it defaults to 127.0.0.1.")
     .option("--noWebview", "Disable the webview")
-    .option("-s, --subscription [subscription]", "Specify the subscriptionId your Web PubSub service belongs to. Specify subscriptionId and resource group to let the tool fetch hub settings for you")
+    .option("-s, --subscription [subscription]", "Specify the subscriptionId your Web PubSub service belongs to. Specify subscriptionId and resource group to let the tool fetch hub settings for you.")
     .option(
       "-g, --resourceGroup [resourceGroup]",
-      "Specify the resource group your Web PubSub service belongs to. Specify subscriptionId and resource group to let the tool fetch hub settings for you",
+      "Specify the resource group your Web PubSub service belongs to. Specify subscriptionId and resource group to let the tool fetch hub settings for you.",
     )
     .option("--verbose", "Enable verbose logs")
     .action((updated) => {
@@ -116,13 +121,13 @@ export function getCommand(appConfigPath: string, dbFile: string): Command {
 }
 
 function print(settings: Settings) {
-  printer.text(`Current Web PubSub service endpoint: ${settings?.WebPubSub?.Endpoint ?? "<Not binded>"}`);
-  printer.text(`Current hub: ${settings?.WebPubSub?.Hub ?? "<Not binded>"}`);
-  printer.text(`Current upstream: ${settings?.WebPubSub?.Upstream ?? "<Not binded>"}`);
-  printer.text(`Current subscription Id: ${settings?.WebPubSub?.SubscriptionId ?? "<Not binded>"}`);
-  printer.text(`Current resource group: ${settings?.WebPubSub?.ResourceGroup ?? "<Not binded>"}`);
-  printer.text(`Current webview port: ${settings?.WebPubSub?.WebviewPort ?? "<Not binded>"}`);
-  printer.text(`Current webview hostname: ${settings?.WebPubSub?.WebviewHost ?? "<Not binded>"}`);
+  printer.text(`Current Web PubSub service endpoint: ${settings?.WebPubSub?.Endpoint ?? "<Not binded>"}. Use 'awps-tunnel bind --endpoint [endpoint]' to bind the value.`);
+  printer.text(`Current hub: ${settings?.WebPubSub?.Hub ?? "<Not binded>"}. Use 'awps-tunnel bind --hub [hub]' to bind the value.`);
+  printer.text(`Current upstream: ${settings?.WebPubSub?.Upstream ?? "<Not binded>"}. Use 'awps-tunnel bind --upstream [upstream]' to bind the value.`);
+  printer.text(`Current subscription Id: ${settings?.WebPubSub?.SubscriptionId ?? "<Not binded>. Use 'awps-tunnel bind -s [subscriptionId]' to bind the value."}`);
+  printer.text(`Current resource group: ${settings?.WebPubSub?.ResourceGroup ?? "<Not binded>"}. Use 'awps-tunnel bind -g [resourceGroup]' to bind the value.`);
+  printer.text(`Current webview port: ${settings?.WebPubSub?.WebviewPort ?? "<Not binded>"}. Use 'awps-tunnel bind --webviewPort [port]' to bind the value.`);
+  printer.text(`Current webview hostname: ${settings?.WebPubSub?.WebviewHost ?? "<Not binded>"}. Use 'awps-tunnel bind --webviewHost [hostname]' to bind the value.`);
 }
 
 function createStatusAction(settings: Settings) {
@@ -257,37 +262,57 @@ function createRunCommand(run: Command, dbFile: string, settings: Settings, comm
       return;
     }
     upstream = parsed;
+    currentUpstream = parsed.toString();
   } else {
     printer.status(`Upstream is not specified. http://localhost:3000 is used as the default upstream value. Use -u|--upstream to specify the upstream URL.`);
     currentUpstream = "http://localhost:3000";
     upstream = new URL(currentUpstream);
   }
 
-  const connectionString = process.env.WebPubSubConnectionString;
-  // endpoint > connectionString > settings.WebPubSub.Endpoint
-  let endpoint = connectionString ? undefined : settings.WebPubSub.Endpoint;
-  if (command.endpoint) {
-    // override the endpoint value if it is set from the command directly
-    if (!parseUrl(command.endpoint)) {
-      printer.error(`Error: invalid endpoint: ${command.endpoint}`);
-      return;
+  // --connection > --endpoint > env WebPubSubConnectionString > binded settings.WebPubSub.Endpoint
+  let connectionString: string | undefined = undefined;
+  let endpoint: string | undefined = undefined;
+  if (command.connection) {
+    if (command.endpoint) {
+      printer.warn(`Warning: both --connection and --endpoint are set, --connection will be used.`);
+    } else {
+      printer.status(`Using connection string specified using --connection.`);
     }
-
-    endpoint = command.endpoint;
-  }
-
-  if (!connectionString && !endpoint) {
-    printer.error(`Error: neither WebPubSubConnectionString env is set nor endpoint is not specified.`);
-    run.outputHelp();
-    return;
+    connectionString = command.connection;
+  } else {
+    if (command.endpoint) {
+      // override the endpoint value if it is set from the command directly
+      if (!parseUrl(command.endpoint)) {
+        printer.error(`Error: invalid endpoint: ${command.endpoint}`);
+        return;
+      }
+      if (process.env.WebPubSubConnectionString) {
+        printer.warn(`Warning: both --endpoint and env WebPubSubConnectionString are set, --endpoint will be used.`);
+      } else {
+        printer.status(`Using endpoint specified using --endpoint.`);
+      }
+      endpoint = command.endpoint;
+    } else {
+      connectionString = process.env.WebPubSubConnectionString;
+      if (connectionString) {
+        printer.status(`Using connection string from env WebPubSubConnectionString.`);
+      } else {
+        endpoint = settings.WebPubSub.Endpoint;
+        if (endpoint) {
+          printer.status(`Using endpoint ${endpoint} from binded settings. Please make sure the Access Policy is correctly configured to allow your access.`);
+        } else {
+          printer.error(`Error: SET WebPubSubConnectionString env or specify --endpoint <endpoint> or specify --connection <connectionString>`);
+          run.outputHelp();
+          return;
+        }
+      }
+    }
   }
 
   let tunnel: HttpServerProxy;
   if (connectionString) {
-    printer.status(`Using endpoint and credential from WebPubSubConnectionString env.`);
     tunnel = HttpServerProxy.fromConnectionString(connectionString, hub, { target: currentUpstream });
   } else {
-    printer.status(`Using endpoint ${endpoint} from settings. Please make sure the Access Policy is correctly configured to allow your access.`);
     // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
     tunnel = new HttpServerProxy(endpoint!, getCredential(), hub, { target: currentUpstream });
   }
@@ -358,5 +383,5 @@ function createRunCommand(run: Command, dbFile: string, settings: Settings, comm
 }
 
 function getCredential() {
-  return new ChainedTokenCredential(new AzureCliCredential(), new EnvironmentCredential(), new ManagedIdentityCredential());
+  return new ChainedTokenCredential(new AzureCliCredential(), new AzurePowerShellCredential(), new EnvironmentCredential(), new ManagedIdentityCredential());
 }

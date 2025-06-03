@@ -1,4 +1,3 @@
-import { AbortSignal } from "@azure/abort-controller";
 import { TokenCredential, AzureKeyCredential, isTokenCredential } from "@azure/core-auth";
 import { AbortSignalLike } from "@azure/abort-controller";
 import { parseConnectionString } from "./utils";
@@ -64,6 +63,18 @@ export class HttpServerProxy {
       });
     }
   }
+  
+  public async getRestApiToken(url: string): Promise<string> {
+    if (isTokenCredential(this.credential)) {
+      return (await this.credential.getToken("https://webpubsub.azure.com"))!.token;
+    }else{
+      return jwt.sign({}, this.credential.key, {
+        audience: url,
+        expiresIn: "1h",
+        algorithm: "HS256",
+      });
+    }
+  }
 
   private async sendHttpRequest(request: TunnelIncomingMessage, options?: RunOptions, abortSignal?: AbortSignalLike): Promise<TunnelOutgoingMessage> {
     function convertHeaders(headers: http.IncomingHttpHeaders): Record<string, string[]> {
@@ -108,7 +119,7 @@ export class HttpServerProxy {
               chunks.push(chunk);
             });
             res.on("end", () => {
-              logger.info(`Received proxied response for '${getDisplayUrl(url)}: ${res.statusCode ?? 0}'`);
+              logger.info(`Received proxied response for '${getDisplayUrl(url)}: status code:${res.statusCode ?? 0}'`);
               const tunnelResponse = {
                 StatusCode: res.statusCode ?? 0,
                 Headers: convertHeaders(res.headers),
@@ -135,7 +146,7 @@ export class HttpServerProxy {
     }
 
     const arrivedAt = Date.now();
-    logger.info(`Received request from: '${request.HttpMethod} ${request.Url} ${request.Content?.byteLength ?? 0}`);
+    logger.info(`Received request from: '${request.HttpMethod} ${request.Url} , content-length: ${request.Content?.byteLength ?? 0}`);
     const url = new URL(new URL(request.Url).pathname, this._options.target);
     logger.info(`Proxied request to ${getDisplayUrl(url)}`);
     if (options?.handleProxiedRequest) {

@@ -5,6 +5,8 @@ authors: [KevinG]
 custom_edit_url: null
 ---
 
+<main>
+
 ## **TL;DR**  
 Socket.IO library is natively supported on Azure. 
 
@@ -89,3 +91,5 @@ Since public preview, we received positive feedback from developers and now we a
 - [:link: Socket.IO library documentation](https://socket.io/)
 - [:link: Quickstarts to migrate an existing Socket.IO app on Azure](https://learn.microsoft.com/azure/azure-web-pubsub/socketio-quickstart)
 - [:link: Internal: how does Azure solve the scalability challenge for Socket.IO developers](https://learn.microsoft.com/azure/azure-web-pubsub/socketio-service-internal)
+
+</main>

@@ -45,7 +45,7 @@ param appServiceSku string = 'F1' // The SKU of App Service Plan
 @metadata({
   description: 'Demo package to be deployed.'
 })
-param packageUri string = 'https://livedemopackages.blob.core.windows.net/packages/scoreboard_0.1.0.zip'
+param packageUri string = 'https://livedemopackages.z13.web.core.windows.net/packages/scoreboard_0.1.0.zip'
 
 var location = resourceGroup().location
 var demoName = 'scoreboard'

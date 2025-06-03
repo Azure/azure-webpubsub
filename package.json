@@ -1,10 +1,8 @@
 {
-  "name": "azure-webpubsub",
+  "name": "azure-webpubsub-workspace",
   "private": true,
   "workspaces": [
-    "samples/javascript/**",
-    "sdk/**socketio**/",
-    "experimental/**",
+    "sdk/",
     "tools/awps-tunnel/client/",
     "tools/awps-tunnel/server/"
   ],
@@ -12,5 +10,8 @@
   "main": "index.js",
   "repository": "https://github.com/Azure/azure-webpubsub.git",
   "author": "Liangying Wei <lianwei@microsoft.com>",
-  "license": "MIT"
+  "license": "MIT",
+  "dependencies": {
+    "@octokit/rest": "^20.1.1"
+  }
 }

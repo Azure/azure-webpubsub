@@ -57,6 +57,8 @@ export class TunnelConnection {
   private readonly lifetimeTcs: PromiseCompletionSource<void> = new PromiseCompletionSource<void>();
   private _stopped = false;
   private _ackId: number = 0;
+  private _keyMapping = new Map<string, {count: number, client: WebPubSubTunnelClient}>();
+
   constructor(
     private readonly endpoint: string,
     private readonly credential: AzureKeyCredential | TokenCredential,
@@ -83,8 +85,8 @@ export class TunnelConnection {
     );
   }
 
-  public async invokeAsync(httpRequest: HttpRequestLike, abortSignal?: AbortSignalLike): Promise<HttpResponseLike> {
-    const client = this.getClient();
+  public async invokeAsync(httpRequest: HttpRequestLike, abortSignal?: AbortSignalLike, consistentKey?: string): Promise<HttpResponseLike> {
+    const client = this.getClient(consistentKey);
     if (!client) {
       throw new Error("No connection available.");
     }
@@ -113,6 +115,9 @@ export class TunnelConnection {
 
         if (!firstResponse) {
           firstResponse = true;
+          if (consistentKey) {
+            this.releaseClient(consistentKey, client.id);
+          }
           pcs.resolve({
             statusCode: data!.StatusCode,
             body: body,
@@ -124,6 +129,10 @@ export class TunnelConnection {
     ackMap.set(ackId, ackEntity);
 
     try {
+      if (consistentKey) {
+        this.lockClient(consistentKey, client);
+      }
+      
       let headers = {};
       if (httpRequest.contentType) {
         headers = { "Content-Type": [httpRequest.contentType] };
@@ -137,6 +146,9 @@ export class TunnelConnection {
       return pcs.promise;
     } catch (err) {
       this._ackMap.delete(ackId);
+      if (consistentKey) {
+        this.releaseClient(consistentKey, client.id);
+      }
       throw err;
     }
   }
@@ -165,7 +177,21 @@ export class TunnelConnection {
     return keys[Math.floor(Math.random() * keys.length)];
   }
 
-  private getClient(): WebPubSubTunnelClient | undefined {
+  private getClient(key?: string): WebPubSubTunnelClient | undefined {
+    if (key) {
+      const tuple = this._keyMapping.get(key);
+  
+      if (tuple && tuple.client.stopped) {
+        this._keyMapping.delete(key);
+      }
+  
+      return tuple?.client || this.getRandomClient();
+    }
+  
+    return this.getRandomClient();
+  }
+
+  private getRandomClient(): WebPubSubTunnelClient | undefined {
     let client: WebPubSubTunnelClient | undefined;
     let i = 0;
     do {
@@ -176,6 +202,30 @@ export class TunnelConnection {
     } while (i <= 5 && (!client || client.stopped));
     
     return client;
+  }
+
+  private lockClient(key: string, client: WebPubSubTunnelClient): void {
+    let tuple = this._keyMapping.get(key);
+    if (tuple) {
+      tuple = {count: tuple.count+1, client};
+    } else {
+      tuple = {count: 1, client};
+    }
+    
+    this._keyMapping.set(key, tuple);
+  }
+
+  private releaseClient(key: string, clientId: string): void {
+    let tuple = this._keyMapping.get(key);
+    if (!tuple || tuple.client.id != clientId) {
+      return;
+    }
+    let newCount = tuple.count - 1;
+    if (newCount === 0) {
+      this._keyMapping.delete(key);
+    } else {
+      this._keyMapping.set(key, {count: newCount, client: tuple.client});
+    }
   }
 
   private async processMessage(client: WebPubSubTunnelClient, message: TunnelMessage, abortSignal?: AbortSignalLike): Promise<void> {
@@ -273,7 +323,7 @@ export class TunnelConnection {
     }
     const url = this.getUrl(target, this.hub);
     const client = new WebPubSubTunnelClient(url, this.credential, this.id, target.target);
-    logger.info(`Starting connection: ${client.id}, hub: ${this.hub}`);
+    logger.verbose(`Starting connection: ${client.id}, hub: ${this.hub}`);
     client.on("stop", () => {
       logger.warning(`Client ${client.getPrintableIdentifier()} stopped, hub: ${this.hub}`);
       this.tryEndLife(client.id);
@@ -295,7 +345,8 @@ export class TunnelConnection {
       }
       try {
         await client.startAsync(abortSignal);
-        logger.info(`Connected connections: (${this.clients.size})\n` + Array.from(this.printClientLines()).join("\n"));
+        logger.info(`Connected connections: (${this.clients.size})`);
+        logger.verbose(Array.from(this.printClientLines()).join("\n"));
         return client.id;
       } catch (err) {
         retryAttempt++;
@@ -322,7 +373,7 @@ export class TunnelConnection {
 
   private *printClientLines(): IterableIterator<string> {
     for (const [clientId, client] of this.clients) {
-      yield `${client.getPrintableIdentifier()}: connectionId: ${client.currentConnectionId}; userId: ${client.userId}; ended: ${
+      yield `\t${client.getPrintableIdentifier()}: connectionId: ${client.currentConnectionId}; userId: ${client.userId}; ended: ${
         client.stopped
       }; target: ${client.target ?? "<random>"}; `;
     }
@@ -334,7 +385,7 @@ export class TunnelConnection {
     if (target.endpoint) {
       endpoint = target.endpoint;
     } else {
-      logger.info(`No endpoint specified, use original endpoint ${this.endpoint}`);
+      logger.verbose(`No endpoint specified, use the original endpoint ${this.endpoint}`);
       endpoint = this.endpoint;
     }
     const uriBuilder = new URL(endpoint);

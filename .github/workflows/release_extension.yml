@@ -1,0 +1,47 @@
+name: Release VSCode Extension
+
+on: 
+  push:
+    branches:
+      - main
+    paths:
+        - 'tools/vscode-azurewebpubsub/**'
+  pull_request:
+    branches:
+      - main
+    paths:
+      - 'tools/vscode-azurewebpubsub/**'
+
+jobs:
+  build_pack_upload:
+    name: Release VSCode Extension
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: tools/vscode-azurewebpubsub
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v2
+    
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: 18
+
+      - name: Build and Pack
+        run:  npm install && npm run build && npm run package
+
+      - name: Get Metadata
+        id: metadata_step
+        run: |
+            package_version=$(node -p "require('./package.json').version")
+            echo "package_version=${package_version}" >> $GITHUB_OUTPUT
+            echo "vsix_filename=$(ls *.vsix)" >> $GITHUB_OUTPUT
+
+      - name: Upload to Artifact
+        uses: actions/upload-artifact@v4
+        with:
+            name: ${{ steps.metadata_step.outputs.vsix_filename }}
+            path: tools/vscode-azurewebpubsub/${{ steps.metadata_step.outputs.vsix_filename }}
+
+      # TODO: release to npm

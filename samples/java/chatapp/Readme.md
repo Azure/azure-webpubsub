@@ -28,8 +28,9 @@
 
 1. Copy **Connection String** from **Keys** tab of the created Azure Web PubSub service, run the below command with the `<connection-string>` replaced by your **Connection String**:
 
-```console
-mvn compile & mvn package & mvn exec:java -Dexec.mainClass="com.webpubsub.tutorial.App" -Dexec.cleanupDaemonThreads=false -Dexec.args="'<connection_string>'"
+```bash
+export WebPubSubConnectionString="<connection_string>"
+mvn compile & mvn package & mvn exec:java -Dexec.mainClass="com.webpubsub.tutorial.App" -Dexec.cleanupDaemonThreads=false
 ```
 
 ![connection string](../../../docs/images/portal_conn.png)

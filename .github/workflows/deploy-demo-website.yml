@@ -10,13 +10,17 @@ on:
     # Allows you to run this workflow manually from the Actions tab
     workflow_dispatch:
 
+permissions:
+  contents: write # Grant write permissions for this workflow only
+
 # A workflow run is made up of one or more jobs that can run sequentially or in parallel
 jobs:
     publish:
+        name: Deploy demo website
         runs-on: ubuntu-latest
         steps:
             - name: Checkout
-              uses: actions/checkout@v3
+              uses: actions/checkout@v4
               with:
                   ref: main
             - name: Build demo website
@@ -29,7 +33,7 @@ jobs:
                   gtmTrackingID: GTM-N67NT6N
             - name: Deploy to GitHub Pages
               if: success()
-              uses: crazy-max/ghaction-github-pages@v2
+              uses: crazy-max/ghaction-github-pages@v4
               with:
                   target_branch: gh-pages
                   build_dir: website/build

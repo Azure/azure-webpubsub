@@ -92,8 +92,8 @@ export class DataHub {
         });
       });
 
-      socket.on("getClientAccessUrl", async (callback) => {
-        const url = await this.GetClientAccessUrl();
+      socket.on("getClientAccessUrl", async (userId: string, roles: string[], groups: string[], callback) => {
+        const url = await this.GetClientAccessUrl(userId, roles, groups);
         callback(url);
       });
 
@@ -101,15 +101,24 @@ export class DataHub {
         const token = await this.tunnel.getLiveTraceToken();
         callback(token);
       });
+      socket.on("getRestApiToken", async (url, callback) => {
+        const token = await this.tunnel.getRestApiToken(url);
+        callback(token);
+      });
       socket.on("disconnect", () => {
         printer.log("A webview client connected");
+      });
+
+      socket.on("clearTrafficHistory", async () => {
+        await this.repo.clearDataAsync();
+        this.io.emit("clearTraffic");
       });
     });
   }
 
-  async GetClientAccessUrl(): Promise<string> {
+  async GetClientAccessUrl(userId?: string, roles?: string[], groups?: string[]): Promise<string> {
     try {
-      const url = (this.clientUrl = await this.tunnel.getClientAccessUrl());
+      const url = (this.clientUrl = await this.tunnel.getClientAccessUrl(userId, roles || [], groups || []));
       return url;
     } catch (err) {
       printer.error(`Unable to get client access URL: ${err}`);

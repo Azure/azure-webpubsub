@@ -38,7 +38,7 @@ function CodeStream() {
 function Overview() {
   return (
     <div>
-      <h2 className="text-4xl">Overview</h2>
+      <h1 className="text-4xl">Overview</h1>
       <TextBlock title="About the app">
         <p>This is a sample application to demonstrate how to use Azure Web PubSub to livestream your code to others.</p>
       </TextBlock>

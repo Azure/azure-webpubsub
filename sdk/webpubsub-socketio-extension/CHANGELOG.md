@@ -1,7 +1,17 @@
 
-# Change Log
+# Changelog
 
-All notable changes to this project will be documented in this file.
+## [1.2.0] - 2024-7-10
+
+### Dependencies
+- [`socket.io@~4.7.2`](https://github.com/socketio/socket.io/tree/4.7.2) ([diff](https://github.com/socketio/socket.io/compare/4.6.1...4.7.2)) [#762](https://github.com/Azure/azure-webpubsub/pull/762)
+
+### Fixed
+- Avoid using private method from Engine.IO [#763](https://github.com/Azure/azure-webpubsub/pull/763)
+
+## [1.1.0] - 2024-3-19
+
+- Messages sending to the same room or broadcast can guarantee order [#665](https://github.com/Azure/azure-webpubsub/pull/665)
 
 ## [1.0.1] - 2023-11-17
 

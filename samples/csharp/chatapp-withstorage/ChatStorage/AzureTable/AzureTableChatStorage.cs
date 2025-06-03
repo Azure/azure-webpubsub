@@ -60,8 +60,8 @@ namespace Microsoft.Azure.WebPubSub.Samples
             var pairReadSequenceId = await _tableClient.GetEntityIfExistsAsync<SessionEntity>(pair, user, SequenceIdColumn);
 
             return new ChatHistory(user, pair,
-                readSequenceId.HasValue ? readSequenceId.Value.ReadToSequenceId : 0,
-                pairReadSequenceId.HasValue ? pairReadSequenceId.Value.ReadToSequenceId : 0,
+                readSequenceId.HasValue ? readSequenceId.Value!.ReadToSequenceId : 0,
+                pairReadSequenceId.HasValue ? pairReadSequenceId.Value!.ReadToSequenceId : 0,
                 messages);
         }
 
@@ -80,7 +80,7 @@ namespace Microsoft.Azure.WebPubSub.Samples
                 return true;
             }
 
-            var entity = resp.Value;
+            var entity = resp.Value!;
             if (entity.ReadToSequenceId > sequenceId)
             {
                 return false;

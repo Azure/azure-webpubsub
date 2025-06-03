@@ -1,6 +1,7 @@
 import { Socket, io } from "socket.io-client";
-import { ConnectionStatus, ConnectionStatusPairs, DataModel } from "../models";
+import { ConnectionStatus, ConnectionStatusPairs, DataModel, RESTApi } from "../models";
 import { IDataFetcher } from "./IDataFetcher";
+import { loadApiSpec } from "../utils";
 
 abstract class ConnectionBasedDataFether implements IDataFetcher {
   public model: DataModel = {
@@ -15,6 +16,7 @@ abstract class ConnectionBasedDataFether implements IDataFetcher {
     builtinUpstreamServerStarted: false,
     trafficHistory: [],
     logs: [],
+    apiSpec: {} as RESTApi,
   };
 
   protected abstract _createConnection(): Promise<Socket>;
@@ -41,6 +43,9 @@ abstract class ConnectionBasedDataFether implements IDataFetcher {
   
   private async _start() {
     const newConnection = this._connection = await this._createConnection();
+    const apiSpec = await loadApiSpec();
+    this.model = { ...this.model, apiSpec };
+    this.setData(this.model);
 
     newConnection.on("updateLogs", (logs) => {
       this.model = { ...this.model, logs: [...this.model.logs, ...logs] };
@@ -95,6 +100,10 @@ abstract class ConnectionBasedDataFether implements IDataFetcher {
       this.setData(this.model);
     });
 
+    newConnection.on("clearTraffic", () => {
+      this.model = { ...this.model, trafficHistory: [] };
+      this.setData(this.model);
+    });
     await this._startConnection(newConnection);
     // add a tcs for connection started
     this._connectionStartedTcs.resolve();

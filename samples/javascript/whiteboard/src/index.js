@@ -61,6 +61,12 @@ async function initialize() {
       draw: (b, d) => b.polyline(d),
       update: (e, d) => e.plot(d)
     },
+    polygon: {
+      start: (x, y) => [x, y],
+      move: (x, y, d) => { d.push(x, y); return [x, y]; },
+      draw: (b, d) => b.polygon(d),
+      update: (e, d) => e.plot(d)
+    },
     line: {
       start: (x, y) => [x, y, x, y],
       move: (x, y, d) => { d[2] = x; d[3] = y; },

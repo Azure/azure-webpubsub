@@ -1,0 +1,15 @@
+{
+  "name": "copilot",
+  "version": "1.0.0",
+  "description": "",
+  "type": "module",
+  "main": "testTranslation.js",
+  "scripts": {
+    "translate": "node testTranslation.js"
+  },
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "@octokit/rest": "^20.1.1"
+  }
+}

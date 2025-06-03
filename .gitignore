@@ -3,6 +3,7 @@
 ##
 ## Get latest from https://github.com/github/gitignore/blob/master/VisualStudio.gitignore
 .vscode/
+!tools/vscode-azurewebpubsub/.vscode
 esm/
 dist-esm/
 .rollup.cache/
@@ -14,6 +15,12 @@ types/
 *.user
 *.userosscache
 *.sln.docstates
+
+# python env
+venv/
+
+# Java output
+target/
 
 # User-specific files (MonoDevelop/Xamarin Studio)
 *.userprefs
@@ -359,3 +366,6 @@ MigrationBackup/
 # venv
 env/
 website/docusaurus/
+
+# Azure Web PubSub tunnel API visulization tool resources
+tools/awps-tunnel/client/public/api/

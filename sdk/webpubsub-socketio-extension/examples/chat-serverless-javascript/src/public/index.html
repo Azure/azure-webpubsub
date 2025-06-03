@@ -1,0 +1,51 @@
+<html>
+
+<body>
+  <h1>Socket.IO Serverless Sample</h1>
+  <div id="chatPage" class="chat-container">
+    <div class="chat-input">
+        <input type="text" id="chatInput" placeholder="Type your message here...">
+        <button onclick="sendMessage()">Send</button>
+    </div>
+    <div id="chatMessages" class="chat-messages"></div>
+</div>
+  <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
+  <script>
+    function appendMessage(message) {
+      const chatMessages = document.getElementById('chatMessages');
+      const messageElement = document.createElement('div');
+      messageElement.innerText = message;
+      chatMessages.appendChild(messageElement);
+      hatMessages.scrollTop = chatMessages.scrollHeight;
+    }
+
+    function sendMessage() {
+      const message = document.getElementById('chatInput').value;
+      if (message) {
+        document.getElementById('chatInput').value = '';
+        socket.emit('chat', message);
+      }
+    }
+
+    async function initializeSocket() {
+      const negotiateResponse = await fetch(`/api/negotiate`);
+      if (!negotiateResponse.ok) {
+          console.log("Failed to negotiate, status code =", negotiateResponse.status);
+          return;
+      }
+      const negotiateJson = await negotiateResponse.json();
+      socket = io(negotiateJson.endpoint, {
+          path: negotiateJson.path,
+          query: { access_token: negotiateJson.token }
+      });
+
+      socket.on('new message', (socketId, message) => {
+          appendMessage(`${socketId.substring(0,5)}: ${message}`);
+      })
+    }
+
+    initializeSocket();
+  </script>
+</body>
+
+</html>

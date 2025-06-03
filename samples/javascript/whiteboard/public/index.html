@@ -109,7 +109,7 @@
           <input class="form-control" type="text" placeholder="Type here to chat..." v-model="draft"
             v-on:keypress.enter="sendMessage" aria-label="text input place">
           <div class="input-group-append">
-              <button class="btn btn-outline-success" v-bind:disabled="!draft" v-on:click="sendMessage" aria-label="send message button">
+              <button class="btn btn-outline-success" v-bind:disabled="!draft" v-on:click="sendMessage" aria-label="message sent">
                   <i class="fas fa-arrow-right"></i>
               </button>
           </div>
@@ -120,14 +120,14 @@
       <div class="modal-dialog" role="document">
         <div class="modal-content">
           <div class="modal-header">
-            <h5 class="modal-title" id="exampleModalLabel">Please input your name</h5>
+            <div class="modal-title" id="exampleModalLabel" style="font-size: 1.25rem; font-weight: bold;">Please input your name</div>
           </div>
           <div class="modal-body">
             <input id="username" class="form-control" type="text" placeholder="Your name" v-model="name"
               v-on:keypress.enter="setName">
           </div>
           <div class="modal-footer">
-            <button type="button" class="btn btn-primary" v-bind:disabled="!name" data-dismiss="modal" aria-label="ok bottom">OK</button>
+            <button type="button" class="btn btn-primary" v-bind:disabled="!name" data-dismiss="modal" aria-label="ok">OK</button>
           </div>
         </div>
       </div>
@@ -135,9 +135,9 @@
     <div class="modal fade" id="settings" tabindex="-1" role="dialog">
       <div class="modal-dialog" role="document">
         <div class="modal-content">
-          <div class="modal-header">
-            <h5 class="modal-title" id="exampleModalLabel">Settings</h5>
-          </div>
+            <div class="modal-header">
+              <div class="modal-title" id="exampleModalLabel" style="font-size: 1.25rem; font-weight: bold;">Settings</div>
+            </div>
           <div class="modal-body container">
             <div class="form-group">
               <div class="mb-2">

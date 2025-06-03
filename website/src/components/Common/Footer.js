@@ -24,7 +24,6 @@ function Footer() {
           <li
             className="cursor-pointer"
             onClick={() => {
-              console.log('hello.')
               window.siteConsent.manageConsent()
             }}
           >
@@ -32,7 +31,7 @@ function Footer() {
           </li>
         )}
 
-        <li><h6>{`© Microsoft ${new Date().getFullYear()}`}</h6></li>
+        <li>{`© Microsoft ${new Date().getFullYear()}`}</li>
       </ul>
     </footer>
   )

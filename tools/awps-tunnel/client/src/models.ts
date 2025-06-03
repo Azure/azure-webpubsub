@@ -112,4 +112,82 @@ export interface DataModel {
    * Whether the built-in upstream server is started in the server
    */
   builtinUpstreamServerStarted: boolean;
+  apiSpec: RESTApi;
+}
+
+export interface RESTApi {
+  swagger: string,
+  info: {
+    title: string,
+    version: string
+  },
+  paths: { [key: string]: Record<"get" | "post" | "delete" | "options" | "patch" | "put" | "head", Operation> },
+  definitions: { [name:string]: Definition }
+}
+export interface Operation {
+  tags?: string[];
+  summary?: string;
+  description?: string;
+  operationId: string;
+  consumes?: string[];
+  produces?: string[];
+  parameters: Parameter[];
+  responses: { [status: string]: ResponseSchema };
+  deprecated?: boolean;
+  'x-ms-examples'?: any;
+}
+
+export interface Parameter {
+  name: string;
+  in: 'query' | 'header' | 'path' | 'formData' | 'body';
+  description?: string;
+  required?: boolean;
+  type?: string;
+  format?: string;
+  schema?: Definition;
+  items?: Items;
+  collectionFormat?: 'csv' | 'ssv' | 'tsv' | 'pipes' | 'multi';
+  default?: any;
+  pattern?: string;
+}
+
+export interface Items {
+  type?: string;
+  items?: Items;
+  collectionFormat?: 'csv' | 'ssv' | 'tsv' | 'pipes' | 'multi';
+  default?: any;
+  description?: string,
+  $ref?: string
+}
+
+export interface ResponseSchema {
+  description: string;
+  schema?: Definition;
+  headers?: { [key: string]: Header };
+  'x-ms-error-response'?: boolean;
+}
+
+export interface Header {
+  type: string;
+  format?: string;
+  items?: Items;
+  collectionFormat?: 'csv' | 'ssv' | 'tsv' | 'pipes' | 'multi';
+  default?: any;
+}
+
+export interface Definition {
+  name?: string
+  description?: string;
+  type: string;
+  properties?: Record<string, Items>,
+  items?: {
+    type: string;
+    $ref?: string;
+  };
+  $ref?: string;
+}
+
+export interface Example{
+  parameters: Record<string, any>;
+  responses: {[status: string]: {}}
 }

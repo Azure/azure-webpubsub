@@ -1,0 +1,31 @@
+{
+    "compilerOptions": {
+        "module": "commonjs",
+        "target": "es6",
+        "outDir": "out",
+        "lib": [
+            "es6"
+        ],
+        "sourceMap": true,
+        "rootDir": ".",
+        "skipLibCheck": true,
+        "noUnusedLocals": false,
+        "noImplicitThis": true,
+        "noImplicitReturns": true,
+        "strictNullChecks": true,
+        "noUnusedParameters": false,
+        "baseUrl": "./",
+        "paths": {
+            "*": [
+                "node_modules/vscode/*",
+                "*"
+            ]
+        }
+    },
+    "exclude": [
+        "node_modules",
+        ".vscode-test",
+        "gulpfile.ts",
+        "test/testProject"
+    ]
+}

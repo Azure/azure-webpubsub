@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { RequestHistory } from "./panels/RequestHistory";
+import { RequestHistory } from "../panels/RequestHistory";
 import "./Dashboard.css";
 import { Panel, PanelType } from "@fluentui/react";
 import { Tab, TabList, Accordion, AccordionHeader, AccordionItem, AccordionPanel, ToggleButton, CounterBadge } from "@fluentui/react-components";
@@ -11,11 +11,11 @@ import { Connector, TwoDirectionConnector } from "./Connector";
 import { useDataContext } from "../providers/DataContext";
 import { LogLevel, ConnectionStatus, ConnectionStatusPair } from "../models";
 import { WorkflowStep } from "./workflows/WorkflowStep";
-import { ServicePanel } from "./panels/ServicePanel";
-import { ServerPanel } from "./panels/ServerPanel";
+import { ServicePanel } from "../panels/ServicePanel";
+import { ServerPanel } from "../panels/ServerPanel";
 import { ResizablePanel } from "./ResizablePanel";
 import { StatusDescriptor, StatusDisplayText } from "./workflows/StatusIndicator";
-import { ClientPanel } from "./panels/ClientPanel";
+import { ClientPanel } from "../panels/ClientPanel";
 import { EventHandler } from "./EventHandler";
 
 interface WorkflowProps {
