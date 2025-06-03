@@ -17,6 +17,7 @@ function SocialMediaCookie(setString) {
 }
 
 function AnalyticsCookie(setString) {
+  /* TODO: replace with first-party tracking.
   const enable = setString === SET
   var documentExist = typeof document !== 'undefined'
   if (documentExist && originalCookieGetter) {
@@ -62,6 +63,7 @@ function AnalyticsCookie(setString) {
       });
     }
   }
+  */
 }
 
 function normalizePath(path) {
@@ -180,6 +182,6 @@ function sendEventsToGoogleAnalytics(location, previousLocation) {
 module.exports = clientModule = {
   onRouteDidUpdate: function ({ location, previousLocation }) {
     initConsent()
-    sendEventsToGoogleAnalytics(location, previousLocation)
+    //sendEventsToGoogleAnalytics(location, previousLocation)
   },
 }

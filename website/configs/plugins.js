@@ -49,10 +49,10 @@ const setupPlugins = function ({ root }) {
 
 
   // only add gtag in production
-  const trackingID = process.env.trackingID
-  const gtmTrackingID = process.env.gtmTrackingID
-  if (trackingID && trackingID !== '' && gtmTrackingID && gtmTrackingID !== '') {
-    const gtagPlugin = [
+  //const trackingID = process.env.trackingID
+  // gtmTrackingID = process.env.gtmTrackingID
+  //if (trackingID && trackingID !== '' && gtmTrackingID && gtmTrackingID !== '') {
+    const consentPlugin = [
       path.resolve(root, 'src/plugins/visitor-tracking-plugin'),
       {
         trackingID,
@@ -60,11 +60,11 @@ const setupPlugins = function ({ root }) {
         anonymizeIP: true,
       },
     ]
-    plugins.push(gtagPlugin)
-    console.log(`Add visitor-tracking-plugin Successfully. tracking ID: ${trackingID}, GTM tracking ID: ${gtmTrackingID}`)
-  } else {
-    console.warn('Failed to get "trackingID" for gtag! Should be null in development, but should be non empty string in Production.')
-  }
+    plugins.push(consentPlugin)
+  //  console.log(`Add visitor-tracking-plugin Successfully. tracking ID: ${trackingID}, GTM tracking ID: ${gtmTrackingID}`)
+  //} else {
+  //  console.warn('Failed to get "trackingID" for gtag! Should be null in development, but should be non empty string in Production.')
+  //}
 
   return plugins
 }
