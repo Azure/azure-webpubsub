@@ -1,0 +1,30 @@
+import { createContext } from 'react';
+import type { WebPubSubClient } from '@azure/web-pubsub-client';
+
+export interface ChatMessage {
+  id: string;
+  content: string;
+  sender: string;
+  timestamp: string;
+  isUser: boolean;
+  streaming?: boolean;
+  streamingEnd?: boolean;
+}
+
+export interface ConnectionStatus {
+  status: 'connecting' | 'connected' | 'disconnected' | 'error';
+  message: string;
+  connectionId?: string;
+}
+
+export interface ChatClientContextType {
+  client: WebPubSubClient | null;
+  connectionStatus: ConnectionStatus;
+  messages: ChatMessage[];
+  isStreaming: boolean;
+  sendMessage: (message: string) => Promise<void>;
+  clearMessages: () => void;
+  showTypingIndicator: boolean;
+}
+
+export const ChatClientContext = createContext<ChatClientContextType | undefined>(undefined);
