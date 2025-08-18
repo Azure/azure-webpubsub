@@ -86,17 +86,17 @@ class AIChat:
                 if response.choices and len(response.choices) > 0:
                     return response.choices[0].message.content
                 else:
-                    return "Error: Empty response from AI model - check your API access and model availability"
+                    print("Error: Empty response from AI model - check your API access and model availability")
             else:
                 for chunk in response:
                     if chunk.choices and len(chunk.choices) > 0:
                         if chunk.choices[0].delta.content is not None:
                             yield chunk.choices[0].delta.content
                 else:
-                    yield "Warning: Empty response from AI model"
+                    print("Warning: Empty response from AI model")
                     
         except Exception as e:
-            yield f"Error: {str(e)}"
+            print(f"Error: {str(e)}")
     
 # Convenience functions for direct use
 _ai_instance = None

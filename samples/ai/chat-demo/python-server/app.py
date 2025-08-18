@@ -1,3 +1,4 @@
+import uuid
 from flask import Flask, request, send_from_directory
 from flask_cors import CORS
 import json
@@ -31,12 +32,13 @@ room_connections = {}
 # Format: {room_id: [{"role": "user", "content": "message"}, {"role": "assistant", "content": "response"}]}
 room_histories = {}
 
-def add_to_history(room_id, role, content):
+def add_to_history(room_id, role, user, content):
     """Add a message to the room's conversation history"""
     if room_id not in room_histories:
         room_histories[room_id] = []
     
     room_histories[room_id].append({
+        "userId": user,
         "role": role,
         "content": content
     })
@@ -53,10 +55,11 @@ def get_room_history(room_id):
 def negotiate():
     """Handle negotiation requests - return WebSocket URL"""
     room_id = request.args.get('roomId', 'public')
-    print(f"Negotiation request for room: {room_id}")
+    user_id = request.args.get('userId', f'user_{generate_id()}')
+    print(f"Negotiation request for room: {room_id}, user: {user_id}")
     
     # Return WebSocket URL using WebSocket port
-    ws_url = f"ws://{host}:{port + 1}/ws?roomId={room_id}"
+    ws_url = f"ws://{host}:{port + 1}/ws?roomId={room_id}&userId={user_id}"
     return ws_url
 
 @app.route('/')
@@ -184,7 +187,7 @@ async def handle_ai_response(websocket, room_id, user_message, user_name):
         
         # Add AI response to room history
         if full_response.strip():
-            add_to_history(room_id, "assistant", full_response)
+            add_to_history(room_id, "assistant", "ai", full_response)
             print(f"AI responded in room {room_id}: {full_response[:100]}{'...' if len(full_response) > 100 else ''}")
         
     except Exception as e:
@@ -205,6 +208,42 @@ async def handle_ai_response(websocket, room_id, user_message, user_name):
         }
         await broadcast_to_room(room_id, json.dumps(error_message))
 
+def generate_id():
+    return str(uuid.uuid4())
+
+async def join_group(room_id, connectionId):
+    print(f"Adding {connectionId} to room: {room_id}")
+    if room_id not in room_connections:
+        room_connections[room_id] = set()
+    # Add client to room
+    room_connections[room_id].add(connectionId)
+    # Send welcome message only if this is the first message in the room
+    if len(get_room_history(room_id)) == 0:
+        welcome_text = f"Hello! I'm your AI assistant for room {room_id}. How can I help you today?"
+        add_to_history(room_id, "assistant", "ai", welcome_text)
+        welcome_message = {
+            "type": "message",
+            "from": "group",
+            "group": room_id,
+            "dataType": "json",
+            "data": {
+                "messageId": generate_id(),
+                "message": welcome_text,
+                "from": "AI Assistant",
+                "streaming": False
+            }
+        }
+        await broadcast_to_room(room_id, json.dumps(welcome_message))
+def get_query_value(path, key):
+    if '?' in path:
+        query_string = path.split('?', 1)[1]
+        params = dict(param.split('=') for param in query_string.split('&') if '=' in param)
+        return params.get(key)
+
+def get_room_id(path, default_room_id):
+    # Extract room ID from query parameters in path, otherwise join "public" room
+    return get_query_value(path, 'roomId') or default_room_id
+
 # WebSocket handler using websockets library
 async def websocket_handler(websocket, path):
     """Handle WebSocket connections with full subprotocol support"""
@@ -213,56 +252,27 @@ async def websocket_handler(websocket, path):
         selected_subprotocol = websocket.subprotocol
         print(f"WebSocket connected with subprotocol: {selected_subprotocol}")
         
-        # Extract room ID from query parameters in path
-        room_id = 'default-room'
-        if '?' in path:
-            query_string = path.split('?', 1)[1]
-            params = dict(param.split('=') for param in query_string.split('&') if '=' in param)
-            room_id = params.get('roomId', 'default-room')
-        
-        print(f"Client connected to room: {room_id}")
-        
         # Generate connectionId
-        if room_id not in room_connections:
-            room_connections[room_id] = set()
-        connection_id = f"{room_id}-{len(room_connections[room_id]) + 1}"
-        print(f"Generated connection ID: {connection_id}")
+        connection_id = generate_id()
+        user_id = get_query_value(path, 'userId') or f'user_{connection_id}'
+        print(f"Connected connection ID: {connection_id} with user ID: {user_id}")
 
-        # Add client to room
-        room_connections[room_id].add(websocket)
-        
-        print(f"Client connected. Room {room_id} clients: {len(room_connections[room_id])}")
-        
         # Send connected event in Web PubSub format with subprotocol info
         connected_event = {
             "type": "system",
             "event": "connected",
-            "connectionId": connection_id
+            "connectionId": connection_id,
+            "userId": user_id,
         }
         if selected_subprotocol:
             connected_event["subprotocol"] = selected_subprotocol
         
         await websocket.send(json.dumps(connected_event))
-        
-        # Send welcome message only if this is the first message in the room
-        if len(get_room_history(room_id)) == 0:
-            welcome_text = f"Hello! I'm your AI assistant for room {room_id}. How can I help you today?"
-            add_to_history(room_id, "assistant", welcome_text)
-            
-            welcome_message = {
-                "type": "message",
-                "from": "group",
-                "group": room_id,
-                "dataType": "json",
-                "data": {
-                    "messageId": f"welcome-{connection_id}",
-                    "message": welcome_text,
-                    "from": "AI Assistant",
-                    "streaming": False
-                }
-            }
-            await broadcast_to_room(room_id, json.dumps(welcome_message))
-        
+
+        room_id = get_room_id(path, 'public')
+        print(f"Joining room: {room_id} for connection {connection_id}, user {user_id}")
+        await join_group(room_id, connection_id)
+
         # Handle incoming messages
         async for message in websocket:
             try:
@@ -273,16 +283,16 @@ async def websocket_handler(websocket, path):
                     # Extract message from WebPubSubClient sendToGroup format
                     message_data = data.get('data', {})
                     user_message = message_data.get('message', '') if isinstance(message_data, dict) else str(message_data)
-                    user_name = message_data.get('from', 'User')
-                    
-                    print(f'Received message from {user_name} in room {room_id}: {user_message}')
+                    user_name = message_data.get('from')
+                    group_name = message_data.get('group')
+                    print(f'Received message from {user_name} in group {group_name}: {user_message}')
                     
                     # Skip empty messages
                     if not user_message.strip():
                         continue
                     
                     # Add user message to room history
-                    add_to_history(room_id, "user", user_message)
+                    add_to_history(group_name, "user", user_name, user_message)
                     
                     # Generate AI response with streaming
                     await handle_ai_response(websocket, room_id, user_message, user_name)
@@ -290,6 +300,7 @@ async def websocket_handler(websocket, path):
                 elif data.get('type') == 'joinGroup':
                     # Handle join group request
                     group_name = data.get('group', room_id)
+                    join_group(group_name, connection_id)
                     ack_message = {
                         "type": "ack",
                         "ackId": data.get('ackId', 1),
