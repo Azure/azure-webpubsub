@@ -102,8 +102,8 @@ async def main():
                 await _svc.streaming_to_group(room_id, chunks)
 
     @chat.on_disconnected
-    async def handle_disconnected(conn_id, _svc):
-        print(f"Client disconnected: {conn_id}")
+    async def handle_disconnected(conn, _svc):
+        print(f"Client disconnected: {conn.connectionId}")
     await chat.start_chat(host, port + 1)
 
     print(f"Both servers running:")

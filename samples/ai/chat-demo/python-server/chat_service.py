@@ -18,14 +18,18 @@ from __future__ import annotations
 import asyncio
 import logging
 import json
-from multiprocessing import context
 import uuid
 from collections import defaultdict
 from dataclasses import dataclass
 from typing import Any, Awaitable, Callable, Dict, Iterable, List, Optional, Set, Tuple, Union
 from utils import generate_id
 import websockets
+import websockets.exceptions as ws_exc
 from websockets.server import WebSocketServerProtocol
+
+# enable verbose websockets logging while debugging (optional)
+logging.basicConfig(level=logging.INFO)
+logging.getLogger("websockets").setLevel(logging.INFO)
 
 class ClientConnectionContext:
     """The basic properties for the client connection."""
@@ -219,7 +223,9 @@ class ChatService:
             """Handle WebSocket connections with full Web PubSub subprotocol support"""
             
             selected_subprotocol = ws.subprotocol
-
+            remote = getattr(ws, "remote_address", None)
+            self.log.info("New WS connection from %s (subprotocol=%r path=%s)", remote, selected_subprotocol, path)
+           
             if selected_subprotocol not in supported_protocols:
                 print(f"Unsupported subprotocol: {selected_subprotocol}")
                 await ws.close()
@@ -280,18 +286,28 @@ class ChatService:
                                 self.log.info(f"Client left group: {group_name}")
                             await ws.send(json.dumps(ack_message))
                         elif data.get('type') == 'sequenceAck':
-                            break
+                            continue
                         else:
                             self.log.warning(f"Unknown message type: {message}")
                     except json.JSONDecodeError:
                         self.log.warning("Invalid JSON received")
                     except Exception as e:
                         self.log.error(f"Error handling message: {e}")
+            except ws_exc.ConnectionClosed as e:
+                # explicit close from client or network — log details
+                self.log.info("WebSocket connection closed (client/network) remote=%s code=%s reason=%r", remote, e.code, e.reason)
+                # re-raise if you want finally to run removal/_emit (finally still runs)
+                raise
             except Exception as exc:
-                self.log.error(f"Error in WebSocket handler: {exc}")
+                self.log.exception("Error in WebSocket handler for %s: %s", remote, exc)
                 await self._emit(self._on_error, client, exc)
                 raise
             finally:
+                # Log protocol-level close details (available after close)
+                code = getattr(ws, "close_code", None)
+                reason = getattr(ws, "close_reason", None)
+                closed = getattr(ws, "closed", None)
+                self.log.info("WS finalized: remote=%s closed=%s code=%s reason=%r", remote, closed, code, reason)
                 self.log.info(f"WebSocket connection closed: {connection_id}")
                 await self.client_manager.remove_client(connection_id)
                 await self._emit(self._on_disconnected, client)
@@ -329,7 +345,7 @@ class ChatService:
             "data": {
                 "messageId": generate_id("m-"),
                 "message": message,
-                "from": "AI Assistant",
+                "from": from_user_id,
                 "streaming": True
             },
             "fromUserId": from_user_id

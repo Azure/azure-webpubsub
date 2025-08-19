@@ -83,8 +83,6 @@ class AIChat:
                 if chunk.choices and len(chunk.choices) > 0:
                     if chunk.choices[0].delta.content is not None:
                         yield chunk.choices[0].delta.content
-            else:
-                print("Warning: Empty response from AI model")
                     
         except Exception as e:
             print(f"Error: {str(e)}")
