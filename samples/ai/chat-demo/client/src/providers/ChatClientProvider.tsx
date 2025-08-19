@@ -66,16 +66,16 @@ export const ChatClientProvider: React.FC<ChatClientProviderProps> = ({ children
     setIsStreaming(false);
 
     try {
-      await client.sendToGroup(
-        roomIdRef.current,
+      await client.sendEvent(
+        "sendToAI",
         {
           from: displayNameRef.current,
           message: messageText,
           timestamp: new Date().toISOString(),
           type: 'user-message',
+          roomId: roomIdRef.current
         },
         'json',
-        { noEcho: true }
       );
     } catch (err: unknown) {
       setShowTypingIndicator(false);

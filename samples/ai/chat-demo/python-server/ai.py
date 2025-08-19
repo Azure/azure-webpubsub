@@ -34,14 +34,13 @@ class AIChat:
                 "api-version": self.api_version,
             },
         )
-    
+
     def chat_stream(
         self, 
         text_input: str, 
         conversation_history: Optional[List[Dict[str, Any]]] = None,
         temperature: float = 0.7,
-        max_tokens: Optional[int] = None,
-        stream: bool = True
+        max_tokens: Optional[int] = None
     ) -> Iterator[str]:
         """
         Generate a streaming response for the given text input.
@@ -51,7 +50,6 @@ class AIChat:
             conversation_history (List[Dict], optional): Previous conversation messages
             temperature (float): Response creativity (0.0 - 2.0)
             max_tokens (int, optional): Maximum tokens in response
-            stream (bool): Whether to stream the response
 
         Yields:
             str: Streaming chunks of the AI response
@@ -72,28 +70,21 @@ class AIChat:
             "role": "user",
             "content": text_input
         })
-        
         try:
             response = self.client.chat.completions.create(
                 messages=messages,
                 model=self.model_name,
                 temperature=temperature,
                 max_tokens=max_tokens,
-                stream=stream
+                stream=True
             )
 
-            if not stream:
-                if response.choices and len(response.choices) > 0:
-                    return response.choices[0].message.content
-                else:
-                    print("Error: Empty response from AI model - check your API access and model availability")
+            for chunk in response:
+                if chunk.choices and len(chunk.choices) > 0:
+                    if chunk.choices[0].delta.content is not None:
+                        yield chunk.choices[0].delta.content
             else:
-                for chunk in response:
-                    if chunk.choices and len(chunk.choices) > 0:
-                        if chunk.choices[0].delta.content is not None:
-                            yield chunk.choices[0].delta.content
-                else:
-                    print("Warning: Empty response from AI model")
+                print("Warning: Empty response from AI model")
                     
         except Exception as e:
             print(f"Error: {str(e)}")
@@ -128,27 +119,27 @@ def chat(text_input: str, **kwargs) -> str:
     
     Args:
         text_input (str): The user's input text
-        **kwargs: Additional arguments passed to AIChat.chat()
+        **kwargs: Additional arguments passed to AIChat.chat_stream()
         
     Returns:
         str: Complete AI response
     """
-    ai = get_ai_instance()
-    return ai.chat(text_input, **kwargs)
+    response = ""
+    for chunk in chat_stream(text_input, **kwargs):
+        response += chunk
+    return response
 
 # Example usage and testing
 if __name__ == "__main__":
     try:
-        ai = AIChat()
-        
         # Test non-streaming
         print("=== Non-streaming example ===")
-        response = ai.chat("Hello! Please introduce yourself briefly.")
+        response = chat("Hello! Please introduce yourself briefly.")
         print(f"Response: {response}")
         
         print("\n=== Streaming example ===")
         print("Response: ", end="")
-        for chunk in ai.chat_stream("Tell me a short story about a robot."):
+        for chunk in chat_stream("Tell me a short story about a robot."):
             print(chunk, end="", flush=True)
         print("\n")
         
