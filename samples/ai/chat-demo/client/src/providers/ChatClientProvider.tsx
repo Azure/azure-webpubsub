@@ -30,21 +30,17 @@ export const ChatClientProvider: React.FC<ChatClientProviderProps> = ({ children
     throw new Error("ChatClientProvider must be used within AvatarProvider and ChatSettingsProvider");
   }
 
-  const { displayName } = avatarContext;
-  const { roomId, enableTypingIndicators } = settingsContext;
+  const { displayName, setDisplayName } = avatarContext;
+  const { roomId } = settingsContext;
 
   // Refs for latest values (to avoid reconnections)
   const displayNameRef = React.useRef(displayName);
-  const enableTypingIndicatorsRef = React.useRef(enableTypingIndicators);
   const roomIdRef = React.useRef(roomId);
 
   // Update refs when values change
   React.useEffect(() => {
     displayNameRef.current = displayName;
   }, [displayName]);
-  React.useEffect(() => {
-    enableTypingIndicatorsRef.current = enableTypingIndicators;
-  }, [enableTypingIndicators]);
   React.useEffect(() => {
     roomIdRef.current = roomId;
   }, [roomId]);
@@ -75,12 +71,6 @@ export const ChatClientProvider: React.FC<ChatClientProviderProps> = ({ children
         isPlaceholder: true,
       };
       setMessages((prev) => [...prev, thinkingMessage]);
-
-      // For this UX, we only show the typing dots when streaming actually starts
-      if (enableTypingIndicatorsRef.current) {
-        setShowTypingIndicator(false);
-      }
-
       // Reset streaming state
       setIsStreaming(false);
 
@@ -154,6 +144,7 @@ export const ChatClientProvider: React.FC<ChatClientProviderProps> = ({ children
             connectionId: e.connectionId,
           });
           setIsConnecting(false);
+          setDisplayName(e.userId || displayNameRef.current); // Update display name if available
         });
 
         newClient.on("disconnected", () => {
@@ -184,9 +175,7 @@ export const ChatClientProvider: React.FC<ChatClientProviderProps> = ({ children
             // Handle streaming end signal
             if (streaming && streamingEnd) {
               setIsStreaming(false);
-              if (enableTypingIndicatorsRef.current) {
-                setShowTypingIndicator(false);
-              }
+              setShowTypingIndicator(false);
               // Mark the corresponding message as not streaming anymore
               if (messageId) {
                 setMessages((prev) => prev.map((m) => (m.id === messageId ? { ...m, streaming: false } : m)));
@@ -197,9 +186,7 @@ export const ChatClientProvider: React.FC<ChatClientProviderProps> = ({ children
             // Handle streaming messages
             if (streaming) {
               setIsStreaming(true);
-              if (enableTypingIndicatorsRef.current) {
-                setShowTypingIndicator(true); // Show typing dots while receiving chunks
-              }
+              setShowTypingIndicator(true); // Show typing dots while receiving chunks
 
               if (messageId && messageContent) {
                 // Create new streaming message or append to existing
@@ -244,9 +231,7 @@ export const ChatClientProvider: React.FC<ChatClientProviderProps> = ({ children
             } else {
               // Complete non-streaming message (fallback)
               setIsStreaming(false);
-              if (enableTypingIndicatorsRef.current) {
-                setShowTypingIndicator(false);
-              }
+              setShowTypingIndicator(false);
 
               if (messageId) {
                 setMessages((prev) => {
@@ -297,8 +282,7 @@ export const ChatClientProvider: React.FC<ChatClientProviderProps> = ({ children
       }
     };
 
-    // Only initialize if we have required contexts and haven't initialized yet
-    if (displayNameRef.current && !isInitialized) {
+    if (!isInitialized) {
       setIsInitialized(true);
       initializeClient();
     }
@@ -342,7 +326,7 @@ export const ChatClientProvider: React.FC<ChatClientProviderProps> = ({ children
           isUser: false,
         };
         setMessages([welcomeMessage]);
-      }, 1200);
+      }, 200);
     }
   }, [connectionStatus.status, messages.length]);
 

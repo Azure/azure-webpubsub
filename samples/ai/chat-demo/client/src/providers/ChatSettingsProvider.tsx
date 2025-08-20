@@ -16,9 +16,6 @@ export const ChatSettingsProvider: React.FC<ChatSettingsProviderProps> = ({ chil
     return initialRoomId;
   });
 
-  const [enableTypingIndicators, setEnableTypingIndicators] = React.useState<boolean>(true);
-  const [enableMessageHistory, setEnableMessageHistory] = React.useState<boolean>(true);
-
   // Update URL when room ID changes
   React.useEffect(() => {
     updateUrlWithRoomId(roomId);
@@ -27,10 +24,6 @@ export const ChatSettingsProvider: React.FC<ChatSettingsProviderProps> = ({ chil
   const value = {
     roomId,
     setRoomId,
-    enableTypingIndicators,
-    setEnableTypingIndicators,
-    enableMessageHistory,
-    setEnableMessageHistory,
   };
 
   return (

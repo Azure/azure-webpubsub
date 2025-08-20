@@ -4,13 +4,13 @@ Shared state and utility functions for chat-demo python server.
 import uuid
 import asyncio
 import threading
-from typing import AsyncIterator, Iterable, TypeVar
+from typing import AsyncIterator, Iterable, Optional, TypeVar
 
 T = TypeVar("T")
 
-def generate_id(prefix):
+def generate_id(prefix, length: Optional[int] = 8):
     """Generate a unique identifier"""
-    return f"{prefix}_{uuid.uuid4()}"
+    return f"{prefix}_{uuid.uuid4().hex[:length]}"
 
 
 def get_query_value(path, key):

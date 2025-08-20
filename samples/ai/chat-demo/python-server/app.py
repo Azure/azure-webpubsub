@@ -13,8 +13,8 @@ import signal
 import sys
 from dotenv import load_dotenv
 from ai import chat_stream  # Import our AI module
-from chat_service import ChatService
-from utils import get_room_id, to_async_iterator
+from chat_service import ChatService, ClientConnectionContext
+from utils import generate_id, get_query_value, get_room_id, to_async_iterator
 # Load environment variables from .env file
 load_dotenv()
 
@@ -29,10 +29,12 @@ CORS(app, origins=["http://localhost:5173", "http://localhost:3000"])
 def negotiate():
     """Handle negotiation requests - return WebSocket URL"""
     room_id = request.args.get('roomId', 'public')
+    # generate a random user_id
+    user_id = generate_id('user-')
     print(f"Negotiation request for room: {room_id}")
     
     # Return WebSocket URL using WebSocket port
-    ws_url = f"ws://{host}:{port + 1}/ws?roomId={room_id}"
+    ws_url = f"ws://{host}:{port + 1}/ws?roomId={room_id}&userId={user_id}"
     return ws_url
 
 @app.route('/')
@@ -82,14 +84,19 @@ async def main():
     
     chat = ChatService()
 
+    @chat.on_connecting
+    async def handle_connecting(conn: ClientConnectionContext, _svc: ChatService):
+        # try get userId from the connection context, for sample purpose, get the userId from query
+        conn.user_id = get_query_value(conn.path, "userId")
+        
     @chat.on_connected
-    async def handle_connected(conn, _svc: ChatService):
+    async def handle_connected(conn: ClientConnectionContext, _svc: ChatService):
         # get roomId from path roomId
         room_id = get_room_id(conn.path, "public-room")
         if room_id:
             await _svc.add_to_group(conn.connectionId, room_id)
             print(f"Client connected to room: {room_id}")
-        print("connected:", conn.connectionId)
+        print("connected:", conn.connectionId, conn.user_id)
 
     @chat.on_event_message
     async def handle_event_message(conn, event_name, data, _svc: ChatService):
@@ -98,6 +105,8 @@ async def main():
             room_id = data.get("roomId")
             print(f"Received message for AI: {message} in room {room_id}")
             if message is not None and room_id is not None:
+                # also broadcast to others about this message
+                await _svc.send_to_group(room_id, message, [conn.connectionId], conn.user_id)
                 chunks = chat_stream(message)
                 await _svc.streaming_to_group(room_id, to_async_iterator(chunks))
 

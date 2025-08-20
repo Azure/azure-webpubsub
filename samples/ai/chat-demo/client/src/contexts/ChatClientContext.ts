@@ -4,7 +4,7 @@ import type { WebPubSubClient } from '@azure/web-pubsub-client';
 export interface ChatMessage {
   id: string;
   content: string;
-  sender: string;
+  sender?: string;
   timestamp: string;
   isUser: boolean;
   streaming?: boolean;

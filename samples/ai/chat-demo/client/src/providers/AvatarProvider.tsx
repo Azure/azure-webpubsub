@@ -8,7 +8,7 @@ interface AvatarProviderProps {
 
 export const AvatarProvider: React.FC<AvatarProviderProps> = ({ children }) => {
   const [avatarUrl, setAvatarUrl] = React.useState<string | undefined>();
-  const [displayName, setDisplayName] = React.useState<string>('user-1');
+  const [displayName, setDisplayName] = React.useState<string | undefined>();
 
   const value = {
     avatarUrl,

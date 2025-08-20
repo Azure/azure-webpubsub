@@ -32,12 +32,19 @@ logging.basicConfig(level=logging.INFO)
 logging.getLogger("websockets").setLevel(logging.INFO)
 
 class ClientConnectionContext:
-    """The basic properties for the client connection."""
-    def __init__(self, path, connectionId) -> None:
+    """The basic properties for the client connection.
+
+    Handlers can mutate this context during the 'connecting' phase to add
+    metadata like userId, roles, etc., before the connection is registered.
+    """
+    def __init__(self, path, connection_id, *, user_id: Optional[str] = None, attrs: Optional[Dict[str, Any]] = None) -> None:
         self.path = path
-        self.connectionId = connectionId
+        self.connectionId = connection_id
+        self.user_id: Optional[str] = user_id
+        self.attrs: Dict[str, Any] = attrs or {}
 
 # ------------------------------ Types ------------------------------
+OnConnecting = Callable[[ClientConnectionContext, "ChatService"], Union[Awaitable[None], None]]
 OnConnected = Callable[[ClientConnectionContext, "ChatService"], Union[Awaitable[None], None]]
 OnDisconnected = Callable[[ClientConnectionContext, "ChatService"], Union[Awaitable[None], None]]
 OnEventMessage = Callable[[ClientConnectionContext, str, str, "ChatService"], Union[Awaitable[None], None]]  # (connection_id, event_name, message, svc)
@@ -181,16 +188,19 @@ class ChatService:
         self.log = logger or logging.getLogger("chat_service")
         self.client_manager = client_manager or InMemoryClientManager(logger=self.log)
         self.max_message_size = max_message_size
-        self._server: Optional[websockets.server.Serve] = None
+        self._server = None
         # event handlers
-        self._on_connected: List[OnConnected] = []
-        self._on_disconnected: List[OnDisconnected] = []
-        self._on_event_message: List[OnEventMessage] = []
-        self._on_error: List[OnError] = []
+        self._on_connecting = []
+        self._on_connected = []
+        self._on_disconnected = []
+        self._on_event_message = []
+        self._on_error = []
 
     # ---------------------- event registration ----------------------
     def on(self, event: str, handler: Callable[..., Union[Awaitable[None], None]]) -> None:
-        if event == "connected":
+        if event == "connecting":
+            self._on_connecting.append(handler)  # type: ignore[arg-type]
+        elif event == "connected":
             self._on_connected.append(handler)  # type: ignore[arg-type]
         elif event == "disconnected":
             self._on_disconnected.append(handler)  # type: ignore[arg-type]
@@ -200,6 +210,14 @@ class ChatService:
             self._on_error.append(handler)  # type: ignore[arg-type]
         else:
             raise ValueError(f"Unknown event: {event}")
+        
+    def on_connecting(self, handler: OnConnecting) -> None:
+        """Register a handler invoked right after context creation and before registration.
+
+        Use to enrich `ClientConnectionContext` (e.g., set `userId`) or perform
+        lightweight auth checks. Raise to abort the connection.
+        """
+        self.on("connecting", handler)
 
     def on_connected(self, handler: OnConnected) -> None:
         self.on("connected", handler)
@@ -233,6 +251,8 @@ class ChatService:
             connection_id = generate_id('conn-')
             client = ClientConnectionContext(path, connection_id)
             try:
+                # Allow hooks to enrich/mutate the client context before registration
+                await self._emit(self._on_connecting, client)
                 await self.client_manager.add_client(connection_id, client, ws)
                 await self._emit(self._on_connected, client)
 
@@ -240,6 +260,7 @@ class ChatService:
                     "type": "system", 
                     "event": "connected", 
                     "connectionId": connection_id,
+                    "userId": client.user_id,
                     "subprotocol": selected_subprotocol
                 }
                 await ws.send(json.dumps(connected_event))
@@ -345,8 +366,7 @@ class ChatService:
             "data": {
                 "messageId": generate_id("m-"),
                 "message": message,
-                "from": from_user_id,
-                "streaming": True
+                "from": from_user_id
             },
             "fromUserId": from_user_id
         }

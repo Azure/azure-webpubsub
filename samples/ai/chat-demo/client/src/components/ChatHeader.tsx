@@ -1,5 +1,6 @@
-import React, { useMemo } from "react";
+import React, { useContext, useMemo } from "react";
 import { useChatClient } from '../hooks/useChatClient';
+import { AvatarContext } from "../contexts/AvatarContext";
 
 interface ChatHeaderProps {
   roomId: string;
@@ -7,6 +8,7 @@ interface ChatHeaderProps {
 
 export const ChatHeader: React.FC<ChatHeaderProps> = ({ roomId }) => {
   const { connectionStatus } = useChatClient();
+  const { displayName } = useContext(AvatarContext);
 
   const statusClass = useMemo(() => {
     switch (connectionStatus.status) {
@@ -22,7 +24,7 @@ export const ChatHeader: React.FC<ChatHeaderProps> = ({ roomId }) => {
       <div className="header-left">
           <div className="header-title" aria-live="polite">
             <h1>AI Chat{roomId ? ` · Room ${roomId}` : ""}</h1>
-            <p>Connected as <strong>{connectionStatus.connectionId}</strong></p>
+            <p>Connected as <strong>{displayName}</strong> {connectionStatus.connectionId}</p>
           </div>
         </div>
         <div className="header-actions" role="status" aria-live="polite">
