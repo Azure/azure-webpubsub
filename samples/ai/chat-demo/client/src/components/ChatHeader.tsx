@@ -1,14 +1,14 @@
 import React, { useContext, useMemo } from "react";
 import { useChatClient } from '../hooks/useChatClient';
 import { AvatarContext } from "../contexts/AvatarContext";
+import { ChatRoomContext } from "../contexts/ChatRoomContext";
 
-interface ChatHeaderProps {
-  roomId: string;
-}
-
-export const ChatHeader: React.FC<ChatHeaderProps> = ({ roomId }) => {
+export const ChatHeader: React.FC = () => {
   const { connectionStatus } = useChatClient();
-  const { displayName } = useContext(AvatarContext);
+  const avatarContext = useContext(AvatarContext);
+  const displayName = avatarContext?.userId;
+  const chatSettings = useContext(ChatRoomContext);
+  const roomId = chatSettings?.roomName;
 
   const statusClass = useMemo(() => {
     switch (connectionStatus.status) {

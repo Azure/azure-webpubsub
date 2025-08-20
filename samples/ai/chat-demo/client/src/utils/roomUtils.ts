@@ -1,34 +1,42 @@
 /**
- * Generates a random room ID
+ * Generates a random ID
  */
-export const generateRoomId = (): string => {
+export const generateId = (prefix: string): string => {
   const characters = 'abcdefghijklmnopqrstuvwxyz0123456789';
   let result = '';
   for (let i = 0; i < 8; i++) {
     result += characters.charAt(Math.floor(Math.random() * characters.length));
   }
-  return `room-${result}`;
+  return `${prefix}-${result}`;
 };
 
 /**
  * Gets room ID from URL parameters, or generates a new one
  */
-export const getRoomIdFromUrl = (): string => {
+export const getIdFromUrl = (key: string): string | null => {
   const urlParams = new URLSearchParams(window.location.search);
-  const roomIdParam = urlParams.get('roomId');
-  
-  if (roomIdParam) {
-    return roomIdParam;
+  return urlParams.get(key);
+};
+
+export const getOrGenerateIdFromUrl = (key: string, prefix: string): string => {
+  const idParam = getIdFromUrl(key);
+
+  if (idParam) {
+    return idParam;
   }
   
-  return generateRoomId();
+  return generateId(prefix);
 };
 
 /**
- * Updates the browser URL with the room ID
+ * Updates the browser URL with the ID
  */
-export const updateUrlWithRoomId = (roomId: string): void => {
+export const updateUrlWithId = (id: string | undefined, key: string): void => {
   const url = new URL(window.location.href);
-  url.searchParams.set('roomId', roomId);
+  if (id) {
+    url.searchParams.set(key, id);
+  } else {
+    url.searchParams.delete(key);
+  }
   window.history.replaceState({}, '', url.toString());
 };

@@ -21,29 +21,34 @@ export const ChatClientProvider: React.FC<ChatClientProviderProps> = ({ children
     message: "Not connected",
   });
   const [messages, setMessages] = React.useState<ChatMessage[]>([]);
-  const [isStreaming, setIsStreaming] = React.useState<boolean>(false);
-  const [showTypingIndicator, setShowTypingIndicator] = React.useState<boolean>(false);
-  const [isConnecting, setIsConnecting] = React.useState<boolean>(false);
-  const [isInitialized, setIsInitialized] = React.useState<boolean>(false);
+  const [isStreamingState, setIsStreamingState] = React.useState<boolean>(false);
+  // Refs to guard against double-initialize within the same tick and across effect re-runs
+  const initStartedRef = React.useRef(false);
+  const connectingRef = React.useRef(false);
 
   if (!avatarContext || !settingsContext) {
     throw new Error("ChatClientProvider must be used within AvatarProvider and ChatSettingsProvider");
   }
 
-  const { displayName, setDisplayName } = avatarContext;
+  const { userId, setUserId } = avatarContext;
   const { roomId } = settingsContext;
 
   // Refs for latest values (to avoid reconnections)
-  const displayNameRef = React.useRef(displayName);
+  const userIdRef = React.useRef(userId);
   const roomIdRef = React.useRef(roomId);
+  // Setter ref to avoid adding setDisplayName to effect deps
+  const setUserIdRef = React.useRef(setUserId);
 
   // Update refs when values change
   React.useEffect(() => {
-    displayNameRef.current = displayName;
-  }, [displayName]);
+    userIdRef.current = userId;
+  }, [userId]);
   React.useEffect(() => {
     roomIdRef.current = roomId;
   }, [roomId]);
+  React.useEffect(() => {
+    setUserIdRef.current = setUserId;
+  }, [setUserId]);
 
   // Send message function
   const sendMessage = React.useCallback(
@@ -54,7 +59,7 @@ export const ChatClientProvider: React.FC<ChatClientProviderProps> = ({ children
       const userMessage: ChatMessage = {
         id: Date.now().toString(),
         content: messageText,
-        sender: displayNameRef.current,
+        sender: userIdRef.current,
         timestamp: new Date().toISOString(),
         isUser: true,
       };
@@ -72,13 +77,13 @@ export const ChatClientProvider: React.FC<ChatClientProviderProps> = ({ children
       };
       setMessages((prev) => [...prev, thinkingMessage]);
       // Reset streaming state
-      setIsStreaming(false);
+      setIsStreamingState(false);
 
       try {
         await client.sendEvent(
           "sendToAI",
           {
-            from: displayNameRef.current,
+            from: userIdRef.current,
             message: messageText,
             timestamp: new Date().toISOString(),
             type: "user-message",
@@ -87,7 +92,6 @@ export const ChatClientProvider: React.FC<ChatClientProviderProps> = ({ children
           "json",
         );
       } catch (err: unknown) {
-        setShowTypingIndicator(false);
         const errorMessage: ChatMessage = {
           id: Date.now().toString(),
           content: `Error sending message: ${err instanceof Error ? err.message : "Unknown error"}`,
@@ -103,15 +107,16 @@ export const ChatClientProvider: React.FC<ChatClientProviderProps> = ({ children
 
   const clearMessages = React.useCallback(() => {
     setMessages([]);
-    setIsStreaming(false);
-    setShowTypingIndicator(false);
+    setIsStreamingState(false);
   }, []);
 
   // Initialize client ONCE on mount - no reconnections needed
   React.useEffect(() => {
     const initializeClient = async () => {
-      if (isConnecting || isInitialized) return; // Check both here
-      setIsConnecting(true);
+      // Synchronous + ref guards to avoid re-entry even under StrictMode
+      if (connectingRef.current || initStartedRef.current) return;
+      connectingRef.current = true;
+      // Keep state writes minimal to avoid retriggers
 
       try {
         setConnectionStatus({ status: "connecting", message: "Connecting..." });
@@ -125,10 +130,14 @@ export const ChatClientProvider: React.FC<ChatClientProviderProps> = ({ children
           }
         }
 
-        // Create new client with initial roomId
+        // Create new client with initial roomId and initial displayName if website url contains userId query
         const newClient = new WebPubSubClient({
           getClientAccessUrl: async () => {
-            const response = await fetch(`${backendUrl}/negotiate?roomId=${roomIdRef.current}`);
+            let url = `${backendUrl}/negotiate?roomId=${roomIdRef.current}`;
+            if (userIdRef.current) {
+              url += `&userId=${encodeURIComponent(userIdRef.current)}`;
+            }
+            const response = await fetch(url);
             if (!response.ok) {
               throw new Error(`Negotiation failed: ${response.statusText}`);
             }
@@ -143,8 +152,8 @@ export const ChatClientProvider: React.FC<ChatClientProviderProps> = ({ children
             message: "Connected",
             connectionId: e.connectionId,
           });
-          setIsConnecting(false);
-          setDisplayName(e.userId || displayNameRef.current); // Update display name if available
+          // Use ref to avoid effect dependency on setDisplayName
+          setUserIdRef.current(e.userId || userIdRef.current);
         });
 
         newClient.on("disconnected", () => {
@@ -152,7 +161,6 @@ export const ChatClientProvider: React.FC<ChatClientProviderProps> = ({ children
             status: "disconnected",
             message: `Disconnected: Connection closed`,
           });
-          setIsConnecting(false);
         });
 
         newClient.on("group-message", (e) => {
@@ -169,13 +177,12 @@ export const ChatClientProvider: React.FC<ChatClientProviderProps> = ({ children
           const streamingEnd = !!messageData?.streamingEnd;
           const messageContent = messageData?.message;
           const sender = messageData?.from || "AI Assistant";
-          const isFromCurrentUser = sender === displayNameRef.current; // Use ref
+          const isFromCurrentUser = sender === userIdRef.current; // Use ref
 
           if (!isFromCurrentUser) {
             // Handle streaming end signal
             if (streaming && streamingEnd) {
-              setIsStreaming(false);
-              setShowTypingIndicator(false);
+              setIsStreamingState(false);
               // Mark the corresponding message as not streaming anymore
               if (messageId) {
                 setMessages((prev) => prev.map((m) => (m.id === messageId ? { ...m, streaming: false } : m)));
@@ -185,8 +192,7 @@ export const ChatClientProvider: React.FC<ChatClientProviderProps> = ({ children
 
             // Handle streaming messages
             if (streaming) {
-              setIsStreaming(true);
-              setShowTypingIndicator(true); // Show typing dots while receiving chunks
+              setIsStreamingState(true);
 
               if (messageId && messageContent) {
                 // Create new streaming message or append to existing
@@ -230,8 +236,7 @@ export const ChatClientProvider: React.FC<ChatClientProviderProps> = ({ children
               // If there's no content, we skip; local placeholder is already shown
             } else {
               // Complete non-streaming message (fallback)
-              setIsStreaming(false);
-              setShowTypingIndicator(false);
+              setIsStreamingState(false);
 
               if (messageId) {
                 setMessages((prev) => {
@@ -273,19 +278,22 @@ export const ChatClientProvider: React.FC<ChatClientProviderProps> = ({ children
         await newClient.start();
         clientRef.current = newClient;
         setClient(newClient);
+  // Mark initialized via ref only
+  initStartedRef.current = true;
       } catch (err: unknown) {
         setConnectionStatus({
           status: "error",
           message: `Connection Failed: ${err instanceof Error ? err.message : "Unknown error"}`,
         });
-        setIsConnecting(false);
+        // remain not initialized so we can retry later
+      }
+      finally {
+  connectingRef.current = false;
       }
     };
 
-    if (!isInitialized) {
-      setIsInitialized(true);
-      initializeClient();
-    }
+  // Kick off initialization; guards above ensure single start (even under StrictMode)
+    initializeClient();
 
     // Cleanup function to prevent multiple connections
     return () => {
@@ -298,15 +306,14 @@ export const ChatClientProvider: React.FC<ChatClientProviderProps> = ({ children
         clientRef.current = null;
       }
     };
-  }, [isInitialized, isConnecting]); // Include both dependencies
+  }, []);
 
   // Handle room changes - clear messages when switching rooms
   React.useEffect(() => {
     if (client && roomId) {
       // Clear messages when switching to a new room
       setMessages([]);
-      setIsStreaming(false);
-      setShowTypingIndicator(false);
+  setIsStreamingState(false);
 
       // Optionally send a room join message to the server
       // This tells the server which room this connection should listen to
@@ -330,6 +337,12 @@ export const ChatClientProvider: React.FC<ChatClientProviderProps> = ({ children
     }
   }, [connectionStatus.status, messages.length]);
 
+  // Derive isStreaming from messages if available; fallback to state for transient UI control
+  const isStreaming = React.useMemo(() => {
+    if (messages.length === 0) return isStreamingState;
+    return messages.some(m => m.streaming);
+  }, [messages, isStreamingState]);
+
   const value = React.useMemo(
     () => ({
       client,
@@ -338,9 +351,8 @@ export const ChatClientProvider: React.FC<ChatClientProviderProps> = ({ children
       isStreaming,
       sendMessage,
       clearMessages,
-      showTypingIndicator,
     }),
-    [client, connectionStatus, messages, isStreaming, sendMessage, clearMessages, showTypingIndicator],
+    [client, connectionStatus, messages, isStreaming, sendMessage, clearMessages],
   );
   return <ChatClientContext.Provider value={value}>{children}</ChatClientContext.Provider>;
 };

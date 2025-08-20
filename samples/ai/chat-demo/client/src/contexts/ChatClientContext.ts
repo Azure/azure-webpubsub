@@ -25,7 +25,6 @@ export interface ChatClientContextType {
   isStreaming: boolean;
   sendMessage: (message: string) => Promise<void>;
   clearMessages: () => void;
-  showTypingIndicator: boolean;
 }
 
 export const ChatClientContext = createContext<ChatClientContextType | undefined>(undefined);

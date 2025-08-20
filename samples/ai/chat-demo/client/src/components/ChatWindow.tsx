@@ -3,15 +3,11 @@ import { ChatHeader } from './ChatHeader';
 import { ChatMessages } from './ChatMessages';
 import { ChatInput } from './ChatInput';
 
-interface ChatWindowProps {
-  roomId: string;
-}
-
-export const ChatWindow: React.FC<ChatWindowProps> = ({ roomId }) => {
+export const ChatWindow: React.FC = () => {
   return (
     <div className="chat-container">
       <div className="main">
-        <ChatHeader roomId={roomId} />
+        <ChatHeader />
         <div className="chat-area">
           <div className="chat-background"></div>
           <ChatMessages />

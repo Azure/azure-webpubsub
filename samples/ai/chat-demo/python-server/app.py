@@ -29,8 +29,8 @@ CORS(app, origins=["http://localhost:5173", "http://localhost:3000"])
 def negotiate():
     """Handle negotiation requests - return WebSocket URL"""
     room_id = request.args.get('roomId', 'public')
-    # generate a random user_id
-    user_id = generate_id('user-')
+    # get the user_id from the query or generate a random user_id
+    user_id = request.args.get('userId') or generate_id('user-')
     print(f"Negotiation request for room: {room_id}")
     
     # Return WebSocket URL using WebSocket port
