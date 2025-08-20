@@ -1,45 +1,54 @@
-import React, { useState } from 'react';
-import { useChatClient } from '../hooks/useChatClient';
+import React, { useRef, useState, useCallback } from "react";
+import { useChatClient } from "../hooks/useChatClient";
+import { useTextareaAutosize } from "../hooks/useTextareaAutosize";
 
 export const ChatInput: React.FC = () => {
   const { sendMessage, connectionStatus, isStreaming } = useChatClient();
-  const [inputValue, setInputValue] = useState('');
+  const [input, setInput] = useState("");
+  const inputRef = useRef<HTMLTextAreaElement | null>(null);
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  // Auto-size input
+  useTextareaAutosize(inputRef, input);
+
+  const canSend = input.trim().length > 0 && connectionStatus.status === 'connected' && !isStreaming;
+
+  const onSubmit = useCallback((e: React.FormEvent) => {
     e.preventDefault();
-    if (!inputValue.trim() || isStreaming) return;
+    if (!canSend) return;
+    const text = input.trim();
+    setInput("");
+    void sendMessage(text);
+  }, [input, canSend, sendMessage]);
 
-    await sendMessage(inputValue);
-    setInputValue('');
-  };
-
-  const handleKeyPress = (e: React.KeyboardEvent) => {
-    if (e.key === 'Enter' && !e.shiftKey) {
+  // Keyboard: Enter to send, Shift+Enter for newline
+  const onKeyDown = useCallback((e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault();
-      handleSubmit(e);
+      if (canSend) {
+        const text = input.trim();
+        setInput("");
+        void sendMessage(text);
+      }
     }
-  };
-
-  const isDisabled = connectionStatus.status !== 'connected' || isStreaming;
+  }, [input, canSend, sendMessage]);
 
   return (
-    <div className="input-area">
-      <input
-        type="text"
+    <form className="input-area" onSubmit={onSubmit}>
+      <textarea
+        id="chat-input"
+        ref={inputRef}
         className="message-input"
-        placeholder="Type a message..."
-        value={inputValue}
-        onChange={(e) => setInputValue(e.target.value)}
-        onKeyPress={handleKeyPress}
-        disabled={isDisabled}
+        placeholder={connectionStatus.status === "connected" ? "Type a message… (Shift+Enter for newline)" : "Connecting…"}
+        value={input}
+        onChange={(e) => setInput(e.target.value)}
+        onKeyDown={onKeyDown}
+        rows={1}
+        disabled={connectionStatus.status !== "connected"}
+        aria-disabled={connectionStatus.status !== "connected"}
       />
-      <button 
-        className="send-button" 
-        onClick={handleSubmit}
-        disabled={isDisabled || !inputValue.trim()}
-      >
+      <button type="submit" className="send-button" disabled={!canSend} aria-label="Send message" title="Send">
         ➤
       </button>
-    </div>
+    </form>
   );
 };

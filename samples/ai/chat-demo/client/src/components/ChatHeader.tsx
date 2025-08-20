@@ -1,58 +1,36 @@
-import React from 'react';
+import React, { useMemo } from "react";
 import { useChatClient } from '../hooks/useChatClient';
 
-export const ChatHeader: React.FC = () => {
+interface ChatHeaderProps {
+  roomId: string;
+}
+
+export const ChatHeader: React.FC<ChatHeaderProps> = ({ roomId }) => {
   const { connectionStatus } = useChatClient();
 
-  const getStatusClass = () => {
+  const statusClass = useMemo(() => {
     switch (connectionStatus.status) {
-      case 'connected':
-        return 'connected';
-      case 'connecting':
-        return 'connecting';
-      case 'disconnected':
-        return 'disconnected';
-      case 'error':
-        return 'error';
-      default:
-        return 'disconnected';
+      case "connected": return "header-status connected";
+      case "connecting": return "header-status connecting";
+      case "error": return "header-status error";
+      default: return "header-status disconnected";
     }
-  };
-
-  const getStatusIcon = () => {
-    switch (connectionStatus.status) {
-      case 'connected':
-        return '●';
-      case 'connecting':
-        return '◐';
-      case 'disconnected':
-        return '○';
-      case 'error':
-        return '✕';
-      default:
-        return '○';
-    }
-  };
+  }, [connectionStatus.status]);
 
   return (
     <header>
       <div className="header-left">
-        <div className="header-title">
-          <h1>AI Agent Chat</h1>
-          <p>Powered by Azure Web PubSub</p>
+          <div className="header-title" aria-live="polite">
+            <h1>AI Chat{roomId ? ` · Room ${roomId}` : ""}</h1>
+            <p>Connected as <strong>{connectionStatus.connectionId}</strong></p>
+          </div>
         </div>
-      </div>
-      <div className="header-actions">
-        <div className={`status header-status ${getStatusClass()}`}>
-          <span className="status-icon">{getStatusIcon()}</span>
-          <span className="status-text">{connectionStatus.message}</span>
-          {connectionStatus.connectionId && (
-            <span className="connection-id" title={`Connection ID: ${connectionStatus.connectionId}`}>
-              {connectionStatus.connectionId.substring(0, 8)}...
-            </span>
-          )}
+        <div className="header-actions" role="status" aria-live="polite">
+          <div className={statusClass} title={connectionStatus.message}>
+            <span className="status-icon" aria-hidden>●</span>
+            <span className="status-text">{connectionStatus.status}</span>
+          </div>
         </div>
-      </div>
     </header>
   );
 };

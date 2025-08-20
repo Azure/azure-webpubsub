@@ -642,10 +642,21 @@ footer {
   position: relative;
 }
 
-.message.streaming .message-content::after {
+/* Prefer attaching cursor to the last child so it sits on the same line */
+.message.streaming .message-content > :last-child::after {
   content: "▌";
   display: inline-block;
-  vertical-align: middle;
+  vertical-align: baseline;
+  animation: blink-cursor var(--cursor-blink-speed) infinite;
+  margin-left: 2px;
+  color: var(--primary-color);
+}
+
+/* Fallback: if content wrapper is the only child, attach to message-text */
+.message.streaming .message-text:only-child::after {
+  content: "▌";
+  display: inline-block;
+  vertical-align: baseline;
   animation: blink-cursor var(--cursor-blink-speed) infinite;
   margin-left: 2px;
   color: var(--primary-color);
@@ -653,32 +664,34 @@ footer {
 
 /* Thinking animation */
 .message.thinking {
-  opacity: 0.7;
-  transition: opacity var(--animation-speed-normal)
-    var(--animation-timing-function);
+  opacity: 0.75;
+  transition: opacity var(--animation-speed-normal) var(--animation-timing-function),
+              filter var(--animation-speed-normal) var(--animation-timing-function);
+  filter: saturate(0.6);
 }
 
 .message.thinking .message-content {
   color: var(--text-secondary);
   font-style: italic;
-  transition: color var(--animation-speed-normal)
-    var(--animation-timing-function);
+  transition: color var(--animation-speed-normal) var(--animation-timing-function),
+              font-style var(--animation-speed-normal) var(--animation-timing-function);
 }
 
 /* Transition between states */
 .message.thinking.streaming,
 .message.thinking.completed {
   opacity: 1;
-  transition: opacity var(--animation-speed-normal)
-    var(--animation-timing-function);
+  filter: none;
+  transition: opacity var(--animation-speed-normal) var(--animation-timing-function),
+              filter var(--animation-speed-normal) var(--animation-timing-function);
 }
 
 .message.thinking.streaming .message-content,
 .message.thinking.completed .message-content {
   color: var(--text-primary);
   font-style: normal;
-  transition: all var(--animation-speed-normal)
-    var(--animation-timing-function);
+  transition: color var(--animation-speed-normal) var(--animation-timing-function),
+              font-style var(--animation-speed-normal) var(--animation-timing-function);
 }
 
 /* Completion animation */

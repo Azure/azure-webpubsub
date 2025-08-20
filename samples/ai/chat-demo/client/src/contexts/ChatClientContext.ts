@@ -9,6 +9,7 @@ export interface ChatMessage {
   isUser: boolean;
   streaming?: boolean;
   streamingEnd?: boolean;
+  isPlaceholder?: boolean; // New flag for placeholder messages
 }
 
 export interface ConnectionStatus {

@@ -15,7 +15,7 @@ export const ChatApp: React.FC = () => {
   return (
     <div className="app-container">
       <ChatRoomProvider name={roomId}>
-        <ChatWindow roomName={roomId} enableTypingIndicators={true} />
+  <ChatWindow roomId={roomId} />
       </ChatRoomProvider>
     </div>
   );

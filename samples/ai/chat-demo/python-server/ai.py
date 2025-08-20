@@ -9,6 +9,10 @@ import os
 from typing import Iterator, Union, Optional, List, Dict, Any
 from openai import OpenAI
 from dotenv import load_dotenv
+import logging
+
+# module logger
+logger = logging.getLogger(__name__)
 
 # Load environment variables from .env file
 load_dotenv()
@@ -18,6 +22,9 @@ class AIChat:
     
     def __init__(self):
         """Initialize the AI client with GitHub AI models"""
+        # instance logger
+        self.logger = logging.getLogger(f"{__name__}.AIChat")
+        self.logger.debug("Initializing AIChat instance")
         # To authenticate with the model you will need to generate a personal access token (PAT) in your GitHub settings.
         # Create your PAT token by following instructions here: https://docs.github.com/en/authentication/keeping-your-account-and-data-secure/managing-your-personal-access-tokens
         self.api_key = os.environ.get("GITHUB_TOKEN")
@@ -25,6 +32,7 @@ class AIChat:
         self.model_name = os.environ.get("MODEL_NAME", "gpt-4o-mini")
         
         if not self.api_key:
+            self.logger.error("GITHUB_TOKEN environment variable is missing")
             raise ValueError("GITHUB_TOKEN environment variable is required")
         
         self.client = OpenAI(
@@ -34,6 +42,7 @@ class AIChat:
                 "api-version": self.api_version,
             },
         )
+        self.logger.info("AIChat client initialized using model=%s", self.model_name)
 
     def chat_stream(
         self, 
@@ -84,8 +93,9 @@ class AIChat:
                     if chunk.choices[0].delta.content is not None:
                         yield chunk.choices[0].delta.content
                     
-        except Exception as e:
-            print(f"Error: {str(e)}")
+        except Exception:
+            # log full exception with traceback
+            self.logger.exception("Error during chat_stream for input: %r", text_input)
     
 # Convenience functions for direct use
 _ai_instance = None

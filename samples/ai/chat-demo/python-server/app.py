@@ -14,7 +14,7 @@ import sys
 from dotenv import load_dotenv
 from ai import chat_stream  # Import our AI module
 from chat_service import ChatService
-from utils import get_room_id
+from utils import get_room_id, to_async_iterator
 # Load environment variables from .env file
 load_dotenv()
 
@@ -99,7 +99,7 @@ async def main():
             print(f"Received message for AI: {message} in room {room_id}")
             if message is not None and room_id is not None:
                 chunks = chat_stream(message)
-                await _svc.streaming_to_group(room_id, chunks)
+                await _svc.streaming_to_group(room_id, to_async_iterator(chunks))
 
     @chat.on_disconnected
     async def handle_disconnected(conn, _svc):

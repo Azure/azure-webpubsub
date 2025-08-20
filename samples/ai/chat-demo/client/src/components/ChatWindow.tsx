@@ -4,18 +4,17 @@ import { ChatMessages } from './ChatMessages';
 import { ChatInput } from './ChatInput';
 
 interface ChatWindowProps {
-  roomName: string;
-  enableTypingIndicators: boolean;
+  roomId: string;
 }
 
-export const ChatWindow: React.FC<ChatWindowProps> = ({ roomName, enableTypingIndicators }) => {
+export const ChatWindow: React.FC<ChatWindowProps> = ({ roomId }) => {
   return (
     <div className="chat-container">
       <div className="main">
-        <ChatHeader />
+        <ChatHeader roomId={roomId} />
         <div className="chat-area">
           <div className="chat-background"></div>
-          <ChatMessages enableTypingIndicators={enableTypingIndicators} />
+          <ChatMessages />
           <ChatInput />
         </div>
       </div>

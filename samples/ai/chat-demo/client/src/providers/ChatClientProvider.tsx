@@ -1,10 +1,10 @@
-import React, { useContext } from 'react';
-import type { ReactNode } from 'react';
-import { WebPubSubClient } from '@azure/web-pubsub-client';
-import { ChatClientContext } from '../contexts/ChatClientContext';
-import type { ChatMessage, ConnectionStatus } from '../contexts/ChatClientContext';
-import { AvatarContext } from '../contexts/AvatarContext';
-import { ChatSettingsContext } from '../contexts/ChatSettingsContext';
+import React, { useContext } from "react";
+import type { ReactNode } from "react";
+import { WebPubSubClient } from "@azure/web-pubsub-client";
+import { ChatClientContext } from "../contexts/ChatClientContext";
+import type { ChatMessage, ConnectionStatus } from "../contexts/ChatClientContext";
+import { AvatarContext } from "../contexts/AvatarContext";
+import { ChatSettingsContext } from "../contexts/ChatSettingsContext";
 
 interface ChatClientProviderProps {
   children: ReactNode;
@@ -13,12 +13,12 @@ const backendUrl = "http://localhost:5000";
 export const ChatClientProvider: React.FC<ChatClientProviderProps> = ({ children }) => {
   const avatarContext = useContext(AvatarContext);
   const settingsContext = useContext(ChatSettingsContext);
-  
+
   const [client, setClient] = React.useState<WebPubSubClient | null>(null);
   const clientRef = React.useRef<WebPubSubClient | null>(null); // Add ref for stable reference
   const [connectionStatus, setConnectionStatus] = React.useState<ConnectionStatus>({
-    status: 'disconnected',
-    message: 'Not connected'
+    status: "disconnected",
+    message: "Not connected",
   });
   const [messages, setMessages] = React.useState<ChatMessage[]>([]);
   const [isStreaming, setIsStreaming] = React.useState<boolean>(false);
@@ -27,7 +27,7 @@ export const ChatClientProvider: React.FC<ChatClientProviderProps> = ({ children
   const [isInitialized, setIsInitialized] = React.useState<boolean>(false);
 
   if (!avatarContext || !settingsContext) {
-    throw new Error('ChatClientProvider must be used within AvatarProvider and ChatSettingsProvider');
+    throw new Error("ChatClientProvider must be used within AvatarProvider and ChatSettingsProvider");
   }
 
   const { displayName } = avatarContext;
@@ -39,56 +39,77 @@ export const ChatClientProvider: React.FC<ChatClientProviderProps> = ({ children
   const roomIdRef = React.useRef(roomId);
 
   // Update refs when values change
-  React.useEffect(() => { displayNameRef.current = displayName; }, [displayName]);
-  React.useEffect(() => { enableTypingIndicatorsRef.current = enableTypingIndicators; }, [enableTypingIndicators]);
-  React.useEffect(() => { roomIdRef.current = roomId; }, [roomId]);
+  React.useEffect(() => {
+    displayNameRef.current = displayName;
+  }, [displayName]);
+  React.useEffect(() => {
+    enableTypingIndicatorsRef.current = enableTypingIndicators;
+  }, [enableTypingIndicators]);
+  React.useEffect(() => {
+    roomIdRef.current = roomId;
+  }, [roomId]);
 
   // Send message function
-  const sendMessage = React.useCallback(async (messageText: string) => {
-    if (!client || !messageText.trim()) return;
+  const sendMessage = React.useCallback(
+    async (messageText: string) => {
+      if (!client || !messageText.trim()) return;
 
-    // Add user message
-    const userMessage: ChatMessage = {
-      id: Date.now().toString(),
-      content: messageText,
-      sender: displayNameRef.current,
-      timestamp: new Date().toISOString(),
-      isUser: true
-    };
-    setMessages(prev => [...prev, userMessage]);
-
-    // Show typing indicator
-    if (enableTypingIndicatorsRef.current) {
-      setShowTypingIndicator(true);
-    }
-
-    // Reset streaming state
-    setIsStreaming(false);
-
-    try {
-      await client.sendEvent(
-        "sendToAI",
-        {
-          from: displayNameRef.current,
-          message: messageText,
-          timestamp: new Date().toISOString(),
-          type: 'user-message',
-          roomId: roomIdRef.current
-        },
-        'json',
-      );
-    } catch (err: unknown) {
-      setShowTypingIndicator(false);
-      const errorMessage: ChatMessage = {
+      // Add user message
+      const userMessage: ChatMessage = {
         id: Date.now().toString(),
-        content: `Error sending message: ${err instanceof Error ? err.message : 'Unknown error'}`,
-        sender: 'System',
+        content: messageText,
+        sender: displayNameRef.current,
         timestamp: new Date().toISOString(),
-        isUser: false
+        isUser: true,
       };
-      setMessages(prev => [...prev, errorMessage]);
-    }
-  }, [client]); // Only depend on client
+      setMessages((prev) => [...prev, userMessage]);
+
+      // Show a local 'Thinking...' placeholder before AI starts streaming
+      const thinkingMessage: ChatMessage = {
+        id: `pending-${Date.now()}`,
+        content: "Thinking...",
+        sender: "AI Assistant",
+        timestamp: new Date().toISOString(),
+        isUser: false,
+        streaming: true,
+        isPlaceholder: true,
+      };
+      setMessages((prev) => [...prev, thinkingMessage]);
+
+      // For this UX, we only show the typing dots when streaming actually starts
+      if (enableTypingIndicatorsRef.current) {
+        setShowTypingIndicator(false);
+      }
+
+      // Reset streaming state
+      setIsStreaming(false);
+
+      try {
+        await client.sendEvent(
+          "sendToAI",
+          {
+            from: displayNameRef.current,
+            message: messageText,
+            timestamp: new Date().toISOString(),
+            type: "user-message",
+            roomId: roomIdRef.current,
+          },
+          "json",
+        );
+      } catch (err: unknown) {
+        setShowTypingIndicator(false);
+        const errorMessage: ChatMessage = {
+          id: Date.now().toString(),
+          content: `Error sending message: ${err instanceof Error ? err.message : "Unknown error"}`,
+          sender: "System",
+          timestamp: new Date().toISOString(),
+          isUser: false,
+        };
+        setMessages((prev) => [...prev, errorMessage]);
+      }
+    },
+    [client],
+  ); // Only depend on client
 
   const clearMessages = React.useCallback(() => {
     setMessages([]);
@@ -103,14 +124,14 @@ export const ChatClientProvider: React.FC<ChatClientProviderProps> = ({ children
       setIsConnecting(true);
 
       try {
-        setConnectionStatus({ status: 'connecting', message: 'Connecting...' });
+        setConnectionStatus({ status: "connecting", message: "Connecting..." });
 
         // Stop existing client if any
         if (clientRef.current) {
           try {
             await clientRef.current.stop();
           } catch (err) {
-            console.error('Error stopping previous client:', err);
+            console.error("Error stopping previous client:", err);
           }
         }
 
@@ -126,25 +147,24 @@ export const ChatClientProvider: React.FC<ChatClientProviderProps> = ({ children
         });
 
         // Set up event listeners using refs for latest values
-        newClient.on('connected', (e) => {
+        newClient.on("connected", (e) => {
           setConnectionStatus({
-            status: 'connected',
-            message: 'Connected',
-            connectionId: e.connectionId
+            status: "connected",
+            message: "Connected",
+            connectionId: e.connectionId,
           });
           setIsConnecting(false);
         });
 
-        newClient.on('disconnected', () => {
+        newClient.on("disconnected", () => {
           setConnectionStatus({
-            status: 'disconnected',
-            message: `Disconnected: Connection closed`
+            status: "disconnected",
+            message: `Disconnected: Connection closed`,
           });
           setIsConnecting(false);
         });
 
-        newClient.on('group-message', (e) => {
-          
+        newClient.on("group-message", (e) => {
           // Type assertion for WebPubSub message data structure
           const messageData = e.message.data as {
             messageId?: string;
@@ -157,15 +177,19 @@ export const ChatClientProvider: React.FC<ChatClientProviderProps> = ({ children
           const streaming = !!messageData?.streaming;
           const streamingEnd = !!messageData?.streamingEnd;
           const messageContent = messageData?.message;
-          const sender = messageData?.from || 'AI Assistant';
+          const sender = messageData?.from || "AI Assistant";
           const isFromCurrentUser = sender === displayNameRef.current; // Use ref
 
           if (!isFromCurrentUser) {
             // Handle streaming end signal
             if (streaming && streamingEnd) {
               setIsStreaming(false);
-              if (enableTypingIndicatorsRef.current) { // Use ref
+              if (enableTypingIndicatorsRef.current) {
                 setShowTypingIndicator(false);
+              }
+              // Mark the corresponding message as not streaming anymore
+              if (messageId) {
+                setMessages((prev) => prev.map((m) => (m.id === messageId ? { ...m, streaming: false } : m)));
               }
               return;
             }
@@ -173,71 +197,85 @@ export const ChatClientProvider: React.FC<ChatClientProviderProps> = ({ children
             // Handle streaming messages
             if (streaming) {
               setIsStreaming(true);
-              if (enableTypingIndicatorsRef.current) { // Use ref
-                setShowTypingIndicator(false);
+              if (enableTypingIndicatorsRef.current) {
+                setShowTypingIndicator(true); // Show typing dots while receiving chunks
               }
 
               if (messageId && messageContent) {
                 // Create new streaming message or append to existing
-                setMessages(prev => {
-                  const existingIndex = prev.findIndex(msg => msg.id === messageId);
+                setMessages((prev) => {
+                  const existingIndex = prev.findIndex((msg) => msg.id === messageId);
                   if (existingIndex >= 0) {
-                    // Append to existing message
-                    return prev.map(msg => 
-                      msg.id === messageId 
-                        ? { ...msg, content: msg.content + (messageContent || '') }
-                        : msg
-                    );
+                    // If the existing message is a placeholder, replace it
+                    const existing = prev[existingIndex];
+                    if (existing.isPlaceholder) {
+                      return prev.map((msg) => (msg.id === messageId ? { ...msg, content: messageContent || "", isPlaceholder: false } : msg));
+                    } else {
+                      return prev.map((msg) => (msg.id === messageId ? { ...msg, content: msg.content + (messageContent || "") } : msg));
+                    }
                   } else {
+                    // No message with this id yet; try to replace the most recent placeholder
+                    const lastPlaceholderIndex = [...prev].reverse().findIndex((m) => m.isPlaceholder);
+                    if (lastPlaceholderIndex !== -1) {
+                      const idx = prev.length - 1 - lastPlaceholderIndex;
+                      const replaced = {
+                        ...prev[idx],
+                        id: messageId,
+                        content: messageContent || "",
+                        isPlaceholder: false,
+                        sender,
+                      } as ChatMessage;
+                      return prev.map((m, i) => (i === idx ? replaced : m));
+                    }
                     // Create new streaming message
                     const newMessage: ChatMessage = {
                       id: messageId || Date.now().toString(),
-                      content: messageContent || '',
+                      content: messageContent || "",
                       sender,
                       timestamp: new Date().toISOString(),
                       isUser: false,
-                      streaming: true
+                      streaming: true,
                     };
                     return [...prev, newMessage];
                   }
                 });
-              } else if (messageId && !messageContent) {
-                // Thinking message
-                const thinkingMessage: ChatMessage = {
-                  id: messageId,
-                  content: 'Thinking...',
-                  sender,
-                  timestamp: new Date().toISOString(),
-                  isUser: false,
-                  streaming: true
-                };
-                setMessages(prev => [...prev, thinkingMessage]);
               }
+              // If there's no content, we skip; local placeholder is already shown
             } else {
-              // Complete message
+              // Complete non-streaming message (fallback)
               setIsStreaming(false);
-              if (enableTypingIndicatorsRef.current) { // Use ref
+              if (enableTypingIndicatorsRef.current) {
                 setShowTypingIndicator(false);
               }
 
               if (messageId) {
-                setMessages(prev => {
-                  const existingIndex = prev.findIndex(msg => msg.id === messageId);
+                setMessages((prev) => {
+                  const existingIndex = prev.findIndex((msg) => msg.id === messageId);
                   if (existingIndex >= 0) {
                     // Update existing message
-                    return prev.map(msg => 
-                      msg.id === messageId 
-                        ? { ...msg, content: messageContent || '', streaming: false }
-                        : msg
-                    );
+                    return prev.map((msg) => (msg.id === messageId ? { ...msg, content: messageContent || "", streaming: false, isPlaceholder: false } : msg));
                   } else {
+                    // Replace most recent placeholder if present
+                    const lastPlaceholderIndex = [...prev].reverse().findIndex((m) => m.isPlaceholder);
+                    if (lastPlaceholderIndex !== -1) {
+                      const idx = prev.length - 1 - lastPlaceholderIndex;
+                      const replaced = {
+                        ...prev[idx],
+                        id: messageId,
+                        content: messageContent || "",
+                        isPlaceholder: false,
+                        streaming: false,
+                        sender,
+                      } as ChatMessage;
+                      return prev.map((m, i) => (i === idx ? replaced : m));
+                    }
                     // Add new complete message
                     const newMessage: ChatMessage = {
                       id: messageId || Date.now().toString(),
-                      content: messageContent || '',
+                      content: messageContent || "",
                       sender,
                       timestamp: new Date().toISOString(),
-                      isUser: false
+                      isUser: false,
                     };
                     return [...prev, newMessage];
                   }
@@ -250,11 +288,10 @@ export const ChatClientProvider: React.FC<ChatClientProviderProps> = ({ children
         await newClient.start();
         clientRef.current = newClient;
         setClient(newClient);
-
       } catch (err: unknown) {
         setConnectionStatus({
-          status: 'error',
-          message: `Connection Failed: ${err instanceof Error ? err.message : 'Unknown error'}`
+          status: "error",
+          message: `Connection Failed: ${err instanceof Error ? err.message : "Unknown error"}`,
         });
         setIsConnecting(false);
       }
@@ -272,7 +309,7 @@ export const ChatClientProvider: React.FC<ChatClientProviderProps> = ({ children
         try {
           clientRef.current.stop();
         } catch (error) {
-          console.error('Error stopping client:', error);
+          console.error("Error stopping client:", error);
         }
         clientRef.current = null;
       }
@@ -286,7 +323,7 @@ export const ChatClientProvider: React.FC<ChatClientProviderProps> = ({ children
       setMessages([]);
       setIsStreaming(false);
       setShowTypingIndicator(false);
-      
+
       // Optionally send a room join message to the server
       // This tells the server which room this connection should listen to
       // (Your server would need to handle this message type)
@@ -295,33 +332,31 @@ export const ChatClientProvider: React.FC<ChatClientProviderProps> = ({ children
 
   // Add welcome message when connected
   React.useEffect(() => {
-    if (connectionStatus.status === 'connected' && messages.length === 0) {
+    if (connectionStatus.status === "connected" && messages.length === 0) {
       setTimeout(() => {
         const welcomeMessage: ChatMessage = {
-          id: 'welcome',
+          id: "welcome",
           content: "Hello! I'm your AI assistant. How can I help you today?",
-          sender: 'AI Assistant',
+          sender: "AI Assistant",
           timestamp: new Date().toISOString(),
-          isUser: false
+          isUser: false,
         };
         setMessages([welcomeMessage]);
       }, 1200);
     }
   }, [connectionStatus.status, messages.length]);
 
-  const value = {
-    client,
-    connectionStatus,
-    messages,
-    isStreaming,
-    sendMessage,
-    clearMessages,
-    showTypingIndicator,
-  };
-
-  return (
-    <ChatClientContext.Provider value={value}>
-      {children}
-    </ChatClientContext.Provider>
+  const value = React.useMemo(
+    () => ({
+      client,
+      connectionStatus,
+      messages,
+      isStreaming,
+      sendMessage,
+      clearMessages,
+      showTypingIndicator,
+    }),
+    [client, connectionStatus, messages, isStreaming, sendMessage, clearMessages, showTypingIndicator],
   );
+  return <ChatClientContext.Provider value={value}>{children}</ChatClientContext.Provider>;
 };

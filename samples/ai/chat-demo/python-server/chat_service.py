@@ -21,7 +21,7 @@ import json
 import uuid
 from collections import defaultdict
 from dataclasses import dataclass
-from typing import Any, Awaitable, Callable, Dict, Iterable, List, Optional, Set, Tuple, Union
+from typing import Any, Awaitable, Callable, Dict, Iterable, List, Optional, Set, Tuple, Union, AsyncIterator
 from utils import generate_id
 import websockets
 import websockets.exceptions as ws_exc
@@ -353,10 +353,10 @@ class ChatService:
         
         return await self.client_manager.send_to_group(group, json.dumps(group_data), exclude_ids)
     
-    async def streaming_to_group(self, group: str, chunks: Iterable[str], exclude_ids: Optional[List[str]] = None, from_user_id: Optional[str] = None) -> List[SendResult]:
+    async def streaming_to_group(self, group: str, chunks: AsyncIterator[str], exclude_ids: Optional[List[str]] = None, from_user_id: Optional[str] = None) -> List[SendResult]:
         full_response = ""
         message_id = generate_id("m-")
-        for chunk in chunks:
+        async for chunk in chunks:
             full_response += chunk
             group_data = {
                 "type": "message",
