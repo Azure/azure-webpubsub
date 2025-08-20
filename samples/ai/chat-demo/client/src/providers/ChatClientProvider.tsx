@@ -179,98 +179,96 @@ export const ChatClientProvider: React.FC<ChatClientProviderProps> = ({ children
           const sender = messageData?.from || "AI Assistant";
           const isFromCurrentUser = sender === userIdRef.current; // Use ref
 
-          if (!isFromCurrentUser) {
-            // Handle streaming end signal
-            if (streaming && streamingEnd) {
-              setIsStreamingState(false);
-              // Mark the corresponding message as not streaming anymore
-              if (messageId) {
-                setMessages((prev) => prev.map((m) => (m.id === messageId ? { ...m, streaming: false } : m)));
-              }
-              return;
+          // Handle streaming end signal
+          if (streaming && streamingEnd) {
+            setIsStreamingState(false);
+            // Mark the corresponding message as not streaming anymore
+            if (messageId) {
+              setMessages((prev) => prev.map((m) => (m.id === messageId ? { ...m, streaming: false } : m)));
             }
+            return;
+          }
 
-            // Handle streaming messages
-            if (streaming) {
-              setIsStreamingState(true);
+          // Handle streaming messages
+          if (streaming) {
+            setIsStreamingState(true);
 
-              if (messageId && messageContent) {
-                // Create new streaming message or append to existing
-                setMessages((prev) => {
-                  const existingIndex = prev.findIndex((msg) => msg.id === messageId);
-                  if (existingIndex >= 0) {
-                    // If the existing message is a placeholder, replace it
-                    const existing = prev[existingIndex];
-                    if (existing.isPlaceholder) {
-                      return prev.map((msg) => (msg.id === messageId ? { ...msg, content: messageContent || "", isPlaceholder: false } : msg));
-                    } else {
-                      return prev.map((msg) => (msg.id === messageId ? { ...msg, content: msg.content + (messageContent || "") } : msg));
-                    }
+            if (messageId && messageContent) {
+              // Create new streaming message or append to existing
+              setMessages((prev) => {
+                const existingIndex = prev.findIndex((msg) => msg.id === messageId);
+                if (existingIndex >= 0) {
+                  // If the existing message is a placeholder, replace it
+                  const existing = prev[existingIndex];
+                  if (existing.isPlaceholder) {
+                    return prev.map((msg) => (msg.id === messageId ? { ...msg, content: messageContent || "", isPlaceholder: false } : msg));
                   } else {
-                    // No message with this id yet; try to replace the most recent placeholder
-                    const lastPlaceholderIndex = [...prev].reverse().findIndex((m) => m.isPlaceholder);
-                    if (lastPlaceholderIndex !== -1) {
-                      const idx = prev.length - 1 - lastPlaceholderIndex;
-                      const replaced = {
-                        ...prev[idx],
-                        id: messageId,
-                        content: messageContent || "",
-                        isPlaceholder: false,
-                        sender,
-                      } as ChatMessage;
-                      return prev.map((m, i) => (i === idx ? replaced : m));
-                    }
-                    // Create new streaming message
-                    const newMessage: ChatMessage = {
-                      id: messageId || Date.now().toString(),
-                      content: messageContent || "",
-                      sender,
-                      timestamp: new Date().toISOString(),
-                      isUser: false,
-                      streaming: true,
-                    };
-                    return [...prev, newMessage];
+                    return prev.map((msg) => (msg.id === messageId ? { ...msg, content: msg.content + (messageContent || "") } : msg));
                   }
-                });
-              }
-              // If there's no content, we skip; local placeholder is already shown
-            } else {
-              // Complete non-streaming message (fallback)
-              setIsStreamingState(false);
+                } else {
+                  // No message with this id yet; try to replace the most recent placeholder
+                  const lastPlaceholderIndex = [...prev].reverse().findIndex((m) => m.isPlaceholder);
+                  if (lastPlaceholderIndex !== -1) {
+                    const idx = prev.length - 1 - lastPlaceholderIndex;
+                    const replaced = {
+                      ...prev[idx],
+                      id: messageId,
+                      content: messageContent || "",
+                      isPlaceholder: false,
+                      sender,
+                    } as ChatMessage;
+                    return prev.map((m, i) => (i === idx ? replaced : m));
+                  }
+                  // Create new streaming message
+                  const newMessage: ChatMessage = {
+                    id: messageId || Date.now().toString(),
+                    content: messageContent || "",
+                    sender,
+                    timestamp: new Date().toISOString(),
+                    isUser: false, // streaming chunks are AI
+                    streaming: true,
+                  };
+                  return [...prev, newMessage];
+                }
+              });
+            }
+            // If there's no content, we skip; local placeholder is already shown
+          } else {
+            // Complete non-streaming message (fallback)
+            setIsStreamingState(false);
 
-              if (messageId) {
-                setMessages((prev) => {
-                  const existingIndex = prev.findIndex((msg) => msg.id === messageId);
-                  if (existingIndex >= 0) {
-                    // Update existing message
-                    return prev.map((msg) => (msg.id === messageId ? { ...msg, content: messageContent || "", streaming: false, isPlaceholder: false } : msg));
-                  } else {
-                    // Replace most recent placeholder if present
-                    const lastPlaceholderIndex = [...prev].reverse().findIndex((m) => m.isPlaceholder);
-                    if (lastPlaceholderIndex !== -1) {
-                      const idx = prev.length - 1 - lastPlaceholderIndex;
-                      const replaced = {
-                        ...prev[idx],
-                        id: messageId,
-                        content: messageContent || "",
-                        isPlaceholder: false,
-                        streaming: false,
-                        sender,
-                      } as ChatMessage;
-                      return prev.map((m, i) => (i === idx ? replaced : m));
-                    }
-                    // Add new complete message
-                    const newMessage: ChatMessage = {
-                      id: messageId || Date.now().toString(),
+            if (messageId) {
+              setMessages((prev) => {
+                const existingIndex = prev.findIndex((msg) => msg.id === messageId);
+                if (existingIndex >= 0) {
+                  // Update existing message
+                  return prev.map((msg) => (msg.id === messageId ? { ...msg, content: messageContent || "", streaming: false, isPlaceholder: false } : msg));
+                } else {
+                  // Replace most recent placeholder if present
+                  const lastPlaceholderIndex = [...prev].reverse().findIndex((m) => m.isPlaceholder);
+                  if (lastPlaceholderIndex !== -1) {
+                    const idx = prev.length - 1 - lastPlaceholderIndex;
+                    const replaced = {
+                      ...prev[idx],
+                      id: messageId,
                       content: messageContent || "",
+                      isPlaceholder: false,
+                      streaming: false,
                       sender,
-                      timestamp: new Date().toISOString(),
-                      isUser: false,
-                    };
-                    return [...prev, newMessage];
+                    } as ChatMessage; // keep existing isUser (placeholder is AI -> false)
+                    return prev.map((m, i) => (i === idx ? replaced : m));
                   }
-                });
-              }
+                  // Add new complete message
+                  const newMessage: ChatMessage = {
+                    id: messageId || Date.now().toString(),
+                    content: messageContent || "",
+                    sender,
+                    timestamp: new Date().toISOString(),
+                    isUser: isFromCurrentUser,
+                  };
+                  return [...prev, newMessage];
+                }
+              });
             }
           }
         });
@@ -278,21 +276,20 @@ export const ChatClientProvider: React.FC<ChatClientProviderProps> = ({ children
         await newClient.start();
         clientRef.current = newClient;
         setClient(newClient);
-  // Mark initialized via ref only
-  initStartedRef.current = true;
+        // Mark initialized via ref only
+        initStartedRef.current = true;
       } catch (err: unknown) {
         setConnectionStatus({
           status: "error",
           message: `Connection Failed: ${err instanceof Error ? err.message : "Unknown error"}`,
         });
         // remain not initialized so we can retry later
-      }
-      finally {
-  connectingRef.current = false;
+      } finally {
+        connectingRef.current = false;
       }
     };
 
-  // Kick off initialization; guards above ensure single start (even under StrictMode)
+    // Kick off initialization; guards above ensure single start (even under StrictMode)
     initializeClient();
 
     // Cleanup function to prevent multiple connections
@@ -313,7 +310,7 @@ export const ChatClientProvider: React.FC<ChatClientProviderProps> = ({ children
     if (client && roomId) {
       // Clear messages when switching to a new room
       setMessages([]);
-  setIsStreamingState(false);
+      setIsStreamingState(false);
 
       // Optionally send a room join message to the server
       // This tells the server which room this connection should listen to
@@ -340,7 +337,7 @@ export const ChatClientProvider: React.FC<ChatClientProviderProps> = ({ children
   // Derive isStreaming from messages if available; fallback to state for transient UI control
   const isStreaming = React.useMemo(() => {
     if (messages.length === 0) return isStreamingState;
-    return messages.some(m => m.streaming);
+    return messages.some((m) => m.streaming);
   }, [messages, isStreamingState]);
 
   const value = React.useMemo(
