@@ -1,10 +1,12 @@
 import { createContext } from 'react';
 
+export interface ChatRoom {
+  id: string;
+  name: string;
+}
+
 export interface ChatRoomContextType {
-  roomName: string;
-  participantCount: number;
-  isTyping: boolean;
-  typingUsers: string[];
+  room: ChatRoom | null;
 }
 
 export const ChatRoomContext = createContext<ChatRoomContextType | undefined>(undefined);

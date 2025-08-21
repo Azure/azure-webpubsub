@@ -505,15 +505,26 @@ header p {
   flex: 1;
   padding: 14px 20px;
   border: 1px solid var(--border-color);
-  border-radius: 24px;
+  border-radius: 12px;
   background-color: var(--input-bg);
   color: var(--text-primary);
   font-size: 1rem;
   resize: none;
   max-height: 120px;
   overflow-y: auto;
+  overflow-x: hidden;
   transition: all 0.3s ease;
   box-shadow: 0 2px 6px rgba(0, 0, 0, 0.05);
+}
+
+/* Hide textarea scrollbar visuals while preserving scrollability */
+.message-input::-webkit-scrollbar {
+  width: 0;
+  height: 0;
+}
+.message-input {
+  -ms-overflow-style: none; /* IE and Edge */
+  scrollbar-width: none; /* Firefox */
 }
 
 .message-input:focus {

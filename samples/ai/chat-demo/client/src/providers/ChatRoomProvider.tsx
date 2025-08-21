@@ -1,23 +1,20 @@
-import React from 'react';
+import React, { useContext, useMemo } from 'react';
 import type { ReactNode } from 'react';
-import { ChatRoomContext } from '../contexts/ChatRoomContext';
+import { ChatRoomContext, type ChatRoom } from '../contexts/ChatRoomContext';
+import { ChatSettingsContext } from '../contexts/ChatSettingsContext';
 
 interface ChatRoomProviderProps {
   children: ReactNode;
-  name: string;
 }
 
-export const ChatRoomProvider: React.FC<ChatRoomProviderProps> = ({ children, name }) => {
-  const [participantCount, setParticipantCount] = React.useState<number>(1);
-  const [isTyping, setIsTyping] = React.useState<boolean>(false);
-  const [typingUsers, setTypingUsers] = React.useState<string[]>([]);
+export const ChatRoomProvider: React.FC<ChatRoomProviderProps> = ({ children }) => {
+  const settings = useContext(ChatSettingsContext);
+  if (!settings) throw new Error('ChatRoomProvider must be used within ChatSettingsProvider');
 
-  const value = {
-    roomName: name,
-    participantCount,
-    isTyping,
-    typingUsers,
-  };
+  const { roomId } = settings;
+  const room: ChatRoom | null = useMemo(() => (roomId ? { id: roomId, name: roomId } : null), [roomId]);
+
+  const value = useMemo(() => ({ room }), [room]);
 
   return (
     <ChatRoomContext.Provider value={value}>

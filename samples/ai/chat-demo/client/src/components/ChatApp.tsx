@@ -10,11 +10,9 @@ export const ChatApp: React.FC = () => {
     throw new Error('ChatApp must be used within ChatSettingsProvider');
   }
   
-  const { roomId } = settingsContext;
-
   return (
     <div className="app-container">
-      <ChatRoomProvider name={roomId}>
+      <ChatRoomProvider>
         <ChatWindow />
       </ChatRoomProvider>
     </div>
