@@ -96,6 +96,8 @@ async def main():
         if room_id:
             await _svc.add_to_group(conn.connectionId, room_id)
             print(f"Client connected to room: {room_id}")
+        # Track background tasks per connection for cleanup
+        conn.attrs.setdefault("tasks", set())
         print("connected:", conn.connectionId, conn.user_id)
 
     @chat.on_event_message
@@ -107,11 +109,31 @@ async def main():
             if message is not None and room_id is not None:
                 # also broadcast to others about this message
                 await _svc.send_to_group(room_id, message, [conn.connectionId], conn.user_id)
+                # Start AI streaming in background so multiple requests can stream concurrently
                 chunks = chat_stream(message)
-                await _svc.streaming_to_group(room_id, to_async_iterator(chunks))
+                task = asyncio.create_task(_svc.streaming_to_group(room_id, to_async_iterator(chunks)))
+                # track task for cleanup on disconnect
+                try:
+                    tasks = conn.attrs.setdefault("tasks", set())
+                    tasks.add(task)
+                    def _cleanup(_fut):
+                        try:
+                            tasks.discard(task)
+                        except Exception:
+                            pass
+                    task.add_done_callback(_cleanup)
+                except Exception:
+                    pass
 
     @chat.on_disconnected
     async def handle_disconnected(conn, _svc):
+        # Cancel any background tasks for this connection (e.g., in-flight AI streams)
+        tasks = conn.attrs.get("tasks") or set()
+        for t in list(tasks):
+            try:
+                t.cancel()
+            except Exception:
+                pass
         print(f"Client disconnected: {conn.connectionId}")
     await chat.start_chat(host, port + 1)
 
