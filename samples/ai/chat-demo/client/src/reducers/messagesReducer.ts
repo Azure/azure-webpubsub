@@ -6,6 +6,7 @@ export type MessagesState = ChatMessage[];
 export type MessagesAction =
   | { type: "clear" }
   | { type: "welcome" }
+  | { type: "setAll"; payload: ChatMessage[] }
   | { type: "userMessage"; payload: { id: string; content: string; userId: string } }
   | { type: "addPlaceholder" }
   | { type: "streamChunk"; payload: { messageId: string; chunk: string; sender: string } }
@@ -27,6 +28,8 @@ export function messagesReducer(state: MessagesState, action: MessagesAction): M
   switch (action.type) {
     case "clear":
       return [];
+    case "setAll":
+      return [...action.payload];
     case "welcome": {
       if (state.length > 0) return state;
       const welcome: ChatMessage = {

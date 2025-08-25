@@ -4,6 +4,7 @@ import { WebPubSubClient } from "@azure/web-pubsub-client";
 import { ChatClientContext } from "../contexts/ChatClientContext";
 import type { ChatMessage, ConnectionStatus } from "../contexts/ChatClientContext";
 import { messagesReducer, initialMessagesState } from "../reducers/messagesReducer";
+import type { MessagesAction } from "../reducers/messagesReducer";
 import { AvatarContext } from "../contexts/AvatarContext";
 import { ChatSettingsContext } from "../contexts/ChatSettingsContext";
 
@@ -23,16 +24,28 @@ export const ChatClientProvider: React.FC<ChatClientProviderProps> = ({ children
   });
   const [messages, dispatch] = React.useReducer(messagesReducer, initialMessagesState);
   const [isStreamingState, setIsStreamingState] = React.useState<boolean>(false);
+  // Cache messages per room to enable smooth, instant room switches
+  const messagesByRoomRef = React.useRef<Map<string, ChatMessage[]>>(new Map());
   // Refs to guard against double-initialize within the same tick and across effect re-runs
   const initStartedRef = React.useRef(false);
   const connectingRef = React.useRef(false);
+  const joinedGroupsRef = React.useRef<Set<string>>(new Set());
+  const prevRoomsRef = React.useRef<Set<string>>(new Set());
 
   if (!avatarContext || !settingsContext) {
     throw new Error("ChatClientProvider must be used within AvatarProvider and ChatSettingsProvider");
   }
 
-  const { userId, setUserId } = avatarContext;
-  const { roomId } = settingsContext;
+   const { userId, setUserId } = avatarContext;
+   const { roomId, rooms } = settingsContext;
+
+  const makeWelcomeMessage = React.useCallback((): ChatMessage => ({
+    id: "welcome",
+    content: "Hello! I'm your AI assistant. How can I help you today?",
+    sender: "AI Assistant",
+    timestamp: new Date().toISOString(),
+    isUser: false,
+  }), []);
 
   // Refs for latest values (to avoid reconnections)
   const userIdRef = React.useRef(userId);
@@ -51,6 +64,26 @@ export const ChatClientProvider: React.FC<ChatClientProviderProps> = ({ children
     setUserIdRef.current = setUserId;
   }, [setUserId]);
 
+  // Persist messages to cache keyed by current room
+  React.useEffect(() => {
+    if (roomIdRef.current) {
+      messagesByRoomRef.current.set(roomIdRef.current, messages);
+    }
+  }, [messages]);
+
+  // Helper: apply a messages action to a specific room (by id/group),
+  // updating the offscreen cache and, if it's the active room, the UI reducer.
+  const updateRoomMessages = React.useCallback((targetRoomId: string | undefined, action: MessagesAction) => {
+    const roomKey = targetRoomId || roomIdRef.current || "public";
+    const prev = messagesByRoomRef.current.get(roomKey) ?? [];
+    const next = messagesReducer(prev, action);
+    messagesByRoomRef.current.set(roomKey, next);
+    // Reflect in UI only if updating the active room
+    if (roomKey === roomIdRef.current) {
+      dispatch(action);
+    }
+  }, []);
+
   // Send message function
   const sendMessage = React.useCallback(
     async (messageText: string) => {
@@ -58,10 +91,10 @@ export const ChatClientProvider: React.FC<ChatClientProviderProps> = ({ children
 
       // Add user message
       const userMessageId = Date.now().toString();
-      dispatch({ type: "userMessage", payload: { id: userMessageId, content: messageText, userId: userIdRef.current || "" } });
+  updateRoomMessages(roomIdRef.current, { type: "userMessage", payload: { id: userMessageId, content: messageText, userId: userIdRef.current || "" } });
 
       // Show a local 'Thinking...' placeholder before AI starts streaming
-      dispatch({ type: "addPlaceholder" });
+  updateRoomMessages(roomIdRef.current, { type: "addPlaceholder" });
       // Reset streaming state
       setIsStreamingState(false);
 
@@ -78,18 +111,11 @@ export const ChatClientProvider: React.FC<ChatClientProviderProps> = ({ children
           "json",
         );
       } catch (err: unknown) {
-        const errorMessage: ChatMessage = {
-          id: Date.now().toString(),
-          content: `Error sending message: ${err instanceof Error ? err.message : "Unknown error"}`,
-          sender: "System",
-          timestamp: new Date().toISOString(),
-          isUser: false,
-        };
-        // Append error while keeping reducer as the source of truth
-        dispatch({ type: "completeMessage", payload: { messageId: errorMessage.id, content: errorMessage.content, sender: errorMessage.sender || "System", isFromCurrentUser: false } });
+    const errorMessageId = Date.now().toString();
+    updateRoomMessages(roomIdRef.current, { type: "completeMessage", payload: { messageId: errorMessageId, content: `Error sending message: ${err instanceof Error ? err.message : "Unknown error"}`, sender: "System", isFromCurrentUser: false } });
       }
     },
-    [client],
+  [client, updateRoomMessages],
   ); // Only depend on client
 
   const clearMessages = React.useCallback(() => {
@@ -98,11 +124,6 @@ export const ChatClientProvider: React.FC<ChatClientProviderProps> = ({ children
   }, []);
 
   // ---------------------- message helpers ----------------------
-  // Keep a dispatch ref for use in stable effects
-  const dispatchRef = React.useRef(dispatch);
-  React.useEffect(() => {
-    dispatchRef.current = dispatch;
-  }, [dispatch]);
 
   // Initialize client ONCE on mount - no reconnections needed
   React.useEffect(() => {
@@ -148,6 +169,9 @@ export const ChatClientProvider: React.FC<ChatClientProviderProps> = ({ children
           });
           // Use ref to avoid effect dependency on setDisplayName
           setUserIdRef.current(e.userId || userIdRef.current);
+          // reset joined set; server auto-joins the negotiated room
+          joinedGroupsRef.current = new Set();
+          if (roomIdRef.current) joinedGroupsRef.current.add(roomIdRef.current);
         });
 
         newClient.on("disconnected", () => {
@@ -157,15 +181,23 @@ export const ChatClientProvider: React.FC<ChatClientProviderProps> = ({ children
           });
         });
 
+        type GroupMessageEventLike = { group?: string; message: { data: unknown } };
         newClient.on("group-message", (e) => {
           // Type assertion for WebPubSub message data structure
-          const messageData = e.message.data as {
+          const messageData = (e as GroupMessageEventLike).message.data as {
             messageId?: string;
             streaming?: boolean;
             streamingEnd?: boolean;
             message?: string;
             from?: string;
+            roomId?: string;
           };
+          // Determine the group/room this message belongs to (prefer event.group, fallback to data.roomId)
+          const targetRoom = (e as GroupMessageEventLike).group || messageData?.roomId;
+          if (!targetRoom) {
+            // If we can't determine the target room, drop the message to avoid misrouting
+            return;
+          }
           const messageId = messageData?.messageId;
           const streaming = !!messageData?.streaming;
           const streamingEnd = !!messageData?.streamingEnd;
@@ -175,24 +207,18 @@ export const ChatClientProvider: React.FC<ChatClientProviderProps> = ({ children
 
           // Handle streaming end signal
           if (streaming && streamingEnd) {
-            setIsStreamingState(false);
-            if (messageId) {
-              dispatchRef.current({ type: "streamEnd", payload: { messageId } });
-            }
+            if (targetRoom === roomIdRef.current) setIsStreamingState(false);
+            if (messageId) updateRoomMessages(targetRoom, { type: "streamEnd", payload: { messageId } });
             return;
           }
 
           // Handle streaming messages
           if (streaming) {
-            setIsStreamingState(true);
-            if (messageId && messageContent) {
-              dispatchRef.current({ type: "streamChunk", payload: { messageId, chunk: messageContent, sender } });
-            }
+            if (targetRoom === roomIdRef.current) setIsStreamingState(true);
+            if (messageId && messageContent) updateRoomMessages(targetRoom, { type: "streamChunk", payload: { messageId, chunk: messageContent, sender } });
           } else {
-            setIsStreamingState(false);
-            if (messageId) {
-              dispatchRef.current({ type: "completeMessage", payload: { messageId, content: messageContent, sender, isFromCurrentUser } });
-            }
+            if (targetRoom === roomIdRef.current) setIsStreamingState(false);
+            if (messageId) updateRoomMessages(targetRoom, { type: "completeMessage", payload: { messageId, content: messageContent, sender, isFromCurrentUser } });
           }
         });
 
@@ -226,29 +252,68 @@ export const ChatClientProvider: React.FC<ChatClientProviderProps> = ({ children
         clientRef.current = null;
       }
     };
-  }, []);
+  }, [updateRoomMessages]);
 
-  // Handle room changes - clear messages when switching rooms
+  // Join newly added rooms and leave removed rooms on the active connection
+  React.useEffect(() => {
+    if (!client) return;
+    const nextRooms = new Set((rooms || []).filter(Boolean));
+    const joined = joinedGroupsRef.current;
+    // compute toJoin: in nextRooms but not joined
+    const toJoin: string[] = [];
+    nextRooms.forEach((g) => { if (!joined.has(g)) toJoin.push(g); });
+    // compute toLeave: joined but not in nextRooms
+    const toLeave: string[] = [];
+    joined.forEach((g) => { if (!nextRooms.has(g)) toLeave.push(g); });
+
+    if (toJoin.length === 0 && toLeave.length === 0) {
+      prevRoomsRef.current = nextRooms;
+      return;
+    }
+
+    (async () => {
+      // Join new groups
+      for (const g of toJoin) {
+        try {
+          await client.joinGroup(g);
+          joined.add(g);
+        } catch (err) {
+          console.error("joinGroup failed:", g, err);
+        }
+      }
+      // Leave removed groups
+      for (const g of toLeave) {
+        try {
+          await client.leaveGroup(g);
+          joined.delete(g);
+        } catch (err) {
+          console.error("leaveGroup failed:", g, err);
+        }
+      }
+      prevRoomsRef.current = nextRooms;
+    })();
+  }, [rooms, client]);
+
+  // Handle room changes - swap to cached messages or show welcome instantly
   React.useEffect(() => {
     if (client && roomId) {
-      // Clear messages when switching to a new room
-      dispatch({ type: "clear" });
+      const cached = messagesByRoomRef.current.get(roomId);
+      if (cached && cached.length > 0) {
+        dispatch({ type: "setAll", payload: cached });
+      } else {
+    // Fresh room: show welcome immediately in a single render for smoother UX
+    dispatch({ type: "setAll", payload: [makeWelcomeMessage()] });
+      }
       setIsStreamingState(false);
-
-      // Optionally send a room join message to the server
-      // This tells the server which room this connection should listen to
-      // (Your server would need to handle this message type)
     }
-  }, [roomId, client]);
+  }, [roomId, client, makeWelcomeMessage]);
 
-  // Add welcome message when connected
+  // Welcome on first connection if room has no cached messages yet
   React.useEffect(() => {
     if (connectionStatus.status === "connected" && messages.length === 0) {
-      setTimeout(() => {
-        dispatch({ type: "welcome" });
-      }, 200);
+    dispatch({ type: "setAll", payload: [makeWelcomeMessage()] });
     }
-  }, [connectionStatus.status, messages.length]);
+  }, [connectionStatus.status, messages.length, makeWelcomeMessage]);
 
   // Derive isStreaming from messages if available; fallback to state for transient UI control
   const isStreaming = React.useMemo(() => {

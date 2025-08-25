@@ -9,7 +9,9 @@ export const ChatMessages: React.FC = () => {
   // Auto-scroll to bottom when messages change
   useEffect(() => {
     if (messagesEndRef.current) {
-      messagesEndRef.current.scrollIntoView({ behavior: 'smooth' });
+      // On large list swaps (e.g., room switch), instant jump is smoother than smooth animation
+      const behavior: ScrollBehavior = messages.length > 4 ? 'auto' : 'smooth';
+      messagesEndRef.current.scrollIntoView({ behavior });
     }
   }, [messages]);
 

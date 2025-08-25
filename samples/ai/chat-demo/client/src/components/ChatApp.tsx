@@ -2,6 +2,7 @@ import React, { useContext } from 'react';
 import { ChatRoomProvider } from '../providers/ChatRoomProvider';
 import { ChatWindow } from './ChatWindow';
 import { ChatSettingsContext } from '../contexts/ChatSettingsContext';
+import { Sidebar } from './Sidebar';
 
 export const ChatApp: React.FC = () => {
   const settingsContext = useContext(ChatSettingsContext);
@@ -12,9 +13,12 @@ export const ChatApp: React.FC = () => {
   
   return (
     <div className="app-container">
-      <ChatRoomProvider>
-        <ChatWindow />
-      </ChatRoomProvider>
+      <div className="layout">
+        <Sidebar />
+        <ChatRoomProvider>
+          <ChatWindow />
+        </ChatRoomProvider>
+      </div>
     </div>
   );
 };
