@@ -15,7 +15,6 @@ export const ChatWindow: React.FC = () => {
         </div>
       </div>
     <footer>
-    &copy; Web PubSub AI Chat Demo
     </footer>
     </div>
   );
