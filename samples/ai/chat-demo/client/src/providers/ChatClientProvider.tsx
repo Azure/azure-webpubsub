@@ -5,7 +5,6 @@ import { ChatClientContext } from "../contexts/ChatClientContext";
 import type { ChatMessage, ConnectionStatus } from "../contexts/ChatClientContext";
 import { messagesReducer, initialMessagesState } from "../reducers/messagesReducer";
 import type { MessagesAction } from "../reducers/messagesReducer";
-import { AvatarContext } from "../contexts/AvatarContext";
 import { ChatSettingsContext } from "../contexts/ChatSettingsContext";
 
 interface ChatClientProviderProps {
@@ -13,7 +12,6 @@ interface ChatClientProviderProps {
 }
 const backendUrl = "http://localhost:5000";
 export const ChatClientProvider: React.FC<ChatClientProviderProps> = ({ children }) => {
-  const avatarContext = useContext(AvatarContext);
   const settingsContext = useContext(ChatSettingsContext);
 
   const [client, setClient] = React.useState<WebPubSubClient | null>(null);
@@ -32,11 +30,10 @@ export const ChatClientProvider: React.FC<ChatClientProviderProps> = ({ children
   const joinedGroupsRef = React.useRef<Set<string>>(new Set());
   const prevRoomsRef = React.useRef<Set<string>>(new Set());
 
-  if (!avatarContext || !settingsContext) {
-    throw new Error("ChatClientProvider must be used within AvatarProvider and ChatSettingsProvider");
+  if (!settingsContext) {
+    throw new Error("ChatClientProvider must be used within ChatSettingsProvider");
   }
 
-   const { userId, setUserId } = avatarContext;
    const { roomId, rooms } = settingsContext;
 
   const makeWelcomeMessage = React.useCallback((): ChatMessage => ({
@@ -48,21 +45,14 @@ export const ChatClientProvider: React.FC<ChatClientProviderProps> = ({ children
   }), []);
 
   // Refs for latest values (to avoid reconnections)
-  const userIdRef = React.useRef(userId);
   const roomIdRef = React.useRef(roomId);
-  // Setter ref to avoid adding setDisplayName to effect deps
-  const setUserIdRef = React.useRef(setUserId);
+  // No user tracking
 
   // Update refs when values change
   React.useEffect(() => {
-    userIdRef.current = userId;
-  }, [userId]);
-  React.useEffect(() => {
     roomIdRef.current = roomId;
   }, [roomId]);
-  React.useEffect(() => {
-    setUserIdRef.current = setUserId;
-  }, [setUserId]);
+  // no-op for user
 
   // Persist messages to cache keyed by current room
   React.useEffect(() => {
@@ -91,7 +81,7 @@ export const ChatClientProvider: React.FC<ChatClientProviderProps> = ({ children
 
       // Add user message
       const userMessageId = Date.now().toString();
-  updateRoomMessages(roomIdRef.current, { type: "userMessage", payload: { id: userMessageId, content: messageText, userId: userIdRef.current || "" } });
+  updateRoomMessages(roomIdRef.current, { type: "userMessage", payload: { id: userMessageId, content: messageText, userId: "you" } });
 
       // Show a local 'Thinking...' placeholder before AI starts streaming
   updateRoomMessages(roomIdRef.current, { type: "addPlaceholder" });
@@ -102,7 +92,7 @@ export const ChatClientProvider: React.FC<ChatClientProviderProps> = ({ children
         await client.sendEvent(
           "sendToAI",
           {
-            from: userIdRef.current,
+            from: undefined,
             message: messageText,
             timestamp: new Date().toISOString(),
             type: "user-message",
@@ -145,13 +135,10 @@ export const ChatClientProvider: React.FC<ChatClientProviderProps> = ({ children
           }
         }
 
-        // Create new client with initial roomId and initial displayName if website url contains userId query
+  // Create new client with initial roomId; no user id
         const newClient = new WebPubSubClient({
           getClientAccessUrl: async () => {
-            let url = `${backendUrl}/negotiate?roomId=${roomIdRef.current}`;
-            if (userIdRef.current) {
-              url += `&userId=${encodeURIComponent(userIdRef.current)}`;
-            }
+            const url = `${backendUrl}/negotiate?roomId=${roomIdRef.current}`;
             const response = await fetch(url);
             if (!response.ok) {
               throw new Error(`Negotiation failed: ${response.statusText}`);
@@ -167,8 +154,6 @@ export const ChatClientProvider: React.FC<ChatClientProviderProps> = ({ children
             message: "Connected",
             connectionId: e.connectionId,
           });
-          // Use ref to avoid effect dependency on setDisplayName
-          setUserIdRef.current(e.userId || userIdRef.current);
           // reset joined set; server auto-joins the negotiated room
           joinedGroupsRef.current = new Set();
           if (roomIdRef.current) joinedGroupsRef.current.add(roomIdRef.current);
@@ -203,7 +188,7 @@ export const ChatClientProvider: React.FC<ChatClientProviderProps> = ({ children
           const streamingEnd = !!messageData?.streamingEnd;
           const messageContent = messageData?.message;
           const sender = messageData?.from || "AI Assistant";
-          const isFromCurrentUser = sender === userIdRef.current; // Use ref
+          const isFromCurrentUser = false;
 
           // Handle streaming end signal
           if (streaming && streamingEnd) {

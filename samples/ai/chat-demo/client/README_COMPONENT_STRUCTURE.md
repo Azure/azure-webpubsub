@@ -1,77 +1,48 @@
 # React Chat Application Component Structure
 
-This React application has been transformed from a single HTML file into a modular component-based architecture using React providers and components.
+This React app uses context providers and modular components for real-time chat with AI.
 
 ## Provider Hierarchy
 
-The application follows the requested provider structure:
-
 ```jsx
 <React.StrictMode>
-  <ThemeProvider>
-    <AvatarProvider>
-      <ChatSettingsProvider>
-        <ChatClientProvider>
-          <ChatApp />
-        </ChatClientProvider>
-      </ChatSettingsProvider>
-    </AvatarProvider>
-  </ThemeProvider>
+  <ChatSettingsProvider>
+    <ChatClientProvider>
+      <ChatApp />
+    </ChatClientProvider>
+  </ChatSettingsProvider>
 </React.StrictMode>
 ```
 
 ## Component Structure
 
-### Main App Component
-- **`ChatApp`**: The main application container that wraps the chat window with a ChatRoomProvider
+### `ChatApp`
+- Renders `<Sidebar />` and wraps `<ChatWindow />` inside `<ChatRoomProvider />`
 
 ```jsx
-<ChatRoomProvider name="my-first-room">
-  <ChatWindow roomName="my-first-room" enableTypingIndicators={true} />
-</ChatRoomProvider>
+<div className="app-container">
+  <Sidebar />
+  <ChatRoomProvider>
+    <ChatWindow />
+  </ChatRoomProvider>
+</div>
 ```
 
 ### Core Components
 
-- **`ChatWindow`**: Main chat interface container
-  - **`ChatHeader`**: Header with title and connection status
-  - **`ChatMessages`**: Message list container with auto-scroll
-    - **`MessageComponent`**: Individual message display with markdown support
-    - **`TypingIndicator`**: Animated typing indicator
-  - **`ChatInput`**: Message input with send functionality
-  - **`ChatFooter`**: Footer with copyright information
+- **`Sidebar`**: Room list and add/join controls
+- **`ChatWindow`**: Chat area
+  - **`ChatHeader`**: Title and connection status
+  - **`ChatMessages`**: Message stream with auto-scroll
+    - **`MessageComponent`**: Renders each message
+    - **`TypingIndicator`**: Shows AI typing
+  - **`ChatInput`**: Textarea and send button
 
 ## Context Providers
 
-### 1. ThemeProvider
-- Manages light/dark theme state
-- Context: `ThemeContext`
-- Hook: `useTheme`
-
-### 2. AvatarProvider  
-- Manages user avatar URL and display name
-- Context: `AvatarContext`
-- Hook: `useAvatar`
-
-### 3. ChatSettingsProvider
-- Manages room settings and preferences
-- Context: `ChatSettingsContext`
-- Features: roomId, typing indicators, message history settings
-
-### 4. ChatClientProvider
-- Manages WebPubSub client connection and chat state
-- Context: `ChatClientContext`
-- Hook: `useChatClient`
-- Features:
-  - WebPubSub client management
-  - Message handling (streaming and complete messages)
-  - Connection status tracking
-  - Send message functionality
-
-### 5. ChatRoomProvider
-- Manages room-specific state
-- Context: `ChatRoomContext`
-- Features: room name, participant count, typing users
+- **ChatSettingsProvider** (`ChatSettingsContext`): manages current `roomId` and list of rooms
+- **ChatClientProvider** (`ChatClientContext`): handles WebSocket connection, messages state, streaming
+- **ChatRoomProvider** (`ChatRoomContext`): maintains active room context (used in `ChatApp`)
 
 ## Key Features
 
@@ -98,31 +69,28 @@ The application follows the requested provider structure:
 src/
 ├── components/
 │   ├── ChatApp.tsx
+│   ├── Sidebar.tsx
 │   ├── ChatWindow.tsx
 │   ├── ChatHeader.tsx
 │   ├── ChatMessages.tsx
 │   ├── MessageComponent.tsx
 │   ├── TypingIndicator.tsx
-│   ├── ChatInput.tsx
-│   └── ChatFooter.tsx
+│   └── ChatInput.tsx
 ├── providers/
-│   ├── ThemeProvider.tsx
-│   ├── AvatarProvider.tsx
 │   ├── ChatSettingsProvider.tsx
 │   ├── ChatClientProvider.tsx
 │   └── ChatRoomProvider.tsx
 ├── contexts/
-│   ├── ThemeContext.ts
-│   ├── AvatarContext.ts
 │   ├── ChatSettingsContext.ts
 │   ├── ChatClientContext.ts
 │   └── ChatRoomContext.ts
 ├── hooks/
-│   ├── useTheme.ts
-│   ├── useAvatar.ts
 │   └── useChatClient.ts
+├── reducers/
+│   └── messagesReducer.ts
 ├── utils/
-│   └── messageFormatting.ts
+│   ├── messageFormatting.ts
+│   └── roomUtils.ts
 └── main.tsx
 ```
 
