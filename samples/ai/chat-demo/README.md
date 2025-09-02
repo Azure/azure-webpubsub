@@ -10,7 +10,6 @@ Simple real-time chat with AI responses using a custom Flask/WebSocket backend, 
 ## Quick Start
 ```bash
 # Install server dependencies and start both services
-cd python-server
 pip install -r requirements.txt
 python start_dev.py
 ```
