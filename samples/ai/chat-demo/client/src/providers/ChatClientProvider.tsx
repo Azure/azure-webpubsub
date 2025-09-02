@@ -6,11 +6,13 @@ import type { ChatMessage, ConnectionStatus } from "../contexts/ChatClientContex
 import { messagesReducer, initialMessagesState } from "../reducers/messagesReducer";
 import type { MessagesAction } from "../reducers/messagesReducer";
 import { ChatSettingsContext } from "../contexts/ChatSettingsContext";
+import { BACKEND_URL, DEFAULT_ROOM_ID } from "../lib/constants";
 
 interface ChatClientProviderProps {
   children: ReactNode;
 }
-const backendUrl = "http://localhost:5000";
+const backendUrl = BACKEND_URL;
+
 export const ChatClientProvider: React.FC<ChatClientProviderProps> = ({ children }) => {
   const settingsContext = useContext(ChatSettingsContext);
 
@@ -22,30 +24,72 @@ export const ChatClientProvider: React.FC<ChatClientProviderProps> = ({ children
   });
   const [messages, dispatch] = React.useReducer(messagesReducer, initialMessagesState);
   const [isStreamingState, setIsStreamingState] = React.useState<boolean>(false);
+  const [uiNotice, setUiNotice] = React.useState<{ type: "info" | "error"; text: string } | undefined>(undefined);
   // Cache messages per room to enable smooth, instant room switches
   const messagesByRoomRef = React.useRef<Map<string, ChatMessage[]>>(new Map());
+  // Track which rooms have fetched history at least once (per connection), and last fetch per room
+  const loadedRoomsRef = React.useRef<Set<string>>(new Set());
+  const lastFetchSeqByRoomRef = React.useRef<Map<string, number>>(new Map());
+  const [reconnectSeq, setReconnectSeq] = React.useState(0);
   // Refs to guard against double-initialize within the same tick and across effect re-runs
   const initStartedRef = React.useRef(false);
   const connectingRef = React.useRef(false);
-  const joinedGroupsRef = React.useRef<Set<string>>(new Set());
   const prevRoomsRef = React.useRef<Set<string>>(new Set());
+  // Stable client id across tabs (per origin)
 
   if (!settingsContext) {
     throw new Error("ChatClientProvider must be used within ChatSettingsProvider");
   }
 
-   const { roomId, rooms } = settingsContext;
+  const { roomId, rooms, userId, setUserId } = settingsContext;
+  // Keep setter refs stable to avoid capturing stale closures in event handlers
+  const setUserIdRef = React.useRef(setUserId);
+  React.useEffect(() => {
+    setUserIdRef.current = setUserId;
+  }, [setUserId]);
+  const setRoomsRef = React.useRef(settingsContext.setRooms);
+  React.useEffect(() => {
+    setRoomsRef.current = settingsContext.setRooms;
+  }, [settingsContext.setRooms]);
 
-  const makeWelcomeMessage = React.useCallback((): ChatMessage => ({
-    id: "welcome",
-    content: "Hello! I'm your AI assistant. How can I help you today?",
-    sender: "AI Assistant",
-    timestamp: new Date().toISOString(),
-    isUser: false,
-  }), []);
+  // Merge and de-duplicate messages by id, prefer more complete entries
+  const mergeAndSortMessages = React.useCallback((existing: ChatMessage[], incoming: ChatMessage[]): ChatMessage[] => {
+    const byId = new Map<string, ChatMessage>();
+    const pick = (oldMsg: ChatMessage | undefined, newMsg: ChatMessage): ChatMessage => {
+      if (!oldMsg) return newMsg;
+      const oldLen = (oldMsg.content ?? "").length;
+      const newLen = (newMsg.content ?? "").length;
+      // Prefer message with longer content (more complete), keep streaming if either is streaming
+      const base = newLen >= oldLen ? newMsg : oldMsg;
+      const other = newLen >= oldLen ? oldMsg : newMsg;
+      return {
+        ...base,
+        streaming: !!(base.streaming || other.streaming),
+        // preserve sender and timestamp if missing on base
+        sender: base.sender ?? other.sender,
+        timestamp: base.timestamp ?? other.timestamp ?? new Date().toISOString(),
+      };
+    };
+    for (const m of existing) {
+      byId.set(m.id, m);
+    }
+    for (const m of incoming) {
+      const merged = pick(byId.get(m.id), m);
+      byId.set(m.id, merged);
+    }
+    const arr = Array.from(byId.values());
+    arr.sort((a, b) => {
+      const ta = new Date(a.timestamp || 0).getTime();
+      const tb = new Date(b.timestamp || 0).getTime();
+      if (ta !== tb) return ta - tb;
+      return a.id.localeCompare(b.id);
+    });
+    return arr;
+  }, []);
 
   // Refs for latest values (to avoid reconnections)
   const roomIdRef = React.useRef(roomId);
+  const userIdRef = React.useRef(userId);
   // No user tracking
 
   // Update refs when values change
@@ -53,6 +97,9 @@ export const ChatClientProvider: React.FC<ChatClientProviderProps> = ({ children
     roomIdRef.current = roomId;
   }, [roomId]);
   // no-op for user
+  React.useEffect(() => {
+    userIdRef.current = userId;
+  }, [userId]);
 
   // Persist messages to cache keyed by current room
   React.useEffect(() => {
@@ -81,10 +128,10 @@ export const ChatClientProvider: React.FC<ChatClientProviderProps> = ({ children
 
       // Add user message
       const userMessageId = Date.now().toString();
-  updateRoomMessages(roomIdRef.current, { type: "userMessage", payload: { id: userMessageId, content: messageText, userId: "you" } });
+      updateRoomMessages(roomIdRef.current, { type: "userMessage", payload: { id: userMessageId, content: messageText, userId: userIdRef.current ?? "" } });
 
       // Show a local 'Thinking...' placeholder before AI starts streaming
-  updateRoomMessages(roomIdRef.current, { type: "addPlaceholder" });
+      updateRoomMessages(roomIdRef.current, { type: "addPlaceholder" });
       // Reset streaming state
       setIsStreamingState(false);
 
@@ -92,7 +139,6 @@ export const ChatClientProvider: React.FC<ChatClientProviderProps> = ({ children
         await client.sendEvent(
           "sendToAI",
           {
-            from: undefined,
             message: messageText,
             timestamp: new Date().toISOString(),
             type: "user-message",
@@ -101,11 +147,11 @@ export const ChatClientProvider: React.FC<ChatClientProviderProps> = ({ children
           "json",
         );
       } catch (err: unknown) {
-    const errorMessageId = Date.now().toString();
-    updateRoomMessages(roomIdRef.current, { type: "completeMessage", payload: { messageId: errorMessageId, content: `Error sending message: ${err instanceof Error ? err.message : "Unknown error"}`, sender: "System", isFromCurrentUser: false } });
+        const msg = `Error sending message: ${err instanceof Error ? err.message : "Unknown error"}`;
+        setUiNotice({ type: "error", text: msg });
       }
     },
-  [client, updateRoomMessages],
+    [client, updateRoomMessages],
   ); // Only depend on client
 
   const clearMessages = React.useCallback(() => {
@@ -125,6 +171,7 @@ export const ChatClientProvider: React.FC<ChatClientProviderProps> = ({ children
 
       try {
         setConnectionStatus({ status: "connecting", message: "Connecting..." });
+        setUiNotice(undefined);
 
         // Stop existing client if any
         if (clientRef.current) {
@@ -135,7 +182,7 @@ export const ChatClientProvider: React.FC<ChatClientProviderProps> = ({ children
           }
         }
 
-  // Create new client with initial roomId; no user id
+        // Create new client with initial roomId; no user id
         const newClient = new WebPubSubClient({
           getClientAccessUrl: async () => {
             const url = `${backendUrl}/negotiate?roomId=${roomIdRef.current}`;
@@ -148,22 +195,32 @@ export const ChatClientProvider: React.FC<ChatClientProviderProps> = ({ children
         });
 
         // Set up event listeners using refs for latest values
-        newClient.on("connected", (e) => {
+        newClient.on("connected", (e: { connectionId: string; userId?: string }) => {
           setConnectionStatus({
             status: "connected",
             message: "Connected",
             connectionId: e.connectionId,
           });
-          // reset joined set; server auto-joins the negotiated room
-          joinedGroupsRef.current = new Set();
-          if (roomIdRef.current) joinedGroupsRef.current.add(roomIdRef.current);
+          // If the event includes a userId, store it in settings
+          const evtUserId = e?.userId;
+          if (typeof evtUserId === "string" && evtUserId.length > 0) {
+            setUserIdRef.current?.(evtUserId);
+          }
+          // Server auto-joins the negotiated room; no client-side tracking needed
+          // mark reconnection token to allow one-time refetch for current room
+          setReconnectSeq((s) => s + 1);
+          // reset per-connection loaded set so first switch to any room will fetch once
+          loadedRoomsRef.current = new Set();
         });
+
+        // No additional listeners needed; userId is set via connected event above if provided
 
         newClient.on("disconnected", () => {
           setConnectionStatus({
             status: "disconnected",
             message: `Disconnected: Connection closed`,
           });
+          setUiNotice({ type: "error", text: "Disconnected: Connection closed" });
         });
 
         type GroupMessageEventLike = { group?: string; message: { data: unknown } };
@@ -176,19 +233,25 @@ export const ChatClientProvider: React.FC<ChatClientProviderProps> = ({ children
             message?: string;
             from?: string;
             roomId?: string;
+            type?: string;
+            rooms?: Array<{ name?: string; messages?: number }>;
           };
-          // Determine the group/room this message belongs to (prefer event.group, fallback to data.roomId)
-          const targetRoom = (e as GroupMessageEventLike).group || messageData?.roomId;
-          if (!targetRoom) {
-            // If we can't determine the target room, drop the message to avoid misrouting
+          // Handle special rooms meta channel via type (no need to parse group name)
+          if (messageData?.type === "rooms-changed") {
+            const serverRooms = (messageData.rooms ?? []).map((r) => r?.name).filter((n): n is string => typeof n === "string" && n.length > 0);
+            const merged = Array.from(new Set([DEFAULT_ROOM_ID, ...serverRooms]));
+            setRoomsRef.current?.(merged);
             return;
           }
+          // Determine the target room strictly from payload
+          const targetRoom = messageData?.roomId;
+          if (!targetRoom) return;
           const messageId = messageData?.messageId;
           const streaming = !!messageData?.streaming;
           const streamingEnd = !!messageData?.streamingEnd;
           const messageContent = messageData?.message;
           const sender = messageData?.from || "AI Assistant";
-          const isFromCurrentUser = false;
+          const isFromCurrentUser = sender === userIdRef.current;
 
           // Handle streaming end signal
           if (streaming && streamingEnd) {
@@ -207,16 +270,25 @@ export const ChatClientProvider: React.FC<ChatClientProviderProps> = ({ children
           }
         });
 
-        await newClient.start();
+        // After connect, join special sys_rooms group to receive rooms-changed notifications
+        newClient.on("connected", async () => {
+          try {
+            await newClient.joinGroup("sys_rooms");
+          } catch (e) {
+            console.warn("Failed to join sys_rooms group", e);
+          }
+        });
+
+        // Assign clientRef before starting to prevent parallel starts from racing
         clientRef.current = newClient;
+        await newClient.start();
         setClient(newClient);
         // Mark initialized via ref only
         initStartedRef.current = true;
       } catch (err: unknown) {
-        setConnectionStatus({
-          status: "error",
-          message: `Connection Failed: ${err instanceof Error ? err.message : "Unknown error"}`,
-        });
+        const msg = `Connection Failed: ${err instanceof Error ? err.message : "Unknown error"}`;
+        setConnectionStatus({ status: "error", message: msg });
+        setUiNotice({ type: "error", text: msg });
         // remain not initialized so we can retry later
       } finally {
         connectingRef.current = false;
@@ -242,14 +314,12 @@ export const ChatClientProvider: React.FC<ChatClientProviderProps> = ({ children
   // Join newly added rooms and leave removed rooms on the active connection
   React.useEffect(() => {
     if (!client) return;
-    const nextRooms = new Set((rooms || []).filter(Boolean));
-    const joined = joinedGroupsRef.current;
-    // compute toJoin: in nextRooms but not joined
-    const toJoin: string[] = [];
-    nextRooms.forEach((g) => { if (!joined.has(g)) toJoin.push(g); });
-    // compute toLeave: joined but not in nextRooms
-    const toLeave: string[] = [];
-    joined.forEach((g) => { if (!nextRooms.has(g)) toLeave.push(g); });
+    const nextRooms: Set<string> = new Set<string>(rooms ?? []);
+    const prevRooms = prevRoomsRef.current;
+    // compute toJoin: in nextRooms but not in prevRooms
+    const toJoin: string[] = Array.from(nextRooms).filter((g) => !prevRooms.has(g));
+    // compute toLeave: in prevRooms but not in nextRooms
+    const toLeave: string[] = Array.from(prevRooms).filter((g) => !nextRooms.has(g));
 
     if (toJoin.length === 0 && toLeave.length === 0) {
       prevRoomsRef.current = nextRooms;
@@ -257,11 +327,11 @@ export const ChatClientProvider: React.FC<ChatClientProviderProps> = ({ children
     }
 
     (async () => {
-      // Join new groups
+      // Join new groups (map to transport group room_<id>)
       for (const g of toJoin) {
         try {
-          await client.joinGroup(g);
-          joined.add(g);
+          const roomGroup = `room_${g}`;
+          await client.joinGroup(roomGroup);
         } catch (err) {
           console.error("joinGroup failed:", g, err);
         }
@@ -269,8 +339,8 @@ export const ChatClientProvider: React.FC<ChatClientProviderProps> = ({ children
       // Leave removed groups
       for (const g of toLeave) {
         try {
-          await client.leaveGroup(g);
-          joined.delete(g);
+          const roomGroup = `room_${g}`;
+          await client.leaveGroup(roomGroup);
         } catch (err) {
           console.error("leaveGroup failed:", g, err);
         }
@@ -279,26 +349,81 @@ export const ChatClientProvider: React.FC<ChatClientProviderProps> = ({ children
     })();
   }, [rooms, client]);
 
-  // Handle room changes - swap to cached messages or show welcome instantly
+  // Handle room changes - fetch history only the first time per room or after reconnect
   React.useEffect(() => {
-    if (client && roomId) {
-      const cached = messagesByRoomRef.current.get(roomId);
-      if (cached && cached.length > 0) {
+    if (!client || !roomId) return;
+    const requestedRoom = roomId; // capture room for this effect run
+    const cached = messagesByRoomRef.current.get(requestedRoom);
+    const alreadyLoaded = loadedRoomsRef.current.has(requestedRoom);
+    const lastSeq = lastFetchSeqByRoomRef.current.get(requestedRoom) ?? -1;
+    const needFetch = !alreadyLoaded || lastSeq < reconnectSeq;
+    let cancelled = false;
+
+    const run = async () => {
+      // Immediately show cached messages (if any) for the requested room to avoid blank flashes
+      if (cached && cached.length > 0 && roomIdRef.current === requestedRoom) {
         dispatch({ type: "setAll", payload: cached });
-      } else {
-    // Fresh room: show welcome immediately in a single render for smoother UX
-    dispatch({ type: "setAll", payload: [makeWelcomeMessage()] });
+        setIsStreamingState(false);
+      }
+      if (needFetch) {
+        try {
+          const res = await fetch(`${backendUrl}/api/rooms/${encodeURIComponent(requestedRoom)}/messages?limit=50`);
+          if (res.ok) {
+            type ServerMsg = { messageId?: string; message?: string; from?: string; timestamp?: string };
+            type MsgResp = { messages?: ServerMsg[] };
+            const data = (await res.json()) as MsgResp;
+            const mapped: ChatMessage[] = (data.messages ?? []).map((m) => ({
+              id: String(m.messageId ?? Date.now() + Math.random()),
+              content: String(m.message ?? ""),
+              sender: m.from,
+              timestamp: m.timestamp ?? new Date().toISOString(),
+              isFromCurrentUser: m.from === userIdRef.current,
+            }));
+            const existing = messagesByRoomRef.current.get(requestedRoom) ?? [];
+            const merged = mergeAndSortMessages(existing, mapped);
+            if (cancelled) return;
+            messagesByRoomRef.current.set(requestedRoom, merged);
+            // Only update UI if this room is still active
+            if (roomIdRef.current === requestedRoom) {
+              dispatch({ type: "setAll", payload: merged });
+            }
+            loadedRoomsRef.current.add(requestedRoom);
+            lastFetchSeqByRoomRef.current.set(requestedRoom, reconnectSeq);
+            setIsStreamingState(false);
+            return;
+          }
+        } catch {
+          // ignore fetch errors
+        }
+      }
+      // No fetch needed or fetch failed: prefer cached if present; otherwise, avoid forcing an empty list
+      if (cancelled) return;
+      if (roomIdRef.current === requestedRoom) {
+        if (cached && cached.length > 0) {
+          dispatch({ type: "setAll", payload: cached });
+        }
       }
       setIsStreamingState(false);
-    }
-  }, [roomId, client, makeWelcomeMessage]);
+    };
+    run();
+    return () => {
+      cancelled = true;
+    };
+  }, [roomId, client, mergeAndSortMessages, reconnectSeq]);
 
-  // Welcome on first connection if room has no cached messages yet
+  // Inline status banner rules: show info when connected and empty; clear when messages arrive
   React.useEffect(() => {
     if (connectionStatus.status === "connected" && messages.length === 0) {
-    dispatch({ type: "setAll", payload: [makeWelcomeMessage()] });
+      const next = { type: "info" as const, text: "You're connected. Say hi to start the conversation." };
+      // Only set if it's not already the same notice to prevent render loops
+      if (!(uiNotice && uiNotice.type === "info" && uiNotice.text === next.text)) {
+        setUiNotice(next);
+      }
+    } else if (messages.length > 0) {
+      // Clear info notice once we have conversation
+      if (uiNotice?.type === "info") setUiNotice(undefined);
     }
-  }, [connectionStatus.status, messages.length, makeWelcomeMessage]);
+  }, [connectionStatus.status, messages.length, uiNotice]);
 
   // Derive isStreaming from messages if available; fallback to state for transient UI control
   const isStreaming = React.useMemo(() => {
@@ -314,8 +439,9 @@ export const ChatClientProvider: React.FC<ChatClientProviderProps> = ({ children
       isStreaming,
       sendMessage,
       clearMessages,
+      uiNotice,
     }),
-    [client, connectionStatus, messages, isStreaming, sendMessage, clearMessages],
+    [client, connectionStatus, messages, isStreaming, sendMessage, clearMessages, uiNotice],
   );
   return <ChatClientContext.Provider value={value}>{children}</ChatClientContext.Provider>;
 };
