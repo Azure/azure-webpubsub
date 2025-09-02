@@ -37,7 +37,7 @@ export function messagesReducer(state: MessagesState, action: MessagesAction): M
         content: "Hello! I'm your AI assistant. How can I help you today?",
         sender: "AI Assistant",
         timestamp: nowIso(),
-        isUser: false,
+  isFromCurrentUser: false,
       };
       return [welcome];
     }
@@ -48,7 +48,7 @@ export function messagesReducer(state: MessagesState, action: MessagesAction): M
         content,
         sender: userId,
         timestamp: nowIso(),
-        isUser: true,
+  isFromCurrentUser: true,
       };
       return [...state, userMsg];
     }
@@ -58,7 +58,7 @@ export function messagesReducer(state: MessagesState, action: MessagesAction): M
         content: "Thinking...",
         sender: "AI Assistant",
         timestamp: nowIso(),
-        isUser: false,
+  isFromCurrentUser: false,
         streaming: true,
         isPlaceholder: true,
       };
@@ -99,7 +99,7 @@ export function messagesReducer(state: MessagesState, action: MessagesAction): M
           content: chunk || "",
           sender,
           timestamp: nowIso(),
-          isUser: false,
+          isFromCurrentUser: false,
           streaming: true,
         } as ChatMessage,
       ];
@@ -141,7 +141,7 @@ export function messagesReducer(state: MessagesState, action: MessagesAction): M
           content: content || "",
           sender,
           timestamp: nowIso(),
-          isUser: isFromCurrentUser,
+          isFromCurrentUser,
         } as ChatMessage,
       ];
     }

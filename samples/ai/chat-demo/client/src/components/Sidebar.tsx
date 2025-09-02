@@ -9,6 +9,13 @@ export const Sidebar: React.FC = () => {
   if (!settings) return null;
   const { roomId, rooms, setRoomId, addRoom, removeRoom } = settings;
 
+  const handleAdd = () => {
+    if (!canAdd) return;
+    const id = addRoom(newRoom.trim());
+    setNewRoom('');
+    setRoomId(id);
+  };
+
   return (
     <aside className="sidebar" aria-label="Rooms">
       <div className="sidebar-header">
@@ -19,12 +26,18 @@ export const Sidebar: React.FC = () => {
             placeholder="Add room id"
             value={newRoom}
             onChange={(e) => setNewRoom(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' || e.key === 'NumpadEnter') {
+                e.preventDefault();
+                handleAdd();
+              }
+            }}
             className="sidebar-input"
           />
           <button
             type="button"
             className="sidebar-add"
-            onClick={() => { const id = addRoom(newRoom.trim()); setNewRoom(''); setRoomId(id); }}
+            onClick={handleAdd}
             disabled={!canAdd}
             aria-label="Add room"
             title="Add room"
@@ -38,7 +51,9 @@ export const Sidebar: React.FC = () => {
               <span className="room-dot" aria-hidden>●</span>
               <span className="room-label">{r}</span>
             </button>
-            <button className="room-remove" onClick={() => removeRoom(r)} aria-label={`Remove ${r}`}>✕</button>
+            {r !== 'public' && (
+              <button className="room-remove" onClick={() => removeRoom(r)} aria-label={`Remove ${r}`}>✕</button>
+            )}
           </li>
         ))}
       </ul>

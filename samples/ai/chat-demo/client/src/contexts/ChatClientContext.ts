@@ -6,7 +6,7 @@ export interface ChatMessage {
   content: string;
   sender?: string;
   timestamp: string;
-  isUser: boolean;
+  isFromCurrentUser: boolean;
   streaming?: boolean;
   streamingEnd?: boolean;
   isPlaceholder?: boolean; // New flag for placeholder messages
@@ -25,6 +25,7 @@ export interface ChatClientContextType {
   isStreaming: boolean;
   sendMessage: (message: string) => Promise<void>;
   clearMessages: () => void;
+  uiNotice?: { type: 'info' | 'error'; text: string };
 }
 
 export const ChatClientContext = createContext<ChatClientContextType | undefined>(undefined);

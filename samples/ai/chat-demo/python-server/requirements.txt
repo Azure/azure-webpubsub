@@ -3,3 +3,4 @@ flask-sock==0.7.0
 openai>=1.0.0
 websockets>=11.0.0
 flask-cors>=4.0.0
+azure-storage-blob>=12.14.0

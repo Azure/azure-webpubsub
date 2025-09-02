@@ -9,7 +9,7 @@ interface MessageComponentProps {
 export const MessageComponent: React.FC<MessageComponentProps> = ({ message }) => {
   const messageClasses = [
     'message',
-    message.isUser ? 'user-message' : 'bot-message',
+    message.isFromCurrentUser ? 'user-message' : 'bot-message',
     message.streaming ? 'streaming' : '',
     message.isPlaceholder ? 'thinking' : '',
   ].filter(Boolean).join(' ');

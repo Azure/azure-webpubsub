@@ -510,10 +510,42 @@ header p {
   background-color: rgba(0, 0, 0, 0.1);
   border-radius: 3px;
 }
+/* Disable message entry animation when switching rooms to prevent flash */
+.messages.no-animate .message {
+  animation: none !important;
+  transform: none !important;
+  opacity: 1 !important;
+}
+
 
 .messages::-webkit-scrollbar-thumb:hover {
   background-color: rgba(0, 0, 0, 0.2);
 }
+
+/* Inline status banner inside chat window */
+.status-banner {
+  width: 100%;
+  margin: 8px 0 4px 0;
+}
+.status-banner-row {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+}
+.status-banner-line {
+  height: 1px;
+  flex: 1 1 auto;
+  background: rgba(16, 185, 129, 0.35); /* default for info; overridden for error */
+}
+.status-banner-text {
+  font-size: 0.75rem; /* small */
+  font-weight: 600;
+  color: #047857; /* green-700 */
+  text-align: center;
+}
+.status-banner.error .status-banner-line { background: rgba(239, 68, 68, 0.35); }
+.status-banner.error .status-banner-text { color: #b91c1c; /* red-700 */ }
 
 .message {
   max-width: 80%;

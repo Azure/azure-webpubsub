@@ -1,6 +1,7 @@
 import React from 'react';
 import { ChatHeader } from './ChatHeader';
 import { ChatMessages } from './ChatMessages';
+import { ChatStatusBanner } from './ChatStatusBanner';
 import { ChatInput } from './ChatInput';
 
 export const ChatWindow: React.FC = () => {
@@ -10,6 +11,7 @@ export const ChatWindow: React.FC = () => {
         <ChatHeader />
         <div className="chat-area">
           <div className="chat-background"></div>
+          <ChatStatusBanner />
           <ChatMessages />
           <ChatInput />
         </div>

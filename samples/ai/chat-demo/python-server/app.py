@@ -1,5 +1,5 @@
 import uuid
-from flask import Flask, request, send_from_directory
+from flask import Flask, request, send_from_directory, jsonify
 from flask_cors import CORS
 import json
 import time
@@ -14,6 +14,12 @@ import sys
 from dotenv import load_dotenv
 from ai import chat_stream  # Import our AI module
 from chat_service import ChatService, ClientConnectionContext
+from client_managers import LocalStorageClientManager, InMemoryClientManager
+from room_store import LocalRoomStore, InMemoryRoomStore, AzureRoomStore
+try:
+    from client_managers import AzureStorageClientManager
+except Exception:
+    AzureStorageClientManager = None  # type: ignore
 from utils import generate_id, get_query_value, get_room_id, to_async_iterator
 # Load environment variables from .env file
 load_dotenv()
@@ -25,17 +31,50 @@ port = 5000
 # Flask app for HTTP endpoints
 app = Flask(__name__)
 CORS(app, origins=["http://localhost:5173", "http://localhost:3000"])
+
+# Globals to access chat service and event loop from Flask thread
+chat_service = None  # type: ignore[assignment]
+event_loop = None  # type: ignore[assignment]
 @app.route('/negotiate')
 def negotiate():
     """Handle negotiation requests - return WebSocket URL"""
     room_id = request.args.get('roomId', 'public')
-    # get the user_id from the query or generate a random user_id
-    user_id = request.args.get('userId') or generate_id('user-')
     print(f"Negotiation request for room: {room_id}")
     
     # Return WebSocket URL using WebSocket port
-    ws_url = f"ws://{host}:{port + 1}/ws?roomId={room_id}&userId={user_id}"
+    ws_url = f"ws://{host}:{port + 1}/ws?roomId={room_id}"
     return ws_url
+
+@app.get('/api/rooms')
+def api_list_rooms():
+    global chat_service, event_loop
+    if chat_service is None or event_loop is None:
+        return jsonify({"rooms": []}), 503
+    try:
+        fut = asyncio.run_coroutine_threadsafe(chat_service.room_store.list_rooms(), event_loop)  # type: ignore[arg-type]
+        rooms = fut.result(timeout=5)
+        return jsonify({"rooms": rooms})
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+@app.get('/api/rooms/<room_id>/messages')
+def api_room_messages(room_id: str):
+    global chat_service, event_loop
+    if chat_service is None or event_loop is None:
+        return jsonify({"messages": []}), 503
+    try:
+        try:
+            limit = int(request.args.get('limit', '200'))
+        except Exception:
+            limit = 200
+        fut = asyncio.run_coroutine_threadsafe(
+            chat_service.room_store.get_room_messages(room_id, limit),
+            event_loop,
+        )  # type: ignore[arg-type]
+        messages = fut.result(timeout=5)
+        return jsonify({"messages": messages})
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
 
 @app.route('/')
 def serve_client():
@@ -81,18 +120,37 @@ async def main():
 
     # Start chat service
     print(f"Starting chat service on port {port + 1}")
-    
-    chat = ChatService()
 
+    storage_mode = os.getenv("CHAT_STORAGE", "memory").lower()
+    state_file = os.getenv("CHAT_STATE_FILE", "./chat_state.json")
+    if storage_mode in ("azure", "blob", "azureblob") and AzureStorageClientManager is not None:
+        print("Using Azure backends (transport + room store)")
+        client_manager = AzureStorageClientManager()
+        room_store = AzureRoomStore()
+    elif storage_mode in ("local", "file", "disk"):
+        print(f"Using LocalStorageClientManager + LocalRoomStore -> {state_file}")
+        client_manager = LocalStorageClientManager(file_path=state_file)
+        room_store = LocalRoomStore(file_path=state_file)
+    else:
+        print("Using InMemoryClientManager + InMemoryRoomStore")
+        client_manager = InMemoryClientManager()
+        room_store = InMemoryRoomStore()
+
+    chat = ChatService(client_manager=client_manager, room_store=room_store)
+    # expose chat and loop to Flask handlers
+    global chat_service, event_loop
+    chat_service = chat
+    event_loop = asyncio.get_running_loop()
+        
     @chat.on_connecting
     async def handle_connecting(conn: ClientConnectionContext, _svc: ChatService):
-        # try get userId from the connection context, for sample purpose, get the userId from query
-        conn.user_id = get_query_value(conn.path, "userId")
-        
+        # Set the userId as "You"
+        # UserID can be set When Auth middleware is added
+        conn.user_id = "You"
     @chat.on_connected
     async def handle_connected(conn: ClientConnectionContext, _svc: ChatService):
         # get roomId from path roomId
-        room_id = get_room_id(conn.path, "public-room")
+        room_id = get_room_id(conn.path, "public")
         if room_id:
             await _svc.add_to_group(conn.connectionId, room_id)
             print(f"Client connected to room: {room_id}")

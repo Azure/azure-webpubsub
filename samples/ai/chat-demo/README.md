@@ -5,7 +5,8 @@ Simple real-time chat with AI responses using a custom Flask/WebSocket backend, 
 ## Prerequisites
 - Node.js >=16
 - Python >=3.8
-- GitHub token in `python-server/.env` (e.g., `GITHUB_TOKEN=...`)
+- Generate a personal access token (PAT) in your GitHub settings and update `GITHUB_TOKEN=` value in [python-server/.env](./python-server/.env).
+  Create your PAT token by following instructions here: https://docs.github.com/en/authentication/keeping-your-account-and-data-secure/managing-your-personal-access-tokens
 
 ## Quick Start
 ```bash

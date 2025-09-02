@@ -18,15 +18,14 @@ from __future__ import annotations
 import asyncio
 import logging
 import json
-import uuid
-from collections import defaultdict
-from dataclasses import dataclass
 from datetime import datetime, timezone
-from typing import Any, Awaitable, Callable, Dict, Iterable, List, Optional, Set, Tuple, Union, AsyncIterator
+from typing import Any, Awaitable, Callable, Dict, List, Optional, Tuple, Union, AsyncIterator
 from utils import generate_id
 import websockets
 import websockets.exceptions as ws_exc
 from websockets.server import WebSocketServerProtocol
+from client_managers import ClientManager, InMemoryClientManager, SendResult
+from room_store import RoomStore, InMemoryRoomStore
 
 # enable verbose websockets logging while debugging (optional)
 logging.basicConfig(level=logging.DEBUG)
@@ -52,183 +51,7 @@ OnEventMessage = Callable[[ClientConnectionContext, str, str, "ChatService"], Un
 OnError = Callable[[ClientConnectionContext, BaseException, "ChatService"], Union[Awaitable[None], None]]
 
 
-# ==================================================================
-# InMemoryClientManager (simplified, strict add: no overwrite)
-# ==================================================================
-@dataclass
-class SendResult:
-    connection_id: str
-    ok: bool
-    error: Optional[str] = None
-
-
-class InMemoryClientManager:
-    """Async, lock-safe client/group registry.
-
-    Each client must expose `async def send_message(self, message): ...`.
-    """
-
-    def __init__(self, *, max_concurrency: Optional[int] = None, send_timeout: Optional[float] = None,
-                 logger: Optional[logging.Logger] = None) -> None:
-        self._clients: Dict[str, (ClientConnectionContext, WebSocketServerProtocol)] = {}
-        self._groups: Dict[str, Set[str]] = defaultdict(set)
-        # Room persistence: lightweight metadata and bounded message history per room
-        self._rooms_meta: Dict[str, Dict[str, Any]] = {}
-        self._room_messages: Dict[str, List[Dict[str, Any]]] = defaultdict(list)
-        self._max_room_messages: int = 200
-        self._lock: Optional[asyncio.Lock] = None  # created lazily
-        self._sema: Optional[asyncio.Semaphore] = None
-        self._max_concurrency = max_concurrency
-        self._send_timeout = send_timeout
-        self._logger = logger
-
-    def _ensure_primitives(self) -> None:
-        if self._lock is None:
-            self._lock = asyncio.Lock()
-        if self._max_concurrency and self._sema is None:
-            self._sema = asyncio.Semaphore(self._max_concurrency)
-
-    async def add_client(self, connection_id: str, context: ClientConnectionContext, ws: WebSocketServerProtocol) -> None:
-        self._ensure_primitives()
-        assert self._lock is not None
-        async with self._lock:
-            if connection_id in self._clients:
-                raise KeyError(f"Client already exists: {connection_id}")
-            self._clients[connection_id] = (context, ws)
-
-    async def remove_client(self, connection_id: str) -> None:
-        self._ensure_primitives()
-        assert self._lock is not None
-        async with self._lock:
-            self._clients.pop(connection_id, None)
-            for members in self._groups.values():
-                members.discard(connection_id)
-
-    async def add_client_to_group(self, connection_id: str, group_name: str) -> None:
-        self._ensure_primitives()
-        assert self._lock is not None
-        async with self._lock:
-            if connection_id not in self._clients:
-                raise KeyError(f"Unknown client: {connection_id}")
-            self._groups[group_name].add(connection_id)
-            # ensure room meta exists and update timestamps
-            meta = self._rooms_meta.get(group_name)
-            now = datetime.now(timezone.utc).isoformat()
-            if meta is None:
-                self._rooms_meta[group_name] = {"name": group_name, "createdAt": now, "updatedAt": now}
-            else:
-                meta["updatedAt"] = now
-
-    async def remove_client_from_group(self, connection_id: str, group_name: str) -> None:
-        self._ensure_primitives()
-        assert self._lock is not None
-        async with self._lock:
-            if group_name in self._groups:
-                self._groups[group_name].discard(connection_id)
-                if not self._groups[group_name]:
-                    # keep room meta and messages even when empty (persist in-memory)
-                    self._groups.pop(group_name, None)
-                # update meta timestamp if exists
-                meta = self._rooms_meta.get(group_name)
-                if meta is not None:
-                    meta["updatedAt"] = datetime.now(timezone.utc).isoformat()
-
-    async def _snapshot(self) -> Tuple[Dict[str, Any], Dict[str, Set[str]]]:
-        self._ensure_primitives()
-        assert self._lock is not None
-        async with self._lock:
-            clients = dict(self._clients)
-            groups = {g: set(members) for g, members in self._groups.items()}
-        return clients, groups
-
-    # -------------- room info persistence APIs --------------
-    async def record_room_event(self, group_name: str, event: Dict[str, Any]) -> None:
-        """Record a message/event into the room's history (bounded)."""
-        self._ensure_primitives()
-        assert self._lock is not None
-        async with self._lock:
-            now = datetime.now(timezone.utc).isoformat()
-            # ensure meta exists
-            meta = self._rooms_meta.get(group_name)
-            if meta is None:
-                self._rooms_meta[group_name] = {"name": group_name, "createdAt": now, "updatedAt": now}
-            else:
-                meta["updatedAt"] = now
-            # append event (store only essential fields to bound memory growth if needed)
-            self._room_messages[group_name].append(event)
-            # cap history size
-            if len(self._room_messages[group_name]) > self._max_room_messages:
-                overflow = len(self._room_messages[group_name]) - self._max_room_messages
-                del self._room_messages[group_name][:overflow]
-
-    async def get_room_messages(self, group_name: str, limit: Optional[int] = None) -> List[Dict[str, Any]]:
-        """Return the latest messages for a room (copy)."""
-        self._ensure_primitives()
-        assert self._lock is not None
-        async with self._lock:
-            msgs = list(self._room_messages.get(group_name, []))
-        if limit is not None and limit >= 0:
-            return msgs[-limit:]
-        return msgs
-
-    async def list_rooms(self) -> List[Dict[str, Any]]:
-        """Return a list of room metadata with member counts."""
-        clients, groups = await self._snapshot()
-        # snapshot meta under lock as well
-        self._ensure_primitives()
-        assert self._lock is not None
-        async with self._lock:
-            metas = dict(self._rooms_meta)
-        rooms: List[Dict[str, Any]] = []
-        for name, meta in metas.items():
-            rooms.append({
-                "name": name,
-                "createdAt": meta.get("createdAt"),
-                "updatedAt": meta.get("updatedAt"),
-                "members": len(groups.get(name, set())),
-                "messages": len(self._room_messages.get(name, [])),
-            })
-        return rooms
-
-    async def send_to_group(self, group_name: str, message: Any, exclude_ids: List[str] | None = None, from_user_id: str | None = None) -> List[SendResult]:
-        clients, groups = await self._snapshot()
-        ids = groups.get(group_name, set())
-        return await self._send_many(ids, clients, message, exclude_ids)
-
-    async def broadcast(self, message: Any, exclude_ids: List[str] | None = None) -> List[SendResult]:
-        clients, _ = await self._snapshot()
-        return await self._send_many(clients.keys(), clients, message, exclude_ids)
-
-    async def _send_many(self, ids: Iterable[str], clients: Dict[str, Any], message: Any, exclude_ids: List[str] | None = None) -> List[SendResult]:
-        tasks: List[asyncio.Task] = []
-        for cid in ids:
-            if exclude_ids and cid in exclude_ids:
-                continue
-            client = clients.get(cid)
-            if client is None:
-                tasks.append(asyncio.create_task(asyncio.sleep(0, result=SendResult(cid, False, "not_found"))))
-                continue
-            tasks.append(asyncio.create_task(self._safe_send(client[1], cid, message)))
-        if not tasks:
-            return []
-        return list(await asyncio.gather(*tasks))
-
-    async def _safe_send(self, client: WebSocketServerProtocol, connection_id: str, message: Any) -> SendResult:
-        try:
-            if self._sema is None:
-                await _wait_for(client.send(message), self._send_timeout)
-            else:
-                async with self._sema:
-                    await _wait_for(client.send(message), self._send_timeout)
-            return SendResult(connection_id, True)
-        except asyncio.TimeoutError:
-            if self._logger:
-                self._logger.warning("send_message timeout for %s", connection_id)
-            return SendResult(connection_id, False, "timeout")
-        except Exception as exc:  # noqa: BLE001
-            if self._logger:
-                self._logger.exception("send_message failed for %s: %s", connection_id, exc)
-            return SendResult(connection_id, False, "error")
+# ClientManager implementations moved to client_managers.py
 
 
 async def _wait_for(awaitable: Awaitable[Any], timeout: Optional[float]) -> Any:
@@ -243,16 +66,31 @@ async def _wait_for(awaitable: Awaitable[Any], timeout: Optional[float]) -> Any:
 
 supported_protocols = ['json.reliable.webpubsub.azure.v1', 'json.webpubsub.azure.v1']
 
+# Group naming scheme
+ROOM_GROUP_PREFIX = "room_"
+SYS_GROUP_PREFIX = "sys_"
+SYS_ROOMS_GROUP = "sys_rooms"
+
+def as_room_group(room_id: str) -> str:
+    return f"{ROOM_GROUP_PREFIX}{room_id}"
+
+def try_room_id_from_group(group_name: Optional[str]) -> Optional[str]:
+    if isinstance(group_name, str) and group_name.startswith(ROOM_GROUP_PREFIX):
+        return group_name[len(ROOM_GROUP_PREFIX):]
+    return None
+
 class ChatService:
     def __init__(
         self,
         *,
-        client_manager: Optional[InMemoryClientManager] = None,
+    client_manager: Optional[ClientManager] = None,
+        room_store: Optional[RoomStore] = None,
         logger: Optional[logging.Logger] = None,
         max_message_size: Optional[int] = 2 ** 20,  # 1 MiB
     ) -> None:
         self.log = logger or logging.getLogger("chat_service")
         self.client_manager = client_manager or InMemoryClientManager(logger=self.log)
+        self.room_store = room_store or InMemoryRoomStore()
         self.max_message_size = max_message_size
         self._server = None
         # event handlers
@@ -351,7 +189,32 @@ class ChatService:
                             print(f'Received message from {user_name} in group {group_name}: {user_message}')
                             if not user_message.strip():
                                 continue
-                            await self.client_manager.send_to_group(group_name, message_data, [connection_id] if no_echo else [], user_name)
+                            # Best-effort persistence if this is a room group
+                            room_id = try_room_id_from_group(group_name)
+                            if room_id:
+                                try:
+                                    await self.room_store.record_room_event(room_id, {
+                                        "type": "message",
+                                        "messageId": generate_id("m-"),
+                                        "from": user_name,
+                                        "message": user_message,
+                                        "timestamp": datetime.now(timezone.utc).isoformat(),
+                                    })
+                                except Exception:
+                                    pass
+                                # Ensure the outgoing payload also carries roomId for clients
+                                try:
+                                    message_data["roomId"] = room_id
+                                except Exception:
+                                    pass
+                            await self.client_manager.send_to_group(group_name, json.dumps({
+                                "type": "message",
+                                "from": "group",
+                                "group": group_name,
+                                "dataType": "json",
+                                "data": message_data,
+                                "fromUserId": user_name,
+                            }), [connection_id] if no_echo else [])
                         elif data.get('type') == 'joinGroup':
                             group_name = data.get('group')
                             if group_name is None:
@@ -359,8 +222,17 @@ class ChatService:
                                 self.log.warning(f"Invalid group name: {group_name}")
                             else:
                                 await self.client_manager.add_client_to_group(connection_id, group_name)
+                                # If it's a room group, register room in store
+                                room_id = try_room_id_from_group(group_name)
+                                if room_id:
+                                    try:
+                                        await self.room_store.register_room(room_id)
+                                    except Exception:
+                                        pass
                                 ack_message = {"type": "ack", "ackId": data.get('ackId', 1), "success": True}
                                 self.log.info(f"Client joined group: {group_name}")
+                                # notify listeners that room list may have changed
+                                await self.notify_rooms_changed()
                             await ws.send(json.dumps(ack_message))
                         elif data.get('type') == 'leaveGroup':
                             group_name = data.get('group')
@@ -369,8 +241,17 @@ class ChatService:
                                 self.log.warning(f"Invalid group name: {group_name}")
                             else:
                                 await self.client_manager.remove_client_from_group(connection_id, group_name)
+                                try:
+                                    # Opportunistic prune for empty/no-history rooms
+                                    room_id = try_room_id_from_group(group_name)
+                                    if room_id:
+                                        await self.room_store.remove_room_if_empty(room_id)
+                                except Exception:
+                                    pass
                                 ack_message = {"type": "ack", "ackId": data.get('ackId', 1), "success": True}
                                 self.log.info(f"Client left group: {group_name}")
+                                # notify listeners that room list may have changed
+                                await self.notify_rooms_changed()
                             await ws.send(json.dumps(ack_message))
                         elif data.get('type') == 'sequenceAck':
                             continue
@@ -424,23 +305,26 @@ class ChatService:
 
     # --------------------------- sending ----------------------------
     async def send_to_group(self, group: str, message: str, exclude_ids: Optional[List[str]] = None, from_user_id: Optional[str] = None) -> List[SendResult]:
+        # Interpret 'group' as room id and map to room_ group for transport
+        room_id = group
+        group_name = as_room_group(room_id)
         group_data = {
             "type": "message",
             "from": "group",
-            "group": group,
+            "group": group_name,
             "dataType": "json",
             "data": {
                 "messageId": generate_id("m-"),
                 "message": message,
                 "from": from_user_id,
                 # include room routing info inside data for clients that don't expose top-level group
-                "roomId": group
+                "roomId": room_id
             },
             "fromUserId": from_user_id
         }
         # persist a simplified event for the room
         try:
-            await self.client_manager.record_room_event(group, {
+            await self.room_store.record_room_event(room_id, {
                 "type": "message",
                 "messageId": group_data["data"]["messageId"],
                 "from": from_user_id,
@@ -448,10 +332,13 @@ class ChatService:
                 "timestamp": datetime.now(timezone.utc).isoformat(),
             })
         except Exception:
-            self.log.debug("Failed to record room event for group %r", group)
-        return await self.client_manager.send_to_group(group, json.dumps(group_data), exclude_ids)
+            self.log.debug("Failed to record room event for room %r", room_id)
+        return await self.client_manager.send_to_group(group_name, json.dumps(group_data), exclude_ids)
     
     async def streaming_to_group(self, group: str, chunks: AsyncIterator[str], exclude_ids: Optional[List[str]] = None, from_user_id: Optional[str] = None) -> List[SendResult]:
+        # Interpret 'group' as room id and map to room_ group for transport
+        room_id = group
+        group_name = as_room_group(room_id)
         full_response = ""
         message_id = generate_id("m-")
         async for chunk in chunks:
@@ -459,7 +346,7 @@ class ChatService:
             group_data = {
                 "type": "message",
                 "from": "group",
-                "group": group,
+                "group": group_name,
                 "dataType": "json",
                 "data": {
                     "messageId": message_id,
@@ -467,18 +354,18 @@ class ChatService:
                     "from": from_user_id,
                     "streaming": True,
                     # include room routing info inside data for clients that don't expose top-level group
-                    "roomId": group
+                    "roomId": room_id
                 },
                 "fromUserId": from_user_id
             }
             self.log.debug("Sending streaming chunk to group %r: %r", group, chunk)
-            await self.client_manager.send_to_group(group, json.dumps(group_data), exclude_ids)
+            await self.client_manager.send_to_group(group_name, json.dumps(group_data), exclude_ids)
             await asyncio.sleep(0.05)
         # send end-of-stream marker
         group_data = {
             "type": "message",
             "from": "group",
-            "group": group,
+            "group": group_name,
             "dataType": "json",
             "data": {
                 "messageId": message_id,
@@ -486,15 +373,15 @@ class ChatService:
                 "streamingEnd": True,
                 "from": from_user_id,
                 # include room routing info inside data for clients that don't expose top-level group
-                "roomId": group
+                "roomId": room_id
             },
             "fromUserId": from_user_id
         }
         
-        await self.client_manager.send_to_group(group, json.dumps(group_data), exclude_ids)
+        await self.client_manager.send_to_group(group_name, json.dumps(group_data), exclude_ids)
         self.log.debug("Complete streaming chunk to group %r", group)
         try:
-            await self.client_manager.record_room_event(group, {
+            await self.room_store.record_room_event(room_id, {
                 "type": "message",
                 "messageId": message_id,
                 "message": full_response,
@@ -502,14 +389,40 @@ class ChatService:
                 "timestamp": datetime.now(timezone.utc).isoformat(),
             })
         except Exception:
-            self.log.debug("Failed to record stream end for group %r", group)
+            self.log.debug("Failed to record stream end for room %r", room_id)
         return full_response
 
     async def add_to_group(self, connection_id: str, group: str) -> None:
-        await self.client_manager.add_client_to_group(connection_id, group)
+        # Interpret 'group' as room id and map to room_ group for transport
+        room_id = group
+        group_name = as_room_group(room_id)
+        await self.client_manager.add_client_to_group(connection_id, group_name)
+        try:
+            await self.room_store.register_room(room_id)
+        except Exception:
+            pass
+        await self.notify_rooms_changed()
 
     async def remove_from_group(self, connection_id: str, group: str) -> None:
         await self.client_manager.remove_client_from_group(connection_id, group)
+
+    async def notify_rooms_changed(self) -> None:
+        """Send a rooms-changed notification to the special _rooms group without persisting history."""
+        try:
+            rooms = await self.room_store.list_rooms()
+            payload = {
+                "type": "message",
+                "from": "group",
+                "group": SYS_ROOMS_GROUP,
+                "dataType": "json",
+                "data": {
+                    "type": "rooms-changed",
+                    "rooms": rooms,
+                },
+            }
+            await self.client_manager.send_to_group(SYS_ROOMS_GROUP, json.dumps(payload))
+        except Exception:
+            self.log.debug("Failed to notify rooms-changed")
 
     # ------------------------- emit helpers -------------------------
     async def _emit(self, handlers: List[Callable[..., Union[Awaitable[None], None]]], *args: Any) -> None:
