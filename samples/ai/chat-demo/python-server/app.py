@@ -13,7 +13,7 @@ import signal
 import sys
 from dotenv import load_dotenv
 from ai import chat_stream  # Import our AI module
-from chat_service import ChatService, ClientConnectionContext
+from chat_service import ChatService, ClientConnectionContext, WebPubSubChatService, as_room_group, SYS_ROOMS_GROUP
 from client_managers import LocalStorageClientManager, InMemoryClientManager
 from room_store import LocalRoomStore, InMemoryRoomStore, AzureRoomStore
 try:
@@ -37,11 +37,38 @@ chat_service = None  # type: ignore[assignment]
 event_loop = None  # type: ignore[assignment]
 @app.route('/negotiate')
 def negotiate():
-    """Handle negotiation requests - return WebSocket URL"""
+    """Handle negotiation requests.
+
+    - In self-host mode, returns local WS URL.
+    - In webpubsub mode, returns a client access URL from the Azure service.
+    """
+    global chat_service
     room_id = request.args.get('roomId', 'public')
-    print(f"Negotiation request for room: {room_id}")
-    
-    # Return WebSocket URL using WebSocket port
+    app.logger.info("Negotiation request for room: %s", room_id)
+    transport = os.getenv("CHAT_TRANSPORT", "selfhost").lower()
+
+    if isinstance(chat_service, WebPubSubChatService) or transport in ("webpubsub", "azure", "service"):
+        # Include initial group memberships: the room and the sys rooms channel
+        try:
+            if isinstance(chat_service, WebPubSubChatService):
+                svc = chat_service
+            else:
+                # Create a temporary service client for negotiation if not yet initialized
+                endpoint = os.getenv("WEBPUBSUB_ENDPOINT") or os.getenv("WEB_PUBSUB_ENDPOINT")
+                conn_str = os.getenv("WEBPUBSUB_CONNECTION_STRING") or os.getenv("WEB_PUBSUB_CONNECTION_STRING")
+                hub = os.getenv("WEBPUBSUB_HUB", "chat")
+                if endpoint:
+                    svc = WebPubSubChatService(endpoint=endpoint, hub=hub)
+                elif conn_str:
+                    svc = WebPubSubChatService(connection_string=conn_str, hub=hub)
+                else:
+                    raise RuntimeError("WEBPUBSUB_ENDPOINT or WEBPUBSUB_CONNECTION_STRING is required for WebPubSub negotiation")
+            url = svc.get_client_access_url(groups=[as_room_group(room_id), SYS_ROOMS_GROUP])
+            return url
+        except Exception as e:  # noqa: BLE001
+            app.logger.exception("Negotiation failed: %s", e)
+            return (str(e), 500)
+    # Self-host fallback
     ws_url = f"ws://{host}:{port + 1}/ws?roomId={room_id}"
     return ws_url
 
@@ -87,29 +114,25 @@ def serve_static(path):
     return send_from_directory('../client/dist', path)
 
 async def main():
-    """Main server - Flask for HTTP, websockets for WebSocket (separate ports)"""
+    """Chat server"""
     
-    print(f"Starting dual-server setup:")
-    print(f"  Flask HTTP server: http://{host}:{port}")
-    print(f"  WebSocket server: ws://{host}:{port + 1}/ws") 
-    print("  Subprotocol: json.reliable.webpubsub.azure.v1")
-    print("Make sure to build the React client first with: npm run build")
-    print("AI Module: Integrated with conversation history")
+    app.logger.info("  Flask HTTP server: http://%s:%s", host, port)
+    app.logger.info("  Subprotocol: json.reliable.webpubsub.azure.v1")
+    app.logger.info("Make sure to build the React client first with: npm run build")
+    app.logger.info("AI Module: Integrated with conversation history")
     
     # Check if AI module is available
     try:
         from ai import get_ai_instance
         ai_instance = get_ai_instance()
-        print("✅ AI module loaded successfully")
+        app.logger.info("AI module loaded successfully")
     except Exception as e:
-        print(f"⚠️  AI module error: {e}")
-        print("Make sure GITHUB_TOKEN environment variable is set")
-    
-    print()  # Empty line for better readability
+        app.logger.warning("AI module error: %s", e)
+        app.logger.warning("Make sure GITHUB_TOKEN environment variable is set")
     
     # Start Flask server in a thread
     def run_flask():
-        print(f"Flask starting on port {port}")
+        app.logger.info("Flask starting on port %s", port)
         app.run(host=host, port=port, debug=False, use_reloader=False, threaded=True)
     
     flask_thread = threading.Thread(target=run_flask, daemon=True)
@@ -119,24 +142,40 @@ async def main():
     await asyncio.sleep(1)
 
     # Start chat service
-    print(f"Starting chat service on port {port + 1}")
+    app.logger.info("Starting chat service on port %s", port + 1)
 
     storage_mode = os.getenv("CHAT_STORAGE", "memory").lower()
     state_file = os.getenv("CHAT_STATE_FILE", "./chat_state.json")
     if storage_mode in ("azure", "blob", "azureblob") and AzureStorageClientManager is not None:
-        print("Using Azure backends (transport + room store)")
+        app.logger.info("Using Azure backends (transport + room store)")
         client_manager = AzureStorageClientManager()
         room_store = AzureRoomStore()
     elif storage_mode in ("local", "file", "disk"):
-        print(f"Using LocalStorageClientManager + LocalRoomStore -> {state_file}")
+        app.logger.info("Using LocalStorageClientManager + LocalRoomStore -> %s", state_file)
         client_manager = LocalStorageClientManager(file_path=state_file)
         room_store = LocalRoomStore(file_path=state_file)
     else:
-        print("Using InMemoryClientManager + InMemoryRoomStore")
+        app.logger.info("Using InMemoryClientManager + InMemoryRoomStore")
         client_manager = InMemoryClientManager()
         room_store = InMemoryRoomStore()
 
-    chat = ChatService(client_manager=client_manager, room_store=room_store)
+    # Choose transport: self-host or Azure Web PubSub
+    transport = os.getenv("CHAT_TRANSPORT", "selfhost").lower()
+    if transport in ("webpubsub", "azure", "service"):
+        endpoint = os.getenv("WEBPUBSUB_ENDPOINT") or os.getenv("WEB_PUBSUB_ENDPOINT")
+        conn_str = os.getenv("WEBPUBSUB_CONNECTION_STRING") or os.getenv("WEB_PUBSUB_CONNECTION_STRING")
+        hub = os.getenv("WEBPUBSUB_HUB", "chat")
+        if endpoint:
+            chat = WebPubSubChatService(endpoint=endpoint, hub=hub, room_store=room_store)
+            app.logger.info("Using Azure Web PubSub service transport (endpoint + DefaultAzureCredential)")
+        elif conn_str:
+            chat = WebPubSubChatService(connection_string=conn_str, hub=hub, room_store=room_store)
+            app.logger.info("Using Azure Web PubSub service transport (connection string)")
+        else:
+            app.logger.warning("WEBPUBSUB_ENDPOINT or WEBPUBSUB_CONNECTION_STRING is required for WebPubSub transport; falling back to selfhost")
+            chat = ChatService(client_manager=client_manager, room_store=room_store)
+    else:
+        chat = ChatService(client_manager=client_manager, room_store=room_store)
     # expose chat and loop to Flask handlers
     global chat_service, event_loop
     chat_service = chat
@@ -153,22 +192,44 @@ async def main():
         room_id = get_room_id(conn.path, "public")
         if room_id:
             await _svc.add_to_group(conn.connectionId, room_id)
-            print(f"Client connected to room: {room_id}")
+            app.logger.info("Client connected to room: %s", room_id)
         # Track background tasks per connection for cleanup
         conn.attrs.setdefault("tasks", set())
-        print("connected:", conn.connectionId, conn.user_id)
+        app.logger.info("connected: %s user=%s", conn.connectionId, conn.user_id)
 
     @chat.on_event_message
     async def handle_event_message(conn, event_name, data, _svc: ChatService):
         if event_name == "sendToAI":
             message = data.get("message")
             room_id = data.get("roomId")
-            print(f"Received message for AI: {message} in room {room_id}")
+            app.logger.info("Received message for AI: %s in room %s", message, room_id)
             if message is not None and room_id is not None:
                 # also broadcast to others about this message
                 await _svc.send_to_group(room_id, message, [conn.connectionId], conn.user_id)
+                # Build conversation history from this room and pass to AI
+                try:
+                    history_events = await _svc.room_store.get_room_messages(room_id)
+                except Exception:
+                    history_events = []
+                conversation_history = []
+                for ev in history_events:
+                    try:
+                        if ev.get("type") != "message":
+                            continue
+                        content = ev.get("message")
+                        if not isinstance(content, str) or not content:
+                            continue
+                        # Treat events without a 'from' (AI responses) as assistant; others as user
+                        role = "assistant" if ev.get("from") in (None, "AI", "AI Assistant", "assistant") else "user"
+                        conversation_history.append({"role": role, "content": content})
+                    except Exception:
+                        continue
+                # Avoid duplicating the just-sent user message: drop the last entry if it matches
+                if conversation_history and conversation_history[-1]["role"] == "user" and conversation_history[-1]["content"] == message:
+                    conversation_history.pop()
                 # Start AI streaming in background so multiple requests can stream concurrently
-                chunks = chat_stream(message)
+                app.logger.debug("Sending to AI with history (%d items)", len(conversation_history))
+                chunks = chat_stream(message, conversation_history=conversation_history)
                 task = asyncio.create_task(_svc.streaming_to_group(room_id, to_async_iterator(chunks)))
                 # track task for cleanup on disconnect
                 try:
@@ -192,24 +253,23 @@ async def main():
                 t.cancel()
             except Exception:
                 pass
-        print(f"Client disconnected: {conn.connectionId}")
+        app.logger.info("Client disconnected: %s", conn.connectionId)
+
     await chat.start_chat(host, port + 1)
 
-    print(f"Both servers running:")
-    print(f"  HTTP: http://{host}:{port} (Flask)")
-    print(f"  WebSocket: ws://{host}:{port + 1}/ws (websockets)")
-    print("Press Ctrl+C to quit")
+    app.logger.info("  HTTP: http://%s:%s (Flask)", host, port)
+    app.logger.info("Press Ctrl+C to quit")
     
     try:
         await asyncio.Future()  # Run forever
     finally:
-        await chat.close()
+        await chat.stop()
 
 if __name__ == '__main__':
     try:
         asyncio.run(main())
     except KeyboardInterrupt:
-        print("\nShutting down servers...")
+        app.logger.info("Shutting down servers...")
     except Exception as e:
-        print(f"Server error: {e}")
-        print("Make sure the ports are available.")
+        app.logger.exception("Server error: %s", e)
+        app.logger.error("Make sure the ports are available.")

@@ -4,3 +4,5 @@ openai>=1.0.0
 websockets>=11.0.0
 flask-cors>=4.0.0
 azure-storage-blob>=12.14.0
+azure-messaging-webpubsubservice>=1.0.0
+azure-identity>=1.15.0

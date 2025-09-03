@@ -1,12 +1,16 @@
-"""ChatService: asyncio WebSocket server with pluggable callbacks.
+"""Chat services: abstract interface + self-hosted + Azure Web PubSub.
 
-This module provides:
-- `ChatService.start_chat(host, port)` – start a WebSocket server (asyncio)
-- `ChatService.stop()` – graceful shutdown
-- Callback hooks: `.on_message(cb)`, `.on_connect(cb)`, `.on_disconnect(cb)`, `.on_error(cb)`
-  (and a generic `.on(event, cb)`)
+This module now contains:
+- ChatServiceBase: abstract event/callback contract for chat services
+- ChatService: self-hosted WebSocket implementation (kept as default)
+- WebPubSubChatService: Azure Web PubSub service-backed implementation
+
+Self-hosted ChatService provides:
+- `start_chat(host, port)` – start a WebSocket server (asyncio)
+- `stop()` – graceful shutdown
+- Callback hooks: `.on_connecting(cb)`, `.on_connected(cb)`, `.on_disconnected(cb)`, `.on_event_message(cb)`, `.on_error(cb)`
 - Broadcast APIs using an in-memory, lock-safe `InMemoryClientManager`
-- No external frameworks beyond `websockets` (install with `pip install websockets`)
+- No external frameworks beyond `websockets` for transport
 
 Notes
 - This is **process-local**. For multi-process deployments, use a shared backend (e.g., Redis) for fan-out.
@@ -27,6 +31,14 @@ from websockets.server import WebSocketServerProtocol
 from client_managers import ClientManager, InMemoryClientManager, SendResult
 from room_store import RoomStore, InMemoryRoomStore
 
+# Optional Azure Web PubSub (service) SDK
+try:  # noqa: SIM105
+    from azure.identity import DefaultAzureCredential  # type: ignore
+    from azure.messaging.webpubsubservice import WebPubSubServiceClient  # type: ignore
+except Exception:  # noqa: BLE001
+    DefaultAzureCredential = None  # type: ignore[assignment]
+    WebPubSubServiceClient = None  # type: ignore[assignment]
+
 # enable verbose websockets logging while debugging (optional)
 logging.basicConfig(level=logging.DEBUG)
 logging.getLogger("websockets").setLevel(logging.INFO)
@@ -44,11 +56,15 @@ class ClientConnectionContext:
         self.attrs: Dict[str, Any] = attrs or {}
 
 # ------------------------------ Types ------------------------------
-OnConnecting = Callable[[ClientConnectionContext, "ChatService"], Union[Awaitable[None], None]]
-OnConnected = Callable[[ClientConnectionContext, "ChatService"], Union[Awaitable[None], None]]
-OnDisconnected = Callable[[ClientConnectionContext, "ChatService"], Union[Awaitable[None], None]]
-OnEventMessage = Callable[[ClientConnectionContext, str, str, "ChatService"], Union[Awaitable[None], None]]  # (connection_id, event_name, message, svc)
-OnError = Callable[[ClientConnectionContext, BaseException, "ChatService"], Union[Awaitable[None], None]]
+# Forward-declare base type name for annotations without importing at top
+class _BaseType:  # pragma: no cover - for typing only
+    pass
+
+OnConnecting = Callable[[ClientConnectionContext, "_BaseType"], Union[Awaitable[None], None]]
+OnConnected = Callable[[ClientConnectionContext, "_BaseType"], Union[Awaitable[None], None]]
+OnDisconnected = Callable[[ClientConnectionContext, "_BaseType"], Union[Awaitable[None], None]]
+OnEventMessage = Callable[[ClientConnectionContext, str, Any, "_BaseType"], Union[Awaitable[None], None]]
+OnError = Callable[[ClientConnectionContext, BaseException, "_BaseType"], Union[Awaitable[None], None]]
 
 
 # ClientManager implementations moved to client_managers.py
@@ -79,26 +95,25 @@ def try_room_id_from_group(group_name: Optional[str]) -> Optional[str]:
         return group_name[len(ROOM_GROUP_PREFIX):]
     return None
 
-class ChatService:
+class ChatServiceBase:
+    """Abstract base for chat services. Provides event management.
+
+    Concrete implementations must implement transport-specific methods.
+    """
     def __init__(
         self,
         *,
-    client_manager: Optional[ClientManager] = None,
         room_store: Optional[RoomStore] = None,
         logger: Optional[logging.Logger] = None,
-        max_message_size: Optional[int] = 2 ** 20,  # 1 MiB
     ) -> None:
         self.log = logger or logging.getLogger("chat_service")
-        self.client_manager = client_manager or InMemoryClientManager(logger=self.log)
         self.room_store = room_store or InMemoryRoomStore()
-        self.max_message_size = max_message_size
-        self._server = None
         # event handlers
-        self._on_connecting = []
-        self._on_connected = []
-        self._on_disconnected = []
-        self._on_event_message = []
-        self._on_error = []
+        self._on_connecting: List[OnConnecting] = []
+        self._on_connected: List[OnConnected] = []
+        self._on_disconnected: List[OnDisconnected] = []
+        self._on_event_message: List[OnEventMessage] = []
+        self._on_error: List[OnError] = []
 
     # ---------------------- event registration ----------------------
     def on(self, event: str, handler: Callable[..., Union[Awaitable[None], None]]) -> None:
@@ -114,13 +129,8 @@ class ChatService:
             self._on_error.append(handler)  # type: ignore[arg-type]
         else:
             raise ValueError(f"Unknown event: {event}")
-        
-    def on_connecting(self, handler: OnConnecting) -> None:
-        """Register a handler invoked right after context creation and before registration.
 
-        Use to enrich `ClientConnectionContext` (e.g., set `userId`) or perform
-        lightweight auth checks. Raise to abort the connection.
-        """
+    def on_connecting(self, handler: OnConnecting) -> None:
         self.on("connecting", handler)
 
     def on_connected(self, handler: OnConnected) -> None:
@@ -134,6 +144,54 @@ class ChatService:
 
     def on_error(self, handler: OnError) -> None:
         self.on("error", handler)
+
+    # ------------------------- emit helpers -------------------------
+    async def _emit(self, handlers: List[Callable[..., Union[Awaitable[None], None]]], *args: Any) -> None:
+        for h in list(handlers):
+            try:
+                res = h(*args, self)  # type: ignore[misc]
+                if asyncio.iscoroutine(res):
+                    await res
+            except Exception:  # noqa: BLE001
+                # Errors in user callbacks should not bring the server down
+                self.log.exception("Callback error in %r", h)
+
+    # -------------------- abstract transport API --------------------
+    async def start_chat(self, host: str = "0.0.0.0", port: int = 8765) -> None:
+        raise NotImplementedError
+
+    async def stop(self) -> None:
+        raise NotImplementedError
+
+    async def send_to_group(self, group: str, message: str, exclude_ids: Optional[List[str]] = None, from_user_id: Optional[str] = None) -> List[SendResult] | Any:
+        raise NotImplementedError
+
+    async def streaming_to_group(self, group: str, chunks: AsyncIterator[str], exclude_ids: Optional[List[str]] = None, from_user_id: Optional[str] = None) -> Any:
+        raise NotImplementedError
+
+    async def add_to_group(self, connection_id: str, group: str) -> None:
+        raise NotImplementedError
+
+    async def remove_from_group(self, connection_id: str, group: str) -> None:
+        raise NotImplementedError
+
+    async def notify_rooms_changed(self) -> None:
+        raise NotImplementedError
+
+
+class ChatService(ChatServiceBase):
+    def __init__(
+        self,
+        *,
+        client_manager: Optional[ClientManager] = None,
+        room_store: Optional[RoomStore] = None,
+        logger: Optional[logging.Logger] = None,
+        max_message_size: Optional[int] = 2 ** 20,  # 1 MiB
+    ) -> None:
+        super().__init__(room_store=room_store, logger=logger)
+        self.client_manager = client_manager or InMemoryClientManager(logger=self.log)
+        self.max_message_size = max_message_size
+        self._server = None
 
     # --------------------------- server -----------------------------
     async def start_chat(self, host: str = "0.0.0.0", port: int = 8765) -> None:
@@ -424,16 +482,6 @@ class ChatService:
         except Exception:
             self.log.debug("Failed to notify rooms-changed")
 
-    # ------------------------- emit helpers -------------------------
-    async def _emit(self, handlers: List[Callable[..., Union[Awaitable[None], None]]], *args: Any) -> None:
-        for h in list(handlers):
-            try:
-                res = h(*args, self)
-                if asyncio.iscoroutine(res):
-                    await res
-            except Exception:  # noqa: BLE001
-                # Errors in user callbacks should not bring the server down
-                self.log.exception("Callback error in %r", h)
 
 # ==================================================================
 # Quick usage
@@ -455,3 +503,202 @@ async def main():
 if __name__ == "__main__":
     import asyncio
     asyncio.run(main())
+
+
+# ==================================================================
+# Azure Web PubSub service-backed implementation
+# ==================================================================
+
+class WebPubSubChatService(ChatServiceBase):
+    """Azure Web PubSub-backed chat service.
+
+    This implementation does not host a local WebSocket server. Clients should
+    connect directly to Azure Web PubSub using a client access URL (token).
+    Use the Python SDK to broadcast to groups and persist room history locally
+    using the provided RoomStore.
+    """
+
+    def __init__(
+        self,
+        *,
+        hub: str = "chat",
+        connection_string: Optional[str] = None,
+        endpoint: Optional[str] = None,
+        credential: Any | None = None,
+        room_store: Optional[RoomStore] = None,
+        logger: Optional[logging.Logger] = None,
+    ) -> None:
+        super().__init__(room_store=room_store, logger=logger)
+        if WebPubSubServiceClient is None:
+            raise RuntimeError("azure-messaging-webpubsubservice is not installed. Please `pip install azure-messaging-webpubsubservice`. ")
+        # Prefer endpoint + DefaultAzureCredential when available; support connection string as fallback
+        if endpoint:
+            if credential is None:
+                if DefaultAzureCredential is None:
+                    raise RuntimeError("azure-identity is not installed. Please `pip install azure-identity` or pass a credential.")
+                credential = DefaultAzureCredential()
+            self._svc = WebPubSubServiceClient(endpoint=endpoint, hub=hub, credential=credential)  # type: ignore[call-arg]
+        elif connection_string:
+            self._svc = WebPubSubServiceClient.from_connection_string(connection_string, hub=hub)  # type: ignore[attr-defined]
+        else:
+            raise RuntimeError("WebPubSubChatService requires either endpoint (+ Azure credential) or connection_string")
+
+    # No local server to start; return immediately
+    async def start_chat(self, host: str = "0.0.0.0", port: int = 0) -> None:  # type: ignore[override]
+        self.log.info("WebPubSubChatService ready (no local WebSocket server)")
+
+    async def stop(self) -> None:  # type: ignore[override]
+        # SDK is stateless for service operations
+        return
+
+    # ------------- negotiation helper (service client URL) ------------
+    def get_client_access_url(self, *, user_id: Optional[str] = None, roles: Optional[List[str]] = None, groups: Optional[List[str]] = None, minutes_to_expire: int = 60) -> str:
+        try:
+            token = self._svc.get_client_access_token(user_id=user_id, roles=roles, groups=groups, minutes_to_expire=minutes_to_expire)  # type: ignore[attr-defined]
+            # The SDK returns a dict-like object with 'url'
+            url = token.get('url') if isinstance(token, dict) else getattr(token, 'url', None)
+            if not url:
+                raise RuntimeError("Failed to obtain client access URL from Web PubSub service client")
+            return url
+        except Exception as e:  # noqa: BLE001
+            raise
+
+    async def send_to_group(self, group: str, message: str, exclude_ids: Optional[List[str]] = None, from_user_id: Optional[str] = None):  # type: ignore[override]
+        # Interpret 'group' as room id and use Azure group name `room_{id}` for consistency with self-host
+        room_id = group
+        group_name = as_room_group(room_id)
+        payload = {
+            "type": "message",
+            "from": "group",
+            "group": group_name,
+            "dataType": "json",
+            "data": {
+                "messageId": generate_id("m-"),
+                "message": message,
+                "from": from_user_id,
+                "roomId": room_id,
+            },
+            "fromUserId": from_user_id,
+        }
+        try:
+            # Persist simplified event locally
+            await self.room_store.record_room_event(room_id, {
+                "type": "message",
+                "messageId": payload["data"]["messageId"],
+                "from": from_user_id,
+                "message": message,
+                "timestamp": datetime.now(timezone.utc).isoformat(),
+            })
+        except Exception:
+            self.log.debug("Failed to record room event for room %r", room_id)
+
+        # Exclusion by connection id is optional in service API; ignore if not supported
+        try:
+            if exclude_ids:
+                self._svc.send_to_group(group_name, json.dumps(payload), content_type="application/json", excluded=exclude_ids)  # type: ignore[call-arg]
+            else:
+                self._svc.send_to_group(group_name, json.dumps(payload), content_type="application/json")  # type: ignore[call-arg]
+        except TypeError:
+            # Older SDKs may not support `excluded`/content_type keyword
+            self._svc.send_to_group(group_name, json.dumps(payload))  # type: ignore[call-arg]
+        return []
+
+    async def streaming_to_group(self, group: str, chunks: AsyncIterator[str], exclude_ids: Optional[List[str]] = None, from_user_id: Optional[str] = None):  # type: ignore[override]
+        room_id = group
+        group_name = as_room_group(room_id)
+        full_response = ""
+        message_id = generate_id("m-")
+        async for chunk in chunks:
+            full_response += chunk
+            payload = {
+                "type": "message",
+                "from": "group",
+                "group": group_name,
+                "dataType": "json",
+                "data": {
+                    "messageId": message_id,
+                    "message": chunk,
+                    "from": from_user_id,
+                    "streaming": True,
+                    "roomId": room_id,
+                },
+                "fromUserId": from_user_id,
+            }
+            try:
+                if exclude_ids:
+                    self._svc.send_to_group(group_name, json.dumps(payload), content_type="application/json", excluded=exclude_ids)  # type: ignore[call-arg]
+                else:
+                    self._svc.send_to_group(group_name, json.dumps(payload), content_type="application/json")  # type: ignore[call-arg]
+            except TypeError:
+                self._svc.send_to_group(group_name, json.dumps(payload))  # type: ignore[call-arg]
+            await asyncio.sleep(0.05)
+
+        # end-of-stream marker
+        eos_payload = {
+            "type": "message",
+            "from": "group",
+            "group": group_name,
+            "dataType": "json",
+            "data": {
+                "messageId": message_id,
+                "streaming": True,
+                "streamingEnd": True,
+                "from": from_user_id,
+                "roomId": room_id,
+            },
+            "fromUserId": from_user_id,
+        }
+        try:
+            if exclude_ids:
+                self._svc.send_to_group(group_name, json.dumps(eos_payload), content_type="application/json", excluded=exclude_ids)  # type: ignore[call-arg]
+            else:
+                self._svc.send_to_group(group_name, json.dumps(eos_payload), content_type="application/json")  # type: ignore[call-arg]
+        except TypeError:
+            self._svc.send_to_group(group_name, json.dumps(eos_payload))  # type: ignore[call-arg]
+
+        try:
+            await self.room_store.record_room_event(room_id, {
+                "type": "message",
+                "messageId": message_id,
+                "message": full_response,
+                "from": from_user_id,
+                "timestamp": datetime.now(timezone.utc).isoformat(),
+            })
+        except Exception:
+            self.log.debug("Failed to record stream end for room %r", room_id)
+        return full_response
+
+    async def add_to_group(self, connection_id: str, group: str) -> None:  # type: ignore[override]
+        # Group membership should be driven by clients directly when using Web PubSub.
+        # Optionally, the service API allows adding a known connectionId to a group.
+        try:
+            self._svc.add_connection_to_group(as_room_group(group), connection_id)  # type: ignore[attr-defined]
+        except Exception:
+            # Best-effort; often you don't have the connectionId on the server.
+            pass
+
+    async def remove_from_group(self, connection_id: str, group: str) -> None:  # type: ignore[override]
+        try:
+            self._svc.remove_connection_from_group(as_room_group(group), connection_id)  # type: ignore[attr-defined]
+        except Exception:
+            pass
+
+    async def notify_rooms_changed(self) -> None:  # type: ignore[override]
+        try:
+            rooms = await self.room_store.list_rooms()
+            payload = {
+                "type": "message",
+                "from": "group",
+                "group": SYS_ROOMS_GROUP,
+                "dataType": "json",
+                "data": {
+                    "type": "rooms-changed",
+                    "rooms": rooms,
+                },
+            }
+            try:
+                self._svc.send_to_group(SYS_ROOMS_GROUP, json.dumps(payload), content_type="application/json")  # type: ignore[call-arg]
+            except TypeError:
+                self._svc.send_to_group(SYS_ROOMS_GROUP, json.dumps(payload))  # type: ignore[call-arg]
+        except Exception:
+            self.log.debug("Failed to notify rooms-changed (service)")
