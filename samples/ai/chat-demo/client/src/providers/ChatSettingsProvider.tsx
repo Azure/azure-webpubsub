@@ -78,7 +78,7 @@ export const ChatSettingsProvider: React.FC<ChatSettingsProviderProps> = ({ chil
     roomId,
     setRoomId,
     rooms,
-  setRooms,
+    setRooms,
     addRoom,
     removeRoom,
     userId,
