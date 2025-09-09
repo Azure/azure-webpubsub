@@ -20,6 +20,7 @@ Notes
 from __future__ import annotations
 
 import asyncio
+from http import client
 import logging
 import json
 from datetime import datetime, timezone
@@ -49,8 +50,8 @@ class ClientConnectionContext:
     Handlers can mutate this context during the 'connecting' phase to add
     metadata like userId, roles, etc., before the connection is registered.
     """
-    def __init__(self, path, connection_id, *, user_id: Optional[str] = None, attrs: Optional[Dict[str, Any]] = None) -> None:
-        self.path = path
+    def __init__(self, query: str, connection_id: str, *, user_id: Optional[str] = None, attrs: Optional[Dict[str, Any]] = None) -> None:
+        self.query = query
         self.connectionId = connection_id
         self.user_id: Optional[str] = user_id
         self.attrs: Dict[str, Any] = attrs or {}
@@ -165,8 +166,16 @@ class ChatServiceBase:
 
     async def send_to_group(self, group: str, message: str, exclude_ids: Optional[List[str]] = None, from_user_id: Optional[str] = None) -> List[SendResult] | Any:
         raise NotImplementedError
+    
+    async def streaming_to_group(self, group: str, chunks: AsyncIterator[str], exclude_ids: Optional[List[str]] = None, from_user_id: Optional[str] = None) -> str:
+        """Stream a sequence of text chunks to a room/group.
 
-    async def streaming_to_group(self, group: str, chunks: AsyncIterator[str], exclude_ids: Optional[List[str]] = None, from_user_id: Optional[str] = None) -> Any:
+        Contract:
+            - Each chunk is emitted immediately to clients with streaming=True.
+            - After the iterator completes, a final marker (streamingEnd=True) is sent.
+            - Implementations MAY persist the concatenated text as a single message event.
+            - Returns the full concatenated response string.
+        """
         raise NotImplementedError
 
     async def add_to_group(self, connection_id: str, group: str) -> None:
@@ -393,10 +402,11 @@ class ChatService(ChatServiceBase):
             self.log.debug("Failed to record room event for room %r", room_id)
         return await self.client_manager.send_to_group(group_name, json.dumps(group_data), exclude_ids)
     
-    async def streaming_to_group(self, group: str, chunks: AsyncIterator[str], exclude_ids: Optional[List[str]] = None, from_user_id: Optional[str] = None) -> List[SendResult]:
+    async def streaming_to_group(self, group: str, chunks: AsyncIterator[str], exclude_ids: Optional[List[str]] = None, from_user_id: Optional[str] = None) -> str:
         # Interpret 'group' as room id and map to room_ group for transport
         room_id = group
         group_name = as_room_group(room_id)
+        self.log.debug("Starting streaming to group %r", group)
         full_response = ""
         message_id = generate_id("m-")
         async for chunk in chunks:
@@ -435,7 +445,7 @@ class ChatService(ChatServiceBase):
             },
             "fromUserId": from_user_id
         }
-        
+
         await self.client_manager.send_to_group(group_name, json.dumps(group_data), exclude_ids)
         self.log.debug("Complete streaming chunk to group %r", group)
         try:
@@ -543,6 +553,24 @@ class WebPubSubChatService(ChatServiceBase):
         else:
             raise RuntimeError("WebPubSubChatService requires either endpoint (+ Azure credential) or connection_string")
 
+        # Minimal internal client registry used only for CloudEvents lifecycle callbacks.
+        # We intentionally do NOT try to mirror full Azure connection state; we just
+        # retain contexts between sys.connect -> sys.connected -> sys.disconnected events.
+        self._http_clients: Dict[str, ClientConnectionContext] = {}
+
+        class _SimpleClientManager:
+            def __init__(inner_self):
+                inner_self._parent = self
+            async def add_client(inner_self, connection_id: str, context: ClientConnectionContext, _transport: Any) -> None:  # noqa: D401
+                inner_self._parent._http_clients[connection_id] = context
+            async def get_client(inner_self, connection_id: str) -> Optional[ClientConnectionContext]:
+                return inner_self._parent._http_clients.get(connection_id)
+            async def remove_client(inner_self, connection_id: str) -> None:
+                inner_self._parent._http_clients.pop(connection_id, None)
+
+        # Expose with same name used by self-host path to reuse handler logic.
+        self.client_manager = _SimpleClientManager()  # type: ignore[attr-defined]
+
     # No local server to start; return immediately
     async def start_chat(self, host: str = "0.0.0.0", port: int = 0) -> None:  # type: ignore[override]
         self.log.info("WebPubSubChatService ready (no local WebSocket server)")
@@ -552,9 +580,10 @@ class WebPubSubChatService(ChatServiceBase):
         return
 
     # ------------- negotiation helper (service client URL) ------------
-    def get_client_access_url(self, *, user_id: Optional[str] = None, roles: Optional[List[str]] = None, groups: Optional[List[str]] = None, minutes_to_expire: int = 60) -> str:
+    def get_client_access_url(self, *, user_id: Optional[str] = None) -> str:
         try:
-            token = self._svc.get_client_access_token(user_id=user_id, roles=roles, groups=groups, minutes_to_expire=minutes_to_expire)  # type: ignore[attr-defined]
+            # give the client permissions to join groups and send messages
+            token = self._svc.get_client_access_token(user_id=user_id, roles=["webpubsub.joinLeaveGroup", "webpubsub.sendToGroup"])
             # The SDK returns a dict-like object with 'url'
             url = token.get('url') if isinstance(token, dict) else getattr(token, 'url', None)
             if not url:
@@ -568,23 +597,16 @@ class WebPubSubChatService(ChatServiceBase):
         room_id = group
         group_name = as_room_group(room_id)
         payload = {
-            "type": "message",
-            "from": "group",
-            "group": group_name,
-            "dataType": "json",
-            "data": {
                 "messageId": generate_id("m-"),
                 "message": message,
                 "from": from_user_id,
                 "roomId": room_id,
-            },
-            "fromUserId": from_user_id,
         }
         try:
             # Persist simplified event locally
             await self.room_store.record_room_event(room_id, {
                 "type": "message",
-                "messageId": payload["data"]["messageId"],
+                "messageId": payload["messageId"],
                 "from": from_user_id,
                 "message": message,
                 "timestamp": datetime.now(timezone.utc).isoformat(),
@@ -603,50 +625,34 @@ class WebPubSubChatService(ChatServiceBase):
             self._svc.send_to_group(group_name, json.dumps(payload))  # type: ignore[call-arg]
         return []
 
-    async def streaming_to_group(self, group: str, chunks: AsyncIterator[str], exclude_ids: Optional[List[str]] = None, from_user_id: Optional[str] = None):  # type: ignore[override]
+    async def streaming_to_group(self, group: str, chunks: AsyncIterator[str], exclude_ids: Optional[List[str]] = None, from_user_id: Optional[str] = None) -> str:  # type: ignore[override]
         room_id = group
         group_name = as_room_group(room_id)
+        self.log.debug("Starting streaming to group %r (service)", group)
         full_response = ""
         message_id = generate_id("m-")
+        chunk_index = 0
         async for chunk in chunks:
             full_response += chunk
             payload = {
-                "type": "message",
-                "from": "group",
-                "group": group_name,
-                "dataType": "json",
-                "data": {
                     "messageId": message_id,
                     "message": chunk,
                     "from": from_user_id,
                     "streaming": True,
                     "roomId": room_id,
-                },
-                "fromUserId": from_user_id,
             }
-            try:
-                if exclude_ids:
-                    self._svc.send_to_group(group_name, json.dumps(payload), content_type="application/json", excluded=exclude_ids)  # type: ignore[call-arg]
-                else:
-                    self._svc.send_to_group(group_name, json.dumps(payload), content_type="application/json")  # type: ignore[call-arg]
-            except TypeError:
-                self._svc.send_to_group(group_name, json.dumps(payload))  # type: ignore[call-arg]
+            chunk_index += 1
+            self.log.debug("[service] Streaming chunk #%d to %r: %r", chunk_index, group, chunk)
+            self._svc.send_to_group(group_name, payload, content_type="application/json", excluded=exclude_ids)  # type: ignore[call-arg]
             await asyncio.sleep(0.05)
 
         # end-of-stream marker
         eos_payload = {
-            "type": "message",
-            "from": "group",
-            "group": group_name,
-            "dataType": "json",
-            "data": {
                 "messageId": message_id,
                 "streaming": True,
                 "streamingEnd": True,
                 "from": from_user_id,
                 "roomId": room_id,
-            },
-            "fromUserId": from_user_id,
         }
         try:
             if exclude_ids:
@@ -655,7 +661,7 @@ class WebPubSubChatService(ChatServiceBase):
                 self._svc.send_to_group(group_name, json.dumps(eos_payload), content_type="application/json")  # type: ignore[call-arg]
         except TypeError:
             self._svc.send_to_group(group_name, json.dumps(eos_payload))  # type: ignore[call-arg]
-
+        self.log.debug("[service] Completed streaming to %r: %d chunks, %d chars total", group, chunk_index, len(full_response))
         try:
             await self.room_store.record_room_event(room_id, {
                 "type": "message",
@@ -687,14 +693,8 @@ class WebPubSubChatService(ChatServiceBase):
         try:
             rooms = await self.room_store.list_rooms()
             payload = {
-                "type": "message",
-                "from": "group",
-                "group": SYS_ROOMS_GROUP,
-                "dataType": "json",
-                "data": {
                     "type": "rooms-changed",
                     "rooms": rooms,
-                },
             }
             try:
                 self._svc.send_to_group(SYS_ROOMS_GROUP, json.dumps(payload), content_type="application/json")  # type: ignore[call-arg]
@@ -702,3 +702,81 @@ class WebPubSubChatService(ChatServiceBase):
                 self._svc.send_to_group(SYS_ROOMS_GROUP, json.dumps(payload))  # type: ignore[call-arg]
         except Exception:
             self.log.debug("Failed to notify rooms-changed (service)")
+
+    # ----------------- CloudEvents (single endpoint) -----------------
+    def attach_flask_cloudevents(self, flask_app, loop, path: str = '/eventhandler') -> None:
+        """Register a single CloudEvents-compatible webhook endpoint.
+
+        CloudEvents headers of interest:
+          ce-type: azure.webpubsub.sys.connected | azure.webpubsub.sys.disconnected | azure.webpubsub.user.message | azure.webpubsub.user.<event>
+          ce-userid: user id (if any)
+          ce-connectionid: connection id (if any)
+                System events invoke on_connected / on_disconnected callbacks best-effort with a synthetic context.
+        """
+        from flask import request, jsonify, Response  # type: ignore
+
+        @flask_app.route(path, methods=['POST', 'OPTIONS'])
+        async def _wps_cloudevents():  # type: ignore
+            """Async CloudEvents handler; requires Flask installed with async extra.
+
+            Handles connect / connected / disconnected / user.message events.
+            Unknown events return 204 (ignored).
+            """
+            try:
+                if request.method == 'OPTIONS':
+                    if request.headers.get('WebHook-Request-Origin'):
+                        resp = Response(status=200)
+                        resp.headers['WebHook-Allowed-Origin'] = '*'
+                        return resp
+                    return ('', 400)
+
+                ce_type = request.headers.get('ce-type', '')
+                user_id = request.headers.get('ce-userid')
+                connection_id = request.headers.get('ce-connectionid')
+                if not connection_id or not ce_type:
+                    return ('Bad Request', 400)
+                self.log.debug("CloudEvent received: type=%s userId=%s connectionId=%s", ce_type, user_id, connection_id)
+
+                if ce_type == 'azure.webpubsub.sys.connect':
+                    query = request.get_json(silent=True) or {}
+                    qs = query.get('query', {}) if isinstance(query, dict) else {}
+                    client = ClientConnectionContext(qs, connection_id)
+                    await self._emit(self._on_connecting, client)
+                    await self.client_manager.add_client(connection_id, client, None)
+                    if user_id == client.user_id:
+                        return ('', 204)
+                    else:
+                        return (json.dumps({"userId": client.user_id}), 200, {'Content-Type': 'application/json'})
+
+                if ce_type == 'azure.webpubsub.sys.connected':
+                    client = await self.client_manager.get_client(connection_id)
+                    if client is None:
+                        return ('Connection not found', 404)
+                    await self._emit(self._on_connected, client)
+                    return ('', 204)
+
+                if ce_type == 'azure.webpubsub.sys.disconnected':
+                    print(f'{self._http_clients}')
+                    client = await self.client_manager.get_client(connection_id)
+                    if client is None:
+                        return ('Connection not found', 404)
+                    await self._emit(self._on_disconnected, client)
+                    return ('', 204)
+
+                if ce_type.startswith('azure.webpubsub.user.'):
+                    client = await self.client_manager.get_client(connection_id)
+                    if client is None:
+                        return ('Connection not found', 404)
+                    payload = request.get_json(silent=True) or {}
+                    # Derive event name from ce-type suffix; fallback to ce-eventName header if present
+                    derived_event = ce_type[len('azure.webpubsub.user.'):] or None
+                    header_event = request.headers.get('ce-eventName')
+                    event_name = header_event or derived_event
+                    self.log.debug("User event received: event=%s connectionId=%s payload=%s", event_name, connection_id, payload)
+                    await self._emit(self._on_event_message, client, event_name, payload)
+                    return ('', 204, {'Content-Type': 'application/json'})
+
+                return ('', 204)
+            except Exception as e:  # noqa: BLE001
+                self.log.warning('CloudEvents handler error: %s', e)
+                return ('', 500)

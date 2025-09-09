@@ -1,3 +1,14 @@
+"""Chat demo server.
+
+Modes:
+ - Self-host (default): InMemoryRoomStore + internal WS server
+ - Azure (AZURE=true): AzureRoomStore + Azure Web PubSub (endpoint or connection string)
+
+Minimal environment for Azure mode:
+    AZURE=true
+    WEBPUBSUB_CONNECTION_STRING=... (or WEBPUBSUB_ENDPOINT + credential chain)
+    AZURE_STORAGE_CONNECTION_STRING=... (injected by infra)
+"""
 import uuid
 from flask import Flask, request, send_from_directory, jsonify
 from flask_cors import CORS
@@ -13,14 +24,15 @@ import signal
 import sys
 from dotenv import load_dotenv
 from ai import chat_stream  # Import our AI module
-from chat_service import ChatService, ClientConnectionContext, WebPubSubChatService, as_room_group, SYS_ROOMS_GROUP
-from client_managers import LocalStorageClientManager, InMemoryClientManager
-from room_store import LocalRoomStore, InMemoryRoomStore, AzureRoomStore
+from chat_service import ChatService, ChatServiceBase, ClientConnectionContext, WebPubSubChatService, as_room_group, SYS_ROOMS_GROUP
+from client_managers import InMemoryClientManager
+from room_store import InMemoryRoomStore, AzureRoomStore
 try:
     from client_managers import AzureStorageClientManager
 except Exception:
     AzureStorageClientManager = None  # type: ignore
 from utils import generate_id, get_query_value, get_room_id, to_async_iterator
+from concurrent.futures import Future
 # Load environment variables from .env file
 load_dotenv()
 
@@ -43,11 +55,9 @@ def negotiate():
     - In webpubsub mode, returns a client access URL from the Azure service.
     """
     global chat_service
-    room_id = request.args.get('roomId', 'public')
-    app.logger.info("Negotiation request for room: %s", room_id)
-    transport = os.getenv("CHAT_TRANSPORT", "selfhost").lower()
+    azure_mode = os.getenv("AZURE", "false").lower() in ("1", "true", "yes", "on")
 
-    if isinstance(chat_service, WebPubSubChatService) or transport in ("webpubsub", "azure", "service"):
+    if isinstance(chat_service, WebPubSubChatService) or azure_mode:
         # Include initial group memberships: the room and the sys rooms channel
         try:
             if isinstance(chat_service, WebPubSubChatService):
@@ -63,13 +73,13 @@ def negotiate():
                     svc = WebPubSubChatService(connection_string=conn_str, hub=hub)
                 else:
                     raise RuntimeError("WEBPUBSUB_ENDPOINT or WEBPUBSUB_CONNECTION_STRING is required for WebPubSub negotiation")
-            url = svc.get_client_access_url(groups=[as_room_group(room_id), SYS_ROOMS_GROUP])
+            url = svc.get_client_access_url()
             return url
         except Exception as e:  # noqa: BLE001
             app.logger.exception("Negotiation failed: %s", e)
             return (str(e), 500)
     # Self-host fallback
-    ws_url = f"ws://{host}:{port + 1}/ws?roomId={room_id}"
+    ws_url = f"ws://{host}:{port + 1}/ws"
     return ws_url
 
 @app.get('/api/rooms')
@@ -135,33 +145,28 @@ async def main():
         app.logger.info("Flask starting on port %s", port)
         app.run(host=host, port=port, debug=False, use_reloader=False, threaded=True)
     
-    flask_thread = threading.Thread(target=run_flask, daemon=True)
-    flask_thread.start()
-    
-    # Wait a moment for Flask to start
-    await asyncio.sleep(1)
 
-    # Start chat service
-    app.logger.info("Starting chat service on port %s", port + 1)
-
-    storage_mode = os.getenv("CHAT_STORAGE", "memory").lower()
-    state_file = os.getenv("CHAT_STATE_FILE", "./chat_state.json")
-    if storage_mode in ("azure", "blob", "azureblob") and AzureStorageClientManager is not None:
-        app.logger.info("Using Azure backends (transport + room store)")
-        client_manager = AzureStorageClientManager()
-        room_store = AzureRoomStore()
-    elif storage_mode in ("local", "file", "disk"):
-        app.logger.info("Using LocalStorageClientManager + LocalRoomStore -> %s", state_file)
-        client_manager = LocalStorageClientManager(file_path=state_file)
-        room_store = LocalRoomStore(file_path=state_file)
+    # Mode selection: self-host (default) or Azure mode (AZURE=true)
+    azure_mode = os.getenv("AZURE", "false").lower() in ("1", "true", "yes", "on")
+    if azure_mode and AzureStorageClientManager is not None:
+        try:
+            client_manager = AzureStorageClientManager()
+            room_store = AzureRoomStore()
+            app.logger.info("Mode: AZURE (Web PubSub + AzureRoomStore)")
+        except Exception as e:  # noqa: BLE001
+            app.logger.warning("Azure storage init failed (%s); falling back to in-memory store", e)
+            client_manager = InMemoryClientManager()
+            room_store = InMemoryRoomStore()
     else:
-        app.logger.info("Using InMemoryClientManager + InMemoryRoomStore")
+        if azure_mode and AzureStorageClientManager is None:
+            app.logger.warning("AZURE=true but azure storage libs not available; using in-memory mode")
         client_manager = InMemoryClientManager()
         room_store = InMemoryRoomStore()
+        if not azure_mode:
+            app.logger.info("Mode: SELF-HOST (in-memory store)")
 
     # Choose transport: self-host or Azure Web PubSub
-    transport = os.getenv("CHAT_TRANSPORT", "selfhost").lower()
-    if transport in ("webpubsub", "azure", "service"):
+    if azure_mode:
         endpoint = os.getenv("WEBPUBSUB_ENDPOINT") or os.getenv("WEB_PUBSUB_ENDPOINT")
         conn_str = os.getenv("WEBPUBSUB_CONNECTION_STRING") or os.getenv("WEB_PUBSUB_CONNECTION_STRING")
         hub = os.getenv("WEBPUBSUB_HUB", "chat")
@@ -172,7 +177,7 @@ async def main():
             chat = WebPubSubChatService(connection_string=conn_str, hub=hub, room_store=room_store)
             app.logger.info("Using Azure Web PubSub service transport (connection string)")
         else:
-            app.logger.warning("WEBPUBSUB_ENDPOINT or WEBPUBSUB_CONNECTION_STRING is required for WebPubSub transport; falling back to selfhost")
+            app.logger.warning("AZURE=true but WEBPUBSUB_ENDPOINT or WEBPUBSUB_CONNECTION_STRING not provided; falling back to selfhost transport")
             chat = ChatService(client_manager=client_manager, room_store=room_store)
     else:
         chat = ChatService(client_manager=client_manager, room_store=room_store)
@@ -180,6 +185,10 @@ async def main():
     global chat_service, event_loop
     chat_service = chat
     event_loop = asyncio.get_running_loop()
+
+    # ---------------- HTTP Event Handler Bridge (Azure mode) ----------------
+    if azure_mode and isinstance(chat, WebPubSubChatService):
+        chat.attach_flask_cloudevents(app, event_loop)
         
     @chat.on_connecting
     async def handle_connecting(conn: ClientConnectionContext, _svc: ChatService):
@@ -189,7 +198,7 @@ async def main():
     @chat.on_connected
     async def handle_connected(conn: ClientConnectionContext, _svc: ChatService):
         # get roomId from path roomId
-        room_id = get_room_id(conn.path, "public")
+        room_id = get_room_id(conn.query, "public")
         if room_id:
             await _svc.add_to_group(conn.connectionId, room_id)
             app.logger.info("Client connected to room: %s", room_id)
@@ -198,7 +207,8 @@ async def main():
         app.logger.info("connected: %s user=%s", conn.connectionId, conn.user_id)
 
     @chat.on_event_message
-    async def handle_event_message(conn, event_name, data, _svc: ChatService):
+    async def handle_event_message(conn, event_name, data, _svc: ChatServiceBase):
+        print("handle event message",event_name, data)
         if event_name == "sendToAI":
             message = data.get("message")
             room_id = data.get("roomId")
@@ -230,17 +240,22 @@ async def main():
                 # Start AI streaming in background so multiple requests can stream concurrently
                 app.logger.debug("Sending to AI with history (%d items)", len(conversation_history))
                 chunks = chat_stream(message, conversation_history=conversation_history)
-                task = asyncio.create_task(_svc.streaming_to_group(room_id, to_async_iterator(chunks)))
-                # track task for cleanup on disconnect
+                app.logger.debug("Starting AI stream task to room %s (scheduled on main loop)", room_id)
+                # Ensure we capture the main loop stored earlier
+                global event_loop
+                async_chunks = to_async_iterator(chunks)
+                coro = _svc.streaming_to_group(room_id, async_chunks)
+                # Schedule on main loop even though this handler runs in Flask thread
+                future: Future = asyncio.run_coroutine_threadsafe(coro, event_loop)
                 try:
                     tasks = conn.attrs.setdefault("tasks", set())
-                    tasks.add(task)
+                    tasks.add(future)
                     def _cleanup(_fut):
                         try:
-                            tasks.discard(task)
+                            tasks.discard(future)
                         except Exception:
                             pass
-                    task.add_done_callback(_cleanup)
+                    future.add_done_callback(_cleanup)
                 except Exception:
                     pass
 
@@ -250,11 +265,22 @@ async def main():
         tasks = conn.attrs.get("tasks") or set()
         for t in list(tasks):
             try:
-                t.cancel()
+                # t may be an asyncio.Task or a concurrent.futures.Future
+                if hasattr(t, 'cancel'):
+                    t.cancel()
             except Exception:
                 pass
         app.logger.info("Client disconnected: %s", conn.connectionId)
 
+    flask_thread = threading.Thread(target=run_flask, daemon=True)
+    flask_thread.start()
+    
+    # Wait a moment for Flask to start
+    await asyncio.sleep(1)
+
+    # Start chat service
+    app.logger.info("Starting chat service")
+    
     await chat.start_chat(host, port + 1)
 
     app.logger.info("  HTTP: http://%s:%s (Flask)", host, port)

@@ -78,62 +78,6 @@ class InMemoryRoomStore(RoomStore):
         if msgs is not None and len(msgs) == 0:
             self._room_messages.pop(room, None)
 
-
-class LocalRoomStore(InMemoryRoomStore):
-    def __init__(self, *, file_path: str = "./chat_state.json", max_messages: int = 200) -> None:
-        super().__init__(max_messages=max_messages)
-        self._file_path = file_path
-        self._load_state()
-
-    def _load_state(self) -> None:
-        try:
-            if not os.path.exists(self._file_path):
-                return
-            with open(self._file_path, "r", encoding="utf-8") as f:
-                data = json.load(f)
-            room_messages = data.get("room_messages", {})
-            # Filter out meta groups
-            room_messages = {k: v for k, v in room_messages.items()}
-            self._room_messages = {k: list(v) for k, v in room_messages.items()}
-            # Ensure default room first (insertion order)
-            if DEFAULT_ROOM_ID not in self._room_messages:
-                self._room_messages = {DEFAULT_ROOM_ID: [], **self._room_messages}
-            else:
-                # Rebuild dict to move default to front
-                items = [(k, self._room_messages[k]) for k in self._room_messages.keys() if k != DEFAULT_ROOM_ID]
-                self._room_messages = {DEFAULT_ROOM_ID: self._room_messages[DEFAULT_ROOM_ID], **dict(items)}
-        except Exception:
-            # best-effort load
-            pass
-
-    async def _persist(self) -> None:
-        try:
-            dir_name = os.path.dirname(self._file_path)
-            if dir_name:
-                os.makedirs(dir_name, exist_ok=True)
-            payload = {
-                "room_messages": {k: v for k, v in self._room_messages.items()},
-            }
-            tmp = self._file_path + ".tmp"
-            with open(tmp, "w", encoding="utf-8") as f:
-                json.dump(payload, f, ensure_ascii=False)
-            os.replace(tmp, self._file_path)
-        except Exception:
-            pass
-
-    async def register_room(self, room: str) -> None:  # type: ignore[override]
-        await super().register_room(room)
-        await self._persist()
-
-    async def record_room_event(self, room: str, event: Dict[str, Any]) -> None:  # type: ignore[override]
-        await super().record_room_event(room, event)
-        await self._persist()
-
-    async def remove_room_if_empty(self, room: str) -> None:  # type: ignore[override]
-        await super().remove_room_if_empty(room)
-        await self._persist()
-
-
 class AzureRoomStore(InMemoryRoomStore):
     def __init__(self, *, connection_string: Optional[str] = None, container_name: Optional[str] = None, blob_name: Optional[str] = None, max_messages: int = 200) -> None:
         super().__init__(max_messages=max_messages)

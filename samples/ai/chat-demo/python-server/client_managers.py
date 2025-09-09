@@ -9,6 +9,13 @@ from typing import Any, Awaitable, Dict, Iterable, List, Optional, Set, Tuple
 
 from websockets.server import WebSocketServerProtocol
 
+from typing import Protocol, runtime_checkable, Awaitable, Any
+# keep: from websockets.server import WebSocketServerProtocol
+
+@runtime_checkable
+class AsyncSendable(Protocol):
+    """Anything that can asynchronously send a single message payload."""
+    def send(self, data: Any) -> Awaitable[None]: ...
 
 @dataclass
 class SendResult:
@@ -21,7 +28,7 @@ class ClientManager(ABC):
     """Common interface for client/group management (transport only)."""
 
     @abstractmethod
-    async def add_client(self, connection_id: str, context: Any, ws: WebSocketServerProtocol) -> None: ...
+    async def add_client(self, connection_id: str, context: Any, transport: AsyncSendable) -> None: ...
 
     @abstractmethod
     async def remove_client(self, connection_id: str) -> None: ...
@@ -50,7 +57,7 @@ class InMemoryClientManager(ClientManager):
 
     def __init__(self, *, max_concurrency: Optional[int] = None, send_timeout: Optional[float] = None,
                  logger: Optional[logging.Logger] = None) -> None:
-        self._clients: Dict[str, (Any, WebSocketServerProtocol)] = {}
+        self._clients: Dict[str, (Any, AsyncSendable)] = {}
         self._groups: Dict[str, Set[str]] = defaultdict(set)
         self._lock: Optional[asyncio.Lock] = None  # created lazily
         self._sema: Optional[asyncio.Semaphore] = None
@@ -64,13 +71,13 @@ class InMemoryClientManager(ClientManager):
         if self._max_concurrency and self._sema is None:
             self._sema = asyncio.Semaphore(self._max_concurrency)
 
-    async def add_client(self, connection_id: str, context: Any, ws: WebSocketServerProtocol) -> None:
+    async def add_client(self, connection_id: str, context: Any, transport: AsyncSendable) -> None:
         self._ensure_primitives()
         assert self._lock is not None
         async with self._lock:
             if connection_id in self._clients:
                 raise KeyError(f"Client already exists: {connection_id}")
-            self._clients[connection_id] = (context, ws)
+            self._clients[connection_id] = (context, transport)
 
     async def remove_client(self, connection_id: str) -> None:
         self._ensure_primitives()
@@ -137,7 +144,7 @@ class InMemoryClientManager(ClientManager):
             return []
         return list(await asyncio.gather(*tasks))
 
-    async def _safe_send(self, client: WebSocketServerProtocol, connection_id: str, message: Any) -> SendResult:
+    async def _safe_send(self, client: AsyncSendable, connection_id: str, message: Any) -> SendResult:
         try:
             if self._sema is None:
                 await _wait_for(client.send(message), self._send_timeout)
@@ -154,15 +161,6 @@ class InMemoryClientManager(ClientManager):
                 self._logger.exception("send_message failed for %s: %s", connection_id, exc)
             return SendResult(connection_id, False, "error")
 
-
-class LocalStorageClientManager(InMemoryClientManager):
-    """Compatibility subclass for legacy configuration; no local persistence.
-
-    Room history and persistence are handled by RoomStore now.
-    """
-    def __init__(self, *, file_path: str = "./chat_state.json", max_concurrency: Optional[int] = None,
-                 send_timeout: Optional[float] = None, logger: Optional[logging.Logger] = None) -> None:
-        super().__init__(max_concurrency=max_concurrency, send_timeout=send_timeout, logger=logger)
 
 
 class AzureStorageClientManager(InMemoryClientManager):

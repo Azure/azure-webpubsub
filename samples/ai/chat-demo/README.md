@@ -28,29 +28,30 @@ This will run:
 - To join another room, enter its ID in the sidebar
 
 ## Transport options
-By default, the backend runs a self-hosted WebSocket server. You can instead use Azure Web PubSub service as the real-time transport while keeping the same app logic and UI.
+By default, the backend runs a self-hosted WebSocket server. Set `AZURE=true` to switch to Azure Web PubSub + Azure storage (room store) automatically.
 
 - Self-host (default):
-  - CHAT_TRANSPORT=selfhost (or unset)
-  - WebSocket endpoint is ws://localhost:5001
-- Azure Web PubSub service:
-  - Set env var CHAT_TRANSPORT=webpubsub
-  - Preferred: set WEBPUBSUB_ENDPOINT and optional WEBPUBSUB_HUB (default: chat) and authenticate with DefaultAzureCredential (Azure CLI login, Managed Identity, or env vars)
-  - Fallback: set WEBPUBSUB_CONNECTION_STRING
-  - The negotiate endpoint will return a signed client access URL, and the client connects directly to Azure.
+  - `AZURE` unset or `false`
+  - WebSocket endpoint: `ws://localhost:5001`
+- Azure mode:
+  - Set `AZURE=true`
+  - Preferred: set `WEBPUBSUB_ENDPOINT` and optional `WEBPUBSUB_HUB` (default: `chat`) and authenticate with DefaultAzureCredential (Azure CLI login, Managed Identity, or env vars)
+  - Fallback: set `WEBPUBSUB_CONNECTION_STRING`
+  - Room history uses Azure storage (if available modules) else in-memory.
+  - `/negotiate` returns a signed client access URL and the browser connects to Azure Web PubSub directly.
 
 Example PowerShell:
 
 ```powershell
 # Using endpoint + DefaultAzureCredential (requires azure-identity)
-$env:CHAT_TRANSPORT = "webpubsub"
+$env:AZURE = "true"
 $env:WEBPUBSUB_ENDPOINT = "https://<your-wps-name>.webpubsub.azure.com"
 $env:WEBPUBSUB_HUB = "chat"
 # Make sure you're logged in: az login (or use Managed Identity)
 python start_dev.py
 
 # Or, using a connection string
-$env:CHAT_TRANSPORT = "webpubsub"
+$env:AZURE = "true"
 $env:WEBPUBSUB_CONNECTION_STRING = "<your-connection-string>"
 $env:WEBPUBSUB_HUB = "chat"
 python start_dev.py

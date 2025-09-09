@@ -13,7 +13,7 @@ import logging
 
 # module logger
 logger = logging.getLogger(__name__)
-logger.setLevel(logging.DEBUG)
+# logger.setLevel(logging.DEBUG)
 # Load environment variables from .env file
 load_dotenv()
 
@@ -90,9 +90,10 @@ class AIChat:
 
             for chunk in response:
                 if chunk.choices and len(chunk.choices) > 0:
-                    if chunk.choices[0].delta.content is not None:
-                        self.logger.debug("Streaming chunk received: %r", chunk.choices[0].delta.content)
-                        yield chunk.choices[0].delta.content
+                    content = chunk.choices[0].delta.content
+                    if content is not None:
+                        self.logger.debug("Streaming chunk received: %r", content)
+                        yield content
                     
         except Exception:
             # log full exception with traceback
