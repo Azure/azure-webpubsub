@@ -86,7 +86,7 @@ def create_zip(use_full: bool) -> Path:
 	import zipfile
 	with zipfile.ZipFile(zip_path, 'w', compression=zipfile.ZIP_DEFLATED) as zf:
 		# include python server code
-		for rel in ['python-server', 'requirements.txt']:
+		for rel in ['python_server', 'requirements.txt']:
 			p = ROOT / rel
 			if p.is_dir():
 				for dirpath, _, filenames in os.walk(p):
@@ -104,8 +104,8 @@ def create_zip(use_full: bool) -> Path:
 					ap = Path(dirpath) / fn
 					rel_arc = Path('client_dist') / ap.relative_to(dist_dir)
 					zf.write(ap, rel_arc.as_posix())
-		# startup script (choose python-server/start_server.py or root start_server.py if exists)
-		for candidate in ['python-server/start_server.py', 'start_server.py']:
+		# startup script (choose python_server/start_server.py or root start_server.py if exists)
+		for candidate in ['python_server/start_server.py', 'start_server.py']:
 			cpath = ROOT / candidate
 			if cpath.exists():
 				zf.write(cpath, Path(candidate).as_posix())

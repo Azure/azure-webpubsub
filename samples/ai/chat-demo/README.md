@@ -9,7 +9,7 @@ Simple real-time chat with AI responses using a custom Flask/WebSocket backend, 
   Create your PAT token by following instructions here: https://docs.github.com/en/authentication/keeping-your-account-and-data-secure/managing-your-personal-access-tokens
 
 ## Quick Start
-Before we start, please copy the PAT generated and save to env, or save to `GITHUB_TOKEN=` value in [python-server/.env](./python-server/.env).
+Before we start, please copy the PAT generated and save to env, or save to `GITHUB_TOKEN=` value in [python_server/.env](./python_server/.env).
 ```bash
 export GITHUB_TOKEN=<your PAT>
 ```
@@ -61,5 +61,5 @@ python start_dev.py
 ```
 chat-demo/
 ├── client/         # Frontend
-└── python-server/  # Web server backend
+└── python_server/  # Web server backend
 ```

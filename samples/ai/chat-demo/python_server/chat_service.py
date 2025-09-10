@@ -29,7 +29,7 @@ from utils import generate_id
 import websockets
 import websockets.exceptions as ws_exc
 from websockets.server import WebSocketServerProtocol
-from client_managers import ClientManager, InMemoryClientManager, SendResult
+from client_manager import ClientManager, InMemoryClientManager, SendResult
 from room_store import RoomStore, InMemoryRoomStore
 
 # Optional Azure Web PubSub (service) SDK
@@ -68,7 +68,7 @@ OnEventMessage = Callable[[ClientConnectionContext, str, Any, "_BaseType"], Unio
 OnError = Callable[[ClientConnectionContext, BaseException, "_BaseType"], Union[Awaitable[None], None]]
 
 
-# ClientManager implementations moved to client_managers.py
+# ClientManager implementations moved to client_manager.py
 
 
 async def _wait_for(awaitable: Awaitable[Any], timeout: Optional[float]) -> Any:

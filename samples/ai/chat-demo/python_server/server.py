@@ -9,29 +9,22 @@ Minimal environment for Azure mode:
     WEBPUBSUB_CONNECTION_STRING=... (or WEBPUBSUB_ENDPOINT + credential chain)
     AZURE_STORAGE_CONNECTION_STRING=... (injected by infra)
 """
-import uuid
 from flask import Flask, request, send_from_directory, jsonify
 from flask_cors import CORS
-import json
-import time
 import os
 import asyncio
-import websockets
-from websockets.server import serve
 import threading
-from werkzeug.serving import make_server
-import signal
-import sys
 from dotenv import load_dotenv
-from ai import chat_stream  # Import our AI module
+from chat_model_client import chat_stream  # Import our AI module
 from chat_service import ChatService, ChatServiceBase, ClientConnectionContext, WebPubSubChatService, as_room_group, SYS_ROOMS_GROUP
-from client_managers import InMemoryClientManager
+from client_manager import InMemoryClientManager
 from room_store import InMemoryRoomStore, AzureRoomStore
 try:
-    from client_managers import AzureStorageClientManager
+    from client_manager import AzureStorageClientManager
 except Exception:
     AzureStorageClientManager = None  # type: ignore
-from utils import generate_id, get_query_value, get_room_id, to_async_iterator
+from utils import get_room_id, to_async_iterator
+
 from concurrent.futures import Future
 # Load environment variables from .env file
 load_dotenv()

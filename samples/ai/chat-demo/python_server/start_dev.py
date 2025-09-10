@@ -59,7 +59,7 @@ def start_development():
         # Start Python server
         print("\n🐍 Starting Python server...")
         server_process = subprocess.Popen(
-            ["python", "app.py"],
+            ["python", "server.py"],
             cwd=server_dir,
             shell=True
         )

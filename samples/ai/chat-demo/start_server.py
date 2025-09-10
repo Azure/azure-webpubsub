@@ -7,7 +7,7 @@ import sys
 from pathlib import Path
 
 chat_demo_dir = Path(__file__).parent.resolve()
-server_dir = chat_demo_dir / 'python-server'
+server_dir = chat_demo_dir / 'python_server'
 
 # Ensure server directory is on sys.path so `from app import main` works
 sys.path.insert(0, str(server_dir))

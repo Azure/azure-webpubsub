@@ -28,7 +28,7 @@ def check_port_available(port):
 def start_development():
     chat_demo_dir = Path(__file__).parent.resolve()
     client_dir = chat_demo_dir / 'client'
-    server_dir = chat_demo_dir / 'python-server'
+    server_dir = chat_demo_dir / 'python_server'
 
     print("🚀 Starting Chat Demo Development Environment (chat-demo root)")
     print("=" * 50)
@@ -57,7 +57,7 @@ def start_development():
         print("\n🐍 Starting Python server...")
         server_process = subprocess.Popen([
             sys.executable,
-            'app.py'
+            'server.py'
         ], cwd=str(server_dir))
         processes.append(('Python Server', server_process))
         time.sleep(2)

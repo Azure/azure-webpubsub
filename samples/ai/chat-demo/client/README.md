@@ -11,7 +11,7 @@ This is the frontend for the AI-powered chat demo, built with React, TypeScript,
 
 ## Prerequisites
 - Node.js >=16
-- The Python server running on http://localhost:5000 (see `../python-server`)
+- The Python server running on http://localhost:5000 (see `../python_server`)
 
 ## Setup & Run
 ```bash

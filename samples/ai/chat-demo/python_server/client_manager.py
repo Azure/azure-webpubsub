@@ -7,10 +7,7 @@ from collections import defaultdict
 from dataclasses import dataclass
 from typing import Any, Awaitable, Dict, Iterable, List, Optional, Set, Tuple
 
-from websockets.server import WebSocketServerProtocol
-
 from typing import Protocol, runtime_checkable, Awaitable, Any
-# keep: from websockets.server import WebSocketServerProtocol
 
 @runtime_checkable
 class AsyncSendable(Protocol):

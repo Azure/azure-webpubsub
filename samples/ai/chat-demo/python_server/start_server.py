@@ -6,6 +6,10 @@ This script helps set up environment variables and start the server.
 """
 import os
 import sys
+from dotenv import load_dotenv
+
+# Load environment variables from .env file
+load_dotenv()
 
 def setup_environment():
     """Set up environment variables for AI module"""
@@ -61,7 +65,7 @@ def main():
     
     # Import and run the main server
     try:
-        from app import main as server_main
+        from server import main as server_main
         import asyncio
         asyncio.run(server_main())
     except KeyboardInterrupt:

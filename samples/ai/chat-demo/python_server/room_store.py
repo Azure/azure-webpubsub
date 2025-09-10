@@ -4,7 +4,6 @@ import asyncio
 import json
 import os
 from abc import ABC, abstractmethod
-from collections import defaultdict
 from typing import Any, Dict, List, Optional
 
 DEFAULT_ROOM_ID = os.getenv("DEFAULT_ROOM_ID", "public")
