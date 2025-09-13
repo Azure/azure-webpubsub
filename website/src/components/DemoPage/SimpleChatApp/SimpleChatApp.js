@@ -69,9 +69,11 @@ function Overview() {
         </ul>
       </TextBlock>
       <TextBlock title="Client side">
-        <li>
-          Using WebSocket API to initiate a WebSocket connection and listen for an <code>onmessage</code> event to render chat messages in the browser.
-        </li>
+        <ul className="ml-5 list-disc">
+          <li>
+            Using WebSocket API to initiate a WebSocket connection and listen for an <code>onmessage</code> event to render chat messages in the browser.
+          </li>
+         </ul>
       </TextBlock>
     </div>
   )
