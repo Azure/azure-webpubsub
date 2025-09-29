@@ -12,11 +12,12 @@ import signal
 import sys
 from pathlib import Path
 from dotenv import load_dotenv
+import runpy
 
 # Load environment variables from .env file
 load_dotenv()
 
-def check_port_available(port):
+def check_port_available(port: int) -> bool:
     """Check if a port is available"""
     import socket
     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
@@ -26,7 +27,7 @@ def check_port_available(port):
         except OSError:
             return False
 
-def start_development():
+def start_development() -> None:
     """Start both client and server for development"""
     print("🚀 Starting Chat Demo Development Environment")
     print("=" * 50)
@@ -39,10 +40,10 @@ def start_development():
             print(f"   Please stop the process using port {port} and try again.")
             return
     
-    # Get project root
-    current_dir = Path(__file__).parent
-    client_dir = current_dir.parent / "client"
-    server_dir = current_dir
+    # Get project root (one level up) and backend dir (this file's parent)
+    backend_dir = Path(__file__).parent.resolve()
+    root_dir = backend_dir.parent
+    client_dir = root_dir / "client"
     
     # Check if directories exist
     if not client_dir.exists():
@@ -50,7 +51,7 @@ def start_development():
         return
     
     print(f"📁 Client directory: {client_dir}")
-    print(f"📁 Server directory: {server_dir}")
+    print(f"📁 Backend directory: {backend_dir}")
     
     # Optionally install client dependencies if missing
     node_modules = client_dir / 'node_modules'
@@ -73,18 +74,18 @@ def start_development():
     processes = []
     
     try:
-        # Start Python server
+        # Start Python server using our start_server.py script
         print("\n🐍 Starting Python server...")
         env = os.environ.copy()
         env["DEV"] = "1"  # Enable development mode (CORS, separate frontend dev server)
-        server_process = subprocess.Popen(
-            [sys.executable, "server.py"],
-            cwd=server_dir,
-            shell=True,
-            env=env
-        )
+        
+        # Use the start_server.py script to launch the server
+        start_server_script = backend_dir / "start_server.py"
+        server_process = subprocess.Popen([
+            sys.executable, str(start_server_script)
+        ], cwd=root_dir, shell=True, env=env)
         processes.append(("Python Server", server_process))
-        time.sleep(2)  # Give server time to start
+        time.sleep(2)
         
         # Start React client
         print("⚛️ Starting React client...")

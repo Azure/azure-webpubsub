@@ -16,7 +16,7 @@ MODEL_NAME="{{model_name}}"
 #### Web PubSub Section ###
 # TRANSPORT_MODE="webpubsub"
 # WEBPUBSUB_HUB="demo_ai_chat"
-# WEBPUBSUB_ENDPOINT="https://{{your_webpubsub_endpoint}}.webpubsub.azure.com"
+# WEBPUBSUB_ENDPOINT="https://{{your_webpubsub_host}}"
 ###########################
 
 ## Uncomment the below section to use Azure Storage for data persistency

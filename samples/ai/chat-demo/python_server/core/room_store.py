@@ -13,18 +13,32 @@ import string
 
 DEFAULT_ROOM_ID = os.getenv("DEFAULT_ROOM_ID", "public")
 
-try:
-    from azure.data.tables import TableServiceClient, UpdateMode
-    from azure.core.exceptions import ResourceNotFoundError
-except Exception:  # noqa: BLE001
-    TableServiceClient = None  # type: ignore[assignment]
-    ResourceNotFoundError = Exception  # type: ignore[assignment]
+from typing import TYPE_CHECKING
+import importlib
 
-try:
-	from .credentials import get_azure_credential  # type: ignore
+if TYPE_CHECKING:  # static typing only
+	from azure.data.tables import TableServiceClient, UpdateMode  # pragma: no cover
+	from azure.core.exceptions import ResourceNotFoundError  # pragma: no cover
+
+_tables_client_cls: Any | None = None
+_update_mode_enum: Any | None = None
+_resource_not_found_exc: Any = Exception
+_HAS_TABLES = False
+try:  # pragma: no cover
+	_tables_mod = importlib.import_module("azure.data.tables")
+	_core_exc_mod = importlib.import_module("azure.core.exceptions")
+	_tables_client_cls = getattr(_tables_mod, "TableServiceClient", None)
+	_update_mode_enum = getattr(_tables_mod, "UpdateMode", None)
+	_resource_not_found_exc = getattr(_core_exc_mod, "ResourceNotFoundError", Exception)
+	_HAS_TABLES = _tables_client_cls is not None
 except Exception:  # noqa: BLE001
-	def get_azure_credential(**_: object):  # type: ignore
-		raise RuntimeError("Azure credential initilization failed.")
+	pass
+
+try:  # optional dependency
+	from .credentials import get_azure_credential
+except Exception:  # noqa: BLE001
+	def get_azure_credential() -> Any:  # fallback with identical signature
+		raise RuntimeError("Azure credential initialization failed.")
 
 class RoomMetadata:
 	"""Room metadata model (merged from former room_metadata_store)."""
@@ -146,7 +160,7 @@ class InMemoryRoomStore(RoomStore):
 			self._room_messages.pop(room, None)
 
 	# -------- metadata API implementations --------
-	async def create_room_metadata(self, user_id: str, room_name: str, *, room_id: Optional[str] = None, description: Optional[str] = None) -> RoomMetadata:  # type: ignore[override]
+	async def create_room_metadata(self, user_id: str, room_name: str, *, room_id: Optional[str] = None, description: Optional[str] = None) -> RoomMetadata:
 		import uuid
 		if user_id not in self._user_rooms:
 			self._user_rooms[user_id] = {}
@@ -160,12 +174,12 @@ class InMemoryRoomStore(RoomStore):
 		self._user_rooms[user_id][room_id] = room
 		return room
 
-	async def get_room_metadata(self, user_id: str, room_id: str) -> Optional[RoomMetadata]:  # type: ignore[override]
+	async def get_room_metadata(self, user_id: str, room_id: str) -> Optional[RoomMetadata]:
 		if room_id == DEFAULT_ROOM_ID:
 			return self._default_room
 		return self._user_rooms.get(user_id, {}).get(room_id)
 
-	async def update_room_metadata(self, user_id: str, room_id: str, *, room_name: Optional[str] = None, description: Optional[str] = None) -> RoomMetadata:  # type: ignore[override]
+	async def update_room_metadata(self, user_id: str, room_id: str, *, room_name: Optional[str] = None, description: Optional[str] = None) -> RoomMetadata:
 		room = await self.get_room_metadata(user_id, room_id)
 		if not room:
 			raise ValueError(f"Room {room_id} not found for user {user_id}")
@@ -177,7 +191,7 @@ class InMemoryRoomStore(RoomStore):
 		room.updated_at = datetime.now(timezone.utc).isoformat()
 		return room
 
-	async def delete_room_metadata(self, user_id: str, room_id: str) -> bool:  # type: ignore[override]
+	async def delete_room_metadata(self, user_id: str, room_id: str) -> bool:
 		if room_id == DEFAULT_ROOM_ID:
 			return False
 		rooms = self._user_rooms.get(user_id)
@@ -186,13 +200,13 @@ class InMemoryRoomStore(RoomStore):
 			return True
 		return False
 
-	async def list_user_rooms(self, user_id: str) -> List[RoomMetadata]:  # type: ignore[override]
+	async def list_user_rooms(self, user_id: str) -> List[RoomMetadata]:
 		rooms: List[RoomMetadata] = [self._default_room]
 		if user_id in self._user_rooms:
 			rooms.extend(self._user_rooms[user_id].values())
 		return rooms
 
-	async def room_exists(self, user_id: str, room_id: str) -> bool:  # type: ignore[override]
+	async def room_exists(self, user_id: str, room_id: str) -> bool:
 		if room_id == DEFAULT_ROOM_ID:
 			return True
 		return room_id in self._user_rooms.get(user_id, {})
@@ -208,7 +222,7 @@ class AzureTableRoomStore(RoomStore):
 	"""
 
 	def __init__(self, *, connection_string: Optional[str] = None, account_name: Optional[str] = None, table_name: Optional[str] = None, max_messages_per_room: int = 200, metadata_table_name: Optional[str] = None) -> None:
-		if TableServiceClient is None:
+		if _tables_client_cls is None:
 			raise RuntimeError("azure-data-tables not installed. Please install azure-data-tables to use AzureTableRoomStore.")
 		self._table_name = (table_name or os.getenv("CHAT_TABLE_NAME") or "chatmessages").strip().lower()
 		self._conn_str = connection_string or os.getenv("AZURE_STORAGE_CONNECTION_STRING")
@@ -218,19 +232,16 @@ class AzureTableRoomStore(RoomStore):
 		self._metadata_table_name = (metadata_table_name or os.getenv("ROOM_METADATA_TABLE_NAME") or "roommetadata").strip().lower()
 		# Lazy in-memory cache for list_rooms (populated incrementally)
 		self._known_rooms: set[str] = set([DEFAULT_ROOM_ID])
-		try:
-			if self._conn_str:
-				self._svc = TableServiceClient.from_connection_string(self._conn_str)  # type: ignore[assignment]
-			elif self._account_name:
-				cred = get_azure_credential()
-				table_url = f"https://{self._account_name}.table.core.windows.net"
-				self._svc = TableServiceClient(endpoint=table_url, credential=cred)  # type: ignore[assignment]
-			else:
-				raise RuntimeError("Provide AZURE_STORAGE_CONNECTION_STRING or AZURE_STORAGE_ACCOUNT for AzureTableRoomStore")
-			self._table_client = self._svc.create_table_if_not_exists(self._table_name)
-			self._metadata_client = self._svc.create_table_if_not_exists(self._metadata_table_name)
-		except Exception:  # noqa: BLE001
-			raise
+		if self._conn_str:
+			self._svc = _tables_client_cls.from_connection_string(self._conn_str)
+		elif self._account_name:
+			cred = get_azure_credential()
+			table_url = f"https://{self._account_name}.table.core.windows.net"
+			self._svc = _tables_client_cls(endpoint=table_url, credential=cred)
+		else:
+			raise RuntimeError("Provide AZURE_STORAGE_CONNECTION_STRING or AZURE_STORAGE_ACCOUNT for AzureTableRoomStore")
+		self._table_client = self._svc.create_table_if_not_exists(self._table_name)
+		self._metadata_client = self._svc.create_table_if_not_exists(self._metadata_table_name)
 
 	# --------------- helpers ---------------
 	@staticmethod
@@ -239,11 +250,11 @@ class AzureTableRoomStore(RoomStore):
 		rand = ''.join(random.choices(string.ascii_lowercase + string.digits, k=6))
 		return f"{ts}_{rand}"
 
-	async def register_room(self, room: str) -> None:  # type: ignore[override]
+	async def register_room(self, room: str) -> None:  
 		# No-op (rooms inferred). Add to cache.
 		self._known_rooms.add(room)
 
-	async def record_room_event(self, room: str, event: Dict[str, Any]) -> None:  # type: ignore[override]
+	async def record_room_event(self, room: str, event: Dict[str, Any]) -> None:  
 		await self.register_room(room)
 		entity = {
 			"PartitionKey": room,
@@ -255,17 +266,21 @@ class AzureTableRoomStore(RoomStore):
 			"ts": event.get("timestamp"),
 		}
 		try:
-			await asyncio.to_thread(self._table_client.upsert_entity, entity, mode=UpdateMode.MERGE)  # type: ignore[arg-type]
+			merge_mode = getattr(_update_mode_enum, "MERGE", None)
+			if merge_mode is None:
+				await asyncio.to_thread(self._table_client.upsert_entity, entity)
+			else:
+				await asyncio.to_thread(self._table_client.upsert_entity, entity, mode=merge_mode)
 		except Exception:
 			pass
 
-	async def append_message(self, room: str, event: Dict[str, Any]) -> None:  # type: ignore[override]
+	async def append_message(self, room: str, event: Dict[str, Any]) -> None:  
 		await self.record_room_event(room, event)
 
-	async def get_room_messages(self, room: str, limit: Optional[int] = None) -> List[Dict[str, Any]]:  # type: ignore[override]
+	async def get_room_messages(self, room: str, limit: Optional[int] = None) -> List[Dict[str, Any]]:  
 		try:
 			# Query all entities for the room; for large histories we could add paging.
-			entities = list(self._table_client.query_entities(f"PartitionKey eq '{room}'"))  # type: ignore[call-arg]
+			entities = list(self._table_client.query_entities(f"PartitionKey eq '{room}'"))  
 			# Sort RowKey ascending then slice tail
 			entities.sort(key=lambda e: e["RowKey"])  # oldest -> newest
 			if limit is not None and limit >= 0:
@@ -284,14 +299,14 @@ class AzureTableRoomStore(RoomStore):
 		except Exception:
 			return []
 
-	async def list_rooms(self) -> List[Dict[str, Any]]:  # type: ignore[override]
+	async def list_rooms(self) -> List[Dict[str, Any]]:  
 		# Best-effort enumeration: query a small sample of RowKeys per partition by scanning.
 		try:
 			# Table Storage does not have a direct DISTINCT partition query; we scan limited entities.
 			# For simplicity, retrieve up to 1000 entities and accumulate partitions.
 			rooms = set(self._known_rooms)
 			count_by_room: Dict[str, int] = {r: 0 for r in rooms}
-			for ent in self._table_client.list_entities(results_per_page=1000):  # type: ignore[call-arg]
+			for ent in self._table_client.list_entities(results_per_page=1000):  
 				pk = ent.get("PartitionKey")
 				if isinstance(pk, str):
 					rooms.add(pk)
@@ -300,7 +315,7 @@ class AzureTableRoomStore(RoomStore):
 		except Exception:
 			return [{"name": r, "messages": 0} for r in sorted(self._known_rooms)]
 
-	async def remove_room_if_empty(self, room: str) -> None:  # type: ignore[override]
+	async def remove_room_if_empty(self, room: str) -> None:  
 		# Not implemented (removing all entities is expensive). Could be added if required.
 		return
 
@@ -325,7 +340,7 @@ class AzureTableRoomStore(RoomStore):
 			updated_at=ent.get("updatedAt"),
 		)
 
-	async def create_room_metadata(self, user_id: str, room_name: str, *, room_id: Optional[str] = None, description: Optional[str] = None) -> RoomMetadata:  # type: ignore[override]
+	async def create_room_metadata(self, user_id: str, room_name: str, *, room_id: Optional[str] = None, description: Optional[str] = None) -> RoomMetadata:
 		import uuid
 		if not room_id:
 			room_id = f"room_{uuid.uuid4().hex[:8]}"
@@ -337,7 +352,7 @@ class AzureTableRoomStore(RoomStore):
 		except Exception as e:  # noqa: BLE001
 			raise ValueError(f"Failed to create room metadata: {e}")
 
-	async def get_room_metadata(self, user_id: str, room_id: str) -> Optional[RoomMetadata]:  # type: ignore[override]
+	async def get_room_metadata(self, user_id: str, room_id: str) -> Optional[RoomMetadata]:
 		if room_id == DEFAULT_ROOM_ID:
 			return RoomMetadata(room_id=DEFAULT_ROOM_ID, room_name="Public Chat", user_id="system", description="Default public room")
 		try:
@@ -346,7 +361,7 @@ class AzureTableRoomStore(RoomStore):
 		except Exception:
 			return None
 
-	async def update_room_metadata(self, user_id: str, room_id: str, *, room_name: Optional[str] = None, description: Optional[str] = None) -> RoomMetadata:  # type: ignore[override]
+	async def update_room_metadata(self, user_id: str, room_id: str, *, room_name: Optional[str] = None, description: Optional[str] = None) -> RoomMetadata:
 		room = await self.get_room_metadata(user_id, room_id)
 		if not room:
 			raise ValueError(f"Room {room_id} not found for user {user_id}")
@@ -358,12 +373,16 @@ class AzureTableRoomStore(RoomStore):
 		room.updated_at = datetime.now(timezone.utc).isoformat()
 		entity = self._metadata_to_entity(room)
 		try:
-			await asyncio.to_thread(self._metadata_client.update_entity, entity, mode=UpdateMode.REPLACE)  # type: ignore[arg-type]
+			replace_mode = getattr(_update_mode_enum, "REPLACE", None)
+			if replace_mode is None:
+				await asyncio.to_thread(self._metadata_client.update_entity, entity)
+			else:
+				await asyncio.to_thread(self._metadata_client.update_entity, entity, mode=replace_mode)
 			return room
 		except Exception as e:  # noqa: BLE001
 			raise ValueError(f"Failed to update room metadata: {e}")
 
-	async def delete_room_metadata(self, user_id: str, room_id: str) -> bool:  # type: ignore[override]
+	async def delete_room_metadata(self, user_id: str, room_id: str) -> bool:
 		if room_id == DEFAULT_ROOM_ID:
 			return False
 		try:
@@ -372,17 +391,17 @@ class AzureTableRoomStore(RoomStore):
 		except Exception:
 			return False
 
-	async def list_user_rooms(self, user_id: str) -> List[RoomMetadata]:  # type: ignore[override]
+	async def list_user_rooms(self, user_id: str) -> List[RoomMetadata]:
 		rooms: List[RoomMetadata] = [RoomMetadata(room_id=DEFAULT_ROOM_ID, room_name="Public Chat", user_id="system", description="Default public room")]
 		try:
-			ents = self._metadata_client.query_entities(f"PartitionKey eq '{user_id}'")  # type: ignore[call-arg]
+			ents = self._metadata_client.query_entities(f"PartitionKey eq '{user_id}'")  
 			for ent in ents:
 				rooms.append(self._metadata_from_entity(ent))
 		except Exception:
 			pass
 		return rooms
 
-	async def room_exists(self, user_id: str, room_id: str) -> bool:  # type: ignore[override]
+	async def room_exists(self, user_id: str, room_id: str) -> bool:
 		if room_id == DEFAULT_ROOM_ID:
 			return True
 		room = await self.get_room_metadata(user_id, room_id)
@@ -398,7 +417,7 @@ def build_room_store(app_logger: logging.Logger, *, storage_mode: StorageMode = 
 	"""Create the RoomStore based on explicit StorageMode enum.
 	"""
 	from . import InMemoryRoomStore as _InMemoryRoomStore
-	from . import AzureTableRoomStore as _AzureTableRoomStore  # type: ignore
+	from . import AzureTableRoomStore as _AzureTableRoomStore
 	from os import getenv
 	if not isinstance(storage_mode, StorageMode):  # defensive type check
 		raise RuntimeError("storage_mode must be a StorageMode enum instance")

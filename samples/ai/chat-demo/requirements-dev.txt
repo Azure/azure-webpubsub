@@ -1,0 +1,2 @@
+-r python_server/requirements.txt
+mypy==1.11.2

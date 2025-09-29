@@ -29,15 +29,15 @@ def _get_env(name: str) -> str | None:
 def resolve_runtime_config() -> RuntimeConfig:
     # Transport resolution
     raw_transport = (_get_env("TRANSPORT_MODE") or "self").lower()
-    if raw_transport not in (t.value for t in TransportMode):
+    if raw_transport not in {t.value for t in TransportMode}:
         raise RuntimeError(f"Invalid TRANSPORT_MODE={raw_transport}")
-    transport = TransportMode(raw_transport)  # type: ignore[arg-type]
+    transport = TransportMode(raw_transport)
 
     # Storage resolution
     raw_storage = (_get_env("STORAGE_MODE") or "memory").lower()
-    if raw_storage not in (s.value for s in StorageMode):
+    if raw_storage not in {s.value for s in StorageMode}:
         raise RuntimeError(f"Invalid STORAGE_MODE={raw_storage}")
-    storage = StorageMode(raw_storage)  # type: ignore[arg-type]
+    storage = StorageMode(raw_storage)
 
     # Validate dependencies strictly
     if transport == TransportMode.WEBPUBSUB:

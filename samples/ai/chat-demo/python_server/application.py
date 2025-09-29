@@ -17,17 +17,15 @@ import os
 from pathlib import Path
 
 from flask import Flask, request, send_from_directory, jsonify, Response, abort
-from flask_cors import CORS
+from flask_cors import CORS  # type: ignore[import-untyped]
 from dotenv import load_dotenv
 
-from chat_handlers import register_chat_handlers
-from task_manager import ConnectionTaskManager
-from core import (
-    build_room_store,
-    build_chat_service
-)
-from core.runtime_config import resolve_runtime_config
-from core.chat_api import create_chat_api_blueprint
+from .chat_handlers import register_chat_handlers
+from .task_manager import ConnectionTaskManager
+from .core import build_room_store
+from .chat_service.factory import build_chat_service
+from .core.runtime_config import resolve_runtime_config
+from .core.chat_api import create_chat_api_blueprint
 
 from concurrent.futures import Future
 
@@ -38,7 +36,7 @@ _init_lock = threading.Lock()
 _bootstrap_started = False  # guards against duplicate bootstrap attempts
 _ready_event = threading.Event()  # signaled once chat_service + handlers are ready
 
-def _start_background_event_loop():
+def _start_background_event_loop() -> None:
     """Start (idempotently) the background asyncio loop + chat_service.
 
     """
@@ -55,7 +53,7 @@ def _start_background_event_loop():
         # Allow an externally reachable websocket base (e.g. reverse proxy, docker mapped port)
         explicit_public_ws = os.getenv("PUBLIC_WS_ENDPOINT")  # e.g. wss://chat.example.com or ws://localhost:3001
 
-        def loop_thread():
+        def loop_thread() -> None:
             try:
                 loop = asyncio.new_event_loop()
                 asyncio.set_event_loop(loop)
@@ -79,9 +77,11 @@ def _start_background_event_loop():
                 register_chat_handlers(cs, app.logger, task_manager)
                 _ready_event.set()
 
-                async def starter():
+                async def starter() -> None:
                     try:
+                        app.logger.info("Starting chat service...")
                         await cs.start_chat()
+                        app.logger.info("Chat service started successfully")
                     except Exception as e:  # noqa: BLE001
                         app.logger.exception("Background chat service failed to start: %s", e)
                 loop.create_task(starter())
@@ -91,7 +91,7 @@ def _start_background_event_loop():
         t = threading.Thread(target=loop_thread, name="chat-loop", daemon=True)
         t.start()
 
-def wait_until_ready(timeout: float = 5.0):
+def wait_until_ready(timeout: float = 5.0) -> None:
     """Block the Flask thread until chat service handlers registered or timeout."""
     if not _ready_event.is_set():
         _ready_event.wait(timeout=timeout)
@@ -145,13 +145,14 @@ app.logger.info(
     _runtime.storage.value,
 )
 room_store = build_room_store(app.logger, storage_mode=_runtime.storage)
-chat_service = None  # will be set by bootstrap thread
-event_loop = None  # type: ignore[assignment]
+from typing import Any, Optional
+chat_service: Any | None = None  # will be set by bootstrap thread
+event_loop: asyncio.AbstractEventLoop | None = None
 
 # Bootstrap background loop + chat service now
 try:
     _start_background_event_loop()
-except Exception:
+except Exception as e:
     app.logger.exception("Background chat service bootstrap failed during import")
 
 # Register unified chat API blueprint using unified room_store (metadata + messages)
@@ -163,7 +164,7 @@ chat_api_bp = create_chat_api_blueprint(
 app.register_blueprint(chat_api_bp)
 
 @app.route('/negotiate')
-def negotiate():
+def negotiate() -> Any:
     """Negotiate client connection endpoint.
 
     Azure mode -> returns service client access URL from Web PubSub service.
@@ -172,26 +173,28 @@ def negotiate():
     wait_until_ready()
     global chat_service
     try:
+        if chat_service is None:
+            abort(503, "Chat service not ready")
         return chat_service.negotiate()
     except Exception as e:  # noqa: BLE001
         app.logger.exception("Negotiation failed: %s", e)
         return (str(e), 500)
 
 @app.get('/healthz')
-def healthz():  # liveness/readiness for container platforms
+def healthz() -> Any:  # liveness/readiness for container platforms
     return jsonify({"status": "ok"})
     
 @app.route('/')
-def serve_client():
+def serve_client() -> Any:
     """Serve the main React app"""
     return send_from_directory(STATIC_DIST, 'index.html')
 
 @app.route('/<path:path>')
-def serve_static(path):
+def serve_static(path: str) -> Any:
     """Serve static files from React build"""
     return send_from_directory(STATIC_DIST, path)
 
-async def main():
+async def main() -> None:
     """Entry point for local development.
 
     Only responsible for starting the Flask HTTP server; chat service is
@@ -201,7 +204,7 @@ async def main():
     app.logger.info("Subprotocol: json.reliable.webpubsub.azure.v1")
     app.logger.info("Make sure to build the React client first with: npm run build")
 
-    def run_flask():
+    def run_flask() -> None:
         app.logger.info("Flask starting on %s:%s (static=%s)", host, port, STATIC_DIST)
         app.run(host=host, port=port, debug=False, use_reloader=False, threaded=True)
 

@@ -1,5 +1,5 @@
 import pytest
-from python_server.core.chat_service import build_chat_service
+from python_server.chat_service.factory import build_chat_service
 from python_server.core.room_store import InMemoryRoomStore
 from python_server.core.runtime_config import TransportMode
 

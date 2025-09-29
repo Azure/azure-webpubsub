@@ -1,5 +1,13 @@
 import os
+import sys
+from pathlib import Path
 import pytest
+
+# Ensure project root is on sys.path so `import python_server` works when tests
+# run from environments that don't automatically include CWD.
+_ROOT = Path(__file__).resolve().parents[2]
+if str(_ROOT) not in sys.path:
+    sys.path.insert(0, str(_ROOT))
 
 @pytest.fixture(autouse=True)
 def clear_env(monkeypatch):

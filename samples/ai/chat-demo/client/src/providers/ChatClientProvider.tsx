@@ -55,16 +55,6 @@ export const ChatClientProvider: React.FC<ChatClientProviderProps> = ({ children
     setRoomsRef.current = settingsContext.setRooms;
   }, [settingsContext.setRooms]);
 
-  // Simplified: server history is authoritative; just sort by timestamp then id
-  const sortMessages = React.useCallback((msgs: ChatMessage[]): ChatMessage[] => {
-    return [...msgs].sort((a, b) => {
-      const ta = new Date(a.timestamp || 0).getTime();
-      const tb = new Date(b.timestamp || 0).getTime();
-      if (ta !== tb) return ta - tb;
-      return a.id.localeCompare(b.id);
-    });
-  }, []);
-
   // Refs for latest values (to avoid reconnections)
   const roomIdRef = React.useRef(roomId);
   const userIdRef = React.useRef(userId);
@@ -373,9 +363,9 @@ export const ChatClientProvider: React.FC<ChatClientProviderProps> = ({ children
                 isFromCurrentUser: rawFrom !== undefined && rawFrom === userIdRef.current,
               } as ChatMessage;
             });
-            const merged = sortMessages(mapped);
+            const merged = mapped; // preserve server order
             if (cancelled) return;
-            rs.messages = merged;
+            rs.messages = merged; // store without additional sorting
             rs.loaded = true;
             rs.lastFetchSeq = reconnectSeq;
             rs.isStreaming = false;
@@ -398,7 +388,7 @@ export const ChatClientProvider: React.FC<ChatClientProviderProps> = ({ children
     return () => {
       cancelled = true;
     };
-  }, [roomId, client, reconnectSeq, ensureRoomState, sortMessages]);
+  }, [roomId, client, reconnectSeq, ensureRoomState]);
 
   // Inline status banner rules: show info when connected and empty; clear when messages arrive
   React.useEffect(() => {

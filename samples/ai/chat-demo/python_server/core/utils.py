@@ -4,25 +4,34 @@ Shared state and utility functions for chat-demo python server.
 import uuid
 import asyncio
 import threading
-from typing import AsyncIterator, Iterable, Optional, TypeVar
+from typing import AsyncIterator, Iterable, Optional, TypeVar, Any
 
 T = TypeVar("T")
 
-def generate_id(prefix, length: Optional[int] = 8):
-    """Generate a unique identifier"""
+def generate_id(prefix: str, length: Optional[int] = 8) -> str:
+    """Generate a unique identifier with given prefix.
+
+    prefix: Leading token for the ID (e.g. "conn" or "m-")
+    length: Number of hex chars from UUID to include (default 8)
+    """
     return f"{prefix}_{uuid.uuid4().hex[:length]}"
 
 
-def get_query_value(path, key):
-    """Extract query parameter from WebSocket path"""
+def get_query_value(path: str, key: str) -> Optional[str]:
+    """Extract the value of `key` from a URL path's query string.
+
+    Returns None if key not present or no query string exists.
+    """
     if '?' in path:
         query_string = path.split('?', 1)[1]
-        params = dict(param.split('=') for param in query_string.split('&') if '=' in param)
+        pairs = [p.split('=', 1) for p in query_string.split('&') if '=' in p]
+        params = {k: v for k, v in pairs}
         return params.get(key)
+    return None
 
 
-def get_room_id(path, default_room_id):
-    """Extract room ID from query parameters in path"""
+def get_room_id(path: str, default_room_id: str) -> str:
+    """Return the requested roomId from query string or fallback to default."""
     return get_query_value(path, 'roomId') or default_room_id
 
 

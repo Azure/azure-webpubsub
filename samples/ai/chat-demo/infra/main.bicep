@@ -144,7 +144,7 @@ resource site 'Microsoft.Web/sites@2023-12-01' = {
         }
         {
           name: 'WEBPUBSUB_ENDPOINT'
-          value: 'https://${webPubSub.name}.webpubsub.azure.com'
+          value: 'https://${webPubSub.properties.hostName}'
         }
         {
           name: 'WEBPUBSUB_HUB'
@@ -193,7 +193,7 @@ resource raStorageTable 'Microsoft.Authorization/roleAssignments@2022-04-01' = i
 output siteUrl string = 'https://${site.properties.defaultHostName}'
 output webAppName string = site.name
 output negotiateEndpoint string = 'https://${site.properties.defaultHostName}/negotiate'
-output webPubSubHost string = '${webPubSub.name}.webpubsub.azure.com'
+output webPubSubHost string = 'https://${webPubSub.properties.hostName}'
 output storageAccountName string = storage.name
 output chatTableNameOut string = chatTableName
 output sitePrincipalId string = site.identity.principalId

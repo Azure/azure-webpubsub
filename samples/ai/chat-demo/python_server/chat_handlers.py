@@ -6,16 +6,13 @@ startup / wiring.
 """
 from __future__ import annotations
 
-from core import (
-    ClientConnectionContext,
-    ChatServiceBase,
-    chat_stream,
-    to_async_iterator,
-    get_room_id
-)
-from task_manager import ConnectionTaskManager
+from .core import to_async_iterator, get_room_id  # room store & util exports
+from .chat_service.base import ClientConnectionContext, ChatServiceBase
+from .core import chat_stream
+from .task_manager import ConnectionTaskManager
+from typing import Any, Dict
 
-def register_chat_handlers(chat: ChatServiceBase, app_logger, task_manager: ConnectionTaskManager):  # noqa: D401
+def register_chat_handlers(chat: ChatServiceBase, app_logger: Any, task_manager: ConnectionTaskManager) -> None:  # noqa: D401
     """Attach all chat event handlers to the provided chat service.
 
     Parameters
@@ -37,12 +34,12 @@ def register_chat_handlers(chat: ChatServiceBase, app_logger, task_manager: Conn
             task_manager.cancel_all(conn.connectionId)
 
     @chat.on_connecting
-    async def handle_connecting(conn: ClientConnectionContext, _svc: ChatServiceBase):  # noqa: D401
+    async def handle_connecting(conn: ClientConnectionContext, _svc: ChatServiceBase) -> None:  # noqa: D401
         # Placeholder for future auth hook
         conn.user_id = "You"
 
     @chat.on_connected
-    async def handle_connected(conn: ClientConnectionContext, _svc: ChatServiceBase):  # noqa: D401
+    async def handle_connected(conn: ClientConnectionContext, _svc: ChatServiceBase) -> None:  # noqa: D401
         room_id = get_room_id(conn.query, "public")
         if room_id:
             await _svc.add_to_group(conn.connectionId, room_id)
@@ -50,7 +47,7 @@ def register_chat_handlers(chat: ChatServiceBase, app_logger, task_manager: Conn
         app_logger.info("connected: %s user=%s", conn.connectionId, conn.user_id)
 
     @chat.on_event_message
-    async def handle_event_message(conn, event_name, data, _svc: ChatServiceBase):  # noqa: D401
+    async def handle_event_message(conn: ClientConnectionContext, event_name: str, data: dict, _svc: ChatServiceBase) -> None:  # noqa: D401
         if event_name == "sendToAI":
             message = data.get("message")
             room_id = data.get("roomId")
@@ -83,6 +80,6 @@ def register_chat_handlers(chat: ChatServiceBase, app_logger, task_manager: Conn
                 task_manager.schedule(conn.connectionId, coro)
 
     @chat.on_disconnected
-    async def handle_disconnected(conn, _svc):  # noqa: D401
+    async def handle_disconnected(conn: ClientConnectionContext, _svc: ChatServiceBase) -> None:  # noqa: D401
         cancel_conn_tasks(conn)
         app_logger.info("Client disconnected: %s", conn.connectionId)

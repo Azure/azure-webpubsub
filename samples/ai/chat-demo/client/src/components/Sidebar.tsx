@@ -56,7 +56,6 @@ export const Sidebar: React.FC = () => {
       </div>
       <ul className="room-list">
         {rooms.map(room => {
-          console.log('Rendering room:', room); // Debug log
           return (
             <li key={room.roomId} className={room.roomId === roomId ? 'room-item active' : 'room-item'}>
               <button className="room-button" onClick={() => setRoomId(room.roomId)} title={room.roomName}>

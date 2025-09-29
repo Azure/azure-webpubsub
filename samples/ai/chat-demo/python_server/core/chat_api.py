@@ -5,14 +5,19 @@ This consolidates previous room_api + server inline message routes.
 from __future__ import annotations
 
 from flask import Blueprint, request, jsonify
-from typing import Optional, Any, Callable, Awaitable
+from typing import Optional, Any, Callable, Awaitable, TypeVar, Coroutine
 import asyncio
 import logging
 
 logger = logging.getLogger(__name__)
 
 
-def create_chat_api_blueprint(room_store_ref=None, *, chat_service_ref=None, event_loop_ref=None) -> Blueprint:
+def create_chat_api_blueprint(
+    room_store_ref: Optional[Callable[[], Any]] | Any = None,
+    *,
+    chat_service_ref: Optional[Callable[[], Any]] | Any = None,
+    event_loop_ref: Optional[Callable[[], Any]] | Any = None,
+) -> Blueprint:
     """Factory for chat API blueprint.
 
     room_store_ref: callable returning unified RoomStore (with metadata + messages) or direct object
@@ -25,20 +30,21 @@ def create_chat_api_blueprint(room_store_ref=None, *, chat_service_ref=None, eve
         user_id = request.headers.get('X-User-Id', '').strip() or 'anonymous'
         return user_id
 
-    def _get_chat_service():
+    def _get_chat_service() -> Any:
         svc = chat_service_ref() if callable(chat_service_ref) else chat_service_ref
         return svc
 
-    def _get_loop():
+    def _get_loop() -> Any:
         loop = event_loop_ref() if callable(event_loop_ref) else event_loop_ref
         return loop
 
-    def _get_room_store():
+    def _get_room_store() -> Any:
         rs = room_store_ref() if callable(room_store_ref) else room_store_ref
         return rs
 
     # ---------------- Common helpers ----------------
-    def run_async(coro: Awaitable[Any], *, timeout: Optional[float] = 5, allow_direct: bool = True) -> Any:
+    T = TypeVar("T")
+    def run_async(coro: Coroutine[Any, Any, T], *, timeout: Optional[float] = 5, allow_direct: bool = True) -> T:
         """Execute *coro* on the dedicated chat event loop.
 
         Rationale: the chat service + room store operate on a long-lived
@@ -81,15 +87,15 @@ def create_chat_api_blueprint(room_store_ref=None, *, chat_service_ref=None, eve
             return default
 
     # Response helpers for consistency
-    def json_ok(payload: dict[str, Any], status: int = 200):
+    def json_ok(payload: dict[str, Any], status: int = 200) -> Any:
         return jsonify(payload), status
 
-    def json_error(message: str, status: int):
+    def json_error(message: str, status: int) -> Any:
         return jsonify({'error': message}), status
 
     # -------- Room metadata endpoints (async via unified store) --------
     @bp.route('/api/rooms', methods=['GET'])
-    def list_rooms():
+    def list_rooms() -> Any:
         try:
             user_id = _get_user_id()
             store = _get_room_store()
@@ -102,7 +108,7 @@ def create_chat_api_blueprint(room_store_ref=None, *, chat_service_ref=None, eve
             return json_error('Failed to get rooms', 500)
 
     @bp.route('/api/rooms', methods=['POST'])
-    def create_room():
+    def create_room() -> Any:
         try:
             user_id = _get_user_id()
             data = request.get_json(silent=True)
@@ -128,7 +134,7 @@ def create_chat_api_blueprint(room_store_ref=None, *, chat_service_ref=None, eve
             return json_error('Failed to create room', 500)
 
     @bp.route('/api/rooms/<room_id>', methods=['GET'])
-    def get_room(room_id: str):
+    def get_room(room_id: str) -> Any:
         try:
             user_id = _get_user_id()
             store = _get_room_store()
@@ -143,7 +149,7 @@ def create_chat_api_blueprint(room_store_ref=None, *, chat_service_ref=None, eve
             return json_error('Failed to get room', 500)
 
     @bp.route('/api/rooms/<room_id>', methods=['PUT'])
-    def update_room(room_id: str):
+    def update_room(room_id: str) -> Any:
         try:
             user_id = _get_user_id()
             store = _get_room_store()
@@ -171,7 +177,7 @@ def create_chat_api_blueprint(room_store_ref=None, *, chat_service_ref=None, eve
             return json_error('Failed to update room', 500)
 
     @bp.route('/api/rooms/<room_id>', methods=['DELETE'])
-    def delete_room(room_id: str):
+    def delete_room(room_id: str) -> Any:
         try:
             user_id = _get_user_id()
             if room_id == 'public':
@@ -188,7 +194,7 @@ def create_chat_api_blueprint(room_store_ref=None, *, chat_service_ref=None, eve
 
     # -------- Conversation / messages endpoint --------
     @bp.route('/api/rooms/<room_id>/messages', methods=['GET'])
-    def get_room_messages(room_id: str):
+    def get_room_messages(room_id: str) -> Any:
         """Return recent messages for a room (uses async room_store via chat_service)."""
         svc = _get_chat_service()
         if svc is None:

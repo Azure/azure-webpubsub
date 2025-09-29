@@ -3,7 +3,7 @@ from __future__ import annotations
 """OpenAI chat model client abstraction.
 """
 import logging
-from typing import Iterator, Optional, List, Dict, Any
+from typing import Iterator, Optional, List, Dict, Any, Iterable, TypedDict, Union, Sequence
 from openai import OpenAI
 
 
@@ -34,24 +34,38 @@ class OpenAIChatClient:
 		temperature: float = 0.7,
 		max_tokens: Optional[int] = None,
 	) -> Iterator[str]:
-		messages: List[Dict[str, Any]] = []
+		"""Stream assistant response tokens.
+
+		We accept a relaxed conversation_history of simplified dicts and coerce it into the
+		minimal shape accepted by the SDK (role + content strings). Unknown extra keys ignored.
+		"""
+		messages: List[Dict[str, str]] = []
 		if conversation_history:
-			messages.extend(conversation_history)
+			for m in conversation_history:
+				role = str(m.get("role", "user"))
+				content_val = m.get("content")
+				if isinstance(content_val, str):
+					messages.append({"role": role, "content": content_val})
 		messages.append({"role": "user", "content": text_input})
 		try:
 			response = self.client.chat.completions.create(
-				messages=messages,
+				messages=messages,  # type: ignore[arg-type]  # SDK expects specific union types
 				model=self.model_name,
 				temperature=temperature,
 				max_tokens=max_tokens,
 				stream=True,
 			)
-			for chunk in response:
-				if chunk.choices and chunk.choices[0].delta.content is not None:
-					content = chunk.choices[0].delta.content
-					if not content:
+			for chunk in response:  # chunk is expected ChatCompletionChunk
+				try:
+					choices = getattr(chunk, "choices", None)
+					if not choices:
 						continue
-					yield content
+					delta = getattr(choices[0], "delta", None)
+					content = getattr(delta, "content", None)
+					if content:
+						yield content
+				except Exception:
+					continue
 		except Exception:  # pragma: no cover
 			self.logger.exception("chat_stream failed for input: %r", text_input)
 
@@ -77,8 +91,8 @@ def get_openai_chat_client() -> OpenAIChatClient:
 def get_chat_model() -> OpenAIChatClient:  # compatibility alias
 	return get_openai_chat_client()
 
-def chat_stream(text_input: str, **kwargs) -> Iterator[str]:
+def chat_stream(text_input: str, **kwargs: Any) -> Iterator[str]:
 	yield from get_openai_chat_client().chat_stream(text_input, **kwargs)
 
-def chat(text_input: str, **kwargs) -> str:
+def chat(text_input: str, **kwargs: Any) -> str:
 	return "".join(chat_stream(text_input, **kwargs))

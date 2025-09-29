@@ -11,8 +11,9 @@ infra:
     # azd provision --set webPubSubNameOverride=myuniquewpsname123
 services:
   chatserver:
-    # Use python_server as the project root so Oryx clearly detects Python (avoids Node-only detection due to root package.json)
-    project: python_server
+    # Use repo root as the project so `python_server` remains a package
+    # and Oryx can load `wsgi:app` from the root wsgi.py
+    project: .
     language: python
     host: appservice
     # Frontend build hook (build React and copy static files) - ensure this exists in project root or scripts
@@ -21,7 +22,7 @@ services:
         windows:
           shell: pwsh
           run: |
-            Push-Location ..\client
+            Push-Location .\client
             if (Test-Path node_modules) {
               Write-Host "Reusing existing node_modules" 
             } else {
@@ -30,11 +31,12 @@ services:
             }
             npm run build
             Pop-Location
-            if (Test-Path static) { Remove-Item -Recurse -Force static }
-            Copy-Item -Recurse ..\client\dist static
+            if (Test-Path .\python_server\static) { Remove-Item -Recurse -Force .\python_server\static }
+            Copy-Item -Recurse .\client\dist .\python_server\static
         posix:
           shell: sh
           run: |
-            (cd ../client && ([ -d node_modules ] || npm install) && npm run build)
-            rm -rf static
-            cp -R ../client/dist static
+            (cd ./client && ([ -d node_modules ] || npm install) && npm run build)
+            rm -rf ./python_server/static
+            mkdir -p ./python_server
+            cp -R ./client/dist ./python_server/static
