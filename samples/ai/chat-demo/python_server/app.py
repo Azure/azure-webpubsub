@@ -1,20 +1,16 @@
-"""Chat demo server.
+"""Flask app and server bootstrap wiring.
 
-Modes are now explicit via TRANSPORT_MODE + STORAGE_MODE (see runtime_config.py):
- - TRANSPORT_MODE=self (default): internal websocket server
- - TRANSPORT_MODE=webpubsub: Azure Web PubSub service (client connects directly)
-
-Storage (independent):
- - STORAGE_MODE=memory (default)
- - STORAGE_MODE=table (Azure Table or Azurite)
-
-Azure deployment sets TRANSPORT_MODE=webpubsub and STORAGE_MODE=table automatically; local
-dev can mix and match (e.g. self+table using Azurite, or webpubsub+memory).
+Defines the Flask `app`, configures CORS, registers blueprints, and
+bootstraps the background asyncio loop + chat service on import so WSGI
+hosts can serve immediately after import.
 """
+from __future__ import annotations
+
 import asyncio
 import threading
 import os
 from pathlib import Path
+from typing import Any
 
 from flask import Flask, request, send_from_directory, jsonify, Response, abort
 from flask_cors import CORS  # type: ignore[import-untyped]
@@ -27,14 +23,13 @@ from .chat_service.factory import build_chat_service
 from .core.runtime_config import resolve_runtime_config
 from .core.chat_api import create_chat_api_blueprint
 
-from concurrent.futures import Future
-
 # -----------------------------------------------------
 # Background event loop + chat service bootstrap
 # -----------------------------------------------------
 _init_lock = threading.Lock()
 _bootstrap_started = False  # guards against duplicate bootstrap attempts
 _ready_event = threading.Event()  # signaled once chat_service + handlers are ready
+
 
 def _start_background_event_loop() -> None:
     """Start (idempotently) the background asyncio loop + chat_service.
@@ -91,10 +86,13 @@ def _start_background_event_loop() -> None:
         t = threading.Thread(target=loop_thread, name="chat-loop", daemon=True)
         t.start()
 
+
 def wait_until_ready(timeout: float = 5.0) -> None:
     """Block the Flask thread until chat service handlers registered or timeout."""
     if not _ready_event.is_set():
         _ready_event.wait(timeout=timeout)
+
+
 # Load environment variables from .env file
 load_dotenv()
 
@@ -111,8 +109,6 @@ _here = Path(__file__).parent.resolve()
 _packaged_static = _here / "static"
 _dev_dist = (_here.parent / "client" / "dist").resolve()
 STATIC_DIST = _packaged_static if _packaged_static.exists() else _dev_dist
-
-## Helpers moved to core.* modules: build_room_store, build_chat_service, azure_mode_enabled, resolve_webpubsub_config
 
 # Flask app for HTTP endpoints.
 app = Flask(__name__)
@@ -145,7 +141,6 @@ app.logger.info(
     _runtime.storage.value,
 )
 room_store = build_room_store(app.logger, storage_mode=_runtime.storage)
-from typing import Any, Optional
 chat_service: Any | None = None  # will be set by bootstrap thread
 event_loop: asyncio.AbstractEventLoop | None = None
 
@@ -155,7 +150,7 @@ try:
 except Exception as e:
     app.logger.exception("Background chat service bootstrap failed during import")
 
-# Register unified chat API blueprint using unified room_store (metadata + messages)
+# Register unified chat API blueprint
 chat_api_bp = create_chat_api_blueprint(
     room_store_ref=lambda: room_store,
     chat_service_ref=lambda: chat_service,
@@ -163,76 +158,36 @@ chat_api_bp = create_chat_api_blueprint(
 )
 app.register_blueprint(chat_api_bp)
 
-@app.route('/negotiate')
-def negotiate() -> Any:
-    """Negotiate client connection endpoint.
-
-    Azure mode -> returns service client access URL from Web PubSub service.
-    Self host  -> returns local WebSocket endpoint URL.
-    """
-    wait_until_ready()
-    global chat_service
-    try:
-        if chat_service is None:
-            abort(503, "Chat service not ready")
-        return chat_service.negotiate()
-    except Exception as e:  # noqa: BLE001
-        app.logger.exception("Negotiation failed: %s", e)
-        return (str(e), 500)
 
 @app.get('/healthz')
 def healthz() -> Any:  # liveness/readiness for container platforms
     return jsonify({"status": "ok"})
-    
+
+
+@app.get('/readyz')
+def readyz() -> Any:
+    """Lightweight readiness endpoint with transport/storage info.
+
+    Does not block; reports best-effort readiness based on background bootstrap flag.
+    """
+    try:
+        ready = _ready_event.is_set()
+        return jsonify({
+            "ready": bool(ready),
+            "transport": _runtime.transport.value,
+            "storage": _runtime.storage.value,
+        })
+    except Exception:
+        return jsonify({"ready": False}), 200
+
+
 @app.route('/')
 def serve_client() -> Any:
     """Serve the main React app"""
     return send_from_directory(STATIC_DIST, 'index.html')
 
+
 @app.route('/<path:path>')
 def serve_static(path: str) -> Any:
     """Serve static files from React build"""
     return send_from_directory(STATIC_DIST, path)
-
-async def main() -> None:
-    """Entry point for local development.
-
-    Only responsible for starting the Flask HTTP server; chat service is
-    bootstrapped lazily (and immediately) via ensure_chat_service_initialized.
-    """
-    app.logger.info("Flask HTTP server binding on %s:%s", host, port)
-    app.logger.info("Subprotocol: json.reliable.webpubsub.azure.v1")
-    app.logger.info("Make sure to build the React client first with: npm run build")
-
-    def run_flask() -> None:
-        app.logger.info("Flask starting on %s:%s (static=%s)", host, port, STATIC_DIST)
-        app.run(host=host, port=port, debug=False, use_reloader=False, threaded=True)
-
-    # Chat service already bootstrapped at import; just ensure ready (best-effort)
-    wait_until_ready()
-
-    # Start Flask (blocking in separate thread so asyncio future can wait)
-    flask_thread = threading.Thread(target=run_flask, daemon=True)
-    flask_thread.start()
-
-    app.logger.info("HTTP: http://%s:%s (Flask)", host, port)
-    app.logger.info("Press Ctrl+C to quit")
-    try:
-        await asyncio.Future()
-    finally:
-        # Best-effort graceful shutdown if loop still alive
-        if event_loop and event_loop.is_running() and chat_service:
-            try:
-                fut = asyncio.run_coroutine_threadsafe(chat_service.stop(), event_loop)
-                fut.result(timeout=5)
-            except Exception:
-                pass
-
-if __name__ == '__main__':
-    try:
-        asyncio.run(main())
-    except KeyboardInterrupt:
-        app.logger.info("Shutting down servers...")
-    except Exception as e:
-        app.logger.exception("Server error: %s", e)
-        app.logger.error("Make sure the ports are available.")

@@ -61,7 +61,7 @@ Location: `python_server/tests`
 
 Prereqs:
 1. (Optional) Create & activate a virtualenv
-2. `pip install -r python_server/requirements.txt`
+2. `pip install -r requirements-dev.txt`
 
 Run all:
 ```
@@ -151,6 +151,27 @@ Details & tunnel steps: **[Hybrid section in ADVANCED.md](./docs/ADVANCED.md#2-l
 - Try hybrid tunnel mode for full lifecycle locally
 - Customize AI logic in `python_server/chat_model_client.py`
 - Review how scalable history works now (Table storage) in the persistence section of the advanced doc.
+
+## Code Layout (Backend)
+
+- Transport base and implementations
+  - `python_server/chat_service/base.py` — abstract `ChatServiceBase`, event callbacks, group helpers
+  - `python_server/chat_service/transports/self_host.py` — self‑hosted websockets transport (`ChatService`)
+  - `python_server/chat_service/transports/webpubsub.py` — Azure Web PubSub transport (`WebPubSubChatService`)
+  - `python_server/chat_service/factory.py` — selects the transport via `TRANSPORT_MODE`
+
+- Persistence (Room Store)
+  - `python_server/core/room_store/models.py` — `RoomMetadata`, `DEFAULT_ROOM_ID`
+  - `python_server/core/room_store/base.py` — `RoomStore` interface
+  - `python_server/core/room_store/memory.py` — in‑memory implementation
+  - `python_server/core/room_store/azure_table.py` — Azure Table Storage implementation
+  - `python_server/core/room_store/builder.py` — selects the storage via `STORAGE_MODE`
+
+- HTTP surface & app bootstrap
+  - `python_server/core/chat_api.py` — REST endpoints for rooms + message history
+  - `python_server/app.py` — Flask app, background loop bootstrap, `/negotiate`
+  - `python_server/main.py` — local dev runner (starts Flask in a thread)
+
 
 ---
 Happy hacking! Open an issue or PR in [our GitHub repo](https://github.com/Azure/azure-webpubsub) with feedback.

@@ -1,4 +1,13 @@
-"""Azure Web PubSub-backed ChatService implementation."""
+"""Azure Web PubSub-backed ChatService implementation.
+
+This module contains the concrete transport that integrates with the
+Azure Web PubSub service. Import path:
+    python_server.chat_service.transports.webpubsub
+
+It implements `WebPubSubChatService` (subclass of `ChatServiceBase`),
+handles negotiation and CloudEvents integration, and confines any
+Azure SDK dependencies to this file.
+"""
 from __future__ import annotations
 
 import asyncio
@@ -7,9 +16,9 @@ import logging
 from datetime import datetime, timezone
 from typing import Any, Dict, Optional, List, AsyncIterator, Union, Tuple
 
-from ..core.utils import generate_id
-from ..core.room_store import RoomStore
-from .base import ChatServiceBase, ClientConnectionContext, as_room_group, SYS_ROOMS_GROUP
+from ...core.utils import generate_id
+from ...core.room_store import RoomStore
+from ..base import ChatServiceBase, ClientConnectionContext, as_room_group, SYS_ROOMS_GROUP
 
 DefaultAzureCredential = None  # sentinel if import missing
 WebPubSubServiceClient = None  # sentinel if import missing
@@ -20,6 +29,7 @@ try:  # noqa: SIM105
     WebPubSubServiceClient = _WebPubSubServiceClient
 except Exception:  # noqa: BLE001
     pass
+
 
 class WebPubSubChatService(ChatServiceBase):
     def __init__(
@@ -48,24 +58,26 @@ class WebPubSubChatService(ChatServiceBase):
             try:
                 self._svc = WebPubSubServiceClient.from_connection_string(connection_string, hub=hub)  # type: ignore[attr-defined]
             except AttributeError:
-                # Fallback older signature might differ; pass as connection string only
                 self._svc = WebPubSubServiceClient.from_connection_string(connection_string)  # type: ignore[attr-defined]
         else:
             raise RuntimeError("WebPubSubChatService requires either endpoint (+ Azure credential) or connection_string")
         self._http_clients: Dict[str, ClientConnectionContext] = {}
-        class _SimpleClientManager:
-            """Minimal client registry for HTTP-originated (CloudEvents) connections.
 
-            Only tracks contexts by connectionId; no websocket transport object exists.
-            """
+        class _SimpleClientManager:
+            """Minimal client registry for HTTP-originated (CloudEvents) connections."""
+
             def __init__(inner_self) -> None:  # noqa: D401
                 inner_self._parent = self
+
             async def add_client(inner_self, connection_id: str, context: ClientConnectionContext, _transport: Any) -> None:
                 inner_self._parent._http_clients[connection_id] = context
+
             async def get_client(inner_self, connection_id: str) -> Optional[ClientConnectionContext]:
                 return inner_self._parent._http_clients.get(connection_id)
+
             async def remove_client(inner_self, connection_id: str) -> None:
                 inner_self._parent._http_clients.pop(connection_id, None)
+
         self.client_manager = _SimpleClientManager()
         # Optionally auto-attach CloudEvents endpoint
         try:
@@ -95,29 +107,19 @@ class WebPubSubChatService(ChatServiceBase):
         group_name = as_room_group(room_id)
         payload = {"messageId": generate_id("m-"), "message": message, "from": from_user_id, "roomId": room_id}
         try:
+            self._svc.send_to_group(group_name, payload, content_type="application/json", excluded=exclude_ids)  # type: ignore[arg-type]
+        except Exception:
+            self.log.debug("Failed to send to group (service)")
+        try:
             await self.room_store.record_room_event(room_id, {
                 "type": "message",
                 "messageId": payload["messageId"],
-                "from": from_user_id,
                 "message": message,
+                "from": from_user_id,
                 "timestamp": datetime.now(timezone.utc).isoformat(),
             })
         except Exception:
             self.log.debug("Failed to record room event for room %r", room_id)
-        # NOTE:
-        # The Python SDK will treat bytes as a binary payload, which causes clients using the
-        # json(.reliable).webpubsub.azure.v1 subprotocol to receive base64-encoded 'data' with
-        # dataType 'binary'. By sending a TEXT frame (str) with content_type application/json
-        # we get a proper JSON decoding on the service side and clients see either:
-        #   data: <object>, dataType: 'json'  (if protocol supports) OR dataType 'text' they can json parse.
-        # Keep as str (NOT bytes) to avoid base64 in browsers.
-        try:
-            if exclude_ids:
-                self._svc.send_to_group(group_name, payload, content_type="application/json", excluded=exclude_ids)  # type: ignore[arg-type]
-            else:
-                self._svc.send_to_group(group_name, payload, content_type="application/json")  # type: ignore[arg-type]
-        except Exception:
-            self.log.debug("Failed sending message to group %s", group_name)
         return []
 
     async def streaming_to_group(self, group: str, chunks: AsyncIterator[str], exclude_ids: Optional[List[str]] = None, from_user_id: Optional[str] = None) -> str:
@@ -125,19 +127,17 @@ class WebPubSubChatService(ChatServiceBase):
         group_name = as_room_group(room_id)
         full_response = ""
         message_id = generate_id("m-")
-        chunk_index = 0
         async for chunk in chunks:
             full_response += chunk
             payload = {"messageId": message_id, "message": chunk, "from": from_user_id, "streaming": True, "roomId": room_id}
-            chunk_index += 1
             try:
                 self._svc.send_to_group(group_name, payload, content_type="application/json", excluded=exclude_ids)  # type: ignore[arg-type]
             except Exception:
-                self.log.debug("Streaming chunk send failed (group=%s)", group_name)
+                self.log.debug("Failed to send streaming chunk (group=%s)", group_name)
             await asyncio.sleep(0.05)
         eos = {"messageId": message_id, "streaming": True, "streamingEnd": True, "from": from_user_id, "roomId": room_id}
         try:
-            self._svc.send_to_group(group_name, eos, content_type="application/json")  # type: ignore[arg-type]
+            self._svc.send_to_group(group_name, eos, content_type="application/json", excluded=exclude_ids)  # type: ignore[arg-type]
         except Exception:
             self.log.debug("Failed to send streaming end (group=%s)", group_name)
         try:
@@ -175,6 +175,7 @@ class WebPubSubChatService(ChatServiceBase):
     # ----------------- CloudEvents (single endpoint) -----------------
     def attach_flask_cloudevents(self, flask_app: Any, loop: asyncio.AbstractEventLoop, path: str = '/eventhandler') -> None:
         from flask import request, Response
+
         @flask_app.route(path, methods=['POST', 'OPTIONS'])
         async def _wps_cloudevents() -> Union[Tuple[str, int], Tuple[str, int, Dict[str, str]]]:
             try:
@@ -225,3 +226,5 @@ class WebPubSubChatService(ChatServiceBase):
             except Exception as e:  # noqa: BLE001
                 self.log.warning('CloudEvents handler error: %s', e)
                 return ('', 500)
+
+__all__ = ["WebPubSubChatService"]

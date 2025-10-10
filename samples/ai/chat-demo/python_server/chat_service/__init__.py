@@ -13,10 +13,10 @@ from .base import (  # noqa: F401
     try_room_id_from_group,
     SYS_ROOMS_GROUP,
 )
-from .self_host_chat_service import ChatService  # noqa: F401
+from .transports.self_host import ChatService  # noqa: F401
 
 try:  # Lazy optional import (will fail if azure webpubsub libs not installed)
-    from .webpubsub_chat_service import WebPubSubChatService  # noqa: F401
+    from .transports.webpubsub import WebPubSubChatService  # noqa: F401
 except Exception:  # pragma: no cover
     WebPubSubChatService = None  # type: ignore
 

@@ -1,5 +1,5 @@
 """
-Shared state and utility functions for chat-demo python server.
+Shared utility functions for the chat-demo python server.
 """
 import uuid
 import asyncio
@@ -46,8 +46,8 @@ async def to_async_iterator(sync_iterable: Iterable[T]) -> AsyncIterator[T]:
     producer thread is signalled to stop.
     """
     loop = asyncio.get_event_loop()
-    queue: asyncio.Queue = asyncio.Queue(maxsize=1)
-    end_marker = object()
+    queue: "asyncio.Queue[object]" = asyncio.Queue(maxsize=1)
+    end_marker: object = object()
     cancel_event = threading.Event()
 
     def producer() -> None:
@@ -85,6 +85,14 @@ async def to_async_iterator(sync_iterable: Iterable[T]) -> AsyncIterator[T]:
             try:
                 queue.get_nowait()
             except asyncio.QueueEmpty:
-                pass  # The queue was already empty, which is fine.
+                # The queue was already empty, which is fine.
+                pass
             await producer_future
+
+__all__ = [
+    "generate_id",
+    "get_query_value",
+    "get_room_id",
+    "to_async_iterator",
+]
 

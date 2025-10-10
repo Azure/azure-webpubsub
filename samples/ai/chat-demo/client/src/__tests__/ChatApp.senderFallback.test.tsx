@@ -28,8 +28,8 @@ vi.stubGlobal('fetch', (input: RequestInfo | URL) => {
       json: async () => ({ messages: [ { messageId: 'm1', message: 'History message with no from' } ] }),
     }) as unknown as Response;
   }
-  if (typeof input === 'string' && input.startsWith('/negotiate')) {
-    return Promise.resolve({ ok: true, text: async () => 'ws://dummy' }) as unknown as Response;
+  if (typeof input === 'string' && input.startsWith('/api/negotiate')) {
+    return Promise.resolve({ ok: true, json: async () => ({ url: 'ws://dummy' }) }) as unknown as Response;
   }
   return Promise.reject(new Error('Unexpected fetch ' + input));
 });

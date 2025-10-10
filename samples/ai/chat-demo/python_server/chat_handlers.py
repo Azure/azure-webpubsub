@@ -7,6 +7,7 @@ startup / wiring.
 from __future__ import annotations
 
 from .core import to_async_iterator, get_room_id  # room store & util exports
+from .config import DEFAULT_ROOM_ID
 from .chat_service.base import ClientConnectionContext, ChatServiceBase
 from .core import chat_stream
 from .task_manager import ConnectionTaskManager
@@ -40,7 +41,7 @@ def register_chat_handlers(chat: ChatServiceBase, app_logger: Any, task_manager:
 
     @chat.on_connected
     async def handle_connected(conn: ClientConnectionContext, _svc: ChatServiceBase) -> None:  # noqa: D401
-        room_id = get_room_id(conn.query, "public")
+        room_id = get_room_id(conn.query, DEFAULT_ROOM_ID)
         if room_id:
             await _svc.add_to_group(conn.connectionId, room_id)
             app_logger.info("Client connected to room: %s", room_id)

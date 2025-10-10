@@ -169,6 +169,25 @@ Design choices:
 | Persistence backend | Implement new `RoomStore` | Register via `build_room_store` selection logic |
 | Alternative transports | Implement new `ChatServiceBase` subclass | Keep callback contract consistent |
 
+### 12.1 Transport Layout (Code Organization)
+
+- Base contract and helpers
+  - `python_server/chat_service/base.py`: `ChatServiceBase`, event registrations, group name helpers
+
+- Concrete transports (import only what you need)
+  - `python_server/chat_service/transports/self_host.py`: Native websockets server (`ChatService`)
+  - `python_server/chat_service/transports/webpubsub.py`: Azure Web PubSub (`WebPubSubChatService`)
+
+- Selection logic
+  - `python_server/chat_service/factory.py`: `build_chat_service(...)` picks the transport based on `TRANSPORT_MODE`
+
+Adding a new transport
+1. Create `python_server/chat_service/transports/<your_transport>.py` implementing a subclass of `ChatServiceBase`.
+2. Keep the same callback semantics (`on_connecting/connected/disconnected/event_message`).
+3. Update `factory.py` to import and instantiate your transport for a new `TransportMode` value.
+4. Tests should target the transport in isolation and via the factory to ensure wiring is correct.
+
+
 ---
 ## 13. Transport Comparison (Quick Matrix)
 

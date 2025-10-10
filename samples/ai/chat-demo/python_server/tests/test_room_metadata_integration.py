@@ -5,8 +5,8 @@ Integration tests for room metadata system with Flask application.
 import pytest
 import os
 from flask import Flask
-from python_server.core.chat_api import create_chat_api_blueprint
-from python_server.core.room_store import InMemoryRoomStore
+from ..core.chat_api import create_chat_api_blueprint
+from ..core.room_store import InMemoryRoomStore
 
 class TestRoomMetadataIntegration:
     """Integration tests for room metadata with server setup."""

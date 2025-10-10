@@ -35,7 +35,7 @@ def main() -> int:
     try:
         # Determine package name dynamically (directory name of backend)
         package_name = backend_dir.name
-        server_module = f"{package_name}.application"
+        server_module = f"{package_name}.main"
         
         # Launch server module from root directory
         return subprocess.call([

@@ -186,13 +186,16 @@ export const ChatClientProvider: React.FC<ChatClientProviderProps> = ({ children
         // Create new client with initial roomId; no user id
         const newClient = new WebPubSubClient({
           getClientAccessUrl: async () => {
-            const url = `/negotiate?roomId=${encodeURIComponent(roomIdRef.current || DEFAULT_ROOM_ID)}`;
+            const url = `/api/negotiate?roomId=${encodeURIComponent(roomIdRef.current || DEFAULT_ROOM_ID)}`;
             const response = await fetch(url);
             if (!response.ok) {
               throw new Error(`Negotiation failed: ${response.statusText}`);
             }
-            const connectUrl = await response.text();
-            return connectUrl;
+            const body = (await response.json()) as { url?: string };
+            if (!body?.url || typeof body.url !== 'string') {
+              throw new Error('Negotiation failed: invalid response shape');
+            }
+            return body.url;
           },
         });
 

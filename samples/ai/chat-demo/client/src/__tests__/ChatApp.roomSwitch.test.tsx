@@ -33,8 +33,8 @@ describe('ChatApp room switching', () => {
       if (url.includes('/messages')) {
         return new Response(JSON.stringify({ messages: [] }), { status: 200, headers: { 'Content-Type': 'application/json' } });
       }
-      if (url.startsWith('/negotiate')) {
-        return new Response('ws://dummy', { status: 200 });
+      if (url.startsWith('/api/negotiate')) {
+        return new Response(JSON.stringify({ url: 'ws://dummy' }), { status: 200, headers: { 'Content-Type': 'application/json' } });
       }
       return new Response('not found', { status: 404 });
     }) as unknown as typeof fetch;

@@ -1,4 +1,4 @@
-from python_server.core.runtime_config import resolve_runtime_config, TransportMode, StorageMode
+from ..core.runtime_config import resolve_runtime_config, TransportMode, StorageMode
 import os
 import pytest
 

@@ -4,13 +4,18 @@ This consolidates previous room_api + server inline message routes.
 """
 from __future__ import annotations
 
-from flask import Blueprint, request, jsonify
+from flask import Blueprint, request, jsonify, url_for
 from typing import Optional, Any, Callable, Awaitable, TypeVar, Coroutine
 import asyncio
 import logging
 
 logger = logging.getLogger(__name__)
 
+# Reasonable defaults for async marshalling and paging
+DEFAULT_TIMEOUT_SEC: float = 5.0
+MAX_MESSAGES_LIMIT: int = 500
+
+T = TypeVar("T")
 
 def create_chat_api_blueprint(
     room_store_ref: Optional[Callable[[], Any]] | Any = None,
@@ -43,8 +48,7 @@ def create_chat_api_blueprint(
         return rs
 
     # ---------------- Common helpers ----------------
-    T = TypeVar("T")
-    def run_async(coro: Coroutine[Any, Any, T], *, timeout: Optional[float] = 5, allow_direct: bool = True) -> T:
+    def run_async(coro: Coroutine[Any, Any, T], *, timeout: Optional[float] = DEFAULT_TIMEOUT_SEC, allow_direct: bool = True) -> T:
         """Execute *coro* on the dedicated chat event loop.
 
         Rationale: the chat service + room store operate on a long-lived
@@ -60,7 +64,11 @@ def create_chat_api_blueprint(
                 raise RuntimeError("Chat event loop not available")
             return asyncio.run(coro)
         fut = asyncio.run_coroutine_threadsafe(coro, loop)
-        return fut.result(timeout=timeout) if timeout else fut.result()
+        try:
+            return fut.result(timeout=timeout) if timeout else fut.result()
+        except Exception as e:  # noqa: BLE001
+            logger.warning("run_async error (timeout=%s): %s", timeout, e)
+            raise
 
     # Field normalization extracted so routes stay lean.
     def normalize_room_name(raw: Any) -> Optional[str]:
@@ -126,7 +134,12 @@ def create_chat_api_blueprint(
             if store is None:
                 return json_error('Store unavailable', 503)
             room = run_async(store.create_room_metadata(user_id, room_name, room_id=room_id, description=description))
-            return json_ok(room.to_dict(), 201)
+            body = room.to_dict()
+            try:
+                location = url_for('chat_api.get_room', room_id=room.room_id, _external=False)
+                return jsonify(body), 201, {"Location": location}
+            except Exception:
+                return jsonify(body), 201
         except ValueError as e:  # fallback validation
             return json_error(str(e), 400)
         except Exception as e:  # noqa: BLE001
@@ -201,6 +214,10 @@ def create_chat_api_blueprint(
             return json_error('Service unavailable', 503)
         try:
             limit = parse_int(request.args.get('limit'), 200)
+            # Clamp to a safe maximum to avoid excessive loads
+            if limit is None or limit < 0:
+                limit = 200
+            limit = min(limit, MAX_MESSAGES_LIMIT)
             from concurrent.futures import TimeoutError as FuturesTimeoutError
             try:
                 messages = run_async(svc.room_store.get_room_messages(room_id, limit), timeout=2)
@@ -214,6 +231,24 @@ def create_chat_api_blueprint(
         except Exception as e:  # noqa: BLE001
             logger.exception("Unexpected error fetching messages for %s: %s", room_id, e)
             return json_error('Failed to retrieve messages', 500)
+
+    # -------- Negotiate endpoint --------
+    @bp.route('/api/negotiate', methods=['GET'])
+    def negotiate() -> Any:
+        """Return a client connection URL as JSON: {"url": string}.
+
+        Self-host mode: ws://.../ws
+        Web PubSub mode: signed client access URL
+        """
+        svc = _get_chat_service()
+        if svc is None:
+            return json_error('Service unavailable', 503)
+        try:
+            url = svc.negotiate()
+            return jsonify({"url": url})
+        except Exception as e:  # noqa: BLE001
+            logger.exception('Negotiation failed: %s', e)
+            return json_error('Negotiation failed', 500)
 
     return bp
 

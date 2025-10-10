@@ -9,9 +9,9 @@ import logging
 import websockets.exceptions as ws_exc
 from websockets.server import WebSocketServerProtocol, serve as ws_serve, Subprotocol
 
-from ..core.utils import generate_id
-from ..core.room_store import RoomStore
-from .base import (
+from ...core.utils import generate_id
+from ...core.room_store import RoomStore
+from ..base import (
     ChatServiceBase,
     ClientConnectionContext,
     as_room_group,

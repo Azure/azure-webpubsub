@@ -55,8 +55,8 @@ vi.stubGlobal("fetch", (input: RequestInfo | URL) => {
   if (url.includes("/messages")) {
     return Promise.resolve(new Response(JSON.stringify({ messages: [] }), { status: 200, headers: { "Content-Type": "application/json" } }));
   }
-  if (url.startsWith("/negotiate")) {
-    return Promise.resolve(new Response("ws://dummy", { status: 200 }));
+  if (url.startsWith("/api/negotiate")) {
+    return Promise.resolve(new Response(JSON.stringify({ url: "ws://dummy" }), { status: 200, headers: { "Content-Type": "application/json" } }));
   }
   return Promise.reject(new Error("Unhandled fetch: " + url));
 });
