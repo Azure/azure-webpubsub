@@ -27,7 +27,7 @@
 | `appServiceSku` | App Service plan SKU | `B1` |
 | `webPubSubSku` | Web PubSub SKU | `Free_F1` |
 | `webPubSubCapacity` | Capacity units | `1` |
-| `hubName` | Hub name | `chat` |
+| `hubName` | Hub name | `demo_ai_chat` |
 | `storageSku` | Storage account SKU | `Standard_LRS` |
 | `chatTableName` | Azure Table name for chat messages | `chatmessages` |
 | `createRoleAssignments` | Whether to create RBAC role assignments (set false after first success if re-provisioning identity) | `true` |
@@ -51,7 +51,7 @@ From repo root:
 azd env new mychat-env --location eastus
 azd up
 ```
-`azd up` performs: Bicep provision → build frontend → copy static assets → zip deploy Python.
+`azd up` performs: provision (Bicep) → build frontend → copy static assets → zip deploy Python backend.
 
 Subsequent code changes:
 ```powershell

@@ -3,6 +3,7 @@
 Multi‑room real‑time chat with optional AI answers. Start locally in a minute. Move to Azure when you're ready—no code changes.
 
 > Want architecture diagrams, CloudEvents/tunnel details, RBAC & env matrix? See **[docs/ADVANCED.md](./docs/ADVANCED.md)**.
+> Release history: **[RELEASE_NOTES.md](./RELEASE_NOTES.md)**
 
 ## What You Get
 - Real‑time rooms (create / join instantly)
@@ -12,18 +13,31 @@ Multi‑room real‑time chat with optional AI answers. Start locally in a minut
 
 ## Quick Start
 
-Create your PAT token with permission **Models** *Access: Read-only* by following instructions here: https://docs.github.com/en/authentication/keeping-your-account-and-data-secure/managing-your-personal-access-tokens
+Prereqs:
+* Python 3.12+
+* Node 18+
 
-```bash
-pip install -r requirements.txt
-export GITHUB_TOKEN=<your_pat>   # (PowerShell: $env:GITHUB_TOKEN="<your_pat>")
-python start_dev.py
-```
-Open http://localhost:5173
+1. Create a PAT with **Models – Read**: https://docs.github.com/en/authentication/keeping-your-account-and-data-secure/managing-your-personal-access-tokens
+2. Install backend + frontend deps:
+  ```bash
+  pip install -r requirements.txt
+  # optional (tests, typing): pip install -r requirements-dev.txt
+  ```
+3. (Set token if you want AI answers)
+  ```bash
+  export GITHUB_TOKEN=<your_pat>        # bash/zsh
+  # PowerShell
+  $env:GITHUB_TOKEN="<your_pat>"
+  ```
+4. Start everything (serves React build automatically):
+  ```bash
+  python start_dev.py
+  ```
+5. Open http://localhost:5173
 
-You now have:
-- HTTP API on :5000
-- Local WebSocket on :5001
+Running services:
+* HTTP API :5000
+* Local WebSocket :5001 (self transport)
 
 ## Using the App
 1. Browse to http://localhost:5173
@@ -32,49 +46,31 @@ You now have:
 4. Ask something; the AI bot replies (uses your GitHub token)
 5. Open a second window to watch live streaming & room isolation
 
-## Deploy to Azure
-Install the Azure Developer CLI if you haven't: https://learn.microsoft.com/azure/developer/azure-developer-cli/install-azd
-
-```bash
-azd env new chatenv
-azd up
-```
-That single `azd up` command:
-1. Provisions Azure Web PubSub + Storage + App Service (with Managed Identity)
-2. Builds the React client
-3. Deploys the Python backend
-4. Prints your site URL + negotiate endpoint
-
-Next changes:
-```bash
-azd deploy   # code only (frontend or backend)
-```
-Infra template changes?
-```bash
-azd provision && azd deploy
-```
-
 ### Tests
 
-#### Backend (pytest)
-Location: `python_server/tests`
-
-Prereqs:
-1. (Optional) Create & activate a virtualenv
-2. `pip install -r requirements-dev.txt`
-
-Run all:
+Install dev extras first:
+```bash
+pip install -r requirements-dev.txt
 ```
+
+Backend (pytest):
+```bash
 python -m pytest python_server/tests -q
 ```
 Single file:
-```
+```bash
 python -m pytest python_server/tests/test_runtime_config.py -q
 ```
-Verbose:
-```
+Verbose / timing:
+```bash
 python -m pytest -vv
 ```
+
+Frontend (Vitest + RTL):
+```bash
+npm --prefix client test
+```
+Selected coverage areas (backend): config merge, room store limits, transport factory, room lifecycle, streaming send path.
 Coverage snapshot:
 * Runtime config validation & merging
 * In‑memory room store behavior / limits
@@ -128,16 +124,19 @@ azd provision --set webPubSubNameOverride=mywps1234 --set webAppNameOverride=myc
 | New environment | `azd env new <name> --location <region>` then `azd up` |
 
 ## Hybrid Local + Azure (Short Version)
-Run the backend locally while using a real Azure Web PubSub instance (and optionally Table storage):
-1. `azd up` (once) to provision resources
-2. In your local `.env` set:
-  - `TRANSPORT_MODE=webpubsub`
-  - `WEBPUBSUB_ENDPOINT=https://<name>.webpubsub.azure.com` (exported by azd env)
-  - Optionally `STORAGE_MODE=table` plus storage creds (or rely on connection string output)
-3. Run `python start_dev.py`
-4. (Optional) Add a tunnel + update hub handler for full CloudEvents (see ADVANCED doc)
+Run the backend locally while using a real Web PubSub instance (and optionally Table storage) in Azure:
+1. `azd up` (once) provisions resources.
+2. Create a local `.env` with:
+   ```
+   TRANSPORT_MODE=webpubsub
+   WEBPUBSUB_ENDPOINT=https://<name>.webpubsub.azure.com
+   # optional persistence
+   STORAGE_MODE=table
+   ```
+3. `python start_dev.py`
+4. (Optional) Tunnel for CloudEvents (see ADVANCED.md §2.3)
 
-Details & tunnel steps: **[Hybrid section in ADVANCED.md](./docs/ADVANCED.md#2-local-development-paths)**.
+More: **[ADVANCED.md](./docs/ADVANCED.md#2-local-development-paths)**
 
 ## FAQ (Quick)
 **Do I need Azure to try it?** No—local mode works offline.
@@ -151,27 +150,6 @@ Details & tunnel steps: **[Hybrid section in ADVANCED.md](./docs/ADVANCED.md#2-l
 - Try hybrid tunnel mode for full lifecycle locally
 - Customize AI logic in `python_server/chat_model_client.py`
 - Review how scalable history works now (Table storage) in the persistence section of the advanced doc.
-
-## Code Layout (Backend)
-
-- Transport base and implementations
-  - `python_server/chat_service/base.py` — abstract `ChatServiceBase`, event callbacks, group helpers
-  - `python_server/chat_service/transports/self_host.py` — self‑hosted websockets transport (`ChatService`)
-  - `python_server/chat_service/transports/webpubsub.py` — Azure Web PubSub transport (`WebPubSubChatService`)
-  - `python_server/chat_service/factory.py` — selects the transport via `TRANSPORT_MODE`
-
-- Persistence (Room Store)
-  - `python_server/core/room_store/models.py` — `RoomMetadata`, `DEFAULT_ROOM_ID`
-  - `python_server/core/room_store/base.py` — `RoomStore` interface
-  - `python_server/core/room_store/memory.py` — in‑memory implementation
-  - `python_server/core/room_store/azure_table.py` — Azure Table Storage implementation
-  - `python_server/core/room_store/builder.py` — selects the storage via `STORAGE_MODE`
-
-- HTTP surface & app bootstrap
-  - `python_server/core/chat_api.py` — REST endpoints for rooms + message history
-  - `python_server/app.py` — Flask app, background loop bootstrap, `/negotiate`
-  - `python_server/main.py` — local dev runner (starts Flask in a thread)
-
 
 ---
 Happy hacking! Open an issue or PR in [our GitHub repo](https://github.com/Azure/azure-webpubsub) with feedback.

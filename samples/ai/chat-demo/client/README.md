@@ -33,6 +33,7 @@ Open http://localhost:5173
 * `npm run build` – Type check + production build
 * `npm run preview` – Preview built assets
 * `npm run lint` – ESLint (TS + React hooks rules)
+* `npm test` – Vitest + React Testing Library
 
 ### Configuration
 * Backend base URL: `BACKEND_URL` in `src/lib/constants.ts` (defaults to `http://localhost:5000`)
@@ -125,10 +126,20 @@ public/            Static assets
 3. Messages are cached per room for instant switching; history fetched once per room per connection.
 4. Markdown is parsed (short messages fast‑path) then sanitized before render.
 
-### Next Steps
+### Tests
+```bash
+npm test
+```
 
-Deploy the backend + static build, point `BACKEND_URL` to the deployed API, then run:
-
+### Production Build
 ```bash
 npm run build
 ```
+Serve the built assets (done automatically in Azure deployment) or locally via:
+```bash
+npm run preview
+```
+
+### Next Steps
+* Point `BACKEND_URL` (or env) to Azure deployment
+* Add more room / message tests in `src/__tests__`

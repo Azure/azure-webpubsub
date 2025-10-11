@@ -150,6 +150,7 @@ Design choices:
 | Concern | Mitigation |
 |---------|------------|
 | Transient storage / service errors | Broad try/except with logging; degrade gracefully to in‑memory |
+| Role assignment delay (403) | Retry after propagation (~1–2 min); avoid re-creating roles unnecessarily |
 
 ---
 ## 11. RBAC & Security
