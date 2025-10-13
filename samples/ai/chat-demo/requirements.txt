@@ -1,13 +1,18 @@
+############################################################
+# Runtime & test dependencies (fully pinned)
+# Snapshot date: 2025-10-13
+# To update: bump desired lines & reinstall
+############################################################
 Flask[async]==3.0.0
 flask-sock==0.7.0
-openai>=1.0.0
-websockets>=11.0.0
-flask-cors>=4.0.0
-azure-storage-blob>=12.14.0
-azure-messaging-webpubsubservice>=1.0.0
-azure-identity>=1.15.0
-asgiref>=3.7.2
-python-dotenv>=1.0.0
-azure-data-tables>=12.5.0
-pytest>=8.0.0
-pytest-asyncio>=0.23.0
+openai==1.99.9
+websockets==11.0
+flask-cors==6.0.1
+azure-storage-blob==12.26.0
+azure-messaging-webpubsubservice==1.2.2
+azure-identity==1.23.0
+asgiref==3.9.1
+python-dotenv==1.0.1
+azure-data-tables==12.7.0
+pytest==8.3.2
+pytest-asyncio==0.23.8
