@@ -72,7 +72,7 @@ The application uses a JSON-based protocol shaped around Azure Web PubSub conven
 | `WEBPUBSUB_ENDPOINT` | (optional) | Injected via Bicep | Service endpoint; if set uses credential chain |
 | `WEBPUBSUB_CONNECTION_STRING` | (optional) | (not set) | Fallback auth if endpoint+AAD not used |
 | `WEBPUBSUB_HUB` | demo_ai_chat | demo_ai_chat | Hub resource name |
-| `GITHUB_TOKEN` | (user supplied) | (not injected) | Enables AI responses |
+| `GITHUB_TOKEN` | (user supplied) | provode through `githubModelsToken` param) | Enables AI responses |
 | `USE_MANAGED_IDENTITY` | false | true | Prefer ManagedIdentityCredential in Azure |
 | `PUBLIC_WS_ENDPOINT` | (unset) | (optional) | Override externally reachable ws(s) URL |
 | `AZURE_STORAGE_CONNECTION_STRING` | (optional) | (not set if MI used) | Table storage connection (or Azurite) |

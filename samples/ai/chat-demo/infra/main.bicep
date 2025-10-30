@@ -28,6 +28,10 @@ param webPubSubRoleDefinitionId string = '12cf5a90-567b-43ae-8102-96cf46c7d9b4'
 @description('Whether to create (or re-create) role assignments. Set to false to skip if roles already granted.')
 param createRoleAssignments bool = true
 
+@description('Optional GitHub Models token (PAT). Leave blank to skip adding as an app setting. Can be set later via azd provision or portal; prefer Key Vault for production.')
+@secure()
+param githubModelsToken string = ''
+
 // Derived naming (avoid dashes where restricted)
 var suffix = uniqueString(resourceGroup().id, baseName)
 var storageAccountNameBase = toLower(replace('${baseName}${suffix}', '-', ''))
@@ -37,6 +41,55 @@ var storageAccountName = length(storageAccountNameBase) > 24 ? substring(storage
 var webPubSubName = empty(webPubSubNameOverride) ? '${baseName}-wps-${substring(suffix,0,4)}' : webPubSubNameOverride
 var planName = '${baseName}-plan'
 var webAppName = empty(webAppNameOverride) ? '${baseName}-web-${substring(suffix,0,4)}' : webAppNameOverride
+
+// Base App Settings
+var appSettingsBase = [
+  {
+    name: 'TRANSPORT_MODE'
+    value: 'webpubsub'
+  }
+  {
+    name: 'STORAGE_MODE'
+    value: 'table'
+  }
+  {
+    // Prefer ManagedIdentityCredential in Azure runtime; set to false to fall back to DefaultAzureCredential.
+    name: 'USE_MANAGED_IDENTITY'
+    value: 'true'
+  }
+  {
+    // Trigger Oryx remote build so requirements.txt is processed (otherwise zip deploy lacks deps)
+    name: 'SCM_DO_BUILD_DURING_DEPLOYMENT'
+    value: 'true'
+  }
+  {
+    // Explicitly mark for Python platform (defensive; Oryx usually infers)
+    name: 'ENABLE_ORYX_BUILD'
+    value: 'true'
+  }
+  {
+    name: 'WEBPUBSUB_ENDPOINT'
+    value: 'https://${webPubSub.properties.hostName}'
+  }
+  {
+    name: 'WEBPUBSUB_HUB'
+    value: hubName
+  }
+  {
+    name: 'AZURE_STORAGE_ACCOUNT'
+    value: storage.name
+  }
+  {
+    name: 'CHAT_TABLE_NAME'
+    value: chatTableName
+  }
+]
+
+// Conditionally include GitHub token if provided (non-empty)
+var githubTokenSetting = empty(githubModelsToken) ? [] : [ {
+  name: 'GITHUB_TOKEN'
+  value: githubModelsToken
+} ]
 
 // Storage Account
 resource storage 'Microsoft.Storage/storageAccounts@2023-01-01' = {
@@ -118,47 +171,7 @@ resource site 'Microsoft.Web/sites@2023-12-01' = {
     httpsOnly: true
     siteConfig: {
       linuxFxVersion: 'PYTHON|3.12'
-      appSettings: [
-        {
-          name: 'TRANSPORT_MODE'
-          value: 'webpubsub'
-        }
-        {
-          name: 'STORAGE_MODE'
-          value: 'table'
-        }
-        {
-          // Prefer ManagedIdentityCredential in Azure runtime; set to false to fall back to DefaultAzureCredential.
-          name: 'USE_MANAGED_IDENTITY'
-          value: 'true'
-        }
-        {
-          // Trigger Oryx remote build so requirements.txt is processed (otherwise zip deploy lacks deps)
-          name: 'SCM_DO_BUILD_DURING_DEPLOYMENT'
-          value: 'true'
-        }
-        {
-          // Explicitly mark for Python platform (defensive; Oryx usually infers)
-          name: 'ENABLE_ORYX_BUILD'
-          value: 'true'
-        }
-        {
-          name: 'WEBPUBSUB_ENDPOINT'
-          value: 'https://${webPubSub.properties.hostName}'
-        }
-        {
-          name: 'WEBPUBSUB_HUB'
-          value: hubName
-        }
-        {
-          name: 'AZURE_STORAGE_ACCOUNT'
-          value: storage.name
-        }
-        {
-          name: 'CHAT_TABLE_NAME'
-          value: chatTableName
-        }
-      ]
+      appSettings: concat(appSettingsBase, githubTokenSetting)
     }
   }
 }

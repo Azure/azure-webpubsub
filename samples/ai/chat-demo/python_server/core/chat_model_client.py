@@ -8,6 +8,8 @@ import os
 from openai import OpenAI
 from .model_config import resolve_model_config
 
+_LOG = logging.getLogger(__name__ + ".token")
+
 
 class OpenAIChatClient:
     def __init__(
@@ -19,7 +21,7 @@ class OpenAIChatClient:
         model_parameters: Optional[Dict[str, Any]] = None,
     ) -> None:
         if not api_key:
-            raise ValueError("api_key is required for OpenAIChatClient")
+            raise ValueError("api_key is required for OpenAIChatClient (missing GitHub token)")
         self.logger = logging.getLogger(__name__ + ".OpenAIChatClient")
         self.api_key = api_key
         self.api_version = api_version
@@ -86,8 +88,9 @@ def get_openai_chat_client() -> OpenAIChatClient:
     if _client_singleton is None:
         api_key = os.environ.get("GITHUB_TOKEN")
         if not api_key:
-            raise ValueError("GITHUB_TOKEN environment variable is required")
-        # Resolve model name, api_version, and parameters via shared util
+            # Prefer explicit failure so callers surface clear 500 and logs
+            _LOG.error("Missing GITHUB_TOKEN: set githubModelsToken (Bicep param), app setting, or Key Vault reference.")
+            raise ValueError("GITHUB_TOKEN environment variable is required for AI model access")
         model_name, api_version, model_parameters = resolve_model_config(
             env_default_model=os.environ.get("MODEL_NAME", "gpt-4o-mini"),
             env_default_api_version=os.environ.get("API_VERSION", "2024-08-01-preview"),
@@ -111,3 +114,5 @@ def chat_stream(text_input: str, **kwargs: Any) -> Iterator[str]:
 
 def chat(text_input: str, **kwargs: Any) -> str:
     return "".join(chat_stream(text_input, **kwargs))
+
+

@@ -10,6 +10,7 @@ from .core import to_async_iterator, get_room_id  # room store & util exports
 from .config import DEFAULT_ROOM_ID
 from .chat_service.base import ClientConnectionContext, ChatServiceBase
 from .core import chat_stream
+from .core.chat_model_client import get_openai_chat_client
 from .task_manager import ConnectionTaskManager
 from typing import Any, Dict
 
@@ -75,6 +76,15 @@ def register_chat_handlers(chat: ChatServiceBase, app_logger: Any, task_manager:
                 if conversation_history and conversation_history[-1]["role"] == "user" and conversation_history[-1]["content"] == message:
                     conversation_history.pop()
                 app_logger.debug("Sending to AI with history (%d items)", len(conversation_history))
+                try:
+                    # Force early initialization so missing token raises here (not deferred to iteration)
+                    get_openai_chat_client()
+                except Exception as e:  # unexpected init failure
+                    app_logger.exception("AI client init error room=%s: %s", room_id, e)
+                    await _svc.send_to_group(room_id, "[AI disabled, check server log for details.]", [conn.connectionId], "AI")
+                    return
+
+                # Build generator AFTER successful init
                 chunks = chat_stream(message, conversation_history=conversation_history)
                 app_logger.debug("Starting AI stream task to room %s (scheduled on main loop)", room_id)
                 coro = _svc.streaming_to_group(room_id, to_async_iterator(chunks))

@@ -2,8 +2,20 @@
 
 Plain-language updates focused on what demo users can try. Non-customer internal details intentionally omitted.
 
-## [Unreleased]
-Nothing user-facing has changed yet.
+## [0.1.1] - 2025-10-30 (Preview)
+
+### Added
+- `config.json` configuration file added to support different models with distinct parameters.
+
+### Changed
+- Provide `githubModelsToken` parameter for `azd`
+- AI error visibility: early initialization surfaces missing/invalid token directly to users via broadcast message.
+- Logging improved around streaming start / completion / error states.
+
+### Upgrade Guidance (0.1.0 → 0.1.1)
+1. If you want AI immediately, set the token before running `azd up` (or pass `--set githubModelsToken=...`).
+2. If you deployed without a token, just run `azd provision --set githubModelsToken=<token>` to enable AI.
+3. To change the token later, repeat provision with the new value.
 
 ## [0.1.0] - 2025-10-11 (Preview)
 Initial preview release.
