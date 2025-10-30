@@ -1,0 +1,8 @@
+{
+  "model": {
+    "name": "openai/gpt-5",
+    "api_version": "2024-08-01-preview",
+    "parameters": {
+    }
+  }
+}

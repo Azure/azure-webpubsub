@@ -4,7 +4,9 @@ from __future__ import annotations
 """
 import logging
 from typing import Iterator, Optional, List, Dict, Any
+import os
 from openai import OpenAI
+from .model_config import resolve_model_config
 
 
 class OpenAIChatClient:
@@ -14,6 +16,7 @@ class OpenAIChatClient:
         model_name: str,
         api_version: str = "2024-08-01-preview",
         base_url: str = "https://models.github.ai/inference",
+        model_parameters: Optional[Dict[str, Any]] = None,
     ) -> None:
         if not api_key:
             raise ValueError("api_key is required for OpenAIChatClient")
@@ -21,6 +24,9 @@ class OpenAIChatClient:
         self.api_key = api_key
         self.api_version = api_version
         self.model_name = model_name
+        # If provided, these parameters will be forwarded verbatim to the model call.
+        # This allows different models to receive only the parameters they support.
+        self.model_parameters = model_parameters or {}
         self.client = OpenAI(
             base_url=base_url,
             api_key=api_key,
@@ -31,8 +37,6 @@ class OpenAIChatClient:
         self,
         text_input: str,
         conversation_history: Optional[List[Dict[str, Any]]] = None,
-        temperature: float = 0.7,
-        max_tokens: Optional[int] = None,
     ) -> Iterator[str]:
         """Stream assistant response tokens.
 
@@ -48,13 +52,17 @@ class OpenAIChatClient:
                     messages.append({"role": role, "content": content_val})
         messages.append({"role": "user", "content": text_input})
         try:
-            response = self.client.chat.completions.create(
-                messages=messages,  # type: ignore[arg-type]
-                model=self.model_name,
-                temperature=temperature,
-                max_tokens=max_tokens,
-                stream=True,
-            )
+            # Build request kwargs, passing only configured parameters if present.
+            req_kwargs: Dict[str, Any] = {
+                "messages": messages,  # type: ignore[arg-type]
+                "model": self.model_name,
+                "stream": True,
+            }
+            if self.model_parameters:
+                # Only pass parameters explicitly defined in config.json
+                req_kwargs.update(self.model_parameters)
+
+            response = self.client.chat.completions.create(**req_kwargs)
             for chunk in response:  # chunk is expected ChatCompletionChunk
                 try:
                     choices = getattr(chunk, "choices", None)
@@ -76,17 +84,19 @@ _client_singleton: OpenAIChatClient | None = None
 def get_openai_chat_client() -> OpenAIChatClient:
     global _client_singleton
     if _client_singleton is None:
-        import os
-
         api_key = os.environ.get("GITHUB_TOKEN")
         if not api_key:
             raise ValueError("GITHUB_TOKEN environment variable is required")
-        model_name = os.environ.get("MODEL_NAME", "gpt-4o-mini")
-        api_version = os.environ.get("API_VERSION", "2024-08-01-preview")
+        # Resolve model name, api_version, and parameters via shared util
+        model_name, api_version, model_parameters = resolve_model_config(
+            env_default_model=os.environ.get("MODEL_NAME", "gpt-4o-mini"),
+            env_default_api_version=os.environ.get("API_VERSION", "2024-08-01-preview"),
+        )
         _client_singleton = OpenAIChatClient(
             api_key=api_key,
             model_name=model_name,
             api_version=api_version,
+            model_parameters=model_parameters,
         )
     return _client_singleton
 

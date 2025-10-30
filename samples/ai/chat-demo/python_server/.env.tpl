@@ -6,12 +6,6 @@
 # GitHub AI (requires "Models" read-only permission)
 GITHUB_TOKEN="{{GITHUB_TOKEN}}"
 
-# API Version for GitHub AI models
-API_VERSION="{{api_version}}"
-
-# AI Model to use (gpt-4o-mini is recommended for cost efficiency)
-MODEL_NAME="{{model_name}}"
-
 ## Uncomment the below section to use Azure Web PubSub as the transport
 #### Web PubSub Section ###
 # TRANSPORT_MODE="webpubsub"

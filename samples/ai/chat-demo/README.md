@@ -18,22 +18,39 @@ Prereqs:
 * Node 18+
 
 1. Create a PAT with **Models – Read**: https://docs.github.com/en/authentication/keeping-your-account-and-data-secure/managing-your-personal-access-tokens
-2. Install backend + frontend deps:
-  ```bash
-  pip install -r requirements.txt
-  # optional (tests, typing): pip install -r requirements-dev.txt
-  ```
-3. (Set token if you want AI answers)
-  ```bash
-  export GITHUB_TOKEN=<your_pat>        # bash/zsh
-  # PowerShell
-  $env:GITHUB_TOKEN="<your_pat>"
-  ```
-4. Start everything (serves React build automatically):
-  ```bash
-  python start_dev.py
-  ```
-5. Open http://localhost:5173
+2. (Recommended) Create and activate a virtual environment:
+   * macOS/Linux (bash/zsh):
+     ```bash
+     python3 -m venv .venv
+     source .venv/bin/activate
+     python -m pip install --upgrade pip
+     ```
+   * Windows (PowerShell):
+     ```pwsh
+     python -m venv .venv
+     .venv\Scripts\Activate.ps1
+     python -m pip install --upgrade pip
+     ```
+   Deactivate anytime with:
+   ```bash
+   deactivate
+   ```
+3. Install backend + frontend deps (inside the venv):
+   ```bash
+   pip install -r requirements.txt
+   # optional (tests, typing): pip install -r requirements-dev.txt
+   ```
+4. (Set token if you want AI answers)
+   ```bash
+   export GITHUB_TOKEN=<your_pat>        # bash/zsh
+   # PowerShell
+   $env:GITHUB_TOKEN="<your_pat>"
+   ```
+5. Start everything (serves React build automatically):
+   ```bash
+   python start_dev.py
+   ```
+6. Open http://localhost:5173
 
 Running services:
 * HTTP API :5000
@@ -71,29 +88,49 @@ Frontend (Vitest + RTL):
 npm --prefix client test
 ```
 Selected coverage areas (backend): config merge, room store limits, transport factory, room lifecycle, streaming send path.
-Coverage snapshot:
-* Runtime config validation & merging
-* In‑memory room store behavior / limits
-* Chat service builder (self vs webpubsub path & credential preconditions)
-* Room lifecycle (add/remove)
-* Streaming send path basic invariants
 
-#### Frontend (Vitest + RTL)
-Location: `client/src/__tests__`
+## Deploy to Azure
+Install the Azure Developer CLI if you haven't: https://learn.microsoft.com/azure/developer/azure-developer-cli/install-azd
 
-Run:
+```bash
+azd env new chatenv
+azd up
 ```
-npm --prefix client test
+That single `azd up` command:
+1. Provisions Azure Web PubSub + Storage + App Service (with Managed Identity)
+2. Builds the React client
+3. Deploys the Python backend
+4. Prints your site URL + negotiate endpoint
+
+### Enable AI Features (One-time Setup)
+**Important:** `azd up` doesn't deploy your `GITHUB_TOKEN` for security reasons. To enable AI responses in Azure:
+
+```bash
+# Get your resource info
+azd env get-values
+
+# Add your GitHub token (replace with your actual token)
+az webapp config appsettings set \
+  --resource-group <your-resource-group> \
+  --name <your-web-app-name> \
+  --settings GITHUB_TOKEN="ghp_your_github_token_here"
+
+# Restart to pick up the new setting
+az webapp restart \
+  --resource-group <your-resource-group> \
+  --name <your-web-app-name>
 ```
-Included tests:
-* Room switching: cached messages isolated & textarea present after switch
-* Sender fallback: history messages without `from` show `AI Assistant`
 
-Add more ideas:
-* Mid‑stream room switch preserves previous room’s partial content when returning
-* Simulated error banner rendering
-* Theme / avatar contexts snapshot
+**Alternative (Portal):** In Azure Portal → App Service → Configuration → Application settings → New application setting: Name=`GITHUB_TOKEN`, Value=`your-token`
 
+### Next Changes
+```bash
+azd deploy   # code only (frontend or backend)
+```
+Infra template changes:
+```bash
+azd provision && azd deploy
+```
 
 ## Core Environment Variables
 | Variable | Purpose |

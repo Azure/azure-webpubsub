@@ -69,7 +69,9 @@ def start_development() -> None:
         except FileNotFoundError:
             print("❌ npm not found in PATH. Please install Node.js and rerun.")
             return
-
+    else:
+        print("✅ Client dependencies already installed, skipping npm install.")
+        
     # Start processes
     processes = []
     
