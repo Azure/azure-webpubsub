@@ -98,11 +98,6 @@ azd env new chatenv
 azd env set githubModelsToken ghp_your_token_here   # store token for this env
 azd up
 ```
-```pwsh
-azd env new chatenv
-azd env set githubModelsToken ghp_your_token_here   # PowerShell
-azd up
-```
 
 Security note: `azd env set` persists the value in the environment state on disk; avoid committing the `.azure` folder.
 
@@ -118,20 +113,11 @@ That single `azd up` command:
 
 **Option A (Secure Bicep Parameter – default)**
 ```bash
-# First-time environment (bash/zsh)
-export GITHUB_TOKEN=ghp_your_token_here
-azd env set githubModelsToken $GITHUB_TOKEN
-azd up
-
-# First-time environment (PowerShell)
-$env:GITHUB_TOKEN="ghp_your_token_here"
-azd env set githubModelsToken $env:GITHUB_TOKEN
+azd env set githubModelsToken ghp_your_token_here
 azd up
 ```
-Notes:
-- Updating only the token: `azd provision` (no need for `azd deploy`) since it changes an app setting.
-- Rotate securely by switching to Key Vault (Option D) if frequency is high.
-- Remove token: `azd env unset githubModelsToken` then `azd provision` (clears the app setting on the next provision).
+Rotate: `azd env set githubModelsToken <new>` then `azd provision`.
+Remove: `azd env unset githubModelsToken` then `azd provision`.
 
 **Option B (Manual CLI – update anytime)**
 ```bash
