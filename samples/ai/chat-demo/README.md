@@ -95,48 +95,43 @@ Install the Azure Developer CLI if you haven't: https://learn.microsoft.com/azur
 
 ```bash
 azd env new chatenv
-export GITHUB_TOKEN=ghp_your_token_here           # bash/zsh
-azd up --set githubModelsToken=$GITHUB_TOKEN
+azd env set githubModelsToken ghp_your_token_here   # store token for this env
+azd up
 ```
 ```pwsh
 azd env new chatenv
-$env:GITHUB_TOKEN="ghp_your_token_here"          # PowerShell
-azd up --set githubModelsToken=$env:GITHUB_TOKEN
+azd env set githubModelsToken ghp_your_token_here   # PowerShell
+azd up
 ```
+
 Security note: `azd env set` persists the value in the environment state on disk; avoid committing the `.azure` folder.
 
 That single `azd up` command:
 1. Provisions Azure Web PubSub + Storage + App Service (with Managed Identity)
 2. Builds the React client
 3. Deploys the Python backend
-4. Sets app settings passed via `--set` (e.g. `githubModelsToken`)
+4. Applies app settings sourced from previously persisted environment values (e.g. `githubModelsToken` set via `azd env set`)
 5. Prints your site URL + negotiate endpoint
 
 ### Enable AI Features (One-time Setup)
 **Recommended Default:** Pass the token via secure Bicep parameter at provision time (Option A). This avoids surprise hooks and keeps behavior explicit. For production, prefer Key Vault (Option D).
 
 **Option A (Secure Bicep Parameter – default)**
-`azd up` consumes parameters via `--set` the same way `azd provision` does. Pass the token on first run or persist it in the environment.
 ```bash
 # First-time environment (bash/zsh)
 export GITHUB_TOKEN=ghp_your_token_here
-azd up --set githubModelsToken=$GITHUB_TOKEN
+azd env set githubModelsToken $GITHUB_TOKEN
+azd up
 
 # First-time environment (PowerShell)
 $env:GITHUB_TOKEN="ghp_your_token_here"
-azd up --set githubModelsToken=$env:GITHUB_TOKEN
-```
-Persist then use simpler commands:
-```bash
-azd env set githubModelsToken ghp_your_token_here
-azd up   # first time
-# Later rotations:
-azd provision --set githubModelsToken=<new_token>
+azd env set githubModelsToken $env:GITHUB_TOKEN
+azd up
 ```
 Notes:
-- Updating only the token: `azd provision` (no need for deploy) since it changes an app setting.
-- `azd deploy` is for code changes; token changes are infra/app-settings changes.
+- Updating only the token: `azd provision` (no need for `azd deploy`) since it changes an app setting.
 - Rotate securely by switching to Key Vault (Option D) if frequency is high.
+- Remove token: `azd env unset githubModelsToken` then `azd provision` (clears the app setting on the next provision).
 
 **Option B (Manual CLI – update anytime)**
 ```bash
@@ -157,12 +152,6 @@ az webapp restart \
 2. Grant the web app’s managed identity `get` permissions.
 3. Add an app setting: `GITHUB_TOKEN=@Microsoft.KeyVault(SecretUri=https://<vault>.vault.azure.net/secrets/<secret-name>/<version>)`
 4. Restart the web app.
-
-**CI/CD (GitHub Actions)** Inject with a repository secret `GH_MODELS_PAT`:
-```yaml
-- name: Set GitHub Models token
-   run: az webapp config appsettings set --resource-group $RG --name $APP --settings GITHUB_TOKEN=${{ secrets.GH_MODELS_PAT }}
-```
 
 ### Next Changes
 ```bash
@@ -191,7 +180,9 @@ Notes:
 ## Custom Resource Names (Optional)
 Want predictable names? Provide overrides (must be globally unique where required):
 ```bash
-azd provision --set webPubSubNameOverride=mywps1234 --set webAppNameOverride=mychatweb1234
+azd env set webPubSubNameOverride mywps1234
+azd env set webAppNameOverride mychatweb1234
+azd provision
 ```
 
 ## Iteration Cheatsheet
