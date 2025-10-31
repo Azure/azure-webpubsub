@@ -206,6 +206,22 @@ More: **[ADVANCED.md](./docs/ADVANCED.md#2-local-development-paths)**
 - Customize AI logic in `python_server/chat_model_client.py`
 - Review how scalable history works now (Table storage) in the persistence section of the advanced doc.
 
+## Debugging & Logs
+**Control runtime log level**
+- Set `LOG_LEVEL` to adjust all server logs (`DEBUG`, `INFO`, `WARNING`, `ERROR`). Defaults to `INFO`.
+- Optional: customize the format with `LOG_FORMAT` (defaults to `"%(asctime)s %(levelname)s %(name)s: %(message)s"`).
+
+Example (PowerShell):
+```pwsh
+$env:LOG_LEVEL="DEBUG"
+python start_dev.py
+```
+- `DEBUG` enables verbose traces from Flask, OpenAI SDK, and httpx transport.
+
+**Azure App Service**
+- Portal → App Service → Configuration → Application settings → add `LOG_LEVEL`, then restart.
+- Stream logs: `az webapp log tail --resource-group <rg> --name <app-name>`.
+
 ## Troubleshooting
 **App Service setting `GITHUB_TOKEN` missing after `azd up`**
 1. Make sure you set the value *before* the first `azd provision`: `azd env set githubModelsToken <token>`.

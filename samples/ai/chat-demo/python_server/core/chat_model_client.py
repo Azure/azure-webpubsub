@@ -5,6 +5,7 @@ from __future__ import annotations
 import logging
 from typing import Iterator, Optional, List, Dict, Any
 import os
+import inspect
 from openai import OpenAI
 from .model_config import resolve_model_config
 
@@ -26,14 +27,34 @@ class OpenAIChatClient:
         self.api_key = api_key
         self.api_version = api_version
         self.model_name = model_name
-        # If provided, these parameters will be forwarded verbatim to the model call.
-        # This allows different models to receive only the parameters they support.
+        # Raw model parameters from config (may include a special 'system_prompt').
         self.model_parameters = model_parameters or {}
         self.client = OpenAI(
             base_url=base_url,
             api_key=api_key,
             default_query={"api-version": api_version} if api_version else None,
         )
+
+        # Introspect allowed parameter names once (avoid per-call overhead).
+        try:
+            sig = inspect.signature(self.client.chat.completions.create)
+            self._allowed_param_keys = set(sig.parameters.keys())
+        except Exception:  # pragma: no cover
+            # Conservative fallback list if signature introspection fails.
+            self._allowed_param_keys = {
+                "model","messages","max_tokens","temperature","top_p","presence_penalty","frequency_penalty",
+                "stop","n","seed","logprobs","top_logprobs","response_format","stream","modalities","audio"
+            }
+
+        # Extract optional system prompt and build sanitized parameter dict (exclude unsupported keys).
+        sp = self.model_parameters.get("system_prompt") if isinstance(self.model_parameters, dict) else None
+        self.system_prompt: Optional[str] = sp.strip() if isinstance(sp, str) and sp.strip() else None
+        self.sanitized_parameters: Dict[str, Any] = {}
+        for k, v in self.model_parameters.items():
+            if k == "system_prompt":
+                continue
+            if k in self._allowed_param_keys:
+                self.sanitized_parameters[k] = v
 
     def chat_stream(
         self,
@@ -52,6 +73,11 @@ class OpenAIChatClient:
                 content_val = m.get("content")
                 if isinstance(content_val, str):
                     messages.append({"role": role, "content": content_val})
+
+        # Prepend system prompt if configured.
+        if self.system_prompt:
+            messages.insert(0, {"role": "system", "content": self.system_prompt})
+
         messages.append({"role": "user", "content": text_input})
         try:
             # Build request kwargs, passing only configured parameters if present.
@@ -60,9 +86,8 @@ class OpenAIChatClient:
                 "model": self.model_name,
                 "stream": True,
             }
-            if self.model_parameters:
-                # Only pass parameters explicitly defined in config.json
-                req_kwargs.update(self.model_parameters)
+            if self.sanitized_parameters:
+                req_kwargs.update(self.sanitized_parameters)
 
             response = self.client.chat.completions.create(**req_kwargs)
             for chunk in response:  # chunk is expected ChatCompletionChunk
