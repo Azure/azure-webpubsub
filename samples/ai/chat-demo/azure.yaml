@@ -4,11 +4,6 @@ metadata:
 infra:
   provider: bicep
   path: infra
-  # To override the default web app name (<baseName>-web), set parameter:
-  # parameters:
-  #   webAppNameOverride: your-custom-name
-  # To override (or guarantee uniqueness for) the Web PubSub service name:
-  # azd provision --set webPubSubNameOverride=myuniquewpsname123
 services:
   chatserver:
     project: .

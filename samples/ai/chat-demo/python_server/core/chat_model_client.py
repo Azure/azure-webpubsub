@@ -104,12 +104,9 @@ def get_openai_chat_client() -> OpenAIChatClient:
     return _client_singleton
 
 
-def get_chat_model() -> OpenAIChatClient:  # compatibility alias
-    return get_openai_chat_client()
-
-
 def chat_stream(text_input: str, **kwargs: Any) -> Iterator[str]:
-    yield from get_openai_chat_client().chat_stream(text_input, **kwargs)
+    client = get_openai_chat_client()
+    yield from client.chat_stream(text_input, **kwargs)
 
 
 def chat(text_input: str, **kwargs: Any) -> str:

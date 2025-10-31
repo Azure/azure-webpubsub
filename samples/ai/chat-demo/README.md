@@ -220,6 +220,31 @@ More: **[ADVANCED.md](./docs/ADVANCED.md#2-local-development-paths)**
 - Customize AI logic in `python_server/chat_model_client.py`
 - Review how scalable history works now (Table storage) in the persistence section of the advanced doc.
 
+## Troubleshooting
+**App Service setting `GITHUB_TOKEN` missing after `azd up`**
+1. Make sure you set the value *before* the first `azd provision`: `azd env set githubModelsToken <token>`.
+3. If you added the token *after* the first deployment, run `azd provision` (you don't need `azd deploy` for an app setting change). Use `azd provision --no-state` if it claims no changes.
+
+**Changed token but app setting didn’t update**
+- Confirm the parameter file or environment value is non-empty.
+- Run `azd env get githubModelsToken` to verify what azd stored.
+- Re-run `azd provision`. (Only a code change needs `azd deploy`.)
+
+**Early `ECONNREFUSED` errors in the browser during local dev**
+- The React dev server starts first and immediately proxies `/api/*` to Flask while it’s still binding.
+- These transient errors vanish once `Flask app running` appears in the terminal. Safe to ignore.
+
+**Web PubSub negotiate failing (401/403 or missing access)**
+- Ensure the web app’s Managed Identity has necessary roles (e.g. Web PubSub Service Owner / Contributor) on the Web PubSub resource.
+- If using the `createRoleAssignments` parameter and you turned it off after first provision, assign roles manually.
+
+**`Unauthorized` error when calling openai**
+- Check if the GitHub PAT has **model read** permission
+
+**General diagnostic tips**
+- Show current environment values: `azd env get`.
+- List effective app settings (Azure): `az webapp config appsettings list --name <app-name> --resource-group <rg>`.
+
 ---
 Happy hacking! Open an issue or PR in [our GitHub repo](https://github.com/Azure/azure-webpubsub) with feedback.
 
