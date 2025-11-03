@@ -3,7 +3,7 @@ from __future__ import annotations
 """OpenAI chat model client abstraction.
 """
 import logging
-from typing import Iterator, Optional, List, Dict, Any
+from typing import Iterator, Optional, List, Dict, Any, Tuple
 import os
 import inspect
 from openai import OpenAI
@@ -20,6 +20,7 @@ class OpenAIChatClient:
         api_version: str = "2024-08-01-preview",
         base_url: str = "https://models.github.ai/inference",
         model_parameters: Optional[Dict[str, Any]] = None,
+        system_prompt: Optional[Dict[str, str]] = None,
     ) -> None:
         if not api_key:
             raise ValueError("api_key is required for OpenAIChatClient (missing GitHub token)")
@@ -28,7 +29,7 @@ class OpenAIChatClient:
         self.api_version = api_version
         self.model_name = model_name
         # Raw model parameters from config (may include a special 'system_prompt').
-        self.model_parameters = model_parameters or {}
+        self.model_parameters = dict(model_parameters) if isinstance(model_parameters, dict) else {}
         self.client = OpenAI(
             base_url=base_url,
             api_key=api_key,
@@ -42,19 +43,35 @@ class OpenAIChatClient:
         except Exception:  # pragma: no cover
             # Conservative fallback list if signature introspection fails.
             self._allowed_param_keys = {
-                "model","messages","max_tokens","temperature","top_p","presence_penalty","frequency_penalty",
+                "model","messages","max_completion_tokens","temperature","top_p","presence_penalty","frequency_penalty",
                 "stop","n","seed","logprobs","top_logprobs","response_format","stream","modalities","audio"
             }
 
         # Extract optional system prompt and build sanitized parameter dict (exclude unsupported keys).
-        sp = self.model_parameters.get("system_prompt") if isinstance(self.model_parameters, dict) else None
-        self.system_prompt: Optional[str] = sp.strip() if isinstance(sp, str) and sp.strip() else None
+        self.system_prompt_role, self.system_prompt_content = self._normalize_system_prompt(system_prompt)
+        # Drop any stray legacy keys to avoid sending unsupported params.
+        self.model_parameters.pop("system_prompt", None)
+
         self.sanitized_parameters: Dict[str, Any] = {}
         for k, v in self.model_parameters.items():
-            if k == "system_prompt":
-                continue
             if k in self._allowed_param_keys:
                 self.sanitized_parameters[k] = v
+
+    @staticmethod
+    def _normalize_system_prompt(
+        raw_prompt: Optional[Dict[str, Any] | str],
+    ) -> Tuple[str, Optional[str]]:
+        """Normalize provided system prompt into (role, content)."""
+        if isinstance(raw_prompt, dict):
+            raw_content = raw_prompt.get("content")
+            if isinstance(raw_content, str) and raw_content.strip():
+                raw_role = raw_prompt.get("role")
+                role = raw_role.strip() if isinstance(raw_role, str) and raw_role.strip() else "system"
+                return role, raw_content.strip()
+            return "system", None
+        if isinstance(raw_prompt, str) and raw_prompt.strip():
+            return "system", raw_prompt.strip()
+        return "system", None
 
     def chat_stream(
         self,
@@ -75,8 +92,8 @@ class OpenAIChatClient:
                     messages.append({"role": role, "content": content_val})
 
         # Prepend system prompt if configured.
-        if self.system_prompt:
-            messages.insert(0, {"role": "system", "content": self.system_prompt})
+        if self.system_prompt_content:
+            messages.insert(0, {"role": self.system_prompt_role, "content": self.system_prompt_content})
 
         messages.append({"role": "user", "content": text_input})
         try:
@@ -116,7 +133,7 @@ def get_openai_chat_client() -> OpenAIChatClient:
             # Prefer explicit failure so callers surface clear 500 and logs
             _LOG.error("Missing GITHUB_TOKEN: set githubModelsToken (Bicep param), app setting, or Key Vault reference.")
             raise ValueError("GITHUB_TOKEN environment variable is required for AI model access")
-        model_name, api_version, model_parameters = resolve_model_config(
+        model_name, api_version, model_parameters, system_prompt = resolve_model_config(
             env_default_model=os.environ.get("MODEL_NAME", "gpt-4o-mini"),
             env_default_api_version=os.environ.get("API_VERSION", "2024-08-01-preview"),
         )
@@ -125,6 +142,7 @@ def get_openai_chat_client() -> OpenAIChatClient:
             model_name=model_name,
             api_version=api_version,
             model_parameters=model_parameters,
+            system_prompt=system_prompt,
         )
     return _client_singleton
 
@@ -136,5 +154,3 @@ def chat_stream(text_input: str, **kwargs: Any) -> Iterator[str]:
 
 def chat(text_input: str, **kwargs: Any) -> str:
     return "".join(chat_stream(text_input, **kwargs))
-
-
