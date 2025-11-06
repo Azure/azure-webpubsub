@@ -1,0 +1,39 @@
+## .webappignore controls what source files are excluded from App Service packaging.
+## Similar semantics to .gitignore; evaluated by Azure Developer CLI when creating the zip.
+
+# Local environment secrets
+.env
+*.env
+.env.*
+
+# Node modules (rebuilt in prepackage hook / Oryx build)
+client/node_modules
+node_modules
+
+# Git metadata
+**/.git
+
+# Python virtual environments & caches
+**/.venv
+**/__pycache__
+*.py[cod]
+*.log
+
+# Frontend intermediate artifacts (final build copied into python_server/static)
+client/.vite
+client/dist
+
+# DO NOT exclude python_server/static (serves built client)
+
+# Editor / platform cruft
+.vscode
+.idea
+Thumbs.db
+.DS_Store
+
+# Coverage / test artifacts (optional)
+coverage/
+htmlcov/
+
+# Experimental local scripts
+scripts/local*/

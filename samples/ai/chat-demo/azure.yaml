@@ -4,39 +4,16 @@ metadata:
 infra:
   provider: bicep
   path: infra
-  # To override the default web app name (<baseName>-web), set parameter:
-  # parameters:
-  #   webAppNameOverride: your-custom-name
-    # To override (or guarantee uniqueness for) the Web PubSub service name:
-    # azd provision --set webPubSubNameOverride=myuniquewpsname123
 services:
   chatserver:
-    # Use repo root as the project so `python_server` remains a package
-    # and Oryx can load `wsgi:app` from the root wsgi.py
     project: .
     language: python
     host: appservice
-    # Frontend build hook (build React and copy static files) - ensure this exists in project root or scripts
     hooks:
       prepackage:
         windows:
           shell: pwsh
-          run: |
-            Push-Location .\client
-            if (Test-Path node_modules) {
-              Write-Host "Reusing existing node_modules" 
-            } else {
-              Write-Host "Installing dependencies in client/" 
-              npm install
-            }
-            npm run build
-            Pop-Location
-            if (Test-Path .\python_server\static) { Remove-Item -Recurse -Force .\python_server\static }
-            Copy-Item -Recurse .\client\dist .\python_server\static
+          run: ./scripts/prepackage.ps1
         posix:
           shell: sh
-          run: |
-            (cd ./client && ([ -d node_modules ] || npm install) && npm run build)
-            rm -rf ./python_server/static
-            mkdir -p ./python_server
-            cp -R ./client/dist ./python_server/static
+          run: ./scripts/prepackage.sh

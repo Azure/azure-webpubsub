@@ -18,22 +18,40 @@ Prereqs:
 * Node 18+
 
 1. Create a PAT with **Models – Read**: https://docs.github.com/en/authentication/keeping-your-account-and-data-secure/managing-your-personal-access-tokens
-2. Install backend + frontend deps:
-  ```bash
-  pip install -r requirements.txt
-  # optional (tests, typing): pip install -r requirements-dev.txt
-  ```
-3. (Set token if you want AI answers)
-  ```bash
-  export GITHUB_TOKEN=<your_pat>        # bash/zsh
-  # PowerShell
-  $env:GITHUB_TOKEN="<your_pat>"
-  ```
-4. Start everything (serves React build automatically):
-  ```bash
-  python start_dev.py
-  ```
-5. Open http://localhost:5173
+2. (Recommended) Create and activate a virtual environment:
+   * macOS/Linux (bash/zsh):
+     ```bash
+     python3 -m venv .venv
+     source .venv/bin/activate
+     python -m pip install --upgrade pip
+     ```
+   * Windows (PowerShell):
+     ```pwsh
+     python -m venv .venv
+     .venv\Scripts\Activate.ps1
+     python -m pip install --upgrade pip
+     ```
+   Deactivate anytime with:
+   ```bash
+   deactivate
+   ```
+3. Install backend + frontend deps (inside the venv):
+   ```bash
+   pip install -r requirements.txt
+   # optional (tests, typing): pip install -r requirements-dev.txt
+   ```
+4. (Set token if you want AI answers)
+   ```bash
+   export GITHUB_TOKEN=<your_pat>        # bash/zsh
+   # PowerShell
+   $env:GITHUB_TOKEN="<your_pat>"
+   ```
+   Alternatively, you can update GITHUB_TOKEN in [./python_server/.env](./python_server/.env)
+5. Start everything (serves React build automatically):
+   ```bash
+   python start_dev.py
+   ```
+6. Open http://localhost:5173
 
 Running services:
 * HTTP API :5000
@@ -71,29 +89,64 @@ Frontend (Vitest + RTL):
 npm --prefix client test
 ```
 Selected coverage areas (backend): config merge, room store limits, transport factory, room lifecycle, streaming send path.
-Coverage snapshot:
-* Runtime config validation & merging
-* In‑memory room store behavior / limits
-* Chat service builder (self vs webpubsub path & credential preconditions)
-* Room lifecycle (add/remove)
-* Streaming send path basic invariants
 
-#### Frontend (Vitest + RTL)
-Location: `client/src/__tests__`
+## Deploy to Azure
+Install the Azure Developer CLI if you haven't: https://learn.microsoft.com/azure/developer/azure-developer-cli/install-azd
 
-Run:
+```bash
+azd env new chatenv
+azd env set githubModelsToken ghp_your_token_here   # store token for this env
+azd up
 ```
-npm --prefix client test
+
+Security note: `azd env set` persists the value in the environment state on disk; avoid committing the `.azure` folder.
+
+That single `azd up` command:
+1. Provisions Azure Web PubSub + Storage + App Service (with Managed Identity)
+2. Builds the React client
+3. Deploys the Python backend
+4. Applies app settings sourced from previously persisted environment values (e.g. `githubModelsToken` set via `azd env set`)
+5. Prints your site URL + negotiate endpoint
+
+### Enable AI Features (One-time Setup)
+**Recommended Default:** Pass the token via secure Bicep parameter at provision time (Option A). This avoids surprise hooks and keeps behavior explicit. For production, prefer Key Vault (Option D).
+
+**Option A (Secure Bicep Parameter – default)**
+```bash
+azd env set githubModelsToken ghp_your_token_here
+azd up
 ```
-Included tests:
-* Room switching: cached messages isolated & textarea present after switch
-* Sender fallback: history messages without `from` show `AI Assistant`
+Rotate: `azd env set githubModelsToken <new>` then `azd provision`.
+Remove: `azd env unset githubModelsToken` then `azd provision`.
 
-Add more ideas:
-* Mid‑stream room switch preserves previous room’s partial content when returning
-* Simulated error banner rendering
-* Theme / avatar contexts snapshot
+**Option B (Manual CLI – update anytime)**
+```bash
+az webapp config appsettings set \
+   --resource-group <your-resource-group> \
+   --name <your-web-app-name> \
+   --settings GITHUB_TOKEN="ghp_your_github_token_here"
 
+az webapp restart \
+   --resource-group <your-resource-group> \
+   --name <your-web-app-name>
+```
+
+**Option C (Portal)** Azure Portal → App Service → Configuration → Application settings → New application setting: Name=`GITHUB_TOKEN`, Value=`your-token`
+
+**Option D (Key Vault Reference – production / rotation)**
+1. Store the PAT as a secret in a Key Vault you control.
+2. Grant the web app’s managed identity `get` permissions.
+3. Add an app setting: `GITHUB_TOKEN=@Microsoft.KeyVault(SecretUri=https://<vault>.vault.azure.net/secrets/<secret-name>/<version>)`
+4. Restart the web app.
+
+### Next Changes
+```bash
+azd deploy   # code only (frontend or backend)
+```
+Infra template changes:
+```bash
+azd provision && azd deploy
+```
 
 ## Core Environment Variables
 | Variable | Purpose |
@@ -113,7 +166,9 @@ Notes:
 ## Custom Resource Names (Optional)
 Want predictable names? Provide overrides (must be globally unique where required):
 ```bash
-azd provision --set webPubSubNameOverride=mywps1234 --set webAppNameOverride=mychatweb1234
+azd env set webPubSubNameOverride mywps1234
+azd env set webAppNameOverride mychatweb1234
+azd provision
 ```
 
 ## Iteration Cheatsheet
@@ -150,6 +205,47 @@ More: **[ADVANCED.md](./docs/ADVANCED.md#2-local-development-paths)**
 - Try hybrid tunnel mode for full lifecycle locally
 - Customize AI logic in `python_server/chat_model_client.py`
 - Review how scalable history works now (Table storage) in the persistence section of the advanced doc.
+
+## Debugging & Logs
+**Control runtime log level**
+- Set `LOG_LEVEL` to adjust all server logs (`DEBUG`, `INFO`, `WARNING`, `ERROR`). Defaults to `INFO`.
+- Optional: customize the format with `LOG_FORMAT` (defaults to `"%(asctime)s %(levelname)s %(name)s: %(message)s"`).
+
+Example (PowerShell):
+```pwsh
+$env:LOG_LEVEL="DEBUG"
+python start_dev.py
+```
+- `DEBUG` enables verbose traces from Flask, OpenAI SDK, and httpx transport.
+
+**Azure App Service**
+- Portal → App Service → Configuration → Application settings → add `LOG_LEVEL`, then restart.
+- Stream logs: `az webapp log tail --resource-group <rg> --name <app-name>`.
+
+## Troubleshooting
+**App Service setting `GITHUB_TOKEN` missing after `azd up`**
+1. Make sure you set the value *before* the first `azd provision`: `azd env set githubModelsToken <token>`.
+3. If you added the token *after* the first deployment, run `azd provision` (you don't need `azd deploy` for an app setting change). Use `azd provision --no-state` if it claims no changes.
+
+**Changed token but app setting didn’t update**
+- Confirm the parameter file or environment value is non-empty.
+- Run `azd env get githubModelsToken` to verify what azd stored.
+- Re-run `azd provision`. (Only a code change needs `azd deploy`.)
+
+**Early `ECONNREFUSED` errors in the browser during local dev**
+- The React dev server starts first and immediately proxies `/api/*` to Flask while it’s still binding.
+- These transient errors vanish once `Flask app running` appears in the terminal. Safe to ignore.
+
+**Web PubSub negotiate failing (401/403 or missing access)**
+- Ensure the web app’s Managed Identity has necessary roles (e.g. Web PubSub Service Owner / Contributor) on the Web PubSub resource.
+- If using the `createRoleAssignments` parameter and you turned it off after first provision, assign roles manually.
+
+**`Unauthorized` error when calling openai**
+- Check if the GitHub PAT has **model read** permission
+
+**General diagnostic tips**
+- Show current environment values: `azd env get`.
+- List effective app settings (Azure): `az webapp config appsettings list --name <app-name> --resource-group <rg>`.
 
 ---
 Happy hacking! Open an issue or PR in [our GitHub repo](https://github.com/Azure/azure-webpubsub) with feedback.

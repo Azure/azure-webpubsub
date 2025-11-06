@@ -33,10 +33,12 @@
 | `createRoleAssignments` | Whether to create RBAC role assignments (set false after first success if re-provisioning identity) | `true` |
 
 ## Naming & Collisions
-Web PubSub names are globally unique. If an override is not supplied the template appends a short deterministic hash for uniqueness. Supply your own overrides when automating repeated ephemeral environments:
+Web PubSub names are globally unique. If an override is not supplied the template appends a short deterministic hash for uniqueness. Set overrides via environment values, then provision:
 
 ```powershell
-azd provision --set webPubSubNameOverride=mywps1234 --set webAppNameOverride=mychatweb1234
+azd env set webPubSubNameOverride mywps1234
+azd env set webAppNameOverride mychatweb1234
+azd provision
 ```
 
 ## Deploy (Standalone Bicep)
@@ -96,7 +98,14 @@ Created when `createRoleAssignments=true`:
 | Web PubSub Service Owner | Web PubSub resource |
 | Storage Table Data Contributor | Storage account |
 
-If you re-provision and encounter `RoleAssignmentUpdateNotPermitted`, disable creation (`--set createRoleAssignments=false`) or remove the existing assignments manually first.
+If you re-provision and encounter `RoleAssignmentUpdateNotPermitted`, disable creation:
+
+```powershell
+azd env set createRoleAssignments false
+azd provision
+```
+
+Or remove the existing assignments manually first.
 
 ## Cleanup
 ```powershell

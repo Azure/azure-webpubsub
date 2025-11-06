@@ -18,6 +18,10 @@ import zipfile
 
 CHAT_DIR = Path(__file__).parent.resolve()
 DEFAULT_OUT = CHAT_DIR.parent / f"{CHAT_DIR.name}.zip"
+EXCLUDE_FROM_ZIP = {
+    "tests/test_config_template.py",
+    "zip_chat_demo.py",
+}
 
 
 def get_files_via_git(chat_dir):
@@ -59,6 +63,9 @@ def create_zip(chat_dir, files, out_path):
             src = chat_dir / f
             if not src.exists():
                 print(f"  Skipping missing file: {f}")
+                continue
+            if f in EXCLUDE_FROM_ZIP:
+                print(f"  Excluding {f}")
                 continue
             # Store files under a top-level folder named after the chat-demo directory
             arcname = f"{CHAT_DIR.name}/{f}"

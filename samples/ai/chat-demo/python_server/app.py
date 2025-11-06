@@ -7,6 +7,7 @@ hosts can serve immediately after import.
 from __future__ import annotations
 
 import asyncio
+import logging
 import threading
 import os
 from pathlib import Path
@@ -113,6 +114,22 @@ STATIC_DIST = _packaged_static if _packaged_static.exists() else _dev_dist
 # Flask app for HTTP endpoints.
 app = Flask(__name__)
 
+# -----------------------------------------------------
+# Logging configuration (deployment + local friendly)
+# -----------------------------------------------------
+log_level_name = os.getenv("LOG_LEVEL", "INFO").upper()
+log_format = os.getenv("LOG_FORMAT", "%(asctime)s %(levelname)s %(name)s: %(message)s")
+
+if not hasattr(logging, log_level_name):  # fallback if an unknown level is provided
+    log_level_name = "INFO"
+
+base_log_level = getattr(logging, log_level_name, logging.INFO)
+logging.basicConfig(level=base_log_level, format=log_format, force=True)
+app.logger.setLevel(base_log_level)
+logging.getLogger("werkzeug").setLevel(base_log_level)
+logging.getLogger("openai").setLevel(base_log_level)
+logging.getLogger("httpx").setLevel(base_log_level)
+
 # Development vs Production mode
 DEV_MODE = os.getenv("DEV") in ("1", "true", "True") or os.getenv("FLASK_ENV") == "development"
 
@@ -136,9 +153,10 @@ try:
 except Exception as e:
     raise SystemExit(f"Runtime configuration error: {e}")
 app.logger.info(
-    "Runtime modes: transport=%s storage=%s",
+    "Runtime modes: transport=%s storage=%s (log_level=%s)",
     _runtime.transport.value,
     _runtime.storage.value,
+    log_level_name,
 )
 room_store = build_room_store(app.logger, storage_mode=_runtime.storage)
 chat_service: Any | None = None  # will be set by bootstrap thread
