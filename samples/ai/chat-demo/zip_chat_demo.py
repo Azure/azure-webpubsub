@@ -20,6 +20,7 @@ CHAT_DIR = Path(__file__).parent.resolve()
 DEFAULT_OUT = CHAT_DIR.parent / f"{CHAT_DIR.name}.zip"
 EXCLUDE_FROM_ZIP = {
     "tests/test_config_template.py",
+    "zip_chat_demo.py",
 }
 
 
