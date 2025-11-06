@@ -1,7 +1,5 @@
 {
   "model": {
-    "name": "{{model_name}}",
-    "api_version": "{{api_version}}",
     
 {{#systemWithQuote}}
     "system_prompt": {
@@ -14,6 +12,10 @@
         "content": {{{systemWithQuote}}}
     },
 {{/systemWithQuote}}
-    "parameters": {{{parameters_json}}}
+{{#parameters_json}}
+    "parameters": {{{parameters_json}}},
+{{/parameters_json}}
+    "api_version": "{{api_version}}",
+    "name": "{{model_name}}"
   }
 }
