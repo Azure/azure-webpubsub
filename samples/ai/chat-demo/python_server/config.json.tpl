@@ -1,6 +1,5 @@
 {
   "model": {
-    
 {{#systemWithQuote}}
     "system_prompt": {
 {{#o1}}
