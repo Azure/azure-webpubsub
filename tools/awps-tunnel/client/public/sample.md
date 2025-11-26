@@ -25,7 +25,7 @@ const handler = new WebPubSubEventHandler(hub, {
     if (req.dataType === "text") {
       res.success(`Echo back ${req.data}`, req.dataType);
     } else if (req.dataType === "json") {
-      res.success(`Echo back: ${JSON.stringify(req.data)}`, req.dataType);
+      res.success(req.data, req.dataType);
     } else {
       res.success(req.data, req.dataType);
     }
