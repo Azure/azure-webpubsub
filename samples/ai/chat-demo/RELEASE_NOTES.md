@@ -2,6 +2,11 @@
 
 Plain-language updates focused on what demo users can try. Non-customer internal details intentionally omitted.
 
+## [0.1.2] - (2025-11-26)
+
+### Added
+- `config.json.tpl` to support more parameters.
+
 ## [0.1.1] - 2025-10-30 (Preview)
 
 ### Added
