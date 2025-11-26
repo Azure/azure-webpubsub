@@ -14,13 +14,16 @@ export async function startUpstreamServer(port: number, hub: string, path: strin
       },
       handleUserEvent(req, res) {
         printer.log(`[Upstream] User event triggered`);
-        if (req.dataType === "text") {
-          res.success(`Echo back ${req.data}`, req.dataType);
-        } else if (req.dataType === "json") {
-          res.success(`Echo back: ${JSON.stringify(req.data)}`, req.dataType);
-        } else {
-          res.success(req.data, req.dataType);
+        const payload = req.data as string | ArrayBuffer | undefined;
+        if (req.dataType === "text" && typeof payload === "string") {
+          res.success(`Echo back ${payload}`, req.dataType);
+          return;
         }
+        if (req.dataType === "json" && payload !== undefined) {
+          res.success(JSON.stringify(payload), req.dataType);
+          return;
+        }
+        res.success(payload, req.dataType);
       },
       onConnected() {
         printer.log(`[Upstream] Connected triggered`);

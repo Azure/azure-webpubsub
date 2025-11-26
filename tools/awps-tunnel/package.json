@@ -4,6 +4,8 @@
   "description": "A server tunnel to connect Azure Web PubSub and your local server",
   "main": "server/src/server.ts",
   "scripts": {
+    "bootstrap": "cd server && npm install && cd ../client && npm install",
+    "prestart": "npm run build",
     "client": "cd client && npm start",
     "server": "cd server && npm run start",
     "start": "npm run server && npm run client",
