@@ -21,14 +21,17 @@ const handler = new WebPubSubEventHandler(hub, {
     res.success();
   },
   handleUserEvent(req, res) {
-    console.log(`User event triggered`);
-    if (req.dataType === "text") {
-      res.success(`Echo back ${req.data}`, req.dataType);
-    } else if (req.dataType === "json") {
-      res.success(req.data, req.dataType);
-    } else {
-      res.success(req.data, req.dataType);
+    console.log(`[Upstream] User event triggered`);
+    const payload = req.data as string | ArrayBuffer | undefined;
+    if (req.dataType === "text" && typeof payload === "string") {
+      res.success(`Echo back ${payload}`, req.dataType);
+      return;
     }
+    if (req.dataType === "json" && payload !== undefined) {
+      res.success(JSON.stringify(payload), req.dataType);
+      return;
+    }
+    res.success(payload, req.dataType);
   },
   onConnected() {
     console.log(`Connected triggered`);
