@@ -24,6 +24,7 @@ def _build_context(
     parameters: Dict[str, Any] | None = None,
     response_format: Optional[Dict[str, Any]] = None,
     o1: bool = False,
+    include_parameters: bool = True,
 ) -> Dict[str, Any]:
     params = dict(parameters or {})
     param_dict: Dict[str, Any] = {}
@@ -43,11 +44,12 @@ def _build_context(
     context: Dict[str, Any] = {
         "model_name": model_name,
         "api_version": api_version,
-        "parameters_json": json.dumps(param_dict),
     }
 
     if system_prompt is not None:
         context["systemWithQuote"] = json.dumps(system_prompt)
+    if include_parameters:
+        context["parameters_json"] = json.dumps(param_dict)
     if o1:
         context["o1"] = True
     return context
@@ -190,3 +192,16 @@ def test_template_omits_system_prompt_when_not_provided():
     payload = json.loads(_render(context))
     assert "system_prompt" not in payload["model"]
     assert payload["model"]["parameters"] == {"temperature": 0.6}
+
+
+def test_template_omits_parameters_when_not_supplied():
+    context = _build_context(
+        model_name="gpt-raw",
+        api_version="2024-08-01-preview",
+        system_prompt="Be neutral.",
+        include_parameters=False,
+    )
+
+    payload = json.loads(_render(context))
+    assert payload["model"]["system_prompt"]["content"] == "Be neutral."
+    assert "parameters" not in payload["model"]
