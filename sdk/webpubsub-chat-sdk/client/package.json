@@ -1,0 +1,22 @@
+{
+  "name": "webpubsub-chat-sdk",
+  "version": "1.0.0",
+  "description": "server sdk for web pubsub chat",
+  "type": "module",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "generate:types": "openapi-typescript swagger/openapi.yaml -o src/generatedTypes.ts"
+  },
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "@azure/web-pubsub-client": "^1.0.2",
+    "events": "^3.3.0"
+  },
+  "devDependencies": {
+    "@types/events": "^3.0.3",
+    "openapi-typescript": "^7.10.1"
+  }
+}
