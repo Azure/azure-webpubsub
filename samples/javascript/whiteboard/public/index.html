@@ -150,12 +150,12 @@
                 <b>Message color</b>
               </div>
               <div class="dropdown">
-                <a class="dropdown-toggle" href="#" id="dropdownMenuButton" role="button" data-toggle="dropdown">
+                <a class="dropdown-toggle" href="#" id="dropdownMenuButton" role="button" data-toggle="dropdown" aria-label="Select message color">
                   <span class="toolbox selected" v-bind:style="{ 'background-color': messageColor }"></span>
                 </a>
                 <div class="dropdown-menu">
                   <a v-for="c in colors" v-bind:class="{ active: c === messageColor, 'dropdown-item': true }"
-                    v-on:click.prevent="messageColor = c" href="#">
+                    v-on:click.prevent="messageColor = c" href="#" v-bind:aria-label="`Message color ${c}`">
                     <span class="toolbox" v-bind:style="{ 'background-color': c }"></span>
                   </a>
                 </div>
