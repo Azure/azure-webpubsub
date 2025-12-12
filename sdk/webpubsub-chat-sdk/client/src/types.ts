@@ -1,0 +1,38 @@
+import { components } from "./generatedTypes.js";
+
+// Export commonly used types for direct import
+export type NotificationType = components["schemas"]["NotificationType"];
+export type Notification = components["schemas"]["Notification"];
+export type NewMessageNotification = components["schemas"]["NewMessageNotification"];
+export type NewRoomNotification = components["schemas"]["NewRoomNotification"];
+export type UpdateMessageNotification = components["schemas"]["UpdateMessageNotification"];
+export type AddContactNotification = components["schemas"]["AddContactNotification"];
+export type UserProfile = components["schemas"]["UserProfile"];
+export type ListUserConversationRequest = components["schemas"]["ListUserConversationRequest"];
+export type ListUserConversationResponse = components["schemas"]["ListUserConversationResponse"];
+export type ChatConversation = components["schemas"]["ChatConversation"];
+export type ApprovalEnum = components["schemas"]["ApprovalEnum"];
+export type UserPolicy = components["schemas"]["UserPolicy"];
+export type ContactResultState = components["schemas"]["ContactResultState"];
+export type AddContactResult = components["schemas"]["AddContactResult"];
+export type ContactRequest = components["schemas"]["ContactRequest"];
+export type ContactOperation = components["schemas"]["ContactOperation"];
+export type ContactRequestOperation = components["schemas"]["ContactRequestOperation"];
+export type RoomInfo = components["schemas"]["RoomInfo"];
+export type RoomMemberJoinEnum = components["schemas"]["RoomMemberJoinEnum"];
+export type RoomMessagePermissionEnum = components["schemas"]["RoomMessagePermissionEnum"];
+export type RoomReactPermissionEnum = components["schemas"]["RoomReactPermissionEnum"];
+export type RoomPolicy = components["schemas"]["RoomPolicy"];
+export type MessageRangeQuery = components["schemas"]["MessageRangeQuery"];
+export type MessageInfo = components["schemas"]["MessageInfo"];
+export type CreateTextMessage = components["schemas"]["CreateTextMessage"];
+export type CreateMessage = components["schemas"]["CreateMessage"];
+export type MessageBody = components["schemas"]["MessageBody"];
+export type JoinRoomState = components["schemas"]["JoinRoomState"];
+export type JoinRoomResult = components["schemas"]["JoinRoomResult"];
+export type JoinRoomRequest = components["schemas"]["JoinRoomRequest"];
+export type JoinRoomOperationEnum = components["schemas"]["JoinRoomOperationEnum"];
+export type JoinRoomOperation = components["schemas"]["JoinRoomOperation"];
+export type RoomMember = components["schemas"]["RoomMember"];
+export type RoomMemberOperationEnum = components["schemas"]["RoomMemberOperationEnum"];
+export type RoomMemberOperation = components["schemas"]["RoomMemberOperation"];
