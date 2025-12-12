@@ -34,11 +34,22 @@
         </el-row>
         <el-row>
             <el-col :span="24">
-                <el-table :data="tableData" class="table" :header-cell-style="{ color: 'black' }" :cell-class-name="() => 'table-cell'">
-                    <el-table-column prop="quarter" label="" />
-                    <el-table-column prop="scoreL" :label="teams.teamL" />
-                    <el-table-column prop="scoreR" :label="teams.teamR" />
-                </el-table>
+                <table class="table" aria-label="Match details by quarter">
+                    <thead>
+                        <tr>
+                            <th scope="col">Quarter</th>
+                            <th scope="col">{{ teams.teamL }}</th>
+                            <th scope="col">{{ teams.teamR }}</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr v-for="(row, index) in tableData" :key="index">
+                            <th scope="row">{{ row.quarter }}</th>
+                            <td>{{ row.scoreL }}</td>
+                            <td>{{ row.scoreR }}</td>
+                        </tr>
+                    </tbody>
+                </table>
             </el-col>
         </el-row>
     </el-card>
@@ -56,7 +67,7 @@ import { anime } from '@maybecode/vue-next-animejs'
 import 'element-plus/theme-chalk/display.css'
 
 const teams = ref(new MatchTeams('', ''))
-const tableData = ref([{}])
+const tableData = ref([] as Array<{ quarter: string; scoreL: number; scoreR: number }>)
 const scores = ref([0, 0] as [number, number])
 const logoL = ref('')
 const logoR = ref('')
