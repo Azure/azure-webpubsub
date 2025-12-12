@@ -98,6 +98,53 @@ code {
   background-color: rgba(0, 0, 0, 0);
 }
 
+.copy-button-aria code .token.string,
+.copy-button-aria code .token.attr-value,
+.copy-button-aria code .token.char,
+.copy-button-aria code .token.inserted,
+pre code .token.string,
+pre code .token.attr-value,
+pre code .token.char,
+pre code .token.inserted {
+  color: #b31d00 !important; /* Stronger contrast on light background (>=4.5:1) */
+}
+
+/* Fallback for tokens without subtype (override inline colors) */
+.copy-button-aria code .token:not(.function):not(.method):not(.property-access):not(.keyword):not(.number):not(.constant):not(.literal-property):not(.property):not(.comment):not(.string):not(.attr-value):not(.char):not(.inserted),
+pre code .token:not(.function):not(.method):not(.property-access):not(.keyword):not(.number):not(.constant):not(.literal-property):not(.property):not(.comment):not(.string):not(.attr-value):not(.char):not(.inserted) {
+  color: #b31d00 !important;
+}
+
+/* Improve Prism token contrast (light background + highlighted lines) */
+pre code .token.function,
+pre code .token.method,
+pre code .token.property-access,
+pre code .token.keyword,
+.theme-code-block code .token.function,
+.theme-code-block code .token.method,
+.theme-code-block code .token.property-access,
+.theme-code-block code .token.keyword {
+  color: #ad2e39 !important; /* >=4.7:1 on #f6f8fa and #dddfe1 */
+}
+
+pre code .token.number,
+pre code .token.constant,
+pre code .token.literal-property,
+pre code .token.property,
+pre code .token.literal-property.property,
+.theme-code-block code .token.number,
+.theme-code-block code .token.constant,
+.theme-code-block code .token.literal-property,
+.theme-code-block code .token.property,
+.theme-code-block code .token.literal-property.property {
+  color: #1f6967 !important; /* >=4.8:1 on #dddfe1 and #f6f8fa */
+}
+
+pre code .token.comment,
+.theme-code-block code .token.comment {
+  color: #626257 !important; /* >=4.6:1 on #dddfe1 and #f6f8fa */
+}
+
 .icon_inline {
   display: inline-block;
   height: 12px;
