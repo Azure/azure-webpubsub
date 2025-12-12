@@ -12,9 +12,8 @@ class ChatClient {
         this._wpsClient = wpsClient;
     }
 
-    // add a type as parameter
     private async invokeEvent<T>(eventName: string, payload: any): Promise<T> {
-        // const result = await client.invokeEvent("processOrder", { orderId: 1 }, "json");
+        // const rawResponse = await this._wpsClient.invokeEvent(eventName, payload, "json");
         var rawResponse = "";
         return JSON.parse(rawResponse) as T;
     }
@@ -32,51 +31,44 @@ class ChatClient {
     }
 
     public async getUserInfo(userId: string): Promise<UserProfile> {
-        return this.invokeEvent<UserProfile>(INVOCATION_NAME.user.GET_USER_PROPERTIES, { UserId: userId });
+        return this.invokeEvent<UserProfile>(INVOCATION_NAME.USER.GET_USER_PROPERTIES, { UserId: userId });
     }
 
     public async listConversationByUser(continuationToken?: string, MaxCount?: number): Promise<{ conversations: ChatConversation[]; continuationToken?: string }> {
-        const result = await this.invokeEvent<{ Conversations: ChatConversation[]; ContinuationToken?: string }>(INVOCATION_NAME.user.LIST_USER_CONVERSATION, { ContinuationToken: continuationToken, MaxCount: MaxCount });
+        const result = await this.invokeEvent<{ Conversations: ChatConversation[]; ContinuationToken?: string }>(INVOCATION_NAME.USER.LIST_USER_CONVERSATION, { ContinuationToken: continuationToken, MaxCount: MaxCount });
         return { conversations: result.Conversations, continuationToken: result.ContinuationToken };
     }
 
-    // public async listMessages(user: UserProfile, options: MessageRangeQuery): Promise<MessageInfo[]> {
-    //     // Placeholder implementation
-    //     return [];
-    // }
-
     public async sendToConversation(conversationId: string, message: string): Promise<MessageInfo> {
         const payload = {
-            Conversation: {
-                ConversationId: conversationId
-            },
+            Conversation: { ConversationId: conversationId },
             Message: message
         }
-        return this.invokeEvent<MessageInfo>(INVOCATION_NAME.messages.SEND_TEXT_MESSAGE, payload);
+        return this.invokeEvent<MessageInfo>(INVOCATION_NAME.MESSAGES.SEND_TEXT_MESSAGE, payload);
     }
 
-    // ask if correct
-    public async sendToRoom(room: string|RoomInfo, message: string): Promise<MessageInfo> {
-        const conversationId = typeof room == "string" ? (await this.getRoom(room)).DefaultConversation  : room.DefaultConversation;
+    public async sendToRoom(roomId: string, message: string): Promise<MessageInfo> {
+        const conversationId = this._rooms.get(roomId)?.DefaultConversation;
+        if (!conversationId) {
+            throw Error(`Failed to sendToRoom, invalid roomId ${roomId}`)
+        }
         return this.sendToConversation(conversationId, message);
     }
 
-    // make it a property getter?
     public get rooms(): RoomInfo[] {
         return Array.from(this._rooms.values());
     }
 
     public async getRoom(roomId: string): Promise<RoomInfo> {
-        return this.invokeEvent<RoomInfo>(INVOCATION_NAME.rooms.GET_ROOM, { id: roomId });
+        return this.invokeEvent<RoomInfo>(INVOCATION_NAME.ROOMS.GET_ROOM, { id: roomId });
     }
 
     public async createRoom(roomDetails: { title: string; members: string[] }): Promise<RoomInfo> {
-        return this.invokeEvent<RoomInfo>(INVOCATION_NAME.roomsManagement.CREATE_ROOM, roomDetails);
+        return this.invokeEvent<RoomInfo>(INVOCATION_NAME.ROOMS_MANAGEMENT.CREATE_ROOM, roomDetails);
     }
 
-    public async sendToUser(user: string|UserProfile, message: string): Promise<void> { 
-        const userId = typeof user == "string" ? user : user.UserId;
-        return ;
+    public async sendToUser(user: string, message: string): Promise<void> { 
+        throw new Error("Not implemented")
     }
 
 }

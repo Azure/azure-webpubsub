@@ -1,22 +1,22 @@
 const INVOCATION_NAME = {
-    login: {
+    LOGIN: {
         LOGIN: "chat:Login"
     },
-    user: {
+    USER: {
         LIST_USER_CONVERSATION: "chat:ListUserConversation", // P0
         GET_USER_PROPERTIES: "chat:GetUserProperties",
     },
-    contacts: {
+    CONTACTS: {
 
     },
-    rooms: {
+    ROOMS: {
         GET_ROOM: "chat:GetRoom",
     },
-    messages: {
+    MESSAGES: {
         LIST_MESSAGES: "chat:ListMessages",
         SEND_TEXT_MESSAGE: "chat:SendTextMessage",
     },
-    roomsManagement: {
+    ROOMS_MANAGEMENT: {
         CREATE_ROOM: "chatmgmt:CreateRoom",
     },
 }

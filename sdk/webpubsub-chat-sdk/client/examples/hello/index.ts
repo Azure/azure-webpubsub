@@ -22,9 +22,7 @@ while (true) {
     console.log(result.conversations);
 }
 
-let message1 = await chatClient.sendToUser(bob, "hi bob");
-// or equivalently:
-let message2 = await chatClient.sendToUser(bob.UserId, "hi bob!");
+let message1 = await chatClient.sendToUser(bob.UserId, "hi bob!");
 
 // P0(MVP): get chat room title.
 let rooms: RoomInfo[] = chatClient.rooms;
@@ -41,8 +39,6 @@ let room = await chatClient.createRoom({
 });
 
 // P0(MVP): send a text message in room.
-let message3 = await chatClient.sendToRoom(room, "hi everyone!");
+let message2 = await chatClient.sendToRoom(room.RoomId, "hi everyone!");
 // or equivalently:
-let message4 = await chatClient.sendToRoom(room.RoomId, "hi everyone!");
-// or equivalently:
-let message5 = await chatClient.sendToConversation(room.DefaultConversation, "hi everyone!");
+let message3 = await chatClient.sendToConversation(room.DefaultConversation, "hi everyone!");
