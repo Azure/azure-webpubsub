@@ -175,3 +175,16 @@ pre:focus {
 pre {
     tabindex: -1; /* Remove tabindex from non-interactive elements */
 }
+
+/* Visible focus for embedded demos/iframes */
+iframe:focus,
+iframe:focus-visible {
+  outline: 3px solid #2563eb !important;
+  outline-offset: 4px !important;
+}
+
+.iframe-focusable-wrapper:focus,
+.iframe-focusable-wrapper:focus-visible {
+  outline: 3px solid #2563eb !important;
+  outline-offset: 4px !important;
+}
