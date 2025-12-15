@@ -19,8 +19,8 @@
   <div id="app">
     <header>
       <nav class="navbar navbar-expand-sm navbar-light bg-light fixed-top">
-        <a href="#" class="navbar-brand" v-on:click.prevent="showSettings">
-          <img id="logo" src="images/logo.png" alt="logo"
+        <a href="#" class="navbar-brand" v-on:click.prevent="showSettings" aria-label="Settings">
+          <img id="logo" src="images/logo.png" alt="Settings"
             v-bind:class="{ 'nav-logo-img': true, disconnected: !connected }">
         </a>
         <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarSupportedContent" aria-label="whiteboard toolbox" >
