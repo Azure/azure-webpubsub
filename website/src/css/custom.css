@@ -102,17 +102,22 @@ code {
 .copy-button-aria code .token.attr-value,
 .copy-button-aria code .token.char,
 .copy-button-aria code .token.inserted,
+.theme-code-block code .token.string,
+.theme-code-block code .token.attr-value,
+.theme-code-block code .token.char,
+.theme-code-block code .token.inserted,
 pre code .token.string,
 pre code .token.attr-value,
 pre code .token.char,
 pre code .token.inserted {
-  color: #c84800 !important; /* contrast 4.79:1 on white */
+  color: #ab3c00 !important; /* >=4.65:1 on #dddfe1 and >=4.5:1 on white */
 }
 
 /* Fallback for tokens without subtype (override inline colors) */
 .copy-button-aria code .token:not(.function):not(.method):not(.property-access):not(.keyword):not(.number):not(.constant):not(.literal-property):not(.property):not(.comment):not(.string):not(.attr-value):not(.char):not(.inserted),
+.theme-code-block code .token:not(.function):not(.method):not(.property-access):not(.keyword):not(.number):not(.constant):not(.literal-property):not(.property):not(.comment):not(.string):not(.attr-value):not(.char):not(.inserted),
 pre code .token:not(.function):not(.method):not(.property-access):not(.keyword):not(.number):not(.constant):not(.literal-property):not(.property):not(.comment):not(.string):not(.attr-value):not(.char):not(.inserted) {
-  color: #c84800 !important; /* matches recommended contrast for inline tokens */
+  color: #ab3c00 !important; /* matches recommended contrast for highlighted lines */
 }
 
 /* Improve Prism token contrast (light background + highlighted lines) */
