@@ -69,3 +69,19 @@ svg {
   width: 240px;
   height: 240px;
 }
+
+/* Improve primary button contrast for WCAG 1.4.3 */
+.btn-primary {
+  background-color: #006ee5;
+  border-color: #006ee5;
+}
+
+.btn-primary:hover,
+.btn-primary:focus,
+.btn-primary:active,
+.btn-primary:not(:disabled):not(.disabled).active,
+.btn-primary:not(:disabled):not(.disabled):active,
+.show>.btn-primary.dropdown-toggle {
+  background-color: #005fc4;
+  border-color: #005fc4;
+}
