@@ -8,7 +8,7 @@
                         <el-col :span="24">
                             <el-row class="match horizontal-center" v-for="(s, i) in c.scores" :key="i">
                                 <el-col :span="3">
-                                    <img class="thumbnail-image" :src="c.thumbnails[i].value" aria-label="thumbnail image"/>
+                                    <img class="thumbnail-image" :src="c.thumbnails[i].value" :alt="`${c.teams[i]} thumbnail`" :aria-label="`${c.teams[i]} thumbnail`"/>
                                 </el-col>
                                 <el-col class="horizontal-center" :span="2" :offset="1"> {{ c.teams[i] }} </el-col>
                                 <el-col class="horizontal-center" :offset="10" :span="1"> {{ s }}</el-col>
