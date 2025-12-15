@@ -106,13 +106,13 @@ pre code .token.string,
 pre code .token.attr-value,
 pre code .token.char,
 pre code .token.inserted {
-  color: #b31d00 !important; /* Stronger contrast on light background (>=4.5:1) */
+  color: #c84800 !important; /* contrast 4.79:1 on white */
 }
 
 /* Fallback for tokens without subtype (override inline colors) */
 .copy-button-aria code .token:not(.function):not(.method):not(.property-access):not(.keyword):not(.number):not(.constant):not(.literal-property):not(.property):not(.comment):not(.string):not(.attr-value):not(.char):not(.inserted),
 pre code .token:not(.function):not(.method):not(.property-access):not(.keyword):not(.number):not(.constant):not(.literal-property):not(.property):not(.comment):not(.string):not(.attr-value):not(.char):not(.inserted) {
-  color: #b31d00 !important;
+  color: #c84800 !important; /* matches recommended contrast for inline tokens */
 }
 
 /* Improve Prism token contrast (light background + highlighted lines) */
