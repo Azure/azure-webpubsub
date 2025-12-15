@@ -325,6 +325,13 @@ async function initialize() {
     keyboard: false
   });
 
+  // update aria-expanded for message log toggle button
+  $('#message-log').on('shown.bs.collapse', function () {
+    $('button[data-target="#message-log"]').attr('aria-expanded', 'true');
+  }).on('hidden.bs.collapse', function () {
+    $('button[data-target="#message-log"]').attr('aria-expanded', 'false');
+  });
+
   // update zoom level for small devices
   let w = window.innerWidth;
   diagram.zoom(w < 576 ? 1 / 3 :
