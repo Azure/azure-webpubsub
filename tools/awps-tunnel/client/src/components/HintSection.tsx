@@ -1,5 +1,4 @@
 import { MessageBar, MessageBarBody } from "@fluentui/react-components";
-import { ResizablePanel } from "./ResizablePanel";
 
 export const HintSection = () => (
   <div className="d-flex flex-column mt-1 flex-fill">

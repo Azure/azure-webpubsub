@@ -47,6 +47,22 @@ export const Playground = (props: PlaygroundProps) => {
   const isManual = dataFetcher.kind === "manual";
   const [dialogOpen, setDialogOpen] = useState(false);
   const addedInitialClient = useRef(false);
+  function addTestClient(template: TestClientTemplate) {
+    // TODO: when there are multiple clients with the same type in the future, we need an id generator
+    clientCounter++;
+    const client: TestClientViewModel = { ...template, type: template.id, id: template.id + clientCounter, counter: clientCounter };
+    setClients((i) => [...i, client]);
+    setSelectedClient(client.id);
+  }
+
+  const availableClients = useMemo(
+    () => [
+      { icon: <PlugDisconnected24Regular />, title: "Raw", id: "websocket", description: "The Raw WebSocket Client" },
+      { icon: <PlugDisconnected24Filled />, title: "PubSub", id: "webpubsub", description: "The PubSub WebSocket Client" }, // TODO: add subprotocol support
+      // { icon: <Rss24Regular />, title: "MQTT V5", id: "mqtt5", description: "MQTT V5 Client" }, // TODO: add mqtt support
+    ],
+    [],
+  );
   useEffect(() => {
     const fetchUrl = async () => {
       const newUrl = await dataFetcher.invoke("getClientAccessUrl", undefined, undefined, undefined);
@@ -77,7 +93,7 @@ export const Playground = (props: PlaygroundProps) => {
       addedInitialClient.current = true;
       addTestClient(availableClients[0]); // default Raw client
     }
-  }, [isManual]);
+  }, [availableClients, isManual]);
 
   const handleUrlChange = (newUrl: string) => {
     setUrl(newUrl);
@@ -85,22 +101,6 @@ export const Playground = (props: PlaygroundProps) => {
       void dataFetcher.invoke("setClientAccessUrl", newUrl);
     }
   };
-  function addTestClient(template: TestClientTemplate) {
-    // TODO: when there are multiple clients with the same type in the future, we need an id generator
-    clientCounter++;
-    const client: TestClientViewModel = { ...template, type: template.id, id: template.id + clientCounter, counter: clientCounter };
-    setClients((i) => [...i, client]);
-    setSelectedClient(client.id);
-  }
-
-  const availableClients = useMemo(
-    () => [
-      { icon: <PlugDisconnected24Regular />, title: "Raw", id: "websocket", description: "The Raw WebSocket Client" },
-      { icon: <PlugDisconnected24Filled />, title: "PubSub", id: "webpubsub", description: "The PubSub WebSocket Client" }, // TODO: add subprotocol support
-      // { icon: <Rss24Regular />, title: "MQTT V5", id: "mqtt5", description: "MQTT V5 Client" }, // TODO: add mqtt support
-    ],
-    [],
-  );
 
   const showAddButton = !isManual || clients.length > 0;
   const hasUrl = !!(url ?? "").trim();
