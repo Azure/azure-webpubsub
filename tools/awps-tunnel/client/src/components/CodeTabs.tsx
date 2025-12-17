@@ -11,27 +11,13 @@ const CodeTabs = ({ className }: { className?: string | undefined }) => {
 
   const [htmlSections, setHtmlSections] = useState<{ title: string; html: string }[]>([]);
   useEffect(() => {
-    let cancelled = false;
-
-    const loadSample = async (): Promise<void> => {
-      try {
-        const response = await fetch(process.env.PUBLIC_URL + "/sample.md");
-        if (!response.ok) {
-          return; // optional sample; skip if missing
-        }
-        const data = await response.text();
-        if (!cancelled) {
-          setMarkdownContent(data);
-        }
-      } catch {
-        // optional sample; ignore failures
-      }
-    };
-
-    loadSample();
-    return () => {
-      cancelled = true;
-    };
+    // Load your Markdown file here (e.g., via fetch or import)
+    // For example, using fetch:
+    fetch(process.env.PUBLIC_URL + "/sample.md")
+      .then((response) => response.text())
+      .then((data) => {
+        setMarkdownContent(data);
+      });
   }, []);
 
   useEffect(() => {
