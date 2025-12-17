@@ -10,8 +10,7 @@ function SplitDemo({
   rightSrc,
   description,
   languages,
-  githubURL,
-  iframeFocusable = false,
+  githubURL
 }) {
   return (
     <div className="pattern-dots-sm mb-10 relative">
@@ -19,9 +18,9 @@ function SplitDemo({
       <div className={`flex flex-col items-center ${leftSrc && rightSrc ? 'gap-6' : 'w-full'} py-4 drop-shadow-xl xl:flex-row`}>
         {leftSrc && (
           <div
-            tabIndex={iframeFocusable ? 0 : undefined}
-            className={iframeFocusable ? 'iframe-focusable-wrapper' : ''}
-            style={iframeFocusable ? { display: 'inline-block', width: '95%' } : {}}
+            tabIndex={0}
+            className={"iframe-focusable-wrapper h-[400px] w-full xl:h-[600px]"}
+            style={{ display: 'inline-block', width: '95%' }}
           >
             <iframe
               src={leftSrc}
@@ -33,9 +32,9 @@ function SplitDemo({
         )}
         {rightSrc && (
           <div
-            tabIndex={iframeFocusable ? 0 : undefined}
-            className={iframeFocusable ? 'iframe-focusable-wrapper' : ''}
-            style={iframeFocusable ? { display: 'inline-block', width: '95%' } : {}}
+            tabIndex={0}
+            className={"iframe-focusable-wrapper h-[400px] w-full xl:h-[600px]"}
+            style={{ display: 'inline-block', width: '95%' }}
           >
             <iframe
               src={rightSrc}

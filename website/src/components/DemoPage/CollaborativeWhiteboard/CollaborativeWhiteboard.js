@@ -26,7 +26,6 @@ function CollaborativeWhiteboard() {
         width="400"
         languages={languages}
         githubURL={githubURL}
-        iframeFocusable
       />
 
       <div className="max-w-full overflow-hidden">
