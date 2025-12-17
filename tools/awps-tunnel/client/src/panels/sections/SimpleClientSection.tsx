@@ -2,11 +2,12 @@ import { useState, useRef } from "react";
 import { Checkbox, Textarea, Input, MessageBar, MessageBarBody } from "@fluentui/react-components";
 import { DefaultButton, DetailsList, DetailsListLayoutMode, SelectionMode } from "@fluentui/react";
 import { ResizablePanel } from "../../components/ResizablePanel";
+import { HintSection } from "../../components/HintSection";
 import { TrafficItem, TrafficItemViewModel } from "../../components/TrafficItem";
 import { ConnectionStatus } from "../../models";
 import { ClientPannelProps } from "../Playground";
 
-export const SimpleClientSection = ({ onStatusChange, url }: ClientPannelProps) => {
+export const SimpleClientSection = ({ onStatusChange, url, allowUrlEdit, onUrlChange, showHints }: ClientPannelProps) => {
   const [connected, setConnected] = useState<boolean>(false);
   const [showSubprotocol, setShowSubprotocol] = useState(false);
   const [subprotocol, setSubprotocol] = useState("");
@@ -26,7 +27,12 @@ export const SimpleClientSection = ({ onStatusChange, url }: ClientPannelProps) 
   };
   const connect = () => {
     try {
-      const connection = new WebSocket(url, showSubprotocol ? subprotocol : undefined);
+      const target = (url ?? "").trim();
+      if (!target) {
+        setError("Client URL is required.");
+        return;
+      }
+      const connection = new WebSocket(target, showSubprotocol ? subprotocol : undefined);
       connection.onopen = (event) => {
         setConnected(true);
         onStatusChange(ConnectionStatus.Connected);
@@ -92,7 +98,17 @@ export const SimpleClientSection = ({ onStatusChange, url }: ClientPannelProps) 
   return (
     <>
       <div className="d-flex">
-        <Input className="flex-fill" readOnly={true} placeholder="Loading" value={url}></Input>
+        <Input
+          className="flex-fill"
+          readOnly={!allowUrlEdit || connected}
+          placeholder="wss://<resource>.webpubsub.azure.com/client/hubs/<hub>?access_token=..."
+          value={url}
+          onChange={(ev, data) => {
+            if (allowUrlEdit && !connected && onUrlChange) {
+              onUrlChange(data.value ?? "");
+            }
+          }}
+        ></Input>
       </div>
       {!connected && (
         <div className="d-flex flex-row">
@@ -113,12 +129,13 @@ export const SimpleClientSection = ({ onStatusChange, url }: ClientPannelProps) 
         {url && !connected && <DefaultButton onClick={connect}>Connect</DefaultButton>}
         {url && connected && <DefaultButton onClick={disconnect}>Disconnect</DefaultButton>}
       </div>
+      {allowUrlEdit && showHints && !connected && <HintSection />}
       {error && (
         <MessageBar intent="error" className="text-danger">
           {error}
         </MessageBar>
       )}
-      {connected && <ResizablePanel className="flex-fill" left={connectPane} right={trafficPane}></ResizablePanel>}
+      {connected && <ResizablePanel initialLeftWidth="60%" className="flex-fill" left={connectPane} right={trafficPane}></ResizablePanel>}
     </>
   );
 };

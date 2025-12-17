@@ -2,7 +2,7 @@ import React, { useEffect, useState } from "react";
 import { RequestHistory } from "../panels/RequestHistory";
 import "./Dashboard.css";
 import { Panel, PanelType } from "@fluentui/react";
-import { Tab, TabList, Accordion, AccordionHeader, AccordionItem, AccordionPanel, ToggleButton, CounterBadge } from "@fluentui/react-components";
+import { Tab, TabList, Accordion, AccordionHeader, AccordionItem, AccordionPanel, ToggleButton, CounterBadge, Button } from "@fluentui/react-components";
 import * as svg from "./icons";
 import { DocumentOnePageMultiple24Regular, Link24Regular } from "@fluentui/react-icons";
 import type { SelectTabData, SelectTabEvent } from "@fluentui/react-components";
@@ -46,6 +46,8 @@ export const Dashboard = () => {
   const [showPanel, setShowPanel] = useState(false);
   const [clientConnectionStatus, setClientConnectionStatus] = useState(ConnectionStatus.Disconnected);
   const { data, dataFetcher } = useDataContext();
+  const isManual = dataFetcher.kind === "manual";
+  const [isFullscreen, setIsFullscreen] = useState<boolean>(isManual);
   const [tunnelUnread, setTunnelUnread] = useState(0);
   const onStartUpstream = async (start: boolean) => {
     return start ? await dataFetcher.invoke("startEmbeddedUpstream") : await dataFetcher.invoke("stopEmbeddedUpstream");
@@ -128,12 +130,28 @@ export const Dashboard = () => {
   const [selectedValue, setSelectedValue] = React.useState<string>(loadCurrentTab());
 
   useEffect(() => {
+    if (isManual && selectedValue !== "client") {
+      setSelectedValue("client");
+    }
+  }, [isManual, selectedValue]);
+
+  useEffect(() => {
+    const previousTitle = document.title;
+    document.title = isManual ? "Azure Web PubSub Quick Try" : "Azure Web PubSub Local Development Dashboard";
+    return () => {
+      document.title = previousTitle;
+    };
+  }, [isManual]);
+
+  useEffect(() => {
     setCurrentTab(selectedValue);
   }, [selectedValue]);
 
+  const visibleWorkflows = isManual ? workflows.filter((w) => w.key === "client") : workflows;
+
   const workflow = () => (
     <div className="workflow d-flex flex-row justify-content-center align-items-center m-2">
-      {workflows.map((w, i) => (
+      {visibleWorkflows.map((w, i) => (
         <React.Fragment key={i}>
           <WorkflowStep checked={selectedValue === w.key} unread={w.unread} onClick={() => setSelectedValue(w.key)} icon={w.icon(true)} text={w.title} />
           {w.status && <Connector status={w.status} />}
@@ -147,17 +165,21 @@ export const Dashboard = () => {
     setSelectedValue(data.value as string);
   };
 
+  const tabList = (
+    <TabList size="large" className="m-2" selectedValue={selectedValue} onTabSelect={onTabSelect} vertical={!isFullscreen}>
+      {visibleWorkflows.map((w, i) => (
+        <React.Fragment key={i}>
+          <Tab id={w.key} icon={<span>{w.icon()}</span>} value={w.key}>
+            {w.title} {w.unread > 0 && <CounterBadge size="small" count={w.unread}></CounterBadge>}
+          </Tab>
+        </React.Fragment>
+      ))}
+    </TabList>
+  );
+
   const tabSidebar = (
     <>
-      <TabList size="large" className="m-2" selectedValue={selectedValue} onTabSelect={onTabSelect} vertical>
-        {workflows.map((w, i) => (
-          <React.Fragment key={i}>
-            <Tab id={w.key} icon={<span>{w.icon()}</span>} value={w.key}>
-              {w.title} {w.unread > 0 && <CounterBadge size="small" count={w.unread}></CounterBadge>}
-            </Tab>
-          </React.Fragment>
-        ))}
-      </TabList>
+      {tabList}
       <Accordion collapsible>
         <AccordionItem value="1">
           <AccordionHeader>Help center</AccordionHeader>
@@ -189,29 +211,51 @@ export const Dashboard = () => {
   );
   const connectPane = (
     <>
-      {workflows.map((w, i) => (
+      {visibleWorkflows.map((w, i) => (
         // Use hidden to prevent re-rendering
         <div key={i} hidden={selectedValue !== w.key} className="d-flex flex-column flex-fill overflow-auto">
-          <Accordion className="" collapsible defaultOpenItems={"1"}>
-            <AccordionItem value="1">
-              <AccordionHeader size="large">{w.title}</AccordionHeader>
-              <AccordionPanel>{paneOverview(w)}</AccordionPanel>
-            </AccordionItem>
-          </Accordion>
-          <hr />
+          {!isManual && (
+            <>
+              <Accordion className="" collapsible defaultOpenItems={"1"}>
+                <AccordionItem value="1">
+                  <AccordionHeader size="large">{w.title}</AccordionHeader>
+                  <AccordionPanel>{paneOverview(w)}</AccordionPanel>
+                </AccordionItem>
+              </Accordion>
+              <hr />
+            </>
+          )}
           {w.content}
         </div>
       ))}
     </>
   );
 
+  const fullscreenNav = visibleWorkflows.length > 1 ? (
+    <div className="d-flex flex-row align-items-center justify-content-start mx-2">{tabList}</div>
+  ) : null;
+
   return (
     <div className="d-flex flex-column flex-fill overflow-auto">
       <Panel type={PanelType.medium} className="logPanel" isLightDismiss isOpen={showPanel} onDismiss={() => setShowPanel(false)} closeButtonAriaLabel="Close" headerText="Logs">
         <textarea className="flex-fill" disabled value={data.logs.map((log) => `${log.time.toISOString()} [${LogLevel[log.level]}] ${log.message}`).join("\n")} />
       </Panel>
-      {workflow()}
-      <ResizablePanel className="flex-fill" left={tabSidebar} right={connectPane} initialLeftWidth="200px"></ResizablePanel>
+      {!isManual && (
+        <div className="d-flex flex-row justify-content-end align-items-center mx-2 my-1">
+          <Button size="small" appearance={isFullscreen ? "secondary" : "primary"} onClick={() => setIsFullscreen((f) => !f)}>
+            {isFullscreen ? "Exit fullscreen" : "Enter fullscreen"}
+          </Button>
+        </div>
+      )}
+      {!isFullscreen && workflow()}
+      {isFullscreen ? (
+        <div className="d-flex flex-column flex-fill overflow-auto">
+          {fullscreenNav}
+          {connectPane}
+        </div>
+      ) : (
+        <ResizablePanel className="flex-fill" left={tabSidebar} right={connectPane} initialLeftWidth="200px"></ResizablePanel>
+      )}
     </div>
   );
 };

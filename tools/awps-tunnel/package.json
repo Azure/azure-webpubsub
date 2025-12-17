@@ -12,7 +12,8 @@
     "test": "cd client && npm test",
     "build": "cd server && npm run build",
     "lint": "cd client && npm run lint",
-    "format": "cd client && npm run format"
+    "format": "cd client && npm run format",
+    "publish:quick-try": "cross-env PUBLIC_URL=. npm --prefix client run build:manual && cmd /C \"robocopy client\\build ..\\..\\website\\static\\quick-try /MIR & if %25ERRORLEVEL%25 LSS 8 exit /B 0\""
   },
   "repository": {
     "type": "git",

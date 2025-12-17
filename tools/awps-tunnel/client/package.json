@@ -76,15 +76,18 @@
     "typescript": "^5.1.6"
   },
   "overrides": {
-    "autoprefixer": "10.4.5"
+    "autoprefixer": "10.4.5",
+    "typescript": "5.1.6"
   },
   "scripts": {
     "clean": "rimraf ./build",
     "start": "cross-env REACT_APP_DATA_FETCHER=mock REACT_APP_API_VERSION=2023-07-01 react-scripts start",
+    "start:manual": "cross-env REACT_APP_DATA_FETCHER=manual REACT_APP_API_VERSION=2023-07-01 react-scripts start",
     "prebuild": "node scripts/downloadExamples.js",
     "build": "npm run build:mock",
     "build:npm": "npm run prebuild && cross-env REACT_APP_DATA_FETCHER=npm REACT_APP_API_VERSION=2023-07-01 react-scripts build",
     "build:mock": "npm run prebuild && cross-env REACT_APP_DATA_FETCHER=mock REACT_APP_API_VERSION=2023-07-01 react-scripts build",
+    "build:manual": "npm run prebuild && cross-env REACT_APP_DATA_FETCHER=manual REACT_APP_API_VERSION=2023-07-01 react-scripts build",
     "test": "cross-env CI=true REACT_APP_DATA_FETCHER=mock REACT_APP_API_VERSION=2023-07-01 react-scripts test",
     "eject": "react-scripts eject",
     "lint": "eslint ./src/"

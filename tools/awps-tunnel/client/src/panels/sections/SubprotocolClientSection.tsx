@@ -2,6 +2,7 @@ import { useState, useRef, useEffect } from "react";
 import { Checkbox, Dropdown, Option, Textarea, Input, Label, Tab, TabList, TabValue, Field, InfoLabel, MessageBar } from "@fluentui/react-components";
 import { DefaultButton, DetailsList, DetailsListLayoutMode, SelectionMode } from "@fluentui/react";
 import { ResizablePanel } from "../../components/ResizablePanel";
+import { HintSection } from "../../components/HintSection";
 import { TrafficItem, TrafficItemViewModel } from "../../components/TrafficItem";
 import { ConnectionStatus } from "../../models";
 import { ClientPannelProps } from "../Playground";
@@ -278,7 +279,7 @@ function ConnectPane({ connected, onSendingMessage, sendError }: { connected: bo
   );
 }
 
-export const SubprotocolClientSection = ({ onStatusChange, url }: ClientPannelProps) => {
+export const SubprotocolClientSection = ({ onStatusChange, url, allowUrlEdit, onUrlChange, showHints }: ClientPannelProps) => {
   const transferOptions = [
     { key: "json", text: "JSON", subprotocol: "json.webpubsub.azure.v1" },
     { key: "rjson", text: "Reliable JSON", subprotocol: "json.reliable.webpubsub.azure.v1" },
@@ -297,6 +298,7 @@ export const SubprotocolClientSection = ({ onStatusChange, url }: ClientPannelPr
   const [initialGroups, setInitialGroups] = useState<string[]>([]);
 
   const connectionRef = useRef<WebPubSubClient | null>(null);
+  const canConnect = !!subprotocol && !!(url ?? "").trim();
 
   const disconnect = () => {
     onStatusChange(ConnectionStatus.Disconnected);
@@ -317,11 +319,16 @@ export const SubprotocolClientSection = ({ onStatusChange, url }: ClientPannelPr
     setError("");
     setSendError("");
     setTraffic([]);
+    const targetUrl = (url ?? "").trim();
+    if (!targetUrl) {
+      setError("Client URL is required.");
+      return;
+    }
     const connection = new WebPubSubClient(
       {
         getClientAccessUrl: async () => {
           if (joinLeaveGroups.length === 0 && publishGroups.length === 0) {
-            return url; // url is updated in the data provider
+            return targetUrl; // url is updated in the data provider
           }
           const roles = joinLeaveGroups.map((s) => `webpubsub.joinLeaveGroup.${s}`).concat(publishGroups.map((s) => `webpubsub.sendToGroup.${s}`));
           // elsewise, we need to add group permissions
@@ -427,7 +434,17 @@ export const SubprotocolClientSection = ({ onStatusChange, url }: ClientPannelPr
             ))}
           </Dropdown>
         )}
-        <Input className="flex-fill" readOnly={true} placeholder="Loading" value={url}></Input>
+        <Input
+          className="flex-fill"
+          readOnly={!allowUrlEdit || connected}
+          placeholder="wss://<resource>.webpubsub.azure.com/client/hubs/<hub>?access_token=..."
+          value={url}
+          onChange={(ev, data) => {
+            if (allowUrlEdit && !connected && onUrlChange) {
+              onUrlChange(data.value ?? "");
+            }
+          }}
+        ></Input>
       </div>
       {url && !connected && (
         <div>
@@ -456,11 +473,13 @@ export const SubprotocolClientSection = ({ onStatusChange, url }: ClientPannelPr
               <Input id="publishGroupInput" placeholder="Use comma(,) to separate" onChange={(ev, data) => setPublishGroups(getDelimitedArray(data.value))} />
             </div>
           </div>
-          <DefaultButton disabled={!subprotocol} className="flex-right" onClick={connect}>
+          <DefaultButton disabled={!canConnect} className="flex-right" onClick={connect}>
             Connect
           </DefaultButton>
         </div>
       )}
+
+      {allowUrlEdit && showHints && !connected && <HintSection />}
 
       {url && connected && (
         <div>
@@ -483,7 +502,14 @@ export const SubprotocolClientSection = ({ onStatusChange, url }: ClientPannelPr
       )}
       {error && <b className="text-danger">{error}</b>}
       <MessageBar>Press F12 to view the real network traffic flow</MessageBar>
-      {connected && <ResizablePanel className="flex-fill" left={<ConnectPane sendError={sendError} connected={connected} onSendingMessage={send}></ConnectPane>} right={trafficPane}></ResizablePanel>}
+      {connected && (
+        <ResizablePanel
+          initialLeftWidth="60%"
+          className="flex-fill"
+          left={<ConnectPane sendError={sendError} connected={connected} onSendingMessage={send}></ConnectPane>}
+          right={trafficPane}
+        ></ResizablePanel>
+      )}
     </>
   );
 };

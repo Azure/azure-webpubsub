@@ -23,27 +23,40 @@ const ref = 'main';
 const examplesPath = `specification/webpubsub/data-plane/WebPubSub/stable/${version}/examples`;
 const apiFilePath = `specification/webpubsub/data-plane/WebPubSub/stable/${version}/webpubsub.json`;
 
+const githubToken = process.env.GITHUB_TOKEN || process.env.GH_TOKEN || process.env.GITHUB_PAT;
+const axiosClient = axios.create({
+	headers: {
+		'User-Agent': 'awps-tunnel-download-examples',
+		...(githubToken ? { Authorization: `Bearer ${githubToken}` } : {}),
+	},
+});
+
 async function downloadFiles() {
 	try {
 		const examplesUrl = `https://api.github.com/repos/${repoPath}/contents/${examplesPath}?ref=${ref}`;
-		const examplesResponse = await axios.get(examplesUrl);
+		const examplesResponse = await axiosClient.get(examplesUrl);
 		const files = examplesResponse.data;
-		
+
 		for (const file of files) {
 			if (file.type === 'file') {
-				const fileResponse = await axios.get(file.download_url, { responseType: 'arraybuffer' });
+				const fileResponse = await axiosClient.get(file.download_url, { responseType: 'arraybuffer' });
 				fs.writeFileSync(path.join(examplesDir, file.name), fileResponse.data);
 			}
 		}
-		console.log("All example files downloaded successfully.")
-		
+		console.log("All example files downloaded successfully.");
+
 		const apiUrl = `https://api.github.com/repos/${repoPath}/contents/${apiFilePath}?ref=${ref}`;
-		const apiResponse = await axios.get(apiUrl, { responseType: 'json' });
-		const apiFileResponse = await axios.get(apiResponse.data.download_url, { responseType: 'arraybuffer' });
+		const apiResponse = await axiosClient.get(apiUrl, { responseType: 'json' });
+		const apiFileResponse = await axiosClient.get(apiResponse.data.download_url, { responseType: 'arraybuffer' });
 		fs.writeFileSync(path.join(apiDir, apiResponse.data.name), apiFileResponse.data);
 		console.log('api spec downloaded successfully.');
 	} catch (error) {
-		console.error('Error downloading files:', error);
+		if (error?.response?.status === 403 && error?.response?.data?.message?.includes('API rate limit exceeded')) {
+			console.error('Error downloading files: GitHub API rate limit exceeded. Provide GITHUB_TOKEN to increase the limit.');
+		} else {
+			console.error('Error downloading files:', error);
+		}
+		process.exit(1);
 	}
 }
 

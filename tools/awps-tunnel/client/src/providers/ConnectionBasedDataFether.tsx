@@ -4,6 +4,7 @@ import { IDataFetcher } from "./IDataFetcher";
 import { loadApiSpec } from "../utils";
 
 abstract class ConnectionBasedDataFether implements IDataFetcher {
+  public kind = "socket" as const;
   public model: DataModel = {
     ready: false,
     endpoint: "",
