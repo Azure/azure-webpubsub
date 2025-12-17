@@ -7,9 +7,9 @@
                   <span> &nbsp; </span>
                 </el-row>
                 <el-row justify="space-around" class="horizontal-center">
-                    <img class="thumbnail-image" :src="c.thumbnails[0].value" aria-label="thumbnail image"/>
+                    <img class="thumbnail-image" :src="c.thumbnails[0].value" :alt="`${c.teams[0]} thumbnail`" :aria-label="`${c.teams[0]} thumbnail`"/>
                     {{ c.scores[0] + ' : ' + c.scores[1] }}
-                    <img class="thumbnail-image" :src="c.thumbnails[1].value" aria-label="thumbnail image"/>
+                    <img class="thumbnail-image" :src="c.thumbnails[1].value" :alt="`${c.teams[1]} thumbnail`" :aria-label="`${c.teams[1]} thumbnail`"/>
                 </el-row>
             </el-card>
         </el-col>

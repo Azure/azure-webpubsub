@@ -19,8 +19,8 @@
   <div id="app">
     <header>
       <nav class="navbar navbar-expand-sm navbar-light bg-light fixed-top">
-        <a href="#" class="navbar-brand" v-on:click.prevent="showSettings">
-          <img id="logo" src="images/logo.png" alt="logo"
+        <a href="#" class="navbar-brand" v-on:click.prevent="showSettings" aria-label="Settings">
+          <img id="logo" src="images/logo.png" alt="Settings"
             v-bind:class="{ 'nav-logo-img': true, disconnected: !connected }">
         </a>
         <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarSupportedContent" aria-label="whiteboard toolbox" >
@@ -102,7 +102,7 @@
       <nav class="navbar navbar-expand-lg navbar-light bg-light fixed-bottom">
         <div class="input-group">
           <div class="input-group-prepend">
-              <button class="btn btn-outline-info" data-toggle="collapse" data-target="#message-log" aria-label="message button">
+              <button class="btn btn-outline-info" type="button" data-toggle="collapse" data-target="#message-log" aria-label="Toggle message log" aria-controls="message-log" aria-expanded="true">
                   <i class="far fa-file-alt"></i>
               </button>
           </div>
@@ -150,12 +150,12 @@
                 <b>Message color</b>
               </div>
               <div class="dropdown">
-                <a class="dropdown-toggle" href="#" id="dropdownMenuButton" role="button" data-toggle="dropdown">
+                <a class="dropdown-toggle" href="#" id="dropdownMenuButton" role="button" data-toggle="dropdown" aria-label="Select message color">
                   <span class="toolbox selected" v-bind:style="{ 'background-color': messageColor }"></span>
                 </a>
                 <div class="dropdown-menu">
                   <a v-for="c in colors" v-bind:class="{ active: c === messageColor, 'dropdown-item': true }"
-                    v-on:click.prevent="messageColor = c" href="#">
+                    v-on:click.prevent="messageColor = c" href="#" v-bind:aria-label="`Message color ${c}`">
                     <span class="toolbox" v-bind:style="{ 'background-color': c }"></span>
                   </a>
                 </div>

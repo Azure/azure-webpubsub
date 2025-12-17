@@ -5,14 +5,14 @@
                 <el-tag type="danger" size="medium" class="live" effect="dark" color="#bc5151">● Live </el-tag>
             </el-col>
             <el-col :span="12" :offset="4" class="horizontal-center vertical-center">
-                <img class="title-logo" :src="titleLogo" aria-label="team logo image"/>
+                <img class="title-logo" :src="titleLogo" alt="World Q League logo" aria-label="World Q League logo"/>
                 <div class="title">World Q League</div>
             </el-col>
         </el-row>
         <el-divider></el-divider>
         <el-row class="scores horizontal-center">
             <el-col class="logo-col" :xs="8" :sm="8" :md="8" :lg="8" :xl="8">
-                <img :src="logoL" class="logo" aria-label="left side team logo image"/>
+                <img :src="logoL" class="logo" :alt="`${teams.teamL} logo`" :aria-label="`${teams.teamL} logo`"/>
             </el-col>
             <el-col :xs="8" :sm="8" :md="8" :lg="8" :xl="8">
                 <el-row class="vs-container" justify="space-around">
@@ -23,7 +23,7 @@
             </el-col>
             <el-col :xs="8" :sm="8" :md="8" :lg="8" :xl="8">
                 <div class="logo-col">
-                    <img :src="logoR" class="logo" aria-label="right side team logo image"/>
+                    <img :src="logoR" class="logo" :alt="`${teams.teamR} logo`" :aria-label="`${teams.teamR} logo`"/>
                 </div>
             </el-col>
         </el-row>
@@ -34,11 +34,22 @@
         </el-row>
         <el-row>
             <el-col :span="24">
-                <el-table :data="tableData" class="table" :header-cell-style="{ color: 'black' }" :cell-class-name="() => 'table-cell'">
-                    <el-table-column prop="quarter" label="" />
-                    <el-table-column prop="scoreL" :label="teams.teamL" />
-                    <el-table-column prop="scoreR" :label="teams.teamR" />
-                </el-table>
+                <table class="table" aria-label="Match details by quarter">
+                    <thead>
+                        <tr>
+                            <th scope="col">Quarter</th>
+                            <th scope="col">{{ teams.teamL }}</th>
+                            <th scope="col">{{ teams.teamR }}</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr v-for="(row, index) in tableData" :key="index">
+                            <th scope="row">{{ row.quarter }}</th>
+                            <td>{{ row.scoreL }}</td>
+                            <td>{{ row.scoreR }}</td>
+                        </tr>
+                    </tbody>
+                </table>
             </el-col>
         </el-row>
     </el-card>
@@ -56,7 +67,7 @@ import { anime } from '@maybecode/vue-next-animejs'
 import 'element-plus/theme-chalk/display.css'
 
 const teams = ref(new MatchTeams('', ''))
-const tableData = ref([{}])
+const tableData = ref([] as Array<{ quarter: string; scoreL: number; scoreR: number }>)
 const scores = ref([0, 0] as [number, number])
 const logoL = ref('')
 const logoR = ref('')
