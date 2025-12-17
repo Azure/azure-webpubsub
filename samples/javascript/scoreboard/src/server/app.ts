@@ -1,3 +1,4 @@
+global.crypto = require('crypto').webcrypto;
 import express from 'express'
 import { WebPubSubServiceClient } from '@azure/web-pubsub'
 import { UserEventRequest, UserEventResponseHandler, WebPubSubEventHandler } from '@azure/web-pubsub-express'
