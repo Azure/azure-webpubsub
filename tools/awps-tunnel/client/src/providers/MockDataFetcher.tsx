@@ -3,6 +3,7 @@ import { loadApiSpec } from "../utils";
 import { IDataFetcher } from "./IDataFetcher";
 
 export class MockDataFetcher implements IDataFetcher {
+  public kind = "mock" as const;
   public model: DataModel = {
     ready: false,
     endpoint: "",
