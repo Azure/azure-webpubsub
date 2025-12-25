@@ -12,7 +12,7 @@
         <el-divider></el-divider>
         <el-row class="scores horizontal-center">
             <el-col class="logo-col" :xs="8" :sm="8" :md="8" :lg="8" :xl="8">
-                <img :src="logoL" class="logo" :alt="`${teams.teamL} logo`" :aria-label="`${teams.teamL} logo`"/>
+                <img :src="logoL" class="logo" :alt="`${teams.teamL} logo`" :aria-label="`team logo for ${teams.teamL}`"/>
             </el-col>
             <el-col :xs="8" :sm="8" :md="8" :lg="8" :xl="8">
                 <el-row class="vs-container" justify="space-around">
@@ -23,7 +23,7 @@
             </el-col>
             <el-col :xs="8" :sm="8" :md="8" :lg="8" :xl="8">
                 <div class="logo-col">
-                    <img :src="logoR" class="logo" :alt="`${teams.teamR} logo`" :aria-label="`${teams.teamR} logo`"/>
+                    <img :src="logoR" class="logo" :alt="`${teams.teamR} logo`" :aria-label="`team logo for ${teams.teamR}`"/>
                 </div>
             </el-col>
         </el-row>
@@ -34,6 +34,7 @@
         </el-row>
         <el-row>
             <el-col :span="24">
+            <div class="table-container">
                 <table class="table" aria-label="Match details by quarter">
                     <thead>
                         <tr>
@@ -50,6 +51,7 @@
                         </tr>
                     </tbody>
                 </table>
+            </div>
             </el-col>
         </el-row>
     </el-card>
