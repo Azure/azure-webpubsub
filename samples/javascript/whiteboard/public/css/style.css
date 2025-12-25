@@ -76,6 +76,15 @@ svg {
   border-color: #006ee5;
 }
 
+.btn-outline-success {
+  color: #359235;
+}
+
+.btn:disabled {
+  color: #235F18;
+  opacity: 1.0;
+}
+
 .btn-primary:hover,
 .btn-primary:focus,
 .btn-primary:active,
