@@ -7,12 +7,12 @@
         </el-row>
         <el-row :gutter="40">
             <el-col :xs="24" :sm="24" :md="12" :lg="12" :xl="12">
-                <live-matches></live-matches>
+                <live-matches tabIndex="0"></live-matches>
                 <div class="margin"></div>
-                <past-matches></past-matches>
+                <past-matches tabIndex="0"></past-matches>
             </el-col>
             <el-col :xs="24" :sm="24" :md="12" :lg="12" :xl="12">
-                <match-details class="match-details" />
+                <match-details class="match-details" tabIndex="0"/>
             </el-col>
         </el-row>
     </div>
