@@ -11,12 +11,15 @@ const handler = new WebPubSubEventHandler("chat", {
   },
   handleUserEvent: (req, res) => {
     console.log(JSON.stringify(req));
-    res.success("Hey " + req.data, req.dataType);
+    res.success(JSON.stringify(req.data), req.dataType);
   },
 });
 
 const app = express();
-
+app.use((req, res, next)=>{
+  console.log(`${req.method} ${req.url}`);
+  next();
+})
 app.use(handler.getMiddleware());
 
 app.listen(3000, () => console.log(`Azure WebPubSub Upstream ready at http://localhost:3000${handler.path}`));
