@@ -7,6 +7,7 @@
     "start": "node server.js",
     "dev": "webpack --mode development",
     "build": "webpack --mode production",
+    "pack:zip": "npm-build-zip --source ./dist/",
     "test": "echo TODO"
   },
   "keywords": [],
@@ -23,6 +24,6 @@
   "devDependencies": {
     "copy-webpack-plugin": "^8.1.1",
     "webpack": "^5.88.2",
-    "webpack-cli": "^4.10.0"
+    "npm-build-zip": "^1.0.3"
   }
 }

@@ -62,6 +62,14 @@
             border-color: transparent;
             box-shadow: 0 0 0 3px rgba(255, 25zd5, 255, .25);
         }
+
+        .btn-primary {
+            background-color: #006ee5
+        }
+
+        .text-info-dim {
+            color: #107b8c
+        }
     </style>
 </head>
 
@@ -95,11 +103,11 @@
                              :disabled="!client.endpoint">Connect</button>
                     </div>
                 </form>
-                <div class="bg-light chat" v-bind:scrollTop="$attrs.scrollHeight">
+                <div class="bg-light chat" v-bind:scrollTop="$attrs.scrollHeight" tabindex="0">
                     <div class="m-2" v-for="message in client.chat.messages" v-bind:key="message.id">
                         <div class="col-md row" style="display: inline-block;">
                             <div v-if="message.type =='system'"
-                                class="font-italic text-info text-center font-weight-light" role="alert">
+                                class="font-italic text-info-dim text-center font-weight-light" role="alert">
                                 {{message.content}}
                             </div>
                             <div v-else-if="message.type =='error'"
@@ -127,7 +135,7 @@
                         </div>
                     </form>
                 </div>
-                <div style="background-color: black; color: blanchedalmond; height: 100px; overflow: auto;">
+                <div style="background-color: black; color: blanchedalmond; height: 100px; overflow: auto" tabindex="1">
                     <ul>
                         <li v-for="l in client.logs.slice().reverse()" :key="l.id">
                             {{ l }}
