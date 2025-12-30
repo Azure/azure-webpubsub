@@ -1,0 +1,561 @@
+openapi: 3.0.0
+info:
+  title: Web PubSub Chat API
+  version: 1.0.0
+  description: API for Web PubSub Chat SDK
+
+components:
+  schemas:
+    NotificationType:
+      type: string
+      enum:
+        - NewMessage
+        - NewRoom
+        - UpdateMessage
+        - AddContact
+    
+    Notification:
+      type: object
+      properties:
+        NotificationType:
+          $ref: '#/components/schemas/NotificationType'
+        Body:
+          oneOf:
+            - $ref: '#/components/schemas/NewMessageNotificationBody'
+            - $ref: '#/components/schemas/NewRoomNotificationBody'
+            - $ref: '#/components/schemas/UpdateMessageNotificationBody'
+            - $ref: '#/components/schemas/AddContactNotificationBody'
+          discriminator:
+            propertyName: NotificationType
+            mapping:
+              NewMessage: '#/components/schemas/NewMessageNotificationBody'
+              NewRoom: '#/components/schemas/NewRoomNotificationBody'
+              UpdateMessage: '#/components/schemas/UpdateMessageNotificationBody'
+              AddContact: '#/components/schemas/AddContactNotificationBody'
+      required:
+        - NotificationType
+        - Body
+    
+    NewMessageNotificationBody:
+      type: object
+      properties:
+        Conversation:
+          $ref: '#/components/schemas/ChatConversation'
+        Message:
+          $ref: '#/components/schemas/MessageInfo'
+      required:
+        - Conversation
+        - Message
+    
+    NewMessageNotification:
+      allOf:
+        - $ref: '#/components/schemas/Notification'
+        - type: object
+          properties:
+            NotificationType:
+              type: string
+              enum: [NewMessage]
+    NewRoomNotificationBody:
+      type: object
+      properties:
+        RoomId:
+          type: string
+        Title:
+          type: string
+        DefaultConversationId:
+          type: string
+        Properties:
+          type: object
+          nullable: true
+          description: null for now
+      required:
+        - RoomId
+        - Title
+    
+    NewRoomNotification:
+      allOf:
+        - $ref: '#/components/schemas/Notification'
+        - type: object
+          properties:
+            NotificationType:
+              type: string
+              enum: [NewRoom]
+            Body:
+              $ref: '#/components/schemas/NewRoomNotificationBody'
+              required:
+                - RoomId
+                - Title
+    
+    UpdateMessageNotificationBody:
+      type: object
+      properties:
+        Conversation:
+          $ref: '#/components/schemas/ChatConversation'
+        Message:
+          $ref: '#/components/schemas/MessageInfo'
+      required:
+        - Conversation
+        - Message
+    
+    UpdateMessageNotification:
+      allOf:
+        - $ref: '#/components/schemas/Notification'
+        - type: object
+          properties:
+            NotificationType:
+              type: string
+              enum: [UpdateMessage]
+            Body:
+              $ref: '#/components/schemas/UpdateMessageNotificationBody'
+    
+    AddContactNotificationBody:
+      type: object
+      properties:
+        UserId:
+          type: string
+      required:
+        - UserId
+    
+    AddContactNotification:
+      allOf:
+        - $ref: '#/components/schemas/Notification'
+        - type: object
+          properties:
+            NotificationType:
+              type: string
+              enum: [AddContact]
+            Body:
+              $ref: '#/components/schemas/AddContactNotificationBody'
+    
+    UserProfile:
+      type: object
+      properties:
+        UserId:
+          type: string
+          description: Unique identifier for the user
+          example: "user123"
+        RoomIds:
+          type: array
+          items:
+            type: string
+          description: Array of room IDs the user is in
+          example: ["room1", "room2", "room3"]
+        ConversationIds:
+          type: array
+          items:
+            type: string
+          description: Array of conversation IDs the user is in
+          example: ["id1", "id2", "id3"]
+      required:
+        - UserId
+        - Rooms
+    
+    ListUserConversationRequest:
+      type: object
+      properties:
+        ContinuationToken:
+          type: string
+          nullable: true
+        MaxCount:
+          type: integer
+          minimum: 1
+          maximum: 1000
+          default: 1000
+          nullable: true
+    
+    ListUserConversationResponse:
+      type: object
+      properties:
+        Conversations:
+          type: array
+          items:
+            $ref: '#/components/schemas/ChatConversation'
+        ContinuationToken:
+          type: string
+          nullable: true
+      required:
+        - Conversations
+    
+    ChatConversation:
+      type: object
+      properties:
+        RoomId:
+          type: string
+          nullable: true
+        TopicId:
+          type: string
+          nullable: true
+          description: null for now
+        ConversationId:
+          type: string
+          nullable: true
+    
+    ApprovalEnum:
+      type: string
+      enum:
+        - AutoApprove
+        - ManualApprove
+        - AutoDeny
+    
+    UserPolicy:
+      type: object
+      properties:
+        AddContact:
+          $ref: '#/components/schemas/ApprovalEnum'
+        PublicProperties:
+          type: array
+          items:
+            type: string
+          example: ["Nickname"]
+        FriendProperties:
+          type: array
+          items:
+            type: string
+        PrivateProperties:
+          type: array
+          items:
+            type: string
+      required:
+        - AddContact
+    
+    ContactResultState:
+      type: string
+      enum:
+        - OK
+        - Pending
+        - Failed
+    
+    AddContactResult:
+      type: object
+      properties:
+        UserId:
+          type: string
+        State:
+          $ref: '#/components/schemas/ContactResultState'
+        Message:
+          type: string
+      required:
+        - UserId
+        - State
+        - Message
+    
+    ContactRequest:
+      type: object
+      properties:
+        UserId:
+          type: string
+        Message:
+          type: string
+      required:
+        - UserId
+        - Message
+    
+    ContactOperation:
+      type: string
+      enum:
+        - Approve
+        - Deny
+        - Block
+    
+    ContactRequestOperation:
+      type: object
+      properties:
+        Operation:
+          $ref: '#/components/schemas/ContactOperation'
+        UserId:
+          type: string
+      required:
+        - Operation
+        - UserId
+    
+    RoomInfo:
+      type: object
+      properties:
+        RoomId:
+          type: string
+        Title:
+          type: string
+        DefaultConversationId:
+          type: string
+        Properties:
+          type: object
+          nullable: true
+          description: null for now
+      required:
+        - RoomId
+        - Title
+        - DefaultConversationId
+
+    RoomInfoWithMembers:
+      allOf:
+        - $ref: '#/components/schemas/RoomInfo'
+        - type: object
+          properties:
+            Members:
+              type: array
+              items:
+                type: string
+              description: List of user id
+          required:
+            - Members
+    
+    RoomMemberJoinEnum:
+      type: string
+      enum:
+        - AutoApprove
+        - ManualApprove
+        - InviteOnly
+    
+    RoomMessagePermissionEnum:
+      type: string
+      enum:
+        - Allow
+        - AdminOnly
+        - Deny
+    
+    RoomReactPermissionEnum:
+      type: string
+      enum:
+        - Allow
+        - Deny
+    
+    RoomPolicy:
+      type: object
+      properties:
+        MemberJoin:
+          $ref: '#/components/schemas/RoomMemberJoinEnum'
+        MessageType.Text:
+          $ref: '#/components/schemas/RoomMessagePermissionEnum'
+        MessageType.Image:
+          $ref: '#/components/schemas/RoomMessagePermissionEnum'
+        React:
+          $ref: '#/components/schemas/RoomReactPermissionEnum'
+      required:
+        - MemberJoin
+    
+    MessageRangeQuery:
+      type: object
+      properties:
+        Conversation:
+          $ref: '#/components/schemas/ChatConversation'
+        Start:
+          type: string
+          nullable: true
+          description: MessageId
+        End:
+          type: string
+          nullable: true
+          description: MessageId
+        MaxCount:
+          type: integer
+          default: 100
+          nullable: true
+      required:
+        - Conversation
+    
+    MessageInfo:
+      type: object
+      properties:
+        MessageId:
+          type: string
+        CreatedBy:
+          type: string
+          description: UserId
+        CreatedAt:
+          type: string
+          format: date-time
+        BodyType:
+          type: string
+          example: Join/Leave/Text/Emoji/File/Image/Voice/...
+        MessageBodyType:
+          type: string
+          example: Inline/Reference/External/...
+        Body:
+          type: string
+        RefMessageId:
+          type: string
+          nullable: true
+      required:
+        - MessageId
+        - Sender
+        - SentAt
+        - MessageType
+        - MessageBodyType
+        - Body
+    
+    CreateTextMessage:
+      type: object
+      properties:
+        Conversation:
+          $ref: '#/components/schemas/ChatConversation'
+        Message:
+          type: string
+        RefMessageId:
+          type: string
+          nullable: true
+        Ext.Mentions:
+          type: array
+          items:
+            type: string
+          nullable: true
+          description: Array of UserId
+        Ext.DeleteAfterRead:
+          type: boolean
+          nullable: true
+        Ext.Scheduled:
+          type: string
+          format: date-time
+          nullable: true
+      required:
+        - Conversation
+        - Message
+    
+    CreateMessage:
+      type: object
+      properties:
+        Conversation:
+          $ref: '#/components/schemas/ChatConversation'
+        MessageType:
+          type: string
+          example: Text/Emoji/File/Image/Voice/...
+        Body:
+          type: string
+          format: binary
+        RefMessageId:
+          type: string
+          nullable: true
+        Ext.Mentions:
+          type: array
+          items:
+            type: string
+          nullable: true
+          description: Array of UserId
+        Ext.DeleteAfterRead:
+          type: boolean
+          nullable: true
+        Ext.Scheduled:
+          type: string
+          format: date-time
+          nullable: true
+      required:
+        - Conversation
+        - MessageType
+        - Body
+    
+    MessageBody:
+      type: object
+      properties:
+        Conversation:
+          $ref: '#/components/schemas/ChatConversation'
+        MessageId:
+          type: string
+        MessageType:
+          type: string
+          example: Join/Leave/Text/Emoji/File/Image/Voice/...
+        MessageBodyType:
+          type: string
+          example: Inline/Reference/External/...
+        Body:
+          type: string
+          format: binary
+        RefMessageId:
+          type: string
+          nullable: true
+      required:
+        - Conversation
+        - MessageId
+        - MessageType
+        - MessageBodyType
+        - Body
+    
+    JoinRoomState:
+      type: string
+      enum:
+        - OK
+        - Pending
+        - Failed
+    
+    JoinRoomResult:
+      type: object
+      properties:
+        Room:
+          type: string
+          description: RoomId
+        State:
+          $ref: '#/components/schemas/JoinRoomState'
+        Message:
+          type: string
+      required:
+        - Room
+        - State
+        - Message
+    
+    JoinRoomRequest:
+      type: object
+      properties:
+        UserId:
+          type: string
+        Message:
+          type: string
+      required:
+        - UserId
+        - Message
+    
+    JoinRoomOperationEnum:
+      type: string
+      enum:
+        - Approve
+        - Deny
+        - Block
+    
+    JoinRoomOperation:
+      type: object
+      properties:
+        Room:
+          type: string
+          description: RoomId
+        UserId:
+          type: string
+        Operation:
+          $ref: '#/components/schemas/JoinRoomOperationEnum'
+      required:
+        - Room
+        - UserId
+        - Operation
+    
+    RoomMember:
+      type: object
+      properties:
+        UserId:
+          type: string
+        Role:
+          type: string
+      required:
+        - UserId
+        - Role
+    
+    RoomMemberOperationEnum:
+      type: string
+      enum:
+        - Add
+        - Delete
+        - Update
+    
+    RoomMemberOperation:
+      type: object
+      properties:
+        Operation:
+          $ref: '#/components/schemas/RoomMemberOperationEnum'
+        Member:
+          $ref: '#/components/schemas/RoomMember'
+      required:
+        - Operation
+        - Member
+
+    SendMessageResponse:
+      type: object
+      properties:
+        Id:
+          type: string
+      required:
+        - Id
