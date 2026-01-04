@@ -59,10 +59,10 @@ export interface AvatarStyleOptions {
 }
 
 /**
- * Generate consistent avatar styles
+ * Generate consistent avatar styles using CSS custom properties
  * @param userId - The user ID to generate styles for
  * @param options - Style options
- * @returns CSS style object
+ * @returns CSS style object with custom properties
  */
 export const getAvatarStyle = (userId: string, options: AvatarStyleOptions = {}) => {
   const {
@@ -74,20 +74,12 @@ export const getAvatarStyle = (userId: string, options: AvatarStyleOptions = {})
   } = options;
 
   return {
-    width: `${size}px`,
-    height: `${size}px`,
-    borderRadius: '50%',
-    backgroundColor: getAvatarColor(userId),
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    color: 'white',
-    fontSize: `${fontSize}px`,
-    fontWeight: '500',
-    cursor,
-    margin,
-    flexShrink,
-    transition: 'transform 0.2s ease-in-out'
+    '--avatar-size': `${size}px`,
+    '--avatar-bg-color': getAvatarColor(userId),
+    '--avatar-font-size': `${fontSize}px`,
+    '--avatar-cursor': cursor,
+    '--avatar-margin': margin,
+    '--avatar-flex-shrink': flexShrink,
   } as React.CSSProperties;
 };
 

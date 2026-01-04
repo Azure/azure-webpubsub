@@ -32,10 +32,13 @@ export const AvatarWithOnlineStatus: React.FC<AvatarWithOnlineStatusProps> = ({
   // In personal rooms, we want to show the user's own online status
   const shouldShowOnlineStatus = isPrivateChat;
   const isOnline = shouldShowOnlineStatus && chatContext?.onlineStatus[userOrRoomId]?.isOnline || false;
+  
+  // Determine if avatar is clickable based on cursor style or onClick handler
+  const isClickable = onClick || styleOptions.cursor === 'pointer';
 
   return (
     <div
-      className="avatar-container"
+      className={`avatar-container ${isClickable ? 'clickable' : ''}`}
       style={style}
       title={title || userOrRoomId}
       onClick={onClick}

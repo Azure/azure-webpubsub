@@ -160,6 +160,10 @@
 
 /* Spinner */
 .spinner {
+  width: var(--spinner-size, 24px);
+  height: var(--spinner-size, 24px);
+  border: 3px solid var(--spinner-bg-color, rgba(59, 130, 246, 0.125));
+  border-top-color: var(--spinner-color, #3b82f6);
   border-radius: 50%;
   animation: spin 1s linear infinite;
 }
@@ -384,10 +388,34 @@
 /* ========== Avatar Styles ========== */
 .avatar-container {
   position: relative;
+  width: var(--avatar-size, 32px);
+  height: var(--avatar-size, 32px);
+  border-radius: 50%;
+  background-color: var(--avatar-bg-color, #6b7280);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  font-size: var(--avatar-font-size, 14px);
+  font-weight: 500;
+  cursor: var(--avatar-cursor, default);
+  margin: var(--avatar-margin, 0);
+  flex-shrink: var(--avatar-flex-shrink, 0);
+  transition: transform 0.2s ease-in-out;
+}
+
+.avatar-container:hover {
+  transform: var(--avatar-hover-transform, none);
+}
+
+.avatar-container.clickable:hover {
+  transform: scale(1.1);
 }
 
 /* ========== Online Status Indicator Styles ========== */
 .online-status-indicator {
+  width: var(--indicator-size, 16px);
+  height: var(--indicator-size, 16px);
   border-radius: 50%;
   border: 2px solid white;
   position: absolute;

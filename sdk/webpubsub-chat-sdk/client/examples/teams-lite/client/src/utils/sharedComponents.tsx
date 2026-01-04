@@ -39,7 +39,6 @@ interface ButtonProps {
   onClick?: () => void;
   children: React.ReactNode;
   type?: 'button' | 'submit';
-  style?: React.CSSProperties;
 }
 
 export const Button: React.FC<ButtonProps> = ({ 
@@ -48,8 +47,7 @@ export const Button: React.FC<ButtonProps> = ({
   loading = false,
   onClick, 
   children, 
-  type = 'button',
-  style
+  type = 'button'
 }) => {
   const isDisabled = disabled || loading;
   
@@ -76,7 +74,6 @@ export const Button: React.FC<ButtonProps> = ({
     <button
       type={type}
       className={getButtonClasses()}
-      style={style}
       onClick={onClick}
       disabled={isDisabled}
     >
@@ -155,11 +152,10 @@ export const Spinner: React.FC<SpinnerProps> = ({ size = 24, color = '#3b82f6' }
     <div 
       className="spinner"
       style={{
-        width: size,
-        height: size,
-        borderColor: `${color}20`,
-        borderTopColor: color,
-      }}
+        '--spinner-size': `${size}px`,
+        '--spinner-color': color,
+        '--spinner-bg-color': `${color}20`,
+      } as React.CSSProperties}
     />
   );
 };

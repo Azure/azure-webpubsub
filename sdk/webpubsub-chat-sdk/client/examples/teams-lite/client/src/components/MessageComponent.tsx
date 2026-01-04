@@ -34,12 +34,6 @@ export const MessageComponent: React.FC<MessageComponentProps> = ({ message }) =
           onClick={() => createOrJoinPrivateChat(message.sender || '')}
           isUser={false}
           isPrivateChat={true} // Messages are in chat context, show online status
-          onMouseEnter={(e) => {
-            (e.currentTarget as HTMLElement).style.transform = 'scale(1.1)';
-          }}
-          onMouseLeave={(e) => {
-            (e.currentTarget as HTMLElement).style.transform = 'scale(1)';
-          }}
         />
       </div>
     );

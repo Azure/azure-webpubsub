@@ -13,9 +13,8 @@ export const OnlineStatusIndicator: React.FC<OnlineStatusIndicatorProps> = ({
     <div
       className={`online-status-indicator ${isOnline ? 'online' : 'offline'}`}
       style={{
-        width: `${size}px`,
-        height: `${size}px`,
-      }}
+        '--indicator-size': `${size}px`,
+      } as React.CSSProperties}
       title={isOnline ? 'Online' : 'Offline'}
     />
   );
