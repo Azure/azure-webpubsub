@@ -370,6 +370,19 @@ export const ChatClientProvider: React.FC<ChatClientProviderProps> = ({ children
         });
         newChatClient.addListenerForNewRoom((room) => {
           console.log('New room created/joined:', room);
+          
+          // Skip global metadata room - it should never appear in the sidebar
+          if (room.RoomId === GLOBAL_METADATA_ROOM_ID) {
+            return;
+          }
+          
+          // Check if room already exists to prevent duplicates
+          const existingRoom = roomsRef.current.find(r => r.roomId === room.RoomId);
+          if (existingRoom) {
+            console.log(`Room ${room.RoomId} already exists, skipping duplicate add`);
+            return;
+          }
+          
           setRoomsRef.current([...roomsRef.current, {
             roomId: room.RoomId,
             roomName: room.Title,

@@ -6,6 +6,7 @@ import { CreateRoomDialog } from './CreateRoomDialog';
 import { JoinRoomDialog } from './JoinRoomDialog';
 import { useChatClient } from '../hooks/useChatClient';
 import { AvatarWithOnlineStatus } from './AvatarWithOnlineStatus';
+import { GLOBAL_METADATA_ROOM_ID } from '../lib/constants';
 
 export const Sidebar: React.FC = () => {
   const settings = useContext(ChatSettingsContext);
@@ -92,10 +93,22 @@ export const Sidebar: React.FC = () => {
   }, [connectionStatus.status]);
 
   // Sort rooms by last message timestamp - most recent activity first
+  // Also filter out global metadata room and deduplicate by roomId
   const sortedRooms = React.useMemo(() => {
     if (!settings?.rooms) return [];
     
-    return [...settings.rooms].sort((a, b) => {
+    // Filter out global metadata room and deduplicate by roomId
+    const seenIds = new Set<string>();
+    const filteredRooms = settings.rooms.filter(room => {
+      // Skip global metadata room
+      if (room.roomId === GLOBAL_METADATA_ROOM_ID) return false;
+      // Skip duplicates
+      if (seenIds.has(room.roomId)) return false;
+      seenIds.add(room.roomId);
+      return true;
+    });
+    
+    return filteredRooms.sort((a, b) => {
       const aLastMsg = getLastMessageForRoom?.(a.roomId);
       const bLastMsg = getLastMessageForRoom?.(b.roomId);
       
@@ -107,7 +120,8 @@ export const Sidebar: React.FC = () => {
       // Sort by most recent message timestamp
       return new Date(bLastMsg.timestamp).getTime() - new Date(aLastMsg.timestamp).getTime();
     });
-  }, [settings?.rooms, getLastMessageForRoom]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [settings?.rooms, getLastMessageForRoom, roomMessagesUpdateTrigger]);
 
   if (!settings) return null;
   const { roomId, setRoomId, addRoom, joinRoom, removeRoom } = settings;
