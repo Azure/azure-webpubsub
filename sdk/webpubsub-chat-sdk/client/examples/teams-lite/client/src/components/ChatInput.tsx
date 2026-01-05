@@ -1,11 +1,15 @@
-import React, { useRef, useState, useCallback } from "react";
+import React, { useRef, useState, useCallback, useContext, useEffect } from "react";
 import { useChatClient } from "../hooks/useChatClient";
 import { useTextareaAutosize } from "../hooks/useTextareaAutosize";
+import { ChatRoomContext } from "../contexts/ChatRoomContext";
 
 export const ChatInput: React.FC = () => {
-  const { sendMessage, connectionStatus, isStreaming } = useChatClient();
+  const { sendMessage, connectionStatus, isStreaming, sendTypingIndicator } = useChatClient();
+  const chatRoom = useContext(ChatRoomContext);
+  const roomId = chatRoom?.room?.id;
   const [input, setInput] = useState("");
   const inputRef = useRef<HTMLTextAreaElement | null>(null);
+  const lastTypingSentRef = useRef<number>(0);
 
   // Auto-size input
   useTextareaAutosize(inputRef, input);
@@ -13,6 +17,17 @@ export const ChatInput: React.FC = () => {
   const isConnected = connectionStatus.status === 'connected';
   // Lock sending while AI is streaming a response to avoid overlapping questions
   const canSend = input.trim().length > 0 && isConnected && !isStreaming;
+
+  // Send typing indicator when user is typing (throttled to every 2 seconds)
+  useEffect(() => {
+    if (input.trim().length > 0 && roomId && isConnected) {
+      const now = Date.now();
+      if (now - lastTypingSentRef.current > 2000) {
+        sendTypingIndicator(roomId);
+        lastTypingSentRef.current = now;
+      }
+    }
+  }, [input, roomId, isConnected, sendTypingIndicator]);
 
   const onSubmit = useCallback((e: React.FormEvent) => {
     e.preventDefault();

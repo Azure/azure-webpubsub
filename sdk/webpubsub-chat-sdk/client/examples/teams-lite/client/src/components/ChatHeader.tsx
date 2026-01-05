@@ -5,6 +5,7 @@ import { ChatSettingsContext } from '../contexts/ChatSettingsContext';
 import { ChatClientContext } from '../contexts/ChatClientContext';
 import { usePrivateChat } from '../hooks/usePrivateChat';
 import { AvatarWithOnlineStatus } from './AvatarWithOnlineStatus';
+import { UserProfileCard } from './UserProfileCard';
 
 export const ChatHeader: React.FC = () => {
   const { connectionStatus } = useChatClient();
@@ -12,6 +13,7 @@ export const ChatHeader: React.FC = () => {
   const clientContext = useContext(ChatClientContext);
   const [roomMembersInfo, setRoomMembersInfo] = useState<{ count: number; members: string[] } | null>(null);
   const [showMembersList, setShowMembersList] = useState(false);
+  const [showProfileCard, setShowProfileCard] = useState(false);
   const { createOrJoinPrivateChat } = usePrivateChat();
   const chatRoom = useContext(ChatRoomContext);
   const roomId = chatRoom?.room ? chatRoom.room.id : undefined;
@@ -77,6 +79,19 @@ export const ChatHeader: React.FC = () => {
     }
   };
 
+  const handleLogout = async () => {
+    // Disconnect the chat client
+    if (clientContext?.client) {
+      try {
+        await clientContext.client.stop();
+      } catch (error) {
+        console.error('Error disconnecting client:', error);
+      }
+    }
+    // Refresh the page to reset all state
+    window.location.reload();
+  };
+
   const renderUserAvatar = () => {
     const userId = connectionStatus.userId || settingsContext?.userId;
     if (!userId) return null;
@@ -92,6 +107,8 @@ export const ChatHeader: React.FC = () => {
           fontSize={16}
           isUser={true} // This is current user
           isPrivateChat={true} // Show online status for current user in header
+          onClick={() => setShowProfileCard(true)}
+          cursor="pointer"
         />
       </div>
     );
@@ -125,12 +142,27 @@ export const ChatHeader: React.FC = () => {
     return roomName ? `Room: ${roomName}` : 'No Room Selected';
   }
 
+  const currentUserId = connectionStatus.userId || settingsContext?.userId;
+
   return (
     <header className="relative">
       {/* User avatar in top-right corner */}
-      {(connectionStatus.userId || settingsContext?.userId) && (
+      {currentUserId && (
         <div className="header-user-position">
-          {renderUserAvatar()}
+          <div className="profile-card-wrapper">
+            {renderUserAvatar()}
+            {/* User Profile Card - positioned relative to avatar */}
+            {showProfileCard && (
+              <>
+                <div className="profile-card-backdrop" onClick={() => setShowProfileCard(false)} />
+                <UserProfileCard
+                  userId={currentUserId}
+                  onClose={() => setShowProfileCard(false)}
+                  onLogout={handleLogout}
+                />
+              </>
+            )}
+          </div>
         </div>
       )}
 

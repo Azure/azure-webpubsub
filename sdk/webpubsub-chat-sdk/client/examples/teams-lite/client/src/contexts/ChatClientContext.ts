@@ -29,6 +29,15 @@ export interface OnlineStatus {
   };
 }
 
+// Typing status related types
+export interface TypingStatus {
+  [visitorKey: string]: {
+    // visitorKey format: "roomId:userId"
+    isTyping: boolean;
+    lastTyping: number; // timestamp
+  };
+}
+
 export interface ChatClientContextType {
   client: ChatClient | null;
   connectionStatus: ConnectionStatus;
@@ -41,6 +50,9 @@ export interface ChatClientContextType {
   getLastMessageForRoom: (roomId: string) => ChatMessage | null;
   roomMessagesUpdateTrigger: number;
   onlineStatus: OnlineStatus;
+  typingStatus: TypingStatus;
+  sendTypingIndicator: (roomId: string) => void;
+  getTypingUsersForRoom: (roomId: string) => string[];
 }
 
 export const ChatClientContext = createContext<ChatClientContextType | undefined>(undefined);

@@ -3,7 +3,7 @@ import type { ReactNode } from "react";
 import { WebPubSubClient } from "@azure/web-pubsub-client";
 import { ChatClient } from "webpubsub-chat-sdk"
 import { ChatClientContext } from "../contexts/ChatClientContext";
-import type { ChatMessage, ConnectionStatus, OnlineStatus } from "../contexts/ChatClientContext";
+import type { ChatMessage, ConnectionStatus, OnlineStatus, TypingStatus } from "../contexts/ChatClientContext";
 import { messagesReducer, initialMessagesState } from "../reducers/messagesReducer";
 import type { MessagesAction } from "../reducers/messagesReducer";
 import { ChatSettingsContext, type RoomMetadata } from "../contexts/ChatSettingsContext";
@@ -13,6 +13,9 @@ import { LoginDialog } from "../components/LoginDialog";
 // Online status configuration
 const PING_INTERVAL_MS = 5000; // Send ping every 5 seconds
 const OFFLINE_TIMEOUT_MS = 10000; // Mark as offline if no ping received within 10 seconds
+
+// Typing status configuration
+const TYPING_TIMEOUT_MS = 5000; // Mark as not typing if no typing indicator received within 5 seconds
 
 interface ChatClientProviderProps {
   children: ReactNode;
@@ -59,6 +62,10 @@ export const ChatClientProvider: React.FC<ChatClientProviderProps> = ({ children
   const [onlineStatus, setOnlineStatus] = React.useState<OnlineStatus>({});
   const pingIntervalRef = React.useRef<NodeJS.Timeout | null>(null);
   const onlineCheckIntervalRef = React.useRef<NodeJS.Timeout | null>(null);
+  
+  // Typing status management
+  const [typingStatus, setTypingStatus] = React.useState<TypingStatus>({});
+  const typingCheckIntervalRef = React.useRef<NodeJS.Timeout | null>(null);
 
   if (!settingsContext) {
     throw new Error("ChatClientProvider must be used within ChatSettingsProvider");
@@ -360,6 +367,23 @@ export const ChatClientProvider: React.FC<ChatClientProviderProps> = ({ children
             return; // Don't show ping messages in the UI
           }
           
+          // Handle typing indicator messages
+          // Format: "typing:roomId"
+          if (notification.Conversation.RoomId === GLOBAL_METADATA_ROOM_ID && message.Body?.startsWith("typing:")) {
+            const targetRoomId = message.Body.substring(7); // Remove "typing:" prefix
+            if (message.CreatedBy && message.CreatedBy !== newChatClient.userId) {
+              const visitorKey = `${targetRoomId}:${message.CreatedBy}`;
+              setTypingStatus(prev => ({
+                ...prev,
+                [visitorKey]: {
+                  isTyping: true,
+                  lastTyping: Date.now()
+                }
+              }));
+            }
+            return; // Don't show typing messages in the UI
+          }
+          
           if (message.CreatedBy === newChatClient.userId) return ;
           updateRoomMessages(notification.Conversation.RoomId!, { type: "completeMessage", payload: { 
             messageId: message.MessageId,
@@ -471,6 +495,28 @@ export const ChatClientProvider: React.FC<ChatClientProviderProps> = ({ children
             return hasChanges ? updated : prev;
           });
         }, 5000);
+        
+        // Start typing status check interval (every 1 second for responsiveness)
+        if (typingCheckIntervalRef.current) {
+          clearInterval(typingCheckIntervalRef.current);
+        }
+        typingCheckIntervalRef.current = setInterval(() => {
+          const now = Date.now();
+          setTypingStatus(prev => {
+            const updated = { ...prev };
+            let hasChanges = false;
+            
+            for (const [visitorKey, status] of Object.entries(updated)) {
+              // Mark as not typing if no typing indicator received within configured timeout
+              if (status.isTyping && now - status.lastTyping > TYPING_TIMEOUT_MS) {
+                updated[visitorKey] = { ...status, isTyping: false };
+                hasChanges = true;
+              }
+            }
+            
+            return hasChanges ? updated : prev;
+          });
+        }, 1000);
       } catch (err: unknown) {
         const msg = `Connection Failed: ${err instanceof Error ? err.message : "Unknown error"}`;
         setConnectionStatus({ status: "error", message: msg });
@@ -494,6 +540,10 @@ export const ChatClientProvider: React.FC<ChatClientProviderProps> = ({ children
       if (onlineCheckIntervalRef.current) {
         clearInterval(onlineCheckIntervalRef.current);
         onlineCheckIntervalRef.current = null;
+      }
+      if (typingCheckIntervalRef.current) {
+        clearInterval(typingCheckIntervalRef.current);
+        typingCheckIntervalRef.current = null;
       }
       
       if (clientRef.current) {
@@ -581,6 +631,29 @@ export const ChatClientProvider: React.FC<ChatClientProviderProps> = ({ children
     return rs.messages[rs.messages.length - 1];
   }, []);
 
+  // Send typing indicator to a specific room
+  const sendTypingIndicator = React.useCallback((targetRoomId: string) => {
+    if (clientRef.current && targetRoomId) {
+      clientRef.current.sendToRoom(GLOBAL_METADATA_ROOM_ID, `typing:${targetRoomId}`).catch((err) => {
+        console.error("Failed to send typing indicator:", err);
+      });
+    }
+  }, []);
+
+  // Get list of users who are typing in a specific room
+  const getTypingUsersForRoom = React.useCallback((targetRoomId: string): string[] => {
+    const typingUsers: string[] = [];
+    for (const [visitorKey, status] of Object.entries(typingStatus)) {
+      if (status.isTyping) {
+        const [roomId, visitorUserId] = visitorKey.split(':');
+        if (roomId === targetRoomId) {
+          typingUsers.push(visitorUserId);
+        }
+      }
+    }
+    return typingUsers;
+  }, [typingStatus]);
+
   const value = React.useMemo(
     () => ({
       client,
@@ -594,8 +667,11 @@ export const ChatClientProvider: React.FC<ChatClientProviderProps> = ({ children
       getLastMessageForRoom,
       roomMessagesUpdateTrigger,
       onlineStatus,
+      typingStatus,
+      sendTypingIndicator,
+      getTypingUsersForRoom,
     }),
-    [client, connectionStatus, messages, isStreaming, sendMessage, clearMessages, uiNotice, unreadCounts, getLastMessageForRoom, roomMessagesUpdateTrigger, onlineStatus],
+    [client, connectionStatus, messages, isStreaming, sendMessage, clearMessages, uiNotice, unreadCounts, getLastMessageForRoom, roomMessagesUpdateTrigger, onlineStatus, typingStatus, sendTypingIndicator, getTypingUsersForRoom],
   );
   return (
     <>

@@ -6,6 +6,7 @@ import { ChatSettingsContext } from '../contexts/ChatSettingsContext';
 export const ChatMessages: React.FC = () => {
   const { messages } = useChatClient();
   const settings = useContext(ChatSettingsContext);
+  
   if (!settings) throw new Error('ChatMessages must be used within ChatSettingsProvider');
   const messagesEndRef = useRef<HTMLDivElement>(null);
 

@@ -66,17 +66,17 @@ const TagInput: React.FC<TagInputProps> = ({ label, tags, onTagsChange, placehol
       <label className="block mb-[8px] font-medium text-[#374151]">
         {label}
       </label>
-      <div className="border border-[#d1d5db] rounded-[8px] p-[8px] min-h-[42px] flex flex-wrap items-center gap-[6px] bg-white cursor-text">
+      <div className="border border-[#d1d5db] rounded-[8px] p-[10px] min-h-[42px] flex flex-wrap items-center gap-[8px] bg-white cursor-text">
         {tags.map((tag, index) => (
           <div
             key={index}
-            className="inline-flex items-center bg-[#e3f2fd] text-[#1976d2] py-[4px] px-[8px] rounded-[16px] text-[14px] border border-[#bbdefb]"
+            className="inline-flex items-center bg-[#e3f2fd] text-[#1976d2] py-[6px] px-[16px] rounded-[16px] text-[14px] border border-[#bbdefb]"
           >
-            <span>{tag}</span>
+            <span className="mr-[8px]">{tag}</span>
             <button
               type="button"
               onClick={() => removeTag(index)}
-              className="bg-transparent border-none ml-[6px] cursor-pointer text-[#1976d2] text-[16px] leading-none p-0"
+              className="bg-transparent border-none cursor-pointer text-[#1976d2] text-[16px] leading-none p-0"
             >
               ×
             </button>
