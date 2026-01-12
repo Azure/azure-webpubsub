@@ -1,6 +1,6 @@
 import { OnConnectedArgs, OnDisconnectedArgs, OnStoppedArgs, WebPubSubClient, WebPubSubDataType } from "@azure/web-pubsub-client";
 import { EventEmitter } from "events";
-import { MessageInfo, MessageRangeQuery, RoomInfo, UserProfile, RoomInfoWithMembers, Notification, NewMessageNotificationBody, NewRoomNotificationBody, SendMessageResponse } from "./generatedTypes.js";
+import { MessageInfo, MessageRangeQuery, RoomInfo, UserProfile, RoomInfoWithMembers, Notification, NewMessageNotificationBody, NewRoomNotificationBody, SendMessageResponse, ManageRoomMemberRequest, MemberJoinedNotificationBody } from "./generatedTypes.js";
 import { ERRORS, INVOCATION_NAME } from "./constant.js";
 import { logger } from "./logger.js";
 import { decodeMessageBody } from "./utils.js";
@@ -20,24 +20,28 @@ class ChatClient {
             try {
                 const [wpsGroup, data] = [e.message.group, e.message.data as Notification];
                 logger.info(`Received notification via wps group message, group: ${wpsGroup}, data: `, data);
-                switch (data.NotificationType) {
+                switch (data.notificationType) {
                     case "NewMessage":
-                        const notificationBody = data.Body as NewMessageNotificationBody;
-                        const contentBody = (notificationBody.Message as MessageInfo).Body;
-                        (notificationBody.Message as MessageInfo).Body = decodeMessageBody(contentBody);
+                        const notificationBody = data.body as NewMessageNotificationBody;
+                        var messageContent = (notificationBody.message as MessageInfo).content;
+                        messageContent.text = decodeMessageBody(messageContent.text || "");
                         this._emitter.emit("newMessage", notificationBody);
                         break;
                     case "NewRoom":
-                        const roomInfo = (data.Body as NewRoomNotificationBody) as RoomInfo;
+                        const roomInfo = (data.body as NewRoomNotificationBody) as RoomInfo;
                         this._emitter.emit("newRoom", roomInfo);
-                        this._rooms.set(roomInfo.RoomId, roomInfo);
+                        this._rooms.set(roomInfo.roomId, roomInfo);
+                        break;
+                    case "MemberJoined":
+                        const memberJoinedInfo = data.body as MemberJoinedNotificationBody;
+                        const {userId, roomId, title} = memberJoinedInfo;
                         break;
                     case "UpdateMessage":
                     case "AddContact":
-                        logger.warning(`Notification type ${data.NotificationType} received but not implemented yet.`);
+                        logger.warning(`Notification type ${data.notificationType} received but not implemented yet.`);
                         break;
                     default:
-                        logger.warning(`Unknown notification type received: ${data.NotificationType}`);
+                        logger.warning(`Unknown notification type received: ${data.notificationType}`);
                 }
             }
             catch (err) {
@@ -72,10 +76,10 @@ class ChatClient {
     public async login(): Promise<ChatClient> {
         await this._wpsClient.start();
         const loginResponse = await this.invokeWithReturnType<UserProfile>(INVOCATION_NAME.LOGIN, "", "text");
-        console.log("loginResponse", loginResponse);
-        this._userId = loginResponse.UserId;
-        this._conversationIds = new Set(loginResponse.ConversationIds || []);
-        loginResponse.RoomIds?.forEach(async roomId => {
+        logger.info("loginResponse", loginResponse);
+        this._userId = loginResponse.userId;
+        this._conversationIds = new Set(loginResponse.conversationIds || []);
+        loginResponse.roomIds?.forEach(async roomId => {
             const roomInfo = await this.getRoom(roomId, false);
             this._rooms.set(roomId, roomInfo);
         });
@@ -84,31 +88,34 @@ class ChatClient {
 
 
     public async getUserInfo(userId: string): Promise<UserProfile> {
-        return this.invokeWithReturnType<UserProfile>(INVOCATION_NAME.GET_USER_PROPERTIES, { UserId: userId }, "json");
+        return this.invokeWithReturnType<UserProfile>(INVOCATION_NAME.GET_USER_PROPERTIES, { userId: userId }, "json");
     }
 
     public async sendToConversation(conversationId: string, message: string): Promise<string> {
         const payload = {
-            Conversation: { ConversationId: conversationId },
-            Content: message
+            conversation: { conversationId: conversationId },
+            content: message
         }
-        const msgId = (await this.invokeWithReturnType<SendMessageResponse>(INVOCATION_NAME.SEND_TEXT_MESSAGE, payload, "json")).Id;
+        const msgId = (await this.invokeWithReturnType<SendMessageResponse>(INVOCATION_NAME.SEND_TEXT_MESSAGE, payload, "json")).id;
         // sender won't receive conversation message via notification mechanism, so emit event here
-        const roomId = Array.from(this._rooms.values()).find(r => r.DefaultConversationId === conversationId)?.RoomId;
+        const roomId = Array.from(this._rooms.values()).find(r => r.defaultConversationId === conversationId)?.roomId;
         logger.warning(`Failed to find roomId for conversationId ${conversationId} when sending message.`)
         this._emitter.emit("newMessage", {
-            Conversation: { ConversationId: conversationId, RoomId: roomId || "" },
-            Message: {
-                MessageId: msgId,
-                Body: message,
-                CreatedBy: this.userId,
+            conversation: { conversationId: conversationId, roomId: roomId || "" },
+            message: {
+                messageId: msgId,
+                createdBy: this.userId,
+                content: {
+                    text: message,
+                    binary: null
+                }
             } as MessageInfo,
         } as NewMessageNotificationBody);
         return msgId;
     }
 
     public async sendToRoom(roomId: string, message: string): Promise<string> {
-        const conversationId = this._rooms.get(roomId)?.DefaultConversationId;
+        const conversationId = this._rooms.get(roomId)?.defaultConversationId;
         if (!conversationId) {
             throw Error(`Failed to sendToRoom, not found roomId ${roomId}`)
         }
@@ -122,62 +129,74 @@ class ChatClient {
     /** Create a room and its initial members. If `roomId` is not set, the service will create a random one. */
     public async createRoom(title: string, members: string[], roomId?: string): Promise<RoomInfoWithMembers> {
         let roomDetails = {
-            Title: title,
-            Members: [...new Set([...members, this.userId])]    // deduplicate and add self
+            title: title,
+            members: [...new Set([...members, this.userId])]    // deduplicate and add self
         } as any;
         if (roomId) {
-            roomDetails = { ...roomDetails, RoomId: roomId };
+            roomDetails = { ...roomDetails, roomId: roomId };
         }
         const roomInfo = await this.invokeWithReturnType<RoomInfoWithMembers>(INVOCATION_NAME.CREATE_ROOM, roomDetails, "json");
         if ((roomInfo as any).Code === ERRORS.ROOM_ALREADY_EXISTS) {
             throw new Error(ERRORS.ROOM_ALREADY_EXISTS);
         }
-        this._rooms.set(roomInfo.RoomId, roomInfo);
+        this._rooms.set(roomInfo.roomId, roomInfo);
         this._emitter.emit("newRoom", roomInfo);
         return roomInfo;
     }
 
-    public async joinRoom(roomId: string): Promise<RoomInfoWithMembers> {
-        const roomInfo = await this.invokeWithReturnType<RoomInfoWithMembers>(INVOCATION_NAME.JOIN_ROOM, { RoomId: roomId }, "json");
-        if ((roomInfo as any).Code === ERRORS.USER_ALREADY_IN_ROOM) {
-            throw new Error(ERRORS.USER_ALREADY_IN_ROOM);
-        }
-        this._rooms.set(roomInfo.RoomId, roomInfo);
-        this._emitter.emit("newRoom", roomInfo);
-        return roomInfo;
+    private async manageRoomMember(request: ManageRoomMemberRequest): Promise<void> {
+        return this.invokeWithReturnType<any>(INVOCATION_NAME.MANAGE_ROOM_MEMBER, request, "json");
     }
+
+    /** Add a user to a room. This is an admin operation where one user adds another user to a room. */
+    public async addUserToRoom(roomId: string, userId: string): Promise<void> {
+        const payload: ManageRoomMemberRequest = {roomId: roomId, operation: "Add", userId: userId };
+        await this.manageRoomMember(payload);
+    }
+
+    /** Remove a user from a room. This is an admin operation where one user removes another user from a room. */
+    public async removeUserFromRoom(roomId: string, userId: string): Promise<void> {
+        const payload: ManageRoomMemberRequest = {roomId: roomId, operation: "Delete", userId: userId };
+        await this.manageRoomMember(payload);
+    }
+
+    // public async joinRoom(roomId: string): Promise<RoomInfoWithMembers> {
+    //     const roomInfo = await this.invokeWithReturnType<RoomInfoWithMembers>(INVOCATION_NAME.JOIN_ROOM, { roomId: roomId }, "json");
+    //     if ((roomInfo as any).Code === ERRORS.USER_ALREADY_IN_ROOM) {
+    //         throw new Error(ERRORS.USER_ALREADY_IN_ROOM);
+    //     }
+    //     this._rooms.set(roomInfo.roomId, roomInfo);
+    //     this._emitter.emit("newRoom", roomInfo);
+    //     return roomInfo;
+    // }
 
     /** List messages in a conversation. It returns messages and a query for the next query parameter. */
-    public async listMessage(conversationId: string, startId: string | null, endId: string | null, maxCount: number = 100): Promise<{ Messages: MessageInfo[], NextQuery: MessageRangeQuery }> {
+    public async listMessage(conversationId: string, startId: string | null, endId: string | null, maxCount: number = 100): Promise<{ messages: MessageInfo[], nextQuery: MessageRangeQuery }> {
         const query: MessageRangeQuery = {
-            Conversation: { ConversationId: conversationId },
-            Start: startId,
-            End: endId,
-            MaxCount: maxCount
+            conversation: { conversationId: conversationId },
+            start: startId,
+            end: endId,
+            maxCount: maxCount
         };
-        const result = await this.invokeWithReturnType<{ Messages: MessageInfo[], NextQuery: MessageRangeQuery }>(INVOCATION_NAME.LIST_MESSAGES, query, "json");
-        for (const messageInfo of result.Messages) {
-            messageInfo.Body = decodeMessageBody(messageInfo.Body);
-        }
+        const result = await this.invokeWithReturnType<{ messages: MessageInfo[], nextQuery: MessageRangeQuery }>(INVOCATION_NAME.LIST_MESSAGES, query, "json");
         return result;
     }
 
     /** List messages in a room. It returns messages and a query for the next query parameter. */
-    public async listRoomMessage(roomId: string, startId: string | null, endId: string | null, maxCount: number = 100): Promise<{ Messages: MessageInfo[], NextQuery: MessageRangeQuery }> {
-        const conversationId  = this._rooms.get(roomId)?.DefaultConversationId;
-        console.log("found room", this._rooms.get(roomId), "rooms:", this._rooms);
+    public async listRoomMessage(roomId: string, startId: string | null, endId: string | null, maxCount: number = 100): Promise<{ messages: MessageInfo[], nextQuery: MessageRangeQuery }> {
+        const conversationId  = this._rooms.get(roomId)?.defaultConversationId;
         if (!conversationId) {
             throw Error(`Failed to listRoomMessage, not found roomId ${roomId}`)
         }
         const query: MessageRangeQuery = {
-            Conversation: { ConversationId: conversationId },
-            Start: startId,
-            End: endId,
-            MaxCount: maxCount
+            conversation: { conversationId: conversationId },
+            start: startId,
+            end: endId,
+            maxCount: maxCount
         };
-        const result = await this.invokeWithReturnType<{ Messages: MessageInfo[], NextQuery: MessageRangeQuery }>(INVOCATION_NAME.LIST_MESSAGES, query, "json");
-        for (const messageInfo of result.Messages) {
-            messageInfo.Body = decodeMessageBody(messageInfo.Body);
+        const result = await this.invokeWithReturnType<{ messages: MessageInfo[], nextQuery: MessageRangeQuery }>(INVOCATION_NAME.LIST_MESSAGES, query, "json");
+        for (const messageInfo of result.messages) {
+            messageInfo.content.text = decodeMessageBody(messageInfo.content.text);
         }
         return result;
     }

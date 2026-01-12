@@ -10,7 +10,8 @@
     "generate:types": "openapi-typescript swagger/openapi.yaml -o src/generatedTypes.ts && node -e \"const fs=require('fs');const c=fs.readFileSync('src/generatedTypes.ts','utf8');const schemas=[...c.matchAll(/^\\s{8}(\\w+):/gm)].map(m=>m[1]);const exports='\\n// Flattened schema exports\\nexport type Schemas = components[\\\"schemas\\\"];\\n'+schemas.map(s=>'export type '+s+' = Schemas[\\\"'+s+'\\\"];').join('\\n')+'\\n';fs.appendFileSync('src/generatedTypes.ts',exports)\"",
     "test:start-server": "node .\\examples\\server\\index.js",
     "test": "npx tsx --test tests/**/*.ts",
-    "test:integration": "tsx --test tests/integration.test.ts"
+    "test:integration": "tsx --test tests/integration.test.ts",
+    "test:one": "tsx --test --test-name-pattern"
   },
   "author": "",
   "license": "ISC",

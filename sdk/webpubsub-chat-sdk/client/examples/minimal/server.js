@@ -26,6 +26,7 @@ app.use(handler.getMiddleware());
 
 // Negotiate endpoint for client to get access token
 app.get('/negotiate', async (req, res) => {
+    console.log(`received negotiate request: ${JSON.stringify(req.query)}`);
     const userId = req.query.userId;
     if (!userId) {
         return res.status(500).json({ error: 'userId is required' });

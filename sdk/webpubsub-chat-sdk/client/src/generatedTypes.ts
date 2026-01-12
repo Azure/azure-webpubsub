@@ -8,74 +8,89 @@ export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
         /** @enum {string} */
-        NotificationType: "NewMessage" | "NewRoom" | "UpdateMessage" | "AddContact";
+        NotificationType: "NewMessage" | "NewRoom" | "UpdateMessage" | "AddContact" | "MemberJoined";
         Notification: {
-            NotificationType: components["schemas"]["NotificationType"];
-            Body: components["schemas"]["NewMessageNotificationBody"] | components["schemas"]["NewRoomNotificationBody"] | components["schemas"]["UpdateMessageNotificationBody"] | components["schemas"]["AddContactNotificationBody"];
+            notificationType: components["schemas"]["NotificationType"];
+            body: components["schemas"]["NewMessageNotificationBody"] | components["schemas"]["NewRoomNotificationBody"] | components["schemas"]["UpdateMessageNotificationBody"] | components["schemas"]["AddContactNotificationBody"] | components["schemas"]["MemberJoinedNotificationBody"];
         };
         NewMessageNotificationBody: {
-            Conversation: components["schemas"]["ChatConversation"];
-            Message: components["schemas"]["MessageInfo"];
+            conversation: components["schemas"]["ChatConversation"];
+            message: components["schemas"]["MessageInfo"];
             /**
              * @description discriminator enum property added by openapi-typescript
              * @enum {string}
              */
-            NotificationType: "NewMessage";
+            notificationType: "NewMessage";
         };
         NewMessageNotification: components["schemas"]["Notification"] & {
             /** @enum {string} */
-            NotificationType?: "NewMessage";
+            notificationType?: "NewMessage";
         };
         NewRoomNotificationBody: {
-            RoomId: string;
-            Title: string;
-            DefaultConversationId?: string;
+            roomId: string;
+            title: string;
+            defaultConversationId?: string;
             /** @description null for now */
-            Properties?: Record<string, never> | null;
+            properties?: Record<string, never> | null;
             /**
              * @description discriminator enum property added by openapi-typescript
              * @enum {string}
              */
-            NotificationType: "NewRoom";
+            notificationType: "NewRoom";
         };
         NewRoomNotification: components["schemas"]["Notification"] & {
             /** @enum {string} */
-            NotificationType?: "NewRoom";
-            Body?: components["schemas"]["NewRoomNotificationBody"];
+            notificationType?: "NewRoom";
+            body?: components["schemas"]["NewRoomNotificationBody"];
         };
         UpdateMessageNotificationBody: {
-            Conversation: components["schemas"]["ChatConversation"];
-            Message: components["schemas"]["MessageInfo"];
+            conversation: components["schemas"]["ChatConversation"];
+            message: components["schemas"]["MessageInfo"];
             /**
              * @description discriminator enum property added by openapi-typescript
              * @enum {string}
              */
-            NotificationType: "UpdateMessage";
+            notificationType: "UpdateMessage";
         };
         UpdateMessageNotification: components["schemas"]["Notification"] & {
             /** @enum {string} */
-            NotificationType?: "UpdateMessage";
-            Body?: components["schemas"]["UpdateMessageNotificationBody"];
+            notificationType?: "UpdateMessage";
+            body?: components["schemas"]["UpdateMessageNotificationBody"];
         };
         AddContactNotificationBody: {
-            UserId: string;
+            userId: string;
             /**
              * @description discriminator enum property added by openapi-typescript
              * @enum {string}
              */
-            NotificationType: "AddContact";
+            notificationType: "AddContact";
         };
         AddContactNotification: components["schemas"]["Notification"] & {
             /** @enum {string} */
-            NotificationType?: "AddContact";
-            Body?: components["schemas"]["AddContactNotificationBody"];
+            notificationType?: "AddContact";
+            body?: components["schemas"]["AddContactNotificationBody"];
+        };
+        MemberJoinedNotificationBody: {
+            roomId: string;
+            title: string;
+            userId: string;
+            /**
+             * @description discriminator enum property added by openapi-typescript
+             * @enum {string}
+             */
+            notificationType: "MemberJoined";
+        };
+        MemberJoinedNotification: components["schemas"]["Notification"] & {
+            /** @enum {string} */
+            notificationType?: "MemberJoined";
+            body?: components["schemas"]["MemberJoinedNotificationBody"];
         };
         UserProfile: {
             /**
              * @description Unique identifier for the user
              * @example user123
              */
-            UserId: string;
+            userId: string;
             /**
              * @description Array of room IDs the user is in
              * @example [
@@ -84,7 +99,7 @@ export interface components {
              *       "room3"
              *     ]
              */
-            RoomIds?: string[];
+            roomIds?: string[];
             /**
              * @description Array of conversation IDs the user is in
              * @example [
@@ -93,63 +108,63 @@ export interface components {
              *       "id3"
              *     ]
              */
-            ConversationIds?: string[];
+            conversationIds?: string[];
         };
         ListUserConversationRequest: {
-            ContinuationToken?: string | null;
+            continuationToken?: string | null;
             /** @default 1000 */
-            MaxCount: number | null;
+            maxCount: number | null;
         };
         ListUserConversationResponse: {
-            Conversations: components["schemas"]["ChatConversation"][];
-            ContinuationToken?: string | null;
+            conversations: components["schemas"]["ChatConversation"][];
+            continuationToken?: string | null;
         };
         ChatConversation: {
-            RoomId?: string | null;
+            roomId?: string | null;
             /** @description null for now */
-            TopicId?: string | null;
-            ConversationId?: string | null;
+            topicId?: string | null;
+            conversationId?: string | null;
         };
         /** @enum {string} */
         ApprovalEnum: "AutoApprove" | "ManualApprove" | "AutoDeny";
         UserPolicy: {
-            AddContact: components["schemas"]["ApprovalEnum"];
+            addContact: components["schemas"]["ApprovalEnum"];
             /**
              * @example [
              *       "Nickname"
              *     ]
              */
-            PublicProperties?: string[];
-            FriendProperties?: string[];
-            PrivateProperties?: string[];
+            publicProperties?: string[];
+            friendProperties?: string[];
+            privateProperties?: string[];
         };
         /** @enum {string} */
         ContactResultState: "OK" | "Pending" | "Failed";
         AddContactResult: {
-            UserId: string;
-            State: components["schemas"]["ContactResultState"];
-            Message: string;
+            userId: string;
+            state: components["schemas"]["ContactResultState"];
+            message: string;
         };
         ContactRequest: {
-            UserId: string;
-            Message: string;
+            userId: string;
+            message: string;
         };
         /** @enum {string} */
         ContactOperation: "Approve" | "Deny" | "Block";
         ContactRequestOperation: {
-            Operation: components["schemas"]["ContactOperation"];
-            UserId: string;
+            operation: components["schemas"]["ContactOperation"];
+            userId: string;
         };
         RoomInfo: {
-            RoomId: string;
-            Title: string;
-            DefaultConversationId: string;
+            roomId: string;
+            title: string;
+            defaultConversationId: string;
             /** @description null for now */
-            Properties?: Record<string, never> | null;
+            properties?: Record<string, never> | null;
         };
         RoomInfoWithMembers: components["schemas"]["RoomInfo"] & {
             /** @description List of user id */
-            Members: string[];
+            members: string[];
         };
         /** @enum {string} */
         RoomMemberJoinEnum: "AutoApprove" | "ManualApprove" | "InviteOnly";
@@ -158,99 +173,116 @@ export interface components {
         /** @enum {string} */
         RoomReactPermissionEnum: "Allow" | "Deny";
         RoomPolicy: {
-            MemberJoin: components["schemas"]["RoomMemberJoinEnum"];
-            "MessageType.Text"?: components["schemas"]["RoomMessagePermissionEnum"];
-            "MessageType.Image"?: components["schemas"]["RoomMessagePermissionEnum"];
-            React?: components["schemas"]["RoomReactPermissionEnum"];
+            memberJoin: components["schemas"]["RoomMemberJoinEnum"];
+            messageTypeText?: components["schemas"]["RoomMessagePermissionEnum"];
+            messageTypeImage?: components["schemas"]["RoomMessagePermissionEnum"];
+            react?: components["schemas"]["RoomReactPermissionEnum"];
         };
         MessageRangeQuery: {
-            Conversation: components["schemas"]["ChatConversation"];
+            conversation: components["schemas"]["ChatConversation"];
             /** @description MessageId */
-            Start?: string | null;
+            start?: string | null;
             /** @description MessageId */
-            End?: string | null;
+            end?: string | null;
             /** @default 100 */
-            MaxCount: number | null;
+            maxCount: number | null;
         };
         MessageInfo: {
-            MessageId: string;
+            messageId: string;
             /** @description UserId */
-            CreatedBy?: string;
+            createdBy?: string;
             /** Format: date-time */
-            CreatedAt?: string;
+            createdAt?: string;
             /** @example Join/Leave/Text/Emoji/File/Image/Voice/... */
-            BodyType?: string;
+            bodyType?: string;
             /** @example Inline/Reference/External/... */
-            MessageBodyType: string;
-            Body: string;
-            RefMessageId?: string | null;
+            messageBodyType: string;
+            content: {
+                text?: string | null;
+                /** Format: binary */
+                binary?: string | null;
+            };
+            refMessageId?: string | null;
         };
         CreateTextMessage: {
-            Conversation: components["schemas"]["ChatConversation"];
-            Message: string;
-            RefMessageId?: string | null;
+            conversation: components["schemas"]["ChatConversation"];
+            message: string;
+            refMessageId?: string | null;
             /** @description Array of UserId */
-            "Ext.Mentions"?: string[] | null;
-            "Ext.DeleteAfterRead"?: boolean | null;
+            extMentions?: string[] | null;
+            extDeleteAfterRead?: boolean | null;
             /** Format: date-time */
-            "Ext.Scheduled"?: string | null;
+            extScheduled?: string | null;
         };
         CreateMessage: {
-            Conversation: components["schemas"]["ChatConversation"];
+            conversation: components["schemas"]["ChatConversation"];
             /** @example Text/Emoji/File/Image/Voice/... */
-            MessageType: string;
-            /** Format: binary */
-            Body: string;
-            RefMessageId?: string | null;
+            messageType: string;
+            content: {
+                text?: string | null;
+                /** Format: binary */
+                binary?: string | null;
+            };
+            refMessageId?: string | null;
             /** @description Array of UserId */
-            "Ext.Mentions"?: string[] | null;
-            "Ext.DeleteAfterRead"?: boolean | null;
+            extMentions?: string[] | null;
+            extDeleteAfterRead?: boolean | null;
             /** Format: date-time */
-            "Ext.Scheduled"?: string | null;
+            extScheduled?: string | null;
         };
         MessageBody: {
-            Conversation: components["schemas"]["ChatConversation"];
-            MessageId: string;
+            conversation: components["schemas"]["ChatConversation"];
+            messageId: string;
             /** @example Join/Leave/Text/Emoji/File/Image/Voice/... */
-            MessageType: string;
+            messageType: string;
             /** @example Inline/Reference/External/... */
-            MessageBodyType: string;
-            /** Format: binary */
-            Body: string;
-            RefMessageId?: string | null;
+            messageBodyType: string;
+            content: {
+                text?: string | null;
+                /** Format: binary */
+                binary?: string | null;
+            };
+            refMessageId?: string | null;
         };
         /** @enum {string} */
         JoinRoomState: "OK" | "Pending" | "Failed";
         JoinRoomResult: {
             /** @description RoomId */
-            Room: string;
-            State: components["schemas"]["JoinRoomState"];
-            Message: string;
+            room: string;
+            state: components["schemas"]["JoinRoomState"];
+            message: string;
         };
         JoinRoomRequest: {
-            UserId: string;
-            Message: string;
+            userId: string;
+            message: string;
         };
         /** @enum {string} */
         JoinRoomOperationEnum: "Approve" | "Deny" | "Block";
         JoinRoomOperation: {
             /** @description RoomId */
-            Room: string;
-            UserId: string;
-            Operation: components["schemas"]["JoinRoomOperationEnum"];
+            room: string;
+            userId: string;
+            operation: components["schemas"]["JoinRoomOperationEnum"];
         };
         RoomMember: {
-            UserId: string;
-            Role: string;
+            userId: string;
+            role: string;
         };
         /** @enum {string} */
         RoomMemberOperationEnum: "Add" | "Delete" | "Update";
         RoomMemberOperation: {
-            Operation: components["schemas"]["RoomMemberOperationEnum"];
-            Member: components["schemas"]["RoomMember"];
+            operation: components["schemas"]["RoomMemberOperationEnum"];
+            member: components["schemas"]["RoomMember"];
+        };
+        /** @enum {string} */
+        RoomMemberOperationType: "Add" | "Delete";
+        ManageRoomMemberRequest: {
+            roomId: string;
+            operation: components["schemas"]["RoomMemberOperationType"];
+            userId: string;
         };
         SendMessageResponse: {
-            Id: string;
+            id: string;
         };
     };
     responses: never;
@@ -274,6 +306,8 @@ export type UpdateMessageNotificationBody = Schemas["UpdateMessageNotificationBo
 export type UpdateMessageNotification = Schemas["UpdateMessageNotification"];
 export type AddContactNotificationBody = Schemas["AddContactNotificationBody"];
 export type AddContactNotification = Schemas["AddContactNotification"];
+export type MemberJoinedNotificationBody = Schemas["MemberJoinedNotificationBody"];
+export type MemberJoinedNotification = Schemas["MemberJoinedNotification"];
 export type UserProfile = Schemas["UserProfile"];
 export type ListUserConversationRequest = Schemas["ListUserConversationRequest"];
 export type ListUserConversationResponse = Schemas["ListUserConversationResponse"];
@@ -304,4 +338,6 @@ export type JoinRoomOperation = Schemas["JoinRoomOperation"];
 export type RoomMember = Schemas["RoomMember"];
 export type RoomMemberOperationEnum = Schemas["RoomMemberOperationEnum"];
 export type RoomMemberOperation = Schemas["RoomMemberOperation"];
+export type RoomMemberOperationType = Schemas["RoomMemberOperationType"];
+export type ManageRoomMemberRequest = Schemas["ManageRoomMemberRequest"];
 export type SendMessageResponse = Schemas["SendMessageResponse"];
