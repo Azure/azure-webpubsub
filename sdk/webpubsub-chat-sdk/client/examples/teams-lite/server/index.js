@@ -65,9 +65,7 @@ app.listen(port, async () => {
   await chatClient.login();
   chatClient.addListenerForNewMessage((message) => {
     const text = message.message.content.text;
-    const base64encoded = Buffer.from(text, 'utf-8').toString('base64');
-    const base64decoded = Buffer.from(text, 'base64').toString('utf-8');
-    console.log(`new room message, roomId = ${message.conversation.roomId}, messageId = ${message.message.messageId}, createdBy = ${message.message.createdBy}, text = ${text}, ${base64decoded}, ${base64encoded}`);
+    console.log(`new room message, roomId = ${message.conversation.roomId}, messageId = ${message.message.messageId}, createdBy = ${message.message.createdBy}, text = ${text}`);
   });
   console.log("Chat client logged in as admin");
   try {

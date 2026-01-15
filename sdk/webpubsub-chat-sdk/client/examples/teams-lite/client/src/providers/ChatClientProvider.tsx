@@ -300,7 +300,7 @@ export const ChatClientProvider: React.FC<ChatClientProviderProps> = ({ children
 
         // Use the userId from context (set via login dialog)
         // Create new client with initial roomId; no user id)
-        const newChatClient = new ChatClient({
+        const chatClient = new ChatClient({
           getClientAccessUrl: async () => {
             const url = `/api/negotiate?userId=${userId}`;
             const response = await fetch(url);
@@ -318,7 +318,7 @@ export const ChatClientProvider: React.FC<ChatClientProviderProps> = ({ children
         // Assign clientRef before starting to prevent parallel starts from racing
         // const newChatClient = new ChatClient(newClient); //await ChatClient.login(newClient);
         // Set up event listeners using refs for latest values
-        newChatClient.onConnected((e: { connectionId: string; userId?: string }) => {
+        chatClient.onConnected((e: { connectionId: string; userId?: string }) => {
           setConnectionStatus({
             status: "connected",
             message: "Connected",
@@ -340,7 +340,7 @@ export const ChatClientProvider: React.FC<ChatClientProviderProps> = ({ children
         });
 
         // No additional listeners needed; userId is set via connected event above if provided
-        newChatClient.onDisconnected(() => {
+        chatClient.onDisconnected(() => {
           setConnectionStatus({
             status: "disconnected",
             message: `Disconnected: Connection closed`,
@@ -349,10 +349,10 @@ export const ChatClientProvider: React.FC<ChatClientProviderProps> = ({ children
         });
 
 
-        newChatClient.addListenerForNewMessage((notification) => {
+        chatClient.addListenerForNewMessage((notification) => {
           console.log("New message notification:", notification);
           const message = notification.message;
-          console.log(`Received new message from ${message.createdBy}, content = ${message.content?.text}, isSelf = ${message.createdBy === newChatClient.userId}`);
+          console.log(`Received new message from ${message.createdBy}, content = ${message.content?.text}, isSelf = ${message.createdBy === chatClient.userId}`);
           
           // Handle ping messages for online status
           if (notification.conversation.roomId === GLOBAL_METADATA_ROOM_ID && message.content?.text === "ping") {
@@ -375,7 +375,7 @@ export const ChatClientProvider: React.FC<ChatClientProviderProps> = ({ children
           // Format: "typing:roomId"
           if (notification.conversation.roomId === GLOBAL_METADATA_ROOM_ID && message.content?.text?.startsWith("typing:")) {
             const targetRoomId = message.content.text.substring(7); // Remove "typing:" prefix
-            if (message.createdBy && message.createdBy !== newChatClient.userId) {
+            if (message.createdBy && message.createdBy !== chatClient.userId) {
               const visitorKey = `${targetRoomId}:${message.createdBy}`;
               setTypingStatus(prev => ({
                 ...prev,
@@ -388,7 +388,7 @@ export const ChatClientProvider: React.FC<ChatClientProviderProps> = ({ children
             return; // Don't show typing messages in the UI
           }
           
-          if (message.createdBy === newChatClient.userId) return ;
+          if (message.createdBy === chatClient.userId) return ;
           updateRoomMessages(notification.conversation.roomId!, { type: "completeMessage", payload: { 
             messageId: message.messageId,
             content: message.content?.text || "", 
@@ -397,7 +397,7 @@ export const ChatClientProvider: React.FC<ChatClientProviderProps> = ({ children
           } });
         });
 
-        newChatClient.addListenerForNewRoom((room) => {
+        chatClient.addListenerForNewRoom((room) => {
           console.log('New room created/joined:', room);
           
           // Skip global metadata room - it should never appear in the sidebar
@@ -415,11 +415,11 @@ export const ChatClientProvider: React.FC<ChatClientProviderProps> = ({ children
           setRoomsRef.current([...roomsRef.current, {
             roomId: room.roomId,
             roomName: room.title,
-            userId: newChatClient.userId || "unknown"
+            userId: chatClient.userId || "unknown"
           }]);
           
           // Show UI notification that user has been added to a new room
-          console.log(`User ${newChatClient.userId} has been added to room: ${room.title}`);
+          console.log(`User ${chatClient.userId} has been added to room: ${room.title}`);
           setUiNoticeRef.current({ type: "info", text: `🎉 You have been added to room: ${room.title}` });
           setSuccessNotification(`You have been added to room: ${room.title}`);
           
@@ -430,43 +430,52 @@ export const ChatClientProvider: React.FC<ChatClientProviderProps> = ({ children
           }, 5000);
           
           // Fetch history for the new room
-          fetchRoomHistory(newChatClient, room.roomId).catch(err => {
+          fetchRoomHistory(chatClient, room.roomId).catch(err => {
             console.error(`Failed to fetch history for new room ${room.roomId}:`, err);
           });
         });
-        await newChatClient.login();
+
+        chatClient.addListenerForMemberJoined((notification) => {
+          console.log('Member joined notification:', notification);
+          const {roomId, userId} = notification;
+          // Show UI notification
+          setUiNoticeRef.current({ type: "info", text: `👤 User ${userId} has joined room ${roomId}` });
+          setSuccessNotification(`User ${userId} has joined room ${roomId}`);
+        });
+
+        await chatClient.login();
 
         const initRooms = [
           {id: DEFAULT_ROOM_ID, name: DEFAULT_ROOM_NAME}, 
           {id: `private-${userId}-${userId}`, name: `${userId} (You)`},
         ];
         for (const r of initRooms) {
-          await newChatClient.createRoom(r.name, [], r.id)
+          await chatClient.createRoom(r.name, [], r.id)
             .then((room) => { console.log('newly created room:', room); })
             .catch(async (createErr) => {
               console.log('failed to create roomId: ', r.id, 'error:', createErr);
               console.log("try to add user to existing room", r.id, "userId:", userId);
               // If room already exists, add current user to it
-              return await newChatClient.addUserToRoom(r.id, userId);
+              return await chatClient.addUserToRoom(r.id, userId);
             })
             .catch((addErr) => { console.log('failed to add user to default room:', addErr); });
         };
 
-        const roomMetadatas: RoomMetadata[] = newChatClient.rooms
+        const roomMetadatas: RoomMetadata[] = chatClient.rooms
           .filter(r => r.roomId !== GLOBAL_METADATA_ROOM_ID) // Hide global metadata room from UI
           .map(r => ({ roomId: r.roomId, roomName: r.title, userId: "unknown" }));
         setRoomsRef.current(roomMetadatas);
         setRoomIdRef.current(DEFAULT_ROOM_ID);
 
-        clientRef.current = newChatClient;
+        clientRef.current = chatClient;
 
-        setClient(newChatClient);
-        setUserIdRef.current(newChatClient.userId);
+        setClient(chatClient);
+        setUserIdRef.current(chatClient.userId);
 
-        console.log(`chat client connected, userId = ${newChatClient.userId}`);
+        console.log(`chat client connected, userId = ${chatClient.userId}`);
         
         // Fetch history for all rooms after initialization
-        fetchAllRoomsHistory(newChatClient, newChatClient.rooms).catch(err => {
+        fetchAllRoomsHistory(chatClient, chatClient.rooms).catch(err => {
           console.error('Failed to fetch all room histories:', err);
         });
         
@@ -474,7 +483,7 @@ export const ChatClientProvider: React.FC<ChatClientProviderProps> = ({ children
         initStartedRef.current = true;
         
         // Send initial ping immediately to announce user is online
-        newChatClient.sendToRoom(GLOBAL_METADATA_ROOM_ID, "ping").catch((err) => {
+        chatClient.sendToRoom(GLOBAL_METADATA_ROOM_ID, "ping").catch((err) => {
           console.error("Failed to send initial ping:", err);
         });
         

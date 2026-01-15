@@ -381,18 +381,18 @@ export const ChatHeader: React.FC = () => {
                   )}
                 </div>
               )}
-                {roomId && !roomId.startsWith('private-') && (
-                  <button
-                    onClick={copyRoomId}
-                    className="copy-room-btn"
-                    title="Copy Room ID to clipboard"
-                  >
-                    Copy Room ID
-                  </button>
-                )}
               </div>
             <div className="header-actions-small">
               <p>RoomName: {roomName} | RoomId: {roomId}</p>
+              {roomId && !roomId.startsWith('private-') && (
+                <button
+                  onClick={copyRoomId}
+                  className="copy-room-btn"
+                  title="Copy Room ID to clipboard"
+                >
+                  Copy Room ID
+                </button>
+              )}
             </div>
           </div>
         </div>

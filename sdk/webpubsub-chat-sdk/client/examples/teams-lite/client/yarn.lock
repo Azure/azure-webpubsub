@@ -31,12 +31,6 @@ __metadata:
   languageName: node
   linkType: soft
 
-"@azure/web-pubsub-client@link:G:\\\\azure-sdk-for-js\\\\sdk\\\\web-pubsub\\\\web-pubsub-client::locator=my-chat-ui-app%40workspace%3A.":
-  version: 0.0.0-use.local
-  resolution: "@azure/web-pubsub-client@link:/G://azure-sdk-for-js//sdk//web-pubsub//web-pubsub-client::locator=my-chat-ui-app%40workspace%3A."
-  languageName: node
-  linkType: soft
-
 "@babel/code-frame@npm:^7.10.4, @babel/code-frame@npm:^7.27.1":
   version: 7.27.1
   resolution: "@babel/code-frame@npm:7.27.1"
@@ -3341,7 +3335,6 @@ __metadata:
   resolution: "my-chat-ui-app@workspace:."
   dependencies:
     "@azure/web-pubsub-chat-client": "link:G:\\\\azure-webpubsub\\\\sdk\\\\webpubsub-chat-sdk\\\\client"
-    "@azure/web-pubsub-client": "link:G:\\\\azure-sdk-for-js\\\\sdk\\\\web-pubsub\\\\web-pubsub-client"
     "@eslint/js": "npm:^9.30.1"
     "@tailwindcss/vite": "npm:^4.1.11"
     "@testing-library/dom": "npm:^10.4.0"
