@@ -24,7 +24,6 @@ class ChatClient {
                     case "NewMessage":
                         const notificationBody = data.body as NewMessageNotificationBody;
                         var messageContent = (notificationBody.message as MessageInfo).content;
-                        messageContent.text = decodeMessageBody(messageContent.text || "");
                         this._emitter.emit("newMessage", notificationBody);
                         break;
                     case "NewRoom":
@@ -136,7 +135,7 @@ class ChatClient {
             roomDetails = { ...roomDetails, roomId: roomId };
         }
         const roomInfo = await this.invokeWithReturnType<RoomInfoWithMembers>(INVOCATION_NAME.CREATE_ROOM, roomDetails, "json");
-        if ((roomInfo as any).Code === ERRORS.ROOM_ALREADY_EXISTS) {
+        if ((roomInfo as any).code === ERRORS.ROOM_ALREADY_EXISTS) {
             throw new Error(ERRORS.ROOM_ALREADY_EXISTS);
         }
         this._rooms.set(roomInfo.roomId, roomInfo);
@@ -145,7 +144,12 @@ class ChatClient {
     }
 
     private async manageRoomMember(request: ManageRoomMemberRequest): Promise<void> {
-        return this.invokeWithReturnType<any>(INVOCATION_NAME.MANAGE_ROOM_MEMBER, request, "json");
+        console.log("manageRoomMember request:", request);
+        const ret = await this.invokeWithReturnType<any>(INVOCATION_NAME.MANAGE_ROOM_MEMBER, request, "json");
+        console.log("manageRoomMember response:", ret);
+        if ((ret as any).code === ERRORS.NO_PERMISSION_IN_ROOM) {
+            throw new Error(ERRORS.NO_PERMISSION_IN_ROOM);
+        } 
     }
 
     /** Add a user to a room. This is an admin operation where one user adds another user to a room. */
@@ -195,9 +199,6 @@ class ChatClient {
             maxCount: maxCount
         };
         const result = await this.invokeWithReturnType<{ messages: MessageInfo[], nextQuery: MessageRangeQuery }>(INVOCATION_NAME.LIST_MESSAGES, query, "json");
-        for (const messageInfo of result.messages) {
-            messageInfo.content.text = decodeMessageBody(messageInfo.content.text);
-        }
         return result;
     }
 

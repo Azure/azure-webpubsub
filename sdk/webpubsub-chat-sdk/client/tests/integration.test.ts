@@ -127,7 +127,7 @@ test("create room with multiple users", { timeout: 3_000 }, async (t) => {
       assert.equal(msgId, i.toString(), `sent message id should be ${i} but got ${msgId}`);
     }
 
-    const listedMsgs = await chats[0].listMessage(createdRoom.defaultConversationId, "0", null);
+    const listedMsgs = await chats[0].listMessage(createdRoom.defaultConversationId, "0", null, 100);
     let listedMsgCount = 0;
     for (const message of listedMsgs.messages) {
       assert.equal(message.messageId, (5 - listedMsgCount).toString(), `message id should match expected order, expect ${5 - listedMsgCount} but got ${message.messageId}`);

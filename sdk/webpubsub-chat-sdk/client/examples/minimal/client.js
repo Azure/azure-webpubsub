@@ -26,12 +26,12 @@ async function main() {
 
     // Setup event listeners for Bob
     bob.addListenerForNewRoom((room) => {
-        console.log(`[Bob] Joined new room: "${room.Title}" (${room.RoomId})`);
+        console.log(`[Bob] Joined new room: "${room.title}" (${room.roomId})`);
     });
 
     bob.addListenerForNewMessage((notification) => {
-        const msg = notification.Message;
-        console.log(`[Bob] New message from ${msg.CreatedBy}: ${msg.Body}`);
+        const msg = notification.message;
+        console.log(`[Bob] New message from ${msg.createdBy}: ${msg.body}`);
     });
 
     // Alice creates a room and invites Bob
