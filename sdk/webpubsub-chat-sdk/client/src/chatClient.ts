@@ -82,6 +82,7 @@ class ChatClient {
     if (dataString?.indexOf("InvalidRequest") !== -1) {
       throw new Error(`Invocation of event "${eventName}" failed: ${dataString || "Unknown error"}`);
     }
+    // todo: handle rawResponse.success
     return rawResponse.data as T;
   }
 
@@ -118,7 +119,7 @@ class ChatClient {
     // sender won't receive conversation message via notification mechanism, so emit event here
     const roomId = Array.from(this._rooms.values()).find((r) => r.defaultConversationId === conversationId)?.roomId;
     logger.warning(`Failed to find roomId for conversationId ${conversationId} when sending message.`);
-    this._emitter.emit("newMessage", {
+    this._emitter.emit("NewMessage" as NotificationType, {
       conversation: { conversationId: conversationId, roomId: roomId || "" },
       message: {
         messageId: msgId,
@@ -157,8 +158,9 @@ class ChatClient {
     if ((roomInfo as any).code === ERRORS.ROOM_ALREADY_EXISTS) {
       throw new Error(ERRORS.ROOM_ALREADY_EXISTS);
     }
+    console.log(`createdRoom:`, roomInfo);
     this._rooms.set(roomInfo.roomId, roomInfo);
-    this._emitter.emit("newRoom", roomInfo);
+    this._emitter.emit("NewRoom" as NotificationType, roomInfo);
     return roomInfo;
   }
 
