@@ -1,6 +1,5 @@
 import React, { useContext } from "react";
 import type { ReactNode } from "react";
-import { WebPubSubClient } from "@azure/web-pubsub-client";
 import { ChatClient } from "@azure/web-pubsub-chat-client"
 import { ChatClientContext } from "../contexts/ChatClientContext";
 import type { ChatMessage, ConnectionStatus, OnlineStatus, TypingStatus } from "../contexts/ChatClientContext";
@@ -300,8 +299,8 @@ export const ChatClientProvider: React.FC<ChatClientProviderProps> = ({ children
         }
 
         // Use the userId from context (set via login dialog)
-        // Create new client with initial roomId; no user id
-        const newClient = new WebPubSubClient({
+        // Create new client with initial roomId; no user id)
+        const newChatClient = new ChatClient({
           getClientAccessUrl: async () => {
             const url = `/api/negotiate?userId=${userId}`;
             const response = await fetch(url);
@@ -317,7 +316,7 @@ export const ChatClientProvider: React.FC<ChatClientProviderProps> = ({ children
         });
 
         // Assign clientRef before starting to prevent parallel starts from racing
-        const newChatClient = new ChatClient(newClient); //await ChatClient.login(newClient);
+        // const newChatClient = new ChatClient(newClient); //await ChatClient.login(newClient);
         // Set up event listeners using refs for latest values
         newChatClient.onConnected((e: { connectionId: string; userId?: string }) => {
           setConnectionStatus({
@@ -397,6 +396,7 @@ export const ChatClientProvider: React.FC<ChatClientProviderProps> = ({ children
             isFromCurrentUser: false
           } });
         });
+
         newChatClient.addListenerForNewRoom((room) => {
           console.log('New room created/joined:', room);
           
