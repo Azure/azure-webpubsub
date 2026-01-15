@@ -1,6 +1,6 @@
 import { createContext } from 'react';
 // import type { WebPubSubClient } from '@azure/web-pubsub-client';
-import { ChatClient } from 'webpubsub-chat-sdk';
+import { ChatClient } from '@azure/web-pubsub-chat-client';
 
 export interface ChatMessage {
   id: string;
@@ -53,6 +53,8 @@ export interface ChatClientContextType {
   typingStatus: TypingStatus;
   sendTypingIndicator: (roomId: string) => void;
   getTypingUsersForRoom: (roomId: string) => string[];
+  successNotification: string;
+  setSuccessNotification: (message: string) => void;
 }
 
 export const ChatClientContext = createContext<ChatClientContextType | undefined>(undefined);

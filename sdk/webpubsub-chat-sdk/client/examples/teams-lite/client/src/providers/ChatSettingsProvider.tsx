@@ -39,21 +39,20 @@ export const ChatSettingsProvider: React.FC<ChatSettingsProviderProps> = ({ chil
     [userId],
   );
 
-  // Join an existing room via API
-  const joinRoom = React.useCallback(
-    async (client: ChatClient, roomIdToJoin: string): Promise<string> => {
+  // Add user to an existing room via API (admin operation)
+  const addUserToRoom = React.useCallback(
+    async (client: ChatClient, roomIdToAdd: string, userId: string): Promise<void> => {
       try {
-        console.log(`client.joinRoom, roomId: ${roomIdToJoin}, client: `, client);
+        console.log(`client.addUserToRoom, roomId: ${roomIdToAdd}, userId: ${userId}, client: `, client);
         
-        const joinedRoom = await client.joinRoom(roomIdToJoin);
-        console.log('client.joinRoom result', joinedRoom);
+        await client.addUserToRoom(roomIdToAdd, userId);
         
-        // Check if room already exists in our list
-        // const existingRoom = rooms.find(room => room.roomId === joinedRoom.RoomId);
-        setRoomId(joinedRoom.RoomId);
-        return joinedRoom.RoomId;
+        console.log('client.addUserToRoom succeeded');
+        
+        // Switch to the room after adding
+        setRoomId(roomIdToAdd);
       } catch (error) {
-        console.error('Failed to join room:', error);
+        console.error('Failed to add user to room:', error);
         throw error;
       }
     },
@@ -132,7 +131,7 @@ export const ChatSettingsProvider: React.FC<ChatSettingsProviderProps> = ({ chil
     rooms,
     setRooms,
     addRoom,
-    joinRoom,
+    addUserToRoom,
     removeRoom,
     updateRoom,
     userId,

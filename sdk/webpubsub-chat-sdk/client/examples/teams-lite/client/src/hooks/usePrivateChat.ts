@@ -27,7 +27,7 @@ export const usePrivateChat = () => {
     
     try {
       // Check if room already exists in client's rooms
-      const existingRoom = clientContext.client.rooms.find(r => r.RoomId === privateRoomId);
+      const existingRoom = clientContext.client.rooms.find(r => r.roomId === privateRoomId);
       
       if (existingRoom) {
         // Room exists, just switch to it

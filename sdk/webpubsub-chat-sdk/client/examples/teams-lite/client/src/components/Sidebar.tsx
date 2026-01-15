@@ -3,7 +3,6 @@ import { ChatSettingsContext } from '../contexts/ChatSettingsContext';
 import type { RoomMetadata } from '../contexts/ChatSettingsContext';
 import { ChatClientContext } from '../contexts/ChatClientContext';
 import { CreateRoomDialog } from './CreateRoomDialog';
-import { JoinRoomDialog } from './JoinRoomDialog';
 import { useChatClient } from '../hooks/useChatClient';
 import { AvatarWithOnlineStatus } from './AvatarWithOnlineStatus';
 import { GLOBAL_METADATA_ROOM_ID } from '../lib/constants';
@@ -11,9 +10,7 @@ import { GLOBAL_METADATA_ROOM_ID } from '../lib/constants';
 export const Sidebar: React.FC = () => {
   const settings = useContext(ChatSettingsContext);
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
-  const [isJoinDialogOpen, setIsJoinDialogOpen] = useState(false);
   const [isCreating, setIsCreating] = useState(false);
-  const [isJoining, setIsJoining] = useState(false);
   const clientContext = useContext(ChatClientContext);
   const { connectionStatus } = useChatClient();
   const unreadCounts = clientContext?.unreadCounts || {};
@@ -26,7 +23,7 @@ export const Sidebar: React.FC = () => {
   // Helper function to get the identifier for avatar display
   const getAvatarIdentifier = React.useCallback((room: RoomMetadata): string => {
     // Check if it's a private chat (starts with "private-")
-    if (room.roomId.startsWith('private-')) {
+    if (room.roomId && room.roomId.startsWith('private-')) {
       // Extract user IDs from room ID: private-user1-user2
       const parts = room.roomId.split('-');
       if (parts.length >= 3 && currentUserId) {
@@ -38,7 +35,7 @@ export const Sidebar: React.FC = () => {
     }
     
     // For regular rooms, use room name for avatar
-    return room.roomName || room.roomId;
+    return room.roomName || room.roomId || 'Unknown';
   }, [currentUserId]);
 
   // Helper function to get display name for room
@@ -58,6 +55,7 @@ export const Sidebar: React.FC = () => {
 
   // Helper function to format message preview - memoized to avoid recreation on each render
   const formatMessagePreview = React.useCallback((roomId: string): string => {
+    if (!roomId) return 'No room ID';
     if (!getLastMessageForRoom) return roomId;
     
     const lastMessage = getLastMessageForRoom(roomId);
@@ -100,6 +98,8 @@ export const Sidebar: React.FC = () => {
     // Filter out global metadata room and deduplicate by roomId
     const seenIds = new Set<string>();
     const filteredRooms = settings.rooms.filter(room => {
+      // Skip rooms with undefined roomId
+      if (!room.roomId) return false;
       // Skip global metadata room
       if (room.roomId === GLOBAL_METADATA_ROOM_ID) return false;
       // Skip duplicates
@@ -124,7 +124,7 @@ export const Sidebar: React.FC = () => {
   }, [settings?.rooms, getLastMessageForRoom, roomMessagesUpdateTrigger]);
 
   if (!settings) return null;
-  const { roomId, setRoomId, addRoom, joinRoom, removeRoom } = settings;
+  const { roomId, setRoomId, addRoom, addUserToRoom, removeRoom } = settings;
 
   const handleCreateRoom = async (roomName: string, memberIds: string[]) => {
     setIsCreating(true);
@@ -140,20 +140,6 @@ export const Sidebar: React.FC = () => {
     }
   };
 
-  const handleJoinRoom = async (roomIdToJoin: string) => {
-    setIsJoining(true);
-    try {
-      const id = await joinRoom(clientContext!.client!, roomIdToJoin);
-      setIsJoinDialogOpen(false);
-      setRoomId(id);
-    } catch (error) {
-      console.error('HandleJoinRoomError:', error);
-      // Error will be handled by the dialog if needed
-    } finally {
-      setIsJoining(false);
-    }
-  };
-
   return (
     <>
       <CreateRoomDialog
@@ -161,12 +147,6 @@ export const Sidebar: React.FC = () => {
         onCreateRoom={handleCreateRoom}
         onClose={() => setIsCreateDialogOpen(false)}
         isLoading={isCreating}
-      />
-      <JoinRoomDialog
-        isOpen={isJoinDialogOpen}
-        onJoinRoom={handleJoinRoom}
-        onClose={() => setIsJoinDialogOpen(false)}
-        isLoading={isJoining}
       />
       <aside className="sidebar" aria-label="Rooms">
         <div className="sidebar-header">
@@ -190,16 +170,6 @@ export const Sidebar: React.FC = () => {
             <span className="sidebar-action-btn-icon">+</span>
             Create
           </button>
-          <button
-            type="button"
-            className="sidebar-action-btn"
-            onClick={() => setIsJoinDialogOpen(true)}
-            aria-label="Join room"
-            title="Join room"
-          >
-            <span className="sidebar-action-btn-icon">🔗</span>
-            Join
-          </button>
         </div>
       <ul className="room-list">
         {sortedRooms.map(room => {
@@ -216,7 +186,7 @@ export const Sidebar: React.FC = () => {
                   size={32} 
                   fontSize={14} 
                   isUser={false}
-                  isPrivateChat={room.roomId.startsWith('private-')}
+                  isPrivateChat={room.roomId?.startsWith('private-') || false}
                 />
                 <div className="room-info">
                   <span 
@@ -240,7 +210,7 @@ export const Sidebar: React.FC = () => {
                   </div>
                 )}
               </button>
-              {room.roomId !== 'public' && (
+              {room.roomId && room.roomId !== 'public' && (
                 <button 
                   className="room-remove" 
                   onClick={async () => {

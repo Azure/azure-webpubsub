@@ -5,7 +5,16 @@ import tailwindcss from '@tailwindcss/vite'
 // https://vite.dev/config/
 export default defineConfig({
   optimizeDeps: {
-    exclude: ['webpubsub-chat-sdk', '@azure/web-pubsub-client']
+    exclude: ['@azure/web-pubsub-client', '@azure/web-pubsub-chat-client']
+  },
+  resolve: {
+    alias: {
+      buffer: 'buffer/',
+      events: 'events/'
+    }
+  },
+  define: {
+    'global': 'globalThis'
   },
   plugins: [react(), tailwindcss()],
   server: {

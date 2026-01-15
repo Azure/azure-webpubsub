@@ -1,7 +1,7 @@
 import React, { useContext } from "react";
 import type { ReactNode } from "react";
 import { WebPubSubClient } from "@azure/web-pubsub-client";
-import { ChatClient } from "webpubsub-chat-sdk"
+import { ChatClient } from "@azure/web-pubsub-chat-client"
 import { ChatClientContext } from "../contexts/ChatClientContext";
 import type { ChatMessage, ConnectionStatus, OnlineStatus, TypingStatus } from "../contexts/ChatClientContext";
 import { messagesReducer, initialMessagesState } from "../reducers/messagesReducer";
@@ -66,6 +66,9 @@ export const ChatClientProvider: React.FC<ChatClientProviderProps> = ({ children
   // Typing status management
   const [typingStatus, setTypingStatus] = React.useState<TypingStatus>({});
   const typingCheckIntervalRef = React.useRef<NodeJS.Timeout | null>(null);
+  
+  // Success notification management
+  const [successNotification, setSuccessNotification] = React.useState<string>("");
 
   if (!settingsContext) {
     throw new Error("ChatClientProvider must be used within ChatSettingsProvider");
@@ -194,15 +197,16 @@ export const ChatClientProvider: React.FC<ChatClientProviderProps> = ({ children
     
     try {
       console.log(`Fetching history for room: ${targetRoomId}`);
-      const roomHistory = await client.listRoomMessage(targetRoomId, null, null, 1000);
-      const mapped: ChatMessage[] = (roomHistory.Messages.reverse() ?? []).map((m: { MessageId?: string; CreatedBy?: string; Body?: string; CreatedAt?: string }) => {
-        const rawFrom = (m.CreatedBy && String(m.CreatedBy).trim().length > 0) ? m.CreatedBy : undefined;
+      const roomHistory = await client.listRoomMessage(targetRoomId, null, null, 100);
+      console.log("fetchRoomHistory result:", roomHistory);
+      const mapped: ChatMessage[] = (roomHistory.messages.reverse() ?? []).map((m: { messageId?: string; createdBy?: string; content?: { text?: string; binary?: string }; createdAt?: string }) => {
+        const rawFrom = (m.createdBy && String(m.createdBy).trim().length > 0) ? m.createdBy : undefined;
         const sender = rawFrom ?? "Unknown sender";
         return {
-          id: String(m.MessageId ?? Date.now() + Math.random()),
-          content: String(m.Body ?? ""),
+          id: String(m.messageId ?? Date.now() + Math.random()),
+          content: String(m.content?.text ?? ""),
           sender,
-          timestamp: m.CreatedAt ?? new Date().toISOString(),
+          timestamp: m.createdAt ?? new Date().toISOString(),
           isFromCurrentUser: rawFrom !== undefined && rawFrom === userIdRef.current,
           isAcked: true,
         } as ChatMessage;
@@ -225,9 +229,9 @@ export const ChatClientProvider: React.FC<ChatClientProviderProps> = ({ children
   }, [ensureRoomState, reconnectSeq]);
 
   // Helper: fetch history for all rooms
-  const fetchAllRoomsHistory = React.useCallback(async (client: ChatClient, rooms: { RoomId: string }[]) => {
+  const fetchAllRoomsHistory = React.useCallback(async (client: ChatClient, rooms: { roomId: string }[]) => {
     console.log(`Fetching history for ${rooms.length} rooms`);
-    const fetchPromises = rooms.map(room => fetchRoomHistory(client, room.RoomId));
+    const fetchPromises = rooms.map(room => fetchRoomHistory(client, room.roomId));
     await Promise.allSettled(fetchPromises);
     console.log('Finished fetching all room histories');
   }, [fetchRoomHistory]);
@@ -347,16 +351,17 @@ export const ChatClientProvider: React.FC<ChatClientProviderProps> = ({ children
 
 
         newChatClient.addListenerForNewMessage((notification) => {
-          const message = notification.Message;
-          console.log(`Received new message from ${message.CreatedBy}, body = ${message.Body}, isSelf = ${message.CreatedBy === newChatClient.userId}`);
+          console.log("New message notification:", notification);
+          const message = notification.message;
+          console.log(`Received new message from ${message.createdBy}, content = ${message.content?.text}, isSelf = ${message.createdBy === newChatClient.userId}`);
           
           // Handle ping messages for online status
-          if (notification.Conversation.RoomId === GLOBAL_METADATA_ROOM_ID && message.Body === "ping") {
-            if (message.CreatedBy) {
+          if (notification.conversation.roomId === GLOBAL_METADATA_ROOM_ID && message.content?.text === "ping") {
+            if (message.createdBy) {
               setOnlineStatus(prev => {
                 const updated = {
                   ...prev,
-                  [message.CreatedBy!]: {
+                  [message.createdBy!]: {
                     isOnline: true,
                     lastSeen: Date.now()
                   }
@@ -369,10 +374,10 @@ export const ChatClientProvider: React.FC<ChatClientProviderProps> = ({ children
           
           // Handle typing indicator messages
           // Format: "typing:roomId"
-          if (notification.Conversation.RoomId === GLOBAL_METADATA_ROOM_ID && message.Body?.startsWith("typing:")) {
-            const targetRoomId = message.Body.substring(7); // Remove "typing:" prefix
-            if (message.CreatedBy && message.CreatedBy !== newChatClient.userId) {
-              const visitorKey = `${targetRoomId}:${message.CreatedBy}`;
+          if (notification.conversation.roomId === GLOBAL_METADATA_ROOM_ID && message.content?.text?.startsWith("typing:")) {
+            const targetRoomId = message.content.text.substring(7); // Remove "typing:" prefix
+            if (message.createdBy && message.createdBy !== newChatClient.userId) {
+              const visitorKey = `${targetRoomId}:${message.createdBy}`;
               setTypingStatus(prev => ({
                 ...prev,
                 [visitorKey]: {
@@ -384,11 +389,11 @@ export const ChatClientProvider: React.FC<ChatClientProviderProps> = ({ children
             return; // Don't show typing messages in the UI
           }
           
-          if (message.CreatedBy === newChatClient.userId) return ;
-          updateRoomMessages(notification.Conversation.RoomId!, { type: "completeMessage", payload: { 
-            messageId: message.MessageId,
-            content: message.Body, 
-            sender: message.CreatedBy || "Unknown Sender",
+          if (message.createdBy === newChatClient.userId) return ;
+          updateRoomMessages(notification.conversation.roomId!, { type: "completeMessage", payload: { 
+            messageId: message.messageId,
+            content: message.content?.text || "", 
+            sender: message.createdBy || "Unknown Sender",
             isFromCurrentUser: false
           } });
         });
@@ -396,27 +401,37 @@ export const ChatClientProvider: React.FC<ChatClientProviderProps> = ({ children
           console.log('New room created/joined:', room);
           
           // Skip global metadata room - it should never appear in the sidebar
-          if (room.RoomId === GLOBAL_METADATA_ROOM_ID) {
+          if (room.roomId === GLOBAL_METADATA_ROOM_ID) {
             return;
           }
           
           // Check if room already exists to prevent duplicates
-          const existingRoom = roomsRef.current.find(r => r.roomId === room.RoomId);
+          const existingRoom = roomsRef.current.find(r => r.roomId === room.roomId);
           if (existingRoom) {
-            console.log(`Room ${room.RoomId} already exists, skipping duplicate add`);
+            console.log(`Room ${room.roomId} already exists, skipping duplicate add`);
             return;
           }
           
           setRoomsRef.current([...roomsRef.current, {
-            roomId: room.RoomId,
-            roomName: room.Title,
+            roomId: room.roomId,
+            roomName: room.title,
             userId: newChatClient.userId || "unknown"
           }]);
-          setUiNoticeRef.current({ type: "info", text: `You joined room: ${room.Title}` });
+          
+          // Show UI notification that user has been added to a new room
+          console.log(`User ${newChatClient.userId} has been added to room: ${room.title}`);
+          setUiNoticeRef.current({ type: "info", text: `🎉 You have been added to room: ${room.title}` });
+          setSuccessNotification(`You have been added to room: ${room.title}`);
+          
+          // Auto-clear the notification after 5 seconds
+          setTimeout(() => {
+            setUiNoticeRef.current(undefined);
+            setSuccessNotification("");
+          }, 5000);
           
           // Fetch history for the new room
-          fetchRoomHistory(newChatClient, room.RoomId).catch(err => {
-            console.error(`Failed to fetch history for new room ${room.RoomId}:`, err);
+          fetchRoomHistory(newChatClient, room.roomId).catch(err => {
+            console.error(`Failed to fetch history for new room ${room.roomId}:`, err);
           });
         });
         await newChatClient.login();
@@ -424,21 +439,22 @@ export const ChatClientProvider: React.FC<ChatClientProviderProps> = ({ children
         const initRooms = [
           {id: DEFAULT_ROOM_ID, name: DEFAULT_ROOM_NAME}, 
           {id: `private-${userId}-${userId}`, name: `${userId} (You)`},
-          {id: GLOBAL_METADATA_ROOM_ID, name: GLOBAL_METADATA_ROOM_NAME}
         ];
         for (const r of initRooms) {
           await newChatClient.createRoom(r.name, [], r.id)
             .then((room) => { console.log('newly created room:', room); })
             .catch(async (createErr) => {
               console.log('failed to create roomId: ', r.id, 'error:', createErr);
-              return newChatClient.joinRoom(r.id);
+              console.log("try to add user to existing room", r.id, "userId:", userId);
+              // If room already exists, add current user to it
+              return await newChatClient.addUserToRoom(r.id, userId);
             })
-            .catch((joinErr) => { console.log('failed to join default room:', joinErr); });
+            .catch((addErr) => { console.log('failed to add user to default room:', addErr); });
         };
 
         const roomMetadatas: RoomMetadata[] = newChatClient.rooms
-          .filter(r => r.RoomId !== GLOBAL_METADATA_ROOM_ID) // Hide global metadata room from UI
-          .map(r => ({ roomId: r.RoomId, roomName: r.Title, userId: "unknown" }));
+          .filter(r => r.roomId !== GLOBAL_METADATA_ROOM_ID) // Hide global metadata room from UI
+          .map(r => ({ roomId: r.roomId, roomName: r.title, userId: "unknown" }));
         setRoomsRef.current(roomMetadatas);
         setRoomIdRef.current(DEFAULT_ROOM_ID);
 
@@ -670,8 +686,10 @@ export const ChatClientProvider: React.FC<ChatClientProviderProps> = ({ children
       typingStatus,
       sendTypingIndicator,
       getTypingUsersForRoom,
+      successNotification,
+      setSuccessNotification,
     }),
-    [client, connectionStatus, messages, isStreaming, sendMessage, clearMessages, uiNotice, unreadCounts, getLastMessageForRoom, roomMessagesUpdateTrigger, onlineStatus, typingStatus, sendTypingIndicator, getTypingUsersForRoom],
+    [client, connectionStatus, messages, isStreaming, sendMessage, clearMessages, uiNotice, unreadCounts, getLastMessageForRoom, roomMessagesUpdateTrigger, onlineStatus, typingStatus, sendTypingIndicator, getTypingUsersForRoom, successNotification],
   );
   return (
     <>

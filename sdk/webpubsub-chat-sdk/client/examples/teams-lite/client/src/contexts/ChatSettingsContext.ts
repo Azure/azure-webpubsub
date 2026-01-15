@@ -16,7 +16,7 @@ export interface ChatSettingsContextType {
   rooms: RoomMetadata[];
   setRooms: (rooms: RoomMetadata[]) => void;
   addRoom: (client: ChatClient, roomName: string, memberIds?: string[]) => Promise<string>; // returns the created room id (server generates id)
-  joinRoom: (client: ChatClient, roomId: string) => Promise<string>; // returns the joined room id
+  addUserToRoom: (client: ChatClient, roomId: string, userId: string) => Promise<void>; // admin adds a user to a room
   removeRoom: (roomId: string) => Promise<void>;
   updateRoom: (roomId: string, roomName: string, description?: string) => Promise<void>;
   userId?: string;

@@ -6,6 +6,7 @@ import { ChatClientContext } from '../contexts/ChatClientContext';
 import { usePrivateChat } from '../hooks/usePrivateChat';
 import { AvatarWithOnlineStatus } from './AvatarWithOnlineStatus';
 import { UserProfileCard } from './UserProfileCard';
+import { AddToRoomDialog } from './AddToRoomDialog';
 
 export const ChatHeader: React.FC = () => {
   const { connectionStatus } = useChatClient();
@@ -14,6 +15,10 @@ export const ChatHeader: React.FC = () => {
   const [roomMembersInfo, setRoomMembersInfo] = useState<{ count: number; members: string[] } | null>(null);
   const [showMembersList, setShowMembersList] = useState(false);
   const [showProfileCard, setShowProfileCard] = useState(false);
+  const [isAddToRoomDialogOpen, setIsAddToRoomDialogOpen] = useState(false);
+  const [isAddingUsers, setIsAddingUsers] = useState(false);
+  const [removingUserId, setRemovingUserId] = useState<string | null>(null);
+  const [errorMessage, setErrorMessage] = useState<string>("");
   const { createOrJoinPrivateChat } = usePrivateChat();
   const chatRoom = useContext(ChatRoomContext);
   const roomId = chatRoom?.room ? chatRoom.room.id : undefined;
@@ -28,8 +33,10 @@ export const ChatHeader: React.FC = () => {
       }
       
       try {
+        console.log("trying to fetch room members for room:", roomId);
         const roomInfo = await clientContext.client.getRoom(roomId, true);
-        const members = roomInfo.Members || [];
+        console.log("fetched room member info:", roomInfo);
+        const members = (roomInfo as any).members || [];
         setRoomMembersInfo({
           count: members.length,
           members: members
@@ -92,6 +99,67 @@ export const ChatHeader: React.FC = () => {
     window.location.reload();
   };
 
+  const handleAddToRoom = async (userIds: string[]) => {
+    if (!roomId || !clientContext?.client) return;
+    
+    setIsAddingUsers(true);
+    setErrorMessage("");
+    try {
+      // Add users to room using the client
+      for (const userId of userIds) {
+        await (clientContext.client as any).addUserToRoom(roomId, userId);
+      }
+      setIsAddToRoomDialogOpen(false);
+      // Refresh room members info
+      const roomInfo = await clientContext.client.getRoom(roomId, true);
+      const members = (roomInfo as any).members || [];
+      setRoomMembersInfo({
+        count: members.length,
+        members: members
+      });
+    } catch (error) {
+      console.error('Error adding users to room:', error);
+      const errorMsg = error instanceof Error ? error.message : 'Failed to add users to room';
+      setErrorMessage(errorMsg);
+    } finally {
+      setIsAddingUsers(false);
+    }
+  };
+
+  const handleRemoveUser = async (userId: string) => {
+    console.log("Removing user from room:", userId, roomId);
+    if (!roomId || !clientContext?.client) return;
+    
+    setRemovingUserId(userId);
+    setErrorMessage("");
+    try {
+      // Remove user from room using the client
+      await (clientContext.client as any).removeUserFromRoom(roomId, userId);
+      
+      // Refresh room members info
+      const roomInfo = await clientContext.client.getRoom(roomId, true);
+      const members = (roomInfo as any).members || [];
+      setRoomMembersInfo({
+        count: members.length,
+        members: members
+      });
+      
+      // Show success notification
+      clientContext.setSuccessNotification(`Successfully removed user ${userId} from the room`);
+      
+      // Auto-clear the notification after 5 seconds
+      setTimeout(() => {
+        clientContext.setSuccessNotification("");
+      }, 5000);
+    } catch (error) {
+      console.error('Error removing user from room:', error);
+      const errorMsg = error instanceof Error ? error.message : 'Failed to remove user from room';
+      setErrorMessage(errorMsg);
+    } finally {
+      setRemovingUserId(null);
+    }
+  };
+
   const renderUserAvatar = () => {
     const userId = connectionStatus.userId || settingsContext?.userId;
     if (!userId) return null;
@@ -146,6 +214,33 @@ export const ChatHeader: React.FC = () => {
 
   return (
     <header className="relative">
+      {/* Dialogs */}
+      <AddToRoomDialog
+        isOpen={isAddToRoomDialogOpen}
+        onAddToRoom={handleAddToRoom}
+        onClose={() => {
+          setIsAddToRoomDialogOpen(false);
+          setErrorMessage("");
+        }}
+        isLoading={isAddingUsers}
+        roomName={roomName}
+      />
+
+      {/* Error Message Banner */}
+      {errorMessage && (
+        <div className="error-banner">
+          <span className="error-banner-icon">⚠️</span>
+          <span className="error-banner-text">{errorMessage}</span>
+          <button
+            onClick={() => setErrorMessage("")}
+            className="error-banner-close"
+            aria-label="Close error message"
+          >
+            ×
+          </button>
+        </div>
+      )}
+
       {/* User avatar in top-right corner */}
       {currentUserId && (
         <div className="header-user-position">
@@ -199,23 +294,88 @@ export const ChatHeader: React.FC = () => {
                         {roomMembersInfo.members.map((member) => {
                           const currentUserId = connectionStatus.userId || settingsContext?.userId;
                           const isCurrentUser = member === currentUserId;
+                          const isRemoving = removingUserId === member;
                           
                           return (
                             <div
                               key={member}
-                              onClick={async () => {
-                                if (!isCurrentUser) {
-                                  await createOrJoinPrivateChat(member);
-                                  setShowMembersList(false);
-                                }
-                              }}
                               className={`member-item ${isCurrentUser ? 'current-user' : ''}`}
                             >
-                              {renderMemberAvatar(member, 24)}
-                              <span>{member} {isCurrentUser && '(You)'}</span>
+                              <div
+                                onClick={async () => {
+                                  if (!isCurrentUser) {
+                                    await createOrJoinPrivateChat(member);
+                                    setShowMembersList(false);
+                                  }
+                                }}
+                                className="member-item-content"
+                              >
+                                {renderMemberAvatar(member, 24)}
+                                <span>{member} {isCurrentUser && '(You)'}</span>
+                              </div>
+                              {!isCurrentUser && (
+                                <button
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleRemoveUser(member);
+                                  }}
+                                  className="member-remove-btn"
+                                  disabled={isRemoving}
+                                  title="Remove user from room"
+                                >
+                                  {isRemoving ? (
+                                    <svg
+                                      className="spinner"
+                                      width="16"
+                                      height="16"
+                                      viewBox="0 0 24 24"
+                                      fill="none"
+                                      stroke="currentColor"
+                                    >
+                                      <circle cx="12" cy="12" r="10" strokeWidth="3" strokeLinecap="round" />
+                                    </svg>
+                                  ) : (
+                                    <svg
+                                      width="16"
+                                      height="16"
+                                      viewBox="0 0 24 24"
+                                      fill="none"
+                                      stroke="currentColor"
+                                      strokeWidth="2"
+                                    >
+                                      <path d="M18 6L6 18M6 6l12 12" />
+                                    </svg>
+                                  )}
+                                </button>
+                              )}
                             </div>
                           );
                         })}
+                        
+                        {/* Room Management Actions */}
+                        <div className="members-dropdown-divider" />
+                        <div className="members-dropdown-actions">
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setIsAddToRoomDialogOpen(true);
+                              setShowMembersList(false);
+                            }}
+                            className="member-action-btn"
+                            title="Add users to this room"
+                          >
+                            <svg
+                              width="16"
+                              height="16"
+                              viewBox="0 0 24 24"
+                              fill="currentColor"
+                              aria-hidden="true"
+                            >
+                              <path d="M15 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm-9-2V7H4v3H1v2h3v3h2v-3h3v-2H6zm9 4c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/>
+                            </svg>
+                            Add to Room
+                          </button>
+                        </div>
                       </div>
                     </div>
                   )}

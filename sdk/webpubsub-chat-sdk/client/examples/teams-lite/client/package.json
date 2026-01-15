@@ -12,14 +12,14 @@
     "test:watch": "vitest"
   },
   "dependencies": {
-    "@azure/web-pubsub-client": "file:G:\\\\azure-sdk-for-js\\\\sdk\\\\web-pubsub\\\\web-pubsub-client",
+    "@azure/web-pubsub-chat-client": "link:G:\\\\azure-webpubsub\\\\sdk\\\\webpubsub-chat-sdk\\\\client",
+    "@azure/web-pubsub-client": "link:G:\\\\azure-sdk-for-js\\\\sdk\\\\web-pubsub\\\\web-pubsub-client",
     "@tailwindcss/vite": "^4.1.11",
     "@types/dompurify": "^3.0.5",
     "dompurify": "^3.2.6",
     "marked": "^16.1.2",
     "react": "^19.1.0",
-    "react-dom": "^19.1.0",
-    "webpubsub-chat-sdk": "file:G:\\\\azure-webpubsub\\\\sdk\\\\webpubsub-chat-sdk\\\\client"
+    "react-dom": "^19.1.0"
   },
   "devDependencies": {
     "@eslint/js": "^9.30.1",
