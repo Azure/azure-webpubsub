@@ -193,3 +193,29 @@ iframe:focus-visible {
   outline: 3px solid #2563eb !important;
   outline-offset: 4px !important;
 }
+
+/* Keep blog sidebar visible when Docusaurus hides it at <=996px (zoomed desktop) */
+@media (max-width: 996px) {
+  /* Target the nav with the hashed sidebar class (e.g., sidebar_re4s) */
+  aside.col.col--3,
+  aside.col.col--3 nav[class*='sidebar'] {
+    display: block !important;
+    visibility: visible !important;
+  }
+
+  /* Keep navbar links visible; disable hamburger collapse */
+  .navbar__toggle {
+    display: none !important;
+  }
+
+  .navbar__items {
+    display: flex !important;
+    visibility: visible !important;
+  }
+
+  .navbar__item,
+  .navbar__link {
+    display: block !important;
+    visibility: visible !important;
+  }
+}
