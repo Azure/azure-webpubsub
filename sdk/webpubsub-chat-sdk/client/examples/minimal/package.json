@@ -1,0 +1,18 @@
+{
+  "name": "minimal-example",
+  "version": "1.0.0",
+  "description": "Minimal example for Web PubSub Chat SDK",
+  "type": "module",
+  "scripts": {
+    "server": "node server.js",
+    "client": "node client.js"
+  },
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "@azure/web-pubsub": "^1.2.0",
+    "@azure/web-pubsub-chat-client": "file:../..",
+    "@azure/web-pubsub-express": "^1.0.6",
+    "express": "^5.2.1"
+  }
+}

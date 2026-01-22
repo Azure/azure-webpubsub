@@ -1,0 +1,7 @@
+.env
+__pycache__/
+.vscode/
+python_server/static/
+.azure/
+.venv
+.yarn

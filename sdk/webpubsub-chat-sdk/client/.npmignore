@@ -1,0 +1,18 @@
+# Build artifacts
+node_modules/
+*.log
+*.tsbuildinfo
+
+# Examples and tests
+examples/
+tests/
+
+# Development files
+tsconfig.json
+.vscode/
+.git/
+.gitignore
+
+# OS files
+.DS_Store
+Thumbs.db
