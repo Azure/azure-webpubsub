@@ -31,7 +31,8 @@
     "preview": true,
     "activationEvents": [
         "onView:azureResourceGroups",
-        "onView:azureResourceGroupsV2"
+        "onView:azureResourceGroupsV2",
+        "onWebviewPanel:testClientView"
     ],
     "main": "./main.js",
     "contributes": {
@@ -122,6 +123,11 @@
             {
                 "command": "azureWebPubSub.service.openLiveTraceTool",
                 "title": "%azureWebPubSub.service.openLiveTraceTool%",
+                "category": "Azure Web PubSub"
+            },
+            {
+                "command": "azureWebPubSub.service.testClient",
+                "title": "%azureWebPubSub.service.testClient%",
                 "category": "Azure Web PubSub"
             },
             {
@@ -258,29 +264,34 @@
             ],
             "azureWebPubSub.service.advancedMenu": [
                 {
-                    "command": "azureWebPubSub.service.scaleUp",
+                    "command": "azureWebPubSub.service.testClient",
                     "when": "view =~ /(azureResourceGroups|azureFocusView)/ && viewItem =~ /webPubSubServiceItem/i",
                     "group": "1@1"
                 },
                 {
-                    "command": "azureWebPubSub.service.scaleOut",
+                    "command": "azureWebPubSub.service.scaleUp",
                     "when": "view =~ /(azureResourceGroups|azureFocusView)/ && viewItem =~ /webPubSubServiceItem/i",
                     "group": "1@2"
                 },
                 {
-                    "command": "azureWebPubSub.service.viewMetrics",
+                    "command": "azureWebPubSub.service.scaleOut",
                     "when": "view =~ /(azureResourceGroups|azureFocusView)/ && viewItem =~ /webPubSubServiceItem/i",
                     "group": "1@3"
                 },
                 {
-                    "command": "azureWebPubSub.service.checkHealth",
+                    "command": "azureWebPubSub.service.viewMetrics",
                     "when": "view =~ /(azureResourceGroups|azureFocusView)/ && viewItem =~ /webPubSubServiceItem/i",
                     "group": "1@4"
                 },
                 {
-                    "command": "azureWebPubSub.service.regenerateKey",
+                    "command": "azureWebPubSub.service.checkHealth",
                     "when": "view =~ /(azureResourceGroups|azureFocusView)/ && viewItem =~ /webPubSubServiceItem/i",
                     "group": "1@5"
+                },
+                {
+                    "command": "azureWebPubSub.service.regenerateKey",
+                    "when": "view =~ /(azureResourceGroups|azureFocusView)/ && viewItem =~ /webPubSubServiceItem/i",
+                    "group": "1@6"
                 }
             ]
         },
@@ -300,17 +311,23 @@
     "scripts": {
         "vscode:prepublish": "npm run cleanReadme",
         "build": "tsc && gulp webpack-prod",
+        "build:all": "npm run build && npm run build:webview",
         "cleanReadme": "gulp cleanReadme",
         "compile": "tsc -watch",
         "package": "vsce package --no-dependencies",
         "package:pre-release": "vsce package --pre-release",
-        "lint": "eslint --ext .ts .",
-        "lint-fix": "eslint --ext .ts . --fix",
+        "lint": "eslint --ext .ts ./src",
+        "lint-fix": "eslint --ext .ts ./src --fix",
+        "lint:all": "npm run lint && cd webview-ui && npm run lint",
+        "lint-fix:all": "npm run lint-fix && cd webview-ui && npm run lint-fix",
         "pretest": "npm run lint && npm run webpack-prod && gulp preTest",
         "test": "node ./out/test/runTest.js",
         "webpack": "tsc && gulp webpack-dev",
         "webpack-prod": "tsc && gulp webpack-prod",
-        "webpack-profile": "webpack --profile --json --mode production > webpack-stats.json && echo Use http://webpack.github.io/analyse to analyze the stats"
+        "webpack-profile": "webpack --profile --json --mode production > webpack-stats.json && echo Use http://webpack.github.io/analyse to analyze the stats",
+        "install:all": "npm install && cd webview-ui && npm install --legacy-peer-deps",
+        "start:webview": "cd webview-ui && npm run start",
+        "build:webview": "cd webview-ui && npm run build"
     },
     "devDependencies": {
         "@azure/ms-rest-azure-env": "^2.0.0",
@@ -345,6 +362,9 @@
         "@azure/arm-webpubsub": "^2.0.0-beta.2",
         "@azure/core-rest-pipeline": "1.10.3",
         "@azure/storage-blob": "^12.4.1",
+        "@azure/web-pubsub": "^1.1.1",
+        "@fluentui/react": "^8.106.3",
+        "@fluentui/react-components": "^9.34.1",
         "@microsoft/vscode-azext-azureutils": "^2.0.0",
         "@microsoft/vscode-azext-utils": "^2.1.3",
         "@microsoft/vscode-azureresources-api": "^2.2.1",
