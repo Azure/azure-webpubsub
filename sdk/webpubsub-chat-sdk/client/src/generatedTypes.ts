@@ -8,10 +8,10 @@ export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
         /** @enum {string} */
-        NotificationType: "NewMessage" | "NewRoom" | "UpdateMessage" | "AddContact" | "MemberJoined";
+        NotificationType: "NewMessage" | "NewRoom" | "UpdateMessage" | "AddContact" | "MemberJoined" | "MemberLeft" | "RoomLeft";
         Notification: {
             notificationType: components["schemas"]["NotificationType"];
-            body: components["schemas"]["NewMessageNotificationBody"] | components["schemas"]["NewRoomNotificationBody"] | components["schemas"]["UpdateMessageNotificationBody"] | components["schemas"]["AddContactNotificationBody"] | components["schemas"]["MemberJoinedNotificationBody"];
+            body: components["schemas"]["NewMessageNotificationBody"] | components["schemas"]["NewRoomNotificationBody"] | components["schemas"]["UpdateMessageNotificationBody"] | components["schemas"]["AddContactNotificationBody"] | components["schemas"]["MemberJoinedNotificationBody"] | components["schemas"]["MemberLeftNotificationBody"] | components["schemas"]["RoomLeftNotificationBody"];
         };
         NewMessageNotificationBody: {
             conversation: components["schemas"]["ChatConversation"];
@@ -84,6 +84,35 @@ export interface components {
             /** @enum {string} */
             notificationType?: "MemberJoined";
             body?: components["schemas"]["MemberJoinedNotificationBody"];
+        };
+        MemberLeftNotificationBody: {
+            roomId: string;
+            title: string;
+            userId: string;
+            /**
+             * @description discriminator enum property added by openapi-typescript
+             * @enum {string}
+             */
+            notificationType: "MemberLeft";
+        };
+        MemberLeftNotification: components["schemas"]["Notification"] & {
+            /** @enum {string} */
+            notificationType?: "MemberLeft";
+            body?: components["schemas"]["MemberLeftNotificationBody"];
+        };
+        RoomLeftNotificationBody: {
+            roomId: string;
+            title: string;
+            /**
+             * @description discriminator enum property added by openapi-typescript
+             * @enum {string}
+             */
+            notificationType: "RoomLeft";
+        };
+        RoomLeftNotification: components["schemas"]["Notification"] & {
+            /** @enum {string} */
+            notificationType?: "RoomLeft";
+            body?: components["schemas"]["RoomLeftNotificationBody"];
         };
         UserProfile: {
             /**
@@ -308,6 +337,10 @@ export type AddContactNotificationBody = Schemas["AddContactNotificationBody"];
 export type AddContactNotification = Schemas["AddContactNotification"];
 export type MemberJoinedNotificationBody = Schemas["MemberJoinedNotificationBody"];
 export type MemberJoinedNotification = Schemas["MemberJoinedNotification"];
+export type MemberLeftNotificationBody = Schemas["MemberLeftNotificationBody"];
+export type MemberLeftNotification = Schemas["MemberLeftNotification"];
+export type RoomLeftNotificationBody = Schemas["RoomLeftNotificationBody"];
+export type RoomLeftNotification = Schemas["RoomLeftNotification"];
 export type UserProfile = Schemas["UserProfile"];
 export type ListUserConversationRequest = Schemas["ListUserConversationRequest"];
 export type ListUserConversationResponse = Schemas["ListUserConversationResponse"];

@@ -14,6 +14,8 @@ components:
         - UpdateMessage
         - AddContact
         - MemberJoined
+        - MemberLeft
+        - RoomLeft
     
     Notification:
       type: object
@@ -27,6 +29,8 @@ components:
             - $ref: '#/components/schemas/UpdateMessageNotificationBody'
             - $ref: '#/components/schemas/AddContactNotificationBody'
             - $ref: '#/components/schemas/MemberJoinedNotificationBody'
+            - $ref: '#/components/schemas/MemberLeftNotificationBody'
+            - $ref: '#/components/schemas/RoomLeftNotificationBody'
           discriminator:
             propertyName: notificationType
             mapping:
@@ -35,6 +39,8 @@ components:
               UpdateMessage: '#/components/schemas/UpdateMessageNotificationBody'
               AddContact: '#/components/schemas/AddContactNotificationBody'
               MemberJoined: '#/components/schemas/MemberJoinedNotificationBody'
+              MemberLeft: '#/components/schemas/MemberLeftNotificationBody'
+              RoomLeft: '#/components/schemas/RoomLeftNotificationBody'
       required:
         - notificationType
         - body
@@ -154,6 +160,53 @@ components:
               enum: [MemberJoined]
             body:
               $ref: '#/components/schemas/MemberJoinedNotificationBody'
+
+    MemberLeftNotificationBody:
+      type: object
+      properties:
+        roomId:
+          type: string
+        title:
+          type: string
+        userId:
+          type: string
+      required:
+        - roomId
+        - title
+        - userId
+
+    MemberLeftNotification:
+      allOf:
+        - $ref: '#/components/schemas/Notification'
+        - type: object
+          properties:
+            notificationType:
+              type: string
+              enum: [MemberLeft]
+            body:
+              $ref: '#/components/schemas/MemberLeftNotificationBody'
+
+    RoomLeftNotificationBody:
+      type: object
+      properties:
+        roomId:
+          type: string
+        title:
+          type: string
+      required:
+        - roomId
+        - title
+
+    RoomLeftNotification:
+      allOf:
+        - $ref: '#/components/schemas/Notification'
+        - type: object
+          properties:
+            notificationType:
+              type: string
+              enum: [RoomLeft]
+            body:
+              $ref: '#/components/schemas/RoomLeftNotificationBody'
     
     UserProfile:
       type: object

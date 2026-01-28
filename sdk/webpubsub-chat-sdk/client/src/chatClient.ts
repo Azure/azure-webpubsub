@@ -13,6 +13,9 @@ import {
   ManageRoomMemberRequest,
   MemberJoinedNotificationBody,
   NotificationType,
+  MemberLeftNotificationBody,
+  RoomLeftNotification,
+  RoomLeftNotificationBody,
 } from "./generatedTypes.js";
 import { ERRORS, INVOCATION_NAME } from "./constant.js";
 import { logger } from "./logger.js";
@@ -37,37 +40,56 @@ class ChatClient {
     } else {
       this.connection = new WebPubSubClient(arg1 as any, options);
     }
-
     this.connection.on("group-message", (e) => {
-      try {
-        const [wpsGroup, data] = [e.message.group, e.message.data as Notification];
-        logger.info(`Received notification via wps group message, group: ${wpsGroup}, data: `, data);
-		const type = data.notificationType;
-        switch (type) {
-          case "NewMessage":
-            const notificationBody = data.body as NewMessageNotificationBody;
-            this._emitter.emit(type, notificationBody);
-            break;
-          case "NewRoom":
-            const roomInfo = data.body as NewRoomNotificationBody as RoomInfo;
-            this._emitter.emit(type, roomInfo);
-            this._rooms.set(roomInfo.roomId, roomInfo);
-            break;
-          case "MemberJoined":
-            const memberJoinedInfo = data.body as MemberJoinedNotificationBody;
-			this._emitter.emit(type, memberJoinedInfo);
-            break;
-          case "UpdateMessage":
-          case "AddContact":
-            logger.warning(`Known notification type ${type} received but not implemented yet.`);
-            break;
-          default:
-            logger.warning(`Unknown notification type received: ${type}`);
-        }
-      } catch (err) {
-        logger.error(`Error processing notification, error = ${err}, event: `, e);
-      }
+      console.log("wpsGroupMessage", e);
+      this._handleNotification(e.message.data as Notification);
     });
+    this.connection.on("server-message", (e) => {
+      console.log("wpsServerMessage", e);
+      this._handleNotification(e.message.data as Notification);
+    });
+  }
+
+  private async _handleNotification(data: Notification): Promise<void> {
+    logger.info("Received notification:", data);
+    try {
+      const type = data.notificationType;
+      switch (type) {
+        case "NewMessage":
+          const notificationBody = data.body as NewMessageNotificationBody;
+          this._emitter.emit(type, notificationBody);
+          break;
+        case "NewRoom":
+          const roomInfo = data.body as NewRoomNotificationBody as RoomInfo;
+          this._rooms.set(roomInfo.roomId, roomInfo);  // Add to _rooms first so listeners can use listRoomMessage
+          this._emitter.emit(type, roomInfo);
+          break;
+        case "MemberJoined":
+          const memberJoinedInfo = data.body as MemberJoinedNotificationBody;
+          this._emitter.emit(type, memberJoinedInfo);
+          break;
+        // someone (not self) left a specific room
+        case "MemberLeft":
+          const memberLeftInfo = data.body as MemberLeftNotificationBody;
+          this._emitter.emit(type, memberLeftInfo);
+          break;
+        // self left a specific room
+        case "RoomLeft":
+          const roomLeftInfo = data.body as RoomLeftNotificationBody;
+          this._emitter.emit(type, roomLeftInfo);
+          this._rooms.delete(roomLeftInfo.roomId);
+          break;
+        case "UpdateMessage":
+        case "AddContact":
+          logger.warning(`Known notification type ${type} received but not implemented yet.`);
+          break;
+        default:
+          logger.warning(`Unknown notification type received: ${type}`);
+      }
+    }
+    catch (err) {
+      logger.error(`Error processing notification, error = ${err}, data: `, data);
+    }
   }
 
   /** Invoke server event and return typed data */
@@ -99,8 +121,14 @@ class ChatClient {
     logger.info("loginResponse", loginResponse);
     this._userId = loginResponse.userId;
     this._conversationIds = new Set(loginResponse.conversationIds || []);
-    loginResponse.roomIds?.forEach(async (roomId) => {
-      const roomInfo = await this.getRoom(roomId, false);
+    // Use Promise.all to wait for all room info to be fetched
+    const roomInfos = await Promise.all(
+      (loginResponse.roomIds || []).map(async (roomId) => {
+        const roomInfo = await this.getRoom(roomId, false);
+        return { roomId, roomInfo };
+      })
+    );
+    roomInfos.forEach(({ roomId, roomInfo }) => {
       this._rooms.set(roomId, roomInfo);
     });
     return this;
@@ -232,6 +260,12 @@ class ChatClient {
 
   /** add callback for new member joined room events */
   public addListenerForMemberJoined = (callback: (info: MemberJoinedNotificationBody) => void) => this._emitter.on("MemberJoined" as NotificationType, callback);
+
+  /** add callback for member left room events */
+  public addListenerForMemberLeft = (callback: (info: MemberLeftNotificationBody) => void) => this._emitter.on("MemberLeft" as NotificationType, callback);
+
+  /** add callback for user self left room events */
+  public addListenerForRoomLeft = (callback: (info: RoomLeftNotificationBody) => void) => this._emitter.on("RoomLeft" as NotificationType, callback);
 
   public stop = (): void => {
     this.connection.stop();
