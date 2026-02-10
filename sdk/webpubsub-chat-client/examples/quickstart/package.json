@@ -1,0 +1,17 @@
+{
+  "name": "quickstart-example",
+  "version": "1.0.0",
+  "description": "Quickstart example for Web PubSub Chat SDK",
+  "type": "module",
+  "scripts": {
+    "server": "node server.js",
+    "client": "node client.js"
+  },
+  "author": "Microsoft",
+  "license": "MIT",
+  "dependencies": {
+    "@azure/web-pubsub": "^1.2.0",
+    "@azure/web-pubsub-chat-client": "1.0.0-beta.1",
+    "express": "^5.2.1"
+  }
+}
