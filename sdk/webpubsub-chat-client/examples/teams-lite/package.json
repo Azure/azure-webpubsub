@@ -1,0 +1,18 @@
+{
+  "name": "teams-lite-demo",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Teams-Lite Chat Demo using Azure Web PubSub Chat SDK",
+  "scripts": {
+    "install:all": "cd client && yarn install && cd ../server && yarn install",
+    "build": "cd client && yarn build",
+    "dev:client": "cd client && yarn dev",
+    "dev:server": "cd server && node index.js",
+    "deploy": "pwsh -ExecutionPolicy Bypass -File deploy/deploy.ps1",
+    "deploy:skip-infra": "pwsh -ExecutionPolicy Bypass -File deploy/deploy.ps1 -SkipInfra",
+    "deploy:skip-build": "pwsh -ExecutionPolicy Bypass -File deploy/deploy.ps1 -SkipBuild"
+  },
+  "keywords": ["azure", "web-pubsub", "chat", "demo"],
+  "author": "Microsoft",
+  "license": "MIT"
+}

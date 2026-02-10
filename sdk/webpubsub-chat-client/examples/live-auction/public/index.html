@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Live Auction</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    @keyframes pulse-green { 0%,100%{background-color:#dcfce7} 50%{background-color:#bbf7d0} }
+    .bid-flash { animation: pulse-green 0.6s ease; }
+  </style>
+</head>
+<body class="bg-gray-100 min-h-screen p-6">
+
+  <div class="max-w-4xl mx-auto">
+    <h1 class="text-2xl font-bold mb-1">&#128176; Live Auction</h1>
+    <p class="text-gray-400 text-sm mb-6">Powered by Web PubSub Chat</p>
+
+    <!-- ① Login bar (stays at top) -->
+    <div id="login-bar" class="bg-white rounded-lg shadow-md p-4 mb-6 flex items-center gap-3 flex-wrap">
+      <span class="text-sm font-medium text-gray-600 shrink-0">Login as:</span>
+      <div id="name-buttons" class="flex gap-2 flex-wrap">
+        <button data-name="alice" class="name-btn px-3 py-1 rounded border border-blue-300 bg-blue-50 text-sm hover:bg-blue-100">alice</button>
+        <button data-name="bob" class="name-btn px-3 py-1 rounded border border-green-300 bg-green-50 text-sm hover:bg-green-100">bob</button>
+        <button data-name="jack" class="name-btn px-3 py-1 rounded border border-purple-300 bg-purple-50 text-sm hover:bg-purple-100">jack</button>
+        <button data-name="mike" class="name-btn px-3 py-1 rounded border border-orange-300 bg-orange-50 text-sm hover:bg-orange-100">mike</button>
+      </div>
+      <div class="flex gap-2 items-center ml-auto">
+        <input id="input-username" type="text" placeholder="or type a name..."
+          class="border rounded px-3 py-1 text-sm w-36 focus:outline-none focus:ring-2 focus:ring-blue-400" />
+        <button id="btn-login"
+          class="bg-blue-500 text-white rounded px-4 py-1 text-sm hover:bg-blue-600 disabled:opacity-50">
+          Login
+        </button>
+      </div>
+      <p id="login-error" class="text-red-500 text-sm w-full hidden"></p>
+    </div>
+
+    <!-- ② Main content (hidden until login) -->
+    <div id="main-content" class="hidden">
+
+      <!-- Status bar -->
+      <div class="flex items-center justify-between mb-4">
+        <span id="display-username" class="text-sm text-green-600 font-medium"></span>
+      </div>
+
+      <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+
+        <!-- Left column: Create + Auction list -->
+        <div class="space-y-4">
+
+          <!-- Create Auction (pre-filled) -->
+          <div class="bg-white rounded-lg shadow-md p-5">
+            <h2 class="font-semibold mb-3">Create Auction</h2>
+
+            <!-- Quick item presets -->
+            <div class="flex gap-2 mb-2 flex-wrap">
+              <button class="item-preset text-xs px-2 py-1 rounded border border-amber-300 bg-amber-50 hover:bg-amber-100"
+                data-item="Gold Watch" data-price="100">⌚ Gold Watch ($100)</button>
+              <button class="item-preset text-xs px-2 py-1 rounded border border-pink-300 bg-pink-50 hover:bg-pink-100"
+                data-item="Rare Painting" data-price="500">🎨 Rare Painting ($500)</button>
+              <button class="item-preset text-xs px-2 py-1 rounded border border-indigo-300 bg-indigo-50 hover:bg-indigo-100"
+                data-item="Signed Guitar" data-price="200">🎸 Signed Guitar ($200)</button>
+              <button class="item-preset text-xs px-2 py-1 rounded border border-emerald-300 bg-emerald-50 hover:bg-emerald-100"
+                data-item="Diamond Ring" data-price="1000">💍 Diamond Ring ($1000)</button>
+              <button class="item-preset text-xs px-2 py-1 rounded border border-sky-300 bg-sky-50 hover:bg-sky-100"
+                data-item="Sports Car" data-price="5000">🏎️ Sports Car ($5000)</button>
+              <button class="item-preset text-xs px-2 py-1 rounded border border-violet-300 bg-violet-50 hover:bg-violet-100"
+                data-item="Game Console" data-price="300">🎮 Game Console ($300)</button>
+            </div>
+
+            <input id="input-item" type="text" value="Gold Watch" placeholder="Item name"
+              class="w-full border rounded px-3 py-2 mb-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400" />
+            <input id="input-starting-price" type="number" min="1" value="100" placeholder="Starting price ($)"
+              class="w-full border rounded px-3 py-2 mb-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400" />
+            <input id="input-bidders" type="text" value="alice, bob, jack, mike" placeholder="Invite bidders"
+              class="w-full border rounded px-3 py-2 mb-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400" />
+            <button id="btn-create"
+              class="w-full bg-green-500 text-white rounded py-2 text-sm hover:bg-green-600 disabled:opacity-50">
+              Start Auction
+            </button>
+          </div>
+
+          <!-- Active Auctions -->
+          <div class="bg-white rounded-lg shadow-md p-5">
+            <h2 class="font-semibold mb-3">Active Auctions</h2>
+            <div id="auction-list" class="space-y-2">
+              <p class="text-gray-400 text-sm">No auctions yet. Create one or wait for an invitation.</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Right column: Auction room (appears when an auction is selected) -->
+        <div id="auction-panel" class="bg-white rounded-lg shadow-md p-5 hidden">
+          <h2 class="font-semibold mb-3">Auction Room</h2>
+
+          <!-- Item header -->
+          <h2 id="auction-title" class="text-lg font-bold mb-1"></h2>
+          <p id="auction-meta" class="text-gray-400 text-xs mb-4"></p>
+
+          <!-- Current highest bid -->
+          <div id="highest-bid-panel" class="border-2 border-green-400 bg-green-50 rounded-lg p-4 mb-4 text-center">
+            <p class="text-sm text-gray-500 mb-1">Highest Bid</p>
+            <p id="highest-bid-amount" class="text-3xl font-bold text-green-700">$0</p>
+            <p id="highest-bid-user" class="text-sm text-gray-500 mt-1">—</p>
+          </div>
+
+          <!-- Quick bid buttons -->
+          <div class="mb-4">
+            <p class="text-xs text-gray-500 mb-2">Quick bid (raise by):</p>
+            <div id="quick-bid-buttons" class="flex gap-2 flex-wrap">
+              <button class="quick-bid bg-blue-500 text-white rounded px-4 py-2 text-sm hover:bg-blue-600 disabled:opacity-50" data-raise="10">+$10</button>
+              <button class="quick-bid bg-blue-500 text-white rounded px-4 py-2 text-sm hover:bg-blue-600 disabled:opacity-50" data-raise="50">+$50</button>
+              <button class="quick-bid bg-blue-500 text-white rounded px-4 py-2 text-sm hover:bg-blue-600 disabled:opacity-50" data-raise="100">+$100</button>
+              <button class="quick-bid bg-blue-600 text-white rounded px-4 py-2 text-sm hover:bg-blue-700 disabled:opacity-50 font-semibold" data-raise="1000">+$1000</button>
+            </div>
+          </div>
+          <p id="bid-error" class="text-red-500 text-sm mb-3 hidden"></p>
+
+          <!-- Bid history -->
+          <div>
+            <h3 class="font-semibold mb-2 text-sm text-gray-600">Bid History</h3>
+            <div id="bid-history" class="border rounded max-h-48 overflow-y-auto divide-y text-sm"></div>
+            <p id="bid-count" class="text-gray-400 text-xs mt-2"></p>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+  <script type="module" src="app.js"></script>
+</body>
+</html>

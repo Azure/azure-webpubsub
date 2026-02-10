@@ -1,0 +1,7 @@
+{
+  "subscriptionId": "ef72249e-9785-4799-a76b-7cdd80e1b1d0",
+  "resourceGroup": "siyuanx-test-rg",
+  "appName": "awps-live-demo-teams-lite",
+  "location": "eastus",
+  "sku": "B1"
+}
