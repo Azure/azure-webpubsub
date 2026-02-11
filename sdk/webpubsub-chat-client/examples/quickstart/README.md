@@ -17,14 +17,14 @@ yarn install
 ### 1. Start the server
 
 ```bash
-yarn server -- "<your-webpubsub-connection-string>"
+node server.js "<your-webpubsub-connection-string>"
 ```
 
 Or set the environment variable:
 
 ```bash
 export WebPubSubConnectionString="<your-connection-string>"
-yarn server
+node server.js
 ```
 
 ### 2. Run the client
@@ -32,7 +32,7 @@ yarn server
 In a new terminal:
 
 ```bash
-yarn client
+node client.js
 ```
 
 ## What this example does
