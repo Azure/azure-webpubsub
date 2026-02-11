@@ -141,6 +141,7 @@ function setupListeners() {
           auction.highestBid = data.amount;
           auction.highestBidder = msg.createdBy;
         }
+        if (auction) auction.lastActivity = Date.now();
         if (roomId === currentAuctionId) {
           renderHighestBid(auction);
           prependBidEntry(msg.createdBy, data.amount, msg.createdAt);
@@ -155,7 +156,7 @@ function setupListeners() {
 async function loadAuctionFromRoom(roomId, title) {
   if (auctions.has(roomId)) return;
 
-  const auction = { item: title, startingPrice: 0, roomId, highestBid: 0, highestBidder: null, members: new Set() };
+  const auction = { item: title, startingPrice: 0, roomId, highestBid: 0, highestBidder: null, members: new Set(), lastActivity: Date.now() };
 
   try {
     const { messages } = await client.listRoomMessage(roomId, null, null);
@@ -200,7 +201,7 @@ $('btn-create').addEventListener('click', async () => {
 
     auctions.set(room.roomId, {
       item, startingPrice, roomId: room.roomId,
-      highestBid: startingPrice, highestBidder: null, members: new Set()
+      highestBid: startingPrice, highestBidder: null, members: new Set(), lastActivity: Date.now()
     });
     renderAuctionList();
     openAuction(room.roomId); // auto-open the auction we just created
@@ -226,7 +227,8 @@ function renderAuctionList(flashRoomId) {
   }
 
   container.innerHTML = '';
-  for (const [roomId, auction] of auctions) {
+  const sorted = [...auctions.entries()].sort((a, b) => b[1].lastActivity - a[1].lastActivity);
+  for (const [roomId, auction] of sorted) {
     const isActive = roomId === currentAuctionId;
     const div = document.createElement('div');
     div.className = `border rounded p-3 cursor-pointer hover:bg-gray-50 flex justify-between items-center ${isActive ? 'border-blue-400 bg-blue-50' : ''}`;
@@ -306,6 +308,7 @@ async function placeBid(amount) {
 
     auction.highestBid = amount;
     auction.highestBidder = client.userId;
+    auction.lastActivity = Date.now();
 
     renderHighestBid(auction);
     prependBidEntry(client.userId, amount, new Date().toISOString());

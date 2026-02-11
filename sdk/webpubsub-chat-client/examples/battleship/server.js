@@ -5,7 +5,7 @@ import path from 'path';
 
 const require = createRequire(import.meta.url);
 const hubName = 'chat';
-const port = 3000;
+const port = process.env.PORT || 3000;
 
 const connectionString = process.env.WebPubSubConnectionString || process.argv[2];
 if (!connectionString) {
@@ -20,9 +20,7 @@ const serviceClient = new WebPubSubServiceClient(connectionString, hubName, { al
 // Negotiate endpoint
 app.get('/negotiate', async (req, res) => {
   const userId = req.query.userId;
-  if (!userId) {
-    return res.status(400).json({ error: 'userId is required' });
-  }
+  if (!userId) return res.status(400).json({ error: 'userId is required' });
   const token = await serviceClient.getClientAccessToken({ userId });
   console.log(`${userId} logged in`);
   res.json({ url: token.url });
@@ -38,5 +36,5 @@ app.use('/@azure/web-pubsub-chat-client', express.static(sdkBrowserDir));
 app.use(express.static('public'));
 
 app.listen(port, () => {
-  console.log(`Live Auction server running at http://localhost:${port}`);
+  console.log(`Battleship server running at http://localhost:${port}`);
 });
