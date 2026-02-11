@@ -45,7 +45,7 @@ app.get('/api/negotiate', async (req, res) => {
   });
 });
 
-app.listen(port, async () => {
+app.listen(port, '0.0.0.0', async () => {
   console.log(`Event handler listening at http://localhost:${port}`);
   const adminUserId = "admin";
   chatClient = new ChatClient({
