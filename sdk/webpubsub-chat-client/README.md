@@ -82,7 +82,7 @@ new ChatClient(credential: WebPubSubClientCredential, options?: WebPubSubClientO
 | Property | Type | Description |
 |----------|------|-------------|
 | `userId` | `string` | Current user's ID (throws if not logged in) |
-| `rooms` | `RoomInfo[]` | List of joined rooms |
+| `rooms` | `RoomInfo[]` | Snapshot of currently joined rooms (not live-updated) |
 | `connection` | `WebPubSubClient` | Underlying WebPubSub connection |
 
 #### Methods
@@ -91,7 +91,7 @@ new ChatClient(credential: WebPubSubClientCredential, options?: WebPubSubClientO
 |--------|-------------|
 | `login()` | Connect and authenticate, returns `ChatClient` |
 | `stop()` | Disconnect |
-| `createRoom(title, members, roomId?)` | Create a new room with initial members |
+| `createRoom(title, members, roomId?)` | Create a new room with initial members. The current user is automatically added to the members list. |
 | `getRoom(roomId, withMembers)` | Get room info |
 | `addUserToRoom(roomId, userId)` | Add user to room (admin operation) |
 | `removeUserFromRoom(roomId, userId)` | Remove user from room (admin operation) |
@@ -100,6 +100,8 @@ new ChatClient(credential: WebPubSubClientCredential, options?: WebPubSubClientO
 | `getUserInfo(userId)` | Get user profile |
 
 #### Event Listeners
+
+All `addListenerFor*` methods return a dispose function that removes the listener when called.
 
 | Method | Callback Parameter | Description |
 |--------|-------------------|-------------|

@@ -14,12 +14,20 @@ import {
   MemberJoinedNotificationBody,
   NotificationType,
   MemberLeftNotificationBody,
-  RoomLeftNotification,
   RoomLeftNotificationBody,
 } from "./generatedTypes.js";
-import { ERRORS, INVOCATION_NAME } from "./constant.js";
+import { INVOCATION_NAME } from "./constant.js";
 import { logger } from "./logger.js";
 import { isWebPubSubClient } from "./utils.js";
+
+class ChatError extends Error {
+  public readonly code: string;
+  constructor(message: string, code: string) {
+    super(message);
+    this.name = "ChatError";
+    this.code = code;
+  }
+}
 
 class ChatClient {
   public readonly connection: WebPubSubClient;
@@ -101,12 +109,11 @@ class ChatClient {
 
     logger.verbose(`invoke response for '${eventName}':`, rawResponse);
 
-    const dataString = JSON.stringify(rawResponse);
-    if (dataString?.indexOf("InvalidRequest") !== -1) {
-      throw new Error(`Invocation of event "${eventName}" failed: ${dataString || "Unknown error"}`);
+    const data = rawResponse.data as any;
+    if (data && typeof data === "object" && typeof data.code === "string") {
+      throw new ChatError(`Invocation of event "${eventName}" failed: ${data.code}`, data.code);
     }
-    // todo: handle rawResponse.success
-    return rawResponse.data as T;
+    return data as T;
   }
 
   /** create a chat client based on an existing WebPubSubClient. */
@@ -202,19 +209,13 @@ class ChatClient {
       roomDetails = { ...roomDetails, roomId: roomId };
     }
     const roomInfo = await this.invokeWithReturnType<RoomInfoWithMembers>(INVOCATION_NAME.CREATE_ROOM, roomDetails, "json");
-    if ((roomInfo as any).code === ERRORS.ROOM_ALREADY_EXISTS) {
-      throw new Error(ERRORS.ROOM_ALREADY_EXISTS);
-    }
     this._rooms.set(roomInfo.roomId, roomInfo);
     this._emitter.emit("RoomJoined" as NotificationType, roomInfo);
     return roomInfo;
   }
 
   private async manageRoomMember(request: ManageRoomMemberRequest): Promise<void> {
-    const ret = await this.invokeWithReturnType<any>(INVOCATION_NAME.MANAGE_ROOM_MEMBER, request, "json");
-    if ((ret as any).code === ERRORS.NO_PERMISSION_IN_ROOM) {
-      throw new Error(ERRORS.NO_PERMISSION_IN_ROOM);
-    }
+    await this.invokeWithReturnType<any>(INVOCATION_NAME.MANAGE_ROOM_MEMBER, request, "json");
   }
 
   /** Add a user to a room. This is an admin operation where one user adds another user to a room. */
@@ -272,20 +273,35 @@ class ChatClient {
     }
     return this._userId;
   }
-  /** add callback for new message events. */
-  public addListenerForNewMessage = (callback: (message: NewMessageNotificationBody) => void) => this._emitter.on("MessageCreated" as NotificationType, callback);
+  /** Add callback for new message events. Returns a function to remove the listener. */
+  public addListenerForNewMessage = (callback: (message: NewMessageNotificationBody) => void): (() => void) => {
+    this._emitter.on("MessageCreated" as NotificationType, callback);
+    return () => this._emitter.off("MessageCreated" as NotificationType, callback);
+  };
 
-  /** add callback for new room events. */
-  public addListenerForNewRoom = (callback: (room: RoomInfo) => void) => this._emitter.on("RoomJoined" as NotificationType, callback);
+  /** Add callback for new room events. Returns a function to remove the listener. */
+  public addListenerForNewRoom = (callback: (room: RoomInfo) => void): (() => void) => {
+    this._emitter.on("RoomJoined" as NotificationType, callback);
+    return () => this._emitter.off("RoomJoined" as NotificationType, callback);
+  };
 
-  /** add callback for new member joined room events */
-  public addListenerForMemberJoined = (callback: (info: MemberJoinedNotificationBody) => void) => this._emitter.on("RoomMemberJoined" as NotificationType, callback);
+  /** Add callback for member joined room events. Returns a function to remove the listener. */
+  public addListenerForMemberJoined = (callback: (info: MemberJoinedNotificationBody) => void): (() => void) => {
+    this._emitter.on("RoomMemberJoined" as NotificationType, callback);
+    return () => this._emitter.off("RoomMemberJoined" as NotificationType, callback);
+  };
 
-  /** add callback for member left room events */
-  public addListenerForMemberLeft = (callback: (info: MemberLeftNotificationBody) => void) => this._emitter.on("RoomMemberLeft" as NotificationType, callback);
+  /** Add callback for member left room events. Returns a function to remove the listener. */
+  public addListenerForMemberLeft = (callback: (info: MemberLeftNotificationBody) => void): (() => void) => {
+    this._emitter.on("RoomMemberLeft" as NotificationType, callback);
+    return () => this._emitter.off("RoomMemberLeft" as NotificationType, callback);
+  };
 
-  /** add callback for user self left room events */
-  public addListenerForRoomLeft = (callback: (info: RoomLeftNotificationBody) => void) => this._emitter.on("RoomLeft" as NotificationType, callback);
+  /** Add callback for user self left room events. Returns a function to remove the listener. */
+  public addListenerForRoomLeft = (callback: (info: RoomLeftNotificationBody) => void): (() => void) => {
+    this._emitter.on("RoomLeft" as NotificationType, callback);
+    return () => this._emitter.off("RoomLeft" as NotificationType, callback);
+  };
 
   public stop = (): void => {
     this.connection.stop();
@@ -304,4 +320,4 @@ class ChatClient {
   };
 }
 
-export { ChatClient };
+export { ChatClient, ChatError };

@@ -1,4 +1,4 @@
-import { ChatClient } from './chatClient.js';
+import { ChatClient, ChatError } from './chatClient.js';
 
 export type {
   MessageInfo,
@@ -9,7 +9,10 @@ export type {
   Notification,
   NewMessageNotificationBody,
   NewRoomNotificationBody,
+  MemberJoinedNotificationBody,
+  MemberLeftNotificationBody,
+  RoomLeftNotificationBody,
   SendMessageResponse,
 } from './generatedTypes.js';
 
-export { ChatClient };
+export { ChatClient, ChatError };
