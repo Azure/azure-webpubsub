@@ -2,6 +2,8 @@
 
 A sample application demonstrating **wildcard group roles** in Azure Web PubSub. It simulates a financial trading platform where a team leader and two risk bots monitor all trading accounts in real time, while individual traders only see their own account's orders.
 
+![Trading Platform Demo](demo.gif)
+
 ## Architecture
 
 ```
