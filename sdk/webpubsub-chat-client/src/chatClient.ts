@@ -223,6 +223,16 @@ class ChatClient {
     this.ensureLoggedIn();
     const payload: ManageRoomMemberRequest = { roomId: roomId, operation: "Add", userId: userId };
     await this.manageRoomMember(payload);
+    // This path happens when the logged-in client uses the room-member management API to add
+    // its own userId to a room, for example during lobby bootstrap or right after a session room
+    // is created. The service accepts the membership change server-side, but this client may not
+    // receive a local room-cache update immediately. Without this refresh, later calls such as
+    // sendToRoom can still fail because the SDK believes the current client has not joined yet.
+    if (userId === this.userId && !this._rooms.has(roomId)) {
+      const roomInfo = await this.getRoom(roomId, false);
+      this._rooms.set(roomId, roomInfo);
+      this._emitter.emit("RoomJoined" as NotificationType, roomInfo);
+    }
   }
 
   /** Remove a user from a room. This is an admin operation where one user removes another user from a room. */
