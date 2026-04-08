@@ -1,0 +1,100 @@
+import { ChatClient } from '@azure/web-pubsub-chat-client';
+import { WebPubSubClient } from '@azure/web-pubsub-client';
+
+const SERVER_URL = process.env.SERVER_URL || 'http://localhost:3000';
+
+const getClientAccessUrl = (userId) => 
+    fetch(`${SERVER_URL}/negotiate?userId=${userId}`).then(r => r.json()).then(d => d.url);
+
+function setupListeners(client) {
+    // chat event listeners
+    client.addListenerForNewRoom((room) => {
+        console.log(`[${client.userId}] joined room "${room.title}" (${room.roomId})`);
+    });
+    client.addListenerForNewMessage((notification) => {
+        const msg = notification.message;
+        console.log(`[${client.userId}] received message from ${msg.createdBy}: ${msg.content.text}`);
+    });
+    client.addListenerForMemberJoined((info) => {
+        console.log(`[${client.userId}] saw ${info.userId} joined room ${info.roomId}`);
+    });
+    client.addListenerForMemberLeft((info) => {
+        console.log(`[${client.userId}] saw ${info.userId} left room ${info.roomId}`);
+    });
+    client.addListenerForRoomLeft((info) => {
+        console.log(`[${client.userId}] left room ${info.roomId}`);
+    });
+    // chat connection listeners
+    client.onStopped((e) => {
+        console.log(`connection used by ${client.userId} stopped`);
+    });
+    client.onDisconnected((e) => {
+        console.log(`connection used by ${client.userId} disconnected`);
+    });
+}
+
+async function main() {
+    // Create chat clients for Alice, Bob, and Mike
+    
+    // Option 1: create a chat client with a existing WebPubSubClient
+    const url1 = await getClientAccessUrl('alice');
+    const webPubSubClient = new WebPubSubClient(url1);
+    const alice = await ChatClient.login(webPubSubClient);
+    console.log(`Alice logged in as: ${alice.userId}`);
+
+    // Option 2: create a chat client directly with client access URL
+    const url2 = await getClientAccessUrl('bob'), url3 = await getClientAccessUrl('mike');
+    const bob = await new ChatClient(url2).login();
+    const mike = await new ChatClient(url3).login();
+    
+    console.log(`Bob logged in as: ${bob.userId}`);
+    console.log(`Mike logged in as: ${mike.userId}`);
+
+    // Setup event listeners
+
+    setupListeners(alice);
+    setupListeners(bob);    
+    setupListeners(mike);
+
+    // Alice creates a room and invites Bob
+    console.log('\n--- Alice creates a room ---');
+    const room = await alice.createRoom('Hello World Room', [bob.userId]);
+
+    // Alice sends messages to the room
+    console.log('\n--- Alice sends messages ---');
+    for (let i = 1; i <= 3; i++) {
+        console.log(`[Alice] will send message #${i}`);
+        const msgId = await alice.sendToRoom(room.roomId, `Hello from Alice #${i}`);
+    }
+
+    // Bob replies to the room
+    console.log('\n--- Bob replies ---');
+    for (let i = 1; i <= 2; i++) {
+        console.log(`[Bob] will send message #${i}`);
+        const msgId = await bob.sendToRoom(room.roomId, `Hi Alice, this is Bob #${i}`);
+    }
+
+    // List message history
+    console.log('\n--- Message History ---');
+    const history = await alice.listRoomMessage(room.roomId, null, null);
+    for (const msg of history.messages) {
+        console.log(`  [${msg.createdBy}] [${msg.createdAt}] ${msg.content.text}`);
+    }
+
+    // Alice manages room members
+    console.log('\n--- Alice manages room members ---');
+
+
+    // Alice adds mike to the room
+    await alice.addUserToRoom(room.roomId, mike.userId);
+
+    // Alice removes bob and mike from the room
+    await alice.removeUserFromRoom(room.roomId, bob.userId);
+    await alice.removeUserFromRoom(room.roomId, mike.userId);
+
+    // Cleanup
+    console.log('\n--- Cleanup ---');
+    [alice, bob, mike].forEach(client => client.stop());
+}
+
+main().catch(console.error);
