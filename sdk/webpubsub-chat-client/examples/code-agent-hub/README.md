@@ -20,9 +20,39 @@ Browser  ←→  Azure Web PubSub Chat  ←→  Agent Daemon  ←→  Local Agen
 ### Setup
 
 ```bash
-cd examples/copilot-mobile
+cd examples/code-agent-hub
 npm install
 ```
+
+### Pack The Web Server
+
+```bash
+npm run pack:web-server
+node dist/web-server/web-server.bundle.cjs
+```
+
+The packed output lives under `dist/` and includes:
+
+- `web-server/web-server.bundle.cjs`
+- `web-server/public/index.html`
+- `web-server/public/chat-client.js`
+- `web-server/public/marked.js`
+- `web-server/public/dompurify.js`
+- `codeagenthub-web-server.zip`
+
+`codeagenthub-web-server.zip` expands to a relocatable folder that keeps the server entrypoint separate from `public/index.html` and its browser assets.
+
+### Pack Everything
+
+```bash
+npm run pack:all
+```
+
+This clears `dist/` first, then rebuilds:
+
+- `dist/daemon/agent-daemon.bundle.cjs`
+- `dist/web-server/...`
+- `dist/codeagenthub-web-server.zip`
 
 ### Run With Azure Web PubSub
 
@@ -34,6 +64,12 @@ npm run portal
 # Terminal 2
 export WEB_PUBSUB_CONNECTION_STRING="Endpoint=https://<your-resource>.webpubsub.azure.com;AccessKey=<replace-me>;Version=1.0;"
 npm run daemon
+```
+
+To force the portal back to the original username login even when GitHub OAuth is configured:
+
+```bash
+npm run portal:no-oauth
 ```
 
 ### Run With Local Emulator
@@ -52,6 +88,8 @@ Open `http://localhost:3000` in your browser.
 
 The portal and daemon both accept `WEB_PUBSUB_CONNECTION_STRING` and `WebPubSubConnectionString`.
 
+Portal tokens are minted from `/negotiate:portal` and daemon bot tokens are minted from `/negotiate:daemon`.
+
 ### Run on Windows PowerShell
 
 ```powershell
@@ -62,6 +100,13 @@ npm run portal
 # Terminal 2
 $env:WEB_PUBSUB_CONNECTION_STRING="Endpoint=http://localhost;Port=8080;AccessKey=<emulator-access-key>;Version=1.0;"
 npm run daemon
+```
+
+PowerShell example with OAuth disabled:
+
+```powershell
+$env:WEB_PUBSUB_CONNECTION_STRING="Endpoint=http://localhost;Port=8080;AccessKey=<emulator-access-key>;Version=1.0;"
+npm run portal:no-oauth
 ```
 
 ### What You Can Do

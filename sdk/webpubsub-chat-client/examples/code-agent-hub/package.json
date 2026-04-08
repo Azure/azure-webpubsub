@@ -6,9 +6,13 @@
   "description": "Control code agents from any device via Azure Web PubSub Chat",
   "scripts": {
     "daemon": "node agent-daemon.js",
+    "pack:daemon": "node scripts/pack-daemon.mjs",
+    "pack:all": "node scripts/pack-all.mjs",
+    "pack:web-server": "node scripts/pack-web-server.mjs",
     "portal": "node web-server.js",
+    "portal:no-oauth": "node web-server.js --disable-oauth",
     "postinstall": "node patch-copilot-sdk.mjs",
-    "test": "node --test test/",
+    "test": "node --test test/*.test.js",
     "test:unit": "node --test test/workspace-rpc.test.js"
   },
   "dependencies": {
@@ -16,10 +20,17 @@
     "@agentclientprotocol/sdk": "^0.14.1",
     "@azure/web-pubsub": "^1.1.3",
     "@azure/web-pubsub-chat-client": "file:../../",
-    "@github/copilot-language-server": "^1.465.0",
+    "@github/copilot": "^1.0.21",
     "@github/copilot-sdk": "^0.1.8",
     "@zed-industries/codex-acp": "^0.11.1",
+    "dotenv": "^17.2.3",
+    "dompurify": "^3.3.3",
     "express": "^4.21.0",
+    "express-session": "^1.18.2",
     "marked": "^15.0.12"
+  },
+  "devDependencies": {
+    "archiver": "^7.0.1",
+    "esbuild": "^0.27.7"
   }
 }

@@ -4,9 +4,9 @@
 # Optionally maps a local project directory to /workspace/external.
 #
 # Usage:
-#   .\start-daemon-docker.ps1
-#   .\start-daemon-docker.ps1 -LocalDir "G:\my-project"
-#   .\start-daemon-docker.ps1 -Build
+#   .\scripts\start-daemon-docker.ps1
+#   .\scripts\start-daemon-docker.ps1 -LocalDir "G:\my-project"
+#   .\scripts\start-daemon-docker.ps1 -Build
 
 param(
     [string]$LocalDir = "",
@@ -16,14 +16,17 @@ param(
     [string]$Name = "codeagenthub-daemon"
 )
 
-$root = Split-Path -Parent (Split-Path -Parent (Split-Path -Parent $PSScriptRoot))
+$exampleRoot = Split-Path -Parent $PSScriptRoot
+$root = Split-Path -Parent (Split-Path -Parent $exampleRoot)
 # $root = sdk/webpubsub-chat-client
 
+$existingImage = docker images -q $Image
+
 # Build if requested or image doesn't exist
-if ($Build -or !(docker images -q $Image 2>$null)) {
+if ($Build -or -not $existingImage) {
     Write-Host "[BUILD] Building $Image..." -ForegroundColor Cyan
     Push-Location $root
-    docker build -t $Image -f examples/copilot-mobile/Dockerfile.daemon .
+    docker build -t $Image -f examples/code-agent-hub/Dockerfile.daemon .
     Pop-Location
     if ($LASTEXITCODE -ne 0) { Write-Error "Build failed"; exit 1 }
 }
@@ -67,6 +70,13 @@ if (Test-Path $copilotDir) {
     Write-Host "[CONFIG] Copilot: $copilotDir" -ForegroundColor Green
 }
 
+# Gemini config (~/.gemini/ → /root/.gemini/)
+$geminiDir = Join-Path $HOME ".gemini"
+if (Test-Path $geminiDir) {
+    $volumes += "-v", "${geminiDir}:/root/.gemini"
+    Write-Host "[CONFIG] Gemini: $geminiDir" -ForegroundColor Green
+}
+
 # GitHub Copilot auth
 # Windows Copilot CLI stores OAuth state under %LOCALAPPDATA%\github-copilot.
 # The Linux language server looks for the same files under ~/.config/github-copilot.
@@ -88,9 +98,15 @@ if ($LocalDir -and (Test-Path $LocalDir)) {
     Write-Host "[MOUNT] Project: $LocalDir → /workspace/external" -ForegroundColor Yellow
 }
 
-$copilotToken = $env:COPILOT_GITHUB_TOKEN
+$copilotToken = $env:GH_COPILOT_TOKEN
 $copilotTokenSource = $null
 if ($copilotToken) {
+    $copilotTokenSource = 'GH_COPILOT_TOKEN'
+} elseif ($env:GITHUB_COPILOT_TOKEN) {
+    $copilotToken = $env:GITHUB_COPILOT_TOKEN
+    $copilotTokenSource = 'GITHUB_COPILOT_TOKEN'
+} elseif ($env:COPILOT_GITHUB_TOKEN) {
+    $copilotToken = $env:COPILOT_GITHUB_TOKEN
     $copilotTokenSource = 'COPILOT_GITHUB_TOKEN'
 } elseif ($env:GH_TOKEN) {
     $copilotToken = $env:GH_TOKEN
@@ -118,6 +134,8 @@ $envArgs = @(
 
 if ($copilotToken) {
     $envArgs += "-e", "COPILOT_GITHUB_TOKEN=$copilotToken"
+    $envArgs += "-e", "GITHUB_COPILOT_TOKEN=$copilotToken"
+    $envArgs += "-e", "GH_COPILOT_TOKEN=$copilotToken"
     Write-Host "[AUTH] Copilot token: $copilotTokenSource" -ForegroundColor Green
 } else {
     Write-Host "[AUTH] Copilot token: not found (container Copilot may require login)" -ForegroundColor Yellow

@@ -39,7 +39,8 @@ a{color:var(--accent2);text-decoration:none}button{font-family:inherit;cursor:po
 #topbar .tb-title{font-size:15px;font-weight:600;color:var(--fg)}
 #topbar .tb-status{font-size:11px;color:var(--green);margin-left:4px}
 #topbar .tb-right{margin-left:auto;display:flex;gap:6px;align-items:center}
-#topbar .tb-user{display:inline-flex;align-items:center;height:30px;padding:0 12px;border:1px solid color-mix(in srgb,var(--accent2) 35%,var(--border));border-radius:15px;background:color-mix(in srgb,var(--accent2) 12%,transparent);color:var(--fg);font-size:12px;font-weight:700;letter-spacing:.01em;white-space:nowrap}
+#topbar .tb-user{display:inline-flex;align-items:center;gap:6px;height:30px;padding:0 12px;border:1px solid color-mix(in srgb,var(--accent2) 35%,var(--border));border-radius:15px;background:color-mix(in srgb,var(--accent2) 12%,transparent);color:var(--fg);font-size:12px;font-weight:700;letter-spacing:.01em;white-space:nowrap}
+#topbar .tb-user .tb-avatar{width:20px;height:20px;border-radius:50%;object-fit:cover}
 #topbar .tb-btn{height:30px;padding:0 12px;border:1px solid var(--border);border-radius:15px;background:none;color:var(--fg3);font-size:12px;font-weight:600}
 #topbar .tb-btn:active{background:var(--bg4)}
 /* Theme toggle */
@@ -60,6 +61,8 @@ a{color:var(--accent2);text-decoration:none}button{font-family:inherit;cursor:po
 .input-row textarea::placeholder{color:var(--fg6)}
 .input-row .send{width:34px;height:34px;border:none;border-radius:50%;background:var(--accent);color:#fff;font-size:16px;font-weight:800;flex-shrink:0;display:flex;align-items:center;justify-content:center}
 .input-row .send:disabled{background:var(--bg4);color:var(--fg7)}
+.input-row .send.stop{background:var(--orange);font-size:13px}
+.input-row .send.stop.is-pending{background:color-mix(in srgb,var(--orange) 45%,var(--bg4));color:#f4d5a3}
 
 /* ── Sidebar ── */
 .sb-section{padding:16px 14px 4px;font-size:10px;font-weight:700;color:#666;text-transform:uppercase;letter-spacing:.08em}
@@ -137,6 +140,8 @@ a{color:var(--accent2);text-decoration:none}button{font-family:inherit;cursor:po
 .compact-item{display:flex;align-items:center;gap:10px;padding:12px 14px;border-radius:12px;cursor:pointer;font-size:13px;color:var(--fg2);margin-bottom:4px;background:transparent;border:1px solid transparent}
 .compact-item:hover{background:var(--bg2);border-color:var(--border)}
 .compact-item.selected{background:rgba(74,144,217,.15);color:var(--accent2)}
+.compact-item.disabled{opacity:.42;cursor:not-allowed;filter:saturate(.55)}
+.compact-item.disabled:hover{background:transparent;border-color:transparent}
 .compact-item .ci-icon{font-size:14px;flex-shrink:0}
 .compact-item .ci-info{flex:1;min-width:0}
 .compact-item .ci-name{font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
@@ -152,6 +157,8 @@ a{color:var(--accent2);text-decoration:none}button{font-family:inherit;cursor:po
 .col-item{display:flex;align-items:center;gap:8px;padding:8px 10px;border-radius:10px;cursor:pointer;font-size:13px;color:#ccc;margin-bottom:2px}
 .col-item:hover{background:#1a1a1a}
 .col-item.selected{background:rgba(74,144,217,.15);color:#6baaff}
+.col-item.disabled{opacity:.42;cursor:not-allowed;filter:saturate(.55)}
+.col-item.disabled:hover{background:transparent}
 .col-item .ci-icon{font-size:14px;flex-shrink:0}
 .col-item .ci-info{flex:1;min-width:0}
 .col-item .ci-name{font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
@@ -160,7 +167,6 @@ a{color:var(--accent2);text-decoration:none}button{font-family:inherit;cursor:po
 .col-item .ci-tag{font-size:10px;color:var(--accent2);border:1px solid var(--border2);border-radius:999px;padding:1px 7px;flex-shrink:0}
 .col-item .ci-del{width:20px;height:20px;border:none;border-radius:5px;background:none;color:#444;font-size:11px;cursor:pointer;display:flex;align-items:center;justify-content:center;opacity:0;transition:opacity .1s;flex-shrink:0}
 .col-item:hover .ci-del{opacity:1}.col-item .ci-del:hover{background:#2a1a1a;color:#e55}
-.col-item.disabled{opacity:.35;cursor:default}
 .col-empty{text-align:center;color:#444;font-size:12px;padding:20px 10px;line-height:1.6}
 .col-skeleton{padding:12px 10px;display:flex;flex-direction:column;gap:10px}
 .sk-row{display:flex;align-items:center;gap:12px;padding:14px 12px;border-radius:14px;background:color-mix(in srgb,var(--bg2) 88%,transparent);min-height:62px}
@@ -190,8 +196,20 @@ a{color:var(--accent2);text-decoration:none}button{font-family:inherit;cursor:po
 .col-new{margin:8px 6px;padding:8px 10px;background:#151515;border:1px solid #1e1e1e;border-radius:10px}
 .col-new .fld{margin-bottom:8px}
 .col-new .fld label{font-size:10px}
-.col-new .fld input,.col-new .fld textarea{font-size:12px;padding:7px 10px;border-radius:8px}
 .col-new .sh-go{height:34px;font-size:13px;border-radius:17px;margin-top:4px}
+.col-new-msg{min-height:16px;margin:8px 2px 0;font-size:11px;line-height:1.4;color:var(--fg5);transition:color .15s ease,opacity .15s ease}
+.col-new-msg:empty{display:none}
+.col-new-msg.is-loading{color:var(--accent2)}
+.col-new-msg.is-error{color:#ff8f8f}
+.col-new-msg.is-success{color:var(--green)}
+.col-new-msg.is-warn{color:var(--orange)}
+.dir-input-wrap{display:flex;flex-direction:column;gap:6px}
+.dir-input{width:100%;background:var(--bg2);border:1px solid var(--border2);border-radius:12px;padding:10px 12px;color:var(--fg);font-size:13px;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;outline:none;transition:border-color .15s ease,background .15s ease}
+.dir-input:focus{border-color:color-mix(in srgb,var(--accent2) 55%,var(--border2));background:color-mix(in srgb,var(--accent2) 6%,var(--bg2))}
+.dir-input::placeholder{color:var(--fg5);font-family:inherit}
+.dir-input-meta{font-size:11px;line-height:1.45;color:var(--fg5);min-height:16px}
+.dir-input-meta.is-error{color:#ff8f8f}
+.dir-input-meta.is-success{color:var(--green)}
 #chat-col{flex:1;min-width:0;display:flex;flex-direction:column}
 #chat-col-top{display:flex;justify-content:flex-end;align-items:center;padding:10px 12px 0;flex-shrink:0}
 #chat-col-top:empty{display:none}
@@ -319,6 +337,21 @@ a{color:var(--accent2);text-decoration:none}button{font-family:inherit;cursor:po
 .slash-item .sl-desc{color:#777;font-size:12px;flex:1}
 .session-toolbar{display:none;max-width:780px;margin:0 auto 8px;align-items:center;gap:8px;flex-wrap:wrap}
 .session-toolbar.show{display:flex}
+.async-banner{display:flex;align-items:center;justify-content:space-between;gap:10px;max-width:780px;margin:0 auto 8px;padding:8px 12px;border:1px solid var(--border2);border-radius:14px;background:color-mix(in srgb,var(--bg3) 92%,transparent)}
+.async-banner.hidden{display:none!important}
+.async-banner-copy{display:flex;align-items:center;gap:10px;min-width:0;flex:1}
+.async-banner-pill{display:inline-flex;align-items:center;justify-content:center;min-height:22px;padding:0 9px;border-radius:999px;font-size:10px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;background:var(--bg4);color:var(--fg3);flex-shrink:0}
+.async-banner-text{min-width:0;font-size:12px;line-height:1.4;color:var(--fg3)}
+.async-banner-action{height:28px;padding:0 12px;border:1px solid var(--border2);border-radius:999px;background:var(--bg1);color:var(--fg2);font-size:11px;font-weight:700;flex-shrink:0}
+.async-banner-action.hidden{display:none!important}
+.async-banner.is-info{border-color:color-mix(in srgb,var(--accent2) 22%,var(--border2));background:color-mix(in srgb,var(--accent2) 8%,var(--bg3))}
+.async-banner.is-info .async-banner-pill{background:color-mix(in srgb,var(--accent2) 16%,var(--bg4));color:var(--accent2)}
+.async-banner.is-warn{border-color:color-mix(in srgb,var(--orange) 26%,var(--border2));background:color-mix(in srgb,var(--orange) 9%,var(--bg3))}
+.async-banner.is-warn .async-banner-pill{background:color-mix(in srgb,var(--orange) 18%,var(--bg4));color:var(--orange)}
+.async-banner.is-error{border-color:color-mix(in srgb,var(--red) 28%,var(--border2));background:color-mix(in srgb,var(--red) 10%,var(--bg3))}
+.async-banner.is-error .async-banner-pill{background:color-mix(in srgb,var(--red) 18%,var(--bg4));color:#ff9e9e}
+.async-banner.is-success{border-color:color-mix(in srgb,var(--green) 28%,var(--border2));background:color-mix(in srgb,var(--green) 10%,var(--bg3))}
+.async-banner.is-success .async-banner-pill{background:color-mix(in srgb,var(--green) 18%,var(--bg4));color:var(--green)}
 .toolbar-picker{display:none;position:relative}
 .toolbar-picker.show{display:inline-flex}
 .toolbar-btn{display:inline-flex;align-items:center;gap:8px;min-height:28px;padding:4px 10px;border:1px solid var(--border2);border-radius:999px;background:var(--bg3);color:var(--fg2);font-size:12px;font-weight:600}
@@ -360,6 +393,9 @@ a{color:var(--accent2);text-decoration:none}button{font-family:inherit;cursor:po
   #topbar .tb-right{gap:4px}
   #topbar .tb-btn{font-size:11px;padding:0 8px;height:28px}
   .input-row textarea{font-size:14px;padding:8px 12px}
+  .async-banner{padding:7px 10px;gap:8px}
+  .async-banner-text{font-size:11px}
+  .async-banner-action{height:26px;padding:0 10px}
   .sh-body{padding:0 14px 16px}
   .sh-go{height:42px;font-size:14px}
   #sheet{max-height:92vh}
@@ -379,7 +415,7 @@ a{color:var(--accent2);text-decoration:none}button{font-family:inherit;cursor:po
     </div>
     <div class="tb-right">
       <span class="tb-user" id="user-badge" title="Current username" style="display:none"></span>
-      <button class="tb-btn" id="auto-approve-btn" onclick="toggleAutoApprove()" style="display:none" title="Portal-side auto response for permission requests only. Separate from the agent's own access mode.">Approvals: Manual</button>
+      <button class="tb-btn" id="auto-approve-btn" onclick="toggleAutoApprove()" style="display:none" title="Portal-side auto response for permission requests only. Separate from the agent's own access mode.">Approvals: Auto</button>
       <button class="tb-icon-btn" id="compact-toggle-btn" title="Expand chat area" style="display:none">⤢</button>
       <button class="tb-icon-btn" id="debug-btn" onclick="toggleDebug()" title="Debug panel"><svg width="14" height="14" viewBox="0 0 32 32" fill="currentColor"><path d="M29.83,20l.34-2L25,17.15V13c0-.08,0-.15,0-.23l5.06-1.36-.51-1.93-4.83,1.29A9,9,0,0,0,20,5V2H18V4.23a8.81,8.81,0,0,0-4,0V2H12V5a9,9,0,0,0-4.71,5.82L2.46,9.48,2,11.41,7,12.77c0,.08,0,.15,0,.23v4.15L1.84,18l.32,2L7,19.18a8.9,8.9,0,0,0,.82,3.57L3.29,27.29l1.42,1.42,4.19-4.2a9,9,0,0,0,14.2,0l4.19,4.2,1.42-1.42-4.54-4.54A8.9,8.9,0,0,0,25,19.18ZM15,25.92A7,7,0,0,1,9,19V13h6ZM9.29,11a7,7,0,0,1,13.42,0ZM23,19a7,7,0,0,1-6,6.92V13h6Z"/></svg></button>
       <button class="tb-icon-btn" id="theme-btn" onclick="toggleTheme()" title="Toggle light/dark">🌙</button>
@@ -394,7 +430,16 @@ a{color:var(--accent2);text-decoration:none}button{font-family:inherit;cursor:po
       <div class="col" id="col-login">
         <div class="col-hdr">Login</div>
         <div class="col-list">
-          <div class="login-card">
+          <div class="login-card" id="login-card-oauth" style="display:none">
+            <div class="login-title">Sign in</div>
+            <div class="login-copy">Sign in with your GitHub account to continue.</div>
+            <button class="sh-go" id="github-login-btn" onclick="window.location.href='/auth/login'" style="display:flex;align-items:center;justify-content:center;gap:8px">
+              <svg width="18" height="18" viewBox="0 0 16 16" fill="currentColor"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg>
+              Sign in with GitHub
+            </button>
+            <div class="login-msg" id="login-msg-oauth"></div>
+          </div>
+          <div class="login-card" id="login-card-local">
             <div class="login-title">Sign in</div>
             <div class="login-copy">Enter any username. Default is AzureUser.</div>
             <div class="fld"><label>Username</label><input id="login-username" type="text" placeholder="AzureUser" autocomplete="username"></div>
@@ -418,10 +463,10 @@ a{color:var(--accent2);text-decoration:none}button{font-family:inherit;cursor:po
         <div class="col-hdr"><button class="mob-back" onclick="mobShow('col-agents')">◀</button> <span id="col-sessions-hdr">Sessions</span></div>
         <div class="col-list" id="col-sessions-list"></div>
         <div class="col-new" id="col-new-session" style="display:none">
-          <div class="fld"><label>Directory</label><input id="f-dir" type="text" placeholder="/project" list="dir-suggestions" autocomplete="off"></div>
+          <div class="fld"><label>Directory</label><div class="dir-input-wrap"><input id="f-dir" class="dir-input" type="text" list="f-dir-suggestions" spellcheck="false" autocomplete="off" placeholder="Enter an absolute project path"><datalist id="f-dir-suggestions"></datalist><div class="dir-input-meta" id="f-dir-meta">Enter an absolute path. Suggestions follow the selected daemon.</div></div></div>
           <input type="hidden" id="f-agent" value="copilot">
-          <datalist id="dir-suggestions"></datalist>
-          <button class="sh-go" id="f-btn" onclick="createSess()">New Session</button>
+          <button class="sh-go" id="f-btn" type="button">New Session</button>
+          <div class="col-new-msg" id="col-new-msg"></div>
         </div>
       </div>
       <!-- Column 4: Chat -->
@@ -449,11 +494,18 @@ a{color:var(--accent2);text-decoration:none}button{font-family:inherit;cursor:po
               <span id="usage-label">0%</span>
             </div>
           </div>
+          <div class="async-banner hidden" id="async-banner" role="status" aria-live="polite">
+            <div class="async-banner-copy">
+              <span class="async-banner-pill" id="async-banner-pill">Working</span>
+              <span class="async-banner-text" id="async-banner-text"></span>
+            </div>
+            <button class="async-banner-action hidden" id="async-banner-action" type="button" onclick="runSessionBannerAction()"></button>
+          </div>
           <div class="input-row" style="position:relative">
             <div id="slash-menu"></div>
             <div class="dot" id="sdot" title="Disconnected"></div>
             <textarea id="mi" placeholder="Type a message …" disabled rows="1"></textarea>
-            <button class="send" id="sb" onclick="sendMsg()" disabled>↑</button>
+            <button class="send" id="sb" onclick="handleComposerAction()" disabled>↑</button>
           </div>
         </div>
       </div>
@@ -470,6 +522,7 @@ a{color:var(--accent2);text-decoration:none}button{font-family:inherit;cursor:po
 </div>
 
 <script type="module">
+import DOMPurify from'/dompurify.js';
 import{Marked,Renderer}from'/marked.js';
 import{ChatClient}from'/chat-client.js';
 
@@ -481,7 +534,8 @@ const joinApprovalLocks=new Set();
 const pendingCreateRequests=new Map();
 const pendingWorkspaceRequests=new Map();
 const livePermissionResponses=new Map();
-const ss={processing:false,pendingCount:0,model:'gpt-5.4'};
+const ss={processing:false,pendingCount:0,stopping:false,model:'gpt-5.4'};
+const STOP_RETRY_COOLDOWN_MS=1200;
 let sendMode='enqueue';
 let currentDaemonId=null;
 let currentAgentName=null;
@@ -520,6 +574,7 @@ const AGENT_ICONS={
 };
 const AGENT_COLORS={copilot:'#6baaff',claude:'#d97757',gemini:'#8b7cf6',codex:'#50d167',opencode:'#aaa'};
 const AGENT_NAMES={copilot:'GitHub Copilot',claude:'Claude Code',gemini:'Gemini CLI',codex:'Codex CLI',opencode:'OpenCode','copilot-sdk':'GitHub Copilot (SDK)'};
+const TESTED_ACP_AGENTS=new Set(['copilot','claude','codex']);
 function getAgentVisualKey(agentName){return agentName==='copilot-sdk'?'copilot':agentName}
 function getChatPlaceholderState(){
   if(!uid)return {kicker:'Sign in',title:'Open an agent workspace',subtitle:'Log in to browse daemons, agents, and sessions.',watermark:'',generic:true};
@@ -555,20 +610,27 @@ const OS_NAMES={win32:'Windows',darwin:'macOS',linux:'Linux'};
 
 const $={
   chat:document.getElementById('chat'),
+  scroll:document.getElementById('scroll'),
   ibar:document.getElementById('ibar'),mi:document.getElementById('mi'),sb:document.getElementById('sb'),
   sd:document.getElementById('sdot'),tt:document.getElementById('topbar-title'),tst:document.getElementById('topbar-st'),
+  asyncBanner:document.getElementById('async-banner'),asyncBannerPill:document.getElementById('async-banner-pill'),asyncBannerText:document.getElementById('async-banner-text'),asyncBannerAction:document.getElementById('async-banner-action'),
   userBadge:document.getElementById('user-badge'),
   compactBtn:document.getElementById('compact-toggle-btn'),compactNav:document.getElementById('compact-nav'),chatColTop:document.getElementById('chat-col-top'),
   loginUser:document.getElementById('login-username'),loginMsg:document.getElementById('login-msg'),loginBtn:document.getElementById('login-btn'),logoutBtn:document.getElementById('logout-btn'),
-  dirIn:document.getElementById('f-dir'),dirL:document.getElementById('dir-suggestions'),
+  dirIn:document.getElementById('f-dir'),dirMeta:document.getElementById('f-dir-meta'),dirSuggestions:document.getElementById('f-dir-suggestions'),formMsg:document.getElementById('col-new-msg'),
 };
-let dirT=null;
 const DEFAULT_USERNAME='AzureUser';
 const USER_STORAGE_KEY='cp-uid';
+const DIR_PICKER_ROOT='__roots__';
 const discoveredSessions=new Map();
 let lastStatusMessage='';
 let lastStatusAt=0;
 let compactNav=false;
+let lastStopRequestAt=0;
+let formStatusNotice=null;
+let formStatusTimer=null;
+let directorySuggestionTimer=null;
+let directorySuggestionToken=0;
 
 const isMobile=()=>window.innerWidth<=600;
 function mobShow(colId){
@@ -621,8 +683,76 @@ function logDebugMessage(direction,data){
 /* Auto-approve — per session state, stored in a map keyed by session ID */
 const sessionAutoApprove=new Map(); // sessionId → boolean
 let sessionBooting=false;
-function syncComposer(){const enabled=!!uid&&!!rid&&!sessionBooting;$.mi.disabled=!enabled;$.sb.disabled=!enabled}
-function setSessionBooting(next){sessionBooting=!!next;syncComposer()}
+let sessionBootingStage='';
+let sessionBannerNotice=null;
+let sessionBannerAction=null;
+let currentWorkingLabel='Agent is working…';
+function renderFormStatus(){
+  if(!$.formMsg)return;
+  $.formMsg.className='col-new-msg';
+  if(!formStatusNotice){$.formMsg.textContent='';return}
+  $.formMsg.textContent=formStatusNotice.message;
+  $.formMsg.classList.add(`is-${formStatusNotice.tone||'loading'}`)
+}
+function clearFormStatus(source=''){
+  if(source&&formStatusNotice?.source!==source)return;
+  clearTimeout(formStatusTimer);
+  formStatusTimer=null;
+  formStatusNotice=null;
+  renderFormStatus()
+}
+function setFormStatus(message='',tone='loading',timeout=0,source='manual'){
+  clearTimeout(formStatusTimer);
+  formStatusTimer=null;
+  if(!message){clearFormStatus(source);return}
+  formStatusNotice={message,tone,source};
+  renderFormStatus();
+  if(timeout>0){
+    const marker=`${source}:${message}`;
+    formStatusTimer=setTimeout(()=>{if(formStatusNotice&&`${formStatusNotice.source}:${formStatusNotice.message}`===marker)clearFormStatus(source)},timeout)
+  }
+}
+function getSessionBannerNotice(){return sessionBannerNotice||(sessionBooting?{source:'boot',label:'Starting',text:sessionBootingStage||'Preparing session…',tone:'info'}:null)}
+function renderSessionBanner(){
+  if(!$.asyncBanner)return;
+  const notice=rid?getSessionBannerNotice():null;
+  $.asyncBanner.className='async-banner hidden';
+  sessionBannerAction=null;
+  if(!notice){
+    $.asyncBannerPill.textContent='Working';
+    $.asyncBannerText.textContent='';
+    $.asyncBannerAction.classList.add('hidden');
+    $.asyncBannerAction.textContent='';
+    return
+  }
+  $.asyncBanner.classList.remove('hidden');
+  $.asyncBanner.classList.add(`is-${notice.tone||'info'}`);
+  $.asyncBannerPill.textContent=notice.label||'Working';
+  $.asyncBannerText.textContent=notice.text||'';
+  sessionBannerAction=typeof notice.action==='function'?notice.action:null;
+  if(notice.actionText&&sessionBannerAction){$.asyncBannerAction.textContent=notice.actionText;$.asyncBannerAction.classList.remove('hidden')}else{$.asyncBannerAction.classList.add('hidden');$.asyncBannerAction.textContent=''}
+}
+function setSessionBanner(notice=null){sessionBannerNotice=notice?{...notice}:null;renderSessionBanner()}
+function clearSessionBanner(source=''){if(source&&sessionBannerNotice?.source!==source)return;sessionBannerNotice=null;renderSessionBanner()}
+window.runSessionBannerAction=async()=>{if(sessionBannerAction)await sessionBannerAction()};
+function setWorkingLabel(message='Agent is working…'){
+  currentWorkingLabel=message||'Agent is working…';
+  const label=$wi?.querySelector('.wi-text');
+  if(label)label.textContent=currentWorkingLabel
+}
+function resetWorkingLabel(){setWorkingLabel('Agent is working…')}
+function syncSendButton(){
+  const enabled=!!uid&&!!rid&&!sessionBooting;
+  const isStop=!!rid&&(ss.processing||ss.stopping);
+  $.sb.classList.toggle('stop',isStop);
+  $.sb.classList.toggle('is-pending',!!ss.stopping);
+  $.sb.textContent=isStop?'■':'↑';
+  $.sb.title=!enabled?'Unavailable':ss.stopping?'Stopping current response… click again to retry':ss.processing?'Stop current response':'Send message';
+  $.sb.disabled=!enabled
+}
+function syncComposer(){const enabled=!!uid&&!!rid&&!sessionBooting;$.mi.disabled=!enabled||!!ss.stopping;$.mi.placeholder=sessionBooting?'Please wait…':ss.stopping?'Stopping response…':'Type a message …';syncSendButton()}
+function setSessionBooting(next,stage=''){sessionBooting=!!next;sessionBootingStage=sessionBooting?(stage||sessionBootingStage||'Preparing session…'):'';syncComposer();renderSessionBanner()}
+function updateSessionBooting(stage=''){if(!sessionBooting)return;sessionBootingStage=stage||sessionBootingStage;syncComposer();renderSessionBanner()}
 function mergeSlashCommands(agentCommands=[]){
   const merged=new Map();
   for(const item of agentCommands){if(item?.cmd)merged.set(item.cmd,item)}
@@ -665,22 +795,19 @@ function syncUsageTelemetry(){
   const label=document.getElementById('usage-label');
   if(!container||!arc||!label)return;
   const active=!!rid&&!!uid&&!!currentAgentName;
-  container.classList.toggle('show',active);
-  if(!active)return;
+  if(!active){container.classList.remove('show','disabled');return}
   const supported=supportsUsageTelemetry(currentAgentName);
-  container.classList.toggle('disabled',!supported);
-  if(!supported){
-    container.title='This agent does not support context window usage.';
-    label.textContent='N/A';
+  if(!supported||usageSize<=0){
+    container.classList.remove('show','disabled');
+    label.textContent='';
+    container.title=supported?'Context window usage. Waiting for agent telemetry.':'This agent does not support context window usage.';
     arc.setAttribute('stroke-dashoffset','50.27');
-    arc.style.stroke='var(--fg6)';
+    arc.style.stroke=supported?'var(--accent)':'var(--fg6)';
     return;
   }
-  container.title=usageSize>0?'Context window usage':'Context window usage. Waiting for agent telemetry.';
-  if(usageSize>0)return;
-  label.textContent='--';
-  arc.setAttribute('stroke-dashoffset','50.27');
-  arc.style.stroke='var(--fg6)';
+  container.classList.add('show');
+  container.classList.remove('disabled');
+  container.title='Context window usage';
 }
 function syncSessionToolbarMeta(){syncModelButton();syncModeButton();syncUsageTelemetry();updateToolbarVisibility()}
 function updateToolbarVisibility(){
@@ -696,7 +823,7 @@ function resetSessionToolbar(){
   document.getElementById('model-dropdown')?.classList.remove('show');
   document.getElementById('mode-dropdown')?.classList.remove('show');
   document.getElementById('usage-ring-container')?.classList.remove('show','disabled');
-  const usageLabel=document.getElementById('usage-label');if(usageLabel)usageLabel.textContent='--';
+  const usageLabel=document.getElementById('usage-label');if(usageLabel)usageLabel.textContent='';
   const usageArc=document.getElementById('usage-arc');if(usageArc){usageArc.setAttribute('stroke-dashoffset','50.27');usageArc.style.stroke='var(--accent)'}
   syncSessionToolbarMeta();
   updateToolbarVisibility()
@@ -707,7 +834,7 @@ function renderModelDropdown(){
   if(!availableModels.length){dd.innerHTML='<div class="toolbar-item empty">No models available</div>';return}
   dd.innerHTML=availableModels.map(model=>{
     const meta=getModelMeta(model);
-    return `<div class="toolbar-item${model.modelId===currentModelId?' current':''}" onclick="selectModel('${esc(model.modelId)}')"><div class="toolbar-item-title">${esc(model.name||model.modelId)}${model.modelId===currentModelId?' ✓':''}</div>${meta?`<div class="toolbar-item-meta">${esc(meta)}</div>`:''}</div>`;
+    return `<div class="toolbar-item${model.modelId===currentModelId?' current':''}" onclick="selectModel('${jsq(model.modelId)}')"><div class="toolbar-item-title">${esc(model.name||model.modelId)}${model.modelId===currentModelId?' ✓':''}</div>${meta?`<div class="toolbar-item-meta">${esc(meta)}</div>`:''}</div>`;
   }).join('')
 }
 function renderModeDropdown(){
@@ -716,7 +843,7 @@ function renderModeDropdown(){
   if(!availableModes.length){dd.innerHTML='<div class="toolbar-item empty">No modes available</div>';return}
   dd.innerHTML=availableModes.map(mode=>{
     const meta=getModeMeta(mode);
-    return `<div class="toolbar-item${mode.id===currentModeId?' current':''}" onclick="selectMode('${esc(mode.id)}')"><div class="toolbar-item-title">${esc(mode.name||mode.id)}${mode.id===currentModeId?' ✓':''}</div>${meta?`<div class="toolbar-item-meta">${esc(meta)}</div>`:''}</div>`;
+    return `<div class="toolbar-item${mode.id===currentModeId?' current':''}" onclick="selectMode('${jsq(mode.id)}')"><div class="toolbar-item-title">${esc(mode.name||mode.id)}${mode.id===currentModeId?' ✓':''}</div>${meta?`<div class="toolbar-item-meta">${esc(meta)}</div>`:''}</div>`;
   }).join('')
 }
 window.toggleModelDropdown=()=>{if(!availableModels.length)return;const dd=document.getElementById('model-dropdown');if(!dd)return;dd.classList.toggle('show');document.getElementById('mode-dropdown')?.classList.remove('show');if(dd.classList.contains('show'))renderModelDropdown()};
@@ -742,12 +869,13 @@ function updateUsageRing(used,size){
   syncUsageTelemetry();
   updateToolbarVisibility()
 }
-function getAutoApprove(){return rid?sessionAutoApprove.get(rid)||false:false}
+function getAutoApprove(){return rid?(sessionAutoApprove.has(rid)?sessionAutoApprove.get(rid):true):false}
 function toggleAutoApprove(){if(!rid)return;sessionAutoApprove.set(rid,!getAutoApprove());syncAutoBtn()}
 window.toggleAutoApprove=toggleAutoApprove;
 function syncAutoBtn(){const b=document.getElementById('auto-approve-btn');const on=getAutoApprove();b.classList.toggle('auto-on',on);b.innerHTML=on?'<span style="margin-right:4px">✓</span> Approvals: Auto':'<span style="margin-right:4px">✕</span> Approvals: Manual';b.title='Portal-side auto response for permission requests only. Separate from the agent\'s own access mode.'}
 function updateAutoBtn(){document.getElementById('auto-approve-btn').style.display=rid&&uid?'':'none';syncAutoBtn()}
-function syncUserBadge(){if($.userBadge){$.userBadge.textContent=uid||'';$.userBadge.style.display=uid?'inline-flex':'none'}if($.logoutBtn)$.logoutBtn.style.display=uid?'':'none'}
+let userAvatar='';
+function syncUserBadge(){if($.userBadge){$.userBadge.innerHTML=uid?(userAvatar?`<img class="tb-avatar" src="${esc(userAvatar)}" alt="">`:'')+esc(uid):'';$.userBadge.style.display=uid?'inline-flex':'none'}if($.logoutBtn)$.logoutBtn.style.display=uid?'':'none'}
 function compactEmpty(text){return `<div class="compact-empty">${esc(text)}</div>`}
 function compactSection(title,content){return `<div class="compact-section"><div class="compact-hdr">${esc(title)}</div><div class="compact-list">${content}</div></div>`}
 function renderCompactDaemons(){
@@ -761,7 +889,7 @@ function renderCompactDaemons(){
     const agentCount=(d.agents||[]).length;
     const osIcon=OS_ICONS[d.platform]||'🖥';
     const osName=OS_NAMES[d.platform]||'';
-    return `<div class="compact-item${did===currentDaemonId?' selected':''}" onclick="compactSelectDaemon('${esc(did)}')"><span class="ci-icon">${osIcon}</span><div class="ci-info"><div class="ci-name">${esc(d.hostname||did)}</div><div class="ci-meta">${esc(`${osName?`${osName} · `:''}${agentCount} agent${agentCount!==1?'s':''}`)}</div></div><span class="ci-dot"></span></div>`;
+    return `<div class="compact-item${did===currentDaemonId?' selected':''}" onclick="compactSelectDaemon('${jsq(did)}')"><span class="ci-icon">${osIcon}</span><div class="ci-info"><div class="ci-name">${esc(d.hostname||did)}</div><div class="ci-meta">${esc(`${osName?`${osName} · `:''}${agentCount} agent${agentCount!==1?'s':''}`)}</div></div><span class="ci-dot"></span></div>`;
   }).join('');
   return compactSection('Agent Daemons',content)
 }
@@ -781,12 +909,13 @@ function renderCompactAgents(){
       const icon=AGENT_ICONS[a]||AGENT_ICONS.opencode;
       const color=AGENT_COLORS[a]||'#aaa';
       const name=AGENT_NAMES[a]||a;
-      return `<div class="compact-item${a===currentAgentName?' selected':''}" onclick="compactSelectAgent('${esc(a)}')"><span class="ci-icon" style="color:${color}">${icon}</span><div class="ci-info"><div class="ci-name">${esc(name)}</div><div class="ci-meta">ACP</div></div></div>`;
+      const supported=TESTED_ACP_AGENTS.has(a);
+      return `<div class="compact-item${a===currentAgentName?' selected':''}${supported?'':' disabled'}"${supported?` onclick="compactSelectAgent('${jsq(a)}')"`:''}><span class="ci-icon" style="color:${color}">${icon}</span><div class="ci-info"><div class="ci-name">${esc(name)}</div><div class="ci-meta">${supported?'ACP':'ACP · not tested yet'}</div></div></div>`;
     }).join('');
   }
   if(sdkAgents.length){
     content+=`<div class="compact-subhdr">Managed by SDK</div>`;
-    content+=sdkAgents.map(a=>`<div class="compact-item${a===currentAgentName?' selected':''}" onclick="compactSelectAgent('${esc(a)}')"><span class="ci-icon" style="color:${AGENT_COLORS.copilot}">${AGENT_ICONS.copilot}</span><div class="ci-info"><div class="ci-name">GitHub Copilot</div><div class="ci-meta">Copilot SDK</div></div></div>`).join('');
+    content+=sdkAgents.map(a=>`<div class="compact-item${a===currentAgentName?' selected':''}" onclick="compactSelectAgent('${jsq(a)}')"><span class="ci-icon" style="color:${AGENT_COLORS.copilot}">${AGENT_ICONS.copilot}</span><div class="ci-info"><div class="ci-name">GitHub Copilot</div><div class="ci-meta">Copilot SDK</div></div></div>`).join('');
   }
   if(!content)content=compactEmpty('No agents available');
   return compactSection('Agents',content)
@@ -797,7 +926,7 @@ function renderCompactSessions(){
   const joined=joinedRoomIds();
   const sessionMap=new Map();
   for(const [sessionId,meta] of discoveredSessions.entries())if(!deletedSessions.has(sessionId))sessionMap.set(sessionId,{...meta});
-  if(cc?.rooms){for(const r of cc.rooms){if(r.roomId!==LOBBY_ROOM&&!deletedSessions.has(r.roomId)){const prev=sessionMap.get(r.roomId)||{};sessionMap.set(r.roomId,{...prev,sessionId:r.roomId,name:prev.name||r.name||'Session',updatedAt:prev.updatedAt||r.updatedAt||r.createdAt||null})}}}
+  if(cc?.rooms){for(const r of cc.rooms){if(r.roomId!==LOBBY_ROOM&&!deletedSessions.has(r.roomId)){const prev=sessionMap.get(r.roomId);if(prev)sessionMap.set(r.roomId,{...prev,sessionId:r.roomId,name:prev.name||r.title||r.name||'Session',updatedAt:prev.updatedAt||r.updatedAt||r.createdAt||null})}}}
   const filtered=[...sessionMap.values()].filter(s=>{const isJoined=joined.has(s.sessionId);if(currentDaemonId&&s.daemonId&&s.daemonId!==currentDaemonId)return false;if(currentDaemonId&&!s.daemonId&&!isJoined)return false;if(currentAgentName&&s.agent&&s.agent!==currentAgentName)return false;if(currentAgentName&&!s.agent&&!isJoined)return false;return true}).sort((a,b)=>{const ta=a.updatedAt?new Date(a.updatedAt).getTime():0;const tb=b.updatedAt?new Date(b.updatedAt).getTime():0;return tb-ta});
   if(!filtered.length)return compactSection(AGENT_NAMES[currentAgentName]||'Sessions',compactEmpty('No sessions yet'));
   const content=filtered.map(s=>{
@@ -810,8 +939,8 @@ function renderCompactSessions(){
     const owner=s.ownerUserId&&s.ownerUserId!==uid?`by ${s.ownerUserId}`:'';
     const joinMeta=joinedSession?'joined':'';
     const meta=[owner,t,joinMeta].filter(Boolean).join(' · ');
-    const action=joinedSession?'':'<button class="ci-join" onclick="event.stopPropagation();compactRequestSessionAccess(\''+esc(s.sessionId)+'\')" '+(joinStatus==='pending'?'disabled':'')+'>'+(joinStatus==='pending'?'Requested':joinStatus==='denied'?'Request Again':'Request Access')+'</button>';
-    return `<div class="compact-item${s.sessionId===rid?' selected':''}" onclick="compactOpenSession('${esc(s.sessionId)}',${joinedSession?'true':'false'})"><span class="ci-icon" style="color:${color}">${icon}</span><div class="ci-info"><div class="ci-name">${esc(nm)}</div><div class="ci-meta">${esc(meta)}</div></div>${joinedSession?'<span class="ci-dot" style="background:'+(s.sessionId===rid?'var(--green)':'var(--fg6)')+'"></span>':action}</div>`;
+    const action=joinedSession?'':'<button class="ci-join" onclick="event.stopPropagation();compactRequestSessionAccess(\''+jsq(s.sessionId)+'\')" '+(joinStatus==='pending'?'disabled':'')+'>'+(joinStatus==='pending'?'Requested':joinStatus==='denied'?'Request Again':'Request Access')+'</button>';
+    return `<div class="compact-item${s.sessionId===rid?' selected':''}" onclick="compactOpenSession('${jsq(s.sessionId)}',${joinedSession?'true':'false'})"><span class="ci-icon" style="color:${color}">${icon}</span><div class="ci-info"><div class="ci-name">${esc(nm)}</div><div class="ci-meta">${esc(meta)}</div></div>${joinedSession?'<span class="ci-dot" style="background:'+(s.sessionId===rid?'var(--green)':'var(--fg6)')+'"></span>':action}</div>`;
   }).join('');
   return compactSection(AGENT_NAMES[currentAgentName]||'Sessions',content)
 }
@@ -821,34 +950,163 @@ function setCompactNav(next){compactNav=!!next&&!!uid&&!isMobile();syncCompactBu
 function restoreExpandedNav(){setCompactNav(false)}
 window.restoreExpandedNav=restoreExpandedNav;
 window.compactSelectDaemon=(did)=>{restoreExpandedNav();window.selectDaemon(did)};
-window.compactSelectAgent=(agentName)=>{restoreExpandedNav();window.selectAgent(agentName)};
+window.compactSelectAgent=(agentName)=>{if(!TESTED_ACP_AGENTS.has(agentName)&&agentName!=='copilot-sdk')return;restoreExpandedNav();window.selectAgent(agentName)};
 window.compactOpenSession=async(sid,joined)=>{restoreExpandedNav();if(joined){await window.openSession(sid)}};
 window.compactRequestSessionAccess=async(sid)=>{await window.requestSessionAccess(sid);renderCompactNav()};
 function setLoginMessage(message='',isError=false){if(!$.loginMsg)return;$.loginMsg.textContent=message;$.loginMsg.style.color=isError?'#ff8f8f':''}
 function setCol(id,visible,display='flex'){const el=document.getElementById(id);if(el)el.style.display=visible?display:'none'}
 function setColumnDisabled(id,disabled){const el=document.getElementById(id);if(el)el.classList.toggle('is-disabled',disabled)}
+function normalizePickerPath(pathValue,platform){
+  let value=String(pathValue||'').trim();
+  if(!value)return '';
+  if(platform==='win32'){
+    value=value.replace(/\//g,'\\');
+    if(/^[a-zA-Z]:$/.test(value))return `${value}\\`;
+    if(/^[a-zA-Z]:\\+$/.test(value))return `${value.slice(0,2)}\\`;
+    return value.replace(/\\+$/,'');
+  }
+  value=value.replace(/\\/g,'/');
+  return value==='/'?'/':value.replace(/\/+$/,'');
+}
+function getPickerPathParent(pathValue,platform){
+  const value=normalizePickerPath(pathValue,platform);
+  if(!value)return '';
+  if(platform==='win32'){
+    if(/^[a-zA-Z]:\\$/.test(value))return '';
+    const lastSlash=value.lastIndexOf('\\');
+    if(lastSlash<=2)return `${value.slice(0,2)}\\`;
+    return value.slice(0,lastSlash);
+  }
+  if(value==='/')return '';
+  const lastSlash=value.lastIndexOf('/');
+  return lastSlash<=0?'/':value.slice(0,lastSlash);
+}
+function buildPickerTrail(pathValue,platform){
+  const value=normalizePickerPath(pathValue,platform);
+  if(!value)return [];
+  if(platform==='win32'){
+    const rootMatch=value.match(/^[a-zA-Z]:\\/);
+    if(!rootMatch)return [value];
+    const root=rootMatch[0];
+    const rest=value.slice(root.length).split('\\').filter(Boolean);
+    const trail=[root];
+    let current=root;
+    for(const part of rest){
+      current=`${current.replace(/\\$/,'')}\\${part}`;
+      trail.push(current);
+    }
+    return trail;
+  }
+  if(value==='/')return ['/'];
+  const parts=value.split('/').filter(Boolean);
+  const trail=['/'];
+  let current='';
+  for(const part of parts){
+    current=`${current}/${part}`;
+    trail.push(current||'/');
+  }
+  return trail;
+}
+function directoryMetaText(daemon,pathValue=''){
+  const osLabel=daemon?.platform==='win32'?'Windows':daemon?.platform==='darwin'?'macOS':'Linux';
+  if(pathValue)return `${daemon?.hostname||'Selected daemon'} · ${osLabel} · Suggestions follow the active daemon.`;
+  return daemon?`${daemon.hostname||'Selected daemon'} · ${osLabel} · Enter an absolute path or pick a suggestion.`:'Enter an absolute path. Suggestions follow the selected daemon.';
+}
+function renderSelectedDirectory(){
+  const daemon=knownDaemons.get(currentDaemonId);
+  const value=normalizePickerPath($.dirIn?.value||'',daemon?.platform);
+  if($.dirIn)$.dirIn.value=value;
+  if($.dirMeta)$.dirMeta.textContent=directoryMetaText(daemon,value);
+  if($.dirIn){
+    const fallback=normalizePickerPath(defaultDirectoryForDaemon(daemon),daemon?.platform);
+    $.dirIn.placeholder=fallback||'Enter an absolute project path';
+  }
+}
+function setSelectedDirectory(pathValue='',source='manual'){
+  const daemon=knownDaemons.get(currentDaemonId);
+  const value=normalizePickerPath(pathValue,daemon?.platform);
+  if($.dirIn)$.dirIn.value=value;
+  renderSelectedDirectory();
+  syncCreateSessionButton();
+  if(source==='input'||source==='auto')void refreshDirectorySuggestions(value,{silent:true});
+}
 function pathLooksCompatibleWithPlatform(pathValue,platform){
   const value=String(pathValue||'').trim();
   if(!value)return true;
-  if(platform==='win32')return !value.startsWith('/');
-  return !/^[a-zA-Z]:[\\/]/.test(value) && !value.startsWith('\\\\');
+  if(platform==='win32')return /^[a-zA-Z]:[\\/]/.test(value)||/^\\\\[^\\]+\\[^\\]+/.test(value);
+  return value.startsWith('/')&&!/^[a-zA-Z]:[\\/]/.test(value)&&!value.startsWith('\\\\');
 }
 function defaultDirectoryForDaemon(daemon){return (daemon?.workspaces||[]).find(Boolean)||''}
 function syncCreateSessionButton(){
   const button=document.getElementById('f-btn');
   if(!button)return;
   const daemon=knownDaemons.get(currentDaemonId);
-  const dirValue=document.getElementById('f-dir')?.value.trim()||'';
+  const dirValue=normalizePickerPath(document.getElementById('f-dir')?.value.trim()||'',daemon?.platform);
   const invalid=!!currentDaemonId&&!!dirValue&&!pathLooksCompatibleWithPlatform(dirValue,daemon?.platform);
   button.disabled=invalid;
   button.title=invalid?`Directory does not match the selected ${daemon?.platform==='win32'?'Windows':'Linux/macOS'} daemon.`:'';
+}
+async function requestWorkspaceListing(pathValue='',query=''){
+  const requestId=makeRequestId();
+  const pending=waitForLobbyReply(pendingWorkspaceRequests,requestId,5000,'Directory lookup timed out');
+  await sendLobbyEnvelope({type:'workspace.list_request',requestId,requesterUserId:uid,daemonId:currentDaemonId,path:pathValue||DIR_PICKER_ROOT,query,limit:200});
+  return pending;
+}
+function clearDirectorySuggestions(){if($.dirSuggestions)$.dirSuggestions.innerHTML=''}
+function setDirectoryMeta(message='',tone=''){
+  if(!$.dirMeta)return;
+  $.dirMeta.textContent=message||directoryMetaText(knownDaemons.get(currentDaemonId),$.dirIn?.value||'');
+  $.dirMeta.className='dir-input-meta';
+  if(tone)$.dirMeta.classList.add(`is-${tone}`)
+}
+function renderDirectorySuggestions(items=[],response=null){
+  if(!$.dirSuggestions)return;
+  const seen=new Set();
+  const options=[];
+  for(const item of items){
+    const path=item?.path||'';
+    if(!path||seen.has(path))continue;
+    seen.add(path);
+    const labelParts=[];
+    if(item?.name&&item.name!==path)labelParts.push(item.name);
+    if(item?.kind==='favorite')labelParts.push('workspace');
+    else if(item?.kind==='root')labelParts.push('root');
+    else if(response?.base)labelParts.push(response.base);
+    options.push(`<option value="${esc(path)}" label="${esc(labelParts.join(' · '))}"></option>`);
+  }
+  $.dirSuggestions.innerHTML=options.join('');
+}
+async function refreshDirectorySuggestions(rawValue='',{silent=false}={}){
+  if(!uid||!cc||!currentDaemonId){clearDirectorySuggestions();return}
+  const daemon=knownDaemons.get(currentDaemonId);
+  const inputValue=String(rawValue||'').trim();
+  const token=++directorySuggestionToken;
+  try{
+    const response=await requestWorkspaceListing(inputValue,'');
+    if(token!==directorySuggestionToken)return;
+    const items=[...(response.favorites||[]),...(response.roots||[]),...(response.dirs||[])];
+    renderDirectorySuggestions(items,response);
+    if(!silent)setDirectoryMeta(items.length?directoryMetaText(daemon,inputValue):`${daemon?.hostname||'Selected daemon'} · No matching directory suggestions right now.`,'');
+  }catch(err){
+    if(token!==directorySuggestionToken)return;
+    clearDirectorySuggestions();
+    if(!silent)setDirectoryMeta(err?.message||'Failed to load directory suggestions.','error');
+  }
+}
+function scheduleDirectorySuggestions(rawValue=''){
+  clearTimeout(directorySuggestionTimer);
+  directorySuggestionTimer=setTimeout(()=>{directorySuggestionTimer=null;void refreshDirectorySuggestions(rawValue)},180);
 }
 function resetChatState(){
   $.chat.innerHTML='';pd.clear();rd.clear();at.clear();pp.clear();tc.clear();hideWorking();$wi=null;
   lastStatusMessage='';lastStatusAt=0;
   livePermissionResponses.clear();
+  clearSessionBanner();
+  clearFormStatus();
+  resetWorkingLabel();
   resetSessionToolbar();
-  ss.processing=false;ss.pendingCount=0;sendMode='enqueue';historyLoadedAt=0;setSt(uid?'idle':'disconnected')
+  lastStopRequestAt=0;
+  ss.processing=false;ss.pendingCount=0;ss.stopping=false;sendMode='enqueue';historyLoadedAt=0;setSt(uid?'idle':'disconnected')
 }
 function skeletonColumn(rows=4){return `<div class="col-skeleton">${Array.from({length:rows},(_,index)=>`<div class="sk-row"><span class="sk-icon"></span><div class="sk-text"><span class="sk-line ${index%2===0?'w-75':'w-65'}"></span><span class="sk-line ${index%3===0?'w-40':'w-55'}"></span></div></div>`).join('')}</div>`}
 function joinedRoomIds(){return new Set((cc?.rooms||[]).filter(r=>r.roomId!==LOBBY_ROOM).map(r=>r.roomId))}
@@ -879,10 +1137,22 @@ function removeDiscoveredSession(sessionId){
 function makeRequestId(){return globalThis.crypto?.randomUUID?.()||`req-${Date.now()}-${Math.random().toString(16).slice(2)}`}
 function waitForLobbyReply(store,requestId,timeoutMs,message){return new Promise((resolve,reject)=>{const timeout=setTimeout(()=>{store.delete(requestId);reject(new Error(message))},timeoutMs);store.set(requestId,{resolve,reject,timeout})})}
 function settleLobbyReply(store,requestId,error,data={}){const pending=store.get(requestId);if(!pending)return false;clearTimeout(pending.timeout);store.delete(requestId);if(error)pending.reject(new Error(error));else pending.resolve(data);return true}
+async function mapLimit(items,limit,iteratee){
+  const results=[];
+  let index=0;
+  async function worker(){
+    while(index<items.length){
+      const currentIndex=index++;
+      results[currentIndex]=await iteratee(items[currentIndex],currentIndex)
+    }
+  }
+  await Promise.all(Array.from({length:Math.max(1,Math.min(limit,items.length||1))},()=>worker()));
+  return results
+}
 async function ensureLobbyMembership(userId){
   if(!cc)throw new Error('Not connected');
-  try{await cc.createRoom('Agent Lobby',[userId],LOBBY_ROOM)}catch{}
-  try{await cc.addUserToRoom(LOBBY_ROOM,userId)}catch{}
+  try{await cc.createRoom('Agent Lobby',[userId],LOBBY_ROOM)}catch(err){if(!/already|exists|member/i.test(String(err?.message||'')))console.warn('Lobby create failed:',err?.message||err)}
+  try{await cc.addUserToRoom(LOBBY_ROOM,userId)}catch(err){if(!/already|exists|member/i.test(String(err?.message||'')))console.warn('Lobby join failed:',err?.message||err)}
   const deadline=Date.now()+4000;
   while(Date.now()<deadline){
     try{if(await cc.getRoom(LOBBY_ROOM,false))return}catch{}
@@ -928,7 +1198,7 @@ function applyLobbyEnvelope(e){
     return
   }
   if(e.type==='workspace.list_response'&&e.requesterUserId===uid&&e.requestId){
-    settleLobbyReply(pendingWorkspaceRequests,e.requestId,e.error||'',{base:e.base,dirs:e.dirs||[],partial:e.partial||'',daemonId:e.daemonId});
+    settleLobbyReply(pendingWorkspaceRequests,e.requestId,e.error||'',{base:e.base,dirs:e.dirs||[],partial:e.partial||'',daemonId:e.daemonId,mode:e.mode||'',favorites:e.favorites||[],roots:e.roots||[],query:e.query||'',truncated:!!e.truncated,total:Number(e.total)||0});
     return
   }
   if(e.type==='session.join_request'&&e.ownerUserId===uid&&e.requesterUserId&&e.requesterUserId!==uid){
@@ -988,12 +1258,18 @@ async function handleJoinRequest(e){
     const allow=await showConfirm(`${e.requesterUserId} wants to join ${sessionLabel(session)}.`, 'Allow');
     await sendLobbyEnvelope({type:'session.join_response',sessionId:e.sessionId,requesterUserId:e.requesterUserId,ownerUserId:uid,approved:allow,updatedAt:new Date().toISOString()})
   }catch(err){
-    await sendLobbyEnvelope({type:'session.join_response',sessionId:e.sessionId,requesterUserId:e.requesterUserId,ownerUserId:uid,approved:false,error:err.message||'Failed to approve join request',updatedAt:new Date().toISOString()}).catch(()=>{});
+    try{
+      await sendLobbyEnvelope({type:'session.join_response',sessionId:e.sessionId,requesterUserId:e.requesterUserId,ownerUserId:uid,approved:false,error:err.message||'Failed to approve join request',updatedAt:new Date().toISOString()});
+    }catch(sendErr){
+      console.warn('Join approval response failed:',sendErr?.message||sendErr);
+      setFormStatus(sendErr?.message||'Failed to send join approval response.','error',4500,'join');
+    }
   }finally{joinApprovalLocks.delete(key)}
 }
 function handleJoinResponse(e){
   const prev=joinRequests.get(e.sessionId)||{};
   joinRequests.set(e.sessionId,{...prev,status:e.approved?'approved':'denied',error:e.error||'',updatedAt:e.updatedAt||new Date().toISOString(),autoOpen:prev.autoOpen!==false});
+  setFormStatus(e.approved?'Access granted. Opening session…':(e.error||'Join request denied.'),e.approved?'success':'error',e.approved?1800:4500,'join');
   renderSessionsCol()
 }
 async function ensureJoinedSession(sessionId){
@@ -1003,6 +1279,8 @@ async function ensureJoinedSession(sessionId){
 function applyLoggedOutState(message='',isError=false){
   setCompactNav(false);
   rid=null;currentDaemonId=null;currentAgentName=null;sessionBooting=false;resetChatState();
+  setSelectedDirectory('','auto');
+  clearDirectorySuggestions();
   setCol('col-login',true);setCol('col-daemons',true);setCol('col-agents',true);setCol('col-sessions',true);setCol('chat-col',true);
   setColumnDisabled('col-daemons',true);setColumnDisabled('col-agents',true);setColumnDisabled('col-sessions',true);setColumnDisabled('chat-col',true);
   $.chat.classList.add('hidden');$.ibar.classList.add('hidden');syncComposer();
@@ -1028,6 +1306,7 @@ async function loginUser(rawUserId){
   const userId=String(rawUserId||'').trim()||DEFAULT_USERNAME;
   if($.loginBtn){$.loginBtn.disabled=true;$.loginBtn.textContent='Logging in…'}
   setLoginMessage('Connecting…');
+  clearFormStatus();
   try{
     if(cc&&uid!==userId){try{cc.stop()}catch{}cc=null}
     knownDaemons.clear();discoveredSessions.clear();deletedSessions.clear();sessionAutoApprove.clear();joinRequests.clear();joinApprovalLocks.clear();pendingCreateRequests.clear();pendingWorkspaceRequests.clear();
@@ -1044,7 +1323,9 @@ async function loginUser(rawUserId){
 }
 async function logoutUser(){
   try{if(cc)cc.stop()}catch{}
-  cc=null;uid=null;knownDaemons.clear();discoveredSessions.clear();deletedSessions.clear();sessionAutoApprove.clear();joinRequests.clear();joinApprovalLocks.clear();pendingCreateRequests.clear();pendingWorkspaceRequests.clear();
+  cc=null;uid=null;userAvatar='';knownDaemons.clear();discoveredSessions.clear();deletedSessions.clear();sessionAutoApprove.clear();joinRequests.clear();joinApprovalLocks.clear();pendingCreateRequests.clear();pendingWorkspaceRequests.clear();
+  // Server-side logout (for OAuth)
+  try{await fetch('/auth/logout',{method:'POST'})}catch{}
   if($.loginUser)$.loginUser.value=localStorage.getItem(USER_STORAGE_KEY)||DEFAULT_USERNAME;
   applyLoggedOutState()
 }
@@ -1056,7 +1337,7 @@ function showSlashMenu(query){
   const q=query.toLowerCase();
   const matches=SLASH_CMDS.filter(c=>c.cmd.startsWith(q));
   if(!matches.length){$slashMenu.classList.remove('show');return}
-  $slashMenu.innerHTML=matches.map((c,i)=>`<div class="slash-item${i===0?' active':''}" onmousedown="pickSlash('${c.cmd}')" data-idx="${i}"><span class="sl-cmd">/${c.cmd}</span><span class="sl-desc">${c.desc}</span></div>`).join('');
+  $slashMenu.innerHTML=matches.map((c,i)=>`<div class="slash-item${i===0?' active':''}" onmousedown="pickSlash('${jsq(c.cmd)}')" data-idx="${i}"><span class="sl-cmd">/${c.cmd}</span><span class="sl-desc">${esc(c.desc)}</span></div>`).join('');
   $slashMenu.classList.add('show');slashActive=0;
 }
 function hideSlashMenu(){$slashMenu.classList.remove('show');slashActive=-1}
@@ -1120,7 +1401,7 @@ function renderDaemonsCol(){
     const agentCount=(d.agents||[]).length;
     const osIcon=OS_ICONS[d.platform]||'🖥';
     const osName=OS_NAMES[d.platform]||'';
-    return`<div class="col-item${did===currentDaemonId?' selected':''}" onclick="selectDaemon('${esc(did)}')"><span class="ci-icon">${osIcon}</span><div class="ci-info"><div class="ci-name">${esc(d.hostname||did)}</div><div class="ci-meta">${osName?osName+' · ':''}${agentCount} agent${agentCount!==1?'s':''}</div></div><span class="ci-dot"></span></div>`;
+    return`<div class="col-item${did===currentDaemonId?' selected':''}" onclick="selectDaemon('${jsq(did)}')"><span class="ci-icon">${osIcon}</span><div class="ci-info"><div class="ci-name">${esc(d.hostname||did)}</div><div class="ci-meta">${osName?osName+' · ':''}${agentCount} agent${agentCount!==1?'s':''}</div></div><span class="ci-dot"></span></div>`;
   }).join('');
   renderCompactNav();
 }
@@ -1136,17 +1417,11 @@ window.selectDaemon=(did)=>{
   updateAutoBtn();
   updateBreadcrumb();
   renderAgentsCol();
-  // Populate directory suggestions from daemon's workspaces
   const daemon=knownDaemons.get(did);
-  const dl=document.getElementById('dir-suggestions');
-  if(dl)dl.innerHTML=(daemon?.workspaces||[]).map(w=>`<option value="${esc(w)}">`).join('');
-  const dirInput=document.getElementById('f-dir');
-  if(dirInput){
-    const fallbackDir=defaultDirectoryForDaemon(daemon);
-    if(!dirInput.value||!pathLooksCompatibleWithPlatform(dirInput.value,daemon?.platform)||fallbackDir){
-      dirInput.value=fallbackDir;
-    }
-  }
+  const currentDir=normalizePickerPath($.dirIn?.value||'',daemon?.platform);
+  const fallbackDir=normalizePickerPath(defaultDirectoryForDaemon(daemon),daemon?.platform);
+  if(!currentDir||!pathLooksCompatibleWithPlatform(currentDir,daemon?.platform))setSelectedDirectory(fallbackDir,'auto');
+  else renderSelectedDirectory();
   syncCreateSessionButton();
   if(isMobile())mobShow('col-agents');
 };
@@ -1176,7 +1451,8 @@ function renderAgentsCol(){
       const icon=AGENT_ICONS[a]||AGENT_ICONS.opencode;
       const color=AGENT_COLORS[a]||'#aaa';
       const name=AGENT_NAMES[a]||a;
-      return`<div class="col-item${a===currentAgentName?' selected':''}" onclick="selectAgent('${esc(a)}')" style="--agent-color:${color}"><span class="ci-icon" style="color:${color}">${icon}</span><div class="ci-info"><div class="ci-name">${esc(name)}</div><div class="ci-meta">ACP</div></div></div>`;
+      const supported=TESTED_ACP_AGENTS.has(a);
+      return`<div class="col-item${a===currentAgentName?' selected':''}${supported?'':' disabled'}"${supported?` onclick="selectAgent('${jsq(a)}')"`:''} style="--agent-color:${color}"><span class="ci-icon" style="color:${color}">${icon}</span><div class="ci-info"><div class="ci-name">${esc(name)}</div><div class="ci-meta">${supported?'ACP':'ACP · not tested yet'}</div></div></div>`;
     }).join('');
     if(moreAcp.length){
       html+=`<div class="col-item" onclick="this.nextElementSibling.style.display=this.nextElementSibling.style.display==='none'?'block':'none';this.querySelector('.ci-meta').textContent=this.nextElementSibling.style.display==='none'?'${moreAcp.length} more…':'collapse'" style="cursor:pointer;opacity:.7"><span class="ci-icon" style="color:var(--fg5)">···</span><div class="ci-info"><div class="ci-name">More agents</div><div class="ci-meta">${moreAcp.length} more…</div></div></div>`;
@@ -1185,7 +1461,8 @@ function renderAgentsCol(){
         const icon=AGENT_ICONS[a]||AGENT_ICONS.opencode;
         const color=AGENT_COLORS[a]||'#aaa';
         const name=AGENT_NAMES[a]||a;
-        return`<div class="col-item${a===currentAgentName?' selected':''}" onclick="selectAgent('${esc(a)}')" style="--agent-color:${color}"><span class="ci-icon" style="color:${color}">${icon}</span><div class="ci-info"><div class="ci-name">${esc(name)}</div><div class="ci-meta">ACP</div></div></div>`;
+        const supported=TESTED_ACP_AGENTS.has(a);
+        return`<div class="col-item${a===currentAgentName?' selected':''}${supported?'':' disabled'}"${supported?` onclick="selectAgent('${jsq(a)}')"`:''} style="--agent-color:${color}"><span class="ci-icon" style="color:${color}">${icon}</span><div class="ci-info"><div class="ci-name">${esc(name)}</div><div class="ci-meta">${supported?'ACP':'ACP · not tested yet'}</div></div></div>`;
       }).join('');
       html+=`</div>`;
     }
@@ -1196,13 +1473,14 @@ function renderAgentsCol(){
     html+=sdkAgents.map(a=>{
       const icon=AGENT_ICONS.copilot;
       const color=AGENT_COLORS.copilot;
-      return`<div class="col-item${a===currentAgentName?' selected':''}" onclick="selectAgent('${esc(a)}')"><span class="ci-icon" style="color:${color}">${icon}</span><div class="ci-info"><div class="ci-name">GitHub Copilot</div><div class="ci-meta">Copilot SDK</div></div></div>`;
+      return`<div class="col-item${a===currentAgentName?' selected':''}" onclick="selectAgent('${jsq(a)}')"><span class="ci-icon" style="color:${color}">${icon}</span><div class="ci-info"><div class="ci-name">GitHub Copilot</div><div class="ci-meta">Copilot SDK</div></div></div>`;
     }).join('');
   }
   list.innerHTML=html;
   renderCompactNav();
 }
 window.selectAgent=(agentName)=>{
+  if(agentName!=='copilot-sdk'&&!TESTED_ACP_AGENTS.has(agentName))return;
   currentAgentName=agentName;
   rid=null;
   resetChatState();
@@ -1214,6 +1492,8 @@ window.selectAgent=(agentName)=>{
   applyLoggedInState();
   updateAutoBtn();
   updateBreadcrumb();
+  if(!normalizePickerPath($.dirIn?.value||'',knownDaemons.get(currentDaemonId)?.platform))setSelectedDirectory(defaultDirectoryForDaemon(knownDaemons.get(currentDaemonId)),'auto');
+  else renderSelectedDirectory();
   renderSessionsCol();
   if(isMobile())mobShow('col-sessions');
 };
@@ -1227,11 +1507,11 @@ async function renderSessionsCol(){
   const sessionMap=new Map();
   for(const [sessionId,meta] of discoveredSessions.entries())if(!deletedSessions.has(sessionId))sessionMap.set(sessionId,{...meta});
   if(cc?.rooms){for(const r of cc.rooms){if(r.roomId!==LOBBY_ROOM&&!deletedSessions.has(r.roomId)){
-    const prev=sessionMap.get(r.roomId)||{};
-    sessionMap.set(r.roomId,{...prev,sessionId:r.roomId,name:prev.name||r.name||'Session',updatedAt:prev.updatedAt||r.updatedAt||r.createdAt||null})
+    const prev=sessionMap.get(r.roomId);
+    if(prev)sessionMap.set(r.roomId,{...prev,sessionId:r.roomId,name:prev.name||r.title||r.name||'Session',updatedAt:prev.updatedAt||r.updatedAt||r.createdAt||null})
   }}}
   const sessions=[...sessionMap.values()];
-  await Promise.all(sessions.filter(s=>joined.has(s.sessionId)&&(!s.agent||!s.workingDirectory||!s.ownerUserId)).map(async(s)=>{try{
+  await mapLimit(sessions.filter(s=>joined.has(s.sessionId)&&(!s.agent||!s.workingDirectory||!s.ownerUserId)),4,async(s)=>{try{
     const ri=await cc.getRoom(s.sessionId,false);const cid=ri?.defaultConversationId;const roomName=ri?.name||ri?.roomName||ri?.displayName;
     if(roomName&&roomName!=='Session')s.name=roomName;
     if(cid){const h=await cc.listMessage(cid,'0',null,10);if(h?.messages?.length){
@@ -1240,7 +1520,7 @@ async function renderSessionsCol(){
       }catch{}}
       if(h.messages[0]?.createdAt)s.updatedAt=s.updatedAt||h.messages[0].createdAt;
     }}
-  }catch(e){console.warn('Session enrich failed:',s.sessionId.substring(0,8),e.message)}}));
+  }catch(e){console.warn('Session enrich failed:',s.sessionId.substring(0,8),e.message)}});
   const filtered=sessions.filter(s=>{
     const isJoined=joined.has(s.sessionId);
     if(currentDaemonId&&s.daemonId&&s.daemonId!==currentDaemonId)return false;
@@ -1263,14 +1543,16 @@ async function renderSessionsCol(){
     const isOwner=!s.ownerUserId||s.ownerUserId===uid;
     const status=joinedSession?`<span class="ci-dot" style="background:${s.sessionId===rid?'var(--green)':'var(--fg6)'}"></span>`:'';
     const action=joinedSession
-      ?(isOwner?`<button class="ci-del" title="Delete session" onclick="event.stopPropagation();delSess('${s.sessionId}')">\u2715</button>`:`<button class="ci-del" title="Leave session" onclick="event.stopPropagation();leaveSess('${s.sessionId}')">↩</button>`)
-      :`<button class="ci-join" onclick="event.stopPropagation();requestSessionAccess('${s.sessionId}')" ${joinStatus==='pending'?'disabled':''}>${joinStatus==='pending'?'Requested':joinStatus==='denied'?'Request Again':'Request Access'}</button>`;
-    return`<div class="col-item${s.sessionId===rid?' selected':''}"${joinedSession?` onclick="openSession('${s.sessionId}')"`:''}><span class="ci-icon" style="color:${color}">${icon}</span><div class="ci-info"><div class="ci-name">${esc(nm)}</div><div class="ci-meta">${esc(meta)}</div></div>${status}${action}</div>`;
+      ?(isOwner?`<button class="ci-del" title="Delete session" onclick="event.stopPropagation();delSess('${jsq(s.sessionId)}')">\u2715</button>`:`<button class="ci-del" title="Leave session" onclick="event.stopPropagation();leaveSess('${jsq(s.sessionId)}')">↩</button>`)
+      :`<button class="ci-join" onclick="event.stopPropagation();requestSessionAccess('${jsq(s.sessionId)}')" ${joinStatus==='pending'?'disabled':''}>${joinStatus==='pending'?'Requested':joinStatus==='denied'?'Request Again':'Request Access'}</button>`;
+    return`<div class="col-item${s.sessionId===rid?' selected':''}"${joinedSession?` onclick="openSession('${jsq(s.sessionId)}')"`:''}><span class="ci-icon" style="color:${color}">${icon}</span><div class="ci-info"><div class="ci-name">${esc(nm)}</div><div class="ci-meta">${esc(meta)}</div></div>${status}${action}</div>`;
   }).join('');
   renderCompactNav();
 }
 function timeAgo(d){const s=Math.floor((Date.now()-d.getTime())/1000);if(s<60)return'just now';if(s<3600)return Math.floor(s/60)+'m ago';if(s<86400)return Math.floor(s/3600)+'h ago';return Math.floor(s/86400)+'d ago'}
 window.openSession=async(sid)=>{try{
+  clearSessionBanner('error');
+  setSessionBanner({source:'history',label:'Loading',text:'Loading session history…',tone:'info'});
   if(!joinedRoomIds().has(sid)){
     const session=discoveredSessions.get(sid);
     if(session?.ownerUserId&&session.ownerUserId!==uid){
@@ -1282,11 +1564,19 @@ window.openSession=async(sid)=>{try{
   document.getElementById('chat-col').style.display='flex';
   await renderSessionsCol();
   if(isMobile())mobShow('chat-col');
-}catch(e){alert(e.message)}};
-window.requestSessionAccess=async(sid)=>{try{const sent=await requestJoinSession(sid);if(sent)await renderSessionsCol()}catch(e){alert(e.message)}};
+}catch(e){setSessionBanner({source:'error',label:'Open failed',text:e.message||'Failed to open session',tone:'error',actionText:'Retry',action:()=>window.openSession(sid)});addErr(e.message||'Failed to open session')}};
+window.requestSessionAccess=async(sid)=>{try{const sent=await requestJoinSession(sid);if(sent){setFormStatus('Request sent. Waiting for session owner approval.','loading',0,'join');await renderSessionsCol()}}catch(e){setFormStatus(e.message||'Failed to request access.','error',4500,'join')}};
 
-function esc(s){return s?String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'):''}
-const mk=new Marked({breaks:true,gfm:true,renderer:(()=>{const r=new Renderer();r.link=({href,text})=>`<a href="${esc(href)}" target="_blank" rel="noopener">${text}</a>`;return r})()});
+function esc(s){return s?String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;'):''}
+function jsq(s){return String(s??'').replace(/\\/g,'\\\\').replace(/'/g,"\\'").replace(/\r?\n/g,'\\n').replace(/</g,'\\x3C').replace(/\u2028/g,'\\u2028').replace(/\u2029/g,'\\u2029')}
+function sanitizeHref(href){
+  try{
+    const parsed=new URL(String(href||''),window.location.origin);
+    if(['http:','https:','mailto:'].includes(parsed.protocol))return parsed.href;
+  }catch{}
+  return '#'
+}
+const mk=new Marked({breaks:true,gfm:true,renderer:(()=>{const r=new Renderer();r.link=({href,text})=>`<a href="${esc(sanitizeHref(href))}" target="_blank" rel="noopener noreferrer">${text||esc(String(href||''))}</a>`;return r})()});
 function normalizeMarkdownLine(line){
   if(!line)return [''];
   const pipeCount=(line.match(/\|/g)||[]).length;
@@ -1322,10 +1612,13 @@ function normalizeMarkdownText(text){
     return value.split('\n').flatMap(normalizeMarkdownLine).join('\n');
   }).join('');
 }
-function md(t){if(!t)return'';try{return mk.parse(normalizeMarkdownText(t))}catch{return esc(t)}}
-function scroll(){requestAnimationFrame(()=>{const el=document.getElementById('scroll');el.scrollTop=el.scrollHeight})}
+function md(t){if(!t)return'';try{return DOMPurify.sanitize(mk.parse(normalizeMarkdownText(t)),{USE_PROFILES:{html:true}})}catch{return esc(t)}}
+function scroll(){requestAnimationFrame(()=>{$.scroll.scrollTop=$.scroll.scrollHeight})}
 
 function renderSL(list){
+  const primary=document.getElementById('slist');
+  const secondary=document.getElementById('slist2');
+  if(!primary&&!secondary)return;
   const h=list.map(s=>{
     const dir=s.workingDirectory||'';
     const dirName=dir.split(/[/\\]/).pop()||'';
@@ -1337,28 +1630,33 @@ function renderSL(list){
     if(s.roomOnly)parts.push('tap to resume');
     const meta=parts.join(' · ');
     const dot=s.active?'on':s.roomOnly?'stale':'';
-    return`<li><div class="sr${s.sessionId===rid?' active':''}" onclick="switchS('${s.sessionId}',${!!s.active})" title="${esc(dir||s.sessionId)}"><div class="sr-icon">\u2726</div><div class="sr-info"><div class="sr-name">${esc(nm)}</div><div class="sr-meta">${esc(meta)}</div></div><button class="sr-del" onclick="event.stopPropagation();delSess('${s.sessionId}')" title="Delete session">\u2715</button></div></li>`;
+    return`<li><div class="sr${s.sessionId===rid?' active':''}" onclick="switchS('${jsq(s.sessionId)}',${!!s.active})" title="${esc(dir||s.sessionId)}"><div class="sr-icon">\u2726</div><div class="sr-info"><div class="sr-name">${esc(nm)}</div><div class="sr-meta">${esc(meta)}</div></div><button class="sr-del" onclick="event.stopPropagation();delSess('${jsq(s.sessionId)}')" title="Delete session">\u2715</button></div></li>`;
   }).join('')||'<li style="text-align:center;color:#555;padding:16px;font-size:13px">No sessions yet</li>';
-  $.sl.innerHTML=h;const s2=document.getElementById('slist2');if(s2)s2.innerHTML=h;
+  if(primary)primary.innerHTML=h;if(secondary)secondary.innerHTML=h;
 }
 async function refreshSL(){}
 
 function syncSt(){
   if(!uid){$.tst.textContent='';$.tst.style.color='';return}
-  $.tst.textContent=!rid?'':'● '+(ss.processing?(sendMode==='immediate'?'steering':'working…'):'ready');
-  $.tst.style.color=ss.processing?'#f5a623':'#50d167';
+  $.tst.textContent=!rid?'':sessionBooting?'● starting…':ss.stopping?'● stopping…':ss.processing?`● ${sendMode==='immediate'?'steering':'working…'}`:'';
+  $.tst.style.color=sessionBooting?'var(--accent2)':ss.stopping?'var(--orange)':ss.processing?'#f5a623':'#50d167';
 }
-function applyState(e){if(sessionBooting)setSessionBooting(false);ss.processing=!!e.processing;ss.pendingCount=Number(e.pendingCount)||0;if(e.model)ss.model=e.model;if(ss.processing)showWorking();else{hideWorking();sendMode='enqueue'}syncSt()}
+function applyState(e){if(sessionBooting)updateSessionBooting('Synchronizing session state…');ss.processing=!!e.processing;ss.pendingCount=Number(e.pendingCount)||0;ss.stopping=!!e.stopping;if(!ss.stopping){lastStopRequestAt=0;clearSessionBanner('stop')}if(e.model)ss.model=e.model;if(ss.processing)showWorking();else{hideWorking();sendMode='enqueue'}syncComposer();syncSt()}
 window.toggleMode=()=>{if(!ss.processing)return;sendMode=sendMode==='enqueue'?'immediate':'enqueue';syncSt()};
 
 async function initCC(userId){
   if(cc&&uid===userId)return cc;uid=userId;
   syncUserBadge();
-  const{url,error}=await(await fetch(`/negotiate?userId=${encodeURIComponent(userId)}`)).json();
-  if(error)throw new Error(error);
-  cc=await new ChatClient(url).login();
+  const negUrl=userId?`/negotiate:portal?userId=${encodeURIComponent(userId)}`:'/negotiate:portal';
+  const negRes=await fetch(negUrl);
+  if(negRes.status===401){window.location.href='/auth/login';return}
+  const negData=await negRes.json();
+  if(negData.error)throw new Error(negData.error);
+  if(negData.userId)uid=negData.userId;
+  syncUserBadge();
+  cc=await new ChatClient(negData.url).login();
   cc.addListenerForNewMessage(onMsg);
-  cc.addListenerForNewRoom((room)=>{if(room.roomId!==LOBBY_ROOM){const req=joinRequests.get(room.roomId);if(req&&(req.status==='pending'||req.status==='approved')){joinRequests.set(room.roomId,{...req,status:'approved'});openR(room.roomId).catch(()=>{});}renderSessionsCol()}});
+  cc.addListenerForNewRoom((room)=>{if(room.roomId!==LOBBY_ROOM){const req=joinRequests.get(room.roomId);if(req&&(req.status==='pending'||req.status==='approved')){joinRequests.set(room.roomId,{...req,status:'approved'});openR(room.roomId).catch(err=>{setSessionBanner({source:'error',label:'Open failed',text:err?.message||'Failed to open newly joined session',tone:'error',actionText:'Retry',action:()=>openR(room.roomId)});setFormStatus(err?.message||'Failed to open joined session.','error',4500,'join')});}renderSessionsCol()}});
   cc.addListenerForRoomLeft((info)=>{if(info.roomId===rid){rid=null;resetChatState();applyLoggedInState();updateBreadcrumb();updateAutoBtn()}renderSessionsCol()});
   cc.onConnected(()=>setSt('idle'));cc.onDisconnected(()=>setSt('disconnected'));
   await ensureLobbyMembership(userId);
@@ -1380,47 +1678,68 @@ function onMsg(n){const m=n.message,r=n.conversation?.roomId;if(!m.content?.text
   try{const parsed=JSON.parse(m.content.text);for(const e of unpackEnvelope(parsed))render(e);scroll()}catch{}}
 
 async function resumeSess(sid,showErr=true){
-  try{await ensureJoinedSession(sid);await openR(sid);await refreshSL();return true}catch(e){if(showErr)alert(e.message);return false}
+  try{await ensureJoinedSession(sid);await openR(sid);await refreshSL();return true}catch(e){if(showErr)setSessionBanner({source:'error',label:'Open failed',text:e.message||'Failed to open session',tone:'error',actionText:'Retry',action:()=>resumeSess(sid,true)});return false}
 }
-window.switchS=async(s,a)=>{if(s===rid){closePanel();return}try{if(!cc)throw new Error('Log in first');await ensureJoinedSession(s);await openR(s);await refreshSL()}catch(e){alert(e.message)}closePanel()};
-window.joinDlg=()=>{const s=prompt('Session ID');if(s?.trim()){(async()=>{if(!cc)throw new Error('Log in first');await resumeSess(s.trim())})().catch(e=>alert(e.message))}};
-let cfResolve=null;
-function showConfirm(msg,action='Delete'){return new Promise(r=>{cfResolve=(v)=>{document.getElementById('confirm-dlg').classList.remove('show');cfResolve=()=>{};r(v)};document.getElementById('cf-msg').textContent=msg;const btn=document.getElementById('cf-action');btn.textContent=action;btn.className=action==='Allow'?'cf-allow':'cf-danger';document.getElementById('confirm-dlg').classList.add('show')})}
-window.cfResolve=(v)=>{if(cfResolve)cfResolve(v)};
+window.switchS=async(s,a)=>{if(s===rid){closePanel();return}try{if(!cc)throw new Error('Log in first');await ensureJoinedSession(s);await openR(s);await refreshSL()}catch(e){setSessionBanner({source:'error',label:'Open failed',text:e.message||'Failed to switch session',tone:'error',actionText:'Retry',action:()=>window.switchS(s,a)})}closePanel()};
+window.joinDlg=()=>{const s=prompt('Session ID');if(s?.trim()){(async()=>{if(!cc)throw new Error('Log in first');await resumeSess(s.trim())})().catch(e=>setFormStatus(e.message||'Failed to join session.','error',4500,'join'))}};
+const confirmQueue=[];
+let activeConfirm=null;
+function pumpConfirm(){
+  if(activeConfirm||!confirmQueue.length)return;
+  activeConfirm=confirmQueue.shift();
+  document.getElementById('cf-msg').textContent=activeConfirm.msg;
+  const btn=document.getElementById('cf-action');
+  btn.textContent=activeConfirm.action;
+  btn.className=activeConfirm.action==='Allow'?'cf-allow':'cf-danger';
+  document.getElementById('confirm-dlg').classList.add('show')
+}
+function settleConfirm(value){
+  if(!activeConfirm)return;
+  document.getElementById('confirm-dlg').classList.remove('show');
+  const current=activeConfirm;
+  activeConfirm=null;
+  current.resolve(value);
+  pumpConfirm()
+}
+function showConfirm(msg,action='Delete'){return new Promise(resolve=>{confirmQueue.push({msg,action,resolve});pumpConfirm()})}
+window.cfResolve=(v)=>{settleConfirm(v)};
 window.delSess=async(sid)=>{if(!await showConfirm('Delete this session?'))return;try{
-  try{await cc.sendToRoom(sid,JSON.stringify({type:'control.delete'}))}catch{}
+  await cc.sendToRoom(sid,JSON.stringify({type:'control.delete'}));
   await announceSession('session.deleted',sid,{ownerUserId:discoveredSessions.get(sid)?.ownerUserId||uid});
-  try{await cc.removeUserFromRoom(sid,uid)}catch{}
+  try{await cc.removeUserFromRoom(sid,uid)}catch(err){console.warn('Failed to remove deleted session membership:',err?.message||err)}
   deletedSessions.add(sid);
   if(rid===sid){rid=null;resetChatState();applyLoggedInState();updateBreadcrumb();updateAutoBtn()}
   await renderSessionsCol();
-}catch(e){alert(e.message)}};
+}catch(e){setFormStatus(e.message||'Failed to delete session.','error',4500,'create')}};
 window.leaveSess=async(sid)=>{if(!await showConfirm('Leave this shared session?','Leave'))return;try{
   await cc.removeUserFromRoom(sid,uid);
   joinRequests.delete(sid);
   if(rid===sid){rid=null;resetChatState();applyLoggedInState();updateBreadcrumb();updateAutoBtn()}
   await renderSessionsCol();
-}catch(e){alert(e.message)}};
+}catch(e){setFormStatus(e.message||'Failed to leave session.','error',4500,'join')}};
 window.createSess=async()=>{
-  const d=document.getElementById('f-dir').value.trim(),ag=currentAgentName||document.getElementById('f-agent').value;
-  if(!currentDaemonId)return alert('Select a daemon first');
-  if(!ag)return alert('Select an agent first');
-  if(!cc)return alert('Not connected');
   const daemon=knownDaemons.get(currentDaemonId);
+  const d=normalizePickerPath(document.getElementById('f-dir').value.trim(),daemon?.platform),ag=currentAgentName||document.getElementById('f-agent').value;
+  if(!currentDaemonId)return setFormStatus('Select a daemon first.','error',3500,'create');
+  if(!ag)return setFormStatus('Select an agent first.','error',3500,'create');
+  if(!cc)return setFormStatus('Not connected. Log in first.','error',3500,'create');
   if(d&&!pathLooksCompatibleWithPlatform(d,daemon?.platform)){
     const fallbackDir=defaultDirectoryForDaemon(daemon);
-    if(fallbackDir)document.getElementById('f-dir').value=fallbackDir;
-    return alert(`Directory does not match the selected daemon platform (${daemon?.platform==='win32'?'Windows':'Linux/macOS'}).`);
+    if(fallbackDir)setSelectedDirectory(fallbackDir,'auto');
+    return setFormStatus(`Directory does not match the selected daemon platform (${daemon?.platform==='win32'?'Windows':'Linux/macOS'}).`,'error',4500,'create');
   }
   const b=document.getElementById('f-btn');b.disabled=true;b.textContent='Creating…';
   try{
+    const agentLabel=AGENT_NAMES[ag]||ag;
     const dirName=(d||'Session').split(/[/\\]/).pop()||'Session';
     const roomName=`${dirName} (${ag})`;
     const requestId=makeRequestId();
+    setFormStatus('Creating session room…','loading',0,'create');
     const pending=waitForLobbyReply(pendingCreateRequests,requestId,8000,'Timed out waiting for session room creation');
     await sendLobbyEnvelope({type:'session.create_request',requestId,requesterUserId:uid,daemonId:currentDaemonId,agentName:ag,workingDirectory:d||undefined,roomName});
     const room=await pending;
     const sessionId=room.sessionId;
+    setFormStatus('Joining session room…','loading',0,'create');
     await waitForRoomMembership(sessionId,6000);
     joinRequests.delete(sessionId);
     await announceSession('session.online',sessionId,{ownerUserId:uid,daemonId:currentDaemonId,agentName:ag,workingDirectory:d||undefined,name:roomName});
@@ -1428,75 +1747,86 @@ window.createSess=async()=>{
     // messages (for example models.update/modes.update) are not dropped.
     rid=sessionId;$.chat.innerHTML='';pd.clear();rd.clear();at.clear();pp.clear();tc.clear();$wi=null;resetSessionToolbar();
     historyLoadedAt=Date.now();
-    showChat();setSessionBooting(true);
+    showChat();setSessionBooting(true,`Starting ${agentLabel}…`);
+    setFormStatus(`Starting ${agentLabel}…`,'loading',0,'create');
     await cc.sendToRoom(sessionId,JSON.stringify({type:'control.create',userId:uid,agentName:ag||'copilot',workingDirectory:d||undefined}));
-    sessionAutoApprove.set(sessionId,false);
+    updateSessionBooting('Waiting for agent to initialize…');
+    setFormStatus('Waiting for agent to initialize…','loading',0,'create');
+    sessionAutoApprove.set(sessionId,true);
     setSt('idle');ss.processing=false;ss.pendingCount=0;sendMode='enqueue';syncSt();
     document.getElementById('chat-col').style.display='flex';
     await renderSessionsCol();
     if(isMobile())mobShow('chat-col');
-  }catch(e){alert(e.message)}finally{b.disabled=false;b.textContent='New Session'}
+  }catch(e){setSessionBooting(false);setFormStatus(e.message||'Failed to create session.','error',5000,'create');if(rid)setSessionBanner({source:'error',label:'Start failed',text:e.message||'Failed to create session',tone:'error'})}finally{b.disabled=false;b.textContent='New Session'}
 };
 
 async function openR(roomId){
   if(!cc)throw new Error('Not connected');
   const knownMeta=discoveredSessions.get(roomId);
   if(knownMeta)syncSessionSelection(roomId,knownMeta);
-  rid=roomId;historyLoadedAt=0;$.chat.innerHTML='';pd.clear();rd.clear();at.clear();pp.clear();tc.clear();$wi=null;resetSessionToolbar();
+  rid=roomId;historyLoadedAt=Date.now();$.chat.innerHTML='';pd.clear();rd.clear();at.clear();pp.clear();tc.clear();$wi=null;resetSessionToolbar();
   setSessionBooting(false);showChat();updateBreadcrumb();
-  setSt('idle');ss.processing=false;ss.pendingCount=0;sendMode='enqueue';syncSt();
+  setSessionBanner({source:'history',label:'Loading',text:'Loading session history…',tone:'info'});
+  setSt('idle');ss.processing=false;ss.pendingCount=0;ss.stopping=false;sendMode='enqueue';syncComposer();syncSt();
   try{const ri=await cc.getRoom(roomId,false);const cid=ri?.defaultConversationId;const sessionMeta={...(knownMeta||{}),sessionId:roomId};
     if((ri?.name||ri?.roomName||ri?.displayName)&&ri?.name!=='Session')sessionMeta.name=ri.name||ri.roomName||ri.displayName;
     if(cid){const h=await cc.listMessage(cid,'0',null,100);if(h?.messages?.length){
-      // Collect already-responded permission IDs
-      const respondedPerms=new Set();
+      // Collect already-responded permission IDs and their final state
+      const respondedPerms=new Map();
       const msgs=[...h.messages].reverse();
-      for(const m of msgs){if(!m.content?.text)continue;try{const e=JSON.parse(m.content.text);if(e.type==='permission.response'&&e.requestId)respondedPerms.add(e.requestId)}catch{}}
+      for(const m of msgs){if(!m.content?.text)continue;try{const e=JSON.parse(m.content.text);if(e.type==='permission.response'&&e.requestId)respondedPerms.set(e.requestId,e.cancelled?'cancelled':!!e.approved)}catch{}}
       // Replay history, marking responded permissions
-      for(const m of msgs){if(!m.content?.text)continue;try{const parsed=JSON.parse(m.content.text);for(const e of unpackEnvelope(parsed)){if(e.type==='control.create'){sessionMeta.agent=sessionMeta.agent||e.agentName;sessionMeta.workingDirectory=sessionMeta.workingDirectory||e.workingDirectory;sessionMeta.ownerUserId=sessionMeta.ownerUserId||e.userId}if(e.type==='permission.request'&&respondedPerms.has(e.requestId)){renderResolvedPerm(e)}else{render(e)}}}catch{}}
+      for(const m of msgs){if(!m.content?.text)continue;try{const parsed=JSON.parse(m.content.text);for(const e of unpackEnvelope(parsed)){if(e.type==='control.create'){sessionMeta.agent=sessionMeta.agent||e.agentName;sessionMeta.workingDirectory=sessionMeta.workingDirectory||e.workingDirectory;sessionMeta.ownerUserId=sessionMeta.ownerUserId||e.userId}if(e.type==='permission.request'&&respondedPerms.has(e.requestId)){renderResolvedPerm(e,respondedPerms.get(e.requestId))}else{render(e)}}}catch{}}
       // Record latest message timestamp so live listener skips duplicates
       const lastMsg=msgs[msgs.length-1];
-      if(lastMsg?.createdAt)historyLoadedAt=new Date(lastMsg.createdAt).getTime();
+      if(lastMsg?.createdAt)historyLoadedAt=Math.max(historyLoadedAt,new Date(lastMsg.createdAt).getTime());
       syncSessionSelection(roomId,sessionMeta);
       scroll()}}
-  }catch(e){addErr('History: '+e.message)}
+    clearSessionBanner('history');
+  }catch(e){setSessionBanner({source:'error',label:'History error',text:e.message||'Failed to load history',tone:'error',actionText:'Retry',action:()=>openR(roomId)});addErr('History: '+e.message)}
 }
+
+window.stopCurrentTurn=async()=>{
+  if(!rid||!cc||(!ss.processing&&!ss.stopping))return;
+  const now=Date.now();
+  const retrying=!!ss.stopping;
+  if(retrying&&now-lastStopRequestAt<STOP_RETRY_COOLDOWN_MS)return;
+  lastStopRequestAt=now;
+  ss.stopping=true;
+  setWorkingLabel('Stopping current response…');
+  setSessionBanner({source:'stop',label:retrying?'Retrying stop':'Stopping',text:retrying?'Sent another cancel request. Waiting for the agent to stop…':'Stop requested. If the agent keeps running, click stop again to retry.',tone:'warn'});
+  syncComposer();
+  syncSt();
+  try{
+    await cc.sendToRoom(rid,JSON.stringify({type:'control.cancel'}));
+    await announceSession('session.touch',rid,{updatedAt:new Date().toISOString()});
+  }catch(e){
+    lastStopRequestAt=0;
+    ss.stopping=false;
+    clearSessionBanner('stop');
+    syncComposer();
+    setSessionBanner({source:'error',label:'Stop failed',text:e.message||'Failed to stop current response',tone:'error'});
+    addErr(e.message||'Failed to stop current response');
+  }
+};
+window.handleComposerAction=()=>{if(ss.processing||ss.stopping)return window.stopCurrentTurn();return window.sendMsg()};
 
 window.sendMsg=async()=>{
   const t=$.mi.value.trim();if(!t)return;
-  if(!rid||!cc){addErr('Not connected — open or create a session first');return}
+  if(!rid||!cc){setSessionBanner({source:'error',label:'No active session',text:'Open or create a session first.',tone:'error'});addErr('Not connected — open or create a session first');return}
+  if(ss.stopping)return;
   $.mi.value='';$.mi.style.height='auto';
   const mode=ss.processing?sendMode:'enqueue';
-  if(t.startsWith('/')){addSys(t);if(ss.processing&&mode==='enqueue'){addSys('Queued');ss.pendingCount+=1}if(!ss.processing)ss.processing=true;const env={type:'user.command',command:t,mode};logDebugMessage('send',env);await cc.sendToRoom(rid,JSON.stringify(env));await announceSession('session.touch',rid,{updatedAt:new Date().toISOString()});sendMode='enqueue';syncSt();scroll();return}
-  addUB(t);setSt('busy');if(ss.processing&&mode==='enqueue'){addSys('Queued');ss.pendingCount+=1}if(!ss.processing)ss.processing=true;
-  const env={type:'user.prompt',content:t,mode};logDebugMessage('send',env);await cc.sendToRoom(rid,JSON.stringify(env));await announceSession('session.touch',rid,{updatedAt:new Date().toISOString()});sendMode='enqueue';syncSt();scroll();
-};
-$.mi.addEventListener('keydown',e=>{if(handleSlashNav(e))return;if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();hideSlashMenu();sendMsg()}});
-$.mi.addEventListener('input',()=>{$.mi.style.height='auto';$.mi.style.height=Math.min($.mi.scrollHeight,120)+'px';const v=$.mi.value;if(v.startsWith('/')&&!v.includes(' ')){showSlashMenu(v.slice(1))}else{hideSlashMenu()}});
-$.dirIn.addEventListener('focus',()=>updDirs($.dirIn.value));
-$.dirIn.addEventListener('input',()=>{syncCreateSessionButton();clearTimeout(dirT);dirT=setTimeout(()=>updDirs($.dirIn.value),120)});
-async function updDirs(p){
-  const value=String(p||'').trim();
-  const daemon=knownDaemons.get(currentDaemonId);
-  const remoteWorkspaces=(daemon?.workspaces||[]).filter(Boolean);
-  if(!currentDaemonId){$.dirL.innerHTML='';return}
-  if(!value){
-    $.dirL.innerHTML=remoteWorkspaces.slice(0,50).map(path=>`<option value="${esc(path)}">`).join('');
-    return;
-  }
+  clearSessionBanner('error');
   try{
-    const requestId=makeRequestId();
-    const pending=waitForLobbyReply(pendingWorkspaceRequests,requestId,4000,'Directory lookup timed out');
-    await sendLobbyEnvelope({type:'workspace.list_request',requestId,requesterUserId:uid,daemonId:currentDaemonId,path:value});
-    const r=await pending;
-    const remoteMatches=remoteWorkspaces.filter(path=>path.toLowerCase().includes(value.toLowerCase()));
-    const paths=[...(r.dirs||[]).map(d=>d.path),...remoteMatches];
-    $.dirL.innerHTML=[...new Set(paths)].slice(0,50).map(path=>`<option value="${esc(path)}">`).join('')
-  }catch{
-    const matches=remoteWorkspaces.filter(path=>path.toLowerCase().includes(value.toLowerCase())).slice(0,50);
-    $.dirL.innerHTML=matches.map(path=>`<option value="${esc(path)}">`).join('')
-  }
-}
+    if(t.startsWith('/')){setWorkingLabel(mode==='immediate'?'Sending steering update…':'Sending command…');addSys(t);if(ss.processing&&mode==='enqueue'){addSys('Queued');ss.pendingCount+=1}if(!ss.processing)ss.processing=true;const env={type:'user.command',command:t,mode};logDebugMessage('send',env);await cc.sendToRoom(rid,JSON.stringify(env));await announceSession('session.touch',rid,{updatedAt:new Date().toISOString()});sendMode='enqueue';syncSt();scroll();return}
+    setWorkingLabel('Waiting for agent response…');
+    addUB(t);setSt('busy');if(ss.processing&&mode==='enqueue'){addSys('Queued');ss.pendingCount+=1}if(!ss.processing)ss.processing=true;
+    const env={type:'user.prompt',content:t,mode};logDebugMessage('send',env);await cc.sendToRoom(rid,JSON.stringify(env));await announceSession('session.touch',rid,{updatedAt:new Date().toISOString()});sendMode='enqueue';syncSt();scroll();
+  }catch(e){$.mi.value=t;$.mi.focus();setSessionBanner({source:'error',label:'Send failed',text:e.message||'Failed to send message',tone:'error',actionText:'Restore draft',action:async()=>{$.mi.value=t;$.mi.focus()}});addErr(e.message||'Failed to send message')}
+};
+$.mi.addEventListener('keydown',e=>{if(handleSlashNav(e))return;if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();hideSlashMenu();handleComposerAction()}});
+$.mi.addEventListener('input',()=>{$.mi.style.height='auto';$.mi.style.height=Math.min($.mi.scrollHeight,120)+'px';const v=$.mi.value;if(v.startsWith('/')&&!v.includes(' ')){showSlashMenu(v.slice(1))}else{hideSlashMenu()}});
 
 /* ── Render ── */
 function render(e){switch(e.type){
@@ -1504,24 +1834,24 @@ function render(e){switch(e.type){
   case'assistant.reasoning_delta':return rThinkD(e);case'assistant.reasoning':return rThink(e);
   case'tool.start':return rTS(e);case'tool.complete':return rTC(e);
   case'permission.request':return rPR(e);case'permission.response':return rPResp(e);case'session.state':return applyState(e);
-  case'session.idle':addTurn();return setSt('idle');case'session.error':return addErr(e.message);
+  case'session.idle':ss.stopping=false;syncComposer();return setSt('idle');case'session.error':return addErr(e.message);
   case'commands.update':mergeSlashCommands((e.commands||[]).map(c=>({cmd:c.name,desc:c.description||'',hasInput:!!c.hasInput})));return;
-  case'models.update':availableModels=e.models||[];currentModelId=e.currentModelId||'';syncModelButton();document.getElementById('model-picker').classList.toggle('show',availableModels.length>0);renderModelDropdown();updateToolbarVisibility();return;
-  case'modes.update':availableModes=e.modes||[];currentModeId=e.currentModeId||'';syncModeButton();document.getElementById('mode-picker').classList.toggle('show',availableModes.length>0);renderModeDropdown();updateToolbarVisibility();return;
+  case'models.update':if(sessionBooting)updateSessionBooting('Receiving available models…');availableModels=e.models||[];currentModelId=e.currentModelId||'';syncModelButton();document.getElementById('model-picker').classList.toggle('show',availableModels.length>0);renderModelDropdown();updateToolbarVisibility();return;
+  case'modes.update':if(sessionBooting)updateSessionBooting('Receiving agent controls…');availableModes=e.modes||[];currentModeId=e.currentModeId||'';syncModeButton();document.getElementById('mode-picker').classList.toggle('show',availableModes.length>0);renderModeDropdown();updateToolbarVisibility();return;
   case'mode.changed':currentModeId=e.currentModeId||'';syncModeButton();renderModeDropdown();return;
   case'usage.update':return updateUsageRing(Number.isFinite(e.used)?e.used:0,Number.isFinite(e.size)?e.size:0);
-  case'system.info':if(sessionBooting&&/^Connected to\b/.test(String(e.message||'')))setSessionBooting(false);return addStatus(e.message);case'system.clear':$.chat.innerHTML='';pd.clear();rd.clear();at.clear();pp.clear();return;
+  case'system.info':if(sessionBooting){const message=String(e.message||'');if(/^Starting\b/.test(message))updateSessionBooting(message);if(/^Connected to\b/.test(message)){setFormStatus('Session ready.','success',1800,'create');setSessionBooting(false);clearSessionBanner('error')}}return addStatus(e.message);case'system.clear':$.chat.innerHTML='';pd.clear();rd.clear();at.clear();pp.clear();return;
   case'user.prompt':return addUB(e.content);case'user.command':return addSys(e.command);
 }}
 
 /* AI streaming text — smooth character-by-character, markdown on final */
-function rDelta(e){setSt('busy');hideWorking();lastTN=null;let s=pd.get(e.messageId);if(!s){const d=document.createElement('div');d.className='ai-msg streaming';const span=document.createElement('span');d.appendChild(span);$.chat.appendChild(d);s={el:d,span,raw:'',raf:null};pd.set(e.messageId,s)}s.raw+=e.content;
+function rDelta(e){clearSessionBanner('permission');setSt('busy');hideWorking();lastTN=null;let s=pd.get(e.messageId);if(!s){const d=document.createElement('div');d.className='ai-msg streaming';const span=document.createElement('span');d.appendChild(span);$.chat.appendChild(d);s={el:d,span,raw:'',raf:null};pd.set(e.messageId,s)}s.raw+=e.content;
   // Append new text directly for smooth streaming (no re-render)
   if(!s.raf){s.raf=requestAnimationFrame(()=>{s.span.textContent=s.raw;s.raf=null;scroll()})}}
 function rMsg(e){lastTN=null;const x=pd.get(e.messageId);if(x){if(x.raf)cancelAnimationFrame(x.raf);if(!e.content){x.el.remove();pd.delete(e.messageId);return}x.el.className='ai-msg';x.el.innerHTML=md(e.content);pd.delete(e.messageId);scroll()}else if(e.content){addAI(e.content)}}
 
 /* Thinking — single collapsible line */
-function rThinkD(e){setSt('busy');hideWorking();lastTN=null;let s=rd.get(e.reasoningId);if(!s){const w=document.createElement('div');const hdr=document.createElement('div');hdr.className='think-row';hdr.innerHTML='<span class="arrow open">▶</span><span>💭 thinking…</span>';const body=document.createElement('div');body.className='think-body show';hdr.onclick=()=>{const a=hdr.querySelector('.arrow');a.classList.toggle('open');body.classList.toggle('show')};w.appendChild(hdr);w.appendChild(body);$.chat.appendChild(w);s={wrap:w,hdr,body,content:''};rd.set(e.reasoningId,s)}s.content+=e.content;s.body.innerHTML=md(s.content)}
+function rThinkD(e){clearSessionBanner('permission');setWorkingLabel('Agent is thinking…');setSt('busy');hideWorking();lastTN=null;let s=rd.get(e.reasoningId);if(!s){const w=document.createElement('div');const hdr=document.createElement('div');hdr.className='think-row';hdr.innerHTML='<span class="arrow open">▶</span><span>💭 thinking…</span>';const body=document.createElement('div');body.className='think-body show';hdr.onclick=()=>{const a=hdr.querySelector('.arrow');a.classList.toggle('open');body.classList.toggle('show')};w.appendChild(hdr);w.appendChild(body);$.chat.appendChild(w);s={wrap:w,hdr,body,content:''};rd.set(e.reasoningId,s)}s.content+=e.content;s.body.innerHTML=md(s.content)}
 function rThink(e){const x=rd.get(e.reasoningId);if(x){if(e.content){x.body.innerHTML=md(e.content)}else{x.wrap.remove();rd.delete(e.reasoningId);return}x.hdr.querySelector('span:last-child').textContent='💭 thought';x.hdr.querySelector('.arrow').classList.remove('open');x.body.classList.remove('show');rd.delete(e.reasoningId);return}
   if(!e.content)return;
   const w=document.createElement('div');const hdr=document.createElement('div');hdr.className='think-row';hdr.innerHTML='<span class="arrow">▶</span><span>💭 thought</span>';const body=document.createElement('div');body.className='think-body';body.innerHTML=md(e.content);hdr.onclick=()=>{hdr.querySelector('.arrow').classList.toggle('open');body.classList.toggle('show')};w.appendChild(hdr);w.appendChild(body);$.chat.appendChild(w)}
@@ -1537,7 +1867,7 @@ function tCmd(v){const s=String(v||'').trim().toLowerCase();return !!s&&s!=='too
 function tNameReplace(cur,next){if(!next)return false;const c=String(cur||'').trim();const n=String(next||'').trim();if(!c||c==='Tool'||c==='Terminal')return true;if(c.length>40&&n.length<=20)return true;return false}
 function tUpdate(row,name,summary,done){if(!row)return;const tn=row.querySelector('.t-name');const ts=row.querySelector('.t-sum');const st=row.querySelector('.t-st');if(name&&(!tn||tNameReplace(tn.textContent,name))){if(tn)tn.textContent=name}if(summary){if(ts)ts.textContent=summary;else row.insertAdjacentHTML('beforeend',`<span class="t-sum">${esc(summary)}</span>`)}if(st){st.className=`t-st ${done?'ok':'run'}`;st.textContent=done?'✓':'⟳'}}
 
-function rTS(e){setSt('busy');hideWorking();const ic=tIcon(e.name),sm=tSum(e.name,e.args);
+function rTS(e){clearSessionBanner('permission');setWorkingLabel(`Running ${e.name||'tool'}…`);setSt('busy');hideWorking();const ic=tIcon(e.name),sm=tSum(e.name,e.args);
   const existing=at.get(e.toolCallId);
   if(existing){
     const row=existing.querySelector(`.tool-row[data-tid="${e.toolCallId}"]`)||existing.querySelector('.tool-row');
@@ -1558,10 +1888,11 @@ function rTS(e){setSt('busy');hideWorking();const ic=tIcon(e.name),sm=tSum(e.nam
     const items=grp.querySelector('.tool-grp-items');
     // Move previous row + its detail
     const prevRow=last.querySelector('.tool-row');const prevDet=last.querySelector('.tool-det');
+    const prevTid=prevRow?.dataset.tid;
     if(prevRow)items.appendChild(prevRow);if(prevDet)items.appendChild(prevDet);
     const row=mk_tool_row(e.toolCallId,ic,sm);const det=document.createElement('div');det.className='tool-det';det.dataset.tid=e.toolCallId;const d=tDet(e.args);if(d)det.innerHTML=`<div class="tool-out">${esc(d)}</div>`;
     items.appendChild(row);items.appendChild(det);
-    last.replaceWith(grp);at.set(e.toolCallId,grp);lastTN=e.name;return;
+    last.replaceWith(grp);if(prevTid)at.set(prevTid,grp);at.set(e.toolCallId,grp);lastTN=e.name;return;
   }
   const w=document.createElement('div');w.className='tool-wrap';
   const row=mk_tool_row(e.toolCallId,ic,sm,e.name);w.appendChild(row);
@@ -1626,14 +1957,15 @@ function pTitle(k){return({read:'Read',write:'Write',shell:'Shell',url:'URL',mcp
 function pSum(e){if(e.intention)return e.intention;if(e.kind==='read'&&e.path)return e.path;if(e.kind==='write'&&e.fileName)return e.fileName;if(e.kind==='shell'&&e.fullCommandText)return e.fullCommandText;if(e.kind==='url'&&e.url)return e.url;return e.description||e.command||e.tool||''}
 function pFields(e){const r=[];const a=(l,v,c)=>{if(v==null||v==='')return;const t=Array.isArray(v)?v.join('\n'):typeof v==='object'?JSON.stringify(v,null,2):String(v);if(t.trim())r.push({l,t,c})};a('Path',e.path,1);a('File',e.fileName,1);a('Intent',e.intention);a('Command',e.fullCommandText||e.command,1);a('URL',e.url,1);a('Tool',e.toolTitle||e.toolName||e.tool);a('Warning',e.warning);return r}
 function pItem(e){const fs=pFields(e).map(f=>`<div class="perm-det-fl"><div class="perm-det-lbl">${esc(f.l)}</div><div class="perm-det-val${f.c?' code':''}">${esc(f.t)}</div></div>`).join('');return`<li><div class="perm-det-item" data-id="${e.requestId}"><span class="perm-det-kind">${pIcon(e.kind)} ${esc(e.kind||'permission')}</span><div class="perm-det-sum">${esc(pSum(e))}</div>${fs?`<div class="perm-det-fields">${fs}</div>`:''}</div></li>`}
-function markPermItemResolved(item,ok){if(!item||item.dataset.resolved==='true')return;item.dataset.resolved='true';item.dataset.approved=ok?'true':'false';if(!item.querySelector('.perm-done'))item.insertAdjacentHTML('beforeend',`<div style="margin-top:6px"><span class="perm-done" style="color:${ok?'#50d167':'#e55'}">${ok?'✓ Approved':'✕ Denied'}</span></div>`)}
-function finalizePermRow(row,ok){if(!row)return;row.dataset.resolved='true';const el=row.querySelector('.perm-btns');if(el)el.remove();const hdr=row.querySelector('.perm-hdr');if(hdr){const tog=hdr.querySelector('.p-toggle');if(tog)tog.remove();const existing=hdr.querySelector('.perm-done');if(existing)existing.remove();hdr.insertAdjacentHTML('beforeend',`<span class="perm-done" style="color:${ok?'#50d167':'#e55'}">${ok?'✓ Approved':'✕ Denied'}</span>`)}if(!pp.size)setSt('busy')}
+function permResolutionPresentation(state){return state==='approved'?{label:'✓ Approved',color:'#50d167',approved:'true'}:state==='cancelled'?{label:'■ Cancelled',color:'var(--fg4)',approved:'cancelled'}:{label:'✕ Denied',color:'#e55',approved:'false'}}
+function markPermItemResolved(item,state){if(!item||item.dataset.resolved==='true')return;const view=permResolutionPresentation(state);item.dataset.resolved='true';item.dataset.approved=view.approved;if(!item.querySelector('.perm-done'))item.insertAdjacentHTML('beforeend',`<div style="margin-top:6px"><span class="perm-done" style="color:${view.color}">${view.label}</span></div>`) }
+function finalizePermRow(row,state){if(!row)return;const view=permResolutionPresentation(state);row.dataset.resolved='true';const el=row.querySelector('.perm-btns');if(el)el.remove();const hdr=row.querySelector('.perm-hdr');if(hdr){const tog=hdr.querySelector('.p-toggle');if(tog)tog.remove();const existing=hdr.querySelector('.perm-done');if(existing)existing.remove();hdr.insertAdjacentHTML('beforeend',`<span class="perm-done" style="color:${view.color}">${view.label}</span>`)}if(!pp.size)setSt('busy')}
 
 function rPR(e){setSt('permission');
   const alreadyResolved=livePermissionResponses.get(e.requestId);
   if(alreadyResolved!=null){renderResolvedPerm(e,alreadyResolved);return}
   // Auto-approve if enabled
-  if(getAutoApprove()){livePermissionResponses.set(e.requestId,true);cc.sendToRoom(rid,JSON.stringify({type:'permission.response',requestId:e.requestId,approved:true}));addStatus('Auto-approved: '+pSum(e));return}
+  if(getAutoApprove()){void(async()=>{try{await cc.sendToRoom(rid,JSON.stringify({type:'permission.response',requestId:e.requestId,approved:true}));livePermissionResponses.set(e.requestId,true);addStatus('Auto-approved: '+pSum(e))}catch(err){addErr(err?.message||'Failed to auto-approve permission request')}})();return}
   const last=$.chat.lastElementChild;
   if(last?.classList.contains('perm-row')&&!last.dataset.resolved){
     const ul=last.querySelector('.perm-det ul');const cnt=ul.children.length+1;
@@ -1645,13 +1977,15 @@ function rPR(e){setSt('permission');
   c.innerHTML=`<div class="perm-hdr"><span class="p-icon">${pIcon(e.kind)}</span><span class="p-title">${esc(pTitle(e.kind))}</span><span class="p-badge">1</span><span class="p-sum">${esc(pSum(e))}</span><button class="p-toggle" onclick="const d=this.closest('.perm-row').querySelector('.perm-det');d.classList.toggle('expanded');this.textContent=d.classList.contains('expanded')?'Hide':'…'">…</button></div><div class="perm-det"><ul>${pItem(e)}</ul></div><div class="perm-btns"><button class="deny" onclick="pAll(this.closest('.perm-row'),false)">Deny</button><button class="allow" onclick="pAll(this.closest('.perm-row'),true)">Allow</button></div>`;
   $.chat.appendChild(c);pp.set(e.requestId,c);
 }
-function rPResp(e){if(!e?.requestId)return;livePermissionResponses.set(e.requestId,!!e.approved);const row=pp.get(e.requestId);if(!row)return;const item=row.querySelector(`.perm-det-item[data-id="${e.requestId}"]`);markPermItemResolved(item,!!e.approved);pp.delete(e.requestId);const items=[...row.querySelectorAll('.perm-det-item')];const unresolved=items.filter(i=>i.dataset.resolved!=='true');const badge=row.querySelector('.p-badge');if(badge)badge.textContent=String(unresolved.length||items.length);const summary=row.querySelector('.p-sum');if(summary){summary.textContent=unresolved.length?`${unresolved.length} actions pending`:`${items.length} actions resolved`}if(!unresolved.length){const allApproved=items.every(i=>i.dataset.approved==='true');finalizePermRow(row,allApproved)}}
-window.pAll=async(g,ok)=>{if(!g)return;const ids=[...g.querySelectorAll('.perm-det-item')].map(i=>i.dataset.id);for(const item of g.querySelectorAll('.perm-det-item'))markPermItemResolved(item,ok);finalizePermRow(g,ok);for(const id of ids){livePermissionResponses.set(id,ok);await cc.sendToRoom(rid,JSON.stringify({type:'permission.response',requestId:id,approved:ok}));pp.delete(id)}};
+function rPResp(e){if(!e?.requestId)return;livePermissionResponses.set(e.requestId,!!e.approved);const row=pp.get(e.requestId);if(!row)return;const resolution=e.cancelled?'cancelled':(e.approved?'approved':'denied');const item=row.querySelector(`.perm-det-item[data-id="${e.requestId}"]`);markPermItemResolved(item,resolution);pp.delete(e.requestId);const items=[...row.querySelectorAll('.perm-det-item')];const unresolved=items.filter(i=>i.dataset.resolved!=='true');const badge=row.querySelector('.p-badge');if(badge)badge.textContent=String(unresolved.length||items.length);const summary=row.querySelector('.p-sum');if(summary){summary.textContent=unresolved.length?`${unresolved.length} actions pending`:`${items.length} actions resolved`}if(!unresolved.length){const allApproved=items.every(i=>i.dataset.approved==='true');const allCancelled=items.every(i=>i.dataset.approved==='cancelled');finalizePermRow(row,allApproved?'approved':allCancelled?'cancelled':'denied')}}
+window.pAll=async(g,ok)=>{if(!g)return;const roomId=rid;const ids=[...g.querySelectorAll('.perm-det-item')].map(i=>i.dataset.id);for(const item of g.querySelectorAll('.perm-det-item'))markPermItemResolved(item,ok?'approved':'denied');finalizePermRow(g,ok?'approved':'denied');for(const id of ids){livePermissionResponses.set(id,ok);await cc.sendToRoom(roomId,JSON.stringify({type:'permission.response',requestId:id,approved:ok}));pp.delete(id)}};
 
 /* Render already-resolved permission from history */
 function renderResolvedPerm(e,approved=true){
+  const resolution=approved===true?'approved':approved===false?'denied':approved||'approved';
+  const view=permResolutionPresentation(resolution);
   const c=document.createElement('div');c.className='perm-row';c.dataset.resolved='true';
-  c.innerHTML=`<div class="perm-hdr"><span class="p-icon">${pIcon(e.kind)}</span><span class="p-title">${esc(pTitle(e.kind))}</span><span class="p-sum">${esc(pSum(e))}</span><span class="perm-done" style="color:${approved?'#50d167':'#e55'}">${approved?'\u2713 Approved':'\u2715 Denied'}</span></div>`;
+  c.innerHTML=`<div class="perm-hdr"><span class="p-icon">${pIcon(e.kind)}</span><span class="p-title">${esc(pTitle(e.kind))}</span><span class="p-sum">${esc(pSum(e))}</span><span class="perm-done" style="color:${view.color}">${view.label}</span></div>`;
   $.chat.appendChild(c);
 }
 
@@ -1660,12 +1994,23 @@ function addUB(t){const d=document.createElement('div');d.className='u-msg';d.te
 function addAI(c){const d=document.createElement('div');d.className='ai-msg';d.innerHTML=md(c);$.chat.appendChild(d)}
 function addSys(m){const d=document.createElement('div');d.className='sys-line';d.textContent=m;$.chat.appendChild(d)}
 function addStatus(m){const now=Date.now();if(lastStatusMessage===m&&now-lastStatusAt<1500)return;lastStatusMessage=m;lastStatusAt=now;const d=document.createElement('div');d.className='status-line';d.innerHTML=`<span class="sl-dot"></span>${esc(m)}`;$.chat.appendChild(d)}
-function addErr(m){setSessionBooting(false);ss.processing=false;ss.pendingCount=0;sendMode='enqueue';setSt('error');const d=document.createElement('div');d.className='err-line';d.textContent='⚠ '+m;$.chat.appendChild(d);syncSt()}
-function addTurn(){const last=$.chat.lastElementChild;if(last&&last.classList.contains('turn-line'))return;const d=document.createElement('div');d.className='turn-line';d.textContent='ready';$.chat.appendChild(d)}
+function addErr(m){setSessionBooting(false);ss.processing=false;ss.stopping=false;ss.pendingCount=0;sendMode='enqueue';resetWorkingLabel();syncComposer();setSt('error');const d=document.createElement('div');d.className='err-line';d.textContent='⚠ '+m;$.chat.appendChild(d);syncSt()}
 let $wi=null;
-function showWorking(){if($wi)return;$wi=document.createElement('div');$wi.className='working-indicator';$wi.innerHTML='<div class="wi-dots"><span></span><span></span><span></span></div><span>Agent is working…</span>';$.chat.appendChild($wi);scroll()}
+function showWorking(){if($wi)return;$wi=document.createElement('div');$wi.className='working-indicator';$wi.innerHTML=`<div class="wi-dots"><span></span><span></span><span></span></div><span class="wi-text">${esc(currentWorkingLabel)}</span>`;$.chat.appendChild($wi);scroll()}
 function hideWorking(){if($wi){$wi.remove();$wi=null}}
-function setSt(s){$.sd.className=`dot ${s}`;$.sd.title={idle:'Ready',busy:'Working…',permission:'Approval needed',error:'Error',disconnected:'Disconnected'}[s]||'';if(s==='busy')showWorking();else hideWorking();syncSt()}
+function setSt(s){$.sd.className=`dot ${s}`;$.sd.title={idle:'Ready',busy:'Working…',permission:'Approval needed',error:'Error',disconnected:'Disconnected'}[s]||'';if(s==='busy')showWorking();else{hideWorking();if(s!=='permission')resetWorkingLabel()}syncSt()}
+function handleDirectoryInput(){
+  syncCreateSessionButton();
+  setDirectoryMeta(directoryMetaText(knownDaemons.get(currentDaemonId),$.dirIn?.value||''));
+  scheduleDirectorySuggestions($.dirIn?.value||'');
+}
+function handleDirectoryBlur(){
+  setSelectedDirectory($.dirIn?.value||'','input');
+  const daemon=knownDaemons.get(currentDaemonId);
+  const value=normalizePickerPath($.dirIn?.value||'',daemon?.platform);
+  if(value&&!pathLooksCompatibleWithPlatform(value,daemon?.platform))setDirectoryMeta(`Directory does not match the selected ${daemon?.platform==='win32'?'Windows':'Linux/macOS'} daemon.`,'error');
+  else setDirectoryMeta(directoryMetaText(daemon,value),value?'success':'');
+}
 
 /* Poll server state every 5s to recover from missed events */
 let pollTimer=null;
@@ -1674,16 +2019,51 @@ function stopPoll(){}
 
 (async()=>{
   window.pickAgent=()=>{}; // agent selection handled by column 2
-  window.loginUser=()=>loginUser($.loginUser.value);
+  window.loginUser=()=>loginUser($.loginUser?.value);
   window.logoutUser=()=>logoutUser();
-  if($.loginUser)$.loginUser.value=localStorage.getItem(USER_STORAGE_KEY)||DEFAULT_USERNAME;
-  if($.loginBtn)$.loginBtn.addEventListener('click',()=>loginUser($.loginUser.value));
-  if($.loginUser)$.loginUser.addEventListener('keydown',(e)=>{if(e.key==='Enter'){e.preventDefault();loginUser($.loginUser.value)}});
+
   if($.logoutBtn)$.logoutBtn.addEventListener('click',()=>logoutUser());
   if($.compactBtn)$.compactBtn.addEventListener('click',()=>setCompactNav(!compactNav));
-  applyLoggedOutState();
+  if($.dirIn)$.dirIn.addEventListener('input',handleDirectoryInput);
+  if($.dirIn)$.dirIn.addEventListener('focus',()=>{void refreshDirectorySuggestions($.dirIn.value,{silent:true})});
+  if($.dirIn)$.dirIn.addEventListener('blur',handleDirectoryBlur);
+  if(document.getElementById('f-btn'))document.getElementById('f-btn').addEventListener('click',()=>{void window.createSess()});
+
+  renderSelectedDirectory();
   mobInit();
   syncSt();
+
+  // Detect OAuth mode
+  let oauthMode=false;
+  let autoLoggedIn=false;
+  try{
+    const cfg=await(await fetch('/auth/config')).json();
+    oauthMode=!!cfg.oauth;
+  }catch{}
+
+  if(oauthMode){
+    // OAuth mode — hide local login, show GitHub button
+    document.getElementById('login-card-local').style.display='none';
+    document.getElementById('login-card-oauth').style.display='';
+    // Check if already authenticated
+    try{
+      const me=await(await fetch('/auth/me')).json();
+      if(me.user){
+        // Already logged in via OAuth — auto-connect
+        userAvatar=me.user.avatar||'';
+        autoLoggedIn=await loginUser(me.user.login);
+      }
+    }catch{}
+  }else{
+    // Local mode — hide OAuth card, show username input
+    document.getElementById('login-card-oauth').style.display='none';
+    document.getElementById('login-card-local').style.display='';
+    if($.loginUser)$.loginUser.value=localStorage.getItem(USER_STORAGE_KEY)||DEFAULT_USERNAME;
+    if($.loginBtn)$.loginBtn.addEventListener('click',()=>loginUser($.loginUser.value));
+    if($.loginUser)$.loginUser.addEventListener('keydown',(e)=>{if(e.key==='Enter'){e.preventDefault();loginUser($.loginUser.value)}});
+  }
+
+  if(!autoLoggedIn)applyLoggedOutState();
 })();
 </script>
 </body>

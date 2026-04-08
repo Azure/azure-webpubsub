@@ -14,11 +14,12 @@
  */
 
 import { randomUUID } from 'crypto';
-import { existsSync, readFileSync, writeFileSync, mkdirSync, readdirSync } from 'node:fs';
-import { dirname, resolve, delimiter } from 'path';
+import { existsSync } from 'node:fs';
+import { access, mkdir, readFile, readdir, writeFile } from 'node:fs/promises';
+import { once } from 'node:events';
+import { dirname, resolve, delimiter, relative, isAbsolute } from 'path';
 import { spawn } from 'node:child_process';
 import { Readable, Writable } from 'node:stream';
-import { fileURLToPath } from 'node:url';
 import { WebPubSubServiceClient } from '@azure/web-pubsub';
 import { ChatClient } from '@azure/web-pubsub-chat-client';
 import { ClientSideConnection, ndJsonStream, PROTOCOL_VERSION } from '@agentclientprotocol/sdk';
@@ -26,30 +27,40 @@ import { hostname as osHostname } from 'os';
 
 // ── Configuration ──
 
+const INSTALL_ALL_AGENT_CLI_MODE = process.argv.includes('--install-all-agent-cli');
 const connectionString = process.env.WEB_PUBSUB_CONNECTION_STRING || process.env.WebPubSubConnectionString;
-if (!connectionString) {
+if (!INSTALL_ALL_AGENT_CLI_MODE && !connectionString) {
   console.error('[Daemon] Error: WEB_PUBSUB_CONNECTION_STRING or WebPubSubConnectionString is required');
   process.exit(1);
 }
 
 const hubName = process.env.WEB_PUBSUB_HUB || 'chat';
+const portalUrl = process.env.PORTAL_URL || 'http://localhost:3000';
 const BOT_USER_ID = process.env.DAEMON_USER_ID || 'copilot-bot';
 const MAX_ROOM_MESSAGE_LENGTH = 4096;
 const LOBBY_ROOM = 'lobby';
 const DAEMON_HEARTBEAT_MS = 30000;
-const DAEMON_DIR = dirname(fileURLToPath(import.meta.url));
+const DAEMON_DIR = process.argv[1]
+  ? dirname(resolve(process.argv[1]))
+  : process.cwd();
+const PROJECT_ROOT = resolve(DAEMON_DIR, '..', '..');
 const SESSION_STORE_PATH = process.env.SESSION_STORE_PATH
   || resolve(process.env.HOME || process.env.USERPROFILE || '.', '.copilot-mobile', 'sessions.json');
+const DEFAULT_SDK_MODEL = 'gpt-5.4';
+const SESSION_STORE_DEBOUNCE_MS = 150;
+const ACP_IDLE_GRACE_MS = 180;
+const WORKSPACE_LIST_LIMIT = 200;
+const SUPPORTED_ACP_AGENT_NAMES = ['copilot', 'claude', 'codex'];
 
 // ── ACP Agent Configs ──
 
 const ACP_AGENTS = {
   'copilot': {
     command: 'npx',
-    args: ['@github/copilot-language-server@latest', '--acp'],
-    npxPackage: '@github/copilot-language-server@latest',
+    args: ['@github/copilot@latest', '--acp'],
+    npxPackage: '@github/copilot@latest',
     npxArgs: ['--acp'],
-    binName: 'copilot-language-server',
+    binName: 'copilot',
     binArgs: ['--acp'],
     displayName: 'GitHub Copilot',
   },
@@ -62,7 +73,15 @@ const ACP_AGENTS = {
     binArgs: [],
     displayName: 'Claude Code',
   },
-  'gemini': { command: 'npx', args: ['@google/gemini-cli@latest', '--experimental-acp'], displayName: 'Gemini CLI' },
+  'gemini': {
+    command: 'npx',
+    args: ['@google/gemini-cli@latest', '--experimental-acp'],
+    npxPackage: '@google/gemini-cli@latest',
+    npxArgs: ['--experimental-acp'],
+    binName: 'gemini',
+    binArgs: ['--experimental-acp'],
+    displayName: 'Gemini CLI',
+  },
   'codex': {
     command: 'npx',
     args: ['@zed-industries/codex-acp@latest'],
@@ -72,34 +91,104 @@ const ACP_AGENTS = {
     binArgs: [],
     displayName: 'Codex CLI',
   },
-  'opencode': { command: 'npx', args: ['opencode-ai@latest', 'acp'], displayName: 'OpenCode' },
+  'opencode': {
+    command: 'npx',
+    args: ['opencode-ai@latest', 'acp'],
+    npxPackage: 'opencode-ai@latest',
+    npxArgs: ['acp'],
+    binName: 'opencode',
+    binArgs: ['acp'],
+    displayName: 'OpenCode',
+  },
 };
+
+async function runCommandOrThrow(command, args = []) {
+  const child = spawn(command, args, { stdio: 'inherit', shell: false });
+  const [code, signal] = await once(child, 'close');
+  if (code !== 0) {
+    throw new Error(`${command} ${args.join(' ')} failed with code ${code}${signal ? ` (signal=${signal})` : ''}`.trim());
+  }
+}
+
+async function installAllSupportedAgentCli() {
+  for (const agentName of SUPPORTED_ACP_AGENT_NAMES) {
+    const config = ACP_AGENTS[agentName];
+    if (!config?.npxPackage) continue;
+    console.log(`[Daemon] Installing ${agentName} CLI: ${config.npxPackage}`);
+    await runCommandOrThrow('npm', ['install', '-g', config.npxPackage]);
+  }
+  console.log('[Daemon] All supported ACP agent CLIs are installed.');
+}
 
 // ── State ──
 
-function loadSessionStore() {
+async function loadSessionStore() {
   try {
-    if (existsSync(SESSION_STORE_PATH)) {
-      return JSON.parse(readFileSync(SESSION_STORE_PATH, 'utf-8'));
-    }
+    return JSON.parse(await readFile(SESSION_STORE_PATH, 'utf-8'));
   } catch (err) {
-    console.warn('[Daemon] Failed to load session store:', err.message);
+    if (err?.code !== 'ENOENT') {
+      console.warn('[Daemon] Failed to load session store:', err.message);
+    }
   }
   return {};
 }
 
-function saveSessionStore(store) {
+let sessionStoreDirty = false;
+let sessionStoreSaveTimer = null;
+let sessionStoreSavePromise = Promise.resolve();
+
+async function writeSessionStoreToDisk(store) {
+  if (!sessionStoreDirty) return;
+  sessionStoreDirty = false;
   try {
-    mkdirSync(dirname(SESSION_STORE_PATH), { recursive: true });
-    writeFileSync(SESSION_STORE_PATH, JSON.stringify(store, null, 2), 'utf-8');
+    await mkdir(dirname(SESSION_STORE_PATH), { recursive: true });
+    await writeFile(SESSION_STORE_PATH, JSON.stringify(store, null, 2), 'utf-8');
   } catch (err) {
     console.warn('[Daemon] Failed to save session store:', err.message);
   }
 }
 
+function scheduleSessionStoreWrite(store, immediate = false) {
+  sessionStoreDirty = true;
+  if (sessionStoreSaveTimer) {
+    clearTimeout(sessionStoreSaveTimer);
+    sessionStoreSaveTimer = null;
+  }
+
+  if (!immediate) {
+    sessionStoreSaveTimer = setTimeout(() => {
+      sessionStoreSaveTimer = null;
+      sessionStoreSavePromise = sessionStoreSavePromise.then(
+        () => writeSessionStoreToDisk(store),
+        () => writeSessionStoreToDisk(store),
+      );
+    }, SESSION_STORE_DEBOUNCE_MS);
+    sessionStoreSaveTimer.unref?.();
+    return sessionStoreSavePromise;
+  }
+
+  sessionStoreSavePromise = sessionStoreSavePromise.then(
+    () => writeSessionStoreToDisk(store),
+    () => writeSessionStoreToDisk(store),
+  );
+  return sessionStoreSavePromise;
+}
+
+async function flushSessionStoreWrites(store) {
+  await scheduleSessionStoreWrite(store, true);
+}
+
 const sessions = new Map();
-const sessionStore = loadSessionStore();
+const sessionStore = {};
+const resumePromises = new Map();
 let botChat = null;
+let botChatInitPromise = null;
+let botReconnectTimer = null;
+let botReconnectAttempt = 0;
+let heartbeatTimer = null;
+let advertisedWorkspaces = [];
+let daemonPresenceInfo = null;
+let shuttingDown = false;
 let copilotSdkClient = null; // shared CopilotClient instance for SDK mode
 
 function createSessionState({ sessionId, agentName, firstPrompt = '', ownerUserId = null, workingDirectory = process.cwd(), model = 'default' }) {
@@ -117,7 +206,11 @@ function createSessionState({ sessionId, agentName, firstPrompt = '', ownerUserI
     model,
     active: false,
     isProcessing: false,
+    isStopping: false,
     pendingCount: 0,
+    acpAwaitingIdle: false,
+    acpIdleTimer: null,
+    acpLastActivityAt: 0,
     isResuming: false,
     availableModes: [],
     currentModeId: '',
@@ -129,21 +222,76 @@ function createSessionState({ sessionId, agentName, firstPrompt = '', ownerUserI
   };
 }
 
+function isSessionOwner(state, userId) {
+  return !!state && !!userId && (!state.ownerUserId || state.ownerUserId === userId);
+}
+
+function resolveSessionPath(basePath, targetPath = '.') {
+  const root = resolve(basePath || process.cwd());
+  const resolvedPath = resolve(root, String(targetPath || '.'));
+  const rel = relative(root, resolvedPath);
+  if (rel === '' || (!rel.startsWith('..') && !isAbsolute(rel))) return resolvedPath;
+  throw new Error(`Access outside the session working directory is not allowed: ${targetPath}`);
+}
+
+function cleanupClientTerminals(client) {
+  if (!client?._terminals) return;
+  for (const terminal of client._terminals.values()) {
+    try { terminal?.process?.kill('SIGTERM'); } catch {}
+  }
+  client._terminals.clear();
+}
+
+async function stopExistingSession(state) {
+  if (!state) return;
+  clearAcpIdleTimer(state);
+  state.acpAwaitingIdle = false;
+  cleanupClientTerminals(state._acpClient);
+  if (state.acpProcess) {
+    try { state.acpProcess.kill('SIGTERM'); } catch {}
+  }
+  if (state.copilotSession?.abort) {
+    try { await state.copilotSession.abort(); } catch {}
+  }
+}
+
+function spawnAcpChild(sessionId, agentName, launch) {
+  const useShell = process.platform === 'win32' && /\.(cmd|bat)$/i.test(launch.command || '');
+  const child = spawn(launch.command, launch.args || [], {
+    stdio: ['pipe', 'pipe', 'pipe'],
+    env: { ...process.env, ...(ACP_AGENTS[agentName]?.env || {}) },
+    shell: useShell,
+  });
+  child.stderr?.on('data', (data) => {
+    const line = data.toString().trim();
+    if (line) console.log(`[Daemon:${agentName}] ${line}`);
+  });
+  child.on('error', (err) => {
+    console.error(`[Daemon:${agentName}] Failed to spawn:`, err.message);
+    deactivateSession(sessionId, `Failed to start: ${err.message}`);
+  });
+  child.on('close', (code) => {
+    console.log(`[Daemon:${agentName}] Exited (code=${code})`);
+    deactivateSession(sessionId, `Agent exited (code=${code})`);
+  });
+  return child;
+}
+
 function persistSessionRecord(roomId, record) {
   sessionStore[roomId] = record;
-  saveSessionStore(sessionStore);
+  scheduleSessionStoreWrite(sessionStore);
 }
 
 function updateSessionRecord(roomId, patch) {
   if (!sessionStore[roomId]) return;
   sessionStore[roomId] = { ...sessionStore[roomId], ...patch };
-  saveSessionStore(sessionStore);
+  scheduleSessionStoreWrite(sessionStore);
 }
 
 function deleteSessionRecord(roomId) {
   if (!sessionStore[roomId]) return;
   delete sessionStore[roomId];
-  saveSessionStore(sessionStore);
+  scheduleSessionStoreWrite(sessionStore);
 }
 
 function normalizeSdkModels(models) {
@@ -226,7 +374,7 @@ async function refreshSdkModels(state) {
 
 async function startSdkSession(roomId, state, { model, workingDirectory }) {
   const client = await ensureCopilotSdkClient();
-  const selectedModel = model || 'gpt-5.4';
+  const selectedModel = model || DEFAULT_SDK_MODEL;
   const selectedWorkingDirectory = workingDirectory || process.cwd();
   const copilotSession = await client.createSession({
     sessionId: roomId,
@@ -254,11 +402,13 @@ async function startSdkSession(roomId, state, { model, workingDirectory }) {
 // ── Chat Bot Send ──
 
 async function botSend(roomId, envelope) {
-  if (!botChat) return;
   try {
+    if (shuttingDown) return;
+    const chat = await ensureBotChatReady();
+    if (!chat) return;
     const payload = JSON.stringify(envelope);
     if (payload.length <= MAX_ROOM_MESSAGE_LENGTH) {
-      await botChat.sendToRoom(roomId, payload);
+      await chat.sendToRoom(roomId, payload);
       return;
     }
     const chunkId = randomUUID();
@@ -273,7 +423,7 @@ async function botSend(roomId, envelope) {
       cursor = end;
     }
     for (let index = 0; index < parts.length; index++) {
-      await botChat.sendToRoom(roomId, JSON.stringify({ type: 'transport.chunk', chunkId, index, total: parts.length, jsonPart: parts[index] }));
+      await chat.sendToRoom(roomId, JSON.stringify({ type: 'transport.chunk', chunkId, index, total: parts.length, jsonPart: parts[index] }));
     }
   } catch (err) {
     console.error(`[Daemon] Failed to send to room ${roomId}:`, err.message);
@@ -290,36 +440,93 @@ async function ensureRoomMembership(chatClient, roomId, roomName, userId) {
   } catch {}
 }
 
-function listDirectoriesForPath(inputPath, workspaceRoots = []) {
+function listWorkspaceFavorites(workspaceRoots = []) {
+  return [...new Set((workspaceRoots || []).filter(Boolean).map((path) => resolve(path)))].map((path) => ({
+    name: path.split(/[\\/]/).filter(Boolean).pop() || path,
+    path,
+    kind: 'favorite',
+  }));
+}
+
+async function listFilesystemRoots(workspaceRoots = []) {
+  const favorites = listWorkspaceFavorites(workspaceRoots);
+  if (process.platform !== 'win32') {
+    return {
+      favorites,
+      roots: [{ name: '/', path: '/', kind: 'root' }],
+    };
+  }
+
+  const roots = [];
+  for (const letter of 'ABCDEFGHIJKLMNOPQRSTUVWXYZ') {
+    const drive = `${letter}:\\`;
+    try {
+      await access(drive);
+      roots.push({ name: `${letter}:`, path: drive, kind: 'root' });
+    } catch {}
+  }
+  return { favorites, roots };
+}
+
+async function readDirectoryEntries(base, { query = '', limit = WORKSPACE_LIST_LIMIT } = {}) {
+  const normalizedQuery = String(query || '').trim().toLowerCase();
+  const entries = await readdir(base, { withFileTypes: true });
+  const dirs = entries
+    .filter((entry) => entry.isDirectory() && !entry.name.startsWith('.'))
+    .filter((entry) => !normalizedQuery || entry.name.toLowerCase().includes(normalizedQuery))
+    .sort((left, right) => left.name.localeCompare(right.name, undefined, { sensitivity: 'base' }))
+    .map((entry) => ({ name: entry.name, path: resolve(base, entry.name), kind: 'directory' }));
+  return {
+    dirs: dirs.slice(0, limit),
+    total: dirs.length,
+    truncated: dirs.length > limit,
+  };
+}
+
+async function listDirectoriesForPath(inputPath, workspaceRoots = [], options = {}) {
   const home = process.env.HOME || process.cwd();
-  const requested = String(inputPath || workspaceRoots[0] || process.cwd()).replace(/^~(?=$|[\\/])/, home);
+  const requestedRaw = String(inputPath || '').trim();
+  const query = String(options.query || '').trim();
+  const limit = Math.max(25, Math.min(Number(options.limit) || WORKSPACE_LIST_LIMIT, WORKSPACE_LIST_LIMIT));
+
+  if (!requestedRaw || requestedRaw === '__roots__') {
+    const filter = query.toLowerCase();
+    const { favorites, roots } = await listFilesystemRoots(workspaceRoots);
+    const match = (entry) => !filter || entry.name.toLowerCase().includes(filter) || entry.path.toLowerCase().includes(filter);
+    return {
+      mode: 'roots',
+      base: '',
+      query,
+      favorites: favorites.filter(match),
+      roots: roots.filter(match),
+      dirs: [],
+      total: 0,
+      truncated: false,
+    };
+  }
+
+  const requested = requestedRaw.replace(/^~(?=$|[\\/])/, home);
   try {
     const base = resolve(requested);
-    const dirs = readdirSync(base, { withFileTypes: true })
-      .filter((entry) => entry.isDirectory() && !entry.name.startsWith('.'))
-      .map((entry) => ({ name: entry.name, path: resolve(base, entry.name) }))
-      .slice(0, 50);
-    return { base, dirs };
+    const result = await readDirectoryEntries(base, { query, limit });
+    return { mode: 'children', base, query, ...result };
   } catch {
     const parent = resolve(requested, '..');
     try {
-      const prefix = requested.split(/[\\/]/).pop()?.toLowerCase() || '';
-      const dirs = readdirSync(parent, { withFileTypes: true })
-        .filter((entry) => entry.isDirectory() && !entry.name.startsWith('.') && entry.name.toLowerCase().startsWith(prefix))
-        .map((entry) => ({ name: entry.name, path: resolve(parent, entry.name) }))
-        .slice(0, 50);
-      return { base: parent, dirs, partial: prefix };
+      const partial = requested.split(/[\\/]/).pop()?.toLowerCase() || '';
+      const result = await readDirectoryEntries(parent, { query: query || partial, limit });
+      return { mode: 'children', base: parent, partial, query: query || partial, ...result };
     } catch {
-      return { base: resolve(requested), dirs: [] };
+      return { mode: 'children', base: resolve(requested), query, dirs: [], total: 0, truncated: false };
     }
   }
 }
 
-function resolveWorkingDirectoryOrThrow(inputPath) {
+async function resolveWorkingDirectoryOrThrow(inputPath) {
   const requested = String(inputPath || '').trim();
   const normalized = resolve(requested || process.cwd());
   try {
-    readdirSync(normalized, { withFileTypes: true });
+    await readdir(normalized, { withFileTypes: true });
     return normalized;
   } catch {
     const shownPath = requested || normalized;
@@ -334,6 +541,8 @@ function resolveInstalledAgentBinary(binName) {
     : [binName];
   const searchDirs = [
     resolve(DAEMON_DIR, 'node_modules', '.bin'),
+    resolve(DAEMON_DIR, '..', 'node_modules', '.bin'),
+    resolve(PROJECT_ROOT, 'node_modules', '.bin'),
     resolve(process.cwd(), 'node_modules', '.bin'),
     ...String(process.env.PATH || '').split(delimiter).filter(Boolean),
   ];
@@ -373,7 +582,14 @@ function resolveAcpLaunch(config) {
 }
 
 async function sendDaemonPresence(type, details) {
-  if (!botChat) return;
+  if (shuttingDown) return;
+  const chat = await ensureBotChatReady();
+  if (!chat || !details) return;
+  await sendDaemonPresenceWithChat(chat, type, details);
+}
+
+async function sendDaemonPresenceWithChat(chat, type, details) {
+  if (!chat || !details) return;
   const payload = {
     type,
     daemonId: BOT_USER_ID,
@@ -383,7 +599,78 @@ async function sendDaemonPresence(type, details) {
     workspaces: details.workspaces,
     updatedAt: new Date().toISOString(),
   };
-  await botChat.sendToRoom(LOBBY_ROOM, JSON.stringify(payload));
+  await chat.sendToRoom(LOBBY_ROOM, JSON.stringify(payload));
+}
+
+async function fetchBotTokenUrl() {
+  const endpoint = `${portalUrl}/negotiate:daemon?userId=${encodeURIComponent(BOT_USER_ID)}`;
+  const resp = await fetch(endpoint);
+  const body = await resp.json().catch(() => ({}));
+  if (!resp.ok || !body?.url) {
+    const statusText = resp.status ? `${resp.status}${resp.statusText ? ` ${resp.statusText}` : ''}` : 'request failed';
+    const detail = body?.error || 'Missing bot token URL';
+    throw new Error(`Portal daemon negotiate failed via ${endpoint}: ${statusText} - ${detail}`);
+  }
+  console.log('[Daemon] Got token via portal daemon negotiate');
+  return body.url;
+}
+
+function scheduleBotReconnect() {
+  if (shuttingDown || botReconnectTimer || botChatInitPromise) return;
+  const delay = Math.min(30000, 1000 * (2 ** botReconnectAttempt));
+  botReconnectAttempt += 1;
+  botReconnectTimer = setTimeout(() => {
+    botReconnectTimer = null;
+    void ensureBotChatReady().catch((error) => {
+      console.error('[Daemon] Bot reconnect failed:', error?.message || error);
+      scheduleBotReconnect();
+    });
+  }, delay);
+  botReconnectTimer.unref?.();
+}
+
+async function loginBotChat() {
+  if (botChat) return botChat;
+  if (botChatInitPromise) return botChatInitPromise;
+
+  botChatInitPromise = (async () => {
+    const tokenUrl = await fetchBotTokenUrl();
+    const chat = await new ChatClient(tokenUrl).login();
+    console.log(`[Daemon] Bot logged in as: ${chat.userId}`);
+
+    chat.onConnected(() => {
+      botReconnectAttempt = 0;
+    });
+    chat.onDisconnected(() => {
+      if (shuttingDown) return;
+      console.warn('[Daemon] Bot chat disconnected; scheduling reconnect');
+      if (botChat === chat) botChat = null;
+      scheduleBotReconnect();
+    });
+    chat.addListenerForNewMessage(handleBotNotification);
+
+    await ensureRoomMembership(chat, LOBBY_ROOM, 'Agent Lobby', BOT_USER_ID);
+    botChat = chat;
+
+    if (daemonPresenceInfo) {
+      try {
+        await sendDaemonPresenceWithChat(chat, 'daemon.online', daemonPresenceInfo);
+      } catch (error) {
+        console.warn('[Daemon] Failed to re-announce daemon presence:', error?.message || error);
+      }
+    }
+
+    return chat;
+  })().finally(() => {
+    botChatInitPromise = null;
+  });
+
+  return botChatInitPromise;
+}
+
+async function ensureBotChatReady() {
+  if (botChat) return botChat;
+  return loginBotChat();
 }
 
 // ── Delta Debounce ──
@@ -481,20 +768,101 @@ function flushCompletedToolInvocations(sessionId, excludeToolCallId = null) {
   }
 }
 
+function clearAcpIdleTimer(state) {
+  if (!state?.acpIdleTimer) return;
+  clearTimeout(state.acpIdleTimer);
+  state.acpIdleTimer = null;
+}
+
+function noteAcpActivity(state) {
+  if (!state) return;
+  state.acpLastActivityAt = Date.now();
+  clearAcpIdleTimer(state);
+}
+
+function flushAcpBufferedContent(state, roomId) {
+  const client = state?._acpClient;
+  if (!client) return;
+  if (client._currentMessageText) {
+    const messageId = `acp-msg-${client._msgCounter++}`;
+    flushDelta(messageId);
+    botSend(roomId, { type: 'assistant.message', messageId, content: client._currentMessageText });
+    client._currentMessageText = '';
+  }
+  if (client._currentThoughtText) {
+    const reasoningId = `acp-reason-${client._reasonCounter++}`;
+    flushDelta(`reasoning-${reasoningId}`);
+    botSend(roomId, { type: 'assistant.reasoning', reasoningId, content: client._currentThoughtText });
+    client._currentThoughtText = '';
+  }
+}
+
+function hasPendingAcpToolInvocations(state) {
+  if (!state?.toolInvocations?.size) return false;
+  for (const invocation of state.toolInvocations.values()) {
+    if (invocation && invocation.started && !invocation.completedPending) return true;
+  }
+  return false;
+}
+
+function scheduleAcpIdleSettlement(state, roomId, delay = ACP_IDLE_GRACE_MS) {
+  if (!state?.acpAwaitingIdle) return;
+  clearAcpIdleTimer(state);
+  state.acpIdleTimer = setTimeout(() => {
+    state.acpIdleTimer = null;
+    finalizeAcpPromptTurn(state, roomId);
+  }, Math.max(0, delay));
+  state.acpIdleTimer.unref?.();
+}
+
+function finalizeAcpPromptTurn(state, roomId) {
+  if (!state?.acpAwaitingIdle) return;
+  if (sessions.get(roomId) !== state) return;
+  const quietMs = Date.now() - (state.acpLastActivityAt || 0);
+  if (quietMs < ACP_IDLE_GRACE_MS) {
+    scheduleAcpIdleSettlement(state, roomId, ACP_IDLE_GRACE_MS - quietMs);
+    return;
+  }
+
+  flushAcpBufferedContent(state, roomId);
+  if (hasPendingAcpToolInvocations(state)) {
+    scheduleAcpIdleSettlement(state, roomId, ACP_IDLE_GRACE_MS);
+    return;
+  }
+
+  flushCompletedToolInvocations(roomId);
+  state.acpAwaitingIdle = false;
+  state.isProcessing = false;
+  state.isStopping = false;
+  state.pendingCount = 0;
+  botSend(roomId, { type: 'session.idle' });
+  emitSessionState(roomId);
+}
+
+function beginAcpIdleSettlement(state, roomId) {
+  if (!state) return;
+  state.acpAwaitingIdle = true;
+  scheduleAcpIdleSettlement(state, roomId);
+}
+
 // ── Session Helpers ──
 
 function emitSessionState(sessionId) {
   const state = sessions.get(sessionId);
   if (!state) return;
-  botSend(sessionId, { type: 'session.state', processing: state.isProcessing, pendingCount: state.pendingCount, model: state.model });
+  botSend(sessionId, { type: 'session.state', processing: state.isProcessing, stopping: state.isStopping, pendingCount: state.pendingCount, model: state.model });
 }
 
 function deactivateSession(sessionId, message) {
   const state = sessions.get(sessionId);
   if (!state) return;
+  cleanupClientTerminals(state._acpClient);
+  clearAcpIdleTimer(state);
   state.active = false;
   state.isProcessing = false;
+  state.isStopping = false;
   state.pendingCount = 0;
+  state.acpAwaitingIdle = false;
   state.acpConnection = null;
   state.acpSessionId = null;
   state.acpProcess = null;
@@ -509,6 +877,38 @@ function deactivateSession(sessionId, message) {
   emitSessionState(sessionId);
 }
 
+function isCancellationError(error) {
+  const text = String(error?.message || error || '').toLowerCase();
+  return error?.code === -32800 || text.includes('cancelled') || text.includes('canceled') || text.includes('aborted');
+}
+
+async function cancelSessionTurn(state, roomId) {
+  if (!state || (!state.isProcessing && !state.isStopping)) return false;
+  if (state.isStopping) return true;
+  state.isStopping = true;
+  state.pendingCount = 0;
+  emitSessionState(roomId);
+
+  for (const [requestId, pending] of state.pendingPermissions.entries()) {
+    try { pending.resolve(false); } catch {}
+    state.pendingPermissions.delete(requestId);
+    botSend(roomId, { type: 'permission.response', requestId, approved: false, cancelled: true });
+  }
+
+  if (state.copilotSession?.abort) {
+    await state.copilotSession.abort();
+    return true;
+  }
+  if (state.acpConnection && state.acpSessionId) {
+    await state.acpConnection.cancel({ sessionId: state.acpSessionId });
+    return true;
+  }
+
+  state.isStopping = false;
+  emitSessionState(roomId);
+  return false;
+}
+
 async function sendSessionPrompt(state, roomId, prompt) {
   if (state.active === false) {
     botSend(roomId, { type: 'session.error', message: 'This agent session is no longer active. Create a new session.' });
@@ -517,11 +917,14 @@ async function sendSessionPrompt(state, roomId, prompt) {
   // SDK mode
   if (state.copilotSession) {
     state.isProcessing = true;
+    state.isStopping = false;
     emitSessionState(roomId);
     try {
       await state.copilotSession.send({ prompt });
     } catch (err) {
-      botSend(roomId, { type: 'session.error', message: err.message });
+      if (!state.isStopping || !isCancellationError(err)) {
+        botSend(roomId, { type: 'session.error', message: err.message });
+      }
     }
     return;
   }
@@ -531,33 +934,36 @@ async function sendSessionPrompt(state, roomId, prompt) {
     return;
   }
   state.isProcessing = true;
+  state.isStopping = false;
+  state.acpAwaitingIdle = false;
+  noteAcpActivity(state);
   emitSessionState(roomId);
   try {
-    await state.acpConnection.prompt({ sessionId: state.acpSessionId, prompt: [{ type: 'text', text: prompt }] });
+    const response = await state.acpConnection.prompt({ sessionId: state.acpSessionId, prompt: [{ type: 'text', text: prompt }] });
     flushCompletedToolInvocations(roomId);
-    const client = state._acpClient;
-    if (client) {
-      if (client._currentMessageText) {
-        const msgId = `acp-msg-${client._msgCounter++}`; flushDelta(msgId);
-        botSend(roomId, { type: 'assistant.message', messageId: msgId, content: client._currentMessageText });
-        client._currentMessageText = '';
-      }
-      if (client._currentThoughtText) {
-        const rid = `acp-reason-${client._reasonCounter++}`; flushDelta(`reasoning-${rid}`);
-        botSend(roomId, { type: 'assistant.reasoning', reasoningId: rid, content: client._currentThoughtText });
-        client._currentThoughtText = '';
-      }
+    flushAcpBufferedContent(state, roomId);
+    if (response?.stopReason === 'cancelled') {
+      state.isStopping = false;
     }
   } catch (err) {
-    botSend(roomId, { type: 'session.error', message: err.message });
+    if (!state.isStopping || !isCancellationError(err)) {
+      botSend(roomId, { type: 'session.error', message: err.message });
+    }
+    beginAcpIdleSettlement(state, roomId);
+    return;
   }
-  state.isProcessing = false;
-  state.pendingCount = 0;
-  botSend(roomId, { type: 'session.idle' });
-  emitSessionState(roomId);
+  beginAcpIdleSettlement(state, roomId);
 }
 
 // ── ACP Session Creation ──
+
+function isAuthenticationRequiredError(error, authMessage = '') {
+  const text = String(authMessage || [error?.message, error?.data?.details, error?.data?.message].filter(Boolean).join(' | ')).toLowerCase();
+  return error?.code === -32000
+    || text.includes('authentication required')
+    || text.includes('auth required')
+    || (error?.code === -32603 && text.includes('required') && (text.includes('auth') || text.includes('authentication')));
+}
 
 async function createAcpSession(sessionId, agentName, workingDirectory) {
   const config = ACP_AGENTS[agentName];
@@ -566,12 +972,7 @@ async function createAcpSession(sessionId, agentName, workingDirectory) {
 
   console.log(`[Daemon] Spawning ${agentName}: ${launch.command} ${(launch.args || []).join(' ')} [${launch.source}]`);
 
-  const child = spawn(launch.command, launch.args || [], {
-    stdio: ['pipe', 'pipe', 'pipe'],
-    env: { ...process.env, ...(config.env || {}) },
-    shell: true,
-  });
-  child.stderr?.on('data', (data) => { const line = data.toString().trim(); if (line) console.log(`[Daemon:${agentName}] ${line}`); });
+  const child = spawnAcpChild(sessionId, agentName, launch);
 
   const readable = Readable.toWeb(child.stdout);
   const writable = Writable.toWeb(child.stdin);
@@ -591,7 +992,7 @@ async function createAcpSession(sessionId, agentName, workingDirectory) {
       return await connection.newSession({ cwd: workingDirectory, mcpServers: [] });
     } catch (e) {
       const authMessage = [e?.message, e?.data?.details, e?.data?.message].filter(Boolean).join(' | ');
-      const authRequired = e?.code === -32000 || /auth.?required/i.test(authMessage);
+      const authRequired = isAuthenticationRequiredError(e, authMessage);
       if (!authRequired) throw e;
       const authMethods = initResponse.authMethods;
       if (!authMethods?.length) throw new Error(`Agent "${agentName}" requires auth but advertised no methods`);
@@ -602,11 +1003,6 @@ async function createAcpSession(sessionId, agentName, workingDirectory) {
     }
   })();
   console.log(`[Daemon] ACP session: ${sessionResponse.sessionId}`);
-
-  child.on('close', (code) => {
-    console.log(`[Daemon:${agentName}] Exited (code=${code})`);
-    deactivateSession(sessionId, `Agent exited (code=${code})`);
-  });
 
   return {
     connection,
@@ -626,12 +1022,7 @@ async function resumeAcpSession(sessionId, agentName, acpSessionId, workingDirec
 
   console.log(`[Daemon] Resuming ${agentName}: ${acpSessionId} [${launch.source}]`);
 
-  const child = spawn(launch.command, launch.args || [], {
-    stdio: ['pipe', 'pipe', 'pipe'],
-    env: { ...process.env, ...(config.env || {}) },
-    shell: true,
-  });
-  child.stderr?.on('data', (data) => { const line = data.toString().trim(); if (line) console.log(`[Daemon:${agentName}] ${line}`); });
+  const child = spawnAcpChild(sessionId, agentName, launch);
 
   const readable = Readable.toWeb(child.stdout);
   const writable = Writable.toWeb(child.stdin);
@@ -650,7 +1041,7 @@ async function resumeAcpSession(sessionId, agentName, acpSessionId, workingDirec
       return await connection.loadSession({ sessionId: acpSessionId, cwd: workingDirectory, mcpServers: [] });
     } catch (e) {
       const authMessage = [e?.message, e?.data?.details, e?.data?.message].filter(Boolean).join(' | ');
-      const authRequired = e?.code === -32000 || /auth.?required/i.test(authMessage);
+      const authRequired = isAuthenticationRequiredError(e, authMessage);
       if (!authRequired) throw e;
       const authMethods = initResponse.authMethods;
       if (!authMethods?.length) throw new Error(`Agent "${agentName}" requires auth but advertised no methods`);
@@ -659,11 +1050,6 @@ async function resumeAcpSession(sessionId, agentName, acpSessionId, workingDirec
       return await connection.loadSession({ sessionId: acpSessionId, cwd: workingDirectory, mcpServers: [] });
     }
   })();
-
-  child.on('close', (code) => {
-    console.log(`[Daemon:${agentName}] Exited (code=${code})`);
-    deactivateSession(sessionId, `Agent exited (code=${code})`);
-  });
 
   return {
     connection,
@@ -679,7 +1065,7 @@ async function resumeAcpSession(sessionId, agentName, acpSessionId, workingDirec
 async function resumeSdkSession(roomId, savedInfo) {
   const client = await ensureCopilotSdkClient();
   return client.resumeSession(savedInfo.copilotSessionId, {
-    model: savedInfo.model || 'gpt-5.4',
+    model: savedInfo.model || DEFAULT_SDK_MODEL,
     streaming: true,
     workingDirectory: savedInfo.cwd || process.cwd(),
     onPermissionRequest: createSdkPermissionHandler(roomId),
@@ -753,6 +1139,10 @@ async function handleModeSwitch(state, roomId, modeId) {
 }
 
 async function tryResumeSession(roomId, envelope) {
+  if (resumePromises.has(roomId)) {
+    return resumePromises.get(roomId);
+  }
+
   let state = sessions.get(roomId);
   const shouldTryResume = (!state || state.active === false)
     && (envelope.type === 'user.prompt' || envelope.type === 'user.command');
@@ -761,77 +1151,252 @@ async function tryResumeSession(roomId, envelope) {
   const saved = sessionStore[roomId];
   if (!saved?.supportsResume) return state;
 
-  console.log(`[Daemon] Auto-resuming session for room ${roomId} (${saved.agentName})`);
-  await botSend(roomId, { type: 'system.info', message: 'Resuming session…' });
+  const resumePromise = (async () => {
+    console.log(`[Daemon] Auto-resuming session for room ${roomId} (${saved.agentName})`);
+    await botSend(roomId, { type: 'system.info', message: 'Resuming session…' });
 
+    try {
+      if (state?.active === false) sessions.delete(roomId);
+
+      if (saved.agentName === 'copilot-sdk') {
+        state = createSessionState({
+          sessionId: roomId,
+          agentName: 'copilot-sdk',
+          workingDirectory: saved.cwd || process.cwd(),
+          model: saved.model || DEFAULT_SDK_MODEL,
+        });
+        state.isResuming = true;
+        sessions.set(roomId, state);
+        state.copilotSession = await resumeSdkSession(roomId, saved);
+        state.active = true;
+        state.isResuming = false;
+        state.currentModelId = saved.model || state.model;
+        bindCopilotSdkEvents(state);
+        await refreshSdkModels(state);
+        emitSessionState(roomId);
+        await botSend(roomId, { type: 'system.info', message: 'Resumed GitHub Copilot (SDK)' });
+        return state;
+      }
+
+      state = createSessionState({
+        sessionId: roomId,
+        agentName: saved.agentName,
+        workingDirectory: saved.cwd || process.cwd(),
+        model: saved.model || 'default',
+      });
+      state.isResuming = true;
+      sessions.set(roomId, state);
+      const acp = await resumeAcpSession(roomId, saved.agentName, saved.acpSessionId, saved.cwd || process.cwd());
+      Object.assign(state, {
+        acpConnection: acp.connection,
+        acpSessionId: acp.acpSessionId,
+        acpProcess: acp.process,
+        _acpClient: acp.client,
+        active: true,
+        isResuming: false,
+      });
+      handleSessionCapabilities(state, roomId, acp.loadResponse);
+      emitSessionState(roomId);
+      await botSend(roomId, { type: 'system.info', message: `Resumed ${acp.displayName}` });
+      return state;
+    } catch (err) {
+      if (saved.agentName === 'copilot-sdk' && /Session not found:/i.test(String(err?.message || ''))) {
+        console.warn('[Daemon] SDK resume target missing, recreating session:', roomId);
+        state = createSessionState({
+          sessionId: roomId,
+          agentName: 'copilot-sdk',
+          workingDirectory: saved.cwd || process.cwd(),
+          model: saved.model || DEFAULT_SDK_MODEL,
+        });
+        state.isResuming = true;
+        sessions.set(roomId, state);
+        await startSdkSession(roomId, state, {
+          model: saved.model || DEFAULT_SDK_MODEL,
+          workingDirectory: saved.cwd || process.cwd(),
+        });
+        state.isResuming = false;
+        emitSessionState(roomId);
+        await botSend(roomId, {
+          type: 'system.info',
+          message: 'Previous SDK session could not be resumed; started a new GitHub Copilot (SDK) session.',
+        });
+        return state;
+      }
+      console.error('[Daemon] Resume failed:', err.message);
+      sessions.delete(roomId);
+      deleteSessionRecord(roomId);
+      await botSend(roomId, { type: 'session.error', message: `Resume failed: ${err.message}. Please create a new session.` });
+      return null;
+    }
+  })().finally(() => {
+    resumePromises.delete(roomId);
+    const latestState = sessions.get(roomId);
+    if (latestState) latestState.isResuming = false;
+  });
+
+  resumePromises.set(roomId, resumePromise);
+  return resumePromise;
+}
+
+async function handleBotNotification(notification) {
   try {
-    if (state?.active === false) sessions.delete(roomId);
+    const msg = notification.message;
+    const roomId = notification.conversation?.roomId;
+    if (msg.createdBy === BOT_USER_ID || !roomId || !msg.content?.text) return;
 
-    if (saved.agentName === 'copilot-sdk') {
-      state = createSessionState({
-        sessionId: roomId,
-        agentName: 'copilot-sdk',
-        workingDirectory: saved.cwd || process.cwd(),
-        model: saved.model || 'gpt-5.4',
-      });
-      sessions.set(roomId, state);
-      state.copilotSession = await resumeSdkSession(roomId, saved);
-      state.active = true;
-      state.currentModelId = saved.model || state.model;
-      bindCopilotSdkEvents(state);
-      await refreshSdkModels(state);
-      emitSessionState(roomId);
-      await botSend(roomId, { type: 'system.info', message: 'Resumed GitHub Copilot (SDK)' });
-      return state;
+    let envelope;
+    try { envelope = JSON.parse(msg.content.text); } catch { return; }
+
+    if (roomId === LOBBY_ROOM) {
+      if (envelope.type === 'workspace.list_request' && envelope.daemonId === BOT_USER_ID && envelope.requestId && envelope.requesterUserId) {
+        const result = await listDirectoriesForPath(envelope.path, advertisedWorkspaces, {
+          query: envelope.query,
+          limit: envelope.limit,
+        });
+        await botSend(LOBBY_ROOM, {
+          type: 'workspace.list_response',
+          requestId: envelope.requestId,
+          requesterUserId: envelope.requesterUserId,
+          daemonId: BOT_USER_ID,
+          ...result,
+        });
+      }
+      return;
     }
 
-    state = createSessionState({
-      sessionId: roomId,
-      agentName: saved.agentName,
-      workingDirectory: saved.cwd || process.cwd(),
-      model: saved.model || 'default',
-    });
-    state.isResuming = true;
-    sessions.set(roomId, state);
-    const acp = await resumeAcpSession(roomId, saved.agentName, saved.acpSessionId, saved.cwd || process.cwd());
-    Object.assign(state, {
-      acpConnection: acp.connection,
-      acpSessionId: acp.acpSessionId,
-      acpProcess: acp.process,
-      _acpClient: acp.client,
-      active: true,
-      isResuming: false,
-    });
-    handleSessionCapabilities(state, roomId, acp.loadResponse);
-    emitSessionState(roomId);
-    await botSend(roomId, { type: 'system.info', message: `Resumed ${acp.displayName}` });
-    return state;
+    if (envelope.type === 'control.create') {
+      const { userId, agentName, workingDirectory, initialPrompt, model } = envelope;
+      console.log(`[Daemon] control.create: agent=${agentName} dir=${workingDirectory}`);
+      let selectedWorkingDirectory;
+      try {
+        selectedWorkingDirectory = await resolveWorkingDirectoryOrThrow(workingDirectory);
+      } catch (err) {
+        await botSend(roomId, { type: 'session.error', message: err.message });
+        return;
+      }
+      const existingState = sessions.get(roomId);
+      if (existingState) {
+        await stopExistingSession(existingState);
+        sessions.delete(roomId);
+      }
+      const state = createSessionState({
+        sessionId: roomId,
+        agentName,
+        firstPrompt: initialPrompt || '',
+        ownerUserId: userId,
+        workingDirectory: selectedWorkingDirectory,
+        model: model || (agentName === 'copilot-sdk' ? DEFAULT_SDK_MODEL : 'default'),
+      });
+      sessions.set(roomId, state);
+
+      if (agentName === 'copilot-sdk') {
+        await botSend(roomId, { type: 'system.info', message: 'Starting GitHub Copilot (SDK)…' });
+        try {
+          await startSdkSession(roomId, state, { model, workingDirectory: selectedWorkingDirectory });
+          await botSend(roomId, { type: 'system.info', message: 'Connected to GitHub Copilot (SDK)' });
+          emitSessionState(roomId);
+          if (initialPrompt) {
+            await sendSessionPrompt(state, roomId, initialPrompt);
+          }
+        } catch (err) {
+          console.error('[Daemon] Copilot SDK failed:', err.message);
+          deactivateSession(roomId, `Failed to start: ${err.message}`);
+        }
+      } else {
+        await botSend(roomId, { type: 'system.info', message: `Starting ${ACP_AGENTS[agentName]?.displayName || agentName}…` });
+        try {
+          const acp = await createAcpSession(roomId, agentName, selectedWorkingDirectory);
+          Object.assign(state, { acpConnection: acp.connection, acpSessionId: acp.acpSessionId, acpProcess: acp.process, _acpClient: acp.client, active: true });
+          handleSessionCapabilities(state, roomId, acp.sessionResponse);
+          persistSessionRecord(roomId, {
+            agentName,
+            acpSessionId: acp.acpSessionId,
+            cwd: selectedWorkingDirectory,
+            supportsResume: acp.initResponse.agentCapabilities?.loadSession ?? false,
+          });
+          await botSend(roomId, { type: 'system.info', message: `Connected to ${acp.displayName}` });
+          emitSessionState(roomId);
+          if (initialPrompt) await sendSessionPrompt(state, roomId, initialPrompt);
+        } catch (err) {
+          console.error('[Daemon] Spawn failed:', err.message);
+          deactivateSession(roomId, `Failed to start: ${err.message}`);
+        }
+      }
+      return;
+    }
+
+    if (envelope.type === 'control.delete') {
+      const state = sessions.get(roomId);
+      if (!isSessionOwner(state, msg.createdBy)) {
+        console.warn(`[Daemon] Ignoring unauthorized delete from ${msg.createdBy} for room ${roomId}`);
+        return;
+      }
+      await stopExistingSession(state);
+      sessions.delete(roomId);
+      deleteSessionRecord(roomId);
+      console.log(`[Daemon] Session deleted: ${roomId}`);
+      return;
+    }
+
+    if (envelope.type === 'control.cancel') {
+      const state = sessions.get(roomId);
+      if (!state) return;
+      try {
+        await cancelSessionTurn(state, roomId);
+      } catch (err) {
+        state.isStopping = false;
+        emitSessionState(roomId);
+        await botSend(roomId, { type: 'session.error', message: `Failed to stop current response: ${err.message}` });
+      }
+      return;
+    }
+
+    const state = await tryResumeSession(roomId, envelope) || sessions.get(roomId);
+    if (!state) return;
+
+    switch (envelope.type) {
+      case 'user.prompt':
+        if (envelope.content) {
+          console.log(`[Daemon] Prompt: ${envelope.content.substring(0, 80)}`);
+          await sendSessionPrompt(state, roomId, envelope.content);
+        }
+        break;
+      case 'user.command':
+        if (envelope.command) {
+          const cmd = envelope.command.trim();
+          console.log(`[Daemon] Command: ${cmd}`);
+          if (cmd === '/clear') {
+            await botSend(roomId, { type: 'system.clear' });
+            break;
+          }
+          if (cmd.startsWith('/model ')) {
+            await handleModelSwitch(state, roomId, cmd.slice(7).trim());
+            break;
+          }
+          if (cmd.startsWith('/mode ')) {
+            await handleModeSwitch(state, roomId, cmd.slice(6).trim());
+            break;
+          }
+          await sendSessionPrompt(state, roomId, cmd);
+        }
+        break;
+      case 'permission.response':
+        if (envelope.requestId) {
+          if (!isSessionOwner(state, msg.createdBy)) {
+            console.warn(`[Daemon] Ignoring unauthorized permission response from ${msg.createdBy} for room ${roomId}`);
+            break;
+          }
+          const pending = state.pendingPermissions.get(envelope.requestId);
+          if (pending) {
+            console.log(`[Daemon] Permission ${envelope.approved ? '✓' : '✕'}: ${envelope.requestId.substring(0, 8)}`);
+            pending.resolve(!!envelope.approved);
+            state.pendingPermissions.delete(envelope.requestId);
+          }
+        }
+        break;
+    }
   } catch (err) {
-    if (saved.agentName === 'copilot-sdk' && /Session not found:/i.test(String(err?.message || ''))) {
-      console.warn('[Daemon] SDK resume target missing, recreating session:', roomId);
-      state = createSessionState({
-        sessionId: roomId,
-        agentName: 'copilot-sdk',
-        workingDirectory: saved.cwd || process.cwd(),
-        model: saved.model || 'gpt-5.4',
-      });
-      sessions.set(roomId, state);
-      await startSdkSession(roomId, state, {
-        model: saved.model || 'gpt-5.4',
-        workingDirectory: saved.cwd || process.cwd(),
-      });
-      emitSessionState(roomId);
-      await botSend(roomId, {
-        type: 'system.info',
-        message: 'Previous SDK session could not be resumed; started a new GitHub Copilot (SDK) session.',
-      });
-      return state;
-    }
-    console.error('[Daemon] Resume failed:', err.message);
-    sessions.delete(roomId);
-    deleteSessionRecord(roomId);
-    await botSend(roomId, { type: 'session.error', message: `Resume failed: ${err.message}. Please create a new session.` });
-    return null;
+    console.error('[Daemon] Error:', err);
   }
 }
 
@@ -861,6 +1426,7 @@ function createAcpClient(sessionId) {
       const update = params.update;
       const type = update?.sessionUpdate;
       const state = sessions.get(sessionId);
+      noteAcpActivity(state);
       if (state?.isResuming) {
         if (!['available_commands_update', 'current_mode_update', 'usage_update', 'config_option_update'].includes(type)) {
           return;
@@ -873,6 +1439,8 @@ function createAcpClient(sessionId) {
         console.log(`[Daemon:acp] ${type} keys=[${debugKeys}] meta=${meta ? JSON.stringify(meta).substring(0, 120) : 'none'} rawOutput=${update.rawOutput ? JSON.stringify(update.rawOutput).substring(0, 80) : 'none'}`);
       }
       switch (type) {
+        case 'config_option_update':
+          break;
         case 'user_message_chunk':
           break;
         case 'agent_message_chunk': {
@@ -915,8 +1483,12 @@ function createAcpClient(sessionId) {
           break;
         }
         case 'tool_call_update': {
+          if (!update.toolCallId) {
+            console.warn('[Daemon:tool] Ignoring tool_call_update without toolCallId');
+            break;
+          }
           const state = sessions.get(sessionId);
-          const tcId = update.toolCallId || randomUUID();
+          const tcId = update.toolCallId;
           const status = update.status || 'completed';
           const meta = update._meta?.claudeCode || {};
           flushCompletedToolInvocations(sessionId, tcId);
@@ -968,15 +1540,18 @@ function createAcpClient(sessionId) {
     // ── File System (local) ──
     async readTextFile(params) {
       console.log(`[Daemon:fs] read ${params.path}`);
-      const filePath = resolve(params.path);
-      let content = readFileSync(filePath, 'utf-8');
+      const state = sessions.get(sessionId);
+      const filePath = resolveSessionPath(state?.workingDirectory, params.path);
+      let content = await readFile(filePath, 'utf-8');
       if (params.line != null || params.limit != null) { const lines = content.split('\n'); content = lines.slice((params.line ?? 1) - 1, params.limit ? (params.line ?? 1) - 1 + params.limit : lines.length).join('\n'); }
       return { content };
     },
     async writeTextFile(params) {
       console.log(`[Daemon:fs] write ${params.path} (${params.content?.length || 0} chars)`);
-      mkdirSync(dirname(resolve(params.path)), { recursive: true });
-      writeFileSync(resolve(params.path), params.content, 'utf-8');
+      const state = sessions.get(sessionId);
+      const filePath = resolveSessionPath(state?.workingDirectory, params.path);
+      await mkdir(dirname(filePath), { recursive: true });
+      await writeFile(filePath, params.content, 'utf-8');
       return {};
     },
 
@@ -985,7 +1560,9 @@ function createAcpClient(sessionId) {
     async createTerminal(params) {
       const id = `term_${this._termNextId++}`;
       console.log(`[Daemon:term] create ${id}: ${params.command} ${(params.args || []).join(' ')}`);
-      const child = spawn(params.command, params.args || [], { cwd: params.cwd || process.cwd(), shell: true, stdio: ['pipe', 'pipe', 'pipe'] });
+      const state = sessions.get(sessionId);
+      const cwd = resolveSessionPath(state?.workingDirectory, params.cwd || '.');
+      const child = spawn(params.command, params.args || [], { cwd, stdio: ['pipe', 'pipe', 'pipe'] });
       let output = ''; const limit = params.outputByteLimit ?? 1024 * 1024;
       child.stdout?.on('data', d => { output += d.toString(); if (output.length > limit) output = output.slice(-limit); });
       child.stderr?.on('data', d => { output += d.toString(); if (output.length > limit) output = output.slice(-limit); });
@@ -1062,6 +1639,7 @@ function bindCopilotSdkEvents(state) {
 
   copilotSession.on('session.idle', () => {
     state.isProcessing = false;
+    state.isStopping = false;
     state.pendingCount = 0;
     botSend(sessionId, { type: 'session.idle' });
     emitSessionState(sessionId);
@@ -1069,6 +1647,7 @@ function bindCopilotSdkEvents(state) {
 
   copilotSession.on('session.error', (event) => {
     state.isProcessing = false;
+    state.isStopping = false;
     state.pendingCount = 0;
     emitSessionState(sessionId);
     botSend(sessionId, { type: 'session.error', message: String(event.data) });
@@ -1100,61 +1679,56 @@ function bindCopilotSdkEvents(state) {
 // ── Main ──
 
 async function main() {
-  console.log('[Daemon] Starting...');
-  let shuttingDown = false;
-
-  const portalUrl = process.env.PORTAL_URL || 'http://localhost:3000';
-  let tokenUrl;
-  try {
-    // Try to get token via web portal (admin will add us to lobby)
-    const resp = await fetch(`${portalUrl}/negotiate?userId=${encodeURIComponent(BOT_USER_ID)}`);
-    const body = await resp.json();
-    tokenUrl = body.url;
-    console.log(`[Daemon] Got token via portal negotiate`);
-  } catch {
-    // Fallback: direct token from service client
-    console.log(`[Daemon] Portal not reachable, using direct token`);
-    const serviceClient = new WebPubSubServiceClient(connectionString, hubName, { allowInsecureConnection: true });
-    const tokenResponse = await serviceClient.getClientAccessToken({ userId: BOT_USER_ID });
-    tokenUrl = tokenResponse.url;
+  if (INSTALL_ALL_AGENT_CLI_MODE) {
+    await installAllSupportedAgentCli();
+    return;
   }
-  botChat = await new ChatClient(tokenUrl).login();
-  console.log(`[Daemon] Bot logged in as: ${botChat.userId}`);
 
-  // ── Join lobby and announce ──
-  await ensureRoomMembership(botChat, LOBBY_ROOM, 'Agent Lobby', BOT_USER_ID);
+  Object.assign(sessionStore, await loadSessionStore());
+
+  console.log('[Daemon] Starting...');
+  await ensureBotChatReady();
+
   // Scan /workspace for available project directories
   let workspaces = [];
   try {
-    workspaces = readdirSync('/workspace', { withFileTypes: true })
+    workspaces = (await readdir('/workspace', { withFileTypes: true }))
       .filter(e => e.isDirectory() && !e.name.startsWith('.'))
       .map(e => `/workspace/${e.name}`);
   } catch {}
   // Also add cwd if it's not already in the list
   const cwd = process.cwd();
   if (cwd && !workspaces.includes(cwd)) workspaces.unshift(cwd);
+  advertisedWorkspaces = workspaces;
 
-  const daemonInfo = {
+  daemonPresenceInfo = {
     hostname: osHostname(),
     platform: process.platform,
     agents: [...Object.keys(ACP_AGENTS), 'copilot-sdk'],
     workspaces,
   };
 
-  let heartbeatTimer = null;
   const announceOffline = async () => {
     if (shuttingDown) return;
     shuttingDown = true;
+    await flushSessionStoreWrites(sessionStore);
+    if (botReconnectTimer) {
+      clearTimeout(botReconnectTimer);
+      botReconnectTimer = null;
+    }
     if (heartbeatTimer) {
       clearInterval(heartbeatTimer);
       heartbeatTimer = null;
     }
     try {
-      await sendDaemonPresence('daemon.offline', daemonInfo);
+      if (botChat && daemonPresenceInfo) {
+        await sendDaemonPresenceWithChat(botChat, 'daemon.offline', daemonPresenceInfo);
+      }
     } catch (e) {
       console.log(`[Daemon] Offline announce failed: ${e.message?.substring(0, 60)}`);
     }
     try { botChat?.stop(); } catch {}
+    botChat = null;
   };
 
   const handleShutdown = (signal) => {
@@ -1164,158 +1738,24 @@ async function main() {
   process.once('SIGINT', () => handleShutdown('SIGINT'));
   process.once('SIGTERM', () => handleShutdown('SIGTERM'));
   try {
-    await sendDaemonPresence('daemon.online', daemonInfo);
-    console.log(`[Daemon] Announced in lobby: ${daemonInfo.hostname} (${daemonInfo.agents.join(', ')})`);
+    await sendDaemonPresence('daemon.online', daemonPresenceInfo);
+    console.log(`[Daemon] Announced in lobby: ${daemonPresenceInfo.hostname} (${daemonPresenceInfo.agents.join(', ')})`);
   } catch (e) {
     console.log(`[Daemon] Lobby announce failed, retrying in 2s...`);
     await new Promise(r => setTimeout(r, 2000));
     try {
-      await sendDaemonPresence('daemon.online', daemonInfo);
-      console.log(`[Daemon] Announced in lobby (retry): ${daemonInfo.hostname}`);
+      await sendDaemonPresence('daemon.online', daemonPresenceInfo);
+      console.log(`[Daemon] Announced in lobby (retry): ${daemonPresenceInfo.hostname}`);
     } catch (e2) {
       console.log(`[Daemon] Lobby announce failed: ${e2.message?.substring(0, 60)}`);
     }
   }
   heartbeatTimer = setInterval(() => {
-    void sendDaemonPresence('daemon.online', daemonInfo).catch((err) => {
+    void sendDaemonPresence('daemon.online', daemonPresenceInfo).catch((err) => {
       console.log(`[Daemon] Heartbeat failed: ${err.message?.substring(0, 60)}`);
     });
   }, DAEMON_HEARTBEAT_MS);
   heartbeatTimer.unref?.();
-
-  botChat.addListenerForNewMessage(async (notification) => {
-    try {
-      const msg = notification.message;
-      const roomId = notification.conversation?.roomId;
-      if (msg.createdBy === BOT_USER_ID || !roomId || !msg.content?.text) return;
-
-      let envelope;
-      try { envelope = JSON.parse(msg.content.text); } catch { return; }
-
-      if (roomId === LOBBY_ROOM) {
-        if (envelope.type === 'workspace.list_request' && envelope.daemonId === BOT_USER_ID && envelope.requestId && envelope.requesterUserId) {
-          const result = listDirectoriesForPath(envelope.path, workspaces);
-          await botSend(LOBBY_ROOM, {
-            type: 'workspace.list_response',
-            requestId: envelope.requestId,
-            requesterUserId: envelope.requesterUserId,
-            daemonId: BOT_USER_ID,
-            ...result,
-          });
-        }
-        return;
-      }
-
-      // ── Control: create session ──
-      if (envelope.type === 'control.create') {
-        const { userId, agentName, workingDirectory, initialPrompt, model } = envelope;
-        console.log(`[Daemon] control.create: agent=${agentName} dir=${workingDirectory}`);
-        let selectedWorkingDirectory;
-        try {
-          selectedWorkingDirectory = resolveWorkingDirectoryOrThrow(workingDirectory);
-        } catch (err) {
-          await botSend(roomId, { type: 'session.error', message: err.message });
-          return;
-        }
-        const state = createSessionState({
-          sessionId: roomId,
-          agentName,
-          firstPrompt: initialPrompt || '',
-          ownerUserId: userId,
-          workingDirectory: selectedWorkingDirectory,
-          model: model || (agentName === 'copilot-sdk' ? 'gpt-5.4' : 'default'),
-        });
-        sessions.set(roomId, state);
-
-        if (agentName === 'copilot-sdk') {
-          // ── Copilot SDK mode ──
-          await botSend(roomId, { type: 'system.info', message: 'Starting GitHub Copilot (SDK)…' });
-          try {
-            await startSdkSession(roomId, state, { model, workingDirectory: selectedWorkingDirectory });
-            await botSend(roomId, { type: 'system.info', message: 'Connected to GitHub Copilot (SDK)' });
-            emitSessionState(roomId);
-            if (initialPrompt) {
-              await sendSessionPrompt(state, roomId, initialPrompt);
-            }
-          } catch (err) {
-            console.error('[Daemon] Copilot SDK failed:', err.message);
-            deactivateSession(roomId, `Failed to start: ${err.message}`);
-          }
-        } else {
-          // ── ACP mode ──
-          await botSend(roomId, { type: 'system.info', message: `Starting ${ACP_AGENTS[agentName]?.displayName || agentName}…` });
-          try {
-            const acp = await createAcpSession(roomId, agentName, selectedWorkingDirectory);
-            Object.assign(state, { acpConnection: acp.connection, acpSessionId: acp.acpSessionId, acpProcess: acp.process, _acpClient: acp.client, active: true });
-            handleSessionCapabilities(state, roomId, acp.sessionResponse);
-            persistSessionRecord(roomId, {
-              agentName,
-              acpSessionId: acp.acpSessionId,
-              cwd: selectedWorkingDirectory,
-              supportsResume: acp.initResponse.agentCapabilities?.loadSession ?? false,
-            });
-            await botSend(roomId, { type: 'system.info', message: `Connected to ${acp.displayName}` });
-            emitSessionState(roomId);
-            if (initialPrompt) await sendSessionPrompt(state, roomId, initialPrompt);
-          } catch (err) {
-            console.error(`[Daemon] Spawn failed:`, err.message);
-            deactivateSession(roomId, `Failed to start: ${err.message}`);
-          }
-        }
-        return;
-      }
-
-      // ── Control: delete session ──
-      if (envelope.type === 'control.delete') {
-        const state = sessions.get(roomId);
-        if (state?.acpProcess) try { state.acpProcess.kill('SIGTERM'); } catch {}
-        if (state?.copilotSession) try { await state.copilotSession.abort(); } catch {}
-        sessions.delete(roomId);
-        deleteSessionRecord(roomId);
-        console.log(`[Daemon] Session deleted: ${roomId}`);
-        return;
-      }
-
-      const state = await tryResumeSession(roomId, envelope) || sessions.get(roomId);
-      if (!state) return;
-
-      switch (envelope.type) {
-        case 'user.prompt':
-          if (envelope.content) {
-            console.log(`[Daemon] Prompt: ${envelope.content.substring(0, 80)}`);
-            await sendSessionPrompt(state, roomId, envelope.content);
-          }
-          break;
-        case 'user.command':
-          if (envelope.command) {
-            const cmd = envelope.command.trim();
-            console.log(`[Daemon] Command: ${cmd}`);
-            if (cmd === '/clear') {
-              await botSend(roomId, { type: 'system.clear' });
-              break;
-            }
-            if (cmd.startsWith('/model ')) {
-              await handleModelSwitch(state, roomId, cmd.slice(7).trim());
-              break;
-            }
-            if (cmd.startsWith('/mode ')) {
-              await handleModeSwitch(state, roomId, cmd.slice(6).trim());
-              break;
-            }
-            await sendSessionPrompt(state, roomId, cmd);
-          }
-          break;
-        case 'permission.response':
-          if (envelope.requestId) {
-            const p = state.pendingPermissions.get(envelope.requestId);
-            if (p) { console.log(`[Daemon] Permission ${envelope.approved ? '✓' : '✕'}: ${envelope.requestId.substring(0, 8)}`); p.resolve(!!envelope.approved); state.pendingPermissions.delete(envelope.requestId); }
-          }
-          break;
-      }
-    } catch (err) {
-      console.error('[Daemon] Error:', err);
-    }
-  });
 
   console.log('[Daemon] Ready. Waiting for messages from Web UI / CLI.');
 }
