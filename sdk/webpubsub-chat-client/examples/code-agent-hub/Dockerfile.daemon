@@ -1,0 +1,52 @@
+# CodeAgentHub Daemon Docker
+#
+# Pre-installs ACP agent packages so spawn is instant (no npx download).
+# Includes a test repo at /workspace and maps host configs for Claude/Codex.
+#
+# Build (from sdk/webpubsub-chat-client dir):
+#   docker build -t codeagenthub-daemon -f examples/copilot-mobile/Dockerfile.daemon .
+#
+# Run (see start-daemon-docker.ps1 for the full command):
+#   docker run --network host \
+#     -e WebPubSubConnectionString="..." \
+#     -v ~/.claude:/root/.claude \
+#     -v ~/.codex:/root/.codex \
+#     -v /path/to/local/project:/workspace/external \
+#     codeagenthub-daemon
+
+FROM node:22-slim
+
+WORKDIR /app
+
+# System deps
+RUN apt-get update && apt-get install -y git && rm -rf /var/lib/apt/lists/*
+
+# Clone test repo
+RUN git clone --depth 1 --branch main https://github.com/Azure/azure-webpubsub.git /workspace/azure-webpubsub
+
+# Copy chat-client SDK (built) with dependencies
+COPY dist/ /chat-client-sdk/dist/
+COPY package.json /chat-client-sdk/package.json
+COPY node_modules/ /chat-client-sdk/node_modules/
+
+# Install daemon dependencies (rarely changes)
+RUN echo '{"name":"codeagenthub-daemon","type":"module","dependencies":{"@agentclientprotocol/sdk":"^0.14.1","@azure/web-pubsub":"^1.1.3","@azure/web-pubsub-chat-client":"file:/chat-client-sdk","@github/copilot-sdk":"^0.1.8"}}' > /app/package.json
+RUN cd /app && npm install
+RUN node -e "const fs=require('fs'); const files=['/app/node_modules/@github/copilot-sdk/dist/session.js','/app/node_modules/@github/copilot-sdk/dist/session.d.ts']; for (const file of files) { const from='from \\\"vscode-jsonrpc/node\\\";'; const to='from \\\"vscode-jsonrpc/node.js\\\";'; const text=fs.readFileSync(file,'utf8'); if (text.includes(to)) continue; if (!text.includes(from)) throw new Error('Unexpected @github/copilot-sdk content in '+file); fs.writeFileSync(file, text.replace(from, to), 'utf8'); }"
+
+# ── Pre-install ACP agent CLI packages globally (rarely changes, cached) ──
+RUN npm install -g @github/copilot-language-server@latest 2>/dev/null || true
+RUN npm install -g @agentclientprotocol/claude-agent-acp@latest 2>/dev/null || true
+RUN npm install -g @zed-industries/codex-acp@latest 2>/dev/null || true
+
+# Create directories for host config mounts
+RUN mkdir -p /root/.claude /root/.codex /root/.copilot /root/.config/github-copilot /root/.local/share/github-copilot /workspace/external
+
+# Copy daemon files LAST (changes frequently, doesn't invalidate npm cache)
+COPY examples/copilot-mobile/agent-daemon.js /app/
+COPY examples/copilot-mobile/workspace-rpc.js /app/
+
+# Set working directory to workspace for agent operations
+WORKDIR /workspace/azure-webpubsub
+
+CMD ["node", "/app/agent-daemon.js"]

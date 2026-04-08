@@ -183,6 +183,26 @@ test("admin adds multiple users to a group", { timeout: LONG_TEST_TIMEOUT }, asy
   }
 });
 
+test("self remove updates local room cache immediately", { timeout: LONG_TEST_TIMEOUT }, async (t) => {
+  let chat1;
+  try {
+    chat1 = await createTestClient();
+
+    const roomId = `room-leave-${randomUUID().substring(0, 6)}`;
+    const created = await chat1.createRoom("ut-self-leave", [], roomId);
+    assert.ok(chat1.rooms.some((room) => room.roomId === created.roomId), "room should be cached after creation");
+
+    await chat1.removeUserFromRoom(created.roomId, chat1.userId);
+
+    assert.ok(!chat1.rooms.some((room) => room.roomId === created.roomId), "room should be removed from local cache immediately after self removal");
+  } catch (e) {
+    t.diagnostic((e as any).toString());
+    throw e;
+  } finally {
+    if (chat1) stopClients([chat1]);
+  }
+});
+
 // Force exit after all tests to avoid hanging on open connections
 after(() => {
   forceExitAfterTests();

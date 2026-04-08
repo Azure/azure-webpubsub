@@ -83,6 +83,9 @@ class ChatClient {
         // self left a specific room
         case "RoomLeft":
           const roomLeftInfo = data.body as RoomLeftNotificationBody;
+          if (!this._rooms.has(roomLeftInfo.roomId)) {
+            break;
+          }
           this._emitter.emit(type, roomLeftInfo);
           this._rooms.delete(roomLeftInfo.roomId);
           break;
@@ -240,6 +243,21 @@ class ChatClient {
     this.ensureLoggedIn();
     const payload: ManageRoomMemberRequest = { roomId: roomId, operation: "Delete", userId: userId };
     await this.manageRoomMember(payload);
+    // Mirror the self-add path above: when the logged-in client removes its own userId,
+    // the service-side membership is updated immediately but the RoomLeft notification may
+    // arrive later or be absent from the local cache view. Drop the cached room eagerly so
+    // follow-up UI and send/list calls do not treat a dead room as still joined.
+    if (userId === this.userId) {
+      const roomInfo = this._rooms.get(roomId);
+      if (roomInfo) {
+        this._rooms.delete(roomId);
+        this._emitter.emit("RoomLeft" as NotificationType, {
+          roomId,
+          title: roomInfo.title,
+          notificationType: "RoomLeft",
+        } as RoomLeftNotificationBody);
+      }
+    }
   }
 
   /** List messages in a conversation. It returns messages and a query for the next query parameter. */
