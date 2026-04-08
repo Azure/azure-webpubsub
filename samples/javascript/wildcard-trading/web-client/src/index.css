@@ -1,0 +1,33 @@
+@import "tailwindcss";
+
+:root {
+  font-family: system-ui, Avenir, Helvetica, Arial, sans-serif;
+  line-height: 1.5;
+  font-weight: 400;
+}
+
+@keyframes row-highlight {
+  0% {
+    background-color: var(--color-blue-500);
+  }
+  100% {
+    background-color: transparent;
+  }
+}
+
+.animate-row-highlight {
+  animation: row-highlight 3s ease-out forwards;
+}
+
+@keyframes alert-highlight {
+  0% {
+    background-color: var(--color-red-900);
+  }
+  100% {
+    background-color: transparent;
+  }
+}
+
+.animate-alert-highlight {
+  animation: alert-highlight 3s ease-out forwards;
+}
