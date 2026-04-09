@@ -28,9 +28,7 @@ export async function packDaemon() {
     external: [
       '@github/copilot',
       '@agentclientprotocol/claude-agent-acp',
-      '@google/gemini-cli',
       '@zed-industries/codex-acp',
-      'opencode-ai',
     ],
   });
 

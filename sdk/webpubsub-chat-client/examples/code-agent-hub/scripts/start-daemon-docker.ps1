@@ -70,13 +70,6 @@ if (Test-Path $copilotDir) {
     Write-Host "[CONFIG] Copilot: $copilotDir" -ForegroundColor Green
 }
 
-# Gemini config (~/.gemini/ → /root/.gemini/)
-$geminiDir = Join-Path $HOME ".gemini"
-if (Test-Path $geminiDir) {
-    $volumes += "-v", "${geminiDir}:/root/.gemini"
-    Write-Host "[CONFIG] Gemini: $geminiDir" -ForegroundColor Green
-}
-
 # GitHub Copilot auth
 # Windows Copilot CLI stores OAuth state under %LOCALAPPDATA%\github-copilot.
 # The Linux language server looks for the same files under ~/.config/github-copilot.

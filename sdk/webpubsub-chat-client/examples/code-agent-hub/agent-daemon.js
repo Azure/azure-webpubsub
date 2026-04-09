@@ -3,7 +3,7 @@
  *
  * Responsibilities:
  * - Chat Bot: logs into Web PubSub Chat, listens for user messages
- * - ACP Agent: spawns code agents (Copilot, Claude, Gemini, etc.)
+ * - ACP Agent: spawns code agents (Copilot, Claude, Codex)
  * - Session Manager: creates sessions, maps events to Chat
  * - File System: reads/writes files on the local machine
  * - Terminal: executes commands on the local machine
@@ -73,15 +73,6 @@ const ACP_AGENTS = {
     binArgs: [],
     displayName: 'Claude Code',
   },
-  'gemini': {
-    command: 'npx',
-    args: ['@google/gemini-cli@latest', '--experimental-acp'],
-    npxPackage: '@google/gemini-cli@latest',
-    npxArgs: ['--experimental-acp'],
-    binName: 'gemini',
-    binArgs: ['--experimental-acp'],
-    displayName: 'Gemini CLI',
-  },
   'codex': {
     command: 'npx',
     args: ['@zed-industries/codex-acp@latest'],
@@ -90,15 +81,6 @@ const ACP_AGENTS = {
     binName: 'codex-acp',
     binArgs: [],
     displayName: 'Codex CLI',
-  },
-  'opencode': {
-    command: 'npx',
-    args: ['opencode-ai@latest', 'acp'],
-    npxPackage: 'opencode-ai@latest',
-    npxArgs: ['acp'],
-    binName: 'opencode',
-    binArgs: ['acp'],
-    displayName: 'OpenCode',
   },
 };
 
