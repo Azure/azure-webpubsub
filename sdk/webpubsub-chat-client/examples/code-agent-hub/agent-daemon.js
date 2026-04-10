@@ -13,17 +13,17 @@
  * All agent logic lives here.
  */
 
-import { randomUUID } from 'crypto';
+import { createHmac, randomUUID } from 'crypto';
 import { existsSync } from 'node:fs';
 import { access, mkdir, readFile, readdir, writeFile } from 'node:fs/promises';
 import { once } from 'node:events';
 import { dirname, resolve, delimiter, relative, isAbsolute } from 'path';
 import { spawn } from 'node:child_process';
 import { Readable, Writable } from 'node:stream';
-import { WebPubSubServiceClient } from '@azure/web-pubsub';
 import { ChatClient } from '@azure/web-pubsub-chat-client';
 import { ClientSideConnection, ndJsonStream, PROTOCOL_VERSION } from '@agentclientprotocol/sdk';
 import { hostname as osHostname } from 'os';
+import { createModelsUpdateEvent, hasModelToolbarState } from './public/session-toolbar-state.js';
 
 // ── Configuration ──
 
@@ -37,8 +37,11 @@ if (!INSTALL_ALL_AGENT_CLI_MODE && !connectionString) {
 const hubName = process.env.WEB_PUBSUB_HUB || 'chat';
 const portalUrl = process.env.PORTAL_URL || 'http://localhost:3000';
 const BOT_USER_ID = process.env.DAEMON_USER_ID || 'copilot-bot';
+const BOT_OWNER_USER_ID = process.env.DAEMON_OWNER_USER_ID || process.env.DAEMON_OWNER || process.env.USERNAME || process.env.USER || 'local-owner';
+const PORTAL_CONTROL_USER_ID = process.env.PORTAL_CONTROL_USER_ID || '__portal_control__';
 const MAX_ROOM_MESSAGE_LENGTH = 4096;
 const LOBBY_ROOM = 'lobby';
+const DAEMON_CONTROL_ROOM = BOT_USER_ID;
 const DAEMON_HEARTBEAT_MS = 30000;
 const DAEMON_DIR = process.argv[1]
   ? dirname(resolve(process.argv[1]))
@@ -49,8 +52,58 @@ const SESSION_STORE_PATH = process.env.SESSION_STORE_PATH
 const DEFAULT_SDK_MODEL = 'gpt-5.4';
 const SESSION_STORE_DEBOUNCE_MS = 150;
 const ACP_IDLE_GRACE_MS = 180;
+const ACP_STARTUP_TIMEOUT_MS = Number(process.env.ACP_STARTUP_TIMEOUT_MS || 90000);
 const WORKSPACE_LIST_LIMIT = 200;
 const SUPPORTED_ACP_AGENT_NAMES = ['copilot', 'claude', 'codex'];
+
+function parseConnectionStringValue(key) {
+  const part = connectionString
+    .split(';')
+    .map((segment) => segment.trim())
+    .find((segment) => segment.toLowerCase().startsWith(`${key.toLowerCase()}=`));
+  return part ? part.slice(key.length + 1) : '';
+}
+
+const portalSigningKey = Buffer.from(parseConnectionStringValue('AccessKey') || '', 'base64');
+
+function isPortalControlUser(userId) {
+  return String(userId || '').trim() === PORTAL_CONTROL_USER_ID;
+}
+
+function signDaemonRequest(timestamp) {
+  return createHmac('sha256', portalSigningKey)
+    .update(`${BOT_USER_ID}\n${BOT_OWNER_USER_ID}\n${timestamp}`)
+    .digest('hex');
+}
+
+function buildDaemonPortalPayload(details = {}) {
+  const timestamp = new Date().toISOString();
+  return {
+    daemonId: BOT_USER_ID,
+    ownerUserId: BOT_OWNER_USER_ID,
+    hostname: details.hostname,
+    platform: details.platform,
+    agents: details.agents,
+    workspaces: details.workspaces,
+    timestamp,
+    signature: signDaemonRequest(timestamp),
+  };
+}
+
+async function postDaemonPortal(path, details = {}) {
+  const endpoint = `${portalUrl}${path}`;
+  const resp = await fetch(endpoint, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(buildDaemonPortalPayload(details)),
+  });
+
+  const body = await resp.json().catch(() => ({}));
+  if (!resp.ok) {
+    throw new Error(body?.error || `Portal request failed (${resp.status})`);
+  }
+  return body;
+}
 
 // ── ACP Agent Configs ──
 
@@ -85,11 +138,40 @@ const ACP_AGENTS = {
 };
 
 async function runCommandOrThrow(command, args = []) {
-  const child = spawn(command, args, { stdio: 'inherit', shell: false });
+  const launch = resolveSpawnLaunch(command, args);
+  const child = spawn(launch.command, launch.args, { stdio: 'inherit', shell: false });
   const [code, signal] = await once(child, 'close');
   if (code !== 0) {
     throw new Error(`${command} ${args.join(' ')} failed with code ${code}${signal ? ` (signal=${signal})` : ''}`.trim());
   }
+}
+
+function quoteWindowsCommandArg(value) {
+  const text = String(value ?? '');
+  if (!text) return '""';
+  if (!/[\s"]/.test(text)) return text;
+  return `"${text.replace(/(\\*)"/g, '$1$1\\"').replace(/(\\+)$/g, '$1$1')}"`;
+}
+
+function resolveSpawnLaunch(command, args = []) {
+  if (process.platform !== 'win32') {
+    return { command, args };
+  }
+
+  const text = String(command || '');
+  const needsCmd = text === 'npm'
+    || text === 'npx'
+    || /\.(cmd|bat)$/i.test(text);
+
+  if (!needsCmd) {
+    return { command, args };
+  }
+
+  const commandLine = [quoteWindowsCommandArg(text), ...args.map(quoteWindowsCommandArg)].join(' ');
+  return {
+    command: 'cmd.exe',
+    args: ['/d', '/s', '/c', commandLine],
+  };
 }
 
 async function installAllSupportedAgentCli() {
@@ -187,8 +269,10 @@ function createSessionState({ sessionId, agentName, firstPrompt = '', ownerUserI
     workingDirectory,
     model,
     active: false,
+    isReady: false,
     isProcessing: false,
     isStopping: false,
+    startupPromise: null,
     pendingCount: 0,
     acpAwaitingIdle: false,
     acpIdleTimer: null,
@@ -199,6 +283,9 @@ function createSessionState({ sessionId, agentName, firstPrompt = '', ownerUserI
     availableModels: [],
     currentModelId: '',
     availableCommands: [],
+    usageSize: 0,
+    usageUsed: 0,
+    usageCost: null,
     pendingPermissions: new Map(),
     toolInvocations: new Map(),
   };
@@ -238,11 +325,11 @@ async function stopExistingSession(state) {
 }
 
 function spawnAcpChild(sessionId, agentName, launch) {
-  const useShell = process.platform === 'win32' && /\.(cmd|bat)$/i.test(launch.command || '');
-  const child = spawn(launch.command, launch.args || [], {
+  const resolvedLaunch = resolveSpawnLaunch(launch.command, launch.args || []);
+  const child = spawn(resolvedLaunch.command, resolvedLaunch.args, {
     stdio: ['pipe', 'pipe', 'pipe'],
     env: { ...process.env, ...(ACP_AGENTS[agentName]?.env || {}) },
-    shell: useShell,
+    shell: false,
   });
   child.stderr?.on('data', (data) => {
     const line = data.toString().trim();
@@ -305,11 +392,25 @@ function emitModesUpdate(sessionId, state) {
 }
 
 function emitModelsUpdate(sessionId, state) {
+  botSend(sessionId, createModelsUpdateEvent(state));
+}
+
+function emitUsageUpdate(sessionId, state) {
   botSend(sessionId, {
-    type: 'models.update',
-    models: state.availableModels || [],
-    currentModelId: state.currentModelId || '',
+    type: 'usage.update',
+    size: state.usageSize || 0,
+    used: state.usageUsed || 0,
+    cost: state.usageCost || null,
   });
+}
+
+function syncSessionUiState(sessionId, state) {
+  if (!state) return;
+  emitSessionState(sessionId);
+  if ((state.availableCommands || []).length) emitCommandsUpdate(sessionId, state.availableCommands);
+  if ((state.availableModes || []).length || state.currentModeId) emitModesUpdate(sessionId, state);
+  if (hasModelToolbarState(state)) emitModelsUpdate(sessionId, state);
+  if ((state.usageSize || 0) > 0 || (state.usageUsed || 0) > 0) emitUsageUpdate(sessionId, state);
 }
 
 function handleSessionCapabilities(state, roomId, response) {
@@ -318,6 +419,7 @@ function handleSessionCapabilities(state, roomId, response) {
     state.currentModeId = response.modes.currentModeId || '';
     emitModesUpdate(roomId, state);
   }
+
   if (response?.models) {
     state.availableModels = (response.models.availableModels || []).map((model) => ({
       modelId: model.modelId,
@@ -325,7 +427,6 @@ function handleSessionCapabilities(state, roomId, response) {
       description: model.description,
     }));
     state.currentModelId = response.models.currentModelId || '';
-    if (state.currentModelId) state.model = state.currentModelId;
     emitModelsUpdate(roomId, state);
   }
 }
@@ -348,7 +449,7 @@ async function refreshSdkModels(state) {
     if (!state.currentModelId) {
       state.currentModelId = state.model || state.availableModels[0]?.modelId || '';
     }
-    if (state.availableModels.length) emitModelsUpdate(state.sessionId, state);
+    if (hasModelToolbarState(state)) emitModelsUpdate(state.sessionId, state);
   } catch (err) {
     console.warn('[Daemon] Failed to list Copilot SDK models:', err.message);
   }
@@ -412,14 +513,16 @@ async function botSend(roomId, envelope) {
   }
 }
 
-async function ensureRoomMembership(chatClient, roomId, roomName, userId) {
+async function ensureRoomMembership(chatClient, roomId, roomName, userId, extraUsers = []) {
   try {
-    await chatClient.createRoom(roomName, [userId], roomId);
+    await chatClient.createRoom(roomName, [userId, ...extraUsers], roomId);
     return;
   } catch {}
-  try {
-    await chatClient.addUserToRoom(roomId, userId);
-  } catch {}
+  for (const memberId of [...new Set([userId, ...extraUsers].filter(Boolean))]) {
+    try {
+      await chatClient.addUserToRoom(roomId, memberId);
+    } catch {}
+  }
 }
 
 function listWorkspaceFavorites(workspaceRoots = []) {
@@ -564,36 +667,24 @@ function resolveAcpLaunch(config) {
 }
 
 async function sendDaemonPresence(type, details) {
-  if (shuttingDown) return;
-  const chat = await ensureBotChatReady();
-  if (!chat || !details) return;
-  await sendDaemonPresenceWithChat(chat, type, details);
-}
-
-async function sendDaemonPresenceWithChat(chat, type, details) {
-  if (!chat || !details) return;
-  const payload = {
-    type,
-    daemonId: BOT_USER_ID,
-    hostname: details.hostname,
-    platform: details.platform,
-    agents: details.agents,
-    workspaces: details.workspaces,
-    updatedAt: new Date().toISOString(),
-  };
-  await chat.sendToRoom(LOBBY_ROOM, JSON.stringify(payload));
+  if (shuttingDown && type !== 'daemon.offline') return;
+  if (!details) return;
+  if (type === 'daemon.offline') {
+    await postDaemonPortal('/api/daemons/offline', details);
+    return;
+  }
+  if (type === 'daemon.online') {
+    const path = botChat ? '/api/daemons/heartbeat' : '/api/daemons/register';
+    await postDaemonPortal(path, details);
+  }
 }
 
 async function fetchBotTokenUrl() {
-  const endpoint = `${portalUrl}/negotiate:daemon?userId=${encodeURIComponent(BOT_USER_ID)}`;
-  const resp = await fetch(endpoint);
-  const body = await resp.json().catch(() => ({}));
-  if (!resp.ok || !body?.url) {
-    const statusText = resp.status ? `${resp.status}${resp.statusText ? ` ${resp.statusText}` : ''}` : 'request failed';
-    const detail = body?.error || 'Missing bot token URL';
-    throw new Error(`Portal daemon negotiate failed via ${endpoint}: ${statusText} - ${detail}`);
+  const body = await postDaemonPortal('/api/daemons/register', daemonPresenceInfo || {});
+  if (!body?.url) {
+    throw new Error('Portal daemon registration did not return a token URL');
   }
-  console.log('[Daemon] Got token via portal daemon negotiate');
+  console.log('[Daemon] Registered with portal control plane');
   return body.url;
 }
 
@@ -631,16 +722,8 @@ async function loginBotChat() {
     });
     chat.addListenerForNewMessage(handleBotNotification);
 
-    await ensureRoomMembership(chat, LOBBY_ROOM, 'Agent Lobby', BOT_USER_ID);
+    await ensureRoomMembership(chat, DAEMON_CONTROL_ROOM, 'Daemon Control', BOT_USER_ID, [PORTAL_CONTROL_USER_ID]);
     botChat = chat;
-
-    if (daemonPresenceInfo) {
-      try {
-        await sendDaemonPresenceWithChat(chat, 'daemon.online', daemonPresenceInfo);
-      } catch (error) {
-        console.warn('[Daemon] Failed to re-announce daemon presence:', error?.message || error);
-      }
-    }
 
     return chat;
   })().finally(() => {
@@ -832,7 +915,7 @@ function beginAcpIdleSettlement(state, roomId) {
 function emitSessionState(sessionId) {
   const state = sessions.get(sessionId);
   if (!state) return;
-  botSend(sessionId, { type: 'session.state', processing: state.isProcessing, stopping: state.isStopping, pendingCount: state.pendingCount, model: state.model });
+  botSend(sessionId, { type: 'session.state', ready: !!state.isReady, processing: state.isProcessing, stopping: state.isStopping, pendingCount: state.pendingCount, model: state.model });
 }
 
 function deactivateSession(sessionId, message) {
@@ -841,8 +924,10 @@ function deactivateSession(sessionId, message) {
   cleanupClientTerminals(state._acpClient);
   clearAcpIdleTimer(state);
   state.active = false;
+  state.isReady = false;
   state.isProcessing = false;
   state.isStopping = false;
+  state.startupPromise = null;
   state.pendingCount = 0;
   state.acpAwaitingIdle = false;
   state.acpConnection = null;
@@ -896,6 +981,13 @@ async function sendSessionPrompt(state, roomId, prompt) {
     botSend(roomId, { type: 'session.error', message: 'This agent session is no longer active. Create a new session.' });
     return;
   }
+  if (state.startupPromise) {
+    try {
+      await state.startupPromise;
+    } catch {
+      return;
+    }
+  }
   // SDK mode
   if (state.copilotSession) {
     state.isProcessing = true;
@@ -947,6 +1039,37 @@ function isAuthenticationRequiredError(error, authMessage = '') {
     || (error?.code === -32603 && text.includes('required') && (text.includes('auth') || text.includes('authentication')));
 }
 
+function buildAcpAuthenticationGuidance(agentName, error) {
+  const details = [error?.message, error?.data?.details, error?.data?.message].filter(Boolean).join(' | ');
+  if (agentName === 'copilot') {
+    return `Copilot CLI authentication is not usable on this machine yet. Run \"copilot auth login\" or set COPILOT_GITHUB_TOKEN/GITHUB_COPILOT_TOKEN in the daemon environment, then retry.${details ? ` Details: ${details}` : ''}`;
+  }
+  return `Authentication required for ${agentName}.${details ? ` Details: ${details}` : ''}`;
+}
+
+function killChildProcess(child) {
+  if (!child) return;
+  try { child.kill('SIGTERM'); } catch {}
+}
+
+async function withTimeout(promise, timeoutMs, label, onTimeout = () => {}) {
+  let timer = null;
+  try {
+    return await Promise.race([
+      promise,
+      new Promise((_, reject) => {
+        timer = setTimeout(() => {
+          try { onTimeout(); } catch {}
+          reject(new Error(`${label} timed out after ${timeoutMs}ms`));
+        }, timeoutMs);
+        timer.unref?.();
+      }),
+    ]);
+  } finally {
+    if (timer) clearTimeout(timer);
+  }
+}
+
 async function createAcpSession(sessionId, agentName, workingDirectory) {
   const config = ACP_AGENTS[agentName];
   if (!config) throw new Error(`Unknown ACP agent: ${agentName}`);
@@ -962,16 +1085,26 @@ async function createAcpSession(sessionId, agentName, workingDirectory) {
   const client = createAcpClient(sessionId);
   const connection = new ClientSideConnection((agent) => { client._agent = agent; return client; }, stream);
 
-  const initResponse = await connection.initialize({
+  const timeoutHandler = () => {
+    console.error(`[Daemon] ACP startup timed out for ${agentName}`);
+    killChildProcess(child);
+  };
+
+  const initResponse = await withTimeout(connection.initialize({
     protocolVersion: PROTOCOL_VERSION,
     clientInfo: { name: 'codeagenthub-daemon', version: '1.0.0' },
     clientCapabilities: { fs: { readTextFile: true, writeTextFile: true }, terminal: true },
-  });
+  }), ACP_STARTUP_TIMEOUT_MS, `ACP initialize for ${agentName}`, timeoutHandler);
   console.log(`[Daemon] Initialized: ${initResponse.agentInfo?.name || agentName} v${initResponse.agentInfo?.version || '?'}`);
 
   const sessionResponse = await (async () => {
     try {
-      return await connection.newSession({ cwd: workingDirectory, mcpServers: [] });
+      return await withTimeout(
+        connection.newSession({ cwd: workingDirectory, mcpServers: [] }),
+        ACP_STARTUP_TIMEOUT_MS,
+        `ACP newSession for ${agentName}`,
+        timeoutHandler,
+      );
     } catch (e) {
       const authMessage = [e?.message, e?.data?.details, e?.data?.message].filter(Boolean).join(' | ');
       const authRequired = isAuthenticationRequiredError(e, authMessage);
@@ -979,9 +1112,26 @@ async function createAcpSession(sessionId, agentName, workingDirectory) {
       const authMethods = initResponse.authMethods;
       if (!authMethods?.length) throw new Error(`Agent "${agentName}" requires auth but advertised no methods`);
       console.log(`[Daemon] Auth required. Using: ${authMethods[0].name}`);
-      await connection.authenticate({ methodId: authMethods[0].id });
+      await withTimeout(
+        connection.authenticate({ methodId: authMethods[0].id }),
+        ACP_STARTUP_TIMEOUT_MS,
+        `ACP authenticate for ${agentName}`,
+        timeoutHandler,
+      );
       console.log(`[Daemon] Auth successful`);
-      return await connection.newSession({ cwd: workingDirectory, mcpServers: [] });
+      try {
+        return await withTimeout(
+          connection.newSession({ cwd: workingDirectory, mcpServers: [] }),
+          ACP_STARTUP_TIMEOUT_MS,
+          `ACP newSession for ${agentName}`,
+          timeoutHandler,
+        );
+      } catch (retryError) {
+        if (isAuthenticationRequiredError(retryError)) {
+          throw new Error(buildAcpAuthenticationGuidance(agentName, retryError));
+        }
+        throw retryError;
+      }
     }
   })();
   console.log(`[Daemon] ACP session: ${sessionResponse.sessionId}`);
@@ -1012,15 +1162,25 @@ async function resumeAcpSession(sessionId, agentName, acpSessionId, workingDirec
   const client = createAcpClient(sessionId);
   const connection = new ClientSideConnection((agent) => { client._agent = agent; return client; }, stream);
 
-  const initResponse = await connection.initialize({
+  const timeoutHandler = () => {
+    console.error(`[Daemon] ACP resume timed out for ${agentName}`);
+    killChildProcess(child);
+  };
+
+  const initResponse = await withTimeout(connection.initialize({
     protocolVersion: PROTOCOL_VERSION,
     clientInfo: { name: 'codeagenthub-daemon', version: '1.0.0' },
     clientCapabilities: { fs: { readTextFile: true, writeTextFile: true }, terminal: true },
-  });
+  }), ACP_STARTUP_TIMEOUT_MS, `ACP initialize for ${agentName}`, timeoutHandler);
 
   const loadResponse = await (async () => {
     try {
-      return await connection.loadSession({ sessionId: acpSessionId, cwd: workingDirectory, mcpServers: [] });
+      return await withTimeout(
+        connection.loadSession({ sessionId: acpSessionId, cwd: workingDirectory, mcpServers: [] }),
+        ACP_STARTUP_TIMEOUT_MS,
+        `ACP loadSession for ${agentName}`,
+        timeoutHandler,
+      );
     } catch (e) {
       const authMessage = [e?.message, e?.data?.details, e?.data?.message].filter(Boolean).join(' | ');
       const authRequired = isAuthenticationRequiredError(e, authMessage);
@@ -1028,8 +1188,25 @@ async function resumeAcpSession(sessionId, agentName, acpSessionId, workingDirec
       const authMethods = initResponse.authMethods;
       if (!authMethods?.length) throw new Error(`Agent "${agentName}" requires auth but advertised no methods`);
       console.log(`[Daemon] Auth required for resume. Using: ${authMethods[0].name}`);
-      await connection.authenticate({ methodId: authMethods[0].id });
-      return await connection.loadSession({ sessionId: acpSessionId, cwd: workingDirectory, mcpServers: [] });
+      await withTimeout(
+        connection.authenticate({ methodId: authMethods[0].id }),
+        ACP_STARTUP_TIMEOUT_MS,
+        `ACP authenticate for ${agentName}`,
+        timeoutHandler,
+      );
+      try {
+        return await withTimeout(
+          connection.loadSession({ sessionId: acpSessionId, cwd: workingDirectory, mcpServers: [] }),
+          ACP_STARTUP_TIMEOUT_MS,
+          `ACP loadSession for ${agentName}`,
+          timeoutHandler,
+        );
+      } catch (retryError) {
+        if (isAuthenticationRequiredError(retryError)) {
+          throw new Error(buildAcpAuthenticationGuidance(agentName, retryError));
+        }
+        throw retryError;
+      }
     }
   })();
 
@@ -1059,6 +1236,13 @@ async function handleModelSwitch(state, roomId, modelId) {
   if (state.active === false) {
     await botSend(roomId, { type: 'session.error', message: 'This agent session is no longer active. Create a new session.' });
     return;
+  }
+  if (state.startupPromise) {
+    try {
+      await state.startupPromise;
+    } catch {
+      return;
+    }
   }
   if (state.copilotSession) {
     await sendSessionPrompt(state, roomId, `/model ${modelId}`);
@@ -1094,6 +1278,13 @@ async function handleModeSwitch(state, roomId, modeId) {
     await botSend(roomId, { type: 'session.error', message: 'This agent session is no longer active. Create a new session.' });
     return;
   }
+  if (state.startupPromise) {
+    try {
+      await state.startupPromise;
+    } catch {
+      return;
+    }
+  }
   if (state.copilotSession) {
     await sendSessionPrompt(state, roomId, `/mode ${modeId}`);
     return;
@@ -1127,7 +1318,7 @@ async function tryResumeSession(roomId, envelope) {
 
   let state = sessions.get(roomId);
   const shouldTryResume = (!state || state.active === false)
-    && (envelope.type === 'user.prompt' || envelope.type === 'user.command');
+    && (envelope.type === 'user.prompt' || envelope.type === 'user.command' || envelope.type === 'session.sync_state');
   if (!shouldTryResume) return state;
 
   const saved = sessionStore[roomId];
@@ -1151,6 +1342,7 @@ async function tryResumeSession(roomId, envelope) {
         sessions.set(roomId, state);
         state.copilotSession = await resumeSdkSession(roomId, saved);
         state.active = true;
+        state.isReady = true;
         state.isResuming = false;
         state.currentModelId = saved.model || state.model;
         bindCopilotSdkEvents(state);
@@ -1175,6 +1367,7 @@ async function tryResumeSession(roomId, envelope) {
         acpProcess: acp.process,
         _acpClient: acp.client,
         active: true,
+        isReady: true,
         isResuming: false,
       });
       handleSessionCapabilities(state, roomId, acp.loadResponse);
@@ -1196,6 +1389,7 @@ async function tryResumeSession(roomId, envelope) {
           model: saved.model || DEFAULT_SDK_MODEL,
           workingDirectory: saved.cwd || process.cwd(),
         });
+        state.isReady = true;
         state.isResuming = false;
         emitSessionState(roomId);
         await botSend(roomId, {
@@ -1229,13 +1423,13 @@ async function handleBotNotification(notification) {
     let envelope;
     try { envelope = JSON.parse(msg.content.text); } catch { return; }
 
-    if (roomId === LOBBY_ROOM) {
+    if (roomId === DAEMON_CONTROL_ROOM) {
       if (envelope.type === 'workspace.list_request' && envelope.daemonId === BOT_USER_ID && envelope.requestId && envelope.requesterUserId) {
         const result = await listDirectoriesForPath(envelope.path, advertisedWorkspaces, {
           query: envelope.query,
           limit: envelope.limit,
         });
-        await botSend(LOBBY_ROOM, {
+        await botSend(DAEMON_CONTROL_ROOM, {
           type: 'workspace.list_response',
           requestId: envelope.requestId,
           requesterUserId: envelope.requesterUserId,
@@ -1247,6 +1441,10 @@ async function handleBotNotification(notification) {
     }
 
     if (envelope.type === 'control.create') {
+      if (!isPortalControlUser(msg.createdBy)) {
+        console.warn(`[Daemon] Ignoring unauthorized create from ${msg.createdBy} for room ${roomId}`);
+        return;
+      }
       const { userId, agentName, workingDirectory, initialPrompt, model } = envelope;
       console.log(`[Daemon] control.create: agent=${agentName} dir=${workingDirectory}`);
       let selectedWorkingDirectory;
@@ -1270,11 +1468,16 @@ async function handleBotNotification(notification) {
         model: model || (agentName === 'copilot-sdk' ? DEFAULT_SDK_MODEL : 'default'),
       });
       sessions.set(roomId, state);
+      emitSessionState(roomId);
 
       if (agentName === 'copilot-sdk') {
         await botSend(roomId, { type: 'system.info', message: 'Starting GitHub Copilot (SDK)…' });
         try {
-          await startSdkSession(roomId, state, { model, workingDirectory: selectedWorkingDirectory });
+          state.startupPromise = (async () => {
+            await startSdkSession(roomId, state, { model, workingDirectory: selectedWorkingDirectory });
+            state.isReady = true;
+          })();
+          await state.startupPromise;
           await botSend(roomId, { type: 'system.info', message: 'Connected to GitHub Copilot (SDK)' });
           emitSessionState(roomId);
           if (initialPrompt) {
@@ -1283,25 +1486,34 @@ async function handleBotNotification(notification) {
         } catch (err) {
           console.error('[Daemon] Copilot SDK failed:', err.message);
           deactivateSession(roomId, `Failed to start: ${err.message}`);
+        } finally {
+          state.startupPromise = null;
         }
       } else {
         await botSend(roomId, { type: 'system.info', message: `Starting ${ACP_AGENTS[agentName]?.displayName || agentName}…` });
         try {
-          const acp = await createAcpSession(roomId, agentName, selectedWorkingDirectory);
-          Object.assign(state, { acpConnection: acp.connection, acpSessionId: acp.acpSessionId, acpProcess: acp.process, _acpClient: acp.client, active: true });
-          handleSessionCapabilities(state, roomId, acp.sessionResponse);
-          persistSessionRecord(roomId, {
-            agentName,
-            acpSessionId: acp.acpSessionId,
-            cwd: selectedWorkingDirectory,
-            supportsResume: acp.initResponse.agentCapabilities?.loadSession ?? false,
-          });
-          await botSend(roomId, { type: 'system.info', message: `Connected to ${acp.displayName}` });
+          let connectedDisplayName = ACP_AGENTS[agentName]?.displayName || agentName;
+          state.startupPromise = (async () => {
+            const acp = await createAcpSession(roomId, agentName, selectedWorkingDirectory);
+            Object.assign(state, { acpConnection: acp.connection, acpSessionId: acp.acpSessionId, acpProcess: acp.process, _acpClient: acp.client, active: true, isReady: true });
+            connectedDisplayName = acp.displayName || connectedDisplayName;
+            handleSessionCapabilities(state, roomId, acp.sessionResponse || acp.loadResponse || acp.initResponse);
+            persistSessionRecord(roomId, {
+              agentName,
+              acpSessionId: acp.acpSessionId,
+              cwd: selectedWorkingDirectory,
+              supportsResume: acp.initResponse.agentCapabilities?.loadSession ?? false,
+            });
+          })();
+          await state.startupPromise;
+          await botSend(roomId, { type: 'system.info', message: `Connected to ${connectedDisplayName}` });
           emitSessionState(roomId);
           if (initialPrompt) await sendSessionPrompt(state, roomId, initialPrompt);
         } catch (err) {
           console.error('[Daemon] Spawn failed:', err.message);
           deactivateSession(roomId, `Failed to start: ${err.message}`);
+        } finally {
+          state.startupPromise = null;
         }
       }
       return;
@@ -1309,7 +1521,7 @@ async function handleBotNotification(notification) {
 
     if (envelope.type === 'control.delete') {
       const state = sessions.get(roomId);
-      if (!isSessionOwner(state, msg.createdBy)) {
+      if (!isPortalControlUser(msg.createdBy) && !isSessionOwner(state, msg.createdBy)) {
         console.warn(`[Daemon] Ignoring unauthorized delete from ${msg.createdBy} for room ${roomId}`);
         return;
       }
@@ -1323,6 +1535,10 @@ async function handleBotNotification(notification) {
     if (envelope.type === 'control.cancel') {
       const state = sessions.get(roomId);
       if (!state) return;
+      if (!isPortalControlUser(msg.createdBy) && !isSessionOwner(state, msg.createdBy)) {
+        console.warn(`[Daemon] Ignoring unauthorized cancel from ${msg.createdBy} for room ${roomId}`);
+        return;
+      }
       try {
         await cancelSessionTurn(state, roomId);
       } catch (err) {
@@ -1375,6 +1591,9 @@ async function handleBotNotification(notification) {
             state.pendingPermissions.delete(envelope.requestId);
           }
         }
+        break;
+      case 'session.sync_state':
+        syncSessionUiState(roomId, state);
         break;
     }
   } catch (err) {
@@ -1507,6 +1726,11 @@ function createAcpClient(sessionId) {
           break;
         }
         case 'usage_update': {
+          if (state) {
+            state.usageSize = update.size || 0;
+            state.usageUsed = update.used || 0;
+            state.usageCost = update.cost || null;
+          }
           botSend(sessionId, {
             type: 'usage.update',
             size: update.size || 0,
@@ -1640,7 +1864,7 @@ function bindCopilotSdkEvents(state) {
     state.currentModelId = event.data.newModel;
     updateSessionRecord(sessionId, { model: event.data.newModel });
     emitSessionState(sessionId);
-    if (state.availableModels.length) emitModelsUpdate(sessionId, state);
+    if (hasModelToolbarState(state)) emitModelsUpdate(sessionId, state);
   });
 
   copilotSession.on('session.mode_changed', (event) => {
@@ -1649,10 +1873,13 @@ function bindCopilotSdkEvents(state) {
   });
 
   copilotSession.on('session.usage_info', (event) => {
+    state.usageSize = event.data.tokenLimit || 0;
+    state.usageUsed = event.data.currentTokens || 0;
+    state.usageCost = null;
     botSend(sessionId, {
       type: 'usage.update',
-      size: event.data.tokenLimit || 0,
-      used: event.data.currentTokens || 0,
+      size: state.usageSize,
+      used: state.usageUsed,
       raw: event.data,
     });
   });
@@ -1669,7 +1896,6 @@ async function main() {
   Object.assign(sessionStore, await loadSessionStore());
 
   console.log('[Daemon] Starting...');
-  await ensureBotChatReady();
 
   // Scan /workspace for available project directories
   let workspaces = [];
@@ -1690,6 +1916,8 @@ async function main() {
     workspaces,
   };
 
+  await ensureBotChatReady();
+
   const announceOffline = async () => {
     if (shuttingDown) return;
     shuttingDown = true;
@@ -1703,8 +1931,8 @@ async function main() {
       heartbeatTimer = null;
     }
     try {
-      if (botChat && daemonPresenceInfo) {
-        await sendDaemonPresenceWithChat(botChat, 'daemon.offline', daemonPresenceInfo);
+      if (daemonPresenceInfo) {
+        await sendDaemonPresence('daemon.offline', daemonPresenceInfo);
       }
     } catch (e) {
       console.log(`[Daemon] Offline announce failed: ${e.message?.substring(0, 60)}`);
@@ -1721,16 +1949,9 @@ async function main() {
   process.once('SIGTERM', () => handleShutdown('SIGTERM'));
   try {
     await sendDaemonPresence('daemon.online', daemonPresenceInfo);
-    console.log(`[Daemon] Announced in lobby: ${daemonPresenceInfo.hostname} (${daemonPresenceInfo.agents.join(', ')})`);
+    console.log(`[Daemon] Registered with portal: ${daemonPresenceInfo.hostname} (${daemonPresenceInfo.agents.join(', ')})`);
   } catch (e) {
-    console.log(`[Daemon] Lobby announce failed, retrying in 2s...`);
-    await new Promise(r => setTimeout(r, 2000));
-    try {
-      await sendDaemonPresence('daemon.online', daemonPresenceInfo);
-      console.log(`[Daemon] Announced in lobby (retry): ${daemonPresenceInfo.hostname}`);
-    } catch (e2) {
-      console.log(`[Daemon] Lobby announce failed: ${e2.message?.substring(0, 60)}`);
-    }
+    console.log(`[Daemon] Portal registration refresh failed: ${e.message?.substring(0, 60)}`);
   }
   heartbeatTimer = setInterval(() => {
     void sendDaemonPresence('daemon.online', daemonPresenceInfo).catch((err) => {

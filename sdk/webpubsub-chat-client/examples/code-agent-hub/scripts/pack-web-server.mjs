@@ -69,6 +69,21 @@ export async function packWebServer() {
     resolve(publicOutDir, 'index.html'),
   );
   await copyRuntimeAsset(
+    'portal regression helpers',
+    resolve(projectRoot, 'public', 'portal-regressions.js'),
+    resolve(publicOutDir, 'portal-regressions.js'),
+  );
+  await copyRuntimeAsset(
+    'session live sync helpers',
+    resolve(projectRoot, 'public', 'session-live-sync.js'),
+    resolve(publicOutDir, 'session-live-sync.js'),
+  );
+  await copyRuntimeAsset(
+    'session toolbar helpers',
+    resolve(projectRoot, 'public', 'session-toolbar-state.js'),
+    resolve(publicOutDir, 'session-toolbar-state.js'),
+  );
+  await copyRuntimeAsset(
     'browser chat client',
     resolve(repoRoot, 'dist', 'browser', 'index.js'),
     resolve(publicOutDir, 'chat-client.js'),

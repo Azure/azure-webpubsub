@@ -10,8 +10,8 @@
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 :root{--bg:#0a0a0a;--bg1:#111;--bg2:#151515;--bg3:#1a1a1a;--bg4:#222;--fg:#e8e8e8;--fg2:#ccc;--fg3:#aaa;--fg4:#888;--fg5:#666;--fg6:#555;--fg7:#444;--border:#222;--border2:#2a2a2a;--accent:#4a90d9;--accent2:#6baaff;--green:#50d167;--red:#e55;--orange:#f5a623;--apple-filter:invert(1)}
 html.light{--bg:#f8f9fa;--bg1:#ffffff;--bg2:#f1f3f5;--bg3:#e9ecef;--bg4:#dee2e6;--fg:#111827;--fg2:#1f2937;--fg3:#374151;--fg4:#4b5563;--fg5:#6b7280;--fg6:#9ca3af;--fg7:#d1d5db;--border:#e5e7eb;--border2:#d1d5db;--accent:#2563eb;--accent2:#1d4ed8;--green:#16a34a;--red:#dc2626;--orange:#d97706;--apple-filter:none}
-html,body{height:100%;background:var(--bg);color:var(--fg);font-family:-apple-system,'SF Pro Text',system-ui,sans-serif;overflow:hidden}
-a{color:var(--accent2);text-decoration:none}button{font-family:inherit;cursor:pointer}
+html,body{height:100%;background:radial-gradient(ellipse at 15% 0%,color-mix(in srgb,var(--accent) 4%,transparent),transparent 50%),radial-gradient(ellipse at 85% 100%,color-mix(in srgb,var(--accent2) 3%,transparent),transparent 40%),var(--bg);color:var(--fg);font-family:-apple-system,'SF Pro Text',system-ui,sans-serif;overflow:hidden}
+a{color:var(--accent2);text-decoration:none}button{font-family:inherit;cursor:pointer;transition:transform .1s ease,opacity .1s ease}button:active:not(:disabled){transform:scale(.97);opacity:.85}
 .hidden{display:none!important}
 ::-webkit-scrollbar{width:6px}::-webkit-scrollbar-thumb{background:rgba(128,128,128,.2);border-radius:3px}
 
@@ -27,16 +27,18 @@ a{color:var(--accent2);text-decoration:none}button{font-family:inherit;cursor:po
 .dbg-dir{display:inline-block;width:14px;color:var(--accent2);font-weight:700;font-size:10px}
 .dbg-type{color:var(--orange);font-weight:600;font-family:ui-monospace,SFMono-Regular,Menlo,monospace}
 .dbg-time{color:var(--fg5);margin-left:6px;font-size:10px}
-.dbg-json{display:none;margin-top:4px;padding:6px 8px;background:var(--bg2);border:1px solid var(--border);border-radius:6px;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:10px;line-height:1.4;color:var(--fg3);white-space:pre-wrap;word-break:break-all;max-height:200px;overflow:auto}
-.dbg-item.expanded .dbg-json{display:block}
+.dbg-json{overflow:hidden;max-height:0;opacity:0;margin-top:0;padding:0 8px;background:var(--bg2);border:1px solid var(--border);border-radius:6px;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:10px;line-height:1.4;color:var(--fg3);white-space:pre-wrap;word-break:break-all;transition:max-height .25s ease,opacity .2s ease,padding .2s ease,margin .2s ease}
+.dbg-item.expanded .dbg-json{max-height:200px;opacity:1;margin-top:4px;padding:6px 8px;overflow:auto}
 
 /* ── Shell ── */
 #app{height:100%;display:flex;flex-direction:column}
-#topbar{height:48px;flex-shrink:0;display:flex;align-items:center;gap:8px;padding:0 14px;background:var(--bg1);border-bottom:1px solid var(--border)}
+#topbar{height:48px;flex-shrink:0;display:flex;align-items:center;gap:8px;padding:0 14px;background:color-mix(in srgb,var(--bg1) 82%,transparent);backdrop-filter:blur(12px) saturate(1.2);-webkit-backdrop-filter:blur(12px) saturate(1.2);border-bottom:none;position:relative;z-index:10}
+#topbar::after{content:'';position:absolute;left:0;right:0;bottom:0;height:2px;background:linear-gradient(90deg,var(--accent) 0%,var(--accent2) 35%,transparent 75%);opacity:.55;pointer-events:none}
 #topbar .tb-left{display:flex;align-items:center;gap:8px}
 #topbar .tb-burger{width:32px;height:32px;border:none;border-radius:8px;background:none;color:#888;font-size:16px;display:flex;align-items:center;justify-content:center}
 #topbar .tb-burger:active{background:#222}
-#topbar .tb-title{font-size:15px;font-weight:600;color:var(--fg)}
+#topbar .tb-title{font-size:15px;font-weight:700;letter-spacing:-.01em;color:var(--fg);transition:opacity .1s ease}
+#topbar .tb-title.is-brand{background:linear-gradient(135deg,var(--fg) 40%,var(--accent2));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
 #topbar .tb-status{font-size:11px;color:var(--green);margin-left:4px}
 #topbar .tb-right{margin-left:auto;display:flex;gap:6px;align-items:center}
 #topbar .tb-user{display:inline-flex;align-items:center;gap:6px;height:30px;padding:0 12px;border:1px solid color-mix(in srgb,var(--accent2) 35%,var(--border));border-radius:15px;background:color-mix(in srgb,var(--accent2) 12%,transparent);color:var(--fg);font-size:12px;font-weight:700;letter-spacing:.01em;white-space:nowrap}
@@ -54,7 +56,7 @@ a{color:var(--accent2);text-decoration:none}button{font-family:inherit;cursor:po
 #scroll{flex:1;overflow-y:auto;overflow-x:hidden;-webkit-overflow-scrolling:touch;padding-bottom:env(safe-area-inset-bottom,0px)}
 #ibar{flex-shrink:0;padding:8px 14px calc(env(safe-area-inset-bottom,0px) + 8px);background:var(--bg1);border-top:1px solid var(--border)}
 .input-row{max-width:780px;margin:0 auto;display:flex;align-items:flex-end;gap:8px}
-.input-row .dot{width:8px;height:8px;border-radius:50%;background:#555;flex-shrink:0;margin-bottom:12px}
+.input-row .dot{width:8px;height:8px;border-radius:50%;background:#555;flex-shrink:0;margin-bottom:12px;transition:background .3s}
 .input-row .dot.idle{background:#50d167}.input-row .dot.busy{background:#f5a623}.input-row .dot.permission{background:#f5a623}.input-row .dot.error{background:#e55}
 .input-row textarea{flex:1;background:var(--bg3);border:1px solid var(--border2);border-radius:20px;padding:9px 14px;color:var(--fg);font-size:15px;line-height:1.35;font-family:inherit;resize:none;outline:none;min-height:38px;max-height:120px}
 .input-row textarea:focus{border-color:var(--fg7)}
@@ -125,6 +127,7 @@ a{color:var(--accent2);text-decoration:none}button{font-family:inherit;cursor:po
 .agent-pill.active .ap-tag{background:rgba(74,144,217,.2);color:#6baaff}
 .sh-go{width:100%;height:44px;border-radius:22px;border:none;background:#4a90d9;color:#fff;font-size:15px;font-weight:700;margin-top:6px}
 .sh-go:disabled{opacity:.4}
+.sh-go.is-blocked,.sh-go.is-blocked:disabled{opacity:1;background:color-mix(in srgb,var(--bg3) 82%,#5b4330);color:#f3c67c;border:1px solid color-mix(in srgb,#f3c67c 35%,var(--border2));cursor:not-allowed;box-shadow:none}
 
 /* ── Column View (Finder-style) ── */
 #column-nav{display:flex;flex:1;height:100%;overflow:hidden;background:var(--bg)}
@@ -136,10 +139,10 @@ a{color:var(--accent2);text-decoration:none}button{font-family:inherit;cursor:po
 .compact-hdr{padding:12px 16px 8px;font-size:10px;font-weight:700;color:var(--fg6);text-transform:uppercase;letter-spacing:.06em}
 .compact-subhdr{padding:8px 14px 6px;font-size:9px;font-weight:700;color:var(--fg5);text-transform:uppercase;letter-spacing:.06em}
 .compact-list{padding:0 10px}
-.compact-empty{text-align:center;color:var(--fg5);font-size:12px;padding:14px 10px 18px;line-height:1.5}
-.compact-item{display:flex;align-items:center;gap:10px;padding:12px 14px;border-radius:12px;cursor:pointer;font-size:13px;color:var(--fg2);margin-bottom:4px;background:transparent;border:1px solid transparent}
+.compact-empty{text-align:left;color:var(--fg5);font-size:12px;padding:10px 14px;line-height:1.5}
+.compact-item{display:flex;align-items:center;gap:10px;padding:12px 14px;border-radius:12px;cursor:pointer;font-size:13px;color:var(--fg2);margin-bottom:4px;background:transparent;border:1px solid transparent;transition:background .15s,box-shadow .15s,color .15s,border-color .15s}
 .compact-item:hover{background:var(--bg2);border-color:var(--border)}
-.compact-item.selected{background:rgba(74,144,217,.15);color:var(--accent2)}
+.compact-item.selected{background:rgba(74,144,217,.15);color:var(--accent2);box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--accent) 20%,transparent),0 1px 6px color-mix(in srgb,var(--accent) 8%,transparent)}
 .compact-item.disabled{opacity:.42;cursor:not-allowed;filter:saturate(.55)}
 .compact-item.disabled:hover{background:transparent;border-color:transparent}
 .compact-item .ci-icon{font-size:14px;flex-shrink:0}
@@ -147,16 +150,19 @@ a{color:var(--accent2);text-decoration:none}button{font-family:inherit;cursor:po
 .compact-item .ci-name{font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .compact-item .ci-meta{font-size:11px;color:var(--fg5);margin-top:1px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .compact-item .ci-dot{width:6px;height:6px;border-radius:50%;background:var(--green);flex-shrink:0}
-.compact-item .ci-join{height:26px;padding:0 10px;border:1px solid var(--border2);border-radius:999px;background:var(--bg3);color:var(--accent2);font-size:11px;font-weight:700;flex-shrink:0}
+.compact-item .ci-tag{font-size:10px;border:1px solid var(--border2);border-radius:999px;padding:2px 8px;flex-shrink:0;font-weight:800;letter-spacing:.04em}
+.compact-item .ci-join{height:22px;padding:0 8px;border:1px solid var(--border2);border-radius:999px;background:var(--bg3);color:var(--accent2);font-size:10px;font-weight:700;flex-shrink:0;white-space:nowrap}
 .compact-item .ci-join:disabled{opacity:.6}
+.ci-actions{display:flex;flex-direction:column;gap:2px;flex-shrink:0;align-items:stretch}
 .col{min-width:200px;max-width:280px;flex-shrink:0;border-right:1px solid var(--border);overflow-y:auto;display:flex;flex-direction:column}
+.col.col-enter{animation:col-in .2s ease-out}
 .col.is-disabled,#chat-col.is-disabled{opacity:.5}
 .col.is-disabled .col-item,#chat-col.is-disabled button,#chat-col.is-disabled textarea{pointer-events:none}
 .col-hdr{padding:10px 12px 6px;font-size:10px;font-weight:700;color:var(--fg6);text-transform:uppercase;letter-spacing:.06em;flex-shrink:0}
 .col-list{flex:1;overflow-y:auto;padding:4px 6px}
-.col-item{display:flex;align-items:center;gap:8px;padding:8px 10px;border-radius:10px;cursor:pointer;font-size:13px;color:#ccc;margin-bottom:2px}
+.col-item{display:flex;align-items:center;gap:8px;padding:8px 10px;border-radius:10px;cursor:pointer;font-size:13px;color:#ccc;margin-bottom:2px;transition:background .15s,box-shadow .15s,color .15s}
 .col-item:hover{background:#1a1a1a}
-.col-item.selected{background:rgba(74,144,217,.15);color:#6baaff}
+.col-item.selected{background:rgba(74,144,217,.15);color:#6baaff;box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--accent) 20%,transparent),0 1px 6px color-mix(in srgb,var(--accent) 8%,transparent)}
 .col-item.disabled{opacity:.42;cursor:not-allowed;filter:saturate(.55)}
 .col-item.disabled:hover{background:transparent}
 .col-item .ci-icon{font-size:14px;flex-shrink:0}
@@ -165,26 +171,37 @@ a{color:var(--accent2);text-decoration:none}button{font-family:inherit;cursor:po
 .col-item .ci-meta{font-size:11px;color:#555;margin-top:1px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .col-item .ci-dot{width:6px;height:6px;border-radius:50%;background:#50d167;flex-shrink:0}
 .col-item .ci-tag{font-size:10px;color:var(--accent2);border:1px solid var(--border2);border-radius:999px;padding:1px 7px;flex-shrink:0}
+.col-item .ci-join{height:22px;padding:0 8px;border:1px solid var(--border2);border-radius:999px;background:var(--bg3);color:var(--accent2);font-size:10px;font-weight:700;flex-shrink:0;white-space:nowrap;cursor:pointer}
+.col-item .ci-join:disabled{opacity:.6}
+.col-item .ci-tag.ci-tag-view,.compact-item .ci-tag.ci-tag-view{color:#f3c67c;border-color:color-mix(in srgb,#f3c67c 45%,var(--border2));background:color-mix(in srgb,#f3c67c 12%,transparent)}
 .col-item .ci-del{width:20px;height:20px;border:none;border-radius:5px;background:none;color:#444;font-size:11px;cursor:pointer;display:flex;align-items:center;justify-content:center;opacity:0;transition:opacity .1s;flex-shrink:0}
 .col-item:hover .ci-del{opacity:1}.col-item .ci-del:hover{background:#2a1a1a;color:#e55}
-.col-empty{text-align:center;color:#444;font-size:12px;padding:20px 10px;line-height:1.6}
+.col-empty{text-align:center;color:#444;font-size:12px;padding:20px 14px;line-height:1.6}
+.more-agents-wrap{overflow:hidden;max-height:0;opacity:0;transition:max-height .25s ease,opacity .2s ease}
+.more-agents-wrap.more-open{max-height:600px;opacity:1}
+.col-list-msg{padding:0 10px 8px;font-size:11px;line-height:1.45;color:var(--fg5);min-height:0}
+.col-list-msg:empty{display:none}
+.col-list-msg.is-loading{color:var(--accent2)}
+.col-list-msg.is-error{color:#ff8f8f}
+.col-list-msg.is-success{color:var(--green)}
+.col-list-msg.is-warn{color:var(--orange)}
 .col-skeleton{padding:12px 10px;display:flex;flex-direction:column;gap:10px}
 .sk-row{display:flex;align-items:center;gap:12px;padding:14px 12px;border-radius:14px;background:color-mix(in srgb,var(--bg2) 88%,transparent);min-height:62px}
-.sk-icon,.sk-line{background:color-mix(in srgb,var(--fg7) 55%,transparent)}
+.sk-icon,.sk-line{background:linear-gradient(90deg,color-mix(in srgb,var(--fg7) 45%,transparent) 25%,color-mix(in srgb,var(--fg7) 70%,transparent) 50%,color-mix(in srgb,var(--fg7) 45%,transparent) 75%);background-size:200% 100%;animation:shimmer 1.5s ease infinite}
 .sk-icon{width:24px;height:24px;border-radius:8px;flex-shrink:0}
 .sk-text{flex:1;display:flex;flex-direction:column;gap:8px}
 .sk-line{height:10px;border-radius:999px}
 .sk-line.w-40{width:40%}.sk-line.w-55{width:55%}.sk-line.w-65{width:65%}.sk-line.w-75{width:75%}.sk-line.w-85{width:85%}
 .chat-placeholder{flex:1;display:flex;align-items:center;justify-content:center;padding:24px 18px;min-height:0}
-.chat-empty{position:relative;width:100%;min-height:min(58vh,520px);display:flex;align-items:center;justify-content:center;overflow:hidden;background:transparent}
+.chat-empty{position:relative;width:100%;min-height:min(58vh,520px);display:flex;flex-direction:column;align-items:center;justify-content:center;overflow:hidden;background:transparent}
 .chat-empty-copy{position:relative;z-index:2;display:flex;flex-direction:column;align-items:center;text-align:center;gap:10px;padding:28px;max-width:420px}
 .chat-empty-kicker{font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--fg5)}
 .chat-empty-title{font-size:24px;line-height:1.15;font-weight:750;color:var(--fg)}
 .chat-empty-sub{font-size:13px;line-height:1.6;color:var(--fg4)}
-.chat-empty-watermark{position:absolute;inset:auto 50% 50% auto;transform:translate(38%,34%);width:min(42vw,320px);height:min(42vw,320px);color:color-mix(in srgb,var(--fg) 10%,transparent);opacity:.8;pointer-events:none;filter:blur(.2px)}
+.chat-empty-watermark{width:min(28vw,180px);height:min(28vw,180px);color:color-mix(in srgb,var(--fg) 10%,transparent);opacity:.8;pointer-events:none;filter:blur(.2px);flex-shrink:0;margin-bottom:8px}
 .chat-empty-watermark svg{width:100%;height:100%}
-.chat-empty-watermark.generic{transform:translate(34%,30%);width:min(34vw,260px);height:min(34vw,260px);opacity:.45}
-.chat-empty-watermark-glyph{width:100%;height:100%;display:flex;align-items:center;justify-content:center;font-size:min(28vw,220px);font-weight:800;line-height:1;color:inherit}
+.chat-empty-watermark.generic{width:min(22vw,140px);height:min(22vw,140px);opacity:.45}
+.chat-empty-watermark-glyph{width:100%;height:100%;display:flex;align-items:center;justify-content:center;font-size:min(18vw,140px);font-weight:800;line-height:1;color:inherit}
 .mob-back{display:none}
 #col-login .col-list{padding:16px 14px}
 .login-card{margin:0;padding:0;background:none;border:none;border-radius:0}
@@ -239,10 +256,10 @@ a{color:var(--accent2);text-decoration:none}button{font-family:inherit;cursor:po
 #chat{max-width:780px;margin:0 auto;padding:16px 14px 20px;display:flex;flex-direction:column;gap:6px}
 
 /* User message — right-aligned compact bubble */
-.u-msg{align-self:flex-end;max-width:85%;background:#2a2a2a;border-radius:18px 18px 4px 18px;padding:10px 14px;font-size:14px;line-height:1.5;word-break:break-word}
+.u-msg{align-self:flex-end;max-width:85%;background:#2a2a2a;border-radius:18px 18px 4px 18px;padding:10px 14px;font-size:14px;line-height:1.5;word-break:break-word;animation:msg-in .18s ease-out}
 
 /* AI message — no bubble, direct markdown */
-.ai-msg{font-size:14px;line-height:1.65;color:#ddd;word-break:break-word;padding:4px 0}
+.ai-msg{font-size:14px;line-height:1.65;color:#ddd;word-break:break-word;padding:4px 0;animation:msg-in .18s ease-out}
 .ai-msg.streaming::after{content:'';display:inline-block;width:6px;height:14px;background:#6baaff;margin-left:3px;animation:cursor .8s infinite}
 .ai-msg h1,.ai-msg h2,.ai-msg h3{color:#e8e8e8;margin:14px 0 6px;line-height:1.25}.ai-msg h1{font-size:20px}.ai-msg h2{font-size:17px}.ai-msg h3{font-size:15px}
 .ai-msg h1:first-child,.ai-msg h2:first-child,.ai-msg h3:first-child{margin-top:0}
@@ -259,8 +276,8 @@ a{color:var(--accent2);text-decoration:none}button{font-family:inherit;cursor:po
 /* Thinking — collapsible single line */
 .think-row{display:flex;align-items:center;gap:6px;padding:4px 0;font-size:13px;color:#a78bfa;cursor:pointer}
 .think-row .arrow{font-size:10px;transition:transform .15s}.think-row .arrow.open{transform:rotate(90deg)}
-.think-body{display:none;padding:4px 0 4px 18px;font-size:13px;line-height:1.55;color:#999}
-.think-body.show{display:block}
+.think-body{overflow:hidden;max-height:0;opacity:0;padding:0 0 0 18px;font-size:13px;line-height:1.55;color:#999;transition:max-height .25s ease,opacity .2s ease,padding .25s ease}
+.think-body.show{max-height:2000px;opacity:1;padding:4px 0 4px 18px}
 .think-body p{margin:4px 0}.think-body p:first-child{margin-top:0}
 .think-body code{background:rgba(255,255,255,.06);padding:1px 4px;border-radius:3px;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:12px}
 .think-body pre{background:#151515;border:1px solid #1e1e1e;border-radius:8px;padding:8px 10px;margin:4px 0;overflow-x:auto}
@@ -272,12 +289,12 @@ a{color:var(--accent2);text-decoration:none}button{font-family:inherit;cursor:po
 .tool-row .t-sum{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:12px;color:#777}
 .tool-row .t-st{flex-shrink:0;font-size:12px}
 .t-st.run{color:#f5a623}.t-st.ok{color:#50d167}.t-st.err{color:#e55}
-.tool-det{display:none;margin-top:4px}.tool-det.open{display:block}
+.tool-det{overflow:hidden;max-height:0;opacity:0;margin-top:0;transition:max-height .25s ease,opacity .2s ease,margin .2s ease}.tool-det.open{max-height:600px;opacity:1;margin-top:4px}
 .tool-out{background:#111;border:1px solid #1e1e1e;border-radius:8px;padding:8px 10px;font-size:11px;line-height:1.5;color:#999;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;white-space:pre-wrap;word-break:break-word;max-height:200px;overflow:auto}
 /* Tool group */
 .tool-grp-hdr{display:flex;align-items:center;gap:6px;padding:6px 10px;background:#151515;border:1px solid #1e1e1e;border-radius:10px;font-size:13px;color:#ccc;cursor:pointer}
 .tool-grp-cnt{background:#222;padding:1px 7px;border-radius:99px;font-size:11px;color:#888}
-.tool-grp-items{display:none;padding:4px 0 0 14px}.tool-grp-items.expanded{display:flex;flex-direction:column;gap:4px}
+.tool-grp-items{overflow:hidden;max-height:0;opacity:0;padding:0 0 0 14px;transition:max-height .25s ease,opacity .2s ease,padding .2s ease}.tool-grp-items.expanded{max-height:1000px;opacity:1;display:flex;flex-direction:column;gap:4px;padding:4px 0 0 14px}
 
 /* Permission — inline compact */
 .perm-row{background:#1a1608;border:1px solid #2a2210;border-left:3px solid var(--orange);border-radius:10px;overflow:hidden}
@@ -287,8 +304,8 @@ a{color:var(--accent2);text-decoration:none}button{font-family:inherit;cursor:po
 .perm-hdr .p-badge{background:#2a2210;padding:1px 7px;border-radius:99px;font-size:10px;color:#c9a83e}
 .perm-hdr .p-sum{flex:1;min-width:0;color:#998a55;font-size:12px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .perm-hdr .p-toggle{border:none;background:#2a2210;color:#c9a83e;padding:4px 9px;border-radius:8px;font-size:11px;font-weight:600;cursor:pointer;flex-shrink:0}
-.perm-det{display:none;padding:0 10px 8px}
-.perm-det.expanded{display:block}
+.perm-det{overflow:hidden;max-height:0;opacity:0;padding:0 10px;transition:max-height .25s ease,opacity .2s ease,padding .2s ease}
+.perm-det.expanded{max-height:800px;opacity:1;padding:0 10px 8px}
 .perm-det ul{list-style:none}
 .perm-det-item{background:#151208;border:1px solid #2a2210;border-radius:8px;padding:8px;margin-bottom:5px;font-size:12px;overflow:hidden}
 .perm-det-kind{color:#c9a83e;font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.04em}
@@ -381,6 +398,9 @@ a{color:var(--accent2);text-decoration:none}button{font-family:inherit;cursor:po
 .tb-btn.auto-on{background:#1a3a1a!important;border-color:#2a5a2a!important;color:#50d167!important}
 
 @keyframes cursor{0%,100%{opacity:1}50%{opacity:0}}
+@keyframes shimmer{0%{background-position:200% 0}100%{background-position:-200% 0}}
+@keyframes msg-in{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
+@keyframes col-in{from{opacity:0;transform:translateX(12px)}to{opacity:1;transform:translateX(0)}}
 @media(max-width:700px){
   .wl-title{font-size:22px}
   #welcome{padding:24px 12px}
@@ -410,7 +430,7 @@ a{color:var(--accent2);text-decoration:none}button{font-family:inherit;cursor:po
   <div id="topbar">
     <div class="tb-left">
       <button class="tb-burger" onclick="toggleColumns()" aria-label="Menu">☰</button>
-      <span class="tb-title" id="topbar-title">CodeAgentHub</span>
+      <span class="tb-title is-brand" id="topbar-title">CodeAgentHub</span>
       <span class="tb-status" id="topbar-st"></span>
     </div>
     <div class="tb-right">
@@ -432,10 +452,10 @@ a{color:var(--accent2);text-decoration:none}button{font-family:inherit;cursor:po
         <div class="col-list">
           <div class="login-card" id="login-card-oauth" style="display:none">
             <div class="login-title">Sign in</div>
-            <div class="login-copy">Sign in with your GitHub account to continue.</div>
-            <button class="sh-go" id="github-login-btn" onclick="window.location.href='/auth/login'" style="display:flex;align-items:center;justify-content:center;gap:8px">
+            <div class="login-copy" id="login-copy-oauth">Sign in with your GitHub account to continue.</div>
+            <button class="sh-go" id="github-login-btn" onclick="window.handleOauthAction()" style="display:flex;align-items:center;justify-content:center;gap:8px" type="button">
               <svg width="18" height="18" viewBox="0 0 16 16" fill="currentColor"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg>
-              Sign in with GitHub
+              <span id="github-login-label">Sign in with GitHub</span>
             </button>
             <div class="login-msg" id="login-msg-oauth"></div>
           </div>
@@ -461,9 +481,10 @@ a{color:var(--accent2);text-decoration:none}button{font-family:inherit;cursor:po
       <!-- Column 3: Sessions -->
       <div class="col" id="col-sessions" style="display:none">
         <div class="col-hdr"><button class="mob-back" onclick="mobShow('col-agents')">◀</button> <span id="col-sessions-hdr">Sessions</span></div>
+        <div class="col-list-msg" id="col-sessions-msg"></div>
         <div class="col-list" id="col-sessions-list"></div>
         <div class="col-new" id="col-new-session" style="display:none">
-          <div class="fld"><label>Directory</label><div class="dir-input-wrap"><input id="f-dir" class="dir-input" type="text" list="f-dir-suggestions" spellcheck="false" autocomplete="off" placeholder="Enter an absolute project path"><datalist id="f-dir-suggestions"></datalist><div class="dir-input-meta" id="f-dir-meta">Enter an absolute path. Suggestions follow the selected daemon.</div></div></div>
+          <div class="fld"><label>Directory</label><div class="dir-input-wrap"><input id="f-dir" class="dir-input" type="text" list="f-dir-suggestions" spellcheck="false" autocomplete="off" placeholder="Enter an absolute project path"><datalist id="f-dir-suggestions"></datalist><div class="dir-input-meta" id="f-dir-meta">Enter an absolute path.</div></div></div>
           <input type="hidden" id="f-agent" value="copilot">
           <button class="sh-go" id="f-btn" type="button">New Session</button>
           <div class="col-new-msg" id="col-new-msg"></div>
@@ -525,15 +546,31 @@ a{color:var(--accent2);text-decoration:none}button{font-family:inherit;cursor:po
 import DOMPurify from'/dompurify.js';
 import{Marked,Renderer}from'/marked.js';
 import{ChatClient}from'/chat-client.js';
+import{daemonHasAdminAccess as portalDaemonHasAdminAccess,daemonHasMemberAccess as portalDaemonHasMemberAccess,getCreateSessionAccessState,isDaemonRecordFresh,isLocalEchoMessage,normalizeDaemonRecord as normalizePortalDaemonRecord,rememberRoomMessage,resetSessionStateToIdle,shouldIgnoreRoomMessage,shouldRetainPreviousDaemons}from'/portal-regressions.js';
+import{waitForJoinedRoom,waitForRoomLiveSync}from'/session-live-sync.js';
+import{deriveToolbarModelId}from'/session-toolbar-state.js';
 
 let cc=null,uid=null,rid=null;
 const pd=new Map(),rd=new Map(),at=new Map(),pp=new Map(),tc=new Map();
-const deletedSessions=new Set();
+const deletedSessions=new Map();
 const joinRequests=new Map();
 const joinApprovalLocks=new Set();
+const daemonAccessApprovalLocks=new Set();
 const pendingCreateRequests=new Map();
 const pendingWorkspaceRequests=new Map();
 const livePermissionResponses=new Map();
+const loadedSessionQueryKeys=new Set();
+const loadingSessionQueryKeys=new Set();
+const daemonSyncRooms=new Set();
+let portalPollTimer=null;
+let portalPollInFlight=false;
+let portalDaemonsLoaded=false;
+let oauthMode=false;
+let oauthAuthenticatedUser=null;
+let portalTransportState='disconnected';
+let portalTransportError='';
+const seenPendingJoinRequestIds=new Set();
+const seenPendingDaemonAccessRequestIds=new Set();
 const ss={processing:false,pendingCount:0,stopping:false,model:'gpt-5.4'};
 const STOP_RETRY_COOLDOWN_MS=1200;
 let sendMode='enqueue';
@@ -561,8 +598,12 @@ const MODE_PRESENTATIONS={
 };
 const knownDaemons=new Map(); // daemonId → { hostname, agents }
 const LOBBY_ROOM='lobby';
+const DAEMON_SYNC_ROOM_PREFIX='daemon-acl-';
 const DAEMON_STALE_MS=90000;
+const ROOM_MEMBERSHIP_TIMEOUT_MS=8000;
+const ROOM_LIVE_SYNC_TIMEOUT_MS=5000;
 let historyLoadedAt=0;
+const seenRoomMessageIds=new Set();
 
 // Agent icons (from simpleicons.org + svgrepo.com, 16x16)
 const AGENT_ICONS={
@@ -576,6 +617,19 @@ const AGENT_COLORS={copilot:'#6baaff',claude:'#d97757',gemini:'#8b7cf6',codex:'#
 const AGENT_NAMES={copilot:'GitHub Copilot',claude:'Claude Code',gemini:'Gemini CLI',codex:'Codex CLI',opencode:'OpenCode','copilot-sdk':'GitHub Copilot (SDK)'};
 const TESTED_ACP_AGENTS=new Set(['copilot','claude','codex']);
 function getAgentVisualKey(agentName){return agentName==='copilot-sdk'?'copilot':agentName}
+function normalizeDaemonPlatform(platform){
+  const value=String(platform||'').trim().toLowerCase();
+  if(!value)return'';
+  if(value==='win32'||value==='windows'||value==='win')return'win32';
+  if(value==='darwin'||value==='macos'||value==='mac'||value==='osx')return'darwin';
+  if(['linux','ubuntu','debian','fedora','alpine','centos','rhel'].includes(value))return'linux';
+  return value;
+}
+function daemonSyncRoomId(daemonId){return `${DAEMON_SYNC_ROOM_PREFIX}${String(daemonId||'').trim()}`}
+function currentSessionQueryKey(){return currentDaemonId&&currentAgentName?`${currentDaemonId}::${currentAgentName}`:''}
+function sessionQueryLoaded(queryKey=currentSessionQueryKey()){return !!queryKey&&loadedSessionQueryKeys.has(queryKey)}
+function markSessionQueryLoaded(queryKey=currentSessionQueryKey()){if(queryKey)loadedSessionQueryKeys.add(queryKey)}
+function sessionQueryLoading(queryKey=currentSessionQueryKey()){return !!queryKey&&loadingSessionQueryKeys.has(queryKey)}
 function getChatPlaceholderState(){
   if(!uid)return {kicker:'Sign in',title:'Open an agent workspace',subtitle:'Log in to browse daemons, agents, and sessions.',watermark:'',generic:true};
   if(!currentDaemonId)return {kicker:'Select a daemon',title:'Choose an agent daemon to begin',subtitle:'Pick a Windows or Linux daemon first, then choose an agent.',watermark:'',generic:true};
@@ -597,7 +651,7 @@ function renderChatPlaceholder(){
     ?`<div class="chat-empty-watermark">${state.watermark}</div>`
     :`<div class="chat-empty-watermark generic"><div class="chat-empty-watermark-glyph">⌘</div></div>`;
   const subtitle=state.subtitle?`<div class="chat-empty-sub">${esc(state.subtitle)}</div>`:'';
-  el.innerHTML=`<div class="chat-empty"><div class="chat-empty-copy"><div class="chat-empty-kicker">${esc(state.kicker)}</div><div class="chat-empty-title">${esc(state.title)}</div>${subtitle}</div>${watermark}</div>`;
+  el.innerHTML=`<div class="chat-empty">${watermark}<div class="chat-empty-copy"><div class="chat-empty-kicker">${esc(state.kicker)}</div><div class="chat-empty-title">${esc(state.title)}</div>${subtitle}</div></div>`;
 }
 
 // OS icons for daemon list (inline SVG, 16x16)
@@ -617,12 +671,25 @@ const $={
   userBadge:document.getElementById('user-badge'),
   compactBtn:document.getElementById('compact-toggle-btn'),compactNav:document.getElementById('compact-nav'),chatColTop:document.getElementById('chat-col-top'),
   loginUser:document.getElementById('login-username'),loginMsg:document.getElementById('login-msg'),loginBtn:document.getElementById('login-btn'),logoutBtn:document.getElementById('logout-btn'),
-  dirIn:document.getElementById('f-dir'),dirMeta:document.getElementById('f-dir-meta'),dirSuggestions:document.getElementById('f-dir-suggestions'),formMsg:document.getElementById('col-new-msg'),
+  dirIn:document.getElementById('f-dir'),dirMeta:document.getElementById('f-dir-meta'),dirSuggestions:document.getElementById('f-dir-suggestions'),formMsg:document.getElementById('col-new-msg'),sessionListMsg:document.getElementById('col-sessions-msg'),
 };
 const DEFAULT_USERNAME='AzureUser';
 const USER_STORAGE_KEY='cp-uid';
+const PORTAL_USER_HEADER='x-codeagenthub-user';
 const DIR_PICKER_ROOT='__roots__';
+const OAUTH_LOGIN_COPY_DEFAULT='Sign in with your GitHub account to continue.';
 const discoveredSessions=new Map();
+const daemonAccessDrafts=new Map();
+function getStoredUserId(){
+  try{
+    const scoped=sessionStorage.getItem(USER_STORAGE_KEY);
+    if(scoped)return scoped;
+    const legacy=localStorage.getItem(USER_STORAGE_KEY)||'';
+    if(legacy)sessionStorage.setItem(USER_STORAGE_KEY,legacy);
+    return legacy;
+  }catch{return''}
+}
+function setStoredUserId(userId){try{sessionStorage.setItem(USER_STORAGE_KEY,String(userId||''))}catch{}}
 let lastStatusMessage='';
 let lastStatusAt=0;
 let compactNav=false;
@@ -687,6 +754,9 @@ let sessionBootingStage='';
 let sessionBannerNotice=null;
 let sessionBannerAction=null;
 let currentWorkingLabel='Agent is working…';
+let sessionListStatusNotice=null;
+let sessionListStatusTimer=null;
+let sessionListBlockedReason='';
 function renderFormStatus(){
   if(!$.formMsg)return;
   $.formMsg.className='col-new-msg';
@@ -694,7 +764,33 @@ function renderFormStatus(){
   $.formMsg.textContent=formStatusNotice.message;
   $.formMsg.classList.add(`is-${formStatusNotice.tone||'loading'}`)
 }
+function renderSessionListStatus(){
+  if(!$.sessionListMsg)return;
+  $.sessionListMsg.className='col-list-msg';
+  if(!sessionListStatusNotice){$.sessionListMsg.textContent='';return}
+  $.sessionListMsg.textContent=sessionListStatusNotice.message;
+  $.sessionListMsg.classList.add(`is-${sessionListStatusNotice.tone||'loading'}`)
+}
+function clearSessionListStatus(){
+  clearTimeout(sessionListStatusTimer);
+  sessionListStatusTimer=null;
+  sessionListStatusNotice=null;
+  renderSessionListStatus()
+}
+function setSessionListStatus(message='',tone='loading',timeout=0){
+  clearTimeout(sessionListStatusTimer);
+  sessionListStatusTimer=null;
+  if(!message){clearSessionListStatus();return}
+  sessionListStatusNotice={message,tone};
+  renderSessionListStatus();
+  if(timeout>0){
+    const marker=`${tone}:${message}`;
+    sessionListStatusTimer=setTimeout(()=>{if(sessionListStatusNotice&&`${sessionListStatusNotice.tone}:${sessionListStatusNotice.message}`===marker)clearSessionListStatus()},timeout)
+  }
+}
 function clearFormStatus(source=''){
+  if(!source)clearSessionListStatus();
+  if(source==='join'){clearSessionListStatus();return}
   if(source&&formStatusNotice?.source!==source)return;
   clearTimeout(formStatusTimer);
   formStatusTimer=null;
@@ -702,6 +798,7 @@ function clearFormStatus(source=''){
   renderFormStatus()
 }
 function setFormStatus(message='',tone='loading',timeout=0,source='manual'){
+  if(source==='join'){setSessionListStatus(message,tone,timeout);return}
   clearTimeout(formStatusTimer);
   formStatusTimer=null;
   if(!message){clearFormStatus(source);return}
@@ -713,6 +810,15 @@ function setFormStatus(message='',tone='loading',timeout=0,source='manual'){
   }
 }
 function getSessionBannerNotice(){return sessionBannerNotice||(sessionBooting?{source:'boot',label:'Starting',text:sessionBootingStage||'Preparing session…',tone:'info'}:null)}
+function isStartupWaitMessage(message=''){return /agent is still starting/i.test(String(message||''))}
+function isHistoricalStartupEnvelope(e){
+  if(!e||typeof e!=='object')return false;
+  const message=String(e.message||'').trim();
+  if(e.type==='system.info')return /^(starting|connected to|resuming|resumed)\b/i.test(message);
+  if(e.type==='session.error')return isStartupWaitMessage(message)||/^failed to start:/i.test(message)||/oauth code flow requires a browser/i.test(message);
+  return false;
+}
+function clearStaleCreateLoadingStatus(){if(formStatusNotice?.source==='create'&&formStatusNotice?.tone==='loading')clearFormStatus('create')}
 function renderSessionBanner(){
   if(!$.asyncBanner)return;
   const notice=rid?getSessionBannerNotice():null;
@@ -742,17 +848,19 @@ function setWorkingLabel(message='Agent is working…'){
 }
 function resetWorkingLabel(){setWorkingLabel('Agent is working…')}
 function syncSendButton(){
-  const enabled=!!uid&&!!rid&&!sessionBooting;
+  const enabled=!!uid&&!!rid&&!sessionBooting&&!isCurrentSessionReadOnly();
   const isStop=!!rid&&(ss.processing||ss.stopping);
   $.sb.classList.toggle('stop',isStop);
   $.sb.classList.toggle('is-pending',!!ss.stopping);
   $.sb.textContent=isStop?'■':'↑';
-  $.sb.title=!enabled?'Unavailable':ss.stopping?'Stopping current response… click again to retry':ss.processing?'Stop current response':'Send message';
+  $.sb.title=!enabled?(isCurrentSessionReadOnly()?currentSessionPermissionMessage():'Unavailable'):ss.stopping?'Stopping current response… click again to retry':ss.processing?'Stop current response':'Send message';
   $.sb.disabled=!enabled
 }
-function syncComposer(){const enabled=!!uid&&!!rid&&!sessionBooting;$.mi.disabled=!enabled||!!ss.stopping;$.mi.placeholder=sessionBooting?'Please wait…':ss.stopping?'Stopping response…':'Type a message …';syncSendButton()}
-function setSessionBooting(next,stage=''){sessionBooting=!!next;sessionBootingStage=sessionBooting?(stage||sessionBootingStage||'Preparing session…'):'';syncComposer();renderSessionBanner()}
+function syncComposer(){const enabled=!!uid&&!!rid&&!sessionBooting&&!isCurrentSessionReadOnly();$.mi.disabled=!enabled||!!ss.stopping;$.mi.placeholder=sessionBooting?'Please wait…':ss.stopping?'Stopping response…':isCurrentSessionReadOnly()?currentSessionPermissionMessage():'Type a message …';syncSendButton()}
+function setSessionBooting(next,stage=''){sessionBooting=!!next;sessionBootingStage=sessionBooting?(stage||sessionBootingStage||'Preparing session…'):'';if(!sessionBooting)clearStaleCreateLoadingStatus();syncComposer();renderSessionBanner()}
 function updateSessionBooting(stage=''){if(!sessionBooting)return;sessionBootingStage=stage||sessionBootingStage;syncComposer();renderSessionBanner()}
+function markSessionReady(statusMessage='Session ready.'){if(!sessionBooting)return;setFormStatus(statusMessage,'success',1800,'create');setSessionBooting(false);clearSessionBanner('error')}
+function noteLiveSessionActivity(){if(sessionBooting)markSessionReady();else clearSessionBanner('error')}
 function mergeSlashCommands(agentCommands=[]){
   const merged=new Map();
   for(const item of agentCommands){if(item?.cmd)merged.set(item.cmd,item)}
@@ -776,18 +884,22 @@ function getModeMeta(mode){const parts=[];if(mode?.description)parts.push(mode.d
 function syncModelButton(){
   const current=document.getElementById('model-current');
   const button=document.getElementById('model-btn');
+  const picker=document.getElementById('model-picker');
   const text=currentModelId?getModelDisplayText():'Select';
   if(current)current.textContent=text;
   if(button)button.title=currentModelId?`Model: ${text}`:'Choose model';
+  if(picker)picker.classList.toggle('show',!!currentModelId||availableModels.length>0);
 }
 function syncModeButton(){
   const presentation=inferModePresentation(currentAgentName,availableModes);
   const label=document.getElementById('mode-label');
   const current=document.getElementById('mode-current');
   const button=document.getElementById('mode-btn');
+  const picker=document.getElementById('mode-picker');
   if(label)label.textContent=presentation.label;
   if(current)current.textContent=currentModeId?getModeDisplayText():'Select';
   if(button)button.title=presentation.title;
+  if(picker)picker.classList.toggle('show',!!currentModeId||availableModes.length>0);
 }
 function syncUsageTelemetry(){
   const container=document.getElementById('usage-ring-container');
@@ -876,21 +988,82 @@ function syncAutoBtn(){const b=document.getElementById('auto-approve-btn');const
 function updateAutoBtn(){document.getElementById('auto-approve-btn').style.display=rid&&uid?'':'none';syncAutoBtn()}
 let userAvatar='';
 function syncUserBadge(){if($.userBadge){$.userBadge.innerHTML=uid?(userAvatar?`<img class="tb-avatar" src="${esc(userAvatar)}" alt="">`:'')+esc(uid):'';$.userBadge.style.display=uid?'inline-flex':'none'}if($.logoutBtn)$.logoutBtn.style.display=uid?'':'none'}
+function syncOauthLoginCard(message='',isError=false){
+  if(!oauthMode)return;
+  const copy=document.getElementById('login-copy-oauth');
+  const btn=document.getElementById('github-login-btn');
+  const label=document.getElementById('github-login-label');
+  const msg=document.getElementById('login-msg-oauth');
+  if(!copy||!btn||!label||!msg)return;
+  const signedIn=!!oauthAuthenticatedUser?.login;
+  let resolvedMessage=String(message||'').trim();
+  let resolvedError=!!isError;
+  if(signedIn&&!resolvedMessage){
+    if(portalTransportState==='connecting')resolvedMessage='GitHub sign-in complete. Connecting to WPS…';
+    else if(portalTransportState==='failed'){
+      resolvedMessage=portalTransportError?`GitHub sign-in complete, but WPS connection failed: ${portalTransportError}`:'GitHub sign-in complete, but WPS connection failed.';
+      resolvedError=true;
+    }else if(portalTransportState==='disconnected'&&!uid)resolvedMessage='GitHub sign-in complete. Retry the WPS connection.';
+  }
+  copy.textContent=signedIn?`Signed in as ${oauthAuthenticatedUser.login}.`:OAUTH_LOGIN_COPY_DEFAULT;
+  msg.textContent=resolvedMessage;
+  msg.style.color=resolvedError?'#ff8f8f':'';
+  btn.removeAttribute('aria-busy');
+  if(!signedIn){
+    btn.disabled=false;
+    btn.style.display='inline-flex';
+    label.textContent='Sign in with GitHub';
+    return;
+  }
+  if(uid){
+    btn.disabled=false;
+    btn.style.display='none';
+    label.textContent='Retry WPS connection';
+    return;
+  }
+  btn.style.display='inline-flex';
+  if(portalTransportState==='connecting'){
+    btn.disabled=true;
+    btn.setAttribute('aria-busy','true');
+    label.textContent='Connecting…';
+    return;
+  }
+  btn.disabled=false;
+  label.textContent='Retry WPS connection';
+}
+function setOauthAuthenticatedUser(user){oauthAuthenticatedUser=user?{login:String(user.login||''),avatar:user.avatar||''}:null;syncOauthLoginCard()}
+function setPortalTransportState(state,error=''){portalTransportState=state;portalTransportError=String(error||'').trim();syncSt();syncOauthLoginCard()}
+function retryPortalConnection(){if(!oauthAuthenticatedUser?.login)return;void loginUser(oauthAuthenticatedUser.login)}
+function handleOauthAction(){if(oauthAuthenticatedUser?.login){retryPortalConnection();return}window.location.href='/auth/login'}
+window.handleOauthAction=handleOauthAction;
 function compactEmpty(text){return `<div class="compact-empty">${esc(text)}</div>`}
 function compactSection(title,content){return `<div class="compact-section"><div class="compact-hdr">${esc(title)}</div><div class="compact-list">${content}</div></div>`}
+function renderColumnLoadingState(title,detail='',icon='⏳'){return `<div class="col-empty"><div style="font-size:28px;margin-bottom:10px;opacity:.55">${icon}</div>${esc(title)}${detail?`<br><span style="font-size:11px;color:var(--fg5)">${esc(detail)}</span>`:''}</div>`}
 function renderCompactDaemons(){
   if(!uid||!cc)return compactSection('Agent Daemons',compactEmpty('Connect first'));
-  const daemonEntries=[...knownDaemons.entries()].filter(([,d])=>{
-    const stamp=Date.parse(d?.updatedAt||'');
-    return Number.isFinite(stamp)?Date.now()-stamp<=DAEMON_STALE_MS:true;
-  });
+  if(!portalDaemonsLoaded)return compactSection('Agent Daemons',compactEmpty('Loading daemons…'));
+  const daemonEntries=[...knownDaemons.entries()].filter(([,d])=>isDaemonRecordFresh(d,Date.now(),DAEMON_STALE_MS));
   if(!daemonEntries.length)return compactSection('Agent Daemons',compactEmpty('No daemons found'));
-  const content=daemonEntries.map(([did,d])=>{
+  let content=daemonEntries.map(([did,d])=>{
     const agentCount=(d.agents||[]).length;
-    const osIcon=OS_ICONS[d.platform]||'🖥';
-    const osName=OS_NAMES[d.platform]||'';
-    return `<div class="compact-item${did===currentDaemonId?' selected':''}" onclick="compactSelectDaemon('${jsq(did)}')"><span class="ci-icon">${osIcon}</span><div class="ci-info"><div class="ci-name">${esc(d.hostname||did)}</div><div class="ci-meta">${esc(`${osName?`${osName} · `:''}${agentCount} agent${agentCount!==1?'s':''}`)}</div></div><span class="ci-dot"></span></div>`;
+    const platform=normalizeDaemonPlatform(d.platform);
+    const osIcon=OS_ICONS[platform]||'🖥';
+    const osName=OS_NAMES[platform]||'';
+    const accessTag=daemonAccessTag(d);
+    const approverMeta=portalApproverUserIds(d).length?` · approver: ${daemonApproverLabel(d)}`:'';
+    return `<div class="compact-item${did===currentDaemonId?' selected':''}" onclick="compactSelectDaemon('${jsq(did)}')"><span class="ci-icon">${osIcon}</span><div class="ci-info"><div class="ci-name">${esc(d.hostname||did)}</div><div class="ci-meta">${esc(`${osName?`${osName} · `:''}${agentCount} agent${agentCount!==1?'s':''}${approverMeta}`)}</div></div>${accessTag}<span class="ci-dot"></span></div>`;
   }).join('');
+  const selectedDaemon=knownDaemons.get(currentDaemonId);
+  if(selectedDaemon){
+    const guidance=!daemonHasMemberAccess(selectedDaemon)
+      ?'Sessions stay hidden until daemon member or admin access is granted.'
+      :!daemonHasAdminAccess(selectedDaemon)
+        ?'Daemon admin access is required to create sessions. Session read and write access are requested per session.'
+        :selectedDaemon.canManage
+          ?'Use the full daemon panel to edit member and admin user lists.'
+          :'Only the listed approver can change daemon access.';
+    content+=`<div class="compact-empty">${esc(`${daemonAccessSummary(selectedDaemon)}.`)}</div><div class="compact-empty">${esc(guidance)}</div>${selectedDaemon.canManage?'':daemonAccessButtons(selectedDaemon,{compact:true})}`;
+  }
   return compactSection('Agent Daemons',content)
 }
 function renderCompactAgents(){
@@ -923,26 +1096,44 @@ function renderCompactAgents(){
 function renderCompactSessions(){
   if(!uid||!cc)return compactSection('Sessions',compactEmpty('Connect first'));
   if(!currentAgentName)return compactSection('Sessions',compactEmpty('Select an agent'));
+  const queryKey=currentSessionQueryKey();
+  if(queryKey&&!sessionQueryLoaded(queryKey))return compactSection(AGENT_NAMES[currentAgentName]||'Sessions',compactEmpty('Loading sessions…'));
+  const daemon=currentDaemonRecord();
+  if(daemon&&!daemonHasMemberAccess(daemon)){
+    return compactSection(AGENT_NAMES[currentAgentName]||'Sessions',compactEmpty(`Sessions are hidden because you do not have daemon access. Ask ${daemonApproverLabel(daemon)} for member or admin access in the daemon panel.`))
+  }
   const joined=joinedRoomIds();
   const sessionMap=new Map();
   for(const [sessionId,meta] of discoveredSessions.entries())if(!deletedSessions.has(sessionId))sessionMap.set(sessionId,{...meta});
   if(cc?.rooms){for(const r of cc.rooms){if(r.roomId!==LOBBY_ROOM&&!deletedSessions.has(r.roomId)){const prev=sessionMap.get(r.roomId);if(prev)sessionMap.set(r.roomId,{...prev,sessionId:r.roomId,name:prev.name||r.title||r.name||'Session',updatedAt:prev.updatedAt||r.updatedAt||r.createdAt||null})}}}
   const filtered=[...sessionMap.values()].filter(s=>{const isJoined=joined.has(s.sessionId);if(currentDaemonId&&s.daemonId&&s.daemonId!==currentDaemonId)return false;if(currentDaemonId&&!s.daemonId&&!isJoined)return false;if(currentAgentName&&s.agent&&s.agent!==currentAgentName)return false;if(currentAgentName&&!s.agent&&!isJoined)return false;return true}).sort((a,b)=>{const ta=a.updatedAt?new Date(a.updatedAt).getTime():0;const tb=b.updatedAt?new Date(b.updatedAt).getTime():0;return tb-ta});
-  if(!filtered.length)return compactSection(AGENT_NAMES[currentAgentName]||'Sessions',compactEmpty('No sessions yet'));
+  const readOnlyBanner='';
+  if(!filtered.length){
+    const emptyState=sessionListBlockedReason==='daemon-access-denied'?sessionEmptyStateCopy({...daemon,hasMemberAccess:false,canRead:false}):sessionEmptyStateCopy(daemon);
+    return compactSection(AGENT_NAMES[currentAgentName]||'Sessions',`${readOnlyBanner}${compactEmpty(`${emptyState.title} ${emptyState.detail}`.trim())}`);
+  }
   const content=filtered.map(s=>{
-    const joinedSession=joined.has(s.sessionId);
+    const accessLevel=sessionAccessLevel(s);
+    const joinedSession=joined.has(s.sessionId)||sessionCanRead(s);
     const joinStatus=sessionJoinStatus(s.sessionId);
+    const requestedAccess=sessionRequestedAccess(s.sessionId);
     const nm=sessionLabel(s);
     const icon=AGENT_ICONS[s.agent]||'✦';
     const color=AGENT_COLORS[s.agent]||'#888';
     const t=s.updatedAt?timeAgo(new Date(s.updatedAt)):'';
     const owner=s.ownerUserId&&s.ownerUserId!==uid?`by ${s.ownerUserId}`:'';
-    const joinMeta=joinedSession?'joined':'';
+    const joinMeta=accessLevel==='write'?'write':accessLevel==='read'?'read-only':joinedSession?'joined':'';
     const meta=[owner,t,joinMeta].filter(Boolean).join(' · ');
-    const action=joinedSession?'':'<button class="ci-join" onclick="event.stopPropagation();compactRequestSessionAccess(\''+jsq(s.sessionId)+'\')" '+(joinStatus==='pending'?'disabled':'')+'>'+(joinStatus==='pending'?'Requested':joinStatus==='denied'?'Request Again':'Request Access')+'</button>';
-    return `<div class="compact-item${s.sessionId===rid?' selected':''}" onclick="compactOpenSession('${jsq(s.sessionId)}',${joinedSession?'true':'false'})"><span class="ci-icon" style="color:${color}">${icon}</span><div class="ci-info"><div class="ci-name">${esc(nm)}</div><div class="ci-meta">${esc(meta)}</div></div>${joinedSession?'<span class="ci-dot" style="background:'+(s.sessionId===rid?'var(--green)':'var(--fg6)')+'"></span>':action}</div>`;
+    const pendingRead=joinStatus==='pending'&&requestedAccess==='read';
+    const pendingWrite=joinStatus==='pending'&&requestedAccess==='write';
+    const action=sessionCanRead(s)
+      ?(sessionCanWrite(s)?'<span class="ci-dot" style="background:'+(s.sessionId===rid?'var(--green)':'var(--fg6)')+'"></span>':daemonHasAdminAccess(daemon)?'<span class="ci-tag ci-tag-view">RO</span>':`<div class="ci-actions"><span class="ci-tag ci-tag-view">RO</span><button class="ci-join" onclick="event.stopPropagation();compactRequestSessionAccess('${jsq(s.sessionId)}','write')" ${pendingWrite?'disabled':''}>${pendingWrite?'Pending':'+ Write'}</button></div>`)
+      :daemonHasAdminAccess(daemon)
+        ?'<span class="ci-dot" style="background:var(--fg6)"></span>'
+        :`<div class="ci-actions"><button class="ci-join" onclick="event.stopPropagation();compactRequestSessionAccess('${jsq(s.sessionId)}','read')" ${pendingRead?'disabled':''}>${pendingRead?'Pending':'+ Read'}</button><button class="ci-join" onclick="event.stopPropagation();compactRequestSessionAccess('${jsq(s.sessionId)}','write')" ${pendingWrite?'disabled':''}>${pendingWrite?'Pending':'+ Write'}</button></div>`;
+    return `<div class="compact-item${s.sessionId===rid?' selected':''}" onclick="compactOpenSession('${jsq(s.sessionId)}',${sessionCanRead(s)?'true':'false'})"><span class="ci-icon" style="color:${color}">${icon}</span><div class="ci-info"><div class="ci-name">${esc(nm)}</div><div class="ci-meta">${esc(meta)}</div></div>${action}</div>`;
   }).join('');
-  return compactSection(AGENT_NAMES[currentAgentName]||'Sessions',content)
+  return compactSection(AGENT_NAMES[currentAgentName]||'Sessions',`${readOnlyBanner}${content}`)
 }
 function renderCompactNav(){if(!$.compactNav)return;$.compactNav.innerHTML=`${renderCompactDaemons()}${renderCompactAgents()}${renderCompactSessions()}`}
 function syncCompactButton(){if(!$.compactBtn)return;const show=!!uid&&!isMobile();$.compactBtn.style.display=show?'inline-flex':'none';if($.chatColTop)$.chatColTop.style.display='none';$.compactBtn.classList.toggle('active',show&&compactNav);$.compactBtn.title=compactNav?'Restore side panels':'Expand chat area';$.compactBtn.textContent=compactNav?'⤡':'⤢';document.getElementById('column-nav').classList.toggle('compact',!!uid&&!isMobile()&&compactNav);renderCompactNav()}
@@ -952,9 +1143,9 @@ window.restoreExpandedNav=restoreExpandedNav;
 window.compactSelectDaemon=(did)=>{restoreExpandedNav();window.selectDaemon(did)};
 window.compactSelectAgent=(agentName)=>{if(!TESTED_ACP_AGENTS.has(agentName)&&agentName!=='copilot-sdk')return;restoreExpandedNav();window.selectAgent(agentName)};
 window.compactOpenSession=async(sid,joined)=>{restoreExpandedNav();if(joined){await window.openSession(sid)}};
-window.compactRequestSessionAccess=async(sid)=>{await window.requestSessionAccess(sid);renderCompactNav()};
-function setLoginMessage(message='',isError=false){if(!$.loginMsg)return;$.loginMsg.textContent=message;$.loginMsg.style.color=isError?'#ff8f8f':''}
-function setCol(id,visible,display='flex'){const el=document.getElementById(id);if(el)el.style.display=visible?display:'none'}
+window.compactRequestSessionAccess=async(sid,requestedAccess='read')=>{await window.requestSessionAccess(sid,requestedAccess);renderCompactNav()};
+function setLoginMessage(message='',isError=false){const target=oauthMode?document.getElementById('login-msg-oauth'):$.loginMsg;if(!target)return;target.textContent=message;target.style.color=isError?'#ff8f8f':'';if(oauthMode)syncOauthLoginCard(message,isError)}
+function setCol(id,visible,display='flex'){const el=document.getElementById(id);if(!el)return;const wasHidden=el.style.display==='none';el.style.display=visible?display:'none';if(visible&&wasHidden){el.classList.remove('col-enter');void el.offsetWidth;el.classList.add('col-enter')}}
 function setColumnDisabled(id,disabled){const el=document.getElementById(id);if(el)el.classList.toggle('is-disabled',disabled)}
 function normalizePickerPath(pathValue,platform){
   let value=String(pathValue||'').trim();
@@ -1008,15 +1199,15 @@ function buildPickerTrail(pathValue,platform){
   return trail;
 }
 function directoryMetaText(daemon,pathValue=''){
-  const osLabel=daemon?.platform==='win32'?'Windows':daemon?.platform==='darwin'?'macOS':'Linux';
-  if(pathValue)return `${daemon?.hostname||'Selected daemon'} · ${osLabel} · Suggestions follow the active daemon.`;
-  return daemon?`${daemon.hostname||'Selected daemon'} · ${osLabel} · Enter an absolute path or pick a suggestion.`:'Enter an absolute path. Suggestions follow the selected daemon.';
+  const osIcon=OS_ICONS[normalizeDaemonPlatform(daemon?.platform)]||'🖥';
+  if(pathValue)return `<span style="display:inline-flex;vertical-align:middle;margin-right:4px">${osIcon}</span> Path set.`;
+  return daemon?`<span style="display:inline-flex;vertical-align:middle;margin-right:4px">${osIcon}</span> Enter a path or choose a workspace.`:'Enter an absolute path.';
 }
 function renderSelectedDirectory(){
   const daemon=knownDaemons.get(currentDaemonId);
   const value=normalizePickerPath($.dirIn?.value||'',daemon?.platform);
   if($.dirIn)$.dirIn.value=value;
-  if($.dirMeta)$.dirMeta.textContent=directoryMetaText(daemon,value);
+  if($.dirMeta)$.dirMeta.innerHTML=directoryMetaText(daemon,value);
   if($.dirIn){
     const fallback=normalizePickerPath(defaultDirectoryForDaemon(daemon),daemon?.platform);
     $.dirIn.placeholder=fallback||'Enter an absolute project path';
@@ -1040,22 +1231,27 @@ function defaultDirectoryForDaemon(daemon){return (daemon?.workspaces||[]).find(
 function syncCreateSessionButton(){
   const button=document.getElementById('f-btn');
   if(!button)return;
+  if(button.dataset.busy==='true')return;
   const daemon=knownDaemons.get(currentDaemonId);
   const dirValue=normalizePickerPath(document.getElementById('f-dir')?.value.trim()||'',daemon?.platform);
   const invalid=!!currentDaemonId&&!!dirValue&&!pathLooksCompatibleWithPlatform(dirValue,daemon?.platform);
-  button.disabled=invalid;
-  button.title=invalid?`Directory does not match the selected ${daemon?.platform==='win32'?'Windows':'Linux/macOS'} daemon.`:'';
+  const {blocked,readOnly}=getCreateSessionAccessState(daemon);
+  button.disabled=invalid||blocked||readOnly;
+  button.textContent=blocked?'No Daemon Access':readOnly?'Member Only':'New Session';
+  button.classList.toggle('is-blocked',blocked||readOnly);
+  button.title=blocked?'You need member or admin permission on this daemon before sessions are visible.':readOnly?'This daemon is currently member-only. Request admin permission to create sessions.':invalid?`Directory does not match the selected ${daemon?.platform==='win32'?'Windows':'Linux/macOS'} daemon.`:'';
 }
 async function requestWorkspaceListing(pathValue='',query=''){
-  const requestId=makeRequestId();
-  const pending=waitForLobbyReply(pendingWorkspaceRequests,requestId,5000,'Directory lookup timed out');
-  await sendLobbyEnvelope({type:'workspace.list_request',requestId,requesterUserId:uid,daemonId:currentDaemonId,path:pathValue||DIR_PICKER_ROOT,query,limit:200});
-  return pending;
+  if(!currentDaemonId)throw new Error('Select a daemon first');
+  const params=new URLSearchParams();
+  if(pathValue&&pathValue!==DIR_PICKER_ROOT)params.set('path',pathValue);
+  if(query)params.set('query',query);
+  return portalJson(`/api/daemons/${encodeURIComponent(currentDaemonId)}/directories?${params.toString()}`);
 }
 function clearDirectorySuggestions(){if($.dirSuggestions)$.dirSuggestions.innerHTML=''}
 function setDirectoryMeta(message='',tone=''){
   if(!$.dirMeta)return;
-  $.dirMeta.textContent=message||directoryMetaText(knownDaemons.get(currentDaemonId),$.dirIn?.value||'');
+  $.dirMeta.innerHTML=message||directoryMetaText(knownDaemons.get(currentDaemonId),$.dirIn?.value||'');
   $.dirMeta.className='dir-input-meta';
   if(tone)$.dirMeta.classList.add(`is-${tone}`)
 }
@@ -1086,7 +1282,7 @@ async function refreshDirectorySuggestions(rawValue='',{silent=false}={}){
     if(token!==directorySuggestionToken)return;
     const items=[...(response.favorites||[]),...(response.roots||[]),...(response.dirs||[])];
     renderDirectorySuggestions(items,response);
-    if(!silent)setDirectoryMeta(items.length?directoryMetaText(daemon,inputValue):`${daemon?.hostname||'Selected daemon'} · No matching directory suggestions right now.`,'');
+    if(!silent)setDirectoryMeta(items.length?directoryMetaText(daemon,inputValue):'No matching suggestions.','');
   }catch(err){
     if(token!==directorySuggestionToken)return;
     clearDirectorySuggestions();
@@ -1101,6 +1297,7 @@ function resetChatState(){
   $.chat.innerHTML='';pd.clear();rd.clear();at.clear();pp.clear();tc.clear();hideWorking();$wi=null;
   lastStatusMessage='';lastStatusAt=0;
   livePermissionResponses.clear();
+  seenRoomMessageIds.clear();
   clearSessionBanner();
   clearFormStatus();
   resetWorkingLabel();
@@ -1111,32 +1308,274 @@ function resetChatState(){
 function skeletonColumn(rows=4){return `<div class="col-skeleton">${Array.from({length:rows},(_,index)=>`<div class="sk-row"><span class="sk-icon"></span><div class="sk-text"><span class="sk-line ${index%2===0?'w-75':'w-65'}"></span><span class="sk-line ${index%3===0?'w-40':'w-55'}"></span></div></div>`).join('')}</div>`}
 function joinedRoomIds(){return new Set((cc?.rooms||[]).filter(r=>r.roomId!==LOBBY_ROOM).map(r=>r.roomId))}
 function sessionLabel(session){const dir=session.workingDirectory||'';return dir.split(/[/\\]/).pop()||session.name||'Session'}
-function sessionJoinStatus(sessionId){return joinRequests.get(sessionId)?.status||''}
+function daemonHasMemberAccess(daemon){return portalDaemonHasMemberAccess(daemon)}
+function daemonHasAdminAccess(daemon){return portalDaemonHasAdminAccess(daemon)}
+function sessionRequestState(sessionId){return joinRequests.get(sessionId)||{}}
+function sessionJoinStatus(sessionId){return sessionRequestState(sessionId).status||''}
+function sessionRequestedAccess(sessionId){return sessionRequestState(sessionId).requestedAccess||''}
+function sessionAccessLevel(session){if(!session)return'none';const level=String(session.accessLevel||'').toLowerCase();if(level==='read'||level==='write')return level;return session.canWrite?'write':session.canRead?'read':'none'}
+function sessionCanRead(session){return sessionAccessLevel(session)!=='none'}
+function sessionCanWrite(session){return sessionAccessLevel(session)==='write'}
+function sessionCanDelete(session){return !!session?.canDelete}
+function sessionCanLeave(session,daemon){return !sessionCanDelete(session)&&!daemonHasAdminAccess(daemon)&&sessionCanRead(session)}
+function sessionOwnerLabel(session){return session?.ownerUserId||'the session owner'}
+function normalizeDaemonRecord(daemon){return normalizePortalDaemonRecord(daemon,normalizeDaemonPlatform)}
+function normalizeSessionRecord(session,previous={}){const accessLevel=sessionAccessLevel(session);return{...previous,sessionId:session.sessionId||previous.sessionId,ownerUserId:session.ownerUserId||previous.ownerUserId||'',daemonId:session.daemonId||previous.daemonId||'',agent:session.agentName||session.agent||previous.agent||'',workingDirectory:session.workingDirectory||previous.workingDirectory||'',name:session.name||session.roomName||previous.name||'Session',updatedAt:session.updatedAt||previous.updatedAt||new Date().toISOString(),accessLevel,canRead:accessLevel!=='none',canWrite:accessLevel==='write',joinStatus:session.joinStatus||previous.joinStatus||'',joinRequestId:session.joinRequestId||previous.joinRequestId||'',requestedAccess:session.requestedAccess||previous.requestedAccess||'',canDelete:session.canDelete??previous.canDelete??false}}
+function currentDaemonRecord(){return knownDaemons.get(currentDaemonId)||null}
+function portalApproverUserIds(daemon){
+  const approvers=Array.isArray(daemon?.approverUserIds)&&daemon.approverUserIds.length?daemon.approverUserIds:[daemon?.ownerUserId].filter(Boolean);
+  return[...new Set(approvers.map(value=>String(value||'').trim()).filter(Boolean))]
+}
+function daemonApproverLabel(daemon){const approvers=portalApproverUserIds(daemon);return approvers.length?approvers.join(', '):'the daemon owner'}
+function daemonAccessLevelLabel(daemon){if(!daemon)return'Unavailable';if(daemon.canManage)return'Owner';if(daemonHasAdminAccess(daemon))return'Admin';if(daemonHasMemberAccess(daemon))return'Member';return'No access'}
+function daemonAccessSummary(daemon){const label=portalApproverUserIds(daemon).length===1?'Approver':'Approvers';return`${label}: ${daemonApproverLabel(daemon)} · Your access: ${daemonAccessLevelLabel(daemon)}`}
+function daemonAccessTag(daemon){if(!daemon)return'';if(daemonHasAdminAccess(daemon))return'';if(daemonHasMemberAccess(daemon))return'<span class="ci-tag ci-tag-view">MEMBER</span>';return'<span class="ci-tag ci-tag-view">NO ACCESS</span>'}
+function currentSessionPermissionMessage(){
+  const session=rid?discoveredSessions.get(rid):null;
+  const daemon=currentDaemonRecord();
+  if(session&&sessionCanRead(session)&&!sessionCanWrite(session))return`This session is read-only for you. Request write access from ${sessionOwnerLabel(session)} to send messages.`;
+  if(session&&!sessionCanRead(session))return`You do not have access to this session yet. Request read or write access from ${sessionOwnerLabel(session)}.`;
+  if(!daemon)return'Unavailable';
+  if(!daemonHasMemberAccess(daemon))return`Daemon blocked. Request member or admin access from ${daemonApproverLabel(daemon)} in the daemon access panel.`;
+  if(!daemonHasAdminAccess(daemon)&&!session)return'You can browse this daemon, but admin access is required to create sessions.';
+  return'Unavailable';
+}
+function renderSessionEmptyState(title,detail='',icon='💬'){
+  return `<div class="col-empty"><div style="font-size:28px;margin-bottom:10px;opacity:.4">${icon}</div>${esc(title)}${detail?`<br><span style="font-size:11px;color:var(--fg5)">${esc(detail)}</span>`:''}</div>`;
+}
+function sessionEmptyStateCopy(daemon){
+  if(daemon&&!daemonHasMemberAccess(daemon)){
+    return {
+      icon:'🔒',
+      title:'Sessions for this daemon are hidden.',
+      detail:`You need daemon member or admin access. Approver: ${daemonApproverLabel(daemon)}. Use the daemon access panel on the left to request it.`,
+    };
+  }
+  if(daemon&&!daemonHasAdminAccess(daemon)){
+    return {
+      icon:'💬',
+      title:'No sessions yet',
+      detail:`You currently have daemon member access. Shared sessions will appear here when they exist, but daemon admin access from ${daemonApproverLabel(daemon)} is required to create sessions.`,
+    };
+  }
+  return {
+    icon:'💬',
+    title:'No sessions yet',
+    detail:'Create one below or join a shared room',
+  };
+}
+function daemonAccessButtons(daemon,{includeMember=true,includeAdmin=true,compact=false}={}){
+  if(!uid||!daemon||daemon.canManage)return'';
+  const isPending=daemon.accessRequestStatus==='pending';
+  const requested=daemon.requestedAccess||'';
+  const buttons=[];
+  if(includeMember&&!daemonHasMemberAccess(daemon)){
+    const disabled=isPending&&(requested==='member'||requested==='admin');
+    const label=disabled?'Member Requested':(daemon.accessRequestStatus==='denied'&&requested==='member'?'Request Member Again':'Request Member');
+    buttons.push(`<button class="ci-join" type="button" onclick="event.stopPropagation();requestDaemonAccess('member')" ${disabled?'disabled':''}>${label}</button>`);
+  }
+  if(includeAdmin&&!daemonHasAdminAccess(daemon)){
+    const disabled=isPending&&requested==='admin';
+    const label=disabled?'Admin Requested':(daemon.accessRequestStatus==='denied'&&requested==='admin'?'Request Admin Again':'Request Admin');
+    buttons.push(`<button class="ci-join" type="button" onclick="event.stopPropagation();requestDaemonAccess('admin')" ${disabled?'disabled':''}>${label}</button>`);
+  }
+  if(!buttons.length)return'';
+  return `<div style="display:flex;gap:8px;flex-wrap:wrap;justify-content:${compact?'flex-start':'center'};margin-top:10px">${buttons.join('')}</div>`;
+}
+function isCurrentSessionReadOnly(){
+  if(!rid||!uid)return false;
+  const session=discoveredSessions.get(rid);
+  if(session)return !sessionCanWrite(session);
+  const daemon=currentDaemonRecord();
+  if(!daemon)return false;
+  return !daemonHasAdminAccess(daemon);
+}
 function showChatPlaceholder(show){const el=document.getElementById('chat-placeholder');if(el){if(show)renderChatPlaceholder();el.style.display=show?'flex':'none'}const sc=document.getElementById('scroll');if(sc)sc.style.display=show?'none':'block'}
 function upsertDiscoveredSession(envelope){
   const sessionId=envelope?.sessionId||envelope?.roomId;
   if(!sessionId)return;
   const prev=discoveredSessions.get(sessionId)||{};
-  discoveredSessions.set(sessionId,{
+  const merged={
     ...prev,
+    ...envelope,
     sessionId,
-    ownerUserId:envelope.ownerUserId||prev.ownerUserId||'',
-    daemonId:envelope.daemonId||prev.daemonId||'',
-    agent:envelope.agentName||envelope.agent||prev.agent||'',
-    workingDirectory:envelope.workingDirectory||prev.workingDirectory||'',
-    name:envelope.name||envelope.roomName||prev.name||'Session',
-    updatedAt:envelope.updatedAt||envelope.createdAt||prev.updatedAt||new Date().toISOString(),
-  })
+    accessLevel:envelope?.accessLevel??prev.accessLevel,
+    canRead:envelope?.canRead??prev.canRead,
+    canWrite:envelope?.canWrite??prev.canWrite,
+    canDelete:envelope?.canDelete??prev.canDelete,
+  };
+  discoveredSessions.set(sessionId,normalizeSessionRecord(merged,prev))
 }
 function removeDiscoveredSession(sessionId){
   if(!sessionId)return;
   discoveredSessions.delete(sessionId);
-  deletedSessions.add(sessionId);
+  deletedSessions.set(sessionId,Date.now());
   sessionAutoApprove.delete(sessionId)
 }
 function makeRequestId(){return globalThis.crypto?.randomUUID?.()||`req-${Date.now()}-${Math.random().toString(16).slice(2)}`}
 function waitForLobbyReply(store,requestId,timeoutMs,message){return new Promise((resolve,reject)=>{const timeout=setTimeout(()=>{store.delete(requestId);reject(new Error(message))},timeoutMs);store.set(requestId,{resolve,reject,timeout})})}
 function settleLobbyReply(store,requestId,error,data={}){const pending=store.get(requestId);if(!pending)return false;clearTimeout(pending.timeout);store.delete(requestId);if(error)pending.reject(new Error(error));else pending.resolve(data);return true}
+function createPortalHeaders(headers={},userId=uid){
+  const next={...headers};
+  if(!oauthMode){
+    const explicitUserId=String(userId||'').trim();
+    if(explicitUserId&&!next[PORTAL_USER_HEADER])next[PORTAL_USER_HEADER]=explicitUserId;
+  }
+  return next;
+}
+async function portalJson(path,options={}){
+  const headers=createPortalHeaders(options.headers||{});
+  if(options.body!==undefined&&!headers['Content-Type'])headers['Content-Type']='application/json';
+  const response=await fetch(path,{...options,headers});
+  const body=await response.json().catch(()=>({}));
+  if(!response.ok)throw new Error(body?.error||body?.message||`Request failed: ${response.status}`);
+  return body;
+}
+function parseUserListInput(value){return[...new Set(String(value||'').split(/[\s,;]+/).map(part=>part.trim()).filter(Boolean))]}
+function daemonAccessDraftFor(daemonId,daemon){
+  const draft=daemonAccessDrafts.get(daemonId);
+  if(draft)return draft;
+  return{memberUsers:(daemon?.memberUsers||[]).join(', '),adminUsers:(daemon?.adminUsers||[]).join(', ')}
+}
+window.updateDaemonAccessDraft=(daemonId,field,value)=>{
+  const daemon=knownDaemons.get(daemonId);
+  const draft=daemonAccessDraftFor(daemonId,daemon);
+  draft[field]=value;
+  daemonAccessDrafts.set(daemonId,draft);
+};
+window.saveDaemonAccess=async()=>{
+  const daemon=knownDaemons.get(currentDaemonId);
+  if(!daemon||!daemon.canManage)return;
+  const memberInput=document.getElementById('daemon-member-users');
+  const adminInput=document.getElementById('daemon-admin-users');
+  const saveButton=document.getElementById('daemon-access-save-btn');
+  const message=document.getElementById('daemon-access-msg');
+  const memberUsers=parseUserListInput(memberInput?.value||'');
+  const adminUsers=parseUserListInput(adminInput?.value||'');
+  if(saveButton){saveButton.disabled=true;saveButton.textContent='Saving…'}
+  if(message){message.textContent='Saving access list…';message.style.color='var(--fg4)'}
+  try{
+    const body=await portalJson(`/api/daemons/${encodeURIComponent(currentDaemonId)}/access`,{method:'PATCH',body:JSON.stringify({memberUsers,adminUsers})});
+    const updated=body.daemon||{};
+    knownDaemons.set(updated.daemonId,normalizeDaemonRecord(updated));
+    daemonAccessDrafts.delete(updated.daemonId);
+    renderDaemonsCol();
+    syncCreateSessionButton();
+  }catch(error){
+    if(message){message.textContent=error.message||'Failed to save daemon access';message.style.color='var(--danger)'}
+  }finally{
+    if(saveButton){saveButton.disabled=false;saveButton.textContent='Save Access'}
+  }
+};
+async function refreshPortalDaemons({render=true}={}){
+  if(!uid)return;
+  const body=await portalJson('/api/daemons');
+  const previousDaemons=new Map(knownDaemons);
+  const nextDaemons=Array.isArray(body.daemons)?body.daemons:[];
+  if(shouldRetainPreviousDaemons(previousDaemons,nextDaemons,Date.now(),DAEMON_STALE_MS)){
+    portalDaemonsLoaded=true;
+    if(render)renderDaemonsCol();
+    syncCreateSessionButton();
+    return;
+  }
+  knownDaemons.clear();
+  for(const daemon of nextDaemons){
+    const previous=previousDaemons.get(daemon.daemonId)||{};
+    const normalized={...previous,...normalizeDaemonRecord(daemon),accessRequestStatus:daemon.accessRequestStatus||previous.accessRequestStatus||'',requestedAccess:daemon.requestedAccess||previous.requestedAccess||''};
+    // Preserve real-time access flags if REST hasn't caught up yet
+    if(previous.hasMemberAccess&&!normalized.hasMemberAccess){normalized.hasMemberAccess=true;normalized.canRead=true}
+    if(previous.hasAdminAccess&&!normalized.hasAdminAccess){normalized.hasAdminAccess=true;normalized.canWrite=true}
+    knownDaemons.set(daemon.daemonId,normalized);
+    if(daemonHasMemberAccess(normalized))void ensureDaemonSyncRoom(daemon.daemonId);
+  }
+  portalDaemonsLoaded=true;
+  if(currentDaemonId&&!knownDaemons.has(currentDaemonId)){currentDaemonId=null;currentAgentName=null;rid=null;resetChatState()}
+  if(render)renderDaemonsCol();
+  syncCreateSessionButton();
+}
+async function refreshPortalSessions({render=true}={}){
+  if(!uid||!currentAgentName)return;
+  const queryKey=currentSessionQueryKey();
+  loadingSessionQueryKeys.add(queryKey);
+  try{
+    const params=new URLSearchParams();
+    if(currentDaemonId)params.set('daemonId',currentDaemonId);
+    if(currentAgentName)params.set('agentName',currentAgentName);
+    const body=await portalJson(`/api/sessions?${params.toString()}`);
+    sessionListBlockedReason=body.blockedReason||'';
+    markSessionQueryLoaded(queryKey);
+    if(sessionListBlockedReason){if(render)await renderSessionsCol();return}
+    const joined=joinedRoomIds();
+    const keep=new Set();
+    for(const session of body.sessions||[]){
+      const normalized=normalizeSessionRecord(session,discoveredSessions.get(session.sessionId)||{});
+      keep.add(session.sessionId);
+      const deletedAt=deletedSessions.get(session.sessionId);
+      if(deletedAt&&Date.now()-deletedAt<5000)continue; // skip recently deleted sessions
+      deletedSessions.delete(session.sessionId);
+      upsertDiscoveredSession(normalized);
+      const prevJoin=joinRequests.get(session.sessionId)||{};
+      if(session.joinStatus){
+        // Don't overwrite real-time approved/denied with stale 'pending' from REST
+        if((prevJoin.status==='approved'||prevJoin.status==='denied')&&session.joinStatus==='pending'){/* skip stale REST */}
+        else joinRequests.set(session.sessionId,{...prevJoin,requestId:session.joinRequestId||'',status:session.joinStatus,requestedAccess:session.requestedAccess||'',updatedAt:session.updatedAt||new Date().toISOString(),autoOpen:true});
+      }else if(sessionCanRead(normalized)||joined.has(session.sessionId)){
+        joinRequests.set(session.sessionId,{...prevJoin,status:'approved',requestedAccess:sessionAccessLevel(normalized),updatedAt:session.updatedAt||new Date().toISOString(),autoOpen:true});
+      }
+    }
+    for(const [sessionId,meta] of [...discoveredSessions.entries()]){
+      if(keep.has(sessionId)||joined.has(sessionId)||deletedSessions.has(sessionId))continue;
+      if(currentDaemonId&&meta.daemonId&&meta.daemonId!==currentDaemonId)continue;
+      if(currentAgentName&&meta.agent&&meta.agent!==currentAgentName)continue;
+      discoveredSessions.delete(sessionId);
+    }
+    if(render)await renderSessionsCol();
+  }finally{loadingSessionQueryKeys.delete(queryKey)}
+}
+async function refreshPendingJoinRequests(){
+  if(!uid)return;
+  const body=await portalJson('/api/join-requests');
+  const pendingIds=new Set((body.joinRequests||[]).map(request=>request.requestId));
+  for(const request of body.joinRequests||[]){
+    if(seenPendingJoinRequestIds.has(request.requestId))continue;
+    seenPendingJoinRequestIds.add(request.requestId);
+    void handleJoinRequest(request);
+  }
+  for(const requestId of [...seenPendingJoinRequestIds])if(!pendingIds.has(requestId))seenPendingJoinRequestIds.delete(requestId);
+}
+async function refreshPendingDaemonAccessRequests(){
+  if(!uid)return;
+  const body=await portalJson('/api/daemon-access-requests');
+  const pendingIds=new Set((body.requests||[]).map(request=>request.requestId));
+  for(const request of body.requests||[]){
+    if(seenPendingDaemonAccessRequestIds.has(request.requestId))continue;
+    seenPendingDaemonAccessRequestIds.add(request.requestId);
+    void handleDaemonAccessRequest(request);
+  }
+  for(const requestId of [...seenPendingDaemonAccessRequestIds])if(!pendingIds.has(requestId))seenPendingDaemonAccessRequestIds.delete(requestId);
+}
+function pulsePortalRefresh(delays=[0]){for(const delay of delays)setTimeout(()=>{if(uid)void pollPortalState({render:true})},Math.max(0,Number(delay)||0))}
+async function pollPortalState({render=true}={}){
+  if(portalPollInFlight||!uid)return;
+  portalPollInFlight=true;
+  try{
+    await refreshPortalDaemons({render});
+    if(currentAgentName)await refreshPortalSessions({render});
+    await refreshPendingJoinRequests();
+    await refreshPendingDaemonAccessRequests();
+  }catch(err){console.warn('Portal refresh failed:',err?.message||err)}finally{portalPollInFlight=false}
+}
+function startPortalPolling(){
+  if(portalPollTimer)clearInterval(portalPollTimer);
+  portalPollTimer=setInterval(()=>{void pollPortalState({render:true})},1500);
+  pulsePortalRefresh([0,300]);
+}
+function stopPortalPolling(){
+  if(portalPollTimer){clearInterval(portalPollTimer);portalPollTimer=null}
+  portalPollInFlight=false;
+  seenPendingJoinRequestIds.clear();
+  seenPendingDaemonAccessRequestIds.clear();
+}
 async function mapLimit(items,limit,iteratee){
   const results=[];
   let index=0;
@@ -1160,111 +1599,215 @@ async function ensureLobbyMembership(userId){
   }
   throw new Error('Failed to join lobby')
 }
-async function waitForRoomMembership(roomId,timeout=5000){
-  const deadline=Date.now()+timeout;
-  while(Date.now()<deadline){
-    if(joinedRoomIds().has(roomId))return;
-    try{if(await cc.getRoom(roomId,false))return}catch{}
-    await new Promise(r=>setTimeout(r,150))
+async function ensureDaemonSyncRoom(daemonId){
+  if(!cc||!daemonId||daemonSyncRooms.has(daemonId))return;
+  try{
+    await cc.getRoom(daemonSyncRoomId(daemonId),false);
+    daemonSyncRooms.add(daemonId);
+  }catch(err){
+    if(!/not\s+a\s+member|not found|404|403|forbidden/i.test(String(err?.message||'')))console.warn('Daemon sync room hydrate failed:',daemonId,err?.message||err)
   }
-  throw new Error('Timed out waiting for room membership')
+}
+async function waitForRoomMembership(roomId,timeout=5000){
+  await waitForJoinedRoom(roomId,{
+    hasJoinedRoom:(targetRoomId)=>joinedRoomIds().has(targetRoomId),
+    getRoomInfo:(targetRoomId)=>cc.getRoom(targetRoomId,false),
+    hydrateJoinedRoom:async(targetRoomId)=>{
+      if(joinedRoomIds().has(targetRoomId))return;
+      try{await cc.addUserToRoom(targetRoomId,cc.userId)}catch(joinErr){
+        if(!/already|exists|member/i.test(String(joinErr?.message||'')))throw joinErr;
+      }
+    },
+    timeoutMs:timeout,
+  })
+}
+function isRoomLiveSyncEvidenceMessage(roomId,notification){
+  const targetRoomId=String(roomId||'').trim();
+  const messageRoomId=String(notification?.conversation?.roomId||'').trim();
+  const messageText=notification?.message?.content?.text;
+  if(!targetRoomId||messageRoomId!==targetRoomId||!messageText)return false;
+  if(isLocalEchoMessage(notification?.message,uid))return false;
+  try{
+    const type=String(JSON.parse(messageText)?.type||'').trim();
+    return type==='session.state'||type==='session.idle'||type==='assistant.message'||type==='assistant.delta'||type==='assistant.reasoning'||type==='assistant.reasoning_delta'||type==='tool.start'||type==='tool.complete'||type==='permission.request'||type==='permission.response'||type==='session.error'||type==='system.info'||type==='commands.update'||type==='modes.update'||type==='models.update'||type==='mode.changed'||type==='usage.update'
+  }catch{return false}
+}
+async function waitForRoomLiveState(roomId,timeout=ROOM_LIVE_SYNC_TIMEOUT_MS){
+  await waitForRoomLiveSync(roomId,{
+    subscribeToMessages:(listener)=>cc.addListenerForNewMessage(listener),
+    sendSyncRequest:(targetRoomId)=>cc.sendToRoom(targetRoomId,JSON.stringify({type:'session.sync_state'})),
+    messageHasSyncEvidence:isRoomLiveSyncEvidenceMessage,
+    timeoutMs:timeout,
+  })
 }
 function applyLobbyEnvelope(e){
-  if(!e||typeof e!=='object')return;
-  if(e.type==='daemon.online'&&e.daemonId){
-    knownDaemons.set(e.daemonId,{hostname:e.hostname||'unknown',platform:e.platform||'',agents:e.agents||[],workspaces:e.workspaces||[],updatedAt:e.updatedAt||e.createdAt||new Date().toISOString()});
-    renderDaemonsCol();
-    return
-  }
-  if(e.type==='daemon.offline'&&e.daemonId){
-    knownDaemons.delete(e.daemonId);
-    if(currentDaemonId===e.daemonId){currentDaemonId=null;currentAgentName=null;rid=null;applyLoggedInState()}else renderDaemonsCol();
-    return
-  }
-  if((e.type==='session.online'||e.type==='session.touch')&&e.sessionId){
-    deletedSessions.delete(e.sessionId);
-    upsertDiscoveredSession(e);
-    renderSessionsCol();
-    return
-  }
-  if(e.type==='session.deleted'&&e.sessionId){
-    removeDiscoveredSession(e.sessionId);
-    if(rid===e.sessionId){rid=null;resetChatState();applyLoggedInState();updateBreadcrumb();updateAutoBtn()}
-    renderSessionsCol()
-    return
-  }
-  if(e.type==='session.create_result'&&e.requesterUserId===uid&&e.requestId){
-    settleLobbyReply(pendingCreateRequests,e.requestId,e.success===false?e.error:'',{sessionId:e.sessionId,roomName:e.roomName,daemonId:e.daemonId});
-    return
-  }
-  if(e.type==='workspace.list_response'&&e.requesterUserId===uid&&e.requestId){
-    settleLobbyReply(pendingWorkspaceRequests,e.requestId,e.error||'',{base:e.base,dirs:e.dirs||[],partial:e.partial||'',daemonId:e.daemonId,mode:e.mode||'',favorites:e.favorites||[],roots:e.roots||[],query:e.query||'',truncated:!!e.truncated,total:Number(e.total)||0});
-    return
-  }
-  if(e.type==='session.join_request'&&e.ownerUserId===uid&&e.requesterUserId&&e.requesterUserId!==uid){
-    void handleJoinRequest(e);
-    return
-  }
-  if(e.type==='session.membership_result'&&e.requesterUserId===uid&&e.sessionId){
-    if(!e.granted){
-      const prev=joinRequests.get(e.sessionId)||{};
-      joinRequests.set(e.sessionId,{...prev,status:'denied',error:e.error||'Failed to join room',updatedAt:e.updatedAt||new Date().toISOString(),autoOpen:false});
-      renderSessionsCol()
+  if(!e||!e.type)return;
+  // Real-time approval/denial notifications from the server
+  if((e.type==='portal.access-approved'||e.type==='portal.access-denied')&&e.requesterUserId===uid){
+    const approved=e.status==='approved';
+    if(e.target==='daemon'&&e.daemonId){
+      const daemon=knownDaemons.get(e.daemonId);
+      if(daemon){
+        const next={...daemon,accessRequestStatus:e.status,requestedAccess:e.requestedAccess||daemon.requestedAccess||''};
+        if(approved){next.hasMemberAccess=true;next.canRead=true;if(e.requestedAccess==='admin'){next.hasAdminAccess=true;next.canWrite=true}}
+        knownDaemons.set(e.daemonId,next);
+        renderDaemonsCol();
+        syncCreateSessionButton();
+        if(currentAgentName)void renderSessionsCol();
+        void ensureDaemonSyncRoom(e.daemonId);
+      }
+      setFormStatus(approved?'Daemon access granted!':'Daemon access denied.',approved?'success':'error',2200,'create');
     }
-    return
-  }
-  if(e.type==='session.join_response'&&e.requesterUserId===uid&&e.sessionId){
-    handleJoinResponse(e)
+    if(e.target==='session'&&e.sessionId){
+      const prev=joinRequests.get(e.sessionId)||{};
+      joinRequests.set(e.sessionId,{...prev,status:approved?'approved':'denied',requestedAccess:e.requestedAccess||prev.requestedAccess||'read',updatedAt:new Date().toISOString(),autoOpen:prev.autoOpen!==false});
+      void renderSessionsCol();
+      setFormStatus(approved?'Session access granted!':'Session access denied.',approved?'success':'error',2200,'join');
+      if(approved&&prev.autoOpen!==false){
+        void(async()=>{try{await ensureJoinedSession(e.sessionId);await openR(e.sessionId)}catch(err){console.warn('Auto-open after approval failed:',err?.message)}})();
+      }
+    }
+    pulsePortalRefresh([300,1500]);
+    return;
   }
 }
 async function loadLobbyState(){
-  const ri=await cc.getRoom(LOBBY_ROOM,false);
-  const cid=ri?.defaultConversationId;
-  if(!cid)return;
-  const h=await cc.listMessage(cid,'0',null,100);
-  if(!h?.messages?.length)return;
-  for(const m of [...h.messages].reverse()){
-    if(!m.content?.text)continue;
-    try{applyLobbyEnvelope({...JSON.parse(m.content.text),createdAt:m.createdAt})}catch{}
+  return;
+}
+function applyDaemonSyncEnvelope(e){
+  if(e?.type==='portal.daemon-access-request'){
+    const daemonId=String(e.daemonId||'').trim();
+    if(!daemonId)return;
+    const requestId=String(e.requestId||'').trim();
+    const known=knownDaemons.get(daemonId);
+    if(known&&e.requesterUserId===uid){
+      const next={...known,accessRequestStatus:e.status||known.accessRequestStatus||'',requestedAccess:e.requestedAccess||known.requestedAccess||''};
+      if(e.status==='approved'){
+        next.hasMemberAccess=true;
+        next.canRead=true;
+        if(e.requestedAccess==='admin'){
+          next.hasAdminAccess=true;
+          next.canWrite=true;
+        }
+      }
+      knownDaemons.set(daemonId,next);
+      renderDaemonsCol();
+      syncCreateSessionButton();
+      if(currentAgentName)void renderSessionsCol();
+    }
+    if(e.status==='pending'){
+      if(requestId&&seenPendingDaemonAccessRequestIds.has(requestId))return;
+      if(requestId)seenPendingDaemonAccessRequestIds.add(requestId);
+      void handleDaemonAccessRequest(e);
+      return;
+    }
+    if(requestId)seenPendingDaemonAccessRequestIds.delete(requestId);
+    pulsePortalRefresh([0,300]);
+    return;
+  }
+  const sessionId=e?.sessionId||e?.roomId;
+  if(!sessionId)return;
+  if(e.type==='session.deleted'){
+    removeDiscoveredSession(sessionId);
+    joinRequests.delete(sessionId);
+    if(rid===sessionId){
+      rid=null;
+      resetChatState();
+      applyLoggedInState();
+      updateBreadcrumb();
+      updateAutoBtn();
+      setFormStatus('This session was deleted.','success',2200,'join');
+    }
+  }else if(e.type==='session.created'||e.type==='session.touch'||e.type==='session.updated'){
+    deletedSessions.delete(sessionId);
+    upsertDiscoveredSession(e);
+  }else return;
+  if(currentDaemonId&&e.daemonId&&e.daemonId!==currentDaemonId)return;
+  if(currentAgentName&&e.agentName&&e.agentName!==currentAgentName)return;
+  void renderSessionsCol();
+}
+async function sendDaemonEnvelope(payload){
+  if(!cc)return;
+  const daemonId=String(payload?.daemonId||currentDaemonId||'').trim();
+  if(!daemonId)return;
+  try{
+    await ensureDaemonSyncRoom(daemonId);
+    await cc.sendToRoom(daemonSyncRoomId(daemonId),JSON.stringify(payload))
+  }catch(err){
+    if(!/not\s+a\s+member|403|forbidden/i.test(String(err?.message||'')))console.warn('Daemon sync send failed:',daemonId,err?.message||err)
   }
 }
-async function announceSession(type,sessionId,extra={}){
-  if(!cc||!uid||!sessionId)return;
-  const payload={type,sessionId,ownerUserId:uid,daemonId:currentDaemonId||undefined,agentName:currentAgentName||undefined,updatedAt:new Date().toISOString(),...extra};
-  try{await cc.sendToRoom(LOBBY_ROOM,JSON.stringify(payload))}catch(e){console.warn('Lobby send failed:',e.message)}
+function announceSession(type,sessionId,extra={}){
+  if(!uid||!sessionId)return;
+  const known=discoveredSessions.get(sessionId)||{};
+  const payload={type,sessionId,ownerUserId:known.ownerUserId||uid,daemonId:known.daemonId||currentDaemonId||undefined,agentName:known.agent||currentAgentName||undefined,roomName:known.name||undefined,workingDirectory:known.workingDirectory||undefined,updatedAt:new Date().toISOString(),...extra};
   if(type==='session.deleted')removeDiscoveredSession(sessionId);else{deletedSessions.delete(sessionId);upsertDiscoveredSession(payload)}
+  void sendDaemonEnvelope(payload)
 }
 async function sendLobbyEnvelope(payload){
   if(!cc)throw new Error('Not connected');
   await cc.sendToRoom(LOBBY_ROOM,JSON.stringify(payload))
 }
-async function requestJoinSession(sessionId){
+async function requestJoinSession(sessionId,requestedAccess='read'){
   const session=discoveredSessions.get(sessionId);
   if(!session)throw new Error('Session not found');
   const current=joinRequests.get(sessionId);
-  if(current?.status==='pending')return false;
-  const request={sessionId,requesterUserId:uid,ownerUserId:session.ownerUserId,daemonId:session.daemonId,agentName:session.agent,name:session.name,workingDirectory:session.workingDirectory,updatedAt:new Date().toISOString(),status:'pending',autoOpen:true};
+  if(current?.status==='pending'&&current?.requestedAccess===requestedAccess)return false;
+  const body=await portalJson(`/api/sessions/${encodeURIComponent(sessionId)}/join-requests`,{method:'POST',body:JSON.stringify({requestedAccess})});
+  const request={sessionId,requestId:body.requestId||'',requesterUserId:uid,ownerUserId:session.ownerUserId,daemonId:session.daemonId,agentName:session.agent,name:session.name,workingDirectory:session.workingDirectory,updatedAt:new Date().toISOString(),status:body.status||'pending',requestedAccess:body.requestedAccess||requestedAccess,autoOpen:true};
   joinRequests.set(sessionId,request);
-  await sendLobbyEnvelope({type:'session.join_request',...request});
+  pulsePortalRefresh([600,1800]);
   renderSessionsCol();
   return true
 }
+window.requestDaemonAccess=async(requestedAccess)=>{
+  try{
+    const daemon=currentDaemonRecord();
+    if(!daemon||!currentDaemonId)throw new Error('Select a daemon first');
+    const body=await portalJson(`/api/daemons/${encodeURIComponent(currentDaemonId)}/access-requests`,{method:'POST',body:JSON.stringify({requestedAccess})});
+    knownDaemons.set(currentDaemonId,{...daemon,accessRequestStatus:body.status||'pending',requestedAccess:body.requestedAccess||requestedAccess});
+    setFormStatus(`${requestedAccess==='admin'?'Admin':'Member'} access request sent. Waiting for approval.`,'loading',2600,'create');
+    renderDaemonsCol();
+    await renderSessionsCol();
+    pulsePortalRefresh([600,1800]);
+    return body;
+  }catch(error){
+    setFormStatus(error.message||'Failed to request daemon access.','error',4500,'create');
+    return null;
+  }
+}
 async function handleJoinRequest(e){
-  const key=`${e.sessionId}:${e.requesterUserId}`;
+  const key=e.requestId||`${e.sessionId}:${e.requesterUserId}`;
   if(joinApprovalLocks.has(key))return;
   joinApprovalLocks.add(key);
   try{
     const session=discoveredSessions.get(e.sessionId)||e;
-    const allow=await showConfirm(`${e.requesterUserId} wants to join ${sessionLabel(session)}.`, 'Allow');
-    await sendLobbyEnvelope({type:'session.join_response',sessionId:e.sessionId,requesterUserId:e.requesterUserId,ownerUserId:uid,approved:allow,updatedAt:new Date().toISOString()})
+    const requestedAccess=e.requestedAccess==='write'?'write':'read';
+    const allow=await showConfirm(`${e.requesterUserId} wants ${requestedAccess} access to ${sessionLabel(session)}.`, 'Allow');
+    await portalJson(`/api/sessions/${encodeURIComponent(e.sessionId)}/join-requests/${encodeURIComponent(e.requestId)}/${allow?'approve':'reject'}`,{method:'POST'});
+    pulsePortalRefresh([500,1500]);
+    await refreshPortalSessions({render:true});
   }catch(err){
-    try{
-      await sendLobbyEnvelope({type:'session.join_response',sessionId:e.sessionId,requesterUserId:e.requesterUserId,ownerUserId:uid,approved:false,error:err.message||'Failed to approve join request',updatedAt:new Date().toISOString()});
-    }catch(sendErr){
-      console.warn('Join approval response failed:',sendErr?.message||sendErr);
-      setFormStatus(sendErr?.message||'Failed to send join approval response.','error',4500,'join');
-    }
+    console.warn('Join approval response failed:',err?.message||err);
+    setFormStatus(err?.message||'Failed to send join approval response.','error',4500,'join');
   }finally{joinApprovalLocks.delete(key)}
+}
+async function handleDaemonAccessRequest(e){
+  const key=e.requestId||`${e.daemonId}:${e.requesterUserId}`;
+  if(daemonAccessApprovalLocks.has(key))return;
+  daemonAccessApprovalLocks.add(key);
+  try{
+    const daemon=knownDaemons.get(e.daemonId)||e;
+    const label=daemon.hostname||e.daemonId;
+    const allow=await showConfirm(`${e.requesterUserId} wants ${e.requestedAccess} access to ${label}.`,'Allow');
+    await portalJson(`/api/daemons/${encodeURIComponent(e.daemonId)}/access-requests/${encodeURIComponent(e.requestId)}/${allow?'approve':'reject'}`,{method:'POST'});
+    pulsePortalRefresh([500,1500]);
+    await refreshPortalDaemons({render:true});
+    if(currentAgentName)await refreshPortalSessions({render:true});
+  }catch(err){
+    console.warn('Daemon access approval response failed:',err?.message||err);
+    setFormStatus(err?.message||'Failed to send daemon access response.','error',4500,'create');
+  }finally{daemonAccessApprovalLocks.delete(key)}
 }
 function handleJoinResponse(e){
   const prev=joinRequests.get(e.sessionId)||{};
@@ -1274,7 +1817,8 @@ function handleJoinResponse(e){
 }
 async function ensureJoinedSession(sessionId){
   if(joinedRoomIds().has(sessionId))return;
-  await waitForRoomMembership(sessionId,4000)
+  await portalJson(`/api/sessions/${encodeURIComponent(sessionId)}/access-self`,{method:'POST'});
+  await waitForRoomMembership(sessionId,ROOM_MEMBERSHIP_TIMEOUT_MS)
 }
 function applyLoggedOutState(message='',isError=false){
   setCompactNav(false);
@@ -1285,8 +1829,9 @@ function applyLoggedOutState(message='',isError=false){
   setColumnDisabled('col-daemons',true);setColumnDisabled('col-agents',true);setColumnDisabled('col-sessions',true);setColumnDisabled('chat-col',true);
   $.chat.classList.add('hidden');$.ibar.classList.add('hidden');syncComposer();
   showChatPlaceholder(true);
+  if(!uid&&portalTransportState==='connected')setPortalTransportState('disconnected');
   setLoginMessage(message,isError);syncUserBadge();updateAutoBtn();renderDaemonsCol();renderAgentsCol();renderSessionsCol();updateBreadcrumb();syncCompactButton();
-  if($.loginUser&&!$.loginUser.value)$.loginUser.value=localStorage.getItem(USER_STORAGE_KEY)||DEFAULT_USERNAME;
+  if($.loginUser&&!$.loginUser.value)$.loginUser.value=getStoredUserId()||DEFAULT_USERNAME;
   if(isMobile())mobShow('col-login')
 }
 function applyLoggedInState(){
@@ -1305,28 +1850,34 @@ function applyLoggedInState(){
 async function loginUser(rawUserId){
   const userId=String(rawUserId||'').trim()||DEFAULT_USERNAME;
   if($.loginBtn){$.loginBtn.disabled=true;$.loginBtn.textContent='Logging in…'}
+  setPortalTransportState('connecting');
   setLoginMessage('Connecting…');
   clearFormStatus();
   try{
     if(cc&&uid!==userId){try{cc.stop()}catch{}cc=null}
-    knownDaemons.clear();discoveredSessions.clear();deletedSessions.clear();sessionAutoApprove.clear();joinRequests.clear();joinApprovalLocks.clear();pendingCreateRequests.clear();pendingWorkspaceRequests.clear();
+    stopPortalPolling();knownDaemons.clear();discoveredSessions.clear();deletedSessions.clear();loadedSessionQueryKeys.clear();daemonSyncRooms.clear();sessionAutoApprove.clear();joinRequests.clear();joinApprovalLocks.clear();daemonAccessApprovalLocks.clear();pendingCreateRequests.clear();pendingWorkspaceRequests.clear();sessionListBlockedReason='';portalDaemonsLoaded=false;
     await initCC(userId);
-    localStorage.setItem(USER_STORAGE_KEY,userId);
+    setPortalTransportState('connected');
+    setStoredUserId(userId);
     applyLoggedInState();
+    setLoginMessage('Loading daemons…');
     return true
   }catch(e){
     if(cc){try{cc.stop()}catch{}}
-    cc=null;uid=null;knownDaemons.clear();discoveredSessions.clear();deletedSessions.clear();sessionAutoApprove.clear();joinRequests.clear();joinApprovalLocks.clear();pendingCreateRequests.clear();pendingWorkspaceRequests.clear();
+    setPortalTransportState('failed',e.message||'Failed to connect to WPS');
+    stopPortalPolling();cc=null;uid=null;knownDaemons.clear();discoveredSessions.clear();deletedSessions.clear();loadedSessionQueryKeys.clear();daemonSyncRooms.clear();sessionAutoApprove.clear();joinRequests.clear();joinApprovalLocks.clear();daemonAccessApprovalLocks.clear();pendingCreateRequests.clear();pendingWorkspaceRequests.clear();sessionListBlockedReason='';portalDaemonsLoaded=false;
     applyLoggedOutState(e.message||'Login failed',true);
     return false
   }finally{if($.loginBtn){$.loginBtn.disabled=false;$.loginBtn.textContent='Login'}}
 }
 async function logoutUser(){
   try{if(cc)cc.stop()}catch{}
-  cc=null;uid=null;userAvatar='';knownDaemons.clear();discoveredSessions.clear();deletedSessions.clear();sessionAutoApprove.clear();joinRequests.clear();joinApprovalLocks.clear();pendingCreateRequests.clear();pendingWorkspaceRequests.clear();
+  stopPortalPolling();cc=null;uid=null;userAvatar='';knownDaemons.clear();discoveredSessions.clear();deletedSessions.clear();loadedSessionQueryKeys.clear();daemonSyncRooms.clear();sessionAutoApprove.clear();joinRequests.clear();joinApprovalLocks.clear();daemonAccessApprovalLocks.clear();pendingCreateRequests.clear();pendingWorkspaceRequests.clear();sessionListBlockedReason='';portalDaemonsLoaded=false;
   // Server-side logout (for OAuth)
   try{await fetch('/auth/logout',{method:'POST'})}catch{}
-  if($.loginUser)$.loginUser.value=localStorage.getItem(USER_STORAGE_KEY)||DEFAULT_USERNAME;
+  setOauthAuthenticatedUser(null);
+  setPortalTransportState('disconnected');
+  if($.loginUser)$.loginUser.value=getStoredUserId()||DEFAULT_USERNAME;
   applyLoggedOutState()
 }
 
@@ -1363,7 +1914,9 @@ function updateBreadcrumb(){
   if(currentDaemonId){const d=knownDaemons.get(currentDaemonId);if(d)parts.push(d.hostname||currentDaemonId)}
   if(currentAgentName)parts.push(AGENT_NAMES[currentAgentName]||currentAgentName);
   if(rid){const sm=discoveredSessions.get(rid);if(sm)parts.push(sessionLabel(sm))}
-  $.tt.textContent=parts.join(' › ');
+  const newText=parts.join(' › ');
+  if($.tt.textContent!==newText){$.tt.style.opacity='0';setTimeout(()=>{$.tt.textContent=newText;$.tt.classList.toggle('is-brand',parts.length===1);$.tt.style.opacity='1'},100)}
+  else{$.tt.classList.toggle('is-brand',parts.length===1)}
   renderCompactNav();
 }
 
@@ -1391,18 +1944,36 @@ function syncSessionSelection(sessionId,patch={}){
 function renderDaemonsCol(){
   const list=document.getElementById('col-daemons-list');
   if(!uid||!cc){list.innerHTML=skeletonColumn(3);renderCompactNav();return}
-  const daemonEntries=[...knownDaemons.entries()].filter(([,d])=>{
-    const stamp=Date.parse(d?.updatedAt||'');
-    return Number.isFinite(stamp)?Date.now()-stamp<=DAEMON_STALE_MS:true;
-  });
+  if(!portalDaemonsLoaded){list.innerHTML=renderColumnLoadingState('Loading daemons…','Waiting for the latest daemon list from the portal.');renderCompactNav();return}
+  const daemonEntries=[...knownDaemons.entries()].filter(([,d])=>isDaemonRecordFresh(d,Date.now(),DAEMON_STALE_MS));
   if(currentDaemonId&&!daemonEntries.some(([did])=>did===currentDaemonId)){currentDaemonId=null;currentAgentName=null;rid=null}
   if(!daemonEntries.length){list.innerHTML='<div class="col-empty"><div style="font-size:32px;margin-bottom:12px;opacity:.4">🔌</div>No daemons found<br><br><code style="color:var(--accent2);font-size:11px">npm run daemon</code></div>';renderCompactNav();return}
-  list.innerHTML=daemonEntries.map(([did,d])=>{
+  const daemonCards=daemonEntries.map(([did,d])=>{
     const agentCount=(d.agents||[]).length;
-    const osIcon=OS_ICONS[d.platform]||'🖥';
-    const osName=OS_NAMES[d.platform]||'';
-    return`<div class="col-item${did===currentDaemonId?' selected':''}" onclick="selectDaemon('${jsq(did)}')"><span class="ci-icon">${osIcon}</span><div class="ci-info"><div class="ci-name">${esc(d.hostname||did)}</div><div class="ci-meta">${osName?osName+' · ':''}${agentCount} agent${agentCount!==1?'s':''}</div></div><span class="ci-dot"></span></div>`;
+    const platform=normalizeDaemonPlatform(d.platform);
+    const osIcon=OS_ICONS[platform]||'🖥';
+    const osName=OS_NAMES[platform]||'';
+    const accessTag=daemonAccessTag(d);
+    const approverMeta=portalApproverUserIds(d).length?` · approver: ${daemonApproverLabel(d)}`:'';
+    return`<div class="col-item${did===currentDaemonId?' selected':''}" onclick="selectDaemon('${jsq(did)}')"><span class="ci-icon">${osIcon}</span><div class="ci-info"><div class="ci-name">${esc(d.hostname||did)}</div><div class="ci-meta">${esc(`${osName?osName+' · ':''}${agentCount} agent${agentCount!==1?'s':''}${approverMeta}`)}</div></div>${accessTag}<span class="ci-dot"></span></div>`;
   }).join('');
+  const selectedDaemon=knownDaemons.get(currentDaemonId);
+  let accessCard='';
+  if(selectedDaemon){
+    const accessSummary=`${daemonAccessSummary(selectedDaemon)}.`;
+    if(selectedDaemon.canManage){
+      const draft=daemonAccessDraftFor(currentDaemonId,selectedDaemon);
+      accessCard=`<div style="margin:12px 10px 8px;padding:12px;border:1px solid var(--line);border-radius:14px;background:var(--panel2)"><div style="font-size:11px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;color:var(--fg5);margin-bottom:8px">Daemon Access</div><div style="font-size:12px;color:var(--fg4);margin-bottom:10px">${esc(accessSummary)} Use commas, spaces, or new lines between usernames.</div><div class="fld"><label>Member users</label><textarea id="daemon-member-users" oninput="updateDaemonAccessDraft('${jsq(currentDaemonId)}','memberUsers',this.value)" rows="3" style="width:100%;resize:vertical">${esc(draft.memberUsers||'')}</textarea></div><div class="fld"><label>Admin users</label><textarea id="daemon-admin-users" oninput="updateDaemonAccessDraft('${jsq(currentDaemonId)}','adminUsers',this.value)" rows="3" style="width:100%;resize:vertical">${esc(draft.adminUsers||'')}</textarea></div><button class="sh-go" id="daemon-access-save-btn" type="button" onclick="saveDaemonAccess()">Save Access</button><div class="col-new-msg" id="daemon-access-msg">Member uses room.member, admin uses room.operator in Web PubSub Chat membership.</div></div>`;
+    }else{
+      const guidance=!daemonHasMemberAccess(selectedDaemon)
+        ?`Sessions under ${selectedDaemon.hostname||currentDaemonId} stay hidden until daemon member or admin access is granted.`
+        :!daemonHasAdminAccess(selectedDaemon)
+          ?'Daemon member access lets you browse session names. Session read and write access are requested per session, while daemon admin access is required to create sessions.'
+          :'Only the approver listed above can change daemon access.';
+      accessCard=`<div style="margin:12px 10px 8px;padding:12px;border:1px solid var(--line);border-radius:14px;background:var(--panel2)"><div style="font-size:11px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;color:var(--fg5);margin-bottom:8px">Daemon Access</div><div style="font-size:12px;color:var(--fg4);margin-bottom:10px">${esc(accessSummary)}</div><div style="font-size:12px;color:var(--fg4)">${esc(guidance)}</div>${daemonAccessButtons(selectedDaemon)}</div>`;
+    }
+  }
+  list.innerHTML=daemonCards+accessCard;
   renderCompactNav();
 }
 window.selectDaemon=(did)=>{
@@ -1423,6 +1994,7 @@ window.selectDaemon=(did)=>{
   if(!currentDir||!pathLooksCompatibleWithPlatform(currentDir,daemon?.platform))setSelectedDirectory(fallbackDir,'auto');
   else renderSelectedDirectory();
   syncCreateSessionButton();
+  void pollPortalState({render:true});
   if(isMobile())mobShow('col-agents');
 };
 
@@ -1455,9 +2027,8 @@ function renderAgentsCol(){
       return`<div class="col-item${a===currentAgentName?' selected':''}${supported?'':' disabled'}"${supported?` onclick="selectAgent('${jsq(a)}')"`:''} style="--agent-color:${color}"><span class="ci-icon" style="color:${color}">${icon}</span><div class="ci-info"><div class="ci-name">${esc(name)}</div><div class="ci-meta">${supported?'ACP':'ACP · not tested yet'}</div></div></div>`;
     }).join('');
     if(moreAcp.length){
-      html+=`<div class="col-item" onclick="this.nextElementSibling.style.display=this.nextElementSibling.style.display==='none'?'block':'none';this.querySelector('.ci-meta').textContent=this.nextElementSibling.style.display==='none'?'${moreAcp.length} more…':'collapse'" style="cursor:pointer;opacity:.7"><span class="ci-icon" style="color:var(--fg5)">···</span><div class="ci-info"><div class="ci-name">More agents</div><div class="ci-meta">${moreAcp.length} more…</div></div></div>`;
-      html+=`<div style="display:none">`;
-      html+=moreAcp.map(a=>{
+      html+=`<div class="col-item" onclick="const w=this.nextElementSibling;const open=w.classList.toggle('more-open');this.querySelector('.ci-meta').textContent=open?'collapse':'${moreAcp.length} more…'" style="cursor:pointer;opacity:.7"><span class="ci-icon" style="color:var(--fg5)">···</span><div class="ci-info"><div class="ci-name">More agents</div><div class="ci-meta">${moreAcp.length} more…</div></div></div>`;
+      html+=`<div class="more-agents-wrap">`;      html+=moreAcp.map(a=>{
         const icon=AGENT_ICONS[a]||AGENT_ICONS.opencode;
         const color=AGENT_COLORS[a]||'#aaa';
         const name=AGENT_NAMES[a]||a;
@@ -1484,6 +2055,8 @@ window.selectAgent=(agentName)=>{
   currentAgentName=agentName;
   rid=null;
   resetChatState();
+  const queryKey=currentSessionQueryKey();
+  if(queryKey)loadedSessionQueryKeys.delete(queryKey);
   document.getElementById('f-agent').value=agentName;
   renderAgentsCol();
   document.getElementById('col-sessions').style.display='flex';
@@ -1494,6 +2067,7 @@ window.selectAgent=(agentName)=>{
   updateBreadcrumb();
   if(!normalizePickerPath($.dirIn?.value||'',knownDaemons.get(currentDaemonId)?.platform))setSelectedDirectory(defaultDirectoryForDaemon(knownDaemons.get(currentDaemonId)),'auto');
   else renderSelectedDirectory();
+  void refreshPortalSessions({render:false}).then(()=>renderSessionsCol()).catch(err=>console.warn('Session refresh failed:',err?.message||err));
   renderSessionsCol();
   if(isMobile())mobShow('col-sessions');
 };
@@ -1503,6 +2077,22 @@ async function renderSessionsCol(){
   const list=document.getElementById('col-sessions-list');
   if(!uid||!cc){list.innerHTML=skeletonColumn(4);renderCompactNav();return}
   if(!currentAgentName){list.innerHTML='<div class="col-empty">Select an agent</div>';renderCompactNav();return}
+  const queryKey=currentSessionQueryKey();
+  if(queryKey&&!sessionQueryLoaded(queryKey)){
+    if(!portalPollInFlight&&!sessionQueryLoading(queryKey))void refreshPortalSessions({render:true}).catch(err=>console.warn('Session refresh failed:',err?.message||err));
+    list.innerHTML=renderColumnLoadingState('Loading sessions…','Waiting for the latest session list from the portal.');
+    renderCompactNav();
+    return
+  }
+  const daemon=currentDaemonRecord();
+  if(daemon&&!daemonHasMemberAccess(daemon)){
+    const emptyState=sessionEmptyStateCopy(daemon);
+    list.innerHTML=renderSessionEmptyState(emptyState.title,emptyState.detail,emptyState.icon);
+    renderCompactNav();
+    return
+  }
+  if(!portalPollInFlight){try{await refreshPortalSessions({render:false})}catch(err){console.warn('Session refresh failed:',err?.message||err)}}
+  const readOnlyBanner='';
   const joined=joinedRoomIds();
   const sessionMap=new Map();
   for(const [sessionId,meta] of discoveredSessions.entries())if(!deletedSessions.has(sessionId))sessionMap.set(sessionId,{...meta});
@@ -1529,24 +2119,50 @@ async function renderSessionsCol(){
     if(currentAgentName&&!s.agent&&!isJoined)return false;
     return true
   }).sort((a,b)=>{const ta=a.updatedAt?new Date(a.updatedAt).getTime():0;const tb=b.updatedAt?new Date(b.updatedAt).getTime():0;return tb-ta});
-  if(!filtered.length){list.innerHTML='<div class="col-empty"><div style="font-size:28px;margin-bottom:10px;opacity:.4">💬</div>No sessions yet<br><span style="font-size:11px;color:var(--fg5)">Create one below or join a shared room</span></div>';renderCompactNav();return}
+  if(!filtered.length){
+    const emptyState=sessionListBlockedReason==='daemon-access-denied'
+      ?sessionEmptyStateCopy({...daemon,hasMemberAccess:false,canRead:false})
+      :sessionEmptyStateCopy(daemon);
+    list.innerHTML=`${readOnlyBanner}${renderSessionEmptyState(emptyState.title,emptyState.detail,emptyState.icon)}`;
+    renderCompactNav();
+    return
+  }
   list.innerHTML=filtered.map(s=>{
-    const joinedSession=joined.has(s.sessionId);
+    const accessLevel=sessionAccessLevel(s);
+    const joinedSession=joined.has(s.sessionId)||sessionCanRead(s);
     const joinStatus=sessionJoinStatus(s.sessionId);
+    const requestedAccess=sessionRequestedAccess(s.sessionId);
     const nm=sessionLabel(s);
     const icon=AGENT_ICONS[s.agent]||'✦';
     const color=AGENT_COLORS[s.agent]||'#888';
     const t=s.updatedAt?timeAgo(new Date(s.updatedAt)):'';
     const owner=s.ownerUserId&&s.ownerUserId!==uid?`by ${s.ownerUserId}`:'';
-    const joinMeta=joinedSession?'joined':'';
+    const joinMeta=accessLevel==='write'?'write':accessLevel==='read'?'read-only':joinedSession?'joined':'';
     const meta=[owner,t,joinMeta].filter(Boolean).join(' · ');
-    const isOwner=!s.ownerUserId||s.ownerUserId===uid;
-    const status=joinedSession?`<span class="ci-dot" style="background:${s.sessionId===rid?'var(--green)':'var(--fg6)'}"></span>`:'';
+    const pendingRead=joinStatus==='pending'&&requestedAccess==='read';
+    const pendingWrite=joinStatus==='pending'&&requestedAccess==='write';
+    const canDelete=sessionCanDelete(s);
+    const canLeave=sessionCanLeave(s,daemon);
+    const manageAction=canDelete
+      ?`<button class="ci-del" title="Delete session" onclick="event.stopPropagation();delSess('${jsq(s.sessionId)}')">\u2715</button>`
+      :canLeave
+        ?`<button class="ci-del" title="Leave session" onclick="event.stopPropagation();leaveSess('${jsq(s.sessionId)}')">↩</button>`
+        :'';
+    const status=sessionCanWrite(s)
+      ?`<span class="ci-dot" style="background:${s.sessionId===rid?'var(--green)':'var(--fg6)'}"></span>`
+      :sessionCanRead(s)
+        ?'<span class="ci-tag ci-tag-view">RO</span>'
+        :'';
     const action=joinedSession
-      ?(isOwner?`<button class="ci-del" title="Delete session" onclick="event.stopPropagation();delSess('${jsq(s.sessionId)}')">\u2715</button>`:`<button class="ci-del" title="Leave session" onclick="event.stopPropagation();leaveSess('${jsq(s.sessionId)}')">↩</button>`)
-      :`<button class="ci-join" onclick="event.stopPropagation();requestSessionAccess('${jsq(s.sessionId)}')" ${joinStatus==='pending'?'disabled':''}>${joinStatus==='pending'?'Requested':joinStatus==='denied'?'Request Again':'Request Access'}</button>`;
-    return`<div class="col-item${s.sessionId===rid?' selected':''}"${joinedSession?` onclick="openSession('${jsq(s.sessionId)}')"`:''}><span class="ci-icon" style="color:${color}">${icon}</span><div class="ci-info"><div class="ci-name">${esc(nm)}</div><div class="ci-meta">${esc(meta)}</div></div>${status}${action}</div>`;
+      ?(sessionCanRead(s)&&!sessionCanWrite(s)&&!daemonHasAdminAccess(daemon)
+        ?`<div class="ci-actions"><button class="ci-join" onclick="event.stopPropagation();requestSessionAccess('${jsq(s.sessionId)}','write')" ${pendingWrite?'disabled':''}>${pendingWrite?'Pending':'+ Write'}</button>${manageAction}</div>`
+        :manageAction)
+      :daemonHasAdminAccess(daemon)
+        ?''
+        :`<div class="ci-actions"><button class="ci-join" onclick="event.stopPropagation();requestSessionAccess('${jsq(s.sessionId)}','read')" ${pendingRead?'disabled':''}>${pendingRead?'Pending':'+ Read'}</button><button class="ci-join" onclick="event.stopPropagation();requestSessionAccess('${jsq(s.sessionId)}','write')" ${pendingWrite?'disabled':''}>${pendingWrite?'Pending':'+ Write'}</button></div>`;
+    return`<div class="col-item${s.sessionId===rid?' selected':''}"${sessionCanRead(s)?` onclick="openSession('${jsq(s.sessionId)}')"`:''}><span class="ci-icon" style="color:${color}">${icon}</span><div class="ci-info"><div class="ci-name">${esc(nm)}</div><div class="ci-meta">${esc(meta)}</div></div>${status}${action}</div>`;
   }).join('');
+  list.innerHTML=`${readOnlyBanner}${list.innerHTML}`;
   renderCompactNav();
 }
 function timeAgo(d){const s=Math.floor((Date.now()-d.getTime())/1000);if(s<60)return'just now';if(s<3600)return Math.floor(s/60)+'m ago';if(s<86400)return Math.floor(s/3600)+'h ago';return Math.floor(s/86400)+'d ago'}
@@ -1554,10 +2170,6 @@ window.openSession=async(sid)=>{try{
   clearSessionBanner('error');
   setSessionBanner({source:'history',label:'Loading',text:'Loading session history…',tone:'info'});
   if(!joinedRoomIds().has(sid)){
-    const session=discoveredSessions.get(sid);
-    if(session?.ownerUserId&&session.ownerUserId!==uid){
-      return;
-    }
     await ensureJoinedSession(sid);
   }
   await openR(sid);
@@ -1565,7 +2177,7 @@ window.openSession=async(sid)=>{try{
   await renderSessionsCol();
   if(isMobile())mobShow('chat-col');
 }catch(e){setSessionBanner({source:'error',label:'Open failed',text:e.message||'Failed to open session',tone:'error',actionText:'Retry',action:()=>window.openSession(sid)});addErr(e.message||'Failed to open session')}};
-window.requestSessionAccess=async(sid)=>{try{const sent=await requestJoinSession(sid);if(sent){setFormStatus('Request sent. Waiting for session owner approval.','loading',0,'join');await renderSessionsCol()}}catch(e){setFormStatus(e.message||'Failed to request access.','error',4500,'join')}};
+window.requestSessionAccess=async(sid,requestedAccess='read')=>{try{const sent=await requestJoinSession(sid,requestedAccess);if(sent){setFormStatus(`${requestedAccess==='write'?'Write':'Read'} access request sent. Waiting for approval.`,'loading',2600,'join');await renderSessionsCol()}}catch(e){setFormStatus(e.message||'Failed to request access.','error',4500,'join')}};
 
 function esc(s){return s?String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;'):''}
 function jsq(s){return String(s??'').replace(/\\/g,'\\\\').replace(/'/g,"\\'").replace(/\r?\n/g,'\\n').replace(/</g,'\\x3C').replace(/\u2028/g,'\\u2028').replace(/\u2029/g,'\\u2029')}
@@ -1630,7 +2242,12 @@ function renderSL(list){
     if(s.roomOnly)parts.push('tap to resume');
     const meta=parts.join(' · ');
     const dot=s.active?'on':s.roomOnly?'stale':'';
-    return`<li><div class="sr${s.sessionId===rid?' active':''}" onclick="switchS('${jsq(s.sessionId)}',${!!s.active})" title="${esc(dir||s.sessionId)}"><div class="sr-icon">\u2726</div><div class="sr-info"><div class="sr-name">${esc(nm)}</div><div class="sr-meta">${esc(meta)}</div></div><button class="sr-del" onclick="event.stopPropagation();delSess('${jsq(s.sessionId)}')" title="Delete session">\u2715</button></div></li>`;
+    const action=sessionCanDelete(s)
+      ?`<button class="sr-del" onclick="event.stopPropagation();delSess('${jsq(s.sessionId)}')" title="Delete session">\u2715</button>`
+      :sessionCanRead(s)
+        ?`<button class="sr-del" onclick="event.stopPropagation();leaveSess('${jsq(s.sessionId)}')" title="Leave session">↩</button>`
+        :'';
+    return`<li><div class="sr${s.sessionId===rid?' active':''}" onclick="switchS('${jsq(s.sessionId)}',${!!s.active})" title="${esc(dir||s.sessionId)}"><div class="sr-icon">\u2726</div><div class="sr-info"><div class="sr-name">${esc(nm)}</div><div class="sr-meta">${esc(meta)}</div></div>${action}</div></li>`;
   }).join('')||'<li style="text-align:center;color:#555;padding:16px;font-size:13px">No sessions yet</li>';
   if(primary)primary.innerHTML=h;if(secondary)secondary.innerHTML=h;
 }
@@ -1638,17 +2255,27 @@ async function refreshSL(){}
 
 function syncSt(){
   if(!uid){$.tst.textContent='';$.tst.style.color='';return}
+  if(portalTransportState==='disconnected'||portalTransportState==='failed'){
+    $.tst.textContent=portalTransportState==='failed'?'● WPS unavailable':'● WPS disconnected';
+    $.tst.style.color='var(--danger)';
+    return;
+  }
+  if(portalTransportState==='connecting'&&!rid){
+    $.tst.textContent='● connecting…';
+    $.tst.style.color='var(--accent2)';
+    return;
+  }
   $.tst.textContent=!rid?'':sessionBooting?'● starting…':ss.stopping?'● stopping…':ss.processing?`● ${sendMode==='immediate'?'steering':'working…'}`:'';
   $.tst.style.color=sessionBooting?'var(--accent2)':ss.stopping?'var(--orange)':ss.processing?'#f5a623':'#50d167';
 }
-function applyState(e){if(sessionBooting)updateSessionBooting('Synchronizing session state…');ss.processing=!!e.processing;ss.pendingCount=Number(e.pendingCount)||0;ss.stopping=!!e.stopping;if(!ss.stopping){lastStopRequestAt=0;clearSessionBanner('stop')}if(e.model)ss.model=e.model;if(ss.processing)showWorking();else{hideWorking();sendMode='enqueue'}syncComposer();syncSt()}
+function applyState(e){if(sessionBooting&&(e.ready===true||e.processing||Number(e.pendingCount)>0)){markSessionReady()}else if(sessionBooting){updateSessionBooting('Synchronizing session state…')}ss.processing=!!e.processing;ss.pendingCount=Number(e.pendingCount)||0;ss.stopping=!!e.stopping;if(!ss.stopping){lastStopRequestAt=0;clearSessionBanner('stop')}if(e.model){ss.model=e.model;const nextToolbarModelId=deriveToolbarModelId(currentModelId,availableModels,e.model);if(nextToolbarModelId!==currentModelId){currentModelId=nextToolbarModelId;syncModelButton();renderModelDropdown();updateToolbarVisibility()}}if(ss.processing)showWorking();else{hideWorking();sendMode='enqueue'}syncComposer();syncSt()}
 window.toggleMode=()=>{if(!ss.processing)return;sendMode=sendMode==='enqueue'?'immediate':'enqueue';syncSt()};
 
 async function initCC(userId){
   if(cc&&uid===userId)return cc;uid=userId;
   syncUserBadge();
   const negUrl=userId?`/negotiate:portal?userId=${encodeURIComponent(userId)}`:'/negotiate:portal';
-  const negRes=await fetch(negUrl);
+  const negRes=await fetch(negUrl,{headers:createPortalHeaders({},userId)});
   if(negRes.status===401){window.location.href='/auth/login';return}
   const negData=await negRes.json();
   if(negData.error)throw new Error(negData.error);
@@ -1658,24 +2285,33 @@ async function initCC(userId){
   cc.addListenerForNewMessage(onMsg);
   cc.addListenerForNewRoom((room)=>{if(room.roomId!==LOBBY_ROOM){const req=joinRequests.get(room.roomId);if(req&&(req.status==='pending'||req.status==='approved')){joinRequests.set(room.roomId,{...req,status:'approved'});openR(room.roomId).catch(err=>{setSessionBanner({source:'error',label:'Open failed',text:err?.message||'Failed to open newly joined session',tone:'error',actionText:'Retry',action:()=>openR(room.roomId)});setFormStatus(err?.message||'Failed to open joined session.','error',4500,'join')});}renderSessionsCol()}});
   cc.addListenerForRoomLeft((info)=>{if(info.roomId===rid){rid=null;resetChatState();applyLoggedInState();updateBreadcrumb();updateAutoBtn()}renderSessionsCol()});
-  cc.onConnected(()=>setSt('idle'));cc.onDisconnected(()=>setSt('disconnected'));
-  await ensureLobbyMembership(userId);
-  await loadLobbyState();
-  cc.addListenerForNewMessage((n)=>{
-    const m=n.message,r=n.conversation?.roomId;
-    if(r!==LOBBY_ROOM||!m.content?.text)return;
-    try{applyLobbyEnvelope({...JSON.parse(m.content.text),createdAt:m.createdAt})}catch{}
-  });
+  cc.onConnected(()=>{setPortalTransportState('connected');clearSessionBanner('portal');setSt('idle')});
+  cc.onDisconnected(()=>{setPortalTransportState('disconnected');setSessionBanner({source:'portal',label:'WPS disconnected',text:'Portal lost its Web PubSub connection. Refresh the page or retry the connection.',tone:'error',actionText:oauthMode&&oauthAuthenticatedUser?'Retry':'Refresh',action:oauthMode&&oauthAuthenticatedUser?()=>retryPortalConnection():()=>window.location.reload()});setSt('disconnected')});
+  startPortalPolling();
   return cc;
 }
 function unpackEnvelope(e){if(e.type!=='transport.chunk')return[e];let s=tc.get(e.chunkId);if(!s){s={parts:new Array(e.total),received:0};tc.set(e.chunkId,s)}if(s.parts[e.index]==null){s.parts[e.index]=e.jsonPart;s.received+=1}if(s.received<e.total)return[];tc.delete(e.chunkId);try{return[JSON.parse(s.parts.join(''))]}catch(err){console.warn('Chunk decode failed',err);addErr('Failed to decode large message');return[]}}
 function onMsg(n){const m=n.message,r=n.conversation?.roomId;if(!m.content?.text)return;
   // Debug log all incoming messages
   try{logDebugMessage('recv',JSON.parse(m.content.text))}catch{logDebugMessage('recv',m.content.text)}
-  if(r!==rid||m.createdBy===uid)return;
-  // Skip messages already rendered from history
-  if(m.createdAt&&new Date(m.createdAt).getTime()<=historyLoadedAt)return;
-  try{const parsed=JSON.parse(m.content.text);for(const e of unpackEnvelope(parsed))render(e);scroll()}catch{}}
+  try{
+    const parsed=JSON.parse(m.content.text);
+    const envelopes=unpackEnvelope(parsed);
+    if(r&&r.startsWith(DAEMON_SYNC_ROOM_PREFIX)){
+      if(isLocalEchoMessage(m,uid))return;
+      for(const e of envelopes)applyDaemonSyncEnvelope(e);
+      return
+    }
+    if(r===LOBBY_ROOM){
+      for(const e of envelopes)applyLobbyEnvelope(e);
+      return
+    }
+    if(r!==rid||isLocalEchoMessage(m,uid))return;
+    if(shouldIgnoreRoomMessage(m,seenRoomMessageIds,historyLoadedAt))return;
+    rememberRoomMessage(m,seenRoomMessageIds);
+    for(const e of envelopes)render(e);scroll()
+  }catch{}
+}
 
 async function resumeSess(sid,showErr=true){
   try{await ensureJoinedSession(sid);await openR(sid);await refreshSL();return true}catch(e){if(showErr)setSessionBanner({source:'error',label:'Open failed',text:e.message||'Failed to open session',tone:'error',actionText:'Retry',action:()=>resumeSess(sid,true)});return false}
@@ -1704,16 +2340,16 @@ function settleConfirm(value){
 function showConfirm(msg,action='Delete'){return new Promise(resolve=>{confirmQueue.push({msg,action,resolve});pumpConfirm()})}
 window.cfResolve=(v)=>{settleConfirm(v)};
 window.delSess=async(sid)=>{if(!await showConfirm('Delete this session?'))return;try{
-  await cc.sendToRoom(sid,JSON.stringify({type:'control.delete'}));
-  await announceSession('session.deleted',sid,{ownerUserId:discoveredSessions.get(sid)?.ownerUserId||uid});
-  try{await cc.removeUserFromRoom(sid,uid)}catch(err){console.warn('Failed to remove deleted session membership:',err?.message||err)}
-  deletedSessions.add(sid);
+  await portalJson(`/api/sessions/${encodeURIComponent(sid)}`,{method:'DELETE'});
+  announceSession('session.deleted',sid);
+  joinRequests.delete(sid);
   if(rid===sid){rid=null;resetChatState();applyLoggedInState();updateBreadcrumb();updateAutoBtn()}
   await renderSessionsCol();
 }catch(e){setFormStatus(e.message||'Failed to delete session.','error',4500,'create')}};
 window.leaveSess=async(sid)=>{if(!await showConfirm('Leave this shared session?','Leave'))return;try{
-  await cc.removeUserFromRoom(sid,uid);
+  await portalJson(`/api/sessions/${encodeURIComponent(sid)}/members/${encodeURIComponent(uid)}`,{method:'DELETE'});
   joinRequests.delete(sid);
+  discoveredSessions.delete(sid);
   if(rid===sid){rid=null;resetChatState();applyLoggedInState();updateBreadcrumb();updateAutoBtn()}
   await renderSessionsCol();
 }catch(e){setFormStatus(e.message||'Failed to leave session.','error',4500,'join')}};
@@ -1728,44 +2364,49 @@ window.createSess=async()=>{
     if(fallbackDir)setSelectedDirectory(fallbackDir,'auto');
     return setFormStatus(`Directory does not match the selected daemon platform (${daemon?.platform==='win32'?'Windows':'Linux/macOS'}).`,'error',4500,'create');
   }
-  const b=document.getElementById('f-btn');b.disabled=true;b.textContent='Creating…';
+  const b=document.getElementById('f-btn');b.dataset.busy='true';b.disabled=true;b.classList.remove('is-blocked');b.textContent='Creating…';
   try{
     const agentLabel=AGENT_NAMES[ag]||ag;
     const dirName=(d||'Session').split(/[/\\]/).pop()||'Session';
     const roomName=`${dirName} (${ag})`;
-    const requestId=makeRequestId();
     setFormStatus('Creating session room…','loading',0,'create');
-    const pending=waitForLobbyReply(pendingCreateRequests,requestId,8000,'Timed out waiting for session room creation');
-    await sendLobbyEnvelope({type:'session.create_request',requestId,requesterUserId:uid,daemonId:currentDaemonId,agentName:ag,workingDirectory:d||undefined,roomName});
-    const room=await pending;
+    const room=await portalJson('/api/sessions',{method:'POST',body:JSON.stringify({daemonId:currentDaemonId,agentName:ag,workingDirectory:d||undefined,roomName})});
     const sessionId=room.sessionId;
     setFormStatus('Joining session room…','loading',0,'create');
     await waitForRoomMembership(sessionId,6000);
     joinRequests.delete(sessionId);
-    await announceSession('session.online',sessionId,{ownerUserId:uid,daemonId:currentDaemonId,agentName:ag,workingDirectory:d||undefined,name:roomName});
-    // Switch to the new room before sending control.create so early daemon metadata
-    // messages (for example models.update/modes.update) are not dropped.
-    rid=sessionId;$.chat.innerHTML='';pd.clear();rd.clear();at.clear();pp.clear();tc.clear();$wi=null;resetSessionToolbar();
-    historyLoadedAt=Date.now();
-    showChat();setSessionBooting(true,`Starting ${agentLabel}…`);
+    upsertDiscoveredSession({
+      ...room,
+      sessionId,
+      ownerUserId:room.ownerUserId||uid,
+      daemonId:room.daemonId||currentDaemonId,
+      agentName:room.agentName||ag,
+      workingDirectory:room.workingDirectory??(d||undefined),
+      roomName:room.roomName||roomName,
+      updatedAt:room.updatedAt||new Date().toISOString(),
+    });
+    // Reuse the normal room-opening path so a brand-new session also replays any
+    // early startup metadata that may have landed before the POST returned.
+    setSessionBooting(true,`Starting ${agentLabel}…`);
     setFormStatus(`Starting ${agentLabel}…`,'loading',0,'create');
-    await cc.sendToRoom(sessionId,JSON.stringify({type:'control.create',userId:uid,agentName:ag||'copilot',workingDirectory:d||undefined}));
     updateSessionBooting('Waiting for agent to initialize…');
     setFormStatus('Waiting for agent to initialize…','loading',0,'create');
     sessionAutoApprove.set(sessionId,true);
+    await openR(sessionId,{preserveBooting:true,bootStage:`Starting ${agentLabel}…`});
     setSt('idle');ss.processing=false;ss.pendingCount=0;sendMode='enqueue';syncSt();
-    document.getElementById('chat-col').style.display='flex';
     await renderSessionsCol();
     if(isMobile())mobShow('chat-col');
-  }catch(e){setSessionBooting(false);setFormStatus(e.message||'Failed to create session.','error',5000,'create');if(rid)setSessionBanner({source:'error',label:'Start failed',text:e.message||'Failed to create session',tone:'error'})}finally{b.disabled=false;b.textContent='New Session'}
+  }catch(e){setSessionBooting(false);setFormStatus(e.message||'Failed to create session.','error',5000,'create');if(rid)setSessionBanner({source:'error',label:'Start failed',text:e.message||'Failed to create session',tone:'error'})}finally{delete b.dataset.busy;syncCreateSessionButton()}
 };
 
-async function openR(roomId){
+async function openR(roomId,{preserveBooting=false,bootStage=''}={}){
   if(!cc)throw new Error('Not connected');
   const knownMeta=discoveredSessions.get(roomId);
   if(knownMeta)syncSessionSelection(roomId,knownMeta);
-  rid=roomId;historyLoadedAt=Date.now();$.chat.innerHTML='';pd.clear();rd.clear();at.clear();pp.clear();tc.clear();$wi=null;resetSessionToolbar();
-  setSessionBooting(false);showChat();updateBreadcrumb();
+  rid=roomId;historyLoadedAt=0;seenRoomMessageIds.clear();$.chat.innerHTML='';pd.clear();rd.clear();at.clear();pp.clear();tc.clear();$wi=null;resetSessionToolbar();
+  if(preserveBooting)setSessionBooting(true,bootStage||sessionBootingStage||'Preparing session…');
+  else setSessionBooting(false);
+  showChat();updateBreadcrumb();
   setSessionBanner({source:'history',label:'Loading',text:'Loading session history…',tone:'info'});
   setSt('idle');ss.processing=false;ss.pendingCount=0;ss.stopping=false;sendMode='enqueue';syncComposer();syncSt();
   try{const ri=await cc.getRoom(roomId,false);const cid=ri?.defaultConversationId;const sessionMeta={...(knownMeta||{}),sessionId:roomId};
@@ -1776,12 +2417,14 @@ async function openR(roomId){
       const msgs=[...h.messages].reverse();
       for(const m of msgs){if(!m.content?.text)continue;try{const e=JSON.parse(m.content.text);if(e.type==='permission.response'&&e.requestId)respondedPerms.set(e.requestId,e.cancelled?'cancelled':!!e.approved)}catch{}}
       // Replay history, marking responded permissions
-      for(const m of msgs){if(!m.content?.text)continue;try{const parsed=JSON.parse(m.content.text);for(const e of unpackEnvelope(parsed)){if(e.type==='control.create'){sessionMeta.agent=sessionMeta.agent||e.agentName;sessionMeta.workingDirectory=sessionMeta.workingDirectory||e.workingDirectory;sessionMeta.ownerUserId=sessionMeta.ownerUserId||e.userId}if(e.type==='permission.request'&&respondedPerms.has(e.requestId)){renderResolvedPerm(e,respondedPerms.get(e.requestId))}else{render(e)}}}catch{}}
+      for(const m of msgs){if(!m.content?.text)continue;if(shouldIgnoreRoomMessage(m,seenRoomMessageIds,historyLoadedAt))continue;try{const parsed=JSON.parse(m.content.text);rememberRoomMessage(m,seenRoomMessageIds);for(const e of unpackEnvelope(parsed)){if(isHistoricalStartupEnvelope(e))continue;if(e.type==='control.create'){sessionMeta.agent=sessionMeta.agent||e.agentName;sessionMeta.workingDirectory=sessionMeta.workingDirectory||e.workingDirectory;sessionMeta.ownerUserId=sessionMeta.ownerUserId||e.userId}if(e.type==='permission.request'&&respondedPerms.has(e.requestId)){renderResolvedPerm(e,respondedPerms.get(e.requestId))}else{render(e)}}}catch{}}
       // Record latest message timestamp so live listener skips duplicates
       const lastMsg=msgs[msgs.length-1];
       if(lastMsg?.createdAt)historyLoadedAt=Math.max(historyLoadedAt,new Date(lastMsg.createdAt).getTime());
       syncSessionSelection(roomId,sessionMeta);
       scroll()}}
+    setSessionBanner({source:'history',label:'Syncing',text:'Waiting for live session sync…',tone:'info'});
+    await waitForRoomLiveState(roomId,ROOM_LIVE_SYNC_TIMEOUT_MS);
     clearSessionBanner('history');
   }catch(e){setSessionBanner({source:'error',label:'History error',text:e.message||'Failed to load history',tone:'error',actionText:'Retry',action:()=>openR(roomId)});addErr('History: '+e.message)}
 }
@@ -1814,6 +2457,7 @@ window.handleComposerAction=()=>{if(ss.processing||ss.stopping)return window.sto
 window.sendMsg=async()=>{
   const t=$.mi.value.trim();if(!t)return;
   if(!rid||!cc){setSessionBanner({source:'error',label:'No active session',text:'Open or create a session first.',tone:'error'});addErr('Not connected — open or create a session first');return}
+  if(sessionBooting){setSessionBanner({source:'boot',label:'Starting',text:sessionBootingStage||'Agent is still starting… please wait.',tone:'info'});syncComposer();return}
   if(ss.stopping)return;
   $.mi.value='';$.mi.style.height='auto';
   const mode=ss.processing?sendMode:'enqueue';
@@ -1834,25 +2478,25 @@ function render(e){switch(e.type){
   case'assistant.reasoning_delta':return rThinkD(e);case'assistant.reasoning':return rThink(e);
   case'tool.start':return rTS(e);case'tool.complete':return rTC(e);
   case'permission.request':return rPR(e);case'permission.response':return rPResp(e);case'session.state':return applyState(e);
-  case'session.idle':ss.stopping=false;syncComposer();return setSt('idle');case'session.error':return addErr(e.message);
+  case'session.idle':if(sessionBooting)markSessionReady();resetSessionStateToIdle(ss);lastStopRequestAt=0;clearSessionBanner('stop');syncComposer();return setSt('idle');case'session.error':if(isStartupWaitMessage(e.message)){if(sessionBooting)updateSessionBooting(e.message);return}return addErr(e.message);
   case'commands.update':mergeSlashCommands((e.commands||[]).map(c=>({cmd:c.name,desc:c.description||'',hasInput:!!c.hasInput})));return;
-  case'models.update':if(sessionBooting)updateSessionBooting('Receiving available models…');availableModels=e.models||[];currentModelId=e.currentModelId||'';syncModelButton();document.getElementById('model-picker').classList.toggle('show',availableModels.length>0);renderModelDropdown();updateToolbarVisibility();return;
-  case'modes.update':if(sessionBooting)updateSessionBooting('Receiving agent controls…');availableModes=e.modes||[];currentModeId=e.currentModeId||'';syncModeButton();document.getElementById('mode-picker').classList.toggle('show',availableModes.length>0);renderModeDropdown();updateToolbarVisibility();return;
+  case'models.update':if(sessionBooting)updateSessionBooting('Receiving available models…');availableModels=e.models||[];currentModelId=e.currentModelId||'';syncModelButton();renderModelDropdown();updateToolbarVisibility();return;
+  case'modes.update':if(sessionBooting)updateSessionBooting('Receiving agent controls…');availableModes=e.modes||[];currentModeId=e.currentModeId||'';syncModeButton();renderModeDropdown();updateToolbarVisibility();return;
   case'mode.changed':currentModeId=e.currentModeId||'';syncModeButton();renderModeDropdown();return;
   case'usage.update':return updateUsageRing(Number.isFinite(e.used)?e.used:0,Number.isFinite(e.size)?e.size:0);
-  case'system.info':if(sessionBooting){const message=String(e.message||'');if(/^Starting\b/.test(message))updateSessionBooting(message);if(/^Connected to\b/.test(message)){setFormStatus('Session ready.','success',1800,'create');setSessionBooting(false);clearSessionBanner('error')}}return addStatus(e.message);case'system.clear':$.chat.innerHTML='';pd.clear();rd.clear();at.clear();pp.clear();return;
+  case'system.info':if(sessionBooting){const message=String(e.message||'');if(/^Starting\b/.test(message))updateSessionBooting(message);if(/^Connected to\b/.test(message))markSessionReady()}return addStatus(e.message);case'system.clear':$.chat.innerHTML='';pd.clear();rd.clear();at.clear();pp.clear();return;
   case'user.prompt':return addUB(e.content);case'user.command':return addSys(e.command);
 }}
 
 /* AI streaming text — smooth character-by-character, markdown on final */
-function rDelta(e){clearSessionBanner('permission');setSt('busy');hideWorking();lastTN=null;let s=pd.get(e.messageId);if(!s){const d=document.createElement('div');d.className='ai-msg streaming';const span=document.createElement('span');d.appendChild(span);$.chat.appendChild(d);s={el:d,span,raw:'',raf:null};pd.set(e.messageId,s)}s.raw+=e.content;
+function rDelta(e){noteLiveSessionActivity();clearSessionBanner('permission');setSt('busy');hideWorking();lastTN=null;let s=pd.get(e.messageId);if(!s){const d=document.createElement('div');d.className='ai-msg streaming';const span=document.createElement('span');d.appendChild(span);$.chat.appendChild(d);s={el:d,span,raw:'',raf:null};pd.set(e.messageId,s)}s.raw+=e.content;
   // Append new text directly for smooth streaming (no re-render)
   if(!s.raf){s.raf=requestAnimationFrame(()=>{s.span.textContent=s.raw;s.raf=null;scroll()})}}
-function rMsg(e){lastTN=null;const x=pd.get(e.messageId);if(x){if(x.raf)cancelAnimationFrame(x.raf);if(!e.content){x.el.remove();pd.delete(e.messageId);return}x.el.className='ai-msg';x.el.innerHTML=md(e.content);pd.delete(e.messageId);scroll()}else if(e.content){addAI(e.content)}}
+function rMsg(e){noteLiveSessionActivity();lastTN=null;const x=pd.get(e.messageId);if(x){if(x.raf)cancelAnimationFrame(x.raf);if(!e.content){x.el.remove();pd.delete(e.messageId);return}x.el.className='ai-msg';x.el.innerHTML=md(e.content);pd.delete(e.messageId);scroll()}else if(e.content){addAI(e.content)}}
 
 /* Thinking — single collapsible line */
-function rThinkD(e){clearSessionBanner('permission');setWorkingLabel('Agent is thinking…');setSt('busy');hideWorking();lastTN=null;let s=rd.get(e.reasoningId);if(!s){const w=document.createElement('div');const hdr=document.createElement('div');hdr.className='think-row';hdr.innerHTML='<span class="arrow open">▶</span><span>💭 thinking…</span>';const body=document.createElement('div');body.className='think-body show';hdr.onclick=()=>{const a=hdr.querySelector('.arrow');a.classList.toggle('open');body.classList.toggle('show')};w.appendChild(hdr);w.appendChild(body);$.chat.appendChild(w);s={wrap:w,hdr,body,content:''};rd.set(e.reasoningId,s)}s.content+=e.content;s.body.innerHTML=md(s.content)}
-function rThink(e){const x=rd.get(e.reasoningId);if(x){if(e.content){x.body.innerHTML=md(e.content)}else{x.wrap.remove();rd.delete(e.reasoningId);return}x.hdr.querySelector('span:last-child').textContent='💭 thought';x.hdr.querySelector('.arrow').classList.remove('open');x.body.classList.remove('show');rd.delete(e.reasoningId);return}
+function rThinkD(e){noteLiveSessionActivity();clearSessionBanner('permission');setWorkingLabel('Agent is thinking…');setSt('busy');hideWorking();lastTN=null;let s=rd.get(e.reasoningId);if(!s){const w=document.createElement('div');const hdr=document.createElement('div');hdr.className='think-row';hdr.innerHTML='<span class="arrow open">▶</span><span>💭 thinking…</span>';const body=document.createElement('div');body.className='think-body show';hdr.onclick=()=>{const a=hdr.querySelector('.arrow');a.classList.toggle('open');body.classList.toggle('show')};w.appendChild(hdr);w.appendChild(body);$.chat.appendChild(w);s={wrap:w,hdr,body,content:''};rd.set(e.reasoningId,s)}s.content+=e.content;s.body.innerHTML=md(s.content)}
+function rThink(e){noteLiveSessionActivity();const x=rd.get(e.reasoningId);if(x){if(e.content){x.body.innerHTML=md(e.content)}else{x.wrap.remove();rd.delete(e.reasoningId);return}x.hdr.querySelector('span:last-child').textContent='💭 thought';x.hdr.querySelector('.arrow').classList.remove('open');x.body.classList.remove('show');rd.delete(e.reasoningId);return}
   if(!e.content)return;
   const w=document.createElement('div');const hdr=document.createElement('div');hdr.className='think-row';hdr.innerHTML='<span class="arrow">▶</span><span>💭 thought</span>';const body=document.createElement('div');body.className='think-body';body.innerHTML=md(e.content);hdr.onclick=()=>{hdr.querySelector('.arrow').classList.toggle('open');body.classList.toggle('show')};w.appendChild(hdr);w.appendChild(body);$.chat.appendChild(w)}
 
@@ -1867,7 +2511,7 @@ function tCmd(v){const s=String(v||'').trim().toLowerCase();return !!s&&s!=='too
 function tNameReplace(cur,next){if(!next)return false;const c=String(cur||'').trim();const n=String(next||'').trim();if(!c||c==='Tool'||c==='Terminal')return true;if(c.length>40&&n.length<=20)return true;return false}
 function tUpdate(row,name,summary,done){if(!row)return;const tn=row.querySelector('.t-name');const ts=row.querySelector('.t-sum');const st=row.querySelector('.t-st');if(name&&(!tn||tNameReplace(tn.textContent,name))){if(tn)tn.textContent=name}if(summary){if(ts)ts.textContent=summary;else row.insertAdjacentHTML('beforeend',`<span class="t-sum">${esc(summary)}</span>`)}if(st){st.className=`t-st ${done?'ok':'run'}`;st.textContent=done?'✓':'⟳'}}
 
-function rTS(e){clearSessionBanner('permission');setWorkingLabel(`Running ${e.name||'tool'}…`);setSt('busy');hideWorking();const ic=tIcon(e.name),sm=tSum(e.name,e.args);
+function rTS(e){noteLiveSessionActivity();clearSessionBanner('permission');setWorkingLabel(`Running ${e.name||'tool'}…`);setSt('busy');hideWorking();const ic=tIcon(e.name),sm=tSum(e.name,e.args);
   const existing=at.get(e.toolCallId);
   if(existing){
     const row=existing.querySelector(`.tool-row[data-tid="${e.toolCallId}"]`)||existing.querySelector('.tool-row');
@@ -1910,7 +2554,7 @@ function mk_tool_row(tid,icon,summary,name){
 function isDiff(t){return t&&t.includes('@@')&&(t.includes('+++')||t.includes('---'))}
 function renderDiff(t){const ls=t.split('\n');let h='<div class="diff-view">',ln=0;for(const l of ls){if(l.startsWith('+++')||l.startsWith('---'))h+=`<div class="diff-file">${esc(l)}</div>`;else if(l.startsWith('@@')){h+=`<div class="diff-hunk">${esc(l)}</div>`;const m=l.match(/@@ -\d+(?:,\d+)? \+(\d+)/);ln=m?parseInt(m[1],10)-1:0}else if(l.startsWith('+')){ln++;h+=`<div class="diff-line diff-add"><span class="diff-num">${ln}</span><span class="diff-txt">${esc(l)}</span></div>`}else if(l.startsWith('-'))h+=`<div class="diff-line diff-del"><span class="diff-num"></span><span class="diff-txt">${esc(l)}</span></div>`;else{ln++;h+=`<div class="diff-line diff-ctx"><span class="diff-num">${ln}</span><span class="diff-txt">${esc(l)}</span></div>`}}return h+'</div>'}
 
-function rTC(e){
+function rTC(e){noteLiveSessionActivity();
   const w=at.get(e.toolCallId),k=tKind(e.name),r=tRes(e.detailedResult??e.result??'');
   if(w){
     const root=w;
@@ -1958,14 +2602,24 @@ function pSum(e){if(e.intention)return e.intention;if(e.kind==='read'&&e.path)re
 function pFields(e){const r=[];const a=(l,v,c)=>{if(v==null||v==='')return;const t=Array.isArray(v)?v.join('\n'):typeof v==='object'?JSON.stringify(v,null,2):String(v);if(t.trim())r.push({l,t,c})};a('Path',e.path,1);a('File',e.fileName,1);a('Intent',e.intention);a('Command',e.fullCommandText||e.command,1);a('URL',e.url,1);a('Tool',e.toolTitle||e.toolName||e.tool);a('Warning',e.warning);return r}
 function pItem(e){const fs=pFields(e).map(f=>`<div class="perm-det-fl"><div class="perm-det-lbl">${esc(f.l)}</div><div class="perm-det-val${f.c?' code':''}">${esc(f.t)}</div></div>`).join('');return`<li><div class="perm-det-item" data-id="${e.requestId}"><span class="perm-det-kind">${pIcon(e.kind)} ${esc(e.kind||'permission')}</span><div class="perm-det-sum">${esc(pSum(e))}</div>${fs?`<div class="perm-det-fields">${fs}</div>`:''}</div></li>`}
 function permResolutionPresentation(state){return state==='approved'?{label:'✓ Approved',color:'#50d167',approved:'true'}:state==='cancelled'?{label:'■ Cancelled',color:'var(--fg4)',approved:'cancelled'}:{label:'✕ Denied',color:'#e55',approved:'false'}}
-function markPermItemResolved(item,state){if(!item||item.dataset.resolved==='true')return;const view=permResolutionPresentation(state);item.dataset.resolved='true';item.dataset.approved=view.approved;if(!item.querySelector('.perm-done'))item.insertAdjacentHTML('beforeend',`<div style="margin-top:6px"><span class="perm-done" style="color:${view.color}">${view.label}</span></div>`) }
-function finalizePermRow(row,state){if(!row)return;const view=permResolutionPresentation(state);row.dataset.resolved='true';const el=row.querySelector('.perm-btns');if(el)el.remove();const hdr=row.querySelector('.perm-hdr');if(hdr){const tog=hdr.querySelector('.p-toggle');if(tog)tog.remove();const existing=hdr.querySelector('.perm-done');if(existing)existing.remove();hdr.insertAdjacentHTML('beforeend',`<span class="perm-done" style="color:${view.color}">${view.label}</span>`)}if(!pp.size)setSt('busy')}
+function markPermItemResolved(item,state,label=''){if(!item||item.dataset.resolved==='true')return;const view=permResolutionPresentation(state);item.dataset.resolved='true';item.dataset.approved=view.approved;if(!item.querySelector('.perm-done'))item.insertAdjacentHTML('beforeend',`<div style="margin-top:6px"><span class="perm-done" style="color:${view.color}">${esc(label||view.label)}</span></div>`) }
+function finalizePermRow(row,state,label=''){if(!row)return;const view=permResolutionPresentation(state);row.dataset.resolved='true';const el=row.querySelector('.perm-btns');if(el)el.remove();const hdr=row.querySelector('.perm-hdr');if(hdr){const tog=hdr.querySelector('.p-toggle');if(tog)tog.remove();const existing=hdr.querySelector('.perm-done');if(existing)existing.remove();hdr.insertAdjacentHTML('beforeend',`<span class="perm-done" style="color:${view.color}">${esc(label||view.label)}</span>`)}if(!pp.size)setSt('busy')}
+function appendResolvedPermRow(e,resolution='approved',label=''){
+  const view=permResolutionPresentation(resolution);
+  const c=document.createElement('div');c.className='perm-row';c.dataset.resolved='true';
+  c.innerHTML=`<div class="perm-hdr"><span class="p-icon">${pIcon(e.kind)}</span><span class="p-title">${esc(pTitle(e.kind))}</span><span class="p-badge">1</span><span class="p-sum">${esc(pSum(e))}</span><span class="perm-done" style="color:${view.color}">${esc(label||view.label)}</span></div><div class="perm-det expanded"><ul>${pItem(e)}</ul></div>`;
+  const item=c.querySelector(`.perm-det-item[data-id="${e.requestId}"]`);
+  markPermItemResolved(item,resolution,label||view.label);
+  $.chat.appendChild(c);
+  scroll();
+  return c;
+}
 
-function rPR(e){setSt('permission');
+function rPR(e){noteLiveSessionActivity();setSt('permission');
   const alreadyResolved=livePermissionResponses.get(e.requestId);
   if(alreadyResolved!=null){renderResolvedPerm(e,alreadyResolved);return}
   // Auto-approve if enabled
-  if(getAutoApprove()){void(async()=>{try{await cc.sendToRoom(rid,JSON.stringify({type:'permission.response',requestId:e.requestId,approved:true}));livePermissionResponses.set(e.requestId,true);addStatus('Auto-approved: '+pSum(e))}catch(err){addErr(err?.message||'Failed to auto-approve permission request')}})();return}
+  if(getAutoApprove()){void(async()=>{try{await cc.sendToRoom(rid,JSON.stringify({type:'permission.response',requestId:e.requestId,approved:true}));livePermissionResponses.set(e.requestId,true);appendResolvedPermRow(e,'approved','✓ Auto-approved');addStatus('Auto-approved: '+pSum(e));setSt('busy')}catch(err){addErr(err?.message||'Failed to auto-approve permission request')}})();return}
   const last=$.chat.lastElementChild;
   if(last?.classList.contains('perm-row')&&!last.dataset.resolved){
     const ul=last.querySelector('.perm-det ul');const cnt=ul.children.length+1;
@@ -1983,10 +2637,7 @@ window.pAll=async(g,ok)=>{if(!g)return;const roomId=rid;const ids=[...g.querySel
 /* Render already-resolved permission from history */
 function renderResolvedPerm(e,approved=true){
   const resolution=approved===true?'approved':approved===false?'denied':approved||'approved';
-  const view=permResolutionPresentation(resolution);
-  const c=document.createElement('div');c.className='perm-row';c.dataset.resolved='true';
-  c.innerHTML=`<div class="perm-hdr"><span class="p-icon">${pIcon(e.kind)}</span><span class="p-title">${esc(pTitle(e.kind))}</span><span class="p-sum">${esc(pSum(e))}</span><span class="perm-done" style="color:${view.color}">${view.label}</span></div>`;
-  $.chat.appendChild(c);
+  appendResolvedPermRow(e,resolution);
 }
 
 /* Simple elements */
@@ -2034,7 +2685,6 @@ function stopPoll(){}
   syncSt();
 
   // Detect OAuth mode
-  let oauthMode=false;
   let autoLoggedIn=false;
   try{
     const cfg=await(await fetch('/auth/config')).json();
@@ -2045,11 +2695,13 @@ function stopPoll(){}
     // OAuth mode — hide local login, show GitHub button
     document.getElementById('login-card-local').style.display='none';
     document.getElementById('login-card-oauth').style.display='';
+    syncOauthLoginCard();
     // Check if already authenticated
     try{
       const me=await(await fetch('/auth/me')).json();
       if(me.user){
         // Already logged in via OAuth — auto-connect
+        setOauthAuthenticatedUser(me.user);
         userAvatar=me.user.avatar||'';
         autoLoggedIn=await loginUser(me.user.login);
       }
@@ -2058,7 +2710,7 @@ function stopPoll(){}
     // Local mode — hide OAuth card, show username input
     document.getElementById('login-card-oauth').style.display='none';
     document.getElementById('login-card-local').style.display='';
-    if($.loginUser)$.loginUser.value=localStorage.getItem(USER_STORAGE_KEY)||DEFAULT_USERNAME;
+    if($.loginUser)$.loginUser.value=getStoredUserId()||DEFAULT_USERNAME;
     if($.loginBtn)$.loginBtn.addEventListener('click',()=>loginUser($.loginUser.value));
     if($.loginUser)$.loginUser.addEventListener('keydown',(e)=>{if(e.key==='Enter'){e.preventDefault();loginUser($.loginUser.value)}});
   }

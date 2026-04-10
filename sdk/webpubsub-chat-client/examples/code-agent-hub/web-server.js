@@ -1,8 +1,23 @@
 import express from 'express';
 import session from 'express-session';
 import crypto from 'crypto';
+import jsonwebtoken from 'jsonwebtoken';
 import { WebPubSubServiceClient } from '@azure/web-pubsub';
 import { ChatClient } from '@azure/web-pubsub-chat-client';
+import {
+  buildDaemonAclRoomTitle,
+  buildDesiredDaemonAclMembers,
+  canAdminDaemonAccess,
+  canMemberDaemonAccess,
+  canReadDaemonAccess,
+  canManageDaemonAccess,
+  canWriteDaemonAccess,
+  daemonAclRoomId,
+  deriveDaemonAclState,
+  parseDaemonAclRoomTitle,
+} from './daemon-acl.js';
+import { listDaemonRegistryRecordsWithFallback } from './daemon-registry.js';
+import { listRoomMessagesWithFallback } from './room-history.js';
 import { existsSync } from 'node:fs';
 import { dirname, join, resolve } from 'path';
 import { config as loadEnv } from 'dotenv';
@@ -47,15 +62,12 @@ function sendJavaScriptAsset(res, label, candidates) {
   });
 }
 
-// ── Configuration ──
-
 const connectionString = process.env.WEB_PUBSUB_CONNECTION_STRING || process.env.WebPubSubConnectionString;
 if (!connectionString) {
   console.error('Error: WEB_PUBSUB_CONNECTION_STRING or WebPubSubConnectionString environment variable is required');
   process.exit(1);
 }
 
-// GitHub OAuth (optional — if not set, fall back to username-based login)
 const DISABLE_OAUTH = process.argv.includes('--disable-oauth');
 const GITHUB_CLIENT_ID = process.env.GITHUB_OAUTH_CLIENT_ID || '';
 const GITHUB_CLIENT_SECRET = process.env.GITHUB_OAUTH_CLIENT_SECRET || '';
@@ -70,118 +82,917 @@ function oauthUnavailableMessage() {
 const hubName = process.env.WEB_PUBSUB_HUB || 'chat';
 const port = parseInt(process.env.PORT || '3000', 10);
 const LOBBY_ROOM = 'lobby';
-const ADMIN_USER_ID = 'admin';
+const ADMIN_USER_ID = process.env.PORTAL_CONTROL_USER_ID || '__portal_control__';
 const VALID_USER_ID = /^[a-zA-Z0-9_-]{1,64}$/;
-const MEMBERSHIP_GRANT_TTL_MS = 5000;
-const handledMembershipGrants = new Map();
 const PORTAL_NEGOTIATE_PATH = '/negotiate:portal';
-const DAEMON_NEGOTIATE_PATH = '/negotiate:daemon';
+const PORTAL_USER_HEADER = 'x-codeagenthub-user';
+const DAEMON_HEARTBEAT_STALE_MS = 90_000;
+const DAEMON_SIGNATURE_SKEW_MS = 5 * 60 * 1000;
+const CHAT_REST_API_VERSION = '2026-02-01-preview';
+const WORKSPACE_REQUEST_TIMEOUT_MS = 5_000;
+const DAEMON_ACCESS_STATE_CACHE_TTL_MS = 2_500;
 
-// ── Web PubSub Service Client ──
+function parseConnectionStringValue(key) {
+  const part = connectionString
+    .split(';')
+    .map((segment) => segment.trim())
+    .find((segment) => segment.toLowerCase().startsWith(`${key.toLowerCase()}=`));
+  return part ? part.slice(key.length + 1) : '';
+}
 
-const serviceClient = new WebPubSubServiceClient(connectionString, hubName, { allowInsecureConnection: true });
+const portalAccessKey = parseConnectionStringValue('AccessKey') || '';
+const portalSigningKey = Buffer.from(portalAccessKey, 'base64');
+if (!portalAccessKey || !portalSigningKey.length) {
+  console.error('Error: failed to parse AccessKey from WEB_PUBSUB_CONNECTION_STRING');
+  process.exit(1);
+}
 
-// ── Admin ChatClient (for room management) ──
+function createDaemonProof(daemonId, ownerUserId, timestamp) {
+  return crypto
+    .createHmac('sha256', portalSigningKey)
+    .update(`${daemonId}\n${ownerUserId}\n${timestamp}`)
+    .digest('hex');
+}
 
-let adminChat = null;
-let adminChatInitPromise = null;
-let adminReconnectTimer = null;
-let adminReconnectAttempt = 0;
+function normalizeStringList(values) {
+  const normalizedInput = Array.isArray(values)
+    ? values
+    : typeof values === 'string'
+      ? values.split(/[\s,;]+/)
+      : [];
+  return [...new Set(normalizedInput
+    .map((value) => String(value || '').trim())
+    .filter(Boolean))];
+}
+
+function normalizeDaemonRecord(existing, update) {
+  const now = new Date().toISOString();
+  return {
+    daemonId: String(update.daemonId || existing?.daemonId || '').trim(),
+    hostname: String(update.hostname || existing?.hostname || update.daemonId || 'unknown').trim(),
+    platform: String(update.platform || existing?.platform || '').trim(),
+    agents: normalizeStringList(update.agents || existing?.agents || []),
+    workspaces: normalizeStringList(update.workspaces || existing?.workspaces || []),
+    online: update.online ?? existing?.online ?? false,
+    createdAt: existing?.createdAt || now,
+    updatedAt: update.updatedAt || now,
+    lastSeenAt: update.lastSeenAt || now,
+  };
+}
+
+function normalizeSessionRecord(existing, update) {
+  const now = new Date().toISOString();
+  return {
+    sessionId: String(update.sessionId || existing?.sessionId || '').trim(),
+    roomName: String(update.roomName || existing?.roomName || 'Session').trim() || 'Session',
+    daemonId: String(update.daemonId || existing?.daemonId || '').trim(),
+    agentName: String(update.agentName || existing?.agentName || '').trim(),
+    workingDirectory: String(update.workingDirectory || existing?.workingDirectory || '').trim(),
+    ownerUserId: String(update.ownerUserId || existing?.ownerUserId || '').trim(),
+    participants: normalizeStringList(update.participants || existing?.participants || []),
+    createdAt: existing?.createdAt || now,
+    updatedAt: update.updatedAt || now,
+    deletedAt: update.deletedAt ?? existing?.deletedAt ?? null,
+  };
+}
+
+function getPortalUser(req) {
+  if (OAUTH_ENABLED) {
+    if (req.session?.user?.login) {
+      return {
+        login: String(req.session.user.login),
+        name: String(req.session.user.name || req.session.user.login),
+        avatar: req.session.user.avatar || '',
+      };
+    }
+    return null;
+  }
+  const userId = String(req.get(PORTAL_USER_HEADER) || req.query.userId || '').trim();
+  if (!userId || validateNegotiatedUserId(userId)) return null;
+  return {
+    login: userId,
+    name: userId,
+    avatar: '',
+  };
+}
+
+function requirePortalUser(req, res) {
+  if (!OAUTH_ENABLED) {
+    const userId = String(req.get(PORTAL_USER_HEADER) || req.query.userId || '').trim();
+    if (!userId) {
+      res.status(401).json({ error: 'Not authenticated' });
+      return null;
+    }
+    const error = validateNegotiatedUserId(userId);
+    if (error) {
+      res.status(400).json({ error });
+      return null;
+    }
+    return {
+      login: userId,
+      name: userId,
+      avatar: '',
+    };
+  }
+  const user = getPortalUser(req);
+  if (!user) {
+    res.status(401).json({ error: 'Not authenticated' });
+    return null;
+  }
+  return user;
+}
+
+function validateNegotiatedUserId(userId) {
+  if (String(userId) === ADMIN_USER_ID) {
+    return 'reserved userId is not allowed';
+  }
+  if (!VALID_USER_ID.test(String(userId))) {
+    return 'userId must match /^[a-zA-Z0-9_-]{1,64}$/';
+  }
+  return '';
+}
 
 function isAlreadyMemberError(error) {
   const message = String(error?.message || '').toLowerCase();
   return message.includes('already') || message.includes('exists') || message.includes('member');
 }
 
-async function sendLobbyEnvelope(envelope) {
-  await ensureAdminChatReady();
-  if (!adminChat) return;
-  await adminChat.sendToRoom(LOBBY_ROOM, JSON.stringify(envelope));
+function daemonResponseForUser(daemon, accessState, user, requestState = null) {
+  const hasAdminAccess = canAdminDaemonAccess(accessState, user.login);
+  const hasMemberAccess = canMemberDaemonAccess(accessState, user.login);
+  const canManage = canManageDaemonAccess(accessState, user.login);
+  const approverUserIds = [...new Set([
+    accessState.ownerUserId,
+    ...(accessState.adminUsers || []),
+  ].filter(Boolean))];
+  return {
+    daemonId: daemon.daemonId,
+    ownerUserId: accessState.ownerUserId,
+    approverUserIds,
+    hostname: daemon.hostname,
+    platform: daemon.platform,
+    agents: daemon.agents || [],
+    workspaces: daemon.workspaces || [],
+    updatedAt: daemon.updatedAt,
+    hasMemberAccess,
+    hasAdminAccess,
+    canRead: hasMemberAccess,
+    canWrite: hasAdminAccess,
+    canManage,
+    memberUsers: canManage ? (accessState.memberUsers || []) : [],
+    adminUsers: canManage ? (accessState.adminUsers || []) : [],
+    readerUsers: canManage ? (accessState.memberUsers || []) : [],
+    writerUsers: canManage ? (accessState.adminUsers || []) : [],
+    accessRequestStatus: requestState?.status || '',
+    requestedAccess: requestState?.requestedAccess || '',
+  };
 }
 
-function pruneMembershipGrants(now = Date.now()) {
-  for (const [key, expiresAt] of handledMembershipGrants.entries()) {
-    if (expiresAt <= now) handledMembershipGrants.delete(key);
+function isSessionOwner(sessionRecord, userId) {
+  return !!sessionRecord && !!userId && sessionRecord.ownerUserId === userId;
+}
+
+function canManageSession(sessionRecord, daemonAccessState, userId) {
+  return isSessionOwner(sessionRecord, userId) || canAdminDaemonAccess(daemonAccessState, userId);
+}
+
+function isUserJoinedToSession(sessionRecord, userId) {
+  if (!sessionRecord || !userId) return false;
+  return sessionRecord.ownerUserId === userId || (sessionRecord.participants || []).includes(userId);
+}
+
+function markDaemonOfflineIfStale(daemon) {
+  const lastSeenAt = Date.parse(daemon?.lastSeenAt || '');
+  if (!Number.isFinite(lastSeenAt)) return daemon;
+  if (Date.now() - lastSeenAt > DAEMON_HEARTBEAT_STALE_MS && daemon.online) {
+    return {
+      ...daemon,
+      online: false,
+    };
+  }
+  return daemon;
+}
+
+function verifyDaemonSignature(body) {
+  const daemonId = String(body?.daemonId || '').trim();
+  const ownerUserId = String(body?.ownerUserId || '').trim();
+  const timestamp = String(body?.timestamp || '').trim();
+  const signature = String(body?.signature || '').trim();
+  if (!daemonId || !ownerUserId || !timestamp || !signature) {
+    return { ok: false, error: 'daemonId, ownerUserId, timestamp, and signature are required' };
+  }
+  const parsedTimestamp = Date.parse(timestamp);
+  if (!Number.isFinite(parsedTimestamp) || Math.abs(Date.now() - parsedTimestamp) > DAEMON_SIGNATURE_SKEW_MS) {
+    return { ok: false, error: 'Daemon registration timestamp is expired or invalid' };
+  }
+  const expected = createDaemonProof(daemonId, ownerUserId, timestamp);
+  const provided = Buffer.from(signature, 'utf-8');
+  const computed = Buffer.from(expected, 'utf-8');
+  if (provided.length !== computed.length || !crypto.timingSafeEqual(provided, computed)) {
+    return { ok: false, error: 'Invalid daemon registration signature' };
+  }
+  return { ok: true, daemonId, ownerUserId };
+}
+
+const serviceClient = new WebPubSubServiceClient(connectionString, hubName, { allowInsecureConnection: true });
+
+let adminChat = null;
+let adminChatInitPromise = null;
+let adminReconnectTimer = null;
+let adminReconnectAttempt = 0;
+let adminShuttingDown = false;
+
+const pendingWorkspaceLookups = new Map();
+const daemonAccessStateCache = new Map();
+const knownDaemonIds = new Set();
+
+function rememberDaemonId(daemonId = '') {
+  const normalizedDaemonId = String(daemonId || '').trim();
+  if (!normalizedDaemonId) return '';
+  knownDaemonIds.add(normalizedDaemonId);
+  return normalizedDaemonId;
+}
+
+function rememberDaemonRoomInfo(roomInfo) {
+  if (!roomInfo?.roomId?.startsWith('daemon-acl-')) return '';
+  const parsedTitle = parseDaemonAclRoomTitle(roomInfo.title || roomInfo.name || '');
+  return rememberDaemonId(parsedTitle?.daemonId || roomInfo.roomId.slice('daemon-acl-'.length));
+}
+
+function invalidateDaemonAccessStateCache(daemonId = '') {
+  const normalizedDaemonId = String(daemonId || '').trim();
+  if (!normalizedDaemonId) {
+    daemonAccessStateCache.clear();
+    return;
+  }
+  daemonAccessStateCache.delete(normalizedDaemonId);
+}
+
+function cacheDaemonAccessState(daemonId, accessState) {
+  daemonAccessStateCache.set(daemonId, {
+    value: accessState,
+    expiresAt: Date.now() + DAEMON_ACCESS_STATE_CACHE_TTL_MS,
+  });
+  return accessState;
+}
+
+function createServiceRestToken(audience) {
+  return jsonwebtoken.sign({}, portalAccessKey, {
+    audience,
+    expiresIn: '1h',
+    algorithm: 'HS256',
+  });
+}
+
+async function chatRestRequest(path, { method = 'GET', body, allow404 = false } = {}) {
+  const url = new URL(path, serviceClient.endpoint);
+  url.searchParams.set('api-version', CHAT_REST_API_VERSION);
+
+  for (let attempt = 0; attempt < 5; attempt += 1) {
+    const response = await fetch(url, {
+      method,
+      headers: {
+        Authorization: `Bearer ${createServiceRestToken(url.toString())}`,
+        ...(body === undefined ? {} : { 'Content-Type': 'application/json' }),
+      },
+      body: body === undefined ? undefined : JSON.stringify(body),
+    });
+
+    if (allow404 && response.status === 404) {
+      return null;
+    }
+
+    const text = await response.text();
+    let payload = null;
+    if (text) {
+      try {
+        payload = JSON.parse(text);
+      } catch {
+        payload = null;
+      }
+    }
+
+    if (response.ok) {
+      return payload;
+    }
+
+    const shouldRetry = response.status === 429 || response.status >= 500;
+    if (shouldRetry && attempt < 4) {
+      const retryAfterHeader = Number(response.headers.get('Retry-After') || '0');
+      const retryDelayMs = retryAfterHeader > 0
+        ? retryAfterHeader * 1000
+        : 250 * (2 ** attempt);
+      await new Promise((resolveRetry) => setTimeout(resolveRetry, retryDelayMs));
+      continue;
+    }
+
+    const error = new Error(payload?.error || payload?.message || text || `Chat REST request failed with ${response.status}`);
+    error.statusCode = response.status;
+    throw error;
+  }
+
+  throw new Error('Chat REST request failed after retries');
+}
+
+function isNotFoundError(error) {
+  const statusCode = Number(error?.statusCode || error?.status || 0);
+  if (statusCode === 404) return true;
+  const message = String(error?.message || '').toLowerCase();
+  const errorName = String(error?.errorDetail?.name || error?.name || '').toLowerCase();
+  return message.includes('404')
+    || message.includes('not found')
+    || message.includes('not a member of the specified room')
+    || errorName === 'usernotinroom';
+}
+
+function normalizeChatRoomMembers(payload) {
+  const rawMembers = Array.isArray(payload)
+    ? payload
+    : Array.isArray(payload?.value)
+      ? payload.value
+      : Array.isArray(payload?.members)
+        ? payload.members
+        : Array.isArray(payload?.items)
+          ? payload.items
+          : [];
+
+  return rawMembers.map((member) => ({
+    userId: String(member?.userId || member?.id || '').trim(),
+    role: String(member?.role || 'room.member').trim() || 'room.member',
+  })).filter((member) => member.userId);
+}
+
+async function getChatRoomInfo(roomId) {
+  return await chatRestRequest(
+    `/api/hubs/${encodeURIComponent(hubName)}/chat/rooms/${encodeURIComponent(roomId)}`,
+    { allow404: true },
+  );
+}
+
+async function getDaemonAclRoomInfo(daemonId) {
+  return await getChatRoomInfo(daemonAclRoomId(daemonId));
+}
+
+async function listDaemonAclRoomMembers(daemonId) {
+  const payload = await chatRestRequest(
+    `/api/hubs/${encodeURIComponent(hubName)}/chat/rooms/${encodeURIComponent(daemonAclRoomId(daemonId))}/members`,
+    { allow404: true },
+  );
+  if (!payload) return null;
+  return normalizeChatRoomMembers(payload);
+}
+
+async function upsertChatRoomMember(roomId, userId, role) {
+  await chatRestRequest(
+    `/api/hubs/${encodeURIComponent(hubName)}/chat/rooms/${encodeURIComponent(roomId)}/members/${encodeURIComponent(userId)}`,
+    { method: 'PUT', body: { userId, role } },
+  );
+}
+
+async function removeChatRoomMember(roomId, userId) {
+  await chatRestRequest(
+    `/api/hubs/${encodeURIComponent(hubName)}/chat/rooms/${encodeURIComponent(roomId)}/members/${encodeURIComponent(userId)}`,
+    { method: 'DELETE', allow404: true },
+  );
+}
+
+async function readDaemonAccessState(daemonId, fallbackOwnerUserId = '', { forceRefresh = false } = {}) {
+  const normalizedDaemonId = String(daemonId || '').trim();
+  if (!normalizedDaemonId) return null;
+
+  if (forceRefresh) {
+    daemonAccessStateCache.delete(normalizedDaemonId);
+  } else {
+    const cached = daemonAccessStateCache.get(normalizedDaemonId);
+    if (cached && cached.expiresAt > Date.now()) {
+      if (cached.promise) {
+        return await cached.promise;
+      }
+      return cached.value ?? null;
+    }
+  }
+
+  const loadPromise = (async () => {
+    const roomInfo = await getDaemonAclRoomInfo(normalizedDaemonId);
+    if (!roomInfo) return null;
+    const members = await listDaemonAclRoomMembers(normalizedDaemonId) || [];
+    return deriveDaemonAclState({
+      daemonId: normalizedDaemonId,
+      roomTitle: String(roomInfo.title || roomInfo.name || ''),
+      members,
+      adminUserId: ADMIN_USER_ID,
+      fallbackOwnerUserId,
+    });
+  })();
+
+  daemonAccessStateCache.set(normalizedDaemonId, {
+    promise: loadPromise,
+    expiresAt: Date.now() + DAEMON_ACCESS_STATE_CACHE_TTL_MS,
+  });
+
+  try {
+    return cacheDaemonAccessState(normalizedDaemonId, await loadPromise);
+  } catch (error) {
+    daemonAccessStateCache.delete(normalizedDaemonId);
+    throw error;
   }
 }
 
-function hasRecentMembershipGrant(key) {
-  pruneMembershipGrants();
-  const expiresAt = handledMembershipGrants.get(key);
-  return typeof expiresAt === 'number' && expiresAt > Date.now();
-}
+async function ensureDaemonAclState(daemonId, requestedOwnerUserId = '', existingRecord = null) {
+  const fallbackOwnerUserId = String(requestedOwnerUserId || existingRecord?.ownerUserId || '').trim();
+  let roomInfo = await getDaemonAclRoomInfo(daemonId);
 
-function rememberMembershipGrant(key) {
-  pruneMembershipGrants();
-  handledMembershipGrants.set(key, Date.now() + MEMBERSHIP_GRANT_TTL_MS);
-}
+  if (!roomInfo) {
+    if (!fallbackOwnerUserId || fallbackOwnerUserId === ADMIN_USER_ID || !VALID_USER_ID.test(fallbackOwnerUserId)) {
+      throw new Error(`Daemon ${daemonId} is missing a valid owner userId`);
+    }
 
-async function handleCreateSessionRequest(envelope) {
-  const { requestId, requesterUserId, daemonId, roomName } = envelope;
-  if (!requestId || !requesterUserId || !daemonId) return;
-  try {
-    const room = await adminChat.createRoom(
-      String(roomName || 'Session'),
-      [String(requesterUserId), String(daemonId), ADMIN_USER_ID],
+    roomInfo = await adminCreateRoom(
+      buildDaemonAclRoomTitle({ daemonId, ownerUserId: fallbackOwnerUserId }),
+      [ADMIN_USER_ID, fallbackOwnerUserId],
+      daemonAclRoomId(daemonId),
     );
-    await sendLobbyEnvelope({
-      type: 'session.create_result',
-      requestId,
-      requesterUserId: String(requesterUserId),
-      daemonId: String(daemonId),
-      sessionId: room.roomId,
-      roomName: room.name || String(roomName || 'Session'),
-      success: true,
-      updatedAt: new Date().toISOString(),
+
+    const desiredMembers = buildDesiredDaemonAclMembers({
+      ownerUserId: fallbackOwnerUserId,
+      memberUsers: existingRecord?.memberUsers || existingRecord?.readerUsers || [],
+      adminUsers: existingRecord?.adminUsers || existingRecord?.writerUsers || [],
+      adminUserId: ADMIN_USER_ID,
     });
-  } catch (error) {
-    await sendLobbyEnvelope({
-      type: 'session.create_result',
-      requestId,
-      requesterUserId: String(requesterUserId),
-      daemonId: String(daemonId),
-      success: false,
-      error: error?.message || 'Failed to create session room',
-      updatedAt: new Date().toISOString(),
-    });
+
+    for (const member of desiredMembers) {
+      await upsertChatRoomMember(daemonAclRoomId(daemonId), member.userId, member.role);
+    }
+  }
+
+  const accessState = await readDaemonAccessState(daemonId, fallbackOwnerUserId);
+  if (!accessState) {
+    throw new Error(`Failed to load daemon access state for ${daemonId}`);
+  }
+
+  if (!(accessState.members || []).some((member) => member.userId === ADMIN_USER_ID)) {
+    await upsertChatRoomMember(accessState.roomId, ADMIN_USER_ID, 'room.operator');
+    invalidateDaemonAccessStateCache(daemonId);
+    return await readDaemonAccessState(daemonId, fallbackOwnerUserId, { forceRefresh: true });
+  }
+
+  if (requestedOwnerUserId && accessState.ownerUserId && requestedOwnerUserId !== accessState.ownerUserId) {
+    const error = new Error(`Daemon ${daemonId} is already owned by ${accessState.ownerUserId}`);
+    error.code = 'DAEMON_OWNER_CONFLICT';
+    throw error;
+  }
+
+  if (accessState.ownerUserId) {
+    return accessState;
+  }
+
+  if (!fallbackOwnerUserId || fallbackOwnerUserId === ADMIN_USER_ID || !VALID_USER_ID.test(fallbackOwnerUserId)) {
+    throw new Error(`Daemon ${daemonId} is missing an owner in Chat membership state`);
+  }
+
+  await upsertChatRoomMember(accessState.roomId, fallbackOwnerUserId, 'room.operator');
+  invalidateDaemonAccessStateCache(daemonId);
+  return await readDaemonAccessState(daemonId, fallbackOwnerUserId, { forceRefresh: true });
+}
+
+async function updateDaemonAclState(daemonId, accessState, memberUsers, adminUsers) {
+  await upsertChatRoomMember(accessState.roomId, accessState.ownerUserId, 'room.operator');
+
+  const desiredMembers = buildDesiredDaemonAclMembers({
+    ownerUserId: accessState.ownerUserId,
+    memberUsers,
+    adminUsers,
+    adminUserId: ADMIN_USER_ID,
+  });
+  const desiredRoleByUserId = new Map(desiredMembers.map((member) => [member.userId, member.role]));
+  desiredRoleByUserId.delete(accessState.ownerUserId);
+
+  for (const member of accessState.members || []) {
+    if (!member?.userId || member.userId === ADMIN_USER_ID || member.userId === accessState.ownerUserId) continue;
+    const desiredRole = desiredRoleByUserId.get(member.userId);
+    if (!desiredRole) {
+      await removeChatRoomMember(accessState.roomId, member.userId);
+      continue;
+    }
+    if (desiredRole !== member.role) {
+      await upsertChatRoomMember(accessState.roomId, member.userId, desiredRole);
+    }
+    desiredRoleByUserId.delete(member.userId);
+  }
+
+  for (const [userId, role] of desiredRoleByUserId.entries()) {
+    await upsertChatRoomMember(accessState.roomId, userId, role);
+  }
+
+  invalidateDaemonAccessStateCache(daemonId);
+  return await readDaemonAccessState(daemonId, accessState.ownerUserId, { forceRefresh: true });
+}
+
+function buildDaemonAccessRequestEnvelope(payload) {
+  return {
+    type: 'portal.daemon-access-request',
+    requestId: String(payload.requestId || '').trim(),
+    daemonId: String(payload.daemonId || '').trim(),
+    requesterUserId: String(payload.requesterUserId || '').trim(),
+    ownerUserId: String(payload.ownerUserId || '').trim(),
+    requestedAccess: String(payload.requestedAccess || '').trim(),
+    status: String(payload.status || '').trim(),
+    createdAt: String(payload.createdAt || '').trim(),
+    updatedAt: String(payload.updatedAt || '').trim(),
+  };
+}
+
+function parseDaemonAccessRequestEnvelope(text) {
+  try {
+    const parsed = JSON.parse(String(text || ''));
+    if (parsed?.type !== 'portal.daemon-access-request') return null;
+    const envelope = buildDaemonAccessRequestEnvelope(parsed);
+    if (!envelope.requestId || !envelope.daemonId || !envelope.requesterUserId || !envelope.requestedAccess || !envelope.status) {
+      return null;
+    }
+    return envelope;
+  } catch {
+    return null;
   }
 }
 
-async function handleApprovedJoinResponse(envelope) {
-  const { sessionId, requesterUserId, ownerUserId, approved } = envelope;
-  if (!approved || !sessionId || !requesterUserId) return;
-  const key = `${sessionId}:${requesterUserId}`;
-  if (hasRecentMembershipGrant(key)) return;
-  rememberMembershipGrant(key);
+async function readDaemonAccessRequests(daemonId) {
+  const messages = await listRoomMessages(daemonAclRoomId(daemonId), 200);
+  const requestsById = new Map();
+  for (const message of messages) {
+    if (!message?.content?.text) continue;
+    const envelope = parseDaemonAccessRequestEnvelope(message.content.text);
+    if (!envelope || envelope.daemonId !== daemonId) continue;
+    const current = requestsById.get(envelope.requestId);
+    if (!current || String(envelope.updatedAt || '').localeCompare(String(current.updatedAt || '')) >= 0) {
+      requestsById.set(envelope.requestId, envelope);
+    }
+  }
+  return [...requestsById.values()];
+}
+
+async function getLatestDaemonAccessRequestForUser(daemonId, requesterUserId) {
+  const requests = await readDaemonAccessRequests(daemonId);
+  return requests
+    .filter((request) => request.requesterUserId === requesterUserId)
+    .sort((left, right) => String(right.updatedAt || '').localeCompare(String(left.updatedAt || '')))[0] || null;
+}
+
+async function appendDaemonAccessRequestEvent(daemonId, payload) {
+  const envelope = buildDaemonAccessRequestEnvelope(payload);
+  await adminSendToRoom(daemonAclRoomId(daemonId), JSON.stringify(envelope), 'appendDaemonAccessRequestEvent');
+  return envelope;
+}
+
+function buildSessionRoomTitle({ roomName, daemonId, agentName, workingDirectory, ownerUserId, createdAt = '', updatedAt = '' }) {
+  return JSON.stringify({
+    t: 'ms',
+    r: String(roomName || 'Session').trim() || 'Session',
+    d: String(daemonId || '').trim(),
+    a: String(agentName || '').trim(),
+    w: String(workingDirectory || '').trim(),
+    o: String(ownerUserId || '').trim(),
+    c: String(createdAt || '').trim(),
+    u: String(updatedAt || '').trim(),
+  });
+}
+
+function parseSessionRoomTitle(title) {
   try {
-    await adminChat.addUserToRoom(String(sessionId), String(requesterUserId));
-    await sendLobbyEnvelope({
-      type: 'session.membership_result',
-      sessionId: String(sessionId),
-      requesterUserId: String(requesterUserId),
-      ownerUserId: ownerUserId ? String(ownerUserId) : undefined,
-      granted: true,
-      updatedAt: new Date().toISOString(),
-    });
+    const parsed = JSON.parse(String(title || ''));
+    if (parsed?.type !== 'managed-session' && parsed?.t !== 'ms') return null;
+    return {
+      roomName: String(parsed.r || parsed.roomName || 'Session').trim() || 'Session',
+      daemonId: String(parsed.d || parsed.daemonId || '').trim(),
+      agentName: String(parsed.a || parsed.agentName || '').trim(),
+      workingDirectory: String(parsed.w || parsed.workingDirectory || '').trim(),
+      ownerUserId: String(parsed.o || parsed.ownerUserId || '').trim(),
+      createdAt: String(parsed.c || parsed.createdAt || '').trim(),
+      updatedAt: String(parsed.u || parsed.updatedAt || '').trim(),
+    };
+  } catch {
+    return null;
+  }
+}
+
+function buildJoinRequestEnvelope(payload) {
+  return {
+    type: 'portal.join-request',
+    requestId: String(payload.requestId || '').trim(),
+    requesterUserId: String(payload.requesterUserId || '').trim(),
+    ownerUserId: String(payload.ownerUserId || '').trim(),
+    daemonId: String(payload.daemonId || '').trim(),
+    agentName: String(payload.agentName || '').trim(),
+    workingDirectory: String(payload.workingDirectory || '').trim(),
+    roomName: String(payload.roomName || 'Session').trim() || 'Session',
+    requestedAccess: String(payload.requestedAccess || '').trim(),
+    status: String(payload.status || '').trim(),
+    createdAt: String(payload.createdAt || '').trim(),
+    updatedAt: String(payload.updatedAt || '').trim(),
+  };
+}
+
+function parseJoinRequestEnvelope(text) {
+  try {
+    const parsed = JSON.parse(String(text || ''));
+    if (parsed?.type !== 'portal.join-request') return null;
+    const envelope = buildJoinRequestEnvelope(parsed);
+    if (!envelope.requestId || !envelope.requesterUserId || !envelope.status) return null;
+    return envelope;
+  } catch {
+    return null;
+  }
+}
+
+async function listSessionRoomMembers(sessionId) {
+  const payload = await chatRestRequest(
+    `/api/hubs/${encodeURIComponent(hubName)}/chat/rooms/${encodeURIComponent(sessionId)}/members`,
+    { allow404: true },
+  );
+  if (!payload) return [];
+  return normalizeChatRoomMembers(payload);
+}
+
+function sessionAccessLevelFromRole(role) {
+  if (role === 'room.operator') return 'write';
+  if (role === 'room.member') return 'read';
+  return 'none';
+}
+
+function hasSessionReadAccess(accessLevel) {
+  return accessLevel === 'read' || accessLevel === 'write';
+}
+
+function hasSessionWriteAccess(accessLevel) {
+  return accessLevel === 'write';
+}
+
+function getSessionAccessLevel(sessionRecord, sessionMembers, daemonAccessState, userId) {
+  const normalizedUserId = String(userId || '').trim();
+  if (!sessionRecord || !normalizedUserId) return 'none';
+  if (sessionRecord.ownerUserId === normalizedUserId) return 'write';
+  if (canAdminDaemonAccess(daemonAccessState, normalizedUserId)) return 'write';
+  const member = (sessionMembers || []).find((entry) => entry.userId === normalizedUserId);
+  return sessionAccessLevelFromRole(member?.role || '');
+}
+
+function normalizeManagedRoomInfos(rooms) {
+  return [...new Map((rooms || [])
+    .filter((room) => room?.roomId)
+    .map((room) => [room.roomId, room])).values()];
+}
+
+async function listManagedRoomInfos() {
+  await ensureAdminChatReady();
+  const roomInfos = normalizeManagedRoomInfos(adminChat?.rooms || []);
+  for (const roomInfo of roomInfos) {
+    rememberDaemonRoomInfo(roomInfo);
+  }
+  return roomInfos;
+}
+
+async function listFreshManagedRoomInfos() {
+  const chat = await loginEphemeralAdminChat();
+  try {
+    const roomInfos = normalizeManagedRoomInfos(chat?.rooms || []);
+    for (const roomInfo of roomInfos) {
+      rememberDaemonRoomInfo(roomInfo);
+    }
+    return roomInfos;
+  } finally {
+    await stopChatClient(chat);
+  }
+}
+
+async function listDaemonRegistryRecords() {
+  return await listDaemonRegistryRecordsWithFallback({
+    listManagedRoomInfos,
+    listFreshManagedRoomInfos,
+    knownDaemonIds,
+    rememberDaemonRoomInfo,
+    getDaemonRegistryRecord,
+    warn: (daemonId, error) => {
+      console.warn(`[Web] Failed to load daemon registry record for ${daemonId}:`, error?.message || error);
+    },
+  });
+}
+
+async function getDaemonRegistryRecord(daemonId) {
+  const normalizedDaemonId = rememberDaemonId(daemonId);
+  if (!normalizedDaemonId) return null;
+  const roomInfo = await getDaemonAclRoomInfo(normalizedDaemonId);
+  if (!roomInfo) return null;
+  rememberDaemonRoomInfo(roomInfo);
+  const parsedTitle = parseDaemonAclRoomTitle(roomInfo.title || roomInfo.name || '');
+  const accessState = await readDaemonAccessState(normalizedDaemonId, parsedTitle?.ownerUserId || '');
+  if (!accessState) return null;
+  return {
+    daemonId: normalizedDaemonId,
+    ownerUserId: accessState.ownerUserId,
+    hostname: parsedTitle?.hostname || normalizedDaemonId,
+    platform: parsedTitle?.platform || '',
+    agents: parsedTitle?.agents || [],
+    workspaces: parsedTitle?.workspaces || [],
+    online: parsedTitle?.online !== false,
+    updatedAt: parsedTitle?.updatedAt || '',
+    lastSeenAt: parsedTitle?.lastSeenAt || '',
+    accessState,
+  };
+}
+
+async function writeDaemonRegistryRecord({ daemonId, ownerUserId, hostname, platform, agents, workspaces, online, updatedAt, lastSeenAt }, existingRecord = null) {
+  const normalizedDaemonId = rememberDaemonId(daemonId);
+  const accessState = await ensureDaemonAclState(normalizedDaemonId, ownerUserId, existingRecord);
+  const title = buildDaemonAclRoomTitle({
+    daemonId: normalizedDaemonId,
+    ownerUserId: accessState.ownerUserId,
+    hostname,
+    platform,
+    agents,
+    workspaces,
+    online,
+    updatedAt,
+    lastSeenAt,
+  });
+  await chatRestRequest(
+    `/api/hubs/${encodeURIComponent(hubName)}/chat/rooms/${encodeURIComponent(accessState.roomId)}`,
+    { method: 'PATCH', body: { title } },
+  );
+  if (Array.isArray(adminChat?.rooms)) {
+    const cachedRoom = adminChat.rooms.find((room) => room?.roomId === accessState.roomId);
+    if (cachedRoom) {
+      cachedRoom.title = title;
+      cachedRoom.name = title;
+    }
+  }
+  return await getDaemonRegistryRecord(normalizedDaemonId);
+}
+
+async function getSessionRoomInfo(sessionId, withMembers = false) {
+  try {
+    return await adminGetRoom(sessionId, withMembers);
   } catch (error) {
-    const granted = isAlreadyMemberError(error);
-    await sendLobbyEnvelope({
-      type: 'session.membership_result',
-      sessionId: String(sessionId),
-      requesterUserId: String(requesterUserId),
-      ownerUserId: ownerUserId ? String(ownerUserId) : undefined,
-      granted,
-      error: granted ? '' : (error?.message || 'Failed to grant session membership'),
-      updatedAt: new Date().toISOString(),
-    });
+    if (isNotFoundError(error)) {
+      if (Array.isArray(adminChat?.rooms)) {
+        const roomIndex = adminChat.rooms.findIndex((room) => room?.roomId === sessionId);
+        if (roomIndex >= 0) {
+          adminChat.rooms.splice(roomIndex, 1);
+        }
+      }
+      return null;
+    }
+    throw error;
+  }
+}
+
+async function listSessionRoomInfos() {
+  const roomInfos = await listManagedRoomInfos();
+  return roomInfos.filter((roomInfo) => parseSessionRoomTitle(roomInfo?.title || roomInfo?.name || ''));
+}
+
+async function listConversationMessages(conversationId, startId, endId, maxCount = 100) {
+  const params = new URLSearchParams();
+  if (startId != null) params.set('start', String(startId));
+  if (endId != null) params.set('end', String(endId));
+  params.set('maxCount', String(Math.max(1, Number(maxCount) || 1)));
+
+  return await chatRestRequest(
+    `/api/hubs/${encodeURIComponent(hubName)}/chat/conversations/${encodeURIComponent(conversationId)}/messages?${params.toString()}`,
+  );
+}
+
+async function listRoomMessages(roomId, maxCount = 200) {
+  return await listRoomMessagesWithFallback({
+    roomId,
+    maxCount,
+    baseUrl: serviceClient.endpoint,
+    loadPrimaryPage: async (targetRoomId, startId, endId, pageSize) => await adminListRoomMessage(targetRoomId, startId, endId, pageSize),
+    loadRoomInfo: async (targetRoomId) => await getChatRoomInfo(targetRoomId),
+    loadConversationPage: async (conversationId, startId, endId, pageSize) => await listConversationMessages(conversationId, startId, endId, pageSize),
+  });
+}
+
+async function readJoinRequestsForSession(sessionId) {
+  const messages = await listRoomMessages(sessionId, 200);
+  const requestsById = new Map();
+  for (const message of messages) {
+    if (!message?.content?.text) continue;
+    const envelope = parseJoinRequestEnvelope(message.content.text);
+    if (!envelope) continue;
+    const current = requestsById.get(envelope.requestId);
+    if (!current || String(envelope.updatedAt || '').localeCompare(String(current.updatedAt || '')) >= 0) {
+      requestsById.set(envelope.requestId, envelope);
+    }
+  }
+  return [...requestsById.values()];
+}
+
+async function getLatestJoinRequestForSessionAndUser(sessionId, requesterUserId) {
+  const requests = await readJoinRequestsForSession(sessionId);
+  return requests
+    .filter((request) => request.requesterUserId === requesterUserId)
+    .sort((left, right) => String(right.updatedAt || '').localeCompare(String(left.updatedAt || '')))[0] || null;
+}
+
+async function readManagedSessionRecord(sessionId, knownDaemonIds = null) {
+  const roomInfo = await getSessionRoomInfo(sessionId, true);
+  if (!roomInfo) return null;
+  const parsedTitle = parseSessionRoomTitle(roomInfo.title || roomInfo.name || '');
+  const memberIds = Array.isArray(roomInfo.members) ? roomInfo.members.map((value) => String(value || '').trim()).filter(Boolean) : [];
+  const daemonIdFromMembers = (knownDaemonIds || []).find((value) => memberIds.includes(value));
+
+  let fallback = null;
+  if (!parsedTitle) {
+    const messages = await listRoomMessages(sessionId, 80);
+    for (const message of messages) {
+      if (!message?.content?.text) continue;
+      try {
+        const payload = JSON.parse(message.content.text);
+        if (payload?.type === 'control.create') {
+          fallback = {
+            roomName: String(roomInfo.title || 'Session').trim() || 'Session',
+            daemonId: daemonIdFromMembers || '',
+            agentName: String(payload.agentName || '').trim(),
+            workingDirectory: String(payload.workingDirectory || '').trim(),
+            ownerUserId: String(payload.userId || '').trim(),
+            createdAt: String(message.createdAt || '').trim(),
+            updatedAt: String(message.createdAt || '').trim(),
+          };
+          break;
+        }
+      } catch {
+        // ignore legacy non-json messages
+      }
+    }
+  }
+
+  const metadata = parsedTitle || fallback;
+  if (!metadata) return null;
+
+  const participants = memberIds.filter((value) => value && value !== ADMIN_USER_ID && value !== metadata.ownerUserId && value !== (metadata.daemonId || daemonIdFromMembers || ''));
+
+  return {
+    sessionId: roomInfo.roomId,
+    roomName: metadata.roomName,
+    daemonId: metadata.daemonId || daemonIdFromMembers || '',
+    agentName: metadata.agentName,
+    workingDirectory: metadata.workingDirectory,
+    ownerUserId: metadata.ownerUserId,
+    participants,
+    createdAt: metadata.createdAt || String(roomInfo.createdAt || '').trim(),
+    updatedAt: metadata.updatedAt || metadata.createdAt || String(roomInfo.updatedAt || roomInfo.createdAt || '').trim(),
+  };
+}
+
+async function appendJoinRequestEvent(sessionRecord, payload) {
+  const envelope = buildJoinRequestEnvelope(payload);
+  await invokeAdminChat('appendJoinRequestEvent', (chat) => chat.sendToRoom(sessionRecord.sessionId, JSON.stringify(envelope)));
+  return envelope;
+}
+
+function settleWorkspaceLookup(requestId, error, data = {}) {
+  const pending = pendingWorkspaceLookups.get(requestId);
+  if (!pending) return false;
+  clearTimeout(pending.timeout);
+  pendingWorkspaceLookups.delete(requestId);
+  if (error) pending.reject(new Error(error));
+  else pending.resolve(data);
+  return true;
+}
+
+async function sendLobbyEnvelope(envelope) {
+  await adminSendToRoom(LOBBY_ROOM, JSON.stringify(envelope), 'sendLobbyEnvelope');
+}
+
+function buildSessionSyncEnvelope(sessionRecord, type = 'session.updated', extra = {}) {
+  if (!sessionRecord?.daemonId || !sessionRecord?.sessionId) return null;
+  return {
+    type,
+    sessionId: sessionRecord.sessionId,
+    daemonId: sessionRecord.daemonId,
+    agentName: sessionRecord.agentName,
+    roomName: sessionRecord.roomName,
+    workingDirectory: sessionRecord.workingDirectory,
+    ownerUserId: sessionRecord.ownerUserId,
+    updatedAt: extra.updatedAt || new Date().toISOString(),
+    ...extra,
+  };
+}
+
+async function sendDaemonSyncEnvelope(sessionRecord, type = 'session.updated', extra = {}) {
+  const envelope = buildSessionSyncEnvelope(sessionRecord, type, extra);
+  if (!envelope) return;
+  try {
+    await adminSendToRoom(daemonAclRoomId(sessionRecord.daemonId), JSON.stringify(envelope), 'sendDaemonSyncEnvelope');
+  } catch (error) {
+    console.warn('[Web] Failed to send daemon sync envelope:', error?.message || error);
   }
 }
 
 async function ensureLobbyAccess(userId) {
   if (!userId) return;
-  await ensureAdminChatReady();
   try {
-    await adminChat.createRoom('Agent Lobby', [ADMIN_USER_ID, String(userId)], LOBBY_ROOM);
+    await adminCreateRoom('Agent Lobby', [ADMIN_USER_ID, String(userId)], LOBBY_ROOM);
     return;
   } catch (error) {
     if (!isAlreadyMemberError(error)) {
@@ -189,7 +1000,7 @@ async function ensureLobbyAccess(userId) {
     }
   }
   try {
-    await adminChat.addUserToRoom(LOBBY_ROOM, String(userId));
+    await adminAddUserToRoom(LOBBY_ROOM, String(userId), 'ensureLobbyAccess');
   } catch (error) {
     if (!isAlreadyMemberError(error)) {
       throw error;
@@ -203,6 +1014,7 @@ function bindAdminLobbyListeners() {
     adminReconnectAttempt = 0;
   });
   adminChat.onDisconnected(() => {
+    if (adminShuttingDown) return;
     console.warn('[Web] Admin chat disconnected; scheduling reconnect');
     adminChat = null;
     scheduleAdminReconnect();
@@ -211,16 +1023,21 @@ function bindAdminLobbyListeners() {
     try {
       const roomId = notification.conversation?.roomId;
       const message = notification.message;
-      if (roomId !== LOBBY_ROOM || message?.createdBy === ADMIN_USER_ID || !message?.content?.text) return;
+      if (!roomId || message?.createdBy === ADMIN_USER_ID || !message?.content?.text) return;
       const envelope = JSON.parse(message.content.text);
-      if (envelope.type === 'session.create_request') {
-        if (message.createdBy !== envelope.requesterUserId) return;
-        await handleCreateSessionRequest(envelope);
-        return;
-      }
-      if (envelope.type === 'session.join_response') {
-        if (message.createdBy !== envelope.ownerUserId) return;
-        await handleApprovedJoinResponse(envelope);
+      if (envelope.type === 'workspace.list_response' && envelope.requestId) {
+        settleWorkspaceLookup(envelope.requestId, envelope.error || '', {
+          base: envelope.base,
+          dirs: envelope.dirs || [],
+          partial: envelope.partial || '',
+          daemonId: envelope.daemonId,
+          mode: envelope.mode || '',
+          favorites: envelope.favorites || [],
+          roots: envelope.roots || [],
+          query: envelope.query || '',
+          truncated: !!envelope.truncated,
+          total: Number(envelope.total) || 0,
+        });
       }
     } catch (error) {
       console.error('[Web] Admin listener error:', error?.message || error);
@@ -229,6 +1046,7 @@ function bindAdminLobbyListeners() {
 }
 
 function scheduleAdminReconnect() {
+  if (adminShuttingDown) return;
   if (adminReconnectTimer || adminChatInitPromise) return;
   const delay = Math.min(30000, 1000 * (2 ** adminReconnectAttempt));
   adminReconnectAttempt += 1;
@@ -247,21 +1065,25 @@ async function initAdminChat() {
   if (adminChatInitPromise) return adminChatInitPromise;
 
   adminChatInitPromise = (async () => {
-  const token = await serviceClient.getClientAccessToken({ userId: ADMIN_USER_ID });
-  adminChat = await new ChatClient(token.url).login();
-  console.log(`[Web] Admin chat logged in as: ${adminChat.userId}`);
+    if (adminShuttingDown) return null;
+    const token = await serviceClient.getClientAccessToken({ userId: ADMIN_USER_ID });
+    const loggedInChat = await new ChatClient(token.url).login();
+    if (adminShuttingDown) {
+      await stopChatClient(loggedInChat);
+      return null;
+    }
+    adminChat = loggedInChat;
+    console.log(`[Web] Admin chat logged in as: ${adminChat.userId}`);
 
-  // Ensure lobby room exists
-  try {
-    await adminChat.createRoom('Agent Lobby', [ADMIN_USER_ID], LOBBY_ROOM);
-    console.log('[Web] Created lobby room');
-  } catch {
-    // Already exists — join it
-    try { await adminChat.addUserToRoom(LOBBY_ROOM, ADMIN_USER_ID); } catch {}
-  }
+    try {
+      await adminChat.createRoom('Agent Lobby', [ADMIN_USER_ID], LOBBY_ROOM);
+      console.log('[Web] Created lobby room');
+    } catch {
+      try { await adminChat.addUserToRoom(LOBBY_ROOM, ADMIN_USER_ID); } catch {}
+    }
 
-  bindAdminLobbyListeners();
-  return adminChat;
+    bindAdminLobbyListeners();
+    return adminChat;
   })().finally(() => {
     adminChatInitPromise = null;
   });
@@ -274,14 +1096,94 @@ async function ensureAdminChatReady() {
   return initAdminChat();
 }
 
-function validateNegotiatedUserId(userId) {
-  if (String(userId) === ADMIN_USER_ID) {
-    return 'reserved userId is not allowed';
+async function stopChatClient(client, timeoutMs = 1_500) {
+  if (!client) return;
+  await new Promise((resolveStop) => {
+    let settled = false;
+    const finish = () => {
+      if (settled) return;
+      settled = true;
+      clearTimeout(timeoutHandle);
+      resolveStop();
+    };
+    const timeoutHandle = setTimeout(finish, timeoutMs);
+    timeoutHandle.unref?.();
+    try {
+      client.onDisconnected(() => finish());
+    } catch {}
+    try {
+      client.stop();
+    } catch {
+      finish();
+    }
+  });
+}
+
+async function loginEphemeralAdminChat() {
+  const token = await serviceClient.getClientAccessToken({ userId: ADMIN_USER_ID });
+  return await new ChatClient(token.url).login();
+}
+
+async function invokeAdminChat(label, operation, timeoutMs = 15_000) {
+  const run = async (useEphemeral = false) => {
+    const chat = useEphemeral ? await loginEphemeralAdminChat() : await ensureAdminChatReady();
+    let timeoutHandle;
+    const operationPromise = Promise.resolve().then(() => operation(chat));
+    operationPromise.catch(() => {});
+    try {
+      return await Promise.race([
+        operationPromise,
+        new Promise((_, reject) => {
+          timeoutHandle = setTimeout(() => reject(new Error(`${label} timed out`)), timeoutMs);
+        }),
+      ]);
+    } finally {
+      if (timeoutHandle) clearTimeout(timeoutHandle);
+      if (useEphemeral) {
+        await stopChatClient(chat);
+      }
+    }
+  };
+
+  try {
+    return await run(false);
+  } catch (error) {
+    const message = String(error?.message || '').toLowerCase();
+    const shouldRetry = message.includes('disconnected') || message.includes('timed out');
+    if (!shouldRetry) throw error;
+
+    if (adminReconnectTimer) {
+      clearTimeout(adminReconnectTimer);
+      adminReconnectTimer = null;
+    }
+    await stopChatClient(adminChat);
+    adminChat = null;
+    return await run(true);
   }
-  if (!VALID_USER_ID.test(String(userId))) {
-    return 'userId must match /^[a-zA-Z0-9_-]{1,64}$/';
-  }
-  return '';
+}
+
+async function adminCreateRoom(name, members, roomId) {
+  return await invokeAdminChat(`createRoom:${roomId || name}`, (chat) => chat.createRoom(name, members, roomId), 20_000);
+}
+
+async function adminSendToRoom(roomId, payload, label = 'sendToRoom') {
+  return await invokeAdminChat(`${label}:${roomId}`, (chat) => chat.sendToRoom(roomId, payload));
+}
+
+async function adminGetRoom(roomId, withMembers = false) {
+  return await invokeAdminChat(`getRoom:${roomId}`, (chat) => chat.getRoom(roomId, withMembers));
+}
+
+async function adminListRoomMessage(roomId, startId, endId, maxCount) {
+  return await invokeAdminChat(`listRoomMessage:${roomId}`, (chat) => chat.listRoomMessage(roomId, startId, endId, maxCount));
+}
+
+async function adminAddUserToRoom(roomId, userId, label = 'addUserToRoom') {
+  return await invokeAdminChat(`${label}:${roomId}:${userId}`, (chat) => chat.addUserToRoom(roomId, userId));
+}
+
+async function adminRemoveUserFromRoom(roomId, userId, label = 'removeUserFromRoom') {
+  return await invokeAdminChat(`${label}:${roomId}:${userId}`, (chat) => chat.removeUserFromRoom(roomId, userId));
 }
 
 async function issueTokenResponse(res, userId, { ensureLobby = false, logLabel = 'Negotiate' } = {}) {
@@ -301,19 +1203,100 @@ async function issueTokenResponse(res, userId, { ensureLobby = false, logLabel =
   }
 }
 
-// ── Express App ──
+async function requestWorkspaceListing(daemonId, requesterUserId, pathValue = '', query = '') {
+  const requestId = crypto.randomUUID();
+  const pending = new Promise((resolve, reject) => {
+    const timeout = setTimeout(() => {
+      pendingWorkspaceLookups.delete(requestId);
+      reject(new Error('Directory lookup timed out'));
+    }, WORKSPACE_REQUEST_TIMEOUT_MS);
+    pendingWorkspaceLookups.set(requestId, { resolve, reject, timeout });
+  });
+  await adminSendToRoom(String(daemonId), JSON.stringify({
+    type: 'workspace.list_request',
+    requestId,
+    requesterUserId,
+    daemonId,
+    path: pathValue || '__roots__',
+    query,
+    limit: 200,
+  }), 'requestWorkspaceListing');
+  return pending;
+}
+
+async function createManagedSession({ ownerUserId, daemonId, agentName, workingDirectory, roomName }) {
+  const timestamp = new Date().toISOString();
+  const room = await adminCreateRoom(
+    buildSessionRoomTitle({
+      roomName: String(roomName || 'Session'),
+      daemonId,
+      agentName,
+      workingDirectory,
+      ownerUserId,
+      createdAt: timestamp,
+      updatedAt: timestamp,
+    }),
+    [String(ownerUserId), String(daemonId), ADMIN_USER_ID],
+  );
+  const sessionRecord = normalizeSessionRecord(null, {
+    sessionId: room.roomId,
+    roomName: String(roomName || 'Session'),
+    daemonId,
+    agentName,
+    workingDirectory,
+    ownerUserId,
+    participants: [],
+    createdAt: timestamp,
+    updatedAt: timestamp,
+  });
+  await adminSendToRoom(room.roomId, JSON.stringify({
+    type: 'control.create',
+    userId: ownerUserId,
+    agentName,
+    workingDirectory: workingDirectory || undefined,
+  }), 'createManagedSession.controlCreate');
+  await sendDaemonSyncEnvelope(sessionRecord, 'session.created', { updatedAt: timestamp });
+  return sessionRecord;
+}
+
+async function deleteManagedSession(sessionRecord) {
+  if (!sessionRecord) return;
+  try {
+    await adminSendToRoom(sessionRecord.sessionId, JSON.stringify({ type: 'control.delete' }), 'deleteManagedSession.controlDelete');
+  } catch (error) {
+    console.warn('[Web] Failed to send control.delete:', error?.message || error);
+  }
+  try {
+    await chatRestRequest(
+      `/api/hubs/${encodeURIComponent(hubName)}/chat/rooms/${encodeURIComponent(sessionRecord.sessionId)}`,
+      { method: 'DELETE', allow404: true },
+    );
+  } finally {
+    if (Array.isArray(adminChat?.rooms)) {
+      const roomIndex = adminChat.rooms.findIndex((room) => room?.roomId === sessionRecord.sessionId);
+      if (roomIndex >= 0) {
+        adminChat.rooms.splice(roomIndex, 1);
+      }
+    }
+  }
+}
 
 const app = express();
+app.set('trust proxy', 1);
 app.use(express.json());
 app.use(session({
   secret: process.env.SESSION_SECRET || crypto.randomBytes(32).toString('hex'),
   resave: false,
   saveUninitialized: false,
-  cookie: { secure: false, httpOnly: true, maxAge: 24 * 60 * 60 * 1000 },
+  cookie: {
+    secure: process.env.NODE_ENV === 'production',
+    httpOnly: true,
+    maxAge: 24 * 60 * 60 * 1000,
+    sameSite: 'lax',
+  },
 }));
 app.use(express.static(publicRoot));
 
-// Serve the Chat Client SDK browser bundle
 app.get('/chat-client.js', (req, res) => {
   sendJavaScriptAsset(res, 'chat-client.js', [
     join(publicRoot, 'chat-client.js'),
@@ -338,9 +1321,6 @@ app.get('/dompurify.js', (req, res) => {
   ]);
 });
 
-// ── GitHub OAuth Routes ──
-
-// GET /auth/config — tell the frontend whether OAuth is enabled
 app.get('/auth/config', (req, res) => {
   res.json({
     oauth: OAUTH_ENABLED,
@@ -348,7 +1328,6 @@ app.get('/auth/config', (req, res) => {
   });
 });
 
-// GET /auth/login — redirect to GitHub
 app.get('/auth/login', (req, res) => {
   if (!OAUTH_ENABLED) return res.status(404).json({ error: oauthUnavailableMessage() });
   const state = crypto.randomBytes(16).toString('hex');
@@ -362,7 +1341,6 @@ app.get('/auth/login', (req, res) => {
   res.redirect(`https://github.com/login/oauth/authorize?${params}`);
 });
 
-// GET /auth/callback — exchange code for token, fetch user profile
 app.get('/auth/callback', async (req, res) => {
   if (!OAUTH_ENABLED) return res.status(404).json({ error: oauthUnavailableMessage() });
   const { code, state } = req.query;
@@ -371,7 +1349,6 @@ app.get('/auth/callback', async (req, res) => {
   }
   delete req.session.oauthState;
   try {
-    // Exchange code for access token
     const tokenRes = await fetch('https://github.com/login/oauth/access_token', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
@@ -383,7 +1360,6 @@ app.get('/auth/callback', async (req, res) => {
     });
     const tokenData = await tokenRes.json();
     if (tokenData.error) throw new Error(tokenData.error_description || tokenData.error);
-    // Fetch user profile
     const userRes = await fetch('https://api.github.com/user', {
       headers: { Authorization: `Bearer ${tokenData.access_token}`, Accept: 'application/json' },
     });
@@ -403,44 +1379,747 @@ app.get('/auth/callback', async (req, res) => {
   }
 });
 
-// GET /auth/me — return current user (or 401)
 app.get('/auth/me', (req, res) => {
-  if (!OAUTH_ENABLED) return res.json({ oauth: false });
+  if (!OAUTH_ENABLED) return res.json({ oauth: false, user: getPortalUser(req) });
   if (!req.session.user) return res.status(401).json({ error: 'Not authenticated' });
   res.json({ oauth: true, user: req.session.user });
 });
 
-// POST /auth/logout
 app.post('/auth/logout', (req, res) => {
   req.session.destroy(() => {
     res.json({ ok: true });
   });
 });
 
-// GET /negotiate:portal — issue WPS Chat token for the browser portal.
-// If OAuth is enabled, userId comes from session. Otherwise, from query param.
 app.get(/^\/negotiate:portal$/, async (req, res) => {
   let userId;
   if (OAUTH_ENABLED) {
     if (!req.session.user) return res.status(401).json({ error: 'Not authenticated' });
     userId = req.session.user.login;
   } else {
-    userId = req.query.userId;
+    userId = String(req.query.userId || req.get(PORTAL_USER_HEADER) || '').trim();
     if (!userId) return res.status(400).json({ error: 'userId query parameter is required' });
+    const invalidUserId = validateNegotiatedUserId(userId);
+    if (invalidUserId) return res.status(400).json({ error: invalidUserId });
   }
-  await issueTokenResponse(res, userId, { ensureLobby: true, logLabel: 'Negotiate:portal' });
+  await issueTokenResponse(res, userId, { ensureLobby: false, logLabel: PORTAL_NEGOTIATE_PATH });
 });
 
-// GET /negotiate:daemon — issue WPS Chat token for daemon/bot logins.
 app.get(/^\/negotiate:daemon$/, async (req, res) => {
-  const userId = req.query.userId;
-  if (!userId) {
-    return res.status(400).json({ error: 'userId query parameter is required' });
-  }
-  await issueTokenResponse(res, userId, { ensureLobby: false, logLabel: 'Negotiate:daemon' });
+  res.status(410).json({ error: 'Deprecated. Daemons must use POST /api/daemons/register.' });
 });
 
-// ── Start ──
+app.post('/api/daemons/register', async (req, res) => {
+  const verification = verifyDaemonSignature(req.body);
+  if (!verification.ok) return res.status(403).json({ error: verification.error });
+  const daemonId = verification.daemonId;
+  const ownerUserId = verification.ownerUserId;
+  let existing;
+  try {
+    existing = await getDaemonRegistryRecord(daemonId);
+  } catch (error) {
+    console.error('[Web] Daemon register preflight failed:', error);
+    return res.status(503).json({ error: error.message || 'Web PubSub Chat storage is unavailable' });
+  }
+  let record;
+  try {
+    record = await writeDaemonRegistryRecord({
+      daemonId,
+      ownerUserId,
+      hostname: req.body.hostname,
+      platform: req.body.platform,
+      agents: req.body.agents,
+      workspaces: req.body.workspaces,
+      online: true,
+      updatedAt: new Date().toISOString(),
+      lastSeenAt: new Date().toISOString(),
+    }, existing);
+  } catch (error) {
+    if (error?.code === 'DAEMON_OWNER_CONFLICT') {
+      return res.status(409).json({ error: error.message });
+    }
+    console.error('[Web] Daemon register failed:', error);
+    return res.status(500).json({ error: error.message || 'Failed to initialize daemon in Web PubSub storage' });
+  }
+  try {
+    const token = await serviceClient.getClientAccessToken({ userId: daemonId });
+    res.json({
+      daemon: {
+        daemonId: record.daemonId,
+        ownerUserId: record.ownerUserId,
+        hostname: record.hostname,
+        platform: record.platform,
+      },
+      url: token.url,
+      userId: daemonId,
+    });
+  } catch (error) {
+    console.error('[Web] Daemon register failed:', error);
+    res.status(500).json({ error: 'Failed to issue daemon token' });
+  }
+});
+
+app.post('/api/daemons/heartbeat', async (req, res) => {
+  const verification = verifyDaemonSignature(req.body);
+  if (!verification.ok) return res.status(403).json({ error: verification.error });
+  const daemonId = verification.daemonId;
+  let existing;
+  try {
+    existing = await getDaemonRegistryRecord(daemonId);
+  } catch (error) {
+    console.error('[Web] Daemon heartbeat preflight failed:', error);
+    return res.status(503).json({ error: error.message || 'Web PubSub Chat storage is unavailable' });
+  }
+  if (!existing) return res.status(404).json({ error: 'Daemon is not registered' });
+  try {
+    await writeDaemonRegistryRecord({
+      daemonId,
+      ownerUserId: existing.ownerUserId || verification.ownerUserId,
+      hostname: req.body.hostname,
+      platform: req.body.platform,
+      agents: req.body.agents,
+      workspaces: req.body.workspaces,
+      online: true,
+      updatedAt: new Date().toISOString(),
+      lastSeenAt: new Date().toISOString(),
+    }, existing);
+  } catch (error) {
+    if (error?.code === 'DAEMON_OWNER_CONFLICT') {
+      return res.status(409).json({ error: error.message });
+    }
+    console.error('[Web] Daemon ACL heartbeat validation failed:', error);
+    return res.status(500).json({ error: error.message || 'Failed to validate daemon access state' });
+  }
+  res.json({ ok: true });
+});
+
+app.post('/api/daemons/offline', async (req, res) => {
+  const verification = verifyDaemonSignature(req.body);
+  if (!verification.ok) return res.status(403).json({ error: verification.error });
+  const daemonId = verification.daemonId;
+  let existing;
+  try {
+    existing = await getDaemonRegistryRecord(daemonId);
+  } catch (error) {
+    console.error('[Web] Daemon offline preflight failed:', error);
+    return res.status(503).json({ error: error.message || 'Web PubSub Chat storage is unavailable' });
+  }
+  if (!existing) return res.status(404).json({ error: 'Daemon is not registered' });
+  try {
+    await writeDaemonRegistryRecord({
+      daemonId,
+      ownerUserId: existing.ownerUserId || verification.ownerUserId,
+      hostname: existing.hostname,
+      platform: existing.platform,
+      agents: existing.agents,
+      workspaces: existing.workspaces,
+      online: false,
+      updatedAt: new Date().toISOString(),
+      lastSeenAt: new Date().toISOString(),
+    }, existing);
+  } catch (error) {
+    if (error?.code === 'DAEMON_OWNER_CONFLICT') {
+      return res.status(409).json({ error: error.message });
+    }
+    console.error('[Web] Daemon ACL offline validation failed:', error);
+    return res.status(500).json({ error: error.message || 'Failed to validate daemon access state' });
+  }
+  res.json({ ok: true });
+});
+
+app.get('/api/daemons', async (req, res) => {
+  const user = requirePortalUser(req, res);
+  if (!user) return;
+  let onlineDaemons;
+  try {
+    onlineDaemons = (await listDaemonRegistryRecords())
+      .map((daemon) => markDaemonOfflineIfStale(daemon))
+      .filter((daemon) => daemon && daemon.online)
+      .sort((left, right) => String(left.hostname || left.daemonId).localeCompare(String(right.hostname || right.daemonId)));
+  } catch (error) {
+    console.error('[Web] Failed to list daemons:', error);
+    return res.status(503).json({ error: error.message || 'Web PubSub Chat storage is unavailable' });
+  }
+  const daemons = (await Promise.all(onlineDaemons.map(async (daemon) => {
+    try {
+      const accessState = daemon.accessState || await ensureDaemonAclState(daemon.daemonId, '', daemon);
+      const requestState = await getLatestDaemonAccessRequestForUser(daemon.daemonId, user.login);
+      return daemonResponseForUser(daemon, accessState, user, requestState);
+    } catch (error) {
+      console.warn(`[Web] Failed to load daemon access state for ${daemon.daemonId}:`, error?.message || error);
+      return null;
+    }
+  }))).filter(Boolean);
+  res.json({ daemons });
+});
+
+app.patch('/api/daemons/:daemonId/access', async (req, res) => {
+  const user = requirePortalUser(req, res);
+  if (!user) return;
+  const daemonId = String(req.params.daemonId || '').trim();
+  const existing = await getDaemonRegistryRecord(daemonId);
+  if (!existing) return res.status(404).json({ error: 'Daemon not found' });
+  let accessState;
+  try {
+    accessState = await ensureDaemonAclState(daemonId, '', existing);
+  } catch (error) {
+    return res.status(500).json({ error: error.message || 'Failed to load daemon access state' });
+  }
+  if (!canManageDaemonAccess(accessState, user.login)) return res.status(403).json({ error: 'You are not allowed to manage this daemon' });
+
+  let updatedAccessState;
+  try {
+    updatedAccessState = await updateDaemonAclState(
+      daemonId,
+      accessState,
+      req.body?.memberUsers ?? req.body?.readerUsers,
+      req.body?.adminUsers ?? req.body?.writerUsers,
+    );
+  } catch (error) {
+    return res.status(500).json({ error: error.message || 'Failed to update daemon access state' });
+  }
+
+  const record = normalizeDaemonRecord(existing, {
+    daemonId: existing.daemonId,
+    hostname: existing.hostname,
+    platform: existing.platform,
+    agents: existing.agents,
+    workspaces: existing.workspaces,
+    online: existing.online,
+    updatedAt: new Date().toISOString(),
+    lastSeenAt: existing.lastSeenAt,
+  });
+  await writeDaemonRegistryRecord({
+    daemonId: record.daemonId,
+    ownerUserId: updatedAccessState.ownerUserId,
+    hostname: record.hostname,
+    platform: record.platform,
+    agents: record.agents,
+    workspaces: record.workspaces,
+    online: record.online,
+    updatedAt: record.updatedAt,
+    lastSeenAt: record.lastSeenAt,
+  }, existing);
+  res.json({ daemon: daemonResponseForUser(record, updatedAccessState, user) });
+});
+
+app.get('/api/daemon-access-requests', async (req, res) => {
+  const user = requirePortalUser(req, res);
+  if (!user) return;
+  const requests = [];
+  for (const daemon of await listDaemonRegistryRecords()) {
+    const accessState = daemon.accessState || await ensureDaemonAclState(daemon.daemonId, '', daemon);
+    if (!canManageDaemonAccess(accessState, user.login)) continue;
+    for (const requestRecord of await readDaemonAccessRequests(daemon.daemonId)) {
+      if (requestRecord.status !== 'pending') continue;
+      requests.push(requestRecord);
+    }
+  }
+  requests.sort((left, right) => String(right.updatedAt || '').localeCompare(String(left.updatedAt || '')));
+  res.json({ requests });
+});
+
+app.post('/api/daemons/:daemonId/access-requests', async (req, res) => {
+  const user = requirePortalUser(req, res);
+  if (!user) return;
+  const daemonId = String(req.params.daemonId || '').trim();
+  const rawRequestedAccess = String(req.body?.requestedAccess || '').trim().toLowerCase();
+  const requestedAccess = rawRequestedAccess === 'reader' ? 'member'
+    : rawRequestedAccess === 'writer' ? 'admin'
+      : rawRequestedAccess;
+  if (requestedAccess !== 'member' && requestedAccess !== 'admin') {
+    return res.status(400).json({ error: 'requestedAccess must be member or admin' });
+  }
+  const daemon = markDaemonOfflineIfStale(await getDaemonRegistryRecord(daemonId));
+  if (!daemon || !daemon.online) return res.status(404).json({ error: 'Daemon not found' });
+  const accessState = daemon.accessState || await ensureDaemonAclState(daemon.daemonId, '', daemon);
+  const alreadyGranted = requestedAccess === 'admin'
+    ? canAdminDaemonAccess(accessState, user.login)
+    : canMemberDaemonAccess(accessState, user.login);
+  if (alreadyGranted) {
+    return res.json({ ok: true, status: 'approved', requestedAccess, requestId: '' });
+  }
+  const existing = await getLatestDaemonAccessRequestForUser(daemonId, user.login);
+  if (existing?.status === 'pending' && existing.requestedAccess === requestedAccess) {
+    return res.json({ ok: true, status: 'pending', requestedAccess, requestId: existing.requestId });
+  }
+  const requestId = crypto.randomUUID();
+  await appendDaemonAccessRequestEvent(daemonId, {
+    requestId,
+    daemonId,
+    requesterUserId: user.login,
+    ownerUserId: accessState.ownerUserId,
+    requestedAccess,
+    status: 'pending',
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+  });
+  res.json({ ok: true, status: 'pending', requestedAccess, requestId });
+});
+
+app.post('/api/daemons/:daemonId/access-requests/:requestId/approve', async (req, res) => {
+  const user = requirePortalUser(req, res);
+  if (!user) return;
+  const daemonId = String(req.params.daemonId || '').trim();
+  const requestId = String(req.params.requestId || '').trim();
+  const daemon = await getDaemonRegistryRecord(daemonId);
+  if (!daemon) return res.status(404).json({ error: 'Daemon not found' });
+  const accessState = daemon.accessState || await ensureDaemonAclState(daemon.daemonId, '', daemon);
+  if (!canManageDaemonAccess(accessState, user.login)) return res.status(403).json({ error: 'Only a daemon manager can approve access requests' });
+  const requestRecord = (await readDaemonAccessRequests(daemonId)).find((request) => request.requestId === requestId);
+  if (!requestRecord) return res.status(404).json({ error: 'Access request not found' });
+  const desiredRole = requestRecord.requestedAccess === 'admin' ? 'room.operator' : 'room.member';
+  try {
+    await upsertChatRoomMember(accessState.roomId, requestRecord.requesterUserId, desiredRole);
+    invalidateDaemonAccessStateCache(daemonId);
+    await appendDaemonAccessRequestEvent(daemonId, {
+      ...requestRecord,
+      status: 'approved',
+      updatedAt: new Date().toISOString(),
+    });
+    // Notify the requester in the lobby for immediate UI update
+    try {
+      await sendLobbyEnvelope({
+        type: 'portal.access-approved',
+        target: 'daemon',
+        daemonId,
+        requestId,
+        requesterUserId: requestRecord.requesterUserId,
+        requestedAccess: requestRecord.requestedAccess,
+        status: 'approved',
+      });
+    } catch (lobbyErr) { console.warn('[Web] Lobby notify failed:', lobbyErr?.message); }
+    res.json({ ok: true, status: 'approved', requestedAccess: requestRecord.requestedAccess });
+  } catch (error) {
+    res.status(500).json({ error: error.message || 'Failed to approve daemon access request' });
+  }
+});
+
+app.post('/api/daemons/:daemonId/access-requests/:requestId/reject', async (req, res) => {
+  const user = requirePortalUser(req, res);
+  if (!user) return;
+  const daemonId = String(req.params.daemonId || '').trim();
+  const requestId = String(req.params.requestId || '').trim();
+  const daemon = await getDaemonRegistryRecord(daemonId);
+  if (!daemon) return res.status(404).json({ error: 'Daemon not found' });
+  const accessState = daemon.accessState || await ensureDaemonAclState(daemon.daemonId, '', daemon);
+  if (!canManageDaemonAccess(accessState, user.login)) return res.status(403).json({ error: 'Only a daemon manager can reject access requests' });
+  const requestRecord = (await readDaemonAccessRequests(daemonId)).find((request) => request.requestId === requestId);
+  if (!requestRecord) return res.status(404).json({ error: 'Access request not found' });
+  await appendDaemonAccessRequestEvent(daemonId, {
+    ...requestRecord,
+    status: 'denied',
+    updatedAt: new Date().toISOString(),
+  });
+  try {
+    await sendLobbyEnvelope({
+      type: 'portal.access-denied',
+      target: 'daemon',
+      daemonId,
+      requestId,
+      requesterUserId: requestRecord.requesterUserId,
+      requestedAccess: requestRecord.requestedAccess,
+      status: 'denied',
+    });
+  } catch (lobbyErr) { console.warn('[Web] Lobby notify failed:', lobbyErr?.message); }
+  res.json({ ok: true, status: 'denied', requestedAccess: requestRecord.requestedAccess });
+});
+
+app.get('/api/daemons/:daemonId/workspaces', async (req, res) => {
+  const user = requirePortalUser(req, res);
+  if (!user) return;
+  const daemon = markDaemonOfflineIfStale(await getDaemonRegistryRecord(String(req.params.daemonId)));
+  if (!daemon || !daemon.online) return res.status(404).json({ error: 'Daemon not found' });
+  let accessState;
+  try {
+    accessState = daemon.accessState || await ensureDaemonAclState(daemon.daemonId, '', daemon);
+  } catch (error) {
+    return res.status(500).json({ error: error.message || 'Failed to load daemon access state' });
+  }
+  res.json({
+    daemonId: daemon.daemonId,
+    workspaces: daemon.workspaces || [],
+    hasMemberAccess: canMemberDaemonAccess(accessState, user.login),
+    hasAdminAccess: canAdminDaemonAccess(accessState, user.login),
+    canRead: canMemberDaemonAccess(accessState, user.login),
+    canWrite: canAdminDaemonAccess(accessState, user.login),
+  });
+});
+
+app.get('/api/daemons/:daemonId/directories', async (req, res) => {
+  const user = requirePortalUser(req, res);
+  if (!user) return;
+  const daemon = markDaemonOfflineIfStale(await getDaemonRegistryRecord(String(req.params.daemonId)));
+  if (!daemon || !daemon.online) return res.status(404).json({ error: 'Daemon not found' });
+  let accessState;
+  try {
+    accessState = daemon.accessState || await ensureDaemonAclState(daemon.daemonId, '', daemon);
+  } catch (error) {
+    return res.status(500).json({ error: error.message || 'Failed to load daemon access state' });
+  }
+  if (!canAdminDaemonAccess(accessState, user.login)) return res.status(403).json({ error: 'You are not allowed to use this daemon' });
+  try {
+    const result = await requestWorkspaceListing(daemon.daemonId, user.login, String(req.query.path || ''), String(req.query.query || ''));
+    res.json(result);
+  } catch (error) {
+    res.status(504).json({ error: error.message || 'Directory lookup timed out' });
+  }
+});
+
+app.get('/api/sessions', async (req, res) => {
+  const user = requirePortalUser(req, res);
+  if (!user) return;
+  const daemonFilter = String(req.query.daemonId || '').trim();
+  const agentFilter = String(req.query.agentName || '').trim();
+  const daemonRegistryRecords = (await listDaemonRegistryRecords()).map((daemon) => markDaemonOfflineIfStale(daemon));
+  const daemonAccessById = new Map();
+  for (const daemon of daemonRegistryRecords) {
+    if (!daemon) continue;
+    const accessState = daemon.accessState || await ensureDaemonAclState(daemon.daemonId, '', daemon);
+    daemonAccessById.set(daemon.daemonId, { daemon, accessState });
+  }
+  if (daemonFilter) {
+    const daemonEntry = daemonAccessById.get(daemonFilter);
+    if (!daemonEntry?.daemon || !daemonEntry.daemon.online) return res.status(404).json({ error: 'Daemon not found' });
+    if (!canMemberDaemonAccess(daemonEntry.accessState, user.login)) {
+      return res.json({ sessions: [], blockedReason: 'daemon-access-denied' });
+    }
+  }
+  const readableDaemonIds = new Set([...daemonAccessById.entries()]
+    .filter(([, value]) => canMemberDaemonAccess(value.accessState, user.login))
+    .map(([daemonId]) => daemonId));
+  const daemonIds = [...daemonAccessById.keys()];
+  const sessionInfos = (await listSessionRoomInfos()).filter((roomInfo) => {
+    const metadata = parseSessionRoomTitle(roomInfo?.title || roomInfo?.name || '');
+    if (!metadata) return true;
+    if (daemonFilter && metadata.daemonId && metadata.daemonId !== daemonFilter) return false;
+    if (agentFilter && metadata.agentName && metadata.agentName !== agentFilter) return false;
+    return true;
+  });
+  const sessions = [];
+  for (const roomInfo of sessionInfos) {
+    const sessionRecord = await readManagedSessionRecord(roomInfo.roomId, daemonIds);
+    if (!sessionRecord) continue;
+    if (!sessionRecord.daemonId || !readableDaemonIds.has(sessionRecord.daemonId)) continue;
+    if (daemonFilter && sessionRecord.daemonId !== daemonFilter) continue;
+    if (agentFilter && sessionRecord.agentName !== agentFilter) continue;
+    const daemonEntry = daemonAccessById.get(sessionRecord.daemonId);
+    const sessionMembers = await listSessionRoomMembers(sessionRecord.sessionId);
+    const accessLevel = getSessionAccessLevel(sessionRecord, sessionMembers, daemonEntry?.accessState, user.login);
+    const canManage = canManageSession(sessionRecord, daemonEntry?.accessState, user.login);
+    const joinRequest = await getLatestJoinRequestForSessionAndUser(sessionRecord.sessionId, user.login);
+    sessions.push({
+      sessionId: sessionRecord.sessionId,
+      roomName: sessionRecord.roomName,
+      daemonId: sessionRecord.daemonId,
+      agent: sessionRecord.agentName,
+      agentName: sessionRecord.agentName,
+      workingDirectory: sessionRecord.workingDirectory,
+      ownerUserId: sessionRecord.ownerUserId,
+      updatedAt: sessionRecord.updatedAt,
+      joined: accessLevel !== 'none',
+      accessLevel,
+      canRead: hasSessionReadAccess(accessLevel),
+      canWrite: hasSessionWriteAccess(accessLevel),
+      joinStatus: joinRequest?.status || '',
+      joinRequestId: joinRequest?.requestId || '',
+      requestedAccess: joinRequest?.requestedAccess || '',
+      canDelete: canManage,
+    });
+  }
+  sessions.sort((left, right) => String(right.updatedAt || '').localeCompare(String(left.updatedAt || '')));
+  res.json({ sessions });
+});
+
+app.post('/api/sessions', async (req, res) => {
+  const user = requirePortalUser(req, res);
+  if (!user) return;
+  const daemonId = String(req.body.daemonId || '').trim();
+  const agentName = String(req.body.agentName || '').trim();
+  const workingDirectory = String(req.body.workingDirectory || '').trim();
+  const roomName = String(req.body.roomName || '').trim() || 'Session';
+  const daemon = markDaemonOfflineIfStale(await getDaemonRegistryRecord(daemonId));
+  if (!daemon || !daemon.online) return res.status(404).json({ error: 'Daemon not found' });
+  let accessState;
+  try {
+    accessState = await ensureDaemonAclState(daemon.daemonId, '', daemon);
+  } catch (error) {
+    return res.status(500).json({ error: error.message || 'Failed to load daemon access state' });
+  }
+  if (!canAdminDaemonAccess(accessState, user.login)) return res.status(403).json({ error: 'You are not allowed to use this daemon' });
+  if (!agentName) return res.status(400).json({ error: 'agentName is required' });
+  try {
+    const sessionRecord = await createManagedSession({
+      ownerUserId: user.login,
+      daemonId,
+      agentName,
+      workingDirectory,
+      roomName,
+    });
+    res.json({
+      sessionId: sessionRecord.sessionId,
+      roomName: sessionRecord.roomName,
+      daemonId: sessionRecord.daemonId,
+      agentName: sessionRecord.agentName,
+      workingDirectory: sessionRecord.workingDirectory,
+      ownerUserId: sessionRecord.ownerUserId,
+      updatedAt: sessionRecord.updatedAt,
+      accessLevel: 'write',
+      canRead: true,
+      canWrite: true,
+      joined: true,
+    });
+  } catch (error) {
+    console.error('[Web] Failed to create managed session:', error);
+    res.status(500).json({ error: error.message || 'Failed to create session' });
+  }
+});
+
+app.get('/api/join-requests', async (req, res) => {
+  const user = requirePortalUser(req, res);
+  if (!user) return;
+  const daemonRegistryRecords = (await listDaemonRegistryRecords()).map((daemon) => markDaemonOfflineIfStale(daemon));
+  const daemonAccessById = new Map();
+  for (const daemon of daemonRegistryRecords) {
+    if (!daemon) continue;
+    const accessState = daemon.accessState || await ensureDaemonAclState(daemon.daemonId, '', daemon);
+    daemonAccessById.set(daemon.daemonId, accessState);
+  }
+  const daemonIds = [...daemonAccessById.keys()];
+  const joinRequests = [];
+  for (const roomInfo of await listSessionRoomInfos()) {
+    const metadata = parseSessionRoomTitle(roomInfo?.title || roomInfo?.name || '');
+    if (!metadata) continue;
+    const sessionRecord = {
+      sessionId: roomInfo.roomId,
+      roomName: metadata.roomName,
+      daemonId: metadata.daemonId,
+      agentName: metadata.agentName,
+      workingDirectory: metadata.workingDirectory,
+      ownerUserId: metadata.ownerUserId,
+    };
+    if (!sessionRecord || !canManageSession(sessionRecord, daemonAccessById.get(sessionRecord.daemonId), user.login)) continue;
+    const requests = await readJoinRequestsForSession(sessionRecord.sessionId);
+    for (const requestRecord of requests) {
+      if (requestRecord.status !== 'pending') continue;
+      joinRequests.push({
+        ...requestRecord,
+        sessionId: sessionRecord.sessionId,
+      });
+    }
+  }
+  joinRequests.sort((left, right) => String(right.updatedAt || '').localeCompare(String(left.updatedAt || '')));
+  res.json({ joinRequests });
+});
+
+app.post('/api/sessions/:sessionId/join-requests', async (req, res) => {
+  const user = requirePortalUser(req, res);
+  if (!user) return;
+  const sessionId = String(req.params.sessionId || '').trim();
+  const daemonIds = (await listDaemonRegistryRecords()).map((daemon) => daemon.daemonId);
+  const sessionRecord = await readManagedSessionRecord(sessionId, daemonIds);
+  if (!sessionRecord) return res.status(404).json({ error: 'Session not found' });
+  const daemon = await getDaemonRegistryRecord(sessionRecord.daemonId);
+  if (!daemon) return res.status(404).json({ error: 'Daemon not found' });
+  const accessState = daemon.accessState || await ensureDaemonAclState(daemon.daemonId, '', daemon);
+  if (!canMemberDaemonAccess(accessState, user.login)) {
+    return res.status(403).json({ error: 'You need daemon access before requesting session access' });
+  }
+  const sessionMembers = await listSessionRoomMembers(sessionId);
+  const existingAccessLevel = getSessionAccessLevel(sessionRecord, sessionMembers, accessState, user.login);
+  const rawRequestedAccess = String(req.body?.requestedAccess || '').trim().toLowerCase();
+  const requestedAccess = rawRequestedAccess || 'read';
+  if (requestedAccess !== 'read' && requestedAccess !== 'write') {
+    return res.status(400).json({ error: 'requestedAccess must be read or write' });
+  }
+  if (existingAccessLevel === 'write' || (existingAccessLevel === 'read' && requestedAccess === 'read')) {
+    return res.json({ ok: true, status: 'approved', joined: true, requestId: '', requestedAccess });
+  }
+  const existing = await getLatestJoinRequestForSessionAndUser(sessionId, user.login);
+  if (existing?.status === 'pending' && existing.requestedAccess === requestedAccess) {
+    return res.json({ ok: true, status: 'pending', requestId: existing.requestId, joined: false, requestedAccess });
+  }
+  const requestId = crypto.randomUUID();
+  await appendJoinRequestEvent(sessionRecord, {
+    requestId,
+    requesterUserId: user.login,
+    ownerUserId: sessionRecord.ownerUserId,
+    daemonId: sessionRecord.daemonId,
+    agentName: sessionRecord.agentName,
+    workingDirectory: sessionRecord.workingDirectory,
+    roomName: sessionRecord.roomName,
+    requestedAccess,
+    status: 'pending',
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+  });
+  res.json({ ok: true, status: 'pending', requestId, joined: false, requestedAccess });
+});
+
+app.post('/api/sessions/:sessionId/join-requests/:requestId/approve', async (req, res) => {
+  const user = requirePortalUser(req, res);
+  if (!user) return;
+  const sessionId = String(req.params.sessionId || '').trim();
+  const requestId = String(req.params.requestId || '').trim();
+  const daemonRegistryRecords = await listDaemonRegistryRecords();
+  const daemonAccessById = new Map();
+  for (const daemon of daemonRegistryRecords) {
+    const accessState = daemon.accessState || await ensureDaemonAclState(daemon.daemonId, '', daemon);
+    daemonAccessById.set(daemon.daemonId, accessState);
+  }
+  const daemonIds = daemonRegistryRecords.map((daemon) => daemon.daemonId);
+  const sessionRecord = await readManagedSessionRecord(sessionId, daemonIds);
+  if (!sessionRecord) return res.status(404).json({ error: 'Session not found' });
+  const joinRequest = (await readJoinRequestsForSession(sessionId)).find((request) => request.requestId === requestId);
+  if (!joinRequest) return res.status(404).json({ error: 'Join request not found' });
+  const daemonAccessState = daemonAccessById.get(sessionRecord.daemonId);
+  if (!canManageSession(sessionRecord, daemonAccessState, user.login)) {
+    return res.status(403).json({ error: 'Only a session manager can approve join requests' });
+  }
+  try {
+    await upsertChatRoomMember(sessionId, joinRequest.requesterUserId, joinRequest.requestedAccess === 'write' ? 'room.operator' : 'room.member');
+    await appendJoinRequestEvent(sessionRecord, {
+      ...joinRequest,
+      status: 'approved',
+      updatedAt: new Date().toISOString(),
+    });
+    // Notify the requester in the lobby for immediate UI update
+    try {
+      await sendLobbyEnvelope({
+        type: 'portal.access-approved',
+        target: 'session',
+        sessionId,
+        requestId,
+        daemonId: sessionRecord.daemonId,
+        agentName: sessionRecord.agentName,
+        requesterUserId: joinRequest.requesterUserId,
+        requestedAccess: joinRequest.requestedAccess || 'read',
+        status: 'approved',
+      });
+    } catch (lobbyErr) { console.warn('[Web] Lobby notify failed:', lobbyErr?.message); }
+    res.json({ ok: true, status: 'approved', requestedAccess: joinRequest.requestedAccess || 'read' });
+  } catch (error) {
+    res.status(500).json({ error: error.message || 'Failed to approve join request' });
+  }
+});
+
+app.post('/api/sessions/:sessionId/join-requests/:requestId/reject', async (req, res) => {
+  const user = requirePortalUser(req, res);
+  if (!user) return;
+  const sessionId = String(req.params.sessionId || '').trim();
+  const requestId = String(req.params.requestId || '').trim();
+  const daemonRegistryRecords = await listDaemonRegistryRecords();
+  const daemonAccessById = new Map();
+  for (const daemon of daemonRegistryRecords) {
+    const accessState = daemon.accessState || await ensureDaemonAclState(daemon.daemonId, '', daemon);
+    daemonAccessById.set(daemon.daemonId, accessState);
+  }
+  const daemonIds = daemonRegistryRecords.map((daemon) => daemon.daemonId);
+  const sessionRecord = await readManagedSessionRecord(sessionId, daemonIds);
+  if (!sessionRecord) return res.status(404).json({ error: 'Session not found' });
+  const joinRequest = (await readJoinRequestsForSession(sessionId)).find((request) => request.requestId === requestId);
+  if (!joinRequest) return res.status(404).json({ error: 'Join request not found' });
+  const daemonAccessState = daemonAccessById.get(sessionRecord.daemonId);
+  if (!canManageSession(sessionRecord, daemonAccessState, user.login)) {
+    return res.status(403).json({ error: 'Only a session manager can reject join requests' });
+  }
+  await appendJoinRequestEvent(sessionRecord, {
+    ...joinRequest,
+    status: 'denied',
+    updatedAt: new Date().toISOString(),
+  });
+  try {
+    await sendLobbyEnvelope({
+      type: 'portal.access-denied',
+      target: 'session',
+      sessionId,
+      requestId,
+      daemonId: sessionRecord.daemonId,
+      agentName: sessionRecord.agentName,
+      requesterUserId: joinRequest.requesterUserId,
+      requestedAccess: joinRequest.requestedAccess || 'read',
+      status: 'denied',
+    });
+  } catch (lobbyErr) { console.warn('[Web] Lobby notify failed:', lobbyErr?.message); }
+  res.json({ ok: true, status: 'denied', requestedAccess: joinRequest.requestedAccess || 'read' });
+});
+
+app.post('/api/sessions/:sessionId/access-self', async (req, res) => {
+  const user = requirePortalUser(req, res);
+  if (!user) return;
+  const sessionId = String(req.params.sessionId || '').trim();
+  const daemonIds = (await listDaemonRegistryRecords()).map((daemon) => daemon.daemonId);
+  const sessionRecord = await readManagedSessionRecord(sessionId, daemonIds);
+  if (!sessionRecord) return res.status(404).json({ error: 'Session not found' });
+  const daemon = await getDaemonRegistryRecord(sessionRecord.daemonId);
+  if (!daemon) return res.status(404).json({ error: 'Daemon not found' });
+  const accessState = daemon.accessState || await ensureDaemonAclState(daemon.daemonId, '', daemon);
+  const sessionMembers = await listSessionRoomMembers(sessionId);
+  const accessLevel = getSessionAccessLevel(sessionRecord, sessionMembers, accessState, user.login);
+  if (accessLevel === 'none') {
+    return res.status(403).json({ error: 'You do not have access to this session' });
+  }
+  const existingMembership = sessionMembers.find((member) => member.userId === user.login);
+  if (!existingMembership && canAdminDaemonAccess(accessState, user.login)) {
+    await upsertChatRoomMember(sessionId, user.login, 'room.operator');
+  }
+  res.json({ ok: true, accessLevel, joined: true });
+});
+
+app.delete('/api/sessions/:sessionId', async (req, res) => {
+  const user = requirePortalUser(req, res);
+  if (!user) return;
+  const sessionId = String(req.params.sessionId || '').trim();
+  const daemonRegistryRecords = await listDaemonRegistryRecords();
+  const daemonAccessById = new Map();
+  for (const daemon of daemonRegistryRecords) {
+    const accessState = daemon.accessState || await ensureDaemonAclState(daemon.daemonId, '', daemon);
+    daemonAccessById.set(daemon.daemonId, accessState);
+  }
+  const daemonIds = daemonRegistryRecords.map((daemon) => daemon.daemonId);
+  const sessionRecord = await readManagedSessionRecord(sessionId, daemonIds);
+  if (!sessionRecord) return res.status(404).json({ error: 'Session not found' });
+  const daemonAccessState = daemonAccessById.get(sessionRecord.daemonId);
+  if (!canManageSession(sessionRecord, daemonAccessState, user.login)) {
+    return res.status(403).json({ error: 'Only a session manager can delete a session' });
+  }
+  try {
+    await deleteManagedSession(sessionRecord);
+    await sendDaemonSyncEnvelope(sessionRecord, 'session.deleted');
+    res.json({ ok: true });
+  } catch (error) {
+    res.status(500).json({ error: error.message || 'Failed to delete session' });
+  }
+});
+
+app.delete('/api/sessions/:sessionId/members/:userId', async (req, res) => {
+  const user = requirePortalUser(req, res);
+  if (!user) return;
+  const sessionId = String(req.params.sessionId || '').trim();
+  const targetUserId = String(req.params.userId || '').trim();
+  const daemonRegistryRecords = await listDaemonRegistryRecords();
+  const daemonAccessById = new Map();
+  for (const daemon of daemonRegistryRecords) {
+    const accessState = daemon.accessState || await ensureDaemonAclState(daemon.daemonId, '', daemon);
+    daemonAccessById.set(daemon.daemonId, accessState);
+  }
+  const daemonIds = daemonRegistryRecords.map((daemon) => daemon.daemonId);
+  const sessionRecord = await readManagedSessionRecord(sessionId, daemonIds);
+  if (!sessionRecord) return res.status(404).json({ error: 'Session not found' });
+  const daemonAccessState = daemonAccessById.get(sessionRecord.daemonId);
+  if (targetUserId !== user.login && !canManageSession(sessionRecord, daemonAccessState, user.login)) {
+    return res.status(403).json({ error: 'Only a session manager can remove another member' });
+  }
+  if (targetUserId === sessionRecord.ownerUserId) {
+    return res.status(400).json({ error: 'Use DELETE /api/sessions/:sessionId to delete an owned session' });
+  }
+  try {
+    await invokeAdminChat('removeSessionMember', (chat) => chat.removeUserFromRoom(sessionId, targetUserId));
+    res.json({ ok: true });
+  } catch (error) {
+    res.status(500).json({ error: error.message || 'Failed to remove session member' });
+  }
+});
 
 process.on('uncaughtException', (err) => {
   console.error('[Web] Uncaught exception:', err.message);
@@ -461,6 +2140,33 @@ const server = app.listen(port, async () => {
   console.log(`[Web] Run 'npm run daemon' to start the agent daemon.`);
 });
 server.on('error', (err) => {
-  console.error(`[Web] Server error:`, err.message);
+  console.error('[Web] Server error:', err.message);
   process.exit(1);
 });
+
+export async function shutdownWebServer() {
+  adminShuttingDown = true;
+  if (adminReconnectTimer) {
+    clearTimeout(adminReconnectTimer);
+    adminReconnectTimer = null;
+  }
+  if (adminChatInitPromise) {
+    try { await adminChatInitPromise; } catch {}
+  }
+  if (adminChat) {
+    await stopChatClient(adminChat);
+    adminChat = null;
+  }
+  const serverClosePromise = new Promise((resolveClose) => server.close(() => resolveClose()));
+  server.closeIdleConnections?.();
+  server.closeAllConnections?.();
+  await serverClosePromise;
+}
+
+export { app, server };
+
+for (const signal of ['SIGINT', 'SIGTERM']) {
+  process.once(signal, () => {
+    process.exit(signal === 'SIGINT' ? 130 : 0);
+  });
+}

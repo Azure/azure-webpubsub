@@ -11,6 +11,17 @@ import {
   forceExitAfterTests,
 } from "./testUtils.js";
 
+async function waitForCondition(predicate: () => boolean, description: string, timeoutMs: number = SHORT_TEST_TIMEOUT): Promise<void> {
+  const deadline = Date.now() + timeoutMs;
+  while (Date.now() < deadline) {
+    if (predicate()) {
+      return;
+    }
+    await new Promise((resolve) => setTimeout(resolve, 25));
+  }
+  assert.fail(`Timed out waiting for ${description}`);
+}
+
 test("same user id login twice", { timeout: LONG_TEST_TIMEOUT }, async (t) => {
   let chat0, chat1;
   try {
@@ -52,6 +63,63 @@ test("same user id login twice", { timeout: LONG_TEST_TIMEOUT }, async (t) => {
     throw e;
   } finally {
     const clientsToStop = [chat0, chat1].filter(Boolean) as ChatClient[];
+    stopClients(clientsToStop);
+  }
+});
+
+test("same user on two clients still receives remote room messages", { timeout: LONG_TEST_TIMEOUT }, async (t) => {
+  let admin, sender, watcher;
+  try {
+    const sharedUserId = `shared-${randomUUID().substring(0, 6)}`;
+    admin = await createTestClient();
+
+    const roomId = `room-shared-${randomUUID().substring(0, 6)}`;
+    const createdRoom = await admin.createRoom("ut-shared-room", [sharedUserId], roomId);
+
+    sender = await createTestClient(sharedUserId);
+    watcher = await createTestClient(sharedUserId);
+
+    assert.ok(sender.rooms.some((room) => room.roomId === createdRoom.roomId), "sender should hydrate the shared room on login");
+    assert.ok(watcher.rooms.some((room) => room.roomId === createdRoom.roomId), "watcher should hydrate the shared room on login");
+
+    const senderNotifications: any[] = [];
+    const watcherNotifications: any[] = [];
+    sender.addListenerForNewMessage((notification) => {
+      senderNotifications.push(notification);
+    });
+    watcher.addListenerForNewMessage((notification) => {
+      watcherNotifications.push(notification);
+    });
+
+    const sentMsgId = await sender.sendToRoom(createdRoom.roomId, "Hello from sender");
+
+    await waitForCondition(
+      () => senderNotifications.some((notification) => notification.message.messageId === sentMsgId && (notification.message as any).localEcho === true),
+      "sender local echo",
+    );
+    await waitForCondition(
+      () => watcherNotifications.some((notification) => notification.message.messageId === sentMsgId),
+      "same-user watcher remote message",
+      LONG_TEST_TIMEOUT,
+    );
+
+    const senderLocalEchoes = senderNotifications.filter(
+      (notification) => notification.message.messageId === sentMsgId && (notification.message as any).localEcho === true,
+    );
+    const watcherCopies = watcherNotifications.filter(
+      (notification) => notification.message.messageId === sentMsgId,
+    );
+
+    assert.equal(senderLocalEchoes.length, 1, "sender should emit exactly one tagged local echo");
+    assert.equal(watcherCopies.length, 1, "same-user watcher should receive exactly one remote room message");
+    assert.notEqual((watcherCopies[0].message as any).localEcho, true, "watcher message should not be tagged as a local echo");
+    assert.equal(watcherCopies[0].message.createdBy, sharedUserId, "watcher should still see the shared user as message creator");
+    assert.equal(watcherCopies[0].message.content.text, "Hello from sender", "watcher should receive the sender text");
+  } catch (e) {
+    t.diagnostic((e as any).toString());
+    throw e;
+  } finally {
+    const clientsToStop = [admin, sender, watcher].filter(Boolean) as ChatClient[];
     stopClients(clientsToStop);
   }
 });
@@ -103,7 +171,7 @@ test("create room with multiple users", { timeout: LONG_TEST_TIMEOUT }, async (t
     const createdRoom = await chats[0].createRoom("test-room", [chats[1].userId, chats[2].userId]);
 
     for (let i = 1; i <= 5; i++) {
-      const msgId = await chats[0].sendToRoom(createdRoom.roomId, `HelloMessage,#${i}`);
+      const msgId: string = await chats[0].sendToRoom(createdRoom.roomId, `HelloMessage,#${i}`);
       assert.equal(msgId, i.toString(), `sent message id should be ${i} but got ${msgId}`);
     }
 
@@ -195,6 +263,31 @@ test("self remove updates local room cache immediately", { timeout: LONG_TEST_TI
     await chat1.removeUserFromRoom(created.roomId, chat1.userId);
 
     assert.ok(!chat1.rooms.some((room) => room.roomId === created.roomId), "room should be removed from local cache immediately after self removal");
+  } catch (e) {
+    t.diagnostic((e as any).toString());
+    throw e;
+  } finally {
+    if (chat1) stopClients([chat1]);
+  }
+});
+
+test("self add hydrates local room cache even when already a member", { timeout: LONG_TEST_TIMEOUT }, async (t) => {
+  let chat1;
+  try {
+    chat1 = await createTestClient();
+
+    const roomId = `room-self-add-${randomUUID().substring(0, 6)}`;
+    const created = await chat1.createRoom("ut-self-add", [], roomId);
+    assert.ok(chat1.rooms.some((room) => room.roomId === created.roomId), "room should be cached after creation");
+
+    (chat1 as any)._rooms.delete(created.roomId);
+    assert.ok(!chat1.rooms.some((room) => room.roomId === created.roomId), "test should start with an empty local room cache");
+
+    await chat1.addUserToRoom(created.roomId, chat1.userId);
+
+    assert.ok(chat1.rooms.some((room) => room.roomId === created.roomId), "self add should restore the missing local room cache entry");
+    const sentMsgId = await chat1.sendToRoom(created.roomId, "self-add-cache-hydrated");
+    assert.ok(sentMsgId, "sendToRoom should succeed after the cache is hydrated");
   } catch (e) {
     t.diagnostic((e as any).toString());
     throw e;

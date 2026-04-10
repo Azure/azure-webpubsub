@@ -12,9 +12,26 @@ const hubName = 'chat';
 
 const serviceClient = new WebPubSubServiceClient(connectionString, hubName, { allowInsecureConnection: true });
 
-async function getClient(userId) {
-  const token = await serviceClient.getClientAccessToken({ userId });
-  return await new ChatClient(token.url).login();
+function sleep(ms) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+async function getClient(userId, { maxAttempts = 5 } = {}) {
+  let lastError = null;
+  for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+    const token = await serviceClient.getClientAccessToken({ userId });
+    try {
+      return await new ChatClient(token.url).login();
+    } catch (error) {
+      lastError = error;
+      const message = String(error?.message || '');
+      if (!/429|too many requests/i.test(message) || attempt === maxAttempts) {
+        throw error;
+      }
+      await sleep(250 * attempt);
+    }
+  }
+  throw lastError || new Error(`Failed to login chat client for ${userId}`);
 }
 
 async function main() {
