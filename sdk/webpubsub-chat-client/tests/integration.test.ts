@@ -296,6 +296,35 @@ test("self add hydrates local room cache even when already a member", { timeout:
   }
 });
 
+test("self add cache hydration does not emit a synthetic RoomJoined event", { timeout: LONG_TEST_TIMEOUT }, async (t) => {
+  let chat1;
+  try {
+    chat1 = await createTestClient();
+
+    const roomId = `room-self-add-no-event-${randomUUID().substring(0, 6)}`;
+    const created = await chat1.createRoom("ut-self-add-no-event", [], roomId);
+    let roomJoinedEvents = 0;
+    chat1.addListenerForNewRoom((room) => {
+      if (room.roomId === created.roomId) {
+        roomJoinedEvents += 1;
+      }
+    });
+
+    (chat1 as any)._rooms.delete(created.roomId);
+    assert.ok(!chat1.rooms.some((room) => room.roomId === created.roomId), "test should start with an empty local room cache");
+
+    await chat1.addUserToRoom(created.roomId, chat1.userId);
+
+    assert.ok(chat1.rooms.some((room) => room.roomId === created.roomId), "self add should restore the missing local room cache entry");
+    assert.equal(roomJoinedEvents, 0, "self cache hydration should not emit a synthetic RoomJoined event");
+  } catch (e) {
+    t.diagnostic((e as any).toString());
+    throw e;
+  } finally {
+    if (chat1) stopClients([chat1]);
+  }
+});
+
 // Force exit after all tests to avoid hanging on open connections
 after(() => {
   forceExitAfterTests();

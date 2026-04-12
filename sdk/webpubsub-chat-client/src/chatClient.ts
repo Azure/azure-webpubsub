@@ -243,7 +243,6 @@ class ChatClient {
     }
     const roomInfo = await this.getRoom(roomId, false);
     this._rooms.set(roomId, roomInfo);
-    this._emitter.emit("RoomJoined" as NotificationType, roomInfo);
   }
 
   /** Add a user to a room. This is an admin operation where one user adds another user to a room. */

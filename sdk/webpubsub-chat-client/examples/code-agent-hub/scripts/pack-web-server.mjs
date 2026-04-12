@@ -79,6 +79,11 @@ export async function packWebServer() {
     resolve(publicOutDir, 'session-live-sync.js'),
   );
   await copyRuntimeAsset(
+    'session discovery helpers',
+    resolve(projectRoot, 'public', 'session-discovery-state.js'),
+    resolve(publicOutDir, 'session-discovery-state.js'),
+  );
+  await copyRuntimeAsset(
     'session toolbar helpers',
     resolve(projectRoot, 'public', 'session-toolbar-state.js'),
     resolve(publicOutDir, 'session-toolbar-state.js'),

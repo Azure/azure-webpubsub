@@ -8,8 +8,8 @@
 <title>CodeAgentHub</title>
 <style>
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
-:root{--bg:#0a0a0a;--bg1:#111;--bg2:#151515;--bg3:#1a1a1a;--bg4:#222;--fg:#e8e8e8;--fg2:#ccc;--fg3:#aaa;--fg4:#888;--fg5:#666;--fg6:#555;--fg7:#444;--border:#222;--border2:#2a2a2a;--accent:#4a90d9;--accent2:#6baaff;--green:#50d167;--red:#e55;--orange:#f5a623;--apple-filter:invert(1)}
-html.light{--bg:#f8f9fa;--bg1:#ffffff;--bg2:#f1f3f5;--bg3:#e9ecef;--bg4:#dee2e6;--fg:#111827;--fg2:#1f2937;--fg3:#374151;--fg4:#4b5563;--fg5:#6b7280;--fg6:#9ca3af;--fg7:#d1d5db;--border:#e5e7eb;--border2:#d1d5db;--accent:#2563eb;--accent2:#1d4ed8;--green:#16a34a;--red:#dc2626;--orange:#d97706;--apple-filter:none}
+:root{--bg:#0a0a0a;--bg1:#111;--bg2:#151515;--bg3:#1a1a1a;--bg4:#222;--panel2:#151515;--fg:#e8e8e8;--fg2:#ccc;--fg3:#aaa;--fg4:#888;--fg5:#666;--fg6:#555;--fg7:#444;--border:#222;--border2:#2a2a2a;--line:#2a2a2a;--accent:#4a90d9;--accent2:#6baaff;--green:#50d167;--red:#e55;--orange:#f5a623;--apple-filter:invert(1)}
+html.light{--bg:#f8f9fa;--bg1:#ffffff;--bg2:#f1f3f5;--bg3:#e9ecef;--bg4:#dee2e6;--panel2:#ffffff;--fg:#111827;--fg2:#1f2937;--fg3:#374151;--fg4:#4b5563;--fg5:#6b7280;--fg6:#9ca3af;--fg7:#d1d5db;--border:#e5e7eb;--border2:#d1d5db;--line:#d1d5db;--accent:#2563eb;--accent2:#1d4ed8;--green:#16a34a;--red:#dc2626;--orange:#d97706;--apple-filter:none}
 html,body{height:100%;background:radial-gradient(ellipse at 15% 0%,color-mix(in srgb,var(--accent) 4%,transparent),transparent 50%),radial-gradient(ellipse at 85% 100%,color-mix(in srgb,var(--accent2) 3%,transparent),transparent 40%),var(--bg);color:var(--fg);font-family:-apple-system,'SF Pro Text',system-ui,sans-serif;overflow:hidden}
 a{color:var(--accent2);text-decoration:none}button{font-family:inherit;cursor:pointer;transition:transform .1s ease,opacity .1s ease}button:active:not(:disabled){transform:scale(.97);opacity:.85}
 .hidden{display:none!important}
@@ -70,8 +70,8 @@ a{color:var(--accent2);text-decoration:none}button{font-family:inherit;cursor:po
 .sb-section{padding:16px 14px 4px;font-size:10px;font-weight:700;color:#666;text-transform:uppercase;letter-spacing:.08em}
 #slist,#slist2{list-style:none;padding:4px 8px}
 .sr{display:flex;align-items:center;gap:10px;padding:10px;border-radius:12px;cursor:pointer}
-.sr:hover{background:#1a1a1a}.sr.active{background:rgba(74,144,217,.12)}
-.sr-icon{width:34px;height:34px;border-radius:10px;background:#1a1a1a;display:flex;align-items:center;justify-content:center;font-size:14px;flex-shrink:0}
+.sr:hover{background:var(--bg3)}.sr.active{background:rgba(74,144,217,.12)}
+.sr-icon{width:34px;height:34px;border-radius:10px;background:var(--bg3);display:flex;align-items:center;justify-content:center;font-size:14px;flex-shrink:0}
 .sr-info{min-width:0;flex:1}
 .sr-name{font-size:13px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .sr-meta{font-size:11px;color:#666;margin-top:1px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
@@ -84,18 +84,18 @@ a{color:var(--accent2);text-decoration:none}button{font-family:inherit;cursor:po
 .sb-btns{padding:10px 12px 20px;display:grid;gap:8px}
 .sb-btns button{height:38px;border-radius:19px;border:none;font-size:13px;font-weight:600}
 .sb-btn-p{background:#4a90d9;color:#fff}
-.sb-btn-s{background:#1a1a1a;color:#888;border:1px solid #2a2a2a!important}
+.sb-btn-s{background:var(--bg3);color:var(--fg4);border:1px solid var(--border2)!important}
 
 /* ── Overlay / Mobile Panel ── */
 .ov{position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:90;opacity:0;pointer-events:none;transition:opacity .18s}.ov.show{opacity:1;pointer-events:auto}
-#panel{position:fixed;top:0;left:0;bottom:0;width:min(82vw,320px);background:#0f0f0f;border-right:1px solid #1a1a1a;z-index:100;transform:translateX(-105%);transition:transform .2s ease;overflow-y:auto;display:flex;flex-direction:column}
+#panel{position:fixed;top:0;left:0;bottom:0;width:min(82vw,320px);background:var(--bg1);border-right:1px solid var(--border);z-index:100;transform:translateX(-105%);transition:transform .2s ease;overflow-y:auto;display:flex;flex-direction:column}
 #panel.open{transform:translateX(0)}
 
 /* ── Confirm Dialog ── */
 #confirm-dlg{position:fixed;inset:0;z-index:200;display:none;align-items:center;justify-content:center;background:rgba(0,0,0,.6)}
 #confirm-dlg.show{display:flex}
-.cf-box{background:#1a1a1a;border:1px solid #2a2a2a;border-radius:16px;padding:20px;max-width:300px;width:90%;text-align:center}
-.cf-box p{font-size:14px;color:#ccc;margin-bottom:16px}
+.cf-box{background:var(--bg1);border:1px solid var(--border2);border-radius:16px;padding:20px;max-width:300px;width:90%;text-align:center}
+.cf-box p{font-size:14px;color:var(--fg2);margin-bottom:16px}
 .cf-btns{display:flex;gap:8px}
 .cf-btns button{flex:1;height:38px;border-radius:19px;border:none;font-size:14px;font-weight:700;cursor:pointer}
 .cf-cancel{background:var(--bg3);color:var(--fg3);border:1px solid var(--border)}.cf-cancel:active{background:var(--bg4)}
@@ -103,27 +103,27 @@ a{color:var(--accent2);text-decoration:none}button{font-family:inherit;cursor:po
 .cf-allow{background:#16351d;color:#50d167}.cf-allow:active{background:#1d4726}
 
 /* ── Sheet ── */
-#sheet{position:fixed;left:0;right:0;bottom:0;z-index:110;background:#111;border-top:1px solid #2a2a2a;border-radius:20px 20px 0 0;transform:translateY(110%);transition:transform .22s ease;max-height:92vh;overflow-y:auto;padding-bottom:env(safe-area-inset-bottom,0px)}
+#sheet{position:fixed;left:0;right:0;bottom:0;z-index:110;background:var(--bg1);border-top:1px solid var(--border2);border-radius:20px 20px 0 0;transform:translateY(110%);transition:transform .22s ease;max-height:92vh;overflow-y:auto;padding-bottom:env(safe-area-inset-bottom,0px)}
 #sheet.open{transform:translateY(0)}
 .sh-bar{display:flex;align-items:center;justify-content:space-between;padding:14px 18px 6px}
 .sh-bar h3{font-size:17px;font-weight:700}
 .sh-bar button{background:none;border:none;color:#6baaff;font-size:14px;font-weight:600}
 .sh-body{padding:0 18px 20px}
-.sh-body>p{color:#777;font-size:13px;line-height:1.5;margin-bottom:14px}
+.sh-body>p{color:var(--fg4);font-size:13px;line-height:1.5;margin-bottom:14px}
 .fld{margin-bottom:14px}
-.fld label{display:block;font-size:11px;color:#666;text-transform:uppercase;letter-spacing:.06em;margin-bottom:5px}
-.fld input,.fld textarea,.fld select{width:100%;background:#1a1a1a;border:1px solid #2a2a2a;border-radius:12px;padding:10px 12px;color:#e8e8e8;font-size:14px;font-family:inherit;outline:none;-webkit-appearance:none;appearance:none}
-.fld input:focus,.fld textarea:focus,.fld select:focus{border-color:#444}
+.fld label{display:block;font-size:11px;color:var(--fg5);text-transform:uppercase;letter-spacing:.06em;margin-bottom:5px}
+.fld input,.fld textarea,.fld select{width:100%;background:var(--bg1);border:1px solid var(--border2);border-radius:12px;padding:10px 12px;color:var(--fg);font-size:14px;font-family:inherit;outline:none;-webkit-appearance:none;appearance:none}
+.fld input:focus,.fld textarea:focus,.fld select:focus{border-color:color-mix(in srgb,var(--accent2) 55%,var(--border2))}
 .fld textarea{min-height:50px;resize:vertical}
 .fld select{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%23666' stroke-width='1.5' fill='none'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 12px center;padding-right:32px;cursor:pointer}
-.fld select option{background:#1a1a1a;color:#e8e8e8;padding:8px}
+.fld select option{background:var(--bg1);color:var(--fg);padding:8px}
 /* Agent pills */
 .agent-pills{display:flex;gap:6px;flex-wrap:wrap}
-.agent-pill{height:34px;padding:0 14px;border-radius:17px;border:1px solid #2a2a2a;background:#1a1a1a;color:#999;font-size:13px;font-weight:600;font-family:inherit;cursor:pointer;transition:all .15s;display:flex;align-items:center;gap:6px}
-.agent-pill:hover{border-color:#444;color:#ccc}
+.agent-pill{height:34px;padding:0 14px;border-radius:17px;border:1px solid var(--border2);background:var(--bg3);color:var(--fg4);font-size:13px;font-weight:600;font-family:inherit;cursor:pointer;transition:all .15s;display:flex;align-items:center;gap:6px}
+.agent-pill:hover{border-color:var(--fg6);color:var(--fg2)}
 .agent-pill.active{border-color:#4a90d9;background:rgba(74,144,217,.12);color:#6baaff}
 .agent-pill .ap-icon{font-size:14px}
-.agent-pill .ap-tag{font-size:9px;padding:1px 5px;border-radius:6px;background:#222;color:#666;font-weight:700;text-transform:uppercase;letter-spacing:.03em}
+.agent-pill .ap-tag{font-size:9px;padding:1px 5px;border-radius:6px;background:var(--bg4);color:var(--fg5);font-weight:700;text-transform:uppercase;letter-spacing:.03em}
 .agent-pill.active .ap-tag{background:rgba(74,144,217,.2);color:#6baaff}
 .sh-go{width:100%;height:44px;border-radius:22px;border:none;background:#4a90d9;color:#fff;font-size:15px;font-weight:700;margin-top:6px}
 .sh-go:disabled{opacity:.4}
@@ -160,23 +160,24 @@ a{color:var(--accent2);text-decoration:none}button{font-family:inherit;cursor:po
 .col.is-disabled .col-item,#chat-col.is-disabled button,#chat-col.is-disabled textarea{pointer-events:none}
 .col-hdr{padding:10px 12px 6px;font-size:10px;font-weight:700;color:var(--fg6);text-transform:uppercase;letter-spacing:.06em;flex-shrink:0}
 .col-list{flex:1;overflow-y:auto;padding:4px 6px}
-.col-item{display:flex;align-items:center;gap:8px;padding:8px 10px;border-radius:10px;cursor:pointer;font-size:13px;color:#ccc;margin-bottom:2px;transition:background .15s,box-shadow .15s,color .15s}
-.col-item:hover{background:#1a1a1a}
-.col-item.selected{background:rgba(74,144,217,.15);color:#6baaff;box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--accent) 20%,transparent),0 1px 6px color-mix(in srgb,var(--accent) 8%,transparent)}
+.col-item{display:flex;align-items:center;gap:8px;padding:8px 10px;border-radius:10px;cursor:pointer;font-size:13px;color:var(--fg2);margin-bottom:2px;transition:background .15s,box-shadow .15s,color .15s}
+.col-item:hover{background:var(--bg3)}
+.col-item.selected{background:rgba(74,144,217,.15);color:var(--accent2);box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--accent) 20%,transparent),0 1px 6px color-mix(in srgb,var(--accent) 8%,transparent)}
 .col-item.disabled{opacity:.42;cursor:not-allowed;filter:saturate(.55)}
 .col-item.disabled:hover{background:transparent}
 .col-item .ci-icon{font-size:14px;flex-shrink:0}
 .col-item .ci-info{flex:1;min-width:0}
 .col-item .ci-name{font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.col-item .ci-meta{font-size:11px;color:#555;margin-top:1px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.col-item .ci-meta{font-size:11px;color:var(--fg5);margin-top:1px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .col-item .ci-dot{width:6px;height:6px;border-radius:50%;background:#50d167;flex-shrink:0}
 .col-item .ci-tag{font-size:10px;color:var(--accent2);border:1px solid var(--border2);border-radius:999px;padding:1px 7px;flex-shrink:0}
 .col-item .ci-join{height:22px;padding:0 8px;border:1px solid var(--border2);border-radius:999px;background:var(--bg3);color:var(--accent2);font-size:10px;font-weight:700;flex-shrink:0;white-space:nowrap;cursor:pointer}
 .col-item .ci-join:disabled{opacity:.6}
 .col-item .ci-tag.ci-tag-view,.compact-item .ci-tag.ci-tag-view{color:#f3c67c;border-color:color-mix(in srgb,#f3c67c 45%,var(--border2));background:color-mix(in srgb,#f3c67c 12%,transparent)}
-.col-item .ci-del{width:20px;height:20px;border:none;border-radius:5px;background:none;color:#444;font-size:11px;cursor:pointer;display:flex;align-items:center;justify-content:center;opacity:0;transition:opacity .1s;flex-shrink:0}
-.col-item:hover .ci-del{opacity:1}.col-item .ci-del:hover{background:#2a1a1a;color:#e55}
+.col-item .ci-del{width:20px;height:20px;border:none;border-radius:5px;background:none;color:var(--fg6);font-size:11px;cursor:pointer;display:flex;align-items:center;justify-content:center;opacity:0;transition:opacity .1s;flex-shrink:0}
+.col-item:hover .ci-del{opacity:1}.col-item .ci-del:hover{background:color-mix(in srgb,var(--red) 12%,transparent);color:var(--red)}
 .col-empty{text-align:center;color:#444;font-size:12px;padding:20px 14px;line-height:1.6}
+.col-empty-spinner{width:24px;height:24px;margin:0 auto 10px;border-radius:50%;border:2px solid color-mix(in srgb,var(--accent2) 24%,var(--border2));border-top-color:var(--accent2);animation:spin .9s linear infinite;opacity:.85}
 .more-agents-wrap{overflow:hidden;max-height:0;opacity:0;transition:max-height .25s ease,opacity .2s ease}
 .more-agents-wrap.more-open{max-height:600px;opacity:1}
 .col-list-msg{padding:0 10px 8px;font-size:11px;line-height:1.45;color:var(--fg5);min-height:0}
@@ -210,7 +211,7 @@ a{color:var(--accent2);text-decoration:none}button{font-family:inherit;cursor:po
 .login-card .login-msg{font-size:11px;color:var(--fg5);margin-top:10px;min-height:16px}
 .ci-join{height:26px;padding:0 10px;border:1px solid var(--border2);border-radius:999px;background:var(--bg3);color:var(--accent2);font-size:11px;font-weight:700;flex-shrink:0}
 .ci-join:disabled{opacity:.6}
-.col-new{margin:8px 6px;padding:8px 10px;background:#151515;border:1px solid #1e1e1e;border-radius:10px}
+.col-new{margin:8px 6px;padding:8px 10px;background:var(--panel2);border:1px solid var(--line);border-radius:10px}
 .col-new .fld{margin-bottom:8px}
 .col-new .fld label{font-size:10px}
 .col-new .sh-go{height:34px;font-size:13px;border-radius:17px;margin-top:4px}
@@ -256,7 +257,7 @@ a{color:var(--accent2);text-decoration:none}button{font-family:inherit;cursor:po
 #chat{max-width:780px;margin:0 auto;padding:16px 14px 20px;display:flex;flex-direction:column;gap:6px}
 
 /* User message — right-aligned compact bubble */
-.u-msg{align-self:flex-end;max-width:85%;background:#2a2a2a;border-radius:18px 18px 4px 18px;padding:10px 14px;font-size:14px;line-height:1.5;word-break:break-word;animation:msg-in .18s ease-out}
+.u-msg{align-self:flex-end;max-width:85%;background:var(--bg4);border-radius:18px 18px 4px 18px;padding:10px 14px;font-size:14px;line-height:1.5;word-break:break-word;animation:msg-in .18s ease-out}
 
 /* AI message — no bubble, direct markdown */
 .ai-msg{font-size:14px;line-height:1.65;color:#ddd;word-break:break-word;padding:4px 0;animation:msg-in .18s ease-out}
@@ -265,12 +266,12 @@ a{color:var(--accent2);text-decoration:none}button{font-family:inherit;cursor:po
 .ai-msg h1:first-child,.ai-msg h2:first-child,.ai-msg h3:first-child{margin-top:0}
 .ai-msg p{margin:6px 0}.ai-msg p:first-child{margin-top:0}.ai-msg p:last-child{margin-bottom:0}
 .ai-msg ul,.ai-msg ol{margin:6px 0;padding-left:20px}.ai-msg li{margin:3px 0}
-.ai-msg pre{background:#151515;border:1px solid #222;border-radius:10px;padding:10px 12px;margin:8px 0;overflow-x:auto;font-size:13px;line-height:1.45}
+.ai-msg pre{background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:10px 12px;margin:8px 0;overflow-x:auto;font-size:13px;line-height:1.45}
 .ai-msg code{background:rgba(255,255,255,.06);padding:1px 5px;border-radius:4px;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:13px}
 .ai-msg pre code{background:none;padding:0;font-size:inherit}
 .ai-msg blockquote{border-left:3px solid #333;padding-left:12px;margin:6px 0;color:#888}
 .ai-msg a{color:#6baaff}
-.ai-msg table{border-collapse:collapse;margin:8px 0;font-size:13px;width:100%}.ai-msg th,.ai-msg td{border:1px solid #222;padding:5px 8px;text-align:left}.ai-msg th{background:#151515}
+.ai-msg table{border-collapse:collapse;margin:8px 0;font-size:13px;width:100%}.ai-msg th,.ai-msg td{border:1px solid var(--border);padding:5px 8px;text-align:left}.ai-msg th{background:var(--bg2)}
 .ai-msg img{max-width:100%;border-radius:8px;margin:6px 0}
 
 /* Thinking — collapsible single line */
@@ -280,19 +281,19 @@ a{color:var(--accent2);text-decoration:none}button{font-family:inherit;cursor:po
 .think-body.show{max-height:2000px;opacity:1;padding:4px 0 4px 18px}
 .think-body p{margin:4px 0}.think-body p:first-child{margin-top:0}
 .think-body code{background:rgba(255,255,255,.06);padding:1px 4px;border-radius:3px;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:12px}
-.think-body pre{background:#151515;border:1px solid #1e1e1e;border-radius:8px;padding:8px 10px;margin:4px 0;overflow-x:auto}
+.think-body pre{background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:8px 10px;margin:4px 0;overflow-x:auto}
 
 /* Tool — Happy-style compact row */
-.tool-row{display:flex;align-items:center;gap:6px;padding:6px 10px;background:#151515;border:1px solid #1e1e1e;border-radius:10px;font-size:13px;color:#aaa;cursor:pointer;overflow:hidden}
+.tool-row{display:flex;align-items:center;gap:6px;padding:6px 10px;background:var(--bg2);border:1px solid var(--border);border-radius:10px;font-size:13px;color:var(--fg3);cursor:pointer;overflow:hidden}
 .tool-row .t-icon{flex-shrink:0;font-size:12px;color:#888}
 .tool-row .t-name{font-weight:600;color:#ccc;white-space:nowrap}
 .tool-row .t-sum{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:12px;color:#777}
 .tool-row .t-st{flex-shrink:0;font-size:12px}
 .t-st.run{color:#f5a623}.t-st.ok{color:#50d167}.t-st.err{color:#e55}
 .tool-det{overflow:hidden;max-height:0;opacity:0;margin-top:0;transition:max-height .25s ease,opacity .2s ease,margin .2s ease}.tool-det.open{max-height:600px;opacity:1;margin-top:4px}
-.tool-out{background:#111;border:1px solid #1e1e1e;border-radius:8px;padding:8px 10px;font-size:11px;line-height:1.5;color:#999;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;white-space:pre-wrap;word-break:break-word;max-height:200px;overflow:auto}
+.tool-out{background:var(--bg1);border:1px solid var(--border);border-radius:8px;padding:8px 10px;font-size:11px;line-height:1.5;color:var(--fg4);font-family:ui-monospace,SFMono-Regular,Menlo,monospace;white-space:pre-wrap;word-break:break-word;max-height:200px;overflow:auto}
 /* Tool group */
-.tool-grp-hdr{display:flex;align-items:center;gap:6px;padding:6px 10px;background:#151515;border:1px solid #1e1e1e;border-radius:10px;font-size:13px;color:#ccc;cursor:pointer}
+.tool-grp-hdr{display:flex;align-items:center;gap:6px;padding:6px 10px;background:var(--bg2);border:1px solid var(--border);border-radius:10px;font-size:13px;color:var(--fg2);cursor:pointer}
 .tool-grp-cnt{background:#222;padding:1px 7px;border-radius:99px;font-size:11px;color:#888}
 .tool-grp-items{overflow:hidden;max-height:0;opacity:0;padding:0 0 0 14px;transition:max-height .25s ease,opacity .2s ease,padding .2s ease}.tool-grp-items.expanded{max-height:1000px;opacity:1;display:flex;flex-direction:column;gap:4px;padding:4px 0 0 14px}
 
@@ -326,7 +327,7 @@ a{color:var(--accent2);text-decoration:none}button{font-family:inherit;cursor:po
 .status-line{display:flex;align-items:center;gap:6px;font-size:12px;color:#888;padding:2px 0}
 .status-line .sl-dot{width:6px;height:6px;border-radius:50%;background:#50d167;flex-shrink:0}
 .turn-line{display:flex;align-items:center;gap:8px;color:#444;font-size:10px;text-transform:uppercase;letter-spacing:.06em;padding:6px 0}
-.turn-line::before,.turn-line::after{content:'';height:1px;background:#1e1e1e;flex:1}
+.turn-line::before,.turn-line::after{content:'';height:1px;background:var(--border);flex:1}
 .err-line{font-size:13px;color:#e55;padding:4px 0}
 
 /* Working indicator */
@@ -338,15 +339,15 @@ a{color:var(--accent2);text-decoration:none}button{font-family:inherit;cursor:po
 @keyframes wi-pulse{0%,80%,100%{opacity:.2;transform:scale(.8)}40%{opacity:1;transform:scale(1)}}
 
 /* Diff */
-.diff-view{background:#111;border-radius:8px;overflow-x:auto;border:1px solid #1e1e1e;margin-top:4px}
+.diff-view{background:var(--bg1);border-radius:8px;overflow-x:auto;border:1px solid var(--border);margin-top:4px}
 .diff-file,.diff-hunk{padding:4px 8px;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:11px}
-.diff-file{color:#888;border-bottom:1px solid #1a1a1a}.diff-hunk{color:#a78bfa;background:rgba(167,139,250,.04)}
+.diff-file{color:var(--fg4);border-bottom:1px solid var(--border2)}.diff-hunk{color:#a78bfa;background:rgba(167,139,250,.04)}
 .diff-line{display:flex;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:11px;white-space:pre}
 .diff-num{width:32px;flex-shrink:0;text-align:right;padding-right:6px;color:#555;user-select:none}
 .diff-txt{flex:1;padding-right:8px;overflow:hidden;text-overflow:ellipsis}
 .diff-add{background:rgba(48,209,88,.06);color:#6dca7d}.diff-del{background:rgba(255,69,58,.06);color:#e57a74}.diff-ctx{color:#777}
 
-#slash-menu{position:absolute;left:0;right:0;bottom:100%;background:#1a1a1a;border:1px solid #2a2a2a;border-radius:12px 12px 0 0;max-height:180px;overflow-y:auto;display:none;z-index:10}
+#slash-menu{position:absolute;left:0;right:0;bottom:100%;background:var(--bg3);border:1px solid var(--border2);border-radius:12px 12px 0 0;max-height:180px;overflow-y:auto;display:none;z-index:10}
 #slash-menu.show{display:block}
 .slash-item{display:flex;align-items:center;gap:8px;padding:8px 14px;font-size:13px;cursor:pointer;color:#ccc}
 .slash-item:hover,.slash-item.active{background:#222}
@@ -358,6 +359,8 @@ a{color:var(--accent2);text-decoration:none}button{font-family:inherit;cursor:po
 .async-banner.hidden{display:none!important}
 .async-banner-copy{display:flex;align-items:center;gap:10px;min-width:0;flex:1}
 .async-banner-pill{display:inline-flex;align-items:center;justify-content:center;min-height:22px;padding:0 9px;border-radius:999px;font-size:10px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;background:var(--bg4);color:var(--fg3);flex-shrink:0}
+.async-banner.is-loading .async-banner-pill{gap:6px}
+.async-banner.is-loading .async-banner-pill::before{content:'';width:10px;height:10px;border:1.6px solid currentColor;border-right-color:transparent;border-radius:50%;display:inline-block;flex-shrink:0;animation:spin .8s linear infinite}
 .async-banner-text{min-width:0;font-size:12px;line-height:1.4;color:var(--fg3)}
 .async-banner-action{height:28px;padding:0 12px;border:1px solid var(--border2);border-radius:999px;background:var(--bg1);color:var(--fg2);font-size:11px;font-weight:700;flex-shrink:0}
 .async-banner-action.hidden{display:none!important}
@@ -397,6 +400,7 @@ a{color:var(--accent2);text-decoration:none}button{font-family:inherit;cursor:po
 #usage-label{font-size:11px;color:var(--fg4);white-space:nowrap}
 .tb-btn.auto-on{background:#1a3a1a!important;border-color:#2a5a2a!important;color:#50d167!important}
 
+@keyframes spin{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}
 @keyframes cursor{0%,100%{opacity:1}50%{opacity:0}}
 @keyframes shimmer{0%{background-position:200% 0}100%{background-position:-200% 0}}
 @keyframes msg-in{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
@@ -547,7 +551,8 @@ import DOMPurify from'/dompurify.js';
 import{Marked,Renderer}from'/marked.js';
 import{ChatClient}from'/chat-client.js';
 import{daemonHasAdminAccess as portalDaemonHasAdminAccess,daemonHasMemberAccess as portalDaemonHasMemberAccess,getCreateSessionAccessState,isDaemonRecordFresh,isLocalEchoMessage,normalizeDaemonRecord as normalizePortalDaemonRecord,rememberRoomMessage,resetSessionStateToIdle,shouldIgnoreRoomMessage,shouldRetainPreviousDaemons}from'/portal-regressions.js';
-import{waitForJoinedRoom,waitForRoomLiveSync}from'/session-live-sync.js';
+import{collectVisibleSessions,normalizeSessionRecord as normalizeSessionDiscoveryRecord,resolveRoomDisplayName,shouldShowPortalSessionLoading,shouldSkipDeletedSession}from'/session-discovery-state.js';
+import{ensureSessionOpenSync,waitForJoinedRoom,waitForRoomLiveSync}from'/session-live-sync.js';
 import{deriveToolbarModelId}from'/session-toolbar-state.js';
 
 let cc=null,uid=null,rid=null;
@@ -818,6 +823,7 @@ function isHistoricalStartupEnvelope(e){
   if(e.type==='session.error')return isStartupWaitMessage(message)||/^failed to start:/i.test(message)||/oauth code flow requires a browser/i.test(message);
   return false;
 }
+function isSessionBannerLoading(notice){return !!notice&&notice.tone==='info'&&(notice.source==='history'||notice.source==='boot')}
 function clearStaleCreateLoadingStatus(){if(formStatusNotice?.source==='create'&&formStatusNotice?.tone==='loading')clearFormStatus('create')}
 function renderSessionBanner(){
   if(!$.asyncBanner)return;
@@ -833,6 +839,7 @@ function renderSessionBanner(){
   }
   $.asyncBanner.classList.remove('hidden');
   $.asyncBanner.classList.add(`is-${notice.tone||'info'}`);
+  $.asyncBanner.classList.toggle('is-loading',isSessionBannerLoading(notice));
   $.asyncBannerPill.textContent=notice.label||'Working';
   $.asyncBannerText.textContent=notice.text||'';
   sessionBannerAction=typeof notice.action==='function'?notice.action:null;
@@ -1038,7 +1045,7 @@ function handleOauthAction(){if(oauthAuthenticatedUser?.login){retryPortalConnec
 window.handleOauthAction=handleOauthAction;
 function compactEmpty(text){return `<div class="compact-empty">${esc(text)}</div>`}
 function compactSection(title,content){return `<div class="compact-section"><div class="compact-hdr">${esc(title)}</div><div class="compact-list">${content}</div></div>`}
-function renderColumnLoadingState(title,detail='',icon='⏳'){return `<div class="col-empty"><div style="font-size:28px;margin-bottom:10px;opacity:.55">${icon}</div>${esc(title)}${detail?`<br><span style="font-size:11px;color:var(--fg5)">${esc(detail)}</span>`:''}</div>`}
+function renderColumnLoadingState(title,detail=''){return `<div class="col-empty"><div class="col-empty-spinner" aria-hidden="true"></div>${esc(title)}${detail?`<br><span style="font-size:11px;color:var(--fg5)">${esc(detail)}</span>`:''}</div>`}
 function renderCompactDaemons(){
   if(!uid||!cc)return compactSection('Agent Daemons',compactEmpty('Connect first'));
   if(!portalDaemonsLoaded)return compactSection('Agent Daemons',compactEmpty('Loading daemons…'));
@@ -1103,10 +1110,14 @@ function renderCompactSessions(){
     return compactSection(AGENT_NAMES[currentAgentName]||'Sessions',compactEmpty(`Sessions are hidden because you do not have daemon access. Ask ${daemonApproverLabel(daemon)} for member or admin access in the daemon panel.`))
   }
   const joined=joinedRoomIds();
-  const sessionMap=new Map();
-  for(const [sessionId,meta] of discoveredSessions.entries())if(!deletedSessions.has(sessionId))sessionMap.set(sessionId,{...meta});
-  if(cc?.rooms){for(const r of cc.rooms){if(r.roomId!==LOBBY_ROOM&&!deletedSessions.has(r.roomId)){const prev=sessionMap.get(r.roomId);if(prev)sessionMap.set(r.roomId,{...prev,sessionId:r.roomId,name:prev.name||r.title||r.name||'Session',updatedAt:prev.updatedAt||r.updatedAt||r.createdAt||null})}}}
-  const filtered=[...sessionMap.values()].filter(s=>{const isJoined=joined.has(s.sessionId);if(currentDaemonId&&s.daemonId&&s.daemonId!==currentDaemonId)return false;if(currentDaemonId&&!s.daemonId&&!isJoined)return false;if(currentAgentName&&s.agent&&s.agent!==currentAgentName)return false;if(currentAgentName&&!s.agent&&!isJoined)return false;return true}).sort((a,b)=>{const ta=a.updatedAt?new Date(a.updatedAt).getTime():0;const tb=b.updatedAt?new Date(b.updatedAt).getTime():0;return tb-ta});
+  const filtered=collectVisibleSessions({
+    discoveredSessions,
+    chatRooms:cc?.rooms||[],
+    deletedSessions,
+    currentDaemonId,
+    currentAgentName,
+    lobbyRoomId:LOBBY_ROOM,
+  });
   const readOnlyBanner='';
   if(!filtered.length){
     const emptyState=sessionListBlockedReason==='daemon-access-denied'?sessionEmptyStateCopy({...daemon,hasMemberAccess:false,canRead:false}):sessionEmptyStateCopy(daemon);
@@ -1320,7 +1331,7 @@ function sessionCanDelete(session){return !!session?.canDelete}
 function sessionCanLeave(session,daemon){return !sessionCanDelete(session)&&!daemonHasAdminAccess(daemon)&&sessionCanRead(session)}
 function sessionOwnerLabel(session){return session?.ownerUserId||'the session owner'}
 function normalizeDaemonRecord(daemon){return normalizePortalDaemonRecord(daemon,normalizeDaemonPlatform)}
-function normalizeSessionRecord(session,previous={}){const accessLevel=sessionAccessLevel(session);return{...previous,sessionId:session.sessionId||previous.sessionId,ownerUserId:session.ownerUserId||previous.ownerUserId||'',daemonId:session.daemonId||previous.daemonId||'',agent:session.agentName||session.agent||previous.agent||'',workingDirectory:session.workingDirectory||previous.workingDirectory||'',name:session.name||session.roomName||previous.name||'Session',updatedAt:session.updatedAt||previous.updatedAt||new Date().toISOString(),accessLevel,canRead:accessLevel!=='none',canWrite:accessLevel==='write',joinStatus:session.joinStatus||previous.joinStatus||'',joinRequestId:session.joinRequestId||previous.joinRequestId||'',requestedAccess:session.requestedAccess||previous.requestedAccess||'',canDelete:session.canDelete??previous.canDelete??false}}
+function normalizeSessionRecord(session,previous={}){return normalizeSessionDiscoveryRecord(session,previous)}
 function currentDaemonRecord(){return knownDaemons.get(currentDaemonId)||null}
 function portalApproverUserIds(daemon){
   const approvers=Array.isArray(daemon?.approverUserIds)&&daemon.approverUserIds.length?daemon.approverUserIds:[daemon?.ownerUserId].filter(Boolean);
@@ -1496,6 +1507,7 @@ async function refreshPortalDaemons({render=true}={}){
 async function refreshPortalSessions({render=true}={}){
   if(!uid||!currentAgentName)return;
   const queryKey=currentSessionQueryKey();
+  const now=Date.now();
   loadingSessionQueryKeys.add(queryKey);
   try{
     const params=new URLSearchParams();
@@ -1510,8 +1522,7 @@ async function refreshPortalSessions({render=true}={}){
     for(const session of body.sessions||[]){
       const normalized=normalizeSessionRecord(session,discoveredSessions.get(session.sessionId)||{});
       keep.add(session.sessionId);
-      const deletedAt=deletedSessions.get(session.sessionId);
-      if(deletedAt&&Date.now()-deletedAt<5000)continue; // skip recently deleted sessions
+      if(shouldSkipDeletedSession(session.sessionId,deletedSessions,now,5000))continue;
       deletedSessions.delete(session.sessionId);
       upsertDiscoveredSession(normalized);
       const prevJoin=joinRequests.get(session.sessionId)||{};
@@ -1621,6 +1632,13 @@ async function waitForRoomMembership(roomId,timeout=5000){
     timeoutMs:timeout,
   })
 }
+async function forceRoomMembershipRefresh(roomId,timeout=ROOM_MEMBERSHIP_TIMEOUT_MS){
+  if(!cc)throw new Error('Not connected');
+  try{await cc.removeUserFromRoom(roomId,cc.userId)}catch(err){
+    if(!/not\s+a\s+member|not found|404/i.test(String(err?.message||'')))console.warn('Forced room leave failed:',roomId,err?.message||err)
+  }
+  await waitForRoomMembership(roomId,timeout)
+}
 function isRoomLiveSyncEvidenceMessage(roomId,notification){
   const targetRoomId=String(roomId||'').trim();
   const messageRoomId=String(notification?.conversation?.roomId||'').trim();
@@ -1632,11 +1650,57 @@ function isRoomLiveSyncEvidenceMessage(roomId,notification){
     return type==='session.state'||type==='session.idle'||type==='assistant.message'||type==='assistant.delta'||type==='assistant.reasoning'||type==='assistant.reasoning_delta'||type==='tool.start'||type==='tool.complete'||type==='permission.request'||type==='permission.response'||type==='session.error'||type==='system.info'||type==='commands.update'||type==='modes.update'||type==='models.update'||type==='mode.changed'||type==='usage.update'
   }catch{return false}
 }
-async function waitForRoomLiveState(roomId,timeout=ROOM_LIVE_SYNC_TIMEOUT_MS){
+function collectResolvedPermissionResponses(messages){
+  const respondedPerms=new Map();
+  for(const m of messages){if(!m?.content?.text)continue;try{const e=JSON.parse(m.content.text);if(e.type==='permission.response'&&e.requestId)respondedPerms.set(e.requestId,e.cancelled?'cancelled':!!e.approved)}catch{}}
+  return respondedPerms
+}
+function applyRoomHistoryMessages(roomId,messages,sessionMeta,{skipStartupEnvelopes=false}={}){
+  const respondedPerms=collectResolvedPermissionResponses(messages);
+  let foundSyncEvidence=false;
+  for(const m of messages){
+    if(!m?.content?.text)continue;
+    if(shouldIgnoreRoomMessage(m,seenRoomMessageIds,historyLoadedAt))continue;
+    try{
+      const parsed=JSON.parse(m.content.text);
+      rememberRoomMessage(m,seenRoomMessageIds);
+      if(isRoomLiveSyncEvidenceMessage(roomId,{conversation:{roomId},message:m}))foundSyncEvidence=true;
+      for(const e of unpackEnvelope(parsed)){
+        if(e.type==='control.create'){
+          sessionMeta.agent=sessionMeta.agent||e.agentName;
+          sessionMeta.workingDirectory=sessionMeta.workingDirectory||e.workingDirectory;
+          sessionMeta.ownerUserId=sessionMeta.ownerUserId||e.userId;
+        }
+        if(skipStartupEnvelopes&&isHistoricalStartupEnvelope(e))continue;
+        if(e.type==='permission.request'&&respondedPerms.has(e.requestId))renderResolvedPerm(e,respondedPerms.get(e.requestId));
+        else render(e)
+      }
+    }catch{}
+  }
+  const lastMsg=messages[messages.length-1];
+  if(lastMsg?.createdAt)historyLoadedAt=Math.max(historyLoadedAt,new Date(lastMsg.createdAt).getTime());
+  syncSessionSelection(roomId,sessionMeta);
+  return foundSyncEvidence
+}
+async function replayLatestRoomHistory(roomId,sessionMeta,{maxCount=100,skipStartupEnvelopes=false}={}){
+  const roomInfo=await cc.getRoom(roomId,false);
+  const roomName=resolveRoomDisplayName(roomInfo);
+  if(roomName&&roomName!=='Session')sessionMeta.name=roomName;
+  const conversationId=roomInfo?.defaultConversationId;
+  if(!conversationId)return false;
+  const history=await cc.listMessage(conversationId,'0',null,maxCount);
+  const messages=[...(history?.messages||[])].reverse();
+  if(!messages.length)return false;
+  const foundSyncEvidence=applyRoomHistoryMessages(roomId,messages,sessionMeta,{skipStartupEnvelopes});
+  scroll();
+  return foundSyncEvidence
+}
+async function waitForRoomLiveState(roomId,timeout=ROOM_LIVE_SYNC_TIMEOUT_MS,sessionMeta={sessionId:roomId}){
   await waitForRoomLiveSync(roomId,{
     subscribeToMessages:(listener)=>cc.addListenerForNewMessage(listener),
     sendSyncRequest:(targetRoomId)=>cc.sendToRoom(targetRoomId,JSON.stringify({type:'session.sync_state'})),
     messageHasSyncEvidence:isRoomLiveSyncEvidenceMessage,
+    checkHistoryForSyncEvidence:(targetRoomId)=>replayLatestRoomHistory(targetRoomId,sessionMeta,{maxCount:25,skipStartupEnvelopes:false}),
     timeoutMs:timeout,
   })
 }
@@ -2077,13 +2141,6 @@ async function renderSessionsCol(){
   const list=document.getElementById('col-sessions-list');
   if(!uid||!cc){list.innerHTML=skeletonColumn(4);renderCompactNav();return}
   if(!currentAgentName){list.innerHTML='<div class="col-empty">Select an agent</div>';renderCompactNav();return}
-  const queryKey=currentSessionQueryKey();
-  if(queryKey&&!sessionQueryLoaded(queryKey)){
-    if(!portalPollInFlight&&!sessionQueryLoading(queryKey))void refreshPortalSessions({render:true}).catch(err=>console.warn('Session refresh failed:',err?.message||err));
-    list.innerHTML=renderColumnLoadingState('Loading sessions…','Waiting for the latest session list from the portal.');
-    renderCompactNav();
-    return
-  }
   const daemon=currentDaemonRecord();
   if(daemon&&!daemonHasMemberAccess(daemon)){
     const emptyState=sessionEmptyStateCopy(daemon);
@@ -2091,18 +2148,26 @@ async function renderSessionsCol(){
     renderCompactNav();
     return
   }
-  if(!portalPollInFlight){try{await refreshPortalSessions({render:false})}catch(err){console.warn('Session refresh failed:',err?.message||err)}}
+  const queryKey=currentSessionQueryKey();
+  const localSessions=collectVisibleSessions({
+    discoveredSessions,
+    chatRooms:cc?.rooms||[],
+    deletedSessions,
+    currentDaemonId,
+    currentAgentName,
+    lobbyRoomId:LOBBY_ROOM,
+  });
+  if(queryKey&&!sessionQueryLoaded(queryKey)&&!portalPollInFlight&&!sessionQueryLoading(queryKey))void refreshPortalSessions({render:true}).catch(err=>console.warn('Session refresh failed:',err?.message||err));
+  if(shouldShowPortalSessionLoading({queryLoaded:!queryKey||sessionQueryLoaded(queryKey),localSessionCount:localSessions.length})){
+    list.innerHTML=renderColumnLoadingState('Loading sessions…','Waiting for the latest session list from the portal.');
+    renderCompactNav();
+    return
+  }
   const readOnlyBanner='';
   const joined=joinedRoomIds();
-  const sessionMap=new Map();
-  for(const [sessionId,meta] of discoveredSessions.entries())if(!deletedSessions.has(sessionId))sessionMap.set(sessionId,{...meta});
-  if(cc?.rooms){for(const r of cc.rooms){if(r.roomId!==LOBBY_ROOM&&!deletedSessions.has(r.roomId)){
-    const prev=sessionMap.get(r.roomId);
-    if(prev)sessionMap.set(r.roomId,{...prev,sessionId:r.roomId,name:prev.name||r.title||r.name||'Session',updatedAt:prev.updatedAt||r.updatedAt||r.createdAt||null})
-  }}}
-  const sessions=[...sessionMap.values()];
+  const sessions=[...localSessions];
   await mapLimit(sessions.filter(s=>joined.has(s.sessionId)&&(!s.agent||!s.workingDirectory||!s.ownerUserId)),4,async(s)=>{try{
-    const ri=await cc.getRoom(s.sessionId,false);const cid=ri?.defaultConversationId;const roomName=ri?.name||ri?.roomName||ri?.displayName;
+    const ri=await cc.getRoom(s.sessionId,false);const cid=ri?.defaultConversationId;const roomName=resolveRoomDisplayName(ri);
     if(roomName&&roomName!=='Session')s.name=roomName;
     if(cid){const h=await cc.listMessage(cid,'0',null,10);if(h?.messages?.length){
       for(const m of [...h.messages].reverse()){if(!m.content?.text)continue;try{const e=JSON.parse(m.content.text);
@@ -2111,14 +2176,7 @@ async function renderSessionsCol(){
       if(h.messages[0]?.createdAt)s.updatedAt=s.updatedAt||h.messages[0].createdAt;
     }}
   }catch(e){console.warn('Session enrich failed:',s.sessionId.substring(0,8),e.message)}});
-  const filtered=sessions.filter(s=>{
-    const isJoined=joined.has(s.sessionId);
-    if(currentDaemonId&&s.daemonId&&s.daemonId!==currentDaemonId)return false;
-    if(currentDaemonId&&!s.daemonId&&!isJoined)return false;
-    if(currentAgentName&&s.agent&&s.agent!==currentAgentName)return false;
-    if(currentAgentName&&!s.agent&&!isJoined)return false;
-    return true
-  }).sort((a,b)=>{const ta=a.updatedAt?new Date(a.updatedAt).getTime():0;const tb=b.updatedAt?new Date(b.updatedAt).getTime():0;return tb-ta});
+  const filtered=[...sessions].sort((a,b)=>{const ta=a.updatedAt?new Date(a.updatedAt).getTime():0;const tb=b.updatedAt?new Date(b.updatedAt).getTime():0;return tb-ta});
   if(!filtered.length){
     const emptyState=sessionListBlockedReason==='daemon-access-denied'
       ?sessionEmptyStateCopy({...daemon,hasMemberAccess:false,canRead:false})
@@ -2399,7 +2457,7 @@ window.createSess=async()=>{
   }catch(e){setSessionBooting(false);setFormStatus(e.message||'Failed to create session.','error',5000,'create');if(rid)setSessionBanner({source:'error',label:'Start failed',text:e.message||'Failed to create session',tone:'error'})}finally{delete b.dataset.busy;syncCreateSessionButton()}
 };
 
-async function openR(roomId,{preserveBooting=false,bootStage=''}={}){
+async function openR(roomId,{preserveBooting=false,bootStage='',retryLiveSyncRecovery=true}={}){
   if(!cc)throw new Error('Not connected');
   const knownMeta=discoveredSessions.get(roomId);
   if(knownMeta)syncSessionSelection(roomId,knownMeta);
@@ -2409,24 +2467,29 @@ async function openR(roomId,{preserveBooting=false,bootStage=''}={}){
   showChat();updateBreadcrumb();
   setSessionBanner({source:'history',label:'Loading',text:'Loading session history…',tone:'info'});
   setSt('idle');ss.processing=false;ss.pendingCount=0;ss.stopping=false;sendMode='enqueue';syncComposer();syncSt();
-  try{const ri=await cc.getRoom(roomId,false);const cid=ri?.defaultConversationId;const sessionMeta={...(knownMeta||{}),sessionId:roomId};
-    if((ri?.name||ri?.roomName||ri?.displayName)&&ri?.name!=='Session')sessionMeta.name=ri.name||ri.roomName||ri.displayName;
-    if(cid){const h=await cc.listMessage(cid,'0',null,100);if(h?.messages?.length){
-      // Collect already-responded permission IDs and their final state
-      const respondedPerms=new Map();
-      const msgs=[...h.messages].reverse();
-      for(const m of msgs){if(!m.content?.text)continue;try{const e=JSON.parse(m.content.text);if(e.type==='permission.response'&&e.requestId)respondedPerms.set(e.requestId,e.cancelled?'cancelled':!!e.approved)}catch{}}
-      // Replay history, marking responded permissions
-      for(const m of msgs){if(!m.content?.text)continue;if(shouldIgnoreRoomMessage(m,seenRoomMessageIds,historyLoadedAt))continue;try{const parsed=JSON.parse(m.content.text);rememberRoomMessage(m,seenRoomMessageIds);for(const e of unpackEnvelope(parsed)){if(isHistoricalStartupEnvelope(e))continue;if(e.type==='control.create'){sessionMeta.agent=sessionMeta.agent||e.agentName;sessionMeta.workingDirectory=sessionMeta.workingDirectory||e.workingDirectory;sessionMeta.ownerUserId=sessionMeta.ownerUserId||e.userId}if(e.type==='permission.request'&&respondedPerms.has(e.requestId)){renderResolvedPerm(e,respondedPerms.get(e.requestId))}else{render(e)}}}catch{}}
-      // Record latest message timestamp so live listener skips duplicates
-      const lastMsg=msgs[msgs.length-1];
-      if(lastMsg?.createdAt)historyLoadedAt=Math.max(historyLoadedAt,new Date(lastMsg.createdAt).getTime());
-      syncSessionSelection(roomId,sessionMeta);
-      scroll()}}
-    setSessionBanner({source:'history',label:'Syncing',text:'Waiting for live session sync…',tone:'info'});
-    await waitForRoomLiveState(roomId,ROOM_LIVE_SYNC_TIMEOUT_MS);
+  try{const sessionMeta={...(knownMeta||{}),sessionId:roomId};
+    await ensureSessionOpenSync(roomId,{
+      replayHistory:replayLatestRoomHistory,
+      waitForLiveState:waitForRoomLiveState,
+      sessionMeta,
+      timeoutMs:ROOM_LIVE_SYNC_TIMEOUT_MS,
+      historyOptions:{maxCount:100,skipStartupEnvelopes:true},
+      onWaitingForLiveState:()=>setSessionBanner({source:'history',label:'Syncing',text:'Waiting for live session sync…',tone:'info'}),
+    });
     clearSessionBanner('history');
-  }catch(e){setSessionBanner({source:'error',label:'History error',text:e.message||'Failed to load history',tone:'error',actionText:'Retry',action:()=>openR(roomId)});addErr('History: '+e.message)}
+  }catch(e){
+    const message=String(e?.message||'');
+    if(retryLiveSyncRecovery&&/Timed out waiting for live session sync/i.test(message)){
+      try{
+        setSessionBanner({source:'history',label:'Resyncing',text:'Refreshing room membership…',tone:'info'});
+        await forceRoomMembershipRefresh(roomId,ROOM_MEMBERSHIP_TIMEOUT_MS);
+        return await openR(roomId,{preserveBooting,bootStage,retryLiveSyncRecovery:false})
+      }catch(rejoinErr){
+        e=rejoinErr
+      }
+    }
+    setSessionBanner({source:'error',label:'History error',text:e.message||'Failed to load history',tone:'error',actionText:'Retry',action:()=>openR(roomId)});addErr('History: '+(e?.message||e))
+  }
 }
 
 window.stopCurrentTurn=async()=>{

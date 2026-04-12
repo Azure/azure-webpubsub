@@ -7,6 +7,7 @@ import { fileURLToPath } from 'node:url';
 import { ChatClient } from '@azure/web-pubsub-chat-client';
 import { WebPubSubServiceClient } from '@azure/web-pubsub';
 import { daemonAclRoomId } from '../daemon-acl.js';
+import { collectVisibleSessions } from '../public/session-discovery-state.js';
 
 const DEFAULT_EMULATOR_CONNECTION_STRING = 'Endpoint=http://localhost;Port=8080;AccessKey='
   + 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'
@@ -35,6 +36,7 @@ let serverOutput = '';
 let adminChat = null;
 let bobChat = null;
 let charlieSyncChat = null;
+let azureUserChat = null;
 let daemonHeartbeatTimer = null;
 
 const registeredDaemons = [];
@@ -272,6 +274,28 @@ function daemonRequestPath(daemonId) {
   return `/api/daemons/${encodeURIComponent(daemonId)}/access-requests`;
 }
 
+function toSessionMap(sessions) {
+  return new Map((Array.isArray(sessions) ? sessions : []).map((session) => [session.sessionId, session]));
+}
+
+function buildManagedSessionRoomTitle(session) {
+  return JSON.stringify({
+    t: 'ms',
+    r: String(session?.roomName || session?.name || 'Session').trim() || 'Session',
+    d: String(session?.daemonId || '').trim(),
+    a: String(session?.agentName || session?.agent || '').trim(),
+    w: String(session?.workingDirectory || '').trim(),
+    o: String(session?.ownerUserId || '').trim(),
+    c: String(session?.createdAt || '').trim(),
+    u: String(session?.updatedAt || '').trim(),
+  });
+}
+
+function frontendSessionLabel(session) {
+  const workingDirectory = String(session?.workingDirectory || '');
+  return workingDirectory.split(/[/\\]/).pop() || session?.name || 'Session';
+}
+
 async function registerDaemon({ daemonId, ownerUserId, hostname, platform = 'linux', agents, workspaces }) {
   const daemonConfig = { daemonId, ownerUserId, hostname, platform, agents, workspaces };
   const payload = buildDaemonMutationPayload(daemonConfig);
@@ -345,11 +369,15 @@ describe('E2E: CodeAgentHub portal permissions and session workflows', { timeout
   const bob = `bob${testRunId}`;
   const charlie = `charlie${testRunId}`;
   const dana = `dana${testRunId}`;
+  const azureUser = 'AzureUser';
   const daemonAlpha = `daemon-alpha-${testRunId}`;
   const daemonBeta = `daemon-beta-${testRunId}`;
+  const daemonUi = `daemon-ui-${testRunId}`;
+  const ownerUi = `ownerui${testRunId}`;
   let alphaClaude = null;
   let alphaCodex = null;
   let betaCopilot = null;
+  let uiCopilot = null;
 
   before(async () => {
     const token = await serviceClient.getClientAccessToken({ userId: 'health-check' });
@@ -363,6 +391,8 @@ describe('E2E: CodeAgentHub portal permissions and session workflows', { timeout
     bobChat = null;
     await stopChatClient(charlieSyncChat);
     charlieSyncChat = null;
+    await stopChatClient(azureUserChat);
+    azureUserChat = null;
     logActiveHandles('before cleanup');
     await stopChatClient(adminChat);
     adminChat = null;
@@ -574,11 +604,50 @@ describe('E2E: CodeAgentHub portal permissions and session workflows', { timeout
     assert.equal(charlieAlphaBeforeAccess.joined, false);
     assert.equal(charlieAlphaBeforeAccess.canDelete, false);
 
+    noteStep('frontend session discovery excludes daemon sync rooms');
+    const charlieFrontendSessions = collectVisibleSessions({
+      discoveredSessions: toSessionMap(charlieVisibleBeforeSessionAccess.sessions),
+      chatRooms: charlieSyncChat.rooms,
+      deletedSessions: new Map(),
+      currentDaemonId: daemonAlpha,
+      currentAgentName: 'claude',
+    });
+    assert.deepEqual(
+      charlieFrontendSessions.map((session) => session.sessionId),
+      [alphaClaude.sessionId],
+      'joined daemon sync rooms must not leak into the frontend session list',
+    );
+
     noteStep('submit charlie read request');
     const charlieJoinRequest = await portalRequest(charlie, `/api/sessions/${encodeURIComponent(alphaClaude.sessionId)}/join-requests`, {
       method: 'POST',
       body: { requestedAccess: 'read' },
     });
+
+    noteStep('verify pending read request remains visible in frontend session discovery');
+    const charlieVisibleWithPendingRead = await portalRequest(charlie, `/api/sessions?daemonId=${encodeURIComponent(daemonAlpha)}`);
+    const charlieAlphaWithPendingRead = charlieVisibleWithPendingRead.sessions.find((session) => session.sessionId === alphaClaude.sessionId);
+    assert.equal(charlieAlphaWithPendingRead.accessLevel, 'none');
+    assert.equal(charlieAlphaWithPendingRead.joined, false);
+    assert.equal(charlieAlphaWithPendingRead.joinStatus, 'pending');
+    assert.equal(charlieAlphaWithPendingRead.requestedAccess, 'read');
+    const charlieFrontendSessionsWithPendingRead = collectVisibleSessions({
+      discoveredSessions: toSessionMap(charlieVisibleWithPendingRead.sessions),
+      chatRooms: charlieSyncChat.rooms,
+      deletedSessions: new Map(),
+      currentDaemonId: daemonAlpha,
+      currentAgentName: 'claude',
+    });
+    assert.deepEqual(
+      charlieFrontendSessionsWithPendingRead.map((session) => ({
+        sessionId: session.sessionId,
+        joinStatus: session.joinStatus,
+        requestedAccess: session.requestedAccess,
+      })),
+      [{ sessionId: alphaClaude.sessionId, joinStatus: 'pending', requestedAccess: 'read' }],
+      'frontend session discovery should preserve pending read status without surfacing daemon sync rooms',
+    );
+
     noteStep('submit dana write request');
     const danaJoinRequest = await portalRequest(dana, `/api/sessions/${encodeURIComponent(alphaClaude.sessionId)}/join-requests`, {
       method: 'POST',
@@ -614,12 +683,46 @@ describe('E2E: CodeAgentHub portal permissions and session workflows', { timeout
     assert.equal(charlieAlphaClaude.accessLevel, 'read');
     assert.equal(charlieAlphaClaude.canRead, true);
     assert.equal(charlieAlphaClaude.canWrite, false);
+    const charlieFrontendSessionsAfterApproval = collectVisibleSessions({
+      discoveredSessions: toSessionMap(charlieVisibleSessions.sessions),
+      chatRooms: charlieSyncChat.rooms,
+      deletedSessions: new Map(),
+      currentDaemonId: daemonAlpha,
+      currentAgentName: 'claude',
+    });
+    assert.deepEqual(
+      charlieFrontendSessionsAfterApproval.map((session) => ({
+        sessionId: session.sessionId,
+        accessLevel: session.accessLevel,
+        canRead: session.canRead,
+        canWrite: session.canWrite,
+      })),
+      [{ sessionId: alphaClaude.sessionId, accessLevel: 'read', canRead: true, canWrite: false }],
+      'frontend session discovery should preserve approved read access without surfacing daemon sync rooms',
+    );
 
     const danaVisibleSessions = await portalRequest(dana, `/api/sessions?daemonId=${encodeURIComponent(daemonAlpha)}`);
     const danaAlphaClaude = danaVisibleSessions.sessions.find((session) => session.sessionId === alphaClaude.sessionId);
     assert.equal(danaAlphaClaude.joinStatus, 'denied');
     assert.equal(danaAlphaClaude.joined, false);
     assert.equal(danaAlphaClaude.accessLevel, 'none');
+    const danaFrontendSessionsAfterRejection = collectVisibleSessions({
+      discoveredSessions: toSessionMap(danaVisibleSessions.sessions),
+      chatRooms: [],
+      deletedSessions: new Map(),
+      currentDaemonId: daemonAlpha,
+      currentAgentName: 'claude',
+    });
+    assert.deepEqual(
+      danaFrontendSessionsAfterRejection.map((session) => ({
+        sessionId: session.sessionId,
+        joinStatus: session.joinStatus,
+        requestedAccess: session.requestedAccess,
+        accessLevel: session.accessLevel,
+      })),
+      [{ sessionId: alphaClaude.sessionId, joinStatus: 'denied', requestedAccess: 'write', accessLevel: 'none' }],
+      'frontend session discovery should preserve denied write requests for visible daemon members',
+    );
 
     noteStep('leave and delete session flows');
     await portalRequest(charlie, `/api/sessions/${encodeURIComponent(alphaClaude.sessionId)}/members/${encodeURIComponent(charlie)}`, { method: 'DELETE' });
@@ -627,6 +730,23 @@ describe('E2E: CodeAgentHub portal permissions and session workflows', { timeout
     const charlieAlphaClaudeAfterLeave = charlieAfterLeave.sessions.find((session) => session.sessionId === alphaClaude.sessionId);
     assert.equal(charlieAlphaClaudeAfterLeave.joined, false, 'leaving should remove room membership');
     assert.equal(charlieAlphaClaudeAfterLeave.accessLevel, 'none');
+    const charlieFrontendSessionsAfterLeave = collectVisibleSessions({
+      discoveredSessions: toSessionMap(charlieAfterLeave.sessions),
+      chatRooms: charlieSyncChat.rooms,
+      deletedSessions: new Map(),
+      currentDaemonId: daemonAlpha,
+      currentAgentName: 'claude',
+    });
+    assert.deepEqual(
+      charlieFrontendSessionsAfterLeave.map((session) => ({
+        sessionId: session.sessionId,
+        accessLevel: session.accessLevel,
+        canRead: session.canRead,
+        canWrite: session.canWrite,
+      })),
+      [{ sessionId: alphaClaude.sessionId, accessLevel: 'none', canRead: false, canWrite: false }],
+      'frontend session discovery should fall back to visible no-access after leaving without surfacing daemon sync rooms',
+    );
 
     const nonOwnerDeleteDenied = await portalRequest(charlie, `/api/sessions/${encodeURIComponent(alphaClaude.sessionId)}`, {
       method: 'DELETE',
@@ -650,6 +770,100 @@ describe('E2E: CodeAgentHub portal permissions and session workflows', { timeout
     await portalRequest(bob, `/api/sessions/${encodeURIComponent(bobCreatedSession.sessionId)}`, { method: 'DELETE' });
     const bobSessionsAfterDelete = await portalRequest(bob, `/api/sessions?daemonId=${encodeURIComponent(daemonAlpha)}`);
     assert.ok(!bobSessionsAfterDelete.sessions.some((session) => session.sessionId === bobCreatedSession.sessionId), 'deleted session should disappear from listings');
+
+    noteStep('register AzureUser managed-session name regression scenario');
+    await registerDaemon({
+      daemonId: daemonUi,
+      ownerUserId: ownerUi,
+      hostname: 'browser-ui-host',
+      platform: 'linux',
+      agents: ['copilot'],
+      workspaces: ['/workspace/demo'],
+    });
+    uiCopilot = await portalRequest(ownerUi, '/api/sessions', {
+      method: 'POST',
+      body: {
+        daemonId: daemonUi,
+        agentName: 'copilot',
+        workingDirectory: '/workspace/demo',
+        roomName: 'Browser UI Session',
+      },
+    });
+    await portalRequest(ownerUi, `/api/daemons/${encodeURIComponent(daemonUi)}/access`, {
+      method: 'PATCH',
+      body: {
+        memberUsers: [azureUser],
+        adminUsers: [],
+      },
+    });
+
+    noteStep('approve AzureUser managed-session read access');
+    const azureJoinRequest = await portalRequest(azureUser, `/api/sessions/${encodeURIComponent(uiCopilot.sessionId)}/join-requests`, {
+      method: 'POST',
+      body: { requestedAccess: 'read' },
+    });
+    await portalRequest(ownerUi, `/api/sessions/${encodeURIComponent(uiCopilot.sessionId)}/join-requests/${encodeURIComponent(azureJoinRequest.requestId)}/approve`, {
+      method: 'POST',
+    });
+
+    const azureVisibleUiSessions = await portalRequest(azureUser, `/api/sessions?daemonId=${encodeURIComponent(daemonUi)}&agentName=copilot`);
+    const azureVisibleUiSession = azureVisibleUiSessions.sessions.find((session) => session.sessionId === uiCopilot.sessionId);
+    assert.ok(azureVisibleUiSession, 'AzureUser should see the managed copilot session');
+    assert.equal(azureVisibleUiSession.roomName, 'Browser UI Session');
+    assert.equal(azureVisibleUiSession.accessLevel, 'read');
+    assert.equal(azureVisibleUiSession.joined, true);
+
+    azureUserChat = await getChatClient(azureUser);
+    const azureRoomInfo = await azureUserChat.getRoom(uiCopilot.sessionId, false);
+    const managedSessionRoomTitle = [azureRoomInfo?.title, azureRoomInfo?.name, azureRoomInfo?.roomName, azureRoomInfo?.displayName]
+      .find((value) => typeof value === 'string' && value.includes('"t"')) || buildManagedSessionRoomTitle(uiCopilot);
+    assert.match(managedSessionRoomTitle, /"t"\s*:\s*"ms"/, 'test setup should use managed-session JSON metadata as the local room title');
+
+    noteStep('frontend fallback should keep AzureUser session names readable');
+    const azureLocalOnlySessions = collectVisibleSessions({
+      discoveredSessions: new Map(),
+      chatRooms: [{ roomId: uiCopilot.sessionId, title: managedSessionRoomTitle, updatedAt: uiCopilot.updatedAt }],
+      deletedSessions: new Map(),
+      currentDaemonId: daemonUi,
+      currentAgentName: 'copilot',
+    });
+    assert.deepEqual(
+      azureLocalOnlySessions.map((session) => ({
+        sessionId: session.sessionId,
+        name: session.name,
+        label: frontendSessionLabel(session),
+        workingDirectory: session.workingDirectory,
+      })),
+      [{
+        sessionId: uiCopilot.sessionId,
+        name: 'Browser UI Session',
+        label: 'demo',
+        workingDirectory: '/workspace/demo',
+      }],
+      'AzureUser local session fallback should parse managed-session metadata instead of surfacing raw JSON',
+    );
+
+    const azureMergedSessions = collectVisibleSessions({
+      discoveredSessions: toSessionMap(azureVisibleUiSessions.sessions),
+      chatRooms: [{ roomId: uiCopilot.sessionId, title: managedSessionRoomTitle, updatedAt: uiCopilot.updatedAt }],
+      deletedSessions: new Map(),
+      currentDaemonId: daemonUi,
+      currentAgentName: 'copilot',
+    });
+    assert.deepEqual(
+      azureMergedSessions.map((session) => ({
+        sessionId: session.sessionId,
+        name: session.name,
+        label: frontendSessionLabel(session),
+      })),
+      [{
+        sessionId: uiCopilot.sessionId,
+        name: 'Browser UI Session',
+        label: 'demo',
+      }],
+      'AzureUser merged portal and local session state should keep the readable session label',
+    );
+    assert.ok(azureMergedSessions.every((session) => !String(session.name || '').includes('{')), 'session names should never leak raw managed-session JSON');
 
     noteStep('scenario complete');
   });

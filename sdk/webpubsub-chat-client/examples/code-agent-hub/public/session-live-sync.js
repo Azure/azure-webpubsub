@@ -2,6 +2,27 @@ function defaultSleep(delayMs) {
   return new Promise((resolve) => setTimeout(resolve, delayMs));
 }
 
+export async function ensureSessionOpenSync(roomId, {
+  replayHistory,
+  waitForLiveState,
+  sessionMeta = { sessionId: roomId },
+  timeoutMs = 4000,
+  historyOptions = { maxCount: 100, skipStartupEnvelopes: true },
+  onWaitingForLiveState,
+}) {
+  const historyHasSyncEvidence = await replayHistory(roomId, sessionMeta, historyOptions);
+  if (historyHasSyncEvidence) {
+    return { historyHasSyncEvidence: true };
+  }
+
+  if (typeof onWaitingForLiveState === 'function') {
+    onWaitingForLiveState();
+  }
+
+  await waitForLiveState(roomId, timeoutMs, sessionMeta);
+  return { historyHasSyncEvidence: false };
+}
+
 export async function waitForJoinedRoom(roomId, {
   hasJoinedRoom,
   getRoomInfo,
@@ -47,6 +68,7 @@ export async function waitForRoomLiveSync(roomId, {
   subscribeToMessages,
   sendSyncRequest,
   messageHasSyncEvidence,
+  checkHistoryForSyncEvidence,
   timeoutMs = 4000,
   retryIntervalMs = 500,
   sleep = defaultSleep,
@@ -81,6 +103,18 @@ export async function waitForRoomLiveSync(roomId, {
         lastError = error;
       }
 
+      if (!synced && typeof checkHistoryForSyncEvidence === 'function') {
+        try {
+          if (await checkHistoryForSyncEvidence(targetRoomId)) {
+            synced = true;
+            resolveSync(true);
+            return true;
+          }
+        } catch (error) {
+          lastError = error;
+        }
+      }
+
       if (synced) {
         return true;
       }
@@ -94,6 +128,18 @@ export async function waitForRoomLiveSync(roomId, {
         syncPromise,
         sleep(Math.min(retryIntervalMs, remainingMs)),
       ]);
+
+      if (!synced && typeof checkHistoryForSyncEvidence === 'function') {
+        try {
+          if (await checkHistoryForSyncEvidence(targetRoomId)) {
+            synced = true;
+            resolveSync(true);
+            return true;
+          }
+        } catch (error) {
+          lastError = error;
+        }
+      }
     }
   } finally {
     if (typeof unsubscribe === 'function') {

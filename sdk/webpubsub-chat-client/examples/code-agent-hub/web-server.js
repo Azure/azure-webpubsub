@@ -18,6 +18,20 @@ import {
 } from './daemon-acl.js';
 import { listDaemonRegistryRecordsWithFallback } from './daemon-registry.js';
 import { listRoomMessagesWithFallback } from './room-history.js';
+import {
+  buildSessionListForUser,
+  createSessionIndexState,
+  findJoinRequestById,
+  getLatestJoinRequestForUser,
+  getSessionAccessLevelFromIndex,
+  hydrateSessionIndices,
+  listJoinRequestsForSession,
+  markTrustedSessionDeleted,
+  removeTrustedSessionMembership,
+  upsertTrustedJoinRequestState,
+  upsertTrustedSessionDirectoryRecord,
+  upsertTrustedSessionMembership,
+} from './session-index.js';
 import { existsSync } from 'node:fs';
 import { dirname, join, resolve } from 'path';
 import { config as loadEnv } from 'dotenv';
@@ -305,6 +319,9 @@ let adminShuttingDown = false;
 const pendingWorkspaceLookups = new Map();
 const daemonAccessStateCache = new Map();
 const knownDaemonIds = new Set();
+const sessionIndexState = createSessionIndexState();
+
+let sessionIndexHydrationPromise = null;
 
 function rememberDaemonId(daemonId = '') {
   const normalizedDaemonId = String(daemonId || '').trim();
@@ -326,6 +343,44 @@ function invalidateDaemonAccessStateCache(daemonId = '') {
     return;
   }
   daemonAccessStateCache.delete(normalizedDaemonId);
+}
+
+async function ensureSessionIndicesReady({ forceRefresh = false } = {}) {
+  if (sessionIndexHydrationPromise) {
+    return await sessionIndexHydrationPromise;
+  }
+  if (!forceRefresh && sessionIndexState.hydratedAt) {
+    return sessionIndexState;
+  }
+
+  sessionIndexHydrationPromise = (async () => {
+    await hydrateSessionIndices({
+      state: sessionIndexState,
+      roomInfos: await listSessionRoomInfos(),
+      parseSessionRoomTitle,
+      loadSessionMembers: async (sessionId) => await listSessionRoomMembers(sessionId),
+      loadJoinRequests: async (sessionId) => await readJoinRequestsForSession(sessionId),
+      adminUserId: ADMIN_USER_ID,
+    });
+    return sessionIndexState;
+  })();
+
+  try {
+    return await sessionIndexHydrationPromise;
+  } finally {
+    sessionIndexHydrationPromise = null;
+  }
+}
+
+function getIndexedSessionRecord(sessionId) {
+  const sessionRecord = sessionIndexState.directoryBySessionId.get(String(sessionId || '').trim());
+  return sessionRecord && !sessionRecord.deletedAt ? sessionRecord : null;
+}
+
+function warmSessionIndexInBackground(reason = 'startup') {
+  void ensureSessionIndicesReady({ forceRefresh: true }).catch((error) => {
+    console.warn(`[Web] Session index warmup failed during ${reason}:`, error?.message || error);
+  });
 }
 
 function cacheDaemonAccessState(daemonId, accessState) {
@@ -713,29 +768,6 @@ async function listSessionRoomMembers(sessionId) {
   return normalizeChatRoomMembers(payload);
 }
 
-function sessionAccessLevelFromRole(role) {
-  if (role === 'room.operator') return 'write';
-  if (role === 'room.member') return 'read';
-  return 'none';
-}
-
-function hasSessionReadAccess(accessLevel) {
-  return accessLevel === 'read' || accessLevel === 'write';
-}
-
-function hasSessionWriteAccess(accessLevel) {
-  return accessLevel === 'write';
-}
-
-function getSessionAccessLevel(sessionRecord, sessionMembers, daemonAccessState, userId) {
-  const normalizedUserId = String(userId || '').trim();
-  if (!sessionRecord || !normalizedUserId) return 'none';
-  if (sessionRecord.ownerUserId === normalizedUserId) return 'write';
-  if (canAdminDaemonAccess(daemonAccessState, normalizedUserId)) return 'write';
-  const member = (sessionMembers || []).find((entry) => entry.userId === normalizedUserId);
-  return sessionAccessLevelFromRole(member?.role || '');
-}
-
 function normalizeManagedRoomInfos(rooms) {
   return [...new Map((rooms || [])
     .filter((room) => room?.roomId)
@@ -828,23 +860,6 @@ async function writeDaemonRegistryRecord({ daemonId, ownerUserId, hostname, plat
   return await getDaemonRegistryRecord(normalizedDaemonId);
 }
 
-async function getSessionRoomInfo(sessionId, withMembers = false) {
-  try {
-    return await adminGetRoom(sessionId, withMembers);
-  } catch (error) {
-    if (isNotFoundError(error)) {
-      if (Array.isArray(adminChat?.rooms)) {
-        const roomIndex = adminChat.rooms.findIndex((room) => room?.roomId === sessionId);
-        if (roomIndex >= 0) {
-          adminChat.rooms.splice(roomIndex, 1);
-        }
-      }
-      return null;
-    }
-    throw error;
-  }
-}
-
 async function listSessionRoomInfos() {
   const roomInfos = await listManagedRoomInfos();
   return roomInfos.filter((roomInfo) => parseSessionRoomTitle(roomInfo?.title || roomInfo?.name || ''));
@@ -885,63 +900,6 @@ async function readJoinRequestsForSession(sessionId) {
     }
   }
   return [...requestsById.values()];
-}
-
-async function getLatestJoinRequestForSessionAndUser(sessionId, requesterUserId) {
-  const requests = await readJoinRequestsForSession(sessionId);
-  return requests
-    .filter((request) => request.requesterUserId === requesterUserId)
-    .sort((left, right) => String(right.updatedAt || '').localeCompare(String(left.updatedAt || '')))[0] || null;
-}
-
-async function readManagedSessionRecord(sessionId, knownDaemonIds = null) {
-  const roomInfo = await getSessionRoomInfo(sessionId, true);
-  if (!roomInfo) return null;
-  const parsedTitle = parseSessionRoomTitle(roomInfo.title || roomInfo.name || '');
-  const memberIds = Array.isArray(roomInfo.members) ? roomInfo.members.map((value) => String(value || '').trim()).filter(Boolean) : [];
-  const daemonIdFromMembers = (knownDaemonIds || []).find((value) => memberIds.includes(value));
-
-  let fallback = null;
-  if (!parsedTitle) {
-    const messages = await listRoomMessages(sessionId, 80);
-    for (const message of messages) {
-      if (!message?.content?.text) continue;
-      try {
-        const payload = JSON.parse(message.content.text);
-        if (payload?.type === 'control.create') {
-          fallback = {
-            roomName: String(roomInfo.title || 'Session').trim() || 'Session',
-            daemonId: daemonIdFromMembers || '',
-            agentName: String(payload.agentName || '').trim(),
-            workingDirectory: String(payload.workingDirectory || '').trim(),
-            ownerUserId: String(payload.userId || '').trim(),
-            createdAt: String(message.createdAt || '').trim(),
-            updatedAt: String(message.createdAt || '').trim(),
-          };
-          break;
-        }
-      } catch {
-        // ignore legacy non-json messages
-      }
-    }
-  }
-
-  const metadata = parsedTitle || fallback;
-  if (!metadata) return null;
-
-  const participants = memberIds.filter((value) => value && value !== ADMIN_USER_ID && value !== metadata.ownerUserId && value !== (metadata.daemonId || daemonIdFromMembers || ''));
-
-  return {
-    sessionId: roomInfo.roomId,
-    roomName: metadata.roomName,
-    daemonId: metadata.daemonId || daemonIdFromMembers || '',
-    agentName: metadata.agentName,
-    workingDirectory: metadata.workingDirectory,
-    ownerUserId: metadata.ownerUserId,
-    participants,
-    createdAt: metadata.createdAt || String(roomInfo.createdAt || '').trim(),
-    updatedAt: metadata.updatedAt || metadata.createdAt || String(roomInfo.updatedAt || roomInfo.createdAt || '').trim(),
-  };
 }
 
 async function appendJoinRequestEvent(sessionRecord, payload) {
@@ -1012,6 +970,7 @@ function bindAdminLobbyListeners() {
   if (!adminChat) return;
   adminChat.onConnected(() => {
     adminReconnectAttempt = 0;
+    warmSessionIndexInBackground('admin-chat-connect');
   });
   adminChat.onDisconnected(() => {
     if (adminShuttingDown) return;
@@ -1168,10 +1127,6 @@ async function adminCreateRoom(name, members, roomId) {
 
 async function adminSendToRoom(roomId, payload, label = 'sendToRoom') {
   return await invokeAdminChat(`${label}:${roomId}`, (chat) => chat.sendToRoom(roomId, payload));
-}
-
-async function adminGetRoom(roomId, withMembers = false) {
-  return await invokeAdminChat(`getRoom:${roomId}`, (chat) => chat.getRoom(roomId, withMembers));
 }
 
 async function adminListRoomMessage(roomId, startId, endId, maxCount) {
@@ -1785,50 +1740,18 @@ app.get('/api/sessions', async (req, res) => {
       return res.json({ sessions: [], blockedReason: 'daemon-access-denied' });
     }
   }
-  const readableDaemonIds = new Set([...daemonAccessById.entries()]
-    .filter(([, value]) => canMemberDaemonAccess(value.accessState, user.login))
-    .map(([daemonId]) => daemonId));
-  const daemonIds = [...daemonAccessById.keys()];
-  const sessionInfos = (await listSessionRoomInfos()).filter((roomInfo) => {
-    const metadata = parseSessionRoomTitle(roomInfo?.title || roomInfo?.name || '');
-    if (!metadata) return true;
-    if (daemonFilter && metadata.daemonId && metadata.daemonId !== daemonFilter) return false;
-    if (agentFilter && metadata.agentName && metadata.agentName !== agentFilter) return false;
-    return true;
+  await ensureSessionIndicesReady();
+  res.json({
+    sessions: buildSessionListForUser({
+      state: sessionIndexState,
+      daemonAccessById,
+      userId: user.login,
+      daemonFilter,
+      agentFilter,
+      canAdminDaemonAccess,
+      canMemberDaemonAccess,
+    }),
   });
-  const sessions = [];
-  for (const roomInfo of sessionInfos) {
-    const sessionRecord = await readManagedSessionRecord(roomInfo.roomId, daemonIds);
-    if (!sessionRecord) continue;
-    if (!sessionRecord.daemonId || !readableDaemonIds.has(sessionRecord.daemonId)) continue;
-    if (daemonFilter && sessionRecord.daemonId !== daemonFilter) continue;
-    if (agentFilter && sessionRecord.agentName !== agentFilter) continue;
-    const daemonEntry = daemonAccessById.get(sessionRecord.daemonId);
-    const sessionMembers = await listSessionRoomMembers(sessionRecord.sessionId);
-    const accessLevel = getSessionAccessLevel(sessionRecord, sessionMembers, daemonEntry?.accessState, user.login);
-    const canManage = canManageSession(sessionRecord, daemonEntry?.accessState, user.login);
-    const joinRequest = await getLatestJoinRequestForSessionAndUser(sessionRecord.sessionId, user.login);
-    sessions.push({
-      sessionId: sessionRecord.sessionId,
-      roomName: sessionRecord.roomName,
-      daemonId: sessionRecord.daemonId,
-      agent: sessionRecord.agentName,
-      agentName: sessionRecord.agentName,
-      workingDirectory: sessionRecord.workingDirectory,
-      ownerUserId: sessionRecord.ownerUserId,
-      updatedAt: sessionRecord.updatedAt,
-      joined: accessLevel !== 'none',
-      accessLevel,
-      canRead: hasSessionReadAccess(accessLevel),
-      canWrite: hasSessionWriteAccess(accessLevel),
-      joinStatus: joinRequest?.status || '',
-      joinRequestId: joinRequest?.requestId || '',
-      requestedAccess: joinRequest?.requestedAccess || '',
-      canDelete: canManage,
-    });
-  }
-  sessions.sort((left, right) => String(right.updatedAt || '').localeCompare(String(left.updatedAt || '')));
-  res.json({ sessions });
 });
 
 app.post('/api/sessions', async (req, res) => {
@@ -1856,6 +1779,8 @@ app.post('/api/sessions', async (req, res) => {
       workingDirectory,
       roomName,
     });
+    upsertTrustedSessionDirectoryRecord(sessionIndexState, sessionRecord, { source: 'portal' });
+    upsertTrustedSessionMembership(sessionIndexState, sessionRecord.sessionId, user.login, 'write', { source: 'portal' });
     res.json({
       sessionId: sessionRecord.sessionId,
       roomName: sessionRecord.roomName,
@@ -1885,21 +1810,12 @@ app.get('/api/join-requests', async (req, res) => {
     const accessState = daemon.accessState || await ensureDaemonAclState(daemon.daemonId, '', daemon);
     daemonAccessById.set(daemon.daemonId, accessState);
   }
-  const daemonIds = [...daemonAccessById.keys()];
+  await ensureSessionIndicesReady();
   const joinRequests = [];
-  for (const roomInfo of await listSessionRoomInfos()) {
-    const metadata = parseSessionRoomTitle(roomInfo?.title || roomInfo?.name || '');
-    if (!metadata) continue;
-    const sessionRecord = {
-      sessionId: roomInfo.roomId,
-      roomName: metadata.roomName,
-      daemonId: metadata.daemonId,
-      agentName: metadata.agentName,
-      workingDirectory: metadata.workingDirectory,
-      ownerUserId: metadata.ownerUserId,
-    };
+  for (const sessionRecord of sessionIndexState.directoryBySessionId.values()) {
+    if (sessionRecord.deletedAt) continue;
     if (!sessionRecord || !canManageSession(sessionRecord, daemonAccessById.get(sessionRecord.daemonId), user.login)) continue;
-    const requests = await readJoinRequestsForSession(sessionRecord.sessionId);
+    const requests = listJoinRequestsForSession(sessionIndexState, sessionRecord.sessionId);
     for (const requestRecord of requests) {
       if (requestRecord.status !== 'pending') continue;
       joinRequests.push({
@@ -1916,8 +1832,8 @@ app.post('/api/sessions/:sessionId/join-requests', async (req, res) => {
   const user = requirePortalUser(req, res);
   if (!user) return;
   const sessionId = String(req.params.sessionId || '').trim();
-  const daemonIds = (await listDaemonRegistryRecords()).map((daemon) => daemon.daemonId);
-  const sessionRecord = await readManagedSessionRecord(sessionId, daemonIds);
+  await ensureSessionIndicesReady();
+  const sessionRecord = getIndexedSessionRecord(sessionId);
   if (!sessionRecord) return res.status(404).json({ error: 'Session not found' });
   const daemon = await getDaemonRegistryRecord(sessionRecord.daemonId);
   if (!daemon) return res.status(404).json({ error: 'Daemon not found' });
@@ -1925,8 +1841,13 @@ app.post('/api/sessions/:sessionId/join-requests', async (req, res) => {
   if (!canMemberDaemonAccess(accessState, user.login)) {
     return res.status(403).json({ error: 'You need daemon access before requesting session access' });
   }
-  const sessionMembers = await listSessionRoomMembers(sessionId);
-  const existingAccessLevel = getSessionAccessLevel(sessionRecord, sessionMembers, accessState, user.login);
+  const existingAccessLevel = getSessionAccessLevelFromIndex({
+    state: sessionIndexState,
+    sessionRecord,
+    daemonAccessState: accessState,
+    userId: user.login,
+    canAdminDaemonAccess,
+  });
   const rawRequestedAccess = String(req.body?.requestedAccess || '').trim().toLowerCase();
   const requestedAccess = rawRequestedAccess || 'read';
   if (requestedAccess !== 'read' && requestedAccess !== 'write') {
@@ -1935,12 +1856,12 @@ app.post('/api/sessions/:sessionId/join-requests', async (req, res) => {
   if (existingAccessLevel === 'write' || (existingAccessLevel === 'read' && requestedAccess === 'read')) {
     return res.json({ ok: true, status: 'approved', joined: true, requestId: '', requestedAccess });
   }
-  const existing = await getLatestJoinRequestForSessionAndUser(sessionId, user.login);
+  const existing = getLatestJoinRequestForUser(sessionIndexState, sessionId, user.login);
   if (existing?.status === 'pending' && existing.requestedAccess === requestedAccess) {
     return res.json({ ok: true, status: 'pending', requestId: existing.requestId, joined: false, requestedAccess });
   }
   const requestId = crypto.randomUUID();
-  await appendJoinRequestEvent(sessionRecord, {
+  const requestRecord = {
     requestId,
     requesterUserId: user.login,
     ownerUserId: sessionRecord.ownerUserId,
@@ -1952,7 +1873,9 @@ app.post('/api/sessions/:sessionId/join-requests', async (req, res) => {
     status: 'pending',
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString(),
-  });
+  };
+  await appendJoinRequestEvent(sessionRecord, requestRecord);
+  upsertTrustedJoinRequestState(sessionIndexState, sessionId, requestRecord, { source: 'portal' });
   res.json({ ok: true, status: 'pending', requestId, joined: false, requestedAccess });
 });
 
@@ -1967,10 +1890,10 @@ app.post('/api/sessions/:sessionId/join-requests/:requestId/approve', async (req
     const accessState = daemon.accessState || await ensureDaemonAclState(daemon.daemonId, '', daemon);
     daemonAccessById.set(daemon.daemonId, accessState);
   }
-  const daemonIds = daemonRegistryRecords.map((daemon) => daemon.daemonId);
-  const sessionRecord = await readManagedSessionRecord(sessionId, daemonIds);
+  await ensureSessionIndicesReady();
+  const sessionRecord = getIndexedSessionRecord(sessionId);
   if (!sessionRecord) return res.status(404).json({ error: 'Session not found' });
-  const joinRequest = (await readJoinRequestsForSession(sessionId)).find((request) => request.requestId === requestId);
+  const joinRequest = findJoinRequestById(sessionIndexState, sessionId, requestId);
   if (!joinRequest) return res.status(404).json({ error: 'Join request not found' });
   const daemonAccessState = daemonAccessById.get(sessionRecord.daemonId);
   if (!canManageSession(sessionRecord, daemonAccessState, user.login)) {
@@ -1978,11 +1901,20 @@ app.post('/api/sessions/:sessionId/join-requests/:requestId/approve', async (req
   }
   try {
     await upsertChatRoomMember(sessionId, joinRequest.requesterUserId, joinRequest.requestedAccess === 'write' ? 'room.operator' : 'room.member');
-    await appendJoinRequestEvent(sessionRecord, {
+    const approvedJoinRequest = {
       ...joinRequest,
       status: 'approved',
       updatedAt: new Date().toISOString(),
-    });
+    };
+    await appendJoinRequestEvent(sessionRecord, approvedJoinRequest);
+    upsertTrustedSessionMembership(
+      sessionIndexState,
+      sessionId,
+      joinRequest.requesterUserId,
+      joinRequest.requestedAccess === 'write' ? 'write' : 'read',
+      { source: 'portal' },
+    );
+    upsertTrustedJoinRequestState(sessionIndexState, sessionId, approvedJoinRequest, { source: 'portal' });
     // Notify the requester in the lobby for immediate UI update
     try {
       await sendLobbyEnvelope({
@@ -2014,20 +1946,22 @@ app.post('/api/sessions/:sessionId/join-requests/:requestId/reject', async (req,
     const accessState = daemon.accessState || await ensureDaemonAclState(daemon.daemonId, '', daemon);
     daemonAccessById.set(daemon.daemonId, accessState);
   }
-  const daemonIds = daemonRegistryRecords.map((daemon) => daemon.daemonId);
-  const sessionRecord = await readManagedSessionRecord(sessionId, daemonIds);
+  await ensureSessionIndicesReady();
+  const sessionRecord = getIndexedSessionRecord(sessionId);
   if (!sessionRecord) return res.status(404).json({ error: 'Session not found' });
-  const joinRequest = (await readJoinRequestsForSession(sessionId)).find((request) => request.requestId === requestId);
+  const joinRequest = findJoinRequestById(sessionIndexState, sessionId, requestId);
   if (!joinRequest) return res.status(404).json({ error: 'Join request not found' });
   const daemonAccessState = daemonAccessById.get(sessionRecord.daemonId);
   if (!canManageSession(sessionRecord, daemonAccessState, user.login)) {
     return res.status(403).json({ error: 'Only a session manager can reject join requests' });
   }
-  await appendJoinRequestEvent(sessionRecord, {
+  const rejectedJoinRequest = {
     ...joinRequest,
     status: 'denied',
     updatedAt: new Date().toISOString(),
-  });
+  };
+  await appendJoinRequestEvent(sessionRecord, rejectedJoinRequest);
+  upsertTrustedJoinRequestState(sessionIndexState, sessionId, rejectedJoinRequest, { source: 'portal' });
   try {
     await sendLobbyEnvelope({
       type: 'portal.access-denied',
@@ -2048,20 +1982,26 @@ app.post('/api/sessions/:sessionId/access-self', async (req, res) => {
   const user = requirePortalUser(req, res);
   if (!user) return;
   const sessionId = String(req.params.sessionId || '').trim();
-  const daemonIds = (await listDaemonRegistryRecords()).map((daemon) => daemon.daemonId);
-  const sessionRecord = await readManagedSessionRecord(sessionId, daemonIds);
+  await ensureSessionIndicesReady();
+  const sessionRecord = getIndexedSessionRecord(sessionId);
   if (!sessionRecord) return res.status(404).json({ error: 'Session not found' });
   const daemon = await getDaemonRegistryRecord(sessionRecord.daemonId);
   if (!daemon) return res.status(404).json({ error: 'Daemon not found' });
   const accessState = daemon.accessState || await ensureDaemonAclState(daemon.daemonId, '', daemon);
-  const sessionMembers = await listSessionRoomMembers(sessionId);
-  const accessLevel = getSessionAccessLevel(sessionRecord, sessionMembers, accessState, user.login);
+  const accessLevel = getSessionAccessLevelFromIndex({
+    state: sessionIndexState,
+    sessionRecord,
+    daemonAccessState: accessState,
+    userId: user.login,
+    canAdminDaemonAccess,
+  });
   if (accessLevel === 'none') {
     return res.status(403).json({ error: 'You do not have access to this session' });
   }
-  const existingMembership = sessionMembers.find((member) => member.userId === user.login);
+  const existingMembership = sessionIndexState.membershipBySessionId.get(sessionId)?.get(user.login) || '';
   if (!existingMembership && canAdminDaemonAccess(accessState, user.login)) {
     await upsertChatRoomMember(sessionId, user.login, 'room.operator');
+    upsertTrustedSessionMembership(sessionIndexState, sessionId, user.login, 'write', { source: 'portal' });
   }
   res.json({ ok: true, accessLevel, joined: true });
 });
@@ -2076,8 +2016,8 @@ app.delete('/api/sessions/:sessionId', async (req, res) => {
     const accessState = daemon.accessState || await ensureDaemonAclState(daemon.daemonId, '', daemon);
     daemonAccessById.set(daemon.daemonId, accessState);
   }
-  const daemonIds = daemonRegistryRecords.map((daemon) => daemon.daemonId);
-  const sessionRecord = await readManagedSessionRecord(sessionId, daemonIds);
+  await ensureSessionIndicesReady();
+  const sessionRecord = getIndexedSessionRecord(sessionId);
   if (!sessionRecord) return res.status(404).json({ error: 'Session not found' });
   const daemonAccessState = daemonAccessById.get(sessionRecord.daemonId);
   if (!canManageSession(sessionRecord, daemonAccessState, user.login)) {
@@ -2085,6 +2025,7 @@ app.delete('/api/sessions/:sessionId', async (req, res) => {
   }
   try {
     await deleteManagedSession(sessionRecord);
+    markTrustedSessionDeleted(sessionIndexState, sessionId, new Date().toISOString(), { source: 'portal' });
     await sendDaemonSyncEnvelope(sessionRecord, 'session.deleted');
     res.json({ ok: true });
   } catch (error) {
@@ -2103,8 +2044,8 @@ app.delete('/api/sessions/:sessionId/members/:userId', async (req, res) => {
     const accessState = daemon.accessState || await ensureDaemonAclState(daemon.daemonId, '', daemon);
     daemonAccessById.set(daemon.daemonId, accessState);
   }
-  const daemonIds = daemonRegistryRecords.map((daemon) => daemon.daemonId);
-  const sessionRecord = await readManagedSessionRecord(sessionId, daemonIds);
+  await ensureSessionIndicesReady();
+  const sessionRecord = getIndexedSessionRecord(sessionId);
   if (!sessionRecord) return res.status(404).json({ error: 'Session not found' });
   const daemonAccessState = daemonAccessById.get(sessionRecord.daemonId);
   if (targetUserId !== user.login && !canManageSession(sessionRecord, daemonAccessState, user.login)) {
@@ -2115,6 +2056,7 @@ app.delete('/api/sessions/:sessionId/members/:userId', async (req, res) => {
   }
   try {
     await invokeAdminChat('removeSessionMember', (chat) => chat.removeUserFromRoom(sessionId, targetUserId));
+    removeTrustedSessionMembership(sessionIndexState, sessionId, targetUserId, { source: 'portal' });
     res.json({ ok: true });
   } catch (error) {
     res.status(500).json({ error: error.message || 'Failed to remove session member' });
@@ -2134,6 +2076,7 @@ const server = app.listen(port, async () => {
   console.log(`[Web] GitHub OAuth: ${OAUTH_ENABLED ? 'enabled' : DISABLE_OAUTH ? 'disabled by --disable-oauth' : 'disabled (set GITHUB_OAUTH_CLIENT_ID and GITHUB_OAUTH_CLIENT_SECRET in .env to enable)'}`);
   try {
     await initAdminChat();
+    warmSessionIndexInBackground('startup');
   } catch (e) {
     console.error('[Web] Admin chat init failed:', e.message);
   }

@@ -1,6 +1,6 @@
 import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
-import { waitForJoinedRoom, waitForRoomLiveSync } from '../public/session-live-sync.js';
+import { ensureSessionOpenSync, waitForJoinedRoom, waitForRoomLiveSync } from '../public/session-live-sync.js';
 
 describe('session live sync helpers', () => {
   it('does not treat room info fetch as a completed live-room join', async () => {
@@ -137,6 +137,82 @@ describe('session live sync helpers', () => {
 
     assert.equal(syncRequests, 2);
     assert.equal(listeners.size, 0);
+  });
+
+  it('accepts history-based sync evidence when live delivery lags behind', async () => {
+    let syncRequests = 0;
+    let historyChecks = 0;
+
+    await waitForRoomLiveSync('room-7', {
+      subscribeToMessages: () => () => {},
+      sendSyncRequest: async () => {
+        syncRequests += 1;
+      },
+      messageHasSyncEvidence: () => false,
+      checkHistoryForSyncEvidence: async () => {
+        historyChecks += 1;
+        return syncRequests >= 2;
+      },
+      timeoutMs: 50,
+      retryIntervalMs: 1,
+    });
+
+    assert.equal(syncRequests, 2);
+    assert.ok(historyChecks >= 2);
+  });
+
+  it('skips the live sync wait when the initial history replay already has sync evidence', async () => {
+    let liveWaitCalls = 0;
+    let waitingBannerCalls = 0;
+
+    const result = await ensureSessionOpenSync('room-8', {
+      replayHistory: async (roomId, sessionMeta, historyOptions) => {
+        assert.equal(roomId, 'room-8');
+        assert.equal(sessionMeta.sessionId, 'room-8');
+        assert.deepEqual(historyOptions, { maxCount: 100, skipStartupEnvelopes: true });
+        return true;
+      },
+      waitForLiveState: async () => {
+        liveWaitCalls += 1;
+      },
+      sessionMeta: { sessionId: 'room-8' },
+      timeoutMs: 5000,
+      historyOptions: { maxCount: 100, skipStartupEnvelopes: true },
+      onWaitingForLiveState: () => {
+        waitingBannerCalls += 1;
+      },
+    });
+
+    assert.deepEqual(result, { historyHasSyncEvidence: true });
+    assert.equal(liveWaitCalls, 0);
+    assert.equal(waitingBannerCalls, 0);
+  });
+
+  it('falls through to live sync when the initial history replay has no sync evidence', async () => {
+    const calls = [];
+
+    const result = await ensureSessionOpenSync('room-9', {
+      replayHistory: async (roomId, sessionMeta, historyOptions) => {
+        calls.push({ type: 'history', roomId, sessionId: sessionMeta.sessionId, historyOptions });
+        return false;
+      },
+      waitForLiveState: async (roomId, timeoutMs, sessionMeta) => {
+        calls.push({ type: 'live', roomId, timeoutMs, sessionId: sessionMeta.sessionId });
+      },
+      sessionMeta: { sessionId: 'room-9' },
+      timeoutMs: 4321,
+      historyOptions: { maxCount: 25, skipStartupEnvelopes: false },
+      onWaitingForLiveState: () => {
+        calls.push({ type: 'banner' });
+      },
+    });
+
+    assert.deepEqual(result, { historyHasSyncEvidence: false });
+    assert.deepEqual(calls, [
+      { type: 'history', roomId: 'room-9', sessionId: 'room-9', historyOptions: { maxCount: 25, skipStartupEnvelopes: false } },
+      { type: 'banner' },
+      { type: 'live', roomId: 'room-9', timeoutMs: 4321, sessionId: 'room-9' },
+    ]);
   });
 
   it('fails fast when live sync evidence never arrives', async () => {
