@@ -2594,6 +2594,7 @@ async function initCC(userId){
   if(negData.userId)uid=negData.userId;
   syncUserBadge();
   cc=await new ChatClient(negData.url).login();
+  await ensureLobbyMembership(uid);
   cc.addListenerForNewMessage(onMsg);
   cc.addListenerForNewRoom((room)=>{if(room.roomId!==LOBBY_ROOM){const req=joinRequests.get(room.roomId)||{};if(req&&(req.status==='pending'||req.status==='approved')){joinRequests.set(room.roomId,{...req,status:'approved'});openR(room.roomId).catch(err=>{setSessionBanner({source:'error',label:'Open failed',text:err?.message||'Failed to open newly joined session',tone:'error',actionText:'Retry',action:()=>openR(room.roomId)});setFormStatus(err?.message||'Failed to open joined session.','error',4500,'join')});}renderSessionsCol()}});
   cc.addListenerForRoomLeft((info)=>{if(info.roomId===rid){rid=null;resetChatState();applyLoggedInState();updateBreadcrumb();updateAutoBtn()}renderSessionsCol()});

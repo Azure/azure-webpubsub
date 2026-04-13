@@ -19,6 +19,8 @@ import { access, mkdir, readFile, readdir, writeFile } from 'node:fs/promises';
 import { once } from 'node:events';
 import { dirname, resolve, delimiter, relative, isAbsolute } from 'path';
 import { spawn } from 'node:child_process';
+import { stdin as input, stdout as output } from 'node:process';
+import { createInterface } from 'node:readline/promises';
 import { Readable, Writable } from 'node:stream';
 import { ChatClient } from '@azure/web-pubsub-chat-client';
 import { ClientSideConnection, ndJsonStream, PROTOCOL_VERSION } from '@agentclientprotocol/sdk';
@@ -37,12 +39,12 @@ const DAEMON_ENTRY_DIR = process.argv[1]
 
 const INSTALL_ALL_AGENT_CLI_MODE = process.argv.includes('--install');
 const portalUrl = process.env.PORTAL_URL || 'http://localhost:3000';
-const BOT_USER_ID = process.env.DAEMON_INSTANCE_ID || process.env.DAEMON_USER_ID || 'copilot-bot';
-const BOT_OWNER_USER_ID = process.env.DAEMON_OWNER_USER_ID || process.env.DAEMON_OWNER || process.env.USERNAME || process.env.USER || 'local-owner';
+let BOT_USER_ID = '';
+let BOT_OWNER_USER_ID = '';
 const PORTAL_CONTROL_USER_ID = process.env.PORTAL_CONTROL_USER_ID || '__portal_control__';
 const MAX_ROOM_MESSAGE_LENGTH = 4096;
 const LOBBY_ROOM = 'lobby';
-const DAEMON_CONTROL_ROOM = BOT_USER_ID;
+let DAEMON_CONTROL_ROOM = '';
 const DAEMON_HEARTBEAT_MS = 30000;
 const DAEMON_DIR = DAEMON_ENTRY_DIR;
 const PROJECT_ROOT = resolve(DAEMON_DIR, '..', '..');
@@ -53,6 +55,62 @@ const SESSION_STORE_DEBOUNCE_MS = 150;
 const ACP_STARTUP_TIMEOUT_MS = Number(process.env.ACP_STARTUP_TIMEOUT_MS || 90000);
 const WORKSPACE_LIST_LIMIT = 200;
 const SUPPORTED_ACP_AGENT_NAMES = ['copilot', 'claude', 'codex'];
+
+function sanitizeDaemonIdFragment(value) {
+  return String(value || '')
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9._-]+/g, '-')
+    .replace(/-{2,}/g, '-')
+    .replace(/^-+|-+$/g, '');
+}
+
+async function promptForRequiredValue(rl, message, { defaultValue = '', sanitize = (value) => value } = {}) {
+  while (true) {
+    const suffix = defaultValue ? ` [${defaultValue}]` : '';
+    const answer = (await rl.question(`${message}${suffix}: `)).trim();
+    const resolved = sanitize(answer || defaultValue);
+    if (resolved) return resolved;
+  }
+}
+
+async function ensureStartupIdentity() {
+  let ownerUserId = String(process.env.DAEMON_OWNER_USER_ID || process.env.DAEMON_OWNER || '').trim();
+  let daemonInstanceId = String(process.env.DAEMON_INSTANCE_ID || '').trim();
+
+  if (!ownerUserId && (!input.isTTY || !output.isTTY)) {
+    throw new Error('DAEMON_OWNER_USER_ID is required when running without an interactive terminal.');
+  }
+
+  let rl = null;
+  try {
+    if (!ownerUserId || !daemonInstanceId) {
+      rl = createInterface({ input, output });
+    }
+
+    if (!ownerUserId) {
+      ownerUserId = await promptForRequiredValue(rl, 'Enter your GitHub username');
+    }
+
+    if (!daemonInstanceId) {
+      const hostnamePart = sanitizeDaemonIdFragment(osHostname()) || 'daemon';
+      const ownerPart = sanitizeDaemonIdFragment(ownerUserId) || 'user';
+      const defaultInstanceId = `${hostnamePart}-${ownerPart}`;
+      daemonInstanceId = await promptForRequiredValue(rl, 'Enter daemon instance id', {
+        defaultValue: defaultInstanceId,
+        sanitize: sanitizeDaemonIdFragment,
+      });
+    }
+  } finally {
+    rl?.close();
+  }
+
+  BOT_OWNER_USER_ID = ownerUserId;
+  BOT_USER_ID = daemonInstanceId;
+  DAEMON_CONTROL_ROOM = BOT_USER_ID;
+  process.env.DAEMON_OWNER_USER_ID = BOT_OWNER_USER_ID;
+  process.env.DAEMON_INSTANCE_ID = BOT_USER_ID;
+}
 
 function isPortalControlUser(userId) {
   return String(userId || '').trim() === PORTAL_CONTROL_USER_ID;
@@ -1824,6 +1882,8 @@ async function main() {
     await installAllSupportedAgentCli();
     return;
   }
+
+  await ensureStartupIdentity();
 
   Object.assign(sessionStore, await loadSessionStore());
 

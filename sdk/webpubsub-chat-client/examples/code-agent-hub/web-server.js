@@ -1402,7 +1402,7 @@ app.get(/^\/negotiate:portal$/, async (req, res) => {
     const invalidUserId = validateNegotiatedUserId(userId);
     if (invalidUserId) return res.status(400).json({ error: invalidUserId });
   }
-  await issueTokenResponse(res, userId, { ensureLobby: false, logLabel: PORTAL_NEGOTIATE_PATH });
+  await issueTokenResponse(res, userId, { ensureLobby: true, logLabel: PORTAL_NEGOTIATE_PATH });
 });
 
 app.post('/api/daemon-sessions/bootstrap', async (req, res) => {
