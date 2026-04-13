@@ -31,7 +31,7 @@ RUN git clone --branch main https://github.com/Azure/azure-webpubsub.git /worksp
 COPY examples/code-agent-hub/dist/daemon/agent-daemon.bundle.cjs /app/
 
 # Pre-install only the tested ACP agent CLIs
-RUN node /app/agent-daemon.bundle.cjs --install-all-agent-cli
+RUN node /app/agent-daemon.bundle.cjs --install
 
 # Create directories for host config mounts
 RUN mkdir -p /root/.claude /root/.codex /root/.copilot /root/.config/github-copilot /root/.local/share/github-copilot /workspace/external

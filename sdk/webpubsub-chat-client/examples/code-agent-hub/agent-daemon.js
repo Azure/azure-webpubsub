@@ -23,12 +23,19 @@ import { Readable, Writable } from 'node:stream';
 import { ChatClient } from '@azure/web-pubsub-chat-client';
 import { ClientSideConnection, ndJsonStream, PROTOCOL_VERSION } from '@agentclientprotocol/sdk';
 import { hostname as osHostname } from 'os';
+import { config as loadEnv } from 'dotenv';
 import { finishAcpPromptTurn } from './acp-prompt-turn.js';
 import { createModelsUpdateEvent, hasModelToolbarState } from './public/session-toolbar-state.js';
 
 // ── Configuration ──
 
-const INSTALL_ALL_AGENT_CLI_MODE = process.argv.includes('--install-all-agent-cli');
+loadEnv();
+
+const DAEMON_ENTRY_DIR = process.argv[1]
+  ? dirname(resolve(process.argv[1]))
+  : process.cwd();
+
+const INSTALL_ALL_AGENT_CLI_MODE = process.argv.includes('--install');
 const connectionString = process.env.WEB_PUBSUB_CONNECTION_STRING || process.env.WebPubSubConnectionString;
 if (!INSTALL_ALL_AGENT_CLI_MODE && !connectionString) {
   console.error('[Daemon] Error: WEB_PUBSUB_CONNECTION_STRING or WebPubSubConnectionString is required');
@@ -44,9 +51,7 @@ const MAX_ROOM_MESSAGE_LENGTH = 4096;
 const LOBBY_ROOM = 'lobby';
 const DAEMON_CONTROL_ROOM = BOT_USER_ID;
 const DAEMON_HEARTBEAT_MS = 30000;
-const DAEMON_DIR = process.argv[1]
-  ? dirname(resolve(process.argv[1]))
-  : process.cwd();
+const DAEMON_DIR = DAEMON_ENTRY_DIR;
 const PROJECT_ROOT = resolve(DAEMON_DIR, '..', '..');
 const SESSION_STORE_PATH = process.env.SESSION_STORE_PATH
   || resolve(process.env.HOME || process.env.USERPROFILE || '.', '.copilot-mobile', 'sessions.json');
@@ -57,6 +62,7 @@ const WORKSPACE_LIST_LIMIT = 200;
 const SUPPORTED_ACP_AGENT_NAMES = ['copilot', 'claude', 'codex'];
 
 function parseConnectionStringValue(key) {
+  if (!connectionString) return '';
   const part = connectionString
     .split(';')
     .map((segment) => segment.trim())

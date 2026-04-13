@@ -15,6 +15,10 @@ export function getCreateSessionAccessState(daemon) {
   };
 }
 
+export function canBrowseDaemonDirectories(daemon) {
+  return daemonHasAdminAccess(daemon);
+}
+
 export function normalizeDaemonRecord(daemon, normalizePlatform = (platform) => platform || '') {
   const hasAdminAccess = daemonHasAdminAccess(daemon);
   const hasMemberAccess = daemonHasMemberAccess(daemon);

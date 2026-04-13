@@ -1,6 +1,7 @@
 import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
 import {
+  canBrowseDaemonDirectories,
   classifyIncomingSessionRoomMessage,
   daemonHasAdminAccess,
   daemonHasMemberAccess,
@@ -23,6 +24,7 @@ describe('portal regression helpers', () => {
 
     assert.equal(daemonHasAdminAccess(daemon), true);
     assert.equal(daemonHasMemberAccess(daemon), true);
+    assert.equal(canBrowseDaemonDirectories(daemon), true);
     assert.deepEqual(getCreateSessionAccessState(daemon), { blocked: false, readOnly: false });
 
     const normalized = normalizeDaemonRecord(daemon);
@@ -30,6 +32,15 @@ describe('portal regression helpers', () => {
     assert.equal(normalized.hasMemberAccess, true);
     assert.equal(normalized.canRead, true);
     assert.equal(normalized.canWrite, true);
+  });
+
+  it('keeps directory browsing admin-only even when a daemon is member-readable', () => {
+    const daemon = { daemonId: 'daemon-beta', canRead: true, canWrite: false };
+
+    assert.equal(daemonHasMemberAccess(daemon), true);
+    assert.equal(daemonHasAdminAccess(daemon), false);
+    assert.equal(canBrowseDaemonDirectories(daemon), false);
+    assert.deepEqual(getCreateSessionAccessState(daemon), { blocked: false, readOnly: true });
   });
 
   it('dedupes live room updates by message id before timestamps', () => {

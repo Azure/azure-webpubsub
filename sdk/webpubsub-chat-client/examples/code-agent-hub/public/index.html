@@ -550,7 +550,7 @@ a{color:var(--accent2);text-decoration:none}button{font-family:inherit;cursor:po
 import DOMPurify from'/dompurify.js';
 import{Marked,Renderer}from'/marked.js';
 import{ChatClient}from'/chat-client.js';
-import{classifyIncomingSessionRoomMessage,daemonHasAdminAccess as portalDaemonHasAdminAccess,daemonHasMemberAccess as portalDaemonHasMemberAccess,getCreateSessionAccessState,isDaemonRecordFresh,isLocalEchoMessage,normalizeDaemonRecord as normalizePortalDaemonRecord,resetSessionStateToIdle,resolveNotificationRoomId,shouldIgnoreSemanticDuplicate,shouldRetainPreviousDaemons}from'/portal-regressions.js';
+import{canBrowseDaemonDirectories,classifyIncomingSessionRoomMessage,daemonHasAdminAccess as portalDaemonHasAdminAccess,daemonHasMemberAccess as portalDaemonHasMemberAccess,getCreateSessionAccessState,isDaemonRecordFresh,isLocalEchoMessage,normalizeDaemonRecord as normalizePortalDaemonRecord,rememberRoomMessage,resetSessionStateToIdle,resolveNotificationRoomId,shouldIgnoreRoomMessage,shouldIgnoreSemanticDuplicate,shouldRetainPreviousDaemons}from'/portal-regressions.js';
 import{collectVisibleSessions,normalizeSessionRecord as normalizeSessionDiscoveryRecord,resolveRoomDisplayName,shouldShowPortalSessionLoading,shouldSkipDeletedSession}from'/session-discovery-state.js';
 import{ensureSessionOpenSync,waitForJoinedRoom,waitForRoomLiveSync}from'/session-live-sync.js';
 import{deriveToolbarModelId}from'/session-toolbar-state.js';
@@ -1261,6 +1261,9 @@ async function requestWorkspaceListing(pathValue='',query=''){
   return portalJson(`/api/daemons/${encodeURIComponent(currentDaemonId)}/directories?${params.toString()}`);
 }
 function clearDirectorySuggestions(){if($.dirSuggestions)$.dirSuggestions.innerHTML=''}
+function shouldBrowseSelectedDaemonDirectories(){
+  return canBrowseDaemonDirectories(knownDaemons.get(currentDaemonId));
+}
 function setDirectoryMeta(message='',tone=''){
   if(!$.dirMeta)return;
   $.dirMeta.innerHTML=message||directoryMetaText(knownDaemons.get(currentDaemonId),$.dirIn?.value||'');
@@ -1287,6 +1290,15 @@ function renderDirectorySuggestions(items=[],response=null){
 async function refreshDirectorySuggestions(rawValue='',{silent=false}={}){
   if(!uid||!cc||!currentDaemonId){clearDirectorySuggestions();return}
   const daemon=knownDaemons.get(currentDaemonId);
+  if(!shouldBrowseSelectedDaemonDirectories()){
+    clearDirectorySuggestions();
+    if(!silent&&daemon){
+      const {blocked,readOnly}=getCreateSessionAccessState(daemon);
+      if(blocked)setDirectoryMeta('You need daemon access before browsing directories.','error');
+      else if(readOnly)setDirectoryMeta('Directory browsing requires daemon admin access.','');
+    }
+    return;
+  }
   const inputValue=String(rawValue||'').trim();
   const token=++directorySuggestionToken;
   try{
@@ -1302,6 +1314,7 @@ async function refreshDirectorySuggestions(rawValue='',{silent=false}={}){
   }
 }
 function scheduleDirectorySuggestions(rawValue=''){
+  if(!shouldBrowseSelectedDaemonDirectories()){clearTimeout(directorySuggestionTimer);directorySuggestionTimer=null;clearDirectorySuggestions();return}
   clearTimeout(directorySuggestionTimer);
   directorySuggestionTimer=setTimeout(()=>{directorySuggestionTimer=null;void refreshDirectorySuggestions(rawValue)},180);
 }

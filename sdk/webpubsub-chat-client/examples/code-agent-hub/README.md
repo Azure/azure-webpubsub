@@ -66,6 +66,16 @@ npm run daemon
 
 Open http://localhost:3000. Enter any username (OAuth is skipped without `.env`).
 
+### Install Agent CLIs Only
+
+If you only want to pre-install the tested ACP agent CLIs, the daemon does not need any Web PubSub or portal environment variables:
+
+```bash
+node agent-daemon.js --install
+```
+
+This mode exits immediately after the installs finish and does not attempt daemon registration, heartbeat, bot login, or Chat connectivity.
+
 ### With GitHub OAuth
 
 Create a `.env` file:
@@ -88,6 +98,8 @@ $env:WEB_PUBSUB_CONNECTION_STRING="Endpoint=http://localhost;Port=8080;AccessKey
 npm run portal    # Terminal 1
 npm run daemon    # Terminal 2
 ```
+
+The daemon auto-loads `.env` from the current working directory via `dotenv`. If you run the bundled daemon from `dist/daemon`, start it from the project root when you want it to pick up the root `.env`.
 
 ## Building Deployable Packages
 
