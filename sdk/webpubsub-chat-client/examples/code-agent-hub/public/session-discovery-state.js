@@ -10,6 +10,7 @@ export function normalizeSessionRecord(session, previous = {}) {
   return {
     ...previous,
     sessionId: session.sessionId || previous.sessionId,
+    defaultConversationId: session.defaultConversationId || previous.defaultConversationId || '',
     ownerUserId: session.ownerUserId || previous.ownerUserId || '',
     daemonId: session.daemonId || previous.daemonId || '',
     agent: session.agentName || session.agent || previous.agent || '',
@@ -93,6 +94,7 @@ function createJoinedRoomCandidate(room, previous = {}) {
   return {
     ...previous,
     sessionId: room.roomId,
+    defaultConversationId: room.defaultConversationId || previous.defaultConversationId || '',
     ownerUserId: previous.ownerUserId || parsedRoomTitle?.ownerUserId || '',
     daemonId: previous.daemonId || parsedRoomTitle?.daemonId || '',
     agent: previous.agent || parsedRoomTitle?.agentName || '',

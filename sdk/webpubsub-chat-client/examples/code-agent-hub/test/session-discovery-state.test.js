@@ -2,6 +2,7 @@ import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
 import {
   collectVisibleSessions,
+  normalizeSessionRecord,
   resolveRoomDisplayName,
   shouldShowPortalSessionLoading,
   shouldSkipDeletedSession,
@@ -40,7 +41,7 @@ describe('session discovery state helpers', () => {
   it('surfaces joined rooms as local candidates even before portal discovery catches up', () => {
     const sessions = collectVisibleSessions({
       discoveredSessions: new Map(),
-      chatRooms: [{ roomId: 'session-2', title: 'Joined Session', updatedAt: '2026-04-11T05:10:00.000Z' }],
+      chatRooms: [{ roomId: 'session-2', title: 'Joined Session', updatedAt: '2026-04-11T05:10:00.000Z', defaultConversationId: 'conversation-2' }],
       deletedSessions: new Map(),
       currentDaemonId: 'daemon-a',
       currentAgentName: 'copilot',
@@ -51,6 +52,26 @@ describe('session discovery state helpers', () => {
     assert.equal(sessions[0].name, 'Joined Session');
     assert.equal(sessions[0].accessLevel, 'read');
     assert.equal(sessions[0].canRead, true);
+    assert.equal(sessions[0].defaultConversationId, 'conversation-2');
+  });
+
+  it('preserves defaultConversationId across touch-style session updates', () => {
+    const previous = {
+      sessionId: 'session-keep-cid',
+      defaultConversationId: 'conversation-keep',
+      daemonId: 'daemon-a',
+      agent: 'copilot',
+      canRead: true,
+    };
+
+    const normalized = normalizeSessionRecord({
+      sessionId: 'session-keep-cid',
+      updatedAt: '2026-04-13T05:45:22.263Z',
+      roomName: 'azure-sdk-for-net (copilot)',
+    }, previous);
+
+    assert.equal(normalized.defaultConversationId, 'conversation-keep');
+    assert.equal(normalized.name, 'azure-sdk-for-net (copilot)');
   });
 
   it('ignores daemon ACL sync rooms when surfacing joined room candidates', () => {
