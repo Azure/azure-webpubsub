@@ -1,5 +1,9 @@
 # Changelog
 
+## [1.0.0-beta.12] - 2026-04-13
+### Fixed
+- Fix tunnel connection failing to establish on Node.js 20+
+
 ## [1.0.0-beta.11] - 2024-11-11
 ### Improved
 - Improve upstream sample code for net8
