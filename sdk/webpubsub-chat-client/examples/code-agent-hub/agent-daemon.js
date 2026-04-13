@@ -23,6 +23,7 @@ import { Readable, Writable } from 'node:stream';
 import { ChatClient } from '@azure/web-pubsub-chat-client';
 import { ClientSideConnection, ndJsonStream, PROTOCOL_VERSION } from '@agentclientprotocol/sdk';
 import { hostname as osHostname } from 'os';
+import { finishAcpPromptTurn } from './acp-prompt-turn.js';
 import { createModelsUpdateEvent, hasModelToolbarState } from './public/session-toolbar-state.js';
 
 // ── Configuration ──
@@ -51,7 +52,6 @@ const SESSION_STORE_PATH = process.env.SESSION_STORE_PATH
   || resolve(process.env.HOME || process.env.USERPROFILE || '.', '.copilot-mobile', 'sessions.json');
 const DEFAULT_SDK_MODEL = 'gpt-5.4';
 const SESSION_STORE_DEBOUNCE_MS = 150;
-const ACP_IDLE_GRACE_MS = 180;
 const ACP_STARTUP_TIMEOUT_MS = Number(process.env.ACP_STARTUP_TIMEOUT_MS || 90000);
 const WORKSPACE_LIST_LIMIT = 200;
 const SUPPORTED_ACP_AGENT_NAMES = ['copilot', 'claude', 'codex'];
@@ -274,9 +274,6 @@ function createSessionState({ sessionId, agentName, firstPrompt = '', ownerUserI
     isStopping: false,
     startupPromise: null,
     pendingCount: 0,
-    acpAwaitingIdle: false,
-    acpIdleTimer: null,
-    acpLastActivityAt: 0,
     isResuming: false,
     availableModes: [],
     currentModeId: '',
@@ -313,8 +310,6 @@ function cleanupClientTerminals(client) {
 
 async function stopExistingSession(state) {
   if (!state) return;
-  clearAcpIdleTimer(state);
-  state.acpAwaitingIdle = false;
   cleanupClientTerminals(state._acpClient);
   if (state.acpProcess) {
     try { state.acpProcess.kill('SIGTERM'); } catch {}
@@ -753,11 +748,11 @@ function sendDelta(roomId, key, deltaContent, envelopeType = 'assistant.delta', 
   }, 80);
 }
 
-function flushDelta(key) {
+async function flushDelta(key) {
   const buf = deltaBuffers.get(key);
   if (buf && buf.content) {
     if (buf.timer) clearTimeout(buf.timer);
-    botSend(buf.roomId, { type: buf.envelopeType, [buf.idField]: buf.idValue, content: buf.content });
+    await botSend(buf.roomId, { type: buf.envelopeType, [buf.idField]: buf.idValue, content: buf.content });
     deltaBuffers.delete(key);
   }
 }
@@ -833,103 +828,41 @@ function flushCompletedToolInvocations(sessionId, excludeToolCallId = null) {
   }
 }
 
-function clearAcpIdleTimer(state) {
-  if (!state?.acpIdleTimer) return;
-  clearTimeout(state.acpIdleTimer);
-  state.acpIdleTimer = null;
-}
-
-function noteAcpActivity(state) {
-  if (!state) return;
-  state.acpLastActivityAt = Date.now();
-  clearAcpIdleTimer(state);
-}
-
-function flushAcpBufferedContent(state, roomId) {
+async function flushAcpBufferedContent(state, roomId) {
   const client = state?._acpClient;
   if (!client) return;
   if (client._currentMessageText) {
     const messageId = `acp-msg-${client._msgCounter++}`;
-    flushDelta(messageId);
-    botSend(roomId, { type: 'assistant.message', messageId, content: client._currentMessageText });
+    await flushDelta(messageId);
+    await botSend(roomId, { type: 'assistant.message', messageId, content: client._currentMessageText });
     client._currentMessageText = '';
   }
   if (client._currentThoughtText) {
     const reasoningId = `acp-reason-${client._reasonCounter++}`;
-    flushDelta(`reasoning-${reasoningId}`);
-    botSend(roomId, { type: 'assistant.reasoning', reasoningId, content: client._currentThoughtText });
+    await flushDelta(`reasoning-${reasoningId}`);
+    await botSend(roomId, { type: 'assistant.reasoning', reasoningId, content: client._currentThoughtText });
     client._currentThoughtText = '';
   }
 }
 
-function hasPendingAcpToolInvocations(state) {
-  if (!state?.toolInvocations?.size) return false;
-  for (const invocation of state.toolInvocations.values()) {
-    if (invocation && invocation.started && !invocation.completedPending) return true;
-  }
-  return false;
-}
-
-function scheduleAcpIdleSettlement(state, roomId, delay = ACP_IDLE_GRACE_MS) {
-  if (!state?.acpAwaitingIdle) return;
-  clearAcpIdleTimer(state);
-  state.acpIdleTimer = setTimeout(() => {
-    state.acpIdleTimer = null;
-    finalizeAcpPromptTurn(state, roomId);
-  }, Math.max(0, delay));
-  state.acpIdleTimer.unref?.();
-}
-
-function finalizeAcpPromptTurn(state, roomId) {
-  if (!state?.acpAwaitingIdle) return;
-  if (sessions.get(roomId) !== state) return;
-  const quietMs = Date.now() - (state.acpLastActivityAt || 0);
-  if (quietMs < ACP_IDLE_GRACE_MS) {
-    scheduleAcpIdleSettlement(state, roomId, ACP_IDLE_GRACE_MS - quietMs);
-    return;
-  }
-
-  flushAcpBufferedContent(state, roomId);
-  if (hasPendingAcpToolInvocations(state)) {
-    scheduleAcpIdleSettlement(state, roomId, ACP_IDLE_GRACE_MS);
-    return;
-  }
-
-  flushCompletedToolInvocations(roomId);
-  state.acpAwaitingIdle = false;
-  state.isProcessing = false;
-  state.isStopping = false;
-  state.pendingCount = 0;
-  botSend(roomId, { type: 'session.idle' });
-  emitSessionState(roomId);
-}
-
-function beginAcpIdleSettlement(state, roomId) {
-  if (!state) return;
-  state.acpAwaitingIdle = true;
-  scheduleAcpIdleSettlement(state, roomId);
-}
-
 // ── Session Helpers ──
 
-function emitSessionState(sessionId) {
+async function emitSessionState(sessionId) {
   const state = sessions.get(sessionId);
   if (!state) return;
-  botSend(sessionId, { type: 'session.state', ready: !!state.isReady, processing: state.isProcessing, stopping: state.isStopping, pendingCount: state.pendingCount, model: state.model });
+  await botSend(sessionId, { type: 'session.state', ready: !!state.isReady, processing: state.isProcessing, stopping: state.isStopping, pendingCount: state.pendingCount, model: state.model });
 }
 
 function deactivateSession(sessionId, message) {
   const state = sessions.get(sessionId);
   if (!state) return;
   cleanupClientTerminals(state._acpClient);
-  clearAcpIdleTimer(state);
   state.active = false;
   state.isReady = false;
   state.isProcessing = false;
   state.isStopping = false;
   state.startupPromise = null;
   state.pendingCount = 0;
-  state.acpAwaitingIdle = false;
   state.acpConnection = null;
   state.acpSessionId = null;
   state.acpProcess = null;
@@ -954,7 +887,7 @@ async function cancelSessionTurn(state, roomId) {
   if (state.isStopping) return true;
   state.isStopping = true;
   state.pendingCount = 0;
-  emitSessionState(roomId);
+  await emitSessionState(roomId);
 
   for (const [requestId, pending] of state.pendingPermissions.entries()) {
     try { pending.resolve(false); } catch {}
@@ -972,7 +905,7 @@ async function cancelSessionTurn(state, roomId) {
   }
 
   state.isStopping = false;
-  emitSessionState(roomId);
+  await emitSessionState(roomId);
   return false;
 }
 
@@ -992,7 +925,7 @@ async function sendSessionPrompt(state, roomId, prompt) {
   if (state.copilotSession) {
     state.isProcessing = true;
     state.isStopping = false;
-    emitSessionState(roomId);
+    await emitSessionState(roomId);
     try {
       await state.copilotSession.send({ prompt });
     } catch (err) {
@@ -1009,24 +942,26 @@ async function sendSessionPrompt(state, roomId, prompt) {
   }
   state.isProcessing = true;
   state.isStopping = false;
-  state.acpAwaitingIdle = false;
-  noteAcpActivity(state);
-  emitSessionState(roomId);
+  await emitSessionState(roomId);
+  const finalizePromptTurn = (options = {}) => finishAcpPromptTurn(state, roomId, {
+    shouldFinalize: () => sessions.get(roomId) === state,
+    flushBufferedContent: flushAcpBufferedContent,
+    flushCompletedToolInvocations,
+    botSend,
+    emitSessionState,
+    ...options,
+  });
   try {
-    const response = await state.acpConnection.prompt({ sessionId: state.acpSessionId, prompt: [{ type: 'text', text: prompt }] });
-    flushCompletedToolInvocations(roomId);
-    flushAcpBufferedContent(state, roomId);
-    if (response?.stopReason === 'cancelled') {
-      state.isStopping = false;
-    }
+    await state.acpConnection.prompt({ sessionId: state.acpSessionId, prompt: [{ type: 'text', text: prompt }] });
+    await finalizePromptTurn();
   } catch (err) {
-    if (!state.isStopping || !isCancellationError(err)) {
+    const cancelled = isCancellationError(err);
+    await finalizePromptTurn({ emitIdle: cancelled });
+    if (!cancelled && sessions.get(roomId) === state) {
       botSend(roomId, { type: 'session.error', message: err.message });
     }
-    beginAcpIdleSettlement(state, roomId);
     return;
   }
-  beginAcpIdleSettlement(state, roomId);
 }
 
 // ── ACP Session Creation ──
@@ -1627,7 +1562,6 @@ function createAcpClient(sessionId) {
       const update = params.update;
       const type = update?.sessionUpdate;
       const state = sessions.get(sessionId);
-      noteAcpActivity(state);
       if (state?.isResuming) {
         if (!['available_commands_update', 'current_mode_update', 'usage_update', 'config_option_update'].includes(type)) {
           return;
@@ -1659,8 +1593,8 @@ function createAcpClient(sessionId) {
           break;
         }
         case 'tool_call': {
-          if (this._currentMessageText) { const id = `acp-msg-${this._msgCounter++}`; flushDelta(id); botSend(sessionId, { type: 'assistant.message', messageId: id, content: this._currentMessageText }); this._currentMessageText = ''; }
-          if (this._currentThoughtText) { const rid = `acp-reason-${this._reasonCounter++}`; flushDelta(`reasoning-${rid}`); botSend(sessionId, { type: 'assistant.reasoning', reasoningId: rid, content: this._currentThoughtText }); this._currentThoughtText = ''; }
+          if (this._currentMessageText) { const id = `acp-msg-${this._msgCounter++}`; await flushDelta(id); await botSend(sessionId, { type: 'assistant.message', messageId: id, content: this._currentMessageText }); this._currentMessageText = ''; }
+          if (this._currentThoughtText) { const rid = `acp-reason-${this._reasonCounter++}`; await flushDelta(`reasoning-${rid}`); await botSend(sessionId, { type: 'assistant.reasoning', reasoningId: rid, content: this._currentThoughtText }); this._currentThoughtText = ''; }
           const state = sessions.get(sessionId);
           const tcId = update.toolCallId || randomUUID();
           const meta = update._meta?.claudeCode || {};
@@ -1818,18 +1752,18 @@ function bindCopilotSdkEvents(state) {
     sendDelta(sessionId, event.data.messageId, event.data.deltaContent);
   });
 
-  copilotSession.on('assistant.message', (event) => {
-    flushDelta(event.data.messageId);
-    botSend(sessionId, { type: 'assistant.message', messageId: event.data.messageId, content: event.data.content });
+  copilotSession.on('assistant.message', async (event) => {
+    await flushDelta(event.data.messageId);
+    await botSend(sessionId, { type: 'assistant.message', messageId: event.data.messageId, content: event.data.content });
   });
 
   copilotSession.on('assistant.reasoning_delta', (event) => {
     sendDelta(sessionId, `reasoning-${event.data.reasoningId}`, event.data.deltaContent, 'assistant.reasoning_delta', 'reasoningId', event.data.reasoningId);
   });
 
-  copilotSession.on('assistant.reasoning', (event) => {
-    flushDelta(`reasoning-${event.data.reasoningId}`);
-    botSend(sessionId, { type: 'assistant.reasoning', reasoningId: event.data.reasoningId, content: event.data.content });
+  copilotSession.on('assistant.reasoning', async (event) => {
+    await flushDelta(`reasoning-${event.data.reasoningId}`);
+    await botSend(sessionId, { type: 'assistant.reasoning', reasoningId: event.data.reasoningId, content: event.data.content });
   });
 
   copilotSession.on('tool.execution_start', (event) => {
@@ -1843,20 +1777,20 @@ function bindCopilotSdkEvents(state) {
     botSend(sessionId, { type: 'tool.complete', toolCallId: event.data.toolCallId, name: inv?.name || 'Tool', success: true, result: event.data.result || '', detailedResult: event.data.detailedResult || '' });
   });
 
-  copilotSession.on('session.idle', () => {
+  copilotSession.on('session.idle', async () => {
     state.isProcessing = false;
     state.isStopping = false;
     state.pendingCount = 0;
-    botSend(sessionId, { type: 'session.idle' });
-    emitSessionState(sessionId);
+    await botSend(sessionId, { type: 'session.idle' });
+    await emitSessionState(sessionId);
   });
 
-  copilotSession.on('session.error', (event) => {
+  copilotSession.on('session.error', async (event) => {
     state.isProcessing = false;
     state.isStopping = false;
     state.pendingCount = 0;
-    emitSessionState(sessionId);
-    botSend(sessionId, { type: 'session.error', message: String(event.data) });
+    await emitSessionState(sessionId);
+    await botSend(sessionId, { type: 'session.error', message: String(event.data) });
   });
 
   copilotSession.on('session.model_change', (event) => {

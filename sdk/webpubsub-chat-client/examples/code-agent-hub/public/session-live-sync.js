@@ -8,10 +8,15 @@ export async function ensureSessionOpenSync(roomId, {
   sessionMeta = { sessionId: roomId },
   timeoutMs = 4000,
   historyOptions = { maxCount: 100, skipStartupEnvelopes: true },
+  hasLiveRoomJoin,
   onWaitingForLiveState,
 }) {
   const historyHasSyncEvidence = await replayHistory(roomId, sessionMeta, historyOptions);
-  if (historyHasSyncEvidence) {
+  const requiresLiveState = typeof hasLiveRoomJoin === 'function'
+    ? !hasLiveRoomJoin(roomId)
+    : false;
+
+  if (historyHasSyncEvidence && !requiresLiveState) {
     return { historyHasSyncEvidence: true };
   }
 

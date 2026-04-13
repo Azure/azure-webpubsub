@@ -550,7 +550,7 @@ a{color:var(--accent2);text-decoration:none}button{font-family:inherit;cursor:po
 import DOMPurify from'/dompurify.js';
 import{Marked,Renderer}from'/marked.js';
 import{ChatClient}from'/chat-client.js';
-import{daemonHasAdminAccess as portalDaemonHasAdminAccess,daemonHasMemberAccess as portalDaemonHasMemberAccess,getCreateSessionAccessState,isDaemonRecordFresh,isLocalEchoMessage,normalizeDaemonRecord as normalizePortalDaemonRecord,rememberRoomMessage,resetSessionStateToIdle,shouldIgnoreRoomMessage,shouldRetainPreviousDaemons}from'/portal-regressions.js';
+import{classifyIncomingSessionRoomMessage,daemonHasAdminAccess as portalDaemonHasAdminAccess,daemonHasMemberAccess as portalDaemonHasMemberAccess,getCreateSessionAccessState,isDaemonRecordFresh,isLocalEchoMessage,normalizeDaemonRecord as normalizePortalDaemonRecord,resetSessionStateToIdle,resolveNotificationRoomId,shouldIgnoreSemanticDuplicate,shouldRetainPreviousDaemons}from'/portal-regressions.js';
 import{collectVisibleSessions,normalizeSessionRecord as normalizeSessionDiscoveryRecord,resolveRoomDisplayName,shouldShowPortalSessionLoading,shouldSkipDeletedSession}from'/session-discovery-state.js';
 import{ensureSessionOpenSync,waitForJoinedRoom,waitForRoomLiveSync}from'/session-live-sync.js';
 import{deriveToolbarModelId}from'/session-toolbar-state.js';
@@ -697,6 +697,7 @@ function getStoredUserId(){
 function setStoredUserId(userId){try{sessionStorage.setItem(USER_STORAGE_KEY,String(userId||''))}catch{}}
 let lastStatusMessage='';
 let lastStatusAt=0;
+let lastSemanticRender=null;
 let compactNav=false;
 let lastStopRequestAt=0;
 let formStatusNotice=null;
@@ -1307,6 +1308,7 @@ function scheduleDirectorySuggestions(rawValue=''){
 function resetChatState(){
   $.chat.innerHTML='';pd.clear();rd.clear();at.clear();pp.clear();tc.clear();hideWorking();$wi=null;
   lastStatusMessage='';lastStatusAt=0;
+  lastSemanticRender=null;
   livePermissionResponses.clear();
   seenRoomMessageIds.clear();
   clearSessionBanner();
@@ -1318,6 +1320,8 @@ function resetChatState(){
 }
 function skeletonColumn(rows=4){return `<div class="col-skeleton">${Array.from({length:rows},(_,index)=>`<div class="sk-row"><span class="sk-icon"></span><div class="sk-text"><span class="sk-line ${index%2===0?'w-75':'w-65'}"></span><span class="sk-line ${index%3===0?'w-40':'w-55'}"></span></div></div>`).join('')}</div>`}
 function joinedRoomIds(){return new Set((cc?.rooms||[]).filter(r=>r.roomId!==LOBBY_ROOM).map(r=>r.roomId))}
+function hasLiveRoomJoin(roomId){const targetRoomId=String(roomId||'').trim();return !!(targetRoomId&&cc&&typeof cc.hasJoinedRoom==='function'&&cc.hasJoinedRoom(targetRoomId))}
+function knownRoomInfosForRouting(){const roomInfos=[...(cc?.rooms||[])];if(rid){const currentSession=discoveredSessions.get(rid);if(currentSession)roomInfos.push(currentSession)}return roomInfos}
 function sessionLabel(session){const dir=session.workingDirectory||'';return dir.split(/[/\\]/).pop()||session.name||'Session'}
 function daemonHasMemberAccess(daemon){return portalDaemonHasMemberAccess(daemon)}
 function daemonHasAdminAccess(daemon){return portalDaemonHasAdminAccess(daemon)}
@@ -1621,10 +1625,10 @@ async function ensureDaemonSyncRoom(daemonId){
 }
 async function waitForRoomMembership(roomId,timeout=5000){
   await waitForJoinedRoom(roomId,{
-    hasJoinedRoom:(targetRoomId)=>joinedRoomIds().has(targetRoomId),
+    hasJoinedRoom:(targetRoomId)=>hasLiveRoomJoin(targetRoomId),
     getRoomInfo:(targetRoomId)=>cc.getRoom(targetRoomId,false),
     hydrateJoinedRoom:async(targetRoomId)=>{
-      if(joinedRoomIds().has(targetRoomId))return;
+      if(hasLiveRoomJoin(targetRoomId))return;
       try{await cc.addUserToRoom(targetRoomId,cc.userId)}catch(joinErr){
         if(!/already|exists|member/i.test(String(joinErr?.message||'')))throw joinErr;
       }
@@ -1641,7 +1645,7 @@ async function forceRoomMembershipRefresh(roomId,timeout=ROOM_MEMBERSHIP_TIMEOUT
 }
 function isRoomLiveSyncEvidenceMessage(roomId,notification){
   const targetRoomId=String(roomId||'').trim();
-  const messageRoomId=String(notification?.conversation?.roomId||'').trim();
+  const messageRoomId=resolveNotificationRoomId(notification,knownRoomInfosForRouting());
   const messageText=notification?.message?.content?.text;
   if(!targetRoomId||messageRoomId!==targetRoomId||!messageText)return false;
   if(isLocalEchoMessage(notification?.message,uid))return false;
@@ -1675,7 +1679,7 @@ function applyRoomHistoryMessages(roomId,messages,sessionMeta,{skipStartupEnvelo
         if(e.type==='permission.request'&&respondedPerms.has(e.requestId))renderResolvedPerm(e,respondedPerms.get(e.requestId));
         else render(e)
       }
-    }catch{}
+    }catch(err){console.warn('[Portal] History render error:',err,{roomId,messageId:m?.messageId})}
   }
   const lastMsg=messages[messages.length-1];
   if(lastMsg?.createdAt)historyLoadedAt=Math.max(historyLoadedAt,new Date(lastMsg.createdAt).getTime());
@@ -1687,6 +1691,7 @@ async function replayLatestRoomHistory(roomId,sessionMeta,{maxCount=100,skipStar
   const roomName=resolveRoomDisplayName(roomInfo);
   if(roomName&&roomName!=='Session')sessionMeta.name=roomName;
   const conversationId=roomInfo?.defaultConversationId;
+  if(conversationId)sessionMeta.defaultConversationId=conversationId;
   if(!conversationId)return false;
   const history=await cc.listMessage(conversationId,'0',null,maxCount);
   const messages=[...(history?.messages||[])].reverse();
@@ -1880,7 +1885,7 @@ function handleJoinResponse(e){
   renderSessionsCol()
 }
 async function ensureJoinedSession(sessionId){
-  if(joinedRoomIds().has(sessionId))return;
+  if(hasLiveRoomJoin(sessionId))return;
   await portalJson(`/api/sessions/${encodeURIComponent(sessionId)}/access-self`,{method:'POST'});
   await waitForRoomMembership(sessionId,ROOM_MEMBERSHIP_TIMEOUT_MS)
 }
@@ -2227,7 +2232,7 @@ function timeAgo(d){const s=Math.floor((Date.now()-d.getTime())/1000);if(s<60)re
 window.openSession=async(sid)=>{try{
   clearSessionBanner('error');
   setSessionBanner({source:'history',label:'Loading',text:'Loading session history…',tone:'info'});
-  if(!joinedRoomIds().has(sid)){
+  if(!hasLiveRoomJoin(sid)){
     await ensureJoinedSession(sid);
   }
   await openR(sid);
@@ -2341,34 +2346,36 @@ async function initCC(userId){
   syncUserBadge();
   cc=await new ChatClient(negData.url).login();
   cc.addListenerForNewMessage(onMsg);
-  cc.addListenerForNewRoom((room)=>{if(room.roomId!==LOBBY_ROOM){const req=joinRequests.get(room.roomId);if(req&&(req.status==='pending'||req.status==='approved')){joinRequests.set(room.roomId,{...req,status:'approved'});openR(room.roomId).catch(err=>{setSessionBanner({source:'error',label:'Open failed',text:err?.message||'Failed to open newly joined session',tone:'error',actionText:'Retry',action:()=>openR(room.roomId)});setFormStatus(err?.message||'Failed to open joined session.','error',4500,'join')});}renderSessionsCol()}});
+  cc.addListenerForNewRoom((room)=>{if(room.roomId!==LOBBY_ROOM){const req=joinRequests.get(room.roomId)||{};if(req&&(req.status==='pending'||req.status==='approved')){joinRequests.set(room.roomId,{...req,status:'approved'});openR(room.roomId).catch(err=>{setSessionBanner({source:'error',label:'Open failed',text:err?.message||'Failed to open newly joined session',tone:'error',actionText:'Retry',action:()=>openR(room.roomId)});setFormStatus(err?.message||'Failed to open joined session.','error',4500,'join')});}renderSessionsCol()}});
   cc.addListenerForRoomLeft((info)=>{if(info.roomId===rid){rid=null;resetChatState();applyLoggedInState();updateBreadcrumb();updateAutoBtn()}renderSessionsCol()});
   cc.onConnected(()=>{setPortalTransportState('connected');clearSessionBanner('portal');setSt('idle')});
   cc.onDisconnected(()=>{setPortalTransportState('disconnected');setSessionBanner({source:'portal',label:'WPS disconnected',text:'Portal lost its Web PubSub connection. Refresh the page or retry the connection.',tone:'error',actionText:oauthMode&&oauthAuthenticatedUser?'Retry':'Refresh',action:oauthMode&&oauthAuthenticatedUser?()=>retryPortalConnection():()=>window.location.reload()});setSt('disconnected')});
   startPortalPolling();
   return cc;
 }
-function unpackEnvelope(e){if(e.type!=='transport.chunk')return[e];let s=tc.get(e.chunkId);if(!s){s={parts:new Array(e.total),received:0};tc.set(e.chunkId,s)}if(s.parts[e.index]==null){s.parts[e.index]=e.jsonPart;s.received+=1}if(s.received<e.total)return[];tc.delete(e.chunkId);try{return[JSON.parse(s.parts.join(''))]}catch(err){console.warn('Chunk decode failed',err);addErr('Failed to decode large message');return[]}}
+function unpackEnvelope(e){if(e.type!=='transport.chunk')return[e];let s=tc.get(e.chunkId);if(!s){s={parts:new Array(e.total),received:0,startedAt:Date.now()};tc.set(e.chunkId,s)}if(s.parts[e.index]==null){s.parts[e.index]=e.jsonPart;s.received+=1}if(s.received<e.total)return[];tc.delete(e.chunkId);try{return[JSON.parse(s.parts.join(''))]}catch(err){console.warn('Chunk decode failed',err);addErr('Failed to decode large message');return[]}}
+function pruneStaleChunks(){const now=Date.now();for(const[chunkId,s]of tc){if(now-s.startedAt>15000){console.warn(`[Portal] Dropping stale incomplete chunk ${chunkId}: received ${s.received}/${s.parts.length}`);tc.delete(chunkId)}}}
+setInterval(pruneStaleChunks,5000);
 function onMsg(n){const m=n.message,r=n.conversation?.roomId;if(!m.content?.text)return;
   // Debug log all incoming messages
   try{logDebugMessage('recv',JSON.parse(m.content.text))}catch{logDebugMessage('recv',m.content.text)}
   try{
     const parsed=JSON.parse(m.content.text);
     const envelopes=unpackEnvelope(parsed);
-    if(r&&r.startsWith(DAEMON_SYNC_ROOM_PREFIX)){
+    const resolvedRoomId=resolveNotificationRoomId(n,knownRoomInfosForRouting());
+    if(resolvedRoomId&&resolvedRoomId.startsWith(DAEMON_SYNC_ROOM_PREFIX)){
       if(isLocalEchoMessage(m,uid))return;
       for(const e of envelopes)applyDaemonSyncEnvelope(e);
       return
     }
-    if(r===LOBBY_ROOM){
+    if(resolvedRoomId===LOBBY_ROOM){
       for(const e of envelopes)applyLobbyEnvelope(e);
       return
     }
-    if(r!==rid||isLocalEchoMessage(m,uid))return;
-    if(shouldIgnoreRoomMessage(m,seenRoomMessageIds,historyLoadedAt))return;
-    rememberRoomMessage(m,seenRoomMessageIds);
+    const roomMessageAction=classifyIncomingSessionRoomMessage(n,{currentRoomId:rid,currentUserId:uid,roomInfos:knownRoomInfosForRouting(),seenRoomMessageIds,historyLoadedAt});
+    if(roomMessageAction.action!=='render')return;
     for(const e of envelopes)render(e);scroll()
-  }catch{}
+  }catch(err){console.warn('[Portal] onMsg render error:',err,{roomId:r,messageId:m?.messageId,text:m?.content?.text?.substring(0,200)})}
 }
 
 async function resumeSess(sid,showErr=true){
@@ -2474,6 +2481,7 @@ async function openR(roomId,{preserveBooting=false,bootStage='',retryLiveSyncRec
       sessionMeta,
       timeoutMs:ROOM_LIVE_SYNC_TIMEOUT_MS,
       historyOptions:{maxCount:100,skipStartupEnvelopes:true},
+      hasLiveRoomJoin:(targetRoomId)=>hasLiveRoomJoin(targetRoomId),
       onWaitingForLiveState:()=>setSessionBanner({source:'history',label:'Syncing',text:'Waiting for live session sync…',tone:'info'}),
     });
     clearSessionBanner('history');
@@ -2555,13 +2563,14 @@ function render(e){switch(e.type){
 function rDelta(e){noteLiveSessionActivity();clearSessionBanner('permission');setSt('busy');hideWorking();lastTN=null;let s=pd.get(e.messageId);if(!s){const d=document.createElement('div');d.className='ai-msg streaming';const span=document.createElement('span');d.appendChild(span);$.chat.appendChild(d);s={el:d,span,raw:'',raf:null};pd.set(e.messageId,s)}s.raw+=e.content;
   // Append new text directly for smooth streaming (no re-render)
   if(!s.raf){s.raf=requestAnimationFrame(()=>{s.span.textContent=s.raw;s.raf=null;scroll()})}}
-function rMsg(e){noteLiveSessionActivity();lastTN=null;const x=pd.get(e.messageId);if(x){if(x.raf)cancelAnimationFrame(x.raf);if(!e.content){x.el.remove();pd.delete(e.messageId);return}x.el.className='ai-msg';x.el.innerHTML=md(e.content);pd.delete(e.messageId);scroll()}else if(e.content){addAI(e.content)}}
+function rMsg(e){noteLiveSessionActivity();lastTN=null;const x=pd.get(e.messageId);if(x){if(x.raf)cancelAnimationFrame(x.raf);if(!e.content){x.el.remove();pd.delete(e.messageId);return}x.el.className='ai-msg';x.el.innerHTML=md(e.content);pd.delete(e.messageId);lastSemanticRender={type:'assistant.message',content:e.content,at:Date.now()};scroll()}else if(e.content){if(shouldIgnoreSemanticDuplicate(lastSemanticRender,'assistant.message',e.content))return;addAI(e.content);lastSemanticRender={type:'assistant.message',content:e.content,at:Date.now()}}}
 
 /* Thinking — single collapsible line */
 function rThinkD(e){noteLiveSessionActivity();clearSessionBanner('permission');setWorkingLabel('Agent is thinking…');setSt('busy');hideWorking();lastTN=null;let s=rd.get(e.reasoningId);if(!s){const w=document.createElement('div');const hdr=document.createElement('div');hdr.className='think-row';hdr.innerHTML='<span class="arrow open">▶</span><span>💭 thinking…</span>';const body=document.createElement('div');body.className='think-body show';hdr.onclick=()=>{const a=hdr.querySelector('.arrow');a.classList.toggle('open');body.classList.toggle('show')};w.appendChild(hdr);w.appendChild(body);$.chat.appendChild(w);s={wrap:w,hdr,body,content:''};rd.set(e.reasoningId,s)}s.content+=e.content;s.body.innerHTML=md(s.content)}
-function rThink(e){noteLiveSessionActivity();const x=rd.get(e.reasoningId);if(x){if(e.content){x.body.innerHTML=md(e.content)}else{x.wrap.remove();rd.delete(e.reasoningId);return}x.hdr.querySelector('span:last-child').textContent='💭 thought';x.hdr.querySelector('.arrow').classList.remove('open');x.body.classList.remove('show');rd.delete(e.reasoningId);return}
+function rThink(e){noteLiveSessionActivity();const x=rd.get(e.reasoningId);if(x){if(e.content){x.body.innerHTML=md(e.content)}else{x.wrap.remove();rd.delete(e.reasoningId);return}x.hdr.querySelector('span:last-child').textContent='💭 thought';x.hdr.querySelector('.arrow').classList.remove('open');x.body.classList.remove('show');rd.delete(e.reasoningId);lastSemanticRender={type:'assistant.reasoning',content:e.content,at:Date.now()};return}
   if(!e.content)return;
-  const w=document.createElement('div');const hdr=document.createElement('div');hdr.className='think-row';hdr.innerHTML='<span class="arrow">▶</span><span>💭 thought</span>';const body=document.createElement('div');body.className='think-body';body.innerHTML=md(e.content);hdr.onclick=()=>{hdr.querySelector('.arrow').classList.toggle('open');body.classList.toggle('show')};w.appendChild(hdr);w.appendChild(body);$.chat.appendChild(w)}
+  if(shouldIgnoreSemanticDuplicate(lastSemanticRender,'assistant.reasoning',e.content))return;
+  const w=document.createElement('div');const hdr=document.createElement('div');hdr.className='think-row';hdr.innerHTML='<span class="arrow">▶</span><span>💭 thought</span>';const body=document.createElement('div');body.className='think-body';body.innerHTML=md(e.content);hdr.onclick=()=>{hdr.querySelector('.arrow').classList.toggle('open');body.classList.toggle('show')};w.appendChild(hdr);w.appendChild(body);$.chat.appendChild(w);lastSemanticRender={type:'assistant.reasoning',content:e.content,at:Date.now()}}
 
 /* Tools — compact row */
 let lastTN=null;

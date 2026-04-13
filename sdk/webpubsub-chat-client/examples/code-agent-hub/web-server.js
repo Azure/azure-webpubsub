@@ -1998,12 +1998,11 @@ app.post('/api/sessions/:sessionId/access-self', async (req, res) => {
   if (accessLevel === 'none') {
     return res.status(403).json({ error: 'You do not have access to this session' });
   }
-  const existingMembership = sessionIndexState.membershipBySessionId.get(sessionId)?.get(user.login) || '';
-  if (!existingMembership && canAdminDaemonAccess(accessState, user.login)) {
-    await upsertChatRoomMember(sessionId, user.login, 'room.operator');
-    upsertTrustedSessionMembership(sessionIndexState, sessionId, user.login, 'write', { source: 'portal' });
-  }
-  res.json({ ok: true, accessLevel, joined: true });
+  const desiredAccessLevel = accessLevel === 'write' ? 'write' : 'read';
+  const desiredRole = desiredAccessLevel === 'write' ? 'room.operator' : 'room.member';
+  await upsertChatRoomMember(sessionId, user.login, desiredRole);
+  upsertTrustedSessionMembership(sessionIndexState, sessionId, user.login, desiredAccessLevel, { source: 'portal' });
+  res.json({ ok: true, accessLevel: desiredAccessLevel, joined: true });
 });
 
 app.delete('/api/sessions/:sessionId', async (req, res) => {

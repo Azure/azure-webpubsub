@@ -62,6 +62,14 @@ function getRoomMessageId(message) {
   return String(message?.messageId ?? message?.id ?? '').trim();
 }
 
+function getKnownRoomId(roomInfo) {
+  return String(roomInfo?.roomId ?? roomInfo?.sessionId ?? '').trim();
+}
+
+function getKnownConversationId(roomInfo) {
+  return String(roomInfo?.defaultConversationId ?? '').trim();
+}
+
 export function isLocalEchoMessage(message, currentUserId) {
   return message?.createdBy === currentUserId && message?.localEcho === true;
 }
@@ -77,6 +85,81 @@ export function shouldIgnoreRoomMessage(message, seenRoomMessageIds, historyLoad
   if (messageId) return seenRoomMessageIds.has(messageId);
   if (!message?.createdAt || !historyLoadedAt) return false;
   return new Date(message.createdAt).getTime() <= historyLoadedAt;
+}
+
+export function resolveNotificationRoomId(notification, roomInfos = []) {
+  const directRoomId = String(notification?.conversation?.roomId ?? '').trim();
+  if (directRoomId) {
+    return directRoomId;
+  }
+
+  const conversationId = String(notification?.conversation?.conversationId ?? '').trim();
+  if (!conversationId) {
+    return '';
+  }
+
+  const knownRooms = roomInfos instanceof Map
+    ? [...roomInfos.values()]
+    : Array.isArray(roomInfos)
+      ? roomInfos
+      : [];
+  const matchedRoom = knownRooms.find((roomInfo) => getKnownConversationId(roomInfo) === conversationId);
+  return getKnownRoomId(matchedRoom);
+}
+
+export function notificationTargetsRoom(notification, roomId, roomInfos = []) {
+  const targetRoomId = String(roomId ?? '').trim();
+  return !!targetRoomId && resolveNotificationRoomId(notification, roomInfos) === targetRoomId;
+}
+
+export function classifyIncomingSessionRoomMessage(notification, {
+  currentRoomId,
+  currentUserId,
+  roomInfos = [],
+  seenRoomMessageIds,
+  historyLoadedAt = 0,
+} = {}) {
+  const message = notification?.message;
+  if (!message?.content?.text) {
+    return { action: 'ignore', reason: 'empty', roomId: '' };
+  }
+
+  const resolvedRoomId = resolveNotificationRoomId(notification, roomInfos);
+  if (!resolvedRoomId || resolvedRoomId !== String(currentRoomId ?? '').trim()) {
+    return { action: 'ignore', reason: 'room-mismatch', roomId: resolvedRoomId };
+  }
+
+  if (isLocalEchoMessage(message, currentUserId)) {
+    rememberRoomMessage(message, seenRoomMessageIds);
+    return { action: 'ignore', reason: 'local-echo', roomId: resolvedRoomId };
+  }
+
+  if (shouldIgnoreRoomMessage(message, seenRoomMessageIds, historyLoadedAt)) {
+    return { action: 'ignore', reason: 'dedupe', roomId: resolvedRoomId };
+  }
+
+  rememberRoomMessage(message, seenRoomMessageIds);
+  return { action: 'render', reason: 'match', roomId: resolvedRoomId };
+}
+
+function normalizeSemanticRenderContent(content) {
+  return String(content || '').replace(/\s+/g, ' ').trim();
+}
+
+export function shouldIgnoreSemanticDuplicate(previousRender, nextType, nextContent, now = Date.now(), dedupeWindowMs = 8_000) {
+  const normalizedContent = normalizeSemanticRenderContent(nextContent);
+  if (!previousRender || !nextType || !normalizedContent) {
+    return false;
+  }
+
+  const previousType = String(previousRender.type || '').trim();
+  const previousContent = normalizeSemanticRenderContent(previousRender.content);
+  const previousAt = Number(previousRender.at) || 0;
+
+  return previousType === nextType
+    && previousContent === normalizedContent
+    && previousAt > 0
+    && now - previousAt <= dedupeWindowMs;
 }
 
 export function resetSessionStateToIdle(sessionState) {

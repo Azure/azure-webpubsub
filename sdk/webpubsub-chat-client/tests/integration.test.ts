@@ -325,6 +325,35 @@ test("self add cache hydration does not emit a synthetic RoomJoined event", { ti
   }
 });
 
+test("login seeds authoritative joined room state and self-add also marks joined", { timeout: LONG_TEST_TIMEOUT }, async (t) => {
+  let admin, watcher;
+  try {
+    const sharedUserId = `joined-${randomUUID().substring(0, 6)}`;
+    admin = await createTestClient();
+
+    const roomId = `room-live-join-${randomUUID().substring(0, 6)}`;
+    const created = await admin.createRoom("ut-live-join", [sharedUserId], roomId);
+
+    watcher = await createTestClient(sharedUserId);
+    assert.equal(watcher.hasJoinedRoom(created.roomId), true, "login should mark existing room memberships as live joins");
+
+    (watcher as any)._rooms.delete(created.roomId);
+    (watcher as any)._joinedRoomIds.delete(created.roomId);
+    assert.equal(watcher.hasJoinedRoom(created.roomId), false, "test should start without an authoritative live join");
+
+    await watcher.addUserToRoom(created.roomId, watcher.userId);
+
+    assert.ok(watcher.rooms.some((room) => room.roomId === created.roomId), "self add should still hydrate the local room cache");
+    assert.equal(watcher.hasJoinedRoom(created.roomId), true, "self-add should mark the room as authoritatively joined so waitForRoomMembership can succeed");
+  } catch (e) {
+    t.diagnostic((e as any).toString());
+    throw e;
+  } finally {
+    const clientsToStop = [admin, watcher].filter(Boolean) as ChatClient[];
+    stopClients(clientsToStop);
+  }
+});
+
 // Force exit after all tests to avoid hanging on open connections
 after(() => {
   forceExitAfterTests();

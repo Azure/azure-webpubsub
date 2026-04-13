@@ -34,6 +34,7 @@ class ChatClient {
 
   private readonly _emitter = new EventEmitter();
   private readonly _rooms = new Map<string, RoomInfo>();
+  private readonly _joinedRoomIds = new Set<string>();
   protected _conversationIds = new Set<string>();
   private _userId: string | undefined;
   private _isLoggedIn = false;
@@ -69,6 +70,7 @@ class ChatClient {
         case "RoomJoined":
           const roomInfo = data.body as NewRoomNotificationBody as RoomInfo;
           this._rooms.set(roomInfo.roomId, roomInfo);  // Add to _rooms first so listeners can use listRoomMessage
+          this._joinedRoomIds.add(roomInfo.roomId);
           this._emitter.emit(type, roomInfo);
           break;
         case "RoomMemberJoined":
@@ -88,6 +90,7 @@ class ChatClient {
           }
           this._emitter.emit(type, roomLeftInfo);
           this._rooms.delete(roomLeftInfo.roomId);
+          this._joinedRoomIds.delete(roomLeftInfo.roomId);
           break;
         case "MessageUpdated":
         case "MessageDeleted":
@@ -142,6 +145,7 @@ class ChatClient {
     );
     roomInfos.forEach(({ roomId, roomInfo }) => {
       this._rooms.set(roomId, roomInfo);
+      this._joinedRoomIds.add(roomId);
     });
     return this;
   }
@@ -218,6 +222,7 @@ class ChatClient {
     }
     const roomInfo = await this.invokeWithReturnType<RoomInfoWithMembers>(INVOCATION_NAME.CREATE_ROOM, roomDetails, "json");
     this._rooms.set(roomInfo.roomId, roomInfo);
+    this._joinedRoomIds.add(roomInfo.roomId);
     this._emitter.emit("RoomJoined" as NotificationType, roomInfo);
     return roomInfo;
   }
@@ -249,19 +254,22 @@ class ChatClient {
   public async addUserToRoom(roomId: string, userId: string): Promise<void> {
     this.ensureLoggedIn();
     const payload: ManageRoomMemberRequest = { roomId: roomId, operation: "Add", userId: userId };
-    const shouldHydrateSelfCache = userId === this.userId && !this._rooms.has(roomId);
+    const isSelf = userId === this.userId;
+    const shouldHydrateSelfCache = isSelf && !this._rooms.has(roomId);
     try {
       await this.manageRoomMember(payload);
     } catch (error) {
-      if (!shouldHydrateSelfCache || !this.isUserAlreadyInRoomError(error)) {
+      if (!isSelf || !this.isUserAlreadyInRoomError(error)) {
         throw error;
       }
     }
-    // This path happens when the logged-in client uses the room-member management API to add
-    // its own userId to a room, for example during lobby bootstrap or right after a session room
-    // is created. The service accepts the membership change server-side, but this client may not
-    // receive a local room-cache update immediately. Without this refresh, later calls such as
-    // sendToRoom can still fail because the SDK believes the current client has not joined yet.
+    // When the logged-in client adds itself to a room (or is already a member),
+    // mark the room as authoritatively joined so hasJoinedRoom() returns true.
+    // The RoomJoined notification may never arrive for server-side member management,
+    // so this is the only reliable point to set the authoritative joined state.
+    if (isSelf) {
+      this._joinedRoomIds.add(roomId);
+    }
     if (shouldHydrateSelfCache) {
       await this.hydrateSelfRoomCache(roomId);
     }
@@ -280,6 +288,7 @@ class ChatClient {
       const roomInfo = this._rooms.get(roomId);
       if (roomInfo) {
         this._rooms.delete(roomId);
+        this._joinedRoomIds.delete(roomId);
         this._emitter.emit("RoomLeft" as NotificationType, {
           roomId,
           title: roomInfo.title,
@@ -322,6 +331,11 @@ class ChatClient {
   /** Cached rooms known to the client. */
   public get rooms(): RoomInfo[] {
     return Array.from(this._rooms.values());
+  }
+
+  /** Whether the current connection has received an authoritative room join for this room. */
+  public hasJoinedRoom(roomId: string): boolean {
+    return this._joinedRoomIds.has(roomId);
   }
 
   public get userId(): string {

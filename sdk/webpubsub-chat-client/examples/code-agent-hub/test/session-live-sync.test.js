@@ -178,6 +178,7 @@ describe('session live sync helpers', () => {
       sessionMeta: { sessionId: 'room-8' },
       timeoutMs: 5000,
       historyOptions: { maxCount: 100, skipStartupEnvelopes: true },
+      hasLiveRoomJoin: () => true,
       onWaitingForLiveState: () => {
         waitingBannerCalls += 1;
       },
@@ -186,6 +187,33 @@ describe('session live sync helpers', () => {
     assert.deepEqual(result, { historyHasSyncEvidence: true });
     assert.equal(liveWaitCalls, 0);
     assert.equal(waitingBannerCalls, 0);
+  });
+
+  it('waits for live sync when history has evidence but the room is not live-joined yet', async () => {
+    const calls = [];
+
+    const result = await ensureSessionOpenSync('room-8b', {
+      replayHistory: async () => {
+        calls.push('history');
+        return true;
+      },
+      waitForLiveState: async (roomId, timeoutMs, sessionMeta) => {
+        calls.push({ type: 'live', roomId, timeoutMs, sessionId: sessionMeta.sessionId });
+      },
+      sessionMeta: { sessionId: 'room-8b' },
+      timeoutMs: 3210,
+      hasLiveRoomJoin: () => false,
+      onWaitingForLiveState: () => {
+        calls.push('banner');
+      },
+    });
+
+    assert.deepEqual(result, { historyHasSyncEvidence: false });
+    assert.deepEqual(calls, [
+      'history',
+      'banner',
+      { type: 'live', roomId: 'room-8b', timeoutMs: 3210, sessionId: 'room-8b' },
+    ]);
   });
 
   it('falls through to live sync when the initial history replay has no sync evidence', async () => {
