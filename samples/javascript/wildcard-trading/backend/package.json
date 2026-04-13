@@ -1,0 +1,32 @@
+{
+  "name": "wps-wildcard",
+  "version": "1.0.0",
+  "type": "module",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "dev": "tsx --watch ./src/server/index.ts",
+    "test": "vitest",
+    "tunnel": "dotenv -e .env -- awps-tunnel run --hub trading --upstream http://localhost:8080 --verbose"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "@azure/web-pubsub-tunnel-tool": "^1.0.0-beta.11",
+    "@types/cors": "^2.8.19",
+    "@types/express": "^5.0.3",
+    "dotenv-cli": "^11.0.0",
+    "tsx": "^4.20.6",
+    "vitest": "^2.1.9"
+  },
+  "dependencies": {
+    "@azure/identity": "^4.13.1",
+    "@azure/web-pubsub": "^1.2.0",
+    "@azure/web-pubsub-client": "^1.0.4",
+    "@azure/web-pubsub-express": "^1.0.6",
+    "cors": "^2.8.5",
+    "dotenv": "^17.2.3",
+    "express": "^5.1.0"
+  }
+}
