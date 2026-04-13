@@ -19,6 +19,18 @@ export function canBrowseDaemonDirectories(daemon) {
   return daemonHasAdminAccess(daemon);
 }
 
+export function getRealtimeSessionAccessPatch(session, { currentUserId = '', daemon = null } = {}) {
+  const ownerUserId = String(session?.ownerUserId || '').trim();
+  const viewerUserId = String(currentUserId || '').trim();
+  if (ownerUserId && viewerUserId && ownerUserId === viewerUserId) {
+    return { accessLevel: 'write', canRead: true, canWrite: true, canDelete: true };
+  }
+  if (daemonHasAdminAccess(daemon)) {
+    return { accessLevel: 'write', canRead: true, canWrite: true, canDelete: true };
+  }
+  return {};
+}
+
 export function normalizeDaemonRecord(daemon, normalizePlatform = (platform) => platform || '') {
   const hasAdminAccess = daemonHasAdminAccess(daemon);
   const hasMemberAccess = daemonHasMemberAccess(daemon);
@@ -43,6 +55,27 @@ export function normalizeDaemonRecord(daemon, normalizePlatform = (platform) => 
     requestedAccess: daemon.requestedAccess || '',
     approverUserIds: daemon.approverUserIds || [],
   };
+}
+
+export function mergeRealtimeDaemonRecord(previousDaemon, nextDaemon, normalizePlatform = (platform) => platform || '') {
+  const previous = previousDaemon || {};
+  const mergedInput = { ...previous, ...(nextDaemon || {}) };
+  const normalized = normalizeDaemonRecord(mergedInput, normalizePlatform);
+
+  normalized.accessRequestStatus = nextDaemon?.accessRequestStatus || previous.accessRequestStatus || '';
+  normalized.requestedAccess = nextDaemon?.requestedAccess || previous.requestedAccess || '';
+
+  // Lobby daemon events only carry shared daemon state. Keep locally known access flags.
+  if (previous.hasMemberAccess && !normalized.hasMemberAccess) {
+    normalized.hasMemberAccess = true;
+    normalized.canRead = true;
+  }
+  if (previous.hasAdminAccess && !normalized.hasAdminAccess) {
+    normalized.hasAdminAccess = true;
+    normalized.canWrite = true;
+  }
+
+  return normalized;
 }
 
 export function isDaemonRecordFresh(daemon, now = Date.now(), staleMs = 90_000) {

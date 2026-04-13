@@ -60,7 +60,8 @@ export WEB_PUBSUB_CONNECTION_STRING="Endpoint=http://localhost;Port=8080;AccessK
 npm run portal
 
 # Terminal 2 — Daemon
-export WEB_PUBSUB_CONNECTION_STRING="Endpoint=http://localhost;Port=8080;AccessKey=<emulator-key>;Version=1.0;"
+export PORTAL_URL="http://localhost:3000"
+export DAEMON_OWNER_USER_ID="admin"
 npm run daemon
 ```
 
@@ -95,6 +96,8 @@ npm run portal:no-oauth
 
 ```powershell
 $env:WEB_PUBSUB_CONNECTION_STRING="Endpoint=http://localhost;Port=8080;AccessKey=<emulator-key>;Version=1.0;"
+$env:PORTAL_URL="http://localhost:3000"
+$env:DAEMON_OWNER_USER_ID="admin"
 npm run portal    # Terminal 1
 npm run daemon    # Terminal 2
 ```
@@ -131,8 +134,9 @@ Build and run a Docker daemon with pre-installed agent CLIs:
 npm run pack:daemon
 docker build -t codeagenthub-daemon -f Dockerfile.daemon ../../
 docker run --network host \
-  -e WebPubSubConnectionString="..." \
-  -e DAEMON_USER_ID="docker-daemon" \
+  -e PORTAL_URL="http://host.docker.internal:3000" \
+  -e DAEMON_INSTANCE_ID="docker-daemon" \
+  -e DAEMON_OWNER_USER_ID="admin" \
   -v ~/.claude:/root/.claude \
   codeagenthub-daemon
 ```
@@ -179,13 +183,10 @@ See [docs/azure-deployment.md](docs/azure-deployment.md) for the full step-by-st
 
 | Variable | Required | Description |
 |---|---|---|
-| `WEB_PUBSUB_CONNECTION_STRING` | Yes | Azure Web PubSub connection string |
-| `PORTAL_URL` | No | Portal URL for daemon registration, heartbeat, offline reporting, and bot token issuance (default `http://localhost:3000`) |
-| `DAEMON_USER_ID` | No | Unique daemon identity (default `copilot-bot`) |
+| `PORTAL_URL` | No | Portal URL for daemon bootstrap, registration, heartbeat, offline reporting, and bot token issuance (default `http://localhost:3000`) |
+| `DAEMON_INSTANCE_ID` | No | Unique daemon instance identity (default `copilot-bot`) |
 | `DAEMON_OWNER_USER_ID` | Recommended | User who initially owns the daemon ACL room and approves daemon access |
 | `SESSION_STORE_PATH` | No | Path for session persistence file |
-
-`WEB_PUBSUB_CONNECTION_STRING` and `WebPubSubConnectionString` are both accepted.
 
 ## Project Structure
 
@@ -212,12 +213,12 @@ code-agent-hub/
 
 ## How It Works
 
-1. The browser gets a Chat token from `/negotiate:portal` and joins the bootstrap lobby; the daemon registers through `/api/daemons/register` and receives its bot token from the portal.
+1. The browser gets a Chat token from `/negotiate:portal` and joins the bootstrap lobby; the daemon bootstraps a portal-issued daemon session token, registers through `/api/daemons/register`, and receives its bot token from the portal.
 2. The portal persists daemon metadata in `daemon-acl-{daemonId}` room titles and uses the same rooms for member/admin ACL, daemon access request history, and session create/delete sync.
 3. Daemon heartbeats keep hostname, platform, agents, and workspaces current; `/api/daemons` and `/api/sessions` read that Chat-backed state to render the portal.
 4. Creating a session creates a dedicated Chat room; the portal grants room membership and daemon admins implicitly get write/manage rights for that daemon's sessions.
 5. Prompts, streaming messages, tool calls, permissions, and status updates all flow through the session room.
-6. Other browsers can replay history, request daemon or session access, and stay in sync through Chat room history plus portal polling.
+6. Other browsers can replay history, request daemon or session access, and stay in sync through Chat room history plus portal reconciliation.
 
 ## License
 

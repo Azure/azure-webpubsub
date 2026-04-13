@@ -98,10 +98,13 @@ const port = parseInt(process.env.PORT || '3000', 10);
 const LOBBY_ROOM = 'lobby';
 const ADMIN_USER_ID = process.env.PORTAL_CONTROL_USER_ID || '__portal_control__';
 const VALID_USER_ID = /^[a-zA-Z0-9_-]{1,64}$/;
+const SESSION_SECRET = process.env.SESSION_SECRET || crypto.randomBytes(32).toString('hex');
+const DAEMON_SESSION_SECRET = process.env.DAEMON_SESSION_SECRET || SESSION_SECRET;
 const PORTAL_NEGOTIATE_PATH = '/negotiate:portal';
 const PORTAL_USER_HEADER = 'x-codeagenthub-user';
 const DAEMON_HEARTBEAT_STALE_MS = 90_000;
-const DAEMON_SIGNATURE_SKEW_MS = 5 * 60 * 1000;
+const DAEMON_SESSION_AUDIENCE = 'codeagenthub-daemon';
+const DAEMON_SESSION_ISSUER = 'codeagenthub-portal';
 const CHAT_REST_API_VERSION = '2026-02-01-preview';
 const WORKSPACE_REQUEST_TIMEOUT_MS = 5_000;
 const DAEMON_ACCESS_STATE_CACHE_TTL_MS = 2_500;
@@ -121,11 +124,47 @@ if (!portalAccessKey || !portalSigningKey.length) {
   process.exit(1);
 }
 
-function createDaemonProof(daemonId, ownerUserId, timestamp) {
-  return crypto
-    .createHmac('sha256', portalSigningKey)
-    .update(`${daemonId}\n${ownerUserId}\n${timestamp}`)
-    .digest('hex');
+function issueDaemonSessionToken(daemonId, ownerUserId) {
+  return jsonwebtoken.sign(
+    {
+      sub: String(daemonId || '').trim(),
+      ownerUserId: String(ownerUserId || '').trim(),
+      type: 'daemon-session',
+    },
+    DAEMON_SESSION_SECRET,
+    {
+      algorithm: 'HS256',
+      audience: DAEMON_SESSION_AUDIENCE,
+      issuer: DAEMON_SESSION_ISSUER,
+    },
+  );
+}
+
+function parseDaemonSessionToken(req) {
+  const authorization = String(req.get('authorization') || '').trim();
+  if (!authorization.toLowerCase().startsWith('bearer ')) {
+    return { ok: false, error: 'Missing daemon bearer token' };
+  }
+  const token = authorization.slice('bearer '.length).trim();
+  if (!token) {
+    return { ok: false, error: 'Missing daemon bearer token' };
+  }
+
+  try {
+    const payload = jsonwebtoken.verify(token, DAEMON_SESSION_SECRET, {
+      algorithms: ['HS256'],
+      audience: DAEMON_SESSION_AUDIENCE,
+      issuer: DAEMON_SESSION_ISSUER,
+    });
+    const daemonId = String(payload?.sub || '').trim();
+    const ownerUserId = String(payload?.ownerUserId || '').trim();
+    if (!daemonId || !ownerUserId) {
+      return { ok: false, error: 'Invalid daemon bearer token' };
+    }
+    return { ok: true, daemonId, ownerUserId };
+  } catch {
+    return { ok: false, error: 'Invalid daemon bearer token' };
+  }
 }
 
 function normalizeStringList(values) {
@@ -262,6 +301,33 @@ function daemonResponseForUser(daemon, accessState, user, requestState = null) {
   };
 }
 
+function buildDaemonLobbyEnvelope(daemon, accessState = null) {
+  const approverUserIds = accessState
+    ? [...new Set([
+      accessState.ownerUserId,
+      ...(accessState.adminUsers || []),
+    ].filter(Boolean))]
+    : undefined;
+  return {
+    type: 'portal.daemon',
+    daemonId: daemon.daemonId,
+    ownerUserId: accessState?.ownerUserId || daemon.ownerUserId || '',
+    hostname: daemon.hostname,
+    platform: daemon.platform,
+    agents: daemon.agents || [],
+    workspaces: daemon.workspaces || [],
+    updatedAt: daemon.updatedAt || new Date().toISOString(),
+    online: daemon.online !== false,
+    ...(approverUserIds ? { approverUserIds } : {}),
+  };
+}
+
+async function sendDaemonLobbyEnvelope(daemon, accessState = null) {
+  const envelope = buildDaemonLobbyEnvelope(daemon, accessState);
+  if (!envelope.daemonId) return;
+  await sendLobbyEnvelope(envelope);
+}
+
 function isSessionOwner(sessionRecord, userId) {
   return !!sessionRecord && !!userId && sessionRecord.ownerUserId === userId;
 }
@@ -285,27 +351,6 @@ function markDaemonOfflineIfStale(daemon) {
     };
   }
   return daemon;
-}
-
-function verifyDaemonSignature(body) {
-  const daemonId = String(body?.daemonId || '').trim();
-  const ownerUserId = String(body?.ownerUserId || '').trim();
-  const timestamp = String(body?.timestamp || '').trim();
-  const signature = String(body?.signature || '').trim();
-  if (!daemonId || !ownerUserId || !timestamp || !signature) {
-    return { ok: false, error: 'daemonId, ownerUserId, timestamp, and signature are required' };
-  }
-  const parsedTimestamp = Date.parse(timestamp);
-  if (!Number.isFinite(parsedTimestamp) || Math.abs(Date.now() - parsedTimestamp) > DAEMON_SIGNATURE_SKEW_MS) {
-    return { ok: false, error: 'Daemon registration timestamp is expired or invalid' };
-  }
-  const expected = createDaemonProof(daemonId, ownerUserId, timestamp);
-  const provided = Buffer.from(signature, 'utf-8');
-  const computed = Buffer.from(expected, 'utf-8');
-  if (provided.length !== computed.length || !crypto.timingSafeEqual(provided, computed)) {
-    return { ok: false, error: 'Invalid daemon registration signature' };
-  }
-  return { ok: true, daemonId, ownerUserId };
 }
 
 const serviceClient = new WebPubSubServiceClient(connectionString, hubName, { allowInsecureConnection: true });
@@ -1360,12 +1405,40 @@ app.get(/^\/negotiate:portal$/, async (req, res) => {
   await issueTokenResponse(res, userId, { ensureLobby: false, logLabel: PORTAL_NEGOTIATE_PATH });
 });
 
+app.post('/api/daemon-sessions/bootstrap', async (req, res) => {
+  const daemonId = String(req.body?.daemonId || '').trim();
+  const ownerUserId = String(req.body?.ownerUserId || '').trim();
+  if (!daemonId) return res.status(400).json({ error: 'daemonId is required' });
+  if (!VALID_USER_ID.test(daemonId) || daemonId === ADMIN_USER_ID) {
+    return res.status(400).json({ error: 'daemonId is invalid or reserved' });
+  }
+  if (!ownerUserId) return res.status(400).json({ error: 'ownerUserId is required' });
+  if (!VALID_USER_ID.test(ownerUserId) || ownerUserId === ADMIN_USER_ID) {
+    return res.status(400).json({ error: 'ownerUserId is invalid or reserved' });
+  }
+  try {
+    const existing = await getDaemonRegistryRecord(daemonId);
+    if (existing?.ownerUserId && existing.ownerUserId !== ownerUserId) {
+      return res.status(409).json({ error: `Daemon ${daemonId} is already owned by ${existing.ownerUserId}` });
+    }
+  } catch (error) {
+    console.error('[Web] Daemon bootstrap preflight failed:', error);
+    return res.status(503).json({ error: error.message || 'Web PubSub Chat storage is unavailable' });
+  }
+
+  res.json({
+    daemonId,
+    ownerUserId,
+    token: issueDaemonSessionToken(daemonId, ownerUserId),
+  });
+});
+
 app.get(/^\/negotiate:daemon$/, async (req, res) => {
   res.status(410).json({ error: 'Deprecated. Daemons must use POST /api/daemons/register.' });
 });
 
 app.post('/api/daemons/register', async (req, res) => {
-  const verification = verifyDaemonSignature(req.body);
+  const verification = parseDaemonSessionToken(req);
   if (!verification.ok) return res.status(403).json({ error: verification.error });
   const daemonId = verification.daemonId;
   const ownerUserId = verification.ownerUserId;
@@ -1397,6 +1470,11 @@ app.post('/api/daemons/register', async (req, res) => {
     return res.status(500).json({ error: error.message || 'Failed to initialize daemon in Web PubSub storage' });
   }
   try {
+    try {
+      await sendDaemonLobbyEnvelope(record);
+    } catch (lobbyError) {
+      console.warn('[Web] Daemon lobby notify failed:', lobbyError?.message || lobbyError);
+    }
     const token = await serviceClient.getClientAccessToken({ userId: daemonId });
     res.json({
       daemon: {
@@ -1415,7 +1493,7 @@ app.post('/api/daemons/register', async (req, res) => {
 });
 
 app.post('/api/daemons/heartbeat', async (req, res) => {
-  const verification = verifyDaemonSignature(req.body);
+  const verification = parseDaemonSessionToken(req);
   if (!verification.ok) return res.status(403).json({ error: verification.error });
   const daemonId = verification.daemonId;
   let existing;
@@ -1427,7 +1505,7 @@ app.post('/api/daemons/heartbeat', async (req, res) => {
   }
   if (!existing) return res.status(404).json({ error: 'Daemon is not registered' });
   try {
-    await writeDaemonRegistryRecord({
+    const record = await writeDaemonRegistryRecord({
       daemonId,
       ownerUserId: existing.ownerUserId || verification.ownerUserId,
       hostname: req.body.hostname,
@@ -1438,6 +1516,11 @@ app.post('/api/daemons/heartbeat', async (req, res) => {
       updatedAt: new Date().toISOString(),
       lastSeenAt: new Date().toISOString(),
     }, existing);
+    try {
+      await sendDaemonLobbyEnvelope(record);
+    } catch (lobbyError) {
+      console.warn('[Web] Daemon lobby notify failed:', lobbyError?.message || lobbyError);
+    }
   } catch (error) {
     if (error?.code === 'DAEMON_OWNER_CONFLICT') {
       return res.status(409).json({ error: error.message });
@@ -1449,7 +1532,7 @@ app.post('/api/daemons/heartbeat', async (req, res) => {
 });
 
 app.post('/api/daemons/offline', async (req, res) => {
-  const verification = verifyDaemonSignature(req.body);
+  const verification = parseDaemonSessionToken(req);
   if (!verification.ok) return res.status(403).json({ error: verification.error });
   const daemonId = verification.daemonId;
   let existing;
@@ -1461,7 +1544,7 @@ app.post('/api/daemons/offline', async (req, res) => {
   }
   if (!existing) return res.status(404).json({ error: 'Daemon is not registered' });
   try {
-    await writeDaemonRegistryRecord({
+    const record = await writeDaemonRegistryRecord({
       daemonId,
       ownerUserId: existing.ownerUserId || verification.ownerUserId,
       hostname: existing.hostname,
@@ -1472,6 +1555,11 @@ app.post('/api/daemons/offline', async (req, res) => {
       updatedAt: new Date().toISOString(),
       lastSeenAt: new Date().toISOString(),
     }, existing);
+    try {
+      await sendDaemonLobbyEnvelope(record);
+    } catch (lobbyError) {
+      console.warn('[Web] Daemon lobby notify failed:', lobbyError?.message || lobbyError);
+    }
   } catch (error) {
     if (error?.code === 'DAEMON_OWNER_CONFLICT') {
       return res.status(409).json({ error: error.message });
@@ -1555,6 +1643,11 @@ app.patch('/api/daemons/:daemonId/access', async (req, res) => {
     updatedAt: record.updatedAt,
     lastSeenAt: record.lastSeenAt,
   }, existing);
+  try {
+    await sendDaemonLobbyEnvelope(record, updatedAccessState);
+  } catch (lobbyError) {
+    console.warn('[Web] Daemon lobby notify failed:', lobbyError?.message || lobbyError);
+  }
   res.json({ daemon: daemonResponseForUser(record, updatedAccessState, user) });
 });
 

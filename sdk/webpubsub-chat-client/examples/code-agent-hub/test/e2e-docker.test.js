@@ -1,7 +1,7 @@
 import { after, before, describe, it } from 'node:test';
 import assert from 'node:assert/strict';
 import { spawn } from 'node:child_process';
-import { createHmac, randomUUID } from 'node:crypto';
+import { randomUUID } from 'node:crypto';
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { ChatClient } from '@azure/web-pubsub-chat-client';
@@ -100,26 +100,25 @@ async function stopChatClient(client, timeoutMs = 1_500) {
   });
 }
 
-function createDaemonSignature(daemonId, ownerUserId, timestamp) {
-  const accessKey = parseConnectionStringValue('AccessKey');
-  const signingKey = Buffer.from(accessKey, 'base64');
-  return createHmac('sha256', signingKey)
-    .update(`${daemonId}\n${ownerUserId}\n${timestamp}`)
-    .digest('hex');
-}
-
-function buildDaemonMutationPayload({ daemonId, ownerUserId, hostname, platform = 'linux', agents, workspaces }) {
-  const timestamp = new Date().toISOString();
+function buildDaemonMutationPayload({ hostname, platform = 'linux', agents, workspaces }) {
   return {
-    daemonId,
-    ownerUserId,
     hostname,
     platform,
     agents,
     workspaces,
-    timestamp,
-    signature: createDaemonSignature(daemonId, ownerUserId, timestamp),
   };
+}
+
+async function bootstrapDaemonSessionToken({ daemonId, ownerUserId }) {
+  const response = await fetch(portalUrl('/api/daemon-sessions/bootstrap'), {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ daemonId, ownerUserId }),
+  });
+  const body = await response.json().catch(() => ({}));
+  assert.equal(response.status, 200, `daemon bootstrap should succeed: ${JSON.stringify(body)}`);
+  assert.equal(typeof body.token, 'string');
+  return body.token;
 }
 
 async function waitFor(condition, timeoutMs = 30_000, label = 'condition') {
@@ -196,9 +195,13 @@ function ensureDaemonHeartbeatLoop() {
     void (async () => {
       for (const daemonConfig of [...registeredDaemons]) {
         appendTrace(`[heartbeat] ${daemonConfig.daemonId}`);
+        const token = await bootstrapDaemonSessionToken(daemonConfig);
         const response = await fetch(portalUrl('/api/daemons/heartbeat'), {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`,
+          },
           body: JSON.stringify(buildDaemonMutationPayload(daemonConfig)),
         });
         if (!response.ok) {
@@ -220,9 +223,13 @@ async function stopDaemonHeartbeatLoop() {
   }
   if (!registeredDaemons.length) return;
   await Promise.allSettled(registeredDaemons.map(async (daemonConfig) => {
+    const token = await bootstrapDaemonSessionToken(daemonConfig);
     await fetch(portalUrl('/api/daemons/offline'), {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`,
+      },
       body: JSON.stringify(buildDaemonMutationPayload(daemonConfig)),
     });
   }));
@@ -298,11 +305,15 @@ function frontendSessionLabel(session) {
 
 async function registerDaemon({ daemonId, ownerUserId, hostname, platform = 'linux', agents, workspaces }) {
   const daemonConfig = { daemonId, ownerUserId, hostname, platform, agents, workspaces };
+  const token = await bootstrapDaemonSessionToken(daemonConfig);
   const payload = buildDaemonMutationPayload(daemonConfig);
   appendTrace(`[daemon] register ${daemonId} owner=${ownerUserId}`);
   const response = await fetch(portalUrl('/api/daemons/register'), {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${token}`,
+    },
     body: JSON.stringify(payload),
   });
   const body = await response.json();

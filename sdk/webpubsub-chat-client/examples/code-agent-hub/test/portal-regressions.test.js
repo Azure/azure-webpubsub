@@ -5,9 +5,11 @@ import {
   classifyIncomingSessionRoomMessage,
   daemonHasAdminAccess,
   daemonHasMemberAccess,
+  getRealtimeSessionAccessPatch,
   getCreateSessionAccessState,
   isLocalEchoMessage,
   isDaemonRecordFresh,
+  mergeRealtimeDaemonRecord,
   normalizeDaemonRecord,
   notificationTargetsRoom,
   rememberRoomMessage,
@@ -41,6 +43,36 @@ describe('portal regression helpers', () => {
     assert.equal(daemonHasAdminAccess(daemon), false);
     assert.equal(canBrowseDaemonDirectories(daemon), false);
     assert.deepEqual(getCreateSessionAccessState(daemon), { blocked: false, readOnly: true });
+  });
+
+  it('grants realtime session write access to daemon admins', () => {
+    assert.deepEqual(
+      getRealtimeSessionAccessPatch(
+        { sessionId: 'session-1', ownerUserId: 'alice' },
+        { currentUserId: 'bob', daemon: { daemonId: 'daemon-1', canWrite: true } },
+      ),
+      { accessLevel: 'write', canRead: true, canWrite: true, canDelete: true },
+    );
+  });
+
+  it('grants realtime session write access to the session owner', () => {
+    assert.deepEqual(
+      getRealtimeSessionAccessPatch(
+        { sessionId: 'session-1', ownerUserId: 'alice' },
+        { currentUserId: 'alice', daemon: { daemonId: 'daemon-1', canWrite: false } },
+      ),
+      { accessLevel: 'write', canRead: true, canWrite: true, canDelete: true },
+    );
+  });
+
+  it('does not grant realtime session access to plain daemon members', () => {
+    assert.deepEqual(
+      getRealtimeSessionAccessPatch(
+        { sessionId: 'session-1', ownerUserId: 'alice' },
+        { currentUserId: 'bob', daemon: { daemonId: 'daemon-1', canRead: true, canWrite: false } },
+      ),
+      {},
+    );
   });
 
   it('dedupes live room updates by message id before timestamps', () => {
@@ -101,6 +133,52 @@ describe('portal regression helpers', () => {
     assert.equal(shouldRetainPreviousDaemons(previousDaemons, [], now, 90_000), true);
     assert.equal(shouldRetainPreviousDaemons(previousDaemons, [{ daemonId: 'daemon-alpha' }], now, 90_000), false);
     assert.equal(shouldRetainPreviousDaemons(previousDaemons, [], now + 120_000, 90_000), false);
+  });
+
+  it('merges realtime daemon updates without dropping local access state', () => {
+    const previous = {
+      daemonId: 'daemon-alpha',
+      hostname: 'alpha-old',
+      platform: 'windows',
+      agents: ['copilot'],
+      workspaces: ['c:/old'],
+      hasMemberAccess: true,
+      hasAdminAccess: true,
+      canRead: true,
+      canWrite: true,
+      canManage: true,
+      approverUserIds: ['owner-a'],
+      accessRequestStatus: 'approved',
+      requestedAccess: 'admin',
+      updatedAt: '2026-04-10T00:00:00.000Z',
+    };
+
+    const merged = mergeRealtimeDaemonRecord(previous, {
+      daemonId: 'daemon-alpha',
+      hostname: 'alpha-new',
+      agents: ['copilot', 'claude'],
+      workspaces: ['c:/new'],
+      updatedAt: '2026-04-10T00:01:00.000Z',
+    });
+
+    assert.equal(merged.hostname, 'alpha-new');
+    assert.deepEqual(merged.agents, ['copilot', 'claude']);
+    assert.deepEqual(merged.workspaces, ['c:/new']);
+    assert.equal(merged.hasMemberAccess, true);
+    assert.equal(merged.hasAdminAccess, true);
+    assert.equal(merged.canManage, true);
+    assert.deepEqual(merged.approverUserIds, ['owner-a']);
+    assert.equal(merged.accessRequestStatus, 'approved');
+    assert.equal(merged.requestedAccess, 'admin');
+  });
+
+  it('accepts richer realtime daemon approver updates', () => {
+    const merged = mergeRealtimeDaemonRecord(
+      { daemonId: 'daemon-beta', hostname: 'beta', approverUserIds: ['owner-a'] },
+      { daemonId: 'daemon-beta', hostname: 'beta', approverUserIds: ['owner-a', 'alice'], updatedAt: '2026-04-10T00:01:00.000Z' },
+    );
+
+    assert.deepEqual(merged.approverUserIds, ['owner-a', 'alice']);
   });
 
   it('does not filter observer messages from the daemon bot', () => {

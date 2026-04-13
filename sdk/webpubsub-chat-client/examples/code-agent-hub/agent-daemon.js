@@ -13,7 +13,7 @@
  * All agent logic lives here.
  */
 
-import { createHmac, randomUUID } from 'crypto';
+import { randomUUID } from 'crypto';
 import { existsSync } from 'node:fs';
 import { access, mkdir, readFile, readdir, writeFile } from 'node:fs/promises';
 import { once } from 'node:events';
@@ -36,15 +36,8 @@ const DAEMON_ENTRY_DIR = process.argv[1]
   : process.cwd();
 
 const INSTALL_ALL_AGENT_CLI_MODE = process.argv.includes('--install');
-const connectionString = process.env.WEB_PUBSUB_CONNECTION_STRING || process.env.WebPubSubConnectionString;
-if (!INSTALL_ALL_AGENT_CLI_MODE && !connectionString) {
-  console.error('[Daemon] Error: WEB_PUBSUB_CONNECTION_STRING or WebPubSubConnectionString is required');
-  process.exit(1);
-}
-
-const hubName = process.env.WEB_PUBSUB_HUB || 'chat';
 const portalUrl = process.env.PORTAL_URL || 'http://localhost:3000';
-const BOT_USER_ID = process.env.DAEMON_USER_ID || 'copilot-bot';
+const BOT_USER_ID = process.env.DAEMON_INSTANCE_ID || process.env.DAEMON_USER_ID || 'copilot-bot';
 const BOT_OWNER_USER_ID = process.env.DAEMON_OWNER_USER_ID || process.env.DAEMON_OWNER || process.env.USERNAME || process.env.USER || 'local-owner';
 const PORTAL_CONTROL_USER_ID = process.env.PORTAL_CONTROL_USER_ID || '__portal_control__';
 const MAX_ROOM_MESSAGE_LENGTH = 4096;
@@ -61,47 +54,46 @@ const ACP_STARTUP_TIMEOUT_MS = Number(process.env.ACP_STARTUP_TIMEOUT_MS || 9000
 const WORKSPACE_LIST_LIMIT = 200;
 const SUPPORTED_ACP_AGENT_NAMES = ['copilot', 'claude', 'codex'];
 
-function parseConnectionStringValue(key) {
-  if (!connectionString) return '';
-  const part = connectionString
-    .split(';')
-    .map((segment) => segment.trim())
-    .find((segment) => segment.toLowerCase().startsWith(`${key.toLowerCase()}=`));
-  return part ? part.slice(key.length + 1) : '';
-}
-
-const portalSigningKey = Buffer.from(parseConnectionStringValue('AccessKey') || '', 'base64');
-
 function isPortalControlUser(userId) {
   return String(userId || '').trim() === PORTAL_CONTROL_USER_ID;
 }
 
-function signDaemonRequest(timestamp) {
-  return createHmac('sha256', portalSigningKey)
-    .update(`${BOT_USER_ID}\n${BOT_OWNER_USER_ID}\n${timestamp}`)
-    .digest('hex');
-}
-
-function buildDaemonPortalPayload(details = {}) {
-  const timestamp = new Date().toISOString();
-  return {
-    daemonId: BOT_USER_ID,
-    ownerUserId: BOT_OWNER_USER_ID,
-    hostname: details.hostname,
-    platform: details.platform,
-    agents: details.agents,
-    workspaces: details.workspaces,
-    timestamp,
-    signature: signDaemonRequest(timestamp),
-  };
-}
-
-async function postDaemonPortal(path, details = {}) {
-  const endpoint = `${portalUrl}${path}`;
+async function bootstrapDaemonSessionToken() {
+  const endpoint = `${portalUrl}/api/daemon-sessions/bootstrap`;
   const resp = await fetch(endpoint, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(buildDaemonPortalPayload(details)),
+    body: JSON.stringify({
+      daemonId: BOT_USER_ID,
+      ownerUserId: BOT_OWNER_USER_ID,
+    }),
+  });
+
+  const body = await resp.json().catch(() => ({}));
+  if (!resp.ok) {
+    throw new Error(body?.error || `Daemon bootstrap failed (${resp.status})`);
+  }
+  if (!body?.token) {
+    throw new Error('Portal bootstrap did not return a daemon session token');
+  }
+  return body.token;
+}
+
+async function postDaemonPortal(path, details = {}) {
+  const token = await bootstrapDaemonSessionToken();
+  const endpoint = `${portalUrl}${path}`;
+  const resp = await fetch(endpoint, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${token}`,
+    },
+    body: JSON.stringify({
+      hostname: details.hostname,
+      platform: details.platform,
+      agents: details.agents,
+      workspaces: details.workspaces,
+    }),
   });
 
   const body = await resp.json().catch(() => ({}));
