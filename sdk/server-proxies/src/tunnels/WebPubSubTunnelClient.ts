@@ -17,7 +17,12 @@ export class WebPubSubTunnelClient {
   public stopped = false;
   public messageQueue: TunnelMessage[] = [];
 
-  constructor(url: { endpoint: URL; reverseProxyEndpoint: URL | undefined }, credential: AzureKeyCredential | TokenCredential, public readonly userId: string, public readonly target?: string) {
+  constructor(
+    url: { endpoint: URL; reverseProxyEndpoint: URL | undefined },
+    credential: AzureKeyCredential | TokenCredential,
+    public readonly userId: string,
+    public readonly target?: string,
+  ) {
     const options: WebPubSubClientOptions = {
       protocol: new TunnelServerProtocol(),
       autoReconnect: true,
@@ -28,8 +33,17 @@ export class WebPubSubTunnelClient {
           return getAccessTokenUrl(url.endpoint, credential, url.reverseProxyEndpoint, userId);
         },
       },
-      options
+      options,
     ));
+    // Workaround: Node 20+ rejects empty string as a WebSocket subprotocol (RFC 6455).
+    // Wrap the SDK's internal WebSocket factory to convert "" to undefined.
+    const originalGetFactory = (client as any)._getWebSocketClientFactory.bind(client);
+    (client as any)._getWebSocketClientFactory = () => {
+      const inner = originalGetFactory();
+      return {
+        create: (uri: string, _: string) => inner.create(uri, undefined),
+      };
+    };
     client.on("connected", (connected) => {
       this.currentConnectionId = connected.connectionId;
       this._startedCts.resolve(connected.connectionId);
@@ -64,9 +78,9 @@ export class WebPubSubTunnelClient {
       }
     });
   }
-  
-  public getPrintableIdentifier(){
-    return `[${this.id}]${this.currentConnectionId ?? ""}`
+
+  public getPrintableIdentifier() {
+    return `[${this.id}]${this.currentConnectionId ?? ""}`;
   }
   public on(event: "message" | "stop", listener: (...args: any[]) => void): void {
     this._emitter.on(event, listener);
@@ -140,17 +154,15 @@ class TunnelServerProtocol implements WebPubSubClientProtocol {
 async function getAccessTokenUrl(endpoint: URL, credential: AzureKeyCredential | TokenCredential, reverseProxyEndpoint?: URL, userId?: string): Promise<string> {
   const url = endpoint.toString();
   let tokenString: string;
-  if (!isTokenCredential(credential)){
+  if (!isTokenCredential(credential)) {
     tokenString = signJwtToken(credential, url, userId);
-  }else {
-    tokenString = (
-      await credential.getToken("https://webpubsub.azure.com/.default")
-    )!.token;
+  } else {
+    tokenString = (await credential.getToken("https://webpubsub.azure.com/.default"))!.token;
   }
   return `${reverseProxyEndpoint?.toString() ?? url}&access_token=${encodeURIComponent(tokenString)}`;
 }
 
-function signJwtToken(credential: AzureKeyCredential, audience: string, userId?: string) : string {
+function signJwtToken(credential: AzureKeyCredential, audience: string, userId?: string): string {
   return jwt.sign({}, credential.key, {
     subject: userId,
     audience: audience,
