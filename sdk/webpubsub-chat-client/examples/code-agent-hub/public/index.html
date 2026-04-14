@@ -76,7 +76,7 @@ a{color:var(--accent2);text-decoration:none}button{font-family:inherit;cursor:po
 .tb-icon-btn:hover{background:color-mix(in srgb,var(--bg1) 86%,transparent);color:var(--fg2);border-color:color-mix(in srgb,var(--fg6) 78%,transparent)}
 .tb-icon-btn:active{transform:scale(.92)}
 .tb-icon-btn.active{background:color-mix(in srgb,var(--accent2) 12%,transparent);color:var(--accent2);border-color:color-mix(in srgb,var(--accent2) 24%,var(--border2))}
-.tb-icon-btn.debug-flash{animation:debug-btn-flash .9s ease-out}
+.tb-icon-btn.debug-flash{animation:debug-btn-flash 1.6s ease-out}
 #body{flex:1;display:flex;overflow:hidden}
 #sidebar{display:none;width:260px;flex-shrink:0;background:var(--bg2);border-right:1px solid var(--border);overflow-y:auto;flex-direction:column}
 #content{flex:1;display:flex;flex-direction:column;min-width:0;overflow:hidden}
@@ -359,7 +359,7 @@ a{color:var(--accent2);text-decoration:none}button{font-family:inherit;cursor:po
 .dir-input-meta.is-success{color:var(--green)}
 #chat-col{flex:1;min-width:0;display:flex;flex-direction:column}
 #chat-col-top{display:flex;justify-content:flex-end;align-items:center;padding:10px 12px 0;flex-shrink:0}
-#chat-col-top:empty{display:none}
+#chat-col-top:empty{display:none}\n.chat-col-mob-back{display:none}
 @media(max-width:600px){
   .chat-empty{min-height:min(54vh,420px)}
   .chat-empty-title{font-size:20px}
@@ -373,6 +373,18 @@ a{color:var(--accent2);text-decoration:none}button{font-family:inherit;cursor:po
   .col-hdr{display:flex;align-items:center;gap:6px}
   .mob-back{display:flex;width:28px;height:28px;border:none;border-radius:8px;background:none;color:#6baaff;font-size:14px;cursor:pointer;align-items:center;justify-content:center}
   .mob-back:active{background:var(--bg3)}
+  #topbar .tb-title{font-size:13px;max-width:40vw}
+  #topbar .tb-user{max-width:90px;overflow:hidden;text-overflow:ellipsis}
+  #topbar .tb-btn#auto-approve-btn{font-size:10px;padding:0 6px;height:28px}
+  #topbar .tb-icon-btn#compact-toggle-btn{display:none!important}
+  #debug-panel{top:0;right:0;bottom:0;width:100vw;border-radius:0}
+  .session-toolbar{gap:4px;flex-wrap:nowrap;overflow-x:auto;-webkit-overflow-scrolling:touch;padding-bottom:4px}
+  .toolbar-btn{font-size:11px;min-height:26px;padding:3px 8px}
+  .toolbar-btn-kicker{font-size:9px}
+  .toolbar-btn-value{max-width:100px}
+  #chat-col-top{padding:6px 10px 0}
+  .chat-col-mob-back{display:flex;width:28px;height:28px;border:none;border-radius:8px;background:none;color:var(--accent2);font-size:14px;cursor:pointer;align-items:center;justify-content:center;flex-shrink:0}
+  .chat-col-mob-back:active{background:var(--bg3)}
 }
 
 /* ── Welcome ── */
@@ -534,7 +546,7 @@ a{color:var(--accent2);text-decoration:none}button{font-family:inherit;cursor:po
 @keyframes wps-rail-glint{from{transform:translateX(-32%)}to{transform:translateX(276%)}}
 @keyframes msg-in{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
 @keyframes col-in{from{opacity:0;transform:translateX(12px)}to{opacity:1;transform:translateX(0)}}
-@keyframes debug-btn-flash{0%{box-shadow:inset 0 1px 0 color-mix(in srgb,#fff 8%,transparent);background:color-mix(in srgb,var(--bg2) 82%,transparent);color:var(--fg4)}35%{box-shadow:inset 0 1px 0 color-mix(in srgb,#fff 8%,transparent),0 0 0 5px color-mix(in srgb,var(--accent2) 10%,transparent);background:color-mix(in srgb,var(--accent2) 10%,transparent);color:var(--accent2)}100%{box-shadow:inset 0 1px 0 color-mix(in srgb,#fff 8%,transparent);background:color-mix(in srgb,var(--bg2) 82%,transparent);color:var(--fg4)}}
+@keyframes debug-btn-flash{0%{box-shadow:inset 0 1px 0 color-mix(in srgb,#fff 8%,transparent);background:color-mix(in srgb,var(--bg2) 82%,transparent);color:var(--fg4)}20%{box-shadow:inset 0 1px 0 color-mix(in srgb,#fff 8%,transparent),0 0 0 5px color-mix(in srgb,var(--accent2) 18%,transparent),0 0 16px color-mix(in srgb,var(--accent2) 14%,transparent);background:color-mix(in srgb,var(--accent2) 18%,transparent);color:var(--accent2);transform:scale(1.12)}50%{box-shadow:inset 0 1px 0 color-mix(in srgb,#fff 8%,transparent),0 0 0 3px color-mix(in srgb,var(--accent2) 10%,transparent);background:color-mix(in srgb,var(--accent2) 10%,transparent);color:var(--accent2);transform:scale(1.04)}100%{box-shadow:inset 0 1px 0 color-mix(in srgb,#fff 8%,transparent);background:color-mix(in srgb,var(--bg2) 82%,transparent);color:var(--fg4);transform:scale(1)}}
 @media(max-width:700px){
   .wl-title{font-size:22px}
   #welcome{padding:24px 12px}
@@ -630,7 +642,7 @@ a{color:var(--accent2);text-decoration:none}button{font-family:inherit;cursor:po
       </div>
       <!-- Column 4: Chat -->
       <div id="chat-col" style="display:none">
-        <div id="chat-col-top"></div>
+        <div id="chat-col-top"><button class="chat-col-mob-back" onclick="mobShow('col-sessions')" style="display:none" aria-label="Back to sessions">◀</button></div>
         <div class="chat-placeholder" id="chat-placeholder"></div>
         <div id="scroll" style="flex:1;overflow-y:auto;overflow-x:hidden;-webkit-overflow-scrolling:touch">
           <div id="chat" class="hidden"></div>
@@ -971,19 +983,22 @@ function clearDebugLog(){
   syncDebugUi();
 }
 window.clearDebugLog=clearDebugLog;
-function logDebugMessage(direction,data){
+function logDebugMessage(direction,data,label='',proto=''){
   const ts=new Date().toISOString().substring(11,19);
   let type='unknown';
   try{if(typeof data==='string')data=JSON.parse(data);type=data.type||data.method||'response'}catch{}
-  debugMessages.push({ts,direction,type,data});
+  debugMessages.push({ts,direction,type,data,label,proto});
   if(debugMessages.length>500)debugMessages.shift();
   const el=document.getElementById('debug-log');
   if(!el)return;
-  const dir=direction==='send'?'→':'←';
+  const dir=direction==='send'?'↑':'↓';
+  const dirColor=direction==='send'?'var(--green)':'var(--accent2)';
+  const labelHtml=label?`<span style="font-size:9px;padding:1px 5px;border-radius:4px;background:color-mix(in srgb,var(--fg7) 40%,transparent);color:var(--fg4);margin-left:4px;font-weight:700;letter-spacing:.03em;text-transform:uppercase">${esc(label)}</span>`:'';
+  const protoHtml=proto==='acp'?'<span style="font-size:9px;padding:1px 5px;border-radius:4px;background:color-mix(in srgb,var(--accent2) 18%,transparent);color:var(--accent2);margin-left:4px;font-weight:700;letter-spacing:.03em;text-transform:uppercase">ACP</span>':'';
   const item=document.createElement('div');
   item.className='dbg-item';
-  item.innerHTML=`<span class="dbg-dir">${dir}</span> <span class="dbg-type">${esc(String(type))}</span><span class="dbg-time">${ts}</span><div class="dbg-json">${esc(JSON.stringify(data,null,2))}</div>`;
-  item.onclick=()=>item.classList.toggle('expanded');
+  item.innerHTML=`<span class="dbg-dir" style="background:color-mix(in srgb,${dirColor} 14%,transparent);color:${dirColor}">${dir}</span> <span class="dbg-type">${esc(String(type))}</span>${labelHtml}${protoHtml}<span class="dbg-time">${ts}</span><div class="dbg-json">${esc(JSON.stringify(data,null,2))}</div>`;
+  item.onclick=(ev)=>{if(ev.target.closest('.dbg-json'))return;item.classList.toggle('expanded')};
   el.appendChild(item);
   while(el.children.length>500)el.firstElementChild?.remove();
   flashDebugButton();
@@ -2573,7 +2588,9 @@ function hideAll(){$.chat.classList.add('hidden');$.ibar.classList.add('hidden')
 function showWelcome(){rid=null;renderDaemonsCol()}
 function showChat(){$.chat.classList.remove('hidden');$.ibar.classList.remove('hidden');
   showChatPlaceholder(false);
-  document.getElementById('chat-col').style.display='flex';syncComposer();updateAutoBtn();syncSessionToolbarMeta();updateToolbarVisibility();updateBreadcrumb()}
+  document.getElementById('chat-col').style.display='flex';
+  const mobBack=document.querySelector('.chat-col-mob-back');if(mobBack)mobBack.style.display=isMobile()?'flex':'none';
+  syncComposer();updateAutoBtn();syncSessionToolbarMeta();updateToolbarVisibility();updateBreadcrumb()}
 
 function updateBreadcrumb(){
   const parts=['Azure Web PubSub / CodeAgentHub'];
@@ -2950,8 +2967,13 @@ function unpackEnvelope(e){if(e.type!=='transport.chunk')return[e];let s=tc.get(
 function pruneStaleChunks(){const now=Date.now();for(const[chunkId,s]of tc){if(now-s.startedAt>15000){console.warn(`[Portal] Dropping stale incomplete chunk ${chunkId}: received ${s.received}/${s.parts.length}`);tc.delete(chunkId)}}}
 setInterval(pruneStaleChunks,5000);
 function onMsg(n){const m=n.message,r=n.conversation?.roomId;if(!m.content?.text)return;
-  // Debug log all incoming messages
-  try{logDebugMessage('recv',JSON.parse(m.content.text))}catch{logDebugMessage('recv',m.content.text)}
+  let resolvedRoomIdForDebug='';
+  try{resolvedRoomIdForDebug=resolveNotificationRoomId(n,knownRoomInfosForRouting())}catch{}
+  const debugLabel=resolvedRoomIdForDebug===LOBBY_ROOM?'lobby':resolvedRoomIdForDebug?.startsWith(DAEMON_SYNC_ROOM_PREFIX)?'daemon':resolvedRoomIdForDebug===rid?'session':'room';
+  let parsedForDebug=null;
+  try{parsedForDebug=JSON.parse(m.content.text)}catch{}
+  const debugProto=parsedForDebug?.type&&/^(assistant\.|tool\.|permission\.|session\.(state|idle|error)|commands\.|modes\.|models\.|mode\.|usage\.|system\.|user\.(prompt|command))/.test(parsedForDebug.type)?'acp':'';
+  try{logDebugMessage('recv',parsedForDebug||m.content.text,debugLabel,debugProto)}catch{logDebugMessage('recv',m.content.text,debugLabel,debugProto)}
   try{
     const parsed=JSON.parse(m.content.text);
     const envelopes=unpackEnvelope(parsed);
