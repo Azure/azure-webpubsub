@@ -719,6 +719,8 @@ let portalTransportState='disconnected';
 let portalTransportError='';
 const seenPendingJoinRequestIds=new Set();
 const seenPendingDaemonAccessRequestIds=new Set();
+const recentDaemonAccessRequests=new Set();
+const recentSessionAccessRequests=new Set();
 const ss={processing:false,pendingCount:0,stopping:false,model:'gpt-5.4'};
 let currentSessionReady=null;
 let chatPlaceholderOverride=null;
@@ -1421,13 +1423,11 @@ function renderCompactSessions(){
     const owner=s.ownerUserId&&s.ownerUserId!==uid?`by ${s.ownerUserId}`:'';
     const joinMeta=accessLevel==='write'?'write':accessLevel==='read'?'read-only':joinedSession?'joined':'';
     const meta=[owner,t,joinMeta].filter(Boolean).join(' · ');
-    const pendingRead=joinStatus==='pending'&&requestedAccess==='read';
-    const pendingWrite=joinStatus==='pending'&&requestedAccess==='write';
     const action=sessionCanRead(s)
-      ?(sessionCanWrite(s)?'<span class="ci-dot" style="background:'+(s.sessionId===rid?'var(--green)':'var(--fg6)')+'"></span>':daemonHasAdminAccess(daemon)?'<span class="ci-tag ci-tag-view">RO</span>':`<div class="ci-actions"><span class="ci-tag ci-tag-view">RO</span><button class="ci-join" onclick="event.stopPropagation();compactRequestSessionAccess('${jsq(s.sessionId)}','write')" ${pendingWrite?'disabled':''}>${pendingWrite?'Pending':'+ Write'}</button></div>`)
+      ?(sessionCanWrite(s)?'<span class="ci-dot" style="background:'+(s.sessionId===rid?'var(--green)':'var(--fg6)')+'"></span>':daemonHasAdminAccess(daemon)?'<span class="ci-tag ci-tag-view">RO</span>':`<div class="ci-actions"><span class="ci-tag ci-tag-view">RO</span><button class="ci-join" onclick="event.stopPropagation();compactRequestSessionAccess('${jsq(s.sessionId)}','write')">${recentSessionAccessRequests.has(`${s.sessionId}:write`)?'Requested':'+ Write'}</button></div>`)
       :daemonHasAdminAccess(daemon)
         ?'<span class="ci-dot" style="background:var(--fg6)"></span>'
-        :`<div class="ci-actions"><button class="ci-join" onclick="event.stopPropagation();compactRequestSessionAccess('${jsq(s.sessionId)}','read')" ${pendingRead?'disabled':''}>${pendingRead?'Pending':'+ Read'}</button><button class="ci-join" onclick="event.stopPropagation();compactRequestSessionAccess('${jsq(s.sessionId)}','write')" ${pendingWrite?'disabled':''}>${pendingWrite?'Pending':'+ Write'}</button></div>`;
+        :`<div class="ci-actions"><button class="ci-join" onclick="event.stopPropagation();compactRequestSessionAccess('${jsq(s.sessionId)}','read')">${recentSessionAccessRequests.has(`${s.sessionId}:read`)?'Requested':'+ Read'}</button><button class="ci-join" onclick="event.stopPropagation();compactRequestSessionAccess('${jsq(s.sessionId)}','write')">${recentSessionAccessRequests.has(`${s.sessionId}:write`)?'Requested':'+ Write'}</button></div>`;
     return `<div class="compact-item${s.sessionId===rid?' selected':''}" onclick="compactOpenSession('${jsq(s.sessionId)}',${sessionCanRead(s)?'true':'false'})"><span class="ci-icon" style="color:${color}">${icon}</span><div class="ci-info"><div class="ci-name">${esc(nm)}</div><div class="ci-meta">${esc(meta)}</div></div>${action}</div>`;
   }).join('');
   return compactSection(AGENT_NAMES[currentAgentName]||'Sessions',`${readOnlyBanner}${content}`)
@@ -1545,9 +1545,9 @@ function syncCreateSessionButton(){
   const {blocked,readOnly}=getCreateSessionAccessState(daemon);
   if(button.dataset.busy!=='true'){
     button.disabled=invalid||blocked||readOnly;
-    button.textContent=blocked?'No Daemon Access':readOnly?'Member Only':'New Session';
+    button.textContent=blocked?'No Daemon Access':readOnly?'Admin Required':'New Session';
     button.classList.toggle('is-blocked',blocked||readOnly);
-    button.title=blocked?'You need member or admin permission on this daemon before sessions are visible.':readOnly?'This daemon is currently member-only. Request admin permission to create sessions.':invalid?`Directory does not match the selected ${daemon?.platform==='win32'?'Windows':'Linux/macOS'} daemon.`:'';
+    button.title=blocked?'You need member or admin permission on this daemon before sessions are visible.':readOnly?'Creating sessions requires daemon admin access. You currently have member (read-only) access.':invalid?`Directory does not match the selected ${daemon?.platform==='win32'?'Windows':'Linux/macOS'} daemon.`:'';
   }
 }
 async function requestWorkspaceListing(pathValue='',query=''){
@@ -1704,14 +1704,12 @@ function daemonAccessButtons(daemon,{includeMember=true,includeAdmin=true,compac
   const requested=daemon.requestedAccess||'';
   const buttons=[];
   if(includeMember&&!daemonHasMemberAccess(daemon)){
-    const disabled=isPending&&(requested==='member'||requested==='admin');
-    const label=disabled?'Member Requested':(daemon.accessRequestStatus==='denied'&&requested==='member'?'Request Member Again':'Request Member');
-    buttons.push(`<button class="ci-join" type="button" onclick="event.stopPropagation();requestDaemonAccess('member')" ${disabled?'disabled':''}>${label}</button>`);
+    const label=recentDaemonAccessRequests.has(`${daemon.daemonId}:member`)?'Requested':'Request Member';
+    buttons.push(`<button class="ci-join" type="button" onclick="event.stopPropagation();requestDaemonAccess('member')">${label}</button>`);
   }
   if(includeAdmin&&!daemonHasAdminAccess(daemon)){
-    const disabled=isPending&&requested==='admin';
-    const label=disabled?'Admin Requested':(daemon.accessRequestStatus==='denied'&&requested==='admin'?'Request Admin Again':'Request Admin');
-    buttons.push(`<button class="ci-join" type="button" onclick="event.stopPropagation();requestDaemonAccess('admin')" ${disabled?'disabled':''}>${label}</button>`);
+    const label=recentDaemonAccessRequests.has(`${daemon.daemonId}:admin`)?'Requested':'Request Admin';
+    buttons.push(`<button class="ci-join" type="button" onclick="event.stopPropagation();requestDaemonAccess('admin')">${label}</button>`);
   }
   if(!buttons.length)return'';
   return `<div class="daemon-access-request-actions${compact?' compact':''}">${buttons.join('')}</div>`;
@@ -2316,7 +2314,8 @@ function applyDaemonSyncEnvelope(e){
     if(e.status==='pending'){
       if(requestId&&seenPendingDaemonAccessRequestIds.has(requestId))return;
       if(requestId)seenPendingDaemonAccessRequestIds.add(requestId);
-      void handleDaemonAccessRequest(e);
+      const canApprove=known?(known.canManage||daemonHasAdminAccess(known)):false;
+      if(canApprove)void handleDaemonAccessRequest(e);
       return;
     }
     if(requestId)seenPendingDaemonAccessRequestIds.delete(requestId);
@@ -2385,6 +2384,7 @@ window.requestDaemonAccess=async(requestedAccess)=>{
     if(!daemon||!currentDaemonId)throw new Error('Select a daemon first');
     const body=await portalJson(`/api/daemons/${encodeURIComponent(currentDaemonId)}/access-requests`,{method:'POST',body:JSON.stringify({requestedAccess})});
     knownDaemons.set(currentDaemonId,{...daemon,accessRequestStatus:body.status||'pending',requestedAccess:body.requestedAccess||requestedAccess});
+    recentDaemonAccessRequests.add(`${currentDaemonId}:${requestedAccess}`);
     setFormStatus(`${requestedAccess==='admin'?'Admin':'Member'} access request sent. Waiting for approval.`,'loading',2600,'create');
     renderDaemonsCol();
     await renderSessionsCol();
@@ -2398,6 +2398,11 @@ window.requestDaemonAccess=async(requestedAccess)=>{
 async function handleJoinRequest(e){
   const key=e.requestId||`${e.sessionId}:${e.requesterUserId}`;
   if(joinApprovalLocks.has(key))return;
+  const session=discoveredSessions.get(e.sessionId)||e;
+  const daemon=knownDaemons.get(session.daemonId||e.daemonId||currentDaemonId);
+  const isOwner=session.ownerUserId&&session.ownerUserId===uid;
+  const isDaemonAdmin=daemon&&(daemon.canManage||daemonHasAdminAccess(daemon));
+  if(!isOwner&&!isDaemonAdmin)return;
   joinApprovalLocks.add(key);
   try{
     const session=discoveredSessions.get(e.sessionId)||e;
@@ -2414,10 +2419,11 @@ async function handleJoinRequest(e){
 async function handleDaemonAccessRequest(e){
   const key=e.requestId||`${e.daemonId}:${e.requesterUserId}`;
   if(daemonAccessApprovalLocks.has(key))return;
+  const daemon=knownDaemons.get(e.daemonId);
+  if(daemon&&!daemon.canManage&&!daemonHasAdminAccess(daemon))return;
   daemonAccessApprovalLocks.add(key);
   try{
-    const daemon=knownDaemons.get(e.daemonId)||e;
-    const label=daemon.hostname||e.daemonId;
+    const label=(daemon||e).hostname||e.daemonId;
     const allow=await showConfirm(`${e.requesterUserId} wants ${e.requestedAccess} access to ${label}.`,'Allow');
     await portalJson(`/api/daemons/${encodeURIComponent(e.daemonId)}/access-requests/${encodeURIComponent(e.requestId)}/${allow?'approve':'reject'}`,{method:'POST'});
     pulsePortalRefresh([500,1500]);
@@ -2774,8 +2780,6 @@ async function renderSessionsCol(){
     const owner=s.ownerUserId&&s.ownerUserId!==uid?`by ${s.ownerUserId}`:'';
     const joinMeta=accessLevel==='write'?'write':accessLevel==='read'?'read-only':joinedSession?'joined':'';
     const meta=[owner,t,joinMeta].filter(Boolean).join(' · ');
-    const pendingRead=joinStatus==='pending'&&requestedAccess==='read';
-    const pendingWrite=joinStatus==='pending'&&requestedAccess==='write';
     const canDelete=sessionCanDelete(s);
     const canLeave=sessionCanLeave(s,daemon);
     const manageAction=canDelete
@@ -2790,11 +2794,11 @@ async function renderSessionsCol(){
         :'';
     const action=joinedSession
       ?(sessionCanRead(s)&&!sessionCanWrite(s)&&!daemonHasAdminAccess(daemon)
-        ?`<div class="ci-actions"><button class="ci-join" onclick="event.stopPropagation();requestSessionAccess('${jsq(s.sessionId)}','write')" ${pendingWrite?'disabled':''}>${pendingWrite?'Pending':'+ Write'}</button>${manageAction}</div>`
+        ?`<div class="ci-actions"><button class="ci-join" onclick="event.stopPropagation();requestSessionAccess('${jsq(s.sessionId)}','write')">${recentSessionAccessRequests.has(`${s.sessionId}:write`)?'Requested':'+ Write'}</button>${manageAction}</div>`
         :manageAction)
       :daemonHasAdminAccess(daemon)
         ?''
-        :`<div class="ci-actions"><button class="ci-join" onclick="event.stopPropagation();requestSessionAccess('${jsq(s.sessionId)}','read')" ${pendingRead?'disabled':''}>${pendingRead?'Pending':'+ Read'}</button><button class="ci-join" onclick="event.stopPropagation();requestSessionAccess('${jsq(s.sessionId)}','write')" ${pendingWrite?'disabled':''}>${pendingWrite?'Pending':'+ Write'}</button></div>`;
+        :`<div class="ci-actions"><button class="ci-join" onclick="event.stopPropagation();requestSessionAccess('${jsq(s.sessionId)}','read')">${recentSessionAccessRequests.has(`${s.sessionId}:read`)?'Requested':'+ Read'}</button><button class="ci-join" onclick="event.stopPropagation();requestSessionAccess('${jsq(s.sessionId)}','write')">${recentSessionAccessRequests.has(`${s.sessionId}:write`)?'Requested':'+ Write'}</button></div>`;
     return`<div class="col-item${s.sessionId===rid?' selected':''}"${sessionCanRead(s)?` onclick="openSession('${jsq(s.sessionId)}')"`:''}><span class="ci-icon" style="color:${color}">${icon}</span><div class="ci-info"><div class="ci-name">${esc(nm)}</div><div class="ci-meta">${esc(meta)}</div></div>${status}${action}</div>`;
   }).join('');
   list.innerHTML=`${readOnlyBanner}${list.innerHTML}`;
@@ -2812,7 +2816,7 @@ window.openSession=async(sid)=>{try{
   await renderSessionsCol();
   if(isMobile())mobShow('chat-col');
 }catch(e){setSessionBanner({source:'error',label:'Open failed',text:e.message||'Failed to open session',tone:'error',actionText:'Retry',action:()=>window.openSession(sid)});addErr(e.message||'Failed to open session')}};
-window.requestSessionAccess=async(sid,requestedAccess='read')=>{try{const sent=await requestJoinSession(sid,requestedAccess);if(sent){setFormStatus(`${requestedAccess==='write'?'Write':'Read'} access request sent. Waiting for approval.`,'loading',2600,'join');await renderSessionsCol()}}catch(e){setFormStatus(e.message||'Failed to request access.','error',4500,'join')}};
+window.requestSessionAccess=async(sid,requestedAccess='read')=>{try{const sent=await requestJoinSession(sid,requestedAccess);if(sent){recentSessionAccessRequests.add(`${sid}:${requestedAccess}`);setFormStatus(`${requestedAccess==='write'?'Write':'Read'} access request sent. Waiting for approval.`,'loading',2600,'join');await renderSessionsCol()}}catch(e){setFormStatus(e.message||'Failed to request access.','error',4500,'join')}};
 
 function esc(s){return s?String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;'):''}
 function jsq(s){return String(s??'').replace(/\\/g,'\\\\').replace(/'/g,"\\'").replace(/\r?\n/g,'\\n').replace(/</g,'\\x3C').replace(/\u2028/g,'\\u2028').replace(/\u2029/g,'\\u2029')}
@@ -2954,7 +2958,18 @@ function onMsg(n){const m=n.message,r=n.conversation?.roomId;if(!m.content?.text
     }
     const roomMessageAction=classifyIncomingSessionRoomMessage(n,{currentRoomId:rid,currentUserId:uid,roomInfos:knownRoomInfosForRouting(),seenRoomMessageIds,historyLoadedAt});
     if(roomMessageAction.action!=='render')return;
-    for(const e of envelopes)render(e);scroll()
+    for(const e of envelopes){
+      if(e.type==='portal.join-request'&&e.status==='pending'&&e.requesterUserId!==uid){
+        const key=e.requestId||`${e.sessionId||resolvedRoomId}:${e.requesterUserId}`;
+        if(!seenPendingJoinRequestIds.has(key)){
+          seenPendingJoinRequestIds.add(key);
+          void handleJoinRequest({...e,sessionId:e.sessionId||resolvedRoomId});
+        }
+        continue;
+      }
+      render(e);
+    }
+    scroll()
   }catch(err){console.warn('[Portal] onMsg render error:',err,{roomId:r,messageId:m?.messageId,text:m?.content?.text?.substring(0,200)})}
 }
 
