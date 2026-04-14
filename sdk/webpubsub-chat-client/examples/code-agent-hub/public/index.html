@@ -266,7 +266,7 @@ a{color:var(--accent2);text-decoration:none}button{font-family:inherit;cursor:po
 .col-new-msg.is-error{color:#ff8f8f}
 .col-new-msg.is-success{color:var(--green)}
 .col-new-msg.is-warn{color:var(--orange)}
-.daemon-stack>.daemon-access-summary{margin:8px 0 0}
+.daemon-stack>.daemon-access-summary{margin:0 0 0;border-top:none;border-top-left-radius:0;border-top-right-radius:0;margin-left:14px;margin-right:0;border-left:2px solid color-mix(in srgb,var(--accent2) 22%,var(--border2))}
 .daemon-access-summary{padding:11px 12px 12px;border:1px solid color-mix(in srgb,var(--accent2) 16%,var(--border2));border-radius:15px;background:color-mix(in srgb,var(--bg2) 76%,transparent);box-shadow:inset 0 1px 0 color-mix(in srgb,#fff 4%,transparent)}
 .daemon-access-summary-head{display:flex;align-items:center;justify-content:space-between;gap:10px}
 .daemon-access-summary-copy{display:flex;flex-direction:column;gap:3px;min-width:0;flex:1}
@@ -358,8 +358,32 @@ a{color:var(--accent2);text-decoration:none}button{font-family:inherit;cursor:po
 .dir-input-meta.is-error{color:#ff8f8f}
 .dir-input-meta.is-success{color:var(--green)}
 #chat-col{flex:1;min-width:0;display:flex;flex-direction:column}
-#chat-col-top{display:flex;justify-content:flex-end;align-items:center;padding:10px 12px 0;flex-shrink:0}
-#chat-col-top:empty{display:none}\n.chat-col-mob-back{display:none}
+#chat-col-top{display:flex;align-items:center;gap:8px;padding:8px 12px 0;flex-shrink:0}
+#chat-col-top:empty{display:none}
+.chat-col-mob-back{display:none}
+.session-ctx{display:none;align-items:center;gap:10px;flex:1;min-width:0;padding:6px 12px;border:1px solid color-mix(in srgb,var(--fg7) 38%,transparent);border-radius:14px;background:color-mix(in srgb,var(--bg2) 72%,transparent);box-shadow:inset 0 1px 0 color-mix(in srgb,#fff 4%,transparent)}
+.session-ctx.show{display:flex}
+.session-ctx-icon{flex-shrink:0;width:20px;height:20px;display:flex;align-items:center;justify-content:center}
+.session-ctx-icon svg{width:16px;height:16px}
+.session-ctx-info{flex:1;min-width:0;display:flex;flex-direction:column;gap:1px}
+.session-ctx-name{font-size:12px;font-weight:700;color:var(--fg2);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.session-ctx-meta{font-size:10px;color:var(--fg5);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.session-ctx-pill{display:inline-flex;align-items:center;gap:5px;height:22px;padding:0 8px;border-radius:999px;font-size:9px;font-weight:800;letter-spacing:.04em;text-transform:uppercase;white-space:nowrap;flex-shrink:0}
+.session-ctx-pill::before{content:'';width:6px;height:6px;border-radius:50%;background:currentColor;flex-shrink:0}
+.session-ctx-pill[data-state='idle']{background:color-mix(in srgb,var(--green) 12%,transparent);color:var(--green);border:1px solid color-mix(in srgb,var(--green) 22%,transparent)}
+.session-ctx-pill[data-state='working']{background:color-mix(in srgb,var(--accent2) 12%,transparent);color:var(--accent2);border:1px solid color-mix(in srgb,var(--accent2) 22%,transparent)}
+.session-ctx-pill[data-state='approval']{background:color-mix(in srgb,var(--orange) 12%,transparent);color:var(--orange);border:1px solid color-mix(in srgb,var(--orange) 22%,transparent)}
+.session-ctx-pill[data-state='stopping']{background:color-mix(in srgb,var(--orange) 12%,transparent);color:var(--orange);border:1px solid color-mix(in srgb,var(--orange) 22%,transparent)}
+.session-ctx-pill[data-state='error']{background:color-mix(in srgb,var(--red) 12%,transparent);color:var(--red);border:1px solid color-mix(in srgb,var(--red) 22%,transparent)}
+.session-ctx-pill[data-state='starting']{background:color-mix(in srgb,var(--accent2) 12%,transparent);color:var(--accent2);border:1px solid color-mix(in srgb,var(--accent2) 22%,transparent)}
+.ci-status-pill{display:inline-flex;align-items:center;gap:4px;height:24px;padding:0 8px;border-radius:999px;font-size:9px;font-weight:800;letter-spacing:.04em;text-transform:uppercase;white-space:nowrap;flex-shrink:0}
+.ci-status-pill::before{content:'';width:5px;height:5px;border-radius:50%;background:currentColor;flex-shrink:0}
+.ci-status-pill[data-state='idle']{background:color-mix(in srgb,var(--green) 10%,transparent);color:var(--green);border:1px solid color-mix(in srgb,var(--green) 18%,transparent)}
+.ci-status-pill[data-state='working']{background:color-mix(in srgb,var(--accent2) 10%,transparent);color:var(--accent2);border:1px solid color-mix(in srgb,var(--accent2) 18%,transparent)}
+.ci-status-pill[data-state='approval']{background:color-mix(in srgb,var(--orange) 10%,transparent);color:var(--orange);border:1px solid color-mix(in srgb,var(--orange) 18%,transparent)}
+.ci-status-pill[data-state='error']{background:color-mix(in srgb,var(--red) 10%,transparent);color:var(--red);border:1px solid color-mix(in srgb,var(--red) 18%,transparent)}
+.ci-status-pill[data-state='starting']{background:color-mix(in srgb,var(--accent2) 10%,transparent);color:var(--accent2);border:1px solid color-mix(in srgb,var(--accent2) 18%,transparent)}
+.ci-status-pill[data-state='offline']{background:color-mix(in srgb,var(--fg7) 30%,transparent);color:var(--fg5);border:1px solid color-mix(in srgb,var(--fg7) 30%,transparent)}
 @media(max-width:600px){
   .chat-empty{min-height:min(54vh,420px)}
   .chat-empty-title{font-size:20px}
@@ -644,7 +668,7 @@ a{color:var(--accent2);text-decoration:none}button{font-family:inherit;cursor:po
       </div>
       <!-- Column 4: Chat -->
       <div id="chat-col" style="display:none">
-        <div id="chat-col-top"><button class="chat-col-mob-back" onclick="mobShow('col-sessions')" style="display:none" aria-label="Back to sessions">◀</button></div>
+        <div id="chat-col-top"><button class="chat-col-mob-back" onclick="mobShow('col-sessions')" style="display:none" aria-label="Back to sessions">◀</button><div class="session-ctx" id="session-ctx"><span class="session-ctx-icon" id="session-ctx-icon"></span><div class="session-ctx-info"><span class="session-ctx-name" id="session-ctx-name"></span><span class="session-ctx-meta" id="session-ctx-meta"></span></div><span class="session-ctx-pill" id="session-ctx-pill" data-state="idle">Idle</span></div></div>
         <div class="chat-placeholder" id="chat-placeholder"></div>
         <div id="scroll" style="flex:1;overflow-y:auto;overflow-x:hidden;-webkit-overflow-scrolling:touch">
           <div id="chat" class="hidden"></div>
@@ -1533,8 +1557,7 @@ function directoryBadgeHtml(daemon,pathValue=''){
   if(!daemon)return '';
   const platform=normalizeDaemonPlatform(daemon?.platform);
   const osIcon=OS_ICONS[platform]||'🖥';
-  const label=pathValue?'Path set':(OS_NAMES[platform]||'Daemon');
-  return `<span class="dir-field-badge-icon">${osIcon}</span><span>${esc(label)}</span>`;
+  return `<span class="dir-field-badge-icon">${osIcon}</span>`;
 }
 function directoryMetaText(daemon,pathValue=''){
   return '';
@@ -2381,7 +2404,11 @@ function applyDaemonSyncEnvelope(e){
   }else if(e.type==='session.created'||e.type==='session.touch'||e.type==='session.updated'){
     deletedSessions.delete(sessionId);
     const daemon=knownDaemons.get(e.daemonId)||null;
-    upsertDiscoveredSession({...e,...getRealtimeSessionAccessPatch(e,{currentUserId:uid,daemon})});
+    const statePatch={};
+    if(typeof e.sessionProcessing==='boolean')statePatch.sessionProcessing=e.sessionProcessing;
+    if(typeof e.sessionStopping==='boolean')statePatch.sessionStopping=e.sessionStopping;
+    if(typeof e.sessionReady==='boolean')statePatch.sessionReady=e.sessionReady;
+    upsertDiscoveredSession({...e,...statePatch,...getRealtimeSessionAccessPatch(e,{currentUserId:uid,daemon})});
   }else return;
   if(currentDaemonId&&e.daemonId&&e.daemonId!==currentDaemonId)return;
   if(currentAgentName&&e.agentName&&e.agentName!==currentAgentName)return;
@@ -2609,7 +2636,40 @@ function showChat(){$.chat.classList.remove('hidden');$.ibar.classList.remove('h
   showChatPlaceholder(false);
   document.getElementById('chat-col').style.display='flex';
   const mobBack=document.querySelector('.chat-col-mob-back');if(mobBack)mobBack.style.display=isMobile()?'flex':'none';
-  syncComposer();updateAutoBtn();syncSessionToolbarMeta();updateToolbarVisibility();updateBreadcrumb()}
+  syncComposer();updateAutoBtn();syncSessionToolbarMeta();updateToolbarVisibility();updateBreadcrumb();renderSessionContextBar()}
+
+function getSessionStatePill(){
+  if(sessionBooting)return {state:'starting',label:'Starting'};
+  if(ss.stopping)return {state:'stopping',label:'Stopping'};
+  if(currentStatusState==='permission')return {state:'approval',label:'Approval'};
+  if(currentStatusState==='error')return {state:'error',label:'Error'};
+  if(ss.processing)return {state:'working',label:'Working'};
+  if(currentSessionReady===false)return {state:'starting',label:'Starting'};
+  return {state:'idle',label:'Idle'};
+}
+function renderSessionContextBar(){
+  const ctx=document.getElementById('session-ctx');
+  if(!ctx)return;
+  if(!rid||!uid){ctx.classList.remove('show');return}
+  const session=discoveredSessions.get(rid)||{};
+  const agentKey=getAgentVisualKey(session.agent||currentAgentName);
+  const agentIcon=AGENT_ICONS[agentKey]||'';
+  const agentColor=AGENT_COLORS[agentKey]||'var(--fg4)';
+  const name=sessionLabel(session)||'Session';
+  const dir=session.workingDirectory||'';
+  const owner=session.ownerUserId&&session.ownerUserId!==uid?`by ${session.ownerUserId}`:'';
+  const metaParts=[AGENT_NAMES[session.agent||currentAgentName]||'',dir,owner].filter(Boolean);
+  const iconEl=document.getElementById('session-ctx-icon');
+  const nameEl=document.getElementById('session-ctx-name');
+  const metaEl=document.getElementById('session-ctx-meta');
+  const pillEl=document.getElementById('session-ctx-pill');
+  if(iconEl)iconEl.innerHTML=agentIcon?`<span style="color:${agentColor}">${agentIcon}</span>`:'';
+  if(nameEl)nameEl.textContent=name;
+  if(metaEl)metaEl.textContent=metaParts.join(' · ');
+  const pill=getSessionStatePill();
+  if(pillEl){pillEl.dataset.state=pill.state;pillEl.textContent=pill.label}
+  ctx.classList.add('show');
+}
 
 function updateBreadcrumb(){
   const parts=['Azure Web PubSub / CodeAgentHub'];
@@ -2706,15 +2766,14 @@ function renderAgentsCol(){
   const moreAcp=sortedAcp.slice(3);
 
   let html='';
-  // ACP section
+  // Main agents (no ACP label — keep cards clean)
   if(sortedAcp.length){
-    html+=`<div style="padding:8px 10px 4px;font-size:9px;font-weight:700;color:var(--fg5);text-transform:uppercase;letter-spacing:.06em">ACP Compatible</div>`;
     html+=mainAcp.map(a=>{
       const icon=AGENT_ICONS[a]||AGENT_ICONS.opencode;
       const color=AGENT_COLORS[a]||'#aaa';
       const name=AGENT_NAMES[a]||a;
       const supported=TESTED_ACP_AGENTS.has(a);
-      return`<div class="col-item${a===currentAgentName?' selected':''}${supported?'':' disabled'}"${supported?` onclick="selectAgent('${jsq(a)}')"`:''} style="--agent-color:${color}"><span class="ci-icon" style="color:${color}">${icon}</span><div class="ci-info"><div class="ci-name">${esc(name)}</div><div class="ci-meta">${supported?'ACP':'ACP · not tested yet'}</div></div></div>`;
+      return`<div class="col-item${a===currentAgentName?' selected':''}${supported?'':' disabled'}"${supported?` onclick="selectAgent('${jsq(a)}')"`:''} style="--agent-color:${color}"><span class="ci-icon" style="color:${color}">${icon}</span><div class="ci-info"><div class="ci-name">${esc(name)}</div></div></div>`;
     }).join('');
     if(moreAcp.length){
       html+=`<div class="col-item" onclick="const w=this.nextElementSibling;const open=w.classList.toggle('more-open');this.querySelector('.ci-meta').textContent=open?'collapse':'${moreAcp.length} more…'" style="cursor:pointer;opacity:.7"><span class="ci-icon" style="color:var(--fg5)">···</span><div class="ci-info"><div class="ci-name">More agents</div><div class="ci-meta">${moreAcp.length} more…</div></div></div>`;
@@ -2723,19 +2782,22 @@ function renderAgentsCol(){
         const color=AGENT_COLORS[a]||'#aaa';
         const name=AGENT_NAMES[a]||a;
         const supported=TESTED_ACP_AGENTS.has(a);
-        return`<div class="col-item${a===currentAgentName?' selected':''}${supported?'':' disabled'}"${supported?` onclick="selectAgent('${jsq(a)}')"`:''} style="--agent-color:${color}"><span class="ci-icon" style="color:${color}">${icon}</span><div class="ci-info"><div class="ci-name">${esc(name)}</div><div class="ci-meta">${supported?'ACP':'ACP · not tested yet'}</div></div></div>`;
+        return`<div class="col-item${a===currentAgentName?' selected':''}${supported?'':' disabled'}"${supported?` onclick="selectAgent('${jsq(a)}')"`:''} style="--agent-color:${color}"><span class="ci-icon" style="color:${color}">${icon}</span><div class="ci-info"><div class="ci-name">${esc(name)}</div></div></div>`;
       }).join('');
       html+=`</div>`;
     }
   }
-  // SDK section
+  // SDK section — collapsible
   if(sdkAgents.length){
-    html+=`<div style="padding:12px 10px 4px;font-size:9px;font-weight:700;color:var(--fg5);text-transform:uppercase;letter-spacing:.06em">Managed by SDK</div>`;
+    const sdkSelected=sdkAgents.some(a=>a===currentAgentName);
+    html+=`<div class="col-item" onclick="const w=this.nextElementSibling;const open=w.classList.toggle('more-open');this.querySelector('.ci-meta').textContent=open?'collapse':'expand'" style="cursor:pointer;opacity:.7"><span class="ci-icon" style="color:var(--fg5)">⚙</span><div class="ci-info"><div class="ci-name">Managed by SDK</div><div class="ci-meta">${sdkSelected?'collapse':'expand'}</div></div></div>`;
+    html+=`<div class="more-agents-wrap${sdkSelected?' more-open':''}">`;
     html+=sdkAgents.map(a=>{
       const icon=AGENT_ICONS.copilot;
       const color=AGENT_COLORS.copilot;
       return`<div class="col-item${a===currentAgentName?' selected':''}" onclick="selectAgent('${jsq(a)}')"><span class="ci-icon" style="color:${color}">${icon}</span><div class="ci-info"><div class="ci-name">GitHub Copilot</div><div class="ci-meta">Copilot SDK</div></div></div>`;
     }).join('');
+    html+=`</div>`;
   }
   list.innerHTML=html;
   renderCompactNav();
@@ -2832,11 +2894,23 @@ async function renderSessionsCol(){
       :canLeave
         ?`<button class="ci-del ci-del-leave" title="Leave session" onclick="event.stopPropagation();leaveSess('${jsq(s.sessionId)}')">Leave</button>`
         :'';
-    const status=sessionCanWrite(s)
-      ?`<span class="ci-dot" style="background:${s.sessionId===rid?'var(--green)':'var(--fg6)'}"></span>`
-      :sessionCanRead(s)
-        ?'<span class="ci-tag ci-tag-view">RO</span>'
-        :'';
+    let statusHtml='';
+    if(sessionCanWrite(s)||sessionCanRead(s)){
+      if(s.sessionId===rid){
+        const pill=getSessionStatePill();
+        statusHtml=`<span class="ci-status-pill" data-state="${pill.state}">${esc(pill.label)}</span>`;
+      }else if(s.sessionProcessing){
+        statusHtml='<span class="ci-status-pill" data-state="working">Working</span>';
+      }else if(s.sessionStopping){
+        statusHtml='<span class="ci-status-pill" data-state="working">Stopping</span>';
+      }else if(s.sessionReady===false){
+        statusHtml='<span class="ci-status-pill" data-state="starting">Starting</span>';
+      }else if(sessionCanWrite(s)){
+        statusHtml='<span class="ci-status-pill" data-state="idle">Idle</span>';
+      }else{
+        statusHtml='<span class="ci-tag ci-tag-view">RO</span>';
+      }
+    }
     const action=joinedSession
       ?(sessionCanRead(s)&&!sessionCanWrite(s)&&!daemonHasAdminAccess(daemon)
         ?`<div class="ci-actions"><button class="ci-join" onclick="event.stopPropagation();requestSessionAccess('${jsq(s.sessionId)}','write')">${recentSessionAccessRequests.has(`${s.sessionId}:write`)?'Requested':'+ Write'}</button>${manageAction}</div>`
@@ -2844,7 +2918,7 @@ async function renderSessionsCol(){
       :daemonHasAdminAccess(daemon)
         ?''
         :`<div class="ci-actions"><button class="ci-join" onclick="event.stopPropagation();requestSessionAccess('${jsq(s.sessionId)}','read')">${recentSessionAccessRequests.has(`${s.sessionId}:read`)?'Requested':'+ Read'}</button><button class="ci-join" onclick="event.stopPropagation();requestSessionAccess('${jsq(s.sessionId)}','write')">${recentSessionAccessRequests.has(`${s.sessionId}:write`)?'Requested':'+ Write'}</button></div>`;
-    return`<div class="col-item${s.sessionId===rid?' selected':''}"${sessionCanRead(s)?` onclick="openSession('${jsq(s.sessionId)}')"`:''}><span class="ci-icon" style="color:${color}">${icon}</span><div class="ci-info"><div class="ci-name">${esc(nm)}</div><div class="ci-meta">${esc(meta)}</div></div>${status}${action}</div>`;
+    return`<div class="col-item${s.sessionId===rid?' selected':''}"${sessionCanRead(s)?` onclick="openSession('${jsq(s.sessionId)}')"`:''}><span class="ci-icon" style="color:${color}">${icon}</span><div class="ci-info"><div class="ci-name">${esc(nm)}</div><div class="ci-meta">${esc(meta)}</div></div>${statusHtml}${action}</div>`;
   }).join('');
   list.innerHTML=`${readOnlyBanner}${list.innerHTML}`;
   renderCompactNav();
@@ -2959,7 +3033,7 @@ function syncSt(){
   renderSessionBanner();
   syncPortalRail();
 }
-function applyState(e){if(sessionBooting&&(e.ready===true||e.processing||Number(e.pendingCount)>0)){markSessionReady()}else if(sessionBooting){updateSessionBooting('Synchronizing session state…')}if(typeof e.ready==='boolean')currentSessionReady=e.ready;ss.processing=!!e.processing;ss.pendingCount=Number(e.pendingCount)||0;ss.stopping=!!e.stopping;if(!ss.stopping){lastStopRequestAt=0;clearSessionBanner('stop')}if(e.model){ss.model=e.model;const nextToolbarModelId=deriveToolbarModelId(currentModelId,availableModels,e.model);if(nextToolbarModelId!==currentModelId){currentModelId=nextToolbarModelId;syncModelButton();renderModelDropdown();updateToolbarVisibility()}}if(ss.processing)showWorking();else{hideWorking();sendMode='enqueue'}syncComposer();syncSt();refreshSessionPlaceholder()}
+function applyState(e){if(sessionBooting&&(e.ready===true||e.processing||Number(e.pendingCount)>0)){markSessionReady()}else if(sessionBooting){updateSessionBooting('Synchronizing session state…')}if(typeof e.ready==='boolean')currentSessionReady=e.ready;ss.processing=!!e.processing;ss.pendingCount=Number(e.pendingCount)||0;ss.stopping=!!e.stopping;if(!ss.stopping){lastStopRequestAt=0;clearSessionBanner('stop')}if(e.model){ss.model=e.model;const nextToolbarModelId=deriveToolbarModelId(currentModelId,availableModels,e.model);if(nextToolbarModelId!==currentModelId){currentModelId=nextToolbarModelId;syncModelButton();renderModelDropdown();updateToolbarVisibility()}}if(ss.processing)showWorking();else{hideWorking();sendMode='enqueue'}syncComposer();syncSt();refreshSessionPlaceholder();renderSessionContextBar();void renderSessionsCol()}
 window.toggleMode=()=>{if(!ss.processing)return;sendMode=sendMode==='enqueue'?'immediate':'enqueue';syncSt()};
 
 async function initCC(userId){
@@ -3241,7 +3315,7 @@ function render(e){switch(e.type){
   case'assistant.reasoning_delta':return rThinkD(e);case'assistant.reasoning':return rThink(e);
   case'tool.start':return rTS(e);case'tool.complete':return rTC(e);
   case'permission.request':return rPR(e);case'permission.response':return rPResp(e);case'session.state':return applyState(e);
-  case'session.idle':if(sessionBooting)markSessionReady();currentSessionReady=true;resetSessionStateToIdle(ss);lastStopRequestAt=0;clearSessionBanner('stop');syncComposer();refreshSessionPlaceholder();return setSt('idle');case'session.error':if(isStartupWaitMessage(e.message)){currentSessionReady=false;if(sessionBooting)updateSessionBooting(e.message);refreshSessionPlaceholder();return}return addErr(e.message);
+  case'session.idle':if(sessionBooting)markSessionReady();currentSessionReady=true;resetSessionStateToIdle(ss);lastStopRequestAt=0;clearSessionBanner('stop');syncComposer();refreshSessionPlaceholder();void renderSessionsCol();return setSt('idle');case'session.error':if(isStartupWaitMessage(e.message)){currentSessionReady=false;if(sessionBooting)updateSessionBooting(e.message);refreshSessionPlaceholder();return}return addErr(e.message);
   case'commands.update':mergeSlashCommands((e.commands||[]).map(c=>({cmd:c.name,desc:c.description||'',hasInput:!!c.hasInput})));return;
   case'models.update':if(sessionBooting)updateSessionBooting('Receiving available models…');availableModels=e.models||[];currentModelId=e.currentModelId||'';syncModelButton();renderModelDropdown();updateToolbarVisibility();return;
   case'modes.update':if(sessionBooting)updateSessionBooting('Receiving agent controls…');availableModes=e.modes||[];currentModeId=e.currentModeId||'';syncModeButton();renderModeDropdown();updateToolbarVisibility();return;
@@ -3413,7 +3487,7 @@ function addErr(m){setSessionBooting(false);ss.processing=false;ss.stopping=fals
 let $wi=null;
 function showWorking(){if($wi)return;$wi=document.createElement('div');$wi.className='working-indicator';$wi.innerHTML=`<div class="wi-dots"><span></span><span></span><span></span></div><span class="wi-text">${esc(currentWorkingLabel)}</span>`;$.chat.appendChild($wi);scroll()}
 function hideWorking(){if($wi){$wi.remove();$wi=null}}
-function setSt(s){currentStatusState=s;$.sd.className=`dot ${s}`;$.sd.title={idle:'Ready',busy:'Working…',permission:'Approval needed',error:'Error',disconnected:'Disconnected'}[s]||'';if(s==='busy')showWorking();else{hideWorking();if(s!=='permission')resetWorkingLabel()}syncSt()}
+function setSt(s){currentStatusState=s;$.sd.className=`dot ${s}`;$.sd.title={idle:'Ready',busy:'Working…',permission:'Approval needed',error:'Error',disconnected:'Disconnected'}[s]||'';if(s==='busy')showWorking();else{hideWorking();if(s!=='permission')resetWorkingLabel()}syncSt();renderSessionContextBar()}
 function handleDirectoryInput(){
   syncCreateSessionButton();
   setDirectoryMeta(directoryMetaText(knownDaemons.get(currentDaemonId),$.dirIn?.value||''));

@@ -881,6 +881,15 @@ async function getDaemonRegistryRecord(daemonId) {
 async function writeDaemonRegistryRecord({ daemonId, ownerUserId, hostname, platform, agents, workspaces, online, updatedAt, lastSeenAt }, existingRecord = null) {
   const normalizedDaemonId = rememberDaemonId(daemonId);
   const accessState = await ensureDaemonAclState(normalizedDaemonId, ownerUserId, existingRecord);
+  // Ensure the daemon bot itself is a member of the daemon-acl room so it can
+  // broadcast session status (session.touch) directly to the sync room.
+  try {
+    await upsertChatRoomMember(daemonAclRoomId(normalizedDaemonId), normalizedDaemonId, 'room.member');
+  } catch (err) {
+    if (!/already|exists|member/i.test(String(err?.message || ''))) {
+      console.warn('[Web] Failed to add daemon bot to ACL room:', err?.message);
+    }
+  }
   const title = buildDaemonAclRoomTitle({
     daemonId: normalizedDaemonId,
     ownerUserId: accessState.ownerUserId,

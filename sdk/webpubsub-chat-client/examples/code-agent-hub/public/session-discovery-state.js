@@ -24,6 +24,9 @@ export function normalizeSessionRecord(session, previous = {}) {
     joinRequestId: session.joinRequestId || previous.joinRequestId || '',
     requestedAccess: session.requestedAccess || previous.requestedAccess || '',
     canDelete: session.canDelete ?? previous.canDelete ?? false,
+    sessionProcessing: session.sessionProcessing ?? previous.sessionProcessing,
+    sessionStopping: session.sessionStopping ?? previous.sessionStopping,
+    sessionReady: session.sessionReady ?? previous.sessionReady,
   };
 }
 

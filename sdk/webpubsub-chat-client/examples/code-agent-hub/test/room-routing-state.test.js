@@ -44,4 +44,38 @@ describe('room routing state helpers', () => {
     assert.equal(roomInfo?.defaultConversationId, 'conversation-2');
     assert.equal(supplementalRoomInfos.get('session-2')?.defaultConversationId, 'conversation-2');
   });
+
+  it('suppresses already-a-member errors during self-add without throwing', async () => {
+    const supplementalRoomInfos = new Map();
+
+    const roomInfo = await ensureLocalRoomInfo('daemon-acl-test', {
+      chatRooms: [],
+      supplementalRoomInfos,
+      hasJoinedRoom: () => false,
+      getRoomInfo: async (roomId) => ({ roomId, defaultConversationId: 'daemon-conv' }),
+      addSelfToRoom: async () => {
+        throw new Error('User is already a member of the specified room');
+      },
+      currentUserId: 'admin',
+    });
+
+    assert.equal(roomInfo?.roomId, 'daemon-acl-test');
+    assert.equal(supplementalRoomInfos.has('daemon-acl-test'), true);
+  });
+
+  it('throws non-membership errors from addSelfToRoom', async () => {
+    await assert.rejects(
+      ensureLocalRoomInfo('room-fail', {
+        chatRooms: [],
+        supplementalRoomInfos: new Map(),
+        hasJoinedRoom: () => false,
+        getRoomInfo: async () => ({ roomId: 'room-fail' }),
+        addSelfToRoom: async () => {
+          throw new Error('forbidden');
+        },
+        currentUserId: 'user',
+      }),
+      /forbidden/,
+    );
+  });
 });

@@ -28,6 +28,7 @@ import { hostname as osHostname } from 'os';
 import { config as loadEnv } from 'dotenv';
 import { finishAcpPromptTurn } from './acp-prompt-turn.js';
 import { createModelsUpdateEvent, hasModelToolbarState } from './public/session-toolbar-state.js';
+import { daemonAclRoomId } from './daemon-acl.js';
 
 // ── Configuration ──
 
@@ -916,6 +917,27 @@ async function emitSessionState(sessionId) {
   const state = sessions.get(sessionId);
   if (!state) return;
   await botSend(sessionId, { type: 'session.state', ready: !!state.isReady, processing: state.isProcessing, stopping: state.isStopping, pendingCount: state.pendingCount, model: state.model });
+  broadcastSessionStatus(sessionId, state);
+}
+
+function broadcastSessionStatus(sessionId, state) {
+  if (!state || !BOT_USER_ID) return;
+  const syncRoomId = daemonAclRoomId(BOT_USER_ID);
+  const payload = {
+    type: 'session.touch',
+    sessionId,
+    daemonId: BOT_USER_ID,
+    agentName: state.agentName,
+    ownerUserId: state.ownerUserId,
+    workingDirectory: state.workingDirectory,
+    sessionProcessing: !!state.isProcessing,
+    sessionStopping: !!state.isStopping,
+    sessionReady: !!state.isReady,
+    updatedAt: new Date().toISOString(),
+  };
+  botSend(syncRoomId, payload).catch((err) => {
+    console.warn(`[Daemon] Session status broadcast failed for ${sessionId}:`, err?.message?.substring(0, 60));
+  });
 }
 
 function deactivateSession(sessionId, message) {
@@ -1959,6 +1981,31 @@ async function main() {
   try {
     await sendDaemonPresence('daemon.online', daemonPresenceInfo);
     console.log(`[Daemon] Registered with portal: ${daemonPresenceInfo.hostname} (${daemonPresenceInfo.agents.join(', ')})`);
+    // After registration the portal adds the daemon bot to the daemon-acl room.
+    // Hydrate the room in the local ChatClient cache so botSend can sendToRoom.
+    const syncRoomId = daemonAclRoomId(BOT_USER_ID);
+    try {
+      const chat = await ensureBotChatReady();
+      if (chat) {
+        // addUserToRoom(self) hydrates the local _rooms cache AND _joinedRoomIds.
+        // This is required for botSend → sendToRoom to find the defaultConversationId.
+        await chat.addUserToRoom(syncRoomId, BOT_USER_ID);
+        console.log(`[Daemon] Joined daemon sync room: ${syncRoomId}`);
+      }
+    } catch (err) {
+      // If addUserToRoom failed (e.g. permission error), try getRoom as last resort
+      // to at least log the failure clearly.
+      console.warn(`[Daemon] Daemon sync room join failed: ${syncRoomId} — ${err?.message?.substring(0, 80)}`);
+      try {
+        const chat = await ensureBotChatReady();
+        if (chat) {
+          const ri = await chat.getRoom(syncRoomId, false);
+          console.log(`[Daemon] getRoom succeeded but sendToRoom will likely fail (room not in _rooms cache). conversationId=${ri?.defaultConversationId}`);
+        }
+      } catch (e2) {
+        console.warn(`[Daemon] getRoom also failed: ${e2?.message?.substring(0, 60)}`);
+      }
+    }
   } catch (e) {
     console.log(`[Daemon] Portal registration refresh failed: ${e.message?.substring(0, 60)}`);
   }

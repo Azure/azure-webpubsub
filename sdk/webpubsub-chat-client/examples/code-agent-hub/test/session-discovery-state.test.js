@@ -229,6 +229,43 @@ describe('session discovery state helpers', () => {
     assert.deepEqual(sessions.map((session) => session.sessionId), ['session-new', 'session-old']);
   });
 
+  it('preserves daemon sync status flags so observer session cards can show working state', () => {
+    const previous = normalizeSessionRecord({
+      sessionId: 'session-status',
+      daemonId: 'daemon-a',
+      agent: 'copilot-sdk',
+      name: 'Shared Copilot Session',
+      updatedAt: '2026-04-14T05:00:00.000Z',
+      canRead: true,
+      canWrite: true,
+    });
+
+    const touched = normalizeSessionRecord({
+      sessionId: 'session-status',
+      updatedAt: '2026-04-14T05:01:00.000Z',
+      sessionProcessing: true,
+      sessionStopping: false,
+      sessionReady: true,
+    }, previous);
+
+    assert.equal(touched.sessionProcessing, true);
+    assert.equal(touched.sessionStopping, false);
+    assert.equal(touched.sessionReady, true);
+
+    const sessions = collectVisibleSessions({
+      discoveredSessions: new Map([['session-status', touched]]),
+      chatRooms: [],
+      deletedSessions: new Map(),
+      currentDaemonId: 'daemon-a',
+      currentAgentName: 'copilot-sdk',
+    });
+
+    assert.equal(sessions.length, 1);
+    assert.equal(sessions[0].sessionProcessing, true);
+    assert.equal(sessions[0].sessionStopping, false);
+    assert.equal(sessions[0].sessionReady, true);
+  });
+
   it('keeps recently deleted sessions from being reintroduced immediately', () => {
     const now = new Date('2026-04-11T05:40:00.000Z').getTime();
     const deletedSessions = new Map([

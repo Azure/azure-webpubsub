@@ -11,6 +11,7 @@ import {
   getSessionChatPlaceholderState,
   isLocalEchoMessage,
   isDaemonRecordFresh,
+  isStartupStatusEnvelope,
   recordSessionHistoryEnvelope,
   mergeRealtimeDaemonRecord,
   normalizeDaemonRecord,
@@ -437,5 +438,69 @@ describe('portal regression helpers', () => {
       shouldIgnoreSemanticDuplicate(previousRender, 'assistant.reasoning', 'Inspecting functions directory', 12_000),
       false,
     );
+  });
+
+  it('does not treat session.state ready=true as a startup envelope', () => {
+    assert.equal(isStartupStatusEnvelope({ type: 'session.state', ready: true }), false);
+    assert.equal(isStartupStatusEnvelope({ type: 'session.state', ready: false }), true);
+  });
+
+  it('does not show starting placeholder once the session is confirmed ready', () => {
+    const readyState = getSessionChatPlaceholderState({
+      agentLabel: 'Copilot',
+      isStarting: false,
+      isReadOnly: false,
+    });
+    assert.equal(readyState.title, 'No conversation yet');
+
+    const startingState = getSessionChatPlaceholderState({
+      agentLabel: 'Copilot',
+      isStarting: true,
+    });
+    assert.equal(startingState.title, 'Session is still starting');
+  });
+
+  it('classifies portal.join-request in a session room as renderable for the owner', () => {
+    const notification = {
+      conversation: { roomId: 'session-1' },
+      message: {
+        messageId: 'jreq-1',
+        createdBy: 'requester',
+        createdAt: new Date().toISOString(),
+        content: { text: JSON.stringify({ type: 'portal.join-request', requestId: 'r1', requesterUserId: 'requester', sessionId: 'session-1', status: 'pending' }) },
+      },
+    };
+    const result = classifyIncomingSessionRoomMessage(notification, {
+      currentRoomId: 'session-1',
+      currentUserId: 'owner',
+      roomInfos: [{ roomId: 'session-1', defaultConversationId: 'c1' }],
+      seenRoomMessageIds: new Set(),
+      historyLoadedAt: 0,
+    });
+    assert.equal(result.action, 'render');
+  });
+
+  it('daemon admin access check correctly distinguishes admin from member', () => {
+    const adminDaemon = { daemonId: 'd1', canManage: true, hasAdminAccess: true, canWrite: true };
+    const memberDaemon = { daemonId: 'd2', hasMemberAccess: true, canRead: true, canWrite: false };
+    const noDaemon = { daemonId: 'd3' };
+
+    assert.equal(daemonHasAdminAccess(adminDaemon), true);
+    assert.equal(daemonHasAdminAccess(memberDaemon), false);
+    assert.equal(daemonHasAdminAccess(noDaemon), false);
+
+    assert.equal(daemonHasMemberAccess(adminDaemon), true);
+    assert.equal(daemonHasMemberAccess(memberDaemon), true);
+    assert.equal(daemonHasMemberAccess(noDaemon), false);
+  });
+
+  it('records readyState transitions correctly in session history summary', () => {
+    const summary = createSessionHistorySummary();
+    recordSessionHistoryEnvelope(summary, { type: 'session.state', ready: false });
+    assert.equal(summary.readyState, false);
+    assert.equal(summary.hasStartupSignal, true);
+
+    recordSessionHistoryEnvelope(summary, { type: 'session.state', ready: true });
+    assert.equal(summary.readyState, true);
   });
 });

@@ -306,4 +306,49 @@ describe('session live sync helpers', () => {
       /Timed out waiting for live session sync: socket not ready/,
     );
   });
+
+  it('retries hydration after multiple getRoom failures before joining succeeds', async () => {
+    let joined = false;
+    let getRoomFailures = 0;
+    let hydrateCalls = 0;
+
+    await waitForJoinedRoom('room-10', {
+      hasJoinedRoom: () => joined,
+      getRoomInfo: async () => {
+        getRoomFailures += 1;
+        if (getRoomFailures <= 2) throw new Error('not a member of the specified room');
+        return { roomId: 'room-10' };
+      },
+      hydrateJoinedRoom: async () => {
+        hydrateCalls += 1;
+        if (hydrateCalls >= 2) joined = true;
+      },
+      timeoutMs: 100,
+      pollIntervalMs: 1,
+    });
+
+    assert.ok(getRoomFailures >= 2, 'should have retried after getRoom failures');
+    assert.ok(hydrateCalls >= 2, 'should have attempted hydration even when getRoom failed');
+    assert.equal(joined, true);
+  });
+
+  it('sends sync_state only once when history already has toolbar metadata', async () => {
+    let syncRequestCount = 0;
+
+    const result = await ensureSessionOpenSync('room-11', {
+      replayHistory: async () => ({
+        historyHasSyncEvidence: true,
+        historySummary: { envelopeCount: 5, hasStartupSignal: false, hasConversationContent: true },
+      }),
+      waitForLiveState: async () => { syncRequestCount += 1; },
+      sessionMeta: { sessionId: 'room-11' },
+      timeoutMs: 100,
+      hasLiveRoomJoin: () => true,
+      shouldWaitForLiveState: () => false,
+      onWaitingForLiveState: () => {},
+    });
+
+    assert.equal(result.historyHasSyncEvidence, true);
+    assert.equal(syncRequestCount, 0, 'should not enter live sync when history has evidence and room is joined');
+  });
 });
