@@ -779,6 +779,7 @@ function buildJoinRequestEnvelope(payload) {
   return {
     type: 'portal.join-request',
     requestId: String(payload.requestId || '').trim(),
+    sessionId: String(payload.sessionId || '').trim(),
     requesterUserId: String(payload.requesterUserId || '').trim(),
     ownerUserId: String(payload.ownerUserId || '').trim(),
     daemonId: String(payload.daemonId || '').trim(),
@@ -950,6 +951,16 @@ async function readJoinRequestsForSession(sessionId) {
 async function appendJoinRequestEvent(sessionRecord, payload) {
   const envelope = buildJoinRequestEnvelope(payload);
   await invokeAdminChat('appendJoinRequestEvent', (chat) => chat.sendToRoom(sessionRecord.sessionId, JSON.stringify(envelope)));
+  // Also broadcast to the daemon sync room so admins who are not currently
+  // viewing this session still receive the request in real time.
+  const daemonId = String(sessionRecord.daemonId || '').trim();
+  if (daemonId) {
+    try {
+      await adminSendToRoom(daemonAclRoomId(daemonId), JSON.stringify(envelope), 'broadcastJoinRequest');
+    } catch (err) {
+      console.warn('[Web] Failed to broadcast join request to daemon sync room:', err.message);
+    }
+  }
   return envelope;
 }
 
@@ -1959,6 +1970,7 @@ app.post('/api/sessions/:sessionId/join-requests', async (req, res) => {
   const requestId = crypto.randomUUID();
   const requestRecord = {
     requestId,
+    sessionId,
     requesterUserId: user.login,
     ownerUserId: sessionRecord.ownerUserId,
     daemonId: sessionRecord.daemonId,
@@ -1999,6 +2011,7 @@ app.post('/api/sessions/:sessionId/join-requests/:requestId/approve', async (req
     await upsertChatRoomMember(sessionId, joinRequest.requesterUserId, joinRequest.requestedAccess === 'write' ? 'room.operator' : 'room.member');
     const approvedJoinRequest = {
       ...joinRequest,
+      sessionId,
       status: 'approved',
       updatedAt: new Date().toISOString(),
     };
@@ -2053,6 +2066,7 @@ app.post('/api/sessions/:sessionId/join-requests/:requestId/reject', async (req,
   }
   const rejectedJoinRequest = {
     ...joinRequest,
+    sessionId,
     status: 'denied',
     updatedAt: new Date().toISOString(),
   };

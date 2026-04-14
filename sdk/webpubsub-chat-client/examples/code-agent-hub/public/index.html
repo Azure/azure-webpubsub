@@ -2291,6 +2291,15 @@ async function loadLobbyState(){
   return;
 }
 function applyDaemonSyncEnvelope(e){
+  if(e?.type==='portal.join-request'&&e.status==='pending'&&e.requesterUserId!==uid){
+    const sessionId=e.sessionId||'';
+    const key=e.requestId||`${sessionId}:${e.requesterUserId}`;
+    if(!seenPendingJoinRequestIds.has(key)){
+      seenPendingJoinRequestIds.add(key);
+      void handleJoinRequest({...e,sessionId});
+    }
+    return;
+  }
   if(e?.type==='portal.daemon-access-request'){
     const daemonId=String(e.daemonId||'').trim();
     if(!daemonId)return;

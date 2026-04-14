@@ -1571,13 +1571,13 @@ async function handleBotNotification(notification) {
         break;
       case 'permission.response':
         if (envelope.requestId) {
-          if (!isSessionOwner(state, msg.createdBy)) {
-            console.warn(`[Daemon] Ignoring unauthorized permission response from ${msg.createdBy} for room ${roomId}`);
+          if (!isPortalControlUser(msg.createdBy) && !isSessionOwner(state, msg.createdBy) && msg.createdBy !== BOT_OWNER_USER_ID) {
+            console.warn(`[Daemon] Ignoring permission response from ${msg.createdBy} (not owner/admin) for room ${roomId}`);
             break;
           }
           const pending = state.pendingPermissions.get(envelope.requestId);
           if (pending) {
-            console.log(`[Daemon] Permission ${envelope.approved ? '✓' : '✕'}: ${envelope.requestId.substring(0, 8)}`);
+            console.log(`[Daemon] Permission ${envelope.approved ? '✓' : '✕'} from ${msg.createdBy}: ${envelope.requestId.substring(0, 8)}`);
             pending.resolve(!!envelope.approved);
             state.pendingPermissions.delete(envelope.requestId);
           }
@@ -1659,7 +1659,7 @@ function createAcpClient(sessionId) {
           const name = pickToolName(invocation.name, meta.toolName, update.toolName, update.title);
           const status = update.status || 'pending';
           const toolInput = normalizeToolArgs(meta.input || update.input, update.title);
-          const toolOutput = normalizeToolOutput(update.rawOutput?.content ?? update.toolResponse ?? meta.toolResponse ?? '');
+          const toolOutput = normalizeToolOutput(update.rawOutput?.content ?? update.rawOutput ?? update.toolResponse ?? meta.toolResponse ?? '');
           invocation.name = name;
           invocation.args = invocation.args || toolInput;
           invocation.output = mergeToolOutput(invocation.output, toolOutput);
@@ -1669,6 +1669,9 @@ function createAcpClient(sessionId) {
           if (!invocation.started) {
             invocation.started = true;
             botSend(sessionId, { type: 'tool.start', toolCallId: tcId, name, args: invocation.args });
+          }
+          if (invocation.completedPending) {
+            flushCompletedToolInvocations(sessionId);
           }
           console.log(`[Daemon:tool] ${name} ${status}${toolOutput ? ` (${String(toolOutput).length} chars)` : ''}`);
           break;
@@ -1686,7 +1689,7 @@ function createAcpClient(sessionId) {
           const invocation = state?.toolInvocations?.get(tcId) || { name: 'Tool', args: undefined, output: '', success: true, completedPending: false, started: false };
           const name = pickToolName(invocation.name, meta.toolName, update.toolName, update.title);
           const toolInput = normalizeToolArgs(meta.input || update.input, update.title);
-          const toolOutput = normalizeToolOutput(update.rawOutput?.content ?? update.toolResponse ?? meta.toolResponse ?? '');
+          const toolOutput = normalizeToolOutput(update.rawOutput?.content ?? update.rawOutput ?? update.toolResponse ?? meta.toolResponse ?? '');
           invocation.name = name;
           invocation.args = invocation.args || toolInput;
           invocation.output = mergeToolOutput(invocation.output, toolOutput);
@@ -1696,6 +1699,11 @@ function createAcpClient(sessionId) {
           if (!invocation.started) {
             invocation.started = true;
             botSend(sessionId, { type: 'tool.start', toolCallId: tcId, name, args: invocation.args });
+          }
+          // Flush immediately when the tool is done — don't wait for the next event.
+          // Without this, rejected/errored tools stay as spinning ⟳ on the frontend.
+          if (invocation.completedPending) {
+            flushCompletedToolInvocations(sessionId);
           }
           console.log(`[Daemon:tool] ${name} → ${status}${toolOutput ? ` (${String(toolOutput).length} chars)` : ''}`);
           break;
