@@ -374,8 +374,10 @@ a{color:var(--accent2);text-decoration:none}button{font-family:inherit;cursor:po
   .mob-back{display:flex;width:28px;height:28px;border:none;border-radius:8px;background:none;color:#6baaff;font-size:14px;cursor:pointer;align-items:center;justify-content:center}
   .mob-back:active{background:var(--bg3)}
   #topbar .tb-title{font-size:13px;max-width:40vw}
-  #topbar .tb-user{max-width:90px;overflow:hidden;text-overflow:ellipsis}
-  #topbar .tb-btn#auto-approve-btn{font-size:10px;padding:0 6px;height:28px}
+  #topbar .tb-user{padding:0 6px;font-size:0;gap:0;min-width:28px;height:28px;justify-content:center}
+  #topbar .tb-user .tb-avatar,#topbar .tb-user .tb-avatar-fallback{width:20px;height:20px;font-size:11px}
+  #topbar .tb-btn#auto-approve-btn{font-size:0;width:30px;height:30px;padding:0;min-width:0}
+  #topbar .tb-btn#auto-approve-btn span{font-size:12px;margin:0}
   #topbar .tb-icon-btn#compact-toggle-btn{display:none!important}
   #debug-panel{top:0;right:0;bottom:0;width:100vw;border-radius:0}
   .session-toolbar{gap:4px;flex-wrap:nowrap;overflow-x:auto;-webkit-overflow-scrolling:touch;padding-bottom:4px}
@@ -688,7 +690,7 @@ a{color:var(--accent2);text-decoration:none}button{font-family:inherit;cursor:po
 
 <!-- Debug Panel -->
 <div id="debug-panel">
-  <div class="dbg-hdr"><div class="dbg-head-copy"><div class="dbg-kicker">Transport Inspector</div><div class="dbg-title-row"><h4>WebSocket Messages</h4><span class="dbg-count" id="debug-count">0</span></div><div class="dbg-sub">Raw portal traffic for this browser session.</div></div><div class="dbg-actions"><button class="dbg-btn" type="button" onclick="clearDebugLog()">Clear</button><button class="dbg-btn" type="button" onclick="hideDebugPanel()">Hide</button></div></div>
+  <div class="dbg-hdr"><div class="dbg-head-copy"><div class="dbg-kicker">Transport Inspector</div><div class="dbg-title-row"><h4>WebSocket Messages</h4><span class="dbg-count" id="debug-count">0</span></div><div class="dbg-sub">Raw portal traffic for this browser session.</div></div><div class="dbg-actions"><button class="dbg-btn" type="button" onclick="exportDebugLog()">Export</button><button class="dbg-btn" type="button" onclick="clearDebugLog()">Clear</button><button class="dbg-btn" type="button" onclick="hideDebugPanel()">Hide</button></div></div>
   <div class="dbg-list" id="debug-log"></div>
 </div>
 
@@ -926,7 +928,7 @@ function mobShow(colId){
 }
 window.mobShow=mobShow;
 function mobInit(){if(isMobile())mobShow(uid?'col-daemons':'col-login')}
-window.addEventListener('resize',()=>{if(isMobile())setCompactNav(false);if(!isMobile()){document.querySelectorAll('.col,#chat-col').forEach(c=>c.classList.remove('mob-visible'));syncCompactButton()}});
+window.addEventListener('resize',()=>{if(isMobile())setCompactNav(false);if(!isMobile()){document.querySelectorAll('.col,#chat-col').forEach(c=>c.classList.remove('mob-visible'));if(uid)applyLoggedInState();else applyLoggedOutState();syncCompactButton()}});
 window.toggleColumns=()=>{if(isMobile())mobShow(uid?'col-daemons':'col-login')};
 function openPanel(){}function closePanel(){}function openSheet(){}function closeSheet(){}
 
@@ -983,6 +985,23 @@ function clearDebugLog(){
   syncDebugUi();
 }
 window.clearDebugLog=clearDebugLog;
+function exportDebugLog(){
+  if(!debugMessages.length)return;
+  const escapeCsv=(v)=>{const s=String(v??'');return s.includes(',')||s.includes('"')||s.includes('\n')?'"'+s.replace(/"/g,'""')+'"':s};
+  const rows=[['#','Time','Direction','Type','Label','Protocol','Message'].map(escapeCsv).join(',')];
+  for(let i=0;i<debugMessages.length;i++){
+    const m=debugMessages[i];
+    let json='';try{json=JSON.stringify(m.data)}catch{json=String(m.data||'')}
+    rows.push([i+1,m.ts,m.direction==='send'?'SEND':'RECV',m.type||'',m.label||'',m.proto||'',json].map(escapeCsv).join(','));
+  }
+  const blob=new Blob([rows.join('\n')],{type:'text/csv;charset=utf-8'});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement('a');
+  a.href=url;a.download=`codeagenthub-debug-${new Date().toISOString().replace(/[:.]/g,'-').slice(0,19)}.csv`;
+  document.body.appendChild(a);a.click();document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+window.exportDebugLog=exportDebugLog;
 function logDebugMessage(direction,data,label='',proto=''){
   const ts=new Date().toISOString().substring(11,19);
   let type='unknown';
@@ -1258,7 +1277,7 @@ function syncAutoBtn(){
 }
 function updateAutoBtn(){document.getElementById('auto-approve-btn').style.display=rid&&uid?'':'none';syncAutoBtn()}
 let userAvatar='';
-function syncUserBadge(){if($.userBadge){$.userBadge.innerHTML=uid?(userAvatar?`<img class="tb-avatar" src="${esc(userAvatar)}" alt="">`:'')+esc(uid):'';$.userBadge.style.display=uid?'inline-flex':'none'}if($.logoutBtn)$.logoutBtn.style.display=uid?'':'none'}
+function syncUserBadge(){if($.userBadge){const avatarHtml=userAvatar?`<img class="tb-avatar" src="${esc(userAvatar)}" alt="">`:`<svg class="tb-avatar-fallback" width="20" height="20" viewBox="0 0 20 20" fill="var(--fg5)" style="flex-shrink:0;border-radius:50%;background:var(--bg4)"><circle cx="10" cy="7.5" r="3.5"/><path d="M3 17.5a7 7 0 0114 0" fill="var(--fg5)"/></svg>`;$.userBadge.innerHTML=uid?avatarHtml+esc(uid):'';$.userBadge.style.display=uid?'inline-flex':'none'}if($.logoutBtn)$.logoutBtn.style.display=uid?'':'none'}
 function syncOauthLoginCard(message='',isError=false){
   if(!oauthMode)return;
   const copy=document.getElementById('login-copy-oauth');
@@ -3142,6 +3161,10 @@ async function openR(roomId,{preserveBooting=false,bootStage='',retryLiveSyncRec
     roomsPendingLiveSync.delete(roomId);
     clearSessionBanner('history');
     refreshSessionPlaceholder();
+    // Always request the latest toolbar state (models, modes, commands, usage)
+    // from the daemon after opening a session. History replay may not contain
+    // them, and the live sync phase is skipped when joinGroup succeeds.
+    try{await cc.sendToRoom(roomId,JSON.stringify({type:'session.sync_state'}))}catch{}
   }catch(e){
     const message=String(e?.message||'');
     if(retryLiveSyncRecovery&&(/not a member of the specified room|NoPermissionInRoom|permission in room|forbidden/i.test(message))){

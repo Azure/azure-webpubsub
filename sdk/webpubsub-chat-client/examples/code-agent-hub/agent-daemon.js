@@ -455,8 +455,12 @@ function emitUsageUpdate(sessionId, state) {
   });
 }
 
-function syncSessionUiState(sessionId, state) {
+async function syncSessionUiState(sessionId, state) {
   if (!state) return;
+  // For SDK sessions, refresh the model list from the SDK client if stale
+  if (state.copilotSession && !(state.availableModels?.length)) {
+    await refreshSdkModels(state);
+  }
   emitSessionState(sessionId);
   if ((state.availableCommands || []).length) emitCommandsUpdate(sessionId, state.availableCommands);
   if ((state.availableModes || []).length || state.currentModeId) emitModesUpdate(sessionId, state);
@@ -478,6 +482,11 @@ function handleSessionCapabilities(state, roomId, response) {
       description: model.description,
     }));
     state.currentModelId = response.models.currentModelId || '';
+    emitModelsUpdate(roomId, state);
+  }
+  // If the response didn't include models but we have a known model ID,
+  // emit a minimal models.update so the frontend toolbar shows something.
+  if (!response?.models && state.currentModelId && hasModelToolbarState(state)) {
     emitModelsUpdate(roomId, state);
   }
 }
