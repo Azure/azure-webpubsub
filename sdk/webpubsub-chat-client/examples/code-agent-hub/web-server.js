@@ -1195,7 +1195,10 @@ async function issueTokenResponse(res, userId, { ensureLobby = false, logLabel =
     if (ensureLobby) {
       await ensureLobbyAccess(String(userId));
     }
-    const token = await serviceClient.getClientAccessToken({ userId: String(userId) });
+    const token = await serviceClient.getClientAccessToken({
+      userId: String(userId),
+      roles: ['webpubsub.joinLeaveGroup', 'webpubsub.sendToGroup'],
+    });
     res.json({ url: token.url, userId: String(userId) });
   } catch (err) {
     console.error(`[${logLabel}] Error:`, err);

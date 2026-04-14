@@ -39,6 +39,27 @@ describe('session live sync helpers', () => {
     );
   });
 
+  it('hydrates membership even when getRoom initially reports not a member', async () => {
+    let joined = false;
+    let hydrateCalls = 0;
+
+    await waitForJoinedRoom('room-2b', {
+      hasJoinedRoom: () => joined,
+      getRoomInfo: async () => {
+        throw new Error('The user is not a member of the specified room');
+      },
+      hydrateJoinedRoom: async () => {
+        hydrateCalls += 1;
+        joined = true;
+      },
+      timeoutMs: 20,
+      pollIntervalMs: 1,
+    });
+
+    assert.equal(hydrateCalls, 1);
+    assert.equal(joined, true);
+  });
+
   it('returns immediately when the room is already joined', async () => {
     let getRoomCalls = 0;
     let hydrateCalls = 0;
@@ -170,7 +191,7 @@ describe('session live sync helpers', () => {
         assert.equal(roomId, 'room-8');
         assert.equal(sessionMeta.sessionId, 'room-8');
         assert.deepEqual(historyOptions, { maxCount: 100, skipStartupEnvelopes: true });
-        return true;
+        return { historyHasSyncEvidence: true, historySummary: { source: 'history' } };
       },
       waitForLiveState: async () => {
         liveWaitCalls += 1;
@@ -184,7 +205,7 @@ describe('session live sync helpers', () => {
       },
     });
 
-    assert.deepEqual(result, { historyHasSyncEvidence: true });
+    assert.deepEqual(result, { historyHasSyncEvidence: true, historySummary: { source: 'history' } });
     assert.equal(liveWaitCalls, 0);
     assert.equal(waitingBannerCalls, 0);
   });
@@ -195,7 +216,7 @@ describe('session live sync helpers', () => {
     const result = await ensureSessionOpenSync('room-8b', {
       replayHistory: async () => {
         calls.push('history');
-        return true;
+        return { historyHasSyncEvidence: true, historySummary: { source: 'history' } };
       },
       waitForLiveState: async (roomId, timeoutMs, sessionMeta) => {
         calls.push({ type: 'live', roomId, timeoutMs, sessionId: sessionMeta.sessionId });
@@ -208,11 +229,39 @@ describe('session live sync helpers', () => {
       },
     });
 
-    assert.deepEqual(result, { historyHasSyncEvidence: false });
+    assert.deepEqual(result, { historyHasSyncEvidence: false, historySummary: { source: 'history' } });
     assert.deepEqual(calls, [
       'history',
       'banner',
       { type: 'live', roomId: 'room-8b', timeoutMs: 3210, sessionId: 'room-8b' },
+    ]);
+  });
+
+  it('does not let history-only evidence short-circuit a newly joined room that still needs live validation', async () => {
+    const calls = [];
+
+    const result = await ensureSessionOpenSync('room-8c', {
+      replayHistory: async () => {
+        calls.push('history');
+        return { historyHasSyncEvidence: true, historySummary: { source: 'history' } };
+      },
+      waitForLiveState: async (roomId, timeoutMs, sessionMeta) => {
+        calls.push({ type: 'live', roomId, timeoutMs, sessionId: sessionMeta.sessionId });
+      },
+      sessionMeta: { sessionId: 'room-8c' },
+      timeoutMs: 2468,
+      hasLiveRoomJoin: () => true,
+      shouldWaitForLiveState: () => true,
+      onWaitingForLiveState: () => {
+        calls.push('banner');
+      },
+    });
+
+    assert.deepEqual(result, { historyHasSyncEvidence: false, historySummary: { source: 'history' } });
+    assert.deepEqual(calls, [
+      'history',
+      'banner',
+      { type: 'live', roomId: 'room-8c', timeoutMs: 2468, sessionId: 'room-8c' },
     ]);
   });
 
@@ -222,7 +271,7 @@ describe('session live sync helpers', () => {
     const result = await ensureSessionOpenSync('room-9', {
       replayHistory: async (roomId, sessionMeta, historyOptions) => {
         calls.push({ type: 'history', roomId, sessionId: sessionMeta.sessionId, historyOptions });
-        return false;
+        return { historyHasSyncEvidence: false, historySummary: { source: 'history' } };
       },
       waitForLiveState: async (roomId, timeoutMs, sessionMeta) => {
         calls.push({ type: 'live', roomId, timeoutMs, sessionId: sessionMeta.sessionId });
@@ -235,7 +284,7 @@ describe('session live sync helpers', () => {
       },
     });
 
-    assert.deepEqual(result, { historyHasSyncEvidence: false });
+    assert.deepEqual(result, { historyHasSyncEvidence: false, historySummary: { source: 'history' } });
     assert.deepEqual(calls, [
       { type: 'history', roomId: 'room-9', sessionId: 'room-9', historyOptions: { maxCount: 25, skipStartupEnvelopes: false } },
       { type: 'banner' },

@@ -3,20 +3,25 @@ import assert from 'node:assert/strict';
 import {
   canBrowseDaemonDirectories,
   classifyIncomingSessionRoomMessage,
+  createSessionHistorySummary,
   daemonHasAdminAccess,
   daemonHasMemberAccess,
   getRealtimeSessionAccessPatch,
   getCreateSessionAccessState,
+  getSessionChatPlaceholderState,
   isLocalEchoMessage,
   isDaemonRecordFresh,
+  recordSessionHistoryEnvelope,
   mergeRealtimeDaemonRecord,
   normalizeDaemonRecord,
   notificationTargetsRoom,
   rememberRoomMessage,
   resetSessionStateToIdle,
   resolveNotificationRoomId,
+  shouldBackgroundRetrySessionOpenError,
   shouldIgnoreRoomMessage,
   shouldIgnoreSemanticDuplicate,
+  shouldSuppressSessionOpenError,
   shouldRetainPreviousDaemons,
 } from '../public/portal-regressions.js';
 
@@ -72,6 +77,70 @@ describe('portal regression helpers', () => {
         { currentUserId: 'bob', daemon: { daemonId: 'daemon-1', canRead: true, canWrite: false } },
       ),
       {},
+    );
+  });
+
+  it('suppresses startup-only live sync timeouts for sessions that are still initializing', () => {
+    const summary = createSessionHistorySummary();
+    recordSessionHistoryEnvelope(summary, { type: 'session.state', ready: false });
+    recordSessionHistoryEnvelope(summary, { type: 'system.info', message: 'Starting GitHub Copilot (SDK)…' });
+
+    assert.equal(
+      shouldSuppressSessionOpenError(new Error('Timed out waiting for live session sync: socket not ready'), summary),
+      true,
+    );
+  });
+
+  it('does not suppress live sync timeouts once the session is already ready', () => {
+    const summary = createSessionHistorySummary();
+    recordSessionHistoryEnvelope(summary, { type: 'session.state', ready: true });
+
+    assert.equal(
+      shouldSuppressSessionOpenError(new Error('Timed out waiting for live session sync: socket not ready'), summary),
+      false,
+    );
+  });
+
+  it('background-retries live sync timeouts when history has already loaded', () => {
+    const summary = createSessionHistorySummary();
+    recordSessionHistoryEnvelope(summary, { type: 'session.state', ready: true });
+    recordSessionHistoryEnvelope(summary, { type: 'assistant.message', content: 'ready' });
+
+    assert.equal(
+      shouldBackgroundRetrySessionOpenError(new Error('Timed out waiting for live session sync: socket not ready'), summary),
+      true,
+    );
+  });
+
+  it('does not background-retry unrelated session open errors', () => {
+    const summary = createSessionHistorySummary();
+    recordSessionHistoryEnvelope(summary, { type: 'assistant.message', content: 'ready' });
+
+    assert.equal(
+      shouldBackgroundRetrySessionOpenError(new Error('forbidden'), summary),
+      false,
+    );
+  });
+
+  it('returns a starting placeholder for initializing shared sessions', () => {
+    assert.deepEqual(
+      getSessionChatPlaceholderState({ agentLabel: 'GitHub Copilot (SDK)', isStarting: true, isReadOnly: false }),
+      {
+        kicker: 'GitHub Copilot (SDK)',
+        title: 'Session is still starting',
+        subtitle: 'The agent has not finished initializing yet. Keep this room open and it will become ready automatically.',
+      },
+    );
+  });
+
+  it('returns a read-only empty placeholder for blank shared sessions', () => {
+    assert.deepEqual(
+      getSessionChatPlaceholderState({ agentLabel: 'Claude Code', isReadOnly: true }),
+      {
+        kicker: 'Claude Code',
+        title: 'No conversation yet',
+        subtitle: 'This session is empty. Wait for the owner to send the first message or request write access to start it yourself.',
+      },
     );
   });
 
@@ -249,6 +318,19 @@ describe('portal regression helpers', () => {
     assert.equal(resolveNotificationRoomId(notification, roomInfos), 'room-1');
     assert.equal(notificationTargetsRoom(notification, 'room-1', roomInfos), true);
     assert.equal(notificationTargetsRoom(notification, 'room-2', roomInfos), false);
+  });
+
+  it('resolves daemon sync notifications from daemon room metadata when only conversationId is present', () => {
+    const notification = {
+      conversation: { conversationId: 'daemon-sync-conversation-1' },
+      message: {
+        content: { text: JSON.stringify({ type: 'session.created', sessionId: 'session-1', daemonId: 'daemon-a' }) },
+      },
+    };
+    const roomInfos = [{ roomId: 'daemon-acl-daemon-a', defaultConversationId: 'daemon-sync-conversation-1' }];
+
+    assert.equal(resolveNotificationRoomId(notification, roomInfos), 'daemon-acl-daemon-a');
+    assert.equal(notificationTargetsRoom(notification, 'daemon-acl-daemon-a', roomInfos), true);
   });
 
   it('renders another user prompt when the live notification only carries conversationId', () => {

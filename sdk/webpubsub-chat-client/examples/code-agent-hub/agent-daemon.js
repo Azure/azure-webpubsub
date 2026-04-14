@@ -96,7 +96,7 @@ async function ensureStartupIdentity() {
       const hostnamePart = sanitizeDaemonIdFragment(osHostname()) || 'daemon';
       const ownerPart = sanitizeDaemonIdFragment(ownerUserId) || 'user';
       const defaultInstanceId = `${hostnamePart}-${ownerPart}`;
-      daemonInstanceId = await promptForRequiredValue(rl, 'Enter daemon instance id', {
+      daemonInstanceId = await promptForRequiredValue(rl, 'Enter daemon instance id (Enter for default value)', {
         defaultValue: defaultInstanceId,
         sanitize: sanitizeDaemonIdFragment,
       });

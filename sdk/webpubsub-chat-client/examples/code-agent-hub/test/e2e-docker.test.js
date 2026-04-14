@@ -8,6 +8,8 @@ import { ChatClient } from '@azure/web-pubsub-chat-client';
 import { WebPubSubServiceClient } from '@azure/web-pubsub';
 import { daemonAclRoomId } from '../daemon-acl.js';
 import { collectVisibleSessions } from '../public/session-discovery-state.js';
+import { classifyIncomingSessionRoomMessage, getRealtimeSessionAccessPatch, resolveNotificationRoomId } from '../public/portal-regressions.js';
+import { collectKnownRoomInfos, ensureLocalRoomInfo } from '../public/room-routing-state.js';
 
 const DEFAULT_EMULATOR_CONNECTION_STRING = 'Endpoint=http://localhost;Port=8080;AccessKey='
   + 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'
@@ -877,5 +879,144 @@ describe('E2E: CodeAgentHub portal permissions and session workflows', { timeout
     assert.ok(azureMergedSessions.every((session) => !String(session.name || '').includes('{')), 'session names should never leak raw managed-session JSON');
 
     noteStep('scenario complete');
+  });
+
+  it('hydrates observer daemon and session room metadata after approval so Copilot realtime sync no longer needs a refresh', async () => {
+    const scenarioId = randomUUID().replace(/-/g, '').slice(0, 6);
+    const owner = `ownercopilot${scenarioId}`;
+    const observer = `azureobserver${scenarioId}`;
+    const daemonId = `daemon-copilot-${scenarioId}`;
+    let observerChat = null;
+    let ownerSession = null;
+    const supplementalRoomInfos = new Map();
+
+    try {
+      noteStep('register local Copilot observer regression daemon');
+      observerChat = await getChatClient(observer);
+      await registerDaemon({
+        daemonId,
+        ownerUserId: owner,
+        hostname: 'copilot-regression-host',
+        platform: 'linux',
+        agents: ['copilot-sdk'],
+        workspaces: ['/workspace/copilot-regression'],
+      });
+
+      noteStep('grant daemon admin access after observer login');
+      const daemonAccessRequest = await portalRequest(observer, daemonRequestPath(daemonId), {
+        method: 'POST',
+        body: { requestedAccess: 'admin' },
+      });
+      await portalRequest(owner, `${daemonRequestPath(daemonId)}/${encodeURIComponent(daemonAccessRequest.requestId)}/approve`, {
+        method: 'POST',
+      });
+      assert.equal(observerChat.rooms.some((room) => room.roomId === daemonAclRoomId(daemonId)), false);
+      const daemonSyncRoomInfo = await ensureLocalRoomInfo(daemonAclRoomId(daemonId), {
+        chatRooms: observerChat.rooms,
+        supplementalRoomInfos,
+        hasJoinedRoom: (roomId) => observerChat.hasJoinedRoom(roomId),
+        getRoomInfo: (roomId) => observerChat.getRoom(roomId, false),
+        addSelfToRoom: (roomId, userId) => observerChat.addUserToRoom(roomId, userId),
+        currentUserId: observerChat.userId,
+      });
+      assert.equal(daemonSyncRoomInfo?.roomId, daemonAclRoomId(daemonId), 'frontend hydration should cache the daemon sync room immediately after approval');
+
+      noteStep('owner creates Copilot session after approval');
+      ownerSession = await portalRequest(owner, '/api/sessions', {
+        method: 'POST',
+        body: {
+          daemonId,
+          agentName: 'copilot-sdk',
+          workingDirectory: '/workspace/copilot-regression/demo',
+          roomName: 'Copilot Observer Regression',
+        },
+      });
+
+      await waitFor(async () => {
+        const messages = await listControlMessages(ownerSession.sessionId);
+        return messages.some((message) => message.type === 'control.create' && message.agentName === 'copilot-sdk');
+      }, 15_000, 'copilot observer regression control.create');
+
+      noteStep('daemon sync routing should resolve session.created without a refresh');
+      const sessionCreatedNotification = {
+        conversation: { conversationId: daemonSyncRoomInfo.defaultConversationId },
+        message: {
+          content: {
+            text: JSON.stringify({
+              type: 'session.created',
+              sessionId: ownerSession.sessionId,
+              daemonId,
+              agentName: 'copilot-sdk',
+              roomName: ownerSession.roomName,
+              workingDirectory: ownerSession.workingDirectory,
+              ownerUserId: ownerSession.ownerUserId,
+              updatedAt: ownerSession.updatedAt,
+            }),
+          },
+        },
+      };
+      assert.equal(
+        resolveNotificationRoomId(sessionCreatedNotification, collectKnownRoomInfos({ chatRooms: observerChat.rooms, supplementalRoomInfos })),
+        daemonAclRoomId(daemonId),
+        'frontend room hydration should resolve conversationId-only daemon sync notifications without waiting for a manual refresh',
+      );
+      const discoveredSessions = new Map([[ownerSession.sessionId, {
+        ...ownerSession,
+        ...getRealtimeSessionAccessPatch(ownerSession, { currentUserId: observer, daemon: { canWrite: true } }),
+      }]]);
+      const observerLocalSessionsBeforeRefresh = collectVisibleSessions({
+        discoveredSessions,
+        chatRooms: observerChat.rooms,
+        deletedSessions: new Map(),
+        currentDaemonId: daemonId,
+        currentAgentName: 'copilot-sdk',
+      });
+      assert.deepEqual(
+        observerLocalSessionsBeforeRefresh.map((session) => session.sessionId),
+        [ownerSession.sessionId],
+        'observer should see the Copilot session from realtime state without a refresh-style portal query',
+      );
+
+      noteStep('session access-self should hydrate local room metadata for live routing');
+      const observerAccessSelf = await portalRequest(observer, `/api/sessions/${encodeURIComponent(ownerSession.sessionId)}/access-self`, {
+        method: 'POST',
+      });
+      assert.equal(observerAccessSelf.accessLevel, 'write');
+      const sessionRoomInfo = await ensureLocalRoomInfo(ownerSession.sessionId, {
+        chatRooms: observerChat.rooms,
+        supplementalRoomInfos,
+        hasJoinedRoom: (roomId) => observerChat.hasJoinedRoom(roomId),
+        getRoomInfo: (roomId) => observerChat.getRoom(roomId, false),
+        addSelfToRoom: (roomId, userId) => observerChat.addUserToRoom(roomId, userId),
+        currentUserId: observerChat.userId,
+      });
+      assert.equal(sessionRoomInfo?.roomId, ownerSession.sessionId, 'frontend session hydration should cache the session room metadata before opening the room');
+      const livePromptNotification = {
+        conversation: { conversationId: sessionRoomInfo.defaultConversationId },
+        message: {
+          messageId: `observer-regression-${scenarioId}`,
+          createdBy: owner,
+          createdAt: new Date().toISOString(),
+          content: { text: JSON.stringify({ type: 'user.prompt', content: 'say hi' }) },
+        },
+      };
+      assert.deepEqual(
+        classifyIncomingSessionRoomMessage(livePromptNotification, {
+          currentRoomId: ownerSession.sessionId,
+          currentUserId: observer,
+          roomInfos: collectKnownRoomInfos({
+            chatRooms: observerChat.rooms,
+            supplementalRoomInfos,
+            currentSession: { sessionId: ownerSession.sessionId, defaultConversationId: sessionRoomInfo.defaultConversationId },
+          }),
+          seenRoomMessageIds: new Set(),
+          historyLoadedAt: 0,
+        }),
+        { action: 'render', reason: 'match', roomId: ownerSession.sessionId },
+        'once the frontend hydrates the session room metadata, the observer should render live Copilot room updates without switching agents or refreshing',
+      );
+    } finally {
+      await stopChatClient(observerChat);
+    }
   });
 });

@@ -31,6 +31,150 @@ export function getRealtimeSessionAccessPatch(session, { currentUserId = '', dae
   return {};
 }
 
+export function isStartupWaitMessage(message = '') {
+  return /agent is still starting/i.test(String(message || ''));
+}
+
+export function isStartupStatusEnvelope(envelope) {
+  if (!envelope || typeof envelope !== 'object') {
+    return false;
+  }
+
+  const message = String(envelope.message || '').trim();
+  if (envelope.type === 'session.state') {
+    return envelope.ready === false;
+  }
+  if (envelope.type === 'system.info') {
+    return /^(starting|connected to|resuming|resumed)\b/i.test(message);
+  }
+  if (envelope.type === 'session.error') {
+    return isStartupWaitMessage(message)
+      || /^failed to start:/i.test(message)
+      || /oauth code flow requires a browser/i.test(message);
+  }
+  return false;
+}
+
+export function createSessionHistorySummary() {
+  return {
+    envelopeCount: 0,
+    hasStartupSignal: false,
+    hasConversationContent: false,
+    hasSyncEvidence: false,
+    readyState: null,
+  };
+}
+
+export function recordSessionHistoryEnvelope(summary, envelope) {
+  const target = summary || createSessionHistorySummary();
+  if (!envelope || typeof envelope !== 'object') {
+    return target;
+  }
+
+  target.envelopeCount += 1;
+
+  if (isStartupStatusEnvelope(envelope)) {
+    target.hasStartupSignal = true;
+  }
+
+  if (envelope.type === 'session.state' && typeof envelope.ready === 'boolean') {
+    target.readyState = envelope.ready;
+  }
+
+  if (
+    envelope.type === 'session.state'
+    || envelope.type === 'session.idle'
+    || envelope.type === 'assistant.message'
+    || envelope.type === 'assistant.delta'
+    || envelope.type === 'assistant.reasoning'
+    || envelope.type === 'assistant.reasoning_delta'
+    || envelope.type === 'tool.start'
+    || envelope.type === 'tool.complete'
+    || envelope.type === 'permission.request'
+    || envelope.type === 'permission.response'
+    || envelope.type === 'session.error'
+    || envelope.type === 'system.info'
+  ) {
+    target.hasSyncEvidence = true;
+  }
+
+  if (
+    envelope.type === 'assistant.message'
+    || envelope.type === 'assistant.delta'
+    || envelope.type === 'assistant.reasoning'
+    || envelope.type === 'assistant.reasoning_delta'
+    || envelope.type === 'tool.start'
+    || envelope.type === 'tool.complete'
+    || envelope.type === 'permission.request'
+    || envelope.type === 'permission.response'
+    || envelope.type === 'user.prompt'
+    || envelope.type === 'user.command'
+    || (envelope.type === 'system.info' && !isStartupStatusEnvelope(envelope))
+    || (envelope.type === 'session.error' && !isStartupStatusEnvelope(envelope))
+  ) {
+    target.hasConversationContent = true;
+  }
+
+  return target;
+}
+
+export function shouldSuppressSessionOpenError(error, historySummary = null) {
+  const message = String(error?.message || error || '');
+  if (!/Timed out waiting for live session sync/i.test(message)) {
+    return false;
+  }
+
+  const summary = historySummary || createSessionHistorySummary();
+  if (!summary.envelopeCount) {
+    return true;
+  }
+
+  return !!summary.hasStartupSignal && summary.readyState !== true && !summary.hasConversationContent;
+}
+
+export function shouldBackgroundRetrySessionOpenError(error, historySummary = null) {
+  const message = String(error?.message || error || '');
+  if (!/Timed out waiting for live session sync/i.test(message)) {
+    return false;
+  }
+
+  const summary = historySummary || createSessionHistorySummary();
+  return !!summary.envelopeCount;
+}
+
+export function getSessionChatPlaceholderState({
+  agentLabel = 'Session',
+  isStarting = false,
+  isSyncing = false,
+  isReadOnly = false,
+} = {}) {
+  const kicker = String(agentLabel || 'Session').trim() || 'Session';
+
+  if (isStarting || isSyncing) {
+    return {
+      kicker,
+      title: isSyncing ? 'Session is syncing' : 'Session is still starting',
+      subtitle: isSyncing
+        ? 'This shared session has not delivered live state yet. If it was just created, the agent may still be starting.'
+        : 'The agent has not finished initializing yet. Keep this room open and it will become ready automatically.',
+    };
+  }
+
+  if (isReadOnly) {
+    return {
+      kicker,
+      title: 'No conversation yet',
+      subtitle: 'This session is empty. Wait for the owner to send the first message or request write access to start it yourself.',
+    };
+  }
+
+  return {
+    kicker,
+    title: 'No conversation yet',
+    subtitle: 'This session is ready but empty. Send the first message to start the conversation.',
+  };
+}
+
 export function normalizeDaemonRecord(daemon, normalizePlatform = (platform) => platform || '') {
   const hasAdminAccess = daemonHasAdminAccess(daemon);
   const hasMemberAccess = daemonHasMemberAccess(daemon);

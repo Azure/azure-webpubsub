@@ -84,6 +84,11 @@ export async function packWebServer() {
     resolve(publicOutDir, 'session-discovery-state.js'),
   );
   await copyRuntimeAsset(
+    'room routing helpers',
+    resolve(projectRoot, 'public', 'room-routing-state.js'),
+    resolve(publicOutDir, 'room-routing-state.js'),
+  );
+  await copyRuntimeAsset(
     'session toolbar helpers',
     resolve(projectRoot, 'public', 'session-toolbar-state.js'),
     resolve(publicOutDir, 'session-toolbar-state.js'),

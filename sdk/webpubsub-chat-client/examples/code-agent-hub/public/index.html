@@ -8,58 +8,75 @@
 <title>CodeAgentHub</title>
 <style>
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
-:root{--bg:#0a0a0a;--bg1:#111;--bg2:#151515;--bg3:#1a1a1a;--bg4:#222;--panel2:#151515;--fg:#e8e8e8;--fg2:#ccc;--fg3:#aaa;--fg4:#888;--fg5:#666;--fg6:#555;--fg7:#444;--border:#222;--border2:#2a2a2a;--line:#2a2a2a;--accent:#4a90d9;--accent2:#6baaff;--green:#50d167;--red:#e55;--orange:#f5a623;--apple-filter:invert(1)}
-html.light{--bg:#f8f9fa;--bg1:#ffffff;--bg2:#f1f3f5;--bg3:#e9ecef;--bg4:#dee2e6;--panel2:#ffffff;--fg:#111827;--fg2:#1f2937;--fg3:#374151;--fg4:#4b5563;--fg5:#6b7280;--fg6:#9ca3af;--fg7:#d1d5db;--border:#e5e7eb;--border2:#d1d5db;--line:#d1d5db;--accent:#2563eb;--accent2:#1d4ed8;--green:#16a34a;--red:#dc2626;--orange:#d97706;--apple-filter:none}
+:root{--bg:#0a0a0a;--bg1:#111;--bg2:#151515;--bg3:#1a1a1a;--bg4:#222;--panel2:#151515;--fg:#e8e8e8;--fg2:#ccc;--fg3:#aaa;--fg4:#888;--fg5:#666;--fg6:#555;--fg7:#444;--border:#222;--border2:#2a2a2a;--line:#2a2a2a;--accent:#4a90d9;--accent2:#6baaff;--green:#50d167;--red:#e55;--orange:#f5a623;--apple-filter:invert(1);--glass:rgba(10,10,10,.68);--glass-border:rgba(255,255,255,.06);--shadow-soft:0 14px 40px rgba(0,0,0,.22);--shadow-panel:0 24px 60px rgba(0,0,0,.28)}
+html.light{--bg:#f8f9fa;--bg1:#ffffff;--bg2:#f1f3f5;--bg3:#e9ecef;--bg4:#dee2e6;--panel2:#ffffff;--fg:#111827;--fg2:#1f2937;--fg3:#374151;--fg4:#4b5563;--fg5:#6b7280;--fg6:#9ca3af;--fg7:#d1d5db;--border:#e5e7eb;--border2:#d1d5db;--line:#d1d5db;--accent:#2563eb;--accent2:#1d4ed8;--green:#16a34a;--red:#dc2626;--orange:#d97706;--apple-filter:none;--glass:rgba(255,255,255,.78);--glass-border:rgba(15,23,42,.08);--shadow-soft:0 12px 30px rgba(15,23,42,.08);--shadow-panel:0 22px 56px rgba(15,23,42,.14)}
 html,body{height:100%;background:radial-gradient(ellipse at 15% 0%,color-mix(in srgb,var(--accent) 4%,transparent),transparent 50%),radial-gradient(ellipse at 85% 100%,color-mix(in srgb,var(--accent2) 3%,transparent),transparent 40%),var(--bg);color:var(--fg);font-family:-apple-system,'SF Pro Text',system-ui,sans-serif;overflow:hidden}
 a{color:var(--accent2);text-decoration:none}button{font-family:inherit;cursor:pointer;transition:transform .1s ease,opacity .1s ease}button:active:not(:disabled){transform:scale(.97);opacity:.85}
 .hidden{display:none!important}
 ::-webkit-scrollbar{width:6px}::-webkit-scrollbar-thumb{background:rgba(128,128,128,.2);border-radius:3px}
 
 /* ── Debug Panel ── */
-#debug-panel{position:fixed;top:48px;right:0;bottom:0;width:min(420px,100vw);background:var(--bg1);border-left:1px solid var(--border);z-index:80;transform:translateX(100%);transition:transform .2s ease;display:flex;flex-direction:column}
+#debug-panel{position:fixed;top:60px;right:12px;bottom:12px;width:min(460px,calc(100vw - 12px));background:color-mix(in srgb,var(--bg1) 86%,transparent);border:1px solid color-mix(in srgb,var(--fg7) 50%,transparent);border-radius:24px 0 0 24px;box-shadow:var(--shadow-panel);backdrop-filter:blur(18px) saturate(1.24);-webkit-backdrop-filter:blur(18px) saturate(1.24);z-index:80;transform:translateX(calc(100% + 18px));transition:transform .22s ease;display:flex;flex-direction:column;overflow:hidden}
+#debug-panel::before{content:'';position:absolute;left:16px;right:16px;top:0;height:1px;background:linear-gradient(90deg,transparent 0%,color-mix(in srgb,var(--accent2) 30%,transparent) 50%,transparent 100%);pointer-events:none}
 #debug-panel.open{transform:translateX(0)}
-.dbg-hdr{display:flex;align-items:center;justify-content:space-between;padding:10px 14px;border-bottom:1px solid var(--border);flex-shrink:0}
-.dbg-hdr h4{font-size:13px;font-weight:700;color:var(--fg3)}
-.dbg-actions{display:flex;align-items:center;gap:8px}
-.dbg-btn{height:28px;padding:0 12px;border:1px solid var(--border2);border-radius:999px;background:var(--bg2);color:var(--fg3);font-size:12px;font-weight:600}
-.dbg-btn:hover{background:var(--bg3);border-color:var(--fg6);color:var(--fg2)}
+.dbg-hdr{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;padding:14px 16px 12px;border-bottom:1px solid color-mix(in srgb,var(--fg7) 44%,transparent);flex-shrink:0;background:linear-gradient(180deg,color-mix(in srgb,var(--bg2) 84%,transparent),transparent)}
+.dbg-head-copy{display:flex;flex-direction:column;gap:4px;min-width:0}
+.dbg-kicker{font-size:10px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:var(--fg5)}
+.dbg-title-row{display:flex;align-items:center;gap:8px;min-width:0}
+.dbg-hdr h4{font-size:13px;font-weight:700;color:var(--fg2);white-space:nowrap}
+.dbg-sub{font-size:11px;line-height:1.4;color:var(--fg5)}
+.dbg-count{display:inline-flex;align-items:center;justify-content:center;min-width:28px;height:22px;padding:0 8px;border-radius:999px;border:1px solid color-mix(in srgb,var(--accent2) 24%,var(--border2));background:color-mix(in srgb,var(--accent2) 10%,transparent);color:var(--accent2);font-size:10px;font-weight:800;letter-spacing:.04em}
+.dbg-actions{display:flex;align-items:center;gap:8px;flex-shrink:0}
+.dbg-btn{height:30px;padding:0 12px;border:1px solid color-mix(in srgb,var(--fg7) 58%,transparent);border-radius:999px;background:color-mix(in srgb,var(--bg2) 86%,transparent);color:var(--fg3);font-size:12px;font-weight:700;box-shadow:inset 0 1px 0 color-mix(in srgb,#fff 8%,transparent)}
+.dbg-btn:hover{background:color-mix(in srgb,var(--bg1) 88%,transparent);border-color:color-mix(in srgb,var(--fg6) 78%,transparent);color:var(--fg2)}
 .dbg-btn:active{background:var(--bg4)}
-.dbg-list{flex:1;overflow-y:auto;padding:4px}
-.dbg-item{border-bottom:1px solid var(--border);padding:6px 10px;cursor:pointer;font-size:11px}
-.dbg-item:hover{background:var(--bg3)}
-.dbg-dir{display:inline-block;width:14px;color:var(--accent2);font-weight:700;font-size:10px}
-.dbg-type{color:var(--orange);font-weight:600;font-family:ui-monospace,SFMono-Regular,Menlo,monospace}
+.dbg-list{flex:1;overflow-y:auto;padding:10px;display:flex;flex-direction:column;gap:8px}
+.dbg-list:empty::before{content:'No portal traffic captured yet.';display:block;padding:14px 12px;border:1px dashed color-mix(in srgb,var(--fg7) 46%,transparent);border-radius:16px;background:color-mix(in srgb,var(--bg2) 70%,transparent);color:var(--fg4);font-size:12px;line-height:1.5;text-align:center}
+.dbg-item{border:1px solid color-mix(in srgb,var(--fg7) 42%,transparent);border-radius:16px;padding:10px 12px;cursor:pointer;font-size:11px;background:color-mix(in srgb,var(--bg2) 74%,transparent);transition:border-color .15s ease,background .15s ease,box-shadow .15s ease}
+.dbg-item:hover{background:color-mix(in srgb,var(--bg1) 86%,transparent);border-color:color-mix(in srgb,var(--fg6) 72%,transparent)}
+.dbg-item.expanded{border-color:color-mix(in srgb,var(--fg6) 56%,transparent);box-shadow:none}
+.dbg-dir{display:inline-flex;align-items:center;justify-content:center;width:18px;height:18px;border-radius:999px;background:color-mix(in srgb,var(--accent2) 10%,transparent);color:var(--accent2);font-weight:800;font-size:10px;margin-right:2px}
+.dbg-type{color:var(--orange);font-weight:700;font-family:ui-monospace,SFMono-Regular,Menlo,monospace}
 .dbg-time{color:var(--fg5);margin-left:6px;font-size:10px}
-.dbg-json{overflow:hidden;max-height:0;opacity:0;margin-top:0;padding:0 8px;background:var(--bg2);border:1px solid var(--border);border-radius:6px;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:10px;line-height:1.4;color:var(--fg3);white-space:pre-wrap;word-break:break-all;transition:max-height .25s ease,opacity .2s ease,padding .2s ease,margin .2s ease}
-.dbg-item.expanded .dbg-json{max-height:200px;opacity:1;margin-top:4px;padding:6px 8px;overflow:auto}
+.dbg-json{overflow:hidden;max-height:0;opacity:0;margin:0 0 0 24px;padding:0 10px;background:color-mix(in srgb,var(--bg1) 82%,transparent);border:1px solid color-mix(in srgb,var(--fg7) 42%,transparent);border-radius:12px;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:10px;line-height:1.45;color:var(--fg3);white-space:pre-wrap;word-break:break-all;transition:max-height .25s ease,opacity .2s ease,padding .2s ease,margin .2s ease}
+.dbg-item.expanded .dbg-json{max-height:240px;opacity:1;margin-top:8px;padding:10px;overflow:auto}
 
 /* ── Shell ── */
 #app{height:100%;display:flex;flex-direction:column}
-#topbar{height:48px;flex-shrink:0;display:flex;align-items:center;gap:8px;padding:0 14px;background:color-mix(in srgb,var(--bg1) 82%,transparent);backdrop-filter:blur(12px) saturate(1.2);-webkit-backdrop-filter:blur(12px) saturate(1.2);border-bottom:none;position:relative;z-index:10}
-#topbar::after{content:'';position:absolute;left:0;right:0;bottom:0;height:3px;background:linear-gradient(90deg,transparent 0%,var(--wps-rail-soft) 12%,var(--wps-rail) 28%,#fff 50%,var(--wps-rail) 72%,var(--wps-rail-soft) 88%,transparent 100%);background-size:200% 100%;box-shadow:0 0 10px color-mix(in srgb,var(--wps-rail) 28%,transparent),0 0 22px color-mix(in srgb,var(--wps-rail) 18%,transparent);opacity:.95;pointer-events:none;animation:wps-rail-flow 3.3s linear infinite}
-#topbar[data-wps-state='connected']{--wps-rail:var(--green);--wps-rail-soft:color-mix(in srgb,var(--green) 28%,transparent)}
-#topbar[data-wps-state='connecting']{--wps-rail:var(--red);--wps-rail-soft:color-mix(in srgb,var(--red) 28%,transparent)}
-#topbar[data-wps-state='failed'],#topbar[data-wps-state='disconnected']{--wps-rail:var(--red);--wps-rail-soft:color-mix(in srgb,var(--red) 28%,transparent)}
-#topbar .tb-left{display:flex;align-items:center;gap:8px}
-#topbar .tb-burger{width:32px;height:32px;border:none;border-radius:8px;background:none;color:#888;font-size:16px;display:flex;align-items:center;justify-content:center}
-#topbar .tb-burger:active{background:#222}
-#topbar .tb-title{font-size:15px;font-weight:700;letter-spacing:-.01em;color:var(--fg);transition:opacity .1s ease}
-#topbar .tb-title.is-brand{background:linear-gradient(135deg,var(--fg) 40%,var(--accent2));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
-#topbar .tb-subbrand{display:inline-flex;align-items:center;min-height:26px;padding:0 10px;border:1px solid color-mix(in srgb,#0078d4 28%,var(--border2));border-radius:999px;background:color-mix(in srgb,#0078d4 10%,var(--bg1));color:var(--fg2);font-size:11px;font-weight:700;letter-spacing:.01em;white-space:nowrap}
-#topbar .tb-subbrand-copy{display:inline-flex;align-items:baseline;gap:4px;min-width:0}
-#topbar .tb-subbrand-azure{text-transform:uppercase;font-size:10px;letter-spacing:.06em;color:var(--fg3)}
-#topbar .tb-subbrand-name{color:var(--fg3)}
-#topbar .tb-status{font-size:11px;color:var(--green);margin-left:4px}
-#topbar .tb-right{margin-left:auto;display:flex;gap:6px;align-items:center}
-#topbar .tb-user{display:inline-flex;align-items:center;gap:6px;height:30px;padding:0 12px;border:1px solid color-mix(in srgb,var(--accent2) 35%,var(--border));border-radius:15px;background:color-mix(in srgb,var(--accent2) 12%,transparent);color:var(--fg);font-size:12px;font-weight:700;letter-spacing:.01em;white-space:nowrap}
+#topbar{height:56px;flex-shrink:0;display:flex;align-items:center;gap:10px;padding:0 16px;background:color-mix(in srgb,var(--bg1) 78%,transparent);backdrop-filter:blur(16px) saturate(1.22);-webkit-backdrop-filter:blur(16px) saturate(1.22);border-bottom:none;position:relative;z-index:10;--wps-rail:var(--green);--wps-track:color-mix(in srgb,var(--green) 18%,transparent);--rail-glint:rgba(255,255,255,.96)}
+#topbar::before{content:'';position:absolute;left:16px;right:16px;bottom:0;height:1px;background:linear-gradient(90deg,transparent 0%,var(--wps-track) 18%,color-mix(in srgb,var(--wps-rail) 60%,transparent) 50%,var(--wps-track) 82%,transparent 100%);opacity:.95;pointer-events:none}
+#topbar::after{content:'';position:absolute;left:16px;bottom:-1px;width:24%;height:3px;border-radius:999px;background:linear-gradient(90deg,transparent 0%,color-mix(in srgb,var(--rail-glint) 36%,transparent) 12%,var(--rail-glint) 50%,color-mix(in srgb,var(--rail-glint) 28%,transparent) 86%,transparent 100%);box-shadow:0 0 10px color-mix(in srgb,var(--rail-glint) 24%,transparent),0 0 18px color-mix(in srgb,var(--wps-rail) 14%,transparent);opacity:.18;transform:translateX(-32%);pointer-events:none}
+#topbar[data-rail-active='true']::after{animation:wps-rail-glint 9.9s linear infinite;opacity:.94}
+#topbar[data-rail-active='false']::after{animation:none;left:auto;right:16px;width:13%;transform:none;opacity:.16}
+#topbar[data-wps-state='connected']{--wps-rail:var(--green);--wps-track:color-mix(in srgb,var(--green) 22%,transparent);--rail-glint:rgba(255,255,255,.96)}
+#topbar[data-wps-state='connecting'],#topbar[data-wps-state='failed'],#topbar[data-wps-state='disconnected']{--wps-rail:var(--red);--wps-track:color-mix(in srgb,var(--red) 22%,transparent);--rail-glint:rgba(255,244,244,.96)}
+#topbar .tb-left{display:flex;align-items:center;gap:10px;min-width:0}
+#topbar .tb-burger{width:32px;height:32px;border:none;border-radius:10px;background:none;color:var(--fg4);font-size:16px;display:flex;align-items:center;justify-content:center}
+#topbar .tb-burger:active{background:var(--bg3)}
+#topbar .tb-brand-lockup{display:flex;align-items:center;gap:10px;min-width:0}
+#topbar .tb-title{font-size:15px;font-weight:760;letter-spacing:-.02em;color:var(--fg);transition:opacity .1s ease;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+#topbar .tb-title.is-brand{background:linear-gradient(135deg,var(--fg) 22%,color-mix(in srgb,var(--accent2) 76%,#fff));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+#topbar .tb-status{display:inline-flex;align-items:center;min-height:28px;max-width:170px;padding:0 10px;border-radius:999px;border:1px solid color-mix(in srgb,var(--fg7) 55%,transparent);background:color-mix(in srgb,var(--bg2) 86%,transparent);color:var(--fg3);font-size:11px;font-weight:700;letter-spacing:.01em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#topbar .tb-status:empty{display:none}
+#topbar .tb-status::before{content:'';width:7px;height:7px;border-radius:50%;background:currentColor;box-shadow:0 0 0 4px color-mix(in srgb,currentColor 18%,transparent);margin-right:8px;flex-shrink:0}
+#topbar .tb-status[data-tone='ok']{border-color:color-mix(in srgb,var(--green) 24%,var(--border2));background:color-mix(in srgb,var(--green) 10%,transparent);color:var(--green)}
+#topbar .tb-status[data-tone='busy']{border-color:color-mix(in srgb,var(--accent2) 26%,var(--border2));background:color-mix(in srgb,var(--accent2) 10%,transparent);color:var(--accent2)}
+#topbar .tb-status[data-tone='warn']{border-color:color-mix(in srgb,var(--orange) 28%,var(--border2));background:color-mix(in srgb,var(--orange) 10%,transparent);color:var(--orange)}
+#topbar .tb-status[data-tone='error']{border-color:color-mix(in srgb,var(--red) 28%,var(--border2));background:color-mix(in srgb,var(--red) 10%,transparent);color:var(--red)}
+#topbar .tb-status[data-tone='idle']{border-color:color-mix(in srgb,var(--fg7) 56%,transparent);background:color-mix(in srgb,var(--bg2) 86%,transparent);color:var(--fg4)}
+#topbar .tb-right{margin-left:auto;display:flex;gap:8px;align-items:center;min-width:0}
+#topbar .tb-user{display:inline-flex;align-items:center;gap:6px;height:32px;padding:0 12px;border:1px solid color-mix(in srgb,var(--accent2) 26%,var(--border));border-radius:999px;background:color-mix(in srgb,var(--accent2) 10%,transparent);color:var(--fg);font-size:12px;font-weight:700;letter-spacing:.01em;white-space:nowrap;box-shadow:inset 0 1px 0 color-mix(in srgb,#fff 8%,transparent)}
 #topbar .tb-user .tb-avatar{width:20px;height:20px;border-radius:50%;object-fit:cover}
-#topbar .tb-btn{height:30px;padding:0 12px;border:1px solid var(--border);border-radius:15px;background:none;color:var(--fg3);font-size:12px;font-weight:600}
+#topbar .tb-btn{height:32px;padding:0 12px;border:1px solid color-mix(in srgb,var(--fg7) 58%,transparent);border-radius:999px;background:color-mix(in srgb,var(--bg2) 82%,transparent);color:var(--fg3);font-size:12px;font-weight:700;box-shadow:inset 0 1px 0 color-mix(in srgb,#fff 8%,transparent)}
+#topbar .tb-btn:hover{background:color-mix(in srgb,var(--bg1) 86%,transparent);border-color:color-mix(in srgb,var(--fg6) 78%,transparent);color:var(--fg2)}
 #topbar .tb-btn:active{background:var(--bg4)}
+#topbar .tb-btn.auto-on{background:color-mix(in srgb,var(--green) 16%,var(--bg1));border-color:color-mix(in srgb,var(--green) 38%,var(--border2));color:color-mix(in srgb,var(--green) 86%,var(--fg2))}
 /* Theme toggle */
-.tb-icon-btn{width:30px;height:30px;border:1px solid var(--border);border-radius:50%;background:none;color:var(--fg4);font-size:14px;display:flex;align-items:center;justify-content:center;transition:all .15s}
-.tb-icon-btn:hover{background:var(--bg3);color:var(--fg2)}
+.tb-icon-btn{position:relative;width:32px;height:32px;border:1px solid color-mix(in srgb,var(--fg7) 58%,transparent);border-radius:50%;background:color-mix(in srgb,var(--bg2) 82%,transparent);color:var(--fg4);font-size:14px;display:flex;align-items:center;justify-content:center;transition:all .15s;box-shadow:inset 0 1px 0 color-mix(in srgb,#fff 8%,transparent)}
+.tb-icon-btn:hover{background:color-mix(in srgb,var(--bg1) 86%,transparent);color:var(--fg2);border-color:color-mix(in srgb,var(--fg6) 78%,transparent)}
 .tb-icon-btn:active{transform:scale(.92)}
-.tb-icon-btn.active{background:var(--bg3);color:var(--accent2);border-color:var(--border2)}
+.tb-icon-btn.active{background:color-mix(in srgb,var(--accent2) 12%,transparent);color:var(--accent2);border-color:color-mix(in srgb,var(--accent2) 24%,var(--border2))}
+.tb-icon-btn.debug-flash{animation:debug-btn-flash .9s ease-out}
 #body{flex:1;display:flex;overflow:hidden}
 #sidebar{display:none;width:260px;flex-shrink:0;background:var(--bg2);border-right:1px solid var(--border);overflow-y:auto;flex-direction:column}
 #content{flex:1;display:flex;flex-direction:column;min-width:0;overflow:hidden}
@@ -140,56 +157,71 @@ a{color:var(--accent2);text-decoration:none}button{font-family:inherit;cursor:po
 .sh-go.is-blocked,.sh-go.is-blocked:disabled{opacity:1;background:color-mix(in srgb,var(--orange) 12%,var(--bg3));color:color-mix(in srgb,var(--orange) 82%,var(--fg2));border:1px solid color-mix(in srgb,var(--orange) 35%,var(--border2));cursor:not-allowed;box-shadow:none}
 
 /* ── Column View (Finder-style) ── */
-#column-nav{display:flex;flex:1;height:100%;overflow:hidden;background:var(--bg)}
+#column-nav{display:flex;flex:1;height:100%;overflow:hidden;background:radial-gradient(circle at top left,color-mix(in srgb,var(--accent2) 4%,transparent),transparent 28%),var(--bg)}
 #column-nav.compact .col{display:none!important}
 #column-nav.compact #compact-nav{display:flex}
-.compact-nav{display:none;width:240px;flex-shrink:0;border-right:1px solid var(--border);background:var(--bg);overflow-y:auto;flex-direction:column;padding-bottom:16px}
-.compact-section{border-bottom:1px solid var(--border);padding-bottom:8px}
+.compact-nav{display:none;width:252px;flex-shrink:0;border-right:1px solid color-mix(in srgb,var(--fg7) 50%,transparent);background:linear-gradient(180deg,color-mix(in srgb,var(--bg1) 92%,transparent),transparent 22%),var(--bg);overflow-y:auto;flex-direction:column;padding:10px 0 18px}
+.compact-section{border-bottom:1px solid color-mix(in srgb,var(--fg7) 42%,transparent);padding:2px 0 10px}
 .compact-section:last-child{border-bottom:none}
-.compact-hdr{padding:12px 16px 8px;font-size:10px;font-weight:700;color:var(--fg6);text-transform:uppercase;letter-spacing:.06em}
-.compact-subhdr{padding:8px 14px 6px;font-size:9px;font-weight:700;color:var(--fg5);text-transform:uppercase;letter-spacing:.06em}
+.compact-hdr{padding:12px 18px 10px;font-size:10px;font-weight:700;color:var(--fg6);text-transform:uppercase;letter-spacing:.08em}
+.compact-subhdr{padding:8px 16px 6px;font-size:9px;font-weight:700;color:var(--fg5);text-transform:uppercase;letter-spacing:.08em}
 .compact-list{padding:0 10px}
-.compact-empty{text-align:left;color:var(--fg5);font-size:12px;padding:10px 14px;line-height:1.5}
-.compact-item{display:flex;align-items:center;gap:10px;padding:12px 14px;border-radius:12px;cursor:pointer;font-size:13px;color:var(--fg2);margin-bottom:4px;background:transparent;border:1px solid transparent;transition:background .15s,box-shadow .15s,color .15s,border-color .15s}
-.compact-item:hover{background:var(--bg2);border-color:var(--border)}
-.compact-item.selected{background:rgba(74,144,217,.15);color:var(--accent2);box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--accent) 20%,transparent),0 1px 6px color-mix(in srgb,var(--accent) 8%,transparent)}
+.compact-empty{text-align:left;color:var(--fg4);font-size:12px;padding:12px 14px;line-height:1.55}
+.compact-item{display:flex;align-items:flex-start;gap:12px;padding:12px 14px;border-radius:16px;cursor:pointer;font-size:13px;color:var(--fg2);margin-bottom:8px;background:color-mix(in srgb,var(--bg2) 72%,transparent);border:1px solid transparent;box-shadow:inset 0 1px 0 color-mix(in srgb,#fff 5%,transparent);transition:background .15s,box-shadow .15s,color .15s,border-color .15s,transform .15s;position:relative}
+.compact-item::before{content:none}
+.compact-item:hover{background:color-mix(in srgb,var(--bg1) 88%,transparent);border-color:color-mix(in srgb,var(--fg7) 70%,transparent);transform:translateX(2px)}
+.compact-item.selected{background:linear-gradient(135deg,color-mix(in srgb,var(--accent2) 16%,var(--bg1)),color-mix(in srgb,var(--accent) 10%,var(--bg2)));color:var(--fg);border-color:color-mix(in srgb,var(--accent2) 42%,var(--border2));box-shadow:0 12px 28px color-mix(in srgb,var(--accent2) 10%,transparent),inset 0 1px 0 color-mix(in srgb,#fff 10%,transparent)}
+.compact-item.selected::before{opacity:1;background:linear-gradient(180deg,var(--accent2),color-mix(in srgb,var(--accent2) 45%,transparent))}
 .compact-item.disabled{opacity:.42;cursor:not-allowed;filter:saturate(.55)}
 .compact-item.disabled:hover{background:transparent;border-color:transparent}
-.compact-item .ci-icon{font-size:14px;flex-shrink:0}
+.compact-item .ci-icon{font-size:14px;flex-shrink:0;margin-top:2px}
 .compact-item .ci-info{flex:1;min-width:0}
-.compact-item .ci-name{font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.compact-item .ci-meta{font-size:11px;color:var(--fg5);margin-top:1px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.compact-item .ci-submeta{font-size:10px;color:var(--fg4);margin-top:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.compact-item .ci-dot{width:6px;height:6px;border-radius:50%;background:var(--green);flex-shrink:0}
-.compact-item .ci-tag{font-size:10px;border:1px solid var(--border2);border-radius:999px;padding:2px 8px;flex-shrink:0;font-weight:800;letter-spacing:.04em}
-.compact-item .ci-join{height:22px;padding:0 8px;border:1px solid var(--border2);border-radius:999px;background:var(--bg3);color:var(--accent2);font-size:10px;font-weight:700;flex-shrink:0;white-space:nowrap}
+.compact-item .ci-name{font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;line-height:1.25}
+.compact-item .ci-meta{font-size:11px;color:var(--fg5);margin-top:3px;overflow:hidden;line-height:1.4;white-space:normal;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}
+.compact-item .ci-submeta{font-size:10px;color:var(--fg4);margin-top:4px;overflow:hidden;line-height:1.4;white-space:normal;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}
+.compact-item .ci-dot{width:8px;height:8px;border-radius:50%;background:var(--green);flex-shrink:0;margin-top:6px;box-shadow:0 0 0 4px color-mix(in srgb,var(--green) 12%,transparent)}
+.compact-item .ci-tag{font-size:10px;border:1px solid color-mix(in srgb,var(--accent2) 26%,var(--border2));background:color-mix(in srgb,var(--accent2) 10%,transparent);border-radius:999px;padding:2px 8px;flex-shrink:0;font-weight:800;letter-spacing:.04em}
+.compact-item .ci-join{height:24px;padding:0 10px;border:1px solid color-mix(in srgb,var(--accent2) 28%,var(--border2));border-radius:999px;background:color-mix(in srgb,var(--accent2) 10%,var(--bg1));color:var(--accent2);font-size:10px;font-weight:800;flex-shrink:0;white-space:nowrap;box-shadow:inset 0 1px 0 color-mix(in srgb,#fff 8%,transparent)}
 .compact-item .ci-join:disabled{opacity:.6}
 .ci-actions{display:flex;flex-direction:column;gap:2px;flex-shrink:0;align-items:stretch}
-.col{min-width:200px;max-width:280px;flex-shrink:0;border-right:1px solid var(--border);overflow-y:auto;display:flex;flex-direction:column}
+.col{min-width:220px;max-width:300px;flex-shrink:0;border-right:1px solid color-mix(in srgb,var(--fg7) 44%,transparent);overflow-y:auto;display:flex;flex-direction:column;background:linear-gradient(180deg,color-mix(in srgb,var(--bg1) 90%,transparent),transparent 18%),var(--bg)}
 .col.col-enter{animation:col-in .2s ease-out}
 .col.is-disabled,#chat-col.is-disabled{opacity:.5}
 .col.is-disabled .col-item,#chat-col.is-disabled button,#chat-col.is-disabled textarea{pointer-events:none}
-.col-hdr{padding:10px 12px 6px;font-size:10px;font-weight:700;color:var(--fg6);text-transform:uppercase;letter-spacing:.06em;flex-shrink:0}
-.col-list{flex:1;overflow-y:auto;padding:4px 6px}
-.col-item{display:flex;align-items:center;gap:8px;padding:8px 10px;border-radius:10px;cursor:pointer;font-size:13px;color:var(--fg2);margin-bottom:2px;transition:background .15s,box-shadow .15s,color .15s}
-.col-item:hover{background:var(--bg3)}
-.col-item.selected{background:rgba(74,144,217,.15);color:var(--accent2);box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--accent) 20%,transparent),0 1px 6px color-mix(in srgb,var(--accent) 8%,transparent)}
+.col-hdr{display:flex;align-items:center;gap:8px;padding:16px 16px 12px;border-bottom:1px solid color-mix(in srgb,var(--fg7) 34%,transparent);background:linear-gradient(180deg,color-mix(in srgb,var(--bg1) 98%,transparent),color-mix(in srgb,var(--bg1) 82%,transparent));font-size:14px;font-weight:780;color:var(--fg2);text-transform:none;letter-spacing:-.015em;flex-shrink:0;box-shadow:inset 0 -1px 0 color-mix(in srgb,var(--fg7) 10%,transparent)}
+#col-daemons .col-hdr,#col-agents .col-hdr,#col-sessions .col-hdr{color:color-mix(in srgb,var(--accent2) 38%,var(--fg))}
+.col-list{flex:1;overflow-y:auto;padding:10px 10px 18px}
+.col-item{display:flex;align-items:flex-start;gap:12px;padding:12px 14px;border-radius:16px;cursor:pointer;font-size:13px;color:var(--fg2);margin-bottom:8px;transition:background .15s,box-shadow .15s,color .15s,border-color .15s,transform .15s;position:relative;border:1px solid transparent;background:color-mix(in srgb,var(--bg2) 72%,transparent);box-shadow:inset 0 1px 0 color-mix(in srgb,#fff 5%,transparent)}
+.col-item::before{content:none}
+.col-item:hover{background:color-mix(in srgb,var(--bg1) 88%,transparent);border-color:color-mix(in srgb,var(--fg7) 70%,transparent);transform:translateX(2px)}
+.col-item.selected{background:linear-gradient(135deg,color-mix(in srgb,var(--accent2) 16%,var(--bg1)),color-mix(in srgb,var(--accent) 10%,var(--bg2)));color:var(--fg);border-color:color-mix(in srgb,var(--accent2) 42%,var(--border2));box-shadow:0 12px 28px color-mix(in srgb,var(--accent2) 10%,transparent),inset 0 1px 0 color-mix(in srgb,#fff 10%,transparent)}
+.col-item.selected::before{opacity:1;background:linear-gradient(180deg,var(--accent2),color-mix(in srgb,var(--accent2) 45%,transparent))}
 .col-item.disabled{opacity:.42;cursor:not-allowed;filter:saturate(.55)}
 .col-item.disabled:hover{background:transparent}
-.col-item .ci-icon{font-size:14px;flex-shrink:0}
+.daemon-stack{margin-bottom:10px}
+.daemon-stack>.col-item{margin-bottom:0}
+.col-item .ci-icon{font-size:14px;flex-shrink:0;margin-top:2px}
 .col-item .ci-info{flex:1;min-width:0}
-.col-item .ci-name{font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.col-item .ci-meta{font-size:11px;color:var(--fg5);margin-top:1px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.col-item .ci-submeta{font-size:10px;color:var(--fg4);margin-top:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.col-item .ci-dot{width:6px;height:6px;border-radius:50%;background:#50d167;flex-shrink:0}
-.col-item .ci-tag{font-size:10px;color:var(--accent2);border:1px solid var(--border2);border-radius:999px;padding:1px 7px;flex-shrink:0}
-.col-item .ci-join{height:22px;padding:0 8px;border:1px solid var(--border2);border-radius:999px;background:var(--bg3);color:var(--accent2);font-size:10px;font-weight:700;flex-shrink:0;white-space:nowrap;cursor:pointer}
+.col-item .ci-name{font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;line-height:1.25}
+.col-item .ci-meta{font-size:11px;color:var(--fg5);margin-top:3px;overflow:hidden;line-height:1.4;white-space:normal;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}
+.col-item .ci-submeta{font-size:10px;color:var(--fg4);margin-top:4px;overflow:hidden;line-height:1.4;white-space:normal;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}
+.col-item .ci-dot{width:8px;height:8px;border-radius:50%;background:var(--green);flex-shrink:0;margin-top:6px;box-shadow:0 0 0 4px color-mix(in srgb,var(--green) 12%,transparent)}
+.col-item .ci-tag{font-size:10px;color:var(--accent2);border:1px solid color-mix(in srgb,var(--accent2) 26%,var(--border2));background:color-mix(in srgb,var(--accent2) 10%,transparent);border-radius:999px;padding:2px 8px;flex-shrink:0;font-weight:800;letter-spacing:.04em}
+.col-item .ci-join{height:24px;padding:0 10px;border:1px solid color-mix(in srgb,var(--accent2) 28%,var(--border2));border-radius:999px;background:color-mix(in srgb,var(--accent2) 10%,var(--bg1));color:var(--accent2);font-size:10px;font-weight:800;flex-shrink:0;white-space:nowrap;cursor:pointer;box-shadow:inset 0 1px 0 color-mix(in srgb,#fff 8%,transparent)}
 .col-item .ci-join:disabled{opacity:.6}
 .col-item .ci-tag.ci-tag-view,.compact-item .ci-tag.ci-tag-view{color:#f3c67c;border-color:color-mix(in srgb,#f3c67c 45%,var(--border2));background:color-mix(in srgb,#f3c67c 12%,transparent)}
-.col-item .ci-del{width:20px;height:20px;border:none;border-radius:5px;background:none;color:var(--fg6);font-size:11px;cursor:pointer;display:flex;align-items:center;justify-content:center;opacity:0;transition:opacity .1s;flex-shrink:0}
-.col-item:hover .ci-del{opacity:1}.col-item .ci-del:hover{background:color-mix(in srgb,var(--red) 12%,transparent);color:var(--red)}
-.col-empty{text-align:center;color:#444;font-size:12px;padding:20px 14px;line-height:1.6}
-.col-empty-spinner{width:24px;height:24px;margin:0 auto 10px;border-radius:50%;border:2px solid color-mix(in srgb,var(--accent2) 24%,var(--border2));border-top-color:var(--accent2);animation:spin .9s linear infinite;opacity:.85}
+.col-item .ci-del{height:24px;padding:0 10px;border:1px solid color-mix(in srgb,var(--fg7) 42%,transparent);border-radius:999px;background:color-mix(in srgb,var(--bg1) 90%,transparent);color:var(--fg3);font-size:10px;font-weight:800;letter-spacing:.03em;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;opacity:1;transition:border-color .15s ease,background .15s ease,color .15s ease,transform .1s ease;flex-shrink:0;white-space:nowrap;box-shadow:none}
+.col-item .ci-del:hover{border-color:color-mix(in srgb,var(--fg6) 66%,transparent);background:color-mix(in srgb,var(--bg1) 98%,transparent);color:var(--fg)}
+.col-item .ci-del-delete{border-color:color-mix(in srgb,var(--red) 30%,var(--border2));background:color-mix(in srgb,var(--red) 10%,transparent);color:color-mix(in srgb,var(--red) 88%,var(--fg2))}
+.col-item .ci-del-delete:hover{border-color:color-mix(in srgb,var(--red) 48%,var(--border2));background:color-mix(in srgb,var(--red) 16%,transparent);color:var(--red)}
+.col-item .ci-del-leave{border-color:color-mix(in srgb,var(--fg7) 42%,transparent);background:color-mix(in srgb,var(--bg1) 92%,transparent);color:var(--fg3)}
+.col-empty{text-align:center;color:var(--fg4);font-size:12px;padding:22px 16px;line-height:1.6;display:flex;flex-direction:column;align-items:center;gap:8px;margin:10px;border:1px dashed color-mix(in srgb,var(--fg7) 52%,transparent);border-radius:20px;background:linear-gradient(180deg,color-mix(in srgb,var(--bg1) 74%,transparent),color-mix(in srgb,var(--bg2) 92%,transparent));box-shadow:inset 0 1px 0 color-mix(in srgb,#fff 5%,transparent)}
+.col-empty-title{font-size:14px;font-weight:700;color:var(--fg2)}
+.col-empty-detail{font-size:12px;line-height:1.55;color:var(--fg4);max-width:260px}
+.col-empty-icon{width:38px;height:38px;border-radius:14px;display:flex;align-items:center;justify-content:center;font-size:18px;background:color-mix(in srgb,var(--accent2) 10%,transparent);color:var(--accent2)}
+.col-empty-hint{display:inline-flex;align-items:center;min-height:28px;padding:0 12px;border-radius:999px;border:1px solid color-mix(in srgb,var(--accent2) 24%,var(--border2));background:color-mix(in srgb,var(--accent2) 8%,transparent);color:var(--accent2);font-size:11px;font-weight:700}
+.col-empty--loading{border-style:solid}
+.col-empty-spinner{width:28px;height:28px;border-radius:50%;border:2px solid color-mix(in srgb,var(--accent2) 24%,var(--border2));border-top-color:var(--accent2);animation:spin .9s linear infinite;opacity:.85}
 .more-agents-wrap{overflow:hidden;max-height:0;opacity:0;transition:max-height .25s ease,opacity .2s ease}
 .more-agents-wrap.more-open{max-height:600px;opacity:1}
 .col-list-msg{padding:0 10px 8px;font-size:11px;line-height:1.45;color:var(--fg5);min-height:0}
@@ -198,19 +230,20 @@ a{color:var(--accent2);text-decoration:none}button{font-family:inherit;cursor:po
 .col-list-msg.is-error{color:#ff8f8f}
 .col-list-msg.is-success{color:var(--green)}
 .col-list-msg.is-warn{color:var(--orange)}
-.col-skeleton{padding:12px 10px;display:flex;flex-direction:column;gap:10px}
-.sk-row{display:flex;align-items:center;gap:12px;padding:14px 12px;border-radius:14px;background:color-mix(in srgb,var(--bg2) 88%,transparent);min-height:62px}
+.col-skeleton{padding:12px 10px;display:flex;flex-direction:column;gap:12px}
+.sk-row{display:flex;align-items:center;gap:12px;padding:14px 14px;border-radius:18px;background:linear-gradient(180deg,color-mix(in srgb,var(--bg1) 68%,transparent),color-mix(in srgb,var(--bg2) 92%,transparent));border:1px solid color-mix(in srgb,var(--fg7) 40%,transparent);min-height:68px;box-shadow:inset 0 1px 0 color-mix(in srgb,#fff 5%,transparent)}
 .sk-icon,.sk-line{background:linear-gradient(90deg,color-mix(in srgb,var(--fg7) 45%,transparent) 25%,color-mix(in srgb,var(--fg7) 70%,transparent) 50%,color-mix(in srgb,var(--fg7) 45%,transparent) 75%);background-size:200% 100%;animation:shimmer 1.5s ease infinite}
 .sk-icon{width:24px;height:24px;border-radius:8px;flex-shrink:0}
 .sk-text{flex:1;display:flex;flex-direction:column;gap:8px}
 .sk-line{height:10px;border-radius:999px}
 .sk-line.w-40{width:40%}.sk-line.w-55{width:55%}.sk-line.w-65{width:65%}.sk-line.w-75{width:75%}.sk-line.w-85{width:85%}
-.chat-placeholder{flex:1;display:flex;align-items:center;justify-content:center;padding:24px 18px;min-height:0}
+.chat-placeholder{flex:1;display:flex;align-items:center;justify-content:center;padding:30px 22px;min-height:0}
 .chat-empty{position:relative;width:100%;min-height:min(58vh,520px);display:flex;flex-direction:column;align-items:center;justify-content:center;overflow:hidden;background:transparent}
-.chat-empty-copy{position:relative;z-index:2;display:flex;flex-direction:column;align-items:center;text-align:center;gap:10px;padding:28px;max-width:420px}
+.chat-empty::before,.chat-empty::after{content:none}
+.chat-empty-copy{position:relative;z-index:2;display:flex;flex-direction:column;align-items:center;text-align:center;gap:10px;padding:0;max-width:420px}
 .chat-empty-kicker{font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--fg5)}
-.chat-empty-title{font-size:24px;line-height:1.15;font-weight:750;color:var(--fg)}
-.chat-empty-sub{font-size:13px;line-height:1.6;color:var(--fg4)}
+.chat-empty-title{font-size:26px;line-height:1.12;font-weight:760;letter-spacing:-.03em;color:var(--fg)}
+.chat-empty-sub{font-size:13px;line-height:1.6;color:var(--fg4);max-width:340px}
 .chat-empty-watermark{width:min(28vw,180px);height:min(28vw,180px);color:color-mix(in srgb,var(--fg) 10%,transparent);opacity:.8;pointer-events:none;filter:blur(.2px);flex-shrink:0;margin-bottom:8px}
 .chat-empty-watermark svg{width:100%;height:100%}
 .chat-empty-watermark.generic{width:min(22vw,140px);height:min(22vw,140px);opacity:.45}
@@ -221,9 +254,9 @@ a{color:var(--accent2);text-decoration:none}button{font-family:inherit;cursor:po
 .login-card .login-title{font-size:15px;font-weight:700;color:var(--fg);margin-bottom:6px}
 .login-card .login-copy{font-size:12px;line-height:1.5;color:var(--fg4);margin-bottom:14px}
 .login-card .login-msg{font-size:11px;color:var(--fg5);margin-top:10px;min-height:16px}
-.ci-join{height:26px;padding:0 10px;border:1px solid var(--border2);border-radius:999px;background:var(--bg3);color:var(--accent2);font-size:11px;font-weight:700;flex-shrink:0}
+.ci-join{height:24px;padding:0 10px;border:1px solid color-mix(in srgb,var(--accent2) 28%,var(--border2));border-radius:999px;background:color-mix(in srgb,var(--accent2) 10%,var(--bg1));color:var(--accent2);font-size:11px;font-weight:800;flex-shrink:0;box-shadow:inset 0 1px 0 color-mix(in srgb,#fff 8%,transparent)}
 .ci-join:disabled{opacity:.6}
-.col-new{margin:8px 6px;padding:8px 10px;background:var(--panel2);border:1px solid var(--line);border-radius:10px}
+.col-new{margin:12px 10px 10px;padding:14px;background:linear-gradient(180deg,color-mix(in srgb,var(--bg1) 76%,transparent),color-mix(in srgb,var(--bg2) 92%,transparent));border:1px solid color-mix(in srgb,var(--fg7) 48%,transparent);border-radius:18px;box-shadow:inset 0 1px 0 color-mix(in srgb,#fff 5%,transparent)}
 .col-new .fld{margin-bottom:8px}
 .col-new .fld label{font-size:10px}
 .col-new .sh-go{height:34px;font-size:13px;border-radius:17px;margin-top:4px}
@@ -233,11 +266,40 @@ a{color:var(--accent2);text-decoration:none}button{font-family:inherit;cursor:po
 .col-new-msg.is-error{color:#ff8f8f}
 .col-new-msg.is-success{color:var(--green)}
 .col-new-msg.is-warn{color:var(--orange)}
-.daemon-access-card{margin:12px 10px 8px;padding:14px;border:1px solid var(--line);border-radius:16px;background:var(--panel2)}
+.daemon-stack>.daemon-access-summary{margin:8px 0 0}
+.daemon-access-summary{padding:11px 12px 12px;border:1px solid color-mix(in srgb,var(--accent2) 16%,var(--border2));border-radius:15px;background:color-mix(in srgb,var(--bg2) 76%,transparent);box-shadow:inset 0 1px 0 color-mix(in srgb,#fff 4%,transparent)}
+.daemon-access-summary-head{display:flex;align-items:center;justify-content:space-between;gap:10px}
+.daemon-access-summary-copy{display:flex;flex-direction:column;gap:3px;min-width:0;flex:1}
+.daemon-access-summary-kicker{font-size:9px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:var(--fg5)}
+.daemon-access-summary-band{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:stretch;gap:8px;margin-top:8px;padding:10px;border:1px solid color-mix(in srgb,var(--fg7) 26%,transparent);border-radius:12px;background:color-mix(in srgb,var(--bg1) 84%,transparent);box-shadow:none}
+.daemon-access-summary-primary{display:flex;flex-direction:column;align-items:flex-start;justify-content:center;gap:6px;min-width:0}
+.daemon-access-summary-title{font-size:9px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:var(--fg5)}
+.daemon-access-summary-metrics{display:grid;grid-template-columns:repeat(2,minmax(64px,1fr));gap:8px}
+.daemon-access-summary-metric{display:flex;flex-direction:column;justify-content:center;min-width:64px;padding:7px 9px;border-radius:12px;border:1px solid color-mix(in srgb,var(--fg7) 30%,transparent);background:color-mix(in srgb,var(--bg1) 90%,transparent)}
+.daemon-access-summary-metric-label{font-size:9px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:var(--fg5)}
+.daemon-access-summary-metric-value{margin-top:5px;font-size:15px;font-weight:700;line-height:1;color:var(--fg2)}
+.daemon-access-summary-admins{display:flex;align-items:flex-start;gap:8px;margin-top:8px;font-size:11px;line-height:1.5;color:var(--fg4)}
+.daemon-access-summary-admins-label{flex-shrink:0;padding-top:2px;font-size:10px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:var(--fg5)}
+.daemon-access-summary-admins-value{min-width:0;color:var(--fg3);word-break:break-word}
+.daemon-access-open{height:26px;padding:0 10px;border:1px solid color-mix(in srgb,var(--fg7) 38%,transparent);border-radius:999px;background:color-mix(in srgb,var(--bg1) 90%,transparent);color:var(--fg4);font-size:9px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;white-space:nowrap;box-shadow:none}
+.daemon-access-open:hover{background:color-mix(in srgb,var(--bg1) 94%,transparent);border-color:color-mix(in srgb,var(--fg6) 66%,transparent);color:var(--fg2)}
+.daemon-access-request-actions{display:flex;gap:8px;flex-wrap:wrap;justify-content:center;margin-top:10px}
+.daemon-access-request-actions.compact{justify-content:flex-start;margin-top:10px}
+.daemon-access-request-actions.compact .ci-join{display:inline-flex;align-items:center;justify-content:center;flex:1 1 132px;height:30px;min-width:0;padding:0 12px;border-color:color-mix(in srgb,var(--fg7) 44%,transparent);background:color-mix(in srgb,var(--bg1) 90%,transparent);color:var(--fg3);font-size:10px;letter-spacing:.03em;box-shadow:none}
+.daemon-access-request-actions.compact .ci-join:hover{border-color:color-mix(in srgb,var(--accent2) 28%,transparent);background:color-mix(in srgb,var(--accent2) 8%,var(--bg1));color:var(--fg)}
+.daemon-access-request-actions.compact .ci-join:disabled{opacity:.55}
+.daemon-access-card{margin:14px 10px 10px;padding:16px;border:1px solid color-mix(in srgb,var(--fg7) 48%,transparent);border-radius:20px;background:linear-gradient(180deg,color-mix(in srgb,var(--bg1) 76%,transparent),color-mix(in srgb,var(--bg2) 92%,transparent));box-shadow:var(--shadow-soft)}
+.daemon-access-note{margin:14px 10px 10px;padding:16px;border:1px solid color-mix(in srgb,var(--fg7) 48%,transparent);border-radius:20px;background:linear-gradient(180deg,color-mix(in srgb,var(--bg1) 74%,transparent),color-mix(in srgb,var(--bg2) 92%,transparent));box-shadow:var(--shadow-soft)}
+.daemon-access-note-title{font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--fg5);margin-bottom:8px}
+.daemon-access-note-copy{font-size:12px;line-height:1.55;color:var(--fg4)}
 .daemon-access-head{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;margin-bottom:10px}
 .daemon-access-title{font-size:11px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;color:var(--fg5)}
 .daemon-access-subtitle{margin-top:6px;font-size:12px;line-height:1.45;color:var(--fg4);max-width:240px}
 .daemon-access-role{display:inline-flex;align-items:center;justify-content:center;min-width:60px;height:24px;padding:0 10px;border-radius:999px;border:1px solid color-mix(in srgb,var(--accent2) 24%,var(--border2));background:color-mix(in srgb,var(--accent2) 8%,transparent);color:var(--accent2);font-size:10px;font-weight:800;letter-spacing:.05em;text-transform:uppercase;white-space:nowrap}
+.daemon-access-role.is-owner{border-color:color-mix(in srgb,var(--green) 34%,var(--border2));background:color-mix(in srgb,var(--green) 12%,transparent);color:color-mix(in srgb,var(--green) 78%,#fff)}
+.daemon-access-role.is-admin{border-color:color-mix(in srgb,var(--orange) 36%,var(--border2));background:color-mix(in srgb,var(--orange) 12%,transparent);color:color-mix(in srgb,var(--orange) 92%,#fff)}
+.daemon-access-role.is-member{border-color:color-mix(in srgb,var(--accent2) 28%,var(--border2));background:color-mix(in srgb,var(--accent2) 10%,transparent);color:var(--accent2)}
+.daemon-access-role.is-none,.daemon-access-role.is-unavailable{border-color:color-mix(in srgb,var(--fg7) 44%,transparent);background:color-mix(in srgb,var(--bg1) 88%,transparent);color:var(--fg4)}
 .daemon-access-sections{display:grid;gap:4px}
 .daemon-access-section{padding:12px 0 0}
 .daemon-access-section+.daemon-access-section{border-top:1px solid var(--border)}
@@ -245,7 +307,7 @@ a{color:var(--accent2);text-decoration:none}button{font-family:inherit;cursor:po
 .daemon-access-section-title{font-size:13px;font-weight:700;color:var(--fg)}
 .daemon-access-section-copy{margin-top:3px;font-size:11px;line-height:1.45;color:var(--fg4)}
 .daemon-access-count{display:inline-flex;align-items:center;justify-content:center;min-width:26px;height:22px;padding:0 8px;border-radius:999px;background:color-mix(in srgb,var(--fg) 6%,transparent);color:var(--fg4);font-size:11px;font-weight:700}
-.daemon-access-chipbox{display:flex;flex-wrap:wrap;gap:8px;align-items:center;padding:10px 12px;border:1px solid var(--border2);border-radius:12px;background:var(--bg1);cursor:text;transition:border-color .15s ease,box-shadow .15s ease,background .15s ease}
+.daemon-access-chipbox{display:flex;flex-wrap:wrap;gap:8px;align-items:center;padding:10px 12px;border:1px solid color-mix(in srgb,var(--fg7) 46%,transparent);border-radius:14px;background:color-mix(in srgb,var(--bg1) 86%,transparent);cursor:text;transition:border-color .15s ease,box-shadow .15s ease,background .15s ease;box-shadow:inset 0 1px 0 color-mix(in srgb,#fff 5%,transparent)}
 .daemon-access-chipbox:focus-within{border-color:color-mix(in srgb,var(--accent2) 55%,var(--border2));box-shadow:0 0 0 3px color-mix(in srgb,var(--accent2) 14%,transparent)}
 .daemon-access-chip{display:inline-flex;align-items:center;gap:6px;max-width:100%;padding:6px 8px 6px 10px;border-radius:999px;background:color-mix(in srgb,var(--accent2) 12%,var(--bg3));border:1px solid color-mix(in srgb,var(--accent2) 20%,var(--border2));color:var(--fg2);font-size:12px;line-height:1}
 .daemon-access-section.admin .daemon-access-chip{background:color-mix(in srgb,var(--orange) 12%,var(--bg3));border-color:color-mix(in srgb,var(--orange) 24%,var(--border2))}
@@ -256,9 +318,31 @@ a{color:var(--accent2);text-decoration:none}button{font-family:inherit;cursor:po
 .daemon-access-input::placeholder{color:var(--fg5)}
 .daemon-access-empty{font-size:12px;color:var(--fg5)}
 .daemon-access-footer{margin-top:14px;padding-top:12px;border-top:1px solid var(--border)}
+#daemon-access-overlay{position:fixed;inset:0;background:rgba(0,0,0,.4);opacity:0;pointer-events:none;transition:opacity .2s ease;z-index:82}
+#daemon-access-overlay.open{opacity:1;pointer-events:auto}
+#daemon-access-drawer{position:fixed;top:60px;right:12px;bottom:12px;width:min(460px,calc(100vw - 24px));background:color-mix(in srgb,var(--bg1) 88%,transparent);border:1px solid color-mix(in srgb,var(--fg7) 50%,transparent);border-radius:24px;box-shadow:var(--shadow-panel);backdrop-filter:blur(18px) saturate(1.24);-webkit-backdrop-filter:blur(18px) saturate(1.24);z-index:83;transform:translateX(calc(100% + 18px));transition:transform .22s ease;display:flex;flex-direction:column;overflow:hidden}
+#daemon-access-drawer::before{content:'';position:absolute;left:16px;right:16px;top:0;height:1px;background:linear-gradient(90deg,transparent 0%,color-mix(in srgb,var(--accent2) 30%,transparent) 50%,transparent 100%);pointer-events:none}
+#daemon-access-drawer.open{transform:translateX(0)}
+.dad-hdr{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;padding:14px 16px 12px;border-bottom:1px solid color-mix(in srgb,var(--fg7) 44%,transparent);flex-shrink:0;background:linear-gradient(180deg,color-mix(in srgb,var(--bg2) 84%,transparent),transparent)}
+.dad-copy{display:flex;flex-direction:column;gap:4px;min-width:0}
+.dad-kicker{font-size:10px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:var(--fg5)}
+.dad-title-row{display:flex;align-items:center;gap:8px;min-width:0;flex-wrap:wrap}
+.dad-title{font-size:13px;font-weight:700;color:var(--fg2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.dad-sub{font-size:11px;line-height:1.5;color:var(--fg5)}
+.dad-body{flex:1;overflow-y:auto;padding:14px 16px 18px}
+.dad-body>p{font-size:12px;line-height:1.55;color:var(--fg4);margin-bottom:14px}
+.dad-body .daemon-access-section{padding:14px 0 0}
+.dad-body .daemon-access-footer{margin-top:16px}
+.daemon-access-help{font-size:11px;line-height:1.45;color:var(--fg5);margin-top:10px}
 @media(max-width:600px){
   .daemon-access-head{flex-direction:column;align-items:flex-start}
+  .daemon-access-summary-head{flex-direction:column;align-items:flex-start}
+  .daemon-access-summary-band{grid-template-columns:1fr}
+  .daemon-access-summary-metrics{width:100%;grid-template-columns:repeat(2,minmax(0,1fr))}
   .daemon-access-subtitle{max-width:none}
+  #daemon-access-drawer{top:auto;left:0;right:0;bottom:0;width:auto;border-radius:22px 22px 0 0;transform:translateY(110%)}
+  #daemon-access-drawer.open{transform:translateY(0)}
+  #daemon-access-drawer::before{left:24px;right:24px}
 }
 .dir-input-wrap{display:flex;flex-direction:column;gap:6px}
 .dir-field-header{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:5px}
@@ -282,13 +366,13 @@ a{color:var(--accent2);text-decoration:none}button{font-family:inherit;cursor:po
   .chat-empty-watermark{width:min(56vw,260px);height:min(56vw,260px);transform:translate(32%,30%)}
   #column-nav{position:relative}
   #column-nav.compact #compact-nav{display:none!important}
-  .col{min-width:100%;max-width:100%;position:absolute;top:0;bottom:0;left:0;right:0;background:#0a0a0a;z-index:10;display:none!important}
+  .col{min-width:100%;max-width:100%;position:absolute;top:0;bottom:0;left:0;right:0;background:var(--bg);z-index:10;display:none!important}
   .col.mob-visible{display:flex!important}
   #chat-col{position:absolute;top:0;bottom:0;left:0;right:0;z-index:20;display:none!important}
   #chat-col.mob-visible{display:flex!important}
   .col-hdr{display:flex;align-items:center;gap:6px}
   .mob-back{display:flex;width:28px;height:28px;border:none;border-radius:8px;background:none;color:#6baaff;font-size:14px;cursor:pointer;align-items:center;justify-content:center}
-  .mob-back:active{background:#222}
+  .mob-back:active{background:var(--bg3)}
 }
 
 /* ── Welcome ── */
@@ -400,14 +484,14 @@ a{color:var(--accent2);text-decoration:none}button{font-family:inherit;cursor:po
 .slash-item .sl-desc{color:var(--fg4);font-size:12px;flex:1}
 .session-toolbar{display:none;max-width:780px;margin:0 auto 8px;align-items:center;gap:8px;flex-wrap:wrap}
 .session-toolbar.show{display:flex}
-.async-banner{display:flex;align-items:center;justify-content:space-between;gap:10px;max-width:780px;margin:0 auto 8px;padding:8px 12px;border:1px solid var(--border2);border-radius:14px;background:color-mix(in srgb,var(--bg3) 92%,transparent)}
+.async-banner{display:flex;align-items:center;justify-content:space-between;gap:10px;max-width:780px;margin:0 auto 8px;padding:10px 12px;border:1px solid color-mix(in srgb,var(--fg7) 46%,transparent);border-radius:18px;background:linear-gradient(180deg,color-mix(in srgb,var(--bg1) 76%,transparent),color-mix(in srgb,var(--bg2) 92%,transparent));box-shadow:var(--shadow-soft)}
 .async-banner.hidden{display:none!important}
 .async-banner-copy{display:flex;align-items:center;gap:10px;min-width:0;flex:1}
-.async-banner-pill{display:inline-flex;align-items:center;justify-content:center;min-height:22px;padding:0 9px;border-radius:999px;font-size:10px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;background:var(--bg4);color:var(--fg3);flex-shrink:0}
+.async-banner-pill{display:inline-flex;align-items:center;justify-content:center;min-height:24px;padding:0 10px;border-radius:999px;font-size:10px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;background:color-mix(in srgb,var(--bg4) 88%,transparent);color:var(--fg3);flex-shrink:0;border:1px solid color-mix(in srgb,var(--fg7) 40%,transparent)}
 .async-banner.is-loading .async-banner-pill{gap:6px}
 .async-banner.is-loading .async-banner-pill::before{content:'';width:10px;height:10px;border:1.6px solid currentColor;border-right-color:transparent;border-radius:50%;display:inline-block;flex-shrink:0;animation:spin .8s linear infinite}
 .async-banner-text{min-width:0;font-size:12px;line-height:1.4;color:var(--fg3)}
-.async-banner-action{height:28px;padding:0 12px;border:1px solid var(--border2);border-radius:999px;background:var(--bg1);color:var(--fg2);font-size:11px;font-weight:700;flex-shrink:0}
+.async-banner-action{height:30px;padding:0 12px;border:1px solid color-mix(in srgb,var(--fg7) 46%,transparent);border-radius:999px;background:color-mix(in srgb,var(--bg1) 86%,transparent);color:var(--fg2);font-size:11px;font-weight:700;flex-shrink:0;box-shadow:inset 0 1px 0 color-mix(in srgb,#fff 8%,transparent)}
 .async-banner-action.hidden{display:none!important}
 .async-banner.is-info{border-color:color-mix(in srgb,var(--accent2) 22%,var(--border2));background:color-mix(in srgb,var(--accent2) 8%,var(--bg3))}
 .async-banner.is-info .async-banner-pill{background:color-mix(in srgb,var(--accent2) 16%,var(--bg4));color:var(--accent2)}
@@ -443,14 +527,14 @@ a{color:var(--accent2);text-decoration:none}button{font-family:inherit;cursor:po
 #usage-ring .ring-bg{stroke:var(--border2)}
 #usage-ring .ring-fg{stroke:var(--accent);stroke-linecap:round;transform:rotate(-90deg);transform-origin:center;transition:stroke-dashoffset .2s ease,stroke .2s ease}
 #usage-label{font-size:11px;color:var(--fg4);white-space:nowrap}
-.tb-btn.auto-on{background:color-mix(in srgb,var(--green) 16%,var(--bg1))!important;border-color:color-mix(in srgb,var(--green) 38%,var(--border2))!important;color:color-mix(in srgb,var(--green) 86%,var(--fg2))!important}
 
 @keyframes spin{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}
 @keyframes cursor{0%,100%{opacity:1}50%{opacity:0}}
 @keyframes shimmer{0%{background-position:200% 0}100%{background-position:-200% 0}}
-@keyframes wps-rail-flow{from{background-position:200% 0}to{background-position:0 0}}
+@keyframes wps-rail-glint{from{transform:translateX(-32%)}to{transform:translateX(276%)}}
 @keyframes msg-in{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
 @keyframes col-in{from{opacity:0;transform:translateX(12px)}to{opacity:1;transform:translateX(0)}}
+@keyframes debug-btn-flash{0%{box-shadow:inset 0 1px 0 color-mix(in srgb,#fff 8%,transparent);background:color-mix(in srgb,var(--bg2) 82%,transparent);color:var(--fg4)}35%{box-shadow:inset 0 1px 0 color-mix(in srgb,#fff 8%,transparent),0 0 0 5px color-mix(in srgb,var(--accent2) 10%,transparent);background:color-mix(in srgb,var(--accent2) 10%,transparent);color:var(--accent2)}100%{box-shadow:inset 0 1px 0 color-mix(in srgb,#fff 8%,transparent);background:color-mix(in srgb,var(--bg2) 82%,transparent);color:var(--fg4)}}
 @media(max-width:700px){
   .wl-title{font-size:22px}
   #welcome{padding:24px 12px}
@@ -461,7 +545,9 @@ a{color:var(--accent2);text-decoration:none}button{font-family:inherit;cursor:po
   .tool-row{font-size:12px;padding:5px 8px}
   .perm-hdr{font-size:12px;padding:6px 8px}
   #topbar .tb-right{gap:4px}
-  #topbar .tb-btn{font-size:11px;padding:0 8px;height:28px}
+  #topbar .tb-btn{font-size:11px;padding:0 8px;height:30px}
+  #topbar .tb-status{max-width:118px;padding:0 8px;font-size:10px}
+  #topbar .tb-btn.tb-strategy{min-width:102px}
   .input-row textarea{font-size:14px;padding:8px 12px}
   .async-banner{padding:7px 10px;gap:8px}
   .async-banner-text{font-size:11px}
@@ -480,17 +566,16 @@ a{color:var(--accent2);text-decoration:none}button{font-family:inherit;cursor:po
   <div id="topbar">
     <div class="tb-left">
       <button class="tb-burger" onclick="toggleColumns()" aria-label="Menu">☰</button>
-      <span class="tb-subbrand" title="Azure Web PubSub">
-        <span class="tb-subbrand-copy"><span class="tb-subbrand-azure">Azure</span><span class="tb-subbrand-name">Web PubSub</span></span>
-      </span>
-      <span class="tb-title is-brand" id="topbar-title">CodeAgentHub</span>
+      <div class="tb-brand-lockup">
+        <span class="tb-title is-brand" id="topbar-title">Azure Web PubSub / CodeAgentHub</span>
+      </div>
       <span class="tb-status" id="topbar-st"></span>
     </div>
     <div class="tb-right">
       <span class="tb-user" id="user-badge" title="Current username" style="display:none"></span>
       <button class="tb-btn" id="auto-approve-btn" onclick="toggleAutoApprove()" style="display:none" title="Portal-side auto response for permission requests only. Separate from the agent's own access mode.">Approvals: Auto</button>
       <button class="tb-icon-btn" id="compact-toggle-btn" title="Expand chat area" style="display:none">⤢</button>
-      <button class="tb-icon-btn" id="debug-btn" onclick="toggleDebug()" title="Debug panel"><svg width="14" height="14" viewBox="0 0 32 32" fill="currentColor"><path d="M29.83,20l.34-2L25,17.15V13c0-.08,0-.15,0-.23l5.06-1.36-.51-1.93-4.83,1.29A9,9,0,0,0,20,5V2H18V4.23a8.81,8.81,0,0,0-4,0V2H12V5a9,9,0,0,0-4.71,5.82L2.46,9.48,2,11.41,7,12.77c0,.08,0,.15,0,.23v4.15L1.84,18l.32,2L7,19.18a8.9,8.9,0,0,0,.82,3.57L3.29,27.29l1.42,1.42,4.19-4.2a9,9,0,0,0,14.2,0l4.19,4.2,1.42-1.42-4.54-4.54A8.9,8.9,0,0,0,25,19.18ZM15,25.92A7,7,0,0,1,9,19V13h6ZM9.29,11a7,7,0,0,1,13.42,0ZM23,19a7,7,0,0,1-6,6.92V13h6Z"/></svg></button>
+      <button class="tb-icon-btn" id="debug-btn" onclick="toggleDebug()" aria-label="Debug panel"><svg width="14" height="14" viewBox="0 0 32 32" fill="currentColor"><path d="M29.83,20l.34-2L25,17.15V13c0-.08,0-.15,0-.23l5.06-1.36-.51-1.93-4.83,1.29A9,9,0,0,0,20,5V2H18V4.23a8.81,8.81,0,0,0-4,0V2H12V5a9,9,0,0,0-4.71,5.82L2.46,9.48,2,11.41,7,12.77c0,.08,0,.15,0,.23v4.15L1.84,18l.32,2L7,19.18a8.9,8.9,0,0,0,.82,3.57L3.29,27.29l1.42,1.42,4.19-4.2a9,9,0,0,0,14.2,0l4.19,4.2,1.42-1.42-4.54-4.54A8.9,8.9,0,0,0,25,19.18ZM15,25.92A7,7,0,0,1,9,19V13h6ZM9.29,11a7,7,0,0,1,13.42,0ZM23,19a7,7,0,0,1-6,6.92V13h6Z"/></svg></button>
       <button class="tb-icon-btn" id="theme-btn" onclick="toggleTheme()" title="Toggle light/dark">🌙</button>
       <button class="tb-btn" id="logout-btn" style="display:none">Logout</button>
     </div>
@@ -591,15 +676,22 @@ a{color:var(--accent2);text-decoration:none}button{font-family:inherit;cursor:po
 
 <!-- Debug Panel -->
 <div id="debug-panel">
-  <div class="dbg-hdr"><h4>WebSocket Messages</h4><div class="dbg-actions"><button class="dbg-btn" type="button" onclick="clearDebugLog()">Clear</button><button class="dbg-btn" type="button" onclick="hideDebugPanel()">Hide</button></div></div>
+  <div class="dbg-hdr"><div class="dbg-head-copy"><div class="dbg-kicker">Transport Inspector</div><div class="dbg-title-row"><h4>WebSocket Messages</h4><span class="dbg-count" id="debug-count">0</span></div><div class="dbg-sub">Raw portal traffic for this browser session.</div></div><div class="dbg-actions"><button class="dbg-btn" type="button" onclick="clearDebugLog()">Clear</button><button class="dbg-btn" type="button" onclick="hideDebugPanel()">Hide</button></div></div>
   <div class="dbg-list" id="debug-log"></div>
+</div>
+
+<div id="daemon-access-overlay" onclick="closeDaemonAccessDrawer()"></div>
+<div id="daemon-access-drawer" aria-hidden="true">
+  <div class="dad-hdr"><div class="dad-copy"><div class="dad-kicker">Daemon Permissions</div><div class="dad-title-row"><div class="dad-title" id="daemon-access-drawer-title">Daemon access</div><span class="daemon-access-role" id="daemon-access-drawer-role"></span></div><div class="dad-sub" id="daemon-access-drawer-sub"></div></div><div class="dbg-actions"><button class="dbg-btn" type="button" onclick="closeDaemonAccessDrawer()">Close</button></div></div>
+  <div class="dad-body" id="daemon-access-drawer-body"></div>
 </div>
 
 <script type="module">
 import DOMPurify from'/dompurify.js';
 import{Marked,Renderer}from'/marked.js';
 import{ChatClient}from'/chat-client.js';
-import{canBrowseDaemonDirectories,classifyIncomingSessionRoomMessage,daemonHasAdminAccess as portalDaemonHasAdminAccess,daemonHasMemberAccess as portalDaemonHasMemberAccess,getCreateSessionAccessState,getRealtimeSessionAccessPatch,isDaemonRecordFresh,isLocalEchoMessage,mergeRealtimeDaemonRecord,normalizeDaemonRecord as normalizePortalDaemonRecord,rememberRoomMessage,resetSessionStateToIdle,resolveNotificationRoomId,shouldIgnoreRoomMessage,shouldIgnoreSemanticDuplicate,shouldRetainPreviousDaemons}from'/portal-regressions.js';
+import{canBrowseDaemonDirectories,classifyIncomingSessionRoomMessage,createSessionHistorySummary,daemonHasAdminAccess as portalDaemonHasAdminAccess,daemonHasMemberAccess as portalDaemonHasMemberAccess,getCreateSessionAccessState,getRealtimeSessionAccessPatch,getSessionChatPlaceholderState,isDaemonRecordFresh,isLocalEchoMessage,isStartupStatusEnvelope,isStartupWaitMessage,mergeRealtimeDaemonRecord,normalizeDaemonRecord as normalizePortalDaemonRecord,recordSessionHistoryEnvelope,rememberRoomMessage,resetSessionStateToIdle,resolveNotificationRoomId,shouldBackgroundRetrySessionOpenError,shouldIgnoreRoomMessage,shouldIgnoreSemanticDuplicate,shouldRetainPreviousDaemons,shouldSuppressSessionOpenError}from'/portal-regressions.js';
+import{collectKnownRoomInfos,ensureLocalRoomInfo,rememberKnownRoomInfo}from'/room-routing-state.js';
 import{collectVisibleSessions,normalizeSessionRecord as normalizeSessionDiscoveryRecord,resolveRoomDisplayName,shouldShowPortalSessionLoading,shouldSkipDeletedSession}from'/session-discovery-state.js';
 import{ensureSessionOpenSync,waitForJoinedRoom,waitForRoomLiveSync}from'/session-live-sync.js';
 import{deriveToolbarModelId}from'/session-toolbar-state.js';
@@ -616,6 +708,8 @@ const livePermissionResponses=new Map();
 const loadedSessionQueryKeys=new Set();
 const loadingSessionQueryKeys=new Set();
 const daemonSyncRooms=new Set();
+const supplementalRoomInfos=new Map();
+const roomsPendingLiveSync=new Set();
 let portalPollTimer=null;
 let portalPollInFlight=false;
 let portalDaemonsLoaded=false;
@@ -626,10 +720,19 @@ let portalTransportError='';
 const seenPendingJoinRequestIds=new Set();
 const seenPendingDaemonAccessRequestIds=new Set();
 const ss={processing:false,pendingCount:0,stopping:false,model:'gpt-5.4'};
+let currentSessionReady=null;
+let chatPlaceholderOverride=null;
+let latestSessionHistorySummary=createSessionHistorySummary();
+let sessionLiveSyncRetryTimer=null;
+let sessionLiveSyncRetryToken=0;
 const STOP_RETRY_COOLDOWN_MS=1200;
 let sendMode='enqueue';
 let currentDaemonId=null;
 let currentAgentName=null;
+let daemonAccessDrawerOpen=false;
+let daemonAccessDrawerDaemonId='';
+let daemonAccessDrawerStatus=null;
+let daemonAccessSavePending=false;
 const DEFAULT_SLASH_CMDS=[
   {cmd:'compact',desc:'Compact conversation history'},
   {cmd:'clear',desc:'Clear the chat display'},
@@ -684,7 +787,9 @@ function currentSessionQueryKey(){return currentDaemonId&&currentAgentName?`${cu
 function sessionQueryLoaded(queryKey=currentSessionQueryKey()){return !!queryKey&&loadedSessionQueryKeys.has(queryKey)}
 function markSessionQueryLoaded(queryKey=currentSessionQueryKey()){if(queryKey)loadedSessionQueryKeys.add(queryKey)}
 function sessionQueryLoading(queryKey=currentSessionQueryKey()){return !!queryKey&&loadingSessionQueryKeys.has(queryKey)}
+function roomNeedsLiveSyncValidation(roomId){const targetRoomId=String(roomId||'').trim();return !!targetRoomId&&roomsPendingLiveSync.has(targetRoomId)}
 function getChatPlaceholderState(){
+  if(chatPlaceholderOverride)return chatPlaceholderOverride;
   if(!uid)return {kicker:'Sign in',title:'Open an agent workspace',subtitle:'Log in to browse daemons, agents, and sessions.',watermark:'',generic:true};
   if(!currentDaemonId)return {kicker:'Select a daemon',title:'Choose an agent daemon to begin',subtitle:'Pick a Windows or Linux daemon first, then choose an agent.',watermark:'',generic:true};
   if(!currentAgentName)return {kicker:'Select an agent',title:'Pick an agent to view or create sessions',subtitle:'Choose Claude, Copilot, Codex, or another available agent.',watermark:'',generic:true};
@@ -706,6 +811,51 @@ function renderChatPlaceholder(){
     :`<div class="chat-empty-watermark generic"><div class="chat-empty-watermark-glyph">⌘</div></div>`;
   const subtitle=state.subtitle?`<div class="chat-empty-sub">${esc(state.subtitle)}</div>`:'';
   el.innerHTML=`<div class="chat-empty">${watermark}<div class="chat-empty-copy"><div class="chat-empty-kicker">${esc(state.kicker)}</div><div class="chat-empty-title">${esc(state.title)}</div>${subtitle}</div></div>`;
+}
+function sessionAgentLabel(){return AGENT_NAMES[currentAgentName]||currentAgentName||'Session'}
+function chatHasVisibleContent(){return !!$.chat?.childElementCount}
+function setChatPlaceholderOverride(state=null){chatPlaceholderOverride=state?{...state}:null;showChatPlaceholder(!!chatPlaceholderOverride)}
+function noteChatContentVisible(){if(chatPlaceholderOverride)chatPlaceholderOverride=null;showChatPlaceholder(false)}
+function cancelSessionLiveSyncRetry(){if(sessionLiveSyncRetryTimer){clearTimeout(sessionLiveSyncRetryTimer);sessionLiveSyncRetryTimer=null}sessionLiveSyncRetryToken+=1}
+function refreshSessionPlaceholder({forceSyncing=false}={}){
+  if(!rid||chatHasVisibleContent()){
+    if(chatPlaceholderOverride)noteChatContentVisible();
+    return;
+  }
+  const startupLike=currentSessionReady===false||(currentSessionReady===null&&latestSessionHistorySummary?.hasStartupSignal);
+  setChatPlaceholderOverride(getSessionChatPlaceholderState({
+    agentLabel:sessionAgentLabel(),
+    isStarting:startupLike&&!forceSyncing,
+    isSyncing:forceSyncing,
+    isReadOnly:isCurrentSessionReadOnly(),
+  }))
+}
+function scheduleSessionLiveSyncRetry(roomId,{delayMs=2000,attempt=1,maxAttempts=1}={}){
+  const targetRoomId=String(roomId||'').trim();
+  if(!targetRoomId||targetRoomId!==rid)return;
+  cancelSessionLiveSyncRetry();
+  const retryToken=sessionLiveSyncRetryToken;
+  sessionLiveSyncRetryTimer=setTimeout(async()=>{
+    sessionLiveSyncRetryTimer=null;
+    if(retryToken!==sessionLiveSyncRetryToken||targetRoomId!==rid||!cc)return;
+    try{
+      setSessionBanner({source:'history',label:'Syncing',text:'Live session sync is still catching up…',tone:'info'});
+      refreshSessionPlaceholder({forceSyncing:true});
+      await ensureLiveRoomSubscription(targetRoomId,{retries:1,retryDelayMs:300});
+      await waitForRoomLiveState(targetRoomId,ROOM_LIVE_SYNC_TIMEOUT_MS,{...(discoveredSessions.get(targetRoomId)||{}),sessionId:targetRoomId},{allowHistoryFallback:true});
+      roomsPendingLiveSync.delete(targetRoomId);
+      clearSessionBanner('history');
+      refreshSessionPlaceholder();
+    }catch(err){
+      if(retryToken!==sessionLiveSyncRetryToken||targetRoomId!==rid)return;
+      if(attempt<maxAttempts){
+        scheduleSessionLiveSyncRetry(targetRoomId,{delayMs:Math.min(delayMs*2,5000),attempt:attempt+1,maxAttempts});
+        return;
+      }
+      setSessionBanner({source:'history',label:'Sync delayed',text:'History loaded, but live updates are still catching up. Keep this room open or retry if messages do not start streaming.',tone:'warn',actionText:'Retry',action:()=>openR(targetRoomId)});
+      refreshSessionPlaceholder({forceSyncing:true});
+    }
+  },delayMs)
 }
 
 // OS icons for daemon list (inline SVG, 16x16)
@@ -780,19 +930,43 @@ if(savedTheme==='light')document.getElementById('theme-btn').textContent='☀️
 /* Debug panel */
 const debugMessages=[];
 let debugOpen=false;
+function syncDebugUi(){
+  const panel=document.getElementById('debug-panel');
+  const button=document.getElementById('debug-btn');
+  const count=document.getElementById('debug-count');
+  if(panel)panel.classList.toggle('open',debugOpen);
+  if(button){
+    button.classList.toggle('active',debugOpen);
+    if(debugOpen)button.classList.remove('debug-flash');
+  }
+  if(count)count.textContent=String(debugMessages.length);
+}
+function flashDebugButton(){
+  const button=document.getElementById('debug-btn');
+  if(!button||debugOpen)return;
+  button.classList.remove('debug-flash');
+  void button.offsetWidth;
+  button.classList.add('debug-flash');
+}
 function toggleDebug(){
   debugOpen=!debugOpen;
-  document.getElementById('debug-panel').classList.toggle('open',debugOpen);
+  syncDebugUi();
+  if(debugOpen){
+    const log=document.getElementById('debug-log');
+    if(log)log.scrollTop=log.scrollHeight;
+  }
 }
 window.toggleDebug=toggleDebug;
 function hideDebugPanel(){
   debugOpen=false;
-  document.getElementById('debug-panel').classList.remove('open');
+  syncDebugUi();
 }
 window.hideDebugPanel=hideDebugPanel;
 function clearDebugLog(){
-  document.getElementById('debug-log').innerHTML='';
+  const log=document.getElementById('debug-log');
+  if(log)log.innerHTML='';
   debugMessages.length=0;
+  syncDebugUi();
 }
 window.clearDebugLog=clearDebugLog;
 function logDebugMessage(direction,data){
@@ -809,8 +983,12 @@ function logDebugMessage(direction,data){
   item.innerHTML=`<span class="dbg-dir">${dir}</span> <span class="dbg-type">${esc(String(type))}</span><span class="dbg-time">${ts}</span><div class="dbg-json">${esc(JSON.stringify(data,null,2))}</div>`;
   item.onclick=()=>item.classList.toggle('expanded');
   el.appendChild(item);
+  while(el.children.length>500)el.firstElementChild?.remove();
+  flashDebugButton();
+  syncDebugUi();
   if(debugOpen)el.scrollTop=el.scrollHeight;
 }
+syncDebugUi();
 
 /* Auto-approve — per session state, stored in a map keyed by session ID */
 const sessionAutoApprove=new Map(); // sessionId → boolean
@@ -874,15 +1052,15 @@ function setFormStatus(message='',tone='loading',timeout=0,source='manual'){
     formStatusTimer=setTimeout(()=>{if(formStatusNotice&&`${formStatusNotice.source}:${formStatusNotice.message}`===marker)clearFormStatus(source)},timeout)
   }
 }
-function getSessionBannerNotice(){return sessionBannerNotice||(sessionBooting?{source:'boot',label:'Starting',text:sessionBootingStage||'Preparing session…',tone:'info'}:null)}
-function isStartupWaitMessage(message=''){return /agent is still starting/i.test(String(message||''))}
-function isHistoricalStartupEnvelope(e){
-  if(!e||typeof e!=='object')return false;
-  const message=String(e.message||'').trim();
-  if(e.type==='system.info')return /^(starting|connected to|resuming|resumed)\b/i.test(message);
-  if(e.type==='session.error')return isStartupWaitMessage(message)||/^failed to start:/i.test(message)||/oauth code flow requires a browser/i.test(message);
-  return false;
+function getImplicitSessionBanner(){
+  if(!rid||!uid)return null;
+  if(ss.stopping)return {source:'state',label:'Stopping',text:'Waiting for the current response to stop.',tone:'warn'};
+  if(currentStatusState==='permission')return {source:'state',label:'Approval',text:'This turn is waiting for a permission decision.',tone:'warn'};
+  if(ss.processing)return {source:'state',label:sendMode==='immediate'?'Steering':'Working',text:currentWorkingLabel||'Agent is working…',tone:'info'};
+  return null;
 }
+function getSessionBannerNotice(){return sessionBannerNotice||(sessionBooting?{source:'boot',label:'Starting',text:sessionBootingStage||'Preparing session…',tone:'info'}:getImplicitSessionBanner())}
+function isHistoricalStartupEnvelope(e){return isStartupStatusEnvelope(e)}
 function isSessionBannerLoading(notice){return !!notice&&notice.tone==='info'&&(notice.source==='history'||notice.source==='boot')}
 function clearStaleCreateLoadingStatus(){if(formStatusNotice?.source==='create'&&formStatusNotice?.tone==='loading')clearFormStatus('create')}
 function renderSessionBanner(){
@@ -911,7 +1089,8 @@ window.runSessionBannerAction=async()=>{if(sessionBannerAction)await sessionBann
 function setWorkingLabel(message='Agent is working…'){
   currentWorkingLabel=message||'Agent is working…';
   const label=$wi?.querySelector('.wi-text');
-  if(label)label.textContent=currentWorkingLabel
+  if(label)label.textContent=currentWorkingLabel;
+  renderSessionBanner()
 }
 function resetWorkingLabel(){setWorkingLabel('Agent is working…')}
 function syncSendButton(){
@@ -924,10 +1103,10 @@ function syncSendButton(){
   $.sb.disabled=!enabled
 }
 function syncComposer(){const enabled=!!uid&&!!rid&&!sessionBooting&&!isCurrentSessionReadOnly();$.mi.disabled=!enabled||!!ss.stopping;$.mi.placeholder=sessionBooting?'Please wait…':ss.stopping?'Stopping response…':isCurrentSessionReadOnly()?currentSessionPermissionMessage():'Type a message …';syncSendButton()}
-function setSessionBooting(next,stage=''){sessionBooting=!!next;sessionBootingStage=sessionBooting?(stage||sessionBootingStage||'Preparing session…'):'';if(!sessionBooting)clearStaleCreateLoadingStatus();syncComposer();renderSessionBanner()}
-function updateSessionBooting(stage=''){if(!sessionBooting)return;sessionBootingStage=stage||sessionBootingStage;syncComposer();renderSessionBanner()}
-function markSessionReady(statusMessage='Session ready.'){if(!sessionBooting)return;setFormStatus(statusMessage,'success',1800,'create');setSessionBooting(false);clearSessionBanner('error')}
-function noteLiveSessionActivity(){if(sessionBooting)markSessionReady();else clearSessionBanner('error')}
+function setSessionBooting(next,stage=''){sessionBooting=!!next;sessionBootingStage=sessionBooting?(stage||sessionBootingStage||'Preparing session…'):'';if(!sessionBooting)clearStaleCreateLoadingStatus();syncComposer();renderSessionBanner();syncSt()}
+function updateSessionBooting(stage=''){if(!sessionBooting)return;sessionBootingStage=stage||sessionBootingStage;syncComposer();renderSessionBanner();syncSt()}
+function markSessionReady(statusMessage='Session ready.'){currentSessionReady=true;if(!sessionBooting){refreshSessionPlaceholder();return}setFormStatus(statusMessage,'success',1800,'create');setSessionBooting(false);clearSessionBanner('error');refreshSessionPlaceholder()}
+function noteLiveSessionActivity(){currentSessionReady=true;noteChatContentVisible();if(sessionBooting)markSessionReady();else clearSessionBanner('error')}
 function mergeSlashCommands(agentCommands=[]){
   const merged=new Map();
   for(const item of agentCommands){if(item?.cmd)merged.set(item.cmd,item)}
@@ -1051,7 +1230,15 @@ function updateUsageRing(used,size){
 function getAutoApprove(){return rid?(sessionAutoApprove.has(rid)?sessionAutoApprove.get(rid):true):false}
 function toggleAutoApprove(){if(!rid)return;sessionAutoApprove.set(rid,!getAutoApprove());syncAutoBtn()}
 window.toggleAutoApprove=toggleAutoApprove;
-function syncAutoBtn(){const b=document.getElementById('auto-approve-btn');const on=getAutoApprove();b.classList.toggle('auto-on',on);b.innerHTML=on?'<span style="margin-right:4px">✓</span> Approvals: Auto':'<span style="margin-right:4px">✕</span> Approvals: Manual';b.title='Portal-side auto response for permission requests only. Separate from the agent\'s own access mode.'}
+function syncAutoBtn(){
+  const b=document.getElementById('auto-approve-btn');
+  const on=getAutoApprove();
+  b.classList.remove('tb-strategy','auto-off');
+  b.classList.toggle('auto-on',on);
+  b.setAttribute('aria-pressed',on?'true':'false');
+  b.innerHTML=on?'<span style="margin-right:4px">✓</span> Approvals: Auto':'<span style="margin-right:4px">✕</span> Approvals: Manual';
+  b.title='Portal-side auto response for permission requests only. Separate from the agent\'s own access mode.';
+}
 function updateAutoBtn(){document.getElementById('auto-approve-btn').style.display=rid&&uid?'':'none';syncAutoBtn()}
 let userAvatar='';
 function syncUserBadge(){if($.userBadge){$.userBadge.innerHTML=uid?(userAvatar?`<img class="tb-avatar" src="${esc(userAvatar)}" alt="">`:'')+esc(uid):'';$.userBadge.style.display=uid?'inline-flex':'none'}if($.logoutBtn)$.logoutBtn.style.display=uid?'':'none'}
@@ -1099,7 +1286,14 @@ function syncOauthLoginCard(message='',isError=false){
   label.textContent='Retry WPS connection';
 }
 function setOauthAuthenticatedUser(user){oauthAuthenticatedUser=user?{login:String(user.login||''),avatar:user.avatar||''}:null;syncOauthLoginCard()}
-function syncPortalRail(){const topbar=document.getElementById('topbar');if(topbar)topbar.dataset.wpsState=portalTransportState||'disconnected'}
+let currentStatusState='disconnected';
+function syncPortalRail(){
+  const topbar=document.getElementById('topbar');
+  if(!topbar)return;
+  topbar.dataset.wpsState=portalTransportState||'disconnected';
+  topbar.dataset.sessionState=rid?'ready':'idle';
+  topbar.dataset.railActive=(portalTransportState==='connected'||portalTransportState==='connecting')?'true':'false';
+}
 function setPortalTransportState(state,error=''){portalTransportState=state;portalTransportError=String(error||'').trim();syncPortalRail();syncSt();syncOauthLoginCard()}
 syncPortalRail();
 function retryPortalConnection(){if(!oauthAuthenticatedUser?.login)return;void loginUser(oauthAuthenticatedUser.login)}
@@ -1107,13 +1301,42 @@ function handleOauthAction(){if(oauthAuthenticatedUser?.login){retryPortalConnec
 window.handleOauthAction=handleOauthAction;
 function compactEmpty(text){return `<div class="compact-empty">${esc(text)}</div>`}
 function compactSection(title,content){return `<div class="compact-section"><div class="compact-hdr">${esc(title)}</div><div class="compact-list">${content}</div></div>`}
-function renderColumnLoadingState(title,detail=''){return `<div class="col-empty"><div class="col-empty-spinner" aria-hidden="true"></div>${esc(title)}${detail?`<br><span style="font-size:11px;color:var(--fg5)">${esc(detail)}</span>`:''}</div>`}
+function renderColumnStateCard({title,detail='',icon='',kind='empty',lead='',extra=''}){
+  const iconMarkup=icon?`<div class="col-empty-icon">${esc(icon)}</div>`:'';
+  return `<div class="col-empty col-empty--${esc(kind)}">${lead}${iconMarkup}<div class="col-empty-title">${esc(title)}</div>${detail?`<div class="col-empty-detail">${esc(detail)}</div>`:''}${extra}</div>`;
+}
+function renderColumnLoadingState(title,detail=''){return renderColumnStateCard({title,detail,kind:'loading',lead:'<div class="col-empty-spinner" aria-hidden="true"></div>'})}
 function daemonAdminUsersMeta(daemon){
   const admins=[...new Set([
     ...(Array.isArray(daemon?.adminUsers)?daemon.adminUsers:[]),
     ...portalApproverUserIds(daemon),
   ].map(value=>String(value||'').trim()).filter(Boolean))];
   return `Admin users: ${admins.length?admins.join(', '):'none'}`;
+}
+function daemonAccessAudienceUsers(daemon){
+  const admins=[...new Set([
+    ...(Array.isArray(daemon?.adminUsers)?daemon.adminUsers:[]),
+    ...portalApproverUserIds(daemon),
+  ].map(value=>String(value||'').trim()).filter(Boolean))];
+  const members=[...new Set([
+    ...(Array.isArray(daemon?.memberUsers)?daemon.memberUsers:[]),
+    ...admins,
+  ].map(value=>String(value||'').trim()).filter(Boolean))];
+  return {members,admins};
+}
+function daemonAccessGuidance(daemon,{compact=false}={}){
+  if(!daemon)return'';
+  if(daemon.canManage)return compact?'Open the main daemon column drawer to edit member and admin lists.':'Open the edit drawer to manage member and admin users without enlarging this column.';
+  if(!daemonHasMemberAccess(daemon))return'Request member or admin access to reveal sessions on this daemon.';
+  if(!daemonHasAdminAccess(daemon))return'You can browse shared sessions here, but daemon admin access is required to create new ones.';
+  return'Only the daemon manager can change daemon access.';
+}
+function renderDaemonAccessSummaryCard(daemonId,daemon){
+  const audience=daemonAccessAudienceUsers(daemon);
+  const canEdit=!!daemon?.canManage;
+  const action=canEdit?`<button class="daemon-access-open" type="button" onclick="event.stopPropagation();openDaemonAccessDrawer('${jsq(daemonId)}')">Edit</button>`:'';
+  const adminUsers=audience.admins.length?audience.admins.join(', '):'none';
+  return `<div class="daemon-access-summary"><div class="daemon-access-summary-head"><div class="daemon-access-summary-copy"><div class="daemon-access-summary-kicker">Access</div></div>${action}</div><div class="daemon-access-summary-band"><div class="daemon-access-summary-primary"><div class="daemon-access-summary-title">Your role</div><span class="daemon-access-role ${daemonAccessToneClass(daemon)}">${esc(daemonAccessLevelLabel(daemon))}</span></div><div class="daemon-access-summary-metrics"><div class="daemon-access-summary-metric"><div class="daemon-access-summary-metric-label">Members</div><div class="daemon-access-summary-metric-value">${audience.members.length}</div></div><div class="daemon-access-summary-metric"><div class="daemon-access-summary-metric-label">Admins</div><div class="daemon-access-summary-metric-value">${audience.admins.length}</div></div></div></div><div class="daemon-access-summary-admins"><span class="daemon-access-summary-admins-label">Admins</span><span class="daemon-access-summary-admins-value">${esc(adminUsers)}</span></div>${canEdit?'':daemonAccessButtons(daemon,{compact:true})}</div>`
 }
 function renderCompactDaemons(){
   if(!uid||!cc)return compactSection('Agent Daemons',compactEmpty('Connect first'));
@@ -1131,13 +1354,7 @@ function renderCompactDaemons(){
   }).join('');
   const selectedDaemon=knownDaemons.get(currentDaemonId);
   if(selectedDaemon){
-    const guidance=!daemonHasMemberAccess(selectedDaemon)
-      ?'Sessions stay hidden until daemon member or admin access is granted.'
-      :!daemonHasAdminAccess(selectedDaemon)
-        ?'Daemon admin access is required to create sessions. Session read and write access are requested per session.'
-        :selectedDaemon.canManage
-          ?'Use the full daemon panel to edit member and admin user lists.'
-          :'Only a daemon manager can change daemon access.';
+    const guidance=daemonAccessGuidance(selectedDaemon,{compact:true});
     content+=`<div class="compact-empty">${esc(`${daemonAccessSummary(selectedDaemon)}.`)}</div><div class="compact-empty">${esc(guidance)}</div>${selectedDaemon.canManage?'':daemonAccessButtons(selectedDaemon,{compact:true})}`;
   }
   return compactSection('Agent Daemons',content)
@@ -1322,15 +1539,16 @@ function defaultDirectoryForDaemon(daemon){return (daemon?.workspaces||[]).find(
 function syncCreateSessionButton(){
   const button=document.getElementById('f-btn');
   if(!button)return;
-  if(button.dataset.busy==='true')return;
   const daemon=knownDaemons.get(currentDaemonId);
   const dirValue=normalizePickerPath(document.getElementById('f-dir')?.value.trim()||'',daemon?.platform);
   const invalid=!!currentDaemonId&&!!dirValue&&!pathLooksCompatibleWithPlatform(dirValue,daemon?.platform);
   const {blocked,readOnly}=getCreateSessionAccessState(daemon);
-  button.disabled=invalid||blocked||readOnly;
-  button.textContent=blocked?'No Daemon Access':readOnly?'Member Only':'New Session';
-  button.classList.toggle('is-blocked',blocked||readOnly);
-  button.title=blocked?'You need member or admin permission on this daemon before sessions are visible.':readOnly?'This daemon is currently member-only. Request admin permission to create sessions.':invalid?`Directory does not match the selected ${daemon?.platform==='win32'?'Windows':'Linux/macOS'} daemon.`:'';
+  if(button.dataset.busy!=='true'){
+    button.disabled=invalid||blocked||readOnly;
+    button.textContent=blocked?'No Daemon Access':readOnly?'Member Only':'New Session';
+    button.classList.toggle('is-blocked',blocked||readOnly);
+    button.title=blocked?'You need member or admin permission on this daemon before sessions are visible.':readOnly?'This daemon is currently member-only. Request admin permission to create sessions.':invalid?`Directory does not match the selected ${daemon?.platform==='win32'?'Windows':'Linux/macOS'} daemon.`:'';
+  }
 }
 async function requestWorkspaceListing(pathValue='',query=''){
   if(!currentDaemonId)throw new Error('Select a daemon first');
@@ -1401,7 +1619,8 @@ function scheduleDirectorySuggestions(rawValue=''){
 function resetChatState(){
   $.chat.innerHTML='';pd.clear();rd.clear();at.clear();pp.clear();tc.clear();hideWorking();$wi=null;
   lastStatusMessage='';lastStatusAt=0;
-  lastSemanticRender=null;
+  cancelSessionLiveSyncRetry();
+  lastSemanticRender=null;currentSessionReady=null;latestSessionHistorySummary=createSessionHistorySummary();chatPlaceholderOverride=null;
   livePermissionResponses.clear();
   seenRoomMessageIds.clear();
   clearSessionBanner();
@@ -1414,14 +1633,19 @@ function resetChatState(){
 function skeletonColumn(rows=4){return `<div class="col-skeleton">${Array.from({length:rows},(_,index)=>`<div class="sk-row"><span class="sk-icon"></span><div class="sk-text"><span class="sk-line ${index%2===0?'w-75':'w-65'}"></span><span class="sk-line ${index%3===0?'w-40':'w-55'}"></span></div></div>`).join('')}</div>`}
 function joinedRoomIds(){return new Set((cc?.rooms||[]).filter(r=>r.roomId!==LOBBY_ROOM).map(r=>r.roomId))}
 function hasLiveRoomJoin(roomId){const targetRoomId=String(roomId||'').trim();return !!(targetRoomId&&cc&&typeof cc.hasJoinedRoom==='function'&&cc.hasJoinedRoom(targetRoomId))}
-function knownRoomInfosForRouting(){const roomInfos=[...(cc?.rooms||[])];if(rid){const currentSession=discoveredSessions.get(rid);if(currentSession)roomInfos.push(currentSession)}return roomInfos}
+function knownRoomInfosForRouting(){return collectKnownRoomInfos({chatRooms:cc?.rooms||[],supplementalRoomInfos,currentSession:rid?(discoveredSessions.get(rid)||{sessionId:rid}):null})}
 function sessionLabel(session){const dir=session.workingDirectory||'';return dir.split(/[/\\]/).pop()||session.name||'Session'}
 function daemonHasMemberAccess(daemon){return portalDaemonHasMemberAccess(daemon)}
 function daemonHasAdminAccess(daemon){return portalDaemonHasAdminAccess(daemon)}
 function sessionRequestState(sessionId){return joinRequests.get(sessionId)||{}}
 function sessionJoinStatus(sessionId){return sessionRequestState(sessionId).status||''}
 function sessionRequestedAccess(sessionId){return sessionRequestState(sessionId).requestedAccess||''}
-function sessionAccessLevel(session){if(!session)return'none';const level=String(session.accessLevel||'').toLowerCase();if(level==='read'||level==='write')return level;return session.canWrite?'write':session.canRead?'read':'none'}
+function daemonRecordForSession(session){
+  const daemonId=String(session?.daemonId||currentDaemonId||'').trim();
+  if(!daemonId)return currentDaemonRecord();
+  return knownDaemons.get(daemonId)||currentDaemonRecord();
+}
+function sessionAccessLevel(session){if(!session)return'none';const daemon=daemonRecordForSession(session);if(daemon&&daemonHasAdminAccess(daemon))return'write';const level=String(session.accessLevel||'').toLowerCase();if(level==='write')return'write';if(session.canWrite)return'write';if(level==='read')return'read';return session.canRead?'read':'none'}
 function sessionCanRead(session){return sessionAccessLevel(session)!=='none'}
 function sessionCanWrite(session){return sessionAccessLevel(session)==='write'}
 function sessionCanDelete(session){return !!session?.canDelete}
@@ -1437,6 +1661,7 @@ function portalApproverUserIds(daemon){
 }
 function daemonApproverLabel(daemon){const approvers=portalApproverUserIds(daemon);return approvers.length?approvers.join(', '):'the daemon owner'}
 function daemonAccessLevelLabel(daemon){if(!daemon)return'Unavailable';if(daemon.canManage)return'Owner';if(daemonHasAdminAccess(daemon))return'Admin';if(daemonHasMemberAccess(daemon))return'Member';return'No access'}
+function daemonAccessToneClass(daemon){if(!daemon)return'is-unavailable';if(daemon.canManage)return'is-owner';if(daemonHasAdminAccess(daemon))return'is-admin';if(daemonHasMemberAccess(daemon))return'is-member';return'is-none'}
 function daemonAccessSummary(daemon){return`Your access: ${daemonAccessLevelLabel(daemon)}`}
 function daemonAccessTag(daemon){if(!daemon)return'';if(daemonHasAdminAccess(daemon))return'';if(daemonHasMemberAccess(daemon))return'<span class="ci-tag ci-tag-view">MEMBER</span>';return'<span class="ci-tag ci-tag-view">NO ACCESS</span>'}
 function currentSessionPermissionMessage(){
@@ -1450,7 +1675,7 @@ function currentSessionPermissionMessage(){
   return'Unavailable';
 }
 function renderSessionEmptyState(title,detail='',icon='💬'){
-  return `<div class="col-empty"><div style="font-size:28px;margin-bottom:10px;opacity:.4">${icon}</div>${esc(title)}${detail?`<br><span style="font-size:11px;color:var(--fg5)">${esc(detail)}</span>`:''}</div>`;
+  return renderColumnStateCard({title,detail,icon});
 }
 function sessionEmptyStateCopy(daemon){
   if(daemon&&!daemonHasMemberAccess(daemon)){
@@ -1489,7 +1714,7 @@ function daemonAccessButtons(daemon,{includeMember=true,includeAdmin=true,compac
     buttons.push(`<button class="ci-join" type="button" onclick="event.stopPropagation();requestDaemonAccess('admin')" ${disabled?'disabled':''}>${label}</button>`);
   }
   if(!buttons.length)return'';
-  return `<div style="display:flex;gap:8px;flex-wrap:wrap;justify-content:${compact?'flex-start':'center'};margin-top:10px">${buttons.join('')}</div>`;
+  return `<div class="daemon-access-request-actions${compact?' compact':''}">${buttons.join('')}</div>`;
 }
 function isCurrentSessionReadOnly(){
   if(!rid||!uid)return false;
@@ -1633,32 +1858,92 @@ window.updateDaemonAccessDraft=(daemonId,field,value)=>{
   draft[field]=value;
   daemonAccessDrafts.set(daemonId,draft);
 };
-window.saveDaemonAccess=async()=>{
-  const daemon=knownDaemons.get(currentDaemonId);
+function renderDaemonAccessDrawer(){
+  const overlay=document.getElementById('daemon-access-overlay');
+  const drawer=document.getElementById('daemon-access-drawer');
+  const title=document.getElementById('daemon-access-drawer-title');
+  const role=document.getElementById('daemon-access-drawer-role');
+  const sub=document.getElementById('daemon-access-drawer-sub');
+  const body=document.getElementById('daemon-access-drawer-body');
+  if(!overlay||!drawer||!title||!role||!sub||!body)return;
+  const daemonId=String(daemonAccessDrawerDaemonId||'').trim();
+  const daemon=daemonId?knownDaemons.get(daemonId):null;
+  if(daemonAccessDrawerOpen&&(!daemon||!daemon.canManage||daemonId!==currentDaemonId)){
+    daemonAccessDrawerOpen=false;
+    daemonAccessDrawerDaemonId='';
+    daemonAccessDrawerStatus=null;
+    daemonAccessSavePending=false;
+  }
+  const open=daemonAccessDrawerOpen&&!!daemon&&daemon.canManage;
+  overlay.classList.toggle('open',open);
+  drawer.classList.toggle('open',open);
+  drawer.setAttribute('aria-hidden',open?'false':'true');
+  if(!open){
+    title.textContent='Daemon access';
+    role.textContent='';
+    sub.textContent='';
+    body.innerHTML='';
+    return;
+  }
+  const inputState=captureDaemonAccessInputState();
+  title.textContent=daemon.hostname||daemonId;
+  role.textContent=daemonAccessLevelLabel(daemon);
+  sub.textContent=`${daemonAccessSummary(daemon)}. ${daemonAdminUsersMeta(daemon)}.`;
+  const helper=daemonAccessDrawerStatus
+    ?`<div class="col-new-msg is-${esc(daemonAccessDrawerStatus.tone||'loading')}" id="daemon-access-msg">${esc(daemonAccessDrawerStatus.message)}</div>`
+    :'<div class="daemon-access-help">Member uses room.member, admin uses room.operator in Web PubSub Chat membership.</div>';
+  body.innerHTML=`<p>Manage who can view shared sessions or administer this daemon from one focused drawer instead of growing the daemon column.</p><div class="daemon-access-sections">${renderDaemonAccessSection(daemonId,daemon,'memberUsers','Member Users','Can view shared sessions.','member')}${renderDaemonAccessSection(daemonId,daemon,'adminUsers','Admin Users','Can manage this daemon and create sessions.','admin')}</div><div class="daemon-access-footer"><button class="sh-go" id="daemon-access-save-btn" type="button" onclick="saveDaemonAccess()" ${daemonAccessSavePending?'disabled':''}>${daemonAccessSavePending?'Saving…':'Save Access'}</button>${helper}</div>`;
+  restoreDaemonAccessInputState(inputState);
+}
+function openDaemonAccessDrawer(daemonId=currentDaemonId){
+  const daemon=knownDaemons.get(daemonId);
   if(!daemon||!daemon.canManage)return;
-  const targetDaemonId=currentDaemonId;
+  daemonAccessDrawerDaemonId=daemonId;
+  daemonAccessDrawerOpen=true;
+  daemonAccessDrawerStatus=null;
+  daemonAccessSavePending=false;
+  hideDebugPanel();
+  renderDaemonAccessDrawer();
+  requestAnimationFrame(()=>document.getElementById(daemonAccessInputId('memberUsers'))?.focus());
+}
+function closeDaemonAccessDrawer(){
+  daemonAccessDrawerOpen=false;
+  daemonAccessDrawerDaemonId='';
+  daemonAccessDrawerStatus=null;
+  daemonAccessSavePending=false;
+  renderDaemonAccessDrawer();
+}
+window.openDaemonAccessDrawer=openDaemonAccessDrawer;
+window.closeDaemonAccessDrawer=closeDaemonAccessDrawer;
+window.saveDaemonAccess=async()=>{
+  const targetDaemonId=String(daemonAccessDrawerDaemonId||currentDaemonId||'').trim();
+  const daemon=knownDaemons.get(targetDaemonId);
+  if(!daemon||!daemon.canManage)return;
   const memberInput=document.getElementById(daemonAccessValueId('memberUsers'));
   const adminInput=document.getElementById(daemonAccessValueId('adminUsers'));
   const memberPendingInput=document.getElementById(daemonAccessInputId('memberUsers'));
   const adminPendingInput=document.getElementById(daemonAccessInputId('adminUsers'));
-  const saveButton=document.getElementById('daemon-access-save-btn');
-  const message=document.getElementById('daemon-access-msg');
   const memberUsers=[...new Set([...parseUserListInput(memberInput?.value||''),...parseUserListInput(memberPendingInput?.value||'')])];
   const adminUsers=[...new Set([...parseUserListInput(adminInput?.value||''),...parseUserListInput(adminPendingInput?.value||'')])];
-  if(saveButton){saveButton.disabled=true;saveButton.textContent='Saving…'}
-  if(message){message.textContent='Saving access list…';message.style.color='var(--fg4)'}
+  setDaemonAccessDraftUsers(targetDaemonId,'memberUsers',memberUsers);
+  setDaemonAccessDraftUsers(targetDaemonId,'adminUsers',adminUsers);
+  daemonAccessSavePending=true;
+  daemonAccessDrawerStatus={message:'Saving access list…',tone:'loading'};
+  renderDaemonAccessDrawer();
   try{
     const body=await portalJson(`/api/daemons/${encodeURIComponent(targetDaemonId)}/access`,{method:'PATCH',body:JSON.stringify({memberUsers,adminUsers})});
     const updated=body.daemon||{};
     const updatedDaemonId=String(updated.daemonId||targetDaemonId||'').trim();
     knownDaemons.set(updatedDaemonId,mergeDaemonRecord(knownDaemons.get(updatedDaemonId),updated));
     daemonAccessDrafts.delete(updatedDaemonId);
+    daemonAccessSavePending=false;
+    daemonAccessDrawerStatus={message:'Access lists saved.',tone:'success'};
     renderDaemonsCol();
     syncCreateSessionButton();
   }catch(error){
-    if(message){message.textContent=error.message||'Failed to save daemon access';message.style.color='var(--red)'}
-  }finally{
-    if(saveButton){saveButton.disabled=false;saveButton.textContent='Save Access'}
+    daemonAccessSavePending=false;
+    daemonAccessDrawerStatus={message:error.message||'Failed to save daemon access',tone:'error'};
+    renderDaemonAccessDrawer();
   }
 };
 async function refreshPortalDaemons({render=true}={}){
@@ -1811,31 +2096,63 @@ async function ensureLobbyMembership(userId){
   throw new Error('Failed to join lobby')
 }
 async function ensureDaemonSyncRoom(daemonId){
-  if(!cc||!daemonId||daemonSyncRooms.has(daemonId))return;
+  if(!cc||!daemonId)return;
+  const targetRoomId=daemonSyncRoomId(daemonId);
+  const hasLocalRoom=(cc?.rooms||[]).some((room)=>room?.roomId===targetRoomId);
+  const hasKnownRoomInfo=hasLocalRoom||supplementalRoomInfos.has(targetRoomId);
+  if(daemonSyncRooms.has(daemonId)&&hasLiveRoomJoin(targetRoomId)&&hasKnownRoomInfo)return;
   try{
-    await cc.getRoom(daemonSyncRoomId(daemonId),false);
-    daemonSyncRooms.add(daemonId);
+    const roomInfo=await ensureLocalRoomInfo(targetRoomId,{
+      chatRooms:cc?.rooms||[],
+      supplementalRoomInfos,
+      hasJoinedRoom:(roomId)=>hasLiveRoomJoin(roomId),
+      getRoomInfo:(roomId)=>cc.getRoom(roomId,false),
+      addSelfToRoom:(roomId,userId)=>cc.addUserToRoom(roomId,userId),
+      currentUserId:cc.userId,
+    });
+    if(roomInfo){
+      await ensureLiveRoomSubscription(targetRoomId,{retries:1,retryDelayMs:300});
+      daemonSyncRooms.add(daemonId);
+    }
   }catch(err){
     if(!/not\s+a\s+member|not found|404|403|forbidden/i.test(String(err?.message||'')))console.warn('Daemon sync room hydrate failed:',daemonId,err?.message||err)
   }
+}
+async function ensureLiveRoomSubscription(roomId,{suppressWarnings=false,retries=0,retryDelayMs=300}={}){
+  const targetRoomId=String(roomId||'').trim();
+  if(!targetRoomId||!cc?.connection||typeof cc.connection.joinGroup!=='function')return false;
+  let lastErr=null;
+  for(let attempt=0;attempt<=retries;attempt++){
+    try{
+      await cc.connection.joinGroup(targetRoomId);
+      return true;
+    }catch(err){
+      lastErr=err;
+      if(attempt<retries)await new Promise(r=>setTimeout(r,retryDelayMs*(attempt+1)));
+    }
+  }
+  if(!suppressWarnings)console.warn('Live room join failed:',targetRoomId,lastErr?.message||lastErr,lastErr?.errorDetail?JSON.stringify(lastErr.errorDetail):'');
+  return false;
 }
 async function waitForRoomMembership(roomId,timeout=5000){
   await waitForJoinedRoom(roomId,{
     hasJoinedRoom:(targetRoomId)=>hasLiveRoomJoin(targetRoomId),
     getRoomInfo:(targetRoomId)=>cc.getRoom(targetRoomId,false),
     hydrateJoinedRoom:async(targetRoomId)=>{
-      if(hasLiveRoomJoin(targetRoomId))return;
       try{await cc.addUserToRoom(targetRoomId,cc.userId)}catch(joinErr){
         if(!/already|exists|member/i.test(String(joinErr?.message||'')))throw joinErr;
       }
+      await ensureLiveRoomSubscription(targetRoomId,{retries:1,retryDelayMs:300});
     },
     timeoutMs:timeout,
   })
 }
 async function forceRoomMembershipRefresh(roomId,timeout=ROOM_MEMBERSHIP_TIMEOUT_MS){
   if(!cc)throw new Error('Not connected');
-  try{await cc.removeUserFromRoom(roomId,cc.userId)}catch(err){
-    if(!/not\s+a\s+member|not found|404/i.test(String(err?.message||'')))console.warn('Forced room leave failed:',roomId,err?.message||err)
+  try{
+    if(cc?.connection&&typeof cc.connection.leaveGroup==='function')await cc.connection.leaveGroup(roomId)
+  }catch(err){
+    if(!/not\s+a\s+member|not found|404|Failed to send message/i.test(String(err?.message||'')))console.warn('Forced live room leave failed:',roomId,err?.message||err)
   }
   await waitForRoomMembership(roomId,timeout)
 }
@@ -1858,6 +2175,7 @@ function collectResolvedPermissionResponses(messages){
 function applyRoomHistoryMessages(roomId,messages,sessionMeta,{skipStartupEnvelopes=false}={}){
   const respondedPerms=collectResolvedPermissionResponses(messages);
   let foundSyncEvidence=false;
+  const historySummary=createSessionHistorySummary();
   for(const m of messages){
     if(!m?.content?.text)continue;
     if(shouldIgnoreRoomMessage(m,seenRoomMessageIds,historyLoadedAt))continue;
@@ -1866,6 +2184,7 @@ function applyRoomHistoryMessages(roomId,messages,sessionMeta,{skipStartupEnvelo
       rememberRoomMessage(m,seenRoomMessageIds);
       if(isRoomLiveSyncEvidenceMessage(roomId,{conversation:{roomId},message:m}))foundSyncEvidence=true;
       for(const e of unpackEnvelope(parsed)){
+        recordSessionHistoryEnvelope(historySummary,e);
         if(e.type==='control.create'){
           sessionMeta.agent=sessionMeta.agent||e.agentName;
           sessionMeta.workingDirectory=sessionMeta.workingDirectory||e.workingDirectory;
@@ -1880,7 +2199,7 @@ function applyRoomHistoryMessages(roomId,messages,sessionMeta,{skipStartupEnvelo
   const lastMsg=messages[messages.length-1];
   if(lastMsg?.createdAt)historyLoadedAt=Math.max(historyLoadedAt,new Date(lastMsg.createdAt).getTime());
   syncSessionSelection(roomId,sessionMeta);
-  return foundSyncEvidence
+  return {historyHasSyncEvidence:foundSyncEvidence,historySummary}
 }
 async function replayLatestRoomHistory(roomId,sessionMeta,{maxCount=100,skipStartupEnvelopes=false}={}){
   const roomInfo=await cc.getRoom(roomId,false);
@@ -1888,20 +2207,26 @@ async function replayLatestRoomHistory(roomId,sessionMeta,{maxCount=100,skipStar
   if(roomName&&roomName!=='Session')sessionMeta.name=roomName;
   const conversationId=roomInfo?.defaultConversationId;
   if(conversationId)sessionMeta.defaultConversationId=conversationId;
-  if(!conversationId)return false;
+  if(!conversationId){latestSessionHistorySummary=createSessionHistorySummary();return {historyHasSyncEvidence:false,historySummary:latestSessionHistorySummary};}
   const history=await cc.listMessage(conversationId,'0',null,maxCount);
   const messages=[...(history?.messages||[])].reverse();
-  if(!messages.length)return false;
-  const foundSyncEvidence=applyRoomHistoryMessages(roomId,messages,sessionMeta,{skipStartupEnvelopes});
+  if(!messages.length){latestSessionHistorySummary=createSessionHistorySummary();return {historyHasSyncEvidence:false,historySummary:latestSessionHistorySummary};}
+  const historyResult=applyRoomHistoryMessages(roomId,messages,sessionMeta,{skipStartupEnvelopes});
+  latestSessionHistorySummary=historyResult.historySummary||createSessionHistorySummary();
   scroll();
-  return foundSyncEvidence
+  return historyResult
 }
-async function waitForRoomLiveState(roomId,timeout=ROOM_LIVE_SYNC_TIMEOUT_MS,sessionMeta={sessionId:roomId}){
+async function waitForRoomLiveState(roomId,timeout=ROOM_LIVE_SYNC_TIMEOUT_MS,sessionMeta={sessionId:roomId},{allowHistoryFallback=true}={}){
   await waitForRoomLiveSync(roomId,{
     subscribeToMessages:(listener)=>cc.addListenerForNewMessage(listener),
     sendSyncRequest:(targetRoomId)=>cc.sendToRoom(targetRoomId,JSON.stringify({type:'session.sync_state'})),
     messageHasSyncEvidence:isRoomLiveSyncEvidenceMessage,
-    checkHistoryForSyncEvidence:(targetRoomId)=>replayLatestRoomHistory(targetRoomId,sessionMeta,{maxCount:25,skipStartupEnvelopes:false}),
+    checkHistoryForSyncEvidence:allowHistoryFallback
+      ? async(targetRoomId)=>{
+        const historyResult=await replayLatestRoomHistory(targetRoomId,sessionMeta,{maxCount:25,skipStartupEnvelopes:false});
+        return !!historyResult?.historyHasSyncEvidence;
+      }
+      : undefined,
     timeoutMs:timeout,
   })
 }
@@ -2110,33 +2435,44 @@ function handleJoinResponse(e){
   renderSessionsCol()
 }
 async function ensureJoinedSession(sessionId){
-  if(hasLiveRoomJoin(sessionId))return;
-  const access=await portalJson(`/api/sessions/${encodeURIComponent(sessionId)}/access-self`,{method:'POST'});
+  const targetSessionId=String(sessionId||'').trim();
+  if(!targetSessionId)return;
+  if(hasLiveRoomJoin(targetSessionId)&&!roomNeedsLiveSyncValidation(targetSessionId))return;
+  if(!hasLiveRoomJoin(targetSessionId))roomsPendingLiveSync.add(targetSessionId);
+  const access=await portalJson(`/api/sessions/${encodeURIComponent(targetSessionId)}/access-self`,{method:'POST'});
   const accessLevel=access?.accessLevel==='write'?'write':'read';
   upsertDiscoveredSession({
-    ...(discoveredSessions.get(sessionId)||{}),
-    sessionId,
+    ...(discoveredSessions.get(targetSessionId)||{}),
+    sessionId:targetSessionId,
     accessLevel,
     canRead:true,
     canWrite:accessLevel==='write',
     canDelete:accessLevel==='write',
   });
-  const previousJoin=joinRequests.get(sessionId)||{};
-  joinRequests.set(sessionId,{...previousJoin,status:'approved',requestedAccess:accessLevel,updatedAt:new Date().toISOString(),autoOpen:previousJoin.autoOpen!==false});
-  await waitForRoomMembership(sessionId,ROOM_MEMBERSHIP_TIMEOUT_MS);
+  const previousJoin=joinRequests.get(targetSessionId)||{};
+  joinRequests.set(targetSessionId,{...previousJoin,status:'approved',requestedAccess:accessLevel,updatedAt:new Date().toISOString(),autoOpen:previousJoin.autoOpen!==false});
+  await waitForRoomMembership(targetSessionId,ROOM_MEMBERSHIP_TIMEOUT_MS);
   try{
-    const roomInfo=await cc.getRoom(sessionId,false);
-    if(roomInfo)syncSessionSelection(sessionId,{
-      defaultConversationId:roomInfo.defaultConversationId||discoveredSessions.get(sessionId)?.defaultConversationId||'',
+    const roomInfo=await ensureLocalRoomInfo(targetSessionId,{
+      chatRooms:cc?.rooms||[],
+      supplementalRoomInfos,
+      hasJoinedRoom:(roomId)=>hasLiveRoomJoin(roomId),
+      getRoomInfo:(roomId)=>cc.getRoom(roomId,false),
+      addSelfToRoom:(roomId,userId)=>cc.addUserToRoom(roomId,userId),
+      currentUserId:cc.userId,
+    });
+    if(roomInfo)syncSessionSelection(targetSessionId,{
+      defaultConversationId:roomInfo.defaultConversationId||discoveredSessions.get(targetSessionId)?.defaultConversationId||'',
       name:resolveRoomDisplayName(roomInfo),
-      updatedAt:roomInfo.updatedAt||roomInfo.createdAt||discoveredSessions.get(sessionId)?.updatedAt,
+      updatedAt:roomInfo.updatedAt||roomInfo.createdAt||discoveredSessions.get(targetSessionId)?.updatedAt,
     });
   }catch(err){
-    console.warn('Joined room info hydrate failed:',sessionId.substring(0,8),err?.message||err)
+    console.warn('Joined room info hydrate failed:',targetSessionId.substring(0,8),err?.message||err)
   }
 }
 function applyLoggedOutState(message='',isError=false){
   setCompactNav(false);
+  closeDaemonAccessDrawer();
   rid=null;currentDaemonId=null;currentAgentName=null;sessionBooting=false;resetChatState();
   setSelectedDirectory('','auto');
   clearDirectorySuggestions();
@@ -2170,7 +2506,7 @@ async function loginUser(rawUserId){
   clearFormStatus();
   try{
     if(cc&&uid!==userId){try{cc.stop()}catch{}cc=null}
-    stopPortalPolling();knownDaemons.clear();discoveredSessions.clear();deletedSessions.clear();loadedSessionQueryKeys.clear();daemonSyncRooms.clear();sessionAutoApprove.clear();joinRequests.clear();joinApprovalLocks.clear();daemonAccessApprovalLocks.clear();pendingCreateRequests.clear();pendingWorkspaceRequests.clear();sessionListBlockedReason='';portalDaemonsLoaded=false;
+    stopPortalPolling();knownDaemons.clear();discoveredSessions.clear();deletedSessions.clear();loadedSessionQueryKeys.clear();daemonSyncRooms.clear();supplementalRoomInfos.clear();roomsPendingLiveSync.clear();sessionAutoApprove.clear();joinRequests.clear();joinApprovalLocks.clear();daemonAccessApprovalLocks.clear();pendingCreateRequests.clear();pendingWorkspaceRequests.clear();sessionListBlockedReason='';portalDaemonsLoaded=false;
     await initCC(userId);
     setPortalTransportState('connected');
     setStoredUserId(userId);
@@ -2180,14 +2516,14 @@ async function loginUser(rawUserId){
   }catch(e){
     if(cc){try{cc.stop()}catch{}}
     setPortalTransportState('failed',e.message||'Failed to connect to WPS');
-    stopPortalPolling();cc=null;uid=null;knownDaemons.clear();discoveredSessions.clear();deletedSessions.clear();loadedSessionQueryKeys.clear();daemonSyncRooms.clear();sessionAutoApprove.clear();joinRequests.clear();joinApprovalLocks.clear();daemonAccessApprovalLocks.clear();pendingCreateRequests.clear();pendingWorkspaceRequests.clear();sessionListBlockedReason='';portalDaemonsLoaded=false;
+    stopPortalPolling();cc=null;uid=null;knownDaemons.clear();discoveredSessions.clear();deletedSessions.clear();loadedSessionQueryKeys.clear();daemonSyncRooms.clear();supplementalRoomInfos.clear();roomsPendingLiveSync.clear();sessionAutoApprove.clear();joinRequests.clear();joinApprovalLocks.clear();daemonAccessApprovalLocks.clear();pendingCreateRequests.clear();pendingWorkspaceRequests.clear();sessionListBlockedReason='';portalDaemonsLoaded=false;
     applyLoggedOutState(e.message||'Login failed',true);
     return false
   }finally{if($.loginBtn){$.loginBtn.disabled=false;$.loginBtn.textContent='Login'}}
 }
 async function logoutUser(){
   try{if(cc)cc.stop()}catch{}
-  stopPortalPolling();cc=null;uid=null;userAvatar='';knownDaemons.clear();discoveredSessions.clear();deletedSessions.clear();loadedSessionQueryKeys.clear();daemonSyncRooms.clear();sessionAutoApprove.clear();joinRequests.clear();joinApprovalLocks.clear();daemonAccessApprovalLocks.clear();pendingCreateRequests.clear();pendingWorkspaceRequests.clear();sessionListBlockedReason='';portalDaemonsLoaded=false;
+  stopPortalPolling();cc=null;uid=null;userAvatar='';knownDaemons.clear();discoveredSessions.clear();deletedSessions.clear();loadedSessionQueryKeys.clear();daemonSyncRooms.clear();supplementalRoomInfos.clear();roomsPendingLiveSync.clear();sessionAutoApprove.clear();joinRequests.clear();joinApprovalLocks.clear();daemonAccessApprovalLocks.clear();pendingCreateRequests.clear();pendingWorkspaceRequests.clear();sessionListBlockedReason='';portalDaemonsLoaded=false;
   // Server-side logout (for OAuth)
   try{await fetch('/auth/logout',{method:'POST'})}catch{}
   setOauthAuthenticatedUser(null);
@@ -2225,7 +2561,7 @@ function showChat(){$.chat.classList.remove('hidden');$.ibar.classList.remove('h
   document.getElementById('chat-col').style.display='flex';syncComposer();updateAutoBtn();syncSessionToolbarMeta();updateToolbarVisibility();updateBreadcrumb()}
 
 function updateBreadcrumb(){
-  const parts=['CodeAgentHub'];
+  const parts=['Azure Web PubSub / CodeAgentHub'];
   if(currentDaemonId){const d=knownDaemons.get(currentDaemonId);if(d)parts.push(d.hostname||currentDaemonId)}
   if(currentAgentName)parts.push(AGENT_NAMES[currentAgentName]||currentAgentName);
   if(rid){const sm=discoveredSessions.get(rid);if(sm)parts.push(sessionLabel(sm))}
@@ -2258,12 +2594,11 @@ function syncSessionSelection(sessionId,patch={}){
 // ── Column 1: Agent Daemons ──
 function renderDaemonsCol(){
   const list=document.getElementById('col-daemons-list');
-  const daemonAccessInputState=captureDaemonAccessInputState();
-  if(!uid||!cc){list.innerHTML=skeletonColumn(3);renderCompactNav();return}
-  if(!portalDaemonsLoaded){list.innerHTML=renderColumnLoadingState('Loading daemons…','Waiting for the latest daemon list from the portal.');renderCompactNav();return}
+  if(!uid||!cc){list.innerHTML=skeletonColumn(3);renderCompactNav();renderDaemonAccessDrawer();return}
+  if(!portalDaemonsLoaded){list.innerHTML=renderColumnLoadingState('Loading daemons…','Waiting for the latest daemon list from the portal.');renderCompactNav();renderDaemonAccessDrawer();return}
   const daemonEntries=[...knownDaemons.entries()].filter(([,d])=>isDaemonRecordFresh(d,Date.now(),DAEMON_STALE_MS));
   if(currentDaemonId&&!daemonEntries.some(([did])=>did===currentDaemonId)){currentDaemonId=null;currentAgentName=null;rid=null}
-  if(!daemonEntries.length){list.innerHTML='<div class="col-empty"><div style="font-size:32px;margin-bottom:12px;opacity:.4">🔌</div>No daemons found<br><br><code style="color:var(--accent2);font-size:11px">npm run daemon</code></div>';renderCompactNav();return}
+  if(!daemonEntries.length){list.innerHTML=renderColumnStateCard({icon:'🔌',title:'No daemons found',detail:'Start a local daemon and the portal will pick it up on the next refresh.',extra:'<div class="col-empty-hint">npm run daemon</div>'});renderCompactNav();renderDaemonAccessDrawer();return}
   const daemonCards=daemonEntries.map(([did,d])=>{
     const agentCount=(d.agents||[]).length;
     const platform=normalizeDaemonPlatform(d.platform);
@@ -2271,29 +2606,16 @@ function renderDaemonsCol(){
     const osName=OS_NAMES[platform]||'';
     const accessTag=daemonAccessTag(d);
     const hostnameMeta=d.hostname&&d.hostname!==did?`${d.hostname} · `:'';
-    return`<div class="col-item${did===currentDaemonId?' selected':''}" onclick="selectDaemon('${jsq(did)}')"><span class="ci-icon">${osIcon}</span><div class="ci-info"><div class="ci-name">${esc(did)}</div><div class="ci-meta">${esc(`${hostnameMeta}${osName?osName+' · ':''}${agentCount} agent${agentCount!==1?'s':''}`)}</div><div class="ci-submeta">${esc(daemonAdminUsersMeta(d))}</div></div>${accessTag}<span class="ci-dot"></span></div>`;
+    const card=`<div class="col-item${did===currentDaemonId?' selected':''}" onclick="selectDaemon('${jsq(did)}')"><span class="ci-icon">${osIcon}</span><div class="ci-info"><div class="ci-name">${esc(did)}</div><div class="ci-meta">${esc(`${hostnameMeta}${osName?osName+' · ':''}${agentCount} agent${agentCount!==1?'s':''}`)}</div><div class="ci-submeta">${esc(daemonAdminUsersMeta(d))}</div></div>${accessTag}<span class="ci-dot"></span></div>`;
+    if(did!==currentDaemonId)return card;
+    return `<div class="daemon-stack">${card}${renderDaemonAccessSummaryCard(did,d)}</div>`;
   }).join('');
-  const selectedDaemon=knownDaemons.get(currentDaemonId);
-  let accessCard='';
-  if(selectedDaemon){
-    const accessSummary=`${daemonAccessSummary(selectedDaemon)}.`;
-    if(selectedDaemon.canManage){
-      const draft=daemonAccessDraftFor(currentDaemonId,selectedDaemon);
-      accessCard=`<div class="daemon-access-card"><div class="daemon-access-head"><div><div class="daemon-access-title">Daemon Permissions</div><div class="daemon-access-subtitle">Manage who can view or administer this daemon.</div></div><span class="daemon-access-role">${esc(daemonAccessLevelLabel(selectedDaemon))}</span></div><div class="daemon-access-sections">${renderDaemonAccessSection(currentDaemonId,selectedDaemon,'memberUsers','Member Users','Can view shared sessions.','member')}${renderDaemonAccessSection(currentDaemonId,selectedDaemon,'adminUsers','Admin Users','Can manage this daemon and create sessions.','admin')}</div><div class="daemon-access-footer"><button class="sh-go" id="daemon-access-save-btn" type="button" onclick="saveDaemonAccess()">Save Access</button><div class="col-new-msg" id="daemon-access-msg">Member uses room.member, admin uses room.operator in Web PubSub Chat membership.</div></div></div>`;
-    }else{
-      const guidance=!daemonHasMemberAccess(selectedDaemon)
-        ?`Sessions under ${selectedDaemon.hostname||currentDaemonId} stay hidden until daemon member or admin access is granted.`
-        :!daemonHasAdminAccess(selectedDaemon)
-          ?'Daemon member access lets you browse session names. Session read and write access are requested per session, while daemon admin access is required to create sessions.'
-          :'Only a daemon manager can change daemon access.';
-      accessCard=`<div style="margin:12px 10px 8px;padding:12px;border:1px solid var(--line);border-radius:14px;background:var(--panel2)"><div style="font-size:11px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;color:var(--fg5);margin-bottom:8px">Daemon Permission Setting</div><div style="font-size:12px;color:var(--fg4);margin-bottom:10px">${esc(accessSummary)}</div><div style="font-size:12px;color:var(--fg4)">${esc(guidance)}</div>${daemonAccessButtons(selectedDaemon)}</div>`;
-    }
-  }
-  list.innerHTML=daemonCards+accessCard;
-  restoreDaemonAccessInputState(daemonAccessInputState);
+  list.innerHTML=daemonCards;
   renderCompactNav();
+  renderDaemonAccessDrawer();
 }
 window.selectDaemon=(did)=>{
+  closeDaemonAccessDrawer();
   currentDaemonId=did;
   currentAgentName=null;
   rid=null;
@@ -2320,7 +2642,7 @@ function renderAgentsCol(){
   const list=document.getElementById('col-agents-list');
   if(!uid||!cc){list.innerHTML=skeletonColumn(5);renderCompactNav();return}
   const daemon=knownDaemons.get(currentDaemonId);
-  if(!daemon){list.innerHTML='<div class="col-empty">Select a daemon</div>';renderCompactNav();return}
+  if(!daemon){list.innerHTML=renderSessionEmptyState('Select a daemon first','Pick a daemon to inspect its available agents.','🛰');renderCompactNav();return}
   document.getElementById('col-agents-hdr').textContent='Agents';
   const acpAgents=(daemon.agents||[]).filter(a=>a!=='copilot-sdk');
   const sdkAgents=(daemon.agents||[]).includes('copilot-sdk')?['copilot-sdk']:[];
@@ -2392,8 +2714,9 @@ window.selectAgent=(agentName)=>{
 // ── Column 3: Sessions ──
 async function renderSessionsCol(){
   const list=document.getElementById('col-sessions-list');
+  syncCreateSessionButton();
   if(!uid||!cc){list.innerHTML=skeletonColumn(4);renderCompactNav();return}
-  if(!currentAgentName){list.innerHTML='<div class="col-empty">Select an agent</div>';renderCompactNav();return}
+  if(!currentAgentName){list.innerHTML=renderSessionEmptyState('Select an agent','Choose an agent to browse or create sessions.','✦');renderCompactNav();return}
   const daemon=currentDaemonRecord();
   if(daemon&&!daemonHasMemberAccess(daemon)){
     const emptyState=sessionEmptyStateCopy(daemon);
@@ -2456,9 +2779,9 @@ async function renderSessionsCol(){
     const canDelete=sessionCanDelete(s);
     const canLeave=sessionCanLeave(s,daemon);
     const manageAction=canDelete
-      ?`<button class="ci-del" title="Delete session" onclick="event.stopPropagation();delSess('${jsq(s.sessionId)}')">\u2715</button>`
+      ?`<button class="ci-del ci-del-delete" title="Delete session" onclick="event.stopPropagation();delSess('${jsq(s.sessionId)}')">Delete</button>`
       :canLeave
-        ?`<button class="ci-del" title="Leave session" onclick="event.stopPropagation();leaveSess('${jsq(s.sessionId)}')">↩</button>`
+        ?`<button class="ci-del ci-del-leave" title="Leave session" onclick="event.stopPropagation();leaveSess('${jsq(s.sessionId)}')">Leave</button>`
         :'';
     const status=sessionCanWrite(s)
       ?`<span class="ci-dot" style="background:${s.sessionId===rid?'var(--green)':'var(--fg6)'}"></span>`
@@ -2481,7 +2804,7 @@ function timeAgo(d){const s=Math.floor((Date.now()-d.getTime())/1000);if(s<60)re
 window.openSession=async(sid)=>{try{
   clearSessionBanner('error');
   setSessionBanner({source:'history',label:'Loading',text:'Loading session history…',tone:'info'});
-  if(!hasLiveRoomJoin(sid)){
+  if(!hasLiveRoomJoin(sid)||roomNeedsLiveSyncValidation(sid)){
     await ensureJoinedSession(sid);
   }
   await openR(sid);
@@ -2566,21 +2889,28 @@ function renderSL(list){
 async function refreshSL(){}
 
 function syncSt(){
-  if(!uid){$.tst.textContent='';$.tst.style.color='';return}
-  if(portalTransportState==='disconnected'||portalTransportState==='failed'){
-    $.tst.textContent=portalTransportState==='failed'?'● WPS unavailable':'● WPS disconnected';
-    $.tst.style.color='var(--red)';
-    return;
+  if(!uid){$.tst.textContent='';$.tst.removeAttribute('data-tone');syncPortalRail();renderSessionBanner();return}
+  let text='';
+  let tone='idle';
+  if(portalTransportState==='failed'){
+    text='WPS unavailable';
+    tone='error';
+  }else if(portalTransportState==='disconnected'){
+    text='WPS disconnected';
+    tone='error';
+  }else if(portalTransportState==='connecting'){
+    text='Connecting';
+    tone='busy';
+  }else{
+    text='';
   }
-  if(portalTransportState==='connecting'&&!rid){
-    $.tst.textContent='● connecting…';
-    $.tst.style.color='var(--accent2)';
-    return;
-  }
-  $.tst.textContent=!rid?'':sessionBooting?'● starting…':ss.stopping?'● stopping…':ss.processing?`● ${sendMode==='immediate'?'steering':'working…'}`:'';
-  $.tst.style.color=sessionBooting?'var(--accent2)':ss.stopping?'var(--orange)':ss.processing?'#f5a623':'#50d167';
+  $.tst.textContent=text;
+  if(text)$.tst.dataset.tone=tone;
+  else $.tst.removeAttribute('data-tone');
+  renderSessionBanner();
+  syncPortalRail();
 }
-function applyState(e){if(sessionBooting&&(e.ready===true||e.processing||Number(e.pendingCount)>0)){markSessionReady()}else if(sessionBooting){updateSessionBooting('Synchronizing session state…')}ss.processing=!!e.processing;ss.pendingCount=Number(e.pendingCount)||0;ss.stopping=!!e.stopping;if(!ss.stopping){lastStopRequestAt=0;clearSessionBanner('stop')}if(e.model){ss.model=e.model;const nextToolbarModelId=deriveToolbarModelId(currentModelId,availableModels,e.model);if(nextToolbarModelId!==currentModelId){currentModelId=nextToolbarModelId;syncModelButton();renderModelDropdown();updateToolbarVisibility()}}if(ss.processing)showWorking();else{hideWorking();sendMode='enqueue'}syncComposer();syncSt()}
+function applyState(e){if(sessionBooting&&(e.ready===true||e.processing||Number(e.pendingCount)>0)){markSessionReady()}else if(sessionBooting){updateSessionBooting('Synchronizing session state…')}if(typeof e.ready==='boolean')currentSessionReady=e.ready;ss.processing=!!e.processing;ss.pendingCount=Number(e.pendingCount)||0;ss.stopping=!!e.stopping;if(!ss.stopping){lastStopRequestAt=0;clearSessionBanner('stop')}if(e.model){ss.model=e.model;const nextToolbarModelId=deriveToolbarModelId(currentModelId,availableModels,e.model);if(nextToolbarModelId!==currentModelId){currentModelId=nextToolbarModelId;syncModelButton();renderModelDropdown();updateToolbarVisibility()}}if(ss.processing)showWorking();else{hideWorking();sendMode='enqueue'}syncComposer();syncSt();refreshSessionPlaceholder()}
 window.toggleMode=()=>{if(!ss.processing)return;sendMode=sendMode==='enqueue'?'immediate':'enqueue';syncSt()};
 
 async function initCC(userId){
@@ -2596,8 +2926,8 @@ async function initCC(userId){
   cc=await new ChatClient(negData.url).login();
   await ensureLobbyMembership(uid);
   cc.addListenerForNewMessage(onMsg);
-  cc.addListenerForNewRoom((room)=>{if(room.roomId!==LOBBY_ROOM){const req=joinRequests.get(room.roomId)||{};if(req&&(req.status==='pending'||req.status==='approved')){joinRequests.set(room.roomId,{...req,status:'approved'});openR(room.roomId).catch(err=>{setSessionBanner({source:'error',label:'Open failed',text:err?.message||'Failed to open newly joined session',tone:'error',actionText:'Retry',action:()=>openR(room.roomId)});setFormStatus(err?.message||'Failed to open joined session.','error',4500,'join')});}renderSessionsCol()}});
-  cc.addListenerForRoomLeft((info)=>{if(info.roomId===rid){rid=null;resetChatState();applyLoggedInState();updateBreadcrumb();updateAutoBtn()}renderSessionsCol()});
+  cc.addListenerForNewRoom((room)=>{rememberKnownRoomInfo(supplementalRoomInfos,room);if(room.roomId!==LOBBY_ROOM){const req=joinRequests.get(room.roomId)||{};if(req&&(req.status==='pending'||req.status==='approved')){joinRequests.set(room.roomId,{...req,status:'approved'});openR(room.roomId).catch(err=>{setSessionBanner({source:'error',label:'Open failed',text:err?.message||'Failed to open newly joined session',tone:'error',actionText:'Retry',action:()=>openR(room.roomId)});setFormStatus(err?.message||'Failed to open joined session.','error',4500,'join')});}renderSessionsCol()}});
+  cc.addListenerForRoomLeft((info)=>{const leftRoomId=String(info.roomId||'').trim();supplementalRoomInfos.delete(leftRoomId);roomsPendingLiveSync.delete(leftRoomId);if(info.roomId===rid){rid=null;resetChatState();applyLoggedInState();updateBreadcrumb();updateAutoBtn()}renderSessionsCol()});
   cc.onConnected(()=>{setPortalTransportState('connected');clearSessionBanner('portal');setSt('idle');pulsePortalRefresh([0,300],{includeRequests:true})});
   cc.onDisconnected(()=>{setPortalTransportState('disconnected');setSessionBanner({source:'portal',label:'WPS disconnected',text:'Portal lost its Web PubSub connection. Refresh the page or retry the connection.',tone:'error',actionText:oauthMode&&oauthAuthenticatedUser?'Retry':'Refresh',action:oauthMode&&oauthAuthenticatedUser?()=>retryPortalConnection():()=>window.location.reload()});setSt('disconnected')});
   startPortalPolling();
@@ -2716,11 +3046,13 @@ window.createSess=async()=>{
 
 async function openR(roomId,{preserveBooting=false,bootStage='',retryLiveSyncRecovery=true}={}){
   if(!cc)throw new Error('Not connected');
+  cancelSessionLiveSyncRetry();
   let knownMeta=discoveredSessions.get(roomId);
   if(knownMeta)syncSessionSelection(roomId,knownMeta);
   try{
     const roomInfo=await cc.getRoom(roomId,false);
     if(roomInfo){
+      rememberKnownRoomInfo(supplementalRoomInfos,roomInfo);
       const roomPatch={
         sessionId:roomId,
         defaultConversationId:roomInfo.defaultConversationId||knownMeta?.defaultConversationId||'',
@@ -2734,25 +3066,39 @@ async function openR(roomId,{preserveBooting=false,bootStage='',retryLiveSyncRec
     console.warn('Open room info hydrate failed:',roomId.substring(0,8),err?.message||err)
   }
   rid=roomId;historyLoadedAt=0;seenRoomMessageIds.clear();$.chat.innerHTML='';pd.clear();rd.clear();at.clear();pp.clear();tc.clear();$wi=null;resetSessionToolbar();
+  currentSessionReady=null;latestSessionHistorySummary=createSessionHistorySummary();chatPlaceholderOverride=null;
   if(preserveBooting)setSessionBooting(true,bootStage||sessionBootingStage||'Preparing session…');
   else setSessionBooting(false);
   showChat();updateBreadcrumb();
   setSessionBanner({source:'history',label:'Loading',text:'Loading session history…',tone:'info'});
   setSt('idle');ss.processing=false;ss.pendingCount=0;ss.stopping=false;sendMode='enqueue';syncComposer();syncSt();
+  // Ensure the WebSocket-level group subscription is active before sync.
+  // REST membership (addUserToRoom / hasJoinedRoom) does NOT guarantee WebSocket delivery;
+  // the server token must include webpubsub.joinLeaveGroup role, and the client must
+  // explicitly joinGroup for rooms joined after the initial login.
+  const liveSubscribed=await ensureLiveRoomSubscription(roomId,{retries:1,retryDelayMs:300});
+  // If joinGroup succeeded, we can trust the WebSocket subscription is active.
+  // No need for the expensive session.sync_state round-trip to prove it.
+  if(liveSubscribed)roomsPendingLiveSync.delete(roomId);
   try{const sessionMeta={...(knownMeta||{}),sessionId:roomId};
-    await ensureSessionOpenSync(roomId,{
+    const openSyncResult=await ensureSessionOpenSync(roomId,{
       replayHistory:replayLatestRoomHistory,
-      waitForLiveState:waitForRoomLiveState,
+      waitForLiveState:(targetRoomId,timeoutMs,sessionMeta)=>waitForRoomLiveState(targetRoomId,timeoutMs,sessionMeta,{allowHistoryFallback:!roomNeedsLiveSyncValidation(targetRoomId)}),
       sessionMeta,
       timeoutMs:ROOM_LIVE_SYNC_TIMEOUT_MS,
       historyOptions:{maxCount:100,skipStartupEnvelopes:true},
       hasLiveRoomJoin:(targetRoomId)=>hasLiveRoomJoin(targetRoomId),
-      onWaitingForLiveState:()=>setSessionBanner({source:'history',label:'Syncing',text:'Waiting for live session sync…',tone:'info'}),
+      shouldWaitForLiveState:(targetRoomId)=>roomNeedsLiveSyncValidation(targetRoomId)||!hasLiveRoomJoin(targetRoomId),
+      onWaitingForLiveState:()=>{setSessionBanner({source:'history',label:'Syncing',text:'Waiting for live session sync…',tone:'info'});refreshSessionPlaceholder({forceSyncing:true})},
     });
+    latestSessionHistorySummary=openSyncResult?.historySummary||latestSessionHistorySummary||createSessionHistorySummary();
+    if(typeof latestSessionHistorySummary.readyState==='boolean')currentSessionReady=latestSessionHistorySummary.readyState;
+    roomsPendingLiveSync.delete(roomId);
     clearSessionBanner('history');
+    refreshSessionPlaceholder();
   }catch(e){
     const message=String(e?.message||'');
-    if(retryLiveSyncRecovery&&/Timed out waiting for live session sync/i.test(message)){
+    if(retryLiveSyncRecovery&&(/not a member of the specified room|NoPermissionInRoom|permission in room|forbidden/i.test(message))){
       try{
         setSessionBanner({source:'history',label:'Resyncing',text:'Refreshing room membership…',tone:'info'});
         await forceRoomMembershipRefresh(roomId,ROOM_MEMBERSHIP_TIMEOUT_MS);
@@ -2760,6 +3106,18 @@ async function openR(roomId,{preserveBooting=false,bootStage='',retryLiveSyncRec
       }catch(rejoinErr){
         e=rejoinErr
       }
+    }
+    if(shouldSuppressSessionOpenError(e,latestSessionHistorySummary)){
+      currentSessionReady=false;
+      setSessionBanner({source:'history',label:'Starting',text:'This session is still initializing. Keep this room open and it should become ready automatically.',tone:'info'});
+      refreshSessionPlaceholder();
+      return;
+    }
+    if(shouldBackgroundRetrySessionOpenError(e,latestSessionHistorySummary)){
+      setSessionBanner({source:'history',label:'Sync delayed',text:'History loaded, but live updates have not started yet. Keeping the room open and retrying in the background…',tone:'warn'});
+      refreshSessionPlaceholder({forceSyncing:true});
+      scheduleSessionLiveSyncRetry(roomId);
+      return;
     }
     setSessionBanner({source:'error',label:'History error',text:e.message||'Failed to load history',tone:'error',actionText:'Retry',action:()=>openR(roomId)});addErr('History: '+(e?.message||e))
   }
@@ -2814,13 +3172,13 @@ function render(e){switch(e.type){
   case'assistant.reasoning_delta':return rThinkD(e);case'assistant.reasoning':return rThink(e);
   case'tool.start':return rTS(e);case'tool.complete':return rTC(e);
   case'permission.request':return rPR(e);case'permission.response':return rPResp(e);case'session.state':return applyState(e);
-  case'session.idle':if(sessionBooting)markSessionReady();resetSessionStateToIdle(ss);lastStopRequestAt=0;clearSessionBanner('stop');syncComposer();return setSt('idle');case'session.error':if(isStartupWaitMessage(e.message)){if(sessionBooting)updateSessionBooting(e.message);return}return addErr(e.message);
+  case'session.idle':if(sessionBooting)markSessionReady();currentSessionReady=true;resetSessionStateToIdle(ss);lastStopRequestAt=0;clearSessionBanner('stop');syncComposer();refreshSessionPlaceholder();return setSt('idle');case'session.error':if(isStartupWaitMessage(e.message)){currentSessionReady=false;if(sessionBooting)updateSessionBooting(e.message);refreshSessionPlaceholder();return}return addErr(e.message);
   case'commands.update':mergeSlashCommands((e.commands||[]).map(c=>({cmd:c.name,desc:c.description||'',hasInput:!!c.hasInput})));return;
   case'models.update':if(sessionBooting)updateSessionBooting('Receiving available models…');availableModels=e.models||[];currentModelId=e.currentModelId||'';syncModelButton();renderModelDropdown();updateToolbarVisibility();return;
   case'modes.update':if(sessionBooting)updateSessionBooting('Receiving agent controls…');availableModes=e.modes||[];currentModeId=e.currentModeId||'';syncModeButton();renderModeDropdown();updateToolbarVisibility();return;
   case'mode.changed':currentModeId=e.currentModeId||'';syncModeButton();renderModeDropdown();return;
   case'usage.update':return updateUsageRing(Number.isFinite(e.used)?e.used:0,Number.isFinite(e.size)?e.size:0);
-  case'system.info':if(sessionBooting){const message=String(e.message||'');if(/^Starting\b/.test(message))updateSessionBooting(message);if(/^Connected to\b/.test(message))markSessionReady()}return addStatus(e.message);case'system.clear':$.chat.innerHTML='';pd.clear();rd.clear();at.clear();pp.clear();return;
+  case'system.info':if(sessionBooting){const message=String(e.message||'');if(/^Starting\b/.test(message))updateSessionBooting(message);if(/^Connected to\b/.test(message))markSessionReady()}return addStatus(e.message);case'system.clear':$.chat.innerHTML='';pd.clear();rd.clear();at.clear();pp.clear();refreshSessionPlaceholder();return;
   case'user.prompt':return addUB(e.content);case'user.command':return addSys(e.command);
 }}
 
@@ -2978,15 +3336,15 @@ function renderResolvedPerm(e,approved=true){
 }
 
 /* Simple elements */
-function addUB(t){const d=document.createElement('div');d.className='u-msg';d.textContent=t;$.chat.appendChild(d)}
-function addAI(c){const d=document.createElement('div');d.className='ai-msg';d.innerHTML=md(c);$.chat.appendChild(d)}
-function addSys(m){const d=document.createElement('div');d.className='sys-line';d.textContent=m;$.chat.appendChild(d)}
-function addStatus(m){const now=Date.now();if(lastStatusMessage===m&&now-lastStatusAt<1500)return;lastStatusMessage=m;lastStatusAt=now;const d=document.createElement('div');d.className='status-line';d.innerHTML=`<span class="sl-dot"></span>${esc(m)}`;$.chat.appendChild(d)}
-function addErr(m){setSessionBooting(false);ss.processing=false;ss.stopping=false;ss.pendingCount=0;sendMode='enqueue';resetWorkingLabel();syncComposer();setSt('error');const d=document.createElement('div');d.className='err-line';d.textContent='⚠ '+m;$.chat.appendChild(d);syncSt()}
+function addUB(t){noteChatContentVisible();const d=document.createElement('div');d.className='u-msg';d.textContent=t;$.chat.appendChild(d)}
+function addAI(c){noteChatContentVisible();const d=document.createElement('div');d.className='ai-msg';d.innerHTML=md(c);$.chat.appendChild(d)}
+function addSys(m){noteChatContentVisible();const d=document.createElement('div');d.className='sys-line';d.textContent=m;$.chat.appendChild(d)}
+function addStatus(m){const now=Date.now();if(lastStatusMessage===m&&now-lastStatusAt<1500)return;lastStatusMessage=m;lastStatusAt=now;noteChatContentVisible();const d=document.createElement('div');d.className='status-line';d.innerHTML=`<span class="sl-dot"></span>${esc(m)}`;$.chat.appendChild(d)}
+function addErr(m){setSessionBooting(false);ss.processing=false;ss.stopping=false;ss.pendingCount=0;sendMode='enqueue';resetWorkingLabel();syncComposer();setSt('error');noteChatContentVisible();const d=document.createElement('div');d.className='err-line';d.textContent='⚠ '+m;$.chat.appendChild(d);syncSt()}
 let $wi=null;
 function showWorking(){if($wi)return;$wi=document.createElement('div');$wi.className='working-indicator';$wi.innerHTML=`<div class="wi-dots"><span></span><span></span><span></span></div><span class="wi-text">${esc(currentWorkingLabel)}</span>`;$.chat.appendChild($wi);scroll()}
 function hideWorking(){if($wi){$wi.remove();$wi=null}}
-function setSt(s){$.sd.className=`dot ${s}`;$.sd.title={idle:'Ready',busy:'Working…',permission:'Approval needed',error:'Error',disconnected:'Disconnected'}[s]||'';if(s==='busy')showWorking();else{hideWorking();if(s!=='permission')resetWorkingLabel()}syncSt()}
+function setSt(s){currentStatusState=s;$.sd.className=`dot ${s}`;$.sd.title={idle:'Ready',busy:'Working…',permission:'Approval needed',error:'Error',disconnected:'Disconnected'}[s]||'';if(s==='busy')showWorking();else{hideWorking();if(s!=='permission')resetWorkingLabel()}syncSt()}
 function handleDirectoryInput(){
   syncCreateSessionButton();
   setDirectoryMeta(directoryMetaText(knownDaemons.get(currentDaemonId),$.dirIn?.value||''));
@@ -3009,6 +3367,7 @@ function stopPoll(){}
   window.pickAgent=()=>{}; // agent selection handled by column 2
   window.loginUser=()=>loginUser($.loginUser?.value);
   window.logoutUser=()=>logoutUser();
+  window.addEventListener('keydown',(event)=>{if(event.key==='Escape'&&daemonAccessDrawerOpen)closeDaemonAccessDrawer()});
 
   if($.logoutBtn)$.logoutBtn.addEventListener('click',()=>logoutUser());
   if($.compactBtn)$.compactBtn.addEventListener('click',()=>setCompactNav(!compactNav));
@@ -3018,6 +3377,7 @@ function stopPoll(){}
   if(document.getElementById('f-btn'))document.getElementById('f-btn').addEventListener('click',()=>{void window.createSess()});
 
   renderSelectedDirectory();
+  syncCreateSessionButton();
   mobInit();
   syncSt();
 

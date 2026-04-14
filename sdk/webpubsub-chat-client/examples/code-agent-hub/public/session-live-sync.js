@@ -2,6 +2,20 @@ function defaultSleep(delayMs) {
   return new Promise((resolve) => setTimeout(resolve, delayMs));
 }
 
+function normalizeReplayHistoryResult(result) {
+  if (result && typeof result === 'object') {
+    return {
+      historyHasSyncEvidence: !!result.historyHasSyncEvidence,
+      historySummary: result.historySummary || null,
+    };
+  }
+
+  return {
+    historyHasSyncEvidence: !!result,
+    historySummary: null,
+  };
+}
+
 export async function ensureSessionOpenSync(roomId, {
   replayHistory,
   waitForLiveState,
@@ -9,15 +23,18 @@ export async function ensureSessionOpenSync(roomId, {
   timeoutMs = 4000,
   historyOptions = { maxCount: 100, skipStartupEnvelopes: true },
   hasLiveRoomJoin,
+  shouldWaitForLiveState,
   onWaitingForLiveState,
 }) {
-  const historyHasSyncEvidence = await replayHistory(roomId, sessionMeta, historyOptions);
-  const requiresLiveState = typeof hasLiveRoomJoin === 'function'
-    ? !hasLiveRoomJoin(roomId)
-    : false;
+  const historyResult = normalizeReplayHistoryResult(await replayHistory(roomId, sessionMeta, historyOptions));
+  const requiresLiveState = typeof shouldWaitForLiveState === 'function'
+    ? !!shouldWaitForLiveState(roomId)
+    : typeof hasLiveRoomJoin === 'function'
+      ? !hasLiveRoomJoin(roomId)
+      : false;
 
-  if (historyHasSyncEvidence && !requiresLiveState) {
-    return { historyHasSyncEvidence: true };
+  if (historyResult.historyHasSyncEvidence && !requiresLiveState) {
+    return historyResult;
   }
 
   if (typeof onWaitingForLiveState === 'function') {
@@ -25,7 +42,10 @@ export async function ensureSessionOpenSync(roomId, {
   }
 
   await waitForLiveState(roomId, timeoutMs, sessionMeta);
-  return { historyHasSyncEvidence: false };
+  return {
+    historyHasSyncEvidence: false,
+    historySummary: historyResult.historySummary,
+  };
 }
 
 export async function waitForJoinedRoom(roomId, {
@@ -45,21 +65,25 @@ export async function waitForJoinedRoom(roomId, {
       return true;
     }
 
+    let shouldHydrate = false;
     try {
       const roomInfo = await getRoomInfo(targetRoomId);
-      if (roomInfo && !hasJoinedRoom(targetRoomId)) {
-        try {
-          await hydrateJoinedRoom(targetRoomId);
-        } catch (error) {
-          lastError = error;
-        }
-
-        if (hasJoinedRoom(targetRoomId)) {
-          return true;
-        }
-      }
+      shouldHydrate = !!roomInfo && !hasJoinedRoom(targetRoomId);
     } catch (error) {
       lastError = error;
+      shouldHydrate = true;
+    }
+
+    if (shouldHydrate) {
+      try {
+        await hydrateJoinedRoom(targetRoomId);
+      } catch (error) {
+        lastError = error;
+      }
+
+      if (hasJoinedRoom(targetRoomId)) {
+        return true;
+      }
     }
 
     await sleep(pollIntervalMs);
@@ -75,7 +99,7 @@ export async function waitForRoomLiveSync(roomId, {
   messageHasSyncEvidence,
   checkHistoryForSyncEvidence,
   timeoutMs = 4000,
-  retryIntervalMs = 500,
+  retryIntervalMs = 1500,
   sleep = defaultSleep,
 }) {
   const targetRoomId = String(roomId || '').trim();

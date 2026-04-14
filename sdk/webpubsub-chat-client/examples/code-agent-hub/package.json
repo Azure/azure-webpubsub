@@ -11,6 +11,7 @@
     "pack:web-server": "node scripts/pack-web-server.mjs",
     "portal": "node web-server.js",
     "portal:no-oauth": "node web-server.js --disable-oauth",
+    "repro:windows-shared-session": "pwsh -File ./scripts/repro-windows-shared-session.ps1",
     "postinstall": "node patch-copilot-sdk.mjs",
     "test": "node --test test/*.test.js",
     "test:unit": "node --test test/workspace-rpc.test.js"
