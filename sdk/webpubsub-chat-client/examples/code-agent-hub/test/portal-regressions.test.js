@@ -8,7 +8,9 @@ import {
   daemonHasMemberAccess,
   getRealtimeSessionAccessPatch,
   getCreateSessionAccessState,
+  getSessionListAccessPresentation,
   getSessionChatPlaceholderState,
+  isDaemonAccessStateResolved,
   isLocalEchoMessage,
   isDaemonRecordFresh,
   isStartupStatusEnvelope,
@@ -79,6 +81,42 @@ describe('portal regression helpers', () => {
       ),
       {},
     );
+  });
+
+  it('separates request labels from granted-access badges for session cards', () => {
+    assert.deepEqual(getSessionListAccessPresentation('read'), {
+      badgeClassName: 'is-read',
+      badgeLabel: 'Read Access',
+      isRequestable: false,
+      requestReadLabel: 'Request Read',
+      requestWriteLabel: 'Request Write',
+    });
+    assert.deepEqual(getSessionListAccessPresentation('write'), {
+      badgeClassName: 'is-write',
+      badgeLabel: 'Write Access',
+      isRequestable: false,
+      requestReadLabel: 'Request Read',
+      requestWriteLabel: 'Request Write',
+    });
+    assert.deepEqual(getSessionListAccessPresentation('none'), {
+      badgeClassName: 'is-no-access',
+      badgeLabel: 'No Access',
+      isRequestable: true,
+      requestReadLabel: 'Request Read',
+      requestWriteLabel: 'Request Write',
+    });
+    assert.deepEqual(getSessionListAccessPresentation('write', { suppressGrantedAccessBadge: true }), {
+      badgeClassName: '',
+      badgeLabel: '',
+      isRequestable: false,
+      requestReadLabel: 'Request Read',
+      requestWriteLabel: 'Request Write',
+    });
+  });
+
+  it('treats explicit false daemon access flags as resolved access state', () => {
+    assert.equal(isDaemonAccessStateResolved({ daemonId: 'daemon-alpha' }), false);
+    assert.equal(isDaemonAccessStateResolved({ daemonId: 'daemon-beta', canRead: false, canWrite: false, hasMemberAccess: false, hasAdminAccess: false, canManage: false }), true);
   });
 
   it('suppresses startup-only live sync timeouts for sessions that are still initializing', () => {

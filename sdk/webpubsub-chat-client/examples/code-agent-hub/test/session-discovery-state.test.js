@@ -17,6 +17,33 @@ describe('session discovery state helpers', () => {
     assert.equal(shouldShowPortalSessionLoading({ queryLoaded: true, localSessionCount: 0 }), false);
   });
 
+  it('returns visible sessions across daemons and agents when no selection filter is active', () => {
+    const sessions = collectVisibleSessions({
+      discoveredSessions: new Map([
+        ['session-alpha', {
+          sessionId: 'session-alpha',
+          daemonId: 'daemon-a',
+          agent: 'copilot',
+          name: 'Alpha',
+          updatedAt: '2026-04-15T05:00:00.000Z',
+          canRead: true,
+        }],
+        ['session-beta', {
+          sessionId: 'session-beta',
+          daemonId: 'daemon-b',
+          agent: 'claude',
+          name: 'Beta',
+          updatedAt: '2026-04-15T05:05:00.000Z',
+          canRead: true,
+        }],
+      ]),
+      chatRooms: [],
+      deletedSessions: new Map(),
+    });
+
+    assert.deepEqual(sessions.map((session) => session.sessionId), ['session-beta', 'session-alpha']);
+  });
+
   it('keeps matching discovered sessions visible before the portal query completes', () => {
     const sessions = collectVisibleSessions({
       discoveredSessions: new Map([

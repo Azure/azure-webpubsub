@@ -6,6 +6,14 @@
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <title>CodeAgentHub</title>
+<script>
+(()=>{
+  try{
+    const savedTheme=localStorage.getItem('cp-theme')||'light';
+    if(savedTheme==='light')document.documentElement.classList.add('light');
+  }catch{}
+})();
+</script>
 <style>
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 :root{--bg:#0a0a0a;--bg1:#111;--bg2:#151515;--bg3:#1a1a1a;--bg4:#222;--panel2:#151515;--fg:#e8e8e8;--fg2:#ccc;--fg3:#aaa;--fg4:#888;--fg5:#666;--fg6:#555;--fg7:#444;--border:#222;--border2:#2a2a2a;--line:#2a2a2a;--accent:#4a90d9;--accent2:#6baaff;--green:#50d167;--red:#e55;--orange:#f5a623;--apple-filter:invert(1);--glass:rgba(10,10,10,.68);--glass-border:rgba(255,255,255,.06);--shadow-soft:0 14px 40px rgba(0,0,0,.22);--shadow-panel:0 24px 60px rgba(0,0,0,.28);--rail-track-height:1px;--rail-glint-height:3px;--rail-glint-core:rgba(255,255,255,.96);--rail-glint-edge:rgba(168,215,255,.88);--rail-glint-shadow:rgba(107,170,255,.18)}
@@ -176,6 +184,7 @@ a{color:var(--accent2);text-decoration:none}button{font-family:inherit;cursor:po
 .compact-nav{display:none;width:252px;flex-shrink:0;border-right:1px solid color-mix(in srgb,var(--fg7) 50%,transparent);background:linear-gradient(180deg,color-mix(in srgb,var(--bg1) 92%,transparent),transparent 22%),var(--bg);overflow-y:auto;flex-direction:column;padding:10px 0 18px}
 .compact-section{border-bottom:1px solid color-mix(in srgb,var(--fg7) 42%,transparent);padding:2px 0 10px}
 .compact-section:last-child{border-bottom:none}
+.compact-groupby{padding:4px 10px;border-bottom:1px solid color-mix(in srgb,var(--fg7) 28%,transparent)}
 .compact-hdr{padding:12px 18px 10px;font-size:10px;font-weight:700;color:var(--fg6);text-transform:uppercase;letter-spacing:.08em}
 .compact-subhdr{padding:8px 16px 6px;font-size:9px;font-weight:700;color:var(--fg5);text-transform:uppercase;letter-spacing:.08em}
 .compact-list{padding:0 10px}
@@ -202,29 +211,39 @@ a{color:var(--accent2);text-decoration:none}button{font-family:inherit;cursor:po
 .col.is-disabled,#chat-col.is-disabled{opacity:.5}
 .col.is-disabled .col-item,#chat-col.is-disabled button,#chat-col.is-disabled textarea{pointer-events:none}
 .col-hdr{display:flex;align-items:center;gap:8px;padding:16px 16px 12px;border-bottom:1px solid color-mix(in srgb,var(--fg7) 34%,transparent);background:linear-gradient(180deg,color-mix(in srgb,var(--bg1) 98%,transparent),color-mix(in srgb,var(--bg1) 82%,transparent));font-size:14px;font-weight:780;color:var(--fg2);text-transform:none;letter-spacing:-.015em;flex-shrink:0;box-shadow:inset 0 -1px 0 color-mix(in srgb,var(--fg7) 10%,transparent)}
+.col-hdr-main{display:flex;flex-direction:column;min-width:0;gap:2px;flex:1}
+.col-hdr-sub{font-size:11px;font-weight:600;letter-spacing:.01em;color:var(--fg5);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.col-hdr-actions{display:flex;align-items:center;gap:8px;flex-shrink:0}
+.sh-go.sh-go-inline{height:28px;padding:0 12px;border-radius:14px;font-size:11px}
 #col-daemons .col-hdr,#col-agents .col-hdr,#col-sessions .col-hdr{color:color-mix(in srgb,var(--accent2) 38%,var(--fg))}
 .col-list{flex:1;overflow-y:auto;padding:10px 10px 18px}
-.col-item{display:flex;align-items:flex-start;gap:12px;padding:12px 14px;border-radius:16px;cursor:pointer;font-size:13px;color:var(--fg2);margin-bottom:8px;transition:background .15s,box-shadow .15s,color .15s,border-color .15s,transform .15s;position:relative;border:1px solid transparent;background:color-mix(in srgb,var(--bg2) 72%,transparent);box-shadow:inset 0 1px 0 color-mix(in srgb,#fff 5%,transparent)}
+.col-item{display:flex;align-items:flex-start;gap:12px;padding:12px 14px;border-radius:16px;cursor:pointer;font-size:13px;color:var(--fg2);margin-bottom:8px;transition:background .15s,box-shadow .15s,color .15s,border-color .15s,transform .15s;position:relative;border:1px solid color-mix(in srgb,var(--fg7) 38%,transparent);background:color-mix(in srgb,var(--bg2) 72%,transparent);box-shadow:inset 0 1px 0 color-mix(in srgb,#fff 5%,transparent)}
 .col-item::before{content:none}
 .col-item:hover{background:color-mix(in srgb,var(--bg1) 88%,transparent);border-color:color-mix(in srgb,var(--fg7) 70%,transparent);transform:translateX(2px)}
 .col-item.selected{background:linear-gradient(135deg,color-mix(in srgb,var(--accent2) 16%,var(--bg1)),color-mix(in srgb,var(--accent) 10%,var(--bg2)));color:var(--fg);border-color:color-mix(in srgb,var(--accent2) 42%,var(--border2));box-shadow:0 12px 28px color-mix(in srgb,var(--accent2) 10%,transparent),inset 0 1px 0 color-mix(in srgb,#fff 10%,transparent)}
 .col-item.selected::before{opacity:1;background:linear-gradient(180deg,var(--accent2),color-mix(in srgb,var(--accent2) 45%,transparent))}
 .col-item.disabled{opacity:.42;cursor:not-allowed;filter:saturate(.55)}
 .col-item.disabled:hover{background:transparent}
+.col-item.is-requestable,.compact-item.is-requestable{cursor:default}
+.col-item.is-requestable:hover,.compact-item.is-requestable:hover{transform:none}
 .daemon-stack{margin-bottom:10px}
 .daemon-stack>.col-item{margin-bottom:0}
 .col-item .ci-icon{font-size:14px;flex-shrink:0;margin-top:2px}
 .col-item .ci-info{flex:1;min-width:0}
 .col-item .ci-name{font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;line-height:1.25}
+.col-item .ci-name-row{display:flex;align-items:flex-start;justify-content:space-between;gap:8px}
 .col-item .ci-meta{font-size:11px;color:var(--fg5);margin-top:3px;overflow:hidden;line-height:1.4;white-space:normal;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}
 .col-item .ci-meta.ci-meta-session{display:flex;align-items:center;gap:8px;white-space:nowrap;overflow:hidden;-webkit-line-clamp:unset;-webkit-box-orient:initial}
 .col-item .ci-meta-session .ci-meta-copy{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .col-item .ci-submeta{font-size:10px;color:var(--fg4);margin-top:4px;overflow:hidden;line-height:1.4;white-space:normal;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}
-.col-item .ci-dot{width:8px;height:8px;border-radius:50%;background:var(--green);flex-shrink:0;margin-top:6px;box-shadow:0 0 0 4px color-mix(in srgb,var(--green) 12%,transparent)}
+.col-item .ci-actions{display:flex;align-items:center;gap:6px;flex-wrap:wrap;justify-content:flex-end;flex-shrink:0;align-self:center;margin-left:8px}
+.col-item .ci-info>.ci-actions{margin-left:0;margin-top:6px;justify-content:flex-start}
+.col-item .ci-dot{width:8px;height:8px;border-radius:50%;background:var(--green);flex-shrink:0;margin-top:6px;box-shadow:0 0 0 4px color-mix(in srgb,var(--green) 12%,transparent);align-self:flex-start}
 .col-item .ci-tag{font-size:10px;color:var(--accent2);border:1px solid color-mix(in srgb,var(--accent2) 26%,var(--border2));background:color-mix(in srgb,var(--accent2) 10%,transparent);border-radius:999px;padding:2px 8px;flex-shrink:0;font-weight:800;letter-spacing:.04em}
 .col-item .ci-join{height:24px;padding:0 10px;border:1px solid color-mix(in srgb,var(--accent2) 28%,var(--border2));border-radius:999px;background:color-mix(in srgb,var(--accent2) 10%,var(--bg1));color:var(--accent2);font-size:10px;font-weight:800;flex-shrink:0;white-space:nowrap;cursor:pointer;box-shadow:inset 0 1px 0 color-mix(in srgb,#fff 8%,transparent)}
 .col-item .ci-join:disabled{opacity:.6}
 .col-item .ci-tag.ci-tag-view,.compact-item .ci-tag.ci-tag-view{color:#f3c67c;border-color:color-mix(in srgb,#f3c67c 45%,var(--border2));background:color-mix(in srgb,#f3c67c 12%,transparent)}
+.col-item .ci-tag.ci-tag-danger,.compact-item .ci-tag.ci-tag-danger{color:color-mix(in srgb,var(--red) 90%,var(--fg2));border-color:color-mix(in srgb,var(--red) 42%,var(--border2));background:color-mix(in srgb,var(--red) 12%,transparent)}
 .col-item .ci-del{height:24px;padding:0 10px;border:1px solid color-mix(in srgb,var(--fg7) 42%,transparent);border-radius:999px;background:color-mix(in srgb,var(--bg1) 90%,transparent);color:var(--fg3);font-size:10px;font-weight:800;letter-spacing:.03em;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;opacity:1;transition:border-color .15s ease,background .15s ease,color .15s ease,transform .1s ease;flex-shrink:0;white-space:nowrap;box-shadow:none}
 .col-item .ci-del.ci-del-icon{width:24px;padding:0;font-size:13px;line-height:1}
 .col-item .ci-del:hover{border-color:color-mix(in srgb,var(--fg6) 66%,transparent);background:color-mix(in srgb,var(--bg1) 98%,transparent);color:var(--fg)}
@@ -256,6 +275,88 @@ a{color:var(--accent2);text-decoration:none}button{font-family:inherit;cursor:po
 .col-list-msg.is-error{color:#ff8f8f}
 .col-list-msg.is-success{color:var(--green)}
 .col-list-msg.is-warn{color:var(--orange)}
+.session-row-name{display:inline-flex;align-items:center;gap:6px;min-height:22px;padding:0 8px;border-radius:999px;border:1px solid color-mix(in srgb,var(--accent2) 22%,var(--border2));background:color-mix(in srgb,var(--accent2) 10%,transparent);font-size:10px;font-weight:800;letter-spacing:.04em;color:var(--accent2);white-space:nowrap;max-width:100%;overflow:hidden;text-overflow:ellipsis}
+.session-row-nameline{display:flex;align-items:center;gap:8px;margin-bottom:4px;min-width:0}
+.session-row-nameline .ci-meta-copy,.session-row-nameline .ci-status-inline{font-size:10px;white-space:nowrap}
+.session-row-nameline .ci-meta-copy{color:var(--fg5);overflow:hidden;text-overflow:ellipsis}
+.session-row-nameline .ci-status-inline{flex-shrink:0}
+.session-row-kickers{display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-bottom:6px}
+.session-row-kicker{display:inline-flex;align-items:center;gap:4px;min-height:22px;padding:0 8px;border-radius:999px;border:1px solid color-mix(in srgb,var(--fg7) 42%,transparent);background:color-mix(in srgb,var(--bg1) 88%,transparent);font-size:10px;font-weight:800;letter-spacing:.04em;color:var(--fg4);white-space:nowrap;max-width:100%;overflow:hidden;text-overflow:ellipsis}
+.kicker-label{opacity:.55;font-weight:700;letter-spacing:.02em}
+.session-group-hdr{display:flex;align-items:center;gap:8px;padding:10px 14px 6px;font-size:11px;font-weight:800;letter-spacing:.04em;text-transform:uppercase;color:var(--fg5)}
+.session-group-hdr::after{content:'';flex:1;height:1px;background:color-mix(in srgb,var(--fg7) 28%,transparent)}
+.session-groupby-bar{display:flex;align-items:center;gap:8px;padding:8px 14px;border-bottom:1px solid color-mix(in srgb,var(--fg7) 22%,transparent);flex-shrink:0}
+.session-groupby-bar label{font-size:10px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:var(--fg5);white-space:nowrap}
+.session-groupby-pills{display:flex;gap:4px}
+.session-groupby-pill{height:24px;padding:0 10px;border-radius:999px;border:1px solid color-mix(in srgb,var(--fg7) 38%,transparent);background:color-mix(in srgb,var(--bg1) 90%,transparent);color:var(--fg4);font-size:10px;font-weight:700;cursor:pointer;transition:border-color .15s,background .15s,color .15s}
+.session-groupby-pill:hover{border-color:color-mix(in srgb,var(--accent2) 30%,var(--border2));color:var(--fg3)}
+.session-groupby-pill.is-active{border-color:color-mix(in srgb,var(--accent2) 46%,var(--border2));background:color-mix(in srgb,var(--accent2) 12%,transparent);color:var(--accent2)}
+.session-row-kicker.is-daemon{border-color:color-mix(in srgb,var(--fg7) 55%,transparent);background:color-mix(in srgb,var(--bg1) 88%,transparent);color:var(--fg2)}
+.session-row-kicker.is-agent{border-color:color-mix(in srgb,var(--fg7) 55%,transparent);color:var(--fg3)}
+.session-row-kicker.is-read{border-color:color-mix(in srgb,#f3c67c 45%,var(--border2));background:color-mix(in srgb,#f3c67c 12%,transparent);color:#f3c67c}
+.session-row-kicker.is-write{border-color:color-mix(in srgb,var(--green) 36%,var(--border2));background:color-mix(in srgb,var(--green) 10%,transparent);color:color-mix(in srgb,var(--green) 78%,var(--fg2))}
+.session-row-kicker.is-no-access{border-color:color-mix(in srgb,var(--red) 42%,var(--border2));background:color-mix(in srgb,var(--red) 12%,transparent);color:color-mix(in srgb,var(--red) 92%,var(--fg2))}
+.session-row-path{font-size:11px;color:var(--fg4);margin-top:4px;line-height:1.45;word-break:break-all;overflow:hidden;text-overflow:ellipsis}
+.session-row-owner{font-size:11px;color:var(--fg5);margin-top:2px;line-height:1.45}
+.session-row-lock{display:inline-flex;align-items:center;gap:6px;font-size:10px;font-weight:800;letter-spacing:.04em;color:var(--fg4)}
+.session-row-lock::before{content:'•';font-size:12px;line-height:1;color:currentColor}
+.session-row-lock.is-no-access{color:color-mix(in srgb,var(--red) 92%,var(--fg2))}
+.session-global-empty{display:flex;flex-direction:column;gap:12px;align-items:center}
+#create-session-overlay{position:fixed;inset:0;background:rgba(7,10,16,.48);opacity:0;pointer-events:none;transition:opacity .2s ease;z-index:84}
+#create-session-overlay.open{opacity:1;pointer-events:auto}
+#create-session-modal{position:fixed;top:92px;left:50%;right:auto;bottom:auto;width:min(620px,calc(100vw - 32px));max-height:min(76vh,680px);display:flex;flex-direction:column;background:color-mix(in srgb,var(--bg1) 92%,transparent);border:1px solid color-mix(in srgb,var(--fg7) 52%,transparent);border-radius:24px;box-shadow:var(--shadow-panel);backdrop-filter:blur(18px) saturate(1.2);-webkit-backdrop-filter:blur(18px) saturate(1.2);transform:translate(-50%,24px) scale(.985);opacity:0;pointer-events:none;transition:transform .22s ease,opacity .22s ease;z-index:85;overflow:hidden}
+#create-session-modal.open{transform:translate(-50%,0) scale(1);opacity:1;pointer-events:auto}
+.csm-hdr{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;padding:14px 16px 10px;border-bottom:1px solid color-mix(in srgb,var(--fg7) 42%,transparent);background:linear-gradient(180deg,color-mix(in srgb,var(--bg2) 84%,transparent),transparent)}
+.csm-copy{display:flex;flex-direction:column;gap:5px;min-width:0}
+.csm-kicker{font-size:10px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:var(--fg5)}
+.csm-title{font-size:16px;font-weight:760;letter-spacing:-.02em;color:var(--fg)}
+.csm-sub{font-size:11px;line-height:1.45;color:var(--fg4);max-width:420px}
+.csm-body{flex:1;overflow-y:auto;padding:14px 16px 16px;display:grid;grid-template-columns:minmax(0,1.05fr) minmax(0,.95fr);gap:12px;align-items:start}
+.csm-section{min-height:0;padding:12px;border:1px solid color-mix(in srgb,var(--fg7) 44%,transparent);border-radius:18px;background:linear-gradient(180deg,color-mix(in srgb,var(--bg1) 76%,transparent),color-mix(in srgb,var(--bg2) 92%,transparent));box-shadow:inset 0 1px 0 color-mix(in srgb,#fff 5%,transparent)}
+.csm-section-head{display:flex;align-items:flex-start;justify-content:space-between;gap:10px;margin-bottom:10px}
+.csm-section-title{font-size:12px;font-weight:800;letter-spacing:.05em;text-transform:uppercase;color:var(--fg5)}
+.csm-section-copy{margin-top:3px;font-size:11px;line-height:1.45;color:var(--fg4)}
+.csm-grid{display:grid;grid-template-columns:1fr;gap:12px}
+.create-daemon-list{display:grid;gap:8px;max-height:min(34vh,236px);overflow-y:auto;padding-right:2px}
+.create-daemon-card{display:flex;flex-direction:column;gap:8px;padding:11px 12px;border-radius:14px;border:1px solid color-mix(in srgb,var(--fg7) 42%,transparent);background:color-mix(in srgb,var(--bg1) 86%,transparent);cursor:pointer;transition:border-color .15s ease,background .15s ease,transform .15s ease,box-shadow .15s ease}
+.create-daemon-card:hover{transform:translateY(-1px);border-color:color-mix(in srgb,var(--accent2) 32%,var(--border2));background:color-mix(in srgb,var(--bg1) 94%,transparent)}
+.create-daemon-card.is-selected{border-color:color-mix(in srgb,var(--accent2) 46%,var(--border2));background:linear-gradient(135deg,color-mix(in srgb,var(--accent2) 14%,var(--bg1)),color-mix(in srgb,var(--accent) 8%,var(--bg2)));box-shadow:0 10px 22px color-mix(in srgb,var(--accent2) 10%,transparent)}
+.create-daemon-card.is-disabled{opacity:.68;cursor:not-allowed;filter:saturate(.7)}
+.create-daemon-card.is-disabled:hover{transform:none;border-color:color-mix(in srgb,var(--fg7) 42%,transparent);background:color-mix(in srgb,var(--bg1) 86%,transparent)}
+.create-daemon-head{display:grid;grid-template-columns:minmax(0,1fr);gap:10px}
+.create-daemon-copy{display:flex;flex-direction:column;gap:3px;min-width:0;flex:1}
+.create-daemon-name{font-size:13px;font-weight:760;color:var(--fg);line-height:1.2;word-break:break-word}
+.create-daemon-meta{display:flex;flex-wrap:wrap;gap:4px 8px;font-size:10px;line-height:1.4;color:var(--fg5)}
+.create-daemon-meta-item{display:inline-flex;align-items:center;gap:8px;white-space:nowrap}
+.create-daemon-meta-item:not(:last-child)::after{content:'•';font-size:11px;line-height:1;color:color-mix(in srgb,var(--fg5) 75%,transparent)}
+.create-daemon-roleline{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.create-daemon-actions{display:flex;align-items:center;gap:8px;flex-wrap:wrap;justify-content:flex-start}
+.create-daemon-note{font-size:10px;line-height:1.4;color:var(--fg4)}
+.create-daemon-note strong{color:var(--fg3)}
+.create-agent-list{display:grid;gap:10px}
+.create-agent-group{display:grid;gap:8px}
+.create-agent-group-title{font-size:10px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:var(--fg5)}
+.create-agent-group-options{display:flex;flex-wrap:wrap;gap:8px}
+.create-agent-option{display:inline-flex;align-items:center;gap:8px;min-height:34px;padding:0 11px;border-radius:999px;border:1px solid color-mix(in srgb,var(--fg7) 42%,transparent);background:color-mix(in srgb,var(--bg1) 90%,transparent);color:var(--fg3);font-size:11px;font-weight:700;cursor:pointer;transition:border-color .15s ease,background .15s ease,color .15s ease,transform .15s ease}
+.create-agent-option:hover{transform:translateY(-1px);border-color:color-mix(in srgb,var(--accent2) 30%,var(--border2));background:color-mix(in srgb,var(--bg1) 98%,transparent)}
+.create-agent-option.is-selected{border-color:color-mix(in srgb,var(--accent2) 46%,var(--border2));background:color-mix(in srgb,var(--accent2) 12%,transparent);color:var(--fg)}
+.create-agent-option.is-disabled{opacity:.42;cursor:not-allowed;filter:saturate(.65)}
+.create-agent-option.is-disabled:hover{transform:none;border-color:color-mix(in srgb,var(--fg7) 42%,transparent);background:color-mix(in srgb,var(--bg1) 90%,transparent)}
+.csm-footer{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:10px 16px 14px;border-top:1px solid color-mix(in srgb,var(--fg7) 42%,transparent);background:linear-gradient(180deg,color-mix(in srgb,var(--bg2) 52%,transparent),transparent)}
+.csm-footer-actions{display:flex;align-items:center;gap:10px;flex-shrink:0;min-width:0}
+.csm-footer-actions .csm-cancel,.csm-footer-actions .sh-go{width:auto;min-width:118px;height:34px;padding:0 18px;margin-top:0;flex:0 0 auto;font-size:12px;border-radius:17px}
+.csm-footer-note{font-size:10px;line-height:1.4;color:var(--fg5);min-height:14px}
+.csm-cancel{height:34px;padding:0 13px;border-radius:17px;border:1px solid color-mix(in srgb,var(--fg7) 42%,transparent);background:color-mix(in srgb,var(--bg1) 86%,transparent);color:var(--fg3);font-size:12px;font-weight:700;cursor:pointer}
+.csm-cancel:hover{border-color:color-mix(in srgb,var(--fg6) 66%,transparent);color:var(--fg)}
+@media(max-width:600px){
+  #create-session-modal{top:auto;left:0;right:0;bottom:0;width:auto;max-height:82vh;border-radius:24px 24px 0 0;transform:translateY(110%)}
+  #create-session-modal.open{transform:translateY(0)}
+  .csm-hdr,.csm-body,.csm-footer{padding-left:16px;padding-right:16px}
+  .csm-body{display:flex;flex-direction:column;gap:12px}
+  .create-daemon-list{max-height:none}
+  .csm-footer{flex-direction:column;align-items:stretch}
+  .csm-footer-actions{width:100%;justify-content:space-between}
+}
 .col-skeleton{padding:12px 10px;display:flex;flex-direction:column;gap:12px}
 .sk-row{display:flex;align-items:center;gap:12px;padding:14px 14px;border-radius:18px;background:linear-gradient(180deg,color-mix(in srgb,var(--bg1) 68%,transparent),color-mix(in srgb,var(--bg2) 92%,transparent));border:1px solid color-mix(in srgb,var(--fg7) 40%,transparent);min-height:68px;box-shadow:inset 0 1px 0 color-mix(in srgb,#fff 5%,transparent)}
 .sk-icon,.sk-line{background:linear-gradient(90deg,color-mix(in srgb,var(--fg7) 45%,transparent) 25%,color-mix(in srgb,var(--fg7) 70%,transparent) 50%,color-mix(in srgb,var(--fg7) 45%,transparent) 75%);background-size:200% 100%;animation:shimmer 1.5s ease infinite}
@@ -504,6 +605,8 @@ a{color:var(--accent2);text-decoration:none}button{font-family:inherit;cursor:po
 .perm-det.expanded{max-height:800px;opacity:1;padding:0 10px 8px}
 .perm-det ul{list-style:none}
 .perm-det-item{background:color-mix(in srgb,var(--orange) 8%,var(--bg2));border:1px solid color-mix(in srgb,var(--orange) 18%,var(--border2));border-radius:8px;padding:8px;margin-bottom:5px;font-size:12px;overflow:hidden}
+.perm-row.is-single .perm-det{max-height:none;opacity:1;padding:8px 10px}
+.perm-row.is-single .perm-det-item{margin-bottom:0}
 .perm-det-kind{color:color-mix(in srgb,var(--orange) 82%,var(--fg2));font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.04em}
 .perm-det-sum{margin-top:3px;color:var(--fg2);font-size:12px}
 .perm-det-fields{margin-top:6px;display:flex;flex-wrap:wrap;gap:3px 10px}
@@ -637,7 +740,7 @@ a{color:var(--accent2);text-decoration:none}button{font-family:inherit;cursor:po
     <div class="tb-left">
       <button class="tb-burger" onclick="toggleColumns()" aria-label="Menu">☰</button>
       <div class="tb-brand-lockup">
-        <div class="tb-brand-topline"><span class="tb-title is-brand" id="topbar-title">Azure Web PubSub / CodeAgentHub</span></div>
+        <div class="tb-brand-topline"><span class="tb-title is-brand" id="topbar-title">Azure Web PubSub / AgentHub</span></div>
         <div class="tb-breadcrumb is-empty" id="topbar-breadcrumb"></div>
       </div>
       <span class="tb-status" id="topbar-st"></span>
@@ -669,17 +772,15 @@ a{color:var(--accent2);text-decoration:none}button{font-family:inherit;cursor:po
             <div class="login-msg" id="login-msg-oauth"></div>
           </div>
           <div class="login-card" id="login-card-local">
-            <div class="login-title">Sign in</div>
-            <div class="login-copy">Enter any username. Default is AzureUser.</div>
             <div class="fld"><label>Username</label><input id="login-username" type="text" placeholder="AzureUser" autocomplete="username"></div>
             <button class="sh-go" id="login-btn">Login</button>
             <div class="login-msg" id="login-msg"></div>
           </div>
         </div>
       </div>
-      <!-- Column 1: Agent Daemons -->
+      <!-- Column 1: Workspaces -->
       <div class="col" id="col-daemons" style="display:none">
-        <div class="col-hdr">Agent Daemons</div>
+        <div class="col-hdr">Workspaces</div>
         <div class="col-list" id="col-daemons-list"></div>
       </div>
       <!-- Column 2: Agents -->
@@ -689,15 +790,10 @@ a{color:var(--accent2);text-decoration:none}button{font-family:inherit;cursor:po
       </div>
       <!-- Column 3: Sessions -->
       <div class="col" id="col-sessions" style="display:none">
-        <div class="col-hdr"><button class="mob-back" onclick="mobShow('col-agents')">◀</button> <span id="col-sessions-hdr">Sessions</span></div>
+        <div class="col-hdr"><span id="col-sessions-hdr" style="flex:1">Sessions</span><div class="col-hdr-actions"><button class="sh-go sh-go-inline" id="open-create-session-btn" type="button">New Session</button></div></div>
+        <div class="session-groupby-bar" id="session-groupby-bar"><label>Group by</label><div class="session-groupby-pills"><button class="session-groupby-pill is-active" type="button" onclick="setSessionGroupBy('none')">None</button><button class="session-groupby-pill" type="button" onclick="setSessionGroupBy('agent')">Agent</button></div></div>
         <div class="col-list-msg" id="col-sessions-msg"></div>
         <div class="col-list" id="col-sessions-list"></div>
-        <div class="col-new" id="col-new-session" style="display:none">
-          <div class="fld"><div class="dir-field-header"><label>Directory</label><div class="dir-field-badge" id="f-dir-badge"></div></div><div class="dir-input-wrap"><input id="f-dir" class="dir-input" type="text" list="f-dir-suggestions" spellcheck="false" autocomplete="off" placeholder="Enter an absolute project path"><datalist id="f-dir-suggestions"></datalist><div class="dir-input-meta" id="f-dir-meta"></div></div></div>
-          <input type="hidden" id="f-agent" value="copilot">
-          <button class="sh-go" id="f-btn" type="button">New Session</button>
-          <div class="col-new-msg" id="col-new-msg"></div>
-        </div>
       </div>
       <!-- Column 4: Chat -->
       <div id="chat-col" style="display:none">
@@ -761,11 +857,31 @@ a{color:var(--accent2);text-decoration:none}button{font-family:inherit;cursor:po
   <div class="dad-body" id="daemon-access-drawer-body"></div>
 </div>
 
+<div id="create-session-overlay" onclick="closeCreateSessionModal()"></div>
+<div id="create-session-modal" aria-hidden="true">
+  <div class="csm-hdr"><div class="csm-copy"><div class="csm-title">Create a new session</div></div></div>
+  <div class="csm-body">
+    <div class="csm-section">
+      <div class="csm-section-head"><div><div class="csm-section-title">Workspace</div></div></div>
+      <div id="create-daemon-list"></div>
+    </div>
+    <div class="csm-section">
+      <div class="csm-section-head"><div><div class="csm-section-title">Agent</div></div></div>
+      <div class="csm-grid">
+        <div class="fld"><div class="create-agent-list" id="create-agent-list"></div><input type="hidden" id="f-agent" value="copilot"></div>
+        <div class="fld"><div class="dir-field-header"><label><span id="f-dir-os-icon"></span> Directory</label></div><div class="dir-input-wrap"><input id="f-dir" class="dir-input" type="text" list="f-dir-suggestions" spellcheck="false" autocomplete="off" placeholder="Enter an absolute project path"><datalist id="f-dir-suggestions"></datalist><div class="dir-input-meta" id="f-dir-meta"></div></div></div>
+      </div>
+      <div class="col-new-msg" id="col-new-msg"></div>
+    </div>
+  </div>
+  <div class="csm-footer"><div class="csm-footer-note"></div><div class="csm-footer-actions"><button class="csm-cancel" type="button" onclick="closeCreateSessionModal()">Cancel</button><button class="sh-go" id="f-btn" type="button">Create</button></div></div>
+</div>
+
 <script type="module">
 import DOMPurify from'/dompurify.js';
 import{Marked,Renderer}from'/marked.js';
 import{ChatClient}from'/chat-client.js';
-import{canBrowseDaemonDirectories,classifyIncomingSessionRoomMessage,createSessionHistorySummary,daemonHasAdminAccess as portalDaemonHasAdminAccess,daemonHasMemberAccess as portalDaemonHasMemberAccess,getCreateSessionAccessState,getRealtimeSessionAccessPatch,getSessionChatPlaceholderState,isDaemonRecordFresh,isLocalEchoMessage,isStartupStatusEnvelope,isStartupWaitMessage,mergeRealtimeDaemonRecord,normalizeDaemonRecord as normalizePortalDaemonRecord,recordSessionHistoryEnvelope,rememberRoomMessage,resetSessionStateToIdle,resolveNotificationRoomId,shouldBackgroundRetrySessionOpenError,shouldIgnoreRoomMessage,shouldIgnoreSemanticDuplicate,shouldRetainPreviousDaemons,shouldSuppressSessionOpenError}from'/portal-regressions.js';
+import{canBrowseDaemonDirectories,classifyIncomingSessionRoomMessage,createSessionHistorySummary,daemonHasAdminAccess as portalDaemonHasAdminAccess,daemonHasMemberAccess as portalDaemonHasMemberAccess,getCreateSessionAccessState,getRealtimeSessionAccessPatch,getSessionChatPlaceholderState,getSessionListAccessPresentation,isDaemonRecordFresh,isLocalEchoMessage,isStartupStatusEnvelope,isStartupWaitMessage,mergeRealtimeDaemonRecord,normalizeDaemonRecord as normalizePortalDaemonRecord,recordSessionHistoryEnvelope,rememberRoomMessage,resetSessionStateToIdle,resolveNotificationRoomId,shouldBackgroundRetrySessionOpenError,shouldIgnoreRoomMessage,shouldIgnoreSemanticDuplicate,shouldRetainPreviousDaemons,shouldSuppressSessionOpenError}from'/portal-regressions.js';
 import{collectKnownRoomInfos,ensureLocalRoomInfo,rememberKnownRoomInfo}from'/room-routing-state.js';
 import{applySessionQueryContext,collectVisibleSessions,getSessionRecordStatusInfo,normalizeSessionRecord as normalizeSessionDiscoveryRecord,resolveRoomDisplayName,shouldShowPortalSessionLoading,shouldSkipDeletedSession}from'/session-discovery-state.js';
 import{ensureSessionOpenSync,waitForJoinedRoom,waitForRoomLiveSync}from'/session-live-sync.js';
@@ -806,6 +922,8 @@ const STOP_RETRY_COOLDOWN_MS=1200;
 let sendMode='enqueue';
 let currentDaemonId=null;
 let currentAgentName=null;
+const createSessionDraft={daemonId:'',agentName:'',directory:''};
+let createSessionModalOpen=false;
 let daemonAccessDrawerOpen=false;
 let daemonAccessDrawerDaemonId='';
 let daemonAccessDrawerStatus=null;
@@ -848,7 +966,7 @@ const AGENT_ICONS={
   opencode:`<svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg"><path d="M9.4 16.6L4.8 12l4.6-4.6L8 6l-6 6 6 6 1.4-1.4zm5.2 0l4.6-4.6-4.6-4.6L16 6l6 6-6 6-1.4-1.4z"/></svg>`,
 };
 const AGENT_COLORS={copilot:'#6baaff',claude:'#d97757',gemini:'#8b7cf6',codex:'#50d167',opencode:'#aaa'};
-const AGENT_NAMES={copilot:'GitHub Copilot',claude:'Claude Code',gemini:'Gemini CLI',codex:'Codex CLI',opencode:'OpenCode','copilot-sdk':'GitHub Copilot (SDK)'};
+const AGENT_NAMES={copilot:'GitHub Copilot',claude:'Claude Code',gemini:'Gemini CLI',codex:'Codex',opencode:'OpenCode','copilot-sdk':'GitHub Copilot (SDK)'};
 const TESTED_ACP_AGENTS=new Set(['copilot','claude','codex']);
 function getAgentVisualKey(agentName){return agentName==='copilot-sdk'?'copilot':agentName}
 function normalizeDaemonPlatform(platform){
@@ -860,7 +978,7 @@ function normalizeDaemonPlatform(platform){
   return value;
 }
 function daemonSyncRoomId(daemonId){return `${DAEMON_SYNC_ROOM_PREFIX}${String(daemonId||'').trim()}`}
-function currentSessionQueryKey(){return currentDaemonId&&currentAgentName?`${currentDaemonId}::${currentAgentName}`:''}
+function currentSessionQueryKey(){return uid?GLOBAL_SESSION_QUERY_KEY:''}
 function sessionQueryLoaded(queryKey=currentSessionQueryKey()){return !!queryKey&&loadedSessionQueryKeys.has(queryKey)}
 function markSessionQueryLoaded(queryKey=currentSessionQueryKey()){if(queryKey)loadedSessionQueryKeys.add(queryKey)}
 function sessionQueryLoading(queryKey=currentSessionQueryKey()){return !!queryKey&&loadingSessionQueryKeys.has(queryKey)}
@@ -868,12 +986,11 @@ function roomNeedsLiveSyncValidation(roomId){const targetRoomId=String(roomId||'
 function getChatPlaceholderState(){
   if(chatPlaceholderOverride)return chatPlaceholderOverride;
   if(!uid)return {kicker:'Sign in',title:'Open an agent workspace',subtitle:'Log in to browse daemons, agents, and sessions.',watermark:'',generic:true};
-  if(!currentDaemonId)return {kicker:'Select a daemon',title:'Choose an agent daemon to begin',subtitle:'Pick a Windows or Linux daemon first, then choose an agent.',watermark:'',generic:true};
-  if(!currentAgentName)return {kicker:'Select an agent',title:'Pick an agent to view or create sessions',subtitle:'Choose Claude, Copilot, Codex, or another available agent.',watermark:'',generic:true};
-  const visualKey=getAgentVisualKey(currentAgentName);
+  if(!rid)return {kicker:'Sessions',title:'Choose a session or create a new one',subtitle:'The sessions column now spans every visible daemon and agent.',watermark:'',generic:true};
+  const visualKey=getAgentVisualKey(currentAgentName||'copilot');
   return {
-    kicker:AGENT_NAMES[currentAgentName]||currentAgentName,
-    title:'Select a session or create a new one',
+    kicker:AGENT_NAMES[currentAgentName]||currentAgentName||'Session',
+    title:'Session is ready',
     subtitle:'',
     watermark:AGENT_ICONS[visualKey]||'',
     generic:false,
@@ -954,12 +1071,14 @@ const $={
   compactBtn:document.getElementById('compact-toggle-btn'),compactNav:document.getElementById('compact-nav'),chatColTop:document.getElementById('chat-col-top'),
   loginUser:document.getElementById('login-username'),loginMsg:document.getElementById('login-msg'),loginBtn:document.getElementById('login-btn'),logoutBtn:document.getElementById('logout-btn'),
   dirIn:document.getElementById('f-dir'),dirMeta:document.getElementById('f-dir-meta'),dirSuggestions:document.getElementById('f-dir-suggestions'),formMsg:document.getElementById('col-new-msg'),sessionListMsg:document.getElementById('col-sessions-msg'),
+  openCreateSessionBtn:document.getElementById('open-create-session-btn'),createSessionOverlay:document.getElementById('create-session-overlay'),createSessionModal:document.getElementById('create-session-modal'),createDaemonList:document.getElementById('create-daemon-list'),createAgentList:document.getElementById('create-agent-list'),
 };
 const DEFAULT_USERNAME='AzureUser';
 const USER_STORAGE_KEY='cp-uid';
 const PORTAL_USER_HEADER='x-codeagenthub-user';
 const DIR_PICKER_ROOT='__roots__';
 const OAUTH_LOGIN_COPY_DEFAULT='Sign in with your GitHub account to continue.';
+const GLOBAL_SESSION_QUERY_KEY='all-sessions';
 const discoveredSessions=new Map();
 const daemonAccessDrafts=new Map();
 function getStoredUserId(){
@@ -989,21 +1108,23 @@ function mobShow(colId){
   const el=document.getElementById(colId);if(el){el.classList.add('mob-visible');el.style.display='flex'}
 }
 window.mobShow=mobShow;
-function mobInit(){if(isMobile())mobShow(uid?'col-daemons':'col-login')}
+function mobInit(){if(isMobile())mobShow(uid?(rid?'chat-col':'col-sessions'):'col-login')}
 window.addEventListener('resize',()=>{if(isMobile())setCompactNav(false);if(!isMobile()){document.querySelectorAll('.col,#chat-col').forEach(c=>c.classList.remove('mob-visible'));if(uid)applyLoggedInState();else applyLoggedOutState();syncCompactButton()}});
-window.toggleColumns=()=>{if(isMobile())mobShow(uid?'col-daemons':'col-login')};
+window.toggleColumns=()=>{if(isMobile())mobShow(uid?(rid?'chat-col':'col-sessions'):'col-login')};
 function openPanel(){}function closePanel(){}function openSheet(){}function closeSheet(){}
 
 /* Theme toggle */
-const savedTheme=localStorage.getItem('cp-theme')||'light';
-if(savedTheme==='light')document.documentElement.classList.add('light');
+function readStoredTheme(){try{return localStorage.getItem('cp-theme')||'light'}catch{return'light'}}
+function syncThemeButton(){const button=document.getElementById('theme-btn');if(button)button.textContent=document.documentElement.classList.contains('light')?'☀️':'🌙'}
+const savedTheme=readStoredTheme();
+document.documentElement.classList.toggle('light',savedTheme==='light');
 function toggleTheme(){
   const isLight=document.documentElement.classList.toggle('light');
-  localStorage.setItem('cp-theme',isLight?'light':'dark');
-  document.getElementById('theme-btn').textContent=isLight?'☀️':'🌙';
+  try{localStorage.setItem('cp-theme',isLight?'light':'dark')}catch{}
+  syncThemeButton();
 }
 window.toggleTheme=toggleTheme;
-if(savedTheme==='light')document.getElementById('theme-btn').textContent='☀️';
+syncThemeButton();
 
 /* Debug panel */
 const debugMessages=[];
@@ -1426,106 +1547,204 @@ function renderDaemonAccessSummaryCard(daemonId,daemon){
   const action=canEdit?`<button class="ci-join daemon-access-summary-action" type="button" onclick="event.stopPropagation();openDaemonAccessDrawer('${jsq(daemonId)}')">Edit Permission</button>`:'';
   return `<div class="daemon-access-summary"><div class="daemon-access-summary-head"><div class="daemon-access-summary-roleline"><span class="daemon-access-summary-label">Your role</span><span class="daemon-access-summary-role ${daemonAccessToneClass(daemon)}">${esc(daemonAccessLevelLabel(daemon))}</span></div>${action}</div>${canEdit?'':daemonAccessButtons(daemon,{compact:true})}</div>`
 }
-function renderCompactDaemons(){
-  if(!uid||!cc)return compactSection('Agent Daemons',compactEmpty('Connect first'));
-  if(!portalDaemonsLoaded)return compactSection('Agent Daemons',compactEmpty('Loading daemons…'));
-  const daemonEntries=[...knownDaemons.entries()].filter(([,d])=>isDaemonRecordFresh(d,Date.now(),DAEMON_STALE_MS));
-  if(!daemonEntries.length)return compactSection('Agent Daemons',compactEmpty('No daemons found'));
-  let content=daemonEntries.map(([did,d])=>{
-    const agentCount=(d.agents||[]).length;
-    const platform=normalizeDaemonPlatform(d.platform);
-    const osIcon=OS_ICONS[platform]||'🖥';
-    const osName=OS_NAMES[platform]||'';
-    const accessTag=daemonAccessTag(d);
-    const hostnameMeta=d.hostname&&d.hostname!==did?`${d.hostname} · `:'';
-    return `<div class="compact-item${did===currentDaemonId?' selected':''}" onclick="compactSelectDaemon('${jsq(did)}')"><span class="ci-icon">${osIcon}</span><div class="ci-info"><div class="ci-name">${esc(did)}</div><div class="ci-meta">${esc(`${hostnameMeta}${osName?`${osName} · `:''}${agentCount} agent${agentCount!==1?'s':''}`)}</div><div class="ci-submeta">${esc(daemonAdminUsersMeta(d))}</div></div>${accessTag}<span class="ci-dot"></span></div>`;
-  }).join('');
-  const selectedDaemon=knownDaemons.get(currentDaemonId);
-  if(selectedDaemon){
-    const guidance=daemonAccessGuidance(selectedDaemon,{compact:true});
-    content+=`<div class="compact-empty">${esc(`${daemonAccessSummary(selectedDaemon)}.`)}</div><div class="compact-empty">${esc(guidance)}</div>${selectedDaemon.canManage?'':daemonAccessButtons(selectedDaemon,{compact:true})}`;
-  }
-  return compactSection('Agent Daemons',content)
+function freshDaemonEntries(){return [...knownDaemons.entries()].filter(([,daemon])=>isDaemonRecordFresh(daemon,Date.now(),DAEMON_STALE_MS))}
+function isCreateSelectableDaemon(daemon){
+  const {blocked,readOnly}=getCreateSessionAccessState(daemon);
+  return !blocked&&!readOnly;
 }
-function renderCompactAgents(){
-  if(!uid||!cc)return compactSection('Agents',compactEmpty('Connect first'));
-  const daemon=knownDaemons.get(currentDaemonId);
-  if(!daemon)return compactSection('Agents',compactEmpty('Select a daemon'));
-  const acpAgents=(daemon.agents||[]).filter(a=>a!=='copilot-sdk');
+function hasCreatableDaemonEntry(){return freshDaemonEntries().some(([,daemon])=>isCreateSelectableDaemon(daemon))}
+function daemonAgentOptions(daemon){
+  if(!daemon)return [];
+  const acpAgents=(daemon.agents||[]).filter(agentName=>agentName!=='copilot-sdk');
   const sdkAgents=(daemon.agents||[]).includes('copilot-sdk')?['copilot-sdk']:[];
-  if(!sdkAgents.length&&(daemon.agents||[]).includes('copilot'))sdkAgents.push('copilot-sdk');
   const preferredOrder=['copilot','claude','codex','gemini','opencode'];
-  const sortedAcp=[...acpAgents].sort((a,b)=>(preferredOrder.indexOf(a)===-1?99:preferredOrder.indexOf(a))-(preferredOrder.indexOf(b)===-1?99:preferredOrder.indexOf(b)));
-  let content='';
-  if(sortedAcp.length){
-    content+=`<div class="compact-subhdr">ACP Compatible</div>`;
-    content+=sortedAcp.map(a=>{
-      const icon=AGENT_ICONS[a]||AGENT_ICONS.opencode;
-      const color=AGENT_COLORS[a]||'#aaa';
-      const name=AGENT_NAMES[a]||a;
-      const supported=TESTED_ACP_AGENTS.has(a);
-      return `<div class="compact-item${a===currentAgentName?' selected':''}${supported?'':' disabled'}"${supported?` onclick="compactSelectAgent('${jsq(a)}')"`:''}><span class="ci-icon" style="color:${color}">${icon}</span><div class="ci-info"><div class="ci-name">${esc(name)}</div><div class="ci-meta">${supported?'ACP':'ACP · not tested yet'}</div></div></div>`;
-    }).join('');
+  const sortedAcp=[...acpAgents].sort((left,right)=>(preferredOrder.indexOf(left)===-1?99:preferredOrder.indexOf(left))-(preferredOrder.indexOf(right)===-1?99:preferredOrder.indexOf(right)));
+  const options=[];
+  for(const agentName of sortedAcp){
+    options.push({
+      agentName,
+      supported:TESTED_ACP_AGENTS.has(agentName),
+      label:AGENT_NAMES[agentName]||agentName,
+      icon:AGENT_ICONS[agentName]||AGENT_ICONS.opencode,
+      color:AGENT_COLORS[agentName]||'#aaa',
+      meta:'ACP',
+    });
   }
-  if(sdkAgents.length){
-    content+=`<div class="compact-subhdr">Managed by SDK</div>`;
-    content+=sdkAgents.map(a=>`<div class="compact-item${a===currentAgentName?' selected':''}" onclick="compactSelectAgent('${jsq(a)}')"><span class="ci-icon" style="color:${AGENT_COLORS.copilot}">${AGENT_ICONS.copilot}</span><div class="ci-info"><div class="ci-name">GitHub Copilot</div><div class="ci-meta">Copilot SDK</div></div></div>`).join('');
+  for(const agentName of sdkAgents){
+    options.push({
+      agentName,
+      supported:true,
+      label:'GitHub Copilot SDK',
+      icon:AGENT_ICONS.copilot,
+      color:AGENT_COLORS.copilot,
+      meta:'Copilot SDK',
+    });
   }
-  if(!content)content=compactEmpty('No agents available');
-  return compactSection('Agents',content)
+  return options;
 }
-function renderCompactSessions(){
-  if(!uid||!cc)return compactSection('Sessions',compactEmpty('Connect first'));
-  if(!currentAgentName)return compactSection('Sessions',compactEmpty('Select an agent'));
-  const queryKey=currentSessionQueryKey();
-  if(queryKey&&!sessionQueryLoaded(queryKey))return compactSection(AGENT_NAMES[currentAgentName]||'Sessions',compactEmpty('Loading sessions…'));
-  const daemon=currentDaemonRecord();
-  if(daemon&&!daemonHasMemberAccess(daemon)){
-    return compactSection(AGENT_NAMES[currentAgentName]||'Sessions',compactEmpty('Sessions are hidden because you do not have daemon access. Request member or admin access in the daemon panel.'))
+function currentCreateDaemonId(){return String(createSessionDraft.daemonId||'').trim()}
+function currentCreateDaemon(){return knownDaemons.get(currentCreateDaemonId())||null}
+function defaultCreateDaemonId(){
+  const entries=freshDaemonEntries();
+  if(currentDaemonId){
+    const currentEntry=entries.find(([daemonId])=>daemonId===currentDaemonId);
+    if(currentEntry&&isCreateSelectableDaemon(currentEntry[1]))return currentDaemonId;
   }
-  const joined=joinedRoomIds();
-  const filtered=collectVisibleSessions({
-    discoveredSessions,
-    chatRooms:cc?.rooms||[],
-    deletedSessions,
-    currentDaemonId,
-    currentAgentName,
-    lobbyRoomId:LOBBY_ROOM,
+  const creatable=entries.find(([,daemon])=>isCreateSelectableDaemon(daemon));
+  return creatable?.[0]||'';
+}
+function defaultCreateAgentName(daemon,preferred=''){
+  const options=daemonAgentOptions(daemon);
+  if(!options.length)return '';
+  const supported=options.filter(option=>option.supported);
+  if(preferred&&supported.some(option=>option.agentName===preferred))return preferred;
+  if(currentAgentName&&supported.some(option=>option.agentName===currentAgentName))return currentAgentName;
+  return supported[0]?.agentName||options[0]?.agentName||'';
+}
+function createDaemonSelectionNote(daemon){
+  if(!daemon)return 'Select a workspace to continue.';
+  const {blocked,readOnly}=getCreateSessionAccessState(daemon);
+  if(blocked)return 'No workspace access';
+  if(readOnly)return 'Admin required to create';
+  return 'Ready for new sessions';
+}
+function ensureCreateSessionDraft({preserveDirectory=false}={}){
+  const daemonEntries=freshDaemonEntries();
+  if(!daemonEntries.length){
+    createSessionDraft.daemonId='';
+    createSessionDraft.agentName='';
+    createSessionDraft.directory='';
+    if($.dirIn)$.dirIn.value='';
+    const agentInput=document.getElementById('f-agent');
+    if(agentInput)agentInput.value='';
+    clearDirectorySuggestions();
+    return;
+  }
+  const selectedEntry=daemonEntries.find(([daemonId])=>daemonId===createSessionDraft.daemonId);
+  if(!selectedEntry||!isCreateSelectableDaemon(selectedEntry[1]))createSessionDraft.daemonId=defaultCreateDaemonId();
+  const daemon=currentCreateDaemon();
+  if(!daemon){
+    createSessionDraft.agentName='';
+    createSessionDraft.directory='';
+    const agentInput=document.getElementById('f-agent');
+    if(agentInput)agentInput.value='';
+    if($.dirIn)$.dirIn.value='';
+    clearDirectorySuggestions();
+    return;
+  }
+  createSessionDraft.agentName=defaultCreateAgentName(daemon,createSessionDraft.agentName);
+  const agentInput=document.getElementById('f-agent');
+  if(agentInput)agentInput.value=createSessionDraft.agentName;
+  const currentValue=normalizePickerPath($.dirIn?.value||createSessionDraft.directory||'',daemon?.platform);
+  if(!preserveDirectory||!currentValue||!pathLooksCompatibleWithPlatform(currentValue,daemon?.platform))createSessionDraft.directory=normalizePickerPath(defaultDirectoryForDaemon(daemon),daemon?.platform);
+  else createSessionDraft.directory=currentValue;
+  if($.dirIn)$.dirIn.value=createSessionDraft.directory;
+}
+function renderCreateDaemonList(){
+  if(!$.createDaemonList)return;
+  const daemonId=currentCreateDaemonId();
+  const daemon=daemonId?knownDaemons.get(daemonId):null;
+  if(!daemon){
+    $.createDaemonList.innerHTML=`<div class="csm-section-copy">Select a workspace from the left panel first.</div>`;
+    return;
+  }
+  const platform=normalizeDaemonPlatform(daemon.platform);
+  const osIcon=OS_ICONS[platform]||'🖥';
+  const osName=OS_NAMES[platform]||'';
+  const sessionCount=countSessionsForDaemon(daemonId);
+  const meta=[daemon.hostname&&daemon.hostname!==daemonId?daemon.hostname:'',osName,`${sessionCount} session${sessionCount!==1?'s':''}`].filter(Boolean);
+  const metaHtml=meta.length?`<div class="create-daemon-meta">${meta.map(item=>`<span class="create-daemon-meta-item">${esc(item)}</span>`).join('')}</div>`:'';
+  $.createDaemonList.innerHTML=`<div class="create-daemon-card is-selected" style="cursor:default"><div class="create-daemon-head"><div class="create-daemon-copy"><div class="create-daemon-name">${osIcon} ${esc(daemonId)}</div>${metaHtml}</div></div></div>`;
+}
+function renderCreateAgentList(){
+  if(!$.createAgentList)return;
+  const daemon=currentCreateDaemon();
+  const options=daemonAgentOptions(daemon);
+  if(!daemon){
+    const detail=hasCreatableDaemonEntry()?'Pick a workspace first to load its available agents.':'You need workspace admin access before agent choices become available here.';
+    const title=hasCreatableDaemonEntry()?'Select a workspace':'No eligible workspace';
+    $.createAgentList.innerHTML=`<div class="session-global-empty">${renderColumnStateCard({title,detail,icon:'✦'})}</div>`;
+    return;
+  }
+  if(!options.length){
+    $.createAgentList.innerHTML=`<div class="session-global-empty">${renderColumnStateCard({title:'No agents found',detail:'This workspace is available, but it did not publish any supported agents yet.',icon:'🛰'})}</div>`;
+    return;
+  }
+  const renderGroup=(title,groupOptions)=>groupOptions.length?`<div class="create-agent-group"><div class="create-agent-group-title">${title}</div><div class="create-agent-group-options">${groupOptions.map(option=>`<button class="create-agent-option${option.agentName===createSessionDraft.agentName?' is-selected':''}${option.supported?'':' is-disabled'}" type="button"${option.supported?` onclick="selectCreateAgent('${jsq(option.agentName)}')"`:''}><span style="color:${option.color}">${option.icon}</span><span>${esc(option.label)}</span></button>`).join('')}</div></div>`:'';
+  const acpOptions=options.filter(option=>option.meta==='ACP');
+  // const sdkOptions=options.filter(option=>option.meta!=='ACP');
+  // $.createAgentList.innerHTML=`${renderGroup('ACP',acpOptions)}${renderGroup('SDK',sdkOptions)}`;
+  $.createAgentList.innerHTML=`${renderGroup('ACP Compatible',acpOptions)}`;
+}
+function renderCreateSessionModal(){
+  if(!$.createSessionModal||!$.createSessionOverlay)return;
+  const open=createSessionModalOpen;
+  $.createSessionModal.classList.toggle('open',open);
+  $.createSessionOverlay.classList.toggle('open',open);
+  $.createSessionModal.setAttribute('aria-hidden',open?'false':'true');
+  if(!open)return;
+  ensureCreateSessionDraft({preserveDirectory:true});
+  renderCreateDaemonList();
+  renderCreateAgentList();
+  renderSelectedDirectory();
+  syncCreateSessionButton();
+}
+function openCreateSessionModal(){
+  createSessionModalOpen=true;
+  createSessionDraft.daemonId=currentDaemonId||'';
+  ensureCreateSessionDraft();
+  clearFormStatus('create');
+  renderCreateSessionModal();
+}
+function closeCreateSessionModal(){
+  createSessionModalOpen=false;
+  clearFormStatus('create');
+  renderCreateSessionModal();
+}
+window.openCreateSessionModal=openCreateSessionModal;
+window.closeCreateSessionModal=closeCreateSessionModal;
+window.selectCreateDaemon=(daemonId)=>{
+  if(!daemonId)return;
+  createSessionDraft.daemonId=daemonId;
+  createSessionDraft.agentName='';
+  ensureCreateSessionDraft();
+  renderCreateSessionModal();
+};
+window.selectCreateAgent=(agentName)=>{
+  if(!agentName)return;
+  createSessionDraft.agentName=agentName;
+  const agentInput=document.getElementById('f-agent');
+  if(agentInput)agentInput.value=agentName;
+  renderCreateSessionModal();
+};
+function renderCompactNav(){
+  if(!$.compactNav)return;
+  const daemonsList=document.getElementById('col-daemons-list');
+  const sessionsList=document.getElementById('col-sessions-list');
+  const groupbyBar=document.getElementById('session-groupby-bar');
+  let html='';
+  html+=compactSection('Workspaces',daemonsList?daemonsList.innerHTML:compactEmpty('Connect first'));
+  const groupbyHtml=groupbyBar?`<div class="compact-groupby">${groupbyBar.innerHTML}</div>`:'';
+  html+=compactSection('Sessions',groupbyHtml+(sessionsList?sessionsList.innerHTML:compactEmpty('Select a workspace')));
+  $.compactNav.innerHTML=html;
+  // rewire onclick handlers in compact nav for workspace cards
+  $.compactNav.querySelectorAll('.col-item[onclick*="selectDaemon"]').forEach(el=>{
+    const m=el.getAttribute('onclick')?.match(/selectDaemon\('([^']*)'\)/);
+    if(m){const did=m[1];el.setAttribute('onclick',`compactSelectDaemon('${did}')`);}
   });
-  const readOnlyBanner='';
-  if(!filtered.length){
-    const emptyState=sessionListBlockedReason==='daemon-access-denied'?sessionEmptyStateCopy({...daemon,hasMemberAccess:false,canRead:false}):sessionEmptyStateCopy(daemon);
-    return compactSection(AGENT_NAMES[currentAgentName]||'Sessions',`${readOnlyBanner}${compactEmpty(`${emptyState.title} ${emptyState.detail}`.trim())}`);
-  }
-  const content=filtered.map(s=>{
-    const accessLevel=sessionAccessLevel(s);
-    const joinedSession=joined.has(s.sessionId)||sessionCanRead(s);
-    const joinStatus=sessionJoinStatus(s.sessionId);
-    const requestedAccess=sessionRequestedAccess(s.sessionId);
-    const nm=sessionLabel(s);
-    const icon=AGENT_ICONS[s.agent]||'✦';
-    const color=AGENT_COLORS[s.agent]||'#888';
-    const t=s.updatedAt?timeAgo(new Date(s.updatedAt)):'';
-    const owner=s.ownerUserId&&s.ownerUserId!==uid?`by ${s.ownerUserId}`:'';
-    const joinMeta=accessLevel==='write'?'write':accessLevel==='read'?'read-only':joinedSession?'joined':'';
-    const meta=[owner,t,joinMeta].filter(Boolean).join(' · ');
-    const action=sessionCanRead(s)
-      ?(sessionCanWrite(s)?'<span class="ci-dot" style="background:'+(s.sessionId===rid?'var(--green)':'var(--fg6)')+'"></span>':daemonHasAdminAccess(daemon)?'<span class="ci-tag ci-tag-view">RO</span>':`<div class="ci-actions"><span class="ci-tag ci-tag-view">RO</span><button class="ci-join" onclick="event.stopPropagation();compactRequestSessionAccess('${jsq(s.sessionId)}','write')">${recentSessionAccessRequests.has(`${s.sessionId}:write`)?'Requested':'+ Write'}</button></div>`)
-      :daemonHasAdminAccess(daemon)
-        ?'<span class="ci-dot" style="background:var(--fg6)"></span>'
-        :`<div class="ci-actions"><button class="ci-join" onclick="event.stopPropagation();compactRequestSessionAccess('${jsq(s.sessionId)}','read')">${recentSessionAccessRequests.has(`${s.sessionId}:read`)?'Requested':'+ Read'}</button><button class="ci-join" onclick="event.stopPropagation();compactRequestSessionAccess('${jsq(s.sessionId)}','write')">${recentSessionAccessRequests.has(`${s.sessionId}:write`)?'Requested':'+ Write'}</button></div>`;
-    return `<div class="compact-item${s.sessionId===rid?' selected':''}" onclick="compactOpenSession('${jsq(s.sessionId)}',${sessionCanRead(s)?'true':'false'})"><span class="ci-icon" style="color:${color}">${icon}</span><div class="ci-info"><div class="ci-name">${esc(nm)}</div><div class="ci-meta">${esc(meta)}</div></div>${action}</div>`;
-  }).join('');
-  return compactSection(AGENT_NAMES[currentAgentName]||'Sessions',`${readOnlyBanner}${content}`)
+  // rewire onclick handlers in compact nav for session cards
+  $.compactNav.querySelectorAll('.col-item[onclick*="openSession"]').forEach(el=>{
+    const m=el.getAttribute('onclick')?.match(/openSession\('([^']*)'\)/);
+    if(m){const sid=m[1];el.setAttribute('onclick',`compactOpenSession('${sid}',true)`);}
+  });
 }
-function renderCompactNav(){if(!$.compactNav)return;$.compactNav.innerHTML=`${renderCompactDaemons()}${renderCompactAgents()}${renderCompactSessions()}`}
 function syncCompactButton(){if(!$.compactBtn)return;const show=!!uid&&!isMobile();$.compactBtn.style.display=show?'inline-flex':'none';if($.chatColTop)$.chatColTop.style.display='none';$.compactBtn.classList.toggle('active',show&&compactNav);$.compactBtn.title=compactNav?'Restore side panels':'Expand chat area';$.compactBtn.textContent=compactNav?'⤡':'⤢';document.getElementById('column-nav').classList.toggle('compact',!!uid&&!isMobile()&&compactNav);renderCompactNav()}
 function setCompactNav(next){compactNav=!!next&&!!uid&&!isMobile();syncCompactButton()}
 function restoreExpandedNav(){setCompactNav(false)}
 window.restoreExpandedNav=restoreExpandedNav;
-window.compactSelectDaemon=(did)=>{restoreExpandedNav();window.selectDaemon(did)};
+window.compactSelectDaemon=(did)=>{currentDaemonId=currentDaemonId===did?null:did;currentAgentName=null;renderCompactNav();renderDaemonsCol();renderAgentsCol();renderSessionsCol();updateBreadcrumb()};
 window.compactSelectAgent=(agentName)=>{if(!TESTED_ACP_AGENTS.has(agentName)&&agentName!=='copilot-sdk')return;restoreExpandedNav();window.selectAgent(agentName)};
-window.compactOpenSession=async(sid,joined)=>{restoreExpandedNav();if(joined){await window.openSession(sid)}};
+window.compactOpenSession=async(sid,joined)=>{if(joined){await window.openSession(sid);renderCompactNav()}};
 window.compactRequestSessionAccess=async(sid,requestedAccess='read')=>{await window.requestSessionAccess(sid,requestedAccess);renderCompactNav()};
 function setLoginMessage(message='',isError=false){const target=oauthMode?document.getElementById('login-msg-oauth'):$.loginMsg;if(!target)return;target.textContent=message;target.style.color=isError?'#ff8f8f':'';if(oauthMode)syncOauthLoginCard(message,isError)}
 function setCol(id,visible,display='flex'){const el=document.getElementById(id);if(!el)return;const wasHidden=el.style.display==='none';el.style.display=visible?display:'none';if(visible&&wasHidden){el.classList.remove('col-enter');void el.offsetWidth;el.classList.add('col-enter')}}
@@ -1596,8 +1815,24 @@ function syncDirectoryBadge(daemon,pathValue=''){
   badge.innerHTML=directoryBadgeHtml(daemon,pathValue);
 }
 function renderSelectedDirectory(){
-  const daemon=knownDaemons.get(currentDaemonId);
-  const value=normalizePickerPath($.dirIn?.value||'',daemon?.platform);
+  const daemon=currentCreateDaemon();
+  const dirOsIcon=document.getElementById('f-dir-os-icon');
+  if(dirOsIcon){
+    const p=normalizeDaemonPlatform(daemon?.platform);
+    dirOsIcon.innerHTML=daemon?(OS_ICONS[p]||'🖥'):'';
+  }
+  if($.dirIn)$.dirIn.disabled=!daemon;
+  if(!daemon){
+    if($.dirIn){
+      $.dirIn.value='';
+      $.dirIn.placeholder=hasCreatableDaemonEntry()?'Select a workspace first':'No create-capable workspace available';
+    }
+    syncDirectoryBadge(null,'');
+    if($.dirMeta)$.dirMeta.innerHTML='';
+    return;
+  }
+  const value=normalizePickerPath($.dirIn?.value||createSessionDraft.directory||'',daemon?.platform);
+  createSessionDraft.directory=value;
   if($.dirIn)$.dirIn.value=value;
   syncDirectoryBadge(daemon,value);
   if($.dirMeta)$.dirMeta.innerHTML=directoryMetaText(daemon,value);
@@ -1607,8 +1842,9 @@ function renderSelectedDirectory(){
   }
 }
 function setSelectedDirectory(pathValue='',source='manual'){
-  const daemon=knownDaemons.get(currentDaemonId);
+  const daemon=currentCreateDaemon();
   const value=normalizePickerPath(pathValue,daemon?.platform);
+  createSessionDraft.directory=value;
   if($.dirIn)$.dirIn.value=value;
   renderSelectedDirectory();
   syncCreateSessionButton();
@@ -1623,33 +1859,41 @@ function pathLooksCompatibleWithPlatform(pathValue,platform){
 function defaultDirectoryForDaemon(daemon){return (daemon?.workspaces||[]).find(Boolean)||''}
 function syncCreateSessionButton(){
   const button=document.getElementById('f-btn');
+  const openBtn=document.getElementById('open-create-session-btn');
+  if(openBtn){
+    const currentDaemon=currentDaemonId?knownDaemons.get(currentDaemonId):null;
+    const canCreate=!!currentDaemonId&&!!currentDaemon&&isCreateSelectableDaemon(currentDaemon);
+    openBtn.disabled=!canCreate;
+    openBtn.title=!currentDaemonId?'Select a workspace first':!canCreate?'Creating sessions requires workspace admin access':'Create a new session';
+  }
   if(!button)return;
-  const daemon=knownDaemons.get(currentDaemonId);
-  const dirValue=normalizePickerPath(document.getElementById('f-dir')?.value.trim()||'',daemon?.platform);
-  const invalid=!!currentDaemonId&&!!dirValue&&!pathLooksCompatibleWithPlatform(dirValue,daemon?.platform);
+  const daemon=currentCreateDaemon();
+  const dirValue=normalizePickerPath(document.getElementById('f-dir')?.value.trim()||createSessionDraft.directory||'',daemon?.platform);
+  const invalid=!!currentCreateDaemonId()&&!!dirValue&&!pathLooksCompatibleWithPlatform(dirValue,daemon?.platform);
   const {blocked,readOnly}=getCreateSessionAccessState(daemon);
+  const hasCreatable=hasCreatableDaemonEntry();
   if(button.dataset.busy!=='true'){
-    button.disabled=invalid||blocked||readOnly;
-    button.textContent=blocked?'No Daemon Access':readOnly?'Admin Required':'New Session';
+    button.disabled=!currentCreateDaemonId()||!createSessionDraft.agentName||invalid||blocked||readOnly;
+    button.textContent=!currentCreateDaemonId()?(hasCreatable?'Select a Workspace':'No Workspace Access'):blocked?'No Workspace Access':readOnly?'Admin Required':'Create';
     button.classList.toggle('is-blocked',blocked||readOnly);
-    button.title=blocked?'You need member or admin permission on this daemon before sessions are visible.':readOnly?'Creating sessions requires daemon admin access. You currently have member (read-only) access.':invalid?`Directory does not match the selected ${daemon?.platform==='win32'?'Windows':'Linux/macOS'} daemon.`:'';
+    button.title=!currentCreateDaemonId()?(hasCreatable?'Select a workspace first.':'No workspace with admin create access is currently available.'):blocked?'You need member or admin permission on this workspace before sessions are visible.':readOnly?'Creating sessions requires workspace admin access. You currently have member (read-only) access.':invalid?`Directory does not match the selected ${daemon?.platform==='win32'?'Windows':'Linux/macOS'} workspace.`:!createSessionDraft.agentName?'Choose an agent for this workspace.':'';
   }
 }
-async function requestWorkspaceListing(pathValue='',query=''){
-  if(!currentDaemonId)throw new Error('Select a daemon first');
+async function requestWorkspaceListing(pathValue='',query='',daemonId=currentCreateDaemonId()){
+  if(!daemonId)throw new Error('Select a workspace first');
   const params=new URLSearchParams();
   if(pathValue&&pathValue!==DIR_PICKER_ROOT)params.set('path',pathValue);
   if(query)params.set('query',query);
-  return portalJson(`/api/daemons/${encodeURIComponent(currentDaemonId)}/directories?${params.toString()}`);
+  return portalJson(`/api/daemons/${encodeURIComponent(daemonId)}/directories?${params.toString()}`);
 }
 function clearDirectorySuggestions(){if($.dirSuggestions)$.dirSuggestions.innerHTML=''}
 function shouldBrowseSelectedDaemonDirectories(){
-  return canBrowseDaemonDirectories(knownDaemons.get(currentDaemonId));
+  return canBrowseDaemonDirectories(currentCreateDaemon());
 }
 function setDirectoryMeta(message='',tone=''){
   if(!$.dirMeta)return;
-  syncDirectoryBadge(knownDaemons.get(currentDaemonId),$.dirIn?.value||'');
-  $.dirMeta.innerHTML=message||directoryMetaText(knownDaemons.get(currentDaemonId),$.dirIn?.value||'');
+  syncDirectoryBadge(currentCreateDaemon(),$.dirIn?.value||'');
+  $.dirMeta.innerHTML=message||directoryMetaText(currentCreateDaemon(),$.dirIn?.value||'');
   $.dirMeta.className='dir-input-meta';
   if(tone)$.dirMeta.classList.add(`is-${tone}`)
 }
@@ -1671,8 +1915,8 @@ function renderDirectorySuggestions(items=[],response=null){
   $.dirSuggestions.innerHTML=options.join('');
 }
 async function refreshDirectorySuggestions(rawValue='',{silent=false}={}){
-  if(!uid||!cc||!currentDaemonId){clearDirectorySuggestions();return}
-  const daemon=knownDaemons.get(currentDaemonId);
+  if(!uid||!cc||!currentCreateDaemonId()){clearDirectorySuggestions();return}
+  const daemon=currentCreateDaemon();
   if(!shouldBrowseSelectedDaemonDirectories()){
     clearDirectorySuggestions();
     if(!silent&&daemon){
@@ -1685,7 +1929,7 @@ async function refreshDirectorySuggestions(rawValue='',{silent=false}={}){
   const inputValue=String(rawValue||'').trim();
   const token=++directorySuggestionToken;
   try{
-    const response=await requestWorkspaceListing(inputValue,'');
+    const response=await requestWorkspaceListing(inputValue,'',currentCreateDaemonId());
     if(token!==directorySuggestionToken)return;
     const items=[...(response.favorites||[]),...(response.roots||[]),...(response.dirs||[])];
     renderDirectorySuggestions(items,response);
@@ -1725,6 +1969,11 @@ function daemonHasAdminAccess(daemon){return portalDaemonHasAdminAccess(daemon)}
 function sessionRequestState(sessionId){return joinRequests.get(sessionId)||{}}
 function sessionJoinStatus(sessionId){return sessionRequestState(sessionId).status||''}
 function sessionRequestedAccess(sessionId){return sessionRequestState(sessionId).requestedAccess||''}
+function countSessionsForDaemon(daemonId){
+  if(!daemonId)return 0;
+  const all=collectVisibleSessions({discoveredSessions,chatRooms:cc?.rooms||[],deletedSessions,lobbyRoomId:LOBBY_ROOM});
+  return all.filter(s=>s.daemonId===daemonId).length;
+}
 function daemonRecordForSession(session){
   const daemonId=String(session?.daemonId||currentDaemonId||'').trim();
   if(!daemonId)return currentDaemonRecord();
@@ -1748,7 +1997,7 @@ function daemonApproverLabel(daemon){const approvers=portalApproverUserIds(daemo
 function daemonAccessLevelLabel(daemon){if(!daemon)return'Unavailable';if(daemon.canManage)return'Owner';if(daemonHasAdminAccess(daemon))return'Admin';if(daemonHasMemberAccess(daemon))return'Member';return'No access'}
 function daemonAccessToneClass(daemon){if(!daemon)return'is-unavailable';if(daemon.canManage)return'is-owner';if(daemonHasAdminAccess(daemon))return'is-admin';if(daemonHasMemberAccess(daemon))return'is-member';return'is-none'}
 function daemonAccessSummary(daemon){return`Your access: ${daemonAccessLevelLabel(daemon)}`}
-function daemonAccessTag(daemon){if(!daemon)return'';if(daemonHasAdminAccess(daemon))return'';if(daemonHasMemberAccess(daemon))return'<span class="ci-tag ci-tag-view">MEMBER</span>';return'<span class="ci-tag ci-tag-view">NO ACCESS</span>'}
+function daemonAccessTag(daemon){if(!daemon)return'';if(daemonHasAdminAccess(daemon))return'';if(daemonHasMemberAccess(daemon))return'<span class="ci-tag ci-tag-view">MEMBER</span>';if(!daemon.accessResolved)return'';return'<span class="ci-tag ci-tag-danger">NO ACCESS</span>'}
 function currentSessionPermissionMessage(){
   const session=rid?discoveredSessions.get(rid):null;
   const daemon=currentDaemonRecord();
@@ -1951,7 +2200,7 @@ function renderDaemonAccessDrawer(){
   if(!overlay||!drawer||!title||!role||!sub||!body)return;
   const daemonId=String(daemonAccessDrawerDaemonId||'').trim();
   const daemon=daemonId?knownDaemons.get(daemonId):null;
-  if(daemonAccessDrawerOpen&&(!daemon||!daemon.canManage||daemonId!==currentDaemonId)){
+  if(daemonAccessDrawerOpen&&(!daemon||!daemon.canManage)){
     daemonAccessDrawerOpen=false;
     daemonAccessDrawerDaemonId='';
     daemonAccessDrawerStatus=null;
@@ -2055,22 +2304,20 @@ async function refreshPortalDaemons({render=true}={}){
   syncCreateSessionButton();
 }
 async function refreshPortalSessions({render=true}={}){
-  if(!uid||!currentAgentName)return;
+  if(!uid)return;
   const queryKey=currentSessionQueryKey();
   const now=Date.now();
+  if(!queryKey)return;
   loadingSessionQueryKeys.add(queryKey);
   try{
-    const params=new URLSearchParams();
-    if(currentDaemonId)params.set('daemonId',currentDaemonId);
-    if(currentAgentName)params.set('agentName',currentAgentName);
-    const body=await portalJson(`/api/sessions?${params.toString()}`);
+    const body=await portalJson('/api/sessions');
     sessionListBlockedReason=body.blockedReason||'';
     markSessionQueryLoaded(queryKey);
     if(sessionListBlockedReason){if(render)await renderSessionsCol();return}
     const joined=joinedRoomIds();
     const keep=new Set();
     for(const session of body.sessions||[]){
-      const scopedSession=applySessionQueryContext(session,{currentDaemonId,currentAgentName});
+      const scopedSession=applySessionQueryContext(session,{});
       const normalized=normalizeSessionRecord(scopedSession,discoveredSessions.get(session.sessionId)||{});
       keep.add(session.sessionId);
       if(shouldSkipDeletedSession(session.sessionId,deletedSessions,now,5000))continue;
@@ -2087,8 +2334,6 @@ async function refreshPortalSessions({render=true}={}){
     }
     for(const [sessionId,meta] of [...discoveredSessions.entries()]){
       if(keep.has(sessionId)||joined.has(sessionId)||deletedSessions.has(sessionId))continue;
-      if(currentDaemonId&&meta.daemonId&&meta.daemonId!==currentDaemonId)continue;
-      if(currentAgentName&&meta.agent&&meta.agent!==currentAgentName)continue;
       discoveredSessions.delete(sessionId);
     }
     if(render)await renderSessionsCol();
@@ -2143,7 +2388,7 @@ async function pollPortalState({render=true,includeRequests=false}={}){
   portalPollInFlight=true;
   try{
     await refreshPortalDaemons({render});
-    if(currentAgentName)await refreshPortalSessions({render});
+    await refreshPortalSessions({render});
     if(includeRequests)await refreshPortalRequestApprovals();
   }catch(err){console.warn('Portal refresh failed:',err?.message||err)}finally{portalPollInFlight=false}
 }
@@ -2340,8 +2585,9 @@ function applyLobbyEnvelope(e){
     knownDaemons.set(daemonId,merged);
     if(daemonHasMemberAccess(merged))void ensureDaemonSyncRoom(daemonId);
     renderDaemonsCol();
-    if(currentDaemonId===daemonId)renderAgentsCol();
-    if(currentDaemonId===daemonId&&currentAgentName)void renderSessionsCol();
+    renderAgentsCol();
+    void renderSessionsCol();
+    if(createSessionModalOpen)renderCreateSessionModal();
     syncCreateSessionButton();
     return;
   }
@@ -2354,10 +2600,12 @@ function applyLobbyEnvelope(e){
         const next={...daemon,accessRequestStatus:e.status,requestedAccess:e.requestedAccess||daemon.requestedAccess||''};
         if(approved){next.hasMemberAccess=true;next.canRead=true;if(e.requestedAccess==='admin'){next.hasAdminAccess=true;next.canWrite=true;next.canManage=true;next.approverUserIds=[...new Set([...(portalApproverUserIds(daemon)),uid].filter(Boolean))]}}
         knownDaemons.set(e.daemonId,next);
+        if(!currentDaemonId)currentDaemonId=e.daemonId;
         renderDaemonsCol();
-        if(currentDaemonId===e.daemonId)renderAgentsCol();
+        renderAgentsCol();
         syncCreateSessionButton();
-        if(currentAgentName)void renderSessionsCol();
+        void refreshPortalSessions({render:true});
+        if(createSessionModalOpen)renderCreateSessionModal();
         void ensureDaemonSyncRoom(e.daemonId);
       }
       setFormStatus(approved?'Daemon access granted!':'Daemon access denied.',approved?'success':'error',2200,'create');
@@ -2365,6 +2613,11 @@ function applyLobbyEnvelope(e){
     if(e.target==='session'&&e.sessionId){
       const prev=joinRequests.get(e.sessionId)||{};
       joinRequests.set(e.sessionId,{...prev,status:approved?'approved':'denied',requestedAccess:e.requestedAccess||prev.requestedAccess||'read',updatedAt:new Date().toISOString(),autoOpen:prev.autoOpen!==false});
+      if(approved){
+        const sessionPrev=discoveredSessions.get(e.sessionId)||{sessionId:e.sessionId};
+        const accessPatch=e.requestedAccess==='write'?{canWrite:true,canRead:true,accessLevel:'write'}:{canRead:true,accessLevel:sessionPrev.accessLevel||'read'};
+        discoveredSessions.set(e.sessionId,{...sessionPrev,...accessPatch});
+      }
       void renderSessionsCol();
       setFormStatus(approved?'Session access granted!':'Session access denied.',approved?'success':'error',2200,'join');
       if(approved&&prev.autoOpen!==false){
@@ -2405,8 +2658,10 @@ function applyDaemonSyncEnvelope(e){
       }
       knownDaemons.set(daemonId,next);
       renderDaemonsCol();
+      renderAgentsCol();
       syncCreateSessionButton();
-      if(currentAgentName)void renderSessionsCol();
+      void renderSessionsCol();
+      if(createSessionModalOpen)renderCreateSessionModal();
     }
     if(e.status==='pending'){
       if(requestId&&seenPendingDaemonAccessRequestIds.has(requestId))return;
@@ -2441,8 +2696,6 @@ function applyDaemonSyncEnvelope(e){
     if(typeof e.sessionReady==='boolean')statePatch.sessionReady=e.sessionReady;
     upsertDiscoveredSession({...e,...statePatch,...getRealtimeSessionAccessPatch(e,{currentUserId:uid,daemon})});
   }else return;
-  if(currentDaemonId&&e.daemonId&&e.daemonId!==currentDaemonId)return;
-  if(currentAgentName&&e.agentName&&e.agentName!==currentAgentName)return;
   void renderSessionsCol();
 }
 async function sendDaemonEnvelope(payload){
@@ -2529,7 +2782,7 @@ async function handleDaemonAccessRequest(e){
     await portalJson(`/api/daemons/${encodeURIComponent(e.daemonId)}/access-requests/${encodeURIComponent(e.requestId)}/${allow?'approve':'reject'}`,{method:'POST'});
     pulsePortalRefresh([500,1500]);
     await refreshPortalDaemons({render:true});
-    if(currentAgentName)await refreshPortalSessions({render:true});
+    await refreshPortalSessions({render:true});
   }catch(err){
     console.warn('Daemon access approval response failed:',err?.message||err);
     setFormStatus(err?.message||'Failed to send daemon access response.','error',4500,'create');
@@ -2580,10 +2833,14 @@ async function ensureJoinedSession(sessionId){
 function applyLoggedOutState(message='',isError=false){
   setCompactNav(false);
   closeDaemonAccessDrawer();
+  closeCreateSessionModal();
   rid=null;currentDaemonId=null;currentAgentName=null;sessionBooting=false;resetChatState();
+  createSessionDraft.daemonId='';
+  createSessionDraft.agentName='';
+  createSessionDraft.directory='';
   setSelectedDirectory('','auto');
   clearDirectorySuggestions();
-  setCol('col-login',true);setCol('col-daemons',true);setCol('col-agents',true);setCol('col-sessions',true);setCol('chat-col',true);
+  setCol('col-login',true);setCol('col-daemons',false);setCol('col-agents',false);setCol('col-sessions',false);setCol('chat-col',false);
   setColumnDisabled('col-daemons',true);setColumnDisabled('col-agents',true);setColumnDisabled('col-sessions',true);setColumnDisabled('chat-col',true);
   $.chat.classList.add('hidden');$.ibar.classList.add('hidden');syncComposer();
   showChatPlaceholder(true);
@@ -2594,16 +2851,14 @@ function applyLoggedOutState(message='',isError=false){
 }
 function applyLoggedInState(){
   setColumnDisabled('col-daemons',false);setColumnDisabled('col-agents',false);setColumnDisabled('col-sessions',false);setColumnDisabled('chat-col',false);
-  setCol('col-login',false);setCol('col-daemons',true);setCol('col-agents',!!currentDaemonId);setCol('col-sessions',!!currentAgentName);setCol('chat-col',!!rid||!!currentAgentName);
+  setCol('col-login',false);setCol('col-daemons',true);setCol('col-agents',false);setCol('col-sessions',true);setCol('chat-col',true);
   showChatPlaceholder(!rid);
   if(rid)showChat();else{$.chat.classList.add('hidden');$.ibar.classList.add('hidden')}
   syncComposer();
-  setLoginMessage('');syncUserBadge();updateAutoBtn();renderDaemonsCol();
-  if(currentDaemonId)renderAgentsCol();
-  if(currentAgentName)renderSessionsCol();
+  setLoginMessage('');syncUserBadge();updateAutoBtn();renderDaemonsCol();renderAgentsCol();renderSessionsCol();
   updateBreadcrumb();
   syncCompactButton();
-  if(isMobile())mobShow(rid?'chat-col':currentAgentName?'col-sessions':currentDaemonId?'col-agents':'col-daemons')
+  if(isMobile())mobShow(rid?'chat-col':'col-sessions')
 }
 async function loginUser(rawUserId){
   const userId=String(rawUserId||'').trim()||DEFAULT_USERNAME;
@@ -2710,6 +2965,7 @@ const TOPBAR_DAEMON_ICON=`<svg viewBox="0 0 24 24" fill="none" stroke="currentCo
 const TOPBAR_SESSION_ICON=`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" xmlns="http://www.w3.org/2000/svg"><path d="M3.5 7.5A2 2 0 0 1 5.5 5.5h4l2 2h7A2 2 0 0 1 20.5 9.5v8a2 2 0 0 1-2 2h-13a2 2 0 0 1-2-2z"/></svg>`;
 function topbarBreadcrumbItems(){
   const items=[];
+  if(!rid)return items;
   if(currentDaemonId){
     const daemon=knownDaemons.get(currentDaemonId);
     items.push({kind:'daemon',label:daemon?.hostname||currentDaemonId,icon:TOPBAR_DAEMON_ICON});
@@ -2749,21 +3005,14 @@ function syncSessionSelection(sessionId,patch={}){
   discoveredSessions.set(sessionId,next);
   if(next.daemonId)currentDaemonId=next.daemonId;
   if(next.agent)currentAgentName=next.agent;
-  if(currentAgentName)document.getElementById('f-agent').value=currentAgentName;
   syncSessionToolbarMeta();
-  if(currentDaemonId){
-    document.getElementById('col-agents').style.display='flex';
-    renderDaemonsCol();
-    renderAgentsCol();
-  }
-  if(currentAgentName){
-    document.getElementById('col-sessions').style.display='flex';
-    document.getElementById('col-sessions-hdr').textContent=AGENT_NAMES[currentAgentName]||currentAgentName;
-  }
+  renderDaemonsCol();
+  renderAgentsCol();
+  document.getElementById('col-sessions-hdr').textContent='Sessions';
   updateBreadcrumb();
 }
 
-// ── Column 1: Agent Daemons ──
+// ── Column 1: Workspaces ──
 function renderDaemonsCol(){
   const list=document.getElementById('col-daemons-list');
   if(!uid||!cc){list.innerHTML=skeletonColumn(3);renderCompactNav();renderDaemonAccessDrawer();return}
@@ -2772,13 +3021,13 @@ function renderDaemonsCol(){
   if(currentDaemonId&&!daemonEntries.some(([did])=>did===currentDaemonId)){currentDaemonId=null;currentAgentName=null;rid=null}
   if(!daemonEntries.length){list.innerHTML=renderColumnStateCard({icon:'🔌',title:'No daemons found',detail:'Start a local daemon and the portal will pick it up on the next refresh.',extra:'<div class="col-empty-hint">npm run daemon</div>'});renderCompactNav();renderDaemonAccessDrawer();return}
   const daemonCards=daemonEntries.map(([did,d])=>{
-    const agentCount=(d.agents||[]).length;
     const platform=normalizeDaemonPlatform(d.platform);
     const osIcon=OS_ICONS[platform]||'🖥';
     const osName=OS_NAMES[platform]||'';
-    const accessTag=daemonAccessTag(d);
     const hostnameMeta=d.hostname&&d.hostname!==did?`${d.hostname} · `:'';
-    const card=`<div class="col-item${did===currentDaemonId?' selected':''}" onclick="selectDaemon('${jsq(did)}')"><span class="ci-icon">${osIcon}</span><div class="ci-info"><div class="ci-name">${esc(did)}</div><div class="ci-meta">${esc(`${hostnameMeta}${osName?osName+' · ':''}${agentCount} agent${agentCount!==1?'s':''}`)}</div><div class="ci-submeta">${esc(daemonAdminUsersMeta(d))}</div></div>${accessTag}<span class="ci-dot"></span></div>`;
+    const accessTag=daemonAccessTag(d);
+    const sessionCount=countSessionsForDaemon(did);
+    const card=`<div class="col-item${did===currentDaemonId?' selected':''}" onclick="selectDaemon('${jsq(did)}')"><span class="ci-icon">${osIcon}</span><div class="ci-info"><div class="ci-name">${esc(did)}</div><div class="ci-meta">${esc(`${hostnameMeta}${osName?osName+' · ':''}${sessionCount} session${sessionCount!==1?'s':''}`)}</div><div class="ci-submeta">${esc(daemonAdminUsersMeta(d))}</div></div>${accessTag}<span class="ci-dot"></span></div>`;
     if(did!==currentDaemonId)return card;
     return `<div class="daemon-stack">${card}${renderDaemonAccessSummaryCard(did,d)}</div>`;
   }).join('');
@@ -2787,26 +3036,17 @@ function renderDaemonsCol(){
   renderDaemonAccessDrawer();
 }
 window.selectDaemon=(did)=>{
-  closeDaemonAccessDrawer();
-  currentDaemonId=did;
+  if(createSessionModalOpen){
+    closeDaemonAccessDrawer();
+    createSessionDraft.daemonId=did;
+    createSessionDraft.agentName='';
+    ensureCreateSessionDraft();
+    renderCreateSessionModal();
+    return;
+  }
+  currentDaemonId=currentDaemonId===did?null:did;
   currentAgentName=null;
-  rid=null;
-  resetChatState();
-  renderDaemonsCol();
-  document.getElementById('col-agents').style.display='flex';
-  document.getElementById('col-sessions').style.display='none';
-  applyLoggedInState();
-  updateAutoBtn();
-  updateBreadcrumb();
-  renderAgentsCol();
-  const daemon=knownDaemons.get(did);
-  const currentDir=normalizePickerPath($.dirIn?.value||'',daemon?.platform);
-  const fallbackDir=normalizePickerPath(defaultDirectoryForDaemon(daemon),daemon?.platform);
-  if(!currentDir||!pathLooksCompatibleWithPlatform(currentDir,daemon?.platform))setSelectedDirectory(fallbackDir,'auto');
-  else renderSelectedDirectory();
-  syncCreateSessionButton();
-  void pollPortalState({render:true});
-  if(isMobile())mobShow('col-agents');
+  renderDaemonsCol();renderAgentsCol();renderSessionsCol();updateBreadcrumb();
 };
 
 window.toggleCollapsibleSection=(trigger)=>{
@@ -2833,7 +3073,6 @@ function renderAgentsCol(){
   document.getElementById('col-agents-hdr').textContent='Agents';
   const acpAgents=(daemon.agents||[]).filter(a=>a!=='copilot-sdk');
   const sdkAgents=(daemon.agents||[]).includes('copilot-sdk')?['copilot-sdk']:[];
-  if(!sdkAgents.length&&(daemon.agents||[]).includes('copilot'))sdkAgents.push('copilot-sdk');
 
   // Preferred order: copilot, claude, codex first; rest collapsed
   const preferredOrder=['copilot','claude','codex','gemini','opencode'];
@@ -2868,7 +3107,7 @@ function renderAgentsCol(){
     html+=sdkAgents.map(a=>{
       const icon=AGENT_ICONS.copilot;
       const color=AGENT_COLORS.copilot;
-      return`<div class="col-item${a===currentAgentName?' selected':''}" onclick="selectAgent('${jsq(a)}')"><span class="ci-icon" style="color:${color}">${icon}</span><div class="ci-info"><div class="ci-name">GitHub Copilot</div><div class="ci-meta">Copilot SDK</div></div></div>`;
+      return`<div class="col-item${a===currentAgentName?' selected':''}" onclick="selectAgent('${jsq(a)}')"><span class="ci-icon" style="color:${color}">${icon}</span><div class="ci-info"><div class="ci-name">GitHub Copilot SDK</div><div class="ci-meta">Copilot SDK</div></div></div>`;
     }).join('');
     html+=`</div>`;
   }
@@ -2876,37 +3115,29 @@ function renderAgentsCol(){
   renderCompactNav();
 }
 window.selectAgent=(agentName)=>{
+  if(!createSessionModalOpen)return;
   if(agentName!=='copilot-sdk'&&!TESTED_ACP_AGENTS.has(agentName))return;
-  currentAgentName=agentName;
-  rid=null;
-  resetChatState();
-  const queryKey=currentSessionQueryKey();
-  if(queryKey)loadedSessionQueryKeys.delete(queryKey);
+  createSessionDraft.agentName=agentName;
   document.getElementById('f-agent').value=agentName;
-  renderAgentsCol();
-  document.getElementById('col-sessions').style.display='flex';
-  document.getElementById('col-sessions-hdr').textContent=AGENT_NAMES[agentName]||agentName;
-  document.getElementById('col-new-session').style.display='block';
-  applyLoggedInState();
-  updateAutoBtn();
-  updateBreadcrumb();
-  if(!normalizePickerPath($.dirIn?.value||'',knownDaemons.get(currentDaemonId)?.platform))setSelectedDirectory(defaultDirectoryForDaemon(knownDaemons.get(currentDaemonId)),'auto');
-  else renderSelectedDirectory();
-  void refreshPortalSessions({render:false}).then(()=>renderSessionsCol()).catch(err=>console.warn('Session refresh failed:',err?.message||err));
-  renderSessionsCol();
-  if(isMobile())mobShow('col-sessions');
+  renderCreateSessionModal();
 };
 
 // ── Column 3: Sessions ──
+let sessionGroupBy='none';
+window.setSessionGroupBy=function(mode){
+  sessionGroupBy=mode;
+  document.querySelectorAll('.session-groupby-pill').forEach(p=>p.classList.toggle('is-active',p.textContent.toLowerCase()===mode));
+  renderSessionsCol();
+  renderCompactNav();
+};
 async function renderSessionsCol(){
   const list=document.getElementById('col-sessions-list');
+  const header=document.getElementById('col-sessions-hdr');
+  if(header)header.textContent='Sessions';
   syncCreateSessionButton();
   if(!uid||!cc){list.innerHTML=skeletonColumn(4);renderCompactNav();return}
-  if(!currentAgentName){list.innerHTML=renderSessionEmptyState('Select an agent','Choose an agent to browse or create sessions.','✦');renderCompactNav();return}
-  const daemon=currentDaemonRecord();
-  if(daemon&&!daemonHasMemberAccess(daemon)){
-    const emptyState=sessionEmptyStateCopy(daemon);
-    list.innerHTML=renderSessionEmptyState(emptyState.title,emptyState.detail,emptyState.icon);
+  if(!currentDaemonId){
+    list.innerHTML=renderColumnStateCard({icon:'👈',title:'Select a workspace',detail:'Pick a workspace from the left panel to see its sessions.'});
     renderCompactNav();
     return
   }
@@ -2915,8 +3146,6 @@ async function renderSessionsCol(){
     discoveredSessions,
     chatRooms:cc?.rooms||[],
     deletedSessions,
-    currentDaemonId,
-    currentAgentName,
     lobbyRoomId:LOBBY_ROOM,
   });
   if(queryKey&&!sessionQueryLoaded(queryKey)&&!portalPollInFlight&&!sessionQueryLoading(queryKey))void refreshPortalSessions({render:true}).catch(err=>console.warn('Session refresh failed:',err?.message||err));
@@ -2928,38 +3157,46 @@ async function renderSessionsCol(){
   const readOnlyBanner='';
   const joined=joinedRoomIds();
   const sessions=[...localSessions];
-  await mapLimit(sessions.filter(s=>joined.has(s.sessionId)&&(!s.agent||!s.workingDirectory||!s.ownerUserId)),4,async(s)=>{try{
+  await mapLimit(sessions.filter(s=>joined.has(s.sessionId)&&(!s.agent||!s.workingDirectory||!s.ownerUserId||!s.daemonId)),4,async(s)=>{try{
     const ri=await cc.getRoom(s.sessionId,false);const cid=ri?.defaultConversationId;const roomName=resolveRoomDisplayName(ri);
     if(roomName&&roomName!=='Session')s.name=roomName;
     if(cid)s.defaultConversationId=s.defaultConversationId||cid;
     if(cid){const h=await cc.listMessage(cid,'0',null,10);if(h?.messages?.length){
       for(const m of [...h.messages].reverse()){if(!m.content?.text)continue;try{const e=JSON.parse(m.content.text);
-        if(e.type==='control.create'){s.workingDirectory=s.workingDirectory||e.workingDirectory;s.agent=s.agent||e.agentName;s.ownerUserId=s.ownerUserId||e.userId;break}
+        if(e.type==='control.create'){s.workingDirectory=s.workingDirectory||e.workingDirectory;s.agent=s.agent||e.agentName;s.daemonId=s.daemonId||e.daemonId;s.ownerUserId=s.ownerUserId||e.userId;break}
       }catch{}}
       if(h.messages[0]?.createdAt)s.updatedAt=s.updatedAt||h.messages[0].createdAt;
     }}
   }catch(e){console.warn('Session enrich failed:',s.sessionId.substring(0,8),e.message)}});
-  const filtered=[...sessions].sort((a,b)=>{const ta=a.updatedAt?new Date(a.updatedAt).getTime():0;const tb=b.updatedAt?new Date(b.updatedAt).getTime():0;return tb-ta});
+  const filtered=[...sessions].sort((a,b)=>{const ta=a.updatedAt?new Date(a.updatedAt).getTime():0;const tb=b.updatedAt?new Date(b.updatedAt).getTime():0;return tb-ta}).filter(s=>!currentDaemonId||s.daemonId===currentDaemonId);
   if(!filtered.length){
-    const emptyState=sessionListBlockedReason==='daemon-access-denied'
-      ?sessionEmptyStateCopy({...daemon,hasMemberAccess:false,canRead:false})
-      :sessionEmptyStateCopy(daemon);
-    list.innerHTML=`${readOnlyBanner}${renderSessionEmptyState(emptyState.title,emptyState.detail,emptyState.icon)}`;
+    const daemonEntries=freshDaemonEntries();
+    const hasVisibleDaemon=daemonEntries.length>0;
+    const hasMemberDaemon=daemonEntries.some(([,daemon])=>daemonHasMemberAccess(daemon));
+    const hasCreatableDaemon=daemonEntries.some(([,daemon])=>{const {blocked,readOnly}=getCreateSessionAccessState(daemon);return !blocked&&!readOnly});
+    if(!hasVisibleDaemon)list.innerHTML=`${readOnlyBanner}${renderColumnStateCard({icon:'🔌',title:'No daemons found',detail:'Start a local daemon and the portal will pick it up on the next refresh.',extra:'<div class="col-empty-hint">npm run daemon</div>'})}`;
+    else if(!hasMemberDaemon)list.innerHTML=`${readOnlyBanner}${renderSessionEmptyState('No accessible sessions yet','You can see daemons in the launcher, but you still need daemon member or admin access before shared sessions appear here.','🔒')}`;
+    else if(!hasCreatableDaemon)list.innerHTML=`${readOnlyBanner}${renderSessionEmptyState('No sessions yet','Shared sessions will appear here when they exist. Creating a new one still requires daemon admin access.','💬')}`;
+    else list.innerHTML=`${readOnlyBanner}${renderSessionEmptyState('No sessions yet','Use New Session to start one on any daemon where you have admin access.','💬')}`;
     renderCompactNav();
     return
   }
   list.innerHTML=filtered.map(s=>{
+    const daemon=daemonRecordForSession(s);
     const accessLevel=sessionAccessLevel(s);
+    const accessPresentation=getSessionListAccessPresentation(accessLevel,{suppressGrantedAccessBadge:daemonHasAdminAccess(daemon)});
     const joinedSession=joined.has(s.sessionId)||sessionCanRead(s);
-    const joinStatus=sessionJoinStatus(s.sessionId);
-    const requestedAccess=sessionRequestedAccess(s.sessionId);
+    const canOpenSessionCard=joinedSession;
+    const isRequestableSessionCard=accessPresentation.isRequestable&&!canOpenSessionCard;
     const nm=sessionLabel(s);
     const icon=AGENT_ICONS[s.agent]||'✦';
     const color=AGENT_COLORS[s.agent]||'#888';
     const t=s.updatedAt?timeAgo(new Date(s.updatedAt)):'';
-    const owner=s.ownerUserId&&s.ownerUserId!==uid?`by ${s.ownerUserId}`:'';
-    const joinMeta=accessLevel==='write'?'write':accessLevel==='read'?'read-only':joinedSession?'joined':'';
-    const meta=[owner,t,joinMeta].filter(Boolean).join(' · ');
+    const daemonLabel=daemon?.hostname||s.daemonId||'Unknown daemon';
+    const agentLabel=AGENT_NAMES[s.agent]||s.agent||'Unknown agent';
+    const owner=s.ownerUserId&&s.ownerUserId!==uid?`Owner: ${s.ownerUserId}`:'';
+    const path=s.workingDirectory||'';
+    const meta=[t].filter(Boolean).join(' · ');
     const canDelete=sessionCanDelete(s);
     const canLeave=sessionCanLeave(s,daemon);
     const manageAction=canDelete
@@ -2968,19 +3205,46 @@ async function renderSessionsCol(){
         ?`<button class="ci-del ci-del-leave" title="Leave session" onclick="event.stopPropagation();leaveSess('${jsq(s.sessionId)}')">Leave</button>`
         :'';
     const statusInfo=getSessionListStatusInfo(s);
-    const metaHtml=(meta||statusInfo)
-      ?`<div class="ci-meta ci-meta-session">${meta?`<span class="ci-meta-copy">${esc(meta)}</span>`:''}${statusInfo?`<span class="ci-status-inline" data-state="${statusInfo.state}">${esc(statusInfo.label)}</span>`:''}</div>`
-      :'';
-    const action=joinedSession
+    const inlineAction=joinedSession
       ?(sessionCanRead(s)&&!sessionCanWrite(s)&&!daemonHasAdminAccess(daemon)
-        ?`<div class="ci-actions"><button class="ci-join" onclick="event.stopPropagation();requestSessionAccess('${jsq(s.sessionId)}','write')">${recentSessionAccessRequests.has(`${s.sessionId}:write`)?'Requested':'+ Write'}</button>${manageAction}</div>`
+        ?''
         :manageAction)
+      :'';
+    const blockAction=joinedSession
+      ?(sessionCanRead(s)&&!sessionCanWrite(s)&&!daemonHasAdminAccess(daemon)
+        ?`<div class="ci-actions"><button class="ci-join" onclick="event.stopPropagation();requestSessionAccess('${jsq(s.sessionId)}','write')">${recentSessionAccessRequests.has(`${s.sessionId}:write`)?'Requested':accessPresentation.requestWriteLabel}</button>${manageAction}</div>`
+        :'')
       :daemonHasAdminAccess(daemon)
         ?''
-        :`<div class="ci-actions"><button class="ci-join" onclick="event.stopPropagation();requestSessionAccess('${jsq(s.sessionId)}','read')">${recentSessionAccessRequests.has(`${s.sessionId}:read`)?'Requested':'+ Read'}</button><button class="ci-join" onclick="event.stopPropagation();requestSessionAccess('${jsq(s.sessionId)}','write')">${recentSessionAccessRequests.has(`${s.sessionId}:write`)?'Requested':'+ Write'}</button></div>`;
-    return`<div class="col-item${s.sessionId===rid?' selected':''}"${sessionCanRead(s)?` onclick="openSession('${jsq(s.sessionId)}')"`:''}><span class="ci-icon" style="color:${color}">${icon}</span><div class="ci-info"><div class="ci-name">${esc(nm)}</div>${metaHtml}</div>${action}</div>`;
+        :`<div class="ci-actions"><button class="ci-join" onclick="event.stopPropagation();requestSessionAccess('${jsq(s.sessionId)}','read')">${recentSessionAccessRequests.has(`${s.sessionId}:read`)?'Requested':accessPresentation.requestReadLabel}</button><button class="ci-join" onclick="event.stopPropagation();requestSessionAccess('${jsq(s.sessionId)}','write')">${recentSessionAccessRequests.has(`${s.sessionId}:write`)?'Requested':accessPresentation.requestWriteLabel}</button></div>`;
+    const accessBadge=accessPresentation.badgeLabel
+      ?`<span class="session-row-kicker ${accessPresentation.badgeClassName}">${accessPresentation.badgeLabel}</span>`
+      :'';
+    const ownerHtml=owner?`<div class="session-row-owner">${esc(owner)}</div>`:'';
+    const pathHtml=path?`<div class="session-row-path">${esc(path)}</div>`:'';
+    const nameHtml=nm?`<div class="session-row-name">${esc(nm)}</div>`:'';
+    const inlineMeta=(meta||statusInfo)?`${meta?`<span class="ci-meta-copy">${esc(meta)}</span>`:''}${statusInfo?`<span class="ci-status-inline" data-state="${statusInfo.state}">${esc(statusInfo.label)}</span>`:''}`:'';    const namelineHtml=(nameHtml||inlineMeta)?`<div class="session-row-nameline">${nameHtml}${inlineMeta}</div>`:'';
+    const daemonKicker=currentDaemonId?'':`<span class="session-row-kicker is-daemon"><span class="kicker-label">Workspace</span> ${esc(daemonLabel)}</span>`;
+    return`<div class="col-item${s.sessionId===rid?' selected':''}${isRequestableSessionCard?' is-requestable':''}"${canOpenSessionCard?` onclick="openSession('${jsq(s.sessionId)}')"`:''} data-daemon-id="${esc(s.daemonId||'')}" data-agent="${esc(s.agent||'')}" data-daemon-label="${esc(daemonLabel)}" data-agent-label="${esc(agentLabel)}"><span class="ci-icon" style="color:${color}">${icon}</span><div class="ci-info">${namelineHtml}<div class="session-row-kickers">${daemonKicker}<span class="session-row-kicker is-agent"><span class="kicker-label">Agent</span> ${esc(agentLabel)}</span>${accessBadge}</div>${pathHtml}${ownerHtml}${blockAction}</div>${inlineAction}</div>`;
   }).join('');
   list.innerHTML=`${readOnlyBanner}${list.innerHTML}`;
+  if(sessionGroupBy!=='none'){
+    const items=[...list.querySelectorAll('.col-item')];
+    const groups=new Map();
+    for(const el of items){
+      const key=el.dataset.agentLabel;
+      if(!groups.has(key))groups.set(key,[]);
+      groups.get(key).push(el);
+    }
+    list.innerHTML=readOnlyBanner;
+    for(const [label,els] of groups){
+      const hdr=document.createElement('div');
+      hdr.className='session-group-hdr';
+      hdr.textContent=label||'Unknown';
+      list.appendChild(hdr);
+      for(const el of els)list.appendChild(el);
+    }
+  }
   renderCompactNav();
 }
 function timeAgo(d){const s=Math.floor((Date.now()-d.getTime())/1000);if(s<60)return'just now';if(s<3600)return Math.floor(s/60)+'m ago';if(s<86400)return Math.floor(s/3600)+'h ago';return Math.floor(s/86400)+'d ago'}
@@ -3198,15 +3462,16 @@ window.leaveSess=async(sid)=>{if(!await showConfirm('Leave this shared session?'
   await renderSessionsCol();
 }catch(e){setFormStatus(e.message||'Failed to leave session.','error',4500,'join')}};
 window.createSess=async()=>{
-  const daemon=knownDaemons.get(currentDaemonId);
-  const d=normalizePickerPath(document.getElementById('f-dir').value.trim(),daemon?.platform),ag=currentAgentName||document.getElementById('f-agent').value;
-  if(!currentDaemonId)return setFormStatus('Select a daemon first.','error',3500,'create');
+  const daemon=currentCreateDaemon();
+  const daemonId=currentCreateDaemonId();
+  const d=normalizePickerPath(document.getElementById('f-dir').value.trim(),daemon?.platform),ag=createSessionDraft.agentName||document.getElementById('f-agent').value;
+  if(!daemonId)return setFormStatus('Select a workspace first.','error',3500,'create');
   if(!ag)return setFormStatus('Select an agent first.','error',3500,'create');
   if(!cc)return setFormStatus('Not connected. Log in first.','error',3500,'create');
   if(d&&!pathLooksCompatibleWithPlatform(d,daemon?.platform)){
     const fallbackDir=defaultDirectoryForDaemon(daemon);
     if(fallbackDir)setSelectedDirectory(fallbackDir,'auto');
-    return setFormStatus(`Directory does not match the selected daemon platform (${daemon?.platform==='win32'?'Windows':'Linux/macOS'}).`,'error',4500,'create');
+    return setFormStatus(`Directory does not match the selected workspace platform (${daemon?.platform==='win32'?'Windows':'Linux/macOS'}).`,'error',4500,'create');
   }
   const b=document.getElementById('f-btn');b.dataset.busy='true';b.disabled=true;b.classList.remove('is-blocked');b.textContent='Creating…';
   try{
@@ -3214,7 +3479,7 @@ window.createSess=async()=>{
     const dirName=(d||'Session').split(/[/\\]/).pop()||'Session';
     const roomName=`${dirName} (${ag})`;
     setFormStatus('Creating session room…','loading',0,'create');
-    const room=await portalJson('/api/sessions',{method:'POST',body:JSON.stringify({daemonId:currentDaemonId,agentName:ag,workingDirectory:d||undefined,roomName})});
+    const room=await portalJson('/api/sessions',{method:'POST',body:JSON.stringify({daemonId,agentName:ag,workingDirectory:d||undefined,roomName})});
     const sessionId=room.sessionId;
     setFormStatus('Joining session room…','loading',0,'create');
     await waitForRoomMembership(sessionId,6000);
@@ -3223,7 +3488,7 @@ window.createSess=async()=>{
       ...room,
       sessionId,
       ownerUserId:room.ownerUserId||uid,
-      daemonId:room.daemonId||currentDaemonId,
+      daemonId:room.daemonId||daemonId,
       agentName:room.agentName||ag,
       workingDirectory:room.workingDirectory??(d||undefined),
       roomName:room.roomName||roomName,
@@ -3237,6 +3502,12 @@ window.createSess=async()=>{
     setFormStatus('Waiting for agent to initialize…','loading',0,'create');
     sessionAutoApprove.set(sessionId,true);
     await openR(sessionId,{preserveBooting:true,bootStage:`Starting ${agentLabel}…`});
+    currentDaemonId=room.daemonId||daemonId;
+    currentAgentName=room.agentName||ag;
+    createSessionDraft.daemonId=currentDaemonId;
+    createSessionDraft.agentName=currentAgentName;
+    createSessionDraft.directory=d||'';
+    closeCreateSessionModal();
     setSt('idle');ss.processing=false;ss.pendingCount=0;sendMode='enqueue';syncSt();
     await renderSessionsCol();
     if(isMobile())mobShow('chat-col');
@@ -3501,13 +3772,10 @@ function pFields(e){const r=[];const a=(l,v,c)=>{if(v==null||v==='')return;const
 function pItem(e){const fs=pFields(e).map(f=>`<div class="perm-det-fl"><div class="perm-det-lbl">${esc(f.l)}</div><div class="perm-det-val${f.c?' code':''}">${esc(f.t)}</div></div>`).join('');return`<li><div class="perm-det-item" data-id="${e.requestId}"><span class="perm-det-kind">${pIcon(e.kind)} ${esc(e.kind||'permission')}</span><div class="perm-det-sum">${esc(pSum(e))}</div>${fs?`<div class="perm-det-fields">${fs}</div>`:''}</div></li>`}
 function permResolutionPresentation(state){return state==='approved'?{label:'✓ Approved',color:'#50d167',approved:'true'}:state==='cancelled'?{label:'■ Cancelled',color:'var(--fg4)',approved:'cancelled'}:{label:'✕ Denied',color:'#e55',approved:'false'}}
 function markPermItemResolved(item,state,label=''){if(!item||item.dataset.resolved==='true')return;const view=permResolutionPresentation(state);item.dataset.resolved='true';item.dataset.approved=view.approved;if(!item.querySelector('.perm-done'))item.insertAdjacentHTML('beforeend',`<div style="margin-top:6px"><span class="perm-done" style="color:${view.color}">${esc(label||view.label)}</span></div>`) }
+function createSinglePermRow(e,{resolved=false,resolution='approved',label=''}={}){const row=document.createElement('div');row.className='perm-row is-single';if(resolved)row.dataset.resolved='true';row.innerHTML=`<div class="perm-det perm-det-single expanded"><ul>${pItem(e)}</ul></div>${resolved?'':`<div class="perm-btns"><button class="deny" onclick="pAll(this.closest('.perm-row'),false)">Deny</button><button class="allow" onclick="pAll(this.closest('.perm-row'),true)">Allow</button></div>`}`;const item=row.querySelector(`.perm-det-item[data-id="${e.requestId}"]`);if(resolved)markPermItemResolved(item,resolution,label||permResolutionPresentation(resolution).label);return row}
 function finalizePermRow(row,state,label=''){if(!row)return;const view=permResolutionPresentation(state);row.dataset.resolved='true';const el=row.querySelector('.perm-btns');if(el)el.remove();const hdr=row.querySelector('.perm-hdr');if(hdr){const tog=hdr.querySelector('.p-toggle');if(tog)tog.remove();const existing=hdr.querySelector('.perm-done');if(existing)existing.remove();hdr.insertAdjacentHTML('beforeend',`<span class="perm-done" style="color:${view.color}">${esc(label||view.label)}</span>`)}if(!pp.size)setSt('busy')}
 function appendResolvedPermRow(e,resolution='approved',label=''){
-  const view=permResolutionPresentation(resolution);
-  const c=document.createElement('div');c.className='perm-row';c.dataset.resolved='true';
-  c.innerHTML=`<div class="perm-hdr"><span class="p-icon">${pIcon(e.kind)}</span><span class="p-title">${esc(pTitle(e.kind))}</span><span class="p-badge">1</span><span class="p-sum">${esc(pSum(e))}</span><span class="perm-done" style="color:${view.color}">${esc(label||view.label)}</span></div><div class="perm-det expanded"><ul>${pItem(e)}</ul></div>`;
-  const item=c.querySelector(`.perm-det-item[data-id="${e.requestId}"]`);
-  markPermItemResolved(item,resolution,label||view.label);
+  const c=createSinglePermRow(e,{resolved:true,resolution,label});
   $.chat.appendChild(c);
   scroll();
   return c;
@@ -3520,13 +3788,22 @@ function rPR(e){noteLiveSessionActivity();setSt('permission');
   if(getAutoApprove()){void(async()=>{try{await cc.sendToRoom(rid,JSON.stringify({type:'permission.response',requestId:e.requestId,approved:true}));livePermissionResponses.set(e.requestId,true);appendResolvedPermRow(e,'approved','✓ Auto-approved');addStatus('Auto-approved: '+pSum(e));setSt('busy')}catch(err){addErr(err?.message||'Failed to auto-approve permission request')}})();return}
   const last=$.chat.lastElementChild;
   if(last?.classList.contains('perm-row')&&!last.dataset.resolved){
+    if(last.classList.contains('is-single')){
+      const existingList=last.querySelector('.perm-det ul')?.innerHTML||'';
+      const existingIds=[...last.querySelectorAll('.perm-det-item')].map(item=>item.dataset.id).filter(Boolean);
+      const c=document.createElement('div');c.className='perm-row';
+      c.innerHTML=`<div class="perm-hdr"><span class="p-icon">${pIcon(e.kind)}</span><span class="p-title">${esc(pTitle(e.kind))}</span><span class="p-badge">2</span><span class="p-sum">2 actions</span><button class="p-toggle" onclick="const d=this.closest('.perm-row').querySelector('.perm-det');d.classList.toggle('expanded');this.textContent=d.classList.contains('expanded')?'Hide':'…'">Hide</button></div><div class="perm-det expanded"><ul>${existingList}${pItem(e)}</ul></div><div class="perm-btns"><button class="deny" onclick="pAll(this.closest('.perm-row'),false)">Deny</button><button class="allow" onclick="pAll(this.closest('.perm-row'),true)">Allow</button></div>`;
+      last.replaceWith(c);
+      for(const id of existingIds)pp.set(id,c);
+      pp.set(e.requestId,c);
+      return;
+    }
     const ul=last.querySelector('.perm-det ul');const cnt=ul.children.length+1;
     ul.insertAdjacentHTML('beforeend',pItem(e));last.querySelector('.p-badge').textContent=cnt;
     const sm=last.querySelector('.p-sum');if(sm)sm.textContent=`${cnt} actions`;
     pp.set(e.requestId,last);return;
   }
-  const c=document.createElement('div');c.className='perm-row';
-  c.innerHTML=`<div class="perm-hdr"><span class="p-icon">${pIcon(e.kind)}</span><span class="p-title">${esc(pTitle(e.kind))}</span><span class="p-badge">1</span><span class="p-sum">${esc(pSum(e))}</span><button class="p-toggle" onclick="const d=this.closest('.perm-row').querySelector('.perm-det');d.classList.toggle('expanded');this.textContent=d.classList.contains('expanded')?'Hide':'…'">…</button></div><div class="perm-det"><ul>${pItem(e)}</ul></div><div class="perm-btns"><button class="deny" onclick="pAll(this.closest('.perm-row'),false)">Deny</button><button class="allow" onclick="pAll(this.closest('.perm-row'),true)">Allow</button></div>`;
+  const c=createSinglePermRow(e);
   $.chat.appendChild(c);pp.set(e.requestId,c);
 }
 function rPResp(e){if(!e?.requestId)return;livePermissionResponses.set(e.requestId,!!e.approved);const row=pp.get(e.requestId);if(!row)return;const resolution=e.cancelled?'cancelled':(e.approved?'approved':'denied');const item=row.querySelector(`.perm-det-item[data-id="${e.requestId}"]`);markPermItemResolved(item,resolution);pp.delete(e.requestId);const items=[...row.querySelectorAll('.perm-det-item')];const unresolved=items.filter(i=>i.dataset.resolved!=='true');const badge=row.querySelector('.p-badge');if(badge)badge.textContent=String(unresolved.length||items.length);const summary=row.querySelector('.p-sum');if(summary){summary.textContent=unresolved.length?`${unresolved.length} actions pending`:`${items.length} actions resolved`}if(!unresolved.length){const allApproved=items.every(i=>i.dataset.approved==='true');const allCancelled=items.every(i=>i.dataset.approved==='cancelled');finalizePermRow(row,allApproved?'approved':allCancelled?'cancelled':'denied')}}
@@ -3570,10 +3847,15 @@ function stopPoll(){}
   window.pickAgent=()=>{}; // agent selection handled by column 2
   window.loginUser=()=>loginUser($.loginUser?.value);
   window.logoutUser=()=>logoutUser();
-  window.addEventListener('keydown',(event)=>{if(event.key==='Escape'&&daemonAccessDrawerOpen)closeDaemonAccessDrawer()});
+  window.addEventListener('keydown',(event)=>{
+    if(event.key!=='Escape')return;
+    if(createSessionModalOpen){closeCreateSessionModal();return}
+    if(daemonAccessDrawerOpen)closeDaemonAccessDrawer()
+  });
 
   if($.logoutBtn)$.logoutBtn.addEventListener('click',()=>logoutUser());
   if($.compactBtn)$.compactBtn.addEventListener('click',()=>setCompactNav(!compactNav));
+  if($.openCreateSessionBtn)$.openCreateSessionBtn.addEventListener('click',()=>openCreateSessionModal());
   if($.dirIn)$.dirIn.addEventListener('input',handleDirectoryInput);
   if($.dirIn)$.dirIn.addEventListener('focus',()=>{void refreshDirectorySuggestions($.dirIn.value,{silent:true})});
   if($.dirIn)$.dirIn.addEventListener('blur',handleDirectoryBlur);
@@ -3581,6 +3863,7 @@ function stopPoll(){}
 
   renderSelectedDirectory();
   syncCreateSessionButton();
+  renderCreateSessionModal();
   mobInit();
   syncSt();
 

@@ -31,6 +31,53 @@ export function getRealtimeSessionAccessPatch(session, { currentUserId = '', dae
   return {};
 }
 
+export function isDaemonAccessStateResolved(daemon) {
+  if (!daemon || typeof daemon !== 'object') {
+    return false;
+  }
+  const explicitKeys = [
+    'canManage',
+    'hasMemberAccess',
+    'hasAdminAccess',
+    'canRead',
+    'canWrite',
+    'accessRequestStatus',
+    'requestedAccess',
+  ];
+  return explicitKeys.some((key) => Object.prototype.hasOwnProperty.call(daemon, key)) || daemon.accessResolved === true;
+}
+
+export function getSessionListAccessPresentation(accessLevel = 'none', { suppressGrantedAccessBadge = false } = {}) {
+  const normalizedAccessLevel = String(accessLevel || '').trim().toLowerCase();
+  const requestReadLabel = 'Request Read';
+  const requestWriteLabel = 'Request Write';
+  if (normalizedAccessLevel === 'none') {
+    return {
+      badgeClassName: 'is-no-access',
+      badgeLabel: 'No Access',
+      isRequestable: true,
+      requestReadLabel,
+      requestWriteLabel,
+    };
+  }
+  if (suppressGrantedAccessBadge) {
+    return {
+      badgeClassName: '',
+      badgeLabel: '',
+      isRequestable: false,
+      requestReadLabel,
+      requestWriteLabel,
+    };
+  }
+  if (normalizedAccessLevel === 'write') {
+    return { badgeClassName: 'is-write', badgeLabel: 'Write Access', isRequestable: false, requestReadLabel, requestWriteLabel };
+  }
+  if (normalizedAccessLevel === 'read') {
+    return { badgeClassName: 'is-read', badgeLabel: 'Read Access', isRequestable: false, requestReadLabel, requestWriteLabel };
+  }
+  return { badgeClassName: '', badgeLabel: '', isRequestable: false, requestReadLabel, requestWriteLabel };
+}
+
 export function isStartupWaitMessage(message = '') {
   return /agent is still starting/i.test(String(message || ''));
 }
@@ -198,6 +245,7 @@ export function normalizeDaemonRecord(daemon, normalizePlatform = (platform) => 
     accessRequestStatus: daemon.accessRequestStatus || '',
     requestedAccess: daemon.requestedAccess || '',
     approverUserIds: daemon.approverUserIds || [],
+    accessResolved: isDaemonAccessStateResolved(daemon),
   };
 }
 
