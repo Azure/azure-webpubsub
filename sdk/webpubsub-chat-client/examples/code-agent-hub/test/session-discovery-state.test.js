@@ -1,7 +1,9 @@
 import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
 import {
+  applySessionQueryContext,
   collectVisibleSessions,
+  getSessionRecordStatusInfo,
   normalizeSessionRecord,
   resolveRoomDisplayName,
   shouldShowPortalSessionLoading,
@@ -200,6 +202,34 @@ describe('session discovery state helpers', () => {
     assert.deepEqual(sessions.map((session) => session.sessionId), ['session-c']);
   });
 
+  it('keeps portal-discovered sessions visible when the current query already scopes daemon and agent', () => {
+    const scopedSession = applySessionQueryContext({
+      sessionId: 'session-query-scoped',
+      roomName: 'Shared Session',
+      updatedAt: '2026-04-15T05:02:00.000Z',
+      accessLevel: 'read',
+    }, {
+      currentDaemonId: 'daemon-a',
+      currentAgentName: 'copilot',
+    });
+
+    const sessions = collectVisibleSessions({
+      discoveredSessions: new Map([
+        ['session-query-scoped', normalizeSessionRecord(scopedSession)],
+      ]),
+      chatRooms: [],
+      deletedSessions: new Map(),
+      currentDaemonId: 'daemon-a',
+      currentAgentName: 'copilot',
+    });
+
+    assert.equal(sessions.length, 1);
+    assert.equal(sessions[0].sessionId, 'session-query-scoped');
+    assert.equal(sessions[0].daemonId, 'daemon-a');
+    assert.equal(sessions[0].agent, 'copilot');
+    assert.equal(sessions[0].name, 'Shared Session');
+  });
+
   it('orders visible sessions by most recent update time', () => {
     const sessions = collectVisibleSessions({
       discoveredSessions: new Map([
@@ -264,6 +294,39 @@ describe('session discovery state helpers', () => {
     assert.equal(sessions[0].sessionProcessing, true);
     assert.equal(sessions[0].sessionStopping, false);
     assert.equal(sessions[0].sessionReady, true);
+  });
+
+  it('derives visible session status for daemon members even before session access is granted', () => {
+    const workingSession = normalizeSessionRecord({
+      sessionId: 'session-status-working',
+      daemonId: 'daemon-a',
+      agent: 'copilot-sdk',
+      name: 'Shared Session',
+      accessLevel: 'none',
+      canRead: false,
+      canWrite: false,
+      sessionProcessing: true,
+    });
+
+    assert.deepEqual(getSessionRecordStatusInfo(workingSession), {
+      state: 'working',
+      label: 'Working',
+    });
+
+    const idleSession = normalizeSessionRecord({
+      sessionId: 'session-status-idle',
+      daemonId: 'daemon-a',
+      agent: 'copilot-sdk',
+      name: 'Shared Session',
+      accessLevel: 'none',
+      canRead: false,
+      canWrite: false,
+    });
+
+    assert.deepEqual(getSessionRecordStatusInfo(idleSession), {
+      state: 'idle',
+      label: 'Idle',
+    });
   });
 
   it('keeps recently deleted sessions from being reintroduced immediately', () => {

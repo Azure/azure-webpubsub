@@ -5,6 +5,18 @@ function sessionAccessLevel(session) {
   return session.canWrite ? 'write' : session.canRead ? 'read' : 'none';
 }
 
+export function applySessionQueryContext(session, {
+  currentDaemonId = '',
+  currentAgentName = '',
+} = {}) {
+  const next = { ...(session || {}) };
+  const daemonId = String(next.daemonId || '').trim();
+  const agentName = String(next.agentName || next.agent || '').trim();
+  if (!daemonId && currentDaemonId) next.daemonId = currentDaemonId;
+  if (!agentName && currentAgentName) next.agentName = currentAgentName;
+  return next;
+}
+
 export function normalizeSessionRecord(session, previous = {}) {
   const accessLevel = sessionAccessLevel(session);
   return {
@@ -28,6 +40,14 @@ export function normalizeSessionRecord(session, previous = {}) {
     sessionStopping: session.sessionStopping ?? previous.sessionStopping,
     sessionReady: session.sessionReady ?? previous.sessionReady,
   };
+}
+
+export function getSessionRecordStatusInfo(session) {
+  if (!session) return null;
+  if (session.sessionProcessing) return { state: 'working', label: 'Working' };
+  if (session.sessionStopping) return { state: 'stopping', label: 'Stopping' };
+  if (session.sessionReady === false) return { state: 'starting', label: 'Starting' };
+  return { state: 'idle', label: 'Idle' };
 }
 
 function normalizeDeletedAt(value) {
