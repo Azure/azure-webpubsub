@@ -65,6 +65,7 @@ a{color:var(--accent2);text-decoration:none}button{font-family:inherit;cursor:po
 #topbar .tb-brand-topline{display:flex;align-items:baseline;min-width:0}
 #topbar .tb-title{font-size:16px;font-weight:780;letter-spacing:-.03em;color:var(--fg);transition:opacity .1s ease;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 #topbar .tb-title.is-brand{background:linear-gradient(135deg,var(--fg) 22%,color-mix(in srgb,var(--accent2) 76%,#fff));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+#topbar .tb-title-prefix{display:inline}
 #topbar .tb-breadcrumb{display:flex;align-items:center;gap:6px;min-width:0;max-width:min(100%,720px);font-size:11px;line-height:1.25;color:var(--fg4);overflow:hidden;transition:opacity .1s ease}
 #topbar .tb-breadcrumb.is-empty{display:none}
 #topbar .tb-crumb{display:inline-flex;align-items:center;gap:6px;min-width:0;flex:0 1 auto}
@@ -521,6 +522,7 @@ a{color:var(--accent2);text-decoration:none}button{font-family:inherit;cursor:po
   .mob-back:active{background:var(--bg3)}
   #topbar{padding:8px 10px}
   #topbar .tb-title{font-size:14px;max-width:42vw}
+  #topbar .tb-title-prefix{display:none}
   #topbar .tb-breadcrumb{max-width:44vw;font-size:10px}
   #topbar .tb-crumb:not(.is-current) .tb-crumb-text{max-width:72px}
   #topbar .tb-crumb.is-current .tb-crumb-text{max-width:124px}
@@ -740,7 +742,7 @@ a{color:var(--accent2);text-decoration:none}button{font-family:inherit;cursor:po
     <div class="tb-left">
       <button class="tb-burger" onclick="toggleColumns()" aria-label="Menu">☰</button>
       <div class="tb-brand-lockup">
-        <div class="tb-brand-topline"><span class="tb-title is-brand" id="topbar-title">Azure Web PubSub / AgentHub</span></div>
+        <div class="tb-brand-topline"><span class="tb-title is-brand" id="topbar-title"><span class="tb-title-prefix">Azure Web PubSub / </span><span class="tb-title-product">AgentHub</span></span></div>
         <div class="tb-breadcrumb is-empty" id="topbar-breadcrumb"></div>
       </div>
       <span class="tb-status" id="topbar-st"></span>
@@ -790,7 +792,7 @@ a{color:var(--accent2);text-decoration:none}button{font-family:inherit;cursor:po
       </div>
       <!-- Column 3: Sessions -->
       <div class="col" id="col-sessions" style="display:none">
-        <div class="col-hdr"><span id="col-sessions-hdr" style="flex:1">Sessions</span><div class="col-hdr-actions"><button class="sh-go sh-go-inline" id="open-create-session-btn" type="button">New Session</button></div></div>
+        <div class="col-hdr"><button class="mob-back" onclick="mobShow('col-daemons')">◀</button><span id="col-sessions-hdr" style="flex:1">Sessions</span><div class="col-hdr-actions"><button class="sh-go sh-go-inline" id="open-create-session-btn" type="button">New Session</button></div></div>
         <div class="session-groupby-bar" id="session-groupby-bar"><label>Group by</label><div class="session-groupby-pills"><button class="session-groupby-pill is-active" type="button" onclick="setSessionGroupBy('none')">None</button><button class="session-groupby-pill" type="button" onclick="setSessionGroupBy('agent')">Agent</button></div></div>
         <div class="col-list-msg" id="col-sessions-msg"></div>
         <div class="col-list" id="col-sessions-list"></div>
@@ -1102,15 +1104,21 @@ let directorySuggestionTimer=null;
 let directorySuggestionToken=0;
 
 const isMobile=()=>window.innerWidth<=600;
+function mobileWorkflowColumn(){
+  if(!uid)return 'col-login';
+  if(rid)return 'chat-col';
+  if(currentDaemonId)return 'col-sessions';
+  return 'col-daemons';
+}
 function mobShow(colId){
   if(!isMobile())return;
   document.querySelectorAll('.col,#chat-col').forEach(c=>{c.classList.remove('mob-visible');c.style.removeProperty('display')});
   const el=document.getElementById(colId);if(el){el.classList.add('mob-visible');el.style.display='flex'}
 }
 window.mobShow=mobShow;
-function mobInit(){if(isMobile())mobShow(uid?(rid?'chat-col':'col-sessions'):'col-login')}
+function mobInit(){if(isMobile())mobShow(mobileWorkflowColumn())}
 window.addEventListener('resize',()=>{if(isMobile())setCompactNav(false);if(!isMobile()){document.querySelectorAll('.col,#chat-col').forEach(c=>c.classList.remove('mob-visible'));if(uid)applyLoggedInState();else applyLoggedOutState();syncCompactButton()}});
-window.toggleColumns=()=>{if(isMobile())mobShow(uid?(rid?'chat-col':'col-sessions'):'col-login')};
+window.toggleColumns=()=>{if(isMobile())mobShow(uid?'col-daemons':'col-login')};
 function openPanel(){}function closePanel(){}function openSheet(){}function closeSheet(){}
 
 /* Theme toggle */
@@ -2858,7 +2866,7 @@ function applyLoggedInState(){
   setLoginMessage('');syncUserBadge();updateAutoBtn();renderDaemonsCol();renderAgentsCol();renderSessionsCol();
   updateBreadcrumb();
   syncCompactButton();
-  if(isMobile())mobShow(rid?'chat-col':'col-sessions')
+  if(isMobile())mobShow(mobileWorkflowColumn())
 }
 async function loginUser(rawUserId){
   const userId=String(rawUserId||'').trim()||DEFAULT_USERNAME;
@@ -3047,6 +3055,7 @@ window.selectDaemon=(did)=>{
   currentDaemonId=currentDaemonId===did?null:did;
   currentAgentName=null;
   renderDaemonsCol();renderAgentsCol();renderSessionsCol();updateBreadcrumb();
+  if(isMobile())mobShow(currentDaemonId?'col-sessions':'col-daemons');
 };
 
 window.toggleCollapsibleSection=(trigger)=>{
