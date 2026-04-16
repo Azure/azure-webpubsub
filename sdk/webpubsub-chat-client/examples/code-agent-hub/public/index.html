@@ -1032,7 +1032,7 @@ let composerMenuItems=[];
 let composerMenuContext=null;
 let composerMenuRequestToken=0;
 let selectedDelegationTarget=null;
-const delegationTargetsCache={sourceSessionId:'',loadedAt:0,targets:[],inflight:null};
+const delegationTargetsCache={sourceSessionId:'',loadedAt:0,targets:[],inflight:null,version:0};
 const DELEGATION_TARGET_CACHE_MS=15000;
 const SESSION_METADATA_HYDRATE_COOLDOWN_MS=10000;
 const USAGE_SUPPORTED_AGENTS=new Set(['copilot','claude','codex','copilot-sdk']);
@@ -2216,6 +2216,7 @@ function isCurrentSessionReadOnly(){
   return !daemonHasAdminAccess(daemon);
 }
 function showChatPlaceholder(show){const el=document.getElementById('chat-placeholder');if(el){if(show)renderChatPlaceholder();el.style.display=show?'flex':'none'}const sc=document.getElementById('scroll');if(sc)sc.style.display=show?'none':'block'}
+function invalidateDelegationTargetsCache(){delegationTargetsCache.version+=1;delegationTargetsCache.loadedAt=0;delegationTargetsCache.targets=[];delegationTargetsCache.inflight=null}
 function upsertDiscoveredSession(envelope){
   const sessionId=envelope?.sessionId||envelope?.roomId;
   if(!sessionId)return;
@@ -2229,7 +2230,7 @@ function upsertDiscoveredSession(envelope){
     canWrite:envelope?.canWrite??prev.canWrite,
     canDelete:envelope?.canDelete??prev.canDelete,
   };
-  discoveredSessions.set(sessionId,normalizeSessionRecord(merged,prev))
+  discoveredSessions.set(sessionId,normalizeSessionRecord(merged,prev));invalidateDelegationTargetsCache()
 }
 function removeDiscoveredSession(sessionId){
   if(!sessionId)return;
@@ -2243,7 +2244,7 @@ function removeDiscoveredSession(sessionId){
     const roomIndex=cc.rooms.findIndex((room)=>room?.roomId===sessionId);
     if(roomIndex>=0)cc.rooms.splice(roomIndex,1);
   }
-  sessionAutoApprove.delete(sessionId)
+  sessionAutoApprove.delete(sessionId);invalidateDelegationTargetsCache()
 }
 function makeRequestId(){return globalThis.crypto?.randomUUID?.()||`req-${Date.now()}-${Math.random().toString(16).slice(2)}`}
 function waitForLobbyReply(store,requestId,timeoutMs,message){return new Promise((resolve,reject)=>{const timeout=setTimeout(()=>{store.delete(requestId);reject(new Error(message))},timeoutMs);store.set(requestId,{resolve,reject,timeout})})}
@@ -2465,6 +2466,7 @@ async function refreshPortalDaemons({render=true}={}){
     knownDaemons.set(daemon.daemonId,normalized);
     if(daemonHasMemberAccess(normalized))void ensureDaemonSyncRoom(daemon.daemonId);
   }
+  invalidateDelegationTargetsCache();
   portalDaemonsLoaded=true;
   if(currentDaemonId&&!knownDaemons.has(currentDaemonId)){currentDaemonId=null;currentAgentName=null;rid=null;resetChatState()}
   if(render)renderDaemonsCol();
@@ -2510,6 +2512,7 @@ async function refreshPortalSessions({render=true}={}){
       if(keep.has(sessionId)||joined.has(sessionId))continue;
       discoveredSessions.delete(sessionId);
     }
+    invalidateDelegationTargetsCache();
     if(render)await renderSessionsCol();
   }finally{loadingSessionQueryKeys.delete(queryKey)}
 }
@@ -2545,6 +2548,7 @@ function pruneStaleDaemons(){
   if(!staleDaemonIds.length)return;
   const selectedWasRemoved=!!currentDaemonId&&staleDaemonIds.includes(currentDaemonId);
   for(const daemonId of staleDaemonIds)knownDaemons.delete(daemonId);
+  invalidateDelegationTargetsCache();
   if(selectedWasRemoved){
     currentDaemonId=null;
     currentAgentName=null;
@@ -3132,9 +3136,9 @@ function showSlashMenu(query){
 }
 function hideSlashMenu(){$slashMenu.classList.remove('show');slashActive=-1;composerMenuMode='';composerMenuItems=[];composerMenuContext=null;composerMenuRequestToken+=1}
 function parseDelegationMenuContext(value){const text=String(value||'');if(/^\/delegate\s*$/i.test(text))return{mode:'delegate-slash',query:'',replaceStart:0,replaceEnd:text.length};const slashMatch=text.match(/^\/delegate\s+(\S*)$/i);if(slashMatch)return{mode:'delegate-slash',query:String(slashMatch[1]||''),replaceStart:0,replaceEnd:text.length};const atMatch=text.match(/^@([^\s@]*)$/);if(atMatch)return{mode:'delegate-at',query:String(atMatch[1]||''),replaceStart:0,replaceEnd:text.length};return null}
-async function listDelegationTargets(force=false){const sourceSessionId=String(rid||'').trim();if(!sourceSessionId)return[];const now=Date.now();if(!force&&delegationTargetsCache.sourceSessionId===sourceSessionId&&Array.isArray(delegationTargetsCache.targets)&&now-delegationTargetsCache.loadedAt<DELEGATION_TARGET_CACHE_MS)return delegationTargetsCache.targets;if(delegationTargetsCache.inflight&&delegationTargetsCache.sourceSessionId===sourceSessionId)return await delegationTargetsCache.inflight;delegationTargetsCache.sourceSessionId=sourceSessionId;delegationTargetsCache.inflight=(async()=>{const body=await portalJson(`/api/delegation-targets?sourceSessionId=${encodeURIComponent(sourceSessionId)}`);const targets=Array.isArray(body?.targets)?body.targets:[];delegationTargetsCache.targets=targets;delegationTargetsCache.loadedAt=Date.now();return targets})().catch(err=>{delegationTargetsCache.targets=[];delegationTargetsCache.loadedAt=0;throw err}).finally(()=>{delegationTargetsCache.inflight=null});return await delegationTargetsCache.inflight}
-function filterDelegationTargets(targets,query=''){const q=String(query||'').trim().toLowerCase();const entries=Array.isArray(targets)?targets:[];if(!q)return[...entries];return entries.filter(target=>[target.sessionId,target.roomName,target.targetLabel,target.daemonLabel,target.agentName,target.workingDirectory,target.ownerUserId].some(value=>String(value||'').toLowerCase().includes(q)))}
-function buildDelegationTargetMenuItems(targets){return targets.map(target=>({kind:'delegation-target',sessionId:String(target.sessionId||'').trim(),label:String(target.roomName||target.targetLabel||target.sessionId||'Session').trim()||'Session',description:[String(target.daemonLabel||'').trim(),AGENT_NAMES[target.agentName]||String(target.agentName||'').trim()].filter(Boolean).join(' · '),meta:[String(target.sessionId||'').trim(),String(target.workingDirectory||'').trim()].filter(Boolean).join(' · '),primaryClass:'sl-label'}))}
+async function listDelegationTargets(force=false){const sourceSessionId=String(rid||'').trim();if(!sourceSessionId)return[];const now=Date.now();if(!force&&delegationTargetsCache.sourceSessionId===sourceSessionId&&Array.isArray(delegationTargetsCache.targets)&&now-delegationTargetsCache.loadedAt<DELEGATION_TARGET_CACHE_MS)return delegationTargetsCache.targets;if(delegationTargetsCache.inflight&&delegationTargetsCache.sourceSessionId===sourceSessionId)return await delegationTargetsCache.inflight;delegationTargetsCache.sourceSessionId=sourceSessionId;const requestVersion=delegationTargetsCache.version;const inflightPromise=(async()=>{const body=await portalJson(`/api/delegation-targets?sourceSessionId=${encodeURIComponent(sourceSessionId)}`);const targets=Array.isArray(body?.targets)?body.targets:[];if(requestVersion===delegationTargetsCache.version&&delegationTargetsCache.sourceSessionId===sourceSessionId){delegationTargetsCache.targets=targets;delegationTargetsCache.loadedAt=Date.now()}return requestVersion===delegationTargetsCache.version?targets:delegationTargetsCache.targets})().catch(err=>{if(requestVersion===delegationTargetsCache.version){delegationTargetsCache.targets=[];delegationTargetsCache.loadedAt=0}throw err}).finally(()=>{if(delegationTargetsCache.inflight===inflightPromise)delegationTargetsCache.inflight=null});delegationTargetsCache.inflight=inflightPromise;return await inflightPromise}
+function filterDelegationTargets(targets,query=''){const q=String(query||'').trim().toLowerCase();const entries=Array.isArray(targets)?targets:[];if(!q)return[...entries];return entries.filter(target=>[target.sessionId,target.roomName,target.targetLabel,target.daemonId,target.daemonLabel,target.agentName,target.workingDirectory,target.ownerUserId].some(value=>String(value||'').toLowerCase().includes(q)))}
+function buildDelegationTargetMenuItems(targets){return targets.map(target=>({kind:'delegation-target',sessionId:String(target.sessionId||'').trim(),label:String(target.roomName||target.targetLabel||target.sessionId||'Session').trim()||'Session',description:[String(target.daemonLabel||target.daemonId||'').trim(),AGENT_NAMES[target.agentName]||String(target.agentName||'').trim()].filter(Boolean).join(' · '),meta:[String(target.sessionId||'').trim(),String(target.workingDirectory||'').trim()].filter(Boolean).join(' · '),primaryClass:'sl-label'}))}
 function showDelegationMenuStatus(context,label,description=''){renderComposerMenu([{kind:'status',label,description,disabled:true,primaryClass:'sl-label'}],{mode:'delegation-target',context})}
 async function syncComposerSelectionMenu(){const value=String($.mi.value||'');const context=parseDelegationMenuContext(value);if(context){const requestToken=++composerMenuRequestToken;if(!rid||!cc){showDelegationMenuStatus(context,'Open a session first','Delegation starts from the current writable source session.');return}const currentSession=discoveredSessions.get(rid)||{sessionId:rid,accessLevel:'write'};if(!sessionCanWrite(currentSession)){showDelegationMenuStatus(context,'Source session is read-only','Request write access before delegating to another session.');return}showDelegationMenuStatus(context,'Loading writable sessions…','Pick a target session for this delegation.');try{const targets=filterDelegationTargets(await listDelegationTargets(),context.query);if(requestToken!==composerMenuRequestToken)return;if(!targets.length){showDelegationMenuStatus(context,'No writable targets','No other writable sessions match this filter.');return}renderComposerMenu(buildDelegationTargetMenuItems(targets),{mode:'delegation-target',context})}catch(err){if(requestToken!==composerMenuRequestToken)return;showDelegationMenuStatus(context,'Failed to load targets',err?.message||'Could not fetch delegation targets.')}return}if(value.startsWith('/')&&!value.includes(' ')){showSlashMenu(value.slice(1));return}hideSlashMenu()}
 function selectDelegationTarget(target){const context=composerMenuContext||parseDelegationMenuContext($.mi.value)||{mode:'delegate-slash'};setSelectedDelegationTarget(target,{mode:context.mode,focusInput:true,preserveInput:false})}
