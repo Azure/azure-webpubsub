@@ -953,9 +953,16 @@ async function listRoomMessages(roomId, maxCount = 200) {
   });
 }
 
+function delegationDaemonLabel(sessionRecord, daemonRecord = null) {
+  const daemonId = String(sessionRecord?.daemonId || daemonRecord?.daemonId || '').trim();
+  const hostname = String(daemonRecord?.hostname || '').trim();
+  if (daemonId && hostname && hostname !== daemonId) return `${daemonId} · ${hostname}`;
+  return daemonId || hostname;
+}
+
 function delegationTargetLabel(sessionRecord, daemonRecord = null) {
   const roomName = String(sessionRecord?.roomName || 'Session').trim() || 'Session';
-  const daemonLabel = String(daemonRecord?.hostname || sessionRecord?.daemonId || '').trim();
+  const daemonLabel = delegationDaemonLabel(sessionRecord, daemonRecord);
   return daemonLabel ? `${roomName} @ ${daemonLabel}` : roomName;
 }
 
@@ -2098,7 +2105,7 @@ app.get('/api/delegation-targets', async (req, res) => {
       sessionId: session.sessionId,
       roomName: session.roomName,
       daemonId: session.daemonId,
-      daemonLabel: daemonAccessById.get(session.daemonId)?.daemon?.hostname || session.daemonId,
+      daemonLabel: delegationDaemonLabel(session, daemonAccessById.get(session.daemonId)?.daemon),
       agentName: session.agentName,
       workingDirectory: session.workingDirectory,
       ownerUserId: session.ownerUserId,

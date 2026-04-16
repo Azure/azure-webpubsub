@@ -243,6 +243,7 @@ export function buildSessionListForUser({
     if (normalizedAgentFilter && sessionRecord.agentName !== normalizedAgentFilter) continue;
     const daemonEntry = daemonAccessById?.get(sessionRecord.daemonId);
     if (!daemonEntry?.daemon) continue;
+    if (daemonEntry.daemon.online === false) continue;
     if (typeof canMemberDaemonAccess === 'function' && !canMemberDaemonAccess(daemonEntry.accessState, normalizedUserId)) {
       continue;
     }

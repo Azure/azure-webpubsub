@@ -425,4 +425,29 @@ describe('session index helpers', () => {
     assert.equal(state.membershipBySessionId.has('session-1'), false);
     assert.equal(state.joinRequestsBySessionId.has('session-1'), false);
   });
+
+  it('hides sessions whose daemon is offline', () => {
+    const state = createSessionIndexState();
+    upsertTrustedSessionDirectoryRecord(state, {
+      sessionId: 'session-1',
+      roomName: 'Repo A',
+      daemonId: 'daemon-a',
+      agentName: 'copilot',
+      ownerUserId: 'owner',
+      updatedAt: '2026-04-11T05:10:00.000Z',
+    }, { source: 'portal' });
+
+    const sessions = buildSessionListForUser({
+      state,
+      daemonAccessById: new Map([['daemon-a', {
+        daemon: { daemonId: 'daemon-a', online: false },
+        accessState: { ownerUserId: 'owner', adminUsers: [], memberUsers: ['owner'] },
+      }]]),
+      userId: 'owner',
+      canAdminDaemonAccess,
+      canMemberDaemonAccess,
+    });
+
+    assert.deepEqual(sessions, []);
+  });
 });

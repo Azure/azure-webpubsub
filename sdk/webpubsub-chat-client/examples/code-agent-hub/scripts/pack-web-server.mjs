@@ -1,4 +1,4 @@
-import { access, copyFile, mkdir } from 'node:fs/promises';
+import { access, copyFile, mkdir, readFile } from 'node:fs/promises';
 import { createWriteStream } from 'node:fs';
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -30,6 +30,28 @@ async function copyRuntimeAsset(label, sourcePath, targetPath) {
   console.log(`[pack:web-server] Copied ${label} -> ${targetPath}`);
 }
 
+async function copyReferencedPublicModules(indexHtmlPath) {
+  const html = await readFile(indexHtmlPath, 'utf8');
+  const referencedModules = new Set(
+    [...html.matchAll(/from\s*['"]\/([^'"]+\.js)['"]/g)].map((match) => match[1]),
+  );
+
+  for (const relativeModulePath of referencedModules) {
+    const sourcePath = resolve(projectRoot, 'public', relativeModulePath);
+    try {
+      await access(sourcePath);
+    } catch {
+      continue;
+    }
+
+    await copyRuntimeAsset(
+      `public module ${relativeModulePath}`,
+      sourcePath,
+      resolve(publicOutDir, relativeModulePath),
+    );
+  }
+}
+
 async function createZipFromDirectory(sourceDir, targetZipPath, rootName) {
   await mkdir(dirname(targetZipPath), { recursive: true });
   await new Promise((resolvePromise, rejectPromise) => {
@@ -48,6 +70,7 @@ async function createZipFromDirectory(sourceDir, targetZipPath, rootName) {
 
 export async function packWebServer() {
   await mkdir(publicOutDir, { recursive: true });
+  const portalHtmlPath = resolve(projectRoot, 'public', 'index.html');
 
   await build({
     entryPoints: [resolve(projectRoot, 'web-server.js')],
@@ -65,34 +88,10 @@ export async function packWebServer() {
 
   await copyRuntimeAsset(
     'portal html',
-    resolve(projectRoot, 'public', 'index.html'),
+    portalHtmlPath,
     resolve(publicOutDir, 'index.html'),
   );
-  await copyRuntimeAsset(
-    'portal regression helpers',
-    resolve(projectRoot, 'public', 'portal-regressions.js'),
-    resolve(publicOutDir, 'portal-regressions.js'),
-  );
-  await copyRuntimeAsset(
-    'session live sync helpers',
-    resolve(projectRoot, 'public', 'session-live-sync.js'),
-    resolve(publicOutDir, 'session-live-sync.js'),
-  );
-  await copyRuntimeAsset(
-    'session discovery helpers',
-    resolve(projectRoot, 'public', 'session-discovery-state.js'),
-    resolve(publicOutDir, 'session-discovery-state.js'),
-  );
-  await copyRuntimeAsset(
-    'room routing helpers',
-    resolve(projectRoot, 'public', 'room-routing-state.js'),
-    resolve(publicOutDir, 'room-routing-state.js'),
-  );
-  await copyRuntimeAsset(
-    'session toolbar helpers',
-    resolve(projectRoot, 'public', 'session-toolbar-state.js'),
-    resolve(publicOutDir, 'session-toolbar-state.js'),
-  );
+  await copyReferencedPublicModules(portalHtmlPath);
   await copyRuntimeAsset(
     'browser chat client',
     resolve(repoRoot, 'dist', 'browser', 'index.js'),
