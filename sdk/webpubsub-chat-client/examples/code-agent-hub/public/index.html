@@ -105,10 +105,18 @@ a{color:var(--accent2);text-decoration:none}button{font-family:inherit;cursor:po
 #scroll{flex:1;overflow-y:auto;overflow-x:hidden;-webkit-overflow-scrolling:touch;padding-bottom:env(safe-area-inset-bottom,0px)}
 #ibar{flex-shrink:0;padding:8px 14px calc(env(safe-area-inset-bottom,0px) + 8px);background:var(--bg1);border-top:1px solid var(--border)}
 .input-row{max-width:780px;margin:0 auto;display:flex;align-items:flex-end;gap:8px}
+.composer-shell{position:relative;flex:1;display:flex;flex-direction:column;gap:8px;min-width:0;padding:9px 14px;background:var(--bg3);border:1px solid var(--border2);border-radius:20px}
+.composer-shell:focus-within{border-color:var(--fg7)}
+.composer-target-chip{display:inline-flex;align-items:center;gap:8px;align-self:flex-start;max-width:100%;padding:6px 10px;border-radius:999px;background:color-mix(in srgb,var(--accent2) 12%,var(--bg2));border:1px solid color-mix(in srgb,var(--accent2) 20%,var(--border2));color:var(--fg2);box-shadow:inset 0 1px 0 color-mix(in srgb,#fff 5%,transparent)}
+.composer-target-chip.hidden{display:none!important}
+.composer-target-kicker{font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:color-mix(in srgb,var(--accent2) 78%,var(--fg2));flex-shrink:0}
+.composer-target-text{min-width:0;max-width:360px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:13px;font-weight:600}
+.composer-target-chip button{width:18px;height:18px;border:none;border-radius:50%;background:none;color:var(--fg4);font-size:13px;line-height:1;display:flex;align-items:center;justify-content:center;padding:0;flex-shrink:0}
+.composer-target-chip button:hover{background:color-mix(in srgb,var(--red) 12%,transparent);color:var(--red)}
 #session-toolbar .dot{width:8px;height:8px;border-radius:50%;background:#555;flex-shrink:0;transition:background .3s,box-shadow .3s}
 #session-toolbar .dot.idle{background:#50d167}#session-toolbar .dot.busy{background:#f5a623}#session-toolbar .dot.permission{background:#f5a623}#session-toolbar .dot.error{background:#e55}
-.input-row textarea{flex:1;background:var(--bg3);border:1px solid var(--border2);border-radius:20px;padding:9px 14px;color:var(--fg);font-size:15px;line-height:1.35;font-family:inherit;resize:none;outline:none;min-height:38px;max-height:120px}
-.input-row textarea:focus{border-color:var(--fg7)}
+.input-row textarea{flex:1;width:100%;background:transparent;border:none;border-radius:0;padding:0;color:var(--fg);font-size:15px;line-height:1.35;font-family:inherit;resize:none;outline:none;min-height:20px;max-height:120px}
+.input-row textarea:focus{border-color:transparent}
 .input-row textarea::placeholder{color:var(--fg6)}
 .input-row .send{width:34px;height:34px;border:none;border-radius:50%;background:var(--accent);color:#fff;font-size:16px;font-weight:800;flex-shrink:0;display:flex;align-items:center;justify-content:center}
 .input-row .send:disabled{background:var(--bg4);color:var(--fg7)}
@@ -258,6 +266,7 @@ a{color:var(--accent2);text-decoration:none}button{font-family:inherit;cursor:po
 .col-empty-hint{display:inline-flex;align-items:center;min-height:28px;padding:0 12px;border-radius:999px;border:1px solid color-mix(in srgb,var(--accent2) 24%,var(--border2));background:color-mix(in srgb,var(--accent2) 8%,transparent);color:var(--accent2);font-size:11px;font-weight:700}
 .col-empty--loading{border-style:solid}
 .col-empty-spinner{width:28px;height:28px;border-radius:50%;border:2px solid color-mix(in srgb,var(--accent2) 24%,var(--border2));border-top-color:var(--accent2);animation:spin .9s linear infinite;opacity:.85}
+.col-hdr-spinner{width:16px;height:16px;border-radius:50%;border:2px solid color-mix(in srgb,var(--accent2) 24%,var(--border2));border-top-color:var(--accent2);animation:spin .9s linear infinite;opacity:.85;flex-shrink:0}
 .col-section-hdr{padding:10px 10px 6px;font-size:9px;font-weight:700;color:var(--fg6);text-transform:uppercase;letter-spacing:.08em}
 .col-section-toggle{width:100%;display:flex;align-items:center;justify-content:space-between;gap:10px;padding:10px 10px 6px;margin:0 0 2px;border:none;background:none;color:var(--fg6);cursor:pointer;text-align:left;transition:color .15s ease,transform .15s ease}
 .col-section-toggle:hover{color:var(--fg3);transform:translateX(2px)}
@@ -629,6 +638,58 @@ a{color:var(--accent2);text-decoration:none}button{font-family:inherit;cursor:po
 .turn-line{display:flex;align-items:center;gap:8px;color:var(--fg5);font-size:10px;text-transform:uppercase;letter-spacing:.06em;padding:6px 0}
 .turn-line::before,.turn-line::after{content:'';height:1px;background:var(--border);flex:1}
 .err-line{font-size:13px;color:#e55;padding:4px 0}
+.deleg-card{display:flex;flex-direction:column;gap:10px;padding:14px 16px;border:1px solid color-mix(in srgb,var(--accent2) 18%,var(--border2));border-radius:18px;background:linear-gradient(180deg,color-mix(in srgb,var(--accent2) 7%,var(--bg2)),color-mix(in srgb,var(--bg1) 94%,transparent));box-shadow:var(--shadow-soft);animation:msg-in .18s ease-out}
+.deleg-card.is-collapsed{gap:0}
+.deleg-head{display:flex;align-items:flex-start;justify-content:space-between;gap:12px}
+.deleg-head-main{min-width:0;display:flex;flex-direction:column;gap:6px;flex:1}
+.deleg-head-copy{min-width:0;display:flex;flex-direction:column;gap:3px}
+.deleg-head-side{display:flex;align-items:flex-start;gap:8px;flex-shrink:0}
+.deleg-head-summary{display:none;min-width:0;flex-direction:column;gap:3px;padding:8px 10px;border-radius:12px;background:color-mix(in srgb,var(--bg4) 72%,transparent);border:1px solid color-mix(in srgb,var(--fg7) 30%,transparent)}
+.deleg-card.is-collapsed .deleg-head-summary{display:flex}
+.deleg-head-prompt{font-size:12px;line-height:1.45;color:var(--fg2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.deleg-head-meta{font-size:11px;line-height:1.4;color:var(--fg5);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.deleg-kicker{font-size:10px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:var(--fg5)}
+.deleg-title{font-size:14px;font-weight:700;color:var(--fg);word-break:break-word}
+.deleg-state{display:inline-flex;align-items:center;justify-content:center;min-height:24px;padding:0 10px;border-radius:999px;border:1px solid color-mix(in srgb,var(--accent2) 20%,transparent);background:color-mix(in srgb,var(--accent2) 12%,transparent);font-size:10px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:var(--accent2);flex-shrink:0}
+.deleg-state[data-state="completed"]{color:var(--green);border-color:color-mix(in srgb,var(--green) 26%,transparent);background:color-mix(in srgb,var(--green) 12%,transparent)}
+.deleg-state[data-state="failed"],.deleg-state[data-state="expired"]{color:#ff9e9e;border-color:color-mix(in srgb,var(--red) 30%,transparent);background:color-mix(in srgb,var(--red) 12%,transparent)}
+.deleg-state[data-state="cancelled"]{color:var(--fg4);border-color:color-mix(in srgb,var(--fg6) 36%,transparent);background:color-mix(in srgb,var(--fg7) 10%,transparent)}
+.deleg-state[data-state="streaming"],.deleg-state[data-state="started"]{animation:status-pulse 1.8s ease-in-out infinite}
+.deleg-toggle{width:28px;height:28px;border:1px solid color-mix(in srgb,var(--fg7) 42%,transparent);border-radius:999px;background:color-mix(in srgb,var(--bg1) 86%,transparent);display:inline-flex;align-items:center;justify-content:center;color:var(--fg4);flex-shrink:0;box-shadow:inset 0 1px 0 color-mix(in srgb,#fff 8%,transparent)}
+.deleg-toggle:hover{border-color:color-mix(in srgb,var(--accent2) 42%,transparent);color:var(--accent2)}
+.deleg-toggle-chevron{font-size:12px;line-height:1;color:currentColor;transition:transform .2s ease}
+.deleg-toggle[aria-expanded="true"] .deleg-toggle-chevron{transform:rotate(90deg)}
+.deleg-detail{display:flex;flex-direction:column;gap:10px}
+.deleg-card.is-collapsed .deleg-detail{display:none}
+.deleg-prompt{font-size:12px;line-height:1.5;color:var(--fg4);padding:9px 11px;border-radius:12px;background:color-mix(in srgb,var(--bg4) 80%,transparent);border:1px solid color-mix(in srgb,var(--fg7) 34%,transparent);white-space:pre-wrap;word-break:break-word}
+.deleg-body{display:flex;flex-direction:column;gap:10px}
+.deleg-msg{font-size:14px;line-height:1.65;color:var(--fg2);word-break:break-word;white-space:pre-wrap}
+.deleg-msg.streaming::after{content:'';display:inline-block;width:6px;height:14px;background:var(--accent2);margin-left:3px;animation:cursor .8s infinite}
+.deleg-msg h1,.deleg-msg h2,.deleg-msg h3{color:var(--fg);margin:14px 0 6px;line-height:1.25}.deleg-msg h1{font-size:20px}.deleg-msg h2{font-size:17px}.deleg-msg h3{font-size:15px}
+.deleg-msg h1:first-child,.deleg-msg h2:first-child,.deleg-msg h3:first-child{margin-top:0}
+.deleg-msg p{margin:6px 0}.deleg-msg p:first-child{margin-top:0}.deleg-msg p:last-child{margin-bottom:0}
+.deleg-msg ul,.deleg-msg ol{margin:6px 0;padding-left:20px}.deleg-msg li{margin:3px 0}
+.deleg-msg pre{background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:10px 12px;margin:8px 0;overflow-x:auto;font-size:13px;line-height:1.45}
+.deleg-msg code{background:color-mix(in srgb,var(--fg) 8%,transparent);padding:1px 5px;border-radius:4px;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:13px}
+.deleg-msg pre code{background:none;padding:0;font-size:inherit}
+.deleg-msg blockquote{border-left:3px solid var(--border2);padding-left:12px;margin:6px 0;color:var(--fg4)}
+.deleg-msg a{color:var(--accent2)}
+.deleg-msg table{border-collapse:collapse;margin:8px 0;font-size:13px;width:100%}.deleg-msg th,.deleg-msg td{border:1px solid var(--border);padding:5px 8px;text-align:left}.deleg-msg th{background:var(--bg2)}
+.deleg-reasoning{display:none;border:1px solid color-mix(in srgb,var(--fg7) 36%,transparent);border-radius:12px;background:color-mix(in srgb,var(--bg2) 88%,transparent)}
+.deleg-reasoning.show{display:block}
+.deleg-reasoning summary{cursor:pointer;list-style:none;padding:9px 11px;font-size:12px;font-weight:700;color:var(--fg3)}
+.deleg-reasoning summary::-webkit-details-marker{display:none}
+.deleg-reasoning-body{padding:0 11px 11px;font-size:12px;line-height:1.55;color:var(--fg4);white-space:pre-wrap;word-break:break-word}
+.deleg-tools{display:flex;flex-direction:column;gap:6px}
+.deleg-tool{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:7px 10px;border-radius:12px;background:color-mix(in srgb,var(--bg2) 92%,transparent);border:1px solid color-mix(in srgb,var(--fg7) 32%,transparent);font-size:12px;color:var(--fg3)}
+.deleg-tool-name{font-weight:700;color:var(--fg2)}
+.deleg-tool-state{font-size:10px;font-weight:800;letter-spacing:.05em;text-transform:uppercase;color:var(--fg5)}
+.deleg-tool[data-state="done"] .deleg-tool-state{color:var(--green)}
+.deleg-tool[data-state="failed"] .deleg-tool-state{color:var(--red)}
+.deleg-meta{display:flex;flex-wrap:wrap;gap:8px;font-size:11px;color:var(--fg5)}
+.deleg-actions{display:flex;flex-wrap:wrap;gap:8px}
+.deleg-actions button{height:30px;padding:0 12px;border:1px solid color-mix(in srgb,var(--fg7) 46%,transparent);border-radius:999px;background:color-mix(in srgb,var(--bg1) 86%,transparent);color:var(--fg2);font-size:11px;font-weight:700;box-shadow:inset 0 1px 0 color-mix(in srgb,#fff 8%,transparent)}
+.deleg-actions button[disabled]{opacity:.45;cursor:not-allowed}
 
 /* Working indicator */
 .toolbar-working{display:none;align-items:center;gap:8px;min-height:28px;padding:4px 10px;border:1px solid color-mix(in srgb,var(--orange) 24%,var(--border2));border-radius:999px;background:color-mix(in srgb,var(--orange) 8%,var(--bg3));color:var(--fg3);font-size:12px;font-weight:600;flex-shrink:0;max-width:min(100%,320px)}
@@ -649,12 +710,17 @@ a{color:var(--accent2);text-decoration:none}button{font-family:inherit;cursor:po
 .diff-txt{flex:1;padding-right:8px;overflow:hidden;text-overflow:ellipsis}
 .diff-add{background:color-mix(in srgb,var(--green) 10%,transparent);color:color-mix(in srgb,var(--green) 78%,var(--fg2))}.diff-del{background:color-mix(in srgb,var(--red) 10%,transparent);color:color-mix(in srgb,var(--red) 78%,var(--fg2))}.diff-ctx{color:var(--fg4)}
 
-#slash-menu{position:absolute;left:0;right:0;bottom:100%;background:var(--bg3);border:1px solid var(--border2);border-radius:12px 12px 0 0;max-height:180px;overflow-y:auto;display:none;z-index:10}
+#slash-menu{position:absolute;left:0;right:0;bottom:100%;background:var(--bg3);border:1px solid var(--border2);border-radius:12px 12px 0 0;max-height:220px;overflow-y:auto;display:none;z-index:10}
 #slash-menu.show{display:block}
-.slash-item{display:flex;align-items:center;gap:8px;padding:8px 14px;font-size:13px;cursor:pointer;color:var(--fg2)}
+.slash-item{display:flex;align-items:flex-start;gap:8px;padding:8px 14px;font-size:13px;cursor:pointer;color:var(--fg2)}
 .slash-item:hover,.slash-item.active{background:var(--bg4)}
+.slash-item.disabled{cursor:default;opacity:.72}
+.slash-item.disabled:hover,.slash-item.disabled.active{background:transparent}
+.slash-item .sl-stack{display:flex;flex-direction:column;gap:2px;min-width:0;flex:1}
 .slash-item .sl-cmd{color:var(--accent2);font-weight:600;font-family:ui-monospace,SFMono-Regular,Menlo,monospace}
-.slash-item .sl-desc{color:var(--fg4);font-size:12px;flex:1}
+.slash-item .sl-label{color:var(--fg2);font-weight:700;line-height:1.35;word-break:break-word}
+.slash-item .sl-desc{color:var(--fg4);font-size:12px;line-height:1.35}
+.slash-item .sl-meta{color:var(--fg5);font-size:11px;line-height:1.35;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .session-toolbar{display:none;max-width:780px;margin:0 auto 8px;align-items:center;gap:8px;flex-wrap:wrap}
 .session-toolbar.show{display:flex}
 .async-banner{display:flex;align-items:center;justify-content:space-between;gap:10px;max-width:780px;margin:0 auto 8px;padding:10px 12px;border:1px solid color-mix(in srgb,var(--fg7) 46%,transparent);border-radius:18px;background:linear-gradient(180deg,color-mix(in srgb,var(--bg1) 76%,transparent),color-mix(in srgb,var(--bg2) 92%,transparent));box-shadow:var(--shadow-soft)}
@@ -792,7 +858,7 @@ a{color:var(--accent2);text-decoration:none}button{font-family:inherit;cursor:po
       </div>
       <!-- Column 3: Sessions -->
       <div class="col" id="col-sessions" style="display:none">
-        <div class="col-hdr"><button class="mob-back" onclick="mobShow('col-daemons')">◀</button><span id="col-sessions-hdr" style="flex:1">Sessions</span><div class="col-hdr-actions"><button class="sh-go sh-go-inline" id="open-create-session-btn" type="button">New Session</button></div></div>
+        <div class="col-hdr"><button class="mob-back" onclick="mobShow('col-daemons')">◀</button><span id="col-sessions-hdr" style="flex:1">Sessions</span><div class="col-hdr-actions"><span class="col-hdr-spinner hidden" id="col-sessions-spinner" title=""></span><button class="sh-go sh-go-inline" id="open-create-session-btn" type="button">New Session</button></div></div>
         <div class="session-groupby-bar" id="session-groupby-bar"><label>Group by</label><div class="session-groupby-pills"><button class="session-groupby-pill is-active" type="button" onclick="setSessionGroupBy('none')">None</button><button class="session-groupby-pill" type="button" onclick="setSessionGroupBy('agent')">Agent</button></div></div>
         <div class="col-list-msg" id="col-sessions-msg"></div>
         <div class="col-list" id="col-sessions-list"></div>
@@ -835,8 +901,15 @@ a{color:var(--accent2);text-decoration:none}button{font-family:inherit;cursor:po
             <button class="async-banner-action hidden" id="async-banner-action" type="button" onclick="runSessionBannerAction()"></button>
           </div>
           <div class="input-row" style="position:relative">
-            <div id="slash-menu"></div>
-            <textarea id="mi" placeholder="Type a message …" disabled rows="1"></textarea>
+            <div class="composer-shell">
+              <div id="slash-menu"></div>
+              <div id="delegation-chip" class="composer-target-chip hidden" title="">
+                <span class="composer-target-kicker">Delegate</span>
+                <span id="delegation-chip-label" class="composer-target-text"></span>
+                <button id="delegation-chip-clear" type="button" onclick="clearComposerDelegationTarget(true)" aria-label="Clear delegation target">×</button>
+              </div>
+              <textarea id="mi" placeholder="Type a message …" disabled rows="1"></textarea>
+            </div>
             <button class="send" id="sb" onclick="handleComposerAction()" disabled>↑</button>
           </div>
         </div>
@@ -884,9 +957,11 @@ import DOMPurify from'/dompurify.js';
 import{Marked,Renderer}from'/marked.js';
 import{ChatClient}from'/chat-client.js';
 import{canBrowseDaemonDirectories,classifyIncomingSessionRoomMessage,createSessionHistorySummary,daemonHasAdminAccess as portalDaemonHasAdminAccess,daemonHasMemberAccess as portalDaemonHasMemberAccess,getCreateSessionAccessState,getRealtimeSessionAccessPatch,getSessionChatPlaceholderState,getSessionListAccessPresentation,isDaemonRecordFresh,isLocalEchoMessage,isStartupStatusEnvelope,isStartupWaitMessage,mergeRealtimeDaemonRecord,normalizeDaemonRecord as normalizePortalDaemonRecord,recordSessionHistoryEnvelope,rememberRoomMessage,resetSessionStateToIdle,resolveNotificationRoomId,shouldBackgroundRetrySessionOpenError,shouldIgnoreRoomMessage,shouldIgnoreSemanticDuplicate,shouldRetainPreviousDaemons,shouldSuppressSessionOpenError}from'/portal-regressions.js';
+import{applyDelegationCardRelayEvent,buildDelegationCardHeaderSummary,createDelegationCardState,ensureDelegationCardSummaryContent,finalizeDelegationCardStreamingItems,isDelegationCardCollapsed,reconcileDelegationCardTerminalSummaryContent,settleDelegationCardToolItems,setDelegationCardCollapsed,setDelegationCardReasoningExpanded,toggleDelegationCardCollapsed}from'/delegation-card-state.js';
+import{clampDelegationRelayHistoryMaxCount,createDelegationRelayConnectionPromise}from'/delegation-relay-state.js';
 import{collectKnownRoomInfos,ensureLocalRoomInfo,rememberKnownRoomInfo}from'/room-routing-state.js';
-import{applySessionQueryContext,collectVisibleSessions,getSessionRecordStatusInfo,normalizeSessionRecord as normalizeSessionDiscoveryRecord,resolveRoomDisplayName,shouldShowPortalSessionLoading,shouldSkipDeletedSession}from'/session-discovery-state.js';
-import{ensureSessionOpenSync,waitForJoinedRoom,waitForRoomLiveSync}from'/session-live-sync.js';
+import{applySessionQueryContext,collectVisibleSessions,getSessionMetadataHydrationState,getSessionRecordStatusInfo,normalizeSessionRecord as normalizeSessionDiscoveryRecord,resolveRoomDisplayName,sessionNeedsMetadataHydration,shouldShowPortalSessionLoading,shouldSkipDeletedSession}from'/session-discovery-state.js';
+import{canSkipInitialSessionSync,ensureSessionOpenSync,waitForJoinedRoom,waitForRoomLiveSync}from'/session-live-sync.js';
 import{deriveToolbarModelId}from'/session-toolbar-state.js';
 
 let cc=null,uid=null,rid=null;
@@ -903,8 +978,12 @@ const loadingSessionQueryKeys=new Set();
 const daemonSyncRooms=new Set();
 const supplementalRoomInfos=new Map();
 const roomsPendingLiveSync=new Set();
+const sessionMetadataHydrationInFlight=new Set();
+const sessionMetadataHydrationLastAttempt=new Map();
 let portalPollTimer=null;
 let portalPollInFlight=false;
+let lobbyMembershipRetryTimer=null;
+let lobbyMembershipEpoch=0;
 let portalDaemonsLoaded=false;
 let oauthMode=false;
 let oauthAuthenticatedUser=null;
@@ -914,6 +993,9 @@ const seenPendingJoinRequestIds=new Set();
 const seenPendingDaemonAccessRequestIds=new Set();
 const recentDaemonAccessRequests=new Set();
 const recentSessionAccessRequests=new Set();
+const delegationViews=new Map();
+const relayRoomDelegations=new Map();
+const relaySeenMessageIds=new Map();
 const ss={processing:false,pendingCount:0,stopping:false,model:'gpt-5.4'};
 let currentSessionReady=null;
 let chatPlaceholderOverride=null;
@@ -933,6 +1015,7 @@ let daemonAccessSavePending=false;
 const DEFAULT_SLASH_CMDS=[
   {cmd:'compact',desc:'Compact conversation history'},
   {cmd:'clear',desc:'Clear the chat display'},
+  {cmd:'delegate',desc:'Delegate to another writable session (/delegate <sessionId> <prompt>)'},
   {cmd:'model',desc:'Change AI model (e.g. /model gpt-5.4)'},
   {cmd:'mode',desc:'Change agent behavior or access policy (e.g. /mode plan)'},
   {cmd:'help',desc:'Show available commands'},
@@ -944,6 +1027,14 @@ let availableModes=[];
 let currentModeId='';
 let usageSize=0;
 let usageUsed=0;
+let composerMenuMode='';
+let composerMenuItems=[];
+let composerMenuContext=null;
+let composerMenuRequestToken=0;
+let selectedDelegationTarget=null;
+const delegationTargetsCache={sourceSessionId:'',loadedAt:0,targets:[],inflight:null};
+const DELEGATION_TARGET_CACHE_MS=15000;
+const SESSION_METADATA_HYDRATE_COOLDOWN_MS=10000;
 const USAGE_SUPPORTED_AGENTS=new Set(['copilot','claude','codex','copilot-sdk']);
 const MODE_PRESENTATIONS={
   behavior:{label:'Behavior',title:'Agent behavior. This comes from the agent.'},
@@ -1066,6 +1157,7 @@ const $={
   chat:document.getElementById('chat'),
   scroll:document.getElementById('scroll'),
   ibar:document.getElementById('ibar'),mi:document.getElementById('mi'),sb:document.getElementById('sb'),
+  delegationChip:document.getElementById('delegation-chip'),delegationChipLabel:document.getElementById('delegation-chip-label'),delegationChipClear:document.getElementById('delegation-chip-clear'),
   sd:document.getElementById('sdot'),tt:document.getElementById('topbar-title'),tbc:document.getElementById('topbar-breadcrumb'),tst:document.getElementById('topbar-st'),
   asyncBanner:document.getElementById('async-banner'),asyncBannerPill:document.getElementById('async-banner-pill'),asyncBannerText:document.getElementById('async-banner-text'),asyncBannerAction:document.getElementById('async-banner-action'),
   toolbarWorking:document.getElementById('toolbar-working'),toolbarWorkingText:document.getElementById('toolbar-working-text'),
@@ -1327,7 +1419,7 @@ function syncSendButton(){
   $.sb.title=!enabled?(isCurrentSessionReadOnly()?currentSessionPermissionMessage():'Unavailable'):ss.stopping?'Stopping current response… click again to retry':ss.processing?'Stop current response':'Send message';
   $.sb.disabled=!enabled
 }
-function syncComposer(){const enabled=!!uid&&!!rid&&!sessionBooting&&!isCurrentSessionReadOnly();$.mi.disabled=!enabled||!!ss.stopping;$.mi.placeholder=sessionBooting?'Please wait…':ss.stopping?'Stopping response…':isCurrentSessionReadOnly()?currentSessionPermissionMessage():'Type a message …';syncSendButton()}
+function syncComposer(){const enabled=!!uid&&!!rid&&!sessionBooting&&!isCurrentSessionReadOnly();$.mi.disabled=!enabled||!!ss.stopping;$.mi.placeholder=sessionBooting?'Please wait…':ss.stopping?'Stopping response…':isCurrentSessionReadOnly()?currentSessionPermissionMessage():selectedDelegationTarget?`Delegate to ${selectedDelegationTarget.label} …`:'Type a message …';renderSelectedDelegationTarget();syncSendButton()}
 function setSessionBooting(next,stage=''){sessionBooting=!!next;sessionBootingStage=sessionBooting?(stage||sessionBootingStage||'Preparing session…'):'';if(!sessionBooting)clearStaleCreateLoadingStatus();syncComposer();renderSessionBanner();syncSt()}
 function updateSessionBooting(stage=''){if(!sessionBooting)return;sessionBootingStage=stage||sessionBootingStage;syncComposer();renderSessionBanner();syncSt()}
 function markSessionReady(statusMessage='Session ready.'){currentSessionReady=true;if(!sessionBooting){refreshSessionPlaceholder();return}setFormStatus(statusMessage,'success',1800,'create');setSessionBooting(false);clearSessionBanner('error');refreshSessionPlaceholder()}
@@ -1393,10 +1485,18 @@ function syncUsageTelemetry(){
   container.title='Context window usage';
 }
 function syncSessionToolbarMeta(){syncModelButton();syncModeButton();syncUsageTelemetry();updateToolbarVisibility()}
+function hasVisibleSessionToolbarContent(){
+  return !!(
+    document.getElementById('model-picker')?.classList.contains('show')
+    || document.getElementById('mode-picker')?.classList.contains('show')
+    || document.getElementById('usage-ring-container')?.classList.contains('show')
+    || document.getElementById('toolbar-working')?.classList.contains('show')
+  )
+}
 function updateToolbarVisibility(){
   const toolbar=document.getElementById('session-toolbar');
   if(!toolbar)return;
-  const show=!!(uid&&rid)||document.getElementById('model-picker')?.classList.contains('show')||document.getElementById('mode-picker')?.classList.contains('show')||document.getElementById('usage-ring-container')?.classList.contains('show')||document.getElementById('toolbar-working')?.classList.contains('show');
+  const show=hasVisibleSessionToolbarContent();
   toolbar.classList.toggle('show',!!show)
 }
 function resetSessionToolbar(){
@@ -1964,6 +2064,7 @@ function resetChatState(){
   clearFormStatus();
   resetWorkingLabel();
   resetSessionToolbar();
+  clearSelectedDelegationTarget();
   lastStopRequestAt=0;
   ss.processing=false;ss.pendingCount=0;ss.stopping=false;sendMode='enqueue';historyLoadedAt=0;setSt(uid?'idle':'disconnected')
 }
@@ -1992,6 +2093,56 @@ function sessionCanRead(session){return sessionAccessLevel(session)!=='none'}
 function sessionCanWrite(session){return sessionAccessLevel(session)==='write'}
 function sessionCanDelete(session){return !!session?.canDelete}
 function sessionCanLeave(session,daemon){return !sessionCanDelete(session)&&!daemonHasAdminAccess(daemon)&&sessionCanRead(session)}
+function canHydrateSessionMetadata(sessionId,now=Date.now()){
+  const lastAttempt=sessionMetadataHydrationLastAttempt.get(sessionId)||0;
+  return now-lastAttempt>=SESSION_METADATA_HYDRATE_COOLDOWN_MS;
+}
+async function hydrateVisibleSessionMetadata(sessions,joined){
+  if(!cc)return 0;
+  const now=Date.now();
+  const targets=(Array.isArray(sessions)?sessions:[])
+    .filter(session=>joined.has(session.sessionId)&&sessionNeedsMetadataHydration(session)&&!sessionMetadataHydrationInFlight.has(session.sessionId)&&canHydrateSessionMetadata(session.sessionId,now));
+  if(!targets.length)return 0;
+  await mapLimit(targets,4,async(session)=>{
+    const sessionId=String(session.sessionId||'').trim();
+    if(!sessionId)return;
+    sessionMetadataHydrationInFlight.add(sessionId);
+    sessionMetadataHydrationLastAttempt.set(sessionId,Date.now());
+    try{
+      const roomInfo=await cc.getRoom(sessionId,false);
+      const patch={sessionId};
+      const roomName=resolveRoomDisplayName(roomInfo);
+      if(roomName&&roomName!=='Session')patch.name=roomName;
+      if(roomInfo?.defaultConversationId)patch.defaultConversationId=roomInfo.defaultConversationId;
+      if(roomInfo?.updatedAt||roomInfo?.createdAt)patch.updatedAt=roomInfo.updatedAt||roomInfo.createdAt;
+      const conversationId=roomInfo?.defaultConversationId;
+      if(conversationId&&sessionNeedsMetadataHydration({...session,...patch})){
+        const history=await cc.listMessage(conversationId,'0',null,10);
+        if(history?.messages?.length){
+          for(const message of [...history.messages].reverse()){
+            if(!message?.content?.text)continue;
+            try{
+              const envelope=JSON.parse(message.content.text);
+              if(envelope.type==='control.create'){
+                patch.workingDirectory=patch.workingDirectory||envelope.workingDirectory;
+                patch.agent=envelope.agentName||patch.agent;
+                patch.daemonId=patch.daemonId||envelope.daemonId;
+                patch.ownerUserId=patch.ownerUserId||envelope.userId;
+                break;
+              }
+            }catch{}
+          }
+        }
+      }
+      upsertDiscoveredSession(patch);
+    }catch(error){
+      console.warn('Session metadata hydrate failed:',sessionId.substring(0,8),error?.message||error)
+    }finally{
+      sessionMetadataHydrationInFlight.delete(sessionId);
+    }
+  });
+  return targets.length;
+}
 function sessionOwnerLabel(session){return session?.ownerUserId||'the session owner'}
 function normalizeDaemonRecord(daemon){return normalizePortalDaemonRecord(daemon,normalizeDaemonPlatform)}
 function mergeDaemonRecord(previous,daemon){return mergeRealtimeDaemonRecord(previous,daemon,normalizeDaemonPlatform)}
@@ -2084,6 +2235,14 @@ function removeDiscoveredSession(sessionId){
   if(!sessionId)return;
   discoveredSessions.delete(sessionId);
   deletedSessions.set(sessionId,Date.now());
+  supplementalRoomInfos.delete(sessionId);
+  roomsPendingLiveSync.delete(sessionId);
+  sessionMetadataHydrationInFlight.delete(sessionId);
+  sessionMetadataHydrationLastAttempt.delete(sessionId);
+  if(Array.isArray(cc?.rooms)){
+    const roomIndex=cc.rooms.findIndex((room)=>room?.roomId===sessionId);
+    if(roomIndex>=0)cc.rooms.splice(roomIndex,1);
+  }
   sessionAutoApprove.delete(sessionId)
 }
 function makeRequestId(){return globalThis.crypto?.randomUUID?.()||`req-${Date.now()}-${Math.random().toString(16).slice(2)}`}
@@ -2325,10 +2484,13 @@ async function refreshPortalSessions({render=true}={}){
     const joined=joinedRoomIds();
     const keep=new Set();
     for(const session of body.sessions||[]){
+      if(shouldSkipDeletedSession(session.sessionId,deletedSessions,now,5000)){
+        if(!joined.has(session.sessionId))discoveredSessions.delete(session.sessionId);
+        continue;
+      }
       const scopedSession=applySessionQueryContext(session,{});
       const normalized=normalizeSessionRecord(scopedSession,discoveredSessions.get(session.sessionId)||{});
       keep.add(session.sessionId);
-      if(shouldSkipDeletedSession(session.sessionId,deletedSessions,now,5000))continue;
       deletedSessions.delete(session.sessionId);
       upsertDiscoveredSession(normalized);
       const prevJoin=joinRequests.get(session.sessionId)||{};
@@ -2341,7 +2503,11 @@ async function refreshPortalSessions({render=true}={}){
       }
     }
     for(const [sessionId,meta] of [...discoveredSessions.entries()]){
-      if(keep.has(sessionId)||joined.has(sessionId)||deletedSessions.has(sessionId))continue;
+      if(deletedSessions.has(sessionId)&&!joined.has(sessionId)){
+        discoveredSessions.delete(sessionId);
+        continue;
+      }
+      if(keep.has(sessionId)||joined.has(sessionId))continue;
       discoveredSessions.delete(sessionId);
     }
     if(render)await renderSessionsCol();
@@ -2395,9 +2561,15 @@ async function pollPortalState({render=true,includeRequests=false}={}){
   if(portalPollInFlight||!uid)return;
   portalPollInFlight=true;
   try{
-    await refreshPortalDaemons({render});
-    await refreshPortalSessions({render});
-    if(includeRequests)await refreshPortalRequestApprovals();
+    const refreshTasks=[refreshPortalDaemons({render:false}),refreshPortalSessions({render:false})];
+    if(includeRequests)refreshTasks.push(refreshPortalRequestApprovals());
+    await Promise.all(refreshTasks);
+    if(render){
+      renderDaemonsCol();
+      renderAgentsCol();
+      await renderSessionsCol();
+      if(createSessionModalOpen)renderCreateSessionModal();
+    }
   }catch(err){console.warn('Portal refresh failed:',err?.message||err)}finally{portalPollInFlight=false}
 }
 function startPortalPolling(){
@@ -2410,6 +2582,26 @@ function stopPortalPolling(){
   portalPollInFlight=false;
   seenPendingJoinRequestIds.clear();
   seenPendingDaemonAccessRequestIds.clear();
+}
+function cancelLobbyMembershipRecovery(){
+  if(lobbyMembershipRetryTimer){clearTimeout(lobbyMembershipRetryTimer);lobbyMembershipRetryTimer=null}
+  lobbyMembershipEpoch+=1;
+}
+function startLobbyMembershipRecovery(userId,{attempt=1,epoch=lobbyMembershipEpoch}={}){
+  const run=async()=>{
+    if(epoch!==lobbyMembershipEpoch||!cc||uid!==userId)return;
+    try{await ensureLobbyMembership(userId)}catch(err){
+      if(epoch!==lobbyMembershipEpoch||!cc||uid!==userId)return;
+      console.warn('Lobby membership sync delayed:',err?.message||err);
+      if(attempt>=3)return;
+      const nextDelay=Math.min(3000,500*attempt);
+      lobbyMembershipRetryTimer=setTimeout(()=>{
+        lobbyMembershipRetryTimer=null;
+        void startLobbyMembershipRecovery(userId,{attempt:attempt+1,epoch});
+      },nextDelay);
+    }
+  };
+  void run();
 }
 async function mapLimit(items,limit,iteratee){
   const results=[];
@@ -2429,7 +2621,12 @@ async function ensureLobbyMembership(userId){
   try{await cc.addUserToRoom(LOBBY_ROOM,userId)}catch(err){if(!/already|exists|member/i.test(String(err?.message||'')))console.warn('Lobby join failed:',err?.message||err)}
   const deadline=Date.now()+4000;
   while(Date.now()<deadline){
-    try{if(await cc.getRoom(LOBBY_ROOM,false))return}catch{}
+    try{
+      if(await cc.getRoom(LOBBY_ROOM,false)){
+        await ensureLiveRoomSubscription(LOBBY_ROOM,{suppressWarnings:true,retries:1,retryDelayMs:300});
+        return;
+      }
+    }catch{}
     await new Promise(r=>setTimeout(r,150))
   }
   throw new Error('Failed to join lobby')
@@ -2540,8 +2737,8 @@ function applyRoomHistoryMessages(roomId,messages,sessionMeta,{skipStartupEnvelo
   syncSessionSelection(roomId,sessionMeta);
   return {historyHasSyncEvidence:foundSyncEvidence,historySummary}
 }
-async function replayLatestRoomHistory(roomId,sessionMeta,{maxCount=100,skipStartupEnvelopes=false}={}){
-  const roomInfo=await cc.getRoom(roomId,false);
+async function replayLatestRoomHistory(roomId,sessionMeta,{maxCount=100,skipStartupEnvelopes=false,roomInfo:preloadedRoomInfo=null}={}){
+  const roomInfo=preloadedRoomInfo||await cc.getRoom(roomId,false);
   const roomName=resolveRoomDisplayName(roomInfo);
   if(roomName&&roomName!=='Session')sessionMeta.name=roomName;
   const conversationId=roomInfo?.defaultConversationId;
@@ -2574,8 +2771,9 @@ function applyLobbyEnvelope(e){
   if(e.type==='portal.daemon'){
     const daemonId=String(e.daemonId||'').trim();
     if(!daemonId)return;
-    portalDaemonsLoaded=true;
+    const previousDaemon=knownDaemons.get(daemonId)||null;
     if(e.online===false){
+      if(previousDaemon?.accessResolved===true)portalDaemonsLoaded=true;
       knownDaemons.delete(daemonId);
       if(currentDaemonId===daemonId){
         currentDaemonId=null;
@@ -2589,7 +2787,8 @@ function applyLobbyEnvelope(e){
       syncCreateSessionButton();
       return;
     }
-    const merged=mergeDaemonRecord(knownDaemons.get(daemonId),e);
+    const merged=mergeDaemonRecord(previousDaemon,e);
+    if(portalDaemonsLoaded||previousDaemon?.accessResolved===true||merged.accessResolved===true)portalDaemonsLoaded=true;
     knownDaemons.set(daemonId,merged);
     if(daemonHasMemberAccess(merged))void ensureDaemonSyncRoom(daemonId);
     renderDaemonsCol();
@@ -2702,6 +2901,7 @@ function applyDaemonSyncEnvelope(e){
     if(typeof e.sessionProcessing==='boolean')statePatch.sessionProcessing=e.sessionProcessing;
     if(typeof e.sessionStopping==='boolean')statePatch.sessionStopping=e.sessionStopping;
     if(typeof e.sessionReady==='boolean')statePatch.sessionReady=e.sessionReady;
+    if(typeof e.sessionDelegating==='boolean')statePatch.sessionDelegating=e.sessionDelegating;
     upsertDiscoveredSession({...e,...statePatch,...getRealtimeSessionAccessPatch(e,{currentUserId:uid,daemon})});
   }else return;
   void renderSessionsCol();
@@ -2876,7 +3076,8 @@ async function loginUser(rawUserId){
   clearFormStatus();
   try{
     if(cc&&uid!==userId){try{cc.stop()}catch{}cc=null}
-    stopPortalPolling();knownDaemons.clear();discoveredSessions.clear();deletedSessions.clear();loadedSessionQueryKeys.clear();daemonSyncRooms.clear();supplementalRoomInfos.clear();roomsPendingLiveSync.clear();sessionAutoApprove.clear();joinRequests.clear();joinApprovalLocks.clear();daemonAccessApprovalLocks.clear();pendingCreateRequests.clear();pendingWorkspaceRequests.clear();sessionListBlockedReason='';portalDaemonsLoaded=false;
+    cancelLobbyMembershipRecovery();
+    stopPortalPolling();knownDaemons.clear();discoveredSessions.clear();deletedSessions.clear();loadedSessionQueryKeys.clear();daemonSyncRooms.clear();supplementalRoomInfos.clear();roomsPendingLiveSync.clear();sessionMetadataHydrationInFlight.clear();sessionMetadataHydrationLastAttempt.clear();sessionAutoApprove.clear();joinRequests.clear();joinApprovalLocks.clear();daemonAccessApprovalLocks.clear();pendingCreateRequests.clear();pendingWorkspaceRequests.clear();sessionListBlockedReason='';portalDaemonsLoaded=false;
     await initCC(userId);
     setPortalTransportState('connected');
     setStoredUserId(userId);
@@ -2886,14 +3087,16 @@ async function loginUser(rawUserId){
   }catch(e){
     if(cc){try{cc.stop()}catch{}}
     setPortalTransportState('failed',e.message||'Failed to connect to WPS');
-    stopPortalPolling();cc=null;uid=null;knownDaemons.clear();discoveredSessions.clear();deletedSessions.clear();loadedSessionQueryKeys.clear();daemonSyncRooms.clear();supplementalRoomInfos.clear();roomsPendingLiveSync.clear();sessionAutoApprove.clear();joinRequests.clear();joinApprovalLocks.clear();daemonAccessApprovalLocks.clear();pendingCreateRequests.clear();pendingWorkspaceRequests.clear();sessionListBlockedReason='';portalDaemonsLoaded=false;
+    cancelLobbyMembershipRecovery();
+    stopPortalPolling();cc=null;uid=null;knownDaemons.clear();discoveredSessions.clear();deletedSessions.clear();loadedSessionQueryKeys.clear();daemonSyncRooms.clear();supplementalRoomInfos.clear();roomsPendingLiveSync.clear();sessionMetadataHydrationInFlight.clear();sessionMetadataHydrationLastAttempt.clear();sessionAutoApprove.clear();joinRequests.clear();joinApprovalLocks.clear();daemonAccessApprovalLocks.clear();pendingCreateRequests.clear();pendingWorkspaceRequests.clear();sessionListBlockedReason='';portalDaemonsLoaded=false;
     applyLoggedOutState(e.message||'Login failed',true);
     return false
   }finally{if($.loginBtn){$.loginBtn.disabled=false;$.loginBtn.textContent='Login'}}
 }
 async function logoutUser(){
   try{if(cc)cc.stop()}catch{}
-  stopPortalPolling();cc=null;uid=null;userAvatar='';knownDaemons.clear();discoveredSessions.clear();deletedSessions.clear();loadedSessionQueryKeys.clear();daemonSyncRooms.clear();supplementalRoomInfos.clear();roomsPendingLiveSync.clear();sessionAutoApprove.clear();joinRequests.clear();joinApprovalLocks.clear();daemonAccessApprovalLocks.clear();pendingCreateRequests.clear();pendingWorkspaceRequests.clear();sessionListBlockedReason='';portalDaemonsLoaded=false;
+  cancelLobbyMembershipRecovery();
+  stopPortalPolling();cc=null;uid=null;userAvatar='';knownDaemons.clear();discoveredSessions.clear();deletedSessions.clear();loadedSessionQueryKeys.clear();daemonSyncRooms.clear();supplementalRoomInfos.clear();roomsPendingLiveSync.clear();sessionMetadataHydrationInFlight.clear();sessionMetadataHydrationLastAttempt.clear();sessionAutoApprove.clear();joinRequests.clear();joinApprovalLocks.clear();daemonAccessApprovalLocks.clear();pendingCreateRequests.clear();pendingWorkspaceRequests.clear();sessionListBlockedReason='';portalDaemonsLoaded=false;
   // Server-side logout (for OAuth)
   try{await fetch('/auth/logout',{method:'POST'})}catch{}
   setOauthAuthenticatedUser(null);
@@ -2905,20 +3108,45 @@ async function logoutUser(){
 /* Slash commands */
 const $slashMenu=document.getElementById('slash-menu');
 let slashActive=-1;
+function resizeComposerInput(){$.mi.style.height='auto';$.mi.style.height=Math.min($.mi.scrollHeight,120)+'px'}
+function normalizeDelegationTarget(target,{mode='delegate-at'}={}){const sessionId=String(target?.sessionId||'').trim();if(!sessionId)return null;const label=String(target?.label||target?.roomName||target?.targetLabel||target?.sessionLabel||sessionId).trim()||sessionId;const description=String(target?.description||'').trim();return{sessionId,label,description,mode}}
+function delegationTargetTitle(target){if(!target)return'';return[target.label,target.description,target.sessionId].filter(Boolean).join('\n')}
+function renderSelectedDelegationTarget(){const hasTarget=!!selectedDelegationTarget;$.delegationChip?.classList.toggle('hidden',!hasTarget);if(!hasTarget){if($.delegationChip)$.delegationChip.title='';if($.delegationChipLabel)$.delegationChipLabel.textContent='';return}if($.delegationChipLabel)$.delegationChipLabel.textContent=selectedDelegationTarget.label;if($.delegationChip)$.delegationChip.title=delegationTargetTitle(selectedDelegationTarget)}
+function clearSelectedDelegationTarget({focusInput=false}={}){selectedDelegationTarget=null;renderSelectedDelegationTarget();syncComposer();if(focusInput){$.mi.focus();resizeComposerInput()}}
+function setSelectedDelegationTarget(target,{mode='delegate-at',focusInput=true,preserveInput=false}={}){const normalized=normalizeDelegationTarget(target,{mode});if(!normalized)return;selectedDelegationTarget=normalized;if(!preserveInput)$.mi.value='';renderSelectedDelegationTarget();syncComposer();hideSlashMenu();if(focusInput){$.mi.focus();resizeComposerInput()}}
+function selectedDelegationDisplayText(prompt=''){if(!selectedDelegationTarget)return String(prompt||'').trim();const cleanPrompt=String(prompt||'').trim();const prefix=selectedDelegationTarget.mode==='delegate-slash'?`/delegate ${selectedDelegationTarget.label}`:`@${selectedDelegationTarget.label}`;return cleanPrompt?`${prefix} ${cleanPrompt}`:prefix}
+window.clearComposerDelegationTarget=(focusInput=false)=>clearSelectedDelegationTarget({focusInput:!!focusInput});
+function renderComposerMenu(items,{mode='',context=null}={}){
+  const entries=Array.isArray(items)?items.filter(Boolean):[];
+  if(!entries.length){hideSlashMenu();return}
+  const activeIndex=Math.max(entries.findIndex(item=>!item.disabled),0);
+  composerMenuMode=mode;composerMenuItems=entries;composerMenuContext=context;slashActive=activeIndex;
+  $slashMenu.innerHTML=entries.map((item,i)=>{const primaryClass=item.primaryClass||'sl-label';const desc=item.description?`<span class="sl-desc">${esc(item.description)}</span>`:'';const meta=item.meta?`<span class="sl-meta">${esc(item.meta)}</span>`:'';return`<div class="slash-item${i===activeIndex?' active':''}${item.disabled?' disabled':''}"${item.disabled?'':` onmousedown="pickComposerMenuItem(${i})"`} data-idx="${i}"><div class="sl-stack"><span class="${primaryClass}">${esc(item.label||'')}</span>${desc}${meta}</div></div>`}).join('');
+  $slashMenu.classList.add('show');
+}
 function showSlashMenu(query){
   const q=query.toLowerCase();
-  const matches=SLASH_CMDS.filter(c=>c.cmd.startsWith(q));
-  if(!matches.length){$slashMenu.classList.remove('show');return}
-  $slashMenu.innerHTML=matches.map((c,i)=>`<div class="slash-item${i===0?' active':''}" onmousedown="pickSlash('${jsq(c.cmd)}')" data-idx="${i}"><span class="sl-cmd">/${c.cmd}</span><span class="sl-desc">${esc(c.desc)}</span></div>`).join('');
-  $slashMenu.classList.add('show');slashActive=0;
+  const matches=SLASH_CMDS.filter(c=>c.cmd.startsWith(q)).map(c=>({kind:'slash',cmd:c.cmd,label:`/${c.cmd}`,description:c.desc,primaryClass:'sl-cmd'}));
+  if(!matches.length){hideSlashMenu();return}
+  renderComposerMenu(matches,{mode:'slash'});
 }
-function hideSlashMenu(){$slashMenu.classList.remove('show');slashActive=-1}
-window.pickSlash=(cmd)=>{$.mi.value='/'+cmd+' ';hideSlashMenu();$.mi.focus()};
+function hideSlashMenu(){$slashMenu.classList.remove('show');slashActive=-1;composerMenuMode='';composerMenuItems=[];composerMenuContext=null;composerMenuRequestToken+=1}
+function parseDelegationMenuContext(value){const text=String(value||'');if(/^\/delegate\s*$/i.test(text))return{mode:'delegate-slash',query:'',replaceStart:0,replaceEnd:text.length};const slashMatch=text.match(/^\/delegate\s+(\S*)$/i);if(slashMatch)return{mode:'delegate-slash',query:String(slashMatch[1]||''),replaceStart:0,replaceEnd:text.length};const atMatch=text.match(/^@([^\s@]*)$/);if(atMatch)return{mode:'delegate-at',query:String(atMatch[1]||''),replaceStart:0,replaceEnd:text.length};return null}
+async function listDelegationTargets(force=false){const sourceSessionId=String(rid||'').trim();if(!sourceSessionId)return[];const now=Date.now();if(!force&&delegationTargetsCache.sourceSessionId===sourceSessionId&&Array.isArray(delegationTargetsCache.targets)&&now-delegationTargetsCache.loadedAt<DELEGATION_TARGET_CACHE_MS)return delegationTargetsCache.targets;if(delegationTargetsCache.inflight&&delegationTargetsCache.sourceSessionId===sourceSessionId)return await delegationTargetsCache.inflight;delegationTargetsCache.sourceSessionId=sourceSessionId;delegationTargetsCache.inflight=(async()=>{const body=await portalJson(`/api/delegation-targets?sourceSessionId=${encodeURIComponent(sourceSessionId)}`);const targets=Array.isArray(body?.targets)?body.targets:[];delegationTargetsCache.targets=targets;delegationTargetsCache.loadedAt=Date.now();return targets})().catch(err=>{delegationTargetsCache.targets=[];delegationTargetsCache.loadedAt=0;throw err}).finally(()=>{delegationTargetsCache.inflight=null});return await delegationTargetsCache.inflight}
+function filterDelegationTargets(targets,query=''){const q=String(query||'').trim().toLowerCase();const entries=Array.isArray(targets)?targets:[];if(!q)return[...entries];return entries.filter(target=>[target.sessionId,target.roomName,target.targetLabel,target.daemonLabel,target.agentName,target.workingDirectory,target.ownerUserId].some(value=>String(value||'').toLowerCase().includes(q)))}
+function buildDelegationTargetMenuItems(targets){return targets.map(target=>({kind:'delegation-target',sessionId:String(target.sessionId||'').trim(),label:String(target.roomName||target.targetLabel||target.sessionId||'Session').trim()||'Session',description:[String(target.daemonLabel||'').trim(),AGENT_NAMES[target.agentName]||String(target.agentName||'').trim()].filter(Boolean).join(' · '),meta:[String(target.sessionId||'').trim(),String(target.workingDirectory||'').trim()].filter(Boolean).join(' · '),primaryClass:'sl-label'}))}
+function showDelegationMenuStatus(context,label,description=''){renderComposerMenu([{kind:'status',label,description,disabled:true,primaryClass:'sl-label'}],{mode:'delegation-target',context})}
+async function syncComposerSelectionMenu(){const value=String($.mi.value||'');const context=parseDelegationMenuContext(value);if(context){const requestToken=++composerMenuRequestToken;if(!rid||!cc){showDelegationMenuStatus(context,'Open a session first','Delegation starts from the current writable source session.');return}const currentSession=discoveredSessions.get(rid)||{sessionId:rid,accessLevel:'write'};if(!sessionCanWrite(currentSession)){showDelegationMenuStatus(context,'Source session is read-only','Request write access before delegating to another session.');return}showDelegationMenuStatus(context,'Loading writable sessions…','Pick a target session for this delegation.');try{const targets=filterDelegationTargets(await listDelegationTargets(),context.query);if(requestToken!==composerMenuRequestToken)return;if(!targets.length){showDelegationMenuStatus(context,'No writable targets','No other writable sessions match this filter.');return}renderComposerMenu(buildDelegationTargetMenuItems(targets),{mode:'delegation-target',context})}catch(err){if(requestToken!==composerMenuRequestToken)return;showDelegationMenuStatus(context,'Failed to load targets',err?.message||'Could not fetch delegation targets.')}return}if(value.startsWith('/')&&!value.includes(' ')){showSlashMenu(value.slice(1));return}hideSlashMenu()}
+function selectDelegationTarget(target){const context=composerMenuContext||parseDelegationMenuContext($.mi.value)||{mode:'delegate-slash'};setSelectedDelegationTarget(target,{mode:context.mode,focusInput:true,preserveInput:false})}
+window.pickComposerMenuItem=(index)=>{const item=composerMenuItems[index];if(!item||item.disabled)return;if(item.kind==='slash'){const cmd=String(item.cmd||'').trim();clearSelectedDelegationTarget();$.mi.value='/' + cmd + ' ';$.mi.focus();$.mi.selectionStart=$.mi.selectionEnd=$.mi.value.length;resizeComposerInput();if(cmd==='delegate'){void syncComposerSelectionMenu();return}hideSlashMenu();return}if(item.kind==='delegation-target'){selectDelegationTarget(item);return}hideSlashMenu()};
+window.pickSlash=(cmd)=>{const match=SLASH_CMDS.find(item=>item.cmd===cmd);if(!match){$.mi.value='/' + cmd + ' ';$.mi.focus();return}composerMenuItems=[{kind:'slash',cmd:match.cmd,label:`/${match.cmd}`,description:match.desc,primaryClass:'sl-cmd'}];window.pickComposerMenuItem(0)};
 function handleSlashNav(e){
   if(!$slashMenu.classList.contains('show'))return false;
-  const items=$slashMenu.querySelectorAll('.slash-item');
-  if(e.key==='ArrowDown'||e.key==='ArrowUp'){e.preventDefault();items[slashActive]?.classList.remove('active');slashActive=e.key==='ArrowDown'?(slashActive+1)%items.length:(slashActive-1+items.length)%items.length;items[slashActive]?.classList.add('active');return true}
-  if(e.key==='Tab'||e.key==='Enter'){e.preventDefault();const item=items[slashActive];if(item){const cmd=item.querySelector('.sl-cmd').textContent;$.mi.value=cmd+' ';hideSlashMenu()}return true}
+  const items=[...$slashMenu.querySelectorAll('.slash-item')];
+  const enabledItems=items.filter(item=>!item.classList.contains('disabled'));
+  if(!items.length)return false;
+  if(e.key==='ArrowDown'||e.key==='ArrowUp'){e.preventDefault();if(!enabledItems.length)return true;const currentPos=Math.max(enabledItems.findIndex(item=>Number(item.dataset.idx)===slashActive),0);const nextPos=e.key==='ArrowDown'?(currentPos+1)%enabledItems.length:(currentPos-1+enabledItems.length)%enabledItems.length;const nextIdx=Number(enabledItems[nextPos].dataset.idx);items.forEach(item=>item.classList.remove('active'));$slashMenu.querySelector(`.slash-item[data-idx="${nextIdx}"]`)?.classList.add('active');slashActive=nextIdx;return true}
+  if(e.key==='Tab'||e.key==='Enter'){e.preventDefault();if(enabledItems.length)window.pickComposerMenuItem(slashActive);return true}
   if(e.key==='Escape'){hideSlashMenu();return true}
   return false;
 }
@@ -2937,7 +3165,7 @@ function getSessionStatePill(){
   if(ss.stopping)return {state:'stopping',label:'Stopping'};
   if(currentStatusState==='permission')return {state:'approval',label:'Approval'};
   if(currentStatusState==='error')return {state:'error',label:'Error'};
-  if(ss.processing)return {state:'working',label:'Working'};
+  if(ss.processing||hasActiveDelegationForSourceSession(rid)||!!discoveredSessions.get(rid)?.sessionDelegating)return {state:'working',label:'Working'};
   if(currentSessionReady===false)return {state:'starting',label:'Starting'};
   return {state:'idle',label:'Idle'};
 }
@@ -3139,10 +3367,20 @@ window.setSessionGroupBy=function(mode){
   renderSessionsCol();
   renderCompactNav();
 };
+function setSessionsHeaderLoadingState(loading=false,label=''){
+  const header=document.getElementById('col-sessions-hdr');
+  const spinner=document.getElementById('col-sessions-spinner');
+  if(header)header.textContent='Sessions';
+  if(!spinner)return;
+  const active=!!loading;
+  spinner.classList.toggle('hidden',!active);
+  spinner.title=active?String(label||'').trim():'';
+}
 async function renderSessionsCol(){
   const list=document.getElementById('col-sessions-list');
   const header=document.getElementById('col-sessions-hdr');
   if(header)header.textContent='Sessions';
+  setSessionsHeaderLoadingState(false);
   syncCreateSessionButton();
   if(!uid||!cc){list.innerHTML=skeletonColumn(4);renderCompactNav();return}
   if(!currentDaemonId){
@@ -3151,42 +3389,36 @@ async function renderSessionsCol(){
     return
   }
   const queryKey=currentSessionQueryKey();
+  const queryLoaded=!queryKey||sessionQueryLoaded(queryKey);
+  const queryLoading=!!queryKey&&sessionQueryLoading(queryKey);
   const localSessions=collectVisibleSessions({
     discoveredSessions,
     chatRooms:cc?.rooms||[],
     deletedSessions,
     lobbyRoomId:LOBBY_ROOM,
   });
-  if(queryKey&&!sessionQueryLoaded(queryKey)&&!portalPollInFlight&&!sessionQueryLoading(queryKey))void refreshPortalSessions({render:true}).catch(err=>console.warn('Session refresh failed:',err?.message||err));
-  if(shouldShowPortalSessionLoading({queryLoaded:!queryKey||sessionQueryLoaded(queryKey),localSessionCount:localSessions.length})){
+  setSessionsHeaderLoadingState((!queryLoaded&&!!queryKey)||queryLoading,'Syncing session list…');
+  if(queryKey&&!queryLoaded&&!portalPollInFlight&&!queryLoading)void refreshPortalSessions({render:true}).catch(err=>console.warn('Session refresh failed:',err?.message||err));
+  if(shouldShowPortalSessionLoading({queryLoaded,localSessionCount:localSessions.length})){
     list.innerHTML=renderColumnLoadingState('Loading sessions…','Waiting for the latest session list from the portal.');
     renderCompactNav();
     return
   }
-  const readOnlyBanner='';
   const joined=joinedRoomIds();
   const sessions=[...localSessions];
-  await mapLimit(sessions.filter(s=>joined.has(s.sessionId)&&(!s.agent||!s.workingDirectory||!s.ownerUserId||!s.daemonId)),4,async(s)=>{try{
-    const ri=await cc.getRoom(s.sessionId,false);const cid=ri?.defaultConversationId;const roomName=resolveRoomDisplayName(ri);
-    if(roomName&&roomName!=='Session')s.name=roomName;
-    if(cid)s.defaultConversationId=s.defaultConversationId||cid;
-    if(cid){const h=await cc.listMessage(cid,'0',null,10);if(h?.messages?.length){
-      for(const m of [...h.messages].reverse()){if(!m.content?.text)continue;try{const e=JSON.parse(m.content.text);
-        if(e.type==='control.create'){s.workingDirectory=s.workingDirectory||e.workingDirectory;s.agent=s.agent||e.agentName;s.daemonId=s.daemonId||e.daemonId;s.ownerUserId=s.ownerUserId||e.userId;break}
-      }catch{}}
-      if(h.messages[0]?.createdAt)s.updatedAt=s.updatedAt||h.messages[0].createdAt;
-    }}
-  }catch(e){console.warn('Session enrich failed:',s.sessionId.substring(0,8),e.message)}});
+  const metadataHydrationState=getSessionMetadataHydrationState({sessions,joinedSessionIds:joined,inFlightSessionIds:sessionMetadataHydrationInFlight,lastAttemptBySessionId:sessionMetadataHydrationLastAttempt,cooldownMs:SESSION_METADATA_HYDRATE_COOLDOWN_MS});
+  setSessionsHeaderLoadingState((!queryLoaded&&!!queryKey)||queryLoading||metadataHydrationState.shouldShowLoading,((!queryLoaded&&!!queryKey)||queryLoading)?'Syncing session list…':'Loading session details…');
+  if(metadataHydrationState.actionableCount>0)void hydrateVisibleSessionMetadata(sessions,joined).then((hydratedCount)=>{if(hydratedCount>0)void renderSessionsCol()}).catch(err=>console.warn('Session metadata hydrate failed:',err?.message||err));
   const filtered=[...sessions].sort((a,b)=>{const ta=a.updatedAt?new Date(a.updatedAt).getTime():0;const tb=b.updatedAt?new Date(b.updatedAt).getTime():0;return tb-ta}).filter(s=>!currentDaemonId||s.daemonId===currentDaemonId);
   if(!filtered.length){
     const daemonEntries=freshDaemonEntries();
     const hasVisibleDaemon=daemonEntries.length>0;
     const hasMemberDaemon=daemonEntries.some(([,daemon])=>daemonHasMemberAccess(daemon));
     const hasCreatableDaemon=daemonEntries.some(([,daemon])=>{const {blocked,readOnly}=getCreateSessionAccessState(daemon);return !blocked&&!readOnly});
-    if(!hasVisibleDaemon)list.innerHTML=`${readOnlyBanner}${renderColumnStateCard({icon:'🔌',title:'No daemons found',detail:'Start a local daemon and the portal will pick it up on the next refresh.',extra:'<div class="col-empty-hint">npm run daemon</div>'})}`;
-    else if(!hasMemberDaemon)list.innerHTML=`${readOnlyBanner}${renderSessionEmptyState('No accessible sessions yet','You can see daemons in the launcher, but you still need daemon member or admin access before shared sessions appear here.','🔒')}`;
-    else if(!hasCreatableDaemon)list.innerHTML=`${readOnlyBanner}${renderSessionEmptyState('No sessions yet','Shared sessions will appear here when they exist. Creating a new one still requires daemon admin access.','💬')}`;
-    else list.innerHTML=`${readOnlyBanner}${renderSessionEmptyState('No sessions yet','Use New Session to start one on any daemon where you have admin access.','💬')}`;
+    if(!hasVisibleDaemon)list.innerHTML=renderColumnStateCard({icon:'🔌',title:'No daemons found',detail:'Start a local daemon and the portal will pick it up on the next refresh.',extra:'<div class="col-empty-hint">npm run daemon</div>'});
+    else if(!hasMemberDaemon)list.innerHTML=renderSessionEmptyState('No accessible sessions yet','You can see daemons in the launcher, but you still need daemon member or admin access before shared sessions appear here.','🔒');
+    else if(!hasCreatableDaemon)list.innerHTML=renderSessionEmptyState('No sessions yet','Shared sessions will appear here when they exist. Creating a new one still requires daemon admin access.','💬');
+    else list.innerHTML=renderSessionEmptyState('No sessions yet','Use New Session to start one on any daemon where you have admin access.','💬');
     renderCompactNav();
     return
   }
@@ -3236,7 +3468,6 @@ async function renderSessionsCol(){
     const daemonKicker=currentDaemonId?'':`<span class="session-row-kicker is-daemon"><span class="kicker-label">Workspace</span> ${esc(daemonLabel)}</span>`;
     return`<div class="col-item${s.sessionId===rid?' selected':''}${isRequestableSessionCard?' is-requestable':''}"${canOpenSessionCard?` onclick="openSession('${jsq(s.sessionId)}')"`:''} data-daemon-id="${esc(s.daemonId||'')}" data-agent="${esc(s.agent||'')}" data-daemon-label="${esc(daemonLabel)}" data-agent-label="${esc(agentLabel)}"><span class="ci-icon" style="color:${color}">${icon}</span><div class="ci-info">${namelineHtml}<div class="session-row-kickers">${daemonKicker}<span class="session-row-kicker is-agent"><span class="kicker-label">Agent</span> ${esc(agentLabel)}</span>${accessBadge}</div>${pathHtml}${ownerHtml}${blockAction}</div>${inlineAction}</div>`;
   }).join('');
-  list.innerHTML=`${readOnlyBanner}${list.innerHTML}`;
   if(sessionGroupBy!=='none'){
     const items=[...list.querySelectorAll('.col-item')];
     const groups=new Map();
@@ -3245,7 +3476,7 @@ async function renderSessionsCol(){
       if(!groups.has(key))groups.set(key,[]);
       groups.get(key).push(el);
     }
-    list.innerHTML=readOnlyBanner;
+    list.innerHTML='';
     for(const [label,els] of groups){
       const hdr=document.createElement('div');
       hdr.className='session-group-hdr';
@@ -3380,13 +3611,14 @@ async function initCC(userId){
   if(negData.userId)uid=negData.userId;
   syncUserBadge();
   cc=await new ChatClient(negData.url).login();
-  await ensureLobbyMembership(uid);
   cc.addListenerForNewMessage(onMsg);
   cc.addListenerForNewRoom((room)=>{rememberKnownRoomInfo(supplementalRoomInfos,room);if(room.roomId!==LOBBY_ROOM){const req=joinRequests.get(room.roomId)||{};if(req&&(req.status==='pending'||req.status==='approved')){joinRequests.set(room.roomId,{...req,status:'approved'});openR(room.roomId).catch(err=>{setSessionBanner({source:'error',label:'Open failed',text:err?.message||'Failed to open newly joined session',tone:'error',actionText:'Retry',action:()=>openR(room.roomId)});setFormStatus(err?.message||'Failed to open joined session.','error',4500,'join')});}renderSessionsCol()}});
   cc.addListenerForRoomLeft((info)=>{const leftRoomId=String(info.roomId||'').trim();supplementalRoomInfos.delete(leftRoomId);roomsPendingLiveSync.delete(leftRoomId);if(info.roomId===rid){rid=null;resetChatState();applyLoggedInState();updateBreadcrumb();updateAutoBtn()}renderSessionsCol()});
   cc.onConnected(()=>{setPortalTransportState('connected');clearSessionBanner('portal');setSt('idle');pulsePortalRefresh([0,300],{includeRequests:true})});
   cc.onDisconnected(()=>{setPortalTransportState('disconnected');setSessionBanner({source:'portal',label:'WPS disconnected',text:'Portal lost its Web PubSub connection. Refresh the page or retry the connection.',tone:'error',actionText:oauthMode&&oauthAuthenticatedUser?'Retry':'Refresh',action:oauthMode&&oauthAuthenticatedUser?()=>retryPortalConnection():()=>window.location.reload()});setSt('disconnected')});
+  cancelLobbyMembershipRecovery();
   startPortalPolling();
+  startLobbyMembershipRecovery(uid);
   return cc;
 }
 function unpackEnvelope(e){if(e.type!=='transport.chunk')return[e];let s=tc.get(e.chunkId);if(!s){s={parts:new Array(e.total),received:0,startedAt:Date.now()};tc.set(e.chunkId,s)}if(s.parts[e.index]==null){s.parts[e.index]=e.jsonPart;s.received+=1}if(s.received<e.total)return[];tc.delete(e.chunkId);try{return[JSON.parse(s.parts.join(''))]}catch(err){console.warn('Chunk decode failed',err);addErr('Failed to decode large message');return[]}}
@@ -3404,6 +3636,14 @@ function onMsg(n){const m=n.message,r=n.conversation?.roomId;if(!m.content?.text
     const parsed=JSON.parse(m.content.text);
     const envelopes=unpackEnvelope(parsed);
     const resolvedRoomId=resolveNotificationRoomId(n,knownRoomInfosForRouting());
+    if(resolvedRoomId&&relayRoomDelegations.has(resolvedRoomId)){
+      const seen=relaySeenStore(resolvedRoomId);
+      if(isLocalEchoMessage(m,uid)){rememberRoomMessage(m,seen);return}
+      if(shouldIgnoreRoomMessage(m,seen,0))return;
+      rememberRoomMessage(m,seen);
+      for(const e of envelopes){if(e?.type==='delegation.stream.event'&&e.targetDaemonId&&m.createdBy!==e.targetDaemonId)continue;applyDelegationRelayEnvelope(e)}
+      return
+    }
     if(resolvedRoomId&&resolvedRoomId.startsWith(DAEMON_SYNC_ROOM_PREFIX)){
       if(isLocalEchoMessage(m,uid))return;
       for(const e of envelopes)applyDaemonSyncEnvelope(e);
@@ -3466,7 +3706,7 @@ window.delSess=async(sid)=>{if(!await showConfirm('Delete this session?'))return
 window.leaveSess=async(sid)=>{if(!await showConfirm('Leave this shared session?','Leave'))return;try{
   await portalJson(`/api/sessions/${encodeURIComponent(sid)}/members/${encodeURIComponent(uid)}`,{method:'DELETE'});
   joinRequests.delete(sid);
-  discoveredSessions.delete(sid);
+  removeDiscoveredSession(sid);
   if(rid===sid){rid=null;resetChatState();applyLoggedInState();updateBreadcrumb();updateAutoBtn()}
   await renderSessionsCol();
 }catch(e){setFormStatus(e.message||'Failed to leave session.','error',4500,'join')}};
@@ -3528,23 +3768,9 @@ async function openR(roomId,{preserveBooting=false,bootStage='',retryLiveSyncRec
   cancelSessionLiveSyncRetry();
   let knownMeta=discoveredSessions.get(roomId);
   if(knownMeta)syncSessionSelection(roomId,knownMeta);
-  try{
-    const roomInfo=await cc.getRoom(roomId,false);
-    if(roomInfo){
-      rememberKnownRoomInfo(supplementalRoomInfos,roomInfo);
-      const roomPatch={
-        sessionId:roomId,
-        defaultConversationId:roomInfo.defaultConversationId||knownMeta?.defaultConversationId||'',
-        name:resolveRoomDisplayName(roomInfo),
-        updatedAt:roomInfo.updatedAt||roomInfo.createdAt||knownMeta?.updatedAt,
-      };
-      syncSessionSelection(roomId,{...(knownMeta||{}),...roomPatch});
-      knownMeta=discoveredSessions.get(roomId)||{...(knownMeta||{}),...roomPatch};
-    }
-  }catch(err){
-    console.warn('Open room info hydrate failed:',roomId.substring(0,8),err?.message||err)
-  }
-  rid=roomId;historyLoadedAt=0;seenRoomMessageIds.clear();$.chat.innerHTML='';pd.clear();rd.clear();at.clear();pp.clear();tc.clear();$wi=null;resetSessionToolbar();
+  let roomInfo=null;
+  const roomInfoPromise=cc.getRoom(roomId,false).catch(err=>{console.warn('Open room info hydrate failed:',roomId.substring(0,8),err?.message||err);return null});
+  rid=roomId;historyLoadedAt=0;seenRoomMessageIds.clear();resetDelegationViewState();$.chat.innerHTML='';pd.clear();rd.clear();at.clear();pp.clear();tc.clear();$wi=null;resetSessionToolbar();clearSelectedDelegationTarget();
   currentSessionReady=null;latestSessionHistorySummary=createSessionHistorySummary();chatPlaceholderOverride=null;
   if(preserveBooting)setSessionBooting(true,bootStage||sessionBootingStage||'Preparing session…');
   else setSessionBooting(false);
@@ -3555,19 +3781,39 @@ async function openR(roomId,{preserveBooting=false,bootStage='',retryLiveSyncRec
   // REST membership (addUserToRoom / hasJoinedRoom) does NOT guarantee WebSocket delivery;
   // the server token must include webpubsub.joinLeaveGroup role, and the client must
   // explicitly joinGroup for rooms joined after the initial login.
-  const liveSubscribed=await ensureLiveRoomSubscription(roomId,{retries:1,retryDelayMs:300});
+  const liveSubscriptionPromise=ensureLiveRoomSubscription(roomId,{retries:1,retryDelayMs:300});
+  roomInfo=await roomInfoPromise;
+  if(roomInfo){
+    rememberKnownRoomInfo(supplementalRoomInfos,roomInfo);
+    const roomPatch={
+      sessionId:roomId,
+      defaultConversationId:roomInfo.defaultConversationId||knownMeta?.defaultConversationId||'',
+      name:resolveRoomDisplayName(roomInfo),
+      updatedAt:roomInfo.updatedAt||roomInfo.createdAt||knownMeta?.updatedAt,
+    };
+    syncSessionSelection(roomId,{...(knownMeta||{}),...roomPatch});
+    knownMeta=discoveredSessions.get(roomId)||{...(knownMeta||{}),...roomPatch};
+  }
+  const liveSubscribed=await liveSubscriptionPromise;
   // If joinGroup succeeded, we can trust the WebSocket subscription is active.
   // No need for the expensive session.sync_state round-trip to prove it.
   if(liveSubscribed)roomsPendingLiveSync.delete(roomId);
   try{const sessionMeta={...(knownMeta||{}),sessionId:roomId};
+    const shouldWaitForLiveState=(targetRoomId)=>roomNeedsLiveSyncValidation(targetRoomId)||!hasLiveRoomJoin(targetRoomId);
+    if(canSkipInitialSessionSync({roomInfo,shouldWaitForLiveState:shouldWaitForLiveState(roomId)})){
+      clearSessionBanner('history');
+      refreshSessionPlaceholder();
+      try{await cc.sendToRoom(roomId,JSON.stringify({type:'session.sync_state'}))}catch{}
+      return;
+    }
     const openSyncResult=await ensureSessionOpenSync(roomId,{
-      replayHistory:replayLatestRoomHistory,
+      replayHistory:(targetRoomId,targetSessionMeta,historyOptions)=>replayLatestRoomHistory(targetRoomId,targetSessionMeta,{...historyOptions,roomInfo:targetRoomId===roomId?roomInfo:null}),
       waitForLiveState:(targetRoomId,timeoutMs,sessionMeta)=>waitForRoomLiveState(targetRoomId,timeoutMs,sessionMeta,{allowHistoryFallback:!roomNeedsLiveSyncValidation(targetRoomId)}),
       sessionMeta,
       timeoutMs:ROOM_LIVE_SYNC_TIMEOUT_MS,
       historyOptions:{maxCount:100,skipStartupEnvelopes:true},
       hasLiveRoomJoin:(targetRoomId)=>hasLiveRoomJoin(targetRoomId),
-      shouldWaitForLiveState:(targetRoomId)=>roomNeedsLiveSyncValidation(targetRoomId)||!hasLiveRoomJoin(targetRoomId),
+      shouldWaitForLiveState,
       onWaitingForLiveState:()=>{setSessionBanner({source:'history',label:'Syncing',text:'Waiting for live session sync…',tone:'info'});refreshSessionPlaceholder({forceSyncing:true})},
     });
     latestSessionHistorySummary=openSyncResult?.historySummary||latestSessionHistorySummary||createSessionHistorySummary();
@@ -3632,11 +3878,38 @@ window.stopCurrentTurn=async()=>{
 window.handleComposerAction=()=>{if(ss.processing||ss.stopping)return window.stopCurrentTurn();return window.sendMsg()};
 
 window.sendMsg=async()=>{
-  const t=$.mi.value.trim();if(!t)return;
+  const t=$.mi.value.trim();if(!t){if(selectedDelegationTarget){setSessionBanner({source:'error',label:'Delegation incomplete',text:'Add the prompt text you want to delegate to the selected session.',tone:'error'})}return}
   if(!rid||!cc){setSessionBanner({source:'error',label:'No active session',text:'Open or create a session first.',tone:'error'});addErr('Not connected — open or create a session first');return}
   if(sessionBooting){setSessionBanner({source:'boot',label:'Starting',text:sessionBootingStage||'Agent is still starting… please wait.',tone:'info'});syncComposer();return}
   if(ss.stopping)return;
-  $.mi.value='';$.mi.style.height='auto';
+  const typedDelegationCmd=parseDelegationCommand(t)||parseMentionDelegationCommand(t);
+  const activeDelegationTarget=selectedDelegationTarget?{...selectedDelegationTarget}:null;
+  const delegationCmd=typedDelegationCmd||(!typedDelegationCmd&&activeDelegationTarget?{targetSessionId:activeDelegationTarget.sessionId,prompt:t,displayText:selectedDelegationDisplayText(t)}:null);
+  if(delegationCmd){
+    const currentSession=discoveredSessions.get(rid)||{sessionId:rid,accessLevel:'write'};
+    if(!sessionCanWrite(currentSession)){setSessionBanner({source:'error',label:'Read-only session',text:'You need write access to the current source session before creating a delegation.',tone:'error'});return}
+    if(activeDelegationTarget)clearSelectedDelegationTarget();
+    $.mi.value='';resizeComposerInput();
+    clearSessionBanner('error');
+    setSessionBanner({source:'history',label:'Delegating',text:'Dispatching prompt to the target session…',tone:'info'});
+    try{
+      await createDelegationRequest(delegationCmd.targetSessionId,delegationCmd.prompt,delegationCmd.displayText||t);
+      clearSessionBanner('history');
+      scroll();
+    }catch(e){
+      if(activeDelegationTarget)setSelectedDelegationTarget(activeDelegationTarget,{mode:activeDelegationTarget.mode,focusInput:false,preserveInput:true});
+      $.mi.value=t;$.mi.focus();
+      resizeComposerInput();
+      setSessionBanner({source:'error',label:'Delegation failed',text:e.message||'Failed to create delegation',tone:'error',actionText:'Restore draft',action:async()=>{$.mi.value=t;$.mi.focus()}});
+      addErr(e.message||'Failed to create delegation');
+    }
+    return
+  }
+  if(/^\/delegate(?:\s+\S*)?$/i.test(t)||/^@\S*$/.test(t)){
+    setSessionBanner({source:'error',label:'Delegation incomplete',text:'Pick a target session, then add the prompt text you want to delegate.',tone:'error'});
+    return
+  }
+  $.mi.value='';resizeComposerInput();
   const mode=ss.processing?sendMode:'enqueue';
   clearSessionBanner('error');
   try{
@@ -3644,13 +3917,40 @@ window.sendMsg=async()=>{
     setWorkingLabel('Waiting for agent response…');
     addUB(t);setSt('busy');if(ss.processing&&mode==='enqueue'){addSys('Queued');ss.pendingCount+=1}if(!ss.processing)ss.processing=true;
     const env={type:'user.prompt',content:t,mode};logDebugMessage('send',env);await cc.sendToRoom(rid,JSON.stringify(env));await announceSession('session.touch',rid,{updatedAt:new Date().toISOString()});sendMode='enqueue';syncSt();scroll();
-  }catch(e){$.mi.value=t;$.mi.focus();setSessionBanner({source:'error',label:'Send failed',text:e.message||'Failed to send message',tone:'error',actionText:'Restore draft',action:async()=>{$.mi.value=t;$.mi.focus()}});addErr(e.message||'Failed to send message')}
+  }catch(e){$.mi.value=t;$.mi.focus();resizeComposerInput();setSessionBanner({source:'error',label:'Send failed',text:e.message||'Failed to send message',tone:'error',actionText:'Restore draft',action:async()=>{$.mi.value=t;$.mi.focus()}});addErr(e.message||'Failed to send message')}
 };
-$.mi.addEventListener('keydown',e=>{if(handleSlashNav(e))return;if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();hideSlashMenu();handleComposerAction()}});
-$.mi.addEventListener('input',()=>{$.mi.style.height='auto';$.mi.style.height=Math.min($.mi.scrollHeight,120)+'px';const v=$.mi.value;if(v.startsWith('/')&&!v.includes(' ')){showSlashMenu(v.slice(1))}else{hideSlashMenu()}});
+$.mi.addEventListener('keydown',e=>{if(handleSlashNav(e))return;if(e.key==='Backspace'&&selectedDelegationTarget&&!$.mi.value){e.preventDefault();clearSelectedDelegationTarget({focusInput:false});return}if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();hideSlashMenu();handleComposerAction()}});
+$.mi.addEventListener('input',()=>{resizeComposerInput();void syncComposerSelectionMenu()});
+
+function isDelegationSummaryType(type){return /^delegation\.(prompt|dispatched|started|completed|failed|cancelled|expired)$/.test(String(type||''))}
+function isDelegationTerminalType(type){return /^(delegation\.(completed|failed|cancelled|expired))$/.test(String(type||''))}
+function delegationStatusFromSummaryType(type){const value=String(type||'').trim();if(value==='delegation.prompt')return'creating';if(value==='delegation.dispatched')return'dispatched';if(value==='delegation.started')return'started';if(value==='delegation.completed')return'completed';if(value==='delegation.failed')return'failed';if(value==='delegation.cancelled')return'cancelled';if(value==='delegation.expired')return'expired';return''}
+function delegationStatusLabel(status){const value=String(status||'').trim();if(value==='creating')return'Creating';if(value==='dispatched')return'Dispatched';if(value==='started')return'Started';if(value==='streaming')return'Streaming';if(value==='cancel_requested')return'Cancelling';if(value==='completed')return'Completed';if(value==='failed')return'Failed';if(value==='cancelled')return'Cancelled';if(value==='expired')return'Expired';return'Delegation'}
+function relaySeenStore(roomId){const key=String(roomId||'').trim();if(!relaySeenMessageIds.has(key))relaySeenMessageIds.set(key,new Set());return relaySeenMessageIds.get(key)}
+function resetDelegationViewState(){delegationViews.clear();relayRoomDelegations.clear();relaySeenMessageIds.clear()}
+function hasActiveDelegationForSourceSession(sessionId){const normalizedSessionId=String(sessionId||'').trim();if(!normalizedSessionId)return false;for(const view of delegationViews.values()){if(String(view?.sourceSessionId||'').trim()!==normalizedSessionId)continue;if(!/^(completed|failed|cancelled|expired)$/.test(String(view?.status||'')))return true}return false}
+function syncLocalSourceSessionDelegationState(sessionId){const normalizedSessionId=String(sessionId||'').trim();if(!normalizedSessionId)return;upsertDiscoveredSession({sessionId:normalizedSessionId,sessionDelegating:hasActiveDelegationForSourceSession(normalizedSessionId)});if(normalizedSessionId===rid)renderSessionContextBar();void renderSessionsCol()}
+function updateDelegationStatus(view,status){if(!view)return;const next=String(status||'').trim();if(!next)return;const current=String(view.status||'').trim();if(/^(completed|failed|cancelled|expired)$/.test(current)&&!/^(completed|failed|cancelled|expired)$/.test(next))return;view.status=next;view.statusEl.dataset.state=next;view.statusEl.textContent=delegationStatusLabel(next);updateDelegationControls(view)}
+function renderDelegationCardExpansion(view){if(!view)return;const collapsed=isDelegationCardCollapsed(view.timelineState);view.card.classList.toggle('is-collapsed',collapsed);view.toggleBtn.setAttribute('aria-expanded',collapsed?'false':'true');view.toggleBtn.title=collapsed?'Expand delegation details':'Collapse delegation details'}
+function renderDelegationHeaderSummary(view){if(!view)return;const summary=buildDelegationCardHeaderSummary({prompt:view.promptEl.textContent||'',model:view.model,usage:view.usage,error:view.error});view.headPromptEl.textContent=summary.promptPreview;view.headMetaEl.textContent=summary.metaPreview;view.headPromptEl.classList.toggle('hidden',!summary.promptPreview);view.headMetaEl.classList.toggle('hidden',!summary.metaPreview)}
+function updateDelegationMeta(view){if(!view)return;const parts=[];if(view.model)parts.push(`model ${view.model}`);if(Number.isFinite(view.usage?.used)||Number.isFinite(view.usage?.size)){const used=Number.isFinite(view.usage?.used)?view.usage.used:'?';const size=Number.isFinite(view.usage?.size)?view.usage.size:'?';parts.push(`${used}/${size} tokens`)}if(view.error)parts.push(view.error);view.metaEl.textContent=parts.join(' · ');renderDelegationHeaderSummary(view)}
+function updateDelegationControls(view){if(!view)return;const terminal=/^(completed|failed|cancelled|expired)$/.test(String(view.status||''));view.cancelBtn.disabled=terminal||!view.delegationId;view.openBtn.disabled=!view.targetSessionId}
+function delegationToolSignature(payload){const name=String(payload?.name||'Tool').trim()||'Tool';let args='';try{if(payload&&Object.prototype.hasOwnProperty.call(payload,'args'))args=typeof payload.args==='string'?payload.args:JSON.stringify(payload.args??'')}catch{args=String(payload?.args??'')}return`${name}\n${args}`}
+function delegationToolStateLabel(item){if(item?.state==='failed')return'Failed';if(item?.state==='done')return'Done';return'Running'}
+function delegationToolDisplayName(item){const normalizedName=String(item?.name||'Tool').trim()||'Tool';const repeatCount=Math.max(1,Number(item?.repeatCount)||1);return repeatCount>1?`${normalizedName} ×${repeatCount}`:normalizedName}
+function renderDelegationTimeline(view){if(!view?.bodyEl)return;const fragment=document.createDocumentFragment();for(const item of view.timelineState.items){if(item.kind==='assistant'){const messageEl=document.createElement('div');messageEl.className=`deleg-msg${item.streaming?' streaming':''}`;if(item.streaming)messageEl.textContent=item.content||'';else messageEl.innerHTML=item.content?md(item.content):'';fragment.appendChild(messageEl);continue}if(item.kind==='reasoning'){const reasoningWrap=document.createElement('details');reasoningWrap.className='deleg-reasoning show';reasoningWrap.open=item.expanded!==false;const summaryEl=document.createElement('summary');summaryEl.textContent='Reasoning';const reasoningBody=document.createElement('div');reasoningBody.className='deleg-reasoning-body';if(item.streaming)reasoningBody.textContent=item.content||'';else reasoningBody.innerHTML=item.content?md(item.content):'';reasoningWrap.append(summaryEl,reasoningBody);reasoningWrap.addEventListener('toggle',()=>setDelegationCardReasoningExpanded(view.timelineState,item.id,reasoningWrap.open));fragment.appendChild(reasoningWrap);continue}if(item.kind==='tool'){const row=document.createElement('div');row.className='deleg-tool';row.dataset.state=item.state||'running';row.innerHTML=`<span class="deleg-tool-name"></span><span class="deleg-tool-state"></span>`;row.querySelector('.deleg-tool-name').textContent=delegationToolDisplayName(item);row.querySelector('.deleg-tool-state').textContent=delegationToolStateLabel(item);fragment.appendChild(row)}}view.bodyEl.replaceChildren(fragment)}
+function ensureDelegationView(envelope){const delegationId=String(envelope?.delegationId||'').trim();if(!delegationId)return null;let view=delegationViews.get(delegationId);if(!view){const card=document.createElement('div');card.className='deleg-card';card.dataset.delegationId=delegationId;card.innerHTML=`<div class="deleg-head"><div class="deleg-head-main"><div class="deleg-head-copy"><div class="deleg-kicker">Cross-Agent Communication</div><div class="deleg-title"></div></div><div class="deleg-head-summary"><div class="deleg-head-prompt hidden"></div><div class="deleg-head-meta hidden"></div></div></div><div class="deleg-head-side"><span class="deleg-state">Delegation</span><button class="deleg-toggle" type="button" aria-expanded="true" title="Collapse delegation details"><span class="deleg-toggle-chevron">›</span></button></div></div><div class="deleg-detail"><div class="deleg-prompt"></div><div class="deleg-body"></div><div class="deleg-meta"></div><div class="deleg-actions"><button type="button">Open target</button><button type="button">Cancel</button></div></div>`;$.chat.appendChild(card);const actions=card.querySelectorAll('.deleg-actions button');view={delegationId,sourceSessionId:'',targetSessionId:'',relayRoomId:'',targetLabel:'',status:'creating',lastSeenSeq:0,messageBuffer:'',reasoningBuffer:'',model:'',usage:{},error:'',relayConnectPromise:null,timelineState:createDelegationCardState(),card,titleEl:card.querySelector('.deleg-title'),statusEl:card.querySelector('.deleg-state'),promptEl:card.querySelector('.deleg-prompt'),bodyEl:card.querySelector('.deleg-body'),metaEl:card.querySelector('.deleg-meta'),detailEl:card.querySelector('.deleg-detail'),headPromptEl:card.querySelector('.deleg-head-prompt'),headMetaEl:card.querySelector('.deleg-head-meta'),toggleBtn:card.querySelector('.deleg-toggle'),openBtn:actions[0],cancelBtn:actions[1]};view.toggleBtn.addEventListener('click',event=>{event.stopPropagation();toggleDelegationCardCollapsed(view.timelineState);renderDelegationCardExpansion(view)});view.openBtn.addEventListener('click',event=>{event.stopPropagation();if(view.targetSessionId)window.openSession(view.targetSessionId)});view.cancelBtn.addEventListener('click',event=>{event.stopPropagation();if(view.delegationId)void cancelDelegation(view.delegationId)});renderDelegationCardExpansion(view);renderDelegationHeaderSummary(view);delegationViews.set(delegationId,view)}view.sourceSessionId=view.sourceSessionId||String(envelope?.sourceSessionId||'').trim();view.targetSessionId=String(envelope?.targetSessionId||view.targetSessionId||'').trim();view.relayRoomId=String(envelope?.relayRoomId||view.relayRoomId||'').trim();view.targetLabel=String(envelope?.targetLabel||view.targetLabel||'').trim();if(view.targetLabel)view.titleEl.textContent=view.targetLabel;updateDelegationControls(view);return view}
+async function ensureDelegationRelayConnection(view,{replay=true}={}){if(!view||!cc||!view.relayRoomId)return;if(view.relayConnectPromise)return await view.relayConnectPromise;relayRoomDelegations.set(view.relayRoomId,view.delegationId);view.relayConnectPromise=createDelegationRelayConnectionPromise(async()=>{const relayRoomId=view.relayRoomId;await ensureLocalRoomInfo(relayRoomId,{chatRooms:cc?.rooms||[],supplementalRoomInfos,hasJoinedRoom:(roomId)=>hasLiveRoomJoin(roomId),getRoomInfo:(roomId)=>cc.getRoom(roomId,false),addSelfToRoom:(roomId,userId)=>cc.addUserToRoom(roomId,userId),currentUserId:cc.userId});let liveSubscribed=await ensureLiveRoomSubscription(relayRoomId,{suppressWarnings:true,retries:1,retryDelayMs:300});if(!liveSubscribed){await waitForRoomMembership(relayRoomId,ROOM_MEMBERSHIP_TIMEOUT_MS);liveSubscribed=await ensureLiveRoomSubscription(relayRoomId,{retries:1,retryDelayMs:300})}if(replay)await replayDelegationRelayHistory(view)},{onError:(err)=>{view.error=err?.message||'Failed to subscribe relay';updateDelegationMeta(view)},onFinally:()=>{view.relayConnectPromise=null}});return await view.relayConnectPromise}
+async function replayDelegationRelayHistory(view,maxCount=100){if(!view?.relayRoomId||!cc)return;const roomInfo=await cc.getRoom(view.relayRoomId,false);const conversationId=roomInfo?.defaultConversationId;if(!conversationId)return;const history=await cc.listMessage(conversationId,'0',null,clampDelegationRelayHistoryMaxCount(maxCount));const messages=[...(history?.messages||[])].reverse();const seen=relaySeenStore(view.relayRoomId);for(const message of messages){if(!message?.content?.text)continue;if(shouldIgnoreRoomMessage(message,seen,0))continue;rememberRoomMessage(message,seen);let parsed=null;try{parsed=JSON.parse(message.content.text)}catch{continue}for(const envelope of unpackEnvelope(parsed)){if(envelope?.type==='delegation.stream.event'&&envelope.targetDaemonId&&message.createdBy!==envelope.targetDaemonId)continue;applyDelegationRelayEnvelope(envelope)}}}
+function applyDelegationRelayEnvelope(envelope){if(envelope?.type!=='delegation.stream.event')return;const view=delegationViews.get(String(envelope.delegationId||'').trim());if(!view)return;if(view.relayRoomId&&String(envelope.relayRoomId||'').trim()!==view.relayRoomId)return;const nextSeq=Number(envelope.seq)||0;if(!nextSeq||nextSeq<=Number(view.lastSeenSeq||0))return;view.lastSeenSeq=nextSeq;const payload=envelope.payload||{};if(payload?.model)view.model=String(payload.model||'');let timelineChanged=false;switch(String(envelope.streamType||'')){case'stream.open':updateDelegationStatus(view,'started');break;case'assistant.message_delta':{const chunk=String(payload.content||payload.deltaContent||'');if(chunk){view.messageBuffer+=chunk;timelineChanged=applyDelegationCardRelayEvent(view.timelineState,'assistant.message_delta',payload)||timelineChanged;updateDelegationStatus(view,'streaming')}break}case'assistant.message':{const content=String(payload.content||view.messageBuffer||'');if(content)view.messageBuffer=content;timelineChanged=applyDelegationCardRelayEvent(view.timelineState,'assistant.message',{...payload,content})||timelineChanged;break}case'assistant.reasoning_delta':{const chunk=String(payload.content||payload.deltaContent||'');if(chunk){view.reasoningBuffer+=chunk;timelineChanged=applyDelegationCardRelayEvent(view.timelineState,'assistant.reasoning_delta',payload)||timelineChanged}break}case'assistant.reasoning':{const content=String(payload.content||view.reasoningBuffer||'');if(content)view.reasoningBuffer=content;timelineChanged=applyDelegationCardRelayEvent(view.timelineState,'assistant.reasoning',{...payload,content})||timelineChanged;break}case'tool.start':timelineChanged=applyDelegationCardRelayEvent(view.timelineState,'tool.start',{...payload,signature:delegationToolSignature(payload)})||timelineChanged;break;case'tool.complete':timelineChanged=applyDelegationCardRelayEvent(view.timelineState,'tool.complete',{...payload,signature:delegationToolSignature(payload)})||timelineChanged;break;case'session.state':if(payload.processing)updateDelegationStatus(view,'streaming');if(payload.model)view.model=String(payload.model||'');break;case'usage.update':view.usage={used:Number.isFinite(Number(payload.used))?Number(payload.used):undefined,size:Number.isFinite(Number(payload.size))?Number(payload.size):undefined};break;case'terminal.completed':timelineChanged=finalizeDelegationCardStreamingItems(view.timelineState)||timelineChanged;timelineChanged=settleDelegationCardToolItems(view.timelineState,true)||timelineChanged;updateDelegationStatus(view,'completed');if(payload.summary?.finalContent){if(!view.messageBuffer)view.messageBuffer=String(payload.summary.finalContent);timelineChanged=reconcileDelegationCardTerminalSummaryContent(view.timelineState,payload.summary.finalContent)||timelineChanged}if(payload.summary?.model)view.model=String(payload.summary.model||'');if(payload.summary?.usage)view.usage=payload.summary.usage||view.usage;break;case'terminal.failed':timelineChanged=finalizeDelegationCardStreamingItems(view.timelineState)||timelineChanged;timelineChanged=settleDelegationCardToolItems(view.timelineState,false)||timelineChanged;updateDelegationStatus(view,'failed');view.error=String(payload.errorMessage||view.error||'Delegation failed');if(payload.summary?.finalContent){if(!view.messageBuffer)view.messageBuffer=String(payload.summary.finalContent);timelineChanged=reconcileDelegationCardTerminalSummaryContent(view.timelineState,payload.summary.finalContent)||timelineChanged}break;case'terminal.cancelled':timelineChanged=finalizeDelegationCardStreamingItems(view.timelineState)||timelineChanged;timelineChanged=settleDelegationCardToolItems(view.timelineState,false)||timelineChanged;updateDelegationStatus(view,'cancelled');view.error=String(payload.errorMessage||'');break}if(timelineChanged)renderDelegationTimeline(view);updateDelegationMeta(view);if(view.sourceSessionId)syncLocalSourceSessionDelegationState(view.sourceSessionId);scroll()}
+function handleDelegationSummary(envelope,{fromHistory=false}={}){const view=ensureDelegationView(envelope);if(!view)return;const summaryStatus=delegationStatusFromSummaryType(envelope.type);if(envelope.type==='delegation.prompt'&&envelope.message)view.promptEl.textContent=String(envelope.message);else if(!view.promptEl.textContent&&envelope.message)view.promptEl.textContent=String(envelope.message);renderDelegationHeaderSummary(view);let timelineChanged=false;if(envelope.summary?.finalContent){if(!view.messageBuffer)view.messageBuffer=String(envelope.summary.finalContent);timelineChanged=ensureDelegationCardSummaryContent(view.timelineState,envelope.summary.finalContent)||timelineChanged}if(/^(completed|failed|cancelled|expired)$/.test(summaryStatus)){timelineChanged=finalizeDelegationCardStreamingItems(view.timelineState)||timelineChanged;timelineChanged=settleDelegationCardToolItems(view.timelineState,summaryStatus==='completed')||timelineChanged}if(envelope.summary?.model)view.model=String(envelope.summary.model||'');if(envelope.summary?.usage)view.usage=envelope.summary.usage||view.usage;if(envelope.message&&/delegation\.(failed|expired)$/.test(String(envelope.type||'')))view.error=String(envelope.message);if(timelineChanged)renderDelegationTimeline(view);updateDelegationStatus(view,summaryStatus||view.status);updateDelegationMeta(view);if(view.sourceSessionId)syncLocalSourceSessionDelegationState(view.sourceSessionId);if(view.relayRoomId&&!isDelegationTerminalType(envelope.type)&&rid===view.sourceSessionId){void ensureDelegationRelayConnection(view,{replay:fromHistory||Number(view.lastSeenSeq||0)===0})}scroll()}
+function parseDelegationCommand(command){const match=String(command||'').trim().match(/^\/delegate\s+(\S+)\s+([\s\S]+)$/i);if(!match)return null;const targetSessionId=String(match[1]||'').trim();const prompt=String(match[2]||'').trim();if(!targetSessionId||!prompt)return null;return{targetSessionId,prompt}}
+function parseMentionDelegationCommand(command){const match=String(command||'').trim().match(/^@(\S+)\s+([\s\S]+)$/i);if(!match)return null;const targetSessionId=String(match[1]||'').trim();const prompt=String(match[2]||'').trim();if(!targetSessionId||!prompt)return null;return{targetSessionId,prompt}}
+async function createDelegationRequest(targetSessionId,prompt,displayText=''){const response=await portalJson('/api/delegations',{method:'POST',body:JSON.stringify({sourceSessionId:rid,targetSessionId,prompt,displayText})});handleDelegationSummary({type:'delegation.prompt',delegationId:response.delegationId,relayRoomId:response.relayRoomId,sourceSessionId:rid,targetSessionId:response.targetSessionId||targetSessionId,targetLabel:response.targetLabel||response.target?.sessionLabel||targetSessionId,message:prompt},{fromHistory:false});handleDelegationSummary({type:'delegation.dispatched',delegationId:response.delegationId,relayRoomId:response.relayRoomId,sourceSessionId:rid,targetSessionId:response.targetSessionId||targetSessionId,targetLabel:response.targetLabel||response.target?.sessionLabel||targetSessionId,message:displayText||prompt},{fromHistory:false});const view=delegationViews.get(response.delegationId);if(view)void ensureDelegationRelayConnection(view,{replay:true});return response}
+async function cancelDelegation(delegationId){const normalizedId=String(delegationId||'').trim();if(!normalizedId)return;await portalJson(`/api/delegations/${encodeURIComponent(normalizedId)}/cancel`,{method:'POST'});const view=delegationViews.get(normalizedId);if(view){updateDelegationStatus(view,'cancel_requested');view.error='';updateDelegationMeta(view);if(view.sourceSessionId)syncLocalSourceSessionDelegationState(view.sourceSessionId)}}
 
 /* ── Render ── */
-function render(e){switch(e.type){
+function render(e){if(isDelegationSummaryType(e?.type))return handleDelegationSummary(e,{fromHistory:false});switch(e.type){
   case'assistant.delta':return rDelta(e);case'assistant.message':return rMsg(e);
   case'assistant.reasoning_delta':return rThinkD(e);case'assistant.reasoning':return rThink(e);
   case'tool.start':return rTS(e);case'tool.complete':return rTC(e);

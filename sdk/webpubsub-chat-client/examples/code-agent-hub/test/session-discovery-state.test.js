@@ -3,9 +3,11 @@ import assert from 'node:assert/strict';
 import {
   applySessionQueryContext,
   collectVisibleSessions,
+  getSessionMetadataHydrationState,
   getSessionRecordStatusInfo,
   normalizeSessionRecord,
   resolveRoomDisplayName,
+  sessionNeedsMetadataHydration,
   shouldShowPortalSessionLoading,
   shouldSkipDeletedSession,
 } from '../public/session-discovery-state.js';
@@ -15,6 +17,61 @@ describe('session discovery state helpers', () => {
     assert.equal(shouldShowPortalSessionLoading({ queryLoaded: false, localSessionCount: 0 }), true);
     assert.equal(shouldShowPortalSessionLoading({ queryLoaded: false, localSessionCount: 1 }), false);
     assert.equal(shouldShowPortalSessionLoading({ queryLoaded: true, localSessionCount: 0 }), false);
+  });
+
+  it('shows session detail loading only for actionable or active metadata hydration work', () => {
+    const now = new Date('2026-04-16T08:00:00.000Z').getTime();
+    const sessions = [{
+      sessionId: 'session-metadata',
+      name: 'Joined Session',
+      accessLevel: 'read',
+      canRead: true,
+      agent: '',
+      workingDirectory: '',
+      ownerUserId: '',
+      daemonId: '',
+    }];
+
+    assert.equal(sessionNeedsMetadataHydration(sessions[0]), true);
+
+    const actionable = getSessionMetadataHydrationState({
+      sessions,
+      joinedSessionIds: new Set(['session-metadata']),
+      inFlightSessionIds: new Set(),
+      lastAttemptBySessionId: new Map(),
+      now,
+      cooldownMs: 10000,
+    });
+
+    assert.equal(actionable.actionableCount, 1);
+    assert.equal(actionable.inFlightCount, 0);
+    assert.equal(actionable.shouldShowLoading, true);
+
+    const coolingDown = getSessionMetadataHydrationState({
+      sessions,
+      joinedSessionIds: new Set(['session-metadata']),
+      inFlightSessionIds: new Set(),
+      lastAttemptBySessionId: new Map([['session-metadata', now - 1000]]),
+      now,
+      cooldownMs: 10000,
+    });
+
+    assert.equal(coolingDown.actionableCount, 0);
+    assert.equal(coolingDown.inFlightCount, 0);
+    assert.equal(coolingDown.shouldShowLoading, false);
+
+    const inFlight = getSessionMetadataHydrationState({
+      sessions,
+      joinedSessionIds: new Set(['session-metadata']),
+      inFlightSessionIds: new Set(['session-metadata']),
+      lastAttemptBySessionId: new Map([['session-metadata', now - 1000]]),
+      now,
+      cooldownMs: 10000,
+    });
+
+    assert.equal(inFlight.actionableCount, 0);
+    assert.equal(inFlight.inFlightCount, 1);
+    assert.equal(inFlight.shouldShowLoading, true);
   });
 
   it('returns visible sessions across daemons and agents when no selection filter is active', () => {
@@ -303,11 +360,13 @@ describe('session discovery state helpers', () => {
       sessionProcessing: true,
       sessionStopping: false,
       sessionReady: true,
+      sessionDelegating: true,
     }, previous);
 
     assert.equal(touched.sessionProcessing, true);
     assert.equal(touched.sessionStopping, false);
     assert.equal(touched.sessionReady, true);
+    assert.equal(touched.sessionDelegating, true);
 
     const sessions = collectVisibleSessions({
       discoveredSessions: new Map([['session-status', touched]]),
@@ -321,6 +380,7 @@ describe('session discovery state helpers', () => {
     assert.equal(sessions[0].sessionProcessing, true);
     assert.equal(sessions[0].sessionStopping, false);
     assert.equal(sessions[0].sessionReady, true);
+    assert.equal(sessions[0].sessionDelegating, true);
   });
 
   it('derives visible session status for daemon members even before session access is granted', () => {
@@ -353,6 +413,24 @@ describe('session discovery state helpers', () => {
     assert.deepEqual(getSessionRecordStatusInfo(idleSession), {
       state: 'idle',
       label: 'Idle',
+    });
+  });
+
+  it('treats active delegation as working even when the source session is otherwise idle', () => {
+    const delegatingSession = normalizeSessionRecord({
+      sessionId: 'session-status-delegating',
+      daemonId: 'daemon-a',
+      agent: 'copilot-sdk',
+      name: 'Shared Session',
+      accessLevel: 'none',
+      canRead: false,
+      canWrite: false,
+      sessionDelegating: true,
+    });
+
+    assert.deepEqual(getSessionRecordStatusInfo(delegatingSession), {
+      state: 'working',
+      label: 'Working',
     });
   });
 

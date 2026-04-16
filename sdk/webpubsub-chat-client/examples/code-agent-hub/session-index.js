@@ -228,6 +228,7 @@ export function buildSessionListForUser({
   userId,
   daemonFilter = '',
   agentFilter = '',
+  activeDelegationSourceSessionIds,
   canAdminDaemonAccess,
   canMemberDaemonAccess,
 } = {}) {
@@ -271,6 +272,7 @@ export function buildSessionListForUser({
       joinStatus: joinRequest?.status || '',
       joinRequestId: joinRequest?.requestId || '',
       requestedAccess: joinRequest?.requestedAccess || '',
+      sessionDelegating: !!activeDelegationSourceSessionIds?.has?.(sessionRecord.sessionId),
       canDelete,
     });
   }

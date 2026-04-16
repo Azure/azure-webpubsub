@@ -32,6 +32,17 @@ import {
   upsertTrustedSessionDirectoryRecord,
   upsertTrustedSessionMembership,
 } from './session-index.js';
+import {
+  DELEGATION_CONTROL_ROOM_ID,
+  buildDelegationControlEnvelope,
+  buildDelegationRelayRoomId,
+  buildDelegationSummaryEnvelope,
+  buildDelegationTargetControlEnvelope,
+  controlTypeForTerminalStatus,
+  isDelegationTerminalStatus,
+  parseDelegationControlEnvelope,
+  summaryTypeForTerminalStatus,
+} from './session-delegation.js';
 import { existsSync } from 'node:fs';
 import { dirname, join, resolve } from 'path';
 import { config as loadEnv } from 'dotenv';
@@ -942,6 +953,213 @@ async function listRoomMessages(roomId, maxCount = 200) {
   });
 }
 
+function delegationTargetLabel(sessionRecord, daemonRecord = null) {
+  const roomName = String(sessionRecord?.roomName || 'Session').trim() || 'Session';
+  const daemonLabel = String(daemonRecord?.hostname || sessionRecord?.daemonId || '').trim();
+  return daemonLabel ? `${roomName} @ ${daemonLabel}` : roomName;
+}
+
+function delegationStatusFromControlType(type) {
+  const normalizedType = String(type || '').trim();
+  if (normalizedType === 'control.delegation.created') return 'creating';
+  if (normalizedType === 'control.delegation.dispatched') return 'dispatched';
+  if (normalizedType === 'control.delegation.started') return 'started';
+  if (normalizedType === 'control.delegation.cancel_requested') return 'cancel_requested';
+  if (normalizedType === 'control.delegation.completed') return 'completed';
+  if (normalizedType === 'control.delegation.failed') return 'failed';
+  if (normalizedType === 'control.delegation.cancelled') return 'cancelled';
+  if (normalizedType === 'control.delegation.expired') return 'expired';
+  return '';
+}
+
+async function ensureChatRoomWithMembers(roomId, roomName, members = []) {
+  const normalizedRoomId = String(roomId || '').trim();
+  if (!normalizedRoomId) throw new Error('roomId is required');
+  const normalizedMembers = [...new Map((members || [])
+    .map((member) => ({
+      userId: String(member?.userId || '').trim(),
+      role: String(member?.role || 'room.member').trim() || 'room.member',
+    }))
+    .filter((member) => member.userId)
+    .map((member) => [member.userId, member])).values()];
+
+  let roomInfo = await getChatRoomInfo(normalizedRoomId);
+  if (!roomInfo) {
+    try {
+      roomInfo = await adminCreateRoom(
+        String(roomName || normalizedRoomId).trim() || normalizedRoomId,
+        normalizedMembers.map((member) => member.userId),
+        normalizedRoomId,
+      );
+    } catch (error) {
+      const message = String(error?.message || '').toLowerCase();
+      if (!message.includes('already') && !message.includes('exists')) {
+        throw error;
+      }
+      roomInfo = await getChatRoomInfo(normalizedRoomId);
+    }
+  }
+
+  for (const member of normalizedMembers) {
+    await upsertChatRoomMember(normalizedRoomId, member.userId, member.role);
+  }
+
+  return roomInfo || await getChatRoomInfo(normalizedRoomId);
+}
+
+async function ensureDelegationControlRoom(targetDaemonId = '') {
+  const members = [
+    { userId: ADMIN_USER_ID, role: 'room.operator' },
+  ];
+  if (String(targetDaemonId || '').trim()) {
+    members.push({ userId: String(targetDaemonId || '').trim(), role: 'room.member' });
+  }
+  return await ensureChatRoomWithMembers(DELEGATION_CONTROL_ROOM_ID, 'Delegation Control', members);
+}
+
+async function appendDelegationControlEvent(payload) {
+  const envelope = buildDelegationControlEnvelope(payload);
+  await ensureDelegationControlRoom(envelope.targetDaemonId);
+  await adminSendToRoom(DELEGATION_CONTROL_ROOM_ID, JSON.stringify(envelope), 'appendDelegationControlEvent');
+  return envelope;
+}
+
+async function appendDelegationSummaryEvent(sessionId, payload) {
+  const envelope = buildDelegationSummaryEnvelope(payload);
+  await adminSendToRoom(String(sessionId || '').trim(), JSON.stringify(envelope), 'appendDelegationSummaryEvent');
+  return envelope;
+}
+
+async function listDelegationControlEvents(maxCount = 400) {
+  try {
+    const messages = await listRoomMessages(DELEGATION_CONTROL_ROOM_ID, maxCount);
+    return messages
+      .map((message) => {
+        const envelope = parseDelegationControlEnvelope(message?.content?.text || '');
+        if (!envelope) return null;
+        return {
+          ...envelope,
+          messageId: String(message?.messageId || '').trim(),
+          createdBy: String(message?.createdBy || '').trim(),
+        };
+      })
+      .filter(Boolean)
+      .sort((left, right) => String(left.createdAt || '').localeCompare(String(right.createdAt || '')));
+  } catch (error) {
+    const message = String(error?.message || '').toLowerCase();
+    if (message.includes('404') || message.includes('not found')) {
+      return [];
+    }
+    throw error;
+  }
+}
+
+function reduceDelegationControlEvents(events, delegationId = '') {
+  const targetDelegationId = String(delegationId || '').trim();
+  const records = new Map();
+
+  for (const event of events || []) {
+    if (!event?.delegationId) continue;
+    if (targetDelegationId && event.delegationId !== targetDelegationId) continue;
+
+    const existing = records.get(event.delegationId) || {
+      delegationId: event.delegationId,
+      sourceSessionId: event.sourceSessionId,
+      targetSessionId: event.targetSessionId,
+      relayRoomId: event.relayRoomId,
+      requesterUserId: event.requesterUserId,
+      targetDaemonId: event.targetDaemonId,
+      createdAt: event.createdAt,
+      updatedAt: event.createdAt,
+      status: delegationStatusFromControlType(event.type) || 'creating',
+      terminalStatus: '',
+      cancelRequestedAt: '',
+      targetLabel: '',
+      prompt: '',
+      displayText: '',
+      terminalData: undefined,
+    };
+
+    existing.sourceSessionId = existing.sourceSessionId || event.sourceSessionId;
+    existing.targetSessionId = existing.targetSessionId || event.targetSessionId;
+    existing.relayRoomId = existing.relayRoomId || event.relayRoomId;
+    existing.requesterUserId = existing.requesterUserId || event.requesterUserId;
+    existing.targetDaemonId = existing.targetDaemonId || event.targetDaemonId;
+    existing.updatedAt = event.createdAt || existing.updatedAt;
+
+    if (event.data && typeof event.data === 'object') {
+      existing.targetLabel = existing.targetLabel || String(event.data.targetLabel || '').trim();
+      existing.prompt = existing.prompt || String(event.data.prompt || '').trim();
+      existing.displayText = existing.displayText || String(event.data.displayText || '').trim();
+      if (isDelegationTerminalStatus(event.data.status)) {
+        existing.terminalStatus = String(event.data.status).trim();
+      }
+      if (event.data.summary && typeof event.data.summary === 'object') {
+        existing.terminalData = {
+          ...(existing.terminalData || {}),
+          summary: event.data.summary,
+        };
+      }
+    }
+
+    const nextStatus = delegationStatusFromControlType(event.type);
+    if (nextStatus) {
+      existing.status = nextStatus;
+    }
+
+    if (event.type === 'control.delegation.cancel_requested') {
+      existing.cancelRequestedAt = event.createdAt;
+    }
+
+    if (isDelegationTerminalStatus(nextStatus)) {
+      existing.terminalStatus = nextStatus;
+      existing.status = nextStatus;
+      existing.terminalData = {
+        ...(existing.terminalData || {}),
+        ...(event.data && typeof event.data === 'object' ? event.data : {}),
+      };
+    }
+
+    records.set(event.delegationId, existing);
+  }
+
+  return targetDelegationId ? records.get(targetDelegationId) || null : records;
+}
+
+function collectDelegatingSourceSessionIds(delegationRecords) {
+  const delegatingSourceSessionIds = new Set();
+  const records = delegationRecords instanceof Map ? delegationRecords.values() : delegationRecords || [];
+  for (const record of records) {
+    const sourceSessionId = String(record?.sourceSessionId || '').trim();
+    if (!sourceSessionId) continue;
+    const currentStatus = String(record?.terminalStatus || record?.status || '').trim();
+    if (isDelegationTerminalStatus(currentStatus)) continue;
+    delegatingSourceSessionIds.add(sourceSessionId);
+  }
+  return delegatingSourceSessionIds;
+}
+
+async function syncDelegatingSessionState(sessionRecord) {
+  if (!sessionRecord?.sessionId) return false;
+  try {
+    const delegationRecords = reduceDelegationControlEvents(await listDelegationControlEvents());
+    const sessionDelegating = collectDelegatingSourceSessionIds(delegationRecords).has(sessionRecord.sessionId);
+    await sendDaemonSyncEnvelope(sessionRecord, 'session.touch', {
+      sessionDelegating,
+      updatedAt: new Date().toISOString(),
+    });
+    return sessionDelegating;
+  } catch (error) {
+    console.warn('[Web] Failed to sync delegating session state:', error?.message || error);
+    return false;
+  }
+}
+
+async function readDelegationRecord(delegationId) {
+  const events = await listDelegationControlEvents();
+  return reduceDelegationControlEvents(events, delegationId);
+}
+
 async function readJoinRequestsForSession(sessionId) {
   const messages = await listRoomMessages(sessionId, 200);
   const requestsById = new Map();
@@ -1837,6 +2055,425 @@ app.get('/api/daemons/:daemonId/directories', async (req, res) => {
   }
 });
 
+app.get('/api/delegation-targets', async (req, res) => {
+  const user = requirePortalUser(req, res);
+  if (!user) return;
+  const sourceSessionId = String(req.query.sourceSessionId || '').trim();
+  const daemonRegistryRecords = (await listDaemonRegistryRecords()).map((daemon) => markDaemonOfflineIfStale(daemon));
+  const daemonAccessById = new Map();
+  for (const daemon of daemonRegistryRecords) {
+    if (!daemon) continue;
+    const accessState = daemon.accessState || await ensureDaemonAclState(daemon.daemonId, '', daemon);
+    daemonAccessById.set(daemon.daemonId, { daemon, accessState });
+  }
+
+  await ensureSessionIndicesReady();
+
+  if (sourceSessionId) {
+    const sourceSessionRecord = getIndexedSessionRecord(sourceSessionId);
+    if (!sourceSessionRecord) return res.status(404).json({ error: 'Source session not found' });
+    const sourceDaemonEntry = daemonAccessById.get(sourceSessionRecord.daemonId);
+    if (!sourceDaemonEntry?.daemon) return res.status(404).json({ error: 'Source daemon not found' });
+    const sourceAccessLevel = getSessionAccessLevelFromIndex({
+      state: sessionIndexState,
+      sessionRecord: sourceSessionRecord,
+      daemonAccessState: sourceDaemonEntry.accessState,
+      userId: user.login,
+      canAdminDaemonAccess,
+    });
+    if (sourceAccessLevel !== 'write') {
+      return res.status(403).json({ error: 'You do not have write access to the source session' });
+    }
+  }
+
+  const targets = buildSessionListForUser({
+    state: sessionIndexState,
+    daemonAccessById,
+    userId: user.login,
+    canAdminDaemonAccess,
+    canMemberDaemonAccess,
+  })
+    .filter((session) => session.canWrite && session.sessionId !== sourceSessionId)
+    .map((session) => ({
+      sessionId: session.sessionId,
+      roomName: session.roomName,
+      daemonId: session.daemonId,
+      daemonLabel: daemonAccessById.get(session.daemonId)?.daemon?.hostname || session.daemonId,
+      agentName: session.agentName,
+      workingDirectory: session.workingDirectory,
+      ownerUserId: session.ownerUserId,
+      updatedAt: session.updatedAt,
+      targetLabel: delegationTargetLabel(session, daemonAccessById.get(session.daemonId)?.daemon),
+    }));
+
+  res.json({ targets });
+});
+
+app.post('/api/delegations', async (req, res) => {
+  const user = requirePortalUser(req, res);
+  if (!user) return;
+
+  const sourceSessionId = String(req.body?.sourceSessionId || '').trim();
+  const targetSessionId = String(req.body?.targetSessionId || '').trim();
+  const prompt = String(req.body?.prompt || '').trim();
+  const displayText = String(req.body?.displayText || '').trim();
+
+  if (!sourceSessionId) return res.status(400).json({ error: 'sourceSessionId is required' });
+  if (!targetSessionId) return res.status(400).json({ error: 'targetSessionId is required' });
+  if (!prompt) return res.status(400).json({ error: 'prompt is required' });
+  if (sourceSessionId === targetSessionId) return res.status(400).json({ error: 'sourceSessionId and targetSessionId must differ' });
+
+  await ensureSessionIndicesReady();
+
+  const sourceSessionRecord = getIndexedSessionRecord(sourceSessionId);
+  const targetSessionRecord = getIndexedSessionRecord(targetSessionId);
+  if (!sourceSessionRecord) return res.status(404).json({ error: 'Source session not found' });
+  if (!targetSessionRecord) return res.status(404).json({ error: 'Target session not found' });
+
+  const [sourceDaemon, targetDaemon] = await Promise.all([
+    getDaemonRegistryRecord(sourceSessionRecord.daemonId),
+    getDaemonRegistryRecord(targetSessionRecord.daemonId),
+  ]);
+  if (!sourceDaemon) return res.status(404).json({ error: 'Source daemon not found' });
+  if (!targetDaemon || !markDaemonOfflineIfStale(targetDaemon).online) {
+    return res.status(404).json({ error: 'Target daemon not found or offline' });
+  }
+
+  const sourceDaemonAccessState = sourceDaemon.accessState || await ensureDaemonAclState(sourceDaemon.daemonId, '', sourceDaemon);
+  const targetDaemonAccessState = targetDaemon.accessState || await ensureDaemonAclState(targetDaemon.daemonId, '', targetDaemon);
+  const sourceAccessLevel = getSessionAccessLevelFromIndex({
+    state: sessionIndexState,
+    sessionRecord: sourceSessionRecord,
+    daemonAccessState: sourceDaemonAccessState,
+    userId: user.login,
+    canAdminDaemonAccess,
+  });
+  const targetAccessLevel = getSessionAccessLevelFromIndex({
+    state: sessionIndexState,
+    sessionRecord: targetSessionRecord,
+    daemonAccessState: targetDaemonAccessState,
+    userId: user.login,
+    canAdminDaemonAccess,
+  });
+
+  if (sourceAccessLevel !== 'write') {
+    return res.status(403).json({ error: 'You do not have write access to the source session' });
+  }
+  if (targetAccessLevel !== 'write') {
+    return res.status(403).json({ error: 'You do not have write access to the target session' });
+  }
+
+  const delegationId = crypto.randomUUID();
+  const relayRoomId = buildDelegationRelayRoomId(delegationId);
+  const createdAt = new Date().toISOString();
+  const targetLabel = delegationTargetLabel(targetSessionRecord, targetDaemon);
+  const responsePayload = {
+    delegationId,
+    relayRoomId,
+    relayResumeFromSeq: 0,
+    sourceSessionId,
+    targetSessionId,
+    targetLabel,
+    target: {
+      sessionId: targetSessionRecord.sessionId,
+      daemonId: targetSessionRecord.daemonId,
+      sessionLabel: targetSessionRecord.roomName,
+      workspaceLabel: targetDaemon.hostname || targetSessionRecord.daemonId,
+    },
+  };
+
+  try {
+    await ensureChatRoomWithMembers(relayRoomId, `Delegation Relay ${delegationId.slice(0, 8)}`, [
+      { userId: ADMIN_USER_ID, role: 'room.operator' },
+      { userId: user.login, role: 'room.member' },
+      { userId: targetSessionRecord.daemonId, role: 'room.member' },
+    ]);
+    await ensureDelegationControlRoom(targetSessionRecord.daemonId);
+
+    await appendDelegationControlEvent({
+      type: 'control.delegation.created',
+      delegationId,
+      sourceSessionId,
+      targetSessionId,
+      relayRoomId,
+      requesterUserId: user.login,
+      targetDaemonId: targetSessionRecord.daemonId,
+      createdAt,
+      data: {
+        prompt,
+        displayText,
+        targetLabel,
+      },
+    });
+
+    await appendDelegationSummaryEvent(sourceSessionId, {
+      type: 'delegation.prompt',
+      delegationId,
+      relayRoomId,
+      sourceSessionId,
+      targetSessionId,
+      targetLabel,
+      message: prompt,
+      createdAt,
+    });
+
+    res.json(responsePayload);
+    void syncDelegatingSessionState(sourceSessionRecord);
+
+    const targetControlEnvelope = buildDelegationTargetControlEnvelope({
+      type: 'control.delegation.request',
+      delegationId,
+      sourceSessionId,
+      targetSessionId,
+      relayRoomId,
+      requesterUserId: user.login,
+      targetDaemonId: targetSessionRecord.daemonId,
+      createdAt,
+      prompt,
+      displayText,
+      resumeFromSeq: 0,
+    });
+
+    void (async () => {
+      try {
+        await adminSendToRoom(targetSessionId, JSON.stringify(targetControlEnvelope), 'delegation.request');
+
+        await appendDelegationControlEvent({
+          type: 'control.delegation.dispatched',
+          delegationId,
+          sourceSessionId,
+          targetSessionId,
+          relayRoomId,
+          requesterUserId: user.login,
+          targetDaemonId: targetSessionRecord.daemonId,
+          createdAt: new Date().toISOString(),
+          data: {
+            prompt,
+            displayText,
+            targetLabel,
+          },
+        });
+
+        await appendDelegationSummaryEvent(sourceSessionId, {
+          type: 'delegation.dispatched',
+          delegationId,
+          relayRoomId,
+          sourceSessionId,
+          targetSessionId,
+          targetLabel,
+          message: displayText || prompt,
+          createdAt: new Date().toISOString(),
+        });
+      } catch (error) {
+        try {
+          await appendDelegationControlEvent({
+            type: 'control.delegation.failed',
+            delegationId,
+            sourceSessionId,
+            targetSessionId,
+            relayRoomId,
+            requesterUserId: user.login,
+            targetDaemonId: targetSessionRecord.daemonId,
+            createdAt: new Date().toISOString(),
+            data: {
+              status: 'failed',
+              error: error.message || 'Failed to dispatch delegation',
+              targetLabel,
+            },
+          });
+          await appendDelegationSummaryEvent(sourceSessionId, {
+            type: 'delegation.failed',
+            delegationId,
+            relayRoomId,
+            sourceSessionId,
+            targetSessionId,
+            targetLabel,
+            message: error.message || 'Failed to dispatch delegation',
+            createdAt: new Date().toISOString(),
+          });
+        } catch {}
+
+        void syncDelegatingSessionState(sourceSessionRecord);
+
+        console.error('[Web] Failed to dispatch delegation:', error);
+      }
+    })();
+  } catch (error) {
+    try {
+      await appendDelegationControlEvent({
+        type: 'control.delegation.failed',
+        delegationId,
+        sourceSessionId,
+        targetSessionId,
+        relayRoomId,
+        requesterUserId: user.login,
+        targetDaemonId: targetSessionRecord.daemonId,
+        createdAt: new Date().toISOString(),
+        data: {
+          status: 'failed',
+          error: error.message || 'Failed to create delegation',
+          targetLabel,
+        },
+      });
+      await appendDelegationSummaryEvent(sourceSessionId, {
+        type: 'delegation.failed',
+        delegationId,
+        relayRoomId,
+        sourceSessionId,
+        targetSessionId,
+        targetLabel,
+        message: error.message || 'Failed to create delegation',
+        createdAt: new Date().toISOString(),
+      });
+    } catch {}
+
+    void syncDelegatingSessionState(sourceSessionRecord);
+
+    console.error('[Web] Failed to create delegation:', error);
+    res.status(500).json({ error: error.message || 'Failed to create delegation' });
+  }
+});
+
+app.post('/api/delegations/:delegationId/cancel', async (req, res) => {
+  const user = requirePortalUser(req, res);
+  if (!user) return;
+
+  const delegationId = String(req.params.delegationId || '').trim();
+  if (!delegationId) return res.status(400).json({ error: 'delegationId is required' });
+
+  const record = await readDelegationRecord(delegationId);
+  if (!record) return res.status(404).json({ error: 'Delegation not found' });
+
+  await ensureSessionIndicesReady();
+  const sourceSessionRecord = getIndexedSessionRecord(record.sourceSessionId);
+  if (!sourceSessionRecord) return res.status(404).json({ error: 'Source session not found' });
+  const sourceDaemon = await getDaemonRegistryRecord(sourceSessionRecord.daemonId);
+  if (!sourceDaemon) return res.status(404).json({ error: 'Source daemon not found' });
+  const sourceDaemonAccessState = sourceDaemon.accessState || await ensureDaemonAclState(sourceDaemon.daemonId, '', sourceDaemon);
+  const sourceAccessLevel = getSessionAccessLevelFromIndex({
+    state: sessionIndexState,
+    sessionRecord: sourceSessionRecord,
+    daemonAccessState: sourceDaemonAccessState,
+    userId: user.login,
+    canAdminDaemonAccess,
+  });
+  if (sourceAccessLevel !== 'write') {
+    return res.status(403).json({ error: 'You do not have write access to the source session' });
+  }
+
+  const currentStatus = record.terminalStatus || record.status;
+  if (isDelegationTerminalStatus(currentStatus)) {
+    return res.json({ ok: true, status: currentStatus, terminal: true });
+  }
+
+  if (record.cancelRequestedAt) {
+    return res.json({ ok: true, status: 'cancel_requested' });
+  }
+
+  const createdAt = new Date().toISOString();
+  await appendDelegationControlEvent({
+    type: 'control.delegation.cancel_requested',
+    delegationId,
+    sourceSessionId: record.sourceSessionId,
+    targetSessionId: record.targetSessionId,
+    relayRoomId: record.relayRoomId,
+    requesterUserId: record.requesterUserId,
+    targetDaemonId: record.targetDaemonId,
+    createdAt,
+    data: {
+      targetLabel: record.targetLabel,
+    },
+  });
+
+  const cancelEnvelope = buildDelegationTargetControlEnvelope({
+    type: 'control.delegation.cancel',
+    delegationId,
+    sourceSessionId: record.sourceSessionId,
+    targetSessionId: record.targetSessionId,
+    relayRoomId: record.relayRoomId,
+    requesterUserId: record.requesterUserId,
+    targetDaemonId: record.targetDaemonId,
+    createdAt,
+  });
+  await adminSendToRoom(record.targetSessionId, JSON.stringify(cancelEnvelope), 'delegation.cancel');
+
+  res.json({ ok: true, status: 'cancel_requested' });
+});
+
+app.post('/api/delegations/:delegationId/settle', async (req, res) => {
+  const verification = parseDaemonSessionToken(req);
+  if (!verification.ok) return res.status(403).json({ error: verification.error });
+
+  const delegationId = String(req.params.delegationId || '').trim();
+  const status = String(req.body?.status || '').trim();
+  const errorMessage = String(req.body?.errorMessage || '').trim();
+  if (!delegationId) return res.status(400).json({ error: 'delegationId is required' });
+  if (!isDelegationTerminalStatus(status) || status === 'expired') {
+    return res.status(400).json({ error: 'status must be completed, failed, or cancelled' });
+  }
+
+  const record = await readDelegationRecord(delegationId);
+  if (!record) return res.status(404).json({ error: 'Delegation not found' });
+  if (record.targetDaemonId !== verification.daemonId) {
+    return res.status(403).json({ error: 'Daemon is not allowed to settle this delegation' });
+  }
+
+  const currentTerminalStatus = record.terminalStatus || (isDelegationTerminalStatus(record.status) ? record.status : '');
+  if (currentTerminalStatus) {
+    if (currentTerminalStatus === status) {
+      return res.json({ ok: true, status, duplicate: true });
+    }
+    return res.status(409).json({ error: `Delegation already settled as ${currentTerminalStatus}` });
+  }
+
+  const controlType = controlTypeForTerminalStatus(status);
+  const summaryType = summaryTypeForTerminalStatus(status);
+  const createdAt = new Date().toISOString();
+  const summary = req.body?.summary && typeof req.body.summary === 'object'
+    ? {
+      finalContent: req.body.summary.finalContent == null ? undefined : String(req.body.summary.finalContent),
+      model: req.body.summary.model == null ? undefined : String(req.body.summary.model),
+      usage: req.body.summary.usage,
+    }
+    : undefined;
+
+  await appendDelegationControlEvent({
+    type: controlType,
+    delegationId,
+    sourceSessionId: record.sourceSessionId,
+    targetSessionId: record.targetSessionId,
+    relayRoomId: record.relayRoomId,
+    requesterUserId: record.requesterUserId,
+    targetDaemonId: record.targetDaemonId,
+    createdAt,
+    data: {
+      status,
+      targetLabel: record.targetLabel,
+      summary,
+      error: errorMessage,
+    },
+  });
+
+  await appendDelegationSummaryEvent(record.sourceSessionId, {
+    type: summaryType,
+    delegationId,
+    relayRoomId: record.relayRoomId,
+    sourceSessionId: record.sourceSessionId,
+    targetSessionId: record.targetSessionId,
+    targetLabel: record.targetLabel,
+    message: errorMessage,
+    summary,
+    createdAt,
+  });
+
+  const sourceSessionRecord = getIndexedSessionRecord(record.sourceSessionId);
+  if (sourceSessionRecord) {
+    void syncDelegatingSessionState(sourceSessionRecord);
+  }
+
+  res.json({ ok: true, status });
+});
+
 app.get('/api/sessions', async (req, res) => {
   const user = requirePortalUser(req, res);
   if (!user) return;
@@ -1857,6 +2494,7 @@ app.get('/api/sessions', async (req, res) => {
     }
   }
   await ensureSessionIndicesReady();
+  const delegatingSourceSessionIds = collectDelegatingSourceSessionIds(reduceDelegationControlEvents(await listDelegationControlEvents()));
   res.json({
     sessions: buildSessionListForUser({
       state: sessionIndexState,
@@ -1864,6 +2502,7 @@ app.get('/api/sessions', async (req, res) => {
       userId: user.login,
       daemonFilter,
       agentFilter,
+      activeDelegationSourceSessionIds: delegatingSourceSessionIds,
       canAdminDaemonAccess,
       canMemberDaemonAccess,
     }),

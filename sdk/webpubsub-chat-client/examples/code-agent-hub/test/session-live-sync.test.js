@@ -1,6 +1,6 @@
 import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
-import { ensureSessionOpenSync, waitForJoinedRoom, waitForRoomLiveSync } from '../public/session-live-sync.js';
+import { canSkipInitialSessionSync, ensureSessionOpenSync, waitForJoinedRoom, waitForRoomLiveSync } from '../public/session-live-sync.js';
 
 describe('session live sync helpers', () => {
   it('does not treat room info fetch as a completed live-room join', async () => {
@@ -180,6 +180,36 @@ describe('session live sync helpers', () => {
 
     assert.equal(syncRequests, 2);
     assert.ok(historyChecks >= 2);
+  });
+
+  it('skips the initial sync bootstrap for confirmed empty rooms that do not need live validation', () => {
+    assert.equal(
+      canSkipInitialSessionSync({
+        roomInfo: { roomId: 'room-empty', defaultConversationId: '' },
+        shouldWaitForLiveState: false,
+      }),
+      true,
+    );
+  });
+
+  it('keeps the initial sync bootstrap when a room already has a conversation', () => {
+    assert.equal(
+      canSkipInitialSessionSync({
+        roomInfo: { roomId: 'room-chatty', defaultConversationId: 'conversation-1' },
+        shouldWaitForLiveState: false,
+      }),
+      false,
+    );
+  });
+
+  it('keeps the initial sync bootstrap when live validation is still required', () => {
+    assert.equal(
+      canSkipInitialSessionSync({
+        roomInfo: { roomId: 'room-pending', defaultConversationId: '' },
+        shouldWaitForLiveState: true,
+      }),
+      false,
+    );
   });
 
   it('skips the live sync wait when the initial history replay already has sync evidence', async () => {

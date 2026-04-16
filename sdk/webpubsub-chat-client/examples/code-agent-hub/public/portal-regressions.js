@@ -156,6 +156,13 @@ export function recordSessionHistoryEnvelope(summary, envelope) {
     || envelope.type === 'permission.response'
     || envelope.type === 'user.prompt'
     || envelope.type === 'user.command'
+    || envelope.type === 'delegation.prompt'
+    || envelope.type === 'delegation.dispatched'
+    || envelope.type === 'delegation.started'
+    || envelope.type === 'delegation.completed'
+    || envelope.type === 'delegation.failed'
+    || envelope.type === 'delegation.cancelled'
+    || envelope.type === 'delegation.expired'
     || (envelope.type === 'system.info' && !isStartupStatusEnvelope(envelope))
     || (envelope.type === 'session.error' && !isStartupStatusEnvelope(envelope))
   ) {

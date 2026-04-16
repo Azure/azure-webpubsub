@@ -27,8 +27,18 @@ import { ClientSideConnection, ndJsonStream, PROTOCOL_VERSION } from '@agentclie
 import { hostname as osHostname } from 'os';
 import { config as loadEnv } from 'dotenv';
 import { finishAcpPromptTurn } from './acp-prompt-turn.js';
+import { buildDelegationContextPrompt, upsertDelegationContextEntries } from './delegation-context.js';
 import { createModelsUpdateEvent, hasModelToolbarState } from './public/session-toolbar-state.js';
 import { daemonAclRoomId } from './daemon-acl.js';
+import { shouldTryAutoResumeSession } from './session-resume-policy.js';
+import {
+  DELEGATION_CONTROL_ROOM_ID,
+  buildDelegationControlEnvelope,
+  buildDelegationRelayEnvelope,
+  isDelegationTerminalStatus,
+  parseDelegationSummaryEnvelope,
+  parseDelegationTargetControlEnvelope,
+} from './session-delegation.js';
 
 // ── Configuration ──
 
@@ -138,7 +148,7 @@ async function bootstrapDaemonSessionToken() {
   return body.token;
 }
 
-async function postDaemonPortal(path, details = {}) {
+async function postDaemonJson(path, body = {}) {
   const token = await bootstrapDaemonSessionToken();
   const endpoint = `${portalUrl}${path}`;
   const resp = await fetch(endpoint, {
@@ -147,19 +157,23 @@ async function postDaemonPortal(path, details = {}) {
       'Content-Type': 'application/json',
       'Authorization': `Bearer ${token}`,
     },
-    body: JSON.stringify({
-      hostname: details.hostname,
-      platform: details.platform,
-      agents: details.agents,
-      workspaces: details.workspaces,
-    }),
+    body: JSON.stringify(body),
   });
 
-  const body = await resp.json().catch(() => ({}));
+  const responseBody = await resp.json().catch(() => ({}));
   if (!resp.ok) {
-    throw new Error(body?.error || `Portal request failed (${resp.status})`);
+    throw new Error(responseBody?.error || `Portal request failed (${resp.status})`);
   }
-  return body;
+  return responseBody;
+}
+
+async function postDaemonPortal(path, details = {}) {
+  return await postDaemonJson(path, {
+    hostname: details.hostname,
+    platform: details.platform,
+    agents: details.agents,
+    workspaces: details.workspaces,
+  });
 }
 
 // ── ACP Agent Configs ──
@@ -312,7 +326,7 @@ let daemonPresenceInfo = null;
 let shuttingDown = false;
 let copilotSdkClient = null; // shared CopilotClient instance for SDK mode
 
-function createSessionState({ sessionId, agentName, firstPrompt = '', ownerUserId = null, workingDirectory = process.cwd(), model = 'default' }) {
+function createSessionState({ sessionId, agentName, firstPrompt = '', ownerUserId = null, workingDirectory = process.cwd(), model = 'default', delegationContextEntries = [] }) {
   return {
     sessionId,
     agentName,
@@ -340,6 +354,10 @@ function createSessionState({ sessionId, agentName, firstPrompt = '', ownerUserI
     usageSize: 0,
     usageUsed: 0,
     usageCost: null,
+    lastAssistantMessageContent: '',
+    lastReasoningContent: '',
+    delegationContextEntries: Array.isArray(delegationContextEntries) ? [...delegationContextEntries] : [],
+    activeDelegation: null,
     pendingPermissions: new Map(),
     toolInvocations: new Map(),
   };
@@ -407,6 +425,23 @@ function updateSessionRecord(roomId, patch) {
   if (!sessionStore[roomId]) return;
   sessionStore[roomId] = { ...sessionStore[roomId], ...patch };
   scheduleSessionStoreWrite(sessionStore);
+}
+
+function rememberDelegationContext(roomId, envelope) {
+  const state = sessions.get(roomId) || null;
+  const savedEntries = Array.isArray(sessionStore[roomId]?.delegationContextEntries)
+    ? sessionStore[roomId].delegationContextEntries
+    : [];
+  const currentEntries = state?.delegationContextEntries?.length
+    ? state.delegationContextEntries
+    : savedEntries;
+  const nextEntries = upsertDelegationContextEntries(currentEntries, envelope);
+  if (state) {
+    state.delegationContextEntries = nextEntries;
+  }
+  if (sessionStore[roomId]) {
+    updateSessionRecord(roomId, { delegationContextEntries: nextEntries });
+  }
 }
 
 function deleteSessionRecord(roomId) {
@@ -539,35 +574,220 @@ async function startSdkSession(roomId, state, { model, workingDirectory }) {
     cwd: selectedWorkingDirectory,
     model: state.currentModelId || selectedModel,
     supportsResume: true,
+    delegationContextEntries: state.delegationContextEntries,
   });
   return state;
 }
 
 // ── Chat Bot Send ──
 
-async function botSend(roomId, envelope) {
+function getActiveDelegation(roomId) {
+  return sessions.get(roomId)?.activeDelegation || null;
+}
+
+function relayStreamTypeForEnvelope(envelope) {
+  const type = String(envelope?.type || '').trim();
+  if (type === 'assistant.delta') return 'assistant.message_delta';
+  if (type === 'assistant.message') return 'assistant.message';
+  if (type === 'assistant.reasoning_delta') return 'assistant.reasoning_delta';
+  if (type === 'assistant.reasoning') return 'assistant.reasoning';
+  if (type === 'tool.start') return 'tool.start';
+  if (type === 'tool.complete') return 'tool.complete';
+  if (type === 'session.state') return 'session.state';
+  if (type === 'usage.update') return 'usage.update';
+  return '';
+}
+
+function buildDelegationSummaryFromState(state) {
+  return {
+    finalContent: String(state?.lastAssistantMessageContent || '').trim(),
+    model: String(state?.currentModelId || state?.model || '').trim(),
+    usage: {
+      used: Number.isFinite(Number(state?.usageUsed)) ? Number(state.usageUsed) : undefined,
+      size: Number.isFinite(Number(state?.usageSize)) ? Number(state.usageSize) : undefined,
+    },
+  };
+}
+
+async function emitDelegationRelayEvent(delegation, streamType, payload = {}) {
+  if (!delegation?.relayRoomId || !delegation.delegationId || !streamType) return;
+  delegation.seq = Number(delegation.seq || 0) + 1;
+  await botSend(delegation.relayRoomId, buildDelegationRelayEnvelope({
+    delegationId: delegation.delegationId,
+    relayRoomId: delegation.relayRoomId,
+    seq: delegation.seq,
+    sourceSessionId: delegation.sourceSessionId,
+    targetSessionId: delegation.targetSessionId,
+    targetDaemonId: delegation.targetDaemonId,
+    streamType,
+    payload,
+    sentAt: new Date().toISOString(),
+  }), { skipDelegationRelay: true });
+}
+
+async function settleActiveDelegation(state, roomId, status, { errorMessage = '' } = {}) {
+  const delegation = state?.activeDelegation;
+  if (!delegation || !isDelegationTerminalStatus(status) || delegation.settled) return;
+
+  delegation.settled = true;
+  delegation.terminalStatus = status;
+
+  const summary = buildDelegationSummaryFromState(state);
+  const streamType = status === 'completed'
+    ? 'terminal.completed'
+    : status === 'failed'
+      ? 'terminal.failed'
+      : status === 'cancelled'
+        ? 'terminal.cancelled'
+        : '';
+
+  if (streamType) {
+    await emitDelegationRelayEvent(delegation, streamType, {
+      status,
+      errorMessage: String(errorMessage || '').trim(),
+      summary,
+    });
+  }
+
+  try {
+    await postDaemonJson(`/api/delegations/${encodeURIComponent(delegation.delegationId)}/settle`, {
+      status,
+      errorMessage: String(errorMessage || '').trim(),
+      summary,
+    });
+  } catch (error) {
+    console.warn(`[Daemon] Failed to settle delegation ${delegation.delegationId}:`, error?.message || error);
+  }
+
+  if (state?.activeDelegation === delegation) {
+    state.activeDelegation = null;
+  }
+}
+
+async function failDelegationRequest(requestEnvelope, message) {
+  const delegation = {
+    delegationId: requestEnvelope.delegationId,
+    sourceSessionId: requestEnvelope.sourceSessionId,
+    targetSessionId: requestEnvelope.targetSessionId,
+    relayRoomId: requestEnvelope.relayRoomId,
+    targetDaemonId: requestEnvelope.targetDaemonId,
+    requesterUserId: requestEnvelope.requesterUserId,
+    seq: Number(requestEnvelope.resumeFromSeq || 0),
+    settled: false,
+  };
+  const chat = await ensureBotChatReady();
+  if (chat) {
+    await ensureRoomMembership(chat, requestEnvelope.relayRoomId, 'Delegation Relay', BOT_USER_ID, [PORTAL_CONTROL_USER_ID]);
+  }
+  await emitDelegationRelayEvent(delegation, 'stream.open', {
+    prompt: requestEnvelope.prompt,
+    displayText: requestEnvelope.displayText,
+  });
+  delegation.settled = false;
+  await emitDelegationRelayEvent(delegation, 'terminal.failed', {
+    status: 'failed',
+    errorMessage: String(message || 'Delegation failed'),
+    summary: {
+      finalContent: '',
+      model: '',
+      usage: undefined,
+    },
+  });
+  try {
+    await postDaemonJson(`/api/delegations/${encodeURIComponent(requestEnvelope.delegationId)}/settle`, {
+      status: 'failed',
+      errorMessage: String(message || 'Delegation failed'),
+      summary: {
+        finalContent: '',
+        model: '',
+        usage: undefined,
+      },
+    });
+  } catch (error) {
+    console.warn(`[Daemon] Failed to settle rejected delegation ${requestEnvelope.delegationId}:`, error?.message || error);
+  }
+}
+
+async function startDelegationForSession(state, roomId, requestEnvelope) {
+  const chat = await ensureBotChatReady();
+  if (!chat) throw new Error('Chat client is unavailable');
+  await ensureRoomMembership(chat, requestEnvelope.relayRoomId, 'Delegation Relay', BOT_USER_ID, [PORTAL_CONTROL_USER_ID]);
+  await ensureRoomMembership(chat, DELEGATION_CONTROL_ROOM_ID, 'Delegation Control', BOT_USER_ID, [PORTAL_CONTROL_USER_ID]);
+
+  const delegation = {
+    delegationId: requestEnvelope.delegationId,
+    sourceSessionId: requestEnvelope.sourceSessionId,
+    targetSessionId: requestEnvelope.targetSessionId,
+    relayRoomId: requestEnvelope.relayRoomId,
+    targetDaemonId: requestEnvelope.targetDaemonId,
+    requesterUserId: requestEnvelope.requesterUserId,
+    prompt: requestEnvelope.prompt,
+    displayText: requestEnvelope.displayText,
+    seq: Number(requestEnvelope.resumeFromSeq || 0),
+    settled: false,
+    terminalStatus: '',
+  };
+  state.activeDelegation = delegation;
+
+  await botSend(DELEGATION_CONTROL_ROOM_ID, buildDelegationControlEnvelope({
+    type: 'control.delegation.started',
+    delegationId: delegation.delegationId,
+    sourceSessionId: delegation.sourceSessionId,
+    targetSessionId: delegation.targetSessionId,
+    relayRoomId: delegation.relayRoomId,
+    requesterUserId: delegation.requesterUserId,
+    targetDaemonId: delegation.targetDaemonId,
+    createdAt: new Date().toISOString(),
+    data: {
+      prompt: delegation.prompt,
+      displayText: delegation.displayText,
+    },
+  }), { skipDelegationRelay: true });
+
+  await emitDelegationRelayEvent(delegation, 'stream.open', {
+    prompt: delegation.prompt,
+    displayText: delegation.displayText,
+  });
+}
+
+async function botSend(roomId, envelope, { skipDelegationRelay = false } = {}) {
   try {
     if (shuttingDown) return;
     const chat = await ensureBotChatReady();
     if (!chat) return;
+    const state = sessions.get(roomId);
+    if (state && envelope?.type === 'assistant.message') {
+      state.lastAssistantMessageContent = String(envelope.content || '');
+    }
+    if (state && envelope?.type === 'assistant.reasoning') {
+      state.lastReasoningContent = String(envelope.content || '');
+    }
     const payload = JSON.stringify(envelope);
     if (payload.length <= MAX_ROOM_MESSAGE_LENGTH) {
       await chat.sendToRoom(roomId, payload);
-      return;
+    } else {
+      const chunkId = randomUUID();
+      const parts = [];
+      let cursor = 0;
+      while (cursor < payload.length) {
+        let end = Math.min(payload.length, cursor + 3000);
+        let part = payload.slice(cursor, end);
+        let chunk = { type: 'transport.chunk', chunkId, index: parts.length, total: 0, jsonPart: part };
+        while (JSON.stringify(chunk).length > MAX_ROOM_MESSAGE_LENGTH && part.length > 1) { end -= 128; part = payload.slice(cursor, end); chunk.jsonPart = part; }
+        parts.push(part);
+        cursor = end;
+      }
+      for (let index = 0; index < parts.length; index++) {
+        await chat.sendToRoom(roomId, JSON.stringify({ type: 'transport.chunk', chunkId, index, total: parts.length, jsonPart: parts[index] }));
+      }
     }
-    const chunkId = randomUUID();
-    const parts = [];
-    let cursor = 0;
-    while (cursor < payload.length) {
-      let end = Math.min(payload.length, cursor + 3000);
-      let part = payload.slice(cursor, end);
-      let chunk = { type: 'transport.chunk', chunkId, index: parts.length, total: 0, jsonPart: part };
-      while (JSON.stringify(chunk).length > MAX_ROOM_MESSAGE_LENGTH && part.length > 1) { end -= 128; part = payload.slice(cursor, end); chunk.jsonPart = part; }
-      parts.push(part);
-      cursor = end;
-    }
-    for (let index = 0; index < parts.length; index++) {
-      await chat.sendToRoom(roomId, JSON.stringify({ type: 'transport.chunk', chunkId, index, total: parts.length, jsonPart: parts[index] }));
+
+    if (!skipDelegationRelay) {
+      const delegation = getActiveDelegation(roomId);
+      const streamType = relayStreamTypeForEnvelope(envelope);
+      if (delegation && streamType) {
+        await emitDelegationRelayEvent(delegation, streamType, envelope);
+      }
     }
   } catch (err) {
     console.error(`[Daemon] Failed to send to room ${roomId}:`, err.message);
@@ -943,6 +1163,7 @@ function broadcastSessionStatus(sessionId, state) {
 function deactivateSession(sessionId, message) {
   const state = sessions.get(sessionId);
   if (!state) return;
+  const activeDelegation = state.activeDelegation;
   cleanupClientTerminals(state._acpClient);
   state.active = false;
   state.isReady = false;
@@ -960,6 +1181,9 @@ function deactivateSession(sessionId, message) {
     try { pending.resolve(false); } catch {}
   }
   state.pendingPermissions.clear();
+  if (activeDelegation) {
+    void settleActiveDelegation(state, sessionId, 'failed', { errorMessage: message || 'Session deactivated' });
+  }
   botSend(sessionId, { type: 'session.error', message });
   emitSessionState(sessionId);
 }
@@ -996,7 +1220,7 @@ async function cancelSessionTurn(state, roomId) {
   return false;
 }
 
-async function sendSessionPrompt(state, roomId, prompt) {
+async function sendSessionPrompt(state, roomId, prompt, { includeDelegationContext = true } = {}) {
   if (state.active === false) {
     botSend(roomId, { type: 'session.error', message: 'This agent session is no longer active. Create a new session.' });
     return;
@@ -1008,17 +1232,27 @@ async function sendSessionPrompt(state, roomId, prompt) {
       return;
     }
   }
+  const promptText = includeDelegationContext
+    ? buildDelegationContextPrompt(prompt, state.delegationContextEntries)
+    : String(prompt || '').trim();
   // SDK mode
   if (state.copilotSession) {
+    state.lastAssistantMessageContent = '';
+    state.lastReasoningContent = '';
     state.isProcessing = true;
     state.isStopping = false;
     await emitSessionState(roomId);
     try {
-      await state.copilotSession.send({ prompt });
+      await state.copilotSession.send({ prompt: promptText });
+      await settleActiveDelegation(state, roomId, 'completed');
     } catch (err) {
-      if (!state.isStopping || !isCancellationError(err)) {
+      const cancelled = isCancellationError(err);
+      if (!state.isStopping || !cancelled) {
         botSend(roomId, { type: 'session.error', message: err.message });
       }
+      await settleActiveDelegation(state, roomId, cancelled ? 'cancelled' : 'failed', {
+        errorMessage: cancelled ? 'Delegation cancelled' : err.message,
+      });
     }
     return;
   }
@@ -1027,6 +1261,8 @@ async function sendSessionPrompt(state, roomId, prompt) {
     botSend(roomId, { type: 'session.error', message: 'Agent is still starting… please wait.' });
     return;
   }
+  state.lastAssistantMessageContent = '';
+  state.lastReasoningContent = '';
   state.isProcessing = true;
   state.isStopping = false;
   await emitSessionState(roomId);
@@ -1039,14 +1275,18 @@ async function sendSessionPrompt(state, roomId, prompt) {
     ...options,
   });
   try {
-    await state.acpConnection.prompt({ sessionId: state.acpSessionId, prompt: [{ type: 'text', text: prompt }] });
+    await state.acpConnection.prompt({ sessionId: state.acpSessionId, prompt: [{ type: 'text', text: promptText }] });
     await finalizePromptTurn();
+    await settleActiveDelegation(state, roomId, 'completed');
   } catch (err) {
     const cancelled = isCancellationError(err);
     await finalizePromptTurn({ emitIdle: cancelled });
     if (!cancelled && sessions.get(roomId) === state) {
       botSend(roomId, { type: 'session.error', message: err.message });
     }
+    await settleActiveDelegation(state, roomId, cancelled ? 'cancelled' : 'failed', {
+      errorMessage: cancelled ? 'Delegation cancelled' : err.message,
+    });
     return;
   }
 }
@@ -1339,8 +1579,7 @@ async function tryResumeSession(roomId, envelope) {
   }
 
   let state = sessions.get(roomId);
-  const shouldTryResume = (!state || state.active === false)
-    && (envelope.type === 'user.prompt' || envelope.type === 'user.command' || envelope.type === 'session.sync_state');
+  const shouldTryResume = shouldTryAutoResumeSession(state, envelope?.type);
   if (!shouldTryResume) return state;
 
   const saved = sessionStore[roomId];
@@ -1359,6 +1598,7 @@ async function tryResumeSession(roomId, envelope) {
           agentName: 'copilot-sdk',
           workingDirectory: saved.cwd || process.cwd(),
           model: saved.model || DEFAULT_SDK_MODEL,
+          delegationContextEntries: saved.delegationContextEntries || [],
         });
         state.isResuming = true;
         sessions.set(roomId, state);
@@ -1379,6 +1619,7 @@ async function tryResumeSession(roomId, envelope) {
         agentName: saved.agentName,
         workingDirectory: saved.cwd || process.cwd(),
         model: saved.model || 'default',
+        delegationContextEntries: saved.delegationContextEntries || [],
       });
       state.isResuming = true;
       sessions.set(roomId, state);
@@ -1404,6 +1645,7 @@ async function tryResumeSession(roomId, envelope) {
           agentName: 'copilot-sdk',
           workingDirectory: saved.cwd || process.cwd(),
           model: saved.model || DEFAULT_SDK_MODEL,
+          delegationContextEntries: saved.delegationContextEntries || [],
         });
         state.isResuming = true;
         sessions.set(roomId, state);
@@ -1459,6 +1701,73 @@ async function handleBotNotification(notification) {
           ...result,
         });
       }
+      return;
+    }
+
+    const delegationEnvelope = parseDelegationTargetControlEnvelope(envelope);
+    if (delegationEnvelope) {
+      if (!isPortalControlUser(msg.createdBy)) {
+        console.warn(`[Daemon] Ignoring unauthorized delegation control from ${msg.createdBy} for room ${roomId}`);
+        return;
+      }
+      if (delegationEnvelope.targetDaemonId !== BOT_USER_ID) {
+        console.warn(`[Daemon] Ignoring delegation ${delegationEnvelope.delegationId} for ${delegationEnvelope.targetDaemonId}`);
+        return;
+      }
+
+      if (delegationEnvelope.type === 'control.delegation.request') {
+        if (!String(delegationEnvelope.prompt || '').trim()) {
+          await failDelegationRequest(delegationEnvelope, 'Delegation prompt is empty');
+          return;
+        }
+
+        const state = await tryResumeSession(roomId, delegationEnvelope) || sessions.get(roomId);
+        if (!state || state.active === false) {
+          await failDelegationRequest(delegationEnvelope, 'Target session is not active on this daemon');
+          return;
+        }
+        if (state.activeDelegation && state.activeDelegation.delegationId !== delegationEnvelope.delegationId) {
+          await failDelegationRequest(delegationEnvelope, 'Target session is already running another delegation');
+          return;
+        }
+        if (state.isProcessing && (!state.activeDelegation || state.activeDelegation.delegationId !== delegationEnvelope.delegationId)) {
+          await failDelegationRequest(delegationEnvelope, 'Target session is busy');
+          return;
+        }
+
+        await startDelegationForSession(state, roomId, delegationEnvelope);
+        await botSend(roomId, {
+          type: 'system.info',
+          message: `Delegated prompt from ${delegationEnvelope.requesterUserId}`,
+        });
+        await botSend(roomId, {
+          type: 'user.prompt',
+          content: delegationEnvelope.prompt,
+        });
+        await sendSessionPrompt(state, roomId, delegationEnvelope.prompt, { includeDelegationContext: false });
+        return;
+      }
+
+      if (delegationEnvelope.type === 'control.delegation.cancel') {
+        const state = sessions.get(roomId) || await tryResumeSession(roomId, delegationEnvelope);
+        if (!state?.activeDelegation || state.activeDelegation.delegationId !== delegationEnvelope.delegationId) {
+          return;
+        }
+        try {
+          await cancelSessionTurn(state, roomId);
+        } catch (err) {
+          state.isStopping = false;
+          emitSessionState(roomId);
+          await botSend(roomId, { type: 'session.error', message: `Failed to stop delegated response: ${err.message}` });
+          await settleActiveDelegation(state, roomId, 'failed', { errorMessage: err.message });
+        }
+        return;
+      }
+    }
+
+    const delegationSummaryEnvelope = parseDelegationSummaryEnvelope(envelope);
+    if (delegationSummaryEnvelope) {
+      rememberDelegationContext(roomId, delegationSummaryEnvelope);
       return;
     }
 
@@ -1525,6 +1834,7 @@ async function handleBotNotification(notification) {
               acpSessionId: acp.acpSessionId,
               cwd: selectedWorkingDirectory,
               supportsResume: acp.initResponse.agentCapabilities?.loadSession ?? false,
+              delegationContextEntries: state.delegationContextEntries,
             });
           })();
           await state.startupPromise;

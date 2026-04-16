@@ -230,6 +230,42 @@ describe('session index helpers', () => {
     assert.equal(sessions[0].canDelete, false);
   });
 
+  it('marks source sessions as delegating while a non-terminal delegation is active', () => {
+    const state = createSessionIndexState();
+    upsertTrustedSessionDirectoryRecord(state, {
+      sessionId: 'session-1',
+      roomName: 'Repo A',
+      daemonId: 'daemon-a',
+      agentName: 'copilot',
+      ownerUserId: 'owner',
+      updatedAt: '2026-04-11T05:10:00.000Z',
+    }, { source: 'portal' });
+    upsertTrustedSessionDirectoryRecord(state, {
+      sessionId: 'session-2',
+      roomName: 'Repo B',
+      daemonId: 'daemon-a',
+      agentName: 'copilot',
+      ownerUserId: 'owner',
+      updatedAt: '2026-04-11T05:11:00.000Z',
+    }, { source: 'portal' });
+
+    const sessions = buildSessionListForUser({
+      state,
+      daemonAccessById: new Map([['daemon-a', {
+        daemon: { daemonId: 'daemon-a', online: true },
+        accessState: { ownerUserId: 'owner', adminUsers: [], memberUsers: ['member-user'] },
+      }]]),
+      userId: 'member-user',
+      activeDelegationSourceSessionIds: new Set(['session-1']),
+      canAdminDaemonAccess,
+      canMemberDaemonAccess,
+    });
+
+    assert.equal(sessions.length, 2);
+    assert.equal(sessions.find((session) => session.sessionId === 'session-1')?.sessionDelegating, true);
+    assert.equal(sessions.find((session) => session.sessionId === 'session-2')?.sessionDelegating, false);
+  });
+
   it('surfaces join request status for visible sessions even when session access is still none', () => {
     const state = createSessionIndexState();
     upsertTrustedSessionDirectoryRecord(state, {

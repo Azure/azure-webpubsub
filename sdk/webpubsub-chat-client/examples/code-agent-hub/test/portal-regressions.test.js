@@ -541,4 +541,20 @@ describe('portal regression helpers', () => {
     recordSessionHistoryEnvelope(summary, { type: 'session.state', ready: true });
     assert.equal(summary.readyState, true);
   });
+
+  it('treats delegation summaries as conversation content for source-room replay', () => {
+    const summary = createSessionHistorySummary();
+
+    recordSessionHistoryEnvelope(summary, {
+      type: 'delegation.dispatched',
+      delegationId: 'delegation-1',
+      sourceSessionId: 'source-1',
+      targetSessionId: 'target-1',
+      relayRoomId: 'delegation-relay-delegation-1',
+    });
+
+    assert.equal(summary.envelopeCount, 1);
+    assert.equal(summary.hasConversationContent, true);
+    assert.equal(summary.hasSyncEvidence, false);
+  });
 });

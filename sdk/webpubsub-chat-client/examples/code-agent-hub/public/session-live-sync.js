@@ -16,6 +16,18 @@ function normalizeReplayHistoryResult(result) {
   };
 }
 
+export function canSkipInitialSessionSync({ roomInfo = null, shouldWaitForLiveState = false } = {}) {
+  if (shouldWaitForLiveState) {
+    return false;
+  }
+
+  if (!roomInfo || typeof roomInfo !== 'object') {
+    return false;
+  }
+
+  return !String(roomInfo.defaultConversationId || '').trim();
+}
+
 export async function ensureSessionOpenSync(roomId, {
   replayHistory,
   waitForLiveState,

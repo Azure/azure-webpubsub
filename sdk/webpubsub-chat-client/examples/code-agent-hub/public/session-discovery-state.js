@@ -5,6 +5,12 @@ function sessionAccessLevel(session) {
   return session.canWrite ? 'write' : session.canRead ? 'read' : 'none';
 }
 
+function normalizeTimestamp(value) {
+  if (typeof value === 'number' && Number.isFinite(value)) return value;
+  const parsed = Date.parse(String(value || ''));
+  return Number.isFinite(parsed) ? parsed : 0;
+}
+
 export function applySessionQueryContext(session, {
   currentDaemonId = '',
   currentAgentName = '',
@@ -39,6 +45,7 @@ export function normalizeSessionRecord(session, previous = {}) {
     sessionProcessing: session.sessionProcessing ?? previous.sessionProcessing,
     sessionStopping: session.sessionStopping ?? previous.sessionStopping,
     sessionReady: session.sessionReady ?? previous.sessionReady,
+    sessionDelegating: session.sessionDelegating ?? previous.sessionDelegating ?? false,
   };
 }
 
@@ -46,8 +53,50 @@ export function getSessionRecordStatusInfo(session) {
   if (!session) return null;
   if (session.sessionProcessing) return { state: 'working', label: 'Working' };
   if (session.sessionStopping) return { state: 'stopping', label: 'Stopping' };
+  if (session.sessionDelegating) return { state: 'working', label: 'Working' };
   if (session.sessionReady === false) return { state: 'starting', label: 'Starting' };
   return { state: 'idle', label: 'Idle' };
+}
+
+export function sessionNeedsMetadataHydration(session) {
+  return !session?.agent || !session?.workingDirectory || !session?.ownerUserId || !session?.daemonId;
+}
+
+export function getSessionMetadataHydrationState({
+  sessions = [],
+  joinedSessionIds,
+  inFlightSessionIds,
+  lastAttemptBySessionId,
+  now = Date.now(),
+  cooldownMs = 10000,
+} = {}) {
+  let actionableCount = 0;
+  let inFlightCount = 0;
+  const normalizedCooldownMs = Math.max(0, Number(cooldownMs) || 0);
+
+  for (const session of Array.isArray(sessions) ? sessions : []) {
+    const sessionId = String(session?.sessionId || '').trim();
+    if (!sessionId) continue;
+    if (!joinedSessionIds?.has?.(sessionId)) continue;
+    if (!sessionNeedsMetadataHydration(session)) continue;
+
+    if (inFlightSessionIds?.has?.(sessionId)) {
+      inFlightCount += 1;
+      continue;
+    }
+
+    const lastAttemptAt = normalizeTimestamp(lastAttemptBySessionId?.get?.(sessionId));
+    if (!lastAttemptAt || now - lastAttemptAt >= normalizedCooldownMs) {
+      actionableCount += 1;
+    }
+  }
+
+  return {
+    actionableCount,
+    inFlightCount,
+    pendingCount: actionableCount + inFlightCount,
+    shouldShowLoading: actionableCount > 0 || inFlightCount > 0,
+  };
 }
 
 function normalizeDeletedAt(value) {
