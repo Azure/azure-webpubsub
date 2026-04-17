@@ -1,6 +1,6 @@
 import { describe, it, beforeEach } from 'node:test';
 import assert from 'node:assert/strict';
-import { createWorkspaceRpc } from '../workspace-rpc.js';
+import { createWorkspaceRpc } from '../daemon/workspace-rpc.js';
 
 describe('workspace-rpc', () => {
   let rpc;

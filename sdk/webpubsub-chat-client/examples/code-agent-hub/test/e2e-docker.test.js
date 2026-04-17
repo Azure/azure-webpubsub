@@ -6,10 +6,10 @@ import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { ChatClient } from '@azure/web-pubsub-chat-client';
 import { WebPubSubServiceClient } from '@azure/web-pubsub';
-import { daemonAclRoomId } from '../daemon-acl.js';
-import { collectVisibleSessions } from '../public/session-discovery-state.js';
-import { classifyIncomingSessionRoomMessage, getRealtimeSessionAccessPatch, resolveNotificationRoomId } from '../public/portal-regressions.js';
-import { collectKnownRoomInfos, ensureLocalRoomInfo } from '../public/room-routing-state.js';
+import { daemonAclRoomId } from '../shared/daemon-acl.js';
+import { collectVisibleSessions } from '../web-portal/public/js/session-discovery-state.js';
+import { classifyIncomingSessionRoomMessage, getRealtimeSessionAccessPatch, resolveNotificationRoomId } from '../web-portal/public/js/portal-regressions.js';
+import { collectKnownRoomInfos, ensureLocalRoomInfo } from '../web-portal/public/js/room-routing-state.js';
 
 const DEFAULT_EMULATOR_CONNECTION_STRING = 'Endpoint=http://localhost;Port=8080;AccessKey='
   + 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'
@@ -27,7 +27,7 @@ const PORTAL_REQUEST_TIMEOUT_MS = 30_000;
 const DEBUG_E2E_PROGRESS = process.env.CODEAGENTHUB_E2E_PROGRESS === '1';
 const DEBUG_E2E_HANDLES = process.env.CODEAGENTHUB_E2E_DEBUG_HANDLES === '1';
 const projectRoot = resolve(dirname(fileURLToPath(import.meta.url)), '..');
-const serverEntry = resolve(projectRoot, 'web-server.js');
+const serverEntry = resolve(projectRoot, 'web-portal', 'web-server.js');
 const serverPort = 3200 + Math.floor(Math.random() * 200);
 const testRunId = randomUUID().replace(/-/g, '').slice(0, 8);
 

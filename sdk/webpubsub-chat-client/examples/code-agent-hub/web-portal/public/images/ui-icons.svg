@@ -1,0 +1,33 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="144" height="48" viewBox="0 0 144 48" fill="none">
+  <symbol id="debug-bug" viewBox="0 0 32 32">
+    <path d="M29.83,20l.34-2L25,17.15V13c0-.08,0-.15,0-.23l5.06-1.36-.51-1.93-4.83,1.29A9,9,0,0,0,20,5V2H18V4.23a8.81,8.81,0,0,0-4,0V2H12V5a9,9,0,0,0-4.71,5.82L2.46,9.48,2,11.41,7,12.77c0,.08,0,.15,0,.23v4.15L1.84,18l.32,2L7,19.18a8.9,8.9,0,0,0,.82,3.57L3.29,27.29l1.42,1.42,4.19-4.2a9,9,0,0,0,14.2,0l4.19,4.2,1.42-1.42-4.54-4.54A8.9,8.9,0,0,0,25,19.18ZM15,25.92A7,7,0,0,1,9,19V13h6ZM9.29,11a7,7,0,0,1,13.42,0ZM23,19a7,7,0,0,1-6,6.92V13h6Z"/>
+  </symbol>
+  <symbol id="github-mark" viewBox="0 0 16 16">
+    <path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/>
+  </symbol>
+  <symbol id="avatar-fallback" viewBox="0 0 20 20">
+    <circle cx="10" cy="7.5" r="3.5"/>
+    <path d="M3 17.5a7 7 0 0114 0"/>
+  </symbol>
+  <symbol id="topbar-daemon" viewBox="0 0 24 24">
+    <rect x="3.5" y="4.5" width="17" height="12" rx="2"/>
+    <path d="M8 19.5h8"/>
+    <path d="M12 16.5v3"/>
+  </symbol>
+  <symbol id="topbar-session" viewBox="0 0 24 24">
+    <path d="M3.5 7.5A2 2 0 0 1 5.5 5.5h4l2 2h7A2 2 0 0 1 20.5 9.5v8a2 2 0 0 1-2 2h-13a2 2 0 0 1-2-2z"/>
+  </symbol>
+  <symbol id="usage-ring-circle" viewBox="0 0 20 20">
+    <circle cx="10" cy="10" r="8"/>
+  </symbol>
+  <g fill="#111111">
+    <use href="#debug-bug" x="4" y="4" width="16" height="16"/>
+    <use href="#github-mark" x="28" y="4" width="16" height="16"/>
+    <use href="#avatar-fallback" x="52" y="4" width="16" height="16"/>
+  </g>
+  <g fill="none" stroke="#111111" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+    <use href="#topbar-daemon" x="76" y="4" width="16" height="16"/>
+    <use href="#topbar-session" x="100" y="4" width="16" height="16"/>
+  </g>
+  <use href="#usage-ring-circle" x="124" y="4" width="16" height="16" fill="none" stroke="#111111" stroke-width="2.4"/>
+</svg>

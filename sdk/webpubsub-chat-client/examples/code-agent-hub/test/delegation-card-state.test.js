@@ -3,17 +3,21 @@ import assert from 'node:assert/strict';
 import {
   applyDelegationCardRelayEvent,
   buildDelegationCardHeaderSummary,
+  buildDelegationCardMetaText,
   createDelegationCardState,
   ensureDelegationCardSummaryContent,
   finalizeDelegationCardStreamingItems,
+  formatDelegationUsagePreview,
+  getDelegationCardSectionState,
   hasDelegationCardAssistantContent,
+  hasDelegationCardTimelineContent,
   isDelegationCardCollapsed,
   reconcileDelegationCardTerminalSummaryContent,
   settleDelegationCardToolItems,
   setDelegationCardCollapsed,
   setDelegationCardReasoningExpanded,
   toggleDelegationCardCollapsed,
-} from '../public/delegation-card-state.js';
+} from '../web-portal/public/js/delegation-card-state.js';
 
 describe('delegation card state helpers', () => {
   it('builds a collapsed header summary and tracks collapsed state', () => {
@@ -29,8 +33,11 @@ describe('delegation card state helpers', () => {
       usage: { used: 0, size: 0 },
     }), {
       promptPreview: 'reply only relay-ok-20260415-1644',
-      metaPreview: 'model claude-sonnet-4.6 · 0/0 tokens',
+      metaPreview: 'model claude-sonnet-4.6',
     });
+
+    assert.equal(formatDelegationUsagePreview({ used: 0, size: 0 }), '');
+    assert.equal(formatDelegationUsagePreview({ used: 0, size: 1000 }), '0/1000 tokens');
 
     assert.deepEqual(buildDelegationCardHeaderSummary({
       prompt: 'inspect the relay failure',
@@ -40,6 +47,58 @@ describe('delegation card state helpers', () => {
       promptPreview: 'inspect the relay failure',
       metaPreview: 'MaxCount must be between 1 and 100',
     });
+
+    assert.equal(buildDelegationCardMetaText({
+      model: 'claude-sonnet-4.6',
+      usage: { used: 12, size: 1000 },
+      error: 'room unavailable',
+    }), 'model claude-sonnet-4.6 · 12/1000 tokens · room unavailable');
+  });
+
+  it('derives delegation section visibility from real content so empty blocks do not leave layout gaps', () => {
+    const emptyState = getDelegationCardSectionState({
+      prompt: '',
+      model: '',
+      usage: {},
+      error: '',
+      timelineItems: [],
+      targetSessionId: '',
+      delegationId: 'delegation-1',
+      status: 'completed',
+    });
+
+    assert.equal(emptyState.showPrompt, false);
+    assert.equal(emptyState.showMeta, false);
+    assert.equal(emptyState.showBody, false);
+    assert.equal(emptyState.showOpenTarget, false);
+    assert.equal(emptyState.showCancel, false);
+    assert.equal(emptyState.showActions, false);
+    assert.equal(emptyState.showDetail, false);
+
+    const activeState = getDelegationCardSectionState({
+      prompt: 'Investigate the rendering gap',
+      model: '',
+      usage: {},
+      error: '',
+      timelineItems: [{ kind: 'tool', name: 'read_file', state: 'running' }],
+      targetSessionId: 'session-2',
+      delegationId: 'delegation-2',
+      status: 'started',
+    });
+
+    assert.equal(activeState.showPrompt, true);
+    assert.equal(activeState.showBody, true);
+    assert.equal(activeState.showOpenTarget, true);
+    assert.equal(activeState.showCancel, true);
+    assert.equal(activeState.showActions, true);
+    assert.equal(activeState.showDetail, true);
+  });
+
+  it('treats only non-empty timeline items as body content', () => {
+    assert.equal(hasDelegationCardTimelineContent([]), false);
+    assert.equal(hasDelegationCardTimelineContent([{ kind: 'assistant', content: '   ' }]), false);
+    assert.equal(hasDelegationCardTimelineContent([{ kind: 'reasoning', content: 'Checking CSS gaps' }]), true);
+    assert.equal(hasDelegationCardTimelineContent([{ kind: 'tool', name: 'read_file', state: 'running' }]), true);
   });
 
   it('keeps visible events ordered instead of grouping tools after messages', () => {

@@ -11,8 +11,8 @@ import {
   upsertTrustedJoinRequestState,
   upsertTrustedSessionDirectoryRecord,
   upsertTrustedSessionMembership,
-} from '../session-index.js';
-import { canAdminDaemonAccess, canMemberDaemonAccess } from '../daemon-acl.js';
+} from '../web-portal/server/session-index.js';
+import { canAdminDaemonAccess, canMemberDaemonAccess } from '../shared/daemon-acl.js';
 
 function buildSessionTitle({
   roomName = 'Session',

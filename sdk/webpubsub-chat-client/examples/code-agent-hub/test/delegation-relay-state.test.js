@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import {
   clampDelegationRelayHistoryMaxCount,
   createDelegationRelayConnectionPromise,
-} from '../public/delegation-relay-state.js';
+} from '../web-portal/public/js/delegation-relay-state.js';
 
 describe('delegation relay state helpers', () => {
   it('clamps relay replay maxCount to the chat-supported range', () => {

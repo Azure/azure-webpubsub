@@ -4,7 +4,7 @@ import {
   createModelsUpdateEvent,
   deriveToolbarModelId,
   hasModelToolbarState,
-} from '../public/session-toolbar-state.js';
+} from '../shared/session-toolbar-state.js';
 
 describe('session toolbar state helpers', () => {
   it('treats a current model without a model list as syncable state', () => {

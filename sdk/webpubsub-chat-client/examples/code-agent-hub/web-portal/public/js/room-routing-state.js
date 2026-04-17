@@ -61,6 +61,17 @@ export async function ensureLocalRoomInfo(roomId, {
     .some((roomInfo) => normalizeRoomId(roomInfo) === targetRoomId);
   const joined = typeof hasJoinedRoom === 'function' ? hasJoinedRoom(targetRoomId) : false;
 
+  try {
+    const roomInfo = await getRoomInfo(targetRoomId);
+    if (roomInfo) {
+      return rememberKnownRoomInfo(supplementalRoomInfos, roomInfo);
+    }
+  } catch (error) {
+    if ((hasLocalRoom || joined) || typeof addSelfToRoom !== 'function' || !currentUserId) {
+      throw error;
+    }
+  }
+
   if ((!hasLocalRoom || !joined) && typeof addSelfToRoom === 'function' && currentUserId) {
     try {
       await addSelfToRoom(targetRoomId, currentUserId);

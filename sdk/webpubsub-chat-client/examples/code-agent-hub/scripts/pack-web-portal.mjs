@@ -1,4 +1,4 @@
-import { access, copyFile, mkdir, readFile } from 'node:fs/promises';
+import { access, copyFile, cp, mkdir, rm } from 'node:fs/promises';
 import { createWriteStream } from 'node:fs';
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -10,16 +10,19 @@ const scriptDir = dirname(modulePath);
 const projectRoot = resolve(scriptDir, '..');
 const repoRoot = resolve(projectRoot, '..', '..');
 const distRoot = resolve(projectRoot, 'dist');
-const outDir = resolve(distRoot, 'web-server');
+const outDir = resolve(distRoot, 'web-portal');
+const legacyOutDir = resolve(distRoot, 'web-server');
 const publicOutDir = resolve(outDir, 'public');
-const outFile = resolve(outDir, 'web-server.bundle.cjs');
-const zipFile = resolve(distRoot, 'codeagenthub-web-server.zip');
+const sharedOutDir = resolve(outDir, 'shared');
+const outFile = resolve(outDir, 'web-portal.bundle.cjs');
+const zipFile = resolve(distRoot, 'codeagenthub-web-portal.zip');
+const legacyZipFile = resolve(distRoot, 'codeagenthub-web-server.zip');
 
 async function assertReadable(label, filePath) {
   try {
     await access(filePath);
   } catch {
-    throw new Error(`[pack:web-server] Missing ${label}: ${filePath}`);
+    throw new Error(`[pack:web-portal] Missing ${label}: ${filePath}`);
   }
 }
 
@@ -27,29 +30,14 @@ async function copyRuntimeAsset(label, sourcePath, targetPath) {
   await assertReadable(label, sourcePath);
   await mkdir(dirname(targetPath), { recursive: true });
   await copyFile(sourcePath, targetPath);
-  console.log(`[pack:web-server] Copied ${label} -> ${targetPath}`);
+  console.log(`[pack:web-portal] Copied ${label} -> ${targetPath}`);
 }
 
-async function copyReferencedPublicModules(indexHtmlPath) {
-  const html = await readFile(indexHtmlPath, 'utf8');
-  const referencedModules = new Set(
-    [...html.matchAll(/from\s*['"]\/([^'"]+\.js)['"]/g)].map((match) => match[1]),
-  );
-
-  for (const relativeModulePath of referencedModules) {
-    const sourcePath = resolve(projectRoot, 'public', relativeModulePath);
-    try {
-      await access(sourcePath);
-    } catch {
-      continue;
-    }
-
-    await copyRuntimeAsset(
-      `public module ${relativeModulePath}`,
-      sourcePath,
-      resolve(publicOutDir, relativeModulePath),
-    );
-  }
+async function copyRuntimeDirectory(label, sourcePath, targetPath) {
+  await assertReadable(label, sourcePath);
+  await mkdir(dirname(targetPath), { recursive: true });
+  await cp(sourcePath, targetPath, { recursive: true });
+  console.log(`[pack:web-portal] Copied ${label} -> ${targetPath}`);
 }
 
 async function createZipFromDirectory(sourceDir, targetZipPath, rootName) {
@@ -68,12 +56,14 @@ async function createZipFromDirectory(sourceDir, targetZipPath, rootName) {
   });
 }
 
-export async function packWebServer() {
-  await mkdir(publicOutDir, { recursive: true });
-  const portalHtmlPath = resolve(projectRoot, 'public', 'index.html');
+export async function packWebPortal() {
+  await rm(legacyOutDir, { recursive: true, force: true });
+  await rm(legacyZipFile, { force: true });
+  await rm(outDir, { recursive: true, force: true });
+  await mkdir(outDir, { recursive: true });
 
   await build({
-    entryPoints: [resolve(projectRoot, 'web-server.js')],
+    entryPoints: [resolve(projectRoot, 'web-portal', 'web-server.js')],
     outfile: outFile,
     bundle: true,
     format: 'cjs',
@@ -86,12 +76,16 @@ export async function packWebServer() {
     },
   });
 
-  await copyRuntimeAsset(
-    'portal html',
-    portalHtmlPath,
-    resolve(publicOutDir, 'index.html'),
+  await copyRuntimeDirectory(
+    'web-portal public runtime assets',
+    resolve(projectRoot, 'web-portal', 'public'),
+    publicOutDir,
   );
-  await copyReferencedPublicModules(portalHtmlPath);
+  await copyRuntimeAsset(
+    'shared session toolbar state',
+    resolve(projectRoot, 'shared', 'session-toolbar-state.js'),
+    resolve(sharedOutDir, 'session-toolbar-state.js'),
+  );
   await copyRuntimeAsset(
     'browser chat client',
     resolve(repoRoot, 'dist', 'browser', 'index.js'),
@@ -108,13 +102,13 @@ export async function packWebServer() {
     resolve(publicOutDir, 'dompurify.js'),
   );
 
-  await createZipFromDirectory(outDir, zipFile, 'codeagenthub-web-server');
+  await createZipFromDirectory(outDir, zipFile, 'codeagenthub-web-portal');
 
-  console.log(`[pack:web-server] Wrote ${outFile}`);
-  console.log(`[pack:web-server] Wrote ${zipFile}`);
-  console.log('[pack:web-server] web-server bundle remains a single JS file, and the runtime package is archived with public assets.');
+  console.log(`[pack:web-portal] Wrote ${outFile}`);
+  console.log(`[pack:web-portal] Wrote ${zipFile}`);
+  console.log('[pack:web-portal] web-portal bundle remains a single JS file, and the runtime package is archived with public assets plus browser-consumable shared modules.');
 }
 
 if (process.argv[1] && resolve(process.argv[1]) === modulePath) {
-  await packWebServer();
+  await packWebPortal();
 }

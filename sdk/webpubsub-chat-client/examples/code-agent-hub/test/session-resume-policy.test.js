@@ -1,6 +1,6 @@
 import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
-import { shouldTryAutoResumeSession } from '../session-resume-policy.js';
+import { shouldTryAutoResumeSession } from '../daemon/session-resume-policy.js';
 
 describe('session resume policy helpers', () => {
   it('auto-resumes inactive sessions for user prompts and delegation requests', () => {

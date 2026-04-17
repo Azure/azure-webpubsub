@@ -26,7 +26,7 @@ import {
   shouldIgnoreSemanticDuplicate,
   shouldSuppressSessionOpenError,
   shouldRetainPreviousDaemons,
-} from '../public/portal-regressions.js';
+} from '../web-portal/public/js/portal-regressions.js';
 
 describe('portal regression helpers', () => {
   it('treats daemon admin as member access for session creation', () => {

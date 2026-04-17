@@ -11,7 +11,7 @@ import {
   daemonAclRoomId,
   deriveDaemonAclState,
   parseDaemonAclRoomTitle,
-} from '../daemon-acl.js';
+} from '../shared/daemon-acl.js';
 
 describe('daemon-acl helpers', () => {
   it('should round-trip daemon ACL room metadata', () => {

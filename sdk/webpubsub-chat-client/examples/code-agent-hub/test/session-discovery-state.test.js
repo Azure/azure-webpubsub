@@ -10,7 +10,7 @@ import {
   sessionNeedsMetadataHydration,
   shouldShowPortalSessionLoading,
   shouldSkipDeletedSession,
-} from '../public/session-discovery-state.js';
+} from '../web-portal/public/js/session-discovery-state.js';
 
 describe('session discovery state helpers', () => {
   it('shows loading only when no local session candidates exist yet', () => {

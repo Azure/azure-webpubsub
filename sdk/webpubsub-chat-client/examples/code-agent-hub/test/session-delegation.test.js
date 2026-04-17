@@ -14,7 +14,7 @@ import {
   parseDelegationTargetControlEnvelope,
   summaryTypeForTerminalStatus,
   terminalStatusForRelayStreamType,
-} from '../session-delegation.js';
+} from '../shared/session-delegation.js';
 
 describe('session delegation helpers', () => {
   it('builds stable relay room ids and terminal mappings', () => {

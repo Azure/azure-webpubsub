@@ -1,6 +1,6 @@
 import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
-import { finishAcpPromptTurn } from '../acp-prompt-turn.js';
+import { finishAcpPromptTurn } from '../daemon/acp-prompt-turn.js';
 
 describe('ACP prompt turn helpers', () => {
   it('finalizes an ACP prompt turn from the prompt response', async () => {

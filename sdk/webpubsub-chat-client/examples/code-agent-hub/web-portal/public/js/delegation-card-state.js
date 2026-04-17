@@ -59,13 +59,78 @@ function truncateCardPreviewText(value, maxChars) {
   return `${normalized.slice(0, Math.max(0, normalizedMaxChars - 1)).trimEnd()}…`;
 }
 
-function formatCardUsagePreview(usage) {
+export function formatDelegationUsagePreview(usage) {
   const used = Number(usage?.used);
   const size = Number(usage?.size);
   const hasUsed = Number.isFinite(used);
   const hasSize = Number.isFinite(size);
+  if (hasUsed && hasSize && used === 0 && size === 0) return '';
   if (!hasUsed && !hasSize) return '';
   return `${hasUsed ? used : '?'}\/${hasSize ? size : '?'} tokens`;
+}
+
+export function buildDelegationCardMetaText({ model = '', usage, error = '' } = {}) {
+  const parts = [];
+  const normalizedModel = normalizeCardPreviewText(model);
+  const normalizedError = String(error || '').trim();
+
+  if (normalizedModel) parts.push(`model ${normalizedModel}`);
+
+  const usagePreview = formatDelegationUsagePreview(usage);
+  if (usagePreview) parts.push(usagePreview);
+
+  if (normalizedError) parts.push(normalizedError);
+
+  return parts.join(' · ');
+}
+
+export function hasDelegationCardTimelineContent(items = []) {
+  const timelineItems = Array.isArray(items)
+    ? items
+    : Array.isArray(items?.items)
+      ? items.items
+      : [];
+
+  return timelineItems.some((item) => {
+    if (!item || typeof item !== 'object') return false;
+    if (item.kind === 'tool') return true;
+    return !!String(item.content || '').trim();
+  });
+}
+
+export function getDelegationCardSectionState({
+  prompt = '',
+  model = '',
+  usage,
+  error = '',
+  timelineItems = [],
+  targetSessionId = '',
+  delegationId = '',
+  status = '',
+} = {}) {
+  const metaText = buildDelegationCardMetaText({ model, usage, error });
+  const normalizedPrompt = String(prompt || '').trim();
+  const normalizedTargetSessionId = String(targetSessionId || '').trim();
+  const normalizedDelegationId = String(delegationId || '').trim();
+  const normalizedStatus = String(status || '').trim();
+  const terminal = /^(completed|failed|cancelled|expired)$/.test(normalizedStatus);
+  const showPrompt = !!normalizedPrompt;
+  const showMeta = !!metaText;
+  const showBody = hasDelegationCardTimelineContent(timelineItems);
+  const showOpenTarget = !!normalizedTargetSessionId;
+  const showCancel = !!normalizedDelegationId && !terminal;
+  const showActions = showOpenTarget || showCancel;
+
+  return {
+    metaText,
+    showPrompt,
+    showMeta,
+    showBody,
+    showOpenTarget,
+    showCancel,
+    showActions,
+    showDetail: showPrompt || showMeta || showBody || showActions,
+  };
 }
 
 function getTimelineItem(state, itemId) {
@@ -318,16 +383,9 @@ export function buildDelegationCardHeaderSummary({
     };
   }
 
-  const metaParts = [];
-  const normalizedModel = normalizeCardPreviewText(model);
-  if (normalizedModel) metaParts.push(`model ${normalizedModel}`);
-
-  const usagePreview = formatCardUsagePreview(usage);
-  if (usagePreview) metaParts.push(usagePreview);
-
   return {
     promptPreview,
-    metaPreview: truncateCardPreviewText(metaParts.join(' · '), maxMetaChars),
+    metaPreview: truncateCardPreviewText(buildDelegationCardMetaText({ model, usage }), maxMetaChars),
   };
 }
 

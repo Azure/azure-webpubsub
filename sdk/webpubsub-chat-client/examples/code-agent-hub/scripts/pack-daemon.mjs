@@ -6,7 +6,7 @@ import { build } from 'esbuild';
 const modulePath = fileURLToPath(import.meta.url);
 const scriptDir = dirname(modulePath);
 const projectRoot = resolve(scriptDir, '..');
-const entryPoint = resolve(projectRoot, 'agent-daemon.js');
+const entryPoint = resolve(projectRoot, 'daemon', 'agent-daemon.js');
 const outDir = resolve(projectRoot, 'dist', 'daemon');
 const outFile = resolve(outDir, 'agent-daemon.bundle.cjs');
 

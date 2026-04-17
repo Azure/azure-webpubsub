@@ -15,9 +15,9 @@ import {
   daemonAclRoomId,
   deriveDaemonAclState,
   parseDaemonAclRoomTitle,
-} from './daemon-acl.js';
-import { listDaemonRegistryRecordsWithFallback } from './daemon-registry.js';
-import { listRoomMessagesWithFallback } from './room-history.js';
+} from '../shared/daemon-acl.js';
+import { listDaemonRegistryRecordsWithFallback } from './server/daemon-registry.js';
+import { listRoomMessagesWithFallback } from './server/room-history.js';
 import {
   buildSessionListForUser,
   createSessionIndexState,
@@ -31,7 +31,7 @@ import {
   upsertTrustedJoinRequestState,
   upsertTrustedSessionDirectoryRecord,
   upsertTrustedSessionMembership,
-} from './session-index.js';
+} from './server/session-index.js';
 import {
   DELEGATION_CONTROL_ROOM_ID,
   buildDelegationControlEnvelope,
@@ -42,7 +42,7 @@ import {
   isDelegationTerminalStatus,
   parseDelegationControlEnvelope,
   summaryTypeForTerminalStatus,
-} from './session-delegation.js';
+} from '../shared/session-delegation.js';
 import { existsSync } from 'node:fs';
 import { dirname, join, resolve } from 'path';
 import { config as loadEnv } from 'dotenv';
@@ -68,6 +68,12 @@ if (envPath) {
 const publicRoot = resolveExistingPath('public assets', [
   join(__dirname, 'public'),
   join(__dirname, '..', 'public'),
+  join(__dirname, '..', '..', 'public'),
+]);
+
+const sharedBrowserAssetRoot = resolveExistingPath('shared browser assets', [
+  join(__dirname, 'shared'),
+  join(__dirname, '..', 'shared'),
 ]);
 
 function sendJavaScriptAsset(res, label, candidates) {
@@ -1566,6 +1572,12 @@ app.get('/dompurify.js', (req, res) => {
     join(publicRoot, 'dompurify.js'),
     join(__dirname, 'node_modules', 'dompurify', 'dist', 'purify.es.mjs'),
     join(__dirname, '..', 'node_modules', 'dompurify', 'dist', 'purify.es.mjs'),
+  ]);
+});
+
+app.get('/shared/session-toolbar-state.js', (req, res) => {
+  sendJavaScriptAsset(res, 'shared/session-toolbar-state.js', [
+    join(sharedBrowserAssetRoot, 'session-toolbar-state.js'),
   ]);
 });
 

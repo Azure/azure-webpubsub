@@ -1,6 +1,6 @@
 import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
-import { collectKnownRoomInfos, ensureLocalRoomInfo, rememberKnownRoomInfo } from '../public/room-routing-state.js';
+import { collectKnownRoomInfos, ensureLocalRoomInfo, rememberKnownRoomInfo } from '../web-portal/public/js/room-routing-state.js';
 
 describe('room routing state helpers', () => {
   it('dedupes chat, supplemental, and current-session room metadata by room id', () => {
@@ -23,19 +23,45 @@ describe('room routing state helpers', () => {
     assert.equal(roomInfos.find((roomInfo) => (roomInfo.roomId || roomInfo.sessionId) === 'daemon-acl-daemon-a')?.defaultConversationId, 'daemon-conversation');
   });
 
-  it('hydrates local room metadata when only server-side membership exists', async () => {
+  it('reuses readable server-side room metadata without attempting a self-invite', async () => {
     const supplementalRoomInfos = new Map();
     let addSelfCalls = 0;
-    let hasJoinedRoom = false;
 
     const roomInfo = await ensureLocalRoomInfo('session-2', {
       chatRooms: [],
       supplementalRoomInfos,
-      hasJoinedRoom: () => hasJoinedRoom,
+      hasJoinedRoom: () => false,
       getRoomInfo: async (roomId) => ({ roomId, defaultConversationId: 'conversation-2' }),
       addSelfToRoom: async () => {
         addSelfCalls += 1;
-        hasJoinedRoom = true;
+        throw new Error('The helper should not self-invite when getRoom succeeds');
+      },
+      currentUserId: 'observer',
+    });
+
+    assert.equal(addSelfCalls, 0);
+    assert.equal(roomInfo?.defaultConversationId, 'conversation-2');
+    assert.equal(supplementalRoomInfos.get('session-2')?.defaultConversationId, 'conversation-2');
+  });
+
+  it('falls back to self-add when room metadata is not readable yet', async () => {
+    const supplementalRoomInfos = new Map();
+    let addSelfCalls = 0;
+    let joinedAfterAdd = false;
+
+    const roomInfo = await ensureLocalRoomInfo('session-2', {
+      chatRooms: [],
+      supplementalRoomInfos,
+      hasJoinedRoom: () => joinedAfterAdd,
+      getRoomInfo: async (roomId) => {
+        if (!joinedAfterAdd) {
+          throw new Error('not a member of the specified room');
+        }
+        return { roomId, defaultConversationId: 'conversation-2' };
+      },
+      addSelfToRoom: async () => {
+        addSelfCalls += 1;
+        joinedAfterAdd = true;
       },
       currentUserId: 'observer',
     });
@@ -69,7 +95,9 @@ describe('room routing state helpers', () => {
         chatRooms: [],
         supplementalRoomInfos: new Map(),
         hasJoinedRoom: () => false,
-        getRoomInfo: async () => ({ roomId: 'room-fail' }),
+        getRoomInfo: async () => {
+          throw new Error('not a member of the specified room');
+        },
         addSelfToRoom: async () => {
           throw new Error('forbidden');
         },

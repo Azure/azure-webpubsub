@@ -9,7 +9,7 @@
  * - Terminal: executes commands on the local machine
  * - Permission: forwards permission requests to Chat, waits for user response
  *
- * The web-server.js only provides static files and /negotiate.
+ * The web-portal/web-server.js only provides static files and /negotiate.
  * All agent logic lives here.
  */
 
@@ -28,8 +28,8 @@ import { hostname as osHostname } from 'os';
 import { config as loadEnv } from 'dotenv';
 import { finishAcpPromptTurn } from './acp-prompt-turn.js';
 import { buildDelegationContextPrompt, upsertDelegationContextEntries } from './delegation-context.js';
-import { createModelsUpdateEvent, hasModelToolbarState } from './public/session-toolbar-state.js';
-import { daemonAclRoomId } from './daemon-acl.js';
+import { createModelsUpdateEvent, hasModelToolbarState } from '../shared/session-toolbar-state.js';
+import { daemonAclRoomId } from '../shared/daemon-acl.js';
 import { shouldTryAutoResumeSession } from './session-resume-policy.js';
 import {
   DELEGATION_CONTROL_ROOM_ID,
@@ -38,7 +38,7 @@ import {
   isDelegationTerminalStatus,
   parseDelegationSummaryEnvelope,
   parseDelegationTargetControlEnvelope,
-} from './session-delegation.js';
+} from '../shared/session-delegation.js';
 
 // ── Configuration ──
 
@@ -58,7 +58,11 @@ const LOBBY_ROOM = 'lobby';
 let DAEMON_CONTROL_ROOM = '';
 const DAEMON_HEARTBEAT_MS = 30000;
 const DAEMON_DIR = DAEMON_ENTRY_DIR;
-const PROJECT_ROOT = resolve(DAEMON_DIR, '..', '..');
+const PROJECT_ROOT = [
+  resolve(DAEMON_DIR, '..'),
+  resolve(DAEMON_DIR, '..', '..'),
+].find((candidate) => existsSync(resolve(candidate, 'package.json')))
+  || resolve(DAEMON_DIR, '..');
 const SESSION_STORE_PATH = process.env.SESSION_STORE_PATH
   || resolve(process.env.HOME || process.env.USERPROFILE || '.', '.copilot-mobile', 'sessions.json');
 const DEFAULT_SDK_MODEL = 'gpt-5.4';
@@ -497,7 +501,7 @@ async function syncSessionUiState(sessionId, state) {
   if (state.copilotSession && !(state.availableModels?.length)) {
     await refreshSdkModels(state);
   }
-  emitSessionState(sessionId);
+  await emitSessionState(sessionId, { broadcastStatus: false });
   if ((state.availableCommands || []).length) emitCommandsUpdate(sessionId, state.availableCommands);
   if ((state.availableModes || []).length || state.currentModeId) emitModesUpdate(sessionId, state);
   if (hasModelToolbarState(state)) emitModelsUpdate(sessionId, state);
@@ -1133,11 +1137,13 @@ async function flushAcpBufferedContent(state, roomId) {
 
 // ── Session Helpers ──
 
-async function emitSessionState(sessionId) {
+async function emitSessionState(sessionId, { broadcastStatus = true } = {}) {
   const state = sessions.get(sessionId);
   if (!state) return;
   await botSend(sessionId, { type: 'session.state', ready: !!state.isReady, processing: state.isProcessing, stopping: state.isStopping, pendingCount: state.pendingCount, model: state.model });
-  broadcastSessionStatus(sessionId, state);
+  if (broadcastStatus) {
+    broadcastSessionStatus(sessionId, state);
+  }
 }
 
 function broadcastSessionStatus(sessionId, state) {

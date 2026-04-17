@@ -1,7 +1,7 @@
 import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
-import { buildDelegationSummaryEnvelope } from '../session-delegation.js';
-import { buildDelegationContextPrompt, upsertDelegationContextEntries } from '../delegation-context.js';
+import { buildDelegationSummaryEnvelope } from '../shared/session-delegation.js';
+import { buildDelegationContextPrompt, upsertDelegationContextEntries } from '../daemon/delegation-context.js';
 
 describe('delegation context helpers', () => {
   it('keeps the delegated task and completed result together', () => {

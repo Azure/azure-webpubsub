@@ -1,6 +1,6 @@
 import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
-import { canSkipInitialSessionSync, ensureSessionOpenSync, waitForJoinedRoom, waitForRoomLiveSync } from '../public/session-live-sync.js';
+import { canSkipInitialSessionSync, ensureSessionOpenSync, waitForJoinedRoom, waitForRoomLiveSync } from '../web-portal/public/js/session-live-sync.js';
 
 describe('session live sync helpers', () => {
   it('does not treat room info fetch as a completed live-room join', async () => {

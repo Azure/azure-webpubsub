@@ -55,9 +55,9 @@ npm install
 ### Run
 
 ```bash
-# Terminal 1 — Portal
+# Terminal 1 — Web portal
 export WEB_PUBSUB_CONNECTION_STRING="Endpoint=http://localhost;Port=8080;AccessKey=<emulator-key>;Version=1.0;"
-npm run portal
+npm run web-portal
 
 # Terminal 2 — Daemon
 export PORTAL_URL="http://localhost:3000"
@@ -72,7 +72,7 @@ Open http://localhost:3000. Enter any username (OAuth is skipped without `.env`)
 If you only want to pre-install the tested ACP agent CLIs, the daemon does not need any Web PubSub or portal environment variables:
 
 ```bash
-node agent-daemon.js --install
+node daemon/agent-daemon.js --install
 ```
 
 This mode exits immediately after the installs finish and does not attempt daemon registration, heartbeat, bot login, or Chat connectivity.
@@ -89,7 +89,7 @@ GITHUB_OAUTH_CLIENT_SECRET=your-client-secret
 The portal auto-detects `.env` and enables "Sign in with GitHub". To explicitly disable OAuth even when `.env` exists:
 
 ```bash
-npm run portal:no-oauth
+npm run web-portal:no-oauth
 ```
 
 ### PowerShell
@@ -98,7 +98,7 @@ npm run portal:no-oauth
 $env:WEB_PUBSUB_CONNECTION_STRING="Endpoint=http://localhost;Port=8080;AccessKey=<emulator-key>;Version=1.0;"
 $env:PORTAL_URL="http://localhost:3000"
 $env:DAEMON_OWNER_USER_ID="admin"
-npm run portal    # Terminal 1
+npm run web-portal    # Terminal 1
 npm run daemon    # Terminal 2
 ```
 
@@ -114,15 +114,16 @@ Produces:
 
 | Output | Description |
 |---|---|
-| `dist/web-server/web-server.bundle.cjs` | Single-file portal server (includes express, session, OAuth) |
-| `dist/web-server/public/` | Browser assets (index.html, chat-client.js, marked.js, dompurify.js) |
-| `dist/codeagenthub-web-server.zip` | Zip archive of the above, ready for App Service deployment |
+| `dist/web-portal/web-portal.bundle.cjs` | Single-file web portal server (includes express, session, OAuth) |
+| `dist/web-portal/public/` | Web portal browser assets (index.html, chat-client.js, marked.js, dompurify.js) |
+| `dist/web-portal/shared/` | Browser-consumable shared modules packaged alongside the web portal |
+| `dist/codeagenthub-web-portal.zip` | Zip archive of the above, ready for App Service deployment |
 | `dist/daemon/agent-daemon.bundle.cjs` | Single-file daemon (ACP agent CLIs remain external) |
 
 Individual pack commands:
 
 ```bash
-npm run pack:web-server   # Portal only
+npm run pack:web-portal   # Web portal only
 npm run pack:daemon       # Daemon only
 ```
 
@@ -192,15 +193,22 @@ See [docs/azure-deployment.md](docs/azure-deployment.md) for the full step-by-st
 
 ```
 code-agent-hub/
-├── agent-daemon.js          # Daemon — ACP bridge + Chat bot
-├── web-server.js            # Portal — Express server + OAuth + daemon/session control plane
-├── workspace-rpc.js         # Daemon workspace RPC helpers
-├── public/
-│   └── index.html           # Single-page browser UI
+├── daemon/
+│   ├── agent-daemon.js      # Daemon — ACP bridge + Chat bot
+│   └── workspace-rpc.js     # Daemon workspace RPC helpers
+├── web-portal/
+│   ├── web-server.js        # Web portal — single Node entrypoint
+│   ├── server/              # Web portal server-only helpers
+│   └── public/              # Web portal browser assets only
+├── shared/
+│   ├── daemon-acl.js        # Shared daemon ACL helpers
+│   ├── session-delegation.js
+│   └── session-toolbar-state.js
 ├── scripts/
 │   ├── pack-all.mjs         # Build all packages
 │   ├── pack-daemon.mjs      # Bundle daemon via esbuild
-│   ├── pack-web-server.mjs  # Bundle portal + assets via esbuild
+│   ├── pack-web-portal.mjs  # Bundle web portal + assets via esbuild
+│   ├── patch-copilot-sdk.mjs
 │   └── start-daemon-docker.ps1
 ├── Dockerfile.daemon        # Docker image with pre-installed agents
 ├── docs/
@@ -219,6 +227,8 @@ code-agent-hub/
 4. Creating a session creates a dedicated Chat room; the portal grants room membership and daemon admins implicitly get write/manage rights for that daemon's sessions.
 5. Prompts, streaming messages, tool calls, permissions, and status updates all flow through the session room.
 6. Other browsers can replay history, request daemon or session access, and stay in sync through Chat room history plus portal reconciliation.
+
+Directory rule: `web-portal/web-server.js` is the only root-level server entrypoint, `web-portal/server/*` is Node-only portal logic, and `web-portal/public/*` is browser-delivered static code.
 
 ## License
 

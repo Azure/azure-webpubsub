@@ -4,7 +4,7 @@ import {
   isRoomHistoryPermissionError,
   listRoomMessagesWithFallback,
   normalizeMessagePage,
-} from '../room-history.js';
+} from '../web-portal/server/room-history.js';
 
 describe('room history fallback helpers', () => {
   it('detects room-history permission failures', () => {

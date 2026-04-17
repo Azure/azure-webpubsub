@@ -1,6 +1,6 @@
 import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
-import { listDaemonRegistryRecordsWithFallback } from '../daemon-registry.js';
+import { listDaemonRegistryRecordsWithFallback } from '../web-portal/server/daemon-registry.js';
 
 describe('daemon registry helpers', () => {
   it('falls back to a fresh admin snapshot when the current instance snapshot is empty', async () => {
