@@ -46,6 +46,8 @@ import {
 import { existsSync } from 'node:fs';
 import { dirname, join, resolve } from 'path';
 import { config as loadEnv } from 'dotenv';
+import { getContextLogger, rootLogger } from '../shared/logging.js';
+import { createRequestLoggingMiddleware, setRequestLogIdentity } from './server/request-logging.js';
 
 const __dirname = process.argv[1]
   ? dirname(resolve(process.argv[1]))
@@ -62,8 +64,16 @@ function resolveExistingPath(label, candidates) {
 const envPath = [join(__dirname, '.env'), join(__dirname, '..', '.env')]
   .find((candidate) => existsSync(candidate));
 if (envPath) {
-  loadEnv({ path: envPath });
+  loadEnv({ path: envPath, quiet: true });
 }
+
+const webLogger = rootLogger.child({ component: 'web-portal' });
+const assetLogger = webLogger.child({ area: 'assets' });
+const authLogger = webLogger.child({ area: 'auth' });
+const adminLogger = webLogger.child({ area: 'admin-chat' });
+const daemonRegistryLogger = webLogger.child({ area: 'daemon-registry' });
+const lobbyLogger = webLogger.child({ area: 'lobby' });
+const sessionLogger = webLogger.child({ area: 'sessions' });
 
 const publicRoot = resolveExistingPath('public assets', [
   join(__dirname, 'public'),
@@ -81,21 +91,29 @@ function sendJavaScriptAsset(res, label, candidates) {
   try {
     assetPath = resolveExistingPath(label, candidates);
   } catch (error) {
-    console.error(`[Web] Failed to resolve ${label}:`, error.message);
+    getContextLogger(assetLogger).error('asset.resolve.failed', {
+      assetLabel: label,
+      error,
+    }, 'Failed to resolve JavaScript asset');
     if (!res.headersSent) res.status(500).type('text/plain').end();
     return;
   }
 
   res.type('application/javascript').sendFile(assetPath, (error) => {
     if (!error) return;
-    console.error(`[Web] Failed to serve ${label}:`, error.message);
+    getContextLogger(assetLogger).error('asset.serve.failed', {
+      assetLabel: label,
+      error,
+    }, 'Failed to serve JavaScript asset');
     if (!res.headersSent) res.status(error.statusCode || 500).end();
   });
 }
 
 const connectionString = process.env.WEB_PUBSUB_CONNECTION_STRING || process.env.WebPubSubConnectionString;
 if (!connectionString) {
-  console.error('Error: WEB_PUBSUB_CONNECTION_STRING or WebPubSubConnectionString environment variable is required');
+  webLogger.error('server.config.connectionString.missing', {
+    envVarNames: 'WEB_PUBSUB_CONNECTION_STRING|WebPubSubConnectionString',
+  }, 'Web PubSub connection string is required');
   process.exit(1);
 }
 
@@ -137,7 +155,7 @@ function parseConnectionStringValue(key) {
 const portalAccessKey = parseConnectionStringValue('AccessKey') || '';
 const portalSigningKey = Buffer.from(portalAccessKey, 'base64');
 if (!portalAccessKey || !portalSigningKey.length) {
-  console.error('Error: failed to parse AccessKey from WEB_PUBSUB_CONNECTION_STRING');
+  webLogger.error('server.config.accessKey.invalid', {}, 'Failed to parse AccessKey from the Web PubSub connection string');
   process.exit(1);
 }
 
@@ -178,6 +196,7 @@ function parseDaemonSessionToken(req) {
     if (!daemonId || !ownerUserId) {
       return { ok: false, error: 'Invalid daemon bearer token' };
     }
+    setRequestLogIdentity(req, { daemonId, ownerUserId });
     return { ok: true, daemonId, ownerUserId };
   } catch {
     return { ok: false, error: 'Invalid daemon bearer token' };
@@ -229,21 +248,25 @@ function normalizeSessionRecord(existing, update) {
 function getPortalUser(req) {
   if (OAUTH_ENABLED) {
     if (req.session?.user?.login) {
-      return {
+      const user = {
         login: String(req.session.user.login),
         name: String(req.session.user.name || req.session.user.login),
         avatar: req.session.user.avatar || '',
       };
+      setRequestLogIdentity(req, { userId: user.login });
+      return user;
     }
     return null;
   }
   const userId = String(req.get(PORTAL_USER_HEADER) || req.query.userId || '').trim();
   if (!userId || validateNegotiatedUserId(userId)) return null;
-  return {
+  const user = {
     login: userId,
     name: userId,
     avatar: '',
   };
+  setRequestLogIdentity(req, { userId: user.login });
+  return user;
 }
 
 function requirePortalUser(req, res) {
@@ -441,7 +464,10 @@ function getIndexedSessionRecord(sessionId) {
 
 function warmSessionIndexInBackground(reason = 'startup') {
   void ensureSessionIndicesReady({ forceRefresh: true }).catch((error) => {
-    console.warn(`[Web] Session index warmup failed during ${reason}:`, error?.message || error);
+    getContextLogger(sessionLogger).warn('session.index.warmup.failed', {
+      reason,
+      error,
+    }, 'Session index warmup failed');
   });
 }
 
@@ -867,7 +893,10 @@ async function listDaemonRegistryRecords() {
     rememberDaemonRoomInfo,
     getDaemonRegistryRecord,
     warn: (daemonId, error) => {
-      console.warn(`[Web] Failed to load daemon registry record for ${daemonId}:`, error?.message || error);
+      getContextLogger(daemonRegistryLogger).warn('daemon.registry.record.load.failed', {
+        daemonId,
+        error,
+      }, 'Failed to load daemon registry record');
     },
   });
 }
@@ -904,7 +933,10 @@ async function writeDaemonRegistryRecord({ daemonId, ownerUserId, hostname, plat
     await upsertChatRoomMember(daemonAclRoomId(normalizedDaemonId), normalizedDaemonId, 'room.member');
   } catch (err) {
     if (!/already|exists|member/i.test(String(err?.message || ''))) {
-      console.warn('[Web] Failed to add daemon bot to ACL room:', err?.message);
+      getContextLogger(daemonRegistryLogger).warn('daemon.registry.bot-membership.failed', {
+        daemonId: normalizedDaemonId,
+        error: err,
+      }, 'Failed to add daemon bot to ACL room');
     }
   }
   const title = buildDaemonAclRoomTitle({
@@ -1163,7 +1195,11 @@ async function syncDelegatingSessionState(sessionRecord) {
     });
     return sessionDelegating;
   } catch (error) {
-    console.warn('[Web] Failed to sync delegating session state:', error?.message || error);
+    getContextLogger(sessionLogger).warn('session.delegation.state-sync.failed', {
+      sessionId: sessionRecord?.sessionId,
+      daemonId: sessionRecord?.daemonId,
+      error,
+    }, 'Failed to sync delegating session state');
     return false;
   }
 }
@@ -1198,7 +1234,12 @@ async function appendJoinRequestEvent(sessionRecord, payload) {
     try {
       await adminSendToRoom(daemonAclRoomId(daemonId), JSON.stringify(envelope), 'broadcastJoinRequest');
     } catch (err) {
-      console.warn('[Web] Failed to broadcast join request to daemon sync room:', err.message);
+      getContextLogger(sessionLogger).warn('session.join-request.broadcast.failed', {
+        sessionId: sessionRecord?.sessionId,
+        daemonId,
+        requestId: envelope.requestId,
+        error: err,
+      }, 'Failed to broadcast join request to daemon sync room');
     }
   }
   return envelope;
@@ -1239,7 +1280,12 @@ async function sendDaemonSyncEnvelope(sessionRecord, type = 'session.updated', e
   try {
     await adminSendToRoom(daemonAclRoomId(sessionRecord.daemonId), JSON.stringify(envelope), 'sendDaemonSyncEnvelope');
   } catch (error) {
-    console.warn('[Web] Failed to send daemon sync envelope:', error?.message || error);
+    getContextLogger(sessionLogger).warn('session.sync-envelope.send.failed', {
+      sessionId: sessionRecord?.sessionId,
+      daemonId: sessionRecord?.daemonId,
+      syncType: type,
+      error,
+    }, 'Failed to send daemon sync envelope');
   }
 }
 
@@ -1250,7 +1296,10 @@ async function ensureLobbyAccess(userId) {
     return;
   } catch (error) {
     if (!isAlreadyMemberError(error)) {
-      console.warn('[Web] createRoom during lobby ensure failed:', error?.message || error);
+      getContextLogger(lobbyLogger).warn('lobby.ensure.create-room.failed', {
+        userId: String(userId),
+        error,
+      }, 'Failed to create lobby room while ensuring access');
     }
   }
   try {
@@ -1270,7 +1319,9 @@ function bindAdminLobbyListeners() {
   });
   adminChat.onDisconnected(() => {
     if (adminShuttingDown) return;
-    console.warn('[Web] Admin chat disconnected; scheduling reconnect');
+    getContextLogger(adminLogger).warn('admin.chat.disconnected', {
+      reconnectAttempt: adminReconnectAttempt,
+    }, 'Admin chat disconnected; scheduling reconnect');
     adminChat = null;
     scheduleAdminReconnect();
   });
@@ -1295,7 +1346,9 @@ function bindAdminLobbyListeners() {
         });
       }
     } catch (error) {
-      console.error('[Web] Admin listener error:', error?.message || error);
+      getContextLogger(adminLogger).error('admin.chat.listener.failed', {
+        error,
+      }, 'Admin chat listener failed');
     }
   });
 }
@@ -1308,7 +1361,9 @@ function scheduleAdminReconnect() {
   adminReconnectTimer = setTimeout(() => {
     adminReconnectTimer = null;
     void initAdminChat().catch((error) => {
-      console.error('[Web] Admin chat reconnect failed:', error?.message || error);
+      getContextLogger(adminLogger).error('admin.chat.reconnect.failed', {
+        error,
+      }, 'Admin chat reconnect failed');
       scheduleAdminReconnect();
     });
   }, delay);
@@ -1328,11 +1383,15 @@ async function initAdminChat() {
       return null;
     }
     adminChat = loggedInChat;
-    console.log(`[Web] Admin chat logged in as: ${adminChat.userId}`);
+    getContextLogger(adminLogger).info('admin.chat.connected', {
+      userId: adminChat.userId,
+    }, 'Admin chat connected');
 
     try {
       await adminChat.createRoom('Agent Lobby', [ADMIN_USER_ID], LOBBY_ROOM);
-      console.log('[Web] Created lobby room');
+      getContextLogger(lobbyLogger).info('lobby.room.created', {
+        roomId: LOBBY_ROOM,
+      }, 'Created lobby room');
     } catch {
       try { await adminChat.addUserToRoom(LOBBY_ROOM, ADMIN_USER_ID); } catch {}
     }
@@ -1452,7 +1511,11 @@ async function issueTokenResponse(res, userId, { ensureLobby = false, logLabel =
     });
     res.json({ url: token.url, userId: String(userId) });
   } catch (err) {
-    console.error(`[${logLabel}] Error:`, err);
+    getContextLogger(webLogger).error('auth.negotiate.failed', {
+      logLabel,
+      userId,
+      error: err,
+    }, 'Failed to negotiate Web PubSub client token');
     res.status(500).json({ error: 'Failed to negotiate' });
   }
 }
@@ -1518,7 +1581,11 @@ async function deleteManagedSession(sessionRecord) {
   try {
     await adminSendToRoom(sessionRecord.sessionId, JSON.stringify({ type: 'control.delete' }), 'deleteManagedSession.controlDelete');
   } catch (error) {
-    console.warn('[Web] Failed to send control.delete:', error?.message || error);
+    getContextLogger(sessionLogger).warn('session.delete.control-send.failed', {
+      sessionId: sessionRecord?.sessionId,
+      daemonId: sessionRecord?.daemonId,
+      error,
+    }, 'Failed to send control.delete');
   }
   try {
     await chatRestRequest(
@@ -1550,6 +1617,7 @@ app.use(session({
   },
 }));
 app.use(express.static(publicRoot));
+app.use(createRequestLoggingMiddleware({ logger: webLogger }));
 
 app.get('/chat-client.js', (req, res) => {
   sendJavaScriptAsset(res, 'chat-client.js', [
@@ -1631,10 +1699,15 @@ app.get('/auth/callback', async (req, res) => {
       name: user.name || user.login,
       avatar: user.avatar_url,
     };
-    console.log(`[Auth] GitHub login: ${user.login}`);
+    setRequestLogIdentity(req, { userId: user.login });
+    getContextLogger(authLogger).info('auth.oauth.completed', {
+      userId: user.login,
+    }, 'GitHub OAuth login completed');
     res.redirect('/');
   } catch (err) {
-    console.error('[Auth] OAuth error:', err.message);
+    getContextLogger(authLogger).error('auth.oauth.failed', {
+      error: err,
+    }, 'GitHub OAuth login failed');
     res.status(500).send(`Login failed: ${err.message}. <a href="/">Go back</a>`);
   }
 });
@@ -1682,7 +1755,11 @@ app.post('/api/daemon-sessions/bootstrap', async (req, res) => {
       return res.status(409).json({ error: `Daemon ${daemonId} is already owned by ${existing.ownerUserId}` });
     }
   } catch (error) {
-    console.error('[Web] Daemon bootstrap preflight failed:', error);
+    getContextLogger(webLogger).error('daemon.bootstrap.preflight.failed', {
+      daemonId,
+      ownerUserId,
+      error,
+    }, 'Daemon bootstrap preflight failed');
     return res.status(503).json({ error: error.message || 'Web PubSub Chat storage is unavailable' });
   }
 
@@ -1706,7 +1783,10 @@ app.post('/api/daemons/register', async (req, res) => {
   try {
     existing = await getDaemonRegistryRecord(daemonId);
   } catch (error) {
-    console.error('[Web] Daemon register preflight failed:', error);
+    getContextLogger(webLogger).error('daemon.register.preflight.failed', {
+      daemonId,
+      error,
+    }, 'Daemon register preflight failed');
     return res.status(503).json({ error: error.message || 'Web PubSub Chat storage is unavailable' });
   }
   let record;
@@ -1726,14 +1806,20 @@ app.post('/api/daemons/register', async (req, res) => {
     if (error?.code === 'DAEMON_OWNER_CONFLICT') {
       return res.status(409).json({ error: error.message });
     }
-    console.error('[Web] Daemon register failed:', error);
+    getContextLogger(webLogger).error('daemon.register.failed', {
+      daemonId,
+      error,
+    }, 'Daemon register failed');
     return res.status(500).json({ error: error.message || 'Failed to initialize daemon in Web PubSub storage' });
   }
   try {
     try {
       await sendDaemonLobbyEnvelope(record);
     } catch (lobbyError) {
-      console.warn('[Web] Daemon lobby notify failed:', lobbyError?.message || lobbyError);
+      getContextLogger(lobbyLogger).warn('lobby.daemon-notify.failed', {
+        daemonId,
+        error: lobbyError,
+      }, 'Failed to notify lobby about daemon update');
     }
     const token = await serviceClient.getClientAccessToken({ userId: daemonId });
     res.json({
@@ -1747,7 +1833,10 @@ app.post('/api/daemons/register', async (req, res) => {
       userId: daemonId,
     });
   } catch (error) {
-    console.error('[Web] Daemon register failed:', error);
+    getContextLogger(webLogger).error('daemon.register.token.failed', {
+      daemonId,
+      error,
+    }, 'Failed to issue daemon token');
     res.status(500).json({ error: 'Failed to issue daemon token' });
   }
 });
@@ -1760,7 +1849,10 @@ app.post('/api/daemons/heartbeat', async (req, res) => {
   try {
     existing = await getDaemonRegistryRecord(daemonId);
   } catch (error) {
-    console.error('[Web] Daemon heartbeat preflight failed:', error);
+    getContextLogger(webLogger).error('daemon.heartbeat.preflight.failed', {
+      daemonId,
+      error,
+    }, 'Daemon heartbeat preflight failed');
     return res.status(503).json({ error: error.message || 'Web PubSub Chat storage is unavailable' });
   }
   if (!existing) return res.status(404).json({ error: 'Daemon is not registered' });
@@ -1779,13 +1871,19 @@ app.post('/api/daemons/heartbeat', async (req, res) => {
     try {
       await sendDaemonLobbyEnvelope(record);
     } catch (lobbyError) {
-      console.warn('[Web] Daemon lobby notify failed:', lobbyError?.message || lobbyError);
+      getContextLogger(lobbyLogger).warn('lobby.daemon-notify.failed', {
+        daemonId,
+        error: lobbyError,
+      }, 'Failed to notify lobby about daemon update');
     }
   } catch (error) {
     if (error?.code === 'DAEMON_OWNER_CONFLICT') {
       return res.status(409).json({ error: error.message });
     }
-    console.error('[Web] Daemon ACL heartbeat validation failed:', error);
+    getContextLogger(webLogger).error('daemon.heartbeat.failed', {
+      daemonId,
+      error,
+    }, 'Daemon heartbeat update failed');
     return res.status(500).json({ error: error.message || 'Failed to validate daemon access state' });
   }
   res.json({ ok: true });
@@ -1799,7 +1897,10 @@ app.post('/api/daemons/offline', async (req, res) => {
   try {
     existing = await getDaemonRegistryRecord(daemonId);
   } catch (error) {
-    console.error('[Web] Daemon offline preflight failed:', error);
+    getContextLogger(webLogger).error('daemon.offline.preflight.failed', {
+      daemonId,
+      error,
+    }, 'Daemon offline preflight failed');
     return res.status(503).json({ error: error.message || 'Web PubSub Chat storage is unavailable' });
   }
   if (!existing) return res.status(404).json({ error: 'Daemon is not registered' });
@@ -1818,13 +1919,19 @@ app.post('/api/daemons/offline', async (req, res) => {
     try {
       await sendDaemonLobbyEnvelope(record);
     } catch (lobbyError) {
-      console.warn('[Web] Daemon lobby notify failed:', lobbyError?.message || lobbyError);
+      getContextLogger(lobbyLogger).warn('lobby.daemon-notify.failed', {
+        daemonId,
+        error: lobbyError,
+      }, 'Failed to notify lobby about daemon update');
     }
   } catch (error) {
     if (error?.code === 'DAEMON_OWNER_CONFLICT') {
       return res.status(409).json({ error: error.message });
     }
-    console.error('[Web] Daemon ACL offline validation failed:', error);
+    getContextLogger(webLogger).error('daemon.offline.failed', {
+      daemonId,
+      error,
+    }, 'Daemon offline update failed');
     return res.status(500).json({ error: error.message || 'Failed to validate daemon access state' });
   }
   res.json({ ok: true });
@@ -1840,7 +1947,9 @@ app.get('/api/daemons', async (req, res) => {
       .filter((daemon) => daemon && daemon.online)
       .sort((left, right) => String(left.hostname || left.daemonId).localeCompare(String(right.hostname || right.daemonId)));
   } catch (error) {
-    console.error('[Web] Failed to list daemons:', error);
+    getContextLogger(webLogger).error('daemon.list.failed', {
+      error,
+    }, 'Failed to list daemons');
     return res.status(503).json({ error: error.message || 'Web PubSub Chat storage is unavailable' });
   }
   const daemons = (await Promise.all(onlineDaemons.map(async (daemon) => {
@@ -1849,7 +1958,11 @@ app.get('/api/daemons', async (req, res) => {
       const requestState = await getLatestDaemonAccessRequestForUser(daemon.daemonId, user.login);
       return daemonResponseForUser(daemon, accessState, user, requestState);
     } catch (error) {
-      console.warn(`[Web] Failed to load daemon access state for ${daemon.daemonId}:`, error?.message || error);
+      getContextLogger(daemonRegistryLogger).warn('daemon.access-state.load.failed', {
+        daemonId: daemon.daemonId,
+        userId: user.login,
+        error,
+      }, 'Failed to load daemon access state');
       return null;
     }
   }))).filter(Boolean);
@@ -1906,7 +2019,10 @@ app.patch('/api/daemons/:daemonId/access', async (req, res) => {
   try {
     await sendDaemonLobbyEnvelope(record, updatedAccessState);
   } catch (lobbyError) {
-    console.warn('[Web] Daemon lobby notify failed:', lobbyError?.message || lobbyError);
+    getContextLogger(lobbyLogger).warn('lobby.daemon-notify.failed', {
+      daemonId,
+      error: lobbyError,
+    }, 'Failed to notify lobby about daemon update');
   }
   res.json({ daemon: daemonResponseForUser(record, updatedAccessState, user) });
 });
@@ -1996,7 +2112,15 @@ app.post('/api/daemons/:daemonId/access-requests/:requestId/approve', async (req
         requestedAccess: requestRecord.requestedAccess,
         status: 'approved',
       });
-    } catch (lobbyErr) { console.warn('[Web] Lobby notify failed:', lobbyErr?.message); }
+    } catch (lobbyErr) {
+      getContextLogger(lobbyLogger).warn('lobby.notify.failed', {
+        target: 'daemon',
+        daemonId,
+        requestId,
+        userId: requestRecord.requesterUserId,
+        error: lobbyErr,
+      }, 'Failed to notify lobby about access approval');
+    }
     res.json({ ok: true, status: 'approved', requestedAccess: requestRecord.requestedAccess });
   } catch (error) {
     res.status(500).json({ error: error.message || 'Failed to approve daemon access request' });
@@ -2029,7 +2153,15 @@ app.post('/api/daemons/:daemonId/access-requests/:requestId/reject', async (req,
       requestedAccess: requestRecord.requestedAccess,
       status: 'denied',
     });
-  } catch (lobbyErr) { console.warn('[Web] Lobby notify failed:', lobbyErr?.message); }
+  } catch (lobbyErr) {
+    getContextLogger(lobbyLogger).warn('lobby.notify.failed', {
+      target: 'daemon',
+      daemonId,
+      requestId,
+      userId: requestRecord.requesterUserId,
+      error: lobbyErr,
+    }, 'Failed to notify lobby about access rejection');
+  }
   res.json({ ok: true, status: 'denied', requestedAccess: requestRecord.requestedAccess });
 });
 
@@ -2314,7 +2446,13 @@ app.post('/api/delegations', async (req, res) => {
 
         void syncDelegatingSessionState(sourceSessionRecord);
 
-        console.error('[Web] Failed to dispatch delegation:', error);
+        getContextLogger(webLogger).error('delegation.dispatch.failed', {
+          delegationId,
+          sourceSessionId,
+          targetSessionId,
+          relayRoomId,
+          error,
+        }, 'Failed to dispatch delegation');
       }
     })();
   } catch (error) {
@@ -2348,7 +2486,13 @@ app.post('/api/delegations', async (req, res) => {
 
     void syncDelegatingSessionState(sourceSessionRecord);
 
-    console.error('[Web] Failed to create delegation:', error);
+    getContextLogger(webLogger).error('delegation.create.failed', {
+      delegationId,
+      sourceSessionId,
+      targetSessionId,
+      relayRoomId,
+      error,
+    }, 'Failed to create delegation');
     res.status(500).json({ error: error.message || 'Failed to create delegation' });
   }
 });
@@ -2569,7 +2713,12 @@ app.post('/api/sessions', async (req, res) => {
       joined: true,
     });
   } catch (error) {
-    console.error('[Web] Failed to create managed session:', error);
+    getContextLogger(webLogger).error('session.create.failed', {
+      daemonId,
+      agentName,
+      workingDirectory,
+      error,
+    }, 'Failed to create managed session');
     res.status(500).json({ error: error.message || 'Failed to create session' });
   }
 });
@@ -2704,7 +2853,16 @@ app.post('/api/sessions/:sessionId/join-requests/:requestId/approve', async (req
         requestedAccess: joinRequest.requestedAccess || 'read',
         status: 'approved',
       });
-    } catch (lobbyErr) { console.warn('[Web] Lobby notify failed:', lobbyErr?.message); }
+    } catch (lobbyErr) {
+      getContextLogger(lobbyLogger).warn('lobby.notify.failed', {
+        target: 'session',
+        sessionId,
+        daemonId: sessionRecord.daemonId,
+        requestId,
+        userId: joinRequest.requesterUserId,
+        error: lobbyErr,
+      }, 'Failed to notify lobby about join approval');
+    }
     res.json({ ok: true, status: 'approved', requestedAccess: joinRequest.requestedAccess || 'read' });
   } catch (error) {
     res.status(500).json({ error: error.message || 'Failed to approve join request' });
@@ -2751,7 +2909,16 @@ app.post('/api/sessions/:sessionId/join-requests/:requestId/reject', async (req,
       requestedAccess: joinRequest.requestedAccess || 'read',
       status: 'denied',
     });
-  } catch (lobbyErr) { console.warn('[Web] Lobby notify failed:', lobbyErr?.message); }
+  } catch (lobbyErr) {
+    getContextLogger(lobbyLogger).warn('lobby.notify.failed', {
+      target: 'session',
+      sessionId,
+      daemonId: sessionRecord.daemonId,
+      requestId,
+      userId: joinRequest.requesterUserId,
+      error: lobbyErr,
+    }, 'Failed to notify lobby about join rejection');
+  }
   res.json({ ok: true, status: 'denied', requestedAccess: joinRequest.requestedAccess || 'read' });
 });
 
@@ -2840,26 +3007,28 @@ app.delete('/api/sessions/:sessionId/members/:userId', async (req, res) => {
 });
 
 process.on('uncaughtException', (err) => {
-  console.error('[Web] Uncaught exception:', err.message);
+  webLogger.error('server.uncaughtException', { error: err }, 'Uncaught exception in web portal');
   process.exit(1);
 });
 process.on('unhandledRejection', (err) => {
-  console.error('[Web] Unhandled rejection:', err);
+  webLogger.error('server.unhandledRejection', { error: err }, 'Unhandled promise rejection in web portal');
 });
 
 const server = app.listen(port, async () => {
-  console.log(`[Web] Ready at http://localhost:${port}`);
-  console.log(`[Web] GitHub OAuth: ${OAUTH_ENABLED ? 'enabled' : DISABLE_OAUTH ? 'disabled by --disable-oauth' : 'disabled (set GITHUB_OAUTH_CLIENT_ID and GITHUB_OAUTH_CLIENT_SECRET in .env to enable)'}`);
+  webLogger.info('server.started', {
+    oauthMode: OAUTH_ENABLED ? 'enabled' : DISABLE_OAUTH ? 'disabled-by-flag' : 'disabled-unconfigured',
+    port,
+  }, 'Web portal server started');
   try {
     await initAdminChat();
     warmSessionIndexInBackground('startup');
   } catch (e) {
-    console.error('[Web] Admin chat init failed:', e.message);
+    webLogger.error('adminChat.init.failed', { error: e }, 'Admin chat initialization failed');
   }
-  console.log(`[Web] Run 'npm run daemon' to start the agent daemon.`);
+  webLogger.info('server.operatorHint.daemon', {}, 'Run npm run daemon to start the agent daemon');
 });
 server.on('error', (err) => {
-  console.error('[Web] Server error:', err.message);
+  webLogger.error('server.listen.failed', { error: err }, 'Web portal server failed to listen');
   process.exit(1);
 });
 

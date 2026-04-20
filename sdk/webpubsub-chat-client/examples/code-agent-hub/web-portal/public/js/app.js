@@ -99,6 +99,13 @@ const ROOM_LIVE_SYNC_TIMEOUT_MS=5000;
 let historyLoadedAt=0;
 const seenRoomMessageIds=new Set();
 
+function portalWarn(event,message,details={}){
+  const payload=Object.fromEntries(Object.entries({event,...details}).filter(([,value])=>value!==undefined&&value!==''&&value!==null));
+  const args=[`[Portal] ${message}`];
+  if(Object.keys(payload).length)args.push(payload);
+  console.warn(...args);
+}
+
 const IMAGE_ROOT='/images';
 const AGENT_SPRITE_PATH=`${IMAGE_ROOT}/agent-icons.svg`;
 const OS_SPRITE_PATH=`${IMAGE_ROOT}/os-icons.svg`;
@@ -1025,7 +1032,7 @@ async function hydrateVisibleSessionMetadata(sessions,joined){
       }
       upsertDiscoveredSession(patch);
     }catch(error){
-      console.warn('Session metadata hydrate failed:',sessionId.substring(0,8),error?.message||error)
+      portalWarn('session.metadata.hydrate.failed','Session metadata hydrate failed',{sessionId:sessionId.substring(0,8),error})
     }finally{
       sessionMetadataHydrationInFlight.delete(sessionId);
     }
@@ -1416,7 +1423,7 @@ async function pollPortalState({render=true,includeRequests=false}={}){
       await renderSessionsCol();
       if(createSessionModalOpen)renderCreateSessionModal();
     }
-  }catch(err){console.warn('Portal refresh failed:',err?.message||err)}finally{portalPollInFlight=false}
+  }catch(err){portalWarn('portal.refresh.failed','Portal refresh failed',{error:err})}finally{portalPollInFlight=false}
 }
 function startPortalPolling(){
   if(portalPollTimer)clearInterval(portalPollTimer);
@@ -1438,7 +1445,7 @@ function startLobbyMembershipRecovery(userId,{attempt=1,epoch=lobbyMembershipEpo
     if(epoch!==lobbyMembershipEpoch||!cc||uid!==userId)return;
     try{await ensureLobbyMembership(userId)}catch(err){
       if(epoch!==lobbyMembershipEpoch||!cc||uid!==userId)return;
-      console.warn('Lobby membership sync delayed:',err?.message||err);
+      portalWarn('lobby.membership.sync.delayed','Lobby membership sync delayed',{userId,error:err});
       if(attempt>=3)return;
       const nextDelay=Math.min(3000,500*attempt);
       lobbyMembershipRetryTimer=setTimeout(()=>{
@@ -1463,8 +1470,8 @@ async function mapLimit(items,limit,iteratee){
 }
 async function ensureLobbyMembership(userId){
   if(!cc)throw new Error('Not connected');
-  try{await cc.createRoom('Agent Lobby',[userId],LOBBY_ROOM)}catch(err){if(!/already|exists|member/i.test(String(err?.message||'')))console.warn('Lobby create failed:',err?.message||err)}
-  try{await cc.addUserToRoom(LOBBY_ROOM,userId)}catch(err){if(!/already|exists|member/i.test(String(err?.message||'')))console.warn('Lobby join failed:',err?.message||err)}
+  try{await cc.createRoom('Agent Lobby',[userId],LOBBY_ROOM)}catch(err){if(!/already|exists|member/i.test(String(err?.message||'')))portalWarn('lobby.create.failed','Lobby create failed',{userId,error:err})}
+  try{await cc.addUserToRoom(LOBBY_ROOM,userId)}catch(err){if(!/already|exists|member/i.test(String(err?.message||'')))portalWarn('lobby.join.failed','Lobby join failed',{userId,error:err})}
   const deadline=Date.now()+4000;
   while(Date.now()<deadline){
     try{
@@ -1497,7 +1504,7 @@ async function ensureDaemonSyncRoom(daemonId){
       daemonSyncRooms.add(daemonId);
     }
   }catch(err){
-    if(!/not\s+a\s+member|not found|404|403|forbidden/i.test(String(err?.message||'')))console.warn('Daemon sync room hydrate failed:',daemonId,err?.message||err)
+    if(!/not\s+a\s+member|not found|404|403|forbidden/i.test(String(err?.message||'')))portalWarn('daemon.sync-room.hydrate.failed','Daemon sync room hydrate failed',{daemonId,error:err})
   }
 }
 async function ensureLiveRoomSubscription(roomId,{suppressWarnings=false,retries=0,retryDelayMs=300}={}){
@@ -1513,7 +1520,7 @@ async function ensureLiveRoomSubscription(roomId,{suppressWarnings=false,retries
       if(attempt<retries)await new Promise(r=>setTimeout(r,retryDelayMs*(attempt+1)));
     }
   }
-  if(!suppressWarnings)console.warn('Live room join failed:',targetRoomId,lastErr?.message||lastErr,lastErr?.errorDetail?JSON.stringify(lastErr.errorDetail):'');
+  if(!suppressWarnings)portalWarn('room.live-join.failed','Live room join failed',{roomId:targetRoomId,error:lastErr,errorDetail:lastErr?.errorDetail?JSON.stringify(lastErr.errorDetail):''});
   return false;
 }
 async function waitForRoomMembership(roomId,timeout=5000){
@@ -1534,7 +1541,7 @@ async function forceRoomMembershipRefresh(roomId,timeout=ROOM_MEMBERSHIP_TIMEOUT
   try{
     if(cc?.connection&&typeof cc.connection.leaveGroup==='function')await cc.connection.leaveGroup(roomId)
   }catch(err){
-    if(!/not\s+a\s+member|not found|404|Failed to send message/i.test(String(err?.message||'')))console.warn('Forced live room leave failed:',roomId,err?.message||err)
+    if(!/not\s+a\s+member|not found|404|Failed to send message/i.test(String(err?.message||'')))portalWarn('room.live-leave.failed','Forced live room leave failed',{roomId,error:err})
   }
   await waitForRoomMembership(roomId,timeout)
 }
@@ -1576,7 +1583,7 @@ function applyRoomHistoryMessages(roomId,messages,sessionMeta,{skipStartupEnvelo
         if(e.type==='permission.request'&&respondedPerms.has(e.requestId))renderResolvedPerm(e,respondedPerms.get(e.requestId));
         else render(e)
       }
-    }catch(err){console.warn('[Portal] History render error:',err,{roomId,messageId:m?.messageId})}
+    }catch(err){portalWarn('history.render.failed','History render failed',{roomId,messageId:m?.messageId,error:err})}
   }
   const lastMsg=messages[messages.length-1];
   if(lastMsg?.createdAt)historyLoadedAt=Math.max(historyLoadedAt,new Date(lastMsg.createdAt).getTime());
@@ -1674,7 +1681,7 @@ function applyLobbyEnvelope(e){
       void renderSessionsCol();
       setFormStatus(approved?'Session access granted!':'Session access denied.',approved?'success':'error',2200,'join');
       if(approved&&prev.autoOpen!==false){
-        void(async()=>{try{await ensureJoinedSession(e.sessionId);await openR(e.sessionId)}catch(err){console.warn('Auto-open after approval failed:',err?.message)}})();
+        void(async()=>{try{await ensureJoinedSession(e.sessionId);await openR(e.sessionId)}catch(err){portalWarn('session.auto-open.failed','Auto-open after approval failed',{sessionId:e.sessionId,error:err})}})();
       }
     }
     pulsePortalRefresh([300,1500]);
@@ -1760,7 +1767,7 @@ async function sendDaemonEnvelope(payload){
     await ensureDaemonSyncRoom(daemonId);
     await cc.sendToRoom(daemonSyncRoomId(daemonId),JSON.stringify(payload))
   }catch(err){
-    if(!/not\s+a\s+member|403|forbidden/i.test(String(err?.message||'')))console.warn('Daemon sync send failed:',daemonId,err?.message||err)
+    if(!/not\s+a\s+member|403|forbidden/i.test(String(err?.message||'')))portalWarn('daemon.sync.send.failed','Daemon sync send failed',{daemonId,error:err})
   }
 }
 function announceSession(type,sessionId,extra={}){
@@ -1820,7 +1827,7 @@ async function handleJoinRequest(e){
     pulsePortalRefresh([500,1500]);
     await refreshPortalSessions({render:true});
   }catch(err){
-    console.warn('Join approval response failed:',err?.message||err);
+    portalWarn('join-approval.response.failed','Join approval response failed',{requestId:e.requestId,sessionId:e.sessionId,error:err});
     setFormStatus(err?.message||'Failed to send join approval response.','error',4500,'join');
   }finally{joinApprovalLocks.delete(key)}
 }
@@ -1838,7 +1845,7 @@ async function handleDaemonAccessRequest(e){
     await refreshPortalDaemons({render:true});
     await refreshPortalSessions({render:true});
   }catch(err){
-    console.warn('Daemon access approval response failed:',err?.message||err);
+    portalWarn('daemon-access.response.failed','Daemon access approval response failed',{requestId:e.requestId,daemonId:e.daemonId,error:err});
     setFormStatus(err?.message||'Failed to send daemon access response.','error',4500,'create');
   }finally{daemonAccessApprovalLocks.delete(key)}
 }
@@ -1881,7 +1888,7 @@ async function ensureJoinedSession(sessionId){
       updatedAt:roomInfo.updatedAt||roomInfo.createdAt||discoveredSessions.get(targetSessionId)?.updatedAt,
     });
   }catch(err){
-    console.warn('Joined room info hydrate failed:',targetSessionId.substring(0,8),err?.message||err)
+    portalWarn('session.joined-room.hydrate.failed','Joined room info hydrate failed',{sessionId:targetSessionId.substring(0,8),error:err})
   }
 }
 function applyLoggedOutState(message='',isError=false){
@@ -2193,7 +2200,7 @@ async function renderSessionsCol(){
     lobbyRoomId:LOBBY_ROOM,
   });
   setSessionsHeaderLoadingState((!queryLoaded&&!!queryKey)||queryLoading,'Syncing session list…');
-  if(queryKey&&!queryLoaded&&!portalPollInFlight&&!queryLoading)void refreshPortalSessions({render:true}).catch(err=>console.warn('Session refresh failed:',err?.message||err));
+  if(queryKey&&!queryLoaded&&!portalPollInFlight&&!queryLoading)void refreshPortalSessions({render:true}).catch(err=>portalWarn('session.refresh.failed','Session refresh failed',{queryKey,error:err}));
   if(shouldShowPortalSessionLoading({queryLoaded,localSessionCount:localSessions.length})){
     list.innerHTML=renderColumnLoadingState('Loading sessions…','Waiting for the latest session list from the portal.');
     renderCompactNav();
@@ -2203,7 +2210,7 @@ async function renderSessionsCol(){
   const sessions=[...localSessions];
   const metadataHydrationState=getSessionMetadataHydrationState({sessions,joinedSessionIds:joined,inFlightSessionIds:sessionMetadataHydrationInFlight,lastAttemptBySessionId:sessionMetadataHydrationLastAttempt,cooldownMs:SESSION_METADATA_HYDRATE_COOLDOWN_MS});
   setSessionsHeaderLoadingState((!queryLoaded&&!!queryKey)||queryLoading||metadataHydrationState.shouldShowLoading,((!queryLoaded&&!!queryKey)||queryLoading)?'Syncing session list…':'Loading session details…');
-  if(metadataHydrationState.actionableCount>0)void hydrateVisibleSessionMetadata(sessions,joined).then((hydratedCount)=>{if(hydratedCount>0)void renderSessionsCol()}).catch(err=>console.warn('Session metadata hydrate failed:',err?.message||err));
+  if(metadataHydrationState.actionableCount>0)void hydrateVisibleSessionMetadata(sessions,joined).then((hydratedCount)=>{if(hydratedCount>0)void renderSessionsCol()}).catch(err=>portalWarn('session.metadata.hydrate.failed','Session metadata hydrate failed',{queryKey,error:err}));
   const filtered=[...sessions].sort((a,b)=>{const ta=a.updatedAt?new Date(a.updatedAt).getTime():0;const tb=b.updatedAt?new Date(b.updatedAt).getTime():0;return tb-ta}).filter(s=>!currentDaemonId||s.daemonId===currentDaemonId);
   if(!filtered.length){
     const daemonEntries=freshDaemonEntries();
@@ -2354,8 +2361,8 @@ async function initCC(userId){
   startLobbyMembershipRecovery(uid);
   return cc;
 }
-function unpackEnvelope(e){if(e.type!=='transport.chunk')return[e];let s=tc.get(e.chunkId);if(!s){s={parts:new Array(e.total),received:0,startedAt:Date.now()};tc.set(e.chunkId,s)}if(s.parts[e.index]==null){s.parts[e.index]=e.jsonPart;s.received+=1}if(s.received<e.total)return[];tc.delete(e.chunkId);try{return[JSON.parse(s.parts.join(''))]}catch(err){console.warn('Chunk decode failed',err);addErr('Failed to decode large message');return[]}}
-function pruneStaleChunks(){const now=Date.now();for(const[chunkId,s]of tc){if(now-s.startedAt>15000){console.warn(`[Portal] Dropping stale incomplete chunk ${chunkId}: received ${s.received}/${s.parts.length}`);tc.delete(chunkId)}}}
+function unpackEnvelope(e){if(e.type!=='transport.chunk')return[e];let s=tc.get(e.chunkId);if(!s){s={parts:new Array(e.total),received:0,startedAt:Date.now()};tc.set(e.chunkId,s)}if(s.parts[e.index]==null){s.parts[e.index]=e.jsonPart;s.received+=1}if(s.received<e.total)return[];tc.delete(e.chunkId);try{return[JSON.parse(s.parts.join(''))]}catch(err){portalWarn('transport.chunk.decode.failed','Chunk decode failed',{chunkId:e.chunkId,error:err});addErr('Failed to decode large message');return[]}}
+function pruneStaleChunks(){const now=Date.now();for(const[chunkId,s]of tc){if(now-s.startedAt>15000){portalWarn('transport.chunk.stale.dropped','Dropping stale incomplete chunk',{chunkId,received:s.received,total:s.parts.length});tc.delete(chunkId)}}}
 setInterval(pruneStaleChunks,5000);
 function onMsg(n){const m=n.message,r=n.conversation?.roomId;if(!m.content?.text)return;
   let resolvedRoomIdForDebug='';
@@ -2400,7 +2407,7 @@ function onMsg(n){const m=n.message,r=n.conversation?.roomId;if(!m.content?.text
       render(e);
     }
     scroll()
-  }catch(err){console.warn('[Portal] onMsg render error:',err,{roomId:r,messageId:m?.messageId,text:m?.content?.text?.substring(0,200)})}
+  }catch(err){portalWarn('message.render.failed','Incoming message render failed',{roomId:r,messageId:m?.messageId,textPreview:m?.content?.text?.substring(0,200),error:err})}
 }
 
 async function resumeSess(sid,showErr=true){
@@ -2502,7 +2509,7 @@ async function openR(roomId,{preserveBooting=false,bootStage='',retryLiveSyncRec
   let knownMeta=discoveredSessions.get(roomId);
   if(knownMeta)syncSessionSelection(roomId,knownMeta);
   let roomInfo=null;
-  const roomInfoPromise=cc.getRoom(roomId,false).catch(err=>{console.warn('Open room info hydrate failed:',roomId.substring(0,8),err?.message||err);return null});
+  const roomInfoPromise=cc.getRoom(roomId,false).catch(err=>{portalWarn('session.open.room-info.failed','Open room info hydrate failed',{roomId:roomId.substring(0,8),error:err});return null});
   rid=roomId;historyLoadedAt=0;seenRoomMessageIds.clear();resetDelegationViewState();$.chat.innerHTML='';pd.clear();rd.clear();at.clear();pp.clear();tc.clear();$wi=null;resetSessionToolbar();clearSelectedDelegationTarget();
   currentSessionReady=null;latestSessionHistorySummary=createSessionHistorySummary();chatPlaceholderOverride=null;
   if(preserveBooting)setSessionBooting(true,bootStage||sessionBootingStage||'Preparing session…');

@@ -213,6 +213,10 @@ code-agent-hub/
 ├── Dockerfile.daemon        # Docker image with pre-installed agents
 ├── docs/
 │   ├── azure-deployment.md  # Full Azure deployment guide
+│   ├── cross-agent-dialogue-design.md
+│   │                      # Cross-agent streaming collaboration design
+│   ├── logging-improvement-plan.md
+│   │                      # Logging assessment and rollout plan
 │   ├── architecture.md      # Internal architecture details
 │   ├── slide.md             # Presentation deck
 │   └── ...

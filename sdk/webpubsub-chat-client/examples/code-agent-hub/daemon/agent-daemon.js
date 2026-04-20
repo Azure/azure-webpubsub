@@ -39,10 +39,18 @@ import {
   parseDelegationSummaryEnvelope,
   parseDelegationTargetControlEnvelope,
 } from '../shared/session-delegation.js';
+import { rootLogger, summarizePathForLog } from '../shared/logging.js';
 
 // ── Configuration ──
 
-loadEnv();
+loadEnv({ quiet: true });
+
+const daemonLogger = rootLogger.child({ component: 'daemon' });
+const installLogger = daemonLogger.child({ area: 'install' });
+const sessionStoreLogger = daemonLogger.child({ area: 'session-store' });
+const sdkLogger = daemonLogger.child({ area: 'sdk' });
+const botLogger = daemonLogger.child({ area: 'bot' });
+const delegationLogger = daemonLogger.child({ area: 'delegation' });
 
 const DAEMON_ENTRY_DIR = process.argv[1]
   ? dirname(resolve(process.argv[1]))
@@ -253,10 +261,15 @@ async function installAllSupportedAgentCli() {
   for (const agentName of SUPPORTED_ACP_AGENT_NAMES) {
     const config = ACP_AGENTS[agentName];
     if (!config?.npxPackage) continue;
-    console.log(`[Daemon] Installing ${agentName} CLI: ${config.npxPackage}`);
+    installLogger.info('agent-cli.install.started', {
+      agentName,
+      packageName: config.npxPackage,
+    }, 'Installing ACP agent CLI');
     await runCommandOrThrow('npm', ['install', '-g', config.npxPackage]);
   }
-  console.log('[Daemon] All supported ACP agent CLIs are installed.');
+  installLogger.info('agent-cli.install.completed', {
+    agentCount: SUPPORTED_ACP_AGENT_NAMES.length,
+  }, 'All supported ACP agent CLIs are installed');
 }
 
 // ── State ──
@@ -266,7 +279,10 @@ async function loadSessionStore() {
     return JSON.parse(await readFile(SESSION_STORE_PATH, 'utf-8'));
   } catch (err) {
     if (err?.code !== 'ENOENT') {
-      console.warn('[Daemon] Failed to load session store:', err.message);
+      sessionStoreLogger.warn('session-store.load.failed', {
+        filePath: SESSION_STORE_PATH,
+        error: err,
+      }, 'Failed to load session store');
     }
   }
   return {};
@@ -283,7 +299,10 @@ async function writeSessionStoreToDisk(store) {
     await mkdir(dirname(SESSION_STORE_PATH), { recursive: true });
     await writeFile(SESSION_STORE_PATH, JSON.stringify(store, null, 2), 'utf-8');
   } catch (err) {
-    console.warn('[Daemon] Failed to save session store:', err.message);
+    sessionStoreLogger.warn('session-store.save.failed', {
+      filePath: SESSION_STORE_PATH,
+      error: err,
+    }, 'Failed to save session store');
   }
 }
 
@@ -329,6 +348,13 @@ let advertisedWorkspaces = [];
 let daemonPresenceInfo = null;
 let shuttingDown = false;
 let copilotSdkClient = null; // shared CopilotClient instance for SDK mode
+
+function getSessionLogger(sessionId, state = sessions.get(sessionId)) {
+  return daemonLogger.child({
+    agentName: state?.agentName,
+    sessionId,
+  });
+}
 
 function createSessionState({ sessionId, agentName, firstPrompt = '', ownerUserId = null, workingDirectory = process.cwd(), model = 'default', delegationContextEntries = [] }) {
   return {
@@ -400,6 +426,10 @@ async function stopExistingSession(state) {
 
 function spawnAcpChild(sessionId, agentName, launch) {
   const resolvedLaunch = resolveSpawnLaunch(launch.command, launch.args || []);
+  const processLogger = getSessionLogger(sessionId, { agentName }).child({
+    area: 'acp-process',
+    launchSource: launch.source,
+  });
   const child = spawn(resolvedLaunch.command, resolvedLaunch.args, {
     stdio: ['pipe', 'pipe', 'pipe'],
     env: { ...process.env, ...(ACP_AGENTS[agentName]?.env || {}) },
@@ -407,14 +437,26 @@ function spawnAcpChild(sessionId, agentName, launch) {
   });
   child.stderr?.on('data', (data) => {
     const line = data.toString().trim();
-    if (line) console.log(`[Daemon:${agentName}] ${line}`);
+    if (line) {
+      processLogger.debug('acp.process.stderr', {
+        line,
+      }, 'ACP process wrote to stderr');
+    }
   });
   child.on('error', (err) => {
-    console.error(`[Daemon:${agentName}] Failed to spawn:`, err.message);
+    processLogger.error('acp.process.spawn.failed', {
+      command: launch.command,
+      args: launch.args || [],
+      resolvedCommand: resolvedLaunch.command,
+      resolvedArgs: resolvedLaunch.args,
+      error: err,
+    }, 'Failed to spawn ACP process');
     deactivateSession(sessionId, `Failed to start: ${err.message}`);
   });
   child.on('close', (code) => {
-    console.log(`[Daemon:${agentName}] Exited (code=${code})`);
+    processLogger.info('acp.process.exited', {
+      exitCode: code,
+    }, 'ACP process exited');
     deactivateSession(sessionId, `Agent exited (code=${code})`);
   });
   return child;
@@ -536,7 +578,7 @@ async function ensureCopilotSdkClient() {
     const { CopilotClient } = await import('@github/copilot-sdk');
     copilotSdkClient = new CopilotClient();
     await copilotSdkClient.start();
-    console.log('[Daemon] Copilot SDK client started');
+    sdkLogger.info('sdk.client.started', {}, 'Copilot SDK client started');
   }
   return copilotSdkClient;
 }
@@ -551,7 +593,11 @@ async function refreshSdkModels(state) {
     }
     if (hasModelToolbarState(state)) emitModelsUpdate(state.sessionId, state);
   } catch (err) {
-    console.warn('[Daemon] Failed to list Copilot SDK models:', err.message);
+    sdkLogger.warn('sdk.models.list.failed', {
+      sessionId: state.sessionId,
+      agentName: state.agentName,
+      error: err,
+    }, 'Failed to list Copilot SDK models');
   }
 }
 
@@ -660,7 +706,11 @@ async function settleActiveDelegation(state, roomId, status, { errorMessage = ''
       summary,
     });
   } catch (error) {
-    console.warn(`[Daemon] Failed to settle delegation ${delegation.delegationId}:`, error?.message || error);
+    delegationLogger.warn('delegation.settle.failed', {
+      delegationId: delegation.delegationId,
+      terminalStatus: status,
+      error,
+    }, 'Failed to settle delegation');
   }
 
   if (state?.activeDelegation === delegation) {
@@ -708,7 +758,10 @@ async function failDelegationRequest(requestEnvelope, message) {
       },
     });
   } catch (error) {
-    console.warn(`[Daemon] Failed to settle rejected delegation ${requestEnvelope.delegationId}:`, error?.message || error);
+    delegationLogger.warn('delegation.reject-settle.failed', {
+      delegationId: requestEnvelope.delegationId,
+      error,
+    }, 'Failed to settle rejected delegation');
   }
 }
 
@@ -794,7 +847,11 @@ async function botSend(roomId, envelope, { skipDelegationRelay = false } = {}) {
       }
     }
   } catch (err) {
-    console.error(`[Daemon] Failed to send to room ${roomId}:`, err.message);
+    daemonLogger.error('chat.room.send.failed', {
+      envelopeType: envelope?.type,
+      error: err,
+      roomId,
+    }, 'Failed to send message to chat room');
   }
 }
 
@@ -969,7 +1026,10 @@ async function fetchBotTokenUrl() {
   if (!body?.url) {
     throw new Error('Portal daemon registration did not return a token URL');
   }
-  console.log('[Daemon] Registered with portal control plane');
+  botLogger.info('bot.portal.registered', {
+    daemonId: BOT_USER_ID,
+    ownerUserId: BOT_OWNER_USER_ID,
+  }, 'Registered with portal control plane');
   return body.url;
 }
 
@@ -980,7 +1040,10 @@ function scheduleBotReconnect() {
   botReconnectTimer = setTimeout(() => {
     botReconnectTimer = null;
     void ensureBotChatReady().catch((error) => {
-      console.error('[Daemon] Bot reconnect failed:', error?.message || error);
+      botLogger.error('bot.reconnect.failed', {
+        reconnectAttempt: botReconnectAttempt,
+        error,
+      }, 'Bot reconnect failed');
       scheduleBotReconnect();
     });
   }, delay);
@@ -994,14 +1057,18 @@ async function loginBotChat() {
   botChatInitPromise = (async () => {
     const tokenUrl = await fetchBotTokenUrl();
     const chat = await new ChatClient(tokenUrl).login();
-    console.log(`[Daemon] Bot logged in as: ${chat.userId}`);
+    botLogger.info('bot.chat.connected', {
+      userId: chat.userId,
+    }, 'Bot chat connected');
 
     chat.onConnected(() => {
       botReconnectAttempt = 0;
     });
     chat.onDisconnected(() => {
       if (shuttingDown) return;
-      console.warn('[Daemon] Bot chat disconnected; scheduling reconnect');
+      botLogger.warn('bot.chat.disconnected', {
+        reconnectAttempt: botReconnectAttempt,
+      }, 'Bot chat disconnected; scheduling reconnect');
       if (botChat === chat) botChat = null;
       scheduleBotReconnect();
     });
@@ -1162,7 +1229,9 @@ function broadcastSessionStatus(sessionId, state) {
     updatedAt: new Date().toISOString(),
   };
   botSend(syncRoomId, payload).catch((err) => {
-    console.warn(`[Daemon] Session status broadcast failed for ${sessionId}:`, err?.message?.substring(0, 60));
+    getSessionLogger(sessionId, state).child({ area: 'sync' }).warn('session.status.broadcast.failed', {
+      error: err,
+    }, 'Session status broadcast failed');
   });
 }
 
@@ -1342,8 +1411,16 @@ async function createAcpSession(sessionId, agentName, workingDirectory) {
   const config = ACP_AGENTS[agentName];
   if (!config) throw new Error(`Unknown ACP agent: ${agentName}`);
   const launch = resolveAcpLaunch(config);
+  const sessionLogger = getSessionLogger(sessionId, { agentName }).child({
+    area: 'acp',
+    launchSource: launch.source,
+  });
 
-  console.log(`[Daemon] Spawning ${agentName}: ${launch.command} ${(launch.args || []).join(' ')} [${launch.source}]`);
+  sessionLogger.info('acp.session.starting', {
+    command: launch.command,
+    args: launch.args || [],
+    workingDirectory,
+  }, 'Starting ACP session');
 
   const child = spawnAcpChild(sessionId, agentName, launch);
 
@@ -1354,7 +1431,9 @@ async function createAcpSession(sessionId, agentName, workingDirectory) {
   const connection = new ClientSideConnection((agent) => { client._agent = agent; return client; }, stream);
 
   const timeoutHandler = () => {
-    console.error(`[Daemon] ACP startup timed out for ${agentName}`);
+    sessionLogger.error('acp.session.startup.timeout', {
+      timeoutMs: ACP_STARTUP_TIMEOUT_MS,
+    }, 'ACP startup timed out');
     killChildProcess(child);
   };
 
@@ -1363,7 +1442,10 @@ async function createAcpSession(sessionId, agentName, workingDirectory) {
     clientInfo: { name: 'codeagenthub-daemon', version: '1.0.0' },
     clientCapabilities: { fs: { readTextFile: true, writeTextFile: true }, terminal: true },
   }), ACP_STARTUP_TIMEOUT_MS, `ACP initialize for ${agentName}`, timeoutHandler);
-  console.log(`[Daemon] Initialized: ${initResponse.agentInfo?.name || agentName} v${initResponse.agentInfo?.version || '?'}`);
+  sessionLogger.info('acp.initialize.completed', {
+    initializedAgentName: initResponse.agentInfo?.name || agentName,
+    initializedAgentVersion: initResponse.agentInfo?.version || '?',
+  }, 'ACP initialized');
 
   const sessionResponse = await (async () => {
     try {
@@ -1379,14 +1461,18 @@ async function createAcpSession(sessionId, agentName, workingDirectory) {
       if (!authRequired) throw e;
       const authMethods = initResponse.authMethods;
       if (!authMethods?.length) throw new Error(`Agent "${agentName}" requires auth but advertised no methods`);
-      console.log(`[Daemon] Auth required. Using: ${authMethods[0].name}`);
+      sessionLogger.info('acp.auth.required', {
+        methodName: authMethods[0].name,
+      }, 'ACP authentication required');
       await withTimeout(
         connection.authenticate({ methodId: authMethods[0].id }),
         ACP_STARTUP_TIMEOUT_MS,
         `ACP authenticate for ${agentName}`,
         timeoutHandler,
       );
-      console.log(`[Daemon] Auth successful`);
+      sessionLogger.info('acp.auth.completed', {
+        methodName: authMethods[0].name,
+      }, 'ACP authentication completed');
       try {
         return await withTimeout(
           connection.newSession({ cwd: workingDirectory, mcpServers: [] }),
@@ -1402,7 +1488,9 @@ async function createAcpSession(sessionId, agentName, workingDirectory) {
       }
     }
   })();
-  console.log(`[Daemon] ACP session: ${sessionResponse.sessionId}`);
+  sessionLogger.info('acp.session.created', {
+    acpSessionId: sessionResponse.sessionId,
+  }, 'ACP session created');
 
   return {
     connection,
@@ -1419,8 +1507,15 @@ async function resumeAcpSession(sessionId, agentName, acpSessionId, workingDirec
   const config = ACP_AGENTS[agentName];
   if (!config) throw new Error(`Unknown ACP agent: ${agentName}`);
   const launch = resolveAcpLaunch(config);
+  const sessionLogger = getSessionLogger(sessionId, { agentName }).child({
+    area: 'acp',
+    launchSource: launch.source,
+  });
 
-  console.log(`[Daemon] Resuming ${agentName}: ${acpSessionId} [${launch.source}]`);
+  sessionLogger.info('acp.session.resuming', {
+    acpSessionId,
+    workingDirectory,
+  }, 'Resuming ACP session');
 
   const child = spawnAcpChild(sessionId, agentName, launch);
 
@@ -1431,7 +1526,10 @@ async function resumeAcpSession(sessionId, agentName, acpSessionId, workingDirec
   const connection = new ClientSideConnection((agent) => { client._agent = agent; return client; }, stream);
 
   const timeoutHandler = () => {
-    console.error(`[Daemon] ACP resume timed out for ${agentName}`);
+    sessionLogger.error('acp.session.resume.timeout', {
+      timeoutMs: ACP_STARTUP_TIMEOUT_MS,
+      acpSessionId,
+    }, 'ACP resume timed out');
     killChildProcess(child);
   };
 
@@ -1455,7 +1553,10 @@ async function resumeAcpSession(sessionId, agentName, acpSessionId, workingDirec
       if (!authRequired) throw e;
       const authMethods = initResponse.authMethods;
       if (!authMethods?.length) throw new Error(`Agent "${agentName}" requires auth but advertised no methods`);
-      console.log(`[Daemon] Auth required for resume. Using: ${authMethods[0].name}`);
+      sessionLogger.info('acp.resume.auth.required', {
+        methodName: authMethods[0].name,
+        acpSessionId,
+      }, 'ACP authentication required for resume');
       await withTimeout(
         connection.authenticate({ methodId: authMethods[0].id }),
         ACP_STARTUP_TIMEOUT_MS,
@@ -1592,7 +1693,10 @@ async function tryResumeSession(roomId, envelope) {
   if (!saved?.supportsResume) return state;
 
   const resumePromise = (async () => {
-    console.log(`[Daemon] Auto-resuming session for room ${roomId} (${saved.agentName})`);
+    const resumeLogger = getSessionLogger(roomId, { agentName: saved.agentName }).child({ area: 'resume' });
+    resumeLogger.info('session.auto-resume.started', {
+      savedAgentName: saved.agentName,
+    }, 'Auto-resuming session');
     await botSend(roomId, { type: 'system.info', message: 'Resuming session…' });
 
     try {
@@ -1645,7 +1749,9 @@ async function tryResumeSession(roomId, envelope) {
       return state;
     } catch (err) {
       if (saved.agentName === 'copilot-sdk' && /Session not found:/i.test(String(err?.message || ''))) {
-        console.warn('[Daemon] SDK resume target missing, recreating session:', roomId);
+        resumeLogger.warn('session.auto-resume.sdk-target-missing', {
+          error: err,
+        }, 'SDK resume target missing; recreating session');
         state = createSessionState({
           sessionId: roomId,
           agentName: 'copilot-sdk',
@@ -1668,7 +1774,9 @@ async function tryResumeSession(roomId, envelope) {
         });
         return state;
       }
-      console.error('[Daemon] Resume failed:', err.message);
+      resumeLogger.error('session.auto-resume.failed', {
+        error: err,
+      }, 'Session resume failed');
       sessions.delete(roomId);
       deleteSessionRecord(roomId);
       await botSend(roomId, { type: 'session.error', message: `Resume failed: ${err.message}. Please create a new session.` });
@@ -1713,11 +1821,16 @@ async function handleBotNotification(notification) {
     const delegationEnvelope = parseDelegationTargetControlEnvelope(envelope);
     if (delegationEnvelope) {
       if (!isPortalControlUser(msg.createdBy)) {
-        console.warn(`[Daemon] Ignoring unauthorized delegation control from ${msg.createdBy} for room ${roomId}`);
+        getSessionLogger(roomId).child({ area: 'security' }).warn('delegation.control.unauthorized', {
+          actorUserId: msg.createdBy,
+        }, 'Ignoring unauthorized delegation control');
         return;
       }
       if (delegationEnvelope.targetDaemonId !== BOT_USER_ID) {
-        console.warn(`[Daemon] Ignoring delegation ${delegationEnvelope.delegationId} for ${delegationEnvelope.targetDaemonId}`);
+        getSessionLogger(roomId).child({ area: 'delegation' }).warn('delegation.request.wrong-target', {
+          delegationId: delegationEnvelope.delegationId,
+          targetDaemonId: delegationEnvelope.targetDaemonId,
+        }, 'Ignoring delegation for another daemon');
         return;
       }
 
@@ -1779,11 +1892,18 @@ async function handleBotNotification(notification) {
 
     if (envelope.type === 'control.create') {
       if (!isPortalControlUser(msg.createdBy)) {
-        console.warn(`[Daemon] Ignoring unauthorized create from ${msg.createdBy} for room ${roomId}`);
+        getSessionLogger(roomId).child({ area: 'security' }).warn('control.create.unauthorized', {
+          actorUserId: msg.createdBy,
+        }, 'Ignoring unauthorized session create');
         return;
       }
       const { userId, agentName, workingDirectory, initialPrompt, model } = envelope;
-      console.log(`[Daemon] control.create: agent=${agentName} dir=${workingDirectory}`);
+      getSessionLogger(roomId, { agentName }).child({ area: 'control' }).info('control.create.received', {
+        ownerUserId: userId,
+        requestedWorkingDirectory: workingDirectory,
+        hasInitialPrompt: !!String(initialPrompt || '').trim(),
+        model: model || undefined,
+      }, 'Received session create request');
       let selectedWorkingDirectory;
       try {
         selectedWorkingDirectory = await resolveWorkingDirectoryOrThrow(workingDirectory);
@@ -1821,7 +1941,9 @@ async function handleBotNotification(notification) {
             await sendSessionPrompt(state, roomId, initialPrompt);
           }
         } catch (err) {
-          console.error('[Daemon] Copilot SDK failed:', err.message);
+          getSessionLogger(roomId, state).child({ area: 'startup' }).error('sdk.session.start.failed', {
+            error: err,
+          }, 'Copilot SDK session start failed');
           deactivateSession(roomId, `Failed to start: ${err.message}`);
         } finally {
           state.startupPromise = null;
@@ -1848,7 +1970,9 @@ async function handleBotNotification(notification) {
           emitSessionState(roomId);
           if (initialPrompt) await sendSessionPrompt(state, roomId, initialPrompt);
         } catch (err) {
-          console.error('[Daemon] Spawn failed:', err.message);
+          getSessionLogger(roomId, state).child({ area: 'startup' }).error('acp.session.start.failed', {
+            error: err,
+          }, 'ACP session start failed');
           deactivateSession(roomId, `Failed to start: ${err.message}`);
         } finally {
           state.startupPromise = null;
@@ -1860,13 +1984,15 @@ async function handleBotNotification(notification) {
     if (envelope.type === 'control.delete') {
       const state = sessions.get(roomId);
       if (!isPortalControlUser(msg.createdBy) && !isSessionOwner(state, msg.createdBy)) {
-        console.warn(`[Daemon] Ignoring unauthorized delete from ${msg.createdBy} for room ${roomId}`);
+        getSessionLogger(roomId, state).child({ area: 'security' }).warn('control.delete.unauthorized', {
+          actorUserId: msg.createdBy,
+        }, 'Ignoring unauthorized session delete');
         return;
       }
       await stopExistingSession(state);
       sessions.delete(roomId);
       deleteSessionRecord(roomId);
-      console.log(`[Daemon] Session deleted: ${roomId}`);
+      getSessionLogger(roomId, state).child({ area: 'control' }).info('session.deleted', {}, 'Session deleted');
       return;
     }
 
@@ -1874,7 +2000,9 @@ async function handleBotNotification(notification) {
       const state = sessions.get(roomId);
       if (!state) return;
       if (!isPortalControlUser(msg.createdBy) && !isSessionOwner(state, msg.createdBy)) {
-        console.warn(`[Daemon] Ignoring unauthorized cancel from ${msg.createdBy} for room ${roomId}`);
+        getSessionLogger(roomId, state).child({ area: 'security' }).warn('control.cancel.unauthorized', {
+          actorUserId: msg.createdBy,
+        }, 'Ignoring unauthorized session cancel');
         return;
       }
       try {
@@ -1893,14 +2021,18 @@ async function handleBotNotification(notification) {
     switch (envelope.type) {
       case 'user.prompt':
         if (envelope.content) {
-          console.log(`[Daemon] Prompt: ${envelope.content.substring(0, 80)}`);
+          getSessionLogger(roomId, state).info('session.prompt.received', {
+            promptLength: String(envelope.content).length,
+          }, 'Received user prompt');
           await sendSessionPrompt(state, roomId, envelope.content);
         }
         break;
       case 'user.command':
         if (envelope.command) {
           const cmd = envelope.command.trim();
-          console.log(`[Daemon] Command: ${cmd}`);
+          getSessionLogger(roomId, state).info('session.command.received', {
+            commandName: cmd.split(/\s+/)[0] || cmd,
+          }, 'Received user command');
           if (cmd === '/clear') {
             await botSend(roomId, { type: 'system.clear' });
             break;
@@ -1919,12 +2051,19 @@ async function handleBotNotification(notification) {
       case 'permission.response':
         if (envelope.requestId) {
           if (!isPortalControlUser(msg.createdBy) && !isSessionOwner(state, msg.createdBy) && msg.createdBy !== BOT_OWNER_USER_ID) {
-            console.warn(`[Daemon] Ignoring permission response from ${msg.createdBy} (not owner/admin) for room ${roomId}`);
+            getSessionLogger(roomId, state).warn('permission.response.ignored', {
+              requestId: envelope.requestId,
+              userId: msg.createdBy,
+            }, 'Ignoring permission response from unauthorized user');
             break;
           }
           const pending = state.pendingPermissions.get(envelope.requestId);
           if (pending) {
-            console.log(`[Daemon] Permission ${envelope.approved ? '✓' : '✕'} from ${msg.createdBy}: ${envelope.requestId.substring(0, 8)}`);
+            getSessionLogger(roomId, state).info('permission.response.received', {
+              approved: !!envelope.approved,
+              requestId: envelope.requestId.substring(0, 8),
+              userId: msg.createdBy,
+            }, 'Received permission response');
             pending.resolve(!!envelope.approved);
             state.pendingPermissions.delete(envelope.requestId);
           }
@@ -1935,7 +2074,10 @@ async function handleBotNotification(notification) {
         break;
     }
   } catch (err) {
-    console.error('[Daemon] Error:', err);
+    daemonLogger.error('chat.message.handle.failed', {
+      error: err,
+      roomId,
+    }, 'Failed to handle incoming chat message');
   }
 }
 
@@ -1965,16 +2107,25 @@ function createAcpClient(sessionId) {
       const update = params.update;
       const type = update?.sessionUpdate;
       const state = sessions.get(sessionId);
+      const sessionLogger = getSessionLogger(sessionId, state);
       if (state?.isResuming) {
         if (!['available_commands_update', 'current_mode_update', 'usage_update', 'config_option_update'].includes(type)) {
           return;
         }
       }
-      // Debug: log full update structure for tool events
       if (type === 'tool_call' || type === 'tool_call_update') {
         const debugKeys = Object.keys(update).filter(k => k !== 'sessionUpdate');
-        const meta = update._meta?.claudeCode;
-        console.log(`[Daemon:acp] ${type} keys=[${debugKeys}] meta=${meta ? JSON.stringify(meta).substring(0, 120) : 'none'} rawOutput=${update.rawOutput ? JSON.stringify(update.rawOutput).substring(0, 80) : 'none'}`);
+        let rawOutputLength = 0;
+        try {
+          rawOutputLength = update.rawOutput == null ? 0 : (JSON.stringify(update.rawOutput)?.length || 0);
+        } catch {
+          rawOutputLength = update.rawOutput == null ? 0 : String(update.rawOutput).length;
+        }
+        sessionLogger.child({ area: 'acp' }).debug('acp.tool.update.received', {
+          keys: debugKeys,
+          rawOutputLength,
+          updateType: type,
+        }, 'Received ACP tool update');
       }
       switch (type) {
         case 'config_option_update':
@@ -2020,12 +2171,15 @@ function createAcpClient(sessionId) {
           if (invocation.completedPending) {
             flushCompletedToolInvocations(sessionId);
           }
-          console.log(`[Daemon:tool] ${name} ${status}${toolOutput ? ` (${String(toolOutput).length} chars)` : ''}`);
+          sessionLogger.child({ area: 'tool', toolCallId: tcId, toolName: name }).debug('tool.update', {
+            outputLength: toolOutput ? String(toolOutput).length : 0,
+            status,
+          }, 'Processed tool call update');
           break;
         }
         case 'tool_call_update': {
           if (!update.toolCallId) {
-            console.warn('[Daemon:tool] Ignoring tool_call_update without toolCallId');
+            sessionLogger.child({ area: 'tool' }).warn('tool.update.missingId', {}, 'Ignoring tool_call_update without toolCallId');
             break;
           }
           const state = sessions.get(sessionId);
@@ -2052,7 +2206,10 @@ function createAcpClient(sessionId) {
           if (invocation.completedPending) {
             flushCompletedToolInvocations(sessionId);
           }
-          console.log(`[Daemon:tool] ${name} → ${status}${toolOutput ? ` (${String(toolOutput).length} chars)` : ''}`);
+          sessionLogger.child({ area: 'tool', toolCallId: tcId, toolName: name }).debug('tool.update', {
+            outputLength: toolOutput ? String(toolOutput).length : 0,
+            status,
+          }, 'Processed tool call completion update');
           break;
         }
         case 'session_error':
@@ -2084,23 +2241,33 @@ function createAcpClient(sessionId) {
           });
           break;
         }
-        default: if (type) console.log(`[Daemon] Unhandled: ${type}`);
+        default:
+          if (type) {
+            sessionLogger.child({ area: 'acp' }).debug('acp.update.unhandled', {
+              updateType: type,
+            }, 'Received unhandled ACP session update');
+          }
       }
     },
 
     // ── File System (local) ──
     async readTextFile(params) {
-      console.log(`[Daemon:fs] read ${params.path}`);
       const state = sessions.get(sessionId);
       const filePath = resolveSessionPath(state?.workingDirectory, params.path);
+      getSessionLogger(sessionId, state).child({ area: 'fs' }).debug('filesystem.read', {
+        filePath: summarizePathForLog(relative(state?.workingDirectory || process.cwd(), filePath) || params.path),
+      }, 'Reading text file');
       let content = await readFile(filePath, 'utf-8');
       if (params.line != null || params.limit != null) { const lines = content.split('\n'); content = lines.slice((params.line ?? 1) - 1, params.limit ? (params.line ?? 1) - 1 + params.limit : lines.length).join('\n'); }
       return { content };
     },
     async writeTextFile(params) {
-      console.log(`[Daemon:fs] write ${params.path} (${params.content?.length || 0} chars)`);
       const state = sessions.get(sessionId);
       const filePath = resolveSessionPath(state?.workingDirectory, params.path);
+      getSessionLogger(sessionId, state).child({ area: 'fs' }).debug('filesystem.write', {
+        contentLength: params.content?.length || 0,
+        filePath: summarizePathForLog(relative(state?.workingDirectory || process.cwd(), filePath) || params.path),
+      }, 'Writing text file');
       await mkdir(dirname(filePath), { recursive: true });
       await writeFile(filePath, params.content, 'utf-8');
       return {};
@@ -2110,9 +2277,14 @@ function createAcpClient(sessionId) {
     _terminals: new Map(), _termNextId: 1,
     async createTerminal(params) {
       const id = `term_${this._termNextId++}`;
-      console.log(`[Daemon:term] create ${id}: ${params.command} ${(params.args || []).join(' ')}`);
       const state = sessions.get(sessionId);
       const cwd = resolveSessionPath(state?.workingDirectory, params.cwd || '.');
+      getSessionLogger(sessionId, state).child({ area: 'terminal' }).debug('terminal.created', {
+        argCount: (params.args || []).length,
+        command: params.command,
+        cwd: summarizePathForLog(relative(state?.workingDirectory || process.cwd(), cwd) || params.cwd || '.'),
+        terminalId: id,
+      }, 'Created local terminal');
       const child = spawn(params.command, params.args || [], { cwd, stdio: ['pipe', 'pipe', 'pipe'] });
       let output = ''; const limit = params.outputByteLimit ?? 1024 * 1024;
       child.stdout?.on('data', d => { output += d.toString(); if (output.length > limit) output = output.slice(-limit); });
@@ -2126,7 +2298,10 @@ function createAcpClient(sessionId) {
       const t = this._terminals.get(params.terminalId);
       if (t && !t.exited) await Promise.race([t.exitPromise, new Promise(r => setTimeout(r, params.timeout ?? 30000))]);
       const code = t?.exitCode ?? -1;
-      console.log(`[Daemon:term] exit ${params.terminalId} → ${code}`);
+      getSessionLogger(sessionId).child({ area: 'terminal' }).debug('terminal.exited', {
+        exitCode: code,
+        terminalId: params.terminalId,
+      }, 'Terminal exited');
       return { exitCode: code };
     },
     async killTerminal(params) { const t = this._terminals.get(params.terminalId); if (t) try { t.process.kill('SIGTERM'); } catch {} return {}; },
@@ -2242,7 +2417,7 @@ async function main() {
 
   Object.assign(sessionStore, await loadSessionStore());
 
-  console.log('[Daemon] Starting...');
+  daemonLogger.info('daemon.starting', {}, 'Daemon starting');
 
   // Scan /workspace for available project directories
   let workspaces = [];
@@ -2282,7 +2457,9 @@ async function main() {
         await sendDaemonPresence('daemon.offline', daemonPresenceInfo);
       }
     } catch (e) {
-      console.log(`[Daemon] Offline announce failed: ${e.message?.substring(0, 60)}`);
+      daemonLogger.warn('daemon.offline.announceFailed', {
+        error: e,
+      }, 'Failed to announce daemon offline state');
     }
     try { botChat?.stop(); } catch {}
     botChat = null;
@@ -2296,7 +2473,11 @@ async function main() {
   process.once('SIGTERM', () => handleShutdown('SIGTERM'));
   try {
     await sendDaemonPresence('daemon.online', daemonPresenceInfo);
-    console.log(`[Daemon] Registered with portal: ${daemonPresenceInfo.hostname} (${daemonPresenceInfo.agents.join(', ')})`);
+    daemonLogger.info('daemon.registered', {
+      agents: daemonPresenceInfo.agents,
+      daemonId: BOT_USER_ID,
+      hostname: daemonPresenceInfo.hostname,
+    }, 'Daemon registered with portal');
     // After registration the portal adds the daemon bot to the daemon-acl room.
     // Hydrate the room in the local ChatClient cache so botSend can sendToRoom.
     const syncRoomId = daemonAclRoomId(BOT_USER_ID);
@@ -2306,33 +2487,51 @@ async function main() {
         // addUserToRoom(self) hydrates the local _rooms cache AND _joinedRoomIds.
         // This is required for botSend → sendToRoom to find the defaultConversationId.
         await chat.addUserToRoom(syncRoomId, BOT_USER_ID);
-        console.log(`[Daemon] Joined daemon sync room: ${syncRoomId}`);
+        daemonLogger.info('daemon.syncRoom.joined', {
+          roomId: syncRoomId,
+        }, 'Joined daemon sync room');
       }
     } catch (err) {
       // If addUserToRoom failed (e.g. permission error), try getRoom as last resort
       // to at least log the failure clearly.
-      console.warn(`[Daemon] Daemon sync room join failed: ${syncRoomId} — ${err?.message?.substring(0, 80)}`);
+      daemonLogger.warn('daemon.syncRoom.joinFailed', {
+        error: err,
+        roomId: syncRoomId,
+      }, 'Failed to join daemon sync room');
       try {
         const chat = await ensureBotChatReady();
         if (chat) {
           const ri = await chat.getRoom(syncRoomId, false);
-          console.log(`[Daemon] getRoom succeeded but sendToRoom will likely fail (room not in _rooms cache). conversationId=${ri?.defaultConversationId}`);
+          daemonLogger.warn('daemon.syncRoom.cacheMissing', {
+            conversationId: ri?.defaultConversationId,
+            roomId: syncRoomId,
+          }, 'Daemon sync room exists but local cache hydration is missing');
         }
       } catch (e2) {
-        console.warn(`[Daemon] getRoom also failed: ${e2?.message?.substring(0, 60)}`);
+        daemonLogger.warn('daemon.syncRoom.lookupFailed', {
+          error: e2,
+          roomId: syncRoomId,
+        }, 'Failed to inspect daemon sync room after join failure');
       }
     }
   } catch (e) {
-    console.log(`[Daemon] Portal registration refresh failed: ${e.message?.substring(0, 60)}`);
+    daemonLogger.warn('daemon.registration.refreshFailed', {
+      error: e,
+    }, 'Daemon registration refresh failed');
   }
   heartbeatTimer = setInterval(() => {
     void sendDaemonPresence('daemon.online', daemonPresenceInfo).catch((err) => {
-      console.log(`[Daemon] Heartbeat failed: ${err.message?.substring(0, 60)}`);
+      daemonLogger.warn('daemon.heartbeat.failed', {
+        error: err,
+      }, 'Daemon heartbeat failed');
     });
   }, DAEMON_HEARTBEAT_MS);
   heartbeatTimer.unref?.();
 
-  console.log('[Daemon] Ready. Waiting for messages from Web UI / CLI.');
+  daemonLogger.info('daemon.ready', {}, 'Daemon ready and waiting for messages');
 }
 
-main().catch(err => { console.error('[Daemon] Fatal:', err); process.exit(1); });
+main().catch(err => {
+  daemonLogger.error('daemon.fatal', { error: err }, 'Daemon exited with a fatal error');
+  process.exit(1);
+});
