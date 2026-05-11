@@ -44,6 +44,20 @@ describe('portal regression helpers', () => {
     assert.equal(normalized.canWrite, true);
   });
 
+  it('treats daemon managers as admin-equivalent access', () => {
+    const daemon = { daemonId: 'daemon-manager', canManage: true };
+
+    assert.equal(daemonHasAdminAccess(daemon), true);
+    assert.equal(daemonHasMemberAccess(daemon), true);
+    assert.equal(canBrowseDaemonDirectories(daemon), true);
+    assert.deepEqual(getCreateSessionAccessState(daemon), { blocked: false, readOnly: false });
+
+    const normalized = normalizeDaemonRecord(daemon);
+    assert.equal(normalized.canManage, true);
+    assert.equal(normalized.hasAdminAccess, true);
+    assert.equal(normalized.canWrite, true);
+  });
+
   it('keeps directory browsing admin-only even when a daemon is member-readable', () => {
     const daemon = { daemonId: 'daemon-beta', canRead: true, canWrite: false };
 

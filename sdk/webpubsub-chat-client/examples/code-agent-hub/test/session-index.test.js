@@ -143,6 +143,35 @@ describe('session index helpers', () => {
     assert.equal(state.membershipBySessionId.get('session-2')?.get('reader'), 'read');
   });
 
+  it('hydrates multiple session rooms concurrently up to the configured limit', async () => {
+    const state = createSessionIndexState();
+    let activeLoads = 0;
+    let maxActiveLoads = 0;
+
+    await hydrateSessionIndices({
+      state,
+      roomInfos: [
+        { roomId: 'session-1', title: buildSessionTitle({ roomName: 'Repo A', daemonId: 'daemon-a', ownerUserId: 'owner' }) },
+        { roomId: 'session-2', title: buildSessionTitle({ roomName: 'Repo B', daemonId: 'daemon-a', ownerUserId: 'owner' }) },
+        { roomId: 'session-3', title: buildSessionTitle({ roomName: 'Repo C', daemonId: 'daemon-a', ownerUserId: 'owner' }) },
+      ],
+      parseSessionRoomTitle,
+      roomConcurrency: 2,
+      loadSessionMembers: async () => {
+        activeLoads += 1;
+        maxActiveLoads = Math.max(maxActiveLoads, activeLoads);
+        await new Promise((resolve) => setTimeout(resolve, 10));
+        activeLoads -= 1;
+        return [];
+      },
+      loadJoinRequests: async () => [],
+      adminUserId: '__portal_control__',
+    });
+
+    assert.equal(maxActiveLoads, 2);
+    assert.equal(state.directoryBySessionId.size, 3);
+  });
+
   it('computes access level from owner, daemon admin, and session membership', () => {
     const state = createSessionIndexState();
     const sessionRecord = upsertTrustedSessionDirectoryRecord(state, {
@@ -228,6 +257,38 @@ describe('session index helpers', () => {
     assert.equal(sessions[0].canRead, false);
     assert.equal(sessions[0].canWrite, false);
     assert.equal(sessions[0].canDelete, false);
+  });
+
+  it('drops stale per-session membership when the user no longer has daemon-level access', () => {
+    // Repro for: a daemon admin who previously opened a session via accessSelf
+    // (which writes membershipBySessionId) is then removed from the daemon ACL.
+    // Without the canMemberDaemonAccess gate, getSessionAccessLevelFromIndex would
+    // still return the stale 'read'/'write' from membershipBySessionId.
+    const state = createSessionIndexState();
+    const sessionRecord = upsertTrustedSessionDirectoryRecord(state, {
+      sessionId: 'session-1',
+      roomName: 'Repo A',
+      daemonId: 'daemon-a',
+      agentName: 'copilot',
+      ownerUserId: 'session-owner',
+      updatedAt: '2026-04-11T05:10:00.000Z',
+    }, { source: 'portal' });
+    upsertTrustedSessionMembership(state, 'session-1', 'former-admin', 'write', { source: 'portal' });
+
+    const daemonAccessStateAfterRemoval = {
+      ownerUserId: 'daemon-owner',
+      adminUsers: [],
+      memberUsers: [],
+    };
+
+    assert.equal(getSessionAccessLevelFromIndex({
+      state,
+      sessionRecord,
+      daemonAccessState: daemonAccessStateAfterRemoval,
+      userId: 'former-admin',
+      canAdminDaemonAccess,
+      canMemberDaemonAccess,
+    }), 'none');
   });
 
   it('marks source sessions as delegating while a non-terminal delegation is active', () => {

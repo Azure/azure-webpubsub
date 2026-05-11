@@ -4,6 +4,15 @@ function safeEscape(escapeHtml, value) {
   return typeof escapeHtml === 'function' ? escapeHtml(value) : String(value ?? '')
 }
 
+function normalizePlatformAlias(platform) {
+  const value = String(platform || '').trim().toLowerCase()
+  if (!value) return ''
+  if (value === 'win32' || value === 'windows' || value === 'win') return 'win32'
+  if (value === 'darwin' || value === 'macos' || value === 'mac' || value === 'osx') return 'darwin'
+  if (['linux', 'ubuntu', 'debian', 'fedora', 'alpine', 'centos', 'rhel'].includes(value)) return 'linux'
+  return value
+}
+
 export function isCreateSelectableDaemon(daemon, getCreateSessionAccessState) {
   const { blocked, readOnly } = getCreateSessionAccessState(daemon)
   return !blocked && !readOnly
@@ -85,10 +94,11 @@ export function pickDefaultCreateAgentName(
 }
 
 export function normalizePickerPath(pathValue, platform) {
+  const normalizedPlatform = normalizePlatformAlias(platform)
   let value = String(pathValue || '').trim()
   if (!value) return ''
 
-  if (platform === 'win32') {
+  if (normalizedPlatform === 'win32') {
     value = value.replace(/\//g, '\\')
     if (/^[a-zA-Z]:$/.test(value)) return `${value}\\`
     if (/^[a-zA-Z]:\\+$/.test(value)) return `${value.slice(0, 2)}\\`
@@ -100,9 +110,10 @@ export function normalizePickerPath(pathValue, platform) {
 }
 
 export function pathLooksCompatibleWithPlatform(pathValue, platform) {
+  const normalizedPlatform = normalizePlatformAlias(platform)
   const value = String(pathValue || '').trim()
   if (!value) return true
-  if (platform === 'win32') return /^[a-zA-Z]:[\\/]/.test(value) || /^\\\\[^\\]+\\[^\\]+/.test(value)
+  if (normalizedPlatform === 'win32') return /^[a-zA-Z]:[\\/]/.test(value) || /^\\\\[^\\]+\\[^\\]+/.test(value)
   return value.startsWith('/') && !/^[a-zA-Z]:[\\/]/.test(value) && !value.startsWith('\\\\')
 }
 
@@ -158,7 +169,7 @@ export function buildCreateDaemonListMarkup({
     return '<div class="csm-section-copy">Select a workspace from the left panel first.</div>'
   }
 
-  const platform = normalizeDaemonPlatform(daemon.platform)
+  const platform = normalizePlatformAlias(normalizeDaemonPlatform(daemon.platform))
   const osIcon = osIcons[platform] || '🖥'
   const osName = osNames[platform] || ''
   const meta = [
@@ -229,9 +240,10 @@ export function buildCreateSessionButtonState({
     : !canOpen
       ? 'Creating sessions requires workspace admin access'
       : 'Create a new session'
+  const platform = normalizePlatformAlias(selectedDaemon?.platform)
   const invalidDirectory = !!selectedDaemonId && !!directoryValue && !pathLooksCompatibleWithPlatform(directoryValue, selectedDaemon?.platform)
   const { blocked, readOnly } = getCreateSessionAccessState(selectedDaemon)
-  const platformLabel = selectedDaemon?.platform === 'win32' ? 'Windows' : 'Linux/macOS'
+  const platformLabel = platform === 'win32' ? 'Windows' : 'Linux/macOS'
 
   return {
     openButtonDisabled: !canOpen,

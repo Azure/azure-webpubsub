@@ -1,5 +1,5 @@
 export function daemonHasAdminAccess(daemon) {
-  return !!(daemon && (daemon.hasAdminAccess || daemon.canWrite));
+  return !!(daemon && (daemon.canManage || daemon.hasAdminAccess || daemon.canWrite));
 }
 
 export function daemonHasMemberAccess(daemon) {
@@ -270,6 +270,11 @@ export function mergeRealtimeDaemonRecord(previousDaemon, nextDaemon, normalizeP
     normalized.canRead = true;
   }
   if (previous.hasAdminAccess && !normalized.hasAdminAccess) {
+    normalized.hasAdminAccess = true;
+    normalized.canWrite = true;
+  }
+  if (previous.canManage && !normalized.canManage) {
+    normalized.canManage = true;
     normalized.hasAdminAccess = true;
     normalized.canWrite = true;
   }

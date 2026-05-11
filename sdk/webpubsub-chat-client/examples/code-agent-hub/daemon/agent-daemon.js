@@ -22,15 +22,17 @@ import { spawn } from 'node:child_process';
 import { stdin as input, stdout as output } from 'node:process';
 import { createInterface } from 'node:readline/promises';
 import { Readable, Writable } from 'node:stream';
-import { ChatClient } from '@azure/web-pubsub-chat-client';
 import { ClientSideConnection, ndJsonStream, PROTOCOL_VERSION } from '@agentclientprotocol/sdk';
 import { hostname as osHostname } from 'os';
 import { config as loadEnv } from 'dotenv';
-import { finishAcpPromptTurn } from './acp-prompt-turn.js';
 import { buildDelegationContextPrompt, upsertDelegationContextEntries } from './delegation-context.js';
+import { beginActiveDelegationSettlement } from './delegation-state.js';
 import { createModelsUpdateEvent, hasModelToolbarState } from '../shared/session-toolbar-state.js';
 import { daemonAclRoomId } from '../shared/daemon-acl.js';
 import { shouldTryAutoResumeSession } from './session-resume-policy.js';
+import { listDirectoriesForPath, resolveWorkingDirectoryOrThrow } from './workspace-browse.js';
+import { createSessionStore } from './session-store.js';
+import { createBotChat } from './bot-chat.js';
 import {
   DELEGATION_CONTROL_ROOM_ID,
   buildDelegationControlEnvelope,
@@ -74,9 +76,7 @@ const PROJECT_ROOT = [
 const SESSION_STORE_PATH = process.env.SESSION_STORE_PATH
   || resolve(process.env.HOME || process.env.USERPROFILE || '.', '.copilot-mobile', 'sessions.json');
 const DEFAULT_SDK_MODEL = 'gpt-5.4';
-const SESSION_STORE_DEBOUNCE_MS = 150;
 const ACP_STARTUP_TIMEOUT_MS = Number(process.env.ACP_STARTUP_TIMEOUT_MS || 90000);
-const WORKSPACE_LIST_LIMIT = 200;
 const SUPPORTED_ACP_AGENT_NAMES = ['copilot', 'claude', 'codex'];
 
 function sanitizeDaemonIdFragment(value) {
@@ -274,75 +274,14 @@ async function installAllSupportedAgentCli() {
 
 // ── State ──
 
-async function loadSessionStore() {
-  try {
-    return JSON.parse(await readFile(SESSION_STORE_PATH, 'utf-8'));
-  } catch (err) {
-    if (err?.code !== 'ENOENT') {
-      sessionStoreLogger.warn('session-store.load.failed', {
-        filePath: SESSION_STORE_PATH,
-        error: err,
-      }, 'Failed to load session store');
-    }
-  }
-  return {};
-}
-
-let sessionStoreDirty = false;
-let sessionStoreSaveTimer = null;
-let sessionStoreSavePromise = Promise.resolve();
-
-async function writeSessionStoreToDisk(store) {
-  if (!sessionStoreDirty) return;
-  sessionStoreDirty = false;
-  try {
-    await mkdir(dirname(SESSION_STORE_PATH), { recursive: true });
-    await writeFile(SESSION_STORE_PATH, JSON.stringify(store, null, 2), 'utf-8');
-  } catch (err) {
-    sessionStoreLogger.warn('session-store.save.failed', {
-      filePath: SESSION_STORE_PATH,
-      error: err,
-    }, 'Failed to save session store');
-  }
-}
-
-function scheduleSessionStoreWrite(store, immediate = false) {
-  sessionStoreDirty = true;
-  if (sessionStoreSaveTimer) {
-    clearTimeout(sessionStoreSaveTimer);
-    sessionStoreSaveTimer = null;
-  }
-
-  if (!immediate) {
-    sessionStoreSaveTimer = setTimeout(() => {
-      sessionStoreSaveTimer = null;
-      sessionStoreSavePromise = sessionStoreSavePromise.then(
-        () => writeSessionStoreToDisk(store),
-        () => writeSessionStoreToDisk(store),
-      );
-    }, SESSION_STORE_DEBOUNCE_MS);
-    sessionStoreSaveTimer.unref?.();
-    return sessionStoreSavePromise;
-  }
-
-  sessionStoreSavePromise = sessionStoreSavePromise.then(
-    () => writeSessionStoreToDisk(store),
-    () => writeSessionStoreToDisk(store),
-  );
-  return sessionStoreSavePromise;
-}
-
-async function flushSessionStoreWrites(store) {
-  await scheduleSessionStoreWrite(store, true);
-}
+const sessionStore = createSessionStore({
+  filePath: SESSION_STORE_PATH,
+  logger: sessionStoreLogger,
+});
 
 const sessions = new Map();
-const sessionStore = {};
 const resumePromises = new Map();
-let botChat = null;
-let botChatInitPromise = null;
-let botReconnectTimer = null;
-let botReconnectAttempt = 0;
+let botChatHandle = null;
 let heartbeatTimer = null;
 let advertisedWorkspaces = [];
 let daemonPresenceInfo = null;
@@ -356,41 +295,53 @@ function getSessionLogger(sessionId, state = sessions.get(sessionId)) {
   });
 }
 
-function createSessionState({ sessionId, agentName, firstPrompt = '', ownerUserId = null, workingDirectory = process.cwd(), model = 'default', delegationContextEntries = [] }) {
-  return {
-    sessionId,
-    agentName,
-    firstPrompt,
-    acpConnection: null,
-    acpSessionId: null,
-    acpProcess: null,
-    _acpClient: null,
-    copilotSession: null,
-    ownerUserId,
-    workingDirectory,
-    model,
-    active: false,
-    isReady: false,
-    isProcessing: false,
-    isStopping: false,
-    startupPromise: null,
-    pendingCount: 0,
-    isResuming: false,
-    availableModes: [],
-    currentModeId: '',
-    availableModels: [],
-    currentModelId: '',
-    availableCommands: [],
-    usageSize: 0,
-    usageUsed: 0,
-    usageCost: null,
-    lastAssistantMessageContent: '',
-    lastReasoningContent: '',
-    delegationContextEntries: Array.isArray(delegationContextEntries) ? [...delegationContextEntries] : [],
-    activeDelegation: null,
-    pendingPermissions: new Map(),
-    toolInvocations: new Map(),
-  };
+/**
+ * Per-room session state. The fields are mutated directly throughout the
+ * daemon (sessions.get(roomId).foo = ...) — this class only owns shape +
+ * defaults. There is intentionally no encapsulation layer over field
+ * writes; mutations happen in the small set of places that need them
+ * (cancelSessionTurn, sendSessionPrompt, createAcpClient, etc.).
+ */
+class SessionState {
+  constructor({ sessionId, agentName, firstPrompt = '', ownerUserId = null, workingDirectory = process.cwd(), model = 'default', delegationContextEntries = [] }) {
+    this.sessionId = sessionId;
+    this.agentName = agentName;
+    this.firstPrompt = firstPrompt;
+    this.acpConnection = null;
+    this.acpProcess = null;
+    this.acpSessionId = null;
+    this._acpClient = null;
+    this._acpBuffers = null;
+    this.copilotSession = null;
+    this.ownerUserId = ownerUserId;
+    this.workingDirectory = workingDirectory;
+    this.model = model;
+    this.active = false;
+    this.isReady = false;
+    this.isProcessing = false;
+    this.isStopping = false;
+    this.startupPromise = null;
+    this.pendingCount = 0;
+    this.isResuming = false;
+    this.availableModes = [];
+    this.currentModeId = '';
+    this.availableModels = [];
+    this.currentModelId = '';
+    this.availableCommands = [];
+    this.usageSize = 0;
+    this.usageUsed = 0;
+    this.usageCost = null;
+    this.lastAssistantMessageContent = '';
+    this.lastReasoningContent = '';
+    this.delegationContextEntries = Array.isArray(delegationContextEntries) ? [...delegationContextEntries] : [];
+    this.activeDelegation = null;
+    this.pendingPermissions = new Map();
+    this.toolInvocations = new Map();
+  }
+}
+
+function createSessionState(options) {
+  return new SessionState(options);
 }
 
 function isSessionOwner(state, userId) {
@@ -424,59 +375,19 @@ async function stopExistingSession(state) {
   }
 }
 
-function spawnAcpChild(sessionId, agentName, launch) {
-  const resolvedLaunch = resolveSpawnLaunch(launch.command, launch.args || []);
-  const processLogger = getSessionLogger(sessionId, { agentName }).child({
-    area: 'acp-process',
-    launchSource: launch.source,
-  });
-  const child = spawn(resolvedLaunch.command, resolvedLaunch.args, {
-    stdio: ['pipe', 'pipe', 'pipe'],
-    env: { ...process.env, ...(ACP_AGENTS[agentName]?.env || {}) },
-    shell: false,
-  });
-  child.stderr?.on('data', (data) => {
-    const line = data.toString().trim();
-    if (line) {
-      processLogger.debug('acp.process.stderr', {
-        line,
-      }, 'ACP process wrote to stderr');
-    }
-  });
-  child.on('error', (err) => {
-    processLogger.error('acp.process.spawn.failed', {
-      command: launch.command,
-      args: launch.args || [],
-      resolvedCommand: resolvedLaunch.command,
-      resolvedArgs: resolvedLaunch.args,
-      error: err,
-    }, 'Failed to spawn ACP process');
-    deactivateSession(sessionId, `Failed to start: ${err.message}`);
-  });
-  child.on('close', (code) => {
-    processLogger.info('acp.process.exited', {
-      exitCode: code,
-    }, 'ACP process exited');
-    deactivateSession(sessionId, `Agent exited (code=${code})`);
-  });
-  return child;
-}
-
 function persistSessionRecord(roomId, record) {
-  sessionStore[roomId] = record;
-  scheduleSessionStoreWrite(sessionStore);
+  sessionStore.persist(roomId, record);
 }
 
 function updateSessionRecord(roomId, patch) {
-  if (!sessionStore[roomId]) return;
-  sessionStore[roomId] = { ...sessionStore[roomId], ...patch };
-  scheduleSessionStoreWrite(sessionStore);
+  sessionStore.update(roomId, patch);
 }
 
 function rememberDelegationContext(roomId, envelope) {
   const state = sessions.get(roomId) || null;
-  const savedEntries = Array.isArray(sessionStore[roomId]?.delegationContextEntries)
-    ? sessionStore[roomId].delegationContextEntries
+  const saved = sessionStore.get(roomId);
+  const savedEntries = Array.isArray(saved?.delegationContextEntries)
+    ? saved.delegationContextEntries
     : [];
   const currentEntries = state?.delegationContextEntries?.length
     ? state.delegationContextEntries
@@ -485,15 +396,13 @@ function rememberDelegationContext(roomId, envelope) {
   if (state) {
     state.delegationContextEntries = nextEntries;
   }
-  if (sessionStore[roomId]) {
+  if (saved) {
     updateSessionRecord(roomId, { delegationContextEntries: nextEntries });
   }
 }
 
 function deleteSessionRecord(roomId) {
-  if (!sessionStore[roomId]) return;
-  delete sessionStore[roomId];
-  scheduleSessionStoreWrite(sessionStore);
+  sessionStore.delete(roomId);
 }
 
 function normalizeSdkModels(models) {
@@ -528,6 +437,35 @@ function emitModelsUpdate(sessionId, state) {
   botSend(sessionId, createModelsUpdateEvent(state));
 }
 
+// Seed mode/model toolbar state from an ACP newSession / loadSession response.
+// ACP's NewSessionResponse can include `modes: { availableModes, currentModeId }`
+// and `models: { availableModels, currentModelId }` — without seeding these,
+// the toolbar is empty until the agent emits a *_update notification (which
+// many agents only do on user-driven changes, never on initial state).
+function seedAcpSessionToolbarState(state, sessionResponse) {
+  if (!state || !sessionResponse) return;
+  if (sessionResponse.modes) {
+    if (Array.isArray(sessionResponse.modes.availableModes)) {
+      state.availableModes = sessionResponse.modes.availableModes;
+    }
+    if (sessionResponse.modes.currentModeId) {
+      state.currentModeId = sessionResponse.modes.currentModeId;
+    }
+  }
+  if (sessionResponse.models) {
+    if (Array.isArray(sessionResponse.models.availableModels)) {
+      state.availableModels = sessionResponse.models.availableModels.map((model) => ({
+        modelId: model.modelId || model.id,
+        name: model.name || model.modelId || model.id,
+        description: model.description || '',
+      }));
+    }
+    if (sessionResponse.models.currentModelId) {
+      state.currentModelId = sessionResponse.models.currentModelId;
+    }
+  }
+}
+
 function emitUsageUpdate(sessionId, state) {
   botSend(sessionId, {
     type: 'usage.update',
@@ -548,29 +486,6 @@ async function syncSessionUiState(sessionId, state) {
   if ((state.availableModes || []).length || state.currentModeId) emitModesUpdate(sessionId, state);
   if (hasModelToolbarState(state)) emitModelsUpdate(sessionId, state);
   if ((state.usageSize || 0) > 0 || (state.usageUsed || 0) > 0) emitUsageUpdate(sessionId, state);
-}
-
-function handleSessionCapabilities(state, roomId, response) {
-  if (response?.modes) {
-    state.availableModes = response.modes.availableModes || [];
-    state.currentModeId = response.modes.currentModeId || '';
-    emitModesUpdate(roomId, state);
-  }
-
-  if (response?.models) {
-    state.availableModels = (response.models.availableModels || []).map((model) => ({
-      modelId: model.modelId,
-      name: model.name || model.modelId,
-      description: model.description,
-    }));
-    state.currentModelId = response.models.currentModelId || '';
-    emitModelsUpdate(roomId, state);
-  }
-  // If the response didn't include models but we have a known model ID,
-  // emit a minimal models.update so the frontend toolbar shows something.
-  if (!response?.models && state.currentModelId && hasModelToolbarState(state)) {
-    emitModelsUpdate(roomId, state);
-  }
 }
 
 async function ensureCopilotSdkClient() {
@@ -676,11 +591,8 @@ async function emitDelegationRelayEvent(delegation, streamType, payload = {}) {
 }
 
 async function settleActiveDelegation(state, roomId, status, { errorMessage = '' } = {}) {
-  const delegation = state?.activeDelegation;
-  if (!delegation || !isDelegationTerminalStatus(status) || delegation.settled) return;
-
-  delegation.settled = true;
-  delegation.terminalStatus = status;
+  const delegation = beginActiveDelegationSettlement(state, status);
+  if (!delegation) return;
 
   const summary = buildDelegationSummaryFromState(state);
   const streamType = status === 'completed'
@@ -712,10 +624,6 @@ async function settleActiveDelegation(state, roomId, status, { errorMessage = ''
       error,
     }, 'Failed to settle delegation');
   }
-
-  if (state?.activeDelegation === delegation) {
-    state.activeDelegation = null;
-  }
 }
 
 async function failDelegationRequest(requestEnvelope, message) {
@@ -731,7 +639,7 @@ async function failDelegationRequest(requestEnvelope, message) {
   };
   const chat = await ensureBotChatReady();
   if (chat) {
-    await ensureRoomMembership(chat, requestEnvelope.relayRoomId, 'Delegation Relay', BOT_USER_ID, [PORTAL_CONTROL_USER_ID]);
+    await botChatHandle.ensureRoomMembership(requestEnvelope.relayRoomId, 'Delegation Relay', BOT_USER_ID, [PORTAL_CONTROL_USER_ID]);
   }
   await emitDelegationRelayEvent(delegation, 'stream.open', {
     prompt: requestEnvelope.prompt,
@@ -768,8 +676,8 @@ async function failDelegationRequest(requestEnvelope, message) {
 async function startDelegationForSession(state, roomId, requestEnvelope) {
   const chat = await ensureBotChatReady();
   if (!chat) throw new Error('Chat client is unavailable');
-  await ensureRoomMembership(chat, requestEnvelope.relayRoomId, 'Delegation Relay', BOT_USER_ID, [PORTAL_CONTROL_USER_ID]);
-  await ensureRoomMembership(chat, DELEGATION_CONTROL_ROOM_ID, 'Delegation Control', BOT_USER_ID, [PORTAL_CONTROL_USER_ID]);
+  await botChatHandle.ensureRoomMembership(requestEnvelope.relayRoomId, 'Delegation Relay', BOT_USER_ID, [PORTAL_CONTROL_USER_ID]);
+  await botChatHandle.ensureRoomMembership(DELEGATION_CONTROL_ROOM_ID, 'Delegation Control', BOT_USER_ID, [PORTAL_CONTROL_USER_ID]);
 
   const delegation = {
     delegationId: requestEnvelope.delegationId,
@@ -808,36 +716,15 @@ async function startDelegationForSession(state, roomId, requestEnvelope) {
 }
 
 async function botSend(roomId, envelope, { skipDelegationRelay = false } = {}) {
+  const state = sessions.get(roomId);
+  if (state && envelope?.type === 'assistant.message') {
+    state.lastAssistantMessageContent = String(envelope.content || '');
+  }
+  if (state && envelope?.type === 'assistant.reasoning') {
+    state.lastReasoningContent = String(envelope.content || '');
+  }
   try {
-    if (shuttingDown) return;
-    const chat = await ensureBotChatReady();
-    if (!chat) return;
-    const state = sessions.get(roomId);
-    if (state && envelope?.type === 'assistant.message') {
-      state.lastAssistantMessageContent = String(envelope.content || '');
-    }
-    if (state && envelope?.type === 'assistant.reasoning') {
-      state.lastReasoningContent = String(envelope.content || '');
-    }
-    const payload = JSON.stringify(envelope);
-    if (payload.length <= MAX_ROOM_MESSAGE_LENGTH) {
-      await chat.sendToRoom(roomId, payload);
-    } else {
-      const chunkId = randomUUID();
-      const parts = [];
-      let cursor = 0;
-      while (cursor < payload.length) {
-        let end = Math.min(payload.length, cursor + 3000);
-        let part = payload.slice(cursor, end);
-        let chunk = { type: 'transport.chunk', chunkId, index: parts.length, total: 0, jsonPart: part };
-        while (JSON.stringify(chunk).length > MAX_ROOM_MESSAGE_LENGTH && part.length > 1) { end -= 128; part = payload.slice(cursor, end); chunk.jsonPart = part; }
-        parts.push(part);
-        cursor = end;
-      }
-      for (let index = 0; index < parts.length; index++) {
-        await chat.sendToRoom(roomId, JSON.stringify({ type: 'transport.chunk', chunkId, index, total: parts.length, jsonPart: parts[index] }));
-      }
-    }
+    await botChatHandle.sendEnvelope(roomId, envelope);
 
     if (!skipDelegationRelay) {
       const delegation = getActiveDelegation(roomId);
@@ -855,110 +742,11 @@ async function botSend(roomId, envelope, { skipDelegationRelay = false } = {}) {
   }
 }
 
-async function ensureRoomMembership(chatClient, roomId, roomName, userId, extraUsers = []) {
-  try {
-    await chatClient.createRoom(roomName, [userId, ...extraUsers], roomId);
-    return;
-  } catch {}
-  for (const memberId of [...new Set([userId, ...extraUsers].filter(Boolean))]) {
-    try {
-      await chatClient.addUserToRoom(roomId, memberId);
-    } catch {}
-  }
-}
+const sendDelta = (...args) => botChatHandle.sendDelta(...args);
+const flushDelta = (key) => botChatHandle.flushDelta(key);
 
-function listWorkspaceFavorites(workspaceRoots = []) {
-  return [...new Set((workspaceRoots || []).filter(Boolean).map((path) => resolve(path)))].map((path) => ({
-    name: path.split(/[\\/]/).filter(Boolean).pop() || path,
-    path,
-    kind: 'favorite',
-  }));
-}
-
-async function listFilesystemRoots(workspaceRoots = []) {
-  const favorites = listWorkspaceFavorites(workspaceRoots);
-  if (process.platform !== 'win32') {
-    return {
-      favorites,
-      roots: [{ name: '/', path: '/', kind: 'root' }],
-    };
-  }
-
-  const roots = [];
-  for (const letter of 'ABCDEFGHIJKLMNOPQRSTUVWXYZ') {
-    const drive = `${letter}:\\`;
-    try {
-      await access(drive);
-      roots.push({ name: `${letter}:`, path: drive, kind: 'root' });
-    } catch {}
-  }
-  return { favorites, roots };
-}
-
-async function readDirectoryEntries(base, { query = '', limit = WORKSPACE_LIST_LIMIT } = {}) {
-  const normalizedQuery = String(query || '').trim().toLowerCase();
-  const entries = await readdir(base, { withFileTypes: true });
-  const dirs = entries
-    .filter((entry) => entry.isDirectory() && !entry.name.startsWith('.'))
-    .filter((entry) => !normalizedQuery || entry.name.toLowerCase().includes(normalizedQuery))
-    .sort((left, right) => left.name.localeCompare(right.name, undefined, { sensitivity: 'base' }))
-    .map((entry) => ({ name: entry.name, path: resolve(base, entry.name), kind: 'directory' }));
-  return {
-    dirs: dirs.slice(0, limit),
-    total: dirs.length,
-    truncated: dirs.length > limit,
-  };
-}
-
-async function listDirectoriesForPath(inputPath, workspaceRoots = [], options = {}) {
-  const home = process.env.HOME || process.cwd();
-  const requestedRaw = String(inputPath || '').trim();
-  const query = String(options.query || '').trim();
-  const limit = Math.max(25, Math.min(Number(options.limit) || WORKSPACE_LIST_LIMIT, WORKSPACE_LIST_LIMIT));
-
-  if (!requestedRaw || requestedRaw === '__roots__') {
-    const filter = query.toLowerCase();
-    const { favorites, roots } = await listFilesystemRoots(workspaceRoots);
-    const match = (entry) => !filter || entry.name.toLowerCase().includes(filter) || entry.path.toLowerCase().includes(filter);
-    return {
-      mode: 'roots',
-      base: '',
-      query,
-      favorites: favorites.filter(match),
-      roots: roots.filter(match),
-      dirs: [],
-      total: 0,
-      truncated: false,
-    };
-  }
-
-  const requested = requestedRaw.replace(/^~(?=$|[\\/])/, home);
-  try {
-    const base = resolve(requested);
-    const result = await readDirectoryEntries(base, { query, limit });
-    return { mode: 'children', base, query, ...result };
-  } catch {
-    const parent = resolve(requested, '..');
-    try {
-      const partial = requested.split(/[\\/]/).pop()?.toLowerCase() || '';
-      const result = await readDirectoryEntries(parent, { query: query || partial, limit });
-      return { mode: 'children', base: parent, partial, query: query || partial, ...result };
-    } catch {
-      return { mode: 'children', base: resolve(requested), query, dirs: [], total: 0, truncated: false };
-    }
-  }
-}
-
-async function resolveWorkingDirectoryOrThrow(inputPath) {
-  const requested = String(inputPath || '').trim();
-  const normalized = resolve(requested || process.cwd());
-  try {
-    await readdir(normalized, { withFileTypes: true });
-    return normalized;
-  } catch {
-    const shownPath = requested || normalized;
-    throw new Error(`Directory not found on this daemon: ${shownPath}`);
-  }
+async function ensureBotChatReady() {
+  return botChatHandle.ensureReady();
 }
 
 function resolveInstalledAgentBinary(binName) {
@@ -1016,7 +804,7 @@ async function sendDaemonPresence(type, details) {
     return;
   }
   if (type === 'daemon.online') {
-    const path = botChat ? '/api/daemons/heartbeat' : '/api/daemons/register';
+    const path = botChatHandle.isConnected() ? '/api/daemons/heartbeat' : '/api/daemons/register';
     await postDaemonPortal(path, details);
   }
 }
@@ -1031,87 +819,6 @@ async function fetchBotTokenUrl() {
     ownerUserId: BOT_OWNER_USER_ID,
   }, 'Registered with portal control plane');
   return body.url;
-}
-
-function scheduleBotReconnect() {
-  if (shuttingDown || botReconnectTimer || botChatInitPromise) return;
-  const delay = Math.min(30000, 1000 * (2 ** botReconnectAttempt));
-  botReconnectAttempt += 1;
-  botReconnectTimer = setTimeout(() => {
-    botReconnectTimer = null;
-    void ensureBotChatReady().catch((error) => {
-      botLogger.error('bot.reconnect.failed', {
-        reconnectAttempt: botReconnectAttempt,
-        error,
-      }, 'Bot reconnect failed');
-      scheduleBotReconnect();
-    });
-  }, delay);
-  botReconnectTimer.unref?.();
-}
-
-async function loginBotChat() {
-  if (botChat) return botChat;
-  if (botChatInitPromise) return botChatInitPromise;
-
-  botChatInitPromise = (async () => {
-    const tokenUrl = await fetchBotTokenUrl();
-    const chat = await new ChatClient(tokenUrl).login();
-    botLogger.info('bot.chat.connected', {
-      userId: chat.userId,
-    }, 'Bot chat connected');
-
-    chat.onConnected(() => {
-      botReconnectAttempt = 0;
-    });
-    chat.onDisconnected(() => {
-      if (shuttingDown) return;
-      botLogger.warn('bot.chat.disconnected', {
-        reconnectAttempt: botReconnectAttempt,
-      }, 'Bot chat disconnected; scheduling reconnect');
-      if (botChat === chat) botChat = null;
-      scheduleBotReconnect();
-    });
-    chat.addListenerForNewMessage(handleBotNotification);
-
-    await ensureRoomMembership(chat, DAEMON_CONTROL_ROOM, 'Daemon Control', BOT_USER_ID, [PORTAL_CONTROL_USER_ID]);
-    botChat = chat;
-
-    return chat;
-  })().finally(() => {
-    botChatInitPromise = null;
-  });
-
-  return botChatInitPromise;
-}
-
-async function ensureBotChatReady() {
-  if (botChat) return botChat;
-  return loginBotChat();
-}
-
-// ── Delta Debounce ──
-
-const deltaBuffers = new Map();
-
-function sendDelta(roomId, key, deltaContent, envelopeType = 'assistant.delta', idField = 'messageId', idValue = key) {
-  let buf = deltaBuffers.get(key);
-  if (!buf) { buf = { roomId, content: '', timer: null, envelopeType, idField, idValue }; deltaBuffers.set(key, buf); }
-  buf.content += deltaContent;
-  if (buf.timer) clearTimeout(buf.timer);
-  buf.timer = setTimeout(() => {
-    const flushed = buf.content; buf.content = ''; deltaBuffers.delete(key);
-    botSend(roomId, { type: buf.envelopeType, [buf.idField]: buf.idValue, content: flushed });
-  }, 80);
-}
-
-async function flushDelta(key) {
-  const buf = deltaBuffers.get(key);
-  if (buf && buf.content) {
-    if (buf.timer) clearTimeout(buf.timer);
-    await botSend(buf.roomId, { type: buf.envelopeType, [buf.idField]: buf.idValue, content: buf.content });
-    deltaBuffers.delete(key);
-  }
 }
 
 function isGenericToolName(name) {
@@ -1158,15 +865,6 @@ function mergeToolOutput(current, next) {
   return `${current}\n${next}`;
 }
 
-function pickToolName(currentName, metaToolName, updateToolName, title) {
-  for (const candidate of [metaToolName, updateToolName]) {
-    if (candidate && !isGenericToolName(candidate)) return candidate;
-  }
-  if (currentName && !isGenericToolName(currentName)) return currentName;
-  if (title && !looksLikeCommand(title)) return title;
-  return currentName || metaToolName || updateToolName || title || 'Tool';
-}
-
 function flushCompletedToolInvocations(sessionId, excludeToolCallId = null) {
   const state = sessions.get(sessionId);
   if (!state?.toolInvocations) return;
@@ -1186,19 +884,19 @@ function flushCompletedToolInvocations(sessionId, excludeToolCallId = null) {
 }
 
 async function flushAcpBufferedContent(state, roomId) {
-  const client = state?._acpClient;
-  if (!client) return;
-  if (client._currentMessageText) {
-    const messageId = `acp-msg-${client._msgCounter++}`;
+  const buffers = state?._acpBuffers;
+  if (!buffers) return;
+  if (buffers.currentMessageText) {
+    const messageId = `acp-msg-${buffers.msgCounter++}`;
     await flushDelta(messageId);
-    await botSend(roomId, { type: 'assistant.message', messageId, content: client._currentMessageText });
-    client._currentMessageText = '';
+    await botSend(roomId, { type: 'assistant.message', messageId, content: buffers.currentMessageText });
+    buffers.currentMessageText = '';
   }
-  if (client._currentThoughtText) {
-    const reasoningId = `acp-reason-${client._reasonCounter++}`;
+  if (buffers.currentThoughtText) {
+    const reasoningId = `acp-reason-${buffers.reasonCounter++}`;
     await flushDelta(`reasoning-${reasoningId}`);
-    await botSend(roomId, { type: 'assistant.reasoning', reasoningId, content: client._currentThoughtText });
-    client._currentThoughtText = '';
+    await botSend(roomId, { type: 'assistant.reasoning', reasoningId, content: buffers.currentThoughtText });
+    buffers.currentThoughtText = '';
   }
 }
 
@@ -1250,6 +948,7 @@ function deactivateSession(sessionId, message) {
   state.acpSessionId = null;
   state.acpProcess = null;
   state._acpClient = null;
+  state._acpBuffers = null;
   state.isResuming = false;
   state.toolInvocations.clear();
   for (const pending of state.pendingPermissions.values()) {
@@ -1261,11 +960,6 @@ function deactivateSession(sessionId, message) {
   }
   botSend(sessionId, { type: 'session.error', message });
   emitSessionState(sessionId);
-}
-
-function isCancellationError(error) {
-  const text = String(error?.message || error || '').toLowerCase();
-  return error?.code === -32800 || text.includes('cancelled') || text.includes('canceled') || text.includes('aborted');
 }
 
 async function cancelSessionTurn(state, roomId) {
@@ -1341,14 +1035,22 @@ async function sendSessionPrompt(state, roomId, prompt, { includeDelegationConte
   state.isProcessing = true;
   state.isStopping = false;
   await emitSessionState(roomId);
-  const finalizePromptTurn = (options = {}) => finishAcpPromptTurn(state, roomId, {
-    shouldFinalize: () => sessions.get(roomId) === state,
-    flushBufferedContent: flushAcpBufferedContent,
-    flushCompletedToolInvocations,
-    botSend,
-    emitSessionState,
-    ...options,
-  });
+  const stillCurrent = () => sessions.get(roomId) === state;
+  const finalizePromptTurn = async ({ emitIdle = true } = {}) => {
+    if (!stillCurrent()) return;
+    await flushAcpBufferedContent(state, roomId);
+    if (!stillCurrent()) return;
+    flushCompletedToolInvocations(roomId);
+    if (!stillCurrent()) return;
+    state.isProcessing = false;
+    state.isStopping = false;
+    state.pendingCount = 0;
+    if (emitIdle) {
+      await botSend(roomId, { type: 'session.idle' });
+      if (!stillCurrent()) return;
+    }
+    await emitSessionState(roomId);
+  };
   try {
     await state.acpConnection.prompt({ sessionId: state.acpSessionId, prompt: [{ type: 'text', text: promptText }] });
     await finalizePromptTurn();
@@ -1356,7 +1058,7 @@ async function sendSessionPrompt(state, roomId, prompt, { includeDelegationConte
   } catch (err) {
     const cancelled = isCancellationError(err);
     await finalizePromptTurn({ emitIdle: cancelled });
-    if (!cancelled && sessions.get(roomId) === state) {
+    if (!cancelled && stillCurrent()) {
       botSend(roomId, { type: 'session.error', message: err.message });
     }
     await settleActiveDelegation(state, roomId, cancelled ? 'cancelled' : 'failed', {
@@ -1367,6 +1069,11 @@ async function sendSessionPrompt(state, roomId, prompt, { includeDelegationConte
 }
 
 // ── ACP Session Creation ──
+
+function isCancellationError(error) {
+  const text = String(error?.message || error || '').toLowerCase();
+  return error?.code === -32800 || text.includes('cancelled') || text.includes('canceled') || text.includes('aborted');
+}
 
 function isAuthenticationRequiredError(error, authMessage = '') {
   const text = String(authMessage || [error?.message, error?.data?.details, error?.data?.message].filter(Boolean).join(' | ')).toLowerCase();
@@ -1405,6 +1112,40 @@ async function withTimeout(promise, timeoutMs, label, onTimeout = () => {}) {
   } finally {
     if (timer) clearTimeout(timer);
   }
+}
+
+function spawnAcpChild(sessionId, agentName, launch) {
+  const resolvedLaunch = resolveSpawnLaunch(launch.command, launch.args || []);
+  const processLogger = getSessionLogger(sessionId, { agentName }).child({
+    area: 'acp-process',
+    launchSource: launch.source,
+  });
+  const child = spawn(resolvedLaunch.command, resolvedLaunch.args, {
+    stdio: ['pipe', 'pipe', 'pipe'],
+    env: { ...process.env, ...(ACP_AGENTS[agentName]?.env || {}) },
+    shell: false,
+  });
+  child.stderr?.on('data', (data) => {
+    const line = data.toString().trim();
+    if (line) {
+      processLogger.debug('acp.process.stderr', { line }, 'ACP process wrote to stderr');
+    }
+  });
+  child.on('error', (err) => {
+    processLogger.error('acp.process.spawn.failed', {
+      command: launch.command,
+      args: launch.args || [],
+      resolvedCommand: resolvedLaunch.command,
+      resolvedArgs: resolvedLaunch.args,
+      error: err,
+    }, 'Failed to spawn ACP process');
+    deactivateSession(sessionId, `Failed to start: ${err.message}`);
+  });
+  child.on('close', (code) => {
+    processLogger.info('acp.process.exited', { exitCode: code }, 'ACP process exited');
+    deactivateSession(sessionId, `Agent exited (code=${code})`);
+  });
+  return child;
 }
 
 async function createAcpSession(sessionId, agentName, workingDirectory) {
@@ -1461,18 +1202,14 @@ async function createAcpSession(sessionId, agentName, workingDirectory) {
       if (!authRequired) throw e;
       const authMethods = initResponse.authMethods;
       if (!authMethods?.length) throw new Error(`Agent "${agentName}" requires auth but advertised no methods`);
-      sessionLogger.info('acp.auth.required', {
-        methodName: authMethods[0].name,
-      }, 'ACP authentication required');
+      sessionLogger.info('acp.auth.required', { methodName: authMethods[0].name }, 'ACP authentication required');
       await withTimeout(
         connection.authenticate({ methodId: authMethods[0].id }),
         ACP_STARTUP_TIMEOUT_MS,
         `ACP authenticate for ${agentName}`,
         timeoutHandler,
       );
-      sessionLogger.info('acp.auth.completed', {
-        methodName: authMethods[0].name,
-      }, 'ACP authentication completed');
+      sessionLogger.info('acp.auth.completed', { methodName: authMethods[0].name }, 'ACP authentication completed');
       try {
         return await withTimeout(
           connection.newSession({ cwd: workingDirectory, mcpServers: [] }),
@@ -1498,7 +1235,7 @@ async function createAcpSession(sessionId, agentName, workingDirectory) {
     acpSessionId: sessionResponse.sessionId,
     process: child,
     displayName: initResponse.agentInfo?.title || initResponse.agentInfo?.name || config.displayName,
-    initResponse,
+    agentCapabilities: initResponse.agentCapabilities || {},
     sessionResponse,
   };
 }
@@ -1539,7 +1276,7 @@ async function resumeAcpSession(sessionId, agentName, acpSessionId, workingDirec
     clientCapabilities: { fs: { readTextFile: true, writeTextFile: true }, terminal: true },
   }), ACP_STARTUP_TIMEOUT_MS, `ACP initialize for ${agentName}`, timeoutHandler);
 
-  const loadResponse = await (async () => {
+  const sessionResponse = await (async () => {
     try {
       return await withTimeout(
         connection.loadSession({ sessionId: acpSessionId, cwd: workingDirectory, mcpServers: [] }),
@@ -1585,8 +1322,8 @@ async function resumeAcpSession(sessionId, agentName, acpSessionId, workingDirec
     acpSessionId,
     process: child,
     displayName: initResponse.agentInfo?.title || initResponse.agentInfo?.name || config.displayName,
-    initResponse,
-    loadResponse,
+    agentCapabilities: initResponse.agentCapabilities || {},
+    sessionResponse,
   };
 }
 
@@ -1689,7 +1426,7 @@ async function tryResumeSession(roomId, envelope) {
   const shouldTryResume = shouldTryAutoResumeSession(state, envelope?.type);
   if (!shouldTryResume) return state;
 
-  const saved = sessionStore[roomId];
+  const saved = sessionStore.get(roomId);
   if (!saved?.supportsResume) return state;
 
   const resumePromise = (async () => {
@@ -1736,14 +1473,15 @@ async function tryResumeSession(roomId, envelope) {
       const acp = await resumeAcpSession(roomId, saved.agentName, saved.acpSessionId, saved.cwd || process.cwd());
       Object.assign(state, {
         acpConnection: acp.connection,
-        acpSessionId: acp.acpSessionId,
         acpProcess: acp.process,
+        acpSessionId: acp.acpSessionId,
         _acpClient: acp.client,
+        _acpBuffers: { currentMessageText: '', currentThoughtText: '', msgCounter: 0, reasonCounter: 0 },
         active: true,
         isReady: true,
         isResuming: false,
       });
-      handleSessionCapabilities(state, roomId, acp.loadResponse);
+      seedAcpSessionToolbarState(state, acp.sessionResponse);
       emitSessionState(roomId);
       await botSend(roomId, { type: 'system.info', message: `Resumed ${acp.displayName}` });
       return state;
@@ -1792,6 +1530,294 @@ async function tryResumeSession(roomId, envelope) {
   return resumePromise;
 }
 
+/* ─────────────────────────────────────────────────────────────────────────
+ * Chat notification handlers
+ *
+ * `handleBotNotification` is the single entry point invoked by the
+ * ChatClient listener. It does framing (parse JSON, drop self-messages,
+ * route by room/envelope-type) and delegates to one of the handlers
+ * below; each handler closes over the daemon's module-scope state
+ * (sessions, sessionStore, BOT_USER_ID…) so they don't take that as args.
+ * ───────────────────────────────────────────────────────────────────────── */
+
+async function handleDaemonControlEnvelope(envelope) {
+  if (envelope.type !== 'workspace.list_request') return;
+  if (envelope.daemonId !== BOT_USER_ID || !envelope.requestId || !envelope.requesterUserId) return;
+  const result = await listDirectoriesForPath(envelope.path, advertisedWorkspaces, {
+    query: envelope.query,
+    limit: envelope.limit,
+  });
+  await botSend(DAEMON_CONTROL_ROOM, {
+    type: 'workspace.list_response',
+    requestId: envelope.requestId,
+    requesterUserId: envelope.requesterUserId,
+    daemonId: BOT_USER_ID,
+    ...result,
+  });
+}
+
+async function handleDelegationRequest(roomId, delegationEnvelope) {
+  if (!String(delegationEnvelope.prompt || '').trim()) {
+    await failDelegationRequest(delegationEnvelope, 'Delegation prompt is empty');
+    return;
+  }
+
+  const state = await tryResumeSession(roomId, delegationEnvelope) || sessions.get(roomId);
+  if (!state || state.active === false) {
+    await failDelegationRequest(delegationEnvelope, 'Target session is not active on this daemon');
+    return;
+  }
+  if (state.activeDelegation && state.activeDelegation.delegationId !== delegationEnvelope.delegationId) {
+    await failDelegationRequest(delegationEnvelope, 'Target session is already running another delegation');
+    return;
+  }
+  if (state.isProcessing && (!state.activeDelegation || state.activeDelegation.delegationId !== delegationEnvelope.delegationId)) {
+    await failDelegationRequest(delegationEnvelope, 'Target session is busy');
+    return;
+  }
+
+  await startDelegationForSession(state, roomId, delegationEnvelope);
+  await botSend(roomId, {
+    type: 'system.info',
+    message: `Delegated prompt from ${delegationEnvelope.requesterUserId}`,
+  });
+  await botSend(roomId, {
+    type: 'user.prompt',
+    content: delegationEnvelope.prompt,
+  });
+  await sendSessionPrompt(state, roomId, delegationEnvelope.prompt, { includeDelegationContext: false });
+}
+
+async function handleDelegationCancel(roomId, delegationEnvelope) {
+  const state = sessions.get(roomId) || await tryResumeSession(roomId, delegationEnvelope);
+  if (!state?.activeDelegation || state.activeDelegation.delegationId !== delegationEnvelope.delegationId) return;
+  try {
+    await cancelSessionTurn(state, roomId);
+  } catch (err) {
+    state.isStopping = false;
+    emitSessionState(roomId);
+    await botSend(roomId, { type: 'session.error', message: `Failed to stop delegated response: ${err.message}` });
+    await settleActiveDelegation(state, roomId, 'failed', { errorMessage: err.message });
+  }
+}
+
+async function handleDelegationControl(roomId, msg, delegationEnvelope) {
+  if (!isPortalControlUser(msg.createdBy)) {
+    getSessionLogger(roomId).child({ area: 'security' }).warn('delegation.control.unauthorized', {
+      actorUserId: msg.createdBy,
+    }, 'Ignoring unauthorized delegation control');
+    return;
+  }
+  if (delegationEnvelope.targetDaemonId !== BOT_USER_ID) {
+    getSessionLogger(roomId).child({ area: 'delegation' }).warn('delegation.request.wrong-target', {
+      delegationId: delegationEnvelope.delegationId,
+      targetDaemonId: delegationEnvelope.targetDaemonId,
+    }, 'Ignoring delegation for another daemon');
+    return;
+  }
+  if (delegationEnvelope.type === 'control.delegation.request') {
+    await handleDelegationRequest(roomId, delegationEnvelope);
+  } else if (delegationEnvelope.type === 'control.delegation.cancel') {
+    await handleDelegationCancel(roomId, delegationEnvelope);
+  }
+}
+
+async function handleControlCreate(roomId, msg, envelope) {
+  if (!isPortalControlUser(msg.createdBy)) {
+    getSessionLogger(roomId).child({ area: 'security' }).warn('control.create.unauthorized', {
+      actorUserId: msg.createdBy,
+    }, 'Ignoring unauthorized session create');
+    return;
+  }
+  const { userId, agentName, workingDirectory, initialPrompt, model } = envelope;
+  getSessionLogger(roomId, { agentName }).child({ area: 'control' }).info('control.create.received', {
+    ownerUserId: userId,
+    requestedWorkingDirectory: workingDirectory,
+    hasInitialPrompt: !!String(initialPrompt || '').trim(),
+    model: model || undefined,
+  }, 'Received session create request');
+  let selectedWorkingDirectory;
+  try {
+    selectedWorkingDirectory = await resolveWorkingDirectoryOrThrow(workingDirectory);
+  } catch (err) {
+    await botSend(roomId, { type: 'session.error', message: err.message });
+    return;
+  }
+  const existingState = sessions.get(roomId);
+  if (existingState) {
+    await stopExistingSession(existingState);
+    sessions.delete(roomId);
+  }
+  const state = createSessionState({
+    sessionId: roomId,
+    agentName,
+    firstPrompt: initialPrompt || '',
+    ownerUserId: userId,
+    workingDirectory: selectedWorkingDirectory,
+    model: model || (agentName === 'copilot-sdk' ? DEFAULT_SDK_MODEL : 'default'),
+  });
+  sessions.set(roomId, state);
+  emitSessionState(roomId);
+
+  if (agentName === 'copilot-sdk') {
+    await botSend(roomId, { type: 'system.info', message: 'Starting GitHub Copilot (SDK)…' });
+    try {
+      state.startupPromise = (async () => {
+        await startSdkSession(roomId, state, { model, workingDirectory: selectedWorkingDirectory });
+        state.isReady = true;
+      })();
+      await state.startupPromise;
+      await botSend(roomId, { type: 'system.info', message: 'Connected to GitHub Copilot (SDK)' });
+      await syncSessionUiState(roomId, state);
+      if (initialPrompt) {
+        await sendSessionPrompt(state, roomId, initialPrompt);
+      }
+    } catch (err) {
+      getSessionLogger(roomId, state).child({ area: 'startup' }).error('sdk.session.start.failed', {
+        error: err,
+      }, 'Copilot SDK session start failed');
+      deactivateSession(roomId, `Failed to start: ${err.message}`);
+    } finally {
+      state.startupPromise = null;
+    }
+    return;
+  }
+
+  await botSend(roomId, { type: 'system.info', message: `Starting ${ACP_AGENTS[agentName]?.displayName || agentName}…` });
+  try {
+    let connectedDisplayName = ACP_AGENTS[agentName]?.displayName || agentName;
+    state.startupPromise = (async () => {
+      const acp = await createAcpSession(roomId, agentName, selectedWorkingDirectory);
+      Object.assign(state, {
+        acpConnection: acp.connection,
+        acpProcess: acp.process,
+        acpSessionId: acp.acpSessionId,
+        _acpClient: acp.client,
+        _acpBuffers: { currentMessageText: '', currentThoughtText: '', msgCounter: 0, reasonCounter: 0 },
+        active: true,
+        isReady: true,
+      });
+      seedAcpSessionToolbarState(state, acp.sessionResponse);
+      connectedDisplayName = acp.displayName || connectedDisplayName;
+      persistSessionRecord(roomId, {
+        agentName,
+        acpSessionId: acp.acpSessionId,
+        cwd: selectedWorkingDirectory,
+        supportsResume: acp.agentCapabilities?.loadSession ?? false,
+        delegationContextEntries: state.delegationContextEntries,
+      });
+    })();
+    await state.startupPromise;
+    await botSend(roomId, { type: 'system.info', message: `Connected to ${connectedDisplayName}` });
+    await syncSessionUiState(roomId, state);
+    if (initialPrompt) await sendSessionPrompt(state, roomId, initialPrompt);
+  } catch (err) {
+    getSessionLogger(roomId, state).child({ area: 'startup' }).error('acp.session.start.failed', {
+      error: err,
+    }, 'ACP session start failed');
+    deactivateSession(roomId, `Failed to start: ${err.message}`);
+  } finally {
+    state.startupPromise = null;
+  }
+}
+
+async function handleControlDelete(roomId, msg) {
+  const state = sessions.get(roomId);
+  if (!isPortalControlUser(msg.createdBy) && !isSessionOwner(state, msg.createdBy)) {
+    getSessionLogger(roomId, state).child({ area: 'security' }).warn('control.delete.unauthorized', {
+      actorUserId: msg.createdBy,
+    }, 'Ignoring unauthorized session delete');
+    return;
+  }
+  await stopExistingSession(state);
+  sessions.delete(roomId);
+  deleteSessionRecord(roomId);
+  getSessionLogger(roomId, state).child({ area: 'control' }).info('session.deleted', {}, 'Session deleted');
+}
+
+async function handleControlCancel(roomId, msg) {
+  const state = sessions.get(roomId);
+  if (!state) return;
+  if (!isPortalControlUser(msg.createdBy) && !isSessionOwner(state, msg.createdBy)) {
+    getSessionLogger(roomId, state).child({ area: 'security' }).warn('control.cancel.unauthorized', {
+      actorUserId: msg.createdBy,
+    }, 'Ignoring unauthorized session cancel');
+    return;
+  }
+  try {
+    await cancelSessionTurn(state, roomId);
+  } catch (err) {
+    state.isStopping = false;
+    emitSessionState(roomId);
+    await botSend(roomId, { type: 'session.error', message: `Failed to stop current response: ${err.message}` });
+  }
+}
+
+async function handleUserCommand(roomId, state, command) {
+  const cmd = command.trim();
+  if (!cmd) return;
+  getSessionLogger(roomId, state).info('session.command.received', {
+    commandName: cmd.split(/\s+/)[0] || cmd,
+  }, 'Received user command');
+  if (cmd === '/clear') {
+    await botSend(roomId, { type: 'system.clear' });
+    return;
+  }
+  if (cmd.startsWith('/model ')) {
+    await handleModelSwitch(state, roomId, cmd.slice(7).trim());
+    return;
+  }
+  if (cmd.startsWith('/mode ')) {
+    await handleModeSwitch(state, roomId, cmd.slice(6).trim());
+    return;
+  }
+  await sendSessionPrompt(state, roomId, cmd);
+}
+
+async function handlePermissionResponse(roomId, state, msg, envelope) {
+  if (!envelope.requestId) return;
+  if (!isPortalControlUser(msg.createdBy) && !isSessionOwner(state, msg.createdBy) && msg.createdBy !== BOT_OWNER_USER_ID) {
+    getSessionLogger(roomId, state).warn('permission.response.ignored', {
+      requestId: envelope.requestId,
+      userId: msg.createdBy,
+    }, 'Ignoring permission response from unauthorized user');
+    return;
+  }
+  const pending = state.pendingPermissions.get(envelope.requestId);
+  if (!pending) return;
+  getSessionLogger(roomId, state).info('permission.response.received', {
+    approved: !!envelope.approved,
+    requestId: envelope.requestId.substring(0, 8),
+    userId: msg.createdBy,
+  }, 'Received permission response');
+  pending.resolve(!!envelope.approved);
+  state.pendingPermissions.delete(envelope.requestId);
+}
+
+async function handleSessionEnvelope(roomId, msg, envelope) {
+  const state = await tryResumeSession(roomId, envelope) || sessions.get(roomId);
+  if (!state) return;
+  switch (envelope.type) {
+    case 'user.prompt':
+      if (envelope.content) {
+        getSessionLogger(roomId, state).info('session.prompt.received', {
+          promptLength: String(envelope.content).length,
+        }, 'Received user prompt');
+        await sendSessionPrompt(state, roomId, envelope.content);
+      }
+      return;
+    case 'user.command':
+      if (envelope.command) await handleUserCommand(roomId, state, envelope.command);
+      return;
+    case 'permission.response':
+      await handlePermissionResponse(roomId, state, msg, envelope);
+      return;
+    case 'session.sync_state':
+      syncSessionUiState(roomId, state);
+      return;
+  }
+}
+
 async function handleBotNotification(notification) {
   try {
     const msg = notification.message;
@@ -1802,86 +1828,14 @@ async function handleBotNotification(notification) {
     try { envelope = JSON.parse(msg.content.text); } catch { return; }
 
     if (roomId === DAEMON_CONTROL_ROOM) {
-      if (envelope.type === 'workspace.list_request' && envelope.daemonId === BOT_USER_ID && envelope.requestId && envelope.requesterUserId) {
-        const result = await listDirectoriesForPath(envelope.path, advertisedWorkspaces, {
-          query: envelope.query,
-          limit: envelope.limit,
-        });
-        await botSend(DAEMON_CONTROL_ROOM, {
-          type: 'workspace.list_response',
-          requestId: envelope.requestId,
-          requesterUserId: envelope.requesterUserId,
-          daemonId: BOT_USER_ID,
-          ...result,
-        });
-      }
+      await handleDaemonControlEnvelope(envelope);
       return;
     }
 
     const delegationEnvelope = parseDelegationTargetControlEnvelope(envelope);
     if (delegationEnvelope) {
-      if (!isPortalControlUser(msg.createdBy)) {
-        getSessionLogger(roomId).child({ area: 'security' }).warn('delegation.control.unauthorized', {
-          actorUserId: msg.createdBy,
-        }, 'Ignoring unauthorized delegation control');
-        return;
-      }
-      if (delegationEnvelope.targetDaemonId !== BOT_USER_ID) {
-        getSessionLogger(roomId).child({ area: 'delegation' }).warn('delegation.request.wrong-target', {
-          delegationId: delegationEnvelope.delegationId,
-          targetDaemonId: delegationEnvelope.targetDaemonId,
-        }, 'Ignoring delegation for another daemon');
-        return;
-      }
-
-      if (delegationEnvelope.type === 'control.delegation.request') {
-        if (!String(delegationEnvelope.prompt || '').trim()) {
-          await failDelegationRequest(delegationEnvelope, 'Delegation prompt is empty');
-          return;
-        }
-
-        const state = await tryResumeSession(roomId, delegationEnvelope) || sessions.get(roomId);
-        if (!state || state.active === false) {
-          await failDelegationRequest(delegationEnvelope, 'Target session is not active on this daemon');
-          return;
-        }
-        if (state.activeDelegation && state.activeDelegation.delegationId !== delegationEnvelope.delegationId) {
-          await failDelegationRequest(delegationEnvelope, 'Target session is already running another delegation');
-          return;
-        }
-        if (state.isProcessing && (!state.activeDelegation || state.activeDelegation.delegationId !== delegationEnvelope.delegationId)) {
-          await failDelegationRequest(delegationEnvelope, 'Target session is busy');
-          return;
-        }
-
-        await startDelegationForSession(state, roomId, delegationEnvelope);
-        await botSend(roomId, {
-          type: 'system.info',
-          message: `Delegated prompt from ${delegationEnvelope.requesterUserId}`,
-        });
-        await botSend(roomId, {
-          type: 'user.prompt',
-          content: delegationEnvelope.prompt,
-        });
-        await sendSessionPrompt(state, roomId, delegationEnvelope.prompt, { includeDelegationContext: false });
-        return;
-      }
-
-      if (delegationEnvelope.type === 'control.delegation.cancel') {
-        const state = sessions.get(roomId) || await tryResumeSession(roomId, delegationEnvelope);
-        if (!state?.activeDelegation || state.activeDelegation.delegationId !== delegationEnvelope.delegationId) {
-          return;
-        }
-        try {
-          await cancelSessionTurn(state, roomId);
-        } catch (err) {
-          state.isStopping = false;
-          emitSessionState(roomId);
-          await botSend(roomId, { type: 'session.error', message: `Failed to stop delegated response: ${err.message}` });
-          await settleActiveDelegation(state, roomId, 'failed', { errorMessage: err.message });
-        }
-        return;
-      }
+      await handleDelegationControl(roomId, msg, delegationEnvelope);
+      return;
     }
 
     const delegationSummaryEnvelope = parseDelegationSummaryEnvelope(envelope);
@@ -1891,215 +1845,93 @@ async function handleBotNotification(notification) {
     }
 
     if (envelope.type === 'control.create') {
-      if (!isPortalControlUser(msg.createdBy)) {
-        getSessionLogger(roomId).child({ area: 'security' }).warn('control.create.unauthorized', {
-          actorUserId: msg.createdBy,
-        }, 'Ignoring unauthorized session create');
-        return;
-      }
-      const { userId, agentName, workingDirectory, initialPrompt, model } = envelope;
-      getSessionLogger(roomId, { agentName }).child({ area: 'control' }).info('control.create.received', {
-        ownerUserId: userId,
-        requestedWorkingDirectory: workingDirectory,
-        hasInitialPrompt: !!String(initialPrompt || '').trim(),
-        model: model || undefined,
-      }, 'Received session create request');
-      let selectedWorkingDirectory;
-      try {
-        selectedWorkingDirectory = await resolveWorkingDirectoryOrThrow(workingDirectory);
-      } catch (err) {
-        await botSend(roomId, { type: 'session.error', message: err.message });
-        return;
-      }
-      const existingState = sessions.get(roomId);
-      if (existingState) {
-        await stopExistingSession(existingState);
-        sessions.delete(roomId);
-      }
-      const state = createSessionState({
-        sessionId: roomId,
-        agentName,
-        firstPrompt: initialPrompt || '',
-        ownerUserId: userId,
-        workingDirectory: selectedWorkingDirectory,
-        model: model || (agentName === 'copilot-sdk' ? DEFAULT_SDK_MODEL : 'default'),
-      });
-      sessions.set(roomId, state);
-      emitSessionState(roomId);
-
-      if (agentName === 'copilot-sdk') {
-        await botSend(roomId, { type: 'system.info', message: 'Starting GitHub Copilot (SDK)…' });
-        try {
-          state.startupPromise = (async () => {
-            await startSdkSession(roomId, state, { model, workingDirectory: selectedWorkingDirectory });
-            state.isReady = true;
-          })();
-          await state.startupPromise;
-          await botSend(roomId, { type: 'system.info', message: 'Connected to GitHub Copilot (SDK)' });
-          emitSessionState(roomId);
-          if (initialPrompt) {
-            await sendSessionPrompt(state, roomId, initialPrompt);
-          }
-        } catch (err) {
-          getSessionLogger(roomId, state).child({ area: 'startup' }).error('sdk.session.start.failed', {
-            error: err,
-          }, 'Copilot SDK session start failed');
-          deactivateSession(roomId, `Failed to start: ${err.message}`);
-        } finally {
-          state.startupPromise = null;
-        }
-      } else {
-        await botSend(roomId, { type: 'system.info', message: `Starting ${ACP_AGENTS[agentName]?.displayName || agentName}…` });
-        try {
-          let connectedDisplayName = ACP_AGENTS[agentName]?.displayName || agentName;
-          state.startupPromise = (async () => {
-            const acp = await createAcpSession(roomId, agentName, selectedWorkingDirectory);
-            Object.assign(state, { acpConnection: acp.connection, acpSessionId: acp.acpSessionId, acpProcess: acp.process, _acpClient: acp.client, active: true, isReady: true });
-            connectedDisplayName = acp.displayName || connectedDisplayName;
-            handleSessionCapabilities(state, roomId, acp.sessionResponse || acp.loadResponse || acp.initResponse);
-            persistSessionRecord(roomId, {
-              agentName,
-              acpSessionId: acp.acpSessionId,
-              cwd: selectedWorkingDirectory,
-              supportsResume: acp.initResponse.agentCapabilities?.loadSession ?? false,
-              delegationContextEntries: state.delegationContextEntries,
-            });
-          })();
-          await state.startupPromise;
-          await botSend(roomId, { type: 'system.info', message: `Connected to ${connectedDisplayName}` });
-          emitSessionState(roomId);
-          if (initialPrompt) await sendSessionPrompt(state, roomId, initialPrompt);
-        } catch (err) {
-          getSessionLogger(roomId, state).child({ area: 'startup' }).error('acp.session.start.failed', {
-            error: err,
-          }, 'ACP session start failed');
-          deactivateSession(roomId, `Failed to start: ${err.message}`);
-        } finally {
-          state.startupPromise = null;
-        }
-      }
+      await handleControlCreate(roomId, msg, envelope);
       return;
     }
-
     if (envelope.type === 'control.delete') {
-      const state = sessions.get(roomId);
-      if (!isPortalControlUser(msg.createdBy) && !isSessionOwner(state, msg.createdBy)) {
-        getSessionLogger(roomId, state).child({ area: 'security' }).warn('control.delete.unauthorized', {
-          actorUserId: msg.createdBy,
-        }, 'Ignoring unauthorized session delete');
-        return;
-      }
-      await stopExistingSession(state);
-      sessions.delete(roomId);
-      deleteSessionRecord(roomId);
-      getSessionLogger(roomId, state).child({ area: 'control' }).info('session.deleted', {}, 'Session deleted');
+      await handleControlDelete(roomId, msg);
       return;
     }
-
     if (envelope.type === 'control.cancel') {
-      const state = sessions.get(roomId);
-      if (!state) return;
-      if (!isPortalControlUser(msg.createdBy) && !isSessionOwner(state, msg.createdBy)) {
-        getSessionLogger(roomId, state).child({ area: 'security' }).warn('control.cancel.unauthorized', {
-          actorUserId: msg.createdBy,
-        }, 'Ignoring unauthorized session cancel');
-        return;
-      }
-      try {
-        await cancelSessionTurn(state, roomId);
-      } catch (err) {
-        state.isStopping = false;
-        emitSessionState(roomId);
-        await botSend(roomId, { type: 'session.error', message: `Failed to stop current response: ${err.message}` });
-      }
+      await handleControlCancel(roomId, msg);
       return;
     }
 
-    const state = await tryResumeSession(roomId, envelope) || sessions.get(roomId);
-    if (!state) return;
-
-    switch (envelope.type) {
-      case 'user.prompt':
-        if (envelope.content) {
-          getSessionLogger(roomId, state).info('session.prompt.received', {
-            promptLength: String(envelope.content).length,
-          }, 'Received user prompt');
-          await sendSessionPrompt(state, roomId, envelope.content);
-        }
-        break;
-      case 'user.command':
-        if (envelope.command) {
-          const cmd = envelope.command.trim();
-          getSessionLogger(roomId, state).info('session.command.received', {
-            commandName: cmd.split(/\s+/)[0] || cmd,
-          }, 'Received user command');
-          if (cmd === '/clear') {
-            await botSend(roomId, { type: 'system.clear' });
-            break;
-          }
-          if (cmd.startsWith('/model ')) {
-            await handleModelSwitch(state, roomId, cmd.slice(7).trim());
-            break;
-          }
-          if (cmd.startsWith('/mode ')) {
-            await handleModeSwitch(state, roomId, cmd.slice(6).trim());
-            break;
-          }
-          await sendSessionPrompt(state, roomId, cmd);
-        }
-        break;
-      case 'permission.response':
-        if (envelope.requestId) {
-          if (!isPortalControlUser(msg.createdBy) && !isSessionOwner(state, msg.createdBy) && msg.createdBy !== BOT_OWNER_USER_ID) {
-            getSessionLogger(roomId, state).warn('permission.response.ignored', {
-              requestId: envelope.requestId,
-              userId: msg.createdBy,
-            }, 'Ignoring permission response from unauthorized user');
-            break;
-          }
-          const pending = state.pendingPermissions.get(envelope.requestId);
-          if (pending) {
-            getSessionLogger(roomId, state).info('permission.response.received', {
-              approved: !!envelope.approved,
-              requestId: envelope.requestId.substring(0, 8),
-              userId: msg.createdBy,
-            }, 'Received permission response');
-            pending.resolve(!!envelope.approved);
-            state.pendingPermissions.delete(envelope.requestId);
-          }
-        }
-        break;
-      case 'session.sync_state':
-        syncSessionUiState(roomId, state);
-        break;
-    }
+    await handleSessionEnvelope(roomId, msg, envelope);
   } catch (err) {
     daemonLogger.error('chat.message.handle.failed', {
       error: err,
-      roomId,
+      roomId: notification.conversation?.roomId,
     }, 'Failed to handle incoming chat message');
   }
 }
 
-// ── ACP Client (events + local fs/terminal) ──
+// ── ACP Client (sessionUpdate / fs / terminal / permission) ──
 
+function pickToolName(currentName, metaToolName, updateToolName, title) {
+  for (const candidate of [metaToolName, updateToolName]) {
+    if (candidate && !isGenericToolName(candidate)) return candidate;
+  }
+  if (currentName && !isGenericToolName(currentName)) return currentName;
+  if (title && !looksLikeCommand(title)) return title;
+  return currentName || metaToolName || updateToolName || title || 'Tool';
+}
+
+/**
+ * Build the Client implementation passed to ACP's ClientSideConnection. One
+ * createAcpClient call backs one ACP session (the daemon spawns one child
+ * process per session, so there is exactly one Client per connection).
+ *
+ * The returned object owns:
+ *   - sessionUpdate handling: turns raw ACP `session/update` notifications
+ *     into chat envelopes (assistant.delta / assistant.message /
+ *     assistant.reasoning / tool.start / tool.end / mode.changed / usage.update
+ *     / session.error).
+ *   - permission requests: forwards to the chat room and resolves once the
+ *     user replies via `permission.response`.
+ *   - readTextFile / writeTextFile: scoped to the session's workingDirectory
+ *     via resolveSessionPath().
+ *   - createTerminal / terminalOutput / waitForTerminalExit / killTerminal /
+ *     releaseTerminal: a small in-process terminal pool kept on the client
+ *     itself (`_terminals`) so cleanupClientTerminals() can kill them on
+ *     session teardown.
+ *
+ * Streaming text (`agent_message_chunk` / `agent_thought_chunk`) is buffered
+ * on `state._acpBuffers`, which is owned by the SessionState and read by
+ * flushAcpBufferedContent() at end-of-turn.
+ */
 function createAcpClient(sessionId) {
   return {
-    _agent: null, _currentMessageText: '', _currentThoughtText: '', _msgCounter: 0, _reasonCounter: 0,
+    _agent: null,
 
     async requestPermission(params) {
       const state = sessions.get(sessionId);
       if (!state) return { outcome: { outcome: 'cancelled' } };
       const requestId = randomUUID();
-      await botSend(sessionId, { type: 'permission.request', requestId, kind: 'shell', description: params.toolCall?.title || 'Permission', ...params });
+      await botSend(sessionId, {
+        type: 'permission.request',
+        requestId,
+        kind: 'shell',
+        description: params.toolCall?.title || 'Permission',
+        ...params,
+      });
       return new Promise((resolve) => {
         state.pendingPermissions.set(requestId, {
           resolve: (approved) => {
             const allowOpt = params.options?.find(o => o.kind?.startsWith('allow'));
-            resolve(approved ? { outcome: { outcome: 'selected', optionId: allowOpt?.optionId || params.options?.[0]?.optionId } } : { outcome: { outcome: 'cancelled' } });
-          }, request: params, timestamp: Date.now(),
+            resolve(approved
+              ? { outcome: { outcome: 'selected', optionId: allowOpt?.optionId || params.options?.[0]?.optionId } }
+              : { outcome: { outcome: 'cancelled' } });
+          },
+          request: params,
+          timestamp: Date.now(),
         });
-        setTimeout(() => { if (state.pendingPermissions.has(requestId)) { state.pendingPermissions.delete(requestId); resolve({ outcome: { outcome: 'cancelled' } }); } }, 5 * 60 * 1000);
+        setTimeout(() => {
+          if (state.pendingPermissions.has(requestId)) {
+            state.pendingPermissions.delete(requestId);
+            resolve({ outcome: { outcome: 'cancelled' } });
+          }
+        }, 5 * 60 * 1000);
       });
     },
 
@@ -2107,6 +1939,7 @@ function createAcpClient(sessionId) {
       const update = params.update;
       const type = update?.sessionUpdate;
       const state = sessions.get(sessionId);
+      const buffers = state?._acpBuffers;
       const sessionLogger = getSessionLogger(sessionId, state);
       if (state?.isResuming) {
         if (!['available_commands_update', 'current_mode_update', 'usage_update', 'config_option_update'].includes(type)) {
@@ -2133,27 +1966,49 @@ function createAcpClient(sessionId) {
         case 'user_message_chunk':
           break;
         case 'agent_message_chunk': {
+          if (!buffers) break;
           flushCompletedToolInvocations(sessionId);
-          const text = update.content?.text || ''; if (!text) break;
-          this._currentMessageText += text;
-          sendDelta(sessionId, `acp-msg-${this._msgCounter}`, text);
+          const text = update.content?.text || '';
+          if (!text) break;
+          buffers.currentMessageText += text;
+          sendDelta(sessionId, `acp-msg-${buffers.msgCounter}`, text);
           break;
         }
         case 'agent_thought_chunk': {
+          if (!buffers) break;
           flushCompletedToolInvocations(sessionId);
-          const text = update.content?.text || ''; if (!text) break;
-          this._currentThoughtText += text;
-          sendDelta(sessionId, `reasoning-acp-reason-${this._reasonCounter}`, text, 'assistant.reasoning_delta', 'reasoningId', `acp-reason-${this._reasonCounter}`);
+          const text = update.content?.text || '';
+          if (!text) break;
+          buffers.currentThoughtText += text;
+          sendDelta(
+            sessionId,
+            `reasoning-acp-reason-${buffers.reasonCounter}`,
+            text,
+            'assistant.reasoning_delta',
+            'reasoningId',
+            `acp-reason-${buffers.reasonCounter}`,
+          );
           break;
         }
         case 'tool_call': {
-          if (this._currentMessageText) { const id = `acp-msg-${this._msgCounter++}`; await flushDelta(id); await botSend(sessionId, { type: 'assistant.message', messageId: id, content: this._currentMessageText }); this._currentMessageText = ''; }
-          if (this._currentThoughtText) { const rid = `acp-reason-${this._reasonCounter++}`; await flushDelta(`reasoning-${rid}`); await botSend(sessionId, { type: 'assistant.reasoning', reasoningId: rid, content: this._currentThoughtText }); this._currentThoughtText = ''; }
-          const state = sessions.get(sessionId);
+          if (buffers?.currentMessageText) {
+            const id = `acp-msg-${buffers.msgCounter++}`;
+            await flushDelta(id);
+            await botSend(sessionId, { type: 'assistant.message', messageId: id, content: buffers.currentMessageText });
+            buffers.currentMessageText = '';
+          }
+          if (buffers?.currentThoughtText) {
+            const rid = `acp-reason-${buffers.reasonCounter++}`;
+            await flushDelta(`reasoning-${rid}`);
+            await botSend(sessionId, { type: 'assistant.reasoning', reasoningId: rid, content: buffers.currentThoughtText });
+            buffers.currentThoughtText = '';
+          }
           const tcId = update.toolCallId || randomUUID();
           const meta = update._meta?.claudeCode || {};
           flushCompletedToolInvocations(sessionId, tcId);
-          const invocation = state?.toolInvocations?.get(tcId) || { name: 'Tool', args: undefined, output: '', success: true, completedPending: false, started: false };
+          const invocation = state?.toolInvocations?.get(tcId) || {
+            name: 'Tool', args: undefined, output: '', success: true, completedPending: false, started: false,
+          };
           const name = pickToolName(invocation.name, meta.toolName, update.toolName, update.title);
           const status = update.status || 'pending';
           const toolInput = normalizeToolArgs(meta.input || update.input, update.title);
@@ -2168,9 +2023,7 @@ function createAcpClient(sessionId) {
             invocation.started = true;
             botSend(sessionId, { type: 'tool.start', toolCallId: tcId, name, args: invocation.args });
           }
-          if (invocation.completedPending) {
-            flushCompletedToolInvocations(sessionId);
-          }
+          if (invocation.completedPending) flushCompletedToolInvocations(sessionId);
           sessionLogger.child({ area: 'tool', toolCallId: tcId, toolName: name }).debug('tool.update', {
             outputLength: toolOutput ? String(toolOutput).length : 0,
             status,
@@ -2182,12 +2035,13 @@ function createAcpClient(sessionId) {
             sessionLogger.child({ area: 'tool' }).warn('tool.update.missingId', {}, 'Ignoring tool_call_update without toolCallId');
             break;
           }
-          const state = sessions.get(sessionId);
           const tcId = update.toolCallId;
           const status = update.status || 'completed';
           const meta = update._meta?.claudeCode || {};
           flushCompletedToolInvocations(sessionId, tcId);
-          const invocation = state?.toolInvocations?.get(tcId) || { name: 'Tool', args: undefined, output: '', success: true, completedPending: false, started: false };
+          const invocation = state?.toolInvocations?.get(tcId) || {
+            name: 'Tool', args: undefined, output: '', success: true, completedPending: false, started: false,
+          };
           const name = pickToolName(invocation.name, meta.toolName, update.toolName, update.title);
           const toolInput = normalizeToolArgs(meta.input || update.input, update.title);
           const toolOutput = normalizeToolOutput(update.rawOutput?.content ?? update.rawOutput ?? update.toolResponse ?? meta.toolResponse ?? '');
@@ -2201,11 +2055,7 @@ function createAcpClient(sessionId) {
             invocation.started = true;
             botSend(sessionId, { type: 'tool.start', toolCallId: tcId, name, args: invocation.args });
           }
-          // Flush immediately when the tool is done — don't wait for the next event.
-          // Without this, rejected/errored tools stay as spinning ⟳ on the frontend.
-          if (invocation.completedPending) {
-            flushCompletedToolInvocations(sessionId);
-          }
+          if (invocation.completedPending) flushCompletedToolInvocations(sessionId);
           sessionLogger.child({ area: 'tool', toolCallId: tcId, toolName: name }).debug('tool.update', {
             outputLength: toolOutput ? String(toolOutput).length : 0,
             status,
@@ -2250,7 +2100,7 @@ function createAcpClient(sessionId) {
       }
     },
 
-    // ── File System (local) ──
+    // ── File System (local, scoped to session.workingDirectory) ──
     async readTextFile(params) {
       const state = sessions.get(sessionId);
       const filePath = resolveSessionPath(state?.workingDirectory, params.path);
@@ -2258,9 +2108,13 @@ function createAcpClient(sessionId) {
         filePath: summarizePathForLog(relative(state?.workingDirectory || process.cwd(), filePath) || params.path),
       }, 'Reading text file');
       let content = await readFile(filePath, 'utf-8');
-      if (params.line != null || params.limit != null) { const lines = content.split('\n'); content = lines.slice((params.line ?? 1) - 1, params.limit ? (params.line ?? 1) - 1 + params.limit : lines.length).join('\n'); }
+      if (params.line != null || params.limit != null) {
+        const lines = content.split('\n');
+        content = lines.slice((params.line ?? 1) - 1, params.limit ? (params.line ?? 1) - 1 + params.limit : lines.length).join('\n');
+      }
       return { content };
     },
+
     async writeTextFile(params) {
       const state = sessions.get(sessionId);
       const filePath = resolveSessionPath(state?.workingDirectory, params.path);
@@ -2273,8 +2127,10 @@ function createAcpClient(sessionId) {
       return {};
     },
 
-    // ── Terminal (local) ──
-    _terminals: new Map(), _termNextId: 1,
+    // ── Terminal (local, in-process pool) ──
+    _terminals: new Map(),
+    _termNextId: 1,
+
     async createTerminal(params) {
       const id = `term_${this._termNextId++}`;
       const state = sessions.get(sessionId);
@@ -2286,17 +2142,32 @@ function createAcpClient(sessionId) {
         terminalId: id,
       }, 'Created local terminal');
       const child = spawn(params.command, params.args || [], { cwd, stdio: ['pipe', 'pipe', 'pipe'] });
-      let output = ''; const limit = params.outputByteLimit ?? 1024 * 1024;
+      let output = '';
+      const limit = params.outputByteLimit ?? 1024 * 1024;
       child.stdout?.on('data', d => { output += d.toString(); if (output.length > limit) output = output.slice(-limit); });
       child.stderr?.on('data', d => { output += d.toString(); if (output.length > limit) output = output.slice(-limit); });
-      const exitPromise = new Promise(r => { child.on('close', code => { const t = this._terminals.get(id); if (t) { t.exitCode = code; t.exited = true; } r(); }); child.on('error', () => r()); });
+      const exitPromise = new Promise(r => {
+        child.on('close', code => {
+          const t = this._terminals.get(id);
+          if (t) { t.exitCode = code; t.exited = true; }
+          r();
+        });
+        child.on('error', () => r());
+      });
       this._terminals.set(id, { process: child, output: () => output, exitCode: null, exited: false, exitPromise });
       return { terminalId: id };
     },
-    async terminalOutput(params) { const t = this._terminals.get(params.terminalId); return { output: t?.output() || '', truncated: false }; },
+
+    async terminalOutput(params) {
+      const t = this._terminals.get(params.terminalId);
+      return { output: t?.output() || '', truncated: false };
+    },
+
     async waitForTerminalExit(params) {
       const t = this._terminals.get(params.terminalId);
-      if (t && !t.exited) await Promise.race([t.exitPromise, new Promise(r => setTimeout(r, params.timeout ?? 30000))]);
+      if (t && !t.exited) {
+        await Promise.race([t.exitPromise, new Promise(r => setTimeout(r, params.timeout ?? 30000))]);
+      }
       const code = t?.exitCode ?? -1;
       getSessionLogger(sessionId).child({ area: 'terminal' }).debug('terminal.exited', {
         exitCode: code,
@@ -2304,10 +2175,20 @@ function createAcpClient(sessionId) {
       }, 'Terminal exited');
       return { exitCode: code };
     },
-    async killTerminal(params) { const t = this._terminals.get(params.terminalId); if (t) try { t.process.kill('SIGTERM'); } catch {} return {}; },
-    async releaseTerminal(params) { this._terminals.delete(params.terminalId); return {}; },
+
+    async killTerminal(params) {
+      const t = this._terminals.get(params.terminalId);
+      if (t) try { t.process.kill('SIGTERM'); } catch {}
+      return {};
+    },
+
+    async releaseTerminal(params) {
+      this._terminals.delete(params.terminalId);
+      return {};
+    },
   };
 }
+
 
 // ── Copilot SDK Event Binding ──
 
@@ -2415,7 +2296,7 @@ async function main() {
 
   await ensureStartupIdentity();
 
-  Object.assign(sessionStore, await loadSessionStore());
+  await sessionStore.load();
 
   daemonLogger.info('daemon.starting', {}, 'Daemon starting');
 
@@ -2438,16 +2319,24 @@ async function main() {
     workspaces,
   };
 
+  botChatHandle = createBotChat({
+    logger: botLogger,
+    tokenUrlProvider: fetchBotTokenUrl,
+    messageHandler: handleBotNotification,
+    isShuttingDown: () => shuttingDown,
+    controlRoom: DAEMON_CONTROL_ROOM,
+    controlRoomName: 'Daemon Control',
+    controlMembers: [PORTAL_CONTROL_USER_ID],
+    ownerLabel: BOT_USER_ID,
+    maxMessageLength: MAX_ROOM_MESSAGE_LENGTH,
+  });
+
   await ensureBotChatReady();
 
   const announceOffline = async () => {
     if (shuttingDown) return;
     shuttingDown = true;
-    await flushSessionStoreWrites(sessionStore);
-    if (botReconnectTimer) {
-      clearTimeout(botReconnectTimer);
-      botReconnectTimer = null;
-    }
+    await sessionStore.flush();
     if (heartbeatTimer) {
       clearInterval(heartbeatTimer);
       heartbeatTimer = null;
@@ -2461,8 +2350,7 @@ async function main() {
         error: e,
       }, 'Failed to announce daemon offline state');
     }
-    try { botChat?.stop(); } catch {}
-    botChat = null;
+    botChatHandle.stop();
   };
 
   const handleShutdown = (signal) => {

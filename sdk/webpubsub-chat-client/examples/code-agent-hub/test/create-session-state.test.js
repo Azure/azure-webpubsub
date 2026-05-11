@@ -4,9 +4,13 @@ import { readFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import {
+  buildCreateDaemonListMarkup,
   buildCreateAgentListMarkup,
   buildCreateSessionAgentOptions,
+  buildCreateSessionButtonState,
   buildCreateSessionDraft,
+  normalizePickerPath,
+  pathLooksCompatibleWithPlatform,
 } from '../web-portal/public/js/create-session-state.js';
 
 const testDir = dirname(fileURLToPath(import.meta.url));
@@ -91,6 +95,61 @@ describe('create session state helpers', () => {
     assert.equal(draft.daemonId, 'daemon-sdk');
     assert.equal(draft.agentName, 'copilot-sdk');
     assert.equal(draft.directory, '/workspace/sdk');
+  });
+
+  it('preserves Windows draft directories when the daemon platform uses a Windows alias', () => {
+    const daemon = {
+      daemonId: 'daemon-win',
+      agents: ['copilot'],
+      platform: 'windows',
+      workspaces: ['C:/workspace/root'],
+    };
+
+    const draft = buildCreateSessionDraft({
+      draft: { daemonId: 'daemon-win', agentName: '', directory: '' },
+      daemonEntries: [['daemon-win', daemon]],
+      currentDaemonId: 'daemon-win',
+      directoryInputValue: 'C:/workspace/root/src/',
+      preserveDirectory: true,
+      getDaemonById: () => daemon,
+      isCreateSelectableDaemon: () => true,
+      buildAgentOptions: () => [{ agentName: 'copilot', supported: true }],
+    });
+
+    assert.equal(normalizePickerPath('C:/workspace/root/src/', 'windows'), 'C:\\workspace\\root\\src');
+    assert.equal(pathLooksCompatibleWithPlatform('C:\\workspace\\root\\src', 'windows'), true);
+    assert.equal(draft.directory, 'C:\\workspace\\root\\src');
+  });
+
+  it('blocks cross-platform create directories for Windows aliases with the correct label', () => {
+    const state = buildCreateSessionButtonState({
+      selectedDaemonId: 'daemon-win',
+      selectedDaemon: { platform: 'windows' },
+      selectedAgentName: 'copilot',
+      directoryValue: '/workspace/root',
+    });
+
+    assert.equal(state.submitDisabled, true);
+    assert.match(state.submitTitle, /selected Windows workspace/);
+  });
+
+  it('renders create-session OS icons for aliased platforms without requiring caller normalization', () => {
+    const html = buildCreateDaemonListMarkup({
+      daemonId: 'daemon-win',
+      daemon: {
+        daemonId: 'daemon-win',
+        hostname: 'win-host',
+        platform: 'windows',
+      },
+      sessionCount: 2,
+      osIcons: { win32: '<svg class="os-win"></svg>' },
+      osNames: { win32: 'Windows' },
+      escapeHtml: (value) => String(value),
+    });
+
+    assert.match(html, /os-win/);
+    assert.match(html, /Windows/);
+    assert.doesNotMatch(html, /🖥/);
   });
 
   it('renders a static tool section under workspace in the create-session modal', () => {

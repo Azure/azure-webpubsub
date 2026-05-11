@@ -2,6 +2,7 @@ import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
 import {
   applySessionQueryContext,
+  buildSessionStatusPatch,
   collectVisibleSessions,
   getSessionMetadataHydrationState,
   getSessionRecordStatusInfo,
@@ -13,6 +14,37 @@ import {
 } from '../web-portal/public/js/session-discovery-state.js';
 
 describe('session discovery state helpers', () => {
+  it('builds a local session status patch that can keep list state in sync while another session is selected', () => {
+    assert.deepEqual(
+      buildSessionStatusPatch({
+        sessionId: 'session-working',
+        sessionProcessing: true,
+        sessionStopping: false,
+        sessionReady: true,
+      }),
+      {
+        sessionId: 'session-working',
+        sessionProcessing: true,
+        sessionStopping: false,
+        sessionReady: true,
+      },
+    );
+  });
+
+  it('omits unknown status fields from the local session status patch', () => {
+    assert.deepEqual(
+      buildSessionStatusPatch({
+        sessionId: 'session-starting',
+        sessionReady: false,
+      }),
+      {
+        sessionId: 'session-starting',
+        sessionReady: false,
+      },
+    );
+    assert.equal(buildSessionStatusPatch({ sessionId: '' }), null);
+  });
+
   it('shows loading only when no local session candidates exist yet', () => {
     assert.equal(shouldShowPortalSessionLoading({ queryLoaded: false, localSessionCount: 0 }), true);
     assert.equal(shouldShowPortalSessionLoading({ queryLoaded: false, localSessionCount: 1 }), false);

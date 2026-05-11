@@ -84,6 +84,28 @@ describe('daemon-acl helpers', () => {
     assert.equal(canReadDaemonAccess(accessState, 'eve'), false);
   });
 
+  it('should ignore the daemon transport principal when deriving access members', () => {
+    const accessState = deriveDaemonAclState({
+      daemonId: 'copilot-bot',
+      roomTitle: buildDaemonAclRoomTitle({ daemonId: 'copilot-bot', ownerUserId: 'admin' }),
+      members: [
+        { userId: '__portal_control__', role: 'room.operator' },
+        { userId: 'admin', role: 'room.operator' },
+        { userId: 'copilot-bot', role: 'room.member' },
+        { userId: 'alice', role: 'room.member' },
+      ],
+      adminUserId: '__portal_control__',
+    });
+
+    assert.deepEqual(accessState.memberUsers, ['alice']);
+    assert.deepEqual(accessState.members, [
+      { userId: '__portal_control__', role: 'room.operator' },
+      { userId: 'admin', role: 'room.operator' },
+      { userId: 'alice', role: 'room.member' },
+    ]);
+    assert.equal(canMemberDaemonAccess(accessState, 'copilot-bot'), false);
+  });
+
   it('should fall back to the first operator when room metadata is missing', () => {
     const accessState = deriveDaemonAclState({
       daemonId: 'copilot-bot',

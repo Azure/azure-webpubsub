@@ -97,7 +97,9 @@ export function buildDesiredDaemonAclMembers({ ownerUserId, memberUsers, adminUs
 export function deriveDaemonAclState({ daemonId, roomTitle, members, adminUserId = '', fallbackOwnerUserId = '' }) {
   const parsedTitle = parseDaemonAclRoomTitle(roomTitle);
   const normalizedMembers = normalizeDaemonAclMembers(members);
-  const operatorUsers = normalizedMembers
+  const normalizedDaemonId = String(daemonId || '').trim();
+  const effectiveMembers = normalizedMembers.filter((member) => member.userId !== normalizedDaemonId);
+  const operatorUsers = effectiveMembers
     .filter((member) => member.role === DAEMON_ACL_OPERATOR_ROLE)
     .map((member) => member.userId);
 
@@ -105,14 +107,14 @@ export function deriveDaemonAclState({ daemonId, roomTitle, members, adminUserId
     parsedTitle?.ownerUserId
     || fallbackOwnerUserId
     || operatorUsers.find((userId) => userId !== adminUserId)
-    || normalizedMembers.find((member) => member.userId !== adminUserId)?.userId
+    || effectiveMembers.find((member) => member.userId !== adminUserId)?.userId
     || ''
   ).trim();
 
   const adminSet = new Set(operatorUsers.filter((userId) => userId !== adminUserId && userId !== ownerUserId));
   const memberUsers = [];
 
-  for (const member of normalizedMembers) {
+  for (const member of effectiveMembers) {
     if (member.userId === adminUserId || member.userId === ownerUserId || adminSet.has(member.userId)) continue;
     if (!memberUsers.includes(member.userId)) {
       memberUsers.push(member.userId);
@@ -125,7 +127,7 @@ export function deriveDaemonAclState({ daemonId, roomTitle, members, adminUserId
     ownerUserId,
     memberUsers,
     adminUsers: [...adminSet],
-    members: normalizedMembers,
+    members: effectiveMembers,
   };
 }
 

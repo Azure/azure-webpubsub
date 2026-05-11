@@ -51,6 +51,7 @@ export async function ensureLocalRoomInfo(roomId, {
   getRoomInfo,
   addSelfToRoom,
   currentUserId = '',
+  shouldIgnoreAddSelfError = () => false,
 } = {}) {
   const targetRoomId = String(roomId || '').trim();
   if (!targetRoomId || typeof getRoomInfo !== 'function') {
@@ -77,6 +78,14 @@ export async function ensureLocalRoomInfo(roomId, {
       await addSelfToRoom(targetRoomId, currentUserId);
     } catch (error) {
       if (!isAlreadyMemberError(error)) {
+        if (typeof shouldIgnoreAddSelfError === 'function' && shouldIgnoreAddSelfError(error, {
+          roomId: targetRoomId,
+          currentUserId,
+          hasLocalRoom,
+          joined,
+        })) {
+          return null;
+        }
         throw error;
       }
     }

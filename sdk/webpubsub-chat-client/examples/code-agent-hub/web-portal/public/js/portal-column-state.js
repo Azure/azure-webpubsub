@@ -2,12 +2,58 @@ function safeEscape(escapeHtml, value) {
   return typeof escapeHtml === 'function' ? escapeHtml(value) : String(value ?? '')
 }
 
+function normalizePlatformAlias(platform) {
+  const value = String(platform || '').trim().toLowerCase()
+  if (!value) return ''
+  if (value === 'win32' || value === 'windows' || value === 'win') return 'win32'
+  if (value === 'darwin' || value === 'macos' || value === 'mac' || value === 'osx') return 'darwin'
+  if (['linux', 'ubuntu', 'debian', 'fedora', 'alpine', 'centos', 'rhel'].includes(value)) return 'linux'
+  return value
+}
+
 function compactEmpty(text) {
   return `<div class="compact-empty">${text}</div>`
 }
 
 function compactSection(title, content) {
   return `<div class="compact-section"><div class="compact-hdr">${title}</div><div class="compact-list">${content}</div></div>`
+}
+
+function normalizeSortText(value) {
+  return String(value || '').trim().toLowerCase()
+}
+
+function sessionTimestamp(value) {
+  const parsed = Date.parse(String(value || ''))
+  return Number.isFinite(parsed) ? parsed : 0
+}
+
+export function sortSessionsForDisplay({
+  sessions = [],
+  mode = 'name',
+  sessionLabel = (session) => session?.name || session?.sessionId || '',
+  agentNames = {},
+} = {}) {
+  const normalizedMode = ['name', 'time', 'agent'].includes(String(mode || '').trim().toLowerCase())
+    ? String(mode || '').trim().toLowerCase()
+    : 'name'
+  return [...sessions].sort((left, right) => {
+    const leftName = normalizeSortText(sessionLabel(left))
+    const rightName = normalizeSortText(sessionLabel(right))
+    const leftAgent = normalizeSortText(agentNames[left?.agent] || left?.agent || '')
+    const rightAgent = normalizeSortText(agentNames[right?.agent] || right?.agent || '')
+    const leftId = normalizeSortText(left?.sessionId || '')
+    const rightId = normalizeSortText(right?.sessionId || '')
+    const leftTime = sessionTimestamp(left?.updatedAt)
+    const rightTime = sessionTimestamp(right?.updatedAt)
+    if (normalizedMode === 'time') {
+      return rightTime - leftTime || leftName.localeCompare(rightName) || leftAgent.localeCompare(rightAgent) || leftId.localeCompare(rightId)
+    }
+    if (normalizedMode === 'agent') {
+      return leftAgent.localeCompare(rightAgent) || leftName.localeCompare(rightName) || leftId.localeCompare(rightId)
+    }
+    return leftName.localeCompare(rightName) || leftAgent.localeCompare(rightAgent) || leftId.localeCompare(rightId)
+  })
 }
 
 export function buildCompactNavMarkup({
@@ -24,6 +70,8 @@ export function buildCompactNavMarkup({
 export function buildDaemonCardsMarkup({
   daemonEntries = [],
   currentDaemonId = '',
+  hiddenDaemonIds = new Set(),
+  hiddenDaemonsExpanded = false,
   normalizeDaemonPlatform = (platform) => platform || '',
   osIcons = {},
   osNames = {},
@@ -33,17 +81,28 @@ export function buildDaemonCardsMarkup({
   renderDaemonAccessSummaryCard = () => '',
   escapeHtml,
 } = {}) {
-  return daemonEntries.map(([daemonId, daemon]) => {
-    const platform = normalizeDaemonPlatform(daemon.platform)
+  const isHidden = (daemonId) => hiddenDaemonIds instanceof Set && hiddenDaemonIds.has(daemonId)
+  const visibleEntries = daemonEntries.filter(([daemonId]) => !isHidden(daemonId))
+  const hiddenEntries = daemonEntries.filter(([daemonId]) => isHidden(daemonId))
+  const renderCard = ([daemonId, daemon], { hidden = false } = {}) => {
+    const platform = normalizePlatformAlias(normalizeDaemonPlatform(daemon.platform))
     const osIcon = osIcons[platform] || '🖥'
     const osName = osNames[platform] || ''
     const hostnameMeta = daemon.hostname && daemon.hostname !== daemonId ? `${daemon.hostname} · ` : ''
     const accessTag = daemonAccessTag(daemon)
     const sessionCount = countSessionsForDaemon(daemonId)
-    const card = `<div class="col-item${daemonId === currentDaemonId ? ' selected' : ''}" data-action="select-daemon" data-daemon-id="${safeEscape(escapeHtml, daemonId)}"><span class="ci-icon">${osIcon}</span><div class="ci-info"><div class="ci-name">${safeEscape(escapeHtml, daemonId)}</div><div class="ci-meta">${safeEscape(escapeHtml, `${hostnameMeta}${osName ? `${osName} · ` : ''}${sessionCount} session${sessionCount !== 1 ? 's' : ''}`)}</div><div class="ci-submeta">${safeEscape(escapeHtml, daemonAdminUsersMeta(daemon))}</div></div>${accessTag}<span class="ci-dot"></span></div>`
+    const hideAction = hidden
+      ? `<button class="ci-hide-btn" type="button" title="Show workspace" aria-label="Show workspace" data-action="unhide-daemon" data-daemon-id="${safeEscape(escapeHtml, daemonId)}">+</button>`
+      : `<button class="ci-hide-btn" type="button" title="Hide workspace" aria-label="Hide workspace" data-action="hide-daemon" data-daemon-id="${safeEscape(escapeHtml, daemonId)}">×</button>`
+    const statusUi = `<div class="ci-side"><div class="ci-access-slot">${accessTag}</div><span class="ci-indicator-slot"><span class="ci-dot"></span></span>${hideAction}</div>`
+    const card = `<div class="col-item${daemonId === currentDaemonId ? ' selected' : ''}${hidden ? ' is-hidden-daemon' : ''}" data-action="select-daemon" data-daemon-id="${safeEscape(escapeHtml, daemonId)}"><span class="ci-icon">${osIcon}</span><div class="ci-info"><div class="ci-name-row"><div class="ci-name">${safeEscape(escapeHtml, daemonId)}</div></div><div class="ci-meta">${safeEscape(escapeHtml, `${hostnameMeta}${osName ? `${osName} · ` : ''}${sessionCount} session${sessionCount !== 1 ? 's' : ''}`)}</div><div class="ci-submeta">${safeEscape(escapeHtml, daemonAdminUsersMeta(daemon))}</div></div>${statusUi}</div>`
     if (daemonId !== currentDaemonId) return card
     return `<div class="daemon-stack">${card}${renderDaemonAccessSummaryCard(daemonId, daemon)}</div>`
-  }).join('')
+  }
+  const visibleHtml = visibleEntries.map((entry) => renderCard(entry)).join('')
+  if (!hiddenEntries.length) return visibleHtml
+  const hiddenHtml = hiddenEntries.map((entry) => renderCard(entry, { hidden: true })).join('')
+  return `${visibleHtml}<div class="hidden-daemons-section"><button class="hidden-daemons-toggle${hiddenDaemonsExpanded ? ' is-open' : ''}" type="button" data-action="toggle-hidden-daemons" aria-expanded="${hiddenDaemonsExpanded ? 'true' : 'false'}"><span>Hidden workspaces</span><span class="hidden-daemons-toggle-meta">${hiddenEntries.length}</span></button><div class="hidden-daemons-list${hiddenDaemonsExpanded ? ' is-open' : ''}">${hiddenHtml}</div></div>`
 }
 
 export function buildAgentCardsMarkup({

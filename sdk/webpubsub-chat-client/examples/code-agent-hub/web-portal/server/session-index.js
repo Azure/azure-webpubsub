@@ -70,6 +70,22 @@ function getOrCreateSessionJoinRequests(state, sessionId) {
   return requests;
 }
 
+async function mapLimit(items, limit, iteratee) {
+  const queue = Array.isArray(items) ? items : [];
+  const concurrency = Math.max(1, Number(limit) || 1);
+  let index = 0;
+
+  async function worker() {
+    while (index < queue.length) {
+      const currentIndex = index;
+      index += 1;
+      await iteratee(queue[currentIndex], currentIndex);
+    }
+  }
+
+  await Promise.all(Array.from({ length: Math.min(concurrency, queue.length || 1) }, () => worker()));
+}
+
 function buildSessionDirectoryRecordFromRoomInfo(roomInfo, parseSessionRoomTitle) {
   if (!roomInfo?.roomId || typeof parseSessionRoomTitle !== 'function') return null;
   const metadata = parseSessionRoomTitle(roomInfo.title || roomInfo.name || '');
@@ -211,13 +227,20 @@ export function getLatestJoinRequestForUser(state, sessionId, requesterUserId) {
     .find((request) => request.requesterUserId === normalizedRequesterUserId) || null;
 }
 
-export function getSessionAccessLevelFromIndex({ state, sessionRecord, daemonAccessState, userId, canAdminDaemonAccess }) {
+export function getSessionAccessLevelFromIndex({ state, sessionRecord, daemonAccessState, userId, canAdminDaemonAccess, canMemberDaemonAccess }) {
   const normalizedUserId = String(userId || '').trim();
   const normalizedSessionId = String(sessionRecord?.sessionId || '').trim();
   if (!normalizedUserId || !normalizedSessionId || !sessionRecord) return 'none';
   if (sessionRecord.ownerUserId === normalizedUserId) return 'write';
   if (typeof canAdminDaemonAccess === 'function' && canAdminDaemonAccess(daemonAccessState, normalizedUserId)) {
     return 'write';
+  }
+  // Defense in depth: a per-session membership entry only confers access while the
+  // user still has daemon-level access. Without this gate, a user removed from the
+  // daemon ACL would retain whatever role was previously written to membershipBySessionId
+  // (via accessSelf or join-request approval) until the chat room is also cleaned up.
+  if (typeof canMemberDaemonAccess === 'function' && !canMemberDaemonAccess(daemonAccessState, normalizedUserId)) {
+    return 'none';
   }
   return state?.membershipBySessionId?.get(normalizedSessionId)?.get(normalizedUserId) || 'none';
 }
@@ -253,6 +276,7 @@ export function buildSessionListForUser({
       daemonAccessState: daemonEntry.accessState,
       userId: normalizedUserId,
       canAdminDaemonAccess,
+      canMemberDaemonAccess,
     });
     const joinRequest = getLatestJoinRequestForUser(state, sessionRecord.sessionId, normalizedUserId);
     const canDelete = sessionRecord.ownerUserId === normalizedUserId
@@ -289,12 +313,14 @@ export async function hydrateSessionIndices({
   loadSessionMembers = async () => [],
   loadJoinRequests = async () => [],
   adminUserId = '',
+  roomConcurrency = 8,
 } = {}) {
   const nextState = createSessionIndexState();
+  const normalizedAdminUserId = String(adminUserId || '').trim();
 
-  for (const roomInfo of roomInfos || []) {
+  await mapLimit(roomInfos || [], roomConcurrency, async (roomInfo) => {
     const sessionRecord = buildSessionDirectoryRecordFromRoomInfo(roomInfo, parseSessionRoomTitle);
-    if (!sessionRecord) continue;
+    if (!sessionRecord) return;
     upsertTrustedSessionDirectoryRecord(nextState, sessionRecord, { source: 'hydrate' });
     const [members, requests] = await Promise.all([
       loadSessionMembers(sessionRecord.sessionId),
@@ -303,7 +329,7 @@ export async function hydrateSessionIndices({
     for (const member of members || []) {
       const normalizedUserId = String(member?.userId || '').trim();
       if (!normalizedUserId) continue;
-      if (normalizedUserId === String(adminUserId || '').trim()) continue;
+      if (normalizedUserId === normalizedAdminUserId) continue;
       if (normalizedUserId === sessionRecord.daemonId) continue;
       if (normalizedUserId === sessionRecord.ownerUserId) continue;
       upsertTrustedSessionMembership(nextState, sessionRecord.sessionId, normalizedUserId, member.role, { source: 'hydrate' });
@@ -311,7 +337,7 @@ export async function hydrateSessionIndices({
     for (const request of requests || []) {
       upsertTrustedJoinRequestState(nextState, sessionRecord.sessionId, request, { source: 'hydrate' });
     }
-  }
+  });
 
   mergeCurrentStateIntoHydratedState(nextState, state);
   state.directoryBySessionId = nextState.directoryBySessionId;

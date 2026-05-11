@@ -22,10 +22,10 @@
     </div>
     <div class="tb-right">
       <span class="tb-user" id="user-badge" title="Current username" style="display:none"></span>
-      <button class="tb-btn" id="auto-approve-btn" data-action="toggle-auto-approve" style="display:none" title="Portal-side auto response for permission requests only. Separate from the agent's own access mode.">Approvals: Auto</button>
+      <button class="tb-btn" id="auto-approve-btn" data-action="toggle-auto-approve" style="display:none" title="Portal-side auto response for permission requests only. Separate from the agent's own access mode.">Approvals: Manual</button>
       <button class="tb-icon-btn" id="compact-toggle-btn" title="Expand chat area" style="display:none">⤢</button>
-      <button class="tb-icon-btn" id="debug-btn" data-action="toggle-debug" aria-label="Debug panel"><svg width="14" height="14" viewBox="0 0 32 32" fill="currentColor" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><use href="/images/ui-icons.svg#debug-bug"></use></svg></button>
-      <button class="tb-icon-btn" id="theme-btn" data-action="toggle-theme" title="Toggle light/dark">🌙</button>
+      <button class="tb-icon-btn" id="debug-btn" data-action="toggle-debug" aria-label="Debug panel" style="display:none"><svg width="14" height="14" viewBox="0 0 32 32" fill="currentColor" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><use href="/images/ui-icons.svg#debug-bug"></use></svg></button>
+      <button class="tb-icon-btn" id="theme-btn" data-action="toggle-theme" title="Toggle light/dark" style="display:none">🌙</button>
       <button class="tb-btn" id="logout-btn" style="display:none">Logout</button>
     </div>
   </div>
@@ -46,7 +46,7 @@
             </button>
             <div class="login-msg" id="login-msg-oauth"></div>
           </div>
-          <div class="login-card" id="login-card-local">
+          <div class="login-card" id="login-card-local" style="display:none">
             <div class="fld"><label>Username</label><input id="login-username" type="text" placeholder="AzureUser" autocomplete="username"></div>
             <button class="sh-go" id="login-btn">Login</button>
             <div class="login-msg" id="login-msg"></div>
@@ -66,7 +66,7 @@
       <!-- Column 3: Sessions -->
       <div class="col" id="col-sessions" style="display:none">
         <div class="col-hdr"><button class="mob-back" data-action="mob-show" data-col-id="col-daemons">◀</button><span id="col-sessions-hdr" style="flex:1">Sessions</span><div class="col-hdr-actions"><span class="col-hdr-spinner hidden" id="col-sessions-spinner" title=""></span><button class="sh-go sh-go-inline" id="open-create-session-btn" type="button">New Session</button></div></div>
-        <div class="session-groupby-bar" id="session-groupby-bar"><label>Sort by</label><div class="session-groupby-pills"><button class="session-groupby-pill is-active" type="button" data-action="set-session-groupby" data-group-mode="none">Time</button><button class="session-groupby-pill" type="button" data-action="set-session-groupby" data-group-mode="agent">Agent</button></div></div>
+        <div class="session-groupby-bar" id="session-groupby-bar" style="display:none"><label>Sort by</label><div class="session-groupby-pills"><button class="session-groupby-pill is-active" type="button" data-action="set-session-groupby" data-group-mode="name">Name</button><button class="session-groupby-pill" type="button" data-action="set-session-groupby" data-group-mode="time">Time</button><button class="session-groupby-pill" type="button" data-action="set-session-groupby" data-group-mode="agent">Agent</button></div></div>
         <div class="col-list-msg" id="col-sessions-msg"></div>
         <div class="col-list" id="col-sessions-list"></div>
       </div>

@@ -16,6 +16,7 @@ import {
   deriveDaemonAclState,
   parseDaemonAclRoomTitle,
 } from '../shared/daemon-acl.js';
+import { loadDaemonAccessMap } from './server/daemon-access.js';
 import { listDaemonRegistryRecordsWithFallback } from './server/daemon-registry.js';
 import { listRoomMessagesWithFallback } from './server/room-history.js';
 import {
@@ -143,6 +144,7 @@ const DAEMON_SESSION_ISSUER = 'codeagenthub-portal';
 const CHAT_REST_API_VERSION = '2026-02-01-preview';
 const WORKSPACE_REQUEST_TIMEOUT_MS = 5_000;
 const DAEMON_ACCESS_STATE_CACHE_TTL_MS = 2_500;
+const SLOW_ROUTE_LOG_THRESHOLD_MS = Math.max(0, parseInt(process.env.CODEAGENTHUB_SLOW_ROUTE_LOG_THRESHOLD_MS || '150', 10) || 150);
 
 function parseConnectionStringValue(key) {
   const part = connectionString
@@ -457,6 +459,43 @@ async function ensureSessionIndicesReady({ forceRefresh = false } = {}) {
   }
 }
 
+async function loadDaemonAccessState(daemon) {
+  return daemon?.accessState || await ensureDaemonAclState(daemon?.daemonId, '', daemon);
+}
+
+function logSlowRouteStage(logger, event, startedAt, fields = {}, message = event, thresholdMs = SLOW_ROUTE_LOG_THRESHOLD_MS) {
+  const durationMs = Date.now() - startedAt;
+  if (durationMs < thresholdMs) return durationMs;
+  getContextLogger(logger).info(event, {
+    durationMs,
+    ...fields,
+  }, message);
+  return durationMs;
+}
+
+async function buildDaemonAccessById(daemonRegistryRecords, {
+  selectValue,
+  logger = daemonRegistryLogger,
+  logEvent = '',
+  logFields = {},
+  logMessage = 'Slow daemon access load',
+} = {}) {
+  const startedAt = Date.now();
+  const daemonAccessById = await loadDaemonAccessMap({
+    daemonRegistryRecords,
+    loadAccessState: loadDaemonAccessState,
+    selectValue,
+  });
+  if (logEvent) {
+    logSlowRouteStage(logger, logEvent, startedAt, {
+      daemonCount: (daemonRegistryRecords || []).filter((daemon) => daemon?.daemonId).length,
+      resolvedDaemonCount: daemonAccessById.size,
+      ...logFields,
+    }, logMessage);
+  }
+  return daemonAccessById;
+}
+
 function getIndexedSessionRecord(sessionId) {
   const sessionRecord = sessionIndexState.directoryBySessionId.get(String(sessionId || '').trim());
   return sessionRecord && !sessionRecord.deletedAt ? sessionRecord : null;
@@ -487,7 +526,7 @@ function createServiceRestToken(audience) {
   });
 }
 
-async function chatRestRequest(path, { method = 'GET', body, allow404 = false } = {}) {
+async function chatRestRequest(path, { method = 'GET', body, allow404 = false, headers = {} } = {}) {
   const url = new URL(path, serviceClient.endpoint);
   url.searchParams.set('api-version', CHAT_REST_API_VERSION);
 
@@ -497,6 +536,7 @@ async function chatRestRequest(path, { method = 'GET', body, allow404 = false } 
       headers: {
         Authorization: `Bearer ${createServiceRestToken(url.toString())}`,
         ...(body === undefined ? {} : { 'Content-Type': 'application/json' }),
+        ...headers,
       },
       body: body === undefined ? undefined : JSON.stringify(body),
     });
@@ -561,7 +601,7 @@ function normalizeChatRoomMembers(payload) {
 
   return rawMembers.map((member) => ({
     userId: String(member?.userId || member?.id || '').trim(),
-    role: String(member?.role || 'room.member').trim() || 'room.member',
+    role: String(member?.role || member?.roleName || member?.RoleName || 'room.member').trim() || 'room.member',
   })).filter((member) => member.userId);
 }
 
@@ -588,7 +628,7 @@ async function listDaemonAclRoomMembers(daemonId) {
 async function upsertChatRoomMember(roomId, userId, role) {
   await chatRestRequest(
     `/api/hubs/${encodeURIComponent(hubName)}/chat/rooms/${encodeURIComponent(roomId)}/members/${encodeURIComponent(userId)}`,
-    { method: 'PUT', body: { userId, role } },
+    { method: 'PUT', body: { Role: role } },
   );
 }
 
@@ -729,6 +769,51 @@ async function updateDaemonAclState(daemonId, accessState, memberUsers, adminUse
 
   invalidateDaemonAccessStateCache(daemonId);
   return await readDaemonAccessState(daemonId, accessState.ownerUserId, { forceRefresh: true });
+}
+
+// When a user is removed from a daemon's admin/member list, revoke any session-room
+// memberships they only hold because of that daemon role. A user keeps access if:
+//   - they are the session owner, or
+//   - they have an approved join request for the session (independent grant).
+// We compute the diff from the snapshot of the daemon ACL members captured before
+// updateDaemonAclState ran, so callers must pass the prior accessState.
+async function revokeOrphanedDaemonSessionAccess(daemonId, priorAccessState, nextAccessState) {
+  const previousUserIds = new Set(
+    (priorAccessState?.members || [])
+      .map((member) => String(member?.userId || '').trim())
+      .filter((userId) => userId && userId !== ADMIN_USER_ID && userId !== priorAccessState?.ownerUserId),
+  );
+  const currentUserIds = new Set(
+    (nextAccessState?.members || [])
+      .map((member) => String(member?.userId || '').trim())
+      .filter(Boolean),
+  );
+  const removedUserIds = [...previousUserIds].filter((userId) => !currentUserIds.has(userId));
+  if (!removedUserIds.length) return;
+
+  await ensureSessionIndicesReady();
+  const sessionsForDaemon = [...sessionIndexState.directoryBySessionId.values()]
+    .filter((sessionRecord) => sessionRecord && !sessionRecord.deletedAt && sessionRecord.daemonId === daemonId);
+  if (!sessionsForDaemon.length) return;
+
+  for (const userId of removedUserIds) {
+    for (const sessionRecord of sessionsForDaemon) {
+      if (sessionRecord.ownerUserId === userId) continue;
+      const approvedRequest = getLatestJoinRequestForUser(sessionIndexState, sessionRecord.sessionId, userId);
+      if (approvedRequest && approvedRequest.status === 'approved') continue;
+      try {
+        await removeChatRoomMember(sessionRecord.sessionId, userId);
+      } catch (error) {
+        getContextLogger(webLogger).warn('daemon.access.revoke.session-member.failed', {
+          daemonId,
+          sessionId: sessionRecord.sessionId,
+          userId,
+          error,
+        }, 'Failed to remove orphaned session member');
+      }
+      removeTrustedSessionMembership(sessionIndexState, sessionRecord.sessionId, userId, { source: 'portal' });
+    }
+  }
 }
 
 function buildDaemonAccessRequestEnvelope(payload) {
@@ -950,9 +1035,14 @@ async function writeDaemonRegistryRecord({ daemonId, ownerUserId, hostname, plat
     updatedAt,
     lastSeenAt,
   });
+  const roomInfo = await getChatRoomInfo(accessState.roomId);
+  const roomETag = String(roomInfo?.eTag || roomInfo?.etag || roomInfo?.ETag || '').trim();
+  if (!roomETag) {
+    throw new Error(`Chat room ${accessState.roomId} is missing an eTag`);
+  }
   await chatRestRequest(
     `/api/hubs/${encodeURIComponent(hubName)}/chat/rooms/${encodeURIComponent(accessState.roomId)}`,
-    { method: 'PATCH', body: { title } },
+    { method: 'PUT', body: { title }, headers: { 'If-Match': roomETag } },
   );
   if (Array.isArray(adminChat?.rooms)) {
     const cachedRoom = adminChat.rooms.find((room) => room?.roomId === accessState.roomId);
@@ -1602,6 +1692,36 @@ async function deleteManagedSession(sessionRecord) {
   }
 }
 
+async function deleteManagedDaemonWorkspace(daemonId) {
+  const normalizedDaemonId = String(daemonId || '').trim();
+  if (!normalizedDaemonId) return { deletedSessionIds: [] };
+  await ensureSessionIndicesReady();
+  const sessionsForDaemon = [...sessionIndexState.directoryBySessionId.values()]
+    .filter((sessionRecord) => sessionRecord && !sessionRecord.deletedAt && sessionRecord.daemonId === normalizedDaemonId);
+
+  for (const sessionRecord of sessionsForDaemon) {
+    await deleteManagedSession(sessionRecord);
+    markTrustedSessionDeleted(sessionIndexState, sessionRecord.sessionId, new Date().toISOString(), { source: 'portal' });
+    await sendDaemonSyncEnvelope(sessionRecord, 'session.deleted');
+  }
+
+  await chatRestRequest(
+    `/api/hubs/${encodeURIComponent(hubName)}/chat/rooms/${encodeURIComponent(daemonAclRoomId(normalizedDaemonId))}`,
+    { method: 'DELETE', allow404: true },
+  );
+
+  if (Array.isArray(adminChat?.rooms)) {
+    const roomIndex = adminChat.rooms.findIndex((room) => room?.roomId === daemonAclRoomId(normalizedDaemonId));
+    if (roomIndex >= 0) {
+      adminChat.rooms.splice(roomIndex, 1);
+    }
+  }
+
+  invalidateDaemonAccessStateCache(normalizedDaemonId);
+  knownDaemonIds.delete(normalizedDaemonId);
+  return { deletedSessionIds: sessionsForDaemon.map((sessionRecord) => sessionRecord.sessionId) };
+}
+
 const app = express();
 app.set('trust proxy', 1);
 app.use(express.json());
@@ -1940,11 +2060,11 @@ app.post('/api/daemons/offline', async (req, res) => {
 app.get('/api/daemons', async (req, res) => {
   const user = requirePortalUser(req, res);
   if (!user) return;
-  let onlineDaemons;
+  let listedDaemons;
   try {
-    onlineDaemons = (await listDaemonRegistryRecords())
+    listedDaemons = (await listDaemonRegistryRecords())
       .map((daemon) => markDaemonOfflineIfStale(daemon))
-      .filter((daemon) => daemon && daemon.online)
+      .filter(Boolean)
       .sort((left, right) => String(left.hostname || left.daemonId).localeCompare(String(right.hostname || right.daemonId)));
   } catch (error) {
     getContextLogger(webLogger).error('daemon.list.failed', {
@@ -1952,10 +2072,12 @@ app.get('/api/daemons', async (req, res) => {
     }, 'Failed to list daemons');
     return res.status(503).json({ error: error.message || 'Web PubSub Chat storage is unavailable' });
   }
-  const daemons = (await Promise.all(onlineDaemons.map(async (daemon) => {
+  const daemons = (await Promise.all(listedDaemons.map(async (daemon) => {
     try {
-      const accessState = daemon.accessState || await ensureDaemonAclState(daemon.daemonId, '', daemon);
-      const requestState = await getLatestDaemonAccessRequestForUser(daemon.daemonId, user.login);
+      const [accessState, requestState] = await Promise.all([
+        loadDaemonAccessState(daemon),
+        getLatestDaemonAccessRequestForUser(daemon.daemonId, user.login),
+      ]);
       return daemonResponseForUser(daemon, accessState, user, requestState);
     } catch (error) {
       getContextLogger(daemonRegistryLogger).warn('daemon.access-state.load.failed', {
@@ -1995,6 +2117,15 @@ app.patch('/api/daemons/:daemonId/access', async (req, res) => {
     return res.status(500).json({ error: error.message || 'Failed to update daemon access state' });
   }
 
+  try {
+    await revokeOrphanedDaemonSessionAccess(daemonId, accessState, updatedAccessState);
+  } catch (error) {
+    getContextLogger(webLogger).warn('daemon.access.revoke.failed', {
+      daemonId,
+      error,
+    }, 'Failed to revoke orphaned session access after daemon ACL change');
+  }
+
   const record = normalizeDaemonRecord(existing, {
     daemonId: existing.daemonId,
     hostname: existing.hostname,
@@ -2030,16 +2161,23 @@ app.patch('/api/daemons/:daemonId/access', async (req, res) => {
 app.get('/api/daemon-access-requests', async (req, res) => {
   const user = requirePortalUser(req, res);
   if (!user) return;
-  const requests = [];
-  for (const daemon of await listDaemonRegistryRecords()) {
-    const accessState = daemon.accessState || await ensureDaemonAclState(daemon.daemonId, '', daemon);
-    if (!canManageDaemonAccess(accessState, user.login)) continue;
-    for (const requestRecord of await readDaemonAccessRequests(daemon.daemonId)) {
-      if (requestRecord.status !== 'pending') continue;
-      requests.push(requestRecord);
-    }
-  }
+  const routeStartedAt = Date.now();
+  const daemonAccessById = await buildDaemonAccessById(await listDaemonRegistryRecords(), {
+    logger: daemonRegistryLogger,
+    logEvent: 'daemon.access-requests.daemon-access.slow',
+    logMessage: 'Slow daemon access request ACL load',
+  });
+  const requestGroups = await Promise.all([...daemonAccessById.values()].map(async ({ daemon, accessState }) => {
+    if (!canManageDaemonAccess(accessState, user.login)) return [];
+    return (await readDaemonAccessRequests(daemon.daemonId))
+      .filter((requestRecord) => requestRecord.status === 'pending');
+  }));
+  const requests = requestGroups.flat();
   requests.sort((left, right) => String(right.updatedAt || '').localeCompare(String(left.updatedAt || '')));
+  logSlowRouteStage(daemonRegistryLogger, 'daemon.access-requests.slow', routeStartedAt, {
+    daemonCount: daemonAccessById.size,
+    requestCount: requests.length,
+  }, 'Slow daemon access request response');
   res.json({ requests });
 });
 
@@ -2165,6 +2303,20 @@ app.post('/api/daemons/:daemonId/access-requests/:requestId/reject', async (req,
   res.json({ ok: true, status: 'denied', requestedAccess: requestRecord.requestedAccess });
 });
 
+app.delete('/api/daemons/:daemonId/admin-delete', async (req, res) => {
+  const user = requirePortalUser(req, res);
+  if (!user) return;
+  if (user.login !== 'admin') return res.status(403).json({ error: 'Only admin can delete a workspace' });
+  const daemonId = String(req.params.daemonId || '').trim();
+  if (!daemonId) return res.status(400).json({ error: 'daemonId is required' });
+  try {
+    const result = await deleteManagedDaemonWorkspace(daemonId);
+    res.json({ ok: true, daemonId, deletedSessionIds: result.deletedSessionIds || [] });
+  } catch (error) {
+    res.status(500).json({ error: error.message || 'Failed to delete workspace' });
+  }
+});
+
 app.get('/api/daemons/:daemonId/workspaces', async (req, res) => {
   const user = requirePortalUser(req, res);
   if (!user) return;
@@ -2209,16 +2361,22 @@ app.get('/api/daemons/:daemonId/directories', async (req, res) => {
 app.get('/api/delegation-targets', async (req, res) => {
   const user = requirePortalUser(req, res);
   if (!user) return;
+  const routeStartedAt = Date.now();
   const sourceSessionId = String(req.query.sourceSessionId || '').trim();
-  const daemonRegistryRecords = (await listDaemonRegistryRecords()).map((daemon) => markDaemonOfflineIfStale(daemon));
-  const daemonAccessById = new Map();
-  for (const daemon of daemonRegistryRecords) {
-    if (!daemon) continue;
-    const accessState = daemon.accessState || await ensureDaemonAclState(daemon.daemonId, '', daemon);
-    daemonAccessById.set(daemon.daemonId, { daemon, accessState });
-  }
+  if (sourceSessionId) setRequestLogIdentity(req, { sourceSessionId });
+  const daemonAccessByIdPromise = listDaemonRegistryRecords()
+    .then((daemons) => daemons.map((daemon) => markDaemonOfflineIfStale(daemon)))
+    .then((daemonRegistryRecords) => buildDaemonAccessById(daemonRegistryRecords, {
+      logger: sessionLogger,
+      logEvent: 'delegation.targets.daemon-access.slow',
+      logFields: { sourceSessionId: sourceSessionId || undefined },
+      logMessage: 'Slow delegation target daemon access load',
+    }));
 
-  await ensureSessionIndicesReady();
+  const [, daemonAccessById] = await Promise.all([
+    ensureSessionIndicesReady(),
+    daemonAccessByIdPromise,
+  ]);
 
   if (sourceSessionId) {
     const sourceSessionRecord = getIndexedSessionRecord(sourceSessionId);
@@ -2231,6 +2389,7 @@ app.get('/api/delegation-targets', async (req, res) => {
       daemonAccessState: sourceDaemonEntry.accessState,
       userId: user.login,
       canAdminDaemonAccess,
+      canMemberDaemonAccess,
     });
     if (sourceAccessLevel !== 'write') {
       return res.status(403).json({ error: 'You do not have write access to the source session' });
@@ -2257,6 +2416,11 @@ app.get('/api/delegation-targets', async (req, res) => {
       targetLabel: delegationTargetLabel(session, daemonAccessById.get(session.daemonId)?.daemon),
     }));
 
+  logSlowRouteStage(sessionLogger, 'delegation.targets.slow', routeStartedAt, {
+    sourceSessionId: sourceSessionId || undefined,
+    daemonCount: daemonAccessById.size,
+    targetCount: targets.length,
+  }, 'Slow delegation target response');
   res.json({ targets });
 });
 
@@ -2298,6 +2462,7 @@ app.post('/api/delegations', async (req, res) => {
     daemonAccessState: sourceDaemonAccessState,
     userId: user.login,
     canAdminDaemonAccess,
+    canMemberDaemonAccess,
   });
   const targetAccessLevel = getSessionAccessLevelFromIndex({
     state: sessionIndexState,
@@ -2305,6 +2470,7 @@ app.post('/api/delegations', async (req, res) => {
     daemonAccessState: targetDaemonAccessState,
     userId: user.login,
     canAdminDaemonAccess,
+    canMemberDaemonAccess,
   });
 
   if (sourceAccessLevel !== 'write') {
@@ -2497,6 +2663,56 @@ app.post('/api/delegations', async (req, res) => {
   }
 });
 
+// Grant the calling user membership in a delegation relay room.
+// The relay room is created with only the requester + target daemon as members
+// (see POST /api/delegations). Other portal users (e.g. daemon admins watching
+// the source session) are not members and cannot subscribe to live updates.
+// Any user with at least 'read' access to the source session may join the relay
+// room on demand via this endpoint.
+app.post('/api/delegations/:delegationId/relay/join', async (req, res) => {
+  const user = requirePortalUser(req, res);
+  if (!user) return;
+
+  const delegationId = String(req.params.delegationId || '').trim();
+  if (!delegationId) return res.status(400).json({ error: 'delegationId is required' });
+
+  const record = await readDelegationRecord(delegationId);
+  if (!record) return res.status(404).json({ error: 'Delegation not found' });
+  if (!record.relayRoomId) return res.status(404).json({ error: 'Delegation has no relay room' });
+
+  await ensureSessionIndicesReady();
+  const sourceSessionRecord = getIndexedSessionRecord(record.sourceSessionId);
+  if (!sourceSessionRecord) return res.status(404).json({ error: 'Source session not found' });
+  const sourceDaemon = await getDaemonRegistryRecord(sourceSessionRecord.daemonId);
+  if (!sourceDaemon) return res.status(404).json({ error: 'Source daemon not found' });
+  const sourceDaemonAccessState = sourceDaemon.accessState || await ensureDaemonAclState(sourceDaemon.daemonId, '', sourceDaemon);
+  const sourceAccessLevel = getSessionAccessLevelFromIndex({
+    state: sessionIndexState,
+    sessionRecord: sourceSessionRecord,
+    daemonAccessState: sourceDaemonAccessState,
+    userId: user.login,
+    canAdminDaemonAccess,
+    canMemberDaemonAccess,
+  });
+  if (sourceAccessLevel === 'none') {
+    return res.status(403).json({ error: 'You do not have access to this delegation' });
+  }
+
+  try {
+    await adminAddUserToRoom(record.relayRoomId, user.login, 'delegationRelayJoin');
+  } catch (error) {
+    getContextLogger(webLogger).error('delegation.relay.join.failed', {
+      delegationId,
+      relayRoomId: record.relayRoomId,
+      userId: user.login,
+      error,
+    }, 'Failed to add user to delegation relay room');
+    return res.status(500).json({ error: error.message || 'Failed to join relay room' });
+  }
+
+  res.json({ ok: true, relayRoomId: record.relayRoomId });
+});
+
 app.post('/api/delegations/:delegationId/cancel', async (req, res) => {
   const user = requirePortalUser(req, res);
   if (!user) return;
@@ -2519,6 +2735,7 @@ app.post('/api/delegations/:delegationId/cancel', async (req, res) => {
     daemonAccessState: sourceDaemonAccessState,
     userId: user.login,
     canAdminDaemonAccess,
+    canMemberDaemonAccess,
   });
   if (sourceAccessLevel !== 'write') {
     return res.status(403).json({ error: 'You do not have write access to the source session' });
@@ -2640,15 +2857,33 @@ app.post('/api/delegations/:delegationId/settle', async (req, res) => {
 app.get('/api/sessions', async (req, res) => {
   const user = requirePortalUser(req, res);
   if (!user) return;
+  const routeStartedAt = Date.now();
   const daemonFilter = String(req.query.daemonId || '').trim();
   const agentFilter = String(req.query.agentName || '').trim();
-  const daemonRegistryRecords = (await listDaemonRegistryRecords()).map((daemon) => markDaemonOfflineIfStale(daemon));
-  const daemonAccessById = new Map();
-  for (const daemon of daemonRegistryRecords) {
-    if (!daemon) continue;
-    const accessState = daemon.accessState || await ensureDaemonAclState(daemon.daemonId, '', daemon);
-    daemonAccessById.set(daemon.daemonId, { daemon, accessState });
-  }
+  setRequestLogIdentity(req, {
+    daemonId: daemonFilter || undefined,
+    agentName: agentFilter || undefined,
+  });
+  const sessionIndexPromise = ensureSessionIndicesReady();
+  const delegatingSourceSessionIdsPromise = listDelegationControlEvents()
+    .then((events) => collectDelegatingSourceSessionIds(reduceDelegationControlEvents(events)));
+  const daemonAccessByIdPromise = listDaemonRegistryRecords()
+    .then((daemons) => daemons.map((daemon) => markDaemonOfflineIfStale(daemon)))
+    .then((daemonRegistryRecords) => buildDaemonAccessById(daemonRegistryRecords, {
+      logger: sessionLogger,
+      logEvent: 'session.list.daemon-access.slow',
+      logFields: {
+        daemonFilter: daemonFilter || undefined,
+        agentFilter: agentFilter || undefined,
+        filtered: !!daemonFilter,
+      },
+      logMessage: daemonFilter ? 'Slow filtered session list daemon access load' : 'Slow session list daemon access load',
+    }));
+  const [, daemonAccessById, delegatingSourceSessionIds] = await Promise.all([
+    sessionIndexPromise,
+    daemonAccessByIdPromise,
+    delegatingSourceSessionIdsPromise,
+  ]);
   if (daemonFilter) {
     const daemonEntry = daemonAccessById.get(daemonFilter);
     if (!daemonEntry?.daemon || !daemonEntry.daemon.online) return res.status(404).json({ error: 'Daemon not found' });
@@ -2656,19 +2891,24 @@ app.get('/api/sessions', async (req, res) => {
       return res.json({ sessions: [], blockedReason: 'daemon-access-denied' });
     }
   }
-  await ensureSessionIndicesReady();
-  const delegatingSourceSessionIds = collectDelegatingSourceSessionIds(reduceDelegationControlEvents(await listDelegationControlEvents()));
+  const sessions = buildSessionListForUser({
+    state: sessionIndexState,
+    daemonAccessById,
+    userId: user.login,
+    daemonFilter,
+    agentFilter,
+    activeDelegationSourceSessionIds: delegatingSourceSessionIds,
+    canAdminDaemonAccess,
+    canMemberDaemonAccess,
+  });
+  logSlowRouteStage(sessionLogger, 'session.list.slow', routeStartedAt, {
+    daemonFilter: daemonFilter || undefined,
+    agentFilter: agentFilter || undefined,
+    daemonCount: daemonAccessById.size,
+    sessionCount: sessions.length,
+  }, 'Slow session list response');
   res.json({
-    sessions: buildSessionListForUser({
-      state: sessionIndexState,
-      daemonAccessById,
-      userId: user.login,
-      daemonFilter,
-      agentFilter,
-      activeDelegationSourceSessionIds: delegatingSourceSessionIds,
-      canAdminDaemonAccess,
-      canMemberDaemonAccess,
-    }),
+    sessions,
   });
 });
 
@@ -2726,14 +2966,20 @@ app.post('/api/sessions', async (req, res) => {
 app.get('/api/join-requests', async (req, res) => {
   const user = requirePortalUser(req, res);
   if (!user) return;
-  const daemonRegistryRecords = (await listDaemonRegistryRecords()).map((daemon) => markDaemonOfflineIfStale(daemon));
-  const daemonAccessById = new Map();
-  for (const daemon of daemonRegistryRecords) {
-    if (!daemon) continue;
-    const accessState = daemon.accessState || await ensureDaemonAclState(daemon.daemonId, '', daemon);
-    daemonAccessById.set(daemon.daemonId, accessState);
-  }
-  await ensureSessionIndicesReady();
+  const routeStartedAt = Date.now();
+  const sessionIndexPromise = ensureSessionIndicesReady();
+  const daemonAccessByIdPromise = listDaemonRegistryRecords()
+    .then((daemons) => daemons.map((daemon) => markDaemonOfflineIfStale(daemon)))
+    .then((daemonRegistryRecords) => buildDaemonAccessById(daemonRegistryRecords, {
+      selectValue: ({ accessState }) => accessState,
+      logger: sessionLogger,
+      logEvent: 'session.join-requests.daemon-access.slow',
+      logMessage: 'Slow session join-request daemon access load',
+    }));
+  const [, daemonAccessById] = await Promise.all([
+    sessionIndexPromise,
+    daemonAccessByIdPromise,
+  ]);
   const joinRequests = [];
   for (const sessionRecord of sessionIndexState.directoryBySessionId.values()) {
     if (sessionRecord.deletedAt) continue;
@@ -2748,6 +2994,10 @@ app.get('/api/join-requests', async (req, res) => {
     }
   }
   joinRequests.sort((left, right) => String(right.updatedAt || '').localeCompare(String(left.updatedAt || '')));
+  logSlowRouteStage(sessionLogger, 'session.join-requests.slow', routeStartedAt, {
+    daemonCount: daemonAccessById.size,
+    requestCount: joinRequests.length,
+  }, 'Slow session join-request response');
   res.json({ joinRequests });
 });
 
@@ -2770,6 +3020,7 @@ app.post('/api/sessions/:sessionId/join-requests', async (req, res) => {
     daemonAccessState: accessState,
     userId: user.login,
     canAdminDaemonAccess,
+    canMemberDaemonAccess,
   });
   const rawRequestedAccess = String(req.body?.requestedAccess || '').trim().toLowerCase();
   const requestedAccess = rawRequestedAccess || 'read';
@@ -2808,18 +3059,14 @@ app.post('/api/sessions/:sessionId/join-requests/:requestId/approve', async (req
   if (!user) return;
   const sessionId = String(req.params.sessionId || '').trim();
   const requestId = String(req.params.requestId || '').trim();
-  const daemonRegistryRecords = await listDaemonRegistryRecords();
-  const daemonAccessById = new Map();
-  for (const daemon of daemonRegistryRecords) {
-    const accessState = daemon.accessState || await ensureDaemonAclState(daemon.daemonId, '', daemon);
-    daemonAccessById.set(daemon.daemonId, accessState);
-  }
   await ensureSessionIndicesReady();
   const sessionRecord = getIndexedSessionRecord(sessionId);
   if (!sessionRecord) return res.status(404).json({ error: 'Session not found' });
   const joinRequest = findJoinRequestById(sessionIndexState, sessionId, requestId);
   if (!joinRequest) return res.status(404).json({ error: 'Join request not found' });
-  const daemonAccessState = daemonAccessById.get(sessionRecord.daemonId);
+  const daemon = await getDaemonRegistryRecord(sessionRecord.daemonId);
+  if (!daemon) return res.status(404).json({ error: 'Daemon not found' });
+  const daemonAccessState = await loadDaemonAccessState(daemon);
   if (!canManageSession(sessionRecord, daemonAccessState, user.login)) {
     return res.status(403).json({ error: 'Only a session manager can approve join requests' });
   }
@@ -2874,18 +3121,14 @@ app.post('/api/sessions/:sessionId/join-requests/:requestId/reject', async (req,
   if (!user) return;
   const sessionId = String(req.params.sessionId || '').trim();
   const requestId = String(req.params.requestId || '').trim();
-  const daemonRegistryRecords = await listDaemonRegistryRecords();
-  const daemonAccessById = new Map();
-  for (const daemon of daemonRegistryRecords) {
-    const accessState = daemon.accessState || await ensureDaemonAclState(daemon.daemonId, '', daemon);
-    daemonAccessById.set(daemon.daemonId, accessState);
-  }
   await ensureSessionIndicesReady();
   const sessionRecord = getIndexedSessionRecord(sessionId);
   if (!sessionRecord) return res.status(404).json({ error: 'Session not found' });
   const joinRequest = findJoinRequestById(sessionIndexState, sessionId, requestId);
   if (!joinRequest) return res.status(404).json({ error: 'Join request not found' });
-  const daemonAccessState = daemonAccessById.get(sessionRecord.daemonId);
+  const daemon = await getDaemonRegistryRecord(sessionRecord.daemonId);
+  if (!daemon) return res.status(404).json({ error: 'Daemon not found' });
+  const daemonAccessState = await loadDaemonAccessState(daemon);
   if (!canManageSession(sessionRecord, daemonAccessState, user.login)) {
     return res.status(403).json({ error: 'Only a session manager can reject join requests' });
   }
@@ -2938,6 +3181,7 @@ app.post('/api/sessions/:sessionId/access-self', async (req, res) => {
     daemonAccessState: accessState,
     userId: user.login,
     canAdminDaemonAccess,
+    canMemberDaemonAccess,
   });
   if (accessLevel === 'none') {
     return res.status(403).json({ error: 'You do not have access to this session' });
@@ -2953,16 +3197,12 @@ app.delete('/api/sessions/:sessionId', async (req, res) => {
   const user = requirePortalUser(req, res);
   if (!user) return;
   const sessionId = String(req.params.sessionId || '').trim();
-  const daemonRegistryRecords = await listDaemonRegistryRecords();
-  const daemonAccessById = new Map();
-  for (const daemon of daemonRegistryRecords) {
-    const accessState = daemon.accessState || await ensureDaemonAclState(daemon.daemonId, '', daemon);
-    daemonAccessById.set(daemon.daemonId, accessState);
-  }
   await ensureSessionIndicesReady();
   const sessionRecord = getIndexedSessionRecord(sessionId);
   if (!sessionRecord) return res.status(404).json({ error: 'Session not found' });
-  const daemonAccessState = daemonAccessById.get(sessionRecord.daemonId);
+  const daemon = await getDaemonRegistryRecord(sessionRecord.daemonId);
+  if (!daemon) return res.status(404).json({ error: 'Daemon not found' });
+  const daemonAccessState = await loadDaemonAccessState(daemon);
   if (!canManageSession(sessionRecord, daemonAccessState, user.login)) {
     return res.status(403).json({ error: 'Only a session manager can delete a session' });
   }
@@ -2981,16 +3221,12 @@ app.delete('/api/sessions/:sessionId/members/:userId', async (req, res) => {
   if (!user) return;
   const sessionId = String(req.params.sessionId || '').trim();
   const targetUserId = String(req.params.userId || '').trim();
-  const daemonRegistryRecords = await listDaemonRegistryRecords();
-  const daemonAccessById = new Map();
-  for (const daemon of daemonRegistryRecords) {
-    const accessState = daemon.accessState || await ensureDaemonAclState(daemon.daemonId, '', daemon);
-    daemonAccessById.set(daemon.daemonId, accessState);
-  }
   await ensureSessionIndicesReady();
   const sessionRecord = getIndexedSessionRecord(sessionId);
   if (!sessionRecord) return res.status(404).json({ error: 'Session not found' });
-  const daemonAccessState = daemonAccessById.get(sessionRecord.daemonId);
+  const daemon = await getDaemonRegistryRecord(sessionRecord.daemonId);
+  if (!daemon) return res.status(404).json({ error: 'Daemon not found' });
+  const daemonAccessState = await loadDaemonAccessState(daemon);
   if (targetUserId !== user.login && !canManageSession(sessionRecord, daemonAccessState, user.login)) {
     return res.status(403).json({ error: 'Only a session manager can remove another member' });
   }

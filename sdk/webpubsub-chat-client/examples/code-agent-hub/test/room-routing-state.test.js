@@ -89,6 +89,30 @@ describe('room routing state helpers', () => {
     assert.equal(supplementalRoomInfos.has('daemon-acl-test'), true);
   });
 
+  it('allows callers to defer room hydration when self-add is forbidden but server membership is expected', async () => {
+    const supplementalRoomInfos = new Map();
+    let addSelfCalls = 0;
+
+    const roomInfo = await ensureLocalRoomInfo('delegation-relay-1', {
+      chatRooms: [],
+      supplementalRoomInfos,
+      hasJoinedRoom: () => false,
+      getRoomInfo: async () => {
+        throw new Error('not a member of the specified room');
+      },
+      addSelfToRoom: async () => {
+        addSelfCalls += 1;
+        throw new Error("The user 'admin' does not have permission to 'invite user' in the room 'delegation-relay-1'.");
+      },
+      currentUserId: 'admin',
+      shouldIgnoreAddSelfError: (error) => /invite user/.test(String(error?.message || '')),
+    });
+
+    assert.equal(addSelfCalls, 1);
+    assert.equal(roomInfo, null);
+    assert.equal(supplementalRoomInfos.has('delegation-relay-1'), false);
+  });
+
   it('throws non-membership errors from addSelfToRoom', async () => {
     await assert.rejects(
       ensureLocalRoomInfo('room-fail', {

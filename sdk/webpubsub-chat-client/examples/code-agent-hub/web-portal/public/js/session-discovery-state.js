@@ -58,6 +58,22 @@ export function getSessionRecordStatusInfo(session) {
   return { state: 'idle', label: 'Idle' };
 }
 
+export function buildSessionStatusPatch({
+  sessionId = '',
+  sessionProcessing,
+  sessionStopping,
+  sessionReady,
+} = {}) {
+  const normalizedSessionId = String(sessionId || '').trim();
+  if (!normalizedSessionId) return null;
+
+  const patch = { sessionId: normalizedSessionId };
+  if (typeof sessionProcessing === 'boolean') patch.sessionProcessing = sessionProcessing;
+  if (typeof sessionStopping === 'boolean') patch.sessionStopping = sessionStopping;
+  if (typeof sessionReady === 'boolean') patch.sessionReady = sessionReady;
+  return patch;
+}
+
 export function sessionNeedsMetadataHydration(session) {
   return !session?.agent || !session?.workingDirectory || !session?.ownerUserId || !session?.daemonId;
 }
