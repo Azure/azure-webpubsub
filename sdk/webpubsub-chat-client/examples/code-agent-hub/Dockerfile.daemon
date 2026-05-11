@@ -1,0 +1,42 @@
+# CodeAgentHub Daemon Docker
+#
+# Pre-installs ACP agent packages so spawn is instant (no npx download).
+# Includes a test repo at /workspace and maps host configs for Claude/Codex.
+#
+# Build (from sdk/webpubsub-chat-client/examples/code-agent-hub dir):
+#   npm run pack:daemon
+#
+# Then build the image from sdk/webpubsub-chat-client dir:
+#   docker build -t codeagenthub-daemon -f examples/code-agent-hub/Dockerfile.daemon .
+#
+# Run (see scripts/start-daemon-docker.ps1 for the full command):
+#   docker run --network host \
+#     -e WebPubSubConnectionString="..." \
+#     -v ~/.claude:/root/.claude \
+#     -v ~/.codex:/root/.codex \
+#     -v /path/to/local/project:/workspace/external \
+#     codeagenthub-daemon
+
+FROM node:22-slim
+
+WORKDIR /app
+
+# System deps
+RUN apt-get update && apt-get install -y git && rm -rf /var/lib/apt/lists/*
+
+# Clone test repo
+RUN git clone --branch main https://github.com/Azure/azure-webpubsub.git /workspace/azure-webpubsub
+
+# Copy packed daemon early so it can pre-install tested CLIs during build
+COPY examples/code-agent-hub/dist/daemon/agent-daemon.bundle.cjs /app/
+
+# Pre-install only the tested ACP agent CLIs
+RUN node /app/agent-daemon.bundle.cjs --install
+
+# Create directories for host config mounts
+RUN mkdir -p /root/.claude /root/.codex /root/.copilot /root/.config/github-copilot /root/.local/share/github-copilot /workspace/external
+
+# Set working directory to workspace for agent operations
+WORKDIR /workspace/azure-webpubsub
+
+CMD ["node", "/app/agent-daemon.bundle.cjs"]

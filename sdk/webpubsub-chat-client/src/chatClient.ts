@@ -16,7 +16,7 @@ import {
   MemberLeftNotificationBody,
   RoomLeftNotificationBody,
 } from "./generatedTypes.js";
-import { INVOCATION_NAME } from "./constant.js";
+import { ERRORS, INVOCATION_NAME } from "./constant.js";
 import { logger } from "./logger.js";
 import { isWebPubSubClient } from "./utils.js";
 
@@ -34,6 +34,7 @@ class ChatClient {
 
   private readonly _emitter = new EventEmitter();
   private readonly _rooms = new Map<string, RoomInfo>();
+  private readonly _joinedRoomIds = new Set<string>();
   protected _conversationIds = new Set<string>();
   private _userId: string | undefined;
   private _isLoggedIn = false;
@@ -69,6 +70,7 @@ class ChatClient {
         case "RoomJoined":
           const roomInfo = data.body as NewRoomNotificationBody as RoomInfo;
           this._rooms.set(roomInfo.roomId, roomInfo);  // Add to _rooms first so listeners can use listRoomMessage
+          this._joinedRoomIds.add(roomInfo.roomId);
           this._emitter.emit(type, roomInfo);
           break;
         case "RoomMemberJoined":
@@ -83,8 +85,12 @@ class ChatClient {
         // self left a specific room
         case "RoomLeft":
           const roomLeftInfo = data.body as RoomLeftNotificationBody;
+          if (!this._rooms.has(roomLeftInfo.roomId)) {
+            break;
+          }
           this._emitter.emit(type, roomLeftInfo);
           this._rooms.delete(roomLeftInfo.roomId);
+          this._joinedRoomIds.delete(roomLeftInfo.roomId);
           break;
         case "MessageUpdated":
         case "MessageDeleted":
@@ -139,6 +145,7 @@ class ChatClient {
     );
     roomInfos.forEach(({ roomId, roomInfo }) => {
       this._rooms.set(roomId, roomInfo);
+      this._joinedRoomIds.add(roomId);
     });
     return this;
   }
@@ -170,16 +177,21 @@ class ChatClient {
     if (!roomId) {
       logger.warning(`Failed to find roomId for conversationId ${conversationId} when sending message.`);
     }
+    // Tag the synthetic sender-side event so callers can ignore only the local echo
+    // without dropping same-user messages that arrive from another device.
     this._emitter.emit("MessageCreated" as NotificationType, {
+      notificationType: "MessageCreated",
       conversation: { conversationId: conversationId, roomId: roomId || "" },
       message: {
         messageId: msgId,
         createdBy: this.userId,
+        messageBodyType: "Inline",
+        localEcho: true,
         content: {
           text: message,
           binary: null,
         },
-      } as MessageInfo,
+      } as MessageInfo & { localEcho: boolean },
     } as NewMessageNotificationBody);
     return msgId;
   }
@@ -210,6 +222,7 @@ class ChatClient {
     }
     const roomInfo = await this.invokeWithReturnType<RoomInfoWithMembers>(INVOCATION_NAME.CREATE_ROOM, roomDetails, "json");
     this._rooms.set(roomInfo.roomId, roomInfo);
+    this._joinedRoomIds.add(roomInfo.roomId);
     this._emitter.emit("RoomJoined" as NotificationType, roomInfo);
     return roomInfo;
   }
@@ -218,20 +231,47 @@ class ChatClient {
     await this.invokeWithReturnType<any>(INVOCATION_NAME.MANAGE_ROOM_MEMBER, request, "json");
   }
 
+  private isUserAlreadyInRoomError(error: unknown): boolean {
+    const detailName = typeof (error as any)?.errorDetail?.name === "string" ? (error as any).errorDetail.name : "";
+    const code = error instanceof ChatError ? error.code : "";
+    const name = typeof (error as any)?.name === "string" ? (error as any).name : "";
+    const message = String((error as any)?.message || "");
+    return code === ERRORS.USER_ALREADY_IN_ROOM
+      || detailName === ERRORS.USER_ALREADY_IN_ROOM
+      || name === ERRORS.USER_ALREADY_IN_ROOM
+      || /already a member of the specified room/i.test(message);
+  }
+
+  private async hydrateSelfRoomCache(roomId: string): Promise<void> {
+    if (this._rooms.has(roomId)) {
+      return;
+    }
+    const roomInfo = await this.getRoom(roomId, false);
+    this._rooms.set(roomId, roomInfo);
+  }
+
   /** Add a user to a room. This is an admin operation where one user adds another user to a room. */
   public async addUserToRoom(roomId: string, userId: string): Promise<void> {
     this.ensureLoggedIn();
     const payload: ManageRoomMemberRequest = { roomId: roomId, operation: "Add", userId: userId };
-    await this.manageRoomMember(payload);
-    // This path happens when the logged-in client uses the room-member management API to add
-    // its own userId to a room, for example during lobby bootstrap or right after a session room
-    // is created. The service accepts the membership change server-side, but this client may not
-    // receive a local room-cache update immediately. Without this refresh, later calls such as
-    // sendToRoom can still fail because the SDK believes the current client has not joined yet.
-    if (userId === this.userId && !this._rooms.has(roomId)) {
-      const roomInfo = await this.getRoom(roomId, false);
-      this._rooms.set(roomId, roomInfo);
-      this._emitter.emit("RoomJoined" as NotificationType, roomInfo);
+    const isSelf = userId === this.userId;
+    const shouldHydrateSelfCache = isSelf && !this._rooms.has(roomId);
+    try {
+      await this.manageRoomMember(payload);
+    } catch (error) {
+      if (!isSelf || !this.isUserAlreadyInRoomError(error)) {
+        throw error;
+      }
+    }
+    // When the logged-in client adds itself to a room (or is already a member),
+    // mark the room as authoritatively joined so hasJoinedRoom() returns true.
+    // The RoomJoined notification may never arrive for server-side member management,
+    // so this is the only reliable point to set the authoritative joined state.
+    if (isSelf) {
+      this._joinedRoomIds.add(roomId);
+    }
+    if (shouldHydrateSelfCache) {
+      await this.hydrateSelfRoomCache(roomId);
     }
   }
 
@@ -240,6 +280,22 @@ class ChatClient {
     this.ensureLoggedIn();
     const payload: ManageRoomMemberRequest = { roomId: roomId, operation: "Delete", userId: userId };
     await this.manageRoomMember(payload);
+    // Mirror the self-add path above: when the logged-in client removes its own userId,
+    // the service-side membership is updated immediately but the RoomLeft notification may
+    // arrive later or be absent from the local cache view. Drop the cached room eagerly so
+    // follow-up UI and send/list calls do not treat a dead room as still joined.
+    if (userId === this.userId) {
+      const roomInfo = this._rooms.get(roomId);
+      if (roomInfo) {
+        this._rooms.delete(roomId);
+        this._joinedRoomIds.delete(roomId);
+        this._emitter.emit("RoomLeft" as NotificationType, {
+          roomId,
+          title: roomInfo.title,
+          notificationType: "RoomLeft",
+        } as RoomLeftNotificationBody);
+      }
+    }
   }
 
   /** List messages in a conversation. It returns messages and a query for the next query parameter. */
@@ -275,6 +331,11 @@ class ChatClient {
   /** Cached rooms known to the client. */
   public get rooms(): RoomInfo[] {
     return Array.from(this._rooms.values());
+  }
+
+  /** Whether the current connection has received an authoritative room join for this room. */
+  public hasJoinedRoom(roomId: string): boolean {
+    return this._joinedRoomIds.has(roomId);
   }
 
   public get userId(): string {

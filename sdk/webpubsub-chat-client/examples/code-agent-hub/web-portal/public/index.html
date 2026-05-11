@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<title>CodeAgentHub</title>
+<script src="/js/theme-bootstrap.js"></script>
+<link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+<div id="app">
+  <div id="topbar">
+    <div class="tb-left">
+      <button class="tb-burger" data-action="toggle-columns" aria-label="Menu">☰</button>
+      <div class="tb-brand-lockup">
+        <div class="tb-brand-topline"><span class="tb-title is-brand" id="topbar-title"><span class="tb-title-prefix">Azure Web PubSub / </span><span class="tb-title-product">AgentHub</span></span></div>
+        <div class="tb-breadcrumb is-empty" id="topbar-breadcrumb"></div>
+      </div>
+      <span class="tb-status" id="topbar-st"></span>
+    </div>
+    <div class="tb-right">
+      <span class="tb-user" id="user-badge" title="Current username" style="display:none"></span>
+      <button class="tb-btn" id="auto-approve-btn" data-action="toggle-auto-approve" style="display:none" title="Portal-side auto response for permission requests only. Separate from the agent's own access mode.">Approvals: Manual</button>
+      <button class="tb-icon-btn" id="compact-toggle-btn" title="Expand chat area" style="display:none">⤢</button>
+      <button class="tb-icon-btn" id="debug-btn" data-action="toggle-debug" aria-label="Debug panel" style="display:none"><svg width="14" height="14" viewBox="0 0 32 32" fill="currentColor" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><use href="/images/ui-icons.svg#debug-bug"></use></svg></button>
+      <button class="tb-icon-btn" id="theme-btn" data-action="toggle-theme" title="Toggle light/dark" style="display:none">🌙</button>
+      <button class="tb-btn" id="logout-btn" style="display:none">Logout</button>
+    </div>
+  </div>
+  <div id="body">
+    <!-- Finder-style column navigation -->
+    <div id="column-nav">
+      <div class="compact-nav" id="compact-nav"></div>
+      <!-- Column 0: Login -->
+      <div class="col" id="col-login">
+        <div class="col-hdr">Login</div>
+        <div class="col-list">
+          <div class="login-card" id="login-card-oauth" style="display:none">
+            <div class="login-title">Sign in</div>
+            <div class="login-copy" id="login-copy-oauth">Sign in with your GitHub account to continue.</div>
+            <button class="sh-go" id="github-login-btn" data-action="oauth-action" style="display:flex;align-items:center;justify-content:center;gap:8px" type="button">
+              <svg width="18" height="18" viewBox="0 0 16 16" fill="currentColor" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><use href="/images/ui-icons.svg#github-mark"></use></svg>
+              <span id="github-login-label">Sign in with GitHub</span>
+            </button>
+            <div class="login-msg" id="login-msg-oauth"></div>
+          </div>
+          <div class="login-card" id="login-card-local" style="display:none">
+            <div class="fld"><label>Username</label><input id="login-username" type="text" placeholder="AzureUser" autocomplete="username"></div>
+            <button class="sh-go" id="login-btn">Login</button>
+            <div class="login-msg" id="login-msg"></div>
+          </div>
+        </div>
+      </div>
+      <!-- Column 1: Workspaces -->
+      <div class="col" id="col-daemons" style="display:none">
+        <div class="col-hdr">Workspaces</div>
+        <div class="col-list" id="col-daemons-list"></div>
+      </div>
+      <!-- Column 2: Agents -->
+      <div class="col" id="col-agents" style="display:none">
+        <div class="col-hdr"><button class="mob-back" data-action="mob-show" data-col-id="col-daemons">◀</button> <span id="col-agents-hdr">Agents</span></div>
+        <div class="col-list" id="col-agents-list"></div>
+      </div>
+      <!-- Column 3: Sessions -->
+      <div class="col" id="col-sessions" style="display:none">
+        <div class="col-hdr"><button class="mob-back" data-action="mob-show" data-col-id="col-daemons">◀</button><span id="col-sessions-hdr" style="flex:1">Sessions</span><div class="col-hdr-actions"><span class="col-hdr-spinner hidden" id="col-sessions-spinner" title=""></span><button class="sh-go sh-go-inline" id="open-create-session-btn" type="button">New Session</button></div></div>
+        <div class="session-groupby-bar" id="session-groupby-bar" style="display:none"><label>Sort by</label><div class="session-groupby-pills"><button class="session-groupby-pill is-active" type="button" data-action="set-session-groupby" data-group-mode="name">Name</button><button class="session-groupby-pill" type="button" data-action="set-session-groupby" data-group-mode="time">Time</button><button class="session-groupby-pill" type="button" data-action="set-session-groupby" data-group-mode="agent">Agent</button></div></div>
+        <div class="col-list-msg" id="col-sessions-msg"></div>
+        <div class="col-list" id="col-sessions-list"></div>
+      </div>
+      <!-- Column 4: Chat -->
+      <div id="chat-col" style="display:none">
+        <div id="chat-col-top"><button class="chat-col-mob-back" data-action="mob-show" data-col-id="col-sessions" style="display:none" aria-label="Back to sessions">◀</button><div class="session-ctx" id="session-ctx"><span class="session-ctx-icon" id="session-ctx-icon"></span><div class="session-ctx-info"><span class="session-ctx-name" id="session-ctx-name"></span><span class="session-ctx-meta" id="session-ctx-meta"></span></div><span class="session-ctx-pill" id="session-ctx-pill" data-state="idle">Idle</span></div></div>
+        <div class="chat-placeholder" id="chat-placeholder"></div>
+        <div id="scroll" style="flex:1;overflow-y:auto;overflow-x:hidden;-webkit-overflow-scrolling:touch">
+          <div id="chat" class="hidden"></div>
+        </div>
+        <div id="ibar" class="hidden">
+          <div class="session-toolbar" id="session-toolbar">
+            <div class="dot" id="sdot" title="Disconnected"></div>
+            <div class="toolbar-picker" id="model-picker">
+              <button class="toolbar-btn" id="model-btn" data-action="toggle-model-dropdown" title="Choose model"><span class="toolbar-btn-copy"><span class="toolbar-btn-kicker">Model</span><span class="toolbar-btn-value" id="model-current">Select</span></span><span>▾</span></button>
+              <div class="toolbar-dd" id="model-dropdown"></div>
+            </div>
+            <div class="toolbar-picker" id="mode-picker">
+              <button class="toolbar-btn" id="mode-btn" data-action="toggle-mode-dropdown" title="Agent mode"><span class="toolbar-btn-copy"><span class="toolbar-btn-kicker" id="mode-label">Mode</span><span class="toolbar-btn-value" id="mode-current">Select</span></span><span>▾</span></button>
+              <div class="toolbar-dd" id="mode-dropdown"></div>
+            </div>
+            <div id="usage-ring-container" title="Context window usage">
+              <svg id="usage-ring" viewBox="0 0 20 20">
+                <use class="ring-bg" href="/images/ui-icons.svg#usage-ring-circle"></use>
+                <use class="ring-fg" id="usage-arc" href="/images/ui-icons.svg#usage-ring-circle" stroke-dasharray="50.27" stroke-dashoffset="50.27"></use>
+              </svg>
+              <span id="usage-label">0%</span>
+            </div>
+            <div class="toolbar-working" id="toolbar-working" role="status" aria-live="polite">
+              <div class="wi-dots"><span></span><span></span><span></span></div>
+              <span class="toolbar-working-text" id="toolbar-working-text">Agent is working…</span>
+            </div>
+          </div>
+          <div class="async-banner hidden" id="async-banner" role="status" aria-live="polite">
+            <div class="async-banner-copy">
+              <span class="async-banner-pill" id="async-banner-pill">Working</span>
+              <span class="async-banner-text" id="async-banner-text"></span>
+            </div>
+            <button class="async-banner-action hidden" id="async-banner-action" type="button" data-action="run-session-banner-action"></button>
+          </div>
+          <div class="input-row" style="position:relative">
+            <div class="composer-shell">
+              <div id="slash-menu"></div>
+              <div id="delegation-chip" class="composer-target-chip hidden" title="">
+                <span class="composer-target-kicker">Delegate</span>
+                <span id="delegation-chip-label" class="composer-target-text"></span>
+                <button id="delegation-chip-clear" type="button" data-action="clear-composer-delegation-target" data-focus-input="true" aria-label="Clear delegation target">×</button>
+              </div>
+              <textarea id="mi" placeholder="Type a message …" disabled rows="1"></textarea>
+            </div>
+            <button class="send" id="sb" data-action="handle-composer-action" disabled>↑</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div id="confirm-dlg"><div class="cf-box"><p id="cf-msg">Are you sure?</p><div class="cf-btns"><button class="cf-cancel" data-action="confirm-resolve" data-confirm-value="false">Cancel</button><button class="cf-danger" id="cf-action" data-action="confirm-resolve" data-confirm-value="true">Delete</button></div></div></div>
+
+<!-- Debug Panel -->
+<div id="debug-panel">
+  <div class="dbg-hdr"><div class="dbg-head-copy"><div class="dbg-kicker">Transport Inspector</div><div class="dbg-title-row"><h4>WebSocket Messages</h4><span class="dbg-count" id="debug-count">0</span></div><div class="dbg-sub">Raw portal traffic for this browser session.</div></div><div class="dbg-actions"><button class="dbg-btn" type="button" data-action="export-debug-log">Export</button><button class="dbg-btn" type="button" data-action="clear-debug-log">Clear</button><button class="dbg-btn" type="button" data-action="hide-debug-panel">Hide</button></div></div>
+  <div class="dbg-list" id="debug-log"></div>
+</div>
+
+<div id="daemon-access-overlay" data-action="close-daemon-access-drawer"></div>
+<div id="daemon-access-drawer" aria-hidden="true">
+  <div class="dad-hdr"><div class="dad-copy"><div class="dad-kicker">Daemon Permissions</div><div class="dad-title-row"><div class="dad-title" id="daemon-access-drawer-title">Daemon access</div><span class="daemon-access-role" id="daemon-access-drawer-role"></span></div><div class="dad-sub" id="daemon-access-drawer-sub"></div></div><div class="dbg-actions"><button class="dbg-btn" type="button" data-action="close-daemon-access-drawer">Close</button></div></div>
+  <div class="dad-body" id="daemon-access-drawer-body"></div>
+</div>
+
+<div id="create-session-overlay" data-action="close-create-session-modal"></div>
+<div id="create-session-modal" aria-hidden="true">
+  <div class="csm-hdr"><div class="csm-copy"><div class="csm-title">Create a new session</div></div></div>
+  <div class="csm-body">
+    <div class="csm-column">
+      <div class="csm-section">
+        <div class="csm-section-head"><div><div class="csm-section-title">Workspace</div></div></div>
+        <div id="create-daemon-list"></div>
+      </div>
+      <div class="csm-section">
+        <div class="csm-section-head"><div><div class="csm-section-title">Tool</div></div></div>
+        <div class="create-tool-list" role="radiogroup" aria-label="Tool selection">
+          <label class="create-tool-option is-selected">
+            <input class="create-tool-input" type="radio" name="create-session-tool" value="cross-agent-call" checked>
+            <span class="create-tool-copy">
+              <span class="create-tool-name">Cross-Agent Call</span>
+              <span class="create-tool-meta">Enabled for new sessions</span>
+            </span>
+          </label>
+        </div>
+      </div>
+    </div>
+    <div class="csm-column">
+      <div class="csm-section">
+        <div class="csm-section-head"><div><div class="csm-section-title">Agent</div></div></div>
+        <div class="fld"><div class="create-agent-list" id="create-agent-list"></div><input type="hidden" id="f-agent" value="copilot"></div>
+      </div>
+      <div class="csm-section">
+        <div class="csm-section-head"><div><div class="csm-section-title">Directory</div></div></div>
+        <div class="fld"><div class="dir-input-row"><span class="dir-field-badge" id="f-dir-badge" aria-hidden="true"></span><div class="dir-input-wrap"><input id="f-dir" class="dir-input" type="text" list="f-dir-suggestions" spellcheck="false" autocomplete="off" aria-label="Project path" placeholder="Enter an absolute project path"><datalist id="f-dir-suggestions"></datalist><div class="dir-input-meta" id="f-dir-meta"></div></div></div></div>
+        <div class="col-new-msg" id="col-new-msg"></div>
+      </div>
+    </div>
+  </div>
+  <div class="csm-footer"><div class="csm-footer-note"></div><div class="csm-footer-actions"><button class="csm-cancel" type="button" data-action="close-create-session-modal">Cancel</button><button class="sh-go" id="f-btn" type="button">Create</button></div></div>
+</div>
+
+<script type="module" src="/js/app.js"></script>
+</body>
+</html>
