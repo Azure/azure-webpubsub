@@ -79,8 +79,8 @@ test("same user on two clients still receives remote room messages", { timeout: 
     sender = await createTestClient(sharedUserId);
     watcher = await createTestClient(sharedUserId);
 
-    assert.ok(sender.rooms.some((room) => room.roomId === createdRoom.roomId), "sender should hydrate the shared room on login");
-    assert.ok(watcher.rooms.some((room) => room.roomId === createdRoom.roomId), "watcher should hydrate the shared room on login");
+    assert.equal(sender.hasJoinedRoom(createdRoom.roomId), true, "sender should load the shared room on login");
+    assert.equal(watcher.hasJoinedRoom(createdRoom.roomId), true, "watcher should load the shared room on login");
 
     const senderNotifications: any[] = [];
     const watcherNotifications: any[] = [];
@@ -257,11 +257,11 @@ test("self remove updates local room cache immediately", { timeout: LONG_TEST_TI
 
     const roomId = `room-leave-${randomUUID().substring(0, 6)}`;
     const created = await chat1.createRoom("ut-self-leave", [], roomId);
-    assert.ok(chat1.rooms.some((room) => room.roomId === created.roomId), "room should be cached after creation");
+    assert.equal(chat1.hasJoinedRoom(created.roomId), true, "room should be cached after creation");
 
     await chat1.removeUserFromRoom(created.roomId, chat1.userId);
 
-    assert.ok(!chat1.rooms.some((room) => room.roomId === created.roomId), "room should be removed from local cache immediately after self removal");
+    assert.equal(chat1.hasJoinedRoom(created.roomId), false, "room should be removed from local cache immediately after self removal");
   } catch (e) {
     t.diagnostic((e as any).toString());
     throw e;
@@ -270,38 +270,15 @@ test("self remove updates local room cache immediately", { timeout: LONG_TEST_TI
   }
 });
 
-test("self add hydrates local room cache even when already a member", { timeout: LONG_TEST_TIMEOUT }, async (t) => {
+test("self add restores local room cache without RoomJoined event", { timeout: LONG_TEST_TIMEOUT }, async (t) => {
   let chat1;
   try {
     chat1 = await createTestClient();
 
     const roomId = `room-self-add-${randomUUID().substring(0, 6)}`;
     const created = await chat1.createRoom("ut-self-add", [], roomId);
-    assert.ok(chat1.rooms.some((room) => room.roomId === created.roomId), "room should be cached after creation");
+    assert.equal(chat1.hasJoinedRoom(created.roomId), true, "room should be cached after creation");
 
-    (chat1 as any)._rooms.delete(created.roomId);
-    assert.ok(!chat1.rooms.some((room) => room.roomId === created.roomId), "test should start with an empty local room cache");
-
-    await chat1.addUserToRoom(created.roomId, chat1.userId);
-
-    assert.ok(chat1.rooms.some((room) => room.roomId === created.roomId), "self add should restore the missing local room cache entry");
-    const sentMsgId = await chat1.sendToRoom(created.roomId, "self-add-cache-hydrated");
-    assert.ok(sentMsgId, "sendToRoom should succeed after the cache is hydrated");
-  } catch (e) {
-    t.diagnostic((e as any).toString());
-    throw e;
-  } finally {
-    if (chat1) stopClients([chat1]);
-  }
-});
-
-test("self add cache hydration does not emit a synthetic RoomJoined event", { timeout: LONG_TEST_TIMEOUT }, async (t) => {
-  let chat1;
-  try {
-    chat1 = await createTestClient();
-
-    const roomId = `room-self-add-no-event-${randomUUID().substring(0, 6)}`;
-    const created = await chat1.createRoom("ut-self-add-no-event", [], roomId);
     let roomJoinedEvents = 0;
     chat1.addListenerForNewRoom((room) => {
       if (room.roomId === created.roomId) {
@@ -310,45 +287,19 @@ test("self add cache hydration does not emit a synthetic RoomJoined event", { ti
     });
 
     (chat1 as any)._rooms.delete(created.roomId);
-    assert.ok(!chat1.rooms.some((room) => room.roomId === created.roomId), "test should start with an empty local room cache");
+    assert.equal(chat1.hasJoinedRoom(created.roomId), false, "test should start with an empty local room cache");
 
     await chat1.addUserToRoom(created.roomId, chat1.userId);
 
-    assert.ok(chat1.rooms.some((room) => room.roomId === created.roomId), "self add should restore the missing local room cache entry");
-    assert.equal(roomJoinedEvents, 0, "self cache hydration should not emit a synthetic RoomJoined event");
+    assert.equal(chat1.hasJoinedRoom(created.roomId), true, "self add should restore the missing local room cache entry");
+    assert.equal(roomJoinedEvents, 0, "self cache restore should not emit a synthetic RoomJoined event");
+    const sentMsgId = await chat1.sendToRoom(created.roomId, "self-add-cache-restored");
+    assert.ok(sentMsgId, "sendToRoom should succeed after the cache is restored");
   } catch (e) {
     t.diagnostic((e as any).toString());
     throw e;
   } finally {
     if (chat1) stopClients([chat1]);
-  }
-});
-
-test("login seeds local room cache and self-add hydrates missing cache entry", { timeout: LONG_TEST_TIMEOUT }, async (t) => {
-  let admin, watcher;
-  try {
-    const sharedUserId = `joined-${randomUUID().substring(0, 6)}`;
-    admin = await createTestClient();
-
-    const roomId = `room-live-join-${randomUUID().substring(0, 6)}`;
-    const created = await admin.createRoom("ut-live-join", [sharedUserId], roomId);
-
-    watcher = await createTestClient(sharedUserId);
-    assert.equal(watcher.hasJoinedRoom(created.roomId), true, "login should mark existing room memberships as live joins");
-
-    (watcher as any)._rooms.delete(created.roomId);
-    assert.equal(watcher.hasJoinedRoom(created.roomId), false, "test should start without a local joined-room cache entry");
-
-    await watcher.addUserToRoom(created.roomId, watcher.userId);
-
-    assert.ok(watcher.rooms.some((room) => room.roomId === created.roomId), "self add should still hydrate the local room cache");
-    assert.equal(watcher.hasJoinedRoom(created.roomId), true, "self-add should hydrate the local joined-room cache");
-  } catch (e) {
-    t.diagnostic((e as any).toString());
-    throw e;
-  } finally {
-    const clientsToStop = [admin, watcher].filter(Boolean) as ChatClient[];
-    stopClients(clientsToStop);
   }
 });
 
@@ -377,25 +328,6 @@ test("adding non-self user already in room throws ChatError with UserAlreadyInRo
   } finally {
     const clientsToStop = [admin, user1].filter(Boolean) as ChatClient[];
     stopClients(clientsToStop);
-  }
-});
-
-test("adding self already in room is silently swallowed and hasJoinedRoom stays true", { timeout: LONG_TEST_TIMEOUT }, async (t) => {
-  let chat1;
-  try {
-    chat1 = await createTestClient();
-
-    const roomId = `room-self-dup-${randomUUID().substring(0, 6)}`;
-    await chat1.createRoom("ut-self-dup", [], roomId);
-
-    // chat1 is already in the room; self-add should not throw.
-    await chat1.addUserToRoom(roomId, chat1.userId);
-    assert.equal(chat1.hasJoinedRoom(roomId), true, "hasJoinedRoom should remain true after redundant self-add");
-  } catch (e) {
-    t.diagnostic((e as any).toString());
-    throw e;
-  } finally {
-    if (chat1) stopClients([chat1]);
   }
 });
 

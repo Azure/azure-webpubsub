@@ -230,8 +230,7 @@ class ChatClient {
     await this.invokeWithReturnType<any>(INVOCATION_NAME.MANAGE_ROOM_MEMBER, request, "json");
   }
 
-  // Fetch room info from the server and populate the local cache.
-  private async hydrateSelfRoomCache(roomId: string): Promise<void> {
+  private async ensureRoomCached(roomId: string): Promise<void> {
     if (this._rooms.has(roomId)) {
       return;
     }
@@ -244,8 +243,9 @@ class ChatClient {
     this.ensureLoggedIn();
     const payload: ManageRoomMemberRequest = { roomId: roomId, operation: "Add", userId: userId };
     const isSelf = userId === this.userId;
-    // Pre-check before the call: if self is not yet in local cache, we'll need to hydrate after add.
-    const shouldHydrateSelfCache = isSelf && !this._rooms.has(roomId);
+    // If self-add succeeds but no RoomJoined notification arrives, fetch room info
+    // from the service so sendToRoom can use its conversation id.
+    const shouldCacheRoomAfterSelfAdd = isSelf && !this._rooms.has(roomId);
     try {
       await this.manageRoomMember(payload);
     } catch (error) {
@@ -253,8 +253,8 @@ class ChatClient {
         throw error;
       }
     }
-    if (shouldHydrateSelfCache) {
-      await this.hydrateSelfRoomCache(roomId);
+    if (shouldCacheRoomAfterSelfAdd) {
+      await this.ensureRoomCached(roomId);
     }
   }
 
