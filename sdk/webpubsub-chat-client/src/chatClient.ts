@@ -1,4 +1,4 @@
-import { OnConnectedArgs, OnDisconnectedArgs, OnStoppedArgs, WebPubSubClient, WebPubSubClientCredential, WebPubSubClientOptions, WebPubSubDataType } from "@azure/web-pubsub-client";
+import { InvocationError, OnConnectedArgs, OnDisconnectedArgs, OnStoppedArgs, WebPubSubClient, WebPubSubClientCredential, WebPubSubClientOptions, WebPubSubDataType } from "@azure/web-pubsub-client";
 import { EventEmitter } from "events";
 import {
   MessageInfo,
@@ -16,7 +16,8 @@ import {
   MemberLeftNotificationBody,
   RoomLeftNotificationBody,
 } from "./generatedTypes.js";
-import { INVOCATION_NAME } from "./constant.js";
+
+import { ERRORS, INVOCATION_NAME } from "./constant.js";
 import { logger } from "./logger.js";
 import { isWebPubSubClient } from "./utils.js";
 
@@ -83,6 +84,9 @@ class ChatClient {
         // self left a specific room
         case "RoomLeft":
           const roomLeftInfo = data.body as RoomLeftNotificationBody;
+          if (!this._rooms.has(roomLeftInfo.roomId)) {
+            break;
+          }
           this._emitter.emit(type, roomLeftInfo);
           this._rooms.delete(roomLeftInfo.roomId);
           break;
@@ -104,16 +108,21 @@ class ChatClient {
   /** Invoke server event and return typed data */
   private async invokeWithReturnType<T>(eventName: string, payload: any, dataType: WebPubSubDataType): Promise<T> {
     logger.verbose(`invoke event: '${eventName}', dataType: ${dataType}, payload:`, payload);
-
-    const rawResponse = await this.connection.invokeEvent(eventName, payload, dataType);
-
-    logger.verbose(`invoke response for '${eventName}':`, rawResponse);
-
-    const data = rawResponse.data as any;
-    if (data && typeof data === "object" && typeof data.code === "string") {
-      throw new ChatError(`Invocation of event "${eventName}" failed: ${data.code}`, data.code);
+    try {
+      const rawResponse = await this.connection.invokeEvent(eventName, payload, dataType);
+      logger.verbose(`invoke response for '${eventName}':`, rawResponse);
+      const data = rawResponse.data as any;
+      if (data && typeof data === "object" && typeof data.code === "string") {
+        throw new ChatError(`Invocation of event "${eventName}" failed: ${data.code}`, data.code);
+      }
+      return data as T;
+    } catch (e) {
+      if (e instanceof ChatError) throw e;
+      if (e instanceof InvocationError && e.errorDetail?.name) {
+        throw new ChatError(e.message, e.errorDetail.name);
+      }
+      throw e;
     }
-    return data as T;
   }
 
   /** create a chat client based on an existing WebPubSubClient. */
@@ -170,11 +179,14 @@ class ChatClient {
     if (!roomId) {
       logger.warning(`Failed to find roomId for conversationId ${conversationId} when sending message.`);
     }
+    // sender won't receive conversation message via notification mechanism, so emit event here
     this._emitter.emit("MessageCreated" as NotificationType, {
+      notificationType: "MessageCreated",
       conversation: { conversationId: conversationId, roomId: roomId || "" },
       message: {
         messageId: msgId,
         createdBy: this.userId,
+        messageBodyType: "Inline",
         content: {
           text: message,
           binary: null,
@@ -218,20 +230,31 @@ class ChatClient {
     await this.invokeWithReturnType<any>(INVOCATION_NAME.MANAGE_ROOM_MEMBER, request, "json");
   }
 
+  private async ensureRoomCached(roomId: string): Promise<void> {
+    if (this._rooms.has(roomId)) {
+      return;
+    }
+    const roomInfo = await this.getRoom(roomId, false);
+    this._rooms.set(roomId, roomInfo);
+  }
+
   /** Add a user to a room. This is an admin operation where one user adds another user to a room. */
   public async addUserToRoom(roomId: string, userId: string): Promise<void> {
     this.ensureLoggedIn();
     const payload: ManageRoomMemberRequest = { roomId: roomId, operation: "Add", userId: userId };
-    await this.manageRoomMember(payload);
-    // This path happens when the logged-in client uses the room-member management API to add
-    // its own userId to a room, for example during lobby bootstrap or right after a session room
-    // is created. The service accepts the membership change server-side, but this client may not
-    // receive a local room-cache update immediately. Without this refresh, later calls such as
-    // sendToRoom can still fail because the SDK believes the current client has not joined yet.
-    if (userId === this.userId && !this._rooms.has(roomId)) {
-      const roomInfo = await this.getRoom(roomId, false);
-      this._rooms.set(roomId, roomInfo);
-      this._emitter.emit("RoomJoined" as NotificationType, roomInfo);
+    const isSelf = userId === this.userId;
+    // If self-add succeeds but no RoomJoined notification arrives, fetch room info
+    // from the service so sendToRoom can use its conversation id.
+    const shouldCacheRoomAfterSelfAdd = isSelf && !this._rooms.has(roomId);
+    try {
+      await this.manageRoomMember(payload);
+    } catch (error) {
+      if (!isSelf || !(error instanceof ChatError && error.code === ERRORS.USER_ALREADY_IN_ROOM)) {
+        throw error;
+      }
+    }
+    if (shouldCacheRoomAfterSelfAdd) {
+      await this.ensureRoomCached(roomId);
     }
   }
 
@@ -240,6 +263,19 @@ class ChatClient {
     this.ensureLoggedIn();
     const payload: ManageRoomMemberRequest = { roomId: roomId, operation: "Delete", userId: userId };
     await this.manageRoomMember(payload);
+    // RoomLeft notification is not guaranteed for server-managed membership;
+    // eagerly clean up local cache and emit RoomLeft so callers see consistent state immediately.
+    if (userId === this.userId) {
+      const roomInfo = this._rooms.get(roomId);
+      if (roomInfo) {
+        this._rooms.delete(roomId);
+        this._emitter.emit("RoomLeft" as NotificationType, {
+          roomId,
+          title: roomInfo.title,
+          notificationType: "RoomLeft",
+        } as RoomLeftNotificationBody);
+      }
+    }
   }
 
   /** List messages in a conversation. It returns messages and a query for the next query parameter. */
@@ -275,6 +311,11 @@ class ChatClient {
   /** Cached rooms known to the client. */
   public get rooms(): RoomInfo[] {
     return Array.from(this._rooms.values());
+  }
+
+  /** Whether the current client has the room in its local joined-room cache. */
+  public hasJoinedRoom(roomId: string): boolean {
+    return this._rooms.has(roomId);
   }
 
   public get userId(): string {
