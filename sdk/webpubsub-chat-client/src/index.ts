@@ -6,13 +6,6 @@ export type {
   RoomInfo,
   RoomInfoWithMembers,
   UserProfile,
-  Notification,
-  NewMessageNotificationBody,
-  NewRoomNotificationBody,
-  MemberJoinedNotificationBody,
-  MemberLeftNotificationBody,
-  RoomLeftNotificationBody,
-  SendMessageResponse,
 } from './generatedTypes.js';
 
 export type {
