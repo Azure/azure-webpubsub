@@ -30,13 +30,13 @@ const client = await ChatClient.login(wpsClient);
 console.log(`Logged in as: ${client.userId}`);
 
 // Listen for events
-client.addListenerForNewMessage((notification) => {
-  const msg = notification.message;
+client.onMessage((event) => {
+  const msg = event.message;
   console.log(`${msg.createdBy}: ${msg.content.text}`);
 });
 
-client.addListenerForNewRoom((room) => {
-  console.log(`Joined room: ${room.title}`);
+client.onRoomJoined((event) => {
+  console.log(`Joined room: ${event.room.title}`);
 });
 
 // Create a room and send messages
@@ -101,18 +101,36 @@ new ChatClient(credential: WebPubSubClientCredential, options?: WebPubSubClientO
 
 #### Event Listeners
 
-All `addListenerFor*` methods return a dispose function that removes the listener when called.
+Chat events are subscribed via a single generic `on(event, callback)` API
+or typed convenience methods (`onMessage`, `onRoomJoined`, ...). All
+listener registrations return a `Disposable` (`() => void`) that removes
+the listener when called. Use `off(event, callback)` to unsubscribe a
+specific callback.
 
-| Method | Callback Parameter | Description |
-|--------|-------------------|-------------|
-| `addListenerForNewMessage(callback)` | `NewMessageNotificationBody` | New message received |
-| `addListenerForNewRoom(callback)` | `RoomInfo` | Joined a new room |
-| `addListenerForMemberJoined(callback)` | `MemberJoinedNotificationBody` | Member joined a room |
-| `addListenerForMemberLeft(callback)` | `MemberLeftNotificationBody` | Member left a room |
-| `addListenerForRoomLeft(callback)` | `RoomLeftNotificationBody` | Self left a room |
-| `onConnected(callback)` | `OnConnectedArgs` | Connection established |
-| `onDisconnected(callback)` | `OnDisconnectedArgs` | Connection lost |
-| `onStopped(callback)` | `OnStoppedArgs` | Connection stopped |
+```ts
+const dispose = client.on('message', (event) => {
+  console.log(event.message.content.text);
+});
+// later
+dispose();
+```
+
+| Event name | Convenience method | Payload | Description |
+|------------|-------------------|---------|-------------|
+| `message` | `onMessage(cb)` | `MessageEvent` | New message received (or sent by this client). |
+| `roomJoined` | `onRoomJoined(cb)` | `RoomJoinedEvent` | This client joined a room. |
+| `roomLeft` | `onRoomLeft(cb)` | `RoomLeftEvent` | This client left a room. |
+| `memberJoined` | `onMemberJoined(cb)` | `MemberJoinedEvent` | Another user joined a room this client is in. |
+| `memberLeft` | `onMemberLeft(cb)` | `MemberLeftEvent` | Another user left a room this client is in. |
+
+Connection-lifecycle events (`connected`, `disconnected`, `stopped`) live
+on the underlying `WebPubSubClient`. Subscribe through `client.connection`:
+
+```ts
+client.connection.on('connected', (e) => console.log('connected', e));
+client.connection.on('disconnected', (e) => console.log('disconnected', e));
+client.connection.on('stopped', () => console.log('stopped'));
+```
 
 ## Examples
 

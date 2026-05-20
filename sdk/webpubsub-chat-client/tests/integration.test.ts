@@ -31,7 +31,7 @@ test("same user id login twice", { timeout: LONG_TEST_TIMEOUT }, async (t) => {
     chat1 = await createTestClient();
     const chat1UserId = chat1.userId;
     let messageReceived = 0;
-    chat1.addListenerForNewMessage((notification) => {
+    chat1.onMessage((notification) => {
       messageReceived++;
     });
     assert.equal(chat1.userId, chat1UserId, `chat1 userId should be '${chat1UserId}'`);
@@ -48,7 +48,7 @@ test("same user id login twice", { timeout: LONG_TEST_TIMEOUT }, async (t) => {
     // second login with same userId
     chat1 = await createTestClient(chat1UserId); // login again with same userId
     messageReceived = 0;
-    chat1.addListenerForNewMessage((notification) => {
+    chat1.onMessage((notification) => {
       messageReceived++;
     });
     assert.equal(chat1.userId, chat1UserId, `chat1 userId should still be '${chat1UserId}' after re-login`);
@@ -84,10 +84,10 @@ test("same user on two clients still receives remote room messages", { timeout: 
 
     const senderNotifications: any[] = [];
     const watcherNotifications: any[] = [];
-    sender.addListenerForNewMessage((notification) => {
+    sender.onMessage((notification) => {
       senderNotifications.push(notification);
     });
-    watcher.addListenerForNewMessage((notification) => {
+    watcher.onMessage((notification) => {
       watcherNotifications.push(notification);
     });
 
@@ -159,10 +159,10 @@ test("create room with multiple users", { timeout: LONG_TEST_TIMEOUT }, async (t
       receivedMsgCounts = [0, 0, 0];
 
     for (let i = 0; i < 3; i++) {
-      chats[i].addListenerForNewRoom((room) => {
+      chats[i].onRoomJoined((event) => {
         joinedRoomCounts[i]++;
       });
-      chats[i].addListenerForNewMessage((message) => {
+      chats[i].onMessage((message) => {
         receivedMsgCounts[i]++;
       });
     }
@@ -209,7 +209,7 @@ test("admin adds multiple users to a group", { timeout: LONG_TEST_TIMEOUT }, asy
     let messageReceivedCounts = new Array(chats.length).fill(0);
 
     chats.forEach((chat, index) => {
-      chat.addListenerForNewMessage((notification) => {
+      chat.onMessage((notification) => {
         messageReceivedCounts[index]++;
       });
     });
@@ -280,8 +280,8 @@ test("self add restores local room cache without RoomJoined event", { timeout: L
     assert.equal(chat1.hasJoinedRoom(created.roomId), true, "room should be cached after creation");
 
     let roomJoinedEvents = 0;
-    chat1.addListenerForNewRoom((room) => {
-      if (room.roomId === created.roomId) {
+    chat1.onRoomJoined((event) => {
+      if (event.room.roomId === created.roomId) {
         roomJoinedEvents += 1;
       }
     });

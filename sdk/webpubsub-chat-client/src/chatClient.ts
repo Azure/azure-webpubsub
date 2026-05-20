@@ -1,4 +1,4 @@
-import { InvocationError, OnConnectedArgs, OnDisconnectedArgs, OnStoppedArgs, WebPubSubClient, WebPubSubClientCredential, WebPubSubClientOptions, WebPubSubDataType } from "@azure/web-pubsub-client";
+import { InvocationError, WebPubSubClient, WebPubSubClientCredential, WebPubSubClientOptions, WebPubSubDataType } from "@azure/web-pubsub-client";
 import { EventEmitter } from "events";
 import {
   MessageInfo,
@@ -12,10 +12,20 @@ import {
   SendMessageResponse,
   ManageRoomMemberRequest,
   MemberJoinedNotificationBody,
-  NotificationType,
   MemberLeftNotificationBody,
   RoomLeftNotificationBody,
 } from "./generatedTypes.js";
+import type {
+  ChatEventListener,
+  ChatEventName,
+  ChatMessage,
+  Disposable,
+  MemberJoinedEvent,
+  MemberLeftEvent,
+  MessageEvent,
+  RoomJoinedEvent,
+  RoomLeftEvent,
+} from "./events.js";
 
 import { ERRORS, INVOCATION_NAME } from "./constant.js";
 import { logger } from "./logger.js";
@@ -63,33 +73,48 @@ class ChatClient {
     try {
       const type = data.notificationType;
       switch (type) {
-        case "MessageCreated":
-          const notificationBody = data.body as NewMessageNotificationBody;
-          this._emitter.emit(type, notificationBody);
+        case "MessageCreated": {
+          const body = data.body as NewMessageNotificationBody;
+          const event: MessageEvent = {
+            conversationId: body.conversation.conversationId ?? "",
+            roomId: body.conversation.roomId ?? undefined,
+            message: body.message as ChatMessage,
+          };
+          this._emitter.emit("message", event);
           break;
-        case "RoomJoined":
+        }
+        case "RoomJoined": {
           const roomInfo = data.body as NewRoomNotificationBody as RoomInfo;
-          this._rooms.set(roomInfo.roomId, roomInfo);  // Add to _rooms first so listeners can use listRoomMessage
-          this._emitter.emit(type, roomInfo);
+          // Add to _rooms first so listeners can use listRoomMessage
+          this._rooms.set(roomInfo.roomId, roomInfo);
+          const event: RoomJoinedEvent = { room: roomInfo };
+          this._emitter.emit("roomJoined", event);
           break;
-        case "RoomMemberJoined":
-          const memberJoinedInfo = data.body as MemberJoinedNotificationBody;
-          this._emitter.emit(type, memberJoinedInfo);
+        }
+        case "RoomMemberJoined": {
+          const body = data.body as MemberJoinedNotificationBody;
+          const event: MemberJoinedEvent = { roomId: body.roomId, title: body.title, userId: body.userId };
+          this._emitter.emit("memberJoined", event);
           break;
+        }
         // someone (not self) left a specific room
-        case "RoomMemberLeft":
-          const memberLeftInfo = data.body as MemberLeftNotificationBody;
-          this._emitter.emit(type, memberLeftInfo);
+        case "RoomMemberLeft": {
+          const body = data.body as MemberLeftNotificationBody;
+          const event: MemberLeftEvent = { roomId: body.roomId, title: body.title, userId: body.userId };
+          this._emitter.emit("memberLeft", event);
           break;
+        }
         // self left a specific room
-        case "RoomLeft":
-          const roomLeftInfo = data.body as RoomLeftNotificationBody;
-          if (!this._rooms.has(roomLeftInfo.roomId)) {
+        case "RoomLeft": {
+          const body = data.body as RoomLeftNotificationBody;
+          if (!this._rooms.has(body.roomId)) {
             break;
           }
-          this._emitter.emit(type, roomLeftInfo);
-          this._rooms.delete(roomLeftInfo.roomId);
+          const event: RoomLeftEvent = { roomId: body.roomId, title: body.title };
+          this._emitter.emit("roomLeft", event);
+          this._rooms.delete(body.roomId);
           break;
+        }
         case "MessageUpdated":
         case "MessageDeleted":
         case "RoomClosed":
@@ -174,15 +199,14 @@ class ChatClient {
       throw new Error(`Failed to send message to conversation ${conversationId}, got invalid invoke response: ${JSON.stringify(resp)}`);
     }
     const msgId = resp.id;
-    // sender won't receive conversation message via notification mechanism, so emit event here
     const roomId = Array.from(this._rooms.values()).find((r) => r.defaultConversationId === conversationId)?.roomId;
     if (!roomId) {
       logger.warning(`Failed to find roomId for conversationId ${conversationId} when sending message.`);
     }
     // sender won't receive conversation message via notification mechanism, so emit event here
-    this._emitter.emit("MessageCreated" as NotificationType, {
-      notificationType: "MessageCreated",
-      conversation: { conversationId: conversationId, roomId: roomId || "" },
+    const event: MessageEvent = {
+      conversationId: conversationId,
+      roomId: roomId,
       message: {
         messageId: msgId,
         createdBy: this.userId,
@@ -191,8 +215,9 @@ class ChatClient {
           text: message,
           binary: null,
         },
-      } as MessageInfo,
-    } as NewMessageNotificationBody);
+      } as ChatMessage,
+    };
+    this._emitter.emit("message", event);
     return msgId;
   }
 
@@ -222,7 +247,8 @@ class ChatClient {
     }
     const roomInfo = await this.invokeWithReturnType<RoomInfoWithMembers>(INVOCATION_NAME.CREATE_ROOM, roomDetails, "json");
     this._rooms.set(roomInfo.roomId, roomInfo);
-    this._emitter.emit("RoomJoined" as NotificationType, roomInfo);
+    const event: RoomJoinedEvent = { room: roomInfo };
+    this._emitter.emit("roomJoined", event);
     return roomInfo;
   }
 
@@ -269,11 +295,8 @@ class ChatClient {
       const roomInfo = this._rooms.get(roomId);
       if (roomInfo) {
         this._rooms.delete(roomId);
-        this._emitter.emit("RoomLeft" as NotificationType, {
-          roomId,
-          title: roomInfo.title,
-          notificationType: "RoomLeft",
-        } as RoomLeftNotificationBody);
+        const event: RoomLeftEvent = { roomId, title: roomInfo.title };
+        this._emitter.emit("roomLeft", event);
       }
     }
   }
@@ -324,50 +347,57 @@ class ChatClient {
     }
     return this._userId;
   }
-  /** Add callback for new message events. Returns a function to remove the listener. */
-  public addListenerForNewMessage = (callback: (message: NewMessageNotificationBody) => void): (() => void) => {
-    this._emitter.on("MessageCreated" as NotificationType, callback);
-    return () => this._emitter.off("MessageCreated" as NotificationType, callback);
-  };
 
-  /** Add callback for new room events. Returns a function to remove the listener. */
-  public addListenerForNewRoom = (callback: (room: RoomInfo) => void): (() => void) => {
-    this._emitter.on("RoomJoined" as NotificationType, callback);
-    return () => this._emitter.off("RoomJoined" as NotificationType, callback);
-  };
+  /**
+   * Subscribe to a chat client event. Returns a disposer that removes the
+   * listener when called.
+   *
+   * Connection-lifecycle events (`connected`, `disconnected`, `stopped`)
+   * are not exposed here — subscribe via
+   * `chatClient.connection.on("connected", ...)` etc.
+   *
+   * @example
+   * const dispose = client.on("message", (e) => console.log(e.message.content.text));
+   * // later
+   * dispose();
+   */
+  public on<K extends ChatEventName>(event: K, callback: ChatEventListener<K>): Disposable {
+    this._emitter.on(event, callback as any);
+    return () => this._emitter.off(event, callback as any);
+  }
 
-  /** Add callback for member joined room events. Returns a function to remove the listener. */
-  public addListenerForMemberJoined = (callback: (info: MemberJoinedNotificationBody) => void): (() => void) => {
-    this._emitter.on("RoomMemberJoined" as NotificationType, callback);
-    return () => this._emitter.off("RoomMemberJoined" as NotificationType, callback);
-  };
+  /** Remove a listener previously registered with {@link on}. */
+  public off<K extends ChatEventName>(event: K, callback: ChatEventListener<K>): void {
+    this._emitter.off(event, callback as any);
+  }
 
-  /** Add callback for member left room events. Returns a function to remove the listener. */
-  public addListenerForMemberLeft = (callback: (info: MemberLeftNotificationBody) => void): (() => void) => {
-    this._emitter.on("RoomMemberLeft" as NotificationType, callback);
-    return () => this._emitter.off("RoomMemberLeft" as NotificationType, callback);
-  };
+  /** Subscribe to new messages (including the sender-side event emitted by `sendToRoom` / `sendToConversation`). */
+  public onMessage(callback: ChatEventListener<"message">): Disposable {
+    return this.on("message", callback);
+  }
 
-  /** Add callback for user self left room events. Returns a function to remove the listener. */
-  public addListenerForRoomLeft = (callback: (info: RoomLeftNotificationBody) => void): (() => void) => {
-    this._emitter.on("RoomLeft" as NotificationType, callback);
-    return () => this._emitter.off("RoomLeft" as NotificationType, callback);
-  };
+  /** Subscribe to room-join events for this client (created or invited). */
+  public onRoomJoined(callback: ChatEventListener<"roomJoined">): Disposable {
+    return this.on("roomJoined", callback);
+  }
+
+  /** Subscribe to events where this client leaves a room. */
+  public onRoomLeft(callback: ChatEventListener<"roomLeft">): Disposable {
+    return this.on("roomLeft", callback);
+  }
+
+  /** Subscribe to events where another user joins a room this client is in. */
+  public onMemberJoined(callback: ChatEventListener<"memberJoined">): Disposable {
+    return this.on("memberJoined", callback);
+  }
+
+  /** Subscribe to events where another user leaves a room this client is in. */
+  public onMemberLeft(callback: ChatEventListener<"memberLeft">): Disposable {
+    return this.on("memberLeft", callback);
+  }
 
   public stop = (): void => {
     this.connection.stop();
-  };
-
-  public onConnected = (callback: (e: OnConnectedArgs) => void): void => {
-    return this.connection.on("connected", callback);
-  };
-
-  public onDisconnected = (callback: (e: OnDisconnectedArgs) => void): void => {
-    return this.connection.on("disconnected", callback);
-  };
-
-  public onStopped = (callback: (e: OnStoppedArgs) => void): void => {
-    return this.connection.on("stopped", callback);
   };
 }
 
