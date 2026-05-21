@@ -2,7 +2,6 @@ import { ChatClient, ChatError } from './chatClient.js';
 
 export type {
   MessageInfo,
-  MessageRangeQuery,
   RoomInfo,
   RoomInfoWithMembers,
   UserProfile,
@@ -20,5 +19,9 @@ export type {
   MemberJoinedEvent,
   MemberLeftEvent,
 } from './events.js';
+
+export type {
+  ListRoomMessagesOptions,
+} from './options.js';
 
 export { ChatClient, ChatError };

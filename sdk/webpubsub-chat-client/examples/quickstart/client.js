@@ -75,11 +75,25 @@ async function main() {
         const msgId = await bob.sendToRoom(room.roomId, `Hi Alice, this is Bob #${i}`);
     }
 
-    // List message history
+    // List message history (auto-paginating async iterator)
     console.log('\n--- Message History ---');
-    const history = await alice.listRoomMessage(room.roomId, null, null);
-    for (const msg of history.messages) {
+    for await (const msg of alice.listRoomMessages({ roomId: room.roomId })) {
         console.log(`  [${msg.createdBy}] [${msg.createdAt}] ${msg.content.text}`);
+    }
+
+    // Or load history one page at a time (Teams-style scroll-back).
+    // `byPage` lets the caller decide when to load the next batch — handy
+    // for "load 50 latest, then 50 more on scroll-up" UI patterns.
+    console.log('\n--- Message History (pages of 3) ---');
+    const pages = alice.listRoomMessages({ roomId: room.roomId }).byPage({ maxPageSize: 3 });
+    let pageNum = 0;
+    while (true) {
+        const { value, done } = await pages.next();
+        if (done) break;
+        console.log(`  Page ${++pageNum} (${value.length} messages):`);
+        for (const msg of value) {
+            console.log(`    [${msg.createdBy}] ${msg.content.text}`);
+        }
     }
 
     // Alice manages room members

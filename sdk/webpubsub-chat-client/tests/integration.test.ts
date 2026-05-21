@@ -2,6 +2,7 @@ import { test, after } from "node:test";
 import assert from "node:assert/strict";
 import { randomUUID } from "node:crypto";
 import { ChatClient, ChatError } from "../src/chatClient.js";
+import type { MessageInfo } from "../src/generatedTypes.js";
 import {
   SHORT_TEST_TIMEOUT,
   LONG_TEST_TIMEOUT,
@@ -174,12 +175,37 @@ test("create room with multiple users", { timeout: LONG_TEST_TIMEOUT }, async (t
       assert.equal(msgId, i.toString(), `sent message id should be ${i} but got ${msgId}`);
     }
 
-    const listedMsgs = await chats[0].listMessage(createdRoom.defaultConversationId, "0", null, 100);
+    const listedMsgs: MessageInfo[] = [];
+    for await (const message of chats[0].listRoomMessages({ roomId: createdRoom.roomId, startId: "0", pageSize: 100 })) {
+      listedMsgs.push(message);
+    }
     let listedMsgCount = 0;
-    for (const message of listedMsgs.messages) {
+    for (const message of listedMsgs) {
       assert.equal(message.messageId, (5 - listedMsgCount).toString(), `message id should match expected order, expect ${5 - listedMsgCount} but got ${message.messageId}`);
       assert.equal(message.content.text, `HelloMessage,#${5 - listedMsgCount}`, `message body should match expected content, expect 'HelloMessage,#${5 - listedMsgCount}' but got '${message.content.text}'`);
       listedMsgCount++;
+    }
+
+    // Verify .byPage() yields explicit pages bounded by maxPageSize. With
+    // 5 messages and maxPageSize=2 we expect pages of size [2, 2, 1] (or
+    // possibly with a trailing empty page that the iterator filters out).
+    const pagesIter = chats[0]
+      .listRoomMessages({ roomId: createdRoom.roomId, startId: "0" })
+      .byPage({ maxPageSize: 2 });
+    const collectedPages: MessageInfo[][] = [];
+    while (true) {
+      const { value, done } = await pagesIter.next();
+      if (done) break;
+      collectedPages.push(value);
+    }
+    const flatFromPages = collectedPages.flat();
+    assert.equal(flatFromPages.length, 5, `byPage should yield 5 total messages across pages, got ${flatFromPages.length}`);
+    for (const page of collectedPages) {
+      assert.ok(page.length <= 2, `each page should respect maxPageSize=2, got page of size ${page.length}`);
+    }
+    assert.ok(collectedPages.length >= 2, `byPage with maxPageSize=2 over 5 messages should yield multiple pages, got ${collectedPages.length}`);
+    for (let i = 0; i < 5; i++) {
+      assert.equal(flatFromPages[i].messageId, (5 - i).toString(), `byPage flat order should match latest-first; index ${i} expected ${5 - i}, got ${flatFromPages[i].messageId}`);
     }
 
     await new Promise((resolve) => setTimeout(resolve, 100)); // wait for events
