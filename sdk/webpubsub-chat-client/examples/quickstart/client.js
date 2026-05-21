@@ -8,27 +8,28 @@ const getClientAccessUrl = (userId) =>
 
 function setupListeners(client) {
     // chat event listeners
-    client.addListenerForNewRoom((room) => {
+    client.onRoomJoined((event) => {
+        const room = event.room;
         console.log(`[${client.userId}] joined room "${room.title}" (${room.roomId})`);
     });
-    client.addListenerForNewMessage((notification) => {
-        const msg = notification.message;
+    client.onMessage((event) => {
+        const msg = event.message;
         console.log(`[${client.userId}] received message from ${msg.createdBy}: ${msg.content.text}`);
     });
-    client.addListenerForMemberJoined((info) => {
-        console.log(`[${client.userId}] saw ${info.userId} joined room ${info.roomId}`);
+    client.onMemberJoined((event) => {
+        console.log(`[${client.userId}] saw ${event.userId} joined room ${event.roomId}`);
     });
-    client.addListenerForMemberLeft((info) => {
-        console.log(`[${client.userId}] saw ${info.userId} left room ${info.roomId}`);
+    client.onMemberLeft((event) => {
+        console.log(`[${client.userId}] saw ${event.userId} left room ${event.roomId}`);
     });
-    client.addListenerForRoomLeft((info) => {
-        console.log(`[${client.userId}] left room ${info.roomId}`);
+    client.onRoomLeft((event) => {
+        console.log(`[${client.userId}] left room ${event.roomId}`);
     });
-    // chat connection listeners
-    client.onStopped((e) => {
+    // underlying connection lifecycle listeners (on the wpsClient)
+    client.connection.on("stopped", () => {
         console.log(`connection used by ${client.userId} stopped`);
     });
-    client.onDisconnected((e) => {
+    client.connection.on("disconnected", () => {
         console.log(`connection used by ${client.userId} disconnected`);
     });
 }
