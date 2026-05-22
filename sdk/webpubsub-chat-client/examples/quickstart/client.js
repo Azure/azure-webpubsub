@@ -40,16 +40,16 @@ async function main() {
     // Option 1: create a chat client with a existing WebPubSubClient
     const url1 = await getClientAccessUrl('alice');
     const webPubSubClient = new WebPubSubClient(url1);
-    const alice = await ChatClient.login(webPubSubClient);
-    console.log(`Alice logged in as: ${alice.userId}`);
+    const alice = await ChatClient.start(webPubSubClient);
+    console.log(`Alice started as: ${alice.userId}`);
 
     // Option 2: create a chat client directly with client access URL
     const url2 = await getClientAccessUrl('bob'), url3 = await getClientAccessUrl('mike');
-    const bob = await new ChatClient(url2).login();
-    const mike = await new ChatClient(url3).login();
+    const bob = await ChatClient.start(url2);
+    const mike = await ChatClient.start(url3);
     
-    console.log(`Bob logged in as: ${bob.userId}`);
-    console.log(`Mike logged in as: ${mike.userId}`);
+    console.log(`Bob started as: ${bob.userId}`);
+    console.log(`Mike started as: ${mike.userId}`);
 
     // Setup event listeners
 
@@ -95,7 +95,7 @@ async function main() {
 
     // Cleanup
     console.log('\n--- Cleanup ---');
-    [alice, bob, mike].forEach(client => client.stop());
+    await Promise.all([alice, bob, mike].map((client) => client.stop()));
 }
 
 main().catch(console.error);
