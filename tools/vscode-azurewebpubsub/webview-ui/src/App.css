@@ -1,0 +1,155 @@
+/*
+Taken from the <style> element with ID '_defaultStyles' in a VS Code webview,
+replacing 'body' background-color of 'transparent' with '--vscode-editor-background'
+*/
+
+body {
+  background-color: var(--vscode-editor-background);
+  color: var(--vscode-editor-foreground);
+  font-family: var(--vscode-font-family);
+  font-weight: var(--vscode-font-weight);
+  font-size: var(--vscode-font-size);
+  margin: 0px;
+  padding: 0px 20px;
+}
+
+a,
+a code {
+  color: var(--vscode-textLink-foreground);
+}
+
+a:hover {
+  color: var(--vscode-textLink-activeForeground);
+}
+
+a:focus,
+input:focus,
+select:focus,
+textarea:focus {
+  outline: -webkit-focus-ring-color solid 1px;
+  outline-offset: -1px;
+}
+
+code {
+  color: var(--vscode-textPreformat-foreground);
+}
+
+blockquote {
+  background: var(--vscode-textBlockQuote-background);
+  border-color: var(--vscode-textBlockQuote-border);
+}
+
+kbd {
+  color: var(--vscode-editor-foreground);
+  border-radius: 3px;
+  vertical-align: middle;
+  padding: 1px 3px;
+  background-color: rgba(128, 128, 128, 0.17);
+  border-width: 1px;
+  border-style: solid;
+  border-color: rgba(71, 71, 71, 0.4) rgba(71, 71, 71, 0.4) rgba(88, 88, 88, 0.4);
+  border-image: initial;
+  box-shadow: rgba(88, 88, 88, 0.4) 0px -1px 0px inset;
+}
+
+.vscode-light kbd {
+  background-color: rgba(222, 222, 222, 0.5);
+  border-width: 1px;
+  border-style: solid;
+  border-color: rgba(204, 204, 204, 0.7) rgba(204, 204, 204, 0.7) rgba(186, 186, 186, 0.7);
+  border-image: initial;
+  box-shadow: rgba(186, 186, 186, 0.7) 0px -1px 0px inset;
+}
+
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+::-webkit-scrollbar-corner {
+  background-color: var(--vscode-editor-background);
+}
+
+::-webkit-scrollbar-thumb {
+  background-color: var(--vscode-scrollbarSlider-background);
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background-color: var(--vscode-scrollbarSlider-hoverBackground);
+}
+
+::-webkit-scrollbar-thumb:active {
+  background-color: var(--vscode-scrollbarSlider-activeBackground);
+}
+
+::highlight(find-highlight) {
+  background-color: var(--vscode-editor-findMatchHighlightBackground);
+}
+
+::highlight(current-find-highlight) {
+  background-color: var(--vscode-editor-findMatchBackground);
+}
+
+dialog {
+  background-color: var(--vscode-editor-background);
+  color: var(--vscode-editor-foreground);
+  border-color: var(--vscode-editorGroup-border);
+}
+
+fieldset {
+  border: none;
+  padding: 0;
+  margin: 0;
+}
+
+input[type="number"] {
+  height: calc(var(--input-height) * 1px);
+  color: var(--input-foreground);
+  background-color: var(--input-background);
+  border: 0;
+  padding: 0 calc(var(--design-unit) * 2px + 1px);
+  box-sizing: border-box;
+}
+
+input[type="number"]::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+}
+
+input[type="number"]:disabled {
+  cursor: not-allowed;
+  opacity: var(--disabled-opacity);
+}
+
+/* See:
+ - https://blog.logrocket.com/creating-beautiful-tooltips-with-only-css/
+ - https://github.com/microsoft/vscode/blob/main/src/vs/base/browser/ui/hover/hoverWidget.css
+*/
+.tooltip-holder {
+  position: relative; /* make the .tooltip element a container for the tooltip text */
+  cursor: pointer;
+}
+
+.tooltip-holder:after {
+  content: attr(data-tooltip-text);
+  position: absolute;
+  margin-left: 0.5rem;
+  padding: 4px 8px;
+  z-index: 40;
+
+  color: var(--vscode-editorHoverWidget-foreground);
+  background: var(--vscode-editorHoverWidget-background);
+  border: 1px solid var(--vscode-editorHoverWidget-border);
+  border-radius: 3px;
+  box-shadow: 0 2px 8px var(--vscode-widget-shadow);
+
+  max-width: 500px;
+  width: max-content;
+  white-space: pre-wrap;
+  word-wrap: break-word;
+
+  display: none; /* hide by default */
+}
+
+.tooltip-holder:hover:after {
+  display: inline-block;
+}
