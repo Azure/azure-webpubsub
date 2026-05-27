@@ -20,14 +20,14 @@ import { ChatClient } from '@azure/web-pubsub-chat-client';
 // Get client access URL from your server
 const url = await fetch('/negotiate?userId=alice').then(r => r.json()).then(d => d.url);
 
-// Option 1: Login with an existing WebPubSubClient
+// Option 1: Start with an existing WebPubSubClient
 const wpsClient = new WebPubSubClient(url);
-const client = await ChatClient.login(wpsClient);
+const client = await ChatClient.start(wpsClient);
 
-// Option 2: Login directly with URL
-// const client = await new ChatClient(url).login();
+// Option 2: Start directly with URL
+// const client = await ChatClient.start(url);
 
-console.log(`Logged in as: ${client.userId}`);
+console.log(`Started as: ${client.userId}`);
 
 // Listen for events
 client.onMessage((event) => {
@@ -51,7 +51,7 @@ await client.addUserToRoom(room.roomId, 'charlie');
 await client.removeUserFromRoom(room.roomId, 'charlie');
 
 // Cleanup
-client.stop();
+await client.stop();
 ```
 
 ## API
@@ -71,26 +71,33 @@ new ChatClient(clientAccessUrl: string, options?: WebPubSubClientOptions)
 new ChatClient(credential: WebPubSubClientCredential, options?: WebPubSubClientOptions)
 ```
 
+To construct and start in one step, prefer the static `ChatClient.start(...)` factory below.
+
+When constructed from an existing `WebPubSubClient`, `ChatClient` owns that client's lifecycle: `start()` starts it and `stop()` stops it.
+
 #### Static Methods
 
 | Method | Description |
 |--------|-------------|
-| `ChatClient.login(wpsClient)` | Create and login using an existing WebPubSubClient |
+| `ChatClient.start(clientAccessUrl, options?)` | Create a client and start it in one step |
+| `ChatClient.start(credential, options?)` | Create a client from a credential and start it |
+| `ChatClient.start(wpsClient)` | Create a client from an existing `WebPubSubClient` and start it |
 
 #### Properties
 
 | Property | Type | Description |
 |----------|------|-------------|
-| `userId` | `string` | Current user's ID (throws if not logged in) |
+| `userId` | `string` | Current user's ID (throws if not started) |
+| `isStarted` | `boolean` | `true` once `start()` has completed and `stop()` has not been called since |
 | `rooms` | `RoomInfo[]` | Snapshot of currently joined rooms (not live-updated) |
-| `connection` | `WebPubSubClient` | Underlying WebPubSub connection |
+| `connection` | `WebPubSubClient` | Underlying WebPubSub connection owned by this chat client |
 
 #### Methods
 
 | Method | Description |
 |--------|-------------|
-| `login()` | Connect and authenticate, returns `ChatClient` |
-| `stop()` | Disconnect |
+| `start()` | Connect and authenticate. Idempotent; concurrent calls share one in-flight promise. After `stop()` the client can be started again. |
+| `stop()` | Disconnect and reset client state. Returns `Promise<void>`. |
 | `createRoom(title, members, roomId?)` | Create a new room with initial members. The current user is automatically added to the members list. |
 | `getRoom(roomId, withMembers)` | Get room info |
 | `addUserToRoom(roomId, userId)` | Add user to room (admin operation) |

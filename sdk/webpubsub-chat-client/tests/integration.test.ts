@@ -22,12 +22,12 @@ async function waitForCondition(predicate: () => boolean, description: string, t
   assert.fail(`Timed out waiting for ${description}`);
 }
 
-test("same user id login twice", { timeout: LONG_TEST_TIMEOUT }, async (t) => {
+test("same user id start twice", { timeout: LONG_TEST_TIMEOUT }, async (t) => {
   let chat0, chat1;
   try {
     chat0 = await createTestClient();
 
-    // first login
+    // first start
     chat1 = await createTestClient();
     const chat1UserId = chat1.userId;
     let messageReceived = 0;
@@ -41,29 +41,29 @@ test("same user id login twice", { timeout: LONG_TEST_TIMEOUT }, async (t) => {
     await chat0.sendToRoom(createdRoom.roomId, `Hello from chat0`);
     // sleep 100ms
     await new Promise((resolve) => setTimeout(resolve, 100));
-    assert.equal(messageReceived, 1, `chat1 should receive 1 message at first login`);
+    assert.equal(messageReceived, 1, `chat1 should receive 1 message after first start`);
 
-    chat1.stop();
+    await chat1.stop();
 
-    // second login with same userId
-    chat1 = await createTestClient(chat1UserId); // login again with same userId
+    // second start with same userId
+    chat1 = await createTestClient(chat1UserId);
     messageReceived = 0;
     chat1.onMessage((notification) => {
       messageReceived++;
     });
-    assert.equal(chat1.userId, chat1UserId, `chat1 userId should still be '${chat1UserId}' after re-login`);
+    assert.equal(chat1.userId, chat1UserId, `chat1 userId should still be '${chat1UserId}' after restart`);
 
     const sentMsgId = await chat0.sendToRoom(createdRoom.roomId, `Hello from chat0`);
 
     // sleep 100ms
     await new Promise((resolve) => setTimeout(resolve, 100));
-    assert.equal(messageReceived, 1, `chat1 should receive 1 message at second login`);
+    assert.equal(messageReceived, 1, `chat1 should receive 1 message after second start`);
   } catch (e) {
     t.diagnostic((e as any).toString());
     throw e;
   } finally {
     const clientsToStop = [chat0, chat1].filter(Boolean) as ChatClient[];
-    stopClients(clientsToStop);
+    await stopClients(clientsToStop);
   }
 });
 
@@ -79,8 +79,8 @@ test("same user on two clients still receives remote room messages", { timeout: 
     sender = await createTestClient(sharedUserId);
     watcher = await createTestClient(sharedUserId);
 
-    assert.equal(sender.hasJoinedRoom(createdRoom.roomId), true, "sender should load the shared room on login");
-    assert.equal(watcher.hasJoinedRoom(createdRoom.roomId), true, "watcher should load the shared room on login");
+    assert.equal(sender.hasJoinedRoom(createdRoom.roomId), true, "sender should load the shared room on start");
+    assert.equal(watcher.hasJoinedRoom(createdRoom.roomId), true, "watcher should load the shared room on start");
 
     const senderNotifications: any[] = [];
     const watcherNotifications: any[] = [];
@@ -119,7 +119,7 @@ test("same user on two clients still receives remote room messages", { timeout: 
     throw e;
   } finally {
     const clientsToStop = [admin, sender, watcher].filter(Boolean) as ChatClient[];
-    stopClients(clientsToStop);
+    await stopClients(clientsToStop);
   }
 });
 
@@ -146,7 +146,7 @@ test("single client", { timeout: SHORT_TEST_TIMEOUT }, async (t) => {
     t.diagnostic((e as any).toString());
     throw e;
   } finally {
-    if (chat1) stopClients([chat1]);
+    if (chat1) await stopClients([chat1]);
   }
 });
 
@@ -191,7 +191,7 @@ test("create room with multiple users", { timeout: LONG_TEST_TIMEOUT }, async (t
     throw e;
   } finally {
     if (chats && Array.isArray(chats)) {
-      stopClients(chats);
+      await stopClients(chats);
     }
   }
 });
@@ -245,7 +245,7 @@ test("admin adds multiple users to a group", { timeout: LONG_TEST_TIMEOUT }, asy
     throw e;
   } finally {
     if (chats && Array.isArray(chats)) {
-      stopClients(chats);
+      await stopClients(chats);
     }
   }
 });
@@ -266,7 +266,7 @@ test("self remove updates local room cache immediately", { timeout: LONG_TEST_TI
     t.diagnostic((e as any).toString());
     throw e;
   } finally {
-    if (chat1) stopClients([chat1]);
+    if (chat1) await stopClients([chat1]);
   }
 });
 
@@ -299,7 +299,7 @@ test("self add restores local room cache without RoomJoined event", { timeout: L
     t.diagnostic((e as any).toString());
     throw e;
   } finally {
-    if (chat1) stopClients([chat1]);
+    if (chat1) await stopClients([chat1]);
   }
 });
 
@@ -327,7 +327,7 @@ test("adding non-self user already in room throws ChatError with UserAlreadyInRo
     throw e;
   } finally {
     const clientsToStop = [admin, user1].filter(Boolean) as ChatClient[];
-    stopClients(clientsToStop);
+    await stopClients(clientsToStop);
   }
 });
 
@@ -354,7 +354,7 @@ test("removing non-member user throws ChatError with UserNotInRoom code", { time
     throw e;
   } finally {
     const clientsToStop = [admin, stranger].filter(Boolean) as ChatClient[];
-    stopClients(clientsToStop);
+    await stopClients(clientsToStop);
   }
 });
 

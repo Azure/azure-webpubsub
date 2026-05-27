@@ -15,7 +15,6 @@
   "devDependencies": {
     "@azure/functions": "^3.0.0",
     "@types/node": "16.x",
-    "azure-functions-core-tools": "^4.x",
     "typescript": "^4.0.0"
   }
 }
