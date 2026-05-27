@@ -27,7 +27,17 @@ import type {
   RoomJoinedEvent,
   RoomLeftEvent,
 } from "./events.js";
-import type { ListRoomMessagesOptions } from "./options.js";
+import type {
+  ListRoomMessagesOptions,
+  OperationOptions,
+  StartOptions,
+  StopOptions,
+  GetRoomOptions,
+  CreateRoomOptions,
+  SendMessageOptions,
+  GetUserInfoOptions,
+  RoomMemberOperationOptions,
+} from "./options.js";
 
 import { ERRORS, INVOCATION_NAME } from "./constant.js";
 import { logger } from "./logger.js";
@@ -185,10 +195,17 @@ class ChatClient {
   }
 
   /** Invoke server event and return typed data */
-  private async invokeWithReturnType<T>(eventName: string, payload: any, dataType: WebPubSubDataType): Promise<T> {
+  private async invokeWithReturnType<T>(
+    eventName: string,
+    payload: any,
+    dataType: WebPubSubDataType,
+    options?: OperationOptions,
+  ): Promise<T> {
     logger.verbose(`invoke event: '${eventName}', dataType: ${dataType}, payload:`, payload);
     try {
-      const rawResponse = await this.connection.invokeEvent(eventName, payload, dataType);
+      const rawResponse = await this.connection.invokeEvent(eventName, payload, dataType, {
+        abortSignal: options?.abortSignal,
+      });
       logger.verbose(`invoke response for '${eventName}':`, rawResponse);
       const data = rawResponse.data as any;
       if (data && typeof data === "object" && typeof data.code === "string") {
@@ -234,8 +251,11 @@ class ChatClient {
    * calls made on an already-started client resolve immediately. After
    * `stop()` the client can be started again; state from the previous
    * session is reset.
+   *
+   * @param options - Cancellation token for the start operation. Aborting
+   *   leaves the client in its initial (not-started) state.
    */
-  public async start(): Promise<void> {
+  public async start(options?: StartOptions): Promise<void> {
     if (this._startPromise) return this._startPromise;
     if (this._isStarted) return;
 
@@ -246,7 +266,7 @@ class ChatClient {
       if (this._isStarted) return;
     }
 
-    const startPromise = this.startCore();
+    const startPromise = this.startCore(options);
     this._startPromise = startPromise;
     try {
       await startPromise;
@@ -257,21 +277,31 @@ class ChatClient {
     }
   }
 
-  private async startCore(): Promise<void> {
+  private async startCore(options?: StartOptions): Promise<void> {
     this.resetState();
     try {
-      await this.connection.start();
+      await this.connection.start({ abortSignal: options?.abortSignal });
       this._connectionStoppedTCS = new PromiseCompletionSource();
       this._isConnectionStopping = false;
 
-      const loginResponse = await this.invokeWithReturnType<UserProfile>(INVOCATION_NAME.LOGIN, "", "text");
+      const loginResponse = await this.invokeWithReturnType<UserProfile>(
+        INVOCATION_NAME.LOGIN,
+        "",
+        "text",
+        options,
+      );
       logger.info("loginResponse", loginResponse);
       const conversationIds = new Set(loginResponse.conversationIds || []);
       const roomInfos = await Promise.all(
         (loginResponse.roomIds || []).map(async (roomId) => {
-          const roomInfo = await this.invokeWithReturnType<RoomInfoWithMembers>(INVOCATION_NAME.GET_ROOM, { id: roomId, withMembers: false }, "json");
+          const roomInfo = await this.invokeWithReturnType<RoomInfoWithMembers>(
+            INVOCATION_NAME.GET_ROOM,
+            { id: roomId, withMembers: false },
+            "json",
+            options,
+          );
           return { roomId, roomInfo };
-        })
+        }),
       );
 
       this._userId = loginResponse.userId;
@@ -294,24 +324,41 @@ class ChatClient {
 
   private ensureStarted(): void {
     if (!this._isStarted) {
-      throw new Error("Not started. Please call start() first.");
+      throw new ChatError("Not started. Please call start() first.", ERRORS.NotStarted);
     }
   }
 
-  public async getUserInfo(userId: string): Promise<UserProfile> {
+  public async getUserInfo(userId: string, options?: GetUserInfoOptions): Promise<UserProfile> {
     this.ensureStarted();
-    return this.invokeWithReturnType<UserProfile>(INVOCATION_NAME.GET_USER_PROPERTIES, { userId: userId }, "json");
+    return this.invokeWithReturnType<UserProfile>(
+      INVOCATION_NAME.GET_USER_PROPERTIES,
+      { userId: userId },
+      "json",
+      options,
+    );
   }
 
-  public async sendToConversation(conversationId: string, message: string): Promise<string> {
+  private async sendToConversation(
+    conversationId: string,
+    message: string,
+    options?: SendMessageOptions,
+  ): Promise<string> {
     this.ensureStarted();
     const payload = {
       conversation: { conversationId: conversationId },
       content: message,
     };
-    const resp = await this.invokeWithReturnType<SendMessageResponse>(INVOCATION_NAME.SEND_TEXT_MESSAGE, payload, "json");
+    const resp = await this.invokeWithReturnType<SendMessageResponse>(
+      INVOCATION_NAME.SEND_TEXT_MESSAGE,
+      payload,
+      "json",
+      options,
+    );
     if (!resp || !resp.id) {
-      throw new Error(`Failed to send message to conversation ${conversationId}, got invalid invoke response: ${JSON.stringify(resp)}`);
+      throw new ChatError(
+        `Failed to send message to conversation ${conversationId}, got invalid invoke response: ${JSON.stringify(resp)}`,
+        ERRORS.InvalidServerResponse,
+      );
     }
     const msgId = resp.id;
     const roomId = Array.from(this._rooms.values()).find((r) => r.defaultConversationId === conversationId)?.roomId;
@@ -336,22 +383,32 @@ class ChatClient {
     return msgId;
   }
 
-  public async sendToRoom(roomId: string, message: string): Promise<string> {
+  public async sendToRoom(roomId: string, message: string, options?: SendMessageOptions): Promise<string> {
     this.ensureStarted();
     const conversationId = this._rooms.get(roomId)?.defaultConversationId;
     if (!conversationId) {
-      throw Error(`Failed to sendToRoom, not found roomId ${roomId}`);
+      throw new ChatError(`Failed to sendToRoom, not found roomId ${roomId}`, ERRORS.UnknownRoom);
     }
-    return await this.sendToConversation(conversationId, message);
+    return await this.sendToConversation(conversationId, message, options);
   }
 
-  public async getRoom(roomId: string, withMembers: boolean): Promise<RoomInfoWithMembers> {
+  public async getRoom(roomId: string, withMembers: boolean, options?: GetRoomOptions): Promise<RoomInfoWithMembers> {
     this.ensureStarted();
-    return this.invokeWithReturnType<RoomInfoWithMembers>(INVOCATION_NAME.GET_ROOM, { id: roomId, withMembers: withMembers }, "json");
+    return this.invokeWithReturnType<RoomInfoWithMembers>(
+      INVOCATION_NAME.GET_ROOM,
+      { id: roomId, withMembers: withMembers },
+      "json",
+      options,
+    );
   }
 
   /** Create a room and its initial members. If `roomId` is not set, the service will create a random one. */
-  public async createRoom(title: string, members: string[], roomId?: string): Promise<RoomInfoWithMembers> {
+  public async createRoom(
+    title: string,
+    members: string[],
+    roomId?: string,
+    options?: CreateRoomOptions,
+  ): Promise<RoomInfoWithMembers> {
     this.ensureStarted();
     let roomDetails = {
       title: title,
@@ -360,27 +417,35 @@ class ChatClient {
     if (roomId) {
       roomDetails = { ...roomDetails, roomId: roomId };
     }
-    const roomInfo = await this.invokeWithReturnType<RoomInfoWithMembers>(INVOCATION_NAME.CREATE_ROOM, roomDetails, "json");
+    const roomInfo = await this.invokeWithReturnType<RoomInfoWithMembers>(
+      INVOCATION_NAME.CREATE_ROOM,
+      roomDetails,
+      "json",
+      options,
+    );
     this._rooms.set(roomInfo.roomId, roomInfo);
     const event: RoomJoinedEvent = { room: roomInfo };
     this._emitter.emit("roomJoined", event);
     return roomInfo;
   }
 
-  private async manageRoomMember(request: ManageRoomMemberRequest): Promise<void> {
-    await this.invokeWithReturnType<any>(INVOCATION_NAME.MANAGE_ROOM_MEMBER, request, "json");
+  private async manageRoomMember(
+    request: ManageRoomMemberRequest,
+    options?: RoomMemberOperationOptions,
+  ): Promise<void> {
+    await this.invokeWithReturnType<any>(INVOCATION_NAME.MANAGE_ROOM_MEMBER, request, "json", options);
   }
 
-  private async ensureRoomCached(roomId: string): Promise<void> {
+  private async ensureRoomCached(roomId: string, options?: OperationOptions): Promise<void> {
     if (this._rooms.has(roomId)) {
       return;
     }
-    const roomInfo = await this.getRoom(roomId, false);
+    const roomInfo = await this.getRoom(roomId, false, options);
     this._rooms.set(roomId, roomInfo);
   }
 
   /** Add a user to a room. This is an admin operation where one user adds another user to a room. */
-  public async addUserToRoom(roomId: string, userId: string): Promise<void> {
+  public async addUserToRoom(roomId: string, userId: string, options?: RoomMemberOperationOptions): Promise<void> {
     this.ensureStarted();
     const payload: ManageRoomMemberRequest = { roomId: roomId, operation: "Add", userId: userId };
     const isSelf = userId === this.userId;
@@ -388,22 +453,22 @@ class ChatClient {
     // from the service so sendToRoom can use its conversation id.
     const shouldCacheRoomAfterSelfAdd = isSelf && !this._rooms.has(roomId);
     try {
-      await this.manageRoomMember(payload);
+      await this.manageRoomMember(payload, options);
     } catch (error) {
-      if (!isSelf || !(error instanceof ChatError && error.code === ERRORS.USER_ALREADY_IN_ROOM)) {
+      if (!isSelf || !(error instanceof ChatError && error.code === ERRORS.UserAlreadyInRoom)) {
         throw error;
       }
     }
     if (shouldCacheRoomAfterSelfAdd) {
-      await this.ensureRoomCached(roomId);
+      await this.ensureRoomCached(roomId, options);
     }
   }
 
   /** Remove a user from a room. This is an admin operation where one user removes another user from a room. */
-  public async removeUserFromRoom(roomId: string, userId: string): Promise<void> {
+  public async removeUserFromRoom(roomId: string, userId: string, options?: RoomMemberOperationOptions): Promise<void> {
     this.ensureStarted();
     const payload: ManageRoomMemberRequest = { roomId: roomId, operation: "Delete", userId: userId };
-    await this.manageRoomMember(payload);
+    await this.manageRoomMember(payload, options);
     // RoomLeft notification is not guaranteed for server-managed membership;
     // eagerly clean up local cache and emit RoomLeft so callers see consistent state immediately.
     if (userId === this.userId) {
@@ -447,7 +512,7 @@ class ChatClient {
     this.ensureStarted();
     const conversationId = this._rooms.get(options.roomId)?.defaultConversationId;
     if (!conversationId) {
-      throw new Error(`Failed to listRoomMessages, not found roomId ${options.roomId}`);
+      throw new ChatError(`Failed to listRoomMessages, not found roomId ${options.roomId}`, ERRORS.UnknownRoom);
     }
 
     const defaultPageSize = options.pageSize ?? 100;
@@ -470,6 +535,7 @@ class ChatClient {
         INVOCATION_NAME.LIST_MESSAGES,
         query,
         "json",
+        { abortSignal: options.abortSignal },
       );
       if (result.messages.length === 0) {
         return undefined;
@@ -495,7 +561,7 @@ class ChatClient {
 
   public get userId(): string {
     if (!this._userId) {
-      throw new Error("User ID is not set. Please call start() first.");
+      throw new ChatError("User ID is not set. Please call start() first.", ERRORS.NotStarted);
     }
     return this._userId;
   }
@@ -555,8 +621,12 @@ class ChatClient {
    * be started again via `start()`. Callers that want the same identity
    * should keep their authentication source (URL or credential)
    * constant.
+   *
+   * @param _options - Reserved for symmetry with other operations.
+   *   Stopping is a local-state cleanup that does not perform a network
+   *   round-trip and is therefore not cancellable today.
    */
-  public async stop(): Promise<void> {
+  public async stop(_options?: StopOptions): Promise<void> {
     const startPromise = this._startPromise;
     if (startPromise) {
       await startPromise.catch(() => undefined);
