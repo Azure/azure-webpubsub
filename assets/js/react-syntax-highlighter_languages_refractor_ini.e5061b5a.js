@@ -1,0 +1,1 @@
+"use strict";(globalThis.webpackChunkgithub_pages=globalThis.webpackChunkgithub_pages||[]).push([[2638],{7888(t){function a(t){t.languages.ini={comment:/^[ \t]*[;#].*$/m,selector:/^[ \t]*\[.*?\]/m,constant:/^[ \t]*[^\s=]+?(?=[ \t]*=)/m,"attr-value":{pattern:/=.*/,inside:{punctuation:/^[=]/}}}}t.exports=a,a.displayName="ini",a.aliases=[]}}]);
