@@ -23,8 +23,8 @@ let chatClient = null;
 
 app.get('/api/negotiate', async (req, res) => {
   let userId = req.query.userId;
-  if (!userId) {
-    res.status(400).send('userId is required');
+  if (!userId || typeof userId !== 'string' || !/^[a-zA-Z0-9_-]+$/.test(userId)) {
+    res.status(400).send('userId is required and must be alphanumeric');
     return;
   }
   let token = await serviceClient.getClientAccessToken({ userId: userId });
@@ -62,12 +62,12 @@ app.listen(port, '0.0.0.0', async () => {
       return body.url;
     },
   });
-  await chatClient.login();
-  chatClient.addListenerForNewMessage((message) => {
-    const text = message.message.content.text;
-    console.log(`new room message, roomId = ${message.conversation.roomId}, messageId = ${message.message.messageId}, createdBy = ${message.message.createdBy}, text = ${text}`);
+  await chatClient.start();
+  chatClient.onMessage((event) => {
+    const message = event.message;
+    console.log(`new room message, roomId = ${event.roomId}, messageId = ${message.messageId}, createdBy = ${message.createdBy}, text = ${message.content.text}`);
   });
-  console.log("Chat client logged in as admin");
+  console.log("Chat client started as admin");
   
   // Create initial rooms (ignore if already exists)
   const createRoomIfNotExists = async (name, members, roomId) => {

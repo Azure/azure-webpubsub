@@ -57,7 +57,7 @@ async function doLogin() {
     const { url } = await resp.json();
 
     client = new ChatClient(url);
-    await client.login();
+    await client.start();
 
     // Show logged-in state
     btn.textContent = 'Logged in';
@@ -96,25 +96,26 @@ document.querySelectorAll('.item-preset').forEach(btn => {
 
 // Chat SDK listeners
 function setupListeners() {
-  client.addListenerForNewRoom(async (room) => {
+  client.onRoomJoined(async (event) => {
+    const room = event.room;
     await loadAuctionFromRoom(room.roomId, room.title);
     renderAuctionList();
     // Auto-open if it's the only auction
     if (auctions.size === 1) openAuction(room.roomId);
   });
 
-  client.addListenerForMemberJoined((info) => {
-    const auction = auctions.get(info.roomId);
+  client.onMemberJoined((event) => {
+    const auction = auctions.get(event.roomId);
     if (auction) {
-      auction.members.add(info.userId);
-      if (info.roomId === currentAuctionId) renderParticipants(auction);
+      auction.members.add(event.userId);
+      if (event.roomId === currentAuctionId) renderParticipants(auction);
     }
   });
 
   // New message arrives in real time (skip self — already handled locally)
-  client.addListenerForNewMessage((notification) => {
-    const msg = notification.message;
-    const roomId = notification.conversation?.roomId;
+  client.onMessage((event) => {
+    const msg = event.message;
+    const roomId = event.roomId;
     if (!roomId || msg.createdBy === client.userId) return;
 
     try {
@@ -159,7 +160,10 @@ async function loadAuctionFromRoom(roomId, title) {
   const auction = { item: title, startingPrice: 0, roomId, highestBid: 0, highestBidder: null, members: new Set(), lastActivity: Date.now() };
 
   try {
-    const { messages } = await client.listRoomMessage(roomId, null, null);
+    const messages = [];
+    for await (const msg of client.listRoomMessages({ roomId })) {
+      messages.push(msg);
+    }
     for (const msg of messages) {
       try {
         const data = JSON.parse(msg.content.text);
@@ -328,7 +332,10 @@ async function renderBidHistory(roomId) {
   container.innerHTML = '';
 
   try {
-    const { messages } = await client.listRoomMessage(roomId, null, null);
+    const messages = [];
+    for await (const msg of client.listRoomMessages({ roomId })) {
+      messages.push(msg);
+    }
 
     const bids = [];
     for (const msg of messages) {

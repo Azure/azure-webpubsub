@@ -132,7 +132,7 @@ async function doLogin() {
     const { url } = await resp.json();
 
     client = new ChatClient(url);
-    await client.login();
+    await client.start();
 
     btn.textContent = 'Logged in';
     $('display-username').textContent = `✓ Logged in as ${client.userId}`;
@@ -168,7 +168,8 @@ async function doLogin() {
 
 // SDK Listeners
 function setupListeners() {
-  client.addListenerForNewRoom(async (room) => {
+  client.onRoomJoined(async (event) => {
+    const room = event.room;
     await loadGame(room.roomId, room.title);
 
     // Auto-deploy ships immediately so other players can see our board
@@ -184,13 +185,13 @@ function setupListeners() {
     if (games.size === 1) openGame(room.roomId);
   });
 
-  client.addListenerForMemberJoined((info) => {
-    if (info.roomId === currentGameId) renderPlayersBar();
+  client.onMemberJoined((event) => {
+    if (event.roomId === currentGameId) renderPlayersBar();
   });
 
-  client.addListenerForNewMessage((n) => {
-    const msg = n.message;
-    const roomId = n.conversation?.roomId;
+  client.onMessage((event) => {
+    const msg = event.message;
+    const roomId = event.roomId;
     if (!roomId || msg.createdBy === client.userId) return;
 
     const g = games.get(roomId);
@@ -251,7 +252,10 @@ async function loadGame(roomId, title) {
   const g = newGame(roomId, title);
 
   try {
-    const { messages } = await client.listRoomMessage(roomId, null, null);
+    const messages = [];
+    for await (const msg of client.listRoomMessages({ roomId })) {
+      messages.push(msg);
+    }
     for (const msg of messages) {
       try {
         const d = JSON.parse(msg.content.text);

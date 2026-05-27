@@ -70,9 +70,10 @@ export const Sidebar: React.FC = () => {
     if (!lastMessage) return 'No messages yet';
     
     const sender = lastMessage.sender || 'Unknown';
-    // Strip HTML tags to get plain text
+    // Strip HTML tags to get plain text safely using DOM parser
     const rawContent = lastMessage.content;
-    const content = rawContent.replace(/<[^>]*>/g, '').replace(/&nbsp;/g, ' ').trim();
+    const doc = new DOMParser().parseFromString(rawContent, 'text/html');
+    const content = (doc.body.textContent || '').trim();
     const maxLength = 20; // Adjust based on your UI needs
     const isPrivateChat = roomId.startsWith('private-');
     
