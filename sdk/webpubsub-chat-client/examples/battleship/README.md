@@ -6,13 +6,13 @@ Multiplayer real-time naval combat. Each player gets a grid with randomly placed
 
 | Feature | Chat SDK API |
 |---|---|
-| Login | `new ChatClient(url)` + `login()` |
+| Login | `ChatClient.start(url)` |
 | Create game & invite players | `createRoom(title, playerList)` |
-| Join game via invitation | `addListenerForNewRoom` |
+| Join game via invitation | `onRoomJoined` |
 | Deploy fleet / Fire at opponent | `sendToRoom(roomId, json)` |
-| Real-time attack updates | `addListenerForNewMessage` |
-| Restore game state on rejoin | `listRoomMessage` |
-| See who joined | `addListenerForMemberJoined` |
+| Real-time attack updates | `onMessage` |
+| Restore game state on rejoin | `listRoomMessages` |
+| See who joined | `onMemberJoined` |
 
 ## Prerequisites
 
