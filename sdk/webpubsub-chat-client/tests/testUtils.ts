@@ -30,7 +30,7 @@ export async function createTestClient(userId?: string): Promise<ChatClient> {
       return value.url;
     },
   });
-  return await ChatClient.login(wpsClient);
+  return await ChatClient.start(wpsClient);
 }
 
 export async function getMultipleClients(count: number): Promise<ChatClient[]> {
@@ -42,9 +42,9 @@ export async function getMultipleClients(count: number): Promise<ChatClient[]> {
   return clients;
 }
 
-// Helper to stop multiple clients immediately
-export function stopClients(clients: ChatClient[]): void {
-  clients.forEach((c) => c.stop());
+// Helper to stop multiple clients in parallel.
+export async function stopClients(clients: ChatClient[]): Promise<void> {
+  await Promise.all(clients.map((c) => c.stop()));
 }
 
 // Force exit after all tests complete (call this at the end of test file)

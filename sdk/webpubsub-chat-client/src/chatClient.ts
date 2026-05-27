@@ -40,6 +40,25 @@ class ChatError extends Error {
   }
 }
 
+class PromiseCompletionSource {
+  private readonly promise: Promise<void>;
+  private resolvePromise!: () => void;
+
+  public constructor() {
+    this.promise = new Promise<void>((resolve) => {
+      this.resolvePromise = resolve;
+    });
+  }
+
+  public setResult(): void {
+    this.resolvePromise();
+  }
+
+  public wait(): Promise<void> {
+    return this.promise;
+  }
+}
+
 class ChatClient {
   public readonly connection: WebPubSubClient;
 
@@ -47,18 +66,42 @@ class ChatClient {
   private readonly _rooms = new Map<string, RoomInfo>();
   protected _conversationIds = new Set<string>();
   private _userId: string | undefined;
-  private _isLoggedIn = false;
+  private _isStarted = false;
+  private _startPromise: Promise<void> | undefined;
+  // Created after the underlying connection starts so stop() can wait for the single "stopped" event.
+  private _connectionStoppedTCS: PromiseCompletionSource | undefined;
+  private _isConnectionStopping = false;
 
+  /**
+   * Create a `ChatClient` from a client-access URL.
+   *
+   * The client is constructed but not started; call `start()` (or use
+   * the {@link ChatClient.start} static factory) to authenticate.
+   */
   constructor(clientAccessUrl: string, options?: WebPubSubClientOptions);
+  /**
+   * Create a `ChatClient` from a {@link WebPubSubClientCredential}.
+   *
+   * The client is constructed but not started; call `start()` (or use
+   * the {@link ChatClient.start} static factory) to authenticate.
+   */
   constructor(credential: WebPubSubClientCredential, options?: WebPubSubClientOptions);
-  constructor(credential: string | WebPubSubClientCredential, options?: WebPubSubClientOptions);
+  /**
+   * Create a `ChatClient` that reuses an existing `WebPubSubClient`.
+   *
+   * Passing an existing client gives `ChatClient` lifecycle ownership:
+   * `start()` starts it and `stop()` stops it. The client is constructed
+   * but not started; call `start()` to authenticate.
+   */
   constructor(wpsClient: WebPubSubClient);
 
   constructor(arg1: string | WebPubSubClientCredential | WebPubSubClient, options?: WebPubSubClientOptions) {
     if (isWebPubSubClient(arg1)) {
       this.connection = arg1;
+    } else if (typeof arg1 === "string") {
+      this.connection = new WebPubSubClient(arg1, options);
     } else {
-      this.connection = new WebPubSubClient(arg1 as any, options);
+      this.connection = new WebPubSubClient(arg1, options);
     }
     this.connection.on("group-message", (e) => {
       this._handleNotification(e.message.data as Notification);
@@ -66,9 +109,18 @@ class ChatClient {
     this.connection.on("server-message", (e) => {
       this._handleNotification(e.message.data as Notification);
     });
+    this.connection.on("stopped", () => {
+      this._connectionStoppedTCS?.setResult();
+      this._connectionStoppedTCS = undefined;
+      this._isConnectionStopping = false;
+      this.resetState();
+    });
   }
 
   private async _handleNotification(data: Notification): Promise<void> {
+    if (!this._isStarted && !this._startPromise) {
+      return;
+    }
     logger.info("Received notification:", data);
     try {
       const type = data.notificationType;
@@ -150,46 +202,107 @@ class ChatClient {
     }
   }
 
-  /** create a chat client based on an existing WebPubSubClient. */
-  public static async login(wpsClient: WebPubSubClient): Promise<ChatClient> {
-    const chatClient = new ChatClient(wpsClient);
-    return await chatClient.login();
+  /**
+   * Create a chat client and `start()` it in one step.
+   *
+   * Overloads accept the same arguments as the constructor. The
+   * returned promise resolves to a started client.
+   */
+  public static async start(clientAccessUrl: string, options?: WebPubSubClientOptions): Promise<ChatClient>;
+  public static async start(credential: WebPubSubClientCredential, options?: WebPubSubClientOptions): Promise<ChatClient>;
+  public static async start(wpsClient: WebPubSubClient): Promise<ChatClient>;
+  public static async start(arg1: string | WebPubSubClientCredential | WebPubSubClient, options?: WebPubSubClientOptions): Promise<ChatClient> {
+    let chatClient: ChatClient;
+    if (typeof arg1 === "string") {
+      chatClient = new ChatClient(arg1, options);
+    } else if (isWebPubSubClient(arg1)) {
+      chatClient = new ChatClient(arg1);
+    } else {
+      chatClient = new ChatClient(arg1, options);
+    }
+    await chatClient.start();
+    return chatClient;
   }
 
-  /** create a chat client based on an existing WebPubSubClient. */
-  public async login(): Promise<ChatClient> {
-    await this.connection.start();
-    const loginResponse = await this.invokeWithReturnType<UserProfile>(INVOCATION_NAME.LOGIN, "", "text");
-    logger.info("loginResponse", loginResponse);
-    this._userId = loginResponse.userId;
-    this._isLoggedIn = true;
-    this._conversationIds = new Set(loginResponse.conversationIds || []);
-    // Use Promise.all to wait for all room info to be fetched
-    const roomInfos = await Promise.all(
-      (loginResponse.roomIds || []).map(async (roomId) => {
-        const roomInfo = await this.getRoom(roomId, false);
-        return { roomId, roomInfo };
-      })
-    );
-    roomInfos.forEach(({ roomId, roomInfo }) => {
-      this._rooms.set(roomId, roomInfo);
-    });
-    return this;
+  /**
+   * Connect the underlying transport and authenticate with the chat
+   * service.
+   *
+   * Idempotent: concurrent calls share a single in-flight promise, and
+   * calls made on an already-started client resolve immediately. After
+   * `stop()` the client can be started again; state from the previous
+   * session is reset.
+   */
+  public async start(): Promise<void> {
+    if (this._startPromise) return this._startPromise;
+    if (this._isStarted) return;
+
+    if (this._connectionStoppedTCS && this._isConnectionStopping) {
+      await this._connectionStoppedTCS.wait();
+      // Another caller waiting on the same stop may have already started the restart.
+      if (this._startPromise) return this._startPromise;
+      if (this._isStarted) return;
+    }
+
+    const startPromise = this.startCore();
+    this._startPromise = startPromise;
+    try {
+      await startPromise;
+    } finally {
+      if (this._startPromise === startPromise) {
+        this._startPromise = undefined;
+      }
+    }
   }
 
-  private ensureLoggedIn(): void {
-    if (!this._isLoggedIn) {
-      throw new Error("Not logged in. Please call login() first.");
+  private async startCore(): Promise<void> {
+    this.resetState();
+    try {
+      await this.connection.start();
+      this._connectionStoppedTCS = new PromiseCompletionSource();
+      this._isConnectionStopping = false;
+
+      const loginResponse = await this.invokeWithReturnType<UserProfile>(INVOCATION_NAME.LOGIN, "", "text");
+      logger.info("loginResponse", loginResponse);
+      const conversationIds = new Set(loginResponse.conversationIds || []);
+      const roomInfos = await Promise.all(
+        (loginResponse.roomIds || []).map(async (roomId) => {
+          const roomInfo = await this.invokeWithReturnType<RoomInfoWithMembers>(INVOCATION_NAME.GET_ROOM, { id: roomId, withMembers: false }, "json");
+          return { roomId, roomInfo };
+        })
+      );
+
+      this._userId = loginResponse.userId;
+      this._conversationIds = conversationIds;
+      roomInfos.forEach(({ roomId, roomInfo }) => {
+        this._rooms.set(roomId, roomInfo);
+      });
+      this._isStarted = true;
+    } catch (err) {
+      this.resetState();
+      await this.stopConnection();
+      throw err;
+    }
+  }
+
+  /** Whether `start()` has completed successfully and `stop()` has not been called since. */
+  public get isStarted(): boolean {
+    return this._isStarted;
+  }
+
+  private ensureStarted(): void {
+    if (!this._isStarted) {
+      throw new Error("Not started. Please call start() first.");
     }
   }
 
   public async getUserInfo(userId: string): Promise<UserProfile> {
-    this.ensureLoggedIn();
+    this.ensureStarted();
     return this.invokeWithReturnType<UserProfile>(INVOCATION_NAME.GET_USER_PROPERTIES, { userId: userId }, "json");
   }
 
   public async sendToConversation(conversationId: string, message: string): Promise<string> {
-    this.ensureLoggedIn();
+    this.ensureStarted();
     const payload = {
       conversation: { conversationId: conversationId },
       content: message,
@@ -222,7 +335,7 @@ class ChatClient {
   }
 
   public async sendToRoom(roomId: string, message: string): Promise<string> {
-    this.ensureLoggedIn();
+    this.ensureStarted();
     const conversationId = this._rooms.get(roomId)?.defaultConversationId;
     if (!conversationId) {
       throw Error(`Failed to sendToRoom, not found roomId ${roomId}`);
@@ -231,13 +344,13 @@ class ChatClient {
   }
 
   public async getRoom(roomId: string, withMembers: boolean): Promise<RoomInfoWithMembers> {
-    this.ensureLoggedIn();
+    this.ensureStarted();
     return this.invokeWithReturnType<RoomInfoWithMembers>(INVOCATION_NAME.GET_ROOM, { id: roomId, withMembers: withMembers }, "json");
   }
 
   /** Create a room and its initial members. If `roomId` is not set, the service will create a random one. */
   public async createRoom(title: string, members: string[], roomId?: string): Promise<RoomInfoWithMembers> {
-    this.ensureLoggedIn();
+    this.ensureStarted();
     let roomDetails = {
       title: title,
       members: [...new Set([...members, this.userId])], // deduplicate and add self
@@ -266,7 +379,7 @@ class ChatClient {
 
   /** Add a user to a room. This is an admin operation where one user adds another user to a room. */
   public async addUserToRoom(roomId: string, userId: string): Promise<void> {
-    this.ensureLoggedIn();
+    this.ensureStarted();
     const payload: ManageRoomMemberRequest = { roomId: roomId, operation: "Add", userId: userId };
     const isSelf = userId === this.userId;
     // If self-add succeeds but no RoomJoined notification arrives, fetch room info
@@ -286,7 +399,7 @@ class ChatClient {
 
   /** Remove a user from a room. This is an admin operation where one user removes another user from a room. */
   public async removeUserFromRoom(roomId: string, userId: string): Promise<void> {
-    this.ensureLoggedIn();
+    this.ensureStarted();
     const payload: ManageRoomMemberRequest = { roomId: roomId, operation: "Delete", userId: userId };
     await this.manageRoomMember(payload);
     // RoomLeft notification is not guaranteed for server-managed membership;
@@ -303,7 +416,7 @@ class ChatClient {
 
   /** List messages in a conversation. It returns messages and a query for the next query parameter. */
   public async listMessage(conversationId: string, startId: string | null, endId: string | null, maxCount: number = 100): Promise<{ messages: MessageInfo[]; nextQuery: MessageRangeQuery }> {
-    this.ensureLoggedIn();
+    this.ensureStarted();
     const query: MessageRangeQuery = {
       conversation: { conversationId: conversationId },
       start: startId,
@@ -316,7 +429,7 @@ class ChatClient {
 
   /** List messages in a room. It returns messages and a query for the next query parameter. */
   public async listRoomMessage(roomId: string, startId: string | null, endId: string | null, maxCount: number = 100): Promise<{ messages: MessageInfo[]; nextQuery: MessageRangeQuery }> {
-    this.ensureLoggedIn();
+    this.ensureStarted();
     const conversationId = this._rooms.get(roomId)?.defaultConversationId;
     if (!conversationId) {
       throw Error(`Failed to listRoomMessage, not found roomId ${roomId}`);
@@ -343,7 +456,7 @@ class ChatClient {
 
   public get userId(): string {
     if (!this._userId) {
-      throw new Error("User ID is not set. Please login first.");
+      throw new Error("User ID is not set. Please call start() first.");
     }
     return this._userId;
   }
@@ -396,9 +509,49 @@ class ChatClient {
     return this.on("memberLeft", callback);
   }
 
-  public stop = (): void => {
-    this.connection.stop();
-  };
+  /**
+   * Stop the underlying connection and reset client state. Idempotent.
+   *
+   * After resolution the client returns to its initial state and may
+   * be started again via `start()`. Callers that want the same identity
+   * should keep their authentication source (URL or credential)
+   * constant.
+   */
+  public async stop(): Promise<void> {
+    const startPromise = this._startPromise;
+    if (startPromise) {
+      await startPromise.catch(() => undefined);
+    }
+    this._startPromise = undefined;
+
+    this.resetState();
+    await this.stopConnection();
+  }
+
+  private resetState(): void {
+    this._isStarted = false;
+    this._userId = undefined;
+    this._rooms.clear();
+    this._conversationIds.clear();
+  }
+
+  private async stopConnection(): Promise<void> {
+    const connectionStoppedTCS = this._connectionStoppedTCS;
+    if (!connectionStoppedTCS) {
+      return;
+    }
+
+    if (!this._isConnectionStopping) {
+      this._isConnectionStopping = true;
+      try {
+        this.connection.stop();
+      } catch (err) {
+        this._isConnectionStopping = false;
+        throw err;
+      }
+    }
+    await connectionStoppedTCS.wait();
+  }
 }
 
 export { ChatClient, ChatError };
