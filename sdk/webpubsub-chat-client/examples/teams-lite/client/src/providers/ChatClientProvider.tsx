@@ -209,7 +209,12 @@ export const ChatClientProvider: React.FC<ChatClientProviderProps> = ({ children
     
     try {
       console.log(`Fetching history for room: ${targetRoomId}`);
-      const roomHistory = await client.listRoomMessage(targetRoomId, null, null, 100);
+      const messages: any[] = [];
+      for await (const msg of client.listRoomMessages({ roomId: targetRoomId })) {
+        messages.push(msg);
+        if (messages.length >= 100) break;
+      }
+      const roomHistory = { messages };
       console.log("fetchRoomHistory result:", roomHistory);
       const mapped: ChatMessage[] = (roomHistory.messages.reverse() ?? []).map((m) => {
         const rawFrom = (m.createdBy && String(m.createdBy).trim().length > 0) ? m.createdBy : undefined;
@@ -331,7 +336,7 @@ export const ChatClientProvider: React.FC<ChatClientProviderProps> = ({ children
         // Assign clientRef before starting to prevent parallel starts from racing
         // const newChatClient = new ChatClient(newClient); //await ChatClient.login(newClient);
         // Set up event listeners using refs for latest values
-        chatClient.onConnected((e: { connectionId: string; userId?: string }) => {
+        chatClient.connection.on("connected", (e: { connectionId: string; userId?: string }) => {
           setConnectionStatus({
             status: "connected",
             message: "Connected",
@@ -353,7 +358,7 @@ export const ChatClientProvider: React.FC<ChatClientProviderProps> = ({ children
         });
 
         // No additional listeners needed; userId is set via connected event above if provided
-        chatClient.onDisconnected(() => {
+        chatClient.connection.on("disconnected", () => {
           setConnectionStatus({
             status: "disconnected",
             message: `Disconnected: Connection closed`,
@@ -362,13 +367,14 @@ export const ChatClientProvider: React.FC<ChatClientProviderProps> = ({ children
         });
 
 
-        chatClient.addListenerForNewMessage((notification) => {
-          console.log("New message notification:", notification);
-          const message = notification.message;
+        chatClient.onMessage((event) => {
+          const notification = event;
+          console.log("New message event:", event);
+          const message = event.message;
           console.log(`Received new message from ${message.createdBy}, content = ${message.content?.text}, isSelf = ${message.createdBy === chatClient.userId}`);
           
           // Handle ping messages for online status
-          if (notification.conversation.roomId === GLOBAL_METADATA_ROOM_ID && message.content?.text === "ping") {
+          if (event.roomId === GLOBAL_METADATA_ROOM_ID && message.content?.text === "ping") {
             if (message.createdBy) {
               setOnlineStatus(prev => {
                 const updated = {
@@ -386,7 +392,7 @@ export const ChatClientProvider: React.FC<ChatClientProviderProps> = ({ children
           
           // Handle typing indicator messages
           // Format: "typing:roomId"
-          if (notification.conversation.roomId === GLOBAL_METADATA_ROOM_ID && message.content?.text?.startsWith("typing:")) {
+          if (event.roomId === GLOBAL_METADATA_ROOM_ID && message.content?.text?.startsWith("typing:")) {
             const targetRoomId = message.content.text.substring(7); // Remove "typing:" prefix
             if (message.createdBy && message.createdBy !== chatClient.userId) {
               const visitorKey = `${targetRoomId}:${message.createdBy}`;
@@ -402,7 +408,7 @@ export const ChatClientProvider: React.FC<ChatClientProviderProps> = ({ children
           }
           
           if (message.createdBy === chatClient.userId) return ;
-          updateRoomMessages(notification.conversation.roomId!, { type: "completeMessage", payload: { 
+          updateRoomMessages(event.roomId!, { type: "completeMessage", payload: { 
             messageId: message.messageId,
             content: message.content?.text || "", 
             sender: message.createdBy || "Unknown Sender",
@@ -410,7 +416,8 @@ export const ChatClientProvider: React.FC<ChatClientProviderProps> = ({ children
           } });
         });
 
-        chatClient.addListenerForNewRoom((room) => {
+        chatClient.onRoomJoined((event) => {
+          const room = event.room;
           console.log('New room created/joined:', room);
           
           // Skip global metadata room - it should never appear in the sidebar
@@ -470,9 +477,9 @@ export const ChatClientProvider: React.FC<ChatClientProviderProps> = ({ children
           });
         });
 
-        chatClient.addListenerForMemberJoined((notification) => {
-          console.log('Member joined notification:', notification);
-          const {roomId, userId, title} = notification;
+        chatClient.onMemberJoined((event) => {
+          console.log('Member joined event:', event);
+          const {roomId, userId, title} = event;
           // Skip notifications for global metadata room
           if (roomId === GLOBAL_METADATA_ROOM_ID) return;
           // Show success notification banner
@@ -482,9 +489,9 @@ export const ChatClientProvider: React.FC<ChatClientProviderProps> = ({ children
           setRoomMembersUpdateTrigger(prev => prev + 1);
         });
 
-        chatClient.addListenerForMemberLeft((notification) => {
-          console.log('Member left notification:', notification);
-          const {roomId, userId, title} = notification;
+        chatClient.onMemberLeft((event) => {
+          console.log('Member left event:', event);
+          const {roomId, userId, title} = event;
           // Skip notifications for global metadata room
           if (roomId === GLOBAL_METADATA_ROOM_ID) return;
           // Show success notification banner
@@ -494,9 +501,9 @@ export const ChatClientProvider: React.FC<ChatClientProviderProps> = ({ children
           setRoomMembersUpdateTrigger(prev => prev + 1);
         });
 
-        chatClient.addListenerForRoomLeft((notification) => {
-          console.log('Room left notification (you were removed):', notification);
-          const {roomId, title} = notification;
+        chatClient.onRoomLeft((event) => {
+          console.log('Room left event (you were removed):', event);
+          const {roomId, title} = event;
           
           // Remove room from the rooms list
           setRoomsRef.current(roomsRef.current.filter(r => r.roomId !== roomId));
@@ -511,7 +518,7 @@ export const ChatClientProvider: React.FC<ChatClientProviderProps> = ({ children
           setSuccessNotification(`You have been removed from room: ${title}`);
         });
 
-        await chatClient.login();
+        await chatClient.start();
 
         // const initRooms = [
         //   {id: DEFAULT_ROOM_ID, name: DEFAULT_ROOM_NAME}, 

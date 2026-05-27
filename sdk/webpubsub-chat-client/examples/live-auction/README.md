@@ -6,14 +6,14 @@ A real-time auction app built with the **Web PubSub Chat SDK**. Bids appear inst
 
 | Action | SDK API used |
 |---|---|
-| User login | `new ChatClient(url)` → `login()` |
+| User login | `ChatClient.start(url)` |
 | Create an auction (invite bidders) | `createRoom(itemName, bidders)` |
 | Broadcast starting price | `sendToRoom(roomId, configJson)` |
-| Receive auction invitation | `addListenerForNewRoom` |
+| Receive auction invitation | `onRoomJoined` |
 | Place a bid | `sendToRoom(roomId, bidJson)` — returns message ID as ACK |
-| Real-time bid updates | `addListenerForNewMessage` |
-| Load bid history | `listRoomMessage` |
-| See who joined | `addListenerForMemberJoined` |
+| Real-time bid updates | `onMessage` |
+| Load bid history | `listRoomMessages` |
+| See who joined | `onMemberJoined` |
 | Show participants | `getRoom(roomId, withMembers: true)` |
 
 ## Prerequisites
