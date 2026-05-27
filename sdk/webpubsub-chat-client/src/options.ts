@@ -18,28 +18,28 @@ export interface OperationOptions {
   abortSignal?: AbortSignalLike;
 }
 
-/** Options for {@link ChatClient.start}. */
+/** Options for `ChatClient.start()`. */
 export interface StartOptions extends OperationOptions {}
 
-/** Options for {@link ChatClient.stop}. */
+/** Options for `ChatClient.stop()`. */
 export interface StopOptions extends OperationOptions {}
 
-/** Options for {@link ChatClient.getRoom}. */
+/** Options for `ChatClient.getRoom()`. */
 export interface GetRoomOptions extends OperationOptions {}
 
-/** Options for {@link ChatClient.createRoom}. */
+/** Options for `ChatClient.createRoom()`. */
 export interface CreateRoomOptions extends OperationOptions {}
 
-/** Options for {@link ChatClient.sendToRoom}. */
+/** Options for `ChatClient.sendToRoom()`. */
 export interface SendMessageOptions extends OperationOptions {}
 
-/** Options for {@link ChatClient.getUserInfo}. */
+/** Options for `ChatClient.getUserInfo()`. */
 export interface GetUserInfoOptions extends OperationOptions {}
 
-/** Options for {@link ChatClient.addUserToRoom} and {@link ChatClient.removeUserFromRoom}. */
+/** Options for `ChatClient.addUserToRoom()` and `ChatClient.removeUserFromRoom()`. */
 export interface RoomMemberOperationOptions extends OperationOptions {}
 
-/** Options for {@link ChatClient.listRoomMessages}. */
+/** Options for `ChatClient.listRoomMessages()`. */
 export interface ListRoomMessagesOptions extends OperationOptions {
   /** Room to list messages from. Must be a room this client has created or joined. */
   roomId: string;

@@ -76,7 +76,7 @@ class ChatClient {
 
   private readonly _emitter = new EventEmitter();
   private readonly _rooms = new Map<string, RoomInfo>();
-  protected _conversationIds = new Set<string>();
+  private _conversationIds = new Set<string>();
   private _userId: string | undefined;
   private _isStarted = false;
   private _startPromise: Promise<void> | undefined;
@@ -88,14 +88,14 @@ class ChatClient {
    * Create a `ChatClient` from a client-access URL.
    *
    * The client is constructed but not started; call `start()` (or use
-   * the {@link ChatClient.start} static factory) to authenticate.
+   * the static `ChatClient.start(...)` factory) to authenticate.
    */
   constructor(clientAccessUrl: string, options?: WebPubSubClientOptions);
   /**
-   * Create a `ChatClient` from a {@link WebPubSubClientCredential}.
+   * Create a `ChatClient` from a `WebPubSubClientCredential`.
    *
    * The client is constructed but not started; call `start()` (or use
-   * the {@link ChatClient.start} static factory) to authenticate.
+   * the static `ChatClient.start(...)` factory) to authenticate.
    */
   constructor(credential: WebPubSubClientCredential, options?: WebPubSubClientOptions);
   /**
@@ -575,16 +575,18 @@ class ChatClient {
    * `chatClient.connection.on("connected", ...)` etc.
    *
    * @example
+   * ```ts
    * const dispose = client.on("message", (e) => console.log(e.message.content.text));
    * // later
    * dispose();
+   * ```
    */
   public on<K extends ChatEventName>(event: K, callback: ChatEventListener<K>): Disposable {
     this._emitter.on(event, callback as any);
     return () => this._emitter.off(event, callback as any);
   }
 
-  /** Remove a listener previously registered with {@link on}. */
+  /** Remove a listener previously registered with `on()`. */
   public off<K extends ChatEventName>(event: K, callback: ChatEventListener<K>): void {
     this._emitter.off(event, callback as any);
   }
