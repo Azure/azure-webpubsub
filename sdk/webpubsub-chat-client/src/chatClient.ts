@@ -236,8 +236,12 @@ class ChatClient {
   public async start(): Promise<void> {
     if (this._startPromise) return this._startPromise;
     if (this._isStarted) return;
+
     if (this._connectionStoppedTCS && this._isConnectionStopping) {
       await this._connectionStoppedTCS.wait();
+      // Another caller waiting on the same stop may have already started the restart.
+      if (this._startPromise) return this._startPromise;
+      if (this._isStarted) return;
     }
 
     const startPromise = this.startCore();

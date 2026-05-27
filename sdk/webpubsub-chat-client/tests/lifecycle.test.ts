@@ -227,3 +227,26 @@ test("concurrent stop calls wait for the same stopped event", async () => {
   assert.equal(secondStopResolved, true);
   assert.equal(client.isStarted, false);
 });
+
+test("concurrent start calls during stop share a single restart", async () => {
+  const fakeClient = new FakeWebPubSubClient();
+  fakeClient.stopDelay = new Deferred<void>();
+  const client = createClient(fakeClient);
+  await client.start();
+  assert.equal(fakeClient.startCalls, 1);
+
+  const stopPromise = client.stop();
+  // Both restart attempts should wait for the same stop and share one new start.
+  const firstRestart = client.start();
+  const secondRestart = client.start();
+  await Promise.resolve();
+
+  assert.equal(fakeClient.startCalls, 1, "no new connection start until stop completes");
+
+  fakeClient.stopDelay.resolve();
+  await Promise.all([stopPromise, firstRestart, secondRestart]);
+
+  assert.equal(client.isStarted, true);
+  assert.equal(fakeClient.startCalls, 2, "restart should call connection.start() exactly once");
+  assert.equal(fakeClient.stopCalls, 1);
+});
