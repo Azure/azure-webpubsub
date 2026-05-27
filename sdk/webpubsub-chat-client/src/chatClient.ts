@@ -1,4 +1,5 @@
 import { InvocationError, WebPubSubClient, WebPubSubClientCredential, WebPubSubClientOptions, WebPubSubDataType } from "@azure/web-pubsub-client";
+import { getPagedAsyncIterator, type PagedAsyncIterableIterator, type PageSettings } from "@azure/core-paging";
 import { EventEmitter } from "events";
 import {
   MessageInfo,
@@ -26,6 +27,7 @@ import type {
   RoomJoinedEvent,
   RoomLeftEvent,
 } from "./events.js";
+import type { ListRoomMessagesOptions } from "./options.js";
 
 import { ERRORS, INVOCATION_NAME } from "./constant.js";
 import { logger } from "./logger.js";
@@ -137,7 +139,7 @@ class ChatClient {
         }
         case "RoomJoined": {
           const roomInfo = data.body as NewRoomNotificationBody as RoomInfo;
-          // Add to _rooms first so listeners can use listRoomMessage
+          // Add to _rooms first so listeners can use listRoomMessages
           this._rooms.set(roomInfo.roomId, roomInfo);
           const event: RoomJoinedEvent = { room: roomInfo };
           this._emitter.emit("roomJoined", event);
@@ -414,34 +416,71 @@ class ChatClient {
     }
   }
 
-  /** List messages in a conversation. It returns messages and a query for the next query parameter. */
-  public async listMessage(conversationId: string, startId: string | null, endId: string | null, maxCount: number = 100): Promise<{ messages: MessageInfo[]; nextQuery: MessageRangeQuery }> {
+  /**
+   * List messages in a room as a paged async iterator.
+   *
+   * The iterator transparently fetches additional pages from the
+   * service as you iterate. For Teams-style infinite scrolling, drive
+   * the iterator one page at a time via `byPage(...)`:
+   *
+   * @example Stream every message (e.g. for export or full sync):
+   * ```ts
+   * for await (const msg of client.listRoomMessages({ roomId })) {
+   *   console.log(msg.content.text);
+   * }
+   * ```
+   *
+   * @example Load history one page at a time (Teams-style scroll-back):
+   * ```ts
+   * // Load up to 50 messages per page.
+   * const pages = client.listRoomMessages({ roomId }).byPage({ maxPageSize: 50 });
+   * const first = await pages.next();
+   * displayMessages(first.value);
+   * // later, when the user scrolls up:
+   * const more = await pages.next();
+   * displayMessages(more.value);
+   * ```
+   *
+   * The room must be one this client has created or joined.
+   */
+  public listRoomMessages(options: ListRoomMessagesOptions): PagedAsyncIterableIterator<MessageInfo> {
     this.ensureStarted();
-    const query: MessageRangeQuery = {
-      conversation: { conversationId: conversationId },
-      start: startId,
-      end: endId,
-      maxCount: maxCount,
-    };
-    const result = await this.invokeWithReturnType<{ messages: MessageInfo[]; nextQuery: MessageRangeQuery }>(INVOCATION_NAME.LIST_MESSAGES, query, "json");
-    return result;
-  }
-
-  /** List messages in a room. It returns messages and a query for the next query parameter. */
-  public async listRoomMessage(roomId: string, startId: string | null, endId: string | null, maxCount: number = 100): Promise<{ messages: MessageInfo[]; nextQuery: MessageRangeQuery }> {
-    this.ensureStarted();
-    const conversationId = this._rooms.get(roomId)?.defaultConversationId;
+    const conversationId = this._rooms.get(options.roomId)?.defaultConversationId;
     if (!conversationId) {
-      throw Error(`Failed to listRoomMessage, not found roomId ${roomId}`);
+      throw new Error(`Failed to listRoomMessages, not found roomId ${options.roomId}`);
     }
-    const query: MessageRangeQuery = {
-      conversation: { conversationId: conversationId },
-      start: startId,
-      end: endId,
-      maxCount: maxCount,
+
+    const defaultPageSize = options.pageSize ?? 100;
+    const firstPageLink: MessageRangeQuery = {
+      conversation: { conversationId },
+      start: options.startId ?? null,
+      end: options.endId ?? null,
+      maxCount: defaultPageSize,
     };
-    const result = await this.invokeWithReturnType<{ messages: MessageInfo[]; nextQuery: MessageRangeQuery }>(INVOCATION_NAME.LIST_MESSAGES, query, "json");
-    return result;
+
+    const fetchPage = async (
+      link: MessageRangeQuery,
+      maxPageSize?: number,
+    ): Promise<{ page: MessageInfo[]; nextPageLink?: MessageRangeQuery } | undefined> => {
+      const query: MessageRangeQuery = {
+        ...link,
+        maxCount: maxPageSize ?? link.maxCount ?? defaultPageSize,
+      };
+      const result = await this.invokeWithReturnType<{ messages: MessageInfo[]; nextQuery: MessageRangeQuery | null }>(
+        INVOCATION_NAME.LIST_MESSAGES,
+        query,
+        "json",
+      );
+      if (result.messages.length === 0) {
+        return undefined;
+      }
+      return { page: result.messages, nextPageLink: result.nextQuery ?? undefined };
+    };
+
+    return getPagedAsyncIterator<MessageInfo, MessageInfo[], PageSettings, MessageRangeQuery>({
+      firstPageLink,
+      getPage: (link, maxPageSize) => fetchPage(link, maxPageSize),
+    });
   }
 
   /** Cached rooms known to the client. */

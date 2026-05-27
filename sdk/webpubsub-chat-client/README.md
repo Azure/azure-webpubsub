@@ -43,8 +43,10 @@ client.onRoomJoined((event) => {
 const room = await client.createRoom('My Room', ['bob']);
 await client.sendToRoom(room.roomId, 'Hello!');
 
-// Get message history
-const history = await client.listRoomMessage(room.roomId, null, null);
+// Get message history (auto-paginating async iterator)
+for await (const msg of client.listRoomMessages({ roomId: room.roomId })) {
+  console.log(`${msg.createdBy}: ${msg.content.text}`);
+}
 
 // Manage room members
 await client.addUserToRoom(room.roomId, 'charlie');
@@ -103,7 +105,7 @@ When constructed from an existing `WebPubSubClient`, `ChatClient` owns that clie
 | `addUserToRoom(roomId, userId)` | Add user to room (admin operation) |
 | `removeUserFromRoom(roomId, userId)` | Remove user from room (admin operation) |
 | `sendToRoom(roomId, message)` | Send text message to room, returns message ID |
-| `listRoomMessage(roomId, startId, endId, maxCount?)` | Get room message history |
+| `listRoomMessages(options)` | Paged async iterator over room message history (auto-paginates). Use `for await` to stream every message, or `.byPage({ maxPageSize })` to load up to `maxPageSize` messages at a time. `options = { roomId, startId?, endId?, pageSize? }` |
 | `getUserInfo(userId)` | Get user profile |
 
 #### Event Listeners
