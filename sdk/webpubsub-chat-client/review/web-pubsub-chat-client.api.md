@@ -16,8 +16,6 @@ export interface AddUserToRoomOptions extends OperationOptions {
 
 // @public (undocumented)
 export class ChatClient {
-    constructor(clientAccessUrl: string, options?: WebPubSubClientOptions);
-    constructor(credential: WebPubSubClientCredential, options?: WebPubSubClientOptions);
     constructor(wpsClient: WebPubSubClient);
     addUserToRoom(roomId: string, userId: string, options?: AddUserToRoomOptions): Promise<void>;
     // (undocumented)
@@ -28,6 +26,10 @@ export class ChatClient {
     getUserInfo(userId: string, options?: GetUserInfoOptions): Promise<UserProfile>;
     hasJoinedRoom(roomId: string): boolean;
     listRoomMessages(options: ListRoomMessagesOptions): PagedAsyncIterableIterator<MessageInfo>;
+    off(event: "started", listener: (e: OnStartedArgs) => void): void;
+    // (undocumented)
+    off(event: "stopped", listener: (e: OnStoppedArgs) => void): void;
+    // (undocumented)
     off(event: "message", listener: (e: OnMessageArgs) => void): void;
     // (undocumented)
     off(event: "room-joined", listener: (e: OnRoomJoinedArgs) => void): void;
@@ -37,6 +39,10 @@ export class ChatClient {
     off(event: "member-joined", listener: (e: OnMemberJoinedArgs) => void): void;
     // (undocumented)
     off(event: "member-left", listener: (e: OnMemberLeftArgs) => void): void;
+    on(event: "started", listener: (e: OnStartedArgs) => void): void;
+    // (undocumented)
+    on(event: "stopped", listener: (e: OnStoppedArgs) => void): void;
+    // (undocumented)
     on(event: "message", listener: (e: OnMessageArgs) => void): void;
     // (undocumented)
     on(event: "room-joined", listener: (e: OnRoomJoinedArgs) => void): void;
@@ -147,6 +153,15 @@ export interface OnRoomLeftArgs {
     roomId: string;
     // (undocumented)
     title: string;
+}
+
+// @public
+export interface OnStartedArgs {
+    userId: string;
+}
+
+// @public
+export interface OnStoppedArgs {
 }
 
 // @public

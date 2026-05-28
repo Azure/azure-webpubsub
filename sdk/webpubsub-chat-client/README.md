@@ -63,19 +63,12 @@ await client.stop();
 #### Constructor
 
 ```typescript
-// With existing WebPubSubClient
 new ChatClient(wpsClient: WebPubSubClient)
-
-// With client access URL
-new ChatClient(clientAccessUrl: string, options?: WebPubSubClientOptions)
-
-// With credential
-new ChatClient(credential: WebPubSubClientCredential, options?: WebPubSubClientOptions)
 ```
 
-To construct and start in one step, prefer the static `ChatClient.start(...)` factory below.
+`ChatClient` always wraps a pre-constructed `WebPubSubClient` and owns its lifecycle: `start()` starts the transport, `stop()` stops it.
 
-When constructed from an existing `WebPubSubClient`, `ChatClient` owns that client's lifecycle: `start()` starts it and `stop()` stops it.
+To construct from a client-access URL or `WebPubSubClientCredential`, use the static `ChatClient.start(...)` factory below — it builds the underlying `WebPubSubClient` and starts the chat client atomically, so callers never observe a half-constructed instance.
 
 #### Static Methods
 
@@ -165,6 +158,8 @@ client.off('message', onMsg);
 
 | Event name | Listener argument | Description |
 |------------|-------------------|-------------|
+| `started` | `OnStartedArgs` | `start()` completed successfully — `userId` and `rooms` are populated. |
+| `stopped` | `OnStoppedArgs` | The client transitioned to not-started (explicit `stop()` or transport-driven). |
 | `message` | `OnMessageArgs` | New message received (or sent by this client). |
 | `room-joined` | `OnRoomJoinedArgs` | This client joined a room. |
 | `room-left` | `OnRoomLeftArgs` | This client left a room. |

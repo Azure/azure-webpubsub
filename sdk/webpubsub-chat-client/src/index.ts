@@ -15,6 +15,8 @@ export type {
   OnRoomLeftArgs,
   OnMemberJoinedArgs,
   OnMemberLeftArgs,
+  OnStartedArgs,
+  OnStoppedArgs,
 } from './events.js';
 
 export type {

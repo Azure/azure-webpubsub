@@ -257,3 +257,45 @@ test("concurrent start calls during stop share a single restart", async () => {
   assert.equal(fakeClient.startCalls, 2, "restart should call connection.start() exactly once");
   assert.equal(fakeClient.stopCalls, 1);
 });
+
+test("started event fires once after start() completes with userId payload", async () => {
+  const fakeClient = new FakeWebPubSubClient();
+  fakeClient.loginResponse = { userId: "alice", roomIds: [], conversationIds: [] };
+  const client = createClient(fakeClient);
+
+  const startedEvents: Array<{ userId: string }> = [];
+  client.on("started", (e) => startedEvents.push(e));
+
+  await client.start();
+  assert.equal(startedEvents.length, 1, "started should fire exactly once on successful start");
+  assert.deepEqual(startedEvents[0], { userId: "alice" }, "started payload should carry the chat-domain userId");
+  assert.equal(client.userId, "alice", "userId getter should be live by the time started fires");
+
+  // Re-starting an already-started client must not re-emit.
+  await client.start();
+  assert.equal(startedEvents.length, 1, "started should not fire when start() is a no-op on an already-started client");
+});
+
+test("stopped event fires on started→not-started transitions only", async () => {
+  const fakeClient = new FakeWebPubSubClient();
+  const client = createClient(fakeClient);
+
+  const stoppedEvents: unknown[] = [];
+  client.on("stopped", (e) => stoppedEvents.push(e));
+
+  // stop() before start() must not emit (no transition).
+  await client.stop();
+  assert.equal(stoppedEvents.length, 0, "stopped should not fire when stop() runs on a never-started client");
+
+  // start → stop fires exactly once.
+  await client.start();
+  await client.stop();
+  assert.equal(stoppedEvents.length, 1, "stopped should fire exactly once per explicit stop()");
+
+  // restart → network-driven stop also fires once.
+  await client.start();
+  fakeClient.stop();
+  // Allow the queued microtask that emits the underlying "stopped" to flush.
+  await new Promise((resolve) => setTimeout(resolve, 0));
+  assert.equal(stoppedEvents.length, 2, "stopped should fire when the transport terminates after a successful start");
+});

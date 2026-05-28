@@ -23,6 +23,8 @@ import type {
   OnMessageArgs,
   OnRoomJoinedArgs,
   OnRoomLeftArgs,
+  OnStartedArgs,
+  OnStoppedArgs,
 } from "./events.js";
 import type {
   ListRoomMessagesOptions,
@@ -83,36 +85,20 @@ class ChatClient {
   private _isConnectionStopping = false;
 
   /**
-   * Create a `ChatClient` from a client-access URL.
+   * Create a `ChatClient` that wraps an existing `WebPubSubClient`.
    *
-   * The client is constructed but not started; call `start()` (or use
-   * the static `ChatClient.start(...)` factory) to authenticate.
-   */
-  constructor(clientAccessUrl: string, options?: WebPubSubClientOptions);
-  /**
-   * Create a `ChatClient` from a `WebPubSubClientCredential`.
+   * `ChatClient` owns the transport's lifecycle: `start()` starts it
+   * and `stop()` stops it. The chat client is constructed but not
+   * started; call `start()` to authenticate, or use the static
+   * `ChatClient.start(...)` factory to construct-and-start in one step.
    *
-   * The client is constructed but not started; call `start()` (or use
-   * the static `ChatClient.start(...)` factory) to authenticate.
+   * To construct from a client-access URL or `WebPubSubClientCredential`,
+   * use the corresponding `ChatClient.start(...)` overload — it builds
+   * the underlying `WebPubSubClient` and starts the chat client
+   * atomically, so callers never observe a half-constructed instance.
    */
-  constructor(credential: WebPubSubClientCredential, options?: WebPubSubClientOptions);
-  /**
-   * Create a `ChatClient` that reuses an existing `WebPubSubClient`.
-   *
-   * Passing an existing client gives `ChatClient` lifecycle ownership:
-   * `start()` starts it and `stop()` stops it. The client is constructed
-   * but not started; call `start()` to authenticate.
-   */
-  constructor(wpsClient: WebPubSubClient);
-
-  constructor(arg1: string | WebPubSubClientCredential | WebPubSubClient, options?: WebPubSubClientOptions) {
-    if (isWebPubSubClient(arg1)) {
-      this.connection = arg1;
-    } else if (typeof arg1 === "string") {
-      this.connection = new WebPubSubClient(arg1, options);
-    } else {
-      this.connection = new WebPubSubClient(arg1, options);
-    }
+  constructor(wpsClient: WebPubSubClient) {
+    this.connection = wpsClient;
     this.connection.on("group-message", (e) => {
       this._handleNotification(e.message.data as Notification);
     });
@@ -278,10 +264,12 @@ class ChatClient {
       chatClient = new ChatClient(arg1);
       startOptions = arg2 as StartOptions | undefined;
     } else if (typeof arg1 === "string") {
-      chatClient = new ChatClient(arg1, arg2 as WebPubSubClientOptions | undefined);
+      const wpsClient = new WebPubSubClient(arg1, arg2 as WebPubSubClientOptions | undefined);
+      chatClient = new ChatClient(wpsClient);
       startOptions = arg3;
     } else {
-      chatClient = new ChatClient(arg1, arg2 as WebPubSubClientOptions | undefined);
+      const wpsClient = new WebPubSubClient(arg1, arg2 as WebPubSubClientOptions | undefined);
+      chatClient = new ChatClient(wpsClient);
       startOptions = arg3;
     }
     await chatClient.start({ abortSignal: startOptions?.abortSignal });
@@ -355,6 +343,8 @@ class ChatClient {
         this._rooms.set(roomId, roomInfo);
       });
       this._isStarted = true;
+      const startedEvent: OnStartedArgs = { userId: loginResponse.userId };
+      this._emitter.emit("started", startedEvent);
     } catch (err) {
       this.resetState();
       await this.stopConnection();
@@ -644,6 +634,8 @@ class ChatClient {
    * client.off("message", onMsg);
    * ```
    */
+  public on(event: "started",       listener: (e: OnStartedArgs)      => void): void;
+  public on(event: "stopped",       listener: (e: OnStoppedArgs)      => void): void;
   public on(event: "message",       listener: (e: OnMessageArgs)      => void): void;
   public on(event: "room-joined",   listener: (e: OnRoomJoinedArgs)   => void): void;
   public on(event: "room-left",     listener: (e: OnRoomLeftArgs)     => void): void;
@@ -654,6 +646,8 @@ class ChatClient {
   }
 
   /** Remove a listener previously registered with `on()`. */
+  public off(event: "started",       listener: (e: OnStartedArgs)      => void): void;
+  public off(event: "stopped",       listener: (e: OnStoppedArgs)      => void): void;
   public off(event: "message",       listener: (e: OnMessageArgs)      => void): void;
   public off(event: "room-joined",   listener: (e: OnRoomJoinedArgs)   => void): void;
   public off(event: "room-left",     listener: (e: OnRoomLeftArgs)     => void): void;
@@ -686,11 +680,22 @@ class ChatClient {
     await this.stopConnection();
   }
 
+  /**
+   * Reset chat-domain state. Emits `"stopped"` exactly once per
+   * started → not-started transition: if `_isStarted` was already
+   * false on entry (e.g. the pre-start guard inside `startCore()` or
+   * the post-failure rollback), no event fires.
+   */
   private resetState(): void {
+    const wasStarted = this._isStarted;
     this._isStarted = false;
     this._userId = undefined;
     this._rooms.clear();
     this._conversationIds.clear();
+    if (wasStarted) {
+      const stoppedEvent: OnStoppedArgs = {};
+      this._emitter.emit("stopped", stoppedEvent);
+    }
   }
 
   private async stopConnection(): Promise<void> {
