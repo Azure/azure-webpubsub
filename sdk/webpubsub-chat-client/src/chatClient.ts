@@ -364,11 +364,6 @@ class ChatClient {
     }
   }
 
-  /** Whether `start()` has completed successfully and `stop()` has not been called since. */
-  public get isStarted(): boolean {
-    return this._isStarted;
-  }
-
   private ensureStarted(): void {
     if (!this._isStarted) {
       throw new ChatError("Not started. Please call start() first.", ERRORS.NotStarted);

@@ -27,7 +27,6 @@ export class ChatClient {
     // (undocumented)
     getUserInfo(userId: string, options?: GetUserInfoOptions): Promise<UserProfile>;
     hasJoinedRoom(roomId: string): boolean;
-    get isStarted(): boolean;
     listRoomMessages(options: ListRoomMessagesOptions): PagedAsyncIterableIterator<MessageInfo>;
     off<K extends ChatEventName>(event: K, callback: ChatEventListener<K>): void;
     on<K extends ChatEventName>(event: K, callback: ChatEventListener<K>): void;

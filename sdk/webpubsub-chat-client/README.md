@@ -89,8 +89,7 @@ When constructed from an existing `WebPubSubClient`, `ChatClient` owns that clie
 
 | Property | Type | Description |
 |----------|------|-------------|
-| `userId` | `string` | Current user's ID (throws if not started) |
-| `isStarted` | `boolean` | `true` once `start()` has completed and `stop()` has not been called since |
+| `userId` | `string` | Current user's ID (throws if not started). Read-only — set internally on `start()`. |
 | `rooms` | `RoomInfo[]` | Snapshot of currently joined rooms (not live-updated) |
 | `connection` | `WebPubSubClient` | Underlying WebPubSub connection owned by this chat client |
 

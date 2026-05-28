@@ -6,6 +6,13 @@ import { ChatClient } from "../src/chatClient.js";
 import { INVOCATION_NAME } from "../src/constant.js";
 import type { RoomInfoWithMembers, UserProfile } from "../src/generatedTypes.js";
 
+/**
+ * `_isStarted` is private; accessor used by tests to assert the post-login
+ * state-machine flag without re-exposing it on the public surface.
+ */
+const isStarted = (client: ChatClient): boolean =>
+  (client as unknown as { _isStarted: boolean })._isStarted;
+
 class Deferred<T> {
   public promise: Promise<T>;
   public resolve!: (value: T | PromiseLike<T>) => void;
@@ -124,7 +131,7 @@ test("stop before start is a no-op", async () => {
 
   await client.stop();
 
-  assert.equal(client.isStarted, false);
+  assert.equal(isStarted(client), false);
   assert.equal(fakeClient.stopCalls, 0);
 });
 
@@ -148,13 +155,13 @@ test("concurrent start calls wait for room hydration", async () => {
   });
   await Promise.resolve();
 
-  assert.equal(client.isStarted, false, "client should not be marked started until room hydration completes");
+  assert.equal(isStarted(client), false, "client should not be marked started until room hydration completes");
   assert.equal(secondStartResolved, false, "second start should wait for the in-flight start promise");
 
   fakeClient.getRoomDelay.resolve();
   await Promise.all([firstStart, secondStart]);
 
-  assert.equal(client.isStarted, true);
+  assert.equal(isStarted(client), true);
   assert.deepEqual(client.rooms.map((roomInfo) => roomInfo.roomId), ["room1"]);
   assert.equal(fakeClient.startCalls, 1);
 });
@@ -167,7 +174,7 @@ test("failed start rolls back chat state and stops the connection", async () => 
 
   await assert.rejects(client.start(), /get room failed/);
 
-  assert.equal(client.isStarted, false);
+  assert.equal(isStarted(client), false);
   assert.throws(() => client.userId, /start\(\)/);
   assert.deepEqual(client.rooms, []);
   assert.equal(fakeClient.stopCalls, 1);
@@ -195,7 +202,7 @@ test("stop waits for stopped event before allowing restart", async () => {
   await Promise.all([stopPromise, restartPromise]);
 
   assert.equal(stopResolved, true);
-  assert.equal(client.isStarted, true);
+  assert.equal(isStarted(client), true);
   assert.equal(fakeClient.startCalls, 2);
   assert.equal(fakeClient.stopCalls, 1);
 });
@@ -225,7 +232,7 @@ test("concurrent stop calls wait for the same stopped event", async () => {
 
   assert.equal(firstStopResolved, true);
   assert.equal(secondStopResolved, true);
-  assert.equal(client.isStarted, false);
+  assert.equal(isStarted(client), false);
 });
 
 test("concurrent start calls during stop share a single restart", async () => {
@@ -246,7 +253,7 @@ test("concurrent start calls during stop share a single restart", async () => {
   fakeClient.stopDelay.resolve();
   await Promise.all([stopPromise, firstRestart, secondRestart]);
 
-  assert.equal(client.isStarted, true);
+  assert.equal(isStarted(client), true);
   assert.equal(fakeClient.startCalls, 2, "restart should call connection.start() exactly once");
   assert.equal(fakeClient.stopCalls, 1);
 });
