@@ -30,12 +30,12 @@ export class ChatClient {
     get isStarted(): boolean;
     listRoomMessages(options: ListRoomMessagesOptions): PagedAsyncIterableIterator<MessageInfo>;
     off<K extends ChatEventName>(event: K, callback: ChatEventListener<K>): void;
-    on<K extends ChatEventName>(event: K, callback: ChatEventListener<K>): Disposable_2;
-    onMemberJoined(callback: ChatEventListener<"memberJoined">): Disposable_2;
-    onMemberLeft(callback: ChatEventListener<"memberLeft">): Disposable_2;
-    onMessage(callback: ChatEventListener<"message">): Disposable_2;
-    onRoomJoined(callback: ChatEventListener<"roomJoined">): Disposable_2;
-    onRoomLeft(callback: ChatEventListener<"roomLeft">): Disposable_2;
+    on<K extends ChatEventName>(event: K, callback: ChatEventListener<K>): void;
+    onMemberJoined(callback: ChatEventListener<"memberJoined">): void;
+    onMemberLeft(callback: ChatEventListener<"memberLeft">): void;
+    onMessage(callback: ChatEventListener<"message">): void;
+    onRoomJoined(callback: ChatEventListener<"roomJoined">): void;
+    onRoomLeft(callback: ChatEventListener<"roomLeft">): void;
     removeUserFromRoom(roomId: string, userId: string, options?: RemoveUserFromRoomOptions): Promise<void>;
     get rooms(): RoomInfo[];
     // (undocumented)
@@ -68,7 +68,7 @@ export interface ChatEventMap {
     // (undocumented)
     memberLeft: MemberLeftEvent;
     // (undocumented)
-    message: MessageEvent_2;
+    message: ChatMessageEvent;
     // (undocumented)
     roomJoined: RoomJoinedEvent;
     // (undocumented)
@@ -83,13 +83,16 @@ export interface ChatMessage extends MessageInfo {
 }
 
 // @public
-export interface CreateRoomOptions extends OperationOptions {
+export interface ChatMessageEvent {
+    conversationId: string;
+    message: ChatMessage;
     roomId?: string;
 }
 
 // @public
-type Disposable_2 = () => void;
-export { Disposable_2 as Disposable }
+export interface CreateRoomOptions extends OperationOptions {
+    roomId?: string;
+}
 
 // @public
 export interface GetRoomOptions extends OperationOptions {
@@ -137,14 +140,6 @@ export interface MemberLeftEvent {
     // (undocumented)
     userId: string;
 }
-
-// @public
-interface MessageEvent_2 {
-    conversationId: string;
-    message: ChatMessage;
-    roomId?: string;
-}
-export { MessageEvent_2 as MessageEvent }
 
 // Warning: (ae-forgotten-export) The symbol "Schemas" needs to be exported by the entry point index.d.ts
 //

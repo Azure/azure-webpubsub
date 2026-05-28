@@ -20,10 +20,9 @@ import type {
   ChatEventListener,
   ChatEventName,
   ChatMessage,
-  Disposable,
+  ChatMessageEvent,
   MemberJoinedEvent,
   MemberLeftEvent,
-  MessageEvent,
   RoomJoinedEvent,
   RoomLeftEvent,
 } from "./events.js";
@@ -140,7 +139,7 @@ class ChatClient {
       switch (type) {
         case "MessageCreated": {
           const body = data.body as NewMessageNotificationBody;
-          const event: MessageEvent = {
+          const event: ChatMessageEvent = {
             conversationId: body.conversation.conversationId ?? "",
             roomId: body.conversation.roomId ?? undefined,
             message: body.message as ChatMessage,
@@ -367,7 +366,7 @@ class ChatClient {
       logger.warning(`Failed to find roomId for conversationId ${conversationId} when sending message.`);
     }
     // sender won't receive conversation message via notification mechanism, so emit event here
-    const event: MessageEvent = {
+    const event: ChatMessageEvent = {
       conversationId: conversationId,
       roomId: roomId,
       message: {
@@ -584,8 +583,12 @@ class ChatClient {
   }
 
   /**
-   * Subscribe to a chat client event. Returns a disposer that removes the
-   * listener when called.
+   * Subscribe to a chat client event.
+   *
+   * Matches the underlying `WebPubSubClient.on(event, listener)`
+   * shape: returns `void`, paired with `off(event, listener)` for
+   * removal. Pass the same callback reference to `off()` to
+   * unsubscribe.
    *
    * Connection-lifecycle events (`connected`, `disconnected`, `stopped`)
    * are not exposed here — subscribe via
@@ -593,14 +596,14 @@ class ChatClient {
    *
    * @example
    * ```ts
-   * const dispose = client.on("message", (e) => console.log(e.message.content.text));
+   * const onMsg = (e) => console.log(e.message.content.text);
+   * client.on("message", onMsg);
    * // later
-   * dispose();
+   * client.off("message", onMsg);
    * ```
    */
-  public on<K extends ChatEventName>(event: K, callback: ChatEventListener<K>): Disposable {
+  public on<K extends ChatEventName>(event: K, callback: ChatEventListener<K>): void {
     this._emitter.on(event, callback as any);
-    return () => this._emitter.off(event, callback as any);
   }
 
   /** Remove a listener previously registered with `on()`. */
@@ -609,28 +612,28 @@ class ChatClient {
   }
 
   /** Subscribe to new messages (including the sender-side event emitted by `sendToRoom` / `sendToConversation`). */
-  public onMessage(callback: ChatEventListener<"message">): Disposable {
-    return this.on("message", callback);
+  public onMessage(callback: ChatEventListener<"message">): void {
+    this.on("message", callback);
   }
 
   /** Subscribe to room-join events for this client (created or invited). */
-  public onRoomJoined(callback: ChatEventListener<"roomJoined">): Disposable {
-    return this.on("roomJoined", callback);
+  public onRoomJoined(callback: ChatEventListener<"roomJoined">): void {
+    this.on("roomJoined", callback);
   }
 
   /** Subscribe to events where this client leaves a room. */
-  public onRoomLeft(callback: ChatEventListener<"roomLeft">): Disposable {
-    return this.on("roomLeft", callback);
+  public onRoomLeft(callback: ChatEventListener<"roomLeft">): void {
+    this.on("roomLeft", callback);
   }
 
   /** Subscribe to events where another user joins a room this client is in. */
-  public onMemberJoined(callback: ChatEventListener<"memberJoined">): Disposable {
-    return this.on("memberJoined", callback);
+  public onMemberJoined(callback: ChatEventListener<"memberJoined">): void {
+    this.on("memberJoined", callback);
   }
 
   /** Subscribe to events where another user leaves a room this client is in. */
-  public onMemberLeft(callback: ChatEventListener<"memberLeft">): Disposable {
-    return this.on("memberLeft", callback);
+  public onMemberLeft(callback: ChatEventListener<"memberLeft">): void {
+    this.on("memberLeft", callback);
   }
 
   /**

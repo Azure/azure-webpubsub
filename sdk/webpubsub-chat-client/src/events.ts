@@ -8,7 +8,7 @@ import type { MessageInfo, RoomInfo } from "./generatedTypes.js";
 export interface ChatMessage extends MessageInfo {}
 
 /** Payload of the `"message"` event. */
-export interface MessageEvent {
+export interface ChatMessageEvent {
   /** Conversation the message belongs to. */
   conversationId: string;
   /** Room id when the conversation is room-scoped; otherwise undefined. */
@@ -55,7 +55,7 @@ export interface MemberLeftEvent {
  * type.
  */
 export interface ChatEventMap {
-  message: MessageEvent;
+  message: ChatMessageEvent;
   roomJoined: RoomJoinedEvent;
   roomLeft: RoomLeftEvent;
   memberJoined: MemberJoinedEvent;
@@ -64,6 +64,3 @@ export interface ChatEventMap {
 
 export type ChatEventName = keyof ChatEventMap;
 export type ChatEventListener<K extends ChatEventName> = (event: ChatEventMap[K]) => void;
-
-/** Returned from listener registrations. Call to remove the listener. */
-export type Disposable = () => void;

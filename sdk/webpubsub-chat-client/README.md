@@ -152,21 +152,23 @@ try {
 
 Chat events are subscribed via a single generic `on(event, callback)` API
 or typed convenience methods (`onMessage`, `onRoomJoined`, ...). All
-listener registrations return a `Disposable` (`() => void`) that removes
-the listener when called. Use `off(event, callback)` to unsubscribe a
-specific callback.
+registrations return `void` and are removed by passing the same callback
+reference to `off(event, callback)`. The shape matches the underlying
+`WebPubSubClient.on/off`, so the connection-lifecycle and chat-event
+APIs use the same idiom.
 
 ```ts
-const dispose = client.on('message', (event) => {
+const onMsg = (event) => {
   console.log(event.message.content.text);
-});
+};
+client.on('message', onMsg);
 // later
-dispose();
+client.off('message', onMsg);
 ```
 
 | Event name | Convenience method | Payload | Description |
 |------------|-------------------|---------|-------------|
-| `message` | `onMessage(cb)` | `MessageEvent` | New message received (or sent by this client). |
+| `message` | `onMessage(cb)` | `ChatMessageEvent` | New message received (or sent by this client). |
 | `roomJoined` | `onRoomJoined(cb)` | `RoomJoinedEvent` | This client joined a room. |
 | `roomLeft` | `onRoomLeft(cb)` | `RoomLeftEvent` | This client left a room. |
 | `memberJoined` | `onMemberJoined(cb)` | `MemberJoinedEvent` | Another user joined a room this client is in. |
