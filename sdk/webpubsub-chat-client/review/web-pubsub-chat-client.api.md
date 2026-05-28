@@ -40,11 +40,11 @@ export class ChatClient {
     get rooms(): RoomInfo[];
     // (undocumented)
     sendToRoom(roomId: string, message: string, options?: SendToRoomOptions): Promise<string>;
-    static start(clientAccessUrl: string, options?: WebPubSubClientOptions): Promise<ChatClient>;
+    static start(clientAccessUrl: string, webPubSubClientOptions?: WebPubSubClientOptions, options?: StartOptions): Promise<ChatClient>;
     // (undocumented)
-    static start(credential: WebPubSubClientCredential, options?: WebPubSubClientOptions): Promise<ChatClient>;
+    static start(credential: WebPubSubClientCredential, webPubSubClientOptions?: WebPubSubClientOptions, options?: StartOptions): Promise<ChatClient>;
     // (undocumented)
-    static start(wpsClient: WebPubSubClient): Promise<ChatClient>;
+    static start(wpsClient: WebPubSubClient, options?: StartOptions): Promise<ChatClient>;
     start(options?: StartOptions): Promise<void>;
     stop(_options?: StopOptions): Promise<void>;
     // (undocumented)

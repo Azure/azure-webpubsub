@@ -224,22 +224,64 @@ class ChatClient {
   /**
    * Create a chat client and `start()` it in one step.
    *
-   * Overloads accept the same arguments as the constructor. The
-   * returned promise resolves to a started client.
+   * Construction options for the underlying transport and the cancellation
+   * token for the start operation are kept as **separate parameters** so
+   * they never collide at the type level. `webPubSubClientOptions` is the
+   * full `WebPubSubClientOptions` bag (`protocol`, `autoReconnect`,
+   * `reconnectRetryOptions`, keep-alive intervals, ...). `options` is the
+   * same {@link StartOptions} the instance `start()` accepts.
+   *
+   * ```ts
+   * // Most callers only need the URL.
+   * const chat = await ChatClient.start(url);
+   *
+   * // Customise the transport, then start.
+   * const chat = await ChatClient.start(
+   *   url,
+   *   { autoReconnect: false, reconnectRetryOptions: { maxRetries: 5 } },
+   *   { abortSignal },
+   * );
+   *
+   * // Already have a WebPubSubClient? Hand it in directly.
+   * const chat = await ChatClient.start(wpsClient, { abortSignal });
+   * ```
+   *
+   * Why two parameters instead of an intersection? `WebPubSubClientOptions`
+   * ships from a separate package (`@azure/web-pubsub-client`) on its own
+   * release cadence, so intersecting it with our `StartOptions` would be
+   * fragile against upstream field additions (most obviously `abortSignal`).
+   * Keeping the two bags positional preserves the full set of
+   * construction knobs without exposing the intersection.
    */
-  public static async start(clientAccessUrl: string, options?: WebPubSubClientOptions): Promise<ChatClient>;
-  public static async start(credential: WebPubSubClientCredential, options?: WebPubSubClientOptions): Promise<ChatClient>;
-  public static async start(wpsClient: WebPubSubClient): Promise<ChatClient>;
-  public static async start(arg1: string | WebPubSubClientCredential | WebPubSubClient, options?: WebPubSubClientOptions): Promise<ChatClient> {
+  public static async start(
+    clientAccessUrl: string,
+    webPubSubClientOptions?: WebPubSubClientOptions,
+    options?: StartOptions,
+  ): Promise<ChatClient>;
+  public static async start(
+    credential: WebPubSubClientCredential,
+    webPubSubClientOptions?: WebPubSubClientOptions,
+    options?: StartOptions,
+  ): Promise<ChatClient>;
+  public static async start(wpsClient: WebPubSubClient, options?: StartOptions): Promise<ChatClient>;
+  public static async start(
+    arg1: string | WebPubSubClientCredential | WebPubSubClient,
+    arg2?: WebPubSubClientOptions | StartOptions,
+    arg3?: StartOptions,
+  ): Promise<ChatClient> {
     let chatClient: ChatClient;
-    if (typeof arg1 === "string") {
-      chatClient = new ChatClient(arg1, options);
-    } else if (isWebPubSubClient(arg1)) {
+    let startOptions: StartOptions | undefined;
+    if (isWebPubSubClient(arg1)) {
       chatClient = new ChatClient(arg1);
+      startOptions = arg2 as StartOptions | undefined;
+    } else if (typeof arg1 === "string") {
+      chatClient = new ChatClient(arg1, arg2 as WebPubSubClientOptions | undefined);
+      startOptions = arg3;
     } else {
-      chatClient = new ChatClient(arg1, options);
+      chatClient = new ChatClient(arg1, arg2 as WebPubSubClientOptions | undefined);
+      startOptions = arg3;
     }
-    await chatClient.start();
+    await chatClient.start({ abortSignal: startOptions?.abortSignal });
     return chatClient;
   }
 

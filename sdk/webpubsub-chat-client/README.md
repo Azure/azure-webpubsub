@@ -81,9 +81,9 @@ When constructed from an existing `WebPubSubClient`, `ChatClient` owns that clie
 
 | Method | Description |
 |--------|-------------|
-| `ChatClient.start(clientAccessUrl, options?)` | Create a client and start it in one step |
-| `ChatClient.start(credential, options?)` | Create a client from a credential and start it |
-| `ChatClient.start(wpsClient)` | Create a client from an existing `WebPubSubClient` and start it |
+| `ChatClient.start(clientAccessUrl, webPubSubClientOptions?, options?)` | Construct from a URL and start (`webPubSubClientOptions?: WebPubSubClientOptions`, `options?: StartOptions`) |
+| `ChatClient.start(credential, webPubSubClientOptions?, options?)` | Construct from a credential and start (same option shape as above) |
+| `ChatClient.start(wpsClient, options?)` | Start a pre-constructed `WebPubSubClient` (`options?: StartOptions`) |
 
 #### Properties
 
