@@ -139,9 +139,14 @@ class ChatClient {
       switch (type) {
         case "MessageCreated": {
           const body = data.body as NewMessageNotificationBody;
+          if (!body.conversation.roomId) {
+            logger.warning(
+              `MessageCreated notification missing roomId; skipping emit. conversationId=${body.conversation.conversationId}`,
+            );
+            break;
+          }
           const event: ChatMessageEvent = {
-            conversationId: body.conversation.conversationId ?? "",
-            roomId: body.conversation.roomId ?? undefined,
+            roomId: body.conversation.roomId,
             message: body.message as ChatMessage,
           };
           this._emitter.emit("message", event);
@@ -405,12 +410,14 @@ class ChatClient {
     const msgId = resp.id;
     const roomId = Array.from(this._rooms.values()).find((r) => r.defaultConversationId === conversationId)?.roomId;
     if (!roomId) {
-      logger.warning(`Failed to find roomId for conversationId ${conversationId} when sending message.`);
+      logger.warning(
+        `Failed to find roomId for conversationId ${conversationId} when sending message; skipping local sender-echo emit.`,
+      );
+      return msgId;
     }
     // sender won't receive conversation message via notification mechanism, so emit event here
     const event: ChatMessageEvent = {
-      conversationId: conversationId,
-      roomId: roomId,
+      roomId,
       message: {
         messageId: msgId,
         createdBy: this.userId,

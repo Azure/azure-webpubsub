@@ -84,9 +84,8 @@ export interface ChatMessage extends MessageInfo {
 
 // @public
 export interface ChatMessageEvent {
-    conversationId: string;
     message: ChatMessage;
-    roomId?: string;
+    roomId: string;
 }
 
 // @public

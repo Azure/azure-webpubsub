@@ -9,10 +9,8 @@ export interface ChatMessage extends MessageInfo {}
 
 /** Payload of the `"message"` event. */
 export interface ChatMessageEvent {
-  /** Conversation the message belongs to. */
-  conversationId: string;
-  /** Room id when the conversation is room-scoped; otherwise undefined. */
-  roomId?: string;
+  /** Room the message belongs to. */
+  roomId: string;
   /** The message. */
   message: ChatMessage;
 }
