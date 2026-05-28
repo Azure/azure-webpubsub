@@ -10,14 +10,11 @@ export type {
 
 export type {
   ChatMessage,
-  ChatEventMap,
-  ChatEventName,
-  ChatEventListener,
-  ChatMessageEvent,
-  RoomJoinedEvent,
-  RoomLeftEvent,
-  MemberJoinedEvent,
-  MemberLeftEvent,
+  OnMessageArgs,
+  OnRoomJoinedArgs,
+  OnRoomLeftArgs,
+  OnMemberJoinedArgs,
+  OnMemberLeftArgs,
 } from './events.js';
 
 export type {

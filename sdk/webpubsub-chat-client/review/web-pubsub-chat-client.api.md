@@ -28,13 +28,24 @@ export class ChatClient {
     getUserInfo(userId: string, options?: GetUserInfoOptions): Promise<UserProfile>;
     hasJoinedRoom(roomId: string): boolean;
     listRoomMessages(options: ListRoomMessagesOptions): PagedAsyncIterableIterator<MessageInfo>;
-    off<K extends ChatEventName>(event: K, callback: ChatEventListener<K>): void;
-    on<K extends ChatEventName>(event: K, callback: ChatEventListener<K>): void;
-    onMemberJoined(callback: ChatEventListener<"memberJoined">): void;
-    onMemberLeft(callback: ChatEventListener<"memberLeft">): void;
-    onMessage(callback: ChatEventListener<"message">): void;
-    onRoomJoined(callback: ChatEventListener<"roomJoined">): void;
-    onRoomLeft(callback: ChatEventListener<"roomLeft">): void;
+    off(event: "message", listener: (e: OnMessageArgs) => void): void;
+    // (undocumented)
+    off(event: "room-joined", listener: (e: OnRoomJoinedArgs) => void): void;
+    // (undocumented)
+    off(event: "room-left", listener: (e: OnRoomLeftArgs) => void): void;
+    // (undocumented)
+    off(event: "member-joined", listener: (e: OnMemberJoinedArgs) => void): void;
+    // (undocumented)
+    off(event: "member-left", listener: (e: OnMemberLeftArgs) => void): void;
+    on(event: "message", listener: (e: OnMessageArgs) => void): void;
+    // (undocumented)
+    on(event: "room-joined", listener: (e: OnRoomJoinedArgs) => void): void;
+    // (undocumented)
+    on(event: "room-left", listener: (e: OnRoomLeftArgs) => void): void;
+    // (undocumented)
+    on(event: "member-joined", listener: (e: OnMemberJoinedArgs) => void): void;
+    // (undocumented)
+    on(event: "member-left", listener: (e: OnMemberLeftArgs) => void): void;
     removeUserFromRoom(roomId: string, userId: string, options?: RemoveUserFromRoomOptions): Promise<void>;
     get rooms(): RoomInfo[];
     // (undocumented)
@@ -57,34 +68,8 @@ export class ChatError extends Error {
     readonly code: string;
 }
 
-// @public (undocumented)
-export type ChatEventListener<K extends ChatEventName> = (event: ChatEventMap[K]) => void;
-
-// @public
-export interface ChatEventMap {
-    // (undocumented)
-    memberJoined: MemberJoinedEvent;
-    // (undocumented)
-    memberLeft: MemberLeftEvent;
-    // (undocumented)
-    message: ChatMessageEvent;
-    // (undocumented)
-    roomJoined: RoomJoinedEvent;
-    // (undocumented)
-    roomLeft: RoomLeftEvent;
-}
-
-// @public (undocumented)
-export type ChatEventName = keyof ChatEventMap;
-
 // @public
 export interface ChatMessage extends MessageInfo {
-}
-
-// @public
-export interface ChatMessageEvent {
-    message: ChatMessage;
-    roomId: string;
 }
 
 // @public
@@ -119,30 +104,50 @@ export interface ListRoomMessagesOptions extends OperationOptions {
     startId?: string;
 }
 
-// @public
-export interface MemberJoinedEvent {
-    // (undocumented)
-    roomId: string;
-    // (undocumented)
-    title: string;
-    // (undocumented)
-    userId: string;
-}
-
-// @public
-export interface MemberLeftEvent {
-    // (undocumented)
-    roomId: string;
-    // (undocumented)
-    title: string;
-    // (undocumented)
-    userId: string;
-}
-
 // Warning: (ae-forgotten-export) The symbol "Schemas" needs to be exported by the entry point index.d.ts
 //
 // @public (undocumented)
 export type MessageInfo = Schemas["MessageInfo"];
+
+// @public
+export interface OnMemberJoinedArgs {
+    // (undocumented)
+    roomId: string;
+    // (undocumented)
+    title: string;
+    // (undocumented)
+    userId: string;
+}
+
+// @public
+export interface OnMemberLeftArgs {
+    // (undocumented)
+    roomId: string;
+    // (undocumented)
+    title: string;
+    // (undocumented)
+    userId: string;
+}
+
+// @public
+export interface OnMessageArgs {
+    message: ChatMessage;
+    roomId: string;
+}
+
+// @public
+export interface OnRoomJoinedArgs {
+    // (undocumented)
+    room: RoomInfo;
+}
+
+// @public
+export interface OnRoomLeftArgs {
+    // (undocumented)
+    roomId: string;
+    // (undocumented)
+    title: string;
+}
 
 // @public
 export interface OperationOptions {
@@ -158,20 +163,6 @@ export type RoomInfo = Schemas["RoomInfo"];
 
 // @public (undocumented)
 export type RoomInfoWithMembers = Schemas["RoomInfoWithMembers"];
-
-// @public
-export interface RoomJoinedEvent {
-    // (undocumented)
-    room: RoomInfo;
-}
-
-// @public
-export interface RoomLeftEvent {
-    // (undocumented)
-    roomId: string;
-    // (undocumented)
-    title: string;
-}
 
 // @public
 export interface SendToRoomOptions extends OperationOptions {

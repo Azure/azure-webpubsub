@@ -30,12 +30,12 @@ const client = await ChatClient.start(wpsClient);
 console.log(`Started as: ${client.userId}`);
 
 // Listen for events
-client.onMessage((event) => {
+client.on('message', (event) => {
   const msg = event.message;
   console.log(`${msg.createdBy}: ${msg.content.text}`);
 });
 
-client.onRoomJoined((event) => {
+client.on('room-joined', (event) => {
   console.log(`Joined room: ${event.room.title}`);
 });
 
@@ -149,12 +149,10 @@ try {
 
 #### Event Listeners
 
-Chat events are subscribed via a single generic `on(event, callback)` API
-or typed convenience methods (`onMessage`, `onRoomJoined`, ...). All
-registrations return `void` and are removed by passing the same callback
-reference to `off(event, callback)`. The shape matches the underlying
-`WebPubSubClient.on/off`, so the connection-lifecycle and chat-event
-APIs use the same idiom.
+Chat events use the same shape as the underlying `WebPubSubClient`:
+one `on(event, listener)` overload per event, returning `void`, paired
+with `off(event, listener)` for removal. Pass the same callback
+reference to `off()` to unregister.
 
 ```ts
 const onMsg = (event) => {
@@ -165,13 +163,13 @@ client.on('message', onMsg);
 client.off('message', onMsg);
 ```
 
-| Event name | Convenience method | Payload | Description |
-|------------|-------------------|---------|-------------|
-| `message` | `onMessage(cb)` | `ChatMessageEvent` | New message received (or sent by this client). |
-| `roomJoined` | `onRoomJoined(cb)` | `RoomJoinedEvent` | This client joined a room. |
-| `roomLeft` | `onRoomLeft(cb)` | `RoomLeftEvent` | This client left a room. |
-| `memberJoined` | `onMemberJoined(cb)` | `MemberJoinedEvent` | Another user joined a room this client is in. |
-| `memberLeft` | `onMemberLeft(cb)` | `MemberLeftEvent` | Another user left a room this client is in. |
+| Event name | Listener argument | Description |
+|------------|-------------------|-------------|
+| `message` | `OnMessageArgs` | New message received (or sent by this client). |
+| `room-joined` | `OnRoomJoinedArgs` | This client joined a room. |
+| `room-left` | `OnRoomLeftArgs` | This client left a room. |
+| `member-joined` | `OnMemberJoinedArgs` | Another user joined a room this client is in. |
+| `member-left` | `OnMemberLeftArgs` | Another user left a room this client is in. |
 
 Connection-lifecycle events (`connected`, `disconnected`, `stopped`) live
 on the underlying `WebPubSubClient`. Subscribe through `client.connection`:

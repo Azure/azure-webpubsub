@@ -17,14 +17,12 @@ import {
   RoomLeftNotificationBody,
 } from "./generatedTypes.js";
 import type {
-  ChatEventListener,
-  ChatEventName,
   ChatMessage,
-  ChatMessageEvent,
-  MemberJoinedEvent,
-  MemberLeftEvent,
-  RoomJoinedEvent,
-  RoomLeftEvent,
+  OnMemberJoinedArgs,
+  OnMemberLeftArgs,
+  OnMessageArgs,
+  OnRoomJoinedArgs,
+  OnRoomLeftArgs,
 } from "./events.js";
 import type {
   ListRoomMessagesOptions,
@@ -145,7 +143,7 @@ class ChatClient {
             );
             break;
           }
-          const event: ChatMessageEvent = {
+          const event: OnMessageArgs = {
             roomId: body.conversation.roomId,
             message: body.message as ChatMessage,
           };
@@ -156,21 +154,21 @@ class ChatClient {
           const roomInfo = data.body as NewRoomNotificationBody as RoomInfo;
           // Add to _rooms first so listeners can use listRoomMessages
           this._rooms.set(roomInfo.roomId, roomInfo);
-          const event: RoomJoinedEvent = { room: roomInfo };
-          this._emitter.emit("roomJoined", event);
+          const event: OnRoomJoinedArgs = { room: roomInfo };
+          this._emitter.emit("room-joined", event);
           break;
         }
         case "RoomMemberJoined": {
           const body = data.body as MemberJoinedNotificationBody;
-          const event: MemberJoinedEvent = { roomId: body.roomId, title: body.title, userId: body.userId };
-          this._emitter.emit("memberJoined", event);
+          const event: OnMemberJoinedArgs = { roomId: body.roomId, title: body.title, userId: body.userId };
+          this._emitter.emit("member-joined", event);
           break;
         }
         // someone (not self) left a specific room
         case "RoomMemberLeft": {
           const body = data.body as MemberLeftNotificationBody;
-          const event: MemberLeftEvent = { roomId: body.roomId, title: body.title, userId: body.userId };
-          this._emitter.emit("memberLeft", event);
+          const event: OnMemberLeftArgs = { roomId: body.roomId, title: body.title, userId: body.userId };
+          this._emitter.emit("member-left", event);
           break;
         }
         // self left a specific room
@@ -179,8 +177,8 @@ class ChatClient {
           if (!this._rooms.has(body.roomId)) {
             break;
           }
-          const event: RoomLeftEvent = { roomId: body.roomId, title: body.title };
-          this._emitter.emit("roomLeft", event);
+          const event: OnRoomLeftArgs = { roomId: body.roomId, title: body.title };
+          this._emitter.emit("room-left", event);
           this._rooms.delete(body.roomId);
           break;
         }
@@ -411,7 +409,7 @@ class ChatClient {
       return msgId;
     }
     // sender won't receive conversation message via notification mechanism, so emit event here
-    const event: ChatMessageEvent = {
+    const event: OnMessageArgs = {
       roomId,
       message: {
         messageId: msgId,
@@ -484,8 +482,8 @@ class ChatClient {
       options,
     );
     this._rooms.set(roomInfo.roomId, roomInfo);
-    const event: RoomJoinedEvent = { room: roomInfo };
-    this._emitter.emit("roomJoined", event);
+    const event: OnRoomJoinedArgs = { room: roomInfo };
+    this._emitter.emit("room-joined", event);
     return roomInfo;
   }
 
@@ -535,8 +533,8 @@ class ChatClient {
       const roomInfo = this._rooms.get(roomId);
       if (roomInfo) {
         this._rooms.delete(roomId);
-        const event: RoomLeftEvent = { roomId, title: roomInfo.title };
-        this._emitter.emit("roomLeft", event);
+        const event: OnRoomLeftArgs = { roomId, title: roomInfo.title };
+        this._emitter.emit("room-left", event);
       }
     }
   }
@@ -627,12 +625,12 @@ class ChatClient {
   }
 
   /**
-   * Subscribe to a chat client event.
+   * Subscribe to a chat-client event.
    *
-   * Matches the underlying `WebPubSubClient.on(event, listener)`
-   * shape: returns `void`, paired with `off(event, listener)` for
-   * removal. Pass the same callback reference to `off()` to
-   * unsubscribe.
+   * Mirrors the underlying `WebPubSubClient.on(event, listener)` shape:
+   * one explicit overload per event, returns `void`, paired with
+   * `off(event, listener)` for removal. Pass the same callback
+   * reference to `off()` to unsubscribe.
    *
    * Connection-lifecycle events (`connected`, `disconnected`, `stopped`)
    * are not exposed here — subscribe via
@@ -640,44 +638,29 @@ class ChatClient {
    *
    * @example
    * ```ts
-   * const onMsg = (e) => console.log(e.message.content.text);
+   * const onMsg = (e: OnMessageArgs) => console.log(e.message.content.text);
    * client.on("message", onMsg);
    * // later
    * client.off("message", onMsg);
    * ```
    */
-  public on<K extends ChatEventName>(event: K, callback: ChatEventListener<K>): void {
-    this._emitter.on(event, callback as any);
+  public on(event: "message",       listener: (e: OnMessageArgs)      => void): void;
+  public on(event: "room-joined",   listener: (e: OnRoomJoinedArgs)   => void): void;
+  public on(event: "room-left",     listener: (e: OnRoomLeftArgs)     => void): void;
+  public on(event: "member-joined", listener: (e: OnMemberJoinedArgs) => void): void;
+  public on(event: "member-left",   listener: (e: OnMemberLeftArgs)   => void): void;
+  public on(event: string, listener: (e: any) => void): void {
+    this._emitter.on(event, listener);
   }
 
   /** Remove a listener previously registered with `on()`. */
-  public off<K extends ChatEventName>(event: K, callback: ChatEventListener<K>): void {
-    this._emitter.off(event, callback as any);
-  }
-
-  /** Subscribe to new messages (including the sender-side event emitted by `sendToRoom` / `sendToConversation`). */
-  public onMessage(callback: ChatEventListener<"message">): void {
-    this.on("message", callback);
-  }
-
-  /** Subscribe to room-join events for this client (created or invited). */
-  public onRoomJoined(callback: ChatEventListener<"roomJoined">): void {
-    this.on("roomJoined", callback);
-  }
-
-  /** Subscribe to events where this client leaves a room. */
-  public onRoomLeft(callback: ChatEventListener<"roomLeft">): void {
-    this.on("roomLeft", callback);
-  }
-
-  /** Subscribe to events where another user joins a room this client is in. */
-  public onMemberJoined(callback: ChatEventListener<"memberJoined">): void {
-    this.on("memberJoined", callback);
-  }
-
-  /** Subscribe to events where another user leaves a room this client is in. */
-  public onMemberLeft(callback: ChatEventListener<"memberLeft">): void {
-    this.on("memberLeft", callback);
+  public off(event: "message",       listener: (e: OnMessageArgs)      => void): void;
+  public off(event: "room-joined",   listener: (e: OnRoomJoinedArgs)   => void): void;
+  public off(event: "room-left",     listener: (e: OnRoomLeftArgs)     => void): void;
+  public off(event: "member-joined", listener: (e: OnMemberJoinedArgs) => void): void;
+  public off(event: "member-left",   listener: (e: OnMemberLeftArgs)   => void): void;
+  public off(event: string, listener: (e: any) => void): void {
+    this._emitter.off(event, listener);
   }
 
   /**
