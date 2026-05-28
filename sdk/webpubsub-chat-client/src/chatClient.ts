@@ -34,9 +34,10 @@ import type {
   StopOptions,
   GetRoomOptions,
   CreateRoomOptions,
-  SendMessageOptions,
+  SendToRoomOptions,
   GetUserInfoOptions,
-  RoomMemberOperationOptions,
+  AddUserToRoomOptions,
+  RemoveUserFromRoomOptions,
 } from "./options.js";
 
 import { ERRORS, INVOCATION_NAME } from "./constant.js";
@@ -341,7 +342,7 @@ class ChatClient {
   private async sendToConversation(
     conversationId: string,
     message: string,
-    options?: SendMessageOptions,
+    options?: OperationOptions,
   ): Promise<string> {
     this.ensureStarted();
     const payload = {
@@ -383,7 +384,7 @@ class ChatClient {
     return msgId;
   }
 
-  public async sendToRoom(roomId: string, message: string, options?: SendMessageOptions): Promise<string> {
+  public async sendToRoom(roomId: string, message: string, options?: SendToRoomOptions): Promise<string> {
     this.ensureStarted();
     const conversationId = this._rooms.get(roomId)?.defaultConversationId;
     if (!conversationId) {
@@ -392,21 +393,37 @@ class ChatClient {
     return await this.sendToConversation(conversationId, message, options);
   }
 
-  public async getRoom(roomId: string, withMembers: boolean, options?: GetRoomOptions): Promise<RoomInfoWithMembers> {
+  /**
+   * Fetch the latest service-side view of a room.
+   *
+   * @param roomId - Room to query.
+   * @param options - Optional `{ withMembers, abortSignal }`. When
+   *   `withMembers` is `true` the returned `members` array is
+   *   populated; defaults to `false` to save a round-trip.
+   */
+  public async getRoom(roomId: string, options?: GetRoomOptions): Promise<RoomInfoWithMembers> {
     this.ensureStarted();
     return this.invokeWithReturnType<RoomInfoWithMembers>(
       INVOCATION_NAME.GET_ROOM,
-      { id: roomId, withMembers: withMembers },
+      { id: roomId, withMembers: options?.withMembers ?? false },
       "json",
       options,
     );
   }
 
-  /** Create a room and its initial members. If `roomId` is not set, the service will create a random one. */
+  /**
+   * Create a room and its initial members. The current user is always
+   * included in the resulting member list.
+   *
+   * @param title - Display title for the room.
+   * @param members - Other user ids to invite. The caller is added
+   *   automatically; duplicates are de-duplicated.
+   * @param options - Optional `{ roomId, abortSignal }`. Pass `roomId`
+   *   to choose an id explicitly; omit to let the service assign one.
+   */
   public async createRoom(
     title: string,
     members: string[],
-    roomId?: string,
     options?: CreateRoomOptions,
   ): Promise<RoomInfoWithMembers> {
     this.ensureStarted();
@@ -414,8 +431,8 @@ class ChatClient {
       title: title,
       members: [...new Set([...members, this.userId])], // deduplicate and add self
     } as any;
-    if (roomId) {
-      roomDetails = { ...roomDetails, roomId: roomId };
+    if (options?.roomId) {
+      roomDetails = { ...roomDetails, roomId: options.roomId };
     }
     const roomInfo = await this.invokeWithReturnType<RoomInfoWithMembers>(
       INVOCATION_NAME.CREATE_ROOM,
@@ -431,7 +448,7 @@ class ChatClient {
 
   private async manageRoomMember(
     request: ManageRoomMemberRequest,
-    options?: RoomMemberOperationOptions,
+    options?: OperationOptions,
   ): Promise<void> {
     await this.invokeWithReturnType<any>(INVOCATION_NAME.MANAGE_ROOM_MEMBER, request, "json", options);
   }
@@ -440,12 +457,12 @@ class ChatClient {
     if (this._rooms.has(roomId)) {
       return;
     }
-    const roomInfo = await this.getRoom(roomId, false, options);
+    const roomInfo = await this.getRoom(roomId, options);
     this._rooms.set(roomId, roomInfo);
   }
 
   /** Add a user to a room. This is an admin operation where one user adds another user to a room. */
-  public async addUserToRoom(roomId: string, userId: string, options?: RoomMemberOperationOptions): Promise<void> {
+  public async addUserToRoom(roomId: string, userId: string, options?: AddUserToRoomOptions): Promise<void> {
     this.ensureStarted();
     const payload: ManageRoomMemberRequest = { roomId: roomId, operation: "Add", userId: userId };
     const isSelf = userId === this.userId;
@@ -465,7 +482,7 @@ class ChatClient {
   }
 
   /** Remove a user from a room. This is an admin operation where one user removes another user from a room. */
-  public async removeUserFromRoom(roomId: string, userId: string, options?: RoomMemberOperationOptions): Promise<void> {
+  public async removeUserFromRoom(roomId: string, userId: string, options?: RemoveUserFromRoomOptions): Promise<void> {
     this.ensureStarted();
     const payload: ManageRoomMemberRequest = { roomId: roomId, operation: "Delete", userId: userId };
     await this.manageRoomMember(payload, options);
@@ -515,7 +532,7 @@ class ChatClient {
       throw new ChatError(`Failed to listRoomMessages, not found roomId ${options.roomId}`, ERRORS.UnknownRoom);
     }
 
-    const defaultPageSize = options.pageSize ?? 100;
+    const defaultPageSize = options.maxPageSize ?? 100;
     const firstPageLink: MessageRangeQuery = {
       conversation: { conversationId },
       start: options.startId ?? null,

@@ -10,17 +10,20 @@ import { WebPubSubClient } from '@azure/web-pubsub-client';
 import { WebPubSubClientCredential } from '@azure/web-pubsub-client';
 import { WebPubSubClientOptions } from '@azure/web-pubsub-client';
 
+// @public
+export interface AddUserToRoomOptions extends OperationOptions {
+}
+
 // @public (undocumented)
 export class ChatClient {
     constructor(clientAccessUrl: string, options?: WebPubSubClientOptions);
     constructor(credential: WebPubSubClientCredential, options?: WebPubSubClientOptions);
     constructor(wpsClient: WebPubSubClient);
-    addUserToRoom(roomId: string, userId: string, options?: RoomMemberOperationOptions): Promise<void>;
+    addUserToRoom(roomId: string, userId: string, options?: AddUserToRoomOptions): Promise<void>;
     // (undocumented)
     readonly connection: WebPubSubClient;
-    createRoom(title: string, members: string[], roomId?: string, options?: CreateRoomOptions): Promise<RoomInfoWithMembers>;
-    // (undocumented)
-    getRoom(roomId: string, withMembers: boolean, options?: GetRoomOptions): Promise<RoomInfoWithMembers>;
+    createRoom(title: string, members: string[], options?: CreateRoomOptions): Promise<RoomInfoWithMembers>;
+    getRoom(roomId: string, options?: GetRoomOptions): Promise<RoomInfoWithMembers>;
     // (undocumented)
     getUserInfo(userId: string, options?: GetUserInfoOptions): Promise<UserProfile>;
     hasJoinedRoom(roomId: string): boolean;
@@ -33,10 +36,10 @@ export class ChatClient {
     onMessage(callback: ChatEventListener<"message">): Disposable_2;
     onRoomJoined(callback: ChatEventListener<"roomJoined">): Disposable_2;
     onRoomLeft(callback: ChatEventListener<"roomLeft">): Disposable_2;
-    removeUserFromRoom(roomId: string, userId: string, options?: RoomMemberOperationOptions): Promise<void>;
+    removeUserFromRoom(roomId: string, userId: string, options?: RemoveUserFromRoomOptions): Promise<void>;
     get rooms(): RoomInfo[];
     // (undocumented)
-    sendToRoom(roomId: string, message: string, options?: SendMessageOptions): Promise<string>;
+    sendToRoom(roomId: string, message: string, options?: SendToRoomOptions): Promise<string>;
     static start(clientAccessUrl: string, options?: WebPubSubClientOptions): Promise<ChatClient>;
     // (undocumented)
     static start(credential: WebPubSubClientCredential, options?: WebPubSubClientOptions): Promise<ChatClient>;
@@ -81,6 +84,7 @@ export interface ChatMessage extends MessageInfo {
 
 // @public
 export interface CreateRoomOptions extends OperationOptions {
+    roomId?: string;
 }
 
 // @public
@@ -89,6 +93,7 @@ export { Disposable_2 as Disposable }
 
 // @public
 export interface GetRoomOptions extends OperationOptions {
+    withMembers?: boolean;
 }
 
 // @public
@@ -108,7 +113,7 @@ export const KnownChatErrorCode: {
 // @public
 export interface ListRoomMessagesOptions extends OperationOptions {
     endId?: string;
-    pageSize?: number;
+    maxPageSize?: number;
     roomId: string;
     startId?: string;
 }
@@ -151,6 +156,10 @@ export interface OperationOptions {
     abortSignal?: AbortSignalLike;
 }
 
+// @public
+export interface RemoveUserFromRoomOptions extends OperationOptions {
+}
+
 // @public (undocumented)
 export type RoomInfo = Schemas["RoomInfo"];
 
@@ -172,11 +181,7 @@ export interface RoomLeftEvent {
 }
 
 // @public
-export interface RoomMemberOperationOptions extends OperationOptions {
-}
-
-// @public
-export interface SendMessageOptions extends OperationOptions {
+export interface SendToRoomOptions extends OperationOptions {
 }
 
 // @public

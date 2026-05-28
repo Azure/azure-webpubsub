@@ -27,9 +27,10 @@ export type {
   StopOptions,
   GetRoomOptions,
   CreateRoomOptions,
-  SendMessageOptions,
+  SendToRoomOptions,
   GetUserInfoOptions,
-  RoomMemberOperationOptions,
+  AddUserToRoomOptions,
+  RemoveUserFromRoomOptions,
   ListRoomMessagesOptions,
 } from './options.js';
 

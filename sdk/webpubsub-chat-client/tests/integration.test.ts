@@ -38,7 +38,7 @@ test("same user id start twice", { timeout: LONG_TEST_TIMEOUT }, async (t) => {
     assert.equal(chat1.userId, chat1UserId, `chat1 userId should be '${chat1UserId}'`);
 
     const roomName = `room-${Math.floor(Math.random() * 10000)}`;
-    const createdRoom = await chat0.createRoom(roomName, [chat1.userId], `uid_${roomName}`);
+    const createdRoom = await chat0.createRoom(roomName, [chat1.userId], { roomId: `uid_${roomName}` });
     await chat0.sendToRoom(createdRoom.roomId, `Hello from chat0`);
     // sleep 100ms
     await new Promise((resolve) => setTimeout(resolve, 100));
@@ -75,7 +75,7 @@ test("same user on two clients still receives remote room messages", { timeout: 
     admin = await createTestClient();
 
     const roomId = `room-shared-${randomUUID().substring(0, 6)}`;
-    const createdRoom = await admin.createRoom("ut-shared-room", [sharedUserId], roomId);
+    const createdRoom = await admin.createRoom("ut-shared-room", [sharedUserId], { roomId });
 
     sender = await createTestClient(sharedUserId);
     watcher = await createTestClient(sharedUserId);
@@ -132,14 +132,14 @@ test("single client", { timeout: SHORT_TEST_TIMEOUT }, async (t) => {
     assert.ok(chat1.userId && typeof chat1.userId === "string");
 
     const roomId = `room-id-${randomUUID().substring(0, 3)}`;
-    const created = await chat1.createRoom("ut-single-room", [], roomId);
+    const created = await chat1.createRoom("ut-single-room", [], { roomId });
     assert.equal(created.roomId, roomId, "roomId should match");
     assert.equal(created.title, "ut-single-room", "room title should match");
     assert.ok(Array.isArray(created.members), "members should be an array");
     assert.deepEqual(created.members, [chat1.userId], "members should contain only the creator");
     assert.ok(created.members.includes(chat1.userId), "members should include the creator");
 
-    const fetched = await chat1.getRoom(created.roomId, true);
+    const fetched = await chat1.getRoom(created.roomId, { withMembers: true });
     assert.equal(fetched.roomId, created.roomId, "fetched roomId should match created");
     assert.equal(fetched.title, created.title, "fetched title should match created");
     assert.ok(Array.isArray(fetched.members), "fetched members should be an array");
@@ -176,7 +176,7 @@ test("create room with multiple users", { timeout: LONG_TEST_TIMEOUT }, async (t
     }
 
     const listedMsgs: MessageInfo[] = [];
-    for await (const message of chats[0].listRoomMessages({ roomId: createdRoom.roomId, startId: "0", pageSize: 100 })) {
+    for await (const message of chats[0].listRoomMessages({ roomId: createdRoom.roomId, startId: "0", maxPageSize: 100 })) {
       listedMsgs.push(message);
     }
     let listedMsgCount = 0;
@@ -282,7 +282,7 @@ test("self remove updates local room cache immediately", { timeout: LONG_TEST_TI
     chat1 = await createTestClient();
 
     const roomId = `room-leave-${randomUUID().substring(0, 6)}`;
-    const created = await chat1.createRoom("ut-self-leave", [], roomId);
+    const created = await chat1.createRoom("ut-self-leave", [], { roomId });
     assert.equal(chat1.hasJoinedRoom(created.roomId), true, "room should be cached after creation");
 
     await chat1.removeUserFromRoom(created.roomId, chat1.userId);
@@ -302,7 +302,7 @@ test("self add restores local room cache without RoomJoined event", { timeout: L
     chat1 = await createTestClient();
 
     const roomId = `room-self-add-${randomUUID().substring(0, 6)}`;
-    const created = await chat1.createRoom("ut-self-add", [], roomId);
+    const created = await chat1.createRoom("ut-self-add", [], { roomId });
     assert.equal(chat1.hasJoinedRoom(created.roomId), true, "room should be cached after creation");
 
     let roomJoinedEvents = 0;
@@ -336,7 +336,7 @@ test("adding non-self user already in room throws ChatError with UserAlreadyInRo
     user1 = await createTestClient();
 
     const roomId = `room-dup-add-${randomUUID().substring(0, 6)}`;
-    await admin.createRoom("ut-dup-add", [user1.userId], roomId);
+    await admin.createRoom("ut-dup-add", [user1.userId], { roomId });
 
     // Second add of the same non-self user must throw a ChatError wrapping the server's UserAlreadyInRoom code.
     let thrown: unknown;
@@ -364,7 +364,7 @@ test("removing non-member user throws ChatError with UserNotInRoom code", { time
     stranger = await createTestClient();
 
     const roomId = `room-rm-nonmember-${randomUUID().substring(0, 6)}`;
-    await admin.createRoom("ut-rm-nonmember", [], roomId);
+    await admin.createRoom("ut-rm-nonmember", [], { roomId });
 
     let thrown: unknown;
     try {

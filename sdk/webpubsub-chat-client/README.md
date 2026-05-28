@@ -100,12 +100,12 @@ When constructed from an existing `WebPubSubClient`, `ChatClient` owns that clie
 |--------|-------------|
 | `start(options?)` | Connect and authenticate. Idempotent; concurrent calls share one in-flight promise. After `stop()` the client can be started again. Accepts `{ abortSignal }`. |
 | `stop()` | Disconnect and reset client state. Returns `Promise<void>`. |
-| `createRoom(title, members, roomId?, options?)` | Create a new room with initial members. The current user is automatically added to the members list. |
-| `getRoom(roomId, withMembers, options?)` | Get room info |
+| `createRoom(title, members, options?)` | Create a new room with initial members. The current user is automatically added to the members list. Options: `{ roomId?, abortSignal? }` — supply `roomId` to choose an explicit id, otherwise the service assigns one. |
+| `getRoom(roomId, options?)` | Get room info. Options: `{ withMembers?, abortSignal? }` — set `withMembers: true` to populate the members list (extra round-trip). |
 | `addUserToRoom(roomId, userId, options?)` | Add user to room (admin operation) |
 | `removeUserFromRoom(roomId, userId, options?)` | Remove user from room (admin operation) |
 | `sendToRoom(roomId, message, options?)` | Send text message to room, returns message ID |
-| `listRoomMessages(options)` | Paged async iterator over room message history (auto-paginates). Use `for await` to stream every message, or `.byPage({ maxPageSize })` to load up to `maxPageSize` messages at a time. `options = { roomId, startId?, endId?, pageSize?, abortSignal? }` |
+| `listRoomMessages(options)` | Paged async iterator over room message history (auto-paginates). Use `for await` to stream every message, or `.byPage({ maxPageSize })` to load up to `maxPageSize` messages at a time. `options = { roomId, startId?, endId?, maxPageSize?, abortSignal? }` |
 | `getUserInfo(userId, options?)` | Get user profile |
 
 Every asynchronous method accepts an optional final `options` argument
