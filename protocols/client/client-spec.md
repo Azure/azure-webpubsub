@@ -15,6 +15,7 @@
     - [3.3 Join group and leave group](#33-join-group-and-leave-group)
     - [3.4 Send group messages](#34-send-group-messages)
     - [3.5 Send event messages](#35-send-event-messages)
+    - [3.6 Streaming](#36-streaming)
   - [4. Message Object Reference](#4-message-object-reference)
     - [json.reliable.webpubsub.azure.v1](#jsonreliablewebpubsubazurev1)
     - [protobuf.reliable.webpubsub.azure.v1](#protobufreliablewebpubsubazurev1)
@@ -184,6 +185,102 @@ Once the client connection is using reliable subprotocols, many messages from th
 
 2. When `sendToGroup` is called, a `EventMessage` will be sent to the service. If the `ackId` property is set, means client expects the send result. If the client library supports reliable protocols, the function is REQUIRED. Client libraries SHOULD provide a [callback functions](#callback-function) (or other language-idiomatic equivalent) to get the result of event message.
 
+### 3.6 Streaming
+
+Streaming is a client pub/sub feature that lets a publisher send one logical ordered stream as multiple websocket messages while receiving stream-level acknowledgements from the service. A stream is identified by `streamId` and ordered by `streamSequenceId`. Ordering is guaranteed within one `streamId`; different streams are independent from each other.
+
+Client-originated streaming currently targets groups. Client libraries that support streaming MUST provide a function to create a stream to a group. The function name MAY vary by language convention.
+
+#### 3.6.1 Stream start
+
+1. A client MUST start a group stream by sending a `SendToGroupMessage` whose stream start metadata is set. The stream start message MUST include the target group and `streamId`. The exact wire format depends on the selected subprotocol and is defined by the corresponding subprotocol reference in [Message Object Reference](#4-message-object-reference).
+
+2. The stream start message MUST NOT include `data` or `dataType`. The stream start message SHOULD NOT include `ackId`; stream lifecycle is acknowledged by streaming acknowledgement messages rather than `AckMessage`.
+
+3. `stream.streamId` MUST be a non-empty string and MUST be unique among active streams on the same client connection. Client libraries are RECOMMENDED to use a globally unique value, such as a GUID/UUID, when generating `streamId`. After the stream is closed, the same `streamId` MAY be reused on the same client connection.
+
+4. `stream.idleTimeoutMs` is OPTIONAL. If present, it MUST be greater than `0`. If omitted, the service default is `300000` milliseconds. The value is an idle timeout for the stream, not a total stream lifetime. It controls how long the stream can remain open without accepted stream activity, such as stream data or keepalive. Client libraries SHOULD send stream data, send keepalive, or close the stream before this timeout elapses when the application needs to keep the stream open. If the stream expires because of this timeout, the publisher receives `StreamClosedMessage` with error name `IdleTimeout`.
+
+5. `noEcho` has the same semantics as `SendToGroupMessage`: when it is true, client libraries SHOULD NOT expect stream data or stream terminal messages to be delivered back to the publisher connection.
+
+6. When the service accepts a stream start, it sends a `StreamAckMessage` with `expectedSequenceId` equal to `1`. Client libraries MUST treat this message as the signal that stream data can be sent for the stream.
+
+7. If the service rejects the stream start because the stream is invalid, already exists, or the publisher is not authorized to send to the group, client libraries SHOULD surface the failure to the caller that creates the stream.
+
+#### 3.6.2 Stream data and keepalive
+
+1. After the stream is accepted, a client sends stream fragments using `StreamDataMessage`. The exact wire format depends on the selected subprotocol and is defined by the corresponding subprotocol reference in [Message Object Reference](#4-message-object-reference).
+
+2. `streamId` MUST identify an active stream on the same client connection. If the service cannot find the stream, it responds with `StreamClosedMessage` whose error name is `StreamNotFound`. Client libraries MUST treat that response as terminal for the stream.
+
+3. `streamSequenceId` MUST be a positive uint64 number. The first data fragment in a stream MUST use `streamSequenceId` `1`. Each following data fragment for the same `streamId` MUST increase `streamSequenceId` by exactly `1`.
+
+4. A data fragment MUST include `streamSequenceId`, `dataType`, and `data`. Client libraries MUST NOT send a `StreamDataMessage` that includes any of these payload properties without the other required payload properties.
+
+5. When the service accepts a data fragment whose `streamSequenceId` equals the next expected sequence id, the fragment is published to the target group and the next `StreamAckMessage` for the stream reports an advanced `expectedSequenceId`.
+
+6. When the service receives a data fragment whose `streamSequenceId` is lower than the next expected sequence id, the fragment is treated as a duplicate and is not published again. Client libraries SHOULD be prepared to receive a `StreamAckMessage` that reports the current next expected sequence id.
+
+7. When the service receives a data fragment whose `streamSequenceId` is higher than the next expected sequence id, the fragment is not published and the service responds with `StreamNackMessage` whose `name` is `InvalidSequenceId` and whose `expectedSequenceId` is the current next expected sequence id. Client libraries SHOULD use the reported `expectedSequenceId` to continue or replay the stream from the required fragment.
+
+8. A `StreamDataMessage` that contains only the message type and `streamId` is a stream keepalive.
+
+9. A keepalive message is not delivered to subscribers. The service uses accepted keepalive messages to keep the stream active. If the stream does not exist, the service responds with `StreamClosedMessage` whose error name is `StreamNotFound`. Client libraries MUST treat that response as terminal for the stream.
+
+#### 3.6.3 Stream end
+
+1. A client closes a stream by sending `StreamEndMessage`. The exact wire format depends on the selected subprotocol and is defined by the corresponding subprotocol reference in [Message Object Reference](#4-message-object-reference).
+
+2. A client MAY close a stream with an application-defined error. The client-sent error object MAY contain `message` and `userErrorCode`; it MUST NOT contain `name`. The service classifies this terminal error as `UserError` when delivering it to subscribers.
+
+3. `streamEnd` is not ordered by a client-supplied `streamSequenceId`. When the service accepts `streamEnd`, subscribers receive a terminal stream message with `stream.endOfStream` set to true and `stream.streamSequenceId` set to the next expected sequence id.
+
+4. After the service accepts `streamEnd`, the publisher receives a `StreamClosedMessage` for the stream. If the stream is closed without an error, the `StreamClosedMessage` does not contain the `error` property. Client libraries MUST treat the `StreamClosedMessage` as terminal and MUST remove local state for that stream.
+
+5. If the stream does not exist, the service responds with `StreamClosedMessage` whose error name is `StreamNotFound`. Client libraries MUST treat that response as terminal for the stream.
+
+#### 3.6.4 Stream acknowledgements
+
+1. A `StreamAckMessage` confirms that the service has accepted all stream fragments whose `streamSequenceId` is lower than `expectedSequenceId`. The exact wire format depends on the selected subprotocol and is defined by the corresponding subprotocol reference in [Message Object Reference](#4-message-object-reference).
+
+2. `expectedSequenceId` is the next `streamSequenceId` the service expects for the stream. For example, `expectedSequenceId` `2` means the service has accepted fragment `1`.
+
+3. The service can batch `StreamAckMessage` messages. Client libraries MUST NOT require an acknowledgement for every stream data fragment. For stream start, client libraries SHOULD wait for `StreamAckMessage` with `expectedSequenceId` `1` before sending stream data.
+
+4. A `StreamNackMessage` reports a retriable stream error. The stream remains active unless a subsequent `StreamClosedMessage` is sent.
+
+5. The `name` of `StreamNackMessage` MUST be one of `InvalidSequenceId` or `TransientError`. When a client library receives `StreamNackMessage`, it SHOULD use `expectedSequenceId` to keep or rewind its outbound stream buffer so unaccepted fragments can be sent again in order. Client libraries MUST NOT surface `StreamNackMessage` as a terminal stream error unless the stream buffer state is no longer valid.
+
+6. A `StreamClosedMessage` reports terminal closure of the stream to the publisher.
+
+7. If `StreamClosedMessage` does not contain `error`, the stream was closed normally. If `error` is present, `error.name` MUST be one of `StreamNotFound`, `Forbidden`, `BadRequest`, `InternalServerError`, or `IdleTimeout`. Client libraries MUST treat `StreamClosedMessage` as terminal and MUST remove local state for that stream.
+
+#### 3.6.5 Stream receiver messages
+
+1. Subscribers receive stream fragments as normal group messages with additional stream metadata. The exact wire format depends on the selected subprotocol and is defined by the corresponding subprotocol reference in [Message Object Reference](#4-message-object-reference).
+
+2. For reliable subprotocols, the message MAY also contain the normal connection-scoped `sequenceId`. The connection-scoped `sequenceId` is independent from `stream.streamSequenceId` and MUST NOT be used as the stream sequence id.
+
+3. A terminal stream message has `stream.endOfStream` set to true. It MAY carry an empty payload.
+
+4. A terminal stream message MAY contain `stream.error`. When the publisher supplies an error in `streamEnd`, subscribers receive `stream.error.name` equal to `UserError` with the supplied `message` and `userErrorCode` if present.
+
+5. Service-generated terminal errors use `stream.error.name` values such as `IdleTimeout`, `InternalServerError`, `Forbidden`, or `Cancelled`.
+
+6. Client libraries SHOULD provide a dedicated stream receiving API that creates separate application handler state per `group` and `streamId`. If a client library also raises the normal group message callback for stream messages, it MUST preserve the `stream` metadata in that callback.
+
+7. Client libraries SHOULD support an option to ignore a stream when the first observed fragment is not `streamSequenceId` `1`. This is useful when the application only wants to process streams from the beginning.
+
+#### 3.6.6 Stream client behavior
+
+1. Client libraries MUST keep outbound stream state until the stream receives a terminal `StreamClosedMessage` or the client library otherwise fails the stream.
+
+2. Client libraries SHOULD keep unacknowledged outbound fragments in a per-stream buffer. When `StreamAckMessage.expectedSequenceId` advances, client libraries MAY remove buffered fragments whose `streamSequenceId` is lower than `expectedSequenceId`.
+
+3. When a reliable connection drops and connection recovery starts, client libraries SHOULD pause outbound stream publishing. After recovery succeeds, client libraries SHOULD resume streams by sending buffered unacknowledged fragments in stream order. If recovery fails and a new connection is required, client libraries MUST fail all active outbound streams because stream state is scoped to the original client connection.
+
+4. Client libraries SHOULD provide back-pressure when the per-stream outbound buffer grows beyond an implementation-defined limit. Client libraries SHOULD fail pending publish operations if the stream is closed, aborted, or cannot make progress within an implementation-defined timeout.
+
 ## 4. Message Object Reference
 
 Different subprotocols have different format for message. Find the reference to messages format.
@@ -198,6 +295,11 @@ Different subprotocols have different format for message. Find the reference to 
 - [EventMessage](https://docs.microsoft.com/azure/azure-web-pubsub/reference-json-reliable-webpubsub-subprotocol#send-custom-events)
 - [AckMessage](https://docs.microsoft.com/azure/azure-web-pubsub/reference-json-reliable-webpubsub-subprotocol#ack-response)
 - [SequenceAckMessage](https://docs.microsoft.com/azure/azure-web-pubsub/reference-json-reliable-webpubsub-subprotocol#sequence-ack)
+- [StreamDataMessage](https://docs.microsoft.com/azure/azure-web-pubsub/reference-json-reliable-webpubsub-subprotocol#send-streaming-data)
+- [StreamEndMessage](https://docs.microsoft.com/azure/azure-web-pubsub/reference-json-reliable-webpubsub-subprotocol#end-streaming-messages)
+- [StreamAckMessage](https://docs.microsoft.com/azure/azure-web-pubsub/reference-json-reliable-webpubsub-subprotocol#stream-ack-response)
+- [StreamNackMessage](https://docs.microsoft.com/azure/azure-web-pubsub/reference-json-reliable-webpubsub-subprotocol#stream-nack-response)
+- [StreamClosedMessage](https://docs.microsoft.com/azure/azure-web-pubsub/reference-json-reliable-webpubsub-subprotocol#stream-closed-response)
 
 ### protobuf.reliable.webpubsub.azure.v1
 
@@ -209,6 +311,11 @@ Different subprotocols have different format for message. Find the reference to 
 - [EventMessage](https://docs.microsoft.com/azure/azure-web-pubsub/reference-protobuf-reliable-webpubsub-subprotocol#send-custom-events)
 - [AckMessage](https://docs.microsoft.com/azure/azure-web-pubsub/reference-protobuf-reliable-webpubsub-subprotocol#ack-response)
 - [SequenceAckMessage](https://docs.microsoft.com/azure/azure-web-pubsub/reference-protobuf-reliable-webpubsub-subprotocol#sequence-ack)
+- [StreamDataMessage](https://docs.microsoft.com/azure/azure-web-pubsub/reference-protobuf-reliable-webpubsub-subprotocol#send-streaming-data)
+- [StreamEndMessage](https://docs.microsoft.com/azure/azure-web-pubsub/reference-protobuf-reliable-webpubsub-subprotocol#end-streaming-messages)
+- [StreamAckMessage](https://docs.microsoft.com/azure/azure-web-pubsub/reference-protobuf-reliable-webpubsub-subprotocol#stream-ack-response)
+- [StreamNackMessage](https://docs.microsoft.com/azure/azure-web-pubsub/reference-protobuf-reliable-webpubsub-subprotocol#stream-nack-response)
+- [StreamClosedMessage](https://docs.microsoft.com/azure/azure-web-pubsub/reference-protobuf-reliable-webpubsub-subprotocol#stream-closed-response)
 
 ### json.webpubsub.azure.v1
 
@@ -219,6 +326,11 @@ Different subprotocols have different format for message. Find the reference to 
 - [SendToGroupMessage](https://docs.microsoft.com/azure/azure-web-pubsub/reference-json-webpubsub-subprotocol#publish-messages)
 - [EventMessage](https://docs.microsoft.com/azure/azure-web-pubsub/reference-json-webpubsub-subprotocol#send-custom-events)
 - [AckMessage](https://docs.microsoft.com/azure/azure-web-pubsub/reference-json-webpubsub-subprotocol#ack-response)
+- [StreamDataMessage](https://docs.microsoft.com/azure/azure-web-pubsub/reference-json-webpubsub-subprotocol#send-streaming-data)
+- [StreamEndMessage](https://docs.microsoft.com/azure/azure-web-pubsub/reference-json-webpubsub-subprotocol#end-streaming-messages)
+- [StreamAckMessage](https://docs.microsoft.com/azure/azure-web-pubsub/reference-json-webpubsub-subprotocol#stream-ack-response)
+- [StreamNackMessage](https://docs.microsoft.com/azure/azure-web-pubsub/reference-json-webpubsub-subprotocol#stream-nack-response)
+- [StreamClosedMessage](https://docs.microsoft.com/azure/azure-web-pubsub/reference-json-webpubsub-subprotocol#stream-closed-response)
 
 ### protobuf.webpubsub.azure.v1
 
@@ -229,6 +341,11 @@ Different subprotocols have different format for message. Find the reference to 
 - [SendToGroupMessage](https://docs.microsoft.com/azure/azure-web-pubsub/reference-protobuf-webpubsub-subprotocol#publish-messages)
 - [EventMessage](https://docs.microsoft.com/azure/azure-web-pubsub/reference-protobuf-webpubsub-subprotocol#send-custom-events)
 - [AckMessage](https://docs.microsoft.com/azure/azure-web-pubsub/reference-protobuf-webpubsub-subprotocol#ack-response)
+- [StreamDataMessage](https://docs.microsoft.com/azure/azure-web-pubsub/reference-protobuf-webpubsub-subprotocol#send-streaming-data)
+- [StreamEndMessage](https://docs.microsoft.com/azure/azure-web-pubsub/reference-protobuf-webpubsub-subprotocol#end-streaming-messages)
+- [StreamAckMessage](https://docs.microsoft.com/azure/azure-web-pubsub/reference-protobuf-webpubsub-subprotocol#stream-ack-response)
+- [StreamNackMessage](https://docs.microsoft.com/azure/azure-web-pubsub/reference-protobuf-webpubsub-subprotocol#stream-nack-response)
+- [StreamClosedMessage](https://docs.microsoft.com/azure/azure-web-pubsub/reference-protobuf-webpubsub-subprotocol#stream-closed-response)
 
 ## 5. Term definition
 
