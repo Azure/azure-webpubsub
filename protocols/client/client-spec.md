@@ -207,6 +207,8 @@ Client-originated streaming currently targets groups. Client libraries that supp
 
 7. If the service rejects the stream start because the stream is invalid, already exists, or the publisher is not authorized to send to the group, client libraries SHOULD surface the failure to the caller that creates the stream.
 
+8. A client library's stream creation API SHOULD complete only after receiving `StreamAckMessage` with `expectedSequenceId` `1`, or fail if the start request is rejected, the connection is lost before start is acknowledged, or the caller cancels the operation.
+
 #### 3.6.2 Stream data and keepalive
 
 1. After the stream is accepted, a client sends stream fragments using `StreamDataMessage`. The exact wire format depends on the selected subprotocol and is defined by the corresponding subprotocol reference in [Message Object Reference](#4-message-object-reference).
@@ -227,6 +229,10 @@ Client-originated streaming currently targets groups. Client libraries that supp
 
 9. A keepalive message is not delivered to subscribers. The service uses accepted keepalive messages to keep the stream active. If the stream does not exist, the service responds with `StreamClosedMessage` whose error name is `StreamNotFound`. Client libraries MUST treat that response as terminal for the stream.
 
+10. Client libraries SHOULD assign `streamSequenceId` values, keep data fragments in stream order, and serialize sends for the same stream. Application code SHOULD NOT need to provide `streamSequenceId` values directly unless the client library intentionally exposes a low-level protocol API.
+
+11. A client library's publish API MAY complete after the fragment has been written to the transport. It SHOULD also maintain an internal unacknowledged-fragment buffer so that reliability doesn't depend on the application waiting for each `StreamAckMessage`.
+
 #### 3.6.3 Stream end
 
 1. A client closes a stream by sending `StreamEndMessage`. The exact wire format depends on the selected subprotocol and is defined by the corresponding subprotocol reference in [Message Object Reference](#4-message-object-reference).
@@ -238,6 +244,10 @@ Client-originated streaming currently targets groups. Client libraries that supp
 4. After the service accepts `streamEnd`, the publisher receives a `StreamClosedMessage` for the stream. If the stream is closed without an error, the `StreamClosedMessage` does not contain the `error` property. Client libraries MUST treat the `StreamClosedMessage` as terminal and MUST remove local state for that stream.
 
 5. If the stream does not exist, the service responds with `StreamClosedMessage` whose error name is `StreamNotFound`. Client libraries MUST treat that response as terminal for the stream.
+
+6. Client libraries SHOULD send `StreamEndMessage` only after all previously queued stream data fragments have been written to the transport. After an application requests stream completion, client libraries MUST reject new publish operations for the stream.
+
+7. A client library's stream completion API SHOULD complete when the corresponding `StreamClosedMessage` is received, or fail if the stream is closed with an error, the connection can no longer make progress, or the caller cancels the operation.
 
 #### 3.6.4 Stream acknowledgements
 
@@ -255,6 +265,8 @@ Client-originated streaming currently targets groups. Client libraries that supp
 
 7. If `StreamClosedMessage` does not contain `error`, the stream was closed normally. If `error` is present, `error.name` MUST be one of `StreamNotFound`, `Forbidden`, `BadRequest`, `InternalServerError`, or `IdleTimeout`. Client libraries MUST treat `StreamClosedMessage` as terminal and MUST remove local state for that stream.
 
+8. Client libraries SHOULD ignore `StreamAckMessage`, `StreamNackMessage`, and `StreamClosedMessage` for unknown or already-closed `streamId` values.
+
 #### 3.6.5 Stream receiver messages
 
 1. Subscribers receive stream fragments as normal group messages with additional stream metadata. The exact wire format depends on the selected subprotocol and is defined by the corresponding subprotocol reference in [Message Object Reference](#4-message-object-reference).
@@ -271,15 +283,19 @@ Client-originated streaming currently targets groups. Client libraries that supp
 
 7. Client libraries SHOULD support an option to ignore a stream when the first observed fragment is not `streamSequenceId` `1`. This is useful when the application only wants to process streams from the beginning.
 
+8. Client libraries SHOULD deliver stream fragments to the per-stream handler in the order received. If a client library detects a gap or duplicate in `streamSequenceId` for a received stream, it SHOULD surface an error to that stream's handler rather than silently merging an incomplete stream.
+
 #### 3.6.6 Stream client behavior
 
 1. Client libraries MUST keep outbound stream state until the stream receives a terminal `StreamClosedMessage` or the client library otherwise fails the stream.
 
-2. Client libraries SHOULD keep unacknowledged outbound fragments in a per-stream buffer. When `StreamAckMessage.expectedSequenceId` advances, client libraries MAY remove buffered fragments whose `streamSequenceId` is lower than `expectedSequenceId`.
+2. Client libraries SHOULD keep unacknowledged outbound fragments in a per-stream buffer. When `StreamAckMessage.expectedSequenceId` advances, client libraries MAY remove buffered fragments whose `streamSequenceId` is lower than `expectedSequenceId`. If `StreamAckMessage.expectedSequenceId` is outside the client library's buffered sequence range, the client library SHOULD fail the stream because the local stream state no longer matches the service state.
 
 3. When a reliable connection drops and connection recovery starts, client libraries SHOULD pause outbound stream publishing. After recovery succeeds, client libraries SHOULD resume streams by sending buffered unacknowledged fragments in stream order. If recovery fails and a new connection is required, client libraries MUST fail all active outbound streams because stream state is scoped to the original client connection.
 
 4. Client libraries SHOULD provide back-pressure when the per-stream outbound buffer grows beyond an implementation-defined limit. Client libraries SHOULD fail pending publish operations if the stream is closed, aborted, or cannot make progress within an implementation-defined timeout.
+
+5. Client libraries using non-reliable subprotocols MAY expose streaming APIs, but they SHOULD document that active stream state can't be recovered after the websocket connection is lost.
 
 ## 4. Message Object Reference
 
