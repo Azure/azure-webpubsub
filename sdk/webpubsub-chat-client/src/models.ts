@@ -47,13 +47,17 @@ export interface RoomInfo {
 }
 
 /**
- * The detailed view of a room: a {@link RoomInfo} plus its member list.
- * Returned by `createRoom()` and by `getRoomDetail(..., { withMembers: true })`.
- * Reserved to grow with further room detail (e.g. conversations) over time.
+ * The detailed view of a room: a {@link RoomInfo} plus, optionally, its
+ * member list. Returned by `createRoom()` and `getRoomDetail()`. Reserved
+ * to grow with further room detail (e.g. conversations) over time.
  */
 export interface RoomDetail extends RoomInfo {
-  /** User ids of the room's members. */
-  members: string[];
+  /**
+   * User ids of the room's members. Populated when the members were
+   * requested (e.g. `getRoomDetail(..., { withMembers: true })`) and
+   * `undefined` otherwise.
+   */
+  members?: string[];
 }
 
 /** Profile of a chat user. */

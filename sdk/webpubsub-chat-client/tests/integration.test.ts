@@ -137,7 +137,7 @@ test("single client", { timeout: SHORT_TEST_TIMEOUT }, async (t) => {
     assert.equal(created.title, "ut-single-room", "room title should match");
     assert.ok(Array.isArray(created.members), "members should be an array");
     assert.deepEqual(created.members, [chat1.userId], "members should contain only the creator");
-    assert.ok(created.members.includes(chat1.userId), "members should include the creator");
+    assert.ok(created.members?.includes(chat1.userId), "members should include the creator");
 
     const fetched = await chat1.getRoomDetail(created.roomId, { withMembers: true });
     assert.equal(fetched.roomId, created.roomId, "fetched roomId should match created");

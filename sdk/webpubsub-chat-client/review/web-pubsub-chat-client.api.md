@@ -20,10 +20,7 @@ export class ChatClient {
     addUserToRoom(roomId: string, userId: string, options?: AddUserToRoomOptions): Promise<void>;
     readonly connection: WebPubSubClient;
     createRoom(title: string, members: string[], options?: CreateRoomOptions): Promise<RoomDetail>;
-    getRoomDetail(roomId: string, options: GetRoomDetailOptions & {
-        withMembers: true;
-    }): Promise<RoomDetail>;
-    getRoomDetail(roomId: string, options?: GetRoomDetailOptions): Promise<RoomInfo>;
+    getRoomDetail(roomId: string, options?: GetRoomDetailOptions): Promise<RoomDetail>;
     getUserProfile(userId: string, options?: GetUserProfileOptions): Promise<UserProfile>;
     hasJoinedRoom(roomId: string): boolean;
     listRoomMessages(roomId: string, options?: ListRoomMessagesOptions): PagedAsyncIterableIterator<MessageInfo>;
@@ -158,7 +155,7 @@ export interface RemoveUserFromRoomOptions extends OperationOptions {
 
 // @public
 export interface RoomDetail extends RoomInfo {
-    members: string[];
+    members?: string[];
 }
 
 // @public

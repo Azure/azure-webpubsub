@@ -24,9 +24,8 @@ export interface StartOptions extends OperationOptions {}
 /** Options for `ChatClient.getRoomDetail()`. */
 export interface GetRoomDetailOptions extends OperationOptions {
   /**
-   * When `true`, `getRoomDetail` returns a {@link RoomDetail} with its
-   * `members` array populated. Defaults to `false`, returning the
-   * lightweight {@link RoomInfo}.
+   * When `true`, the returned {@link RoomDetail}'s `members` array is
+   * populated. Defaults to `false`, leaving `members` undefined.
    */
   withMembers?: boolean;
 }

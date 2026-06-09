@@ -485,31 +485,14 @@ class ChatClient {
   }
 
   /**
-   * Fetch the detailed view of a room, including its member list.
+   * Fetch the detailed view of a room.
    *
    * @param roomId - Room to query.
-   * @param options - Pass `{ withMembers: true }` to populate `members`.
-   * @returns A {@link RoomDetail} with `members` populated.
+   * @param options - Optional `{ withMembers, abortSignal }`. Pass
+   *   `withMembers: true` to populate the returned `members` list; it is
+   *   left undefined otherwise.
    */
-  public async getRoomDetail(
-    roomId: string,
-    options: GetRoomDetailOptions & { withMembers: true },
-  ): Promise<RoomDetail>;
-  /**
-   * Fetch the latest service-side view of a room.
-   *
-   * By default the lightweight {@link RoomInfo} is returned. Pass
-   * `{ withMembers: true }` (see the other overload) to instead get the
-   * fuller {@link RoomDetail} with its `members` list populated.
-   *
-   * @param roomId - Room to query.
-   * @param options - Optional `{ withMembers, abortSignal }`.
-   */
-  public async getRoomDetail(roomId: string, options?: GetRoomDetailOptions): Promise<RoomInfo>;
-  public async getRoomDetail(
-    roomId: string,
-    options?: GetRoomDetailOptions,
-  ): Promise<RoomInfo | RoomDetail> {
+  public async getRoomDetail(roomId: string, options?: GetRoomDetailOptions): Promise<RoomDetail> {
     this.ensureStarted();
     return this.fetchRoomDetail(roomId, options);
   }

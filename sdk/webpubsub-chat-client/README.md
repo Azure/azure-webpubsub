@@ -93,7 +93,7 @@ To construct from a client-access URL or `WebPubSubClientCredential`, use the st
 | `start(options?)` | Connect and authenticate. Idempotent; concurrent calls share one in-flight promise. After `stop()` the client can be started again. Accepts `{ abortSignal }`. |
 | `stop()` | Disconnect and reset client state. Returns `Promise<void>`. |
 | `createRoom(title, members, options?)` | Create a new room with initial members. The current user is automatically added to the members list. Options: `{ roomId?, abortSignal? }` — supply `roomId` to choose an explicit id, otherwise the service assigns one. |
-| `getRoomDetail(roomId, options?)` | Get room info. Options: `{ withMembers?, abortSignal? }` — by default returns a lightweight `RoomInfo`; pass `withMembers: true` to get a `RoomDetail` with the `members` list populated. |
+| `getRoomDetail(roomId, options?)` | Get the detailed view of a room (`RoomDetail`). Options: `{ withMembers?, abortSignal? }` — pass `withMembers: true` to populate the `members` list (omitted otherwise). |
 | `addUserToRoom(roomId, userId, options?)` | Add user to room (admin operation) |
 | `removeUserFromRoom(roomId, userId, options?)` | Remove user from room (admin operation) |
 | `sendToRoom(roomId, message, options?)` | Send text message to room, returns message ID |
