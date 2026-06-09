@@ -15,7 +15,7 @@ import {
   MemberLeftNotificationBody,
   RoomLeftNotificationBody,
 } from "./generatedTypes.js";
-import type { MessageInfo, RoomInfo, RoomInfoWithMembers, UserProfile } from "./models.js";
+import type { MessageInfo, RoomInfo, RoomDetail, UserProfile } from "./models.js";
 import type {
   ChatMessage,
   OnMemberJoinedArgs,
@@ -30,7 +30,7 @@ import type {
   ListRoomMessagesOptions,
   OperationOptions,
   StartOptions,
-  GetRoomOptions,
+  GetRoomDetailOptions,
   CreateRoomOptions,
   SendToRoomOptions,
   GetUserProfileOptions,
@@ -475,7 +475,7 @@ class ChatClient {
 
   // Internal: fetch a room's full wire shape (including its conversation id)
   // to populate the local cache. Public callers go through getRoomDetail().
-  private async fetchRoomDetail(roomId: string, options?: GetRoomOptions): Promise<WireRoomInfoWithMembers> {
+  private async fetchRoomDetail(roomId: string, options?: GetRoomDetailOptions): Promise<WireRoomInfoWithMembers> {
     return this.invokeWithReturnType<WireRoomInfoWithMembers>(
       INVOCATION_NAME.GET_ROOM,
       { id: roomId, withMembers: options?.withMembers ?? false },
@@ -485,14 +485,31 @@ class ChatClient {
   }
 
   /**
-   * Fetch the latest service-side view of a room.
+   * Fetch the detailed view of a room, including its member list.
    *
    * @param roomId - Room to query.
-   * @param options - Optional `{ withMembers, abortSignal }`. When
-   *   `withMembers` is `true` the returned `members` array is
-   *   populated; defaults to `false` to save a round-trip.
+   * @param options - Pass `{ withMembers: true }` to populate `members`.
+   * @returns A {@link RoomDetail} with `members` populated.
    */
-  public async getRoomDetail(roomId: string, options?: GetRoomOptions): Promise<RoomInfoWithMembers> {
+  public async getRoomDetail(
+    roomId: string,
+    options: GetRoomDetailOptions & { withMembers: true },
+  ): Promise<RoomDetail>;
+  /**
+   * Fetch the latest service-side view of a room.
+   *
+   * By default the lightweight {@link RoomInfo} is returned. Pass
+   * `{ withMembers: true }` (see the other overload) to instead get the
+   * fuller {@link RoomDetail} with its `members` list populated.
+   *
+   * @param roomId - Room to query.
+   * @param options - Optional `{ withMembers, abortSignal }`.
+   */
+  public async getRoomDetail(roomId: string, options?: GetRoomDetailOptions): Promise<RoomInfo>;
+  public async getRoomDetail(
+    roomId: string,
+    options?: GetRoomDetailOptions,
+  ): Promise<RoomInfo | RoomDetail> {
     this.ensureStarted();
     return this.fetchRoomDetail(roomId, options);
   }
@@ -511,7 +528,7 @@ class ChatClient {
     title: string,
     members: string[],
     options?: CreateRoomOptions,
-  ): Promise<RoomInfoWithMembers> {
+  ): Promise<RoomDetail> {
     this.ensureStarted();
     let roomDetails = {
       title: title,

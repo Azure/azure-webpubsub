@@ -4,7 +4,7 @@ import { ERRORS } from './constant.js';
 export type {
   MessageInfo,
   RoomInfo,
-  RoomInfoWithMembers,
+  RoomDetail,
   UserProfile,
 } from './models.js';
 
@@ -22,7 +22,7 @@ export type {
 export type {
   OperationOptions,
   StartOptions,
-  GetRoomOptions,
+  GetRoomDetailOptions,
   CreateRoomOptions,
   SendToRoomOptions,
   GetUserProfileOptions,

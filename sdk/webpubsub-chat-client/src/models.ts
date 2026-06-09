@@ -46,8 +46,12 @@ export interface RoomInfo {
   properties?: Record<string, never> | null;
 }
 
-/** A {@link RoomInfo} together with its member list. */
-export interface RoomInfoWithMembers extends RoomInfo {
+/**
+ * The detailed view of a room: a {@link RoomInfo} plus its member list.
+ * Returned by `createRoom()` and by `getRoomDetail(..., { withMembers: true })`.
+ * Reserved to grow with further room detail (e.g. conversations) over time.
+ */
+export interface RoomDetail extends RoomInfo {
   /** User ids of the room's members. */
   members: string[];
 }

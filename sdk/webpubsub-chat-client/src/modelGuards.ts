@@ -15,7 +15,7 @@
  * It has no runtime effect (type-only).
  */
 import type { Schemas } from "./generatedTypes.js";
-import type { MessageInfo, RoomInfo, RoomInfoWithMembers, UserProfile } from "./models.js";
+import type { MessageInfo, RoomInfo, RoomDetail, UserProfile } from "./models.js";
 
 type Assert<T extends true> = T;
 /** `true` when wire type `W` structurally satisfies (is assignable to) the curated model `M`. */
@@ -23,5 +23,5 @@ type WireSatisfies<M, W> = [W] extends [M] ? true : false;
 
 type _GuardMessageInfo = Assert<WireSatisfies<MessageInfo, Schemas["MessageInfo"]>>;
 type _GuardRoomInfo = Assert<WireSatisfies<RoomInfo, Schemas["RoomInfo"]>>;
-type _GuardRoomInfoWithMembers = Assert<WireSatisfies<RoomInfoWithMembers, Schemas["RoomInfoWithMembers"]>>;
+type _GuardRoomDetail = Assert<WireSatisfies<RoomDetail, Schemas["RoomInfoWithMembers"]>>;
 type _GuardUserProfile = Assert<WireSatisfies<UserProfile, Schemas["UserProfile"]>>;

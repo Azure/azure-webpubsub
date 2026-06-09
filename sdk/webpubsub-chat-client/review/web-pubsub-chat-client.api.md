@@ -19,8 +19,11 @@ export class ChatClient {
     constructor(wpsClient: WebPubSubClient);
     addUserToRoom(roomId: string, userId: string, options?: AddUserToRoomOptions): Promise<void>;
     readonly connection: WebPubSubClient;
-    createRoom(title: string, members: string[], options?: CreateRoomOptions): Promise<RoomInfoWithMembers>;
-    getRoomDetail(roomId: string, options?: GetRoomOptions): Promise<RoomInfoWithMembers>;
+    createRoom(title: string, members: string[], options?: CreateRoomOptions): Promise<RoomDetail>;
+    getRoomDetail(roomId: string, options: GetRoomDetailOptions & {
+        withMembers: true;
+    }): Promise<RoomDetail>;
+    getRoomDetail(roomId: string, options?: GetRoomDetailOptions): Promise<RoomInfo>;
     getUserProfile(userId: string, options?: GetUserProfileOptions): Promise<UserProfile>;
     hasJoinedRoom(roomId: string): boolean;
     listRoomMessages(roomId: string, options?: ListRoomMessagesOptions): PagedAsyncIterableIterator<MessageInfo>;
@@ -65,7 +68,7 @@ export interface CreateRoomOptions extends OperationOptions {
 }
 
 // @public
-export interface GetRoomOptions extends OperationOptions {
+export interface GetRoomDetailOptions extends OperationOptions {
     withMembers?: boolean;
 }
 
@@ -154,15 +157,15 @@ export interface RemoveUserFromRoomOptions extends OperationOptions {
 }
 
 // @public
+export interface RoomDetail extends RoomInfo {
+    members: string[];
+}
+
+// @public
 export interface RoomInfo {
     properties?: Record<string, never> | null;
     roomId: string;
     title: string;
-}
-
-// @public
-export interface RoomInfoWithMembers extends RoomInfo {
-    members: string[];
 }
 
 // @public
