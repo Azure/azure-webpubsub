@@ -139,7 +139,7 @@ test("single client", { timeout: SHORT_TEST_TIMEOUT }, async (t) => {
     assert.deepEqual(created.members, [chat1.userId], "members should contain only the creator");
     assert.ok(created.members.includes(chat1.userId), "members should include the creator");
 
-    const fetched = await chat1.getRoom(created.roomId, { withMembers: true });
+    const fetched = await chat1.getRoomDetail(created.roomId, { withMembers: true });
     assert.equal(fetched.roomId, created.roomId, "fetched roomId should match created");
     assert.equal(fetched.title, created.title, "fetched title should match created");
     assert.ok(Array.isArray(fetched.members), "fetched members should be an array");
@@ -176,7 +176,7 @@ test("create room with multiple users", { timeout: LONG_TEST_TIMEOUT }, async (t
     }
 
     const listedMsgs: MessageInfo[] = [];
-    for await (const message of chats[0].listRoomMessages({ roomId: createdRoom.roomId, startId: "0", maxPageSize: 100 })) {
+    for await (const message of chats[0].listRoomMessages(createdRoom.roomId, { startId: "0", maxPageSize: 100 })) {
       listedMsgs.push(message);
     }
     let listedMsgCount = 0;
@@ -190,7 +190,7 @@ test("create room with multiple users", { timeout: LONG_TEST_TIMEOUT }, async (t
     // 5 messages and maxPageSize=2 we expect pages of size [2, 2, 1] (or
     // possibly with a trailing empty page that the iterator filters out).
     const pagesIter = chats[0]
-      .listRoomMessages({ roomId: createdRoom.roomId, startId: "0" })
+      .listRoomMessages(createdRoom.roomId, { startId: "0" })
       .byPage({ maxPageSize: 2 });
     const collectedPages: MessageInfo[][] = [];
     while (true) {

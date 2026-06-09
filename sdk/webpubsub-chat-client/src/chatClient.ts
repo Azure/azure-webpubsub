@@ -30,11 +30,10 @@ import type {
   ListRoomMessagesOptions,
   OperationOptions,
   StartOptions,
-  StopOptions,
   GetRoomOptions,
   CreateRoomOptions,
   SendToRoomOptions,
-  GetUserInfoOptions,
+  GetUserProfileOptions,
   AddUserToRoomOptions,
   RemoveUserFromRoomOptions,
 } from "./options.js";
@@ -358,7 +357,7 @@ class ChatClient {
     }
   }
 
-  public async getUserInfo(userId: string, options?: GetUserInfoOptions): Promise<UserProfile> {
+  public async getUserProfile(userId: string, options?: GetUserProfileOptions): Promise<UserProfile> {
     this.ensureStarted();
     return this.invokeWithReturnType<UserProfile>(
       INVOCATION_NAME.GET_USER_PROPERTIES,
@@ -432,7 +431,7 @@ class ChatClient {
    *   `withMembers` is `true` the returned `members` array is
    *   populated; defaults to `false` to save a round-trip.
    */
-  public async getRoom(roomId: string, options?: GetRoomOptions): Promise<RoomInfoWithMembers> {
+  public async getRoomDetail(roomId: string, options?: GetRoomOptions): Promise<RoomInfoWithMembers> {
     this.ensureStarted();
     return this.invokeWithReturnType<RoomInfoWithMembers>(
       INVOCATION_NAME.GET_ROOM,
@@ -488,7 +487,7 @@ class ChatClient {
     if (this._rooms.has(roomId)) {
       return;
     }
-    const roomInfo = await this.getRoom(roomId, options);
+    const roomInfo = await this.getRoomDetail(roomId, options);
     this._rooms.set(roomId, roomInfo);
   }
 
@@ -538,7 +537,7 @@ class ChatClient {
    *
    * @example Stream every message (e.g. for export or full sync):
    * ```ts
-   * for await (const msg of client.listRoomMessages({ roomId })) {
+   * for await (const msg of client.listRoomMessages(roomId)) {
    *   console.log(msg.content.text);
    * }
    * ```
@@ -546,7 +545,7 @@ class ChatClient {
    * @example Load history one page at a time (Teams-style scroll-back):
    * ```ts
    * // Load up to 50 messages per page.
-   * const pages = client.listRoomMessages({ roomId }).byPage({ maxPageSize: 50 });
+   * const pages = client.listRoomMessages(roomId).byPage({ maxPageSize: 50 });
    * const first = await pages.next();
    * displayMessages(first.value);
    * // later, when the user scrolls up:
@@ -556,18 +555,18 @@ class ChatClient {
    *
    * The room must be one this client has created or joined.
    */
-  public listRoomMessages(options: ListRoomMessagesOptions): PagedAsyncIterableIterator<MessageInfo> {
+  public listRoomMessages(roomId: string, options?: ListRoomMessagesOptions): PagedAsyncIterableIterator<MessageInfo> {
     this.ensureStarted();
-    const conversationId = this._rooms.get(options.roomId)?.defaultConversationId;
+    const conversationId = this._rooms.get(roomId)?.defaultConversationId;
     if (!conversationId) {
-      throw new ChatError(`Failed to listRoomMessages, not found roomId ${options.roomId}`, ERRORS.UnknownRoom);
+      throw new ChatError(`Failed to listRoomMessages, not found roomId ${roomId}`, ERRORS.UnknownRoom);
     }
 
-    const defaultPageSize = options.maxPageSize ?? 100;
+    const defaultPageSize = options?.maxPageSize ?? 100;
     const firstPageLink: MessageRangeQuery = {
       conversation: { conversationId },
-      start: options.startId ?? null,
-      end: options.endId ?? null,
+      start: options?.startId ?? null,
+      end: options?.endId ?? null,
       maxCount: defaultPageSize,
     };
 
@@ -583,7 +582,7 @@ class ChatClient {
         INVOCATION_NAME.LIST_MESSAGES,
         query,
         "json",
-        { abortSignal: options.abortSignal },
+        { abortSignal: options?.abortSignal },
       );
       if (result.messages.length === 0) {
         return undefined;
@@ -665,11 +664,11 @@ class ChatClient {
    * should keep their authentication source (URL or credential)
    * constant.
    *
-   * @param _options - Reserved for symmetry with other operations.
-   *   Stopping is a local-state cleanup that does not perform a network
-   *   round-trip and is therefore not cancellable today.
+   * Stopping is not cancellable: it tears down the transport and clears
+   * local state, mirroring the underlying `WebPubSubClient.stop()`, which
+   * takes no options.
    */
-  public async stop(_options?: StopOptions): Promise<void> {
+  public async stop(): Promise<void> {
     const startPromise = this._startPromise;
     if (startPromise) {
       await startPromise.catch(() => undefined);

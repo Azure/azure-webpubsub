@@ -2,9 +2,11 @@ import { ChatClient, ChatError } from './chatClient.js';
 import { ERRORS } from './constant.js';
 
 export type {
+  components,
   MessageInfo,
   RoomInfo,
   RoomInfoWithMembers,
+  Schemas,
   UserProfile,
 } from './generatedTypes.js';
 
@@ -22,11 +24,10 @@ export type {
 export type {
   OperationOptions,
   StartOptions,
-  StopOptions,
   GetRoomOptions,
   CreateRoomOptions,
   SendToRoomOptions,
-  GetUserInfoOptions,
+  GetUserProfileOptions,
   AddUserToRoomOptions,
   RemoveUserFromRoomOptions,
   ListRoomMessagesOptions,

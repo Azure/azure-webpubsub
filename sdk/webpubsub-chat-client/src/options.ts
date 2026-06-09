@@ -21,10 +21,7 @@ export interface OperationOptions {
 /** Options for `ChatClient.start()`. */
 export interface StartOptions extends OperationOptions {}
 
-/** Options for `ChatClient.stop()`. */
-export interface StopOptions extends OperationOptions {}
-
-/** Options for `ChatClient.getRoom()`. */
+/** Options for `ChatClient.getRoomDetail()`. */
 export interface GetRoomOptions extends OperationOptions {
   /**
    * When `true`, the returned `RoomInfoWithMembers.members` array is
@@ -47,8 +44,8 @@ export interface CreateRoomOptions extends OperationOptions {
 /** Options for `ChatClient.sendToRoom()`. */
 export interface SendToRoomOptions extends OperationOptions {}
 
-/** Options for `ChatClient.getUserInfo()`. */
-export interface GetUserInfoOptions extends OperationOptions {}
+/** Options for `ChatClient.getUserProfile()`. */
+export interface GetUserProfileOptions extends OperationOptions {}
 
 /** Options for `ChatClient.addUserToRoom()`. */
 export interface AddUserToRoomOptions extends OperationOptions {}
@@ -58,8 +55,6 @@ export interface RemoveUserFromRoomOptions extends OperationOptions {}
 
 /** Options for `ChatClient.listRoomMessages()`. */
 export interface ListRoomMessagesOptions extends OperationOptions {
-  /** Room to list messages from. Must be a room this client has created or joined. */
-  roomId: string;
   /**
    * Inclusive lower bound on message id; omit to start from the earliest available message.
    */

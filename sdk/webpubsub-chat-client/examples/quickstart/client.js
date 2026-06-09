@@ -77,7 +77,7 @@ async function main() {
 
     // List message history (auto-paginating async iterator)
     console.log('\n--- Message History ---');
-    for await (const msg of alice.listRoomMessages({ roomId: room.roomId })) {
+    for await (const msg of alice.listRoomMessages(room.roomId)) {
         console.log(`  [${msg.createdBy}] [${msg.createdAt}] ${msg.content.text}`);
     }
 
@@ -85,7 +85,7 @@ async function main() {
     // `byPage` lets the caller decide when to load the next batch — handy
     // for "load 50 latest, then 50 more on scroll-up" UI patterns.
     console.log('\n--- Message History (pages of 3) ---');
-    const pages = alice.listRoomMessages({ roomId: room.roomId }).byPage({ maxPageSize: 3 });
+    const pages = alice.listRoomMessages(room.roomId).byPage({ maxPageSize: 3 });
     let pageNum = 0;
     while (true) {
         const { value, done } = await pages.next();
