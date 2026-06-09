@@ -2,13 +2,11 @@ import { ChatClient, ChatError } from './chatClient.js';
 import { ERRORS } from './constant.js';
 
 export type {
-  components,
   MessageInfo,
   RoomInfo,
   RoomInfoWithMembers,
-  Schemas,
   UserProfile,
-} from './generatedTypes.js';
+} from './models.js';
 
 export type {
   ChatMessage,

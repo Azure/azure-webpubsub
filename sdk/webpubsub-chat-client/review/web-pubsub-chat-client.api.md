@@ -14,314 +14,49 @@ import { WebPubSubClientOptions } from '@azure/web-pubsub-client';
 export interface AddUserToRoomOptions extends OperationOptions {
 }
 
-// @public (undocumented)
+// @public
 export class ChatClient {
     constructor(wpsClient: WebPubSubClient);
     addUserToRoom(roomId: string, userId: string, options?: AddUserToRoomOptions): Promise<void>;
-    // (undocumented)
     readonly connection: WebPubSubClient;
     createRoom(title: string, members: string[], options?: CreateRoomOptions): Promise<RoomInfoWithMembers>;
     getRoomDetail(roomId: string, options?: GetRoomOptions): Promise<RoomInfoWithMembers>;
-    // (undocumented)
     getUserProfile(userId: string, options?: GetUserProfileOptions): Promise<UserProfile>;
     hasJoinedRoom(roomId: string): boolean;
     listRoomMessages(roomId: string, options?: ListRoomMessagesOptions): PagedAsyncIterableIterator<MessageInfo>;
     off(event: "started", listener: (e: OnStartedArgs) => void): void;
-    // (undocumented)
     off(event: "stopped", listener: (e: OnStoppedArgs) => void): void;
-    // (undocumented)
     off(event: "message", listener: (e: OnMessageArgs) => void): void;
-    // (undocumented)
     off(event: "room-joined", listener: (e: OnRoomJoinedArgs) => void): void;
-    // (undocumented)
     off(event: "room-left", listener: (e: OnRoomLeftArgs) => void): void;
-    // (undocumented)
     off(event: "member-joined", listener: (e: OnMemberJoinedArgs) => void): void;
-    // (undocumented)
     off(event: "member-left", listener: (e: OnMemberLeftArgs) => void): void;
     on(event: "started", listener: (e: OnStartedArgs) => void): void;
-    // (undocumented)
     on(event: "stopped", listener: (e: OnStoppedArgs) => void): void;
-    // (undocumented)
     on(event: "message", listener: (e: OnMessageArgs) => void): void;
-    // (undocumented)
     on(event: "room-joined", listener: (e: OnRoomJoinedArgs) => void): void;
-    // (undocumented)
     on(event: "room-left", listener: (e: OnRoomLeftArgs) => void): void;
-    // (undocumented)
     on(event: "member-joined", listener: (e: OnMemberJoinedArgs) => void): void;
-    // (undocumented)
     on(event: "member-left", listener: (e: OnMemberLeftArgs) => void): void;
     removeUserFromRoom(roomId: string, userId: string, options?: RemoveUserFromRoomOptions): Promise<void>;
     get rooms(): RoomInfo[];
-    // (undocumented)
     sendToRoom(roomId: string, message: string, options?: SendToRoomOptions): Promise<string>;
     static start(clientAccessUrl: string, webPubSubClientOptions?: WebPubSubClientOptions, options?: StartOptions): Promise<ChatClient>;
-    // (undocumented)
     static start(credential: WebPubSubClientCredential, webPubSubClientOptions?: WebPubSubClientOptions, options?: StartOptions): Promise<ChatClient>;
-    // (undocumented)
     static start(wpsClient: WebPubSubClient, options?: StartOptions): Promise<ChatClient>;
     start(options?: StartOptions): Promise<void>;
     stop(): Promise<void>;
-    // (undocumented)
     get userId(): string;
 }
 
-// @public (undocumented)
+// @public
 export class ChatError extends Error {
     constructor(message: string, code: string);
-    // (undocumented)
     readonly code: string;
 }
 
 // @public
 export interface ChatMessage extends MessageInfo {
-}
-
-// @public (undocumented)
-export interface components {
-    // (undocumented)
-    headers: never;
-    // (undocumented)
-    parameters: never;
-    // (undocumented)
-    pathItems: never;
-    // (undocumented)
-    requestBodies: never;
-    // (undocumented)
-    responses: never;
-    // (undocumented)
-    schemas: {
-        NotificationType: "MessageCreated" | "MessageUpdated" | "MessageDeleted" | "RoomJoined" | "RoomLeft" | "RoomClosed" | "RoomMemberJoined" | "RoomMemberLeft" | "AddContact";
-        Notification: {
-            notificationType: components["schemas"]["NotificationType"];
-            body: components["schemas"]["NewMessageNotificationBody"] | components["schemas"]["NewRoomNotificationBody"] | components["schemas"]["UpdateMessageNotificationBody"] | components["schemas"]["AddContactNotificationBody"] | components["schemas"]["MemberJoinedNotificationBody"] | components["schemas"]["MemberLeftNotificationBody"] | components["schemas"]["RoomLeftNotificationBody"];
-        };
-        NewMessageNotificationBody: {
-            conversation: components["schemas"]["ChatConversation"];
-            message: components["schemas"]["MessageInfo"];
-            notificationType: "MessageCreated";
-        };
-        NewMessageNotification: components["schemas"]["Notification"] & {
-            notificationType?: "NewMessage";
-        };
-        NewRoomNotificationBody: {
-            roomId: string;
-            title: string;
-            defaultConversationId?: string;
-            properties?: Record<string, never> | null;
-            notificationType: "RoomJoined";
-        };
-        NewRoomNotification: components["schemas"]["Notification"] & {
-            notificationType?: "NewRoom";
-            body?: components["schemas"]["NewRoomNotificationBody"];
-        };
-        UpdateMessageNotificationBody: {
-            conversation: components["schemas"]["ChatConversation"];
-            message: components["schemas"]["MessageInfo"];
-            notificationType: "MessageUpdated";
-        };
-        UpdateMessageNotification: components["schemas"]["Notification"] & {
-            notificationType?: "UpdateMessage";
-            body?: components["schemas"]["UpdateMessageNotificationBody"];
-        };
-        AddContactNotificationBody: {
-            userId: string;
-            notificationType: "AddContact";
-        };
-        AddContactNotification: components["schemas"]["Notification"] & {
-            notificationType?: "AddContact";
-            body?: components["schemas"]["AddContactNotificationBody"];
-        };
-        MemberJoinedNotificationBody: {
-            roomId: string;
-            title: string;
-            userId: string;
-            notificationType: "RoomMemberJoined";
-        };
-        MemberJoinedNotification: components["schemas"]["Notification"] & {
-            notificationType?: "MemberJoined";
-            body?: components["schemas"]["MemberJoinedNotificationBody"];
-        };
-        MemberLeftNotificationBody: {
-            roomId: string;
-            title: string;
-            userId: string;
-            notificationType: "RoomMemberLeft";
-        };
-        MemberLeftNotification: components["schemas"]["Notification"] & {
-            notificationType?: "MemberLeft";
-            body?: components["schemas"]["MemberLeftNotificationBody"];
-        };
-        RoomLeftNotificationBody: {
-            roomId: string;
-            title: string;
-            notificationType: "RoomLeft";
-        };
-        RoomLeftNotification: components["schemas"]["Notification"] & {
-            notificationType?: "RoomLeft";
-            body?: components["schemas"]["RoomLeftNotificationBody"];
-        };
-        RoomClosedNotificationBody: {
-            roomId: string;
-            title: string;
-            notificationType: "RoomClosed";
-        };
-        RoomClosedNotification: components["schemas"]["Notification"] & {
-            notificationType?: "RoomClosed";
-            body?: components["schemas"]["RoomClosedNotificationBody"];
-        };
-        MessageDeletedNotificationBody: {
-            conversation: components["schemas"]["ChatConversation"];
-            messageId: string;
-            notificationType: "MessageDeleted";
-        };
-        MessageDeletedNotification: components["schemas"]["Notification"] & {
-            notificationType?: "MessageDeleted";
-            body?: components["schemas"]["MessageDeletedNotificationBody"];
-        };
-        UserProfile: {
-            userId: string;
-            roomIds?: string[];
-            conversationIds?: string[];
-        };
-        ListUserConversationRequest: {
-            continuationToken?: string | null;
-            maxCount: number | null;
-        };
-        ListUserConversationResponse: {
-            conversations: components["schemas"]["ChatConversation"][];
-            continuationToken?: string | null;
-        };
-        ChatConversation: {
-            roomId?: string | null;
-            topicId?: string | null;
-            conversationId?: string | null;
-        };
-        ApprovalEnum: "AutoApprove" | "ManualApprove" | "AutoDeny";
-        UserPolicy: {
-            addContact: components["schemas"]["ApprovalEnum"];
-            publicProperties?: string[];
-            friendProperties?: string[];
-            privateProperties?: string[];
-        };
-        ContactResultState: "OK" | "Pending" | "Failed";
-        AddContactResult: {
-            userId: string;
-            state: components["schemas"]["ContactResultState"];
-            message: string;
-        };
-        ContactRequest: {
-            userId: string;
-            message: string;
-        };
-        ContactOperation: "Approve" | "Deny" | "Block";
-        ContactRequestOperation: {
-            operation: components["schemas"]["ContactOperation"];
-            userId: string;
-        };
-        RoomInfo: {
-            roomId: string;
-            title: string;
-            defaultConversationId: string;
-            properties?: Record<string, never> | null;
-        };
-        RoomInfoWithMembers: components["schemas"]["RoomInfo"] & {
-            members: string[];
-        };
-        RoomMemberJoinEnum: "AutoApprove" | "ManualApprove" | "InviteOnly";
-        RoomMessagePermissionEnum: "Allow" | "AdminOnly" | "Deny";
-        RoomReactPermissionEnum: "Allow" | "Deny";
-        RoomPolicy: {
-            memberJoin: components["schemas"]["RoomMemberJoinEnum"];
-            messageTypeText?: components["schemas"]["RoomMessagePermissionEnum"];
-            messageTypeImage?: components["schemas"]["RoomMessagePermissionEnum"];
-            react?: components["schemas"]["RoomReactPermissionEnum"];
-        };
-        MessageRangeQuery: {
-            conversation: components["schemas"]["ChatConversation"];
-            start?: string | null;
-            end?: string | null;
-            maxCount: number | null;
-        };
-        MessageInfo: {
-            messageId: string;
-            createdBy?: string;
-            createdAt?: string;
-            bodyType?: string;
-            messageBodyType: string;
-            content: {
-                text?: string | null;
-                binary?: string | null;
-            };
-            refMessageId?: string | null;
-        };
-        CreateTextMessage: {
-            conversation: components["schemas"]["ChatConversation"];
-            message: string;
-            refMessageId?: string | null;
-            extMentions?: string[] | null;
-            extDeleteAfterRead?: boolean | null;
-            extScheduled?: string | null;
-        };
-        CreateMessage: {
-            conversation: components["schemas"]["ChatConversation"];
-            messageType: string;
-            content: {
-                text?: string | null;
-                binary?: string | null;
-            };
-            refMessageId?: string | null;
-            extMentions?: string[] | null;
-            extDeleteAfterRead?: boolean | null;
-            extScheduled?: string | null;
-        };
-        MessageBody: {
-            conversation: components["schemas"]["ChatConversation"];
-            messageId: string;
-            messageType: string;
-            messageBodyType: string;
-            content: {
-                text?: string | null;
-                binary?: string | null;
-            };
-            refMessageId?: string | null;
-        };
-        JoinRoomState: "OK" | "Pending" | "Failed";
-        JoinRoomResult: {
-            room: string;
-            state: components["schemas"]["JoinRoomState"];
-            message: string;
-        };
-        JoinRoomRequest: {
-            userId: string;
-            message: string;
-        };
-        JoinRoomOperationEnum: "Approve" | "Deny" | "Block";
-        JoinRoomOperation: {
-            room: string;
-            userId: string;
-            operation: components["schemas"]["JoinRoomOperationEnum"];
-        };
-        RoomMember: {
-            userId: string;
-            role: string;
-        };
-        RoomMemberOperationEnum: "Add" | "Delete" | "Update";
-        RoomMemberOperation: {
-            operation: components["schemas"]["RoomMemberOperationEnum"];
-            member: components["schemas"]["RoomMember"];
-        };
-        RoomMemberOperationType: "Add" | "Delete";
-        ManageRoomMemberRequest: {
-            roomId: string;
-            operation: components["schemas"]["RoomMemberOperationType"];
-            userId: string;
-        };
-        SendMessageResponse: {
-            id: string;
-        };
-    };
 }
 
 // @public
@@ -355,26 +90,31 @@ export interface ListRoomMessagesOptions extends OperationOptions {
     startId?: string;
 }
 
-// @public (undocumented)
-export type MessageInfo = Schemas["MessageInfo"];
+// @public
+export interface MessageInfo {
+    bodyType?: string;
+    content: {
+        text?: string | null;
+        binary?: string | null;
+    };
+    createdAt?: string;
+    createdBy?: string;
+    messageBodyType: string;
+    messageId: string;
+    refMessageId?: string | null;
+}
 
 // @public
 export interface OnMemberJoinedArgs {
-    // (undocumented)
     roomId: string;
-    // (undocumented)
     title: string;
-    // (undocumented)
     userId: string;
 }
 
 // @public
 export interface OnMemberLeftArgs {
-    // (undocumented)
     roomId: string;
-    // (undocumented)
     title: string;
-    // (undocumented)
     userId: string;
 }
 
@@ -386,15 +126,12 @@ export interface OnMessageArgs {
 
 // @public
 export interface OnRoomJoinedArgs {
-    // (undocumented)
     room: RoomInfo;
 }
 
 // @public
 export interface OnRoomLeftArgs {
-    // (undocumented)
     roomId: string;
-    // (undocumented)
     title: string;
 }
 
@@ -416,14 +153,17 @@ export interface OperationOptions {
 export interface RemoveUserFromRoomOptions extends OperationOptions {
 }
 
-// @public (undocumented)
-export type RoomInfo = Schemas["RoomInfo"];
+// @public
+export interface RoomInfo {
+    properties?: Record<string, never> | null;
+    roomId: string;
+    title: string;
+}
 
-// @public (undocumented)
-export type RoomInfoWithMembers = Schemas["RoomInfoWithMembers"];
-
-// @public (undocumented)
-export type Schemas = components["schemas"];
+// @public
+export interface RoomInfoWithMembers extends RoomInfo {
+    members: string[];
+}
 
 // @public
 export interface SendToRoomOptions extends OperationOptions {
@@ -433,8 +173,11 @@ export interface SendToRoomOptions extends OperationOptions {
 export interface StartOptions extends OperationOptions {
 }
 
-// @public (undocumented)
-export type UserProfile = Schemas["UserProfile"];
+// @public
+export interface UserProfile {
+    roomIds?: string[];
+    userId: string;
+}
 
 // (No @packageDocumentation comment for this package)
 
