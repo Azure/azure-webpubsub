@@ -8,7 +8,6 @@ import type { AbortSignalLike } from '@azure/abort-controller';
 import { PagedAsyncIterableIterator } from '@azure/core-paging';
 import { WebPubSubClient } from '@azure/web-pubsub-client';
 import { WebPubSubClientCredential } from '@azure/web-pubsub-client';
-import { WebPubSubClientOptions } from '@azure/web-pubsub-client';
 
 // @public
 export interface AddUserToRoomOptions extends OperationOptions {
@@ -16,9 +15,10 @@ export interface AddUserToRoomOptions extends OperationOptions {
 
 // @public
 export class ChatClient {
-    constructor(wpsClient: WebPubSubClient);
+    constructor(credential: string | WebPubSubClientCredential);
+    // @internal
+    constructor(connection: WebPubSubClient);
     addUserToRoom(roomId: string, userId: string, options?: AddUserToRoomOptions): Promise<void>;
-    readonly connection: WebPubSubClient;
     createRoom(title: string, members: string[], options?: CreateRoomOptions): Promise<RoomDetail>;
     getRoomDetail(roomId: string, options?: GetRoomDetailOptions): Promise<RoomDetail>;
     getUserProfile(userId: string, options?: GetUserProfileOptions): Promise<UserProfile>;
@@ -41,9 +41,7 @@ export class ChatClient {
     removeUserFromRoom(roomId: string, userId: string, options?: RemoveUserFromRoomOptions): Promise<void>;
     get rooms(): RoomInfo[];
     sendToRoom(roomId: string, message: string, options?: SendToRoomOptions): Promise<string>;
-    static start(clientAccessUrl: string, webPubSubClientOptions?: WebPubSubClientOptions, options?: StartOptions): Promise<ChatClient>;
-    static start(credential: WebPubSubClientCredential, webPubSubClientOptions?: WebPubSubClientOptions, options?: StartOptions): Promise<ChatClient>;
-    static start(wpsClient: WebPubSubClient, options?: StartOptions): Promise<ChatClient>;
+    static start(credential: string | WebPubSubClientCredential, options?: StartOptions): Promise<ChatClient>;
     start(options?: StartOptions): Promise<void>;
     stop(): Promise<void>;
     get userId(): string;

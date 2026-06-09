@@ -1,4 +1,4 @@
-import { InvocationError, WebPubSubClient, WebPubSubClientCredential, WebPubSubClientOptions, WebPubSubDataType } from "@azure/web-pubsub-client";
+import { InvocationError, WebPubSubClient, WebPubSubClientCredential, WebPubSubDataType } from "@azure/web-pubsub-client";
 import { getPagedAsyncIterator, type PagedAsyncIterableIterator, type PageSettings } from "@azure/core-paging";
 import { EventEmitter } from "events";
 import {
@@ -98,14 +98,8 @@ class PromiseCompletionSource {
  * ```
  */
 class ChatClient {
-  /**
-   * The underlying `WebPubSubClient` transport. Use it to subscribe to
-   * connection-lifecycle events (`connected`, `disconnected`, `stopped`)
-   * via `connection.on(...)`. Prefer the `ChatClient` methods over driving
-   * the connection directly, since bypassing them can desynchronize chat
-   * state.
-   */
-  public readonly connection: WebPubSubClient;
+  /** The underlying transport. Private — `ChatClient` builds and owns it. */
+  private readonly _connection: WebPubSubClient;
 
   private readonly _emitter = new EventEmitter();
   private readonly _rooms = new Map<string, WireRoomInfo>();
@@ -118,27 +112,35 @@ class ChatClient {
   private _isConnectionStopping = false;
 
   /**
-   * Create a `ChatClient` that wraps an existing `WebPubSubClient`.
+   * Create a `ChatClient` from a client-access URL or a
+   * {@link WebPubSubClientCredential}.
    *
-   * `ChatClient` owns the transport's lifecycle: `start()` starts it
-   * and `stop()` stops it. The chat client is constructed but not
-   * started; call `start()` to authenticate, or use the static
-   * `ChatClient.start(...)` factory to construct-and-start in one step.
+   * `ChatClient` builds and owns the underlying transport: `start()`
+   * connects and authenticates, `stop()` disconnects. The instance is
+   * created but not started — call `start()`, or use the static
+   * {@link ChatClient.start} factory to construct-and-start in one step.
    *
-   * To construct from a client-access URL or `WebPubSubClientCredential`,
-   * use the corresponding `ChatClient.start(...)` overload — it builds
-   * the underlying `WebPubSubClient` and starts the chat client
-   * atomically, so callers never observe a half-constructed instance.
+   * @param credential - A client-access URL, or a
+   *   `WebPubSubClientCredential` that returns one.
    */
-  constructor(wpsClient: WebPubSubClient) {
-    this.connection = wpsClient;
-    this.connection.on("group-message", (e) => {
+  constructor(credential: string | WebPubSubClientCredential);
+  /** @internal Construct from a pre-built connection. Test seam; not part of the public API. */
+  constructor(connection: WebPubSubClient);
+  constructor(credentialOrConnection: string | WebPubSubClientCredential | WebPubSubClient) {
+    if (isWebPubSubClient(credentialOrConnection)) {
+      this._connection = credentialOrConnection;
+    } else if (typeof credentialOrConnection === "string") {
+      this._connection = new WebPubSubClient(credentialOrConnection);
+    } else {
+      this._connection = new WebPubSubClient(credentialOrConnection);
+    }
+    this._connection.on("group-message", (e) => {
       this._handleNotification(e.message.data as Notification);
     });
-    this.connection.on("server-message", (e) => {
+    this._connection.on("server-message", (e) => {
       this._handleNotification(e.message.data as Notification);
     });
-    this.connection.on("stopped", () => {
+    this._connection.on("stopped", () => {
       this._connectionStoppedTCS?.setResult();
       this._connectionStoppedTCS = undefined;
       this._isConnectionStopping = false;
@@ -225,7 +227,7 @@ class ChatClient {
   ): Promise<T> {
     logger.verbose(`invoke event: '${eventName}', dataType: ${dataType}, payload:`, payload);
     try {
-      const rawResponse = await this.connection.invokeEvent(eventName, payload, dataType, {
+      const rawResponse = await this._connection.invokeEvent(eventName, payload, dataType, {
         abortSignal: options?.abortSignal,
       });
       logger.verbose(`invoke response for '${eventName}':`, rawResponse);
@@ -244,70 +246,23 @@ class ChatClient {
   }
 
   /**
-   * Create a chat client and `start()` it in one step.
+   * Create a `ChatClient` and `start()` it in one step.
    *
-   * Construction options for the underlying transport and the cancellation
-   * token for the start operation are kept as **separate parameters** so
-   * they never collide at the type level. `webPubSubClientOptions` is the
-   * full `WebPubSubClientOptions` bag (`protocol`, `autoReconnect`,
-   * `reconnectRetryOptions`, keep-alive intervals, ...). `options` is the
-   * same {@link StartOptions} the instance `start()` accepts.
+   * @param credential - A client-access URL, or a
+   *   `WebPubSubClientCredential` that returns one.
+   * @param options - Optional cancellation token for the start operation.
    *
+   * @example
    * ```ts
-   * // Most callers only need the URL.
-   * const chat = await ChatClient.start(url);
-   *
-   * // Customise the transport, then start.
-   * const chat = await ChatClient.start(
-   *   url,
-   *   { autoReconnect: false, reconnectRetryOptions: { maxRetries: 5 } },
-   *   { abortSignal },
-   * );
-   *
-   * // Already have a WebPubSubClient? Hand it in directly.
-   * const chat = await ChatClient.start(wpsClient, { abortSignal });
+   * const chat = await ChatClient.start(clientAccessUrl);
    * ```
-   *
-   * Why two parameters instead of an intersection? `WebPubSubClientOptions`
-   * ships from a separate package (`@azure/web-pubsub-client`) on its own
-   * release cadence, so intersecting it with our `StartOptions` would be
-   * fragile against upstream field additions (most obviously `abortSignal`).
-   * Keeping the two bags positional preserves the full set of
-   * construction knobs without exposing the intersection.
    */
   public static async start(
-    clientAccessUrl: string,
-    webPubSubClientOptions?: WebPubSubClientOptions,
+    credential: string | WebPubSubClientCredential,
     options?: StartOptions,
-  ): Promise<ChatClient>;
-  /** Build the underlying `WebPubSubClient` from a credential, then start. See the primary overload for details. */
-  public static async start(
-    credential: WebPubSubClientCredential,
-    webPubSubClientOptions?: WebPubSubClientOptions,
-    options?: StartOptions,
-  ): Promise<ChatClient>;
-  /** Start using an already-constructed `WebPubSubClient`. See the primary overload for details. */
-  public static async start(wpsClient: WebPubSubClient, options?: StartOptions): Promise<ChatClient>;
-  public static async start(
-    arg1: string | WebPubSubClientCredential | WebPubSubClient,
-    arg2?: WebPubSubClientOptions | StartOptions,
-    arg3?: StartOptions,
   ): Promise<ChatClient> {
-    let chatClient: ChatClient;
-    let startOptions: StartOptions | undefined;
-    if (isWebPubSubClient(arg1)) {
-      chatClient = new ChatClient(arg1);
-      startOptions = arg2 as StartOptions | undefined;
-    } else if (typeof arg1 === "string") {
-      const wpsClient = new WebPubSubClient(arg1, arg2 as WebPubSubClientOptions | undefined);
-      chatClient = new ChatClient(wpsClient);
-      startOptions = arg3;
-    } else {
-      const wpsClient = new WebPubSubClient(arg1, arg2 as WebPubSubClientOptions | undefined);
-      chatClient = new ChatClient(wpsClient);
-      startOptions = arg3;
-    }
-    await chatClient.start({ abortSignal: startOptions?.abortSignal });
+    const chatClient = new ChatClient(credential);
+    await chatClient.start({ abortSignal: options?.abortSignal });
     return chatClient;
   }
 
@@ -348,7 +303,7 @@ class ChatClient {
   private async startCore(options?: StartOptions): Promise<void> {
     this.resetState();
     try {
-      await this.connection.start({ abortSignal: options?.abortSignal });
+      await this._connection.start({ abortSignal: options?.abortSignal });
       this._connectionStoppedTCS = new PromiseCompletionSource();
       this._isConnectionStopping = false;
 
@@ -779,7 +734,7 @@ class ChatClient {
     if (!this._isConnectionStopping) {
       this._isConnectionStopping = true;
       try {
-        this.connection.stop();
+        this._connection.stop();
       } catch (err) {
         this._isConnectionStopping = false;
         throw err;

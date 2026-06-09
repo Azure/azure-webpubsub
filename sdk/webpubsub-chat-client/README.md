@@ -20,12 +20,11 @@ import { ChatClient } from '@azure/web-pubsub-chat-client';
 // Get client access URL from your server
 const url = await fetch('/negotiate?userId=alice').then(r => r.json()).then(d => d.url);
 
-// Option 1: Start with an existing WebPubSubClient
-const wpsClient = new WebPubSubClient(url);
-const client = await ChatClient.start(wpsClient);
+// Start directly with a client access URL...
+const client = await ChatClient.start(url);
 
-// Option 2: Start directly with URL
-// const client = await ChatClient.start(url);
+// ...or with a credential (a callback that returns a client access URL):
+// const client = await ChatClient.start({ getClientAccessUrl: async () => url });
 
 console.log(`Started as: ${client.userId}`);
 
@@ -63,20 +62,16 @@ await client.stop();
 #### Constructor
 
 ```typescript
-new ChatClient(wpsClient: WebPubSubClient)
+new ChatClient(credential: string | WebPubSubClientCredential)
 ```
 
-`ChatClient` always wraps a pre-constructed `WebPubSubClient` and owns its lifecycle: `start()` starts the transport, `stop()` stops it.
-
-To construct from a client-access URL or `WebPubSubClientCredential`, use the static `ChatClient.start(...)` factory below — it builds the underlying `WebPubSubClient` and starts the chat client atomically, so callers never observe a half-constructed instance.
+`ChatClient` is constructed from a client-access URL or a `WebPubSubClientCredential`. It builds and owns the underlying transport: `start()` connects and authenticates, `stop()` disconnects. The instance is constructed but not started — call `start()`, or use the static `ChatClient.start(...)` factory below to construct-and-start in one step.
 
 #### Static Methods
 
 | Method | Description |
 |--------|-------------|
-| `ChatClient.start(clientAccessUrl, webPubSubClientOptions?, options?)` | Construct from a URL and start (`webPubSubClientOptions?: WebPubSubClientOptions`, `options?: StartOptions`) |
-| `ChatClient.start(credential, webPubSubClientOptions?, options?)` | Construct from a credential and start (same option shape as above) |
-| `ChatClient.start(wpsClient, options?)` | Start a pre-constructed `WebPubSubClient` (`options?: StartOptions`) |
+| `ChatClient.start(credential, options?)` | Construct from a client-access URL or `WebPubSubClientCredential` and start (`options?: StartOptions`) |
 
 #### Properties
 
@@ -84,7 +79,6 @@ To construct from a client-access URL or `WebPubSubClientCredential`, use the st
 |----------|------|-------------|
 | `userId` | `string` | Current user's ID (throws if not started). Read-only — set internally on `start()`. |
 | `rooms` | `RoomInfo[]` | Snapshot of currently joined rooms (not live-updated) |
-| `connection` | `WebPubSubClient` | Underlying WebPubSub connection owned by this chat client |
 
 #### Methods
 
@@ -166,14 +160,10 @@ client.off('message', onMsg);
 | `member-joined` | `OnMemberJoinedArgs` | Another user joined a room this client is in. |
 | `member-left` | `OnMemberLeftArgs` | Another user left a room this client is in. |
 
-Connection-lifecycle events (`connected`, `disconnected`, `stopped`) live
-on the underlying `WebPubSubClient`. Subscribe through `client.connection`:
-
-```ts
-client.connection.on('connected', (e) => console.log('connected', e));
-client.connection.on('disconnected', (e) => console.log('disconnected', e));
-client.connection.on('stopped', () => console.log('stopped'));
-```
+The underlying connection is managed internally and is not exposed. Use the
+chat-level `started` / `stopped` events for lifecycle notifications;
+lower-level connection events (`connected`, `disconnected`) are not
+currently surfaced.
 
 ## Examples
 
