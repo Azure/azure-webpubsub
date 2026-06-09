@@ -7,63 +7,60 @@ import type { MessageInfo, RoomInfo } from "./generatedTypes.js";
  */
 export interface ChatMessage extends MessageInfo {}
 
-/** Payload of the `"message"` event. */
-export interface MessageEvent {
-  /** Conversation the message belongs to. */
-  conversationId: string;
-  /** Room id when the conversation is room-scoped; otherwise undefined. */
-  roomId?: string;
-  /** The message. */
-  message: ChatMessage;
-}
-
-/** Payload of the `"roomJoined"` event. Fired when the current client joins a room. */
-export interface RoomJoinedEvent {
-  room: RoomInfo;
-}
-
-/** Payload of the `"roomLeft"` event. Fired when the current client leaves a room. */
-export interface RoomLeftEvent {
-  roomId: string;
-  title: string;
-}
-
-/** Payload of the `"memberJoined"` event. Fired when another user joins a room this client is in. */
-export interface MemberJoinedEvent {
-  roomId: string;
-  title: string;
-  userId: string;
-}
-
-/** Payload of the `"memberLeft"` event. Fired when another user leaves a room this client is in. */
-export interface MemberLeftEvent {
-  roomId: string;
-  title: string;
+/**
+ * Argument of the `"started"` event listener. Fired after `start()`
+ * completes successfully — the underlying connection is open, chat-
+ * domain login has resolved, and `client.userId` / `client.rooms` are
+ * populated. Mirrors the `On<Event>Args` shape used by the underlying
+ * `WebPubSubClient` (e.g. `OnConnectedArgs`).
+ */
+export interface OnStartedArgs {
+  /** The chat-domain identity of this client. Equivalent to `client.userId`. */
   userId: string;
 }
 
 /**
- * Map of all chat-domain `ChatClient` events to their payload types.
- *
- * Connection-lifecycle events (`connected`, `disconnected`, `stopped`)
- * live on the underlying transport and are subscribed via
- * `chatClient.connection.on("connected", ...)` etc.
- *
- * Used by the generic `ChatClient.on` / `ChatClient.off` overloads for
- * type narrowing. Convenience methods (`onMessage`, `onRoomJoined`, ...)
- * are thin wrappers over `on(...)` and accept the corresponding payload
- * type.
+ * Argument of the `"stopped"` event listener. Fired when the chat
+ * client transitions from started to not-started — either because
+ * `stop()` was called or the underlying connection terminated. Empty
+ * payload (reserved for future fields), matching upstream
+ * `WebPubSubClient.OnStoppedArgs`.
  */
-export interface ChatEventMap {
-  message: MessageEvent;
-  roomJoined: RoomJoinedEvent;
-  roomLeft: RoomLeftEvent;
-  memberJoined: MemberJoinedEvent;
-  memberLeft: MemberLeftEvent;
+export interface OnStoppedArgs {}
+
+/**
+ * Argument of the `"message"` event listener. Naming mirrors the
+ * `On<Event>Args` convention used by the underlying `WebPubSubClient`
+ * (e.g. `OnGroupDataMessageArgs`).
+ */
+export interface OnMessageArgs {
+  /** Room the message belongs to. */
+  roomId: string;
+  /** The message. */
+  message: ChatMessage;
 }
 
-export type ChatEventName = keyof ChatEventMap;
-export type ChatEventListener<K extends ChatEventName> = (event: ChatEventMap[K]) => void;
+/** Argument of the `"room-joined"` event listener. Fired when the current client joins a room. */
+export interface OnRoomJoinedArgs {
+  room: RoomInfo;
+}
 
-/** Returned from listener registrations. Call to remove the listener. */
-export type Disposable = () => void;
+/** Argument of the `"room-left"` event listener. Fired when the current client leaves a room. */
+export interface OnRoomLeftArgs {
+  roomId: string;
+  title: string;
+}
+
+/** Argument of the `"member-joined"` event listener. Fired when another user joins a room this client is in. */
+export interface OnMemberJoinedArgs {
+  roomId: string;
+  title: string;
+  userId: string;
+}
+
+/** Argument of the `"member-left"` event listener. Fired when another user leaves a room this client is in. */
+export interface OnMemberLeftArgs {
+  roomId: string;
+  title: string;
+  userId: string;
+}

@@ -6,6 +6,13 @@ import { ChatClient } from "../src/chatClient.js";
 import { INVOCATION_NAME } from "../src/constant.js";
 import type { RoomInfoWithMembers, UserProfile } from "../src/generatedTypes.js";
 
+/**
+ * `_isStarted` is private; accessor used by tests to assert the post-login
+ * state-machine flag without re-exposing it on the public surface.
+ */
+const isStarted = (client: ChatClient): boolean =>
+  (client as unknown as { _isStarted: boolean })._isStarted;
+
 class Deferred<T> {
   public promise: Promise<T>;
   public resolve!: (value: T | PromiseLike<T>) => void;
@@ -124,7 +131,7 @@ test("stop before start is a no-op", async () => {
 
   await client.stop();
 
-  assert.equal(client.isStarted, false);
+  assert.equal(isStarted(client), false);
   assert.equal(fakeClient.stopCalls, 0);
 });
 
@@ -148,13 +155,13 @@ test("concurrent start calls wait for room hydration", async () => {
   });
   await Promise.resolve();
 
-  assert.equal(client.isStarted, false, "client should not be marked started until room hydration completes");
+  assert.equal(isStarted(client), false, "client should not be marked started until room hydration completes");
   assert.equal(secondStartResolved, false, "second start should wait for the in-flight start promise");
 
   fakeClient.getRoomDelay.resolve();
   await Promise.all([firstStart, secondStart]);
 
-  assert.equal(client.isStarted, true);
+  assert.equal(isStarted(client), true);
   assert.deepEqual(client.rooms.map((roomInfo) => roomInfo.roomId), ["room1"]);
   assert.equal(fakeClient.startCalls, 1);
 });
@@ -167,7 +174,7 @@ test("failed start rolls back chat state and stops the connection", async () => 
 
   await assert.rejects(client.start(), /get room failed/);
 
-  assert.equal(client.isStarted, false);
+  assert.equal(isStarted(client), false);
   assert.throws(() => client.userId, /start\(\)/);
   assert.deepEqual(client.rooms, []);
   assert.equal(fakeClient.stopCalls, 1);
@@ -195,7 +202,7 @@ test("stop waits for stopped event before allowing restart", async () => {
   await Promise.all([stopPromise, restartPromise]);
 
   assert.equal(stopResolved, true);
-  assert.equal(client.isStarted, true);
+  assert.equal(isStarted(client), true);
   assert.equal(fakeClient.startCalls, 2);
   assert.equal(fakeClient.stopCalls, 1);
 });
@@ -225,7 +232,7 @@ test("concurrent stop calls wait for the same stopped event", async () => {
 
   assert.equal(firstStopResolved, true);
   assert.equal(secondStopResolved, true);
-  assert.equal(client.isStarted, false);
+  assert.equal(isStarted(client), false);
 });
 
 test("concurrent start calls during stop share a single restart", async () => {
@@ -246,7 +253,49 @@ test("concurrent start calls during stop share a single restart", async () => {
   fakeClient.stopDelay.resolve();
   await Promise.all([stopPromise, firstRestart, secondRestart]);
 
-  assert.equal(client.isStarted, true);
+  assert.equal(isStarted(client), true);
   assert.equal(fakeClient.startCalls, 2, "restart should call connection.start() exactly once");
   assert.equal(fakeClient.stopCalls, 1);
+});
+
+test("started event fires once after start() completes with userId payload", async () => {
+  const fakeClient = new FakeWebPubSubClient();
+  fakeClient.loginResponse = { userId: "alice", roomIds: [], conversationIds: [] };
+  const client = createClient(fakeClient);
+
+  const startedEvents: Array<{ userId: string }> = [];
+  client.on("started", (e) => startedEvents.push(e));
+
+  await client.start();
+  assert.equal(startedEvents.length, 1, "started should fire exactly once on successful start");
+  assert.deepEqual(startedEvents[0], { userId: "alice" }, "started payload should carry the chat-domain userId");
+  assert.equal(client.userId, "alice", "userId getter should be live by the time started fires");
+
+  // Re-starting an already-started client must not re-emit.
+  await client.start();
+  assert.equal(startedEvents.length, 1, "started should not fire when start() is a no-op on an already-started client");
+});
+
+test("stopped event fires on started→not-started transitions only", async () => {
+  const fakeClient = new FakeWebPubSubClient();
+  const client = createClient(fakeClient);
+
+  const stoppedEvents: unknown[] = [];
+  client.on("stopped", (e) => stoppedEvents.push(e));
+
+  // stop() before start() must not emit (no transition).
+  await client.stop();
+  assert.equal(stoppedEvents.length, 0, "stopped should not fire when stop() runs on a never-started client");
+
+  // start → stop fires exactly once.
+  await client.start();
+  await client.stop();
+  assert.equal(stoppedEvents.length, 1, "stopped should fire exactly once per explicit stop()");
+
+  // restart → network-driven stop also fires once.
+  await client.start();
+  fakeClient.stop();
+  // Allow the queued microtask that emits the underlying "stopped" to flush.
+  await new Promise((resolve) => setTimeout(resolve, 0));
+  assert.equal(stoppedEvents.length, 2, "stopped should fire when the transport terminates after a successful start");
 });

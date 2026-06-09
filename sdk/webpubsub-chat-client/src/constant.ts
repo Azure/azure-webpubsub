@@ -11,9 +11,12 @@ const INVOCATION_NAME = {
 } as const;
 
 const ERRORS = {
-    ROOM_ALREADY_EXISTS: "RoomAlreadyExists",
-    USER_ALREADY_IN_ROOM: "UserAlreadyInRoom",
-    NO_PERMISSION_IN_ROOM: "NoPermissionInRoom",
+    RoomAlreadyExists: "RoomAlreadyExists",
+    UserAlreadyInRoom: "UserAlreadyInRoom",
+    NoPermissionInRoom: "NoPermissionInRoom",
+    NotStarted: "NotStarted",
+    UnknownRoom: "UnknownRoom",
+    InvalidServerResponse: "InvalidServerResponse",
 } as const;
 
 export { INVOCATION_NAME, ERRORS };

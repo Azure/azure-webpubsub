@@ -5,3 +5,6 @@ tsconfig.tsbuildinfo
 .env
 .yarn
 *.tgz
+# api-extractor working directory
+temp
+package-lock.json
