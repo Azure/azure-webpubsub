@@ -112,28 +112,24 @@ class ChatClient {
   private _isConnectionStopping = false;
 
   /**
-   * Create a `ChatClient` from a client-access URL or a
-   * {@link WebPubSubClientCredential}.
+   * Create a `ChatClient` from a {@link WebPubSubClientCredential}.
    *
    * `ChatClient` builds and owns the underlying transport: `start()`
    * connects and authenticates, `stop()` disconnects. The instance is
    * created but not started — call `start()`, or use the static
-   * {@link ChatClient.start} factory to construct-and-start in one step.
+   * {@link ChatClient.start} factory (which also accepts a plain
+   * client-access URL) to construct-and-start in one step.
    *
-   * @param credential - A client-access URL, or a
-   *   `WebPubSubClientCredential` that returns one.
+   * @param credential - A `WebPubSubClientCredential` that yields a
+   *   client-access URL.
    */
-  constructor(credential: string | WebPubSubClientCredential);
-  /** @internal Construct from a pre-built connection. Test seam; not part of the public API. */
-  constructor(connection: WebPubSubClient);
-  constructor(credentialOrConnection: string | WebPubSubClientCredential | WebPubSubClient) {
-    if (isWebPubSubClient(credentialOrConnection)) {
-      this._connection = credentialOrConnection;
-    } else if (typeof credentialOrConnection === "string") {
-      this._connection = new WebPubSubClient(credentialOrConnection);
-    } else {
-      this._connection = new WebPubSubClient(credentialOrConnection);
-    }
+  constructor(credential: WebPubSubClientCredential);
+  // Implementation also accepts a pre-built connection (test seam); this is
+  // not a public overload, so it does not appear in the public API surface.
+  constructor(credentialOrConnection: WebPubSubClientCredential | WebPubSubClient) {
+    this._connection = isWebPubSubClient(credentialOrConnection)
+      ? credentialOrConnection
+      : new WebPubSubClient(credentialOrConnection);
     this._connection.on("group-message", (e) => {
       this._handleNotification(e.message.data as Notification);
     });
@@ -248,8 +244,7 @@ class ChatClient {
   /**
    * Create a `ChatClient` and `start()` it in one step.
    *
-   * @param credential - A client-access URL, or a
-   *   `WebPubSubClientCredential` that returns one.
+   * @param clientAccessUrl - A client-access URL.
    * @param options - Optional cancellation token for the start operation.
    *
    * @example
@@ -257,10 +252,23 @@ class ChatClient {
    * const chat = await ChatClient.start(clientAccessUrl);
    * ```
    */
+  public static async start(clientAccessUrl: string, options?: StartOptions): Promise<ChatClient>;
+  /**
+   * Create a `ChatClient` and `start()` it in one step.
+   *
+   * @param credential - A `WebPubSubClientCredential` that yields a
+   *   client-access URL.
+   * @param options - Optional cancellation token for the start operation.
+   */
+  public static async start(credential: WebPubSubClientCredential, options?: StartOptions): Promise<ChatClient>;
   public static async start(
-    credential: string | WebPubSubClientCredential,
+    clientAccessUrlOrCredential: string | WebPubSubClientCredential,
     options?: StartOptions,
   ): Promise<ChatClient> {
+    const credential: WebPubSubClientCredential =
+      typeof clientAccessUrlOrCredential === "string"
+        ? { getClientAccessUrl: async () => clientAccessUrlOrCredential }
+        : clientAccessUrlOrCredential;
     const chatClient = new ChatClient(credential);
     await chatClient.start({ abortSignal: options?.abortSignal });
     return chatClient;

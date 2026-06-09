@@ -6,7 +6,6 @@
 
 import type { AbortSignalLike } from '@azure/abort-controller';
 import { PagedAsyncIterableIterator } from '@azure/core-paging';
-import { WebPubSubClient } from '@azure/web-pubsub-client';
 import { WebPubSubClientCredential } from '@azure/web-pubsub-client';
 
 // @public
@@ -15,9 +14,7 @@ export interface AddUserToRoomOptions extends OperationOptions {
 
 // @public
 export class ChatClient {
-    constructor(credential: string | WebPubSubClientCredential);
-    // @internal
-    constructor(connection: WebPubSubClient);
+    constructor(credential: WebPubSubClientCredential);
     addUserToRoom(roomId: string, userId: string, options?: AddUserToRoomOptions): Promise<void>;
     createRoom(title: string, members: string[], options?: CreateRoomOptions): Promise<RoomDetail>;
     getRoomDetail(roomId: string, options?: GetRoomDetailOptions): Promise<RoomDetail>;
@@ -41,7 +38,8 @@ export class ChatClient {
     removeUserFromRoom(roomId: string, userId: string, options?: RemoveUserFromRoomOptions): Promise<void>;
     get rooms(): RoomInfo[];
     sendToRoom(roomId: string, message: string, options?: SendToRoomOptions): Promise<string>;
-    static start(credential: string | WebPubSubClientCredential, options?: StartOptions): Promise<ChatClient>;
+    static start(clientAccessUrl: string, options?: StartOptions): Promise<ChatClient>;
+    static start(credential: WebPubSubClientCredential, options?: StartOptions): Promise<ChatClient>;
     start(options?: StartOptions): Promise<void>;
     stop(): Promise<void>;
     get userId(): string;

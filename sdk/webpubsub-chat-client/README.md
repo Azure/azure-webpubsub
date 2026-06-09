@@ -62,16 +62,17 @@ await client.stop();
 #### Constructor
 
 ```typescript
-new ChatClient(credential: string | WebPubSubClientCredential)
+new ChatClient(credential: WebPubSubClientCredential)
 ```
 
-`ChatClient` is constructed from a client-access URL or a `WebPubSubClientCredential`. It builds and owns the underlying transport: `start()` connects and authenticates, `stop()` disconnects. The instance is constructed but not started — call `start()`, or use the static `ChatClient.start(...)` factory below to construct-and-start in one step.
+`ChatClient` is constructed from a `WebPubSubClientCredential`. It builds and owns the underlying transport: `start()` connects and authenticates, `stop()` disconnects. The instance is constructed but not started — call `start()`, or use the static `ChatClient.start(...)` factory below (which also accepts a plain client-access URL) to construct-and-start in one step.
 
 #### Static Methods
 
 | Method | Description |
 |--------|-------------|
-| `ChatClient.start(credential, options?)` | Construct from a client-access URL or `WebPubSubClientCredential` and start (`options?: StartOptions`) |
+| `ChatClient.start(clientAccessUrl, options?)` | Construct from a client-access URL and start (`options?: StartOptions`) |
+| `ChatClient.start(credential, options?)` | Construct from a `WebPubSubClientCredential` and start (`options?: StartOptions`) |
 
 #### Properties
 
