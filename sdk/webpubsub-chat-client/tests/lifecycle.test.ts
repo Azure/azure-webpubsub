@@ -1,7 +1,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { EventEmitter } from "node:events";
-import type { WebPubSubClient, WebPubSubDataType } from "@azure/web-pubsub-client";
+import type { WebPubSubClientCredential, WebPubSubDataType } from "@azure/web-pubsub-client";
 import { ChatClient } from "../src/chatClient.js";
 import { INVOCATION_NAME } from "../src/constant.js";
 import type { RoomInfoWithMembers, UserProfile } from "../src/generatedTypes.js";
@@ -122,7 +122,7 @@ class FakeWebPubSubClient {
 }
 
 function createClient(fakeClient: FakeWebPubSubClient): ChatClient {
-  return new ChatClient(fakeClient as unknown as WebPubSubClient);
+  return new ChatClient(fakeClient as unknown as WebPubSubClientCredential);
 }
 
 test("stop before start is a no-op", async () => {

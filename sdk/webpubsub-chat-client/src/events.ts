@@ -1,4 +1,4 @@
-import type { MessageInfo, RoomInfo } from "./generatedTypes.js";
+import type { MessageInfo, RoomInfo } from "./models.js";
 
 /**
  * A chat message payload. Extends the wire `MessageInfo` so existing
@@ -42,25 +42,34 @@ export interface OnMessageArgs {
 
 /** Argument of the `"room-joined"` event listener. Fired when the current client joins a room. */
 export interface OnRoomJoinedArgs {
+  /** The room that was joined. */
   room: RoomInfo;
 }
 
 /** Argument of the `"room-left"` event listener. Fired when the current client leaves a room. */
 export interface OnRoomLeftArgs {
+  /** Id of the room that was left. */
   roomId: string;
+  /** Title of the room that was left. */
   title: string;
 }
 
 /** Argument of the `"member-joined"` event listener. Fired when another user joins a room this client is in. */
 export interface OnMemberJoinedArgs {
+  /** Id of the room the member joined. */
   roomId: string;
+  /** Title of the room the member joined. */
   title: string;
+  /** Id of the user who joined. */
   userId: string;
 }
 
 /** Argument of the `"member-left"` event listener. Fired when another user leaves a room this client is in. */
 export interface OnMemberLeftArgs {
+  /** Id of the room the member left. */
   roomId: string;
+  /** Title of the room the member left. */
   title: string;
+  /** Id of the user who left. */
   userId: string;
 }

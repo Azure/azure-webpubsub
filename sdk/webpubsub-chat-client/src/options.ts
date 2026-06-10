@@ -22,11 +22,10 @@ export interface OperationOptions {
 export interface StartOptions extends OperationOptions {}
 
 /** Options for `ChatClient.getRoomDetail()`. */
-export interface GetRoomOptions extends OperationOptions {
+export interface GetRoomDetailOptions extends OperationOptions {
   /**
-   * When `true`, the returned `RoomInfoWithMembers.members` array is
-   * populated. Defaults to `false`; fetching members is an additional
-   * service round-trip and is skipped unless asked for.
+   * When `true`, the returned {@link RoomDetail}'s `members` array is
+   * populated. Defaults to `false`, leaving `members` undefined.
    */
   withMembers?: boolean;
 }

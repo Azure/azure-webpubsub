@@ -92,7 +92,7 @@ test("same user on two clients still receives remote room messages", { timeout: 
       watcherNotifications.push(notification);
     });
 
-    const sentMsgId = await sender.sendToRoom(createdRoom.roomId, "Hello from sender");
+    const sentMsgId = (await sender.sendToRoom(createdRoom.roomId, "Hello from sender")).messageId;
 
     await waitForCondition(
       () => senderNotifications.some((notification) => notification.message.messageId === sentMsgId),
@@ -137,7 +137,7 @@ test("single client", { timeout: SHORT_TEST_TIMEOUT }, async (t) => {
     assert.equal(created.title, "ut-single-room", "room title should match");
     assert.ok(Array.isArray(created.members), "members should be an array");
     assert.deepEqual(created.members, [chat1.userId], "members should contain only the creator");
-    assert.ok(created.members.includes(chat1.userId), "members should include the creator");
+    assert.ok(created.members?.includes(chat1.userId), "members should include the creator");
 
     const fetched = await chat1.getRoomDetail(created.roomId, { withMembers: true });
     assert.equal(fetched.roomId, created.roomId, "fetched roomId should match created");
@@ -171,7 +171,7 @@ test("create room with multiple users", { timeout: LONG_TEST_TIMEOUT }, async (t
     const createdRoom = await chats[0].createRoom("test-room", [chats[1].userId, chats[2].userId]);
 
     for (let i = 1; i <= 5; i++) {
-      const msgId: string = await chats[0].sendToRoom(createdRoom.roomId, `HelloMessage,#${i}`);
+      const msgId: string = (await chats[0].sendToRoom(createdRoom.roomId, `HelloMessage,#${i}`)).messageId;
       assert.equal(msgId, i.toString(), `sent message id should be ${i} but got ${msgId}`);
     }
 
@@ -243,7 +243,7 @@ test("admin adds multiple users to a group", { timeout: LONG_TEST_TIMEOUT }, asy
 
     // client 0..n-1 send message, should be received by all others
     for (let i = 1; i < chats.length; i++) {
-      const sentMsgId = await chats[i].sendToRoom(createdRoom.roomId, `Hello from chat${i}`);
+      const sentMsgId = (await chats[i].sendToRoom(createdRoom.roomId, `Hello from chat${i}`)).messageId;
       assert.equal(sentMsgId, i.toString(), `sent message id should be ${i} but got ${sentMsgId}`);
     }
 
@@ -256,7 +256,7 @@ test("admin adds multiple users to a group", { timeout: LONG_TEST_TIMEOUT }, asy
     assert.equal(messageReceivedCounts[0], chats.length - 1, `creator should receive ${chats.length - 1} messages`);
 
     // client 0 send message
-    const finalMsgId = await chats[0].sendToRoom(createdRoom.roomId, "final message");
+    const finalMsgId = (await chats[0].sendToRoom(createdRoom.roomId, "final message")).messageId;
     assert.equal(finalMsgId, chats.length.toString(), `sent message id should be ${chats.length} but got ${finalMsgId}`);
 
     // sleep 100ms
@@ -319,7 +319,7 @@ test("self add restores local room cache without RoomJoined event", { timeout: L
 
     assert.equal(chat1.hasJoinedRoom(created.roomId), true, "self add should restore the missing local room cache entry");
     assert.equal(roomJoinedEvents, 0, "self cache restore should not emit a synthetic RoomJoined event");
-    const sentMsgId = await chat1.sendToRoom(created.roomId, "self-add-cache-restored");
+    const sentMsgId = (await chat1.sendToRoom(created.roomId, "self-add-cache-restored")).messageId;
     assert.ok(sentMsgId, "sendToRoom should succeed after the cache is restored");
   } catch (e) {
     t.diagnostic((e as any).toString());
