@@ -91,7 +91,7 @@ new ChatClient(credential: WebPubSubClientCredential)
 | `getRoomDetail(roomId, options?)` | Get the detailed view of a room (`RoomDetail`). Options: `{ withMembers?, abortSignal? }` — pass `withMembers: true` to populate the `members` list (omitted otherwise). |
 | `addUserToRoom(roomId, userId, options?)` | Add user to room (admin operation) |
 | `removeUserFromRoom(roomId, userId, options?)` | Remove user from room (admin operation) |
-| `sendToRoom(roomId, message, options?)` | Send text message to room, returns message ID |
+| `sendToRoom(roomId, message, options?)` | Send text message to room, returns a `SendMessageResult` (`{ messageId }`) |
 | `listRoomMessages(roomId, options?)` | Paged async iterator over room message history (auto-paginates). Use `for await` to stream every message, or `.byPage({ maxPageSize })` to load up to `maxPageSize` messages at a time. `options = { startId?, endId?, maxPageSize?, abortSignal? }` |
 | `getUserProfile(userId, options?)` | Get user profile |
 

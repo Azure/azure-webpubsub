@@ -6,6 +6,7 @@ export type {
   RoomInfo,
   RoomDetail,
   UserProfile,
+  SendMessageResult,
 } from './models.js';
 
 export type {

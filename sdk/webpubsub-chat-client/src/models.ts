@@ -67,3 +67,9 @@ export interface UserProfile {
   /** Ids of rooms the user belongs to. */
   roomIds?: string[];
 }
+
+/** Result of sending a message, returned by `sendToRoom()`. */
+export interface SendMessageResult {
+  /** Service-assigned id of the sent message. */
+  messageId: string;
+}

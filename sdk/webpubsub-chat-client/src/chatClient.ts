@@ -15,7 +15,7 @@ import {
   MemberLeftNotificationBody,
   RoomLeftNotificationBody,
 } from "./generatedTypes.js";
-import type { MessageInfo, RoomInfo, RoomDetail, UserProfile } from "./models.js";
+import type { MessageInfo, RoomInfo, RoomDetail, UserProfile, SendMessageResult } from "./models.js";
 import type {
   ChatMessage,
   OnMemberJoinedArgs,
@@ -85,13 +85,13 @@ class PromiseCompletionSource {
  * underlying connection's lifecycle — call {@link ChatClient.start} to
  * connect and authenticate, and {@link ChatClient.stop} to disconnect.
  *
- * Construct from an existing `WebPubSubClient`, or use the static
- * {@link ChatClient.start} factory to build and start in one step from a
- * client-access URL or `WebPubSubClientCredential`.
+ * Construct from a `WebPubSubClientCredential`, then call `start()` to
+ * connect and authenticate.
  *
  * @example
  * ```ts
- * const client = await ChatClient.start(clientAccessUrl);
+ * const client = new ChatClient(credential);
+ * await client.start();
  * client.on("message", (e) => console.log(e.message.content.text));
  * const room = await client.createRoom("My Room", ["bob"]);
  * await client.sendToRoom(room.roomId, "Hello!");
@@ -116,9 +116,7 @@ class ChatClient {
    *
    * `ChatClient` builds and owns the underlying transport: `start()`
    * connects and authenticates, `stop()` disconnects. The instance is
-   * created but not started — call `start()`, or use the static
-   * {@link ChatClient.start} factory (which also accepts a plain
-   * client-access URL) to construct-and-start in one step.
+   * created but not started — call `start()` to connect.
    *
    * @param credential - A `WebPubSubClientCredential` that yields a
    *   client-access URL.
@@ -374,7 +372,7 @@ class ChatClient {
     conversationId: string,
     message: string,
     options?: OperationOptions,
-  ): Promise<string> {
+  ): Promise<SendMessageResult> {
     this.ensureStarted();
     const payload = {
       conversation: { conversationId: conversationId },
@@ -398,7 +396,7 @@ class ChatClient {
       logger.warning(
         `Failed to find roomId for conversationId ${conversationId} when sending message; skipping local sender-echo emit.`,
       );
-      return msgId;
+      return { messageId: msgId };
     }
     // sender won't receive conversation message via notification mechanism, so emit event here
     const event: OnMessageArgs = {
@@ -414,7 +412,7 @@ class ChatClient {
       } as ChatMessage,
     };
     this._emitter.emit("message", event);
-    return msgId;
+    return { messageId: msgId };
   }
 
   /**
@@ -426,8 +424,9 @@ class ChatClient {
    * @param roomId - Target room.
    * @param message - Message text to send.
    * @param options - Optional `{ abortSignal }`.
+   * @returns A {@link SendMessageResult} with the service-assigned `messageId`.
    */
-  public async sendToRoom(roomId: string, message: string, options?: SendToRoomOptions): Promise<string> {
+  public async sendToRoom(roomId: string, message: string, options?: SendToRoomOptions): Promise<SendMessageResult> {
     this.ensureStarted();
     const conversationId = this._rooms.get(roomId)?.defaultConversationId;
     if (!conversationId) {
@@ -645,9 +644,10 @@ class ChatClient {
    * `off(event, listener)` for removal. Pass the same callback
    * reference to `off()` to unsubscribe.
    *
-   * Connection-lifecycle events (`connected`, `disconnected`, `stopped`)
-   * are not exposed here — subscribe via
-   * `chatClient.connection.on("connected", ...)` etc.
+   * Chat-lifecycle events `started` and `stopped` are exposed here.
+   * Lower-level transport-connection events (`connected`,
+   * `disconnected`) are managed internally and are not exposed on the
+   * public surface.
    *
    * @example
    * ```ts

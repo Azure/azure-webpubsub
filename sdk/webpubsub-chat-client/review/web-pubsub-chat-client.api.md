@@ -37,7 +37,7 @@ export class ChatClient {
     on(event: "member-left", listener: (e: OnMemberLeftArgs) => void): void;
     removeUserFromRoom(roomId: string, userId: string, options?: RemoveUserFromRoomOptions): Promise<void>;
     get rooms(): RoomInfo[];
-    sendToRoom(roomId: string, message: string, options?: SendToRoomOptions): Promise<string>;
+    sendToRoom(roomId: string, message: string, options?: SendToRoomOptions): Promise<SendMessageResult>;
     static start(clientAccessUrl: string, options?: StartOptions): Promise<ChatClient>;
     static start(credential: WebPubSubClientCredential, options?: StartOptions): Promise<ChatClient>;
     start(options?: StartOptions): Promise<void>;
@@ -159,6 +159,11 @@ export interface RoomInfo {
     properties?: Record<string, never> | null;
     roomId: string;
     title: string;
+}
+
+// @public
+export interface SendMessageResult {
+    messageId: string;
 }
 
 // @public
