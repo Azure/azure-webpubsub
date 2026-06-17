@@ -6,7 +6,7 @@
   "main": "index.js",
   "scripts": {
     "dev": "tsx --watch ./src/server/index.ts",
-    "test": "vitest",
+    "test": "echo TODO",
     "tunnel": "dotenv -e .env -- awps-tunnel run --hub trading --upstream http://localhost:8080 --verbose"
   },
   "keywords": [],

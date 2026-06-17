@@ -8,27 +8,28 @@ const getClientAccessUrl = (userId) =>
 
 function setupListeners(client) {
     // chat event listeners
-    client.addListenerForNewRoom((room) => {
+    client.onRoomJoined((event) => {
+        const room = event.room;
         console.log(`[${client.userId}] joined room "${room.title}" (${room.roomId})`);
     });
-    client.addListenerForNewMessage((notification) => {
-        const msg = notification.message;
+    client.onMessage((event) => {
+        const msg = event.message;
         console.log(`[${client.userId}] received message from ${msg.createdBy}: ${msg.content.text}`);
     });
-    client.addListenerForMemberJoined((info) => {
-        console.log(`[${client.userId}] saw ${info.userId} joined room ${info.roomId}`);
+    client.onMemberJoined((event) => {
+        console.log(`[${client.userId}] saw ${event.userId} joined room ${event.roomId}`);
     });
-    client.addListenerForMemberLeft((info) => {
-        console.log(`[${client.userId}] saw ${info.userId} left room ${info.roomId}`);
+    client.onMemberLeft((event) => {
+        console.log(`[${client.userId}] saw ${event.userId} left room ${event.roomId}`);
     });
-    client.addListenerForRoomLeft((info) => {
-        console.log(`[${client.userId}] left room ${info.roomId}`);
+    client.onRoomLeft((event) => {
+        console.log(`[${client.userId}] left room ${event.roomId}`);
     });
-    // chat connection listeners
-    client.onStopped((e) => {
+    // underlying connection lifecycle listeners (on the wpsClient)
+    client.connection.on("stopped", () => {
         console.log(`connection used by ${client.userId} stopped`);
     });
-    client.onDisconnected((e) => {
+    client.connection.on("disconnected", () => {
         console.log(`connection used by ${client.userId} disconnected`);
     });
 }
@@ -39,16 +40,16 @@ async function main() {
     // Option 1: create a chat client with a existing WebPubSubClient
     const url1 = await getClientAccessUrl('alice');
     const webPubSubClient = new WebPubSubClient(url1);
-    const alice = await ChatClient.login(webPubSubClient);
-    console.log(`Alice logged in as: ${alice.userId}`);
+    const alice = await ChatClient.start(webPubSubClient);
+    console.log(`Alice started as: ${alice.userId}`);
 
     // Option 2: create a chat client directly with client access URL
     const url2 = await getClientAccessUrl('bob'), url3 = await getClientAccessUrl('mike');
-    const bob = await new ChatClient(url2).login();
-    const mike = await new ChatClient(url3).login();
+    const bob = await ChatClient.start(url2);
+    const mike = await ChatClient.start(url3);
     
-    console.log(`Bob logged in as: ${bob.userId}`);
-    console.log(`Mike logged in as: ${mike.userId}`);
+    console.log(`Bob started as: ${bob.userId}`);
+    console.log(`Mike started as: ${mike.userId}`);
 
     // Setup event listeners
 
@@ -74,11 +75,25 @@ async function main() {
         const msgId = await bob.sendToRoom(room.roomId, `Hi Alice, this is Bob #${i}`);
     }
 
-    // List message history
+    // List message history (auto-paginating async iterator)
     console.log('\n--- Message History ---');
-    const history = await alice.listRoomMessage(room.roomId, null, null);
-    for (const msg of history.messages) {
+    for await (const msg of alice.listRoomMessages(room.roomId)) {
         console.log(`  [${msg.createdBy}] [${msg.createdAt}] ${msg.content.text}`);
+    }
+
+    // Or load history one page at a time (Teams-style scroll-back).
+    // `byPage` lets the caller decide when to load the next batch — handy
+    // for "load 50 latest, then 50 more on scroll-up" UI patterns.
+    console.log('\n--- Message History (pages of 3) ---');
+    const pages = alice.listRoomMessages(room.roomId).byPage({ maxPageSize: 3 });
+    let pageNum = 0;
+    while (true) {
+        const { value, done } = await pages.next();
+        if (done) break;
+        console.log(`  Page ${++pageNum} (${value.length} messages):`);
+        for (const msg of value) {
+            console.log(`    [${msg.createdBy}] ${msg.content.text}`);
+        }
     }
 
     // Alice manages room members
@@ -94,7 +109,7 @@ async function main() {
 
     // Cleanup
     console.log('\n--- Cleanup ---');
-    [alice, bob, mike].forEach(client => client.stop());
+    await Promise.all([alice, bob, mike].map((client) => client.stop()));
 }
 
 main().catch(console.error);

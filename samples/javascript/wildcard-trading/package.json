@@ -3,7 +3,8 @@
   "private": true,
   "workspaces": ["backend", "web-client"],
   "scripts": {
-    "dev": "concurrently -n backend,tunnel,frontend -c blue,magenta,green \"npm run dev -w backend\" \"npm run tunnel -w backend\" \"npm run dev -w web-client\""
+    "dev": "concurrently -n backend,tunnel,frontend -c blue,magenta,green \"npm run dev -w backend\" \"npm run tunnel -w backend\" \"npm run dev -w web-client\"",
+    "test": "echo TODO"
   },
   "devDependencies": {
     "concurrently": "^9.1.2"

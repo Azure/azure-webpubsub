@@ -1,4 +1,5 @@
-import { OnConnectedArgs, OnDisconnectedArgs, OnStoppedArgs, WebPubSubClient, WebPubSubClientCredential, WebPubSubClientOptions, WebPubSubDataType } from "@azure/web-pubsub-client";
+import { InvocationError, WebPubSubClient, WebPubSubClientCredential, WebPubSubClientOptions, WebPubSubDataType } from "@azure/web-pubsub-client";
+import { getPagedAsyncIterator, type PagedAsyncIterableIterator, type PageSettings } from "@azure/core-paging";
 import { EventEmitter } from "events";
 import {
   MessageInfo,
@@ -12,11 +13,32 @@ import {
   SendMessageResponse,
   ManageRoomMemberRequest,
   MemberJoinedNotificationBody,
-  NotificationType,
   MemberLeftNotificationBody,
   RoomLeftNotificationBody,
 } from "./generatedTypes.js";
-import { INVOCATION_NAME } from "./constant.js";
+import type {
+  ChatMessage,
+  OnMemberJoinedArgs,
+  OnMemberLeftArgs,
+  OnMessageArgs,
+  OnRoomJoinedArgs,
+  OnRoomLeftArgs,
+  OnStartedArgs,
+  OnStoppedArgs,
+} from "./events.js";
+import type {
+  ListRoomMessagesOptions,
+  OperationOptions,
+  StartOptions,
+  GetRoomOptions,
+  CreateRoomOptions,
+  SendToRoomOptions,
+  GetUserProfileOptions,
+  AddUserToRoomOptions,
+  RemoveUserFromRoomOptions,
+} from "./options.js";
+
+import { ERRORS, INVOCATION_NAME } from "./constant.js";
 import { logger } from "./logger.js";
 import { isWebPubSubClient } from "./utils.js";
 
@@ -29,63 +51,122 @@ class ChatError extends Error {
   }
 }
 
+class PromiseCompletionSource {
+  private readonly promise: Promise<void>;
+  private resolvePromise!: () => void;
+
+  public constructor() {
+    this.promise = new Promise<void>((resolve) => {
+      this.resolvePromise = resolve;
+    });
+  }
+
+  public setResult(): void {
+    this.resolvePromise();
+  }
+
+  public wait(): Promise<void> {
+    return this.promise;
+  }
+}
+
 class ChatClient {
   public readonly connection: WebPubSubClient;
 
   private readonly _emitter = new EventEmitter();
   private readonly _rooms = new Map<string, RoomInfo>();
-  protected _conversationIds = new Set<string>();
+  private _conversationIds = new Set<string>();
   private _userId: string | undefined;
-  private _isLoggedIn = false;
+  private _isStarted = false;
+  private _startPromise: Promise<void> | undefined;
+  // Created after the underlying connection starts so stop() can wait for the single "stopped" event.
+  private _connectionStoppedTCS: PromiseCompletionSource | undefined;
+  private _isConnectionStopping = false;
 
-  constructor(clientAccessUrl: string, options?: WebPubSubClientOptions);
-  constructor(credential: WebPubSubClientCredential, options?: WebPubSubClientOptions);
-  constructor(credential: string | WebPubSubClientCredential, options?: WebPubSubClientOptions);
-  constructor(wpsClient: WebPubSubClient);
-
-  constructor(arg1: string | WebPubSubClientCredential | WebPubSubClient, options?: WebPubSubClientOptions) {
-    if (isWebPubSubClient(arg1)) {
-      this.connection = arg1;
-    } else {
-      this.connection = new WebPubSubClient(arg1 as any, options);
-    }
+  /**
+   * Create a `ChatClient` that wraps an existing `WebPubSubClient`.
+   *
+   * `ChatClient` owns the transport's lifecycle: `start()` starts it
+   * and `stop()` stops it. The chat client is constructed but not
+   * started; call `start()` to authenticate, or use the static
+   * `ChatClient.start(...)` factory to construct-and-start in one step.
+   *
+   * To construct from a client-access URL or `WebPubSubClientCredential`,
+   * use the corresponding `ChatClient.start(...)` overload — it builds
+   * the underlying `WebPubSubClient` and starts the chat client
+   * atomically, so callers never observe a half-constructed instance.
+   */
+  constructor(wpsClient: WebPubSubClient) {
+    this.connection = wpsClient;
     this.connection.on("group-message", (e) => {
       this._handleNotification(e.message.data as Notification);
     });
     this.connection.on("server-message", (e) => {
       this._handleNotification(e.message.data as Notification);
     });
+    this.connection.on("stopped", () => {
+      this._connectionStoppedTCS?.setResult();
+      this._connectionStoppedTCS = undefined;
+      this._isConnectionStopping = false;
+      this.resetState();
+    });
   }
 
   private async _handleNotification(data: Notification): Promise<void> {
+    if (!this._isStarted && !this._startPromise) {
+      return;
+    }
     logger.info("Received notification:", data);
     try {
       const type = data.notificationType;
       switch (type) {
-        case "MessageCreated":
-          const notificationBody = data.body as NewMessageNotificationBody;
-          this._emitter.emit(type, notificationBody);
+        case "MessageCreated": {
+          const body = data.body as NewMessageNotificationBody;
+          if (!body.conversation.roomId) {
+            logger.warning(
+              `MessageCreated notification missing roomId; skipping emit. conversationId=${body.conversation.conversationId}`,
+            );
+            break;
+          }
+          const event: OnMessageArgs = {
+            roomId: body.conversation.roomId,
+            message: body.message as ChatMessage,
+          };
+          this._emitter.emit("message", event);
           break;
-        case "RoomJoined":
+        }
+        case "RoomJoined": {
           const roomInfo = data.body as NewRoomNotificationBody as RoomInfo;
-          this._rooms.set(roomInfo.roomId, roomInfo);  // Add to _rooms first so listeners can use listRoomMessage
-          this._emitter.emit(type, roomInfo);
+          // Add to _rooms first so listeners can use listRoomMessages
+          this._rooms.set(roomInfo.roomId, roomInfo);
+          const event: OnRoomJoinedArgs = { room: roomInfo };
+          this._emitter.emit("room-joined", event);
           break;
-        case "RoomMemberJoined":
-          const memberJoinedInfo = data.body as MemberJoinedNotificationBody;
-          this._emitter.emit(type, memberJoinedInfo);
+        }
+        case "RoomMemberJoined": {
+          const body = data.body as MemberJoinedNotificationBody;
+          const event: OnMemberJoinedArgs = { roomId: body.roomId, title: body.title, userId: body.userId };
+          this._emitter.emit("member-joined", event);
           break;
+        }
         // someone (not self) left a specific room
-        case "RoomMemberLeft":
-          const memberLeftInfo = data.body as MemberLeftNotificationBody;
-          this._emitter.emit(type, memberLeftInfo);
+        case "RoomMemberLeft": {
+          const body = data.body as MemberLeftNotificationBody;
+          const event: OnMemberLeftArgs = { roomId: body.roomId, title: body.title, userId: body.userId };
+          this._emitter.emit("member-left", event);
           break;
+        }
         // self left a specific room
-        case "RoomLeft":
-          const roomLeftInfo = data.body as RoomLeftNotificationBody;
-          this._emitter.emit(type, roomLeftInfo);
-          this._rooms.delete(roomLeftInfo.roomId);
+        case "RoomLeft": {
+          const body = data.body as RoomLeftNotificationBody;
+          if (!this._rooms.has(body.roomId)) {
+            break;
+          }
+          const event: OnRoomLeftArgs = { roomId: body.roomId, title: body.title };
+          this._emitter.emit("room-left", event);
+          this._rooms.delete(body.roomId);
           break;
+        }
         case "MessageUpdated":
         case "MessageDeleted":
         case "RoomClosed":
@@ -102,174 +183,417 @@ class ChatClient {
   }
 
   /** Invoke server event and return typed data */
-  private async invokeWithReturnType<T>(eventName: string, payload: any, dataType: WebPubSubDataType): Promise<T> {
+  private async invokeWithReturnType<T>(
+    eventName: string,
+    payload: any,
+    dataType: WebPubSubDataType,
+    options?: OperationOptions,
+  ): Promise<T> {
     logger.verbose(`invoke event: '${eventName}', dataType: ${dataType}, payload:`, payload);
-
-    const rawResponse = await this.connection.invokeEvent(eventName, payload, dataType);
-
-    logger.verbose(`invoke response for '${eventName}':`, rawResponse);
-
-    const data = rawResponse.data as any;
-    if (data && typeof data === "object" && typeof data.code === "string") {
-      throw new ChatError(`Invocation of event "${eventName}" failed: ${data.code}`, data.code);
+    try {
+      const rawResponse = await this.connection.invokeEvent(eventName, payload, dataType, {
+        abortSignal: options?.abortSignal,
+      });
+      logger.verbose(`invoke response for '${eventName}':`, rawResponse);
+      const data = rawResponse.data as any;
+      if (data && typeof data === "object" && typeof data.code === "string") {
+        throw new ChatError(`Invocation of event "${eventName}" failed: ${data.code}`, data.code);
+      }
+      return data as T;
+    } catch (e) {
+      if (e instanceof ChatError) throw e;
+      if (e instanceof InvocationError && e.errorDetail?.name) {
+        throw new ChatError(e.message, e.errorDetail.name);
+      }
+      throw e;
     }
-    return data as T;
   }
 
-  /** create a chat client based on an existing WebPubSubClient. */
-  public static async login(wpsClient: WebPubSubClient): Promise<ChatClient> {
-    const chatClient = new ChatClient(wpsClient);
-    return await chatClient.login();
+  /**
+   * Create a chat client and `start()` it in one step.
+   *
+   * Construction options for the underlying transport and the cancellation
+   * token for the start operation are kept as **separate parameters** so
+   * they never collide at the type level. `webPubSubClientOptions` is the
+   * full `WebPubSubClientOptions` bag (`protocol`, `autoReconnect`,
+   * `reconnectRetryOptions`, keep-alive intervals, ...). `options` is the
+   * same {@link StartOptions} the instance `start()` accepts.
+   *
+   * ```ts
+   * // Most callers only need the URL.
+   * const chat = await ChatClient.start(url);
+   *
+   * // Customise the transport, then start.
+   * const chat = await ChatClient.start(
+   *   url,
+   *   { autoReconnect: false, reconnectRetryOptions: { maxRetries: 5 } },
+   *   { abortSignal },
+   * );
+   *
+   * // Already have a WebPubSubClient? Hand it in directly.
+   * const chat = await ChatClient.start(wpsClient, { abortSignal });
+   * ```
+   *
+   * Why two parameters instead of an intersection? `WebPubSubClientOptions`
+   * ships from a separate package (`@azure/web-pubsub-client`) on its own
+   * release cadence, so intersecting it with our `StartOptions` would be
+   * fragile against upstream field additions (most obviously `abortSignal`).
+   * Keeping the two bags positional preserves the full set of
+   * construction knobs without exposing the intersection.
+   */
+  public static async start(
+    clientAccessUrl: string,
+    webPubSubClientOptions?: WebPubSubClientOptions,
+    options?: StartOptions,
+  ): Promise<ChatClient>;
+  public static async start(
+    credential: WebPubSubClientCredential,
+    webPubSubClientOptions?: WebPubSubClientOptions,
+    options?: StartOptions,
+  ): Promise<ChatClient>;
+  public static async start(wpsClient: WebPubSubClient, options?: StartOptions): Promise<ChatClient>;
+  public static async start(
+    arg1: string | WebPubSubClientCredential | WebPubSubClient,
+    arg2?: WebPubSubClientOptions | StartOptions,
+    arg3?: StartOptions,
+  ): Promise<ChatClient> {
+    let chatClient: ChatClient;
+    let startOptions: StartOptions | undefined;
+    if (isWebPubSubClient(arg1)) {
+      chatClient = new ChatClient(arg1);
+      startOptions = arg2 as StartOptions | undefined;
+    } else if (typeof arg1 === "string") {
+      const wpsClient = new WebPubSubClient(arg1, arg2 as WebPubSubClientOptions | undefined);
+      chatClient = new ChatClient(wpsClient);
+      startOptions = arg3;
+    } else {
+      const wpsClient = new WebPubSubClient(arg1, arg2 as WebPubSubClientOptions | undefined);
+      chatClient = new ChatClient(wpsClient);
+      startOptions = arg3;
+    }
+    await chatClient.start({ abortSignal: startOptions?.abortSignal });
+    return chatClient;
   }
 
-  /** create a chat client based on an existing WebPubSubClient. */
-  public async login(): Promise<ChatClient> {
-    await this.connection.start();
-    const loginResponse = await this.invokeWithReturnType<UserProfile>(INVOCATION_NAME.LOGIN, "", "text");
-    logger.info("loginResponse", loginResponse);
-    this._userId = loginResponse.userId;
-    this._isLoggedIn = true;
-    this._conversationIds = new Set(loginResponse.conversationIds || []);
-    // Use Promise.all to wait for all room info to be fetched
-    const roomInfos = await Promise.all(
-      (loginResponse.roomIds || []).map(async (roomId) => {
-        const roomInfo = await this.getRoom(roomId, false);
-        return { roomId, roomInfo };
-      })
+  /**
+   * Connect the underlying transport and authenticate with the chat
+   * service.
+   *
+   * Idempotent: concurrent calls share a single in-flight promise, and
+   * calls made on an already-started client resolve immediately. After
+   * `stop()` the client can be started again; state from the previous
+   * session is reset.
+   *
+   * @param options - Cancellation token for the start operation. Aborting
+   *   leaves the client in its initial (not-started) state.
+   */
+  public async start(options?: StartOptions): Promise<void> {
+    if (this._startPromise) return this._startPromise;
+    if (this._isStarted) return;
+
+    if (this._connectionStoppedTCS && this._isConnectionStopping) {
+      await this._connectionStoppedTCS.wait();
+      // Another caller waiting on the same stop may have already started the restart.
+      if (this._startPromise) return this._startPromise;
+      if (this._isStarted) return;
+    }
+
+    const startPromise = this.startCore(options);
+    this._startPromise = startPromise;
+    try {
+      await startPromise;
+    } finally {
+      if (this._startPromise === startPromise) {
+        this._startPromise = undefined;
+      }
+    }
+  }
+
+  private async startCore(options?: StartOptions): Promise<void> {
+    this.resetState();
+    try {
+      await this.connection.start({ abortSignal: options?.abortSignal });
+      this._connectionStoppedTCS = new PromiseCompletionSource();
+      this._isConnectionStopping = false;
+
+      const loginResponse = await this.invokeWithReturnType<UserProfile>(
+        INVOCATION_NAME.LOGIN,
+        "",
+        "text",
+        options,
+      );
+      logger.info("loginResponse", loginResponse);
+      const conversationIds = new Set(loginResponse.conversationIds || []);
+      const roomInfos = await Promise.all(
+        (loginResponse.roomIds || []).map(async (roomId) => {
+          const roomInfo = await this.invokeWithReturnType<RoomInfoWithMembers>(
+            INVOCATION_NAME.GET_ROOM,
+            { id: roomId, withMembers: false },
+            "json",
+            options,
+          );
+          return { roomId, roomInfo };
+        }),
+      );
+
+      this._userId = loginResponse.userId;
+      this._conversationIds = conversationIds;
+      roomInfos.forEach(({ roomId, roomInfo }) => {
+        this._rooms.set(roomId, roomInfo);
+      });
+      this._isStarted = true;
+      const startedEvent: OnStartedArgs = { userId: loginResponse.userId };
+      this._emitter.emit("started", startedEvent);
+    } catch (err) {
+      this.resetState();
+      await this.stopConnection();
+      throw err;
+    }
+  }
+
+  private ensureStarted(): void {
+    if (!this._isStarted) {
+      throw new ChatError("Not started. Please call start() first.", ERRORS.NotStarted);
+    }
+  }
+
+  public async getUserProfile(userId: string, options?: GetUserProfileOptions): Promise<UserProfile> {
+    this.ensureStarted();
+    return this.invokeWithReturnType<UserProfile>(
+      INVOCATION_NAME.GET_USER_PROPERTIES,
+      { userId: userId },
+      "json",
+      options,
     );
-    roomInfos.forEach(({ roomId, roomInfo }) => {
-      this._rooms.set(roomId, roomInfo);
-    });
-    return this;
   }
 
-  private ensureLoggedIn(): void {
-    if (!this._isLoggedIn) {
-      throw new Error("Not logged in. Please call login() first.");
-    }
-  }
-
-  public async getUserInfo(userId: string): Promise<UserProfile> {
-    this.ensureLoggedIn();
-    return this.invokeWithReturnType<UserProfile>(INVOCATION_NAME.GET_USER_PROPERTIES, { userId: userId }, "json");
-  }
-
-  public async sendToConversation(conversationId: string, message: string): Promise<string> {
-    this.ensureLoggedIn();
+  private async sendToConversation(
+    conversationId: string,
+    message: string,
+    options?: OperationOptions,
+  ): Promise<string> {
+    this.ensureStarted();
     const payload = {
       conversation: { conversationId: conversationId },
       content: message,
     };
-    const resp = await this.invokeWithReturnType<SendMessageResponse>(INVOCATION_NAME.SEND_TEXT_MESSAGE, payload, "json");
+    const resp = await this.invokeWithReturnType<SendMessageResponse>(
+      INVOCATION_NAME.SEND_TEXT_MESSAGE,
+      payload,
+      "json",
+      options,
+    );
     if (!resp || !resp.id) {
-      throw new Error(`Failed to send message to conversation ${conversationId}, got invalid invoke response: ${JSON.stringify(resp)}`);
+      throw new ChatError(
+        `Failed to send message to conversation ${conversationId}, got invalid invoke response: ${JSON.stringify(resp)}`,
+        ERRORS.InvalidServerResponse,
+      );
     }
     const msgId = resp.id;
-    // sender won't receive conversation message via notification mechanism, so emit event here
     const roomId = Array.from(this._rooms.values()).find((r) => r.defaultConversationId === conversationId)?.roomId;
     if (!roomId) {
-      logger.warning(`Failed to find roomId for conversationId ${conversationId} when sending message.`);
+      logger.warning(
+        `Failed to find roomId for conversationId ${conversationId} when sending message; skipping local sender-echo emit.`,
+      );
+      return msgId;
     }
-    this._emitter.emit("MessageCreated" as NotificationType, {
-      conversation: { conversationId: conversationId, roomId: roomId || "" },
+    // sender won't receive conversation message via notification mechanism, so emit event here
+    const event: OnMessageArgs = {
+      roomId,
       message: {
         messageId: msgId,
         createdBy: this.userId,
+        messageBodyType: "Inline",
         content: {
           text: message,
           binary: null,
         },
-      } as MessageInfo,
-    } as NewMessageNotificationBody);
+      } as ChatMessage,
+    };
+    this._emitter.emit("message", event);
     return msgId;
   }
 
-  public async sendToRoom(roomId: string, message: string): Promise<string> {
-    this.ensureLoggedIn();
+  public async sendToRoom(roomId: string, message: string, options?: SendToRoomOptions): Promise<string> {
+    this.ensureStarted();
     const conversationId = this._rooms.get(roomId)?.defaultConversationId;
     if (!conversationId) {
-      throw Error(`Failed to sendToRoom, not found roomId ${roomId}`);
+      throw new ChatError(`Failed to sendToRoom, not found roomId ${roomId}`, ERRORS.UnknownRoom);
     }
-    return await this.sendToConversation(conversationId, message);
+    return await this.sendToConversation(conversationId, message, options);
   }
 
-  public async getRoom(roomId: string, withMembers: boolean): Promise<RoomInfoWithMembers> {
-    this.ensureLoggedIn();
-    return this.invokeWithReturnType<RoomInfoWithMembers>(INVOCATION_NAME.GET_ROOM, { id: roomId, withMembers: withMembers }, "json");
+  /**
+   * Fetch the latest service-side view of a room.
+   *
+   * @param roomId - Room to query.
+   * @param options - Optional `{ withMembers, abortSignal }`. When
+   *   `withMembers` is `true` the returned `members` array is
+   *   populated; defaults to `false` to save a round-trip.
+   */
+  public async getRoomDetail(roomId: string, options?: GetRoomOptions): Promise<RoomInfoWithMembers> {
+    this.ensureStarted();
+    return this.invokeWithReturnType<RoomInfoWithMembers>(
+      INVOCATION_NAME.GET_ROOM,
+      { id: roomId, withMembers: options?.withMembers ?? false },
+      "json",
+      options,
+    );
   }
 
-  /** Create a room and its initial members. If `roomId` is not set, the service will create a random one. */
-  public async createRoom(title: string, members: string[], roomId?: string): Promise<RoomInfoWithMembers> {
-    this.ensureLoggedIn();
+  /**
+   * Create a room and its initial members. The current user is always
+   * included in the resulting member list.
+   *
+   * @param title - Display title for the room.
+   * @param members - Other user ids to invite. The caller is added
+   *   automatically; duplicates are de-duplicated.
+   * @param options - Optional `{ roomId, abortSignal }`. Pass `roomId`
+   *   to choose an id explicitly; omit to let the service assign one.
+   */
+  public async createRoom(
+    title: string,
+    members: string[],
+    options?: CreateRoomOptions,
+  ): Promise<RoomInfoWithMembers> {
+    this.ensureStarted();
     let roomDetails = {
       title: title,
       members: [...new Set([...members, this.userId])], // deduplicate and add self
     } as any;
-    if (roomId) {
-      roomDetails = { ...roomDetails, roomId: roomId };
+    if (options?.roomId) {
+      roomDetails = { ...roomDetails, roomId: options.roomId };
     }
-    const roomInfo = await this.invokeWithReturnType<RoomInfoWithMembers>(INVOCATION_NAME.CREATE_ROOM, roomDetails, "json");
+    const roomInfo = await this.invokeWithReturnType<RoomInfoWithMembers>(
+      INVOCATION_NAME.CREATE_ROOM,
+      roomDetails,
+      "json",
+      options,
+    );
     this._rooms.set(roomInfo.roomId, roomInfo);
-    this._emitter.emit("RoomJoined" as NotificationType, roomInfo);
+    const event: OnRoomJoinedArgs = { room: roomInfo };
+    this._emitter.emit("room-joined", event);
     return roomInfo;
   }
 
-  private async manageRoomMember(request: ManageRoomMemberRequest): Promise<void> {
-    await this.invokeWithReturnType<any>(INVOCATION_NAME.MANAGE_ROOM_MEMBER, request, "json");
+  private async manageRoomMember(
+    request: ManageRoomMemberRequest,
+    options?: OperationOptions,
+  ): Promise<void> {
+    await this.invokeWithReturnType<any>(INVOCATION_NAME.MANAGE_ROOM_MEMBER, request, "json", options);
+  }
+
+  private async ensureRoomCached(roomId: string, options?: OperationOptions): Promise<void> {
+    if (this._rooms.has(roomId)) {
+      return;
+    }
+    const roomInfo = await this.getRoomDetail(roomId, options);
+    this._rooms.set(roomId, roomInfo);
   }
 
   /** Add a user to a room. This is an admin operation where one user adds another user to a room. */
-  public async addUserToRoom(roomId: string, userId: string): Promise<void> {
-    this.ensureLoggedIn();
+  public async addUserToRoom(roomId: string, userId: string, options?: AddUserToRoomOptions): Promise<void> {
+    this.ensureStarted();
     const payload: ManageRoomMemberRequest = { roomId: roomId, operation: "Add", userId: userId };
-    await this.manageRoomMember(payload);
-    // This path happens when the logged-in client uses the room-member management API to add
-    // its own userId to a room, for example during lobby bootstrap or right after a session room
-    // is created. The service accepts the membership change server-side, but this client may not
-    // receive a local room-cache update immediately. Without this refresh, later calls such as
-    // sendToRoom can still fail because the SDK believes the current client has not joined yet.
-    if (userId === this.userId && !this._rooms.has(roomId)) {
-      const roomInfo = await this.getRoom(roomId, false);
-      this._rooms.set(roomId, roomInfo);
-      this._emitter.emit("RoomJoined" as NotificationType, roomInfo);
+    const isSelf = userId === this.userId;
+    // If self-add succeeds but no RoomJoined notification arrives, fetch room info
+    // from the service so sendToRoom can use its conversation id.
+    const shouldCacheRoomAfterSelfAdd = isSelf && !this._rooms.has(roomId);
+    try {
+      await this.manageRoomMember(payload, options);
+    } catch (error) {
+      if (!isSelf || !(error instanceof ChatError && error.code === ERRORS.UserAlreadyInRoom)) {
+        throw error;
+      }
+    }
+    if (shouldCacheRoomAfterSelfAdd) {
+      await this.ensureRoomCached(roomId, options);
     }
   }
 
   /** Remove a user from a room. This is an admin operation where one user removes another user from a room. */
-  public async removeUserFromRoom(roomId: string, userId: string): Promise<void> {
-    this.ensureLoggedIn();
+  public async removeUserFromRoom(roomId: string, userId: string, options?: RemoveUserFromRoomOptions): Promise<void> {
+    this.ensureStarted();
     const payload: ManageRoomMemberRequest = { roomId: roomId, operation: "Delete", userId: userId };
-    await this.manageRoomMember(payload);
+    await this.manageRoomMember(payload, options);
+    // RoomLeft notification is not guaranteed for server-managed membership;
+    // eagerly clean up local cache and emit RoomLeft so callers see consistent state immediately.
+    if (userId === this.userId) {
+      const roomInfo = this._rooms.get(roomId);
+      if (roomInfo) {
+        this._rooms.delete(roomId);
+        const event: OnRoomLeftArgs = { roomId, title: roomInfo.title };
+        this._emitter.emit("room-left", event);
+      }
+    }
   }
 
-  /** List messages in a conversation. It returns messages and a query for the next query parameter. */
-  public async listMessage(conversationId: string, startId: string | null, endId: string | null, maxCount: number = 100): Promise<{ messages: MessageInfo[]; nextQuery: MessageRangeQuery }> {
-    this.ensureLoggedIn();
-    const query: MessageRangeQuery = {
-      conversation: { conversationId: conversationId },
-      start: startId,
-      end: endId,
-      maxCount: maxCount,
-    };
-    const result = await this.invokeWithReturnType<{ messages: MessageInfo[]; nextQuery: MessageRangeQuery }>(INVOCATION_NAME.LIST_MESSAGES, query, "json");
-    return result;
-  }
-
-  /** List messages in a room. It returns messages and a query for the next query parameter. */
-  public async listRoomMessage(roomId: string, startId: string | null, endId: string | null, maxCount: number = 100): Promise<{ messages: MessageInfo[]; nextQuery: MessageRangeQuery }> {
-    this.ensureLoggedIn();
+  /**
+   * List messages in a room as a paged async iterator.
+   *
+   * The iterator transparently fetches additional pages from the
+   * service as you iterate. For Teams-style infinite scrolling, drive
+   * the iterator one page at a time via `byPage(...)`:
+   *
+   * @example Stream every message (e.g. for export or full sync):
+   * ```ts
+   * for await (const msg of client.listRoomMessages(roomId)) {
+   *   console.log(msg.content.text);
+   * }
+   * ```
+   *
+   * @example Load history one page at a time (Teams-style scroll-back):
+   * ```ts
+   * // Load up to 50 messages per page.
+   * const pages = client.listRoomMessages(roomId).byPage({ maxPageSize: 50 });
+   * const first = await pages.next();
+   * displayMessages(first.value);
+   * // later, when the user scrolls up:
+   * const more = await pages.next();
+   * displayMessages(more.value);
+   * ```
+   *
+   * The room must be one this client has created or joined.
+   */
+  public listRoomMessages(roomId: string, options?: ListRoomMessagesOptions): PagedAsyncIterableIterator<MessageInfo> {
+    this.ensureStarted();
     const conversationId = this._rooms.get(roomId)?.defaultConversationId;
     if (!conversationId) {
-      throw Error(`Failed to listRoomMessage, not found roomId ${roomId}`);
+      throw new ChatError(`Failed to listRoomMessages, not found roomId ${roomId}`, ERRORS.UnknownRoom);
     }
-    const query: MessageRangeQuery = {
-      conversation: { conversationId: conversationId },
-      start: startId,
-      end: endId,
-      maxCount: maxCount,
+
+    const defaultPageSize = options?.maxPageSize ?? 100;
+    const firstPageLink: MessageRangeQuery = {
+      conversation: { conversationId },
+      start: options?.startId ?? null,
+      end: options?.endId ?? null,
+      maxCount: defaultPageSize,
     };
-    const result = await this.invokeWithReturnType<{ messages: MessageInfo[]; nextQuery: MessageRangeQuery }>(INVOCATION_NAME.LIST_MESSAGES, query, "json");
-    return result;
+
+    const fetchPage = async (
+      link: MessageRangeQuery,
+      maxPageSize?: number,
+    ): Promise<{ page: MessageInfo[]; nextPageLink?: MessageRangeQuery } | undefined> => {
+      const query: MessageRangeQuery = {
+        ...link,
+        maxCount: maxPageSize ?? link.maxCount ?? defaultPageSize,
+      };
+      const result = await this.invokeWithReturnType<{ messages: MessageInfo[]; nextQuery: MessageRangeQuery | null }>(
+        INVOCATION_NAME.LIST_MESSAGES,
+        query,
+        "json",
+        { abortSignal: options?.abortSignal },
+      );
+      if (result.messages.length === 0) {
+        return undefined;
+      }
+      return { page: result.messages, nextPageLink: result.nextQuery ?? undefined };
+    };
+
+    return getPagedAsyncIterator<MessageInfo, MessageInfo[], PageSettings, MessageRangeQuery>({
+      firstPageLink,
+      getPage: (link, maxPageSize) => fetchPage(link, maxPageSize),
+    });
   }
 
   /** Cached rooms known to the client. */
@@ -277,57 +601,119 @@ class ChatClient {
     return Array.from(this._rooms.values());
   }
 
+  /** Whether the current client has the room in its local joined-room cache. */
+  public hasJoinedRoom(roomId: string): boolean {
+    return this._rooms.has(roomId);
+  }
+
   public get userId(): string {
     if (!this._userId) {
-      throw new Error("User ID is not set. Please login first.");
+      throw new ChatError("User ID is not set. Please call start() first.", ERRORS.NotStarted);
     }
     return this._userId;
   }
-  /** Add callback for new message events. Returns a function to remove the listener. */
-  public addListenerForNewMessage = (callback: (message: NewMessageNotificationBody) => void): (() => void) => {
-    this._emitter.on("MessageCreated" as NotificationType, callback);
-    return () => this._emitter.off("MessageCreated" as NotificationType, callback);
-  };
 
-  /** Add callback for new room events. Returns a function to remove the listener. */
-  public addListenerForNewRoom = (callback: (room: RoomInfo) => void): (() => void) => {
-    this._emitter.on("RoomJoined" as NotificationType, callback);
-    return () => this._emitter.off("RoomJoined" as NotificationType, callback);
-  };
+  /**
+   * Subscribe to a chat-client event.
+   *
+   * Mirrors the underlying `WebPubSubClient.on(event, listener)` shape:
+   * one explicit overload per event, returns `void`, paired with
+   * `off(event, listener)` for removal. Pass the same callback
+   * reference to `off()` to unsubscribe.
+   *
+   * Connection-lifecycle events (`connected`, `disconnected`, `stopped`)
+   * are not exposed here — subscribe via
+   * `chatClient.connection.on("connected", ...)` etc.
+   *
+   * @example
+   * ```ts
+   * const onMsg = (e: OnMessageArgs) => console.log(e.message.content.text);
+   * client.on("message", onMsg);
+   * // later
+   * client.off("message", onMsg);
+   * ```
+   */
+  public on(event: "started",       listener: (e: OnStartedArgs)      => void): void;
+  public on(event: "stopped",       listener: (e: OnStoppedArgs)      => void): void;
+  public on(event: "message",       listener: (e: OnMessageArgs)      => void): void;
+  public on(event: "room-joined",   listener: (e: OnRoomJoinedArgs)   => void): void;
+  public on(event: "room-left",     listener: (e: OnRoomLeftArgs)     => void): void;
+  public on(event: "member-joined", listener: (e: OnMemberJoinedArgs) => void): void;
+  public on(event: "member-left",   listener: (e: OnMemberLeftArgs)   => void): void;
+  public on(event: string, listener: (e: any) => void): void {
+    this._emitter.on(event, listener);
+  }
 
-  /** Add callback for member joined room events. Returns a function to remove the listener. */
-  public addListenerForMemberJoined = (callback: (info: MemberJoinedNotificationBody) => void): (() => void) => {
-    this._emitter.on("RoomMemberJoined" as NotificationType, callback);
-    return () => this._emitter.off("RoomMemberJoined" as NotificationType, callback);
-  };
+  /** Remove a listener previously registered with `on()`. */
+  public off(event: "started",       listener: (e: OnStartedArgs)      => void): void;
+  public off(event: "stopped",       listener: (e: OnStoppedArgs)      => void): void;
+  public off(event: "message",       listener: (e: OnMessageArgs)      => void): void;
+  public off(event: "room-joined",   listener: (e: OnRoomJoinedArgs)   => void): void;
+  public off(event: "room-left",     listener: (e: OnRoomLeftArgs)     => void): void;
+  public off(event: "member-joined", listener: (e: OnMemberJoinedArgs) => void): void;
+  public off(event: "member-left",   listener: (e: OnMemberLeftArgs)   => void): void;
+  public off(event: string, listener: (e: any) => void): void {
+    this._emitter.off(event, listener);
+  }
 
-  /** Add callback for member left room events. Returns a function to remove the listener. */
-  public addListenerForMemberLeft = (callback: (info: MemberLeftNotificationBody) => void): (() => void) => {
-    this._emitter.on("RoomMemberLeft" as NotificationType, callback);
-    return () => this._emitter.off("RoomMemberLeft" as NotificationType, callback);
-  };
+  /**
+   * Stop the underlying connection and reset client state. Idempotent.
+   *
+   * After resolution the client returns to its initial state and may
+   * be started again via `start()`. Callers that want the same identity
+   * should keep their authentication source (URL or credential)
+   * constant.
+   *
+   * Stopping is not cancellable: it tears down the transport and clears
+   * local state, mirroring the underlying `WebPubSubClient.stop()`, which
+   * takes no options.
+   */
+  public async stop(): Promise<void> {
+    const startPromise = this._startPromise;
+    if (startPromise) {
+      await startPromise.catch(() => undefined);
+    }
+    this._startPromise = undefined;
 
-  /** Add callback for user self left room events. Returns a function to remove the listener. */
-  public addListenerForRoomLeft = (callback: (info: RoomLeftNotificationBody) => void): (() => void) => {
-    this._emitter.on("RoomLeft" as NotificationType, callback);
-    return () => this._emitter.off("RoomLeft" as NotificationType, callback);
-  };
+    this.resetState();
+    await this.stopConnection();
+  }
 
-  public stop = (): void => {
-    this.connection.stop();
-  };
+  /**
+   * Reset chat-domain state. Emits `"stopped"` exactly once per
+   * started → not-started transition: if `_isStarted` was already
+   * false on entry (e.g. the pre-start guard inside `startCore()` or
+   * the post-failure rollback), no event fires.
+   */
+  private resetState(): void {
+    const wasStarted = this._isStarted;
+    this._isStarted = false;
+    this._userId = undefined;
+    this._rooms.clear();
+    this._conversationIds.clear();
+    if (wasStarted) {
+      const stoppedEvent: OnStoppedArgs = {};
+      this._emitter.emit("stopped", stoppedEvent);
+    }
+  }
 
-  public onConnected = (callback: (e: OnConnectedArgs) => void): void => {
-    return this.connection.on("connected", callback);
-  };
+  private async stopConnection(): Promise<void> {
+    const connectionStoppedTCS = this._connectionStoppedTCS;
+    if (!connectionStoppedTCS) {
+      return;
+    }
 
-  public onDisconnected = (callback: (e: OnDisconnectedArgs) => void): void => {
-    return this.connection.on("disconnected", callback);
-  };
-
-  public onStopped = (callback: (e: OnStoppedArgs) => void): void => {
-    return this.connection.on("stopped", callback);
-  };
+    if (!this._isConnectionStopping) {
+      this._isConnectionStopping = true;
+      try {
+        this.connection.stop();
+      } catch (err) {
+        this._isConnectionStopping = false;
+        throw err;
+      }
+    }
+    await connectionStoppedTCS.wait();
+  }
 }
 
 export { ChatClient, ChatError };
