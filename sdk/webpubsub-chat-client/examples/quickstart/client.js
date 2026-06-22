@@ -1,5 +1,4 @@
 import { ChatClient } from '@azure/web-pubsub-chat-client';
-import { WebPubSubClient } from '@azure/web-pubsub-client';
 
 const SERVER_URL = process.env.SERVER_URL || 'http://localhost:3000';
 
@@ -25,25 +24,20 @@ function setupListeners(client) {
     client.onRoomLeft((event) => {
         console.log(`[${client.userId}] left room ${event.roomId}`);
     });
-    // underlying connection lifecycle listeners (on the wpsClient)
-    client.connection.on("stopped", () => {
-        console.log(`connection used by ${client.userId} stopped`);
-    });
-    client.connection.on("disconnected", () => {
-        console.log(`connection used by ${client.userId} disconnected`);
+    // chat lifecycle listener
+    client.on("stopped", () => {
+        console.log(`chat client for ${client.userId} stopped`);
     });
 }
 
 async function main() {
     // Create chat clients for Alice, Bob, and Mike
     
-    // Option 1: create a chat client with a existing WebPubSubClient
-    const url1 = await getClientAccessUrl('alice');
-    const webPubSubClient = new WebPubSubClient(url1);
-    const alice = await ChatClient.start(webPubSubClient);
+    // Option 1: create a chat client with a credential (a callback returning a client access URL)
+    const alice = await ChatClient.start({ getClientAccessUrl: () => getClientAccessUrl('alice') });
     console.log(`Alice started as: ${alice.userId}`);
 
-    // Option 2: create a chat client directly with client access URL
+    // Option 2: create a chat client directly with a client access URL
     const url2 = await getClientAccessUrl('bob'), url3 = await getClientAccessUrl('mike');
     const bob = await ChatClient.start(url2);
     const mike = await ChatClient.start(url3);

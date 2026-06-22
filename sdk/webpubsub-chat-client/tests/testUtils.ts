@@ -1,4 +1,3 @@
-import { WebPubSubClient } from "@azure/web-pubsub-client";
 import { ChatClient } from "../src/chatClient.js";
 import { randomInt as secureRandomInt } from "crypto";
 
@@ -22,7 +21,7 @@ export async function createTestClient(userId?: string): Promise<ChatClient> {
   if (!userId) {
     userId = `uid-${randomInt()}`;
   }
-  const wpsClient = new WebPubSubClient({
+  return await ChatClient.start({
     getClientAccessUrl: async () => {
       const res = await fetch(negotiateUrl + (userId ? `?userId=${encodeURIComponent(userId)}` : ""));
       const value = (await res.json()) as { url?: string };
@@ -30,7 +29,6 @@ export async function createTestClient(userId?: string): Promise<ChatClient> {
       return value.url;
     },
   });
-  return await ChatClient.start(wpsClient);
 }
 
 export async function getMultipleClients(count: number): Promise<ChatClient[]> {

@@ -2,13 +2,12 @@ import { ChatClient, ChatError } from './chatClient.js';
 import { ERRORS } from './constant.js';
 
 export type {
-  components,
   MessageInfo,
   RoomInfo,
-  RoomInfoWithMembers,
-  Schemas,
+  RoomDetail,
   UserProfile,
-} from './generatedTypes.js';
+  SendMessageResult,
+} from './models.js';
 
 export type {
   ChatMessage,
@@ -24,7 +23,7 @@ export type {
 export type {
   OperationOptions,
   StartOptions,
-  GetRoomOptions,
+  GetRoomDetailOptions,
   CreateRoomOptions,
   SendToRoomOptions,
   GetUserProfileOptions,
