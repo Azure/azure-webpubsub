@@ -14,6 +14,11 @@ on:
         description: 'Shell script that builds and packs the package, producing a single *.tgz inside package_folder. Runs from the repo root.'
         required: true
         type: string
+      node_version:
+        description: 'The Node.js version to use for building and packing.'
+        required: false
+        type: string
+        default: '18.x'
     secrets:
       AZURESDKPARTNERDROPS_URL:
         required: true
@@ -28,8 +33,6 @@ on:
 permissions:
   id-token: write # This is required for requesting the JWT
   contents: read
-env:
-  NODE_VERSION: '18.x'                # set this to the node version to use
 
 jobs:
   check_version:
@@ -96,7 +99,7 @@ jobs:
     - name: Set up Node.js
       uses: actions/setup-node@v4
       with:
-        node-version: ${{ env.NODE_VERSION }}
+        node-version: ${{ inputs.node_version }}
         cache: 'npm'
     - name: Install dependencies
       run: npm install -g yarn 

@@ -22,6 +22,7 @@ jobs:
     with:
       package_name: web-pubsub-chat-client
       package_folder: sdk/webpubsub-chat-client
+      node_version: '20.x'
       pack_command: |
         pushd sdk/webpubsub-chat-client
         yarn
