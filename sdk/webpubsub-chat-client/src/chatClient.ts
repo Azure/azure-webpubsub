@@ -1,12 +1,11 @@
-import { InvocationError, WebPubSubClient, WebPubSubClientCredential, WebPubSubClientOptions, WebPubSubDataType } from "@azure/web-pubsub-client";
+import { InvocationError, WebPubSubClient, WebPubSubClientCredential, WebPubSubDataType } from "@azure/web-pubsub-client";
 import { getPagedAsyncIterator, type PagedAsyncIterableIterator, type PageSettings } from "@azure/core-paging";
 import { EventEmitter } from "events";
 import {
-  MessageInfo,
+  RoomInfo as WireRoomInfo,
+  RoomInfoWithMembers as WireRoomInfoWithMembers,
+  UserProfile as WireUserProfile,
   MessageRangeQuery,
-  RoomInfo,
-  UserProfile,
-  RoomInfoWithMembers,
   Notification,
   NewMessageNotificationBody,
   NewRoomNotificationBody,
@@ -16,6 +15,7 @@ import {
   MemberLeftNotificationBody,
   RoomLeftNotificationBody,
 } from "./generatedTypes.js";
+import type { MessageInfo, RoomInfo, RoomDetail, UserProfile, SendMessageResult } from "./models.js";
 import type {
   ChatMessage,
   OnMemberJoinedArgs,
@@ -30,7 +30,7 @@ import type {
   ListRoomMessagesOptions,
   OperationOptions,
   StartOptions,
-  GetRoomOptions,
+  GetRoomDetailOptions,
   CreateRoomOptions,
   SendToRoomOptions,
   GetUserProfileOptions,
@@ -42,7 +42,13 @@ import { ERRORS, INVOCATION_NAME } from "./constant.js";
 import { logger } from "./logger.js";
 import { isWebPubSubClient } from "./utils.js";
 
+/**
+ * Error thrown by `ChatClient` operations. Inspect {@link ChatError.code}
+ * for a stable, machine-readable error code and compare it against
+ * {@link KnownChatErrorCode} members rather than matching on the message.
+ */
 class ChatError extends Error {
+  /** Stable, machine-readable error code. Compare against {@link KnownChatErrorCode}. */
   public readonly code: string;
   constructor(message: string, code: string) {
     super(message);
@@ -70,11 +76,33 @@ class PromiseCompletionSource {
   }
 }
 
+/**
+ * Client for building chat applications on Azure Web PubSub.
+ *
+ * A `ChatClient` wraps a `WebPubSubClient` and exposes a room-based chat
+ * API: create and inspect rooms, manage members, send messages, page
+ * through history, and subscribe to real-time chat events. It owns the
+ * underlying connection's lifecycle — call {@link ChatClient.start} to
+ * connect and authenticate, and {@link ChatClient.stop} to disconnect.
+ *
+ * Construct from a `WebPubSubClientCredential`, then call `start()` to
+ * connect and authenticate.
+ *
+ * @example
+ * ```ts
+ * const client = new ChatClient(credential);
+ * await client.start();
+ * client.on("message", (e) => console.log(e.message.content.text));
+ * const room = await client.createRoom("My Room", ["bob"]);
+ * await client.sendToRoom(room.roomId, "Hello!");
+ * ```
+ */
 class ChatClient {
-  public readonly connection: WebPubSubClient;
+  /** The underlying transport. Private — `ChatClient` builds and owns it. */
+  private readonly _connection: WebPubSubClient;
 
   private readonly _emitter = new EventEmitter();
-  private readonly _rooms = new Map<string, RoomInfo>();
+  private readonly _rooms = new Map<string, WireRoomInfo>();
   private _conversationIds = new Set<string>();
   private _userId: string | undefined;
   private _isStarted = false;
@@ -84,27 +112,29 @@ class ChatClient {
   private _isConnectionStopping = false;
 
   /**
-   * Create a `ChatClient` that wraps an existing `WebPubSubClient`.
+   * Create a `ChatClient` from a {@link WebPubSubClientCredential}.
    *
-   * `ChatClient` owns the transport's lifecycle: `start()` starts it
-   * and `stop()` stops it. The chat client is constructed but not
-   * started; call `start()` to authenticate, or use the static
-   * `ChatClient.start(...)` factory to construct-and-start in one step.
+   * `ChatClient` builds and owns the underlying transport: `start()`
+   * connects and authenticates, `stop()` disconnects. The instance is
+   * created but not started — call `start()` to connect.
    *
-   * To construct from a client-access URL or `WebPubSubClientCredential`,
-   * use the corresponding `ChatClient.start(...)` overload — it builds
-   * the underlying `WebPubSubClient` and starts the chat client
-   * atomically, so callers never observe a half-constructed instance.
+   * @param credential - A `WebPubSubClientCredential` that yields a
+   *   client-access URL.
    */
-  constructor(wpsClient: WebPubSubClient) {
-    this.connection = wpsClient;
-    this.connection.on("group-message", (e) => {
+  constructor(credential: WebPubSubClientCredential);
+  // Implementation also accepts a pre-built connection (test seam); this is
+  // not a public overload, so it does not appear in the public API surface.
+  constructor(credentialOrConnection: WebPubSubClientCredential | WebPubSubClient) {
+    this._connection = isWebPubSubClient(credentialOrConnection)
+      ? credentialOrConnection
+      : new WebPubSubClient(credentialOrConnection);
+    this._connection.on("group-message", (e) => {
       this._handleNotification(e.message.data as Notification);
     });
-    this.connection.on("server-message", (e) => {
+    this._connection.on("server-message", (e) => {
       this._handleNotification(e.message.data as Notification);
     });
-    this.connection.on("stopped", () => {
+    this._connection.on("stopped", () => {
       this._connectionStoppedTCS?.setResult();
       this._connectionStoppedTCS = undefined;
       this._isConnectionStopping = false;
@@ -136,7 +166,7 @@ class ChatClient {
           break;
         }
         case "RoomJoined": {
-          const roomInfo = data.body as NewRoomNotificationBody as RoomInfo;
+          const roomInfo = data.body as NewRoomNotificationBody as WireRoomInfo;
           // Add to _rooms first so listeners can use listRoomMessages
           this._rooms.set(roomInfo.roomId, roomInfo);
           const event: OnRoomJoinedArgs = { room: roomInfo };
@@ -191,7 +221,7 @@ class ChatClient {
   ): Promise<T> {
     logger.verbose(`invoke event: '${eventName}', dataType: ${dataType}, payload:`, payload);
     try {
-      const rawResponse = await this.connection.invokeEvent(eventName, payload, dataType, {
+      const rawResponse = await this._connection.invokeEvent(eventName, payload, dataType, {
         abortSignal: options?.abortSignal,
       });
       logger.verbose(`invoke response for '${eventName}':`, rawResponse);
@@ -210,68 +240,35 @@ class ChatClient {
   }
 
   /**
-   * Create a chat client and `start()` it in one step.
+   * Create a `ChatClient` and `start()` it in one step.
    *
-   * Construction options for the underlying transport and the cancellation
-   * token for the start operation are kept as **separate parameters** so
-   * they never collide at the type level. `webPubSubClientOptions` is the
-   * full `WebPubSubClientOptions` bag (`protocol`, `autoReconnect`,
-   * `reconnectRetryOptions`, keep-alive intervals, ...). `options` is the
-   * same {@link StartOptions} the instance `start()` accepts.
+   * @param clientAccessUrl - A client-access URL.
+   * @param options - Optional cancellation token for the start operation.
    *
+   * @example
    * ```ts
-   * // Most callers only need the URL.
-   * const chat = await ChatClient.start(url);
-   *
-   * // Customise the transport, then start.
-   * const chat = await ChatClient.start(
-   *   url,
-   *   { autoReconnect: false, reconnectRetryOptions: { maxRetries: 5 } },
-   *   { abortSignal },
-   * );
-   *
-   * // Already have a WebPubSubClient? Hand it in directly.
-   * const chat = await ChatClient.start(wpsClient, { abortSignal });
+   * const chat = await ChatClient.start(clientAccessUrl);
    * ```
-   *
-   * Why two parameters instead of an intersection? `WebPubSubClientOptions`
-   * ships from a separate package (`@azure/web-pubsub-client`) on its own
-   * release cadence, so intersecting it with our `StartOptions` would be
-   * fragile against upstream field additions (most obviously `abortSignal`).
-   * Keeping the two bags positional preserves the full set of
-   * construction knobs without exposing the intersection.
    */
+  public static async start(clientAccessUrl: string, options?: StartOptions): Promise<ChatClient>;
+  /**
+   * Create a `ChatClient` and `start()` it in one step.
+   *
+   * @param credential - A `WebPubSubClientCredential` that yields a
+   *   client-access URL.
+   * @param options - Optional cancellation token for the start operation.
+   */
+  public static async start(credential: WebPubSubClientCredential, options?: StartOptions): Promise<ChatClient>;
   public static async start(
-    clientAccessUrl: string,
-    webPubSubClientOptions?: WebPubSubClientOptions,
+    clientAccessUrlOrCredential: string | WebPubSubClientCredential,
     options?: StartOptions,
-  ): Promise<ChatClient>;
-  public static async start(
-    credential: WebPubSubClientCredential,
-    webPubSubClientOptions?: WebPubSubClientOptions,
-    options?: StartOptions,
-  ): Promise<ChatClient>;
-  public static async start(wpsClient: WebPubSubClient, options?: StartOptions): Promise<ChatClient>;
-  public static async start(
-    arg1: string | WebPubSubClientCredential | WebPubSubClient,
-    arg2?: WebPubSubClientOptions | StartOptions,
-    arg3?: StartOptions,
   ): Promise<ChatClient> {
-    let chatClient: ChatClient;
-    let startOptions: StartOptions | undefined;
-    if (isWebPubSubClient(arg1)) {
-      chatClient = new ChatClient(arg1);
-      startOptions = arg2 as StartOptions | undefined;
-    } else if (typeof arg1 === "string") {
-      const wpsClient = new WebPubSubClient(arg1, arg2 as WebPubSubClientOptions | undefined);
-      chatClient = new ChatClient(wpsClient);
-      startOptions = arg3;
-    } else {
-      const wpsClient = new WebPubSubClient(arg1, arg2 as WebPubSubClientOptions | undefined);
-      chatClient = new ChatClient(wpsClient);
-      startOptions = arg3;
-    }
-    await chatClient.start({ abortSignal: startOptions?.abortSignal });
+    const credential: WebPubSubClientCredential =
+      typeof clientAccessUrlOrCredential === "string"
+        ? { getClientAccessUrl: async () => clientAccessUrlOrCredential }
+        : clientAccessUrlOrCredential;
+    const chatClient = new ChatClient(credential);
+    await chatClient.start({ abortSignal: options?.abortSignal });
     return chatClient;
   }
 
@@ -312,11 +309,11 @@ class ChatClient {
   private async startCore(options?: StartOptions): Promise<void> {
     this.resetState();
     try {
-      await this.connection.start({ abortSignal: options?.abortSignal });
+      await this._connection.start({ abortSignal: options?.abortSignal });
       this._connectionStoppedTCS = new PromiseCompletionSource();
       this._isConnectionStopping = false;
 
-      const loginResponse = await this.invokeWithReturnType<UserProfile>(
+      const loginResponse = await this.invokeWithReturnType<WireUserProfile>(
         INVOCATION_NAME.LOGIN,
         "",
         "text",
@@ -326,12 +323,10 @@ class ChatClient {
       const conversationIds = new Set(loginResponse.conversationIds || []);
       const roomInfos = await Promise.all(
         (loginResponse.roomIds || []).map(async (roomId) => {
-          const roomInfo = await this.invokeWithReturnType<RoomInfoWithMembers>(
-            INVOCATION_NAME.GET_ROOM,
-            { id: roomId, withMembers: false },
-            "json",
-            options,
-          );
+          const roomInfo = await this.fetchRoomDetail(roomId, {
+            abortSignal: options?.abortSignal,
+            withMembers: false,
+          });
           return { roomId, roomInfo };
         }),
       );
@@ -357,9 +352,15 @@ class ChatClient {
     }
   }
 
+  /**
+   * Fetch a user's profile.
+   *
+   * @param userId - Id of the user to look up.
+   * @param options - Optional `{ abortSignal }`.
+   */
   public async getUserProfile(userId: string, options?: GetUserProfileOptions): Promise<UserProfile> {
     this.ensureStarted();
-    return this.invokeWithReturnType<UserProfile>(
+    return this.invokeWithReturnType<WireUserProfile>(
       INVOCATION_NAME.GET_USER_PROPERTIES,
       { userId: userId },
       "json",
@@ -371,7 +372,7 @@ class ChatClient {
     conversationId: string,
     message: string,
     options?: OperationOptions,
-  ): Promise<string> {
+  ): Promise<SendMessageResult> {
     this.ensureStarted();
     const payload = {
       conversation: { conversationId: conversationId },
@@ -395,7 +396,7 @@ class ChatClient {
       logger.warning(
         `Failed to find roomId for conversationId ${conversationId} when sending message; skipping local sender-echo emit.`,
       );
-      return msgId;
+      return { messageId: msgId };
     }
     // sender won't receive conversation message via notification mechanism, so emit event here
     const event: OnMessageArgs = {
@@ -411,10 +412,21 @@ class ChatClient {
       } as ChatMessage,
     };
     this._emitter.emit("message", event);
-    return msgId;
+    return { messageId: msgId };
   }
 
-  public async sendToRoom(roomId: string, message: string, options?: SendToRoomOptions): Promise<string> {
+  /**
+   * Send a text message to a room and return the service-assigned message id.
+   *
+   * The room must be one this client has created or joined. The sender also
+   * observes the message through the `"message"` event.
+   *
+   * @param roomId - Target room.
+   * @param message - Message text to send.
+   * @param options - Optional `{ abortSignal }`.
+   * @returns A {@link SendMessageResult} with the service-assigned `messageId`.
+   */
+  public async sendToRoom(roomId: string, message: string, options?: SendToRoomOptions): Promise<SendMessageResult> {
     this.ensureStarted();
     const conversationId = this._rooms.get(roomId)?.defaultConversationId;
     if (!conversationId) {
@@ -423,22 +435,28 @@ class ChatClient {
     return await this.sendToConversation(conversationId, message, options);
   }
 
-  /**
-   * Fetch the latest service-side view of a room.
-   *
-   * @param roomId - Room to query.
-   * @param options - Optional `{ withMembers, abortSignal }`. When
-   *   `withMembers` is `true` the returned `members` array is
-   *   populated; defaults to `false` to save a round-trip.
-   */
-  public async getRoomDetail(roomId: string, options?: GetRoomOptions): Promise<RoomInfoWithMembers> {
-    this.ensureStarted();
-    return this.invokeWithReturnType<RoomInfoWithMembers>(
+  // Internal: fetch a room's full wire shape (including its conversation id)
+  // to populate the local cache. Public callers go through getRoomDetail().
+  private async fetchRoomDetail(roomId: string, options?: GetRoomDetailOptions): Promise<WireRoomInfoWithMembers> {
+    return this.invokeWithReturnType<WireRoomInfoWithMembers>(
       INVOCATION_NAME.GET_ROOM,
       { id: roomId, withMembers: options?.withMembers ?? false },
       "json",
       options,
     );
+  }
+
+  /**
+   * Fetch the detailed view of a room.
+   *
+   * @param roomId - Room to query.
+   * @param options - Optional `{ withMembers, abortSignal }`. Pass
+   *   `withMembers: true` to populate the returned `members` list; it is
+   *   left undefined otherwise.
+   */
+  public async getRoomDetail(roomId: string, options?: GetRoomDetailOptions): Promise<RoomDetail> {
+    this.ensureStarted();
+    return this.fetchRoomDetail(roomId, options);
   }
 
   /**
@@ -455,7 +473,7 @@ class ChatClient {
     title: string,
     members: string[],
     options?: CreateRoomOptions,
-  ): Promise<RoomInfoWithMembers> {
+  ): Promise<RoomDetail> {
     this.ensureStarted();
     let roomDetails = {
       title: title,
@@ -464,7 +482,7 @@ class ChatClient {
     if (options?.roomId) {
       roomDetails = { ...roomDetails, roomId: options.roomId };
     }
-    const roomInfo = await this.invokeWithReturnType<RoomInfoWithMembers>(
+    const roomInfo = await this.invokeWithReturnType<WireRoomInfoWithMembers>(
       INVOCATION_NAME.CREATE_ROOM,
       roomDetails,
       "json",
@@ -487,7 +505,7 @@ class ChatClient {
     if (this._rooms.has(roomId)) {
       return;
     }
-    const roomInfo = await this.getRoomDetail(roomId, options);
+    const roomInfo = await this.fetchRoomDetail(roomId, options);
     this._rooms.set(roomId, roomInfo);
   }
 
@@ -606,6 +624,11 @@ class ChatClient {
     return this._rooms.has(roomId);
   }
 
+  /**
+   * The chat-domain identity of this client, established by `start()`.
+   *
+   * @throws `ChatError` with code `NotStarted` if the client is not started.
+   */
   public get userId(): string {
     if (!this._userId) {
       throw new ChatError("User ID is not set. Please call start() first.", ERRORS.NotStarted);
@@ -621,9 +644,10 @@ class ChatClient {
    * `off(event, listener)` for removal. Pass the same callback
    * reference to `off()` to unsubscribe.
    *
-   * Connection-lifecycle events (`connected`, `disconnected`, `stopped`)
-   * are not exposed here — subscribe via
-   * `chatClient.connection.on("connected", ...)` etc.
+   * Chat-lifecycle events `started` and `stopped` are exposed here.
+   * Lower-level transport-connection events (`connected`,
+   * `disconnected`) are managed internally and are not exposed on the
+   * public surface.
    *
    * @example
    * ```ts
@@ -633,25 +657,37 @@ class ChatClient {
    * client.off("message", onMsg);
    * ```
    */
-  public on(event: "started",       listener: (e: OnStartedArgs)      => void): void;
-  public on(event: "stopped",       listener: (e: OnStoppedArgs)      => void): void;
-  public on(event: "message",       listener: (e: OnMessageArgs)      => void): void;
-  public on(event: "room-joined",   listener: (e: OnRoomJoinedArgs)   => void): void;
-  public on(event: "room-left",     listener: (e: OnRoomLeftArgs)     => void): void;
+  public on(event: "started", listener: (e: OnStartedArgs) => void): void;
+  /** Subscribe to the `stopped` event, fired when the client transitions from started to not-started. */
+  public on(event: "stopped", listener: (e: OnStoppedArgs) => void): void;
+  /** Subscribe to the `message` event, fired when a message arrives in a joined room. */
+  public on(event: "message", listener: (e: OnMessageArgs) => void): void;
+  /** Subscribe to the `room-joined` event, fired when this client joins a room. */
+  public on(event: "room-joined", listener: (e: OnRoomJoinedArgs) => void): void;
+  /** Subscribe to the `room-left` event, fired when this client leaves a room. */
+  public on(event: "room-left", listener: (e: OnRoomLeftArgs) => void): void;
+  /** Subscribe to the `member-joined` event, fired when another user joins a room this client is in. */
   public on(event: "member-joined", listener: (e: OnMemberJoinedArgs) => void): void;
-  public on(event: "member-left",   listener: (e: OnMemberLeftArgs)   => void): void;
+  /** Subscribe to the `member-left` event, fired when another user leaves a room this client is in. */
+  public on(event: "member-left", listener: (e: OnMemberLeftArgs) => void): void;
   public on(event: string, listener: (e: any) => void): void {
     this._emitter.on(event, listener);
   }
 
-  /** Remove a listener previously registered with `on()`. */
-  public off(event: "started",       listener: (e: OnStartedArgs)      => void): void;
-  public off(event: "stopped",       listener: (e: OnStoppedArgs)      => void): void;
-  public off(event: "message",       listener: (e: OnMessageArgs)      => void): void;
-  public off(event: "room-joined",   listener: (e: OnRoomJoinedArgs)   => void): void;
-  public off(event: "room-left",     listener: (e: OnRoomLeftArgs)     => void): void;
+  /** Remove a `started` listener previously registered with `on()`. */
+  public off(event: "started", listener: (e: OnStartedArgs) => void): void;
+  /** Remove a `stopped` listener previously registered with `on()`. */
+  public off(event: "stopped", listener: (e: OnStoppedArgs) => void): void;
+  /** Remove a `message` listener previously registered with `on()`. */
+  public off(event: "message", listener: (e: OnMessageArgs) => void): void;
+  /** Remove a `room-joined` listener previously registered with `on()`. */
+  public off(event: "room-joined", listener: (e: OnRoomJoinedArgs) => void): void;
+  /** Remove a `room-left` listener previously registered with `on()`. */
+  public off(event: "room-left", listener: (e: OnRoomLeftArgs) => void): void;
+  /** Remove a `member-joined` listener previously registered with `on()`. */
   public off(event: "member-joined", listener: (e: OnMemberJoinedArgs) => void): void;
-  public off(event: "member-left",   listener: (e: OnMemberLeftArgs)   => void): void;
+  /** Remove a `member-left` listener previously registered with `on()`. */
+  public off(event: "member-left", listener: (e: OnMemberLeftArgs) => void): void;
   public off(event: string, listener: (e: any) => void): void {
     this._emitter.off(event, listener);
   }
@@ -706,7 +742,7 @@ class ChatClient {
     if (!this._isConnectionStopping) {
       this._isConnectionStopping = true;
       try {
-        this.connection.stop();
+        this._connection.stop();
       } catch (err) {
         this._isConnectionStopping = false;
         throw err;
