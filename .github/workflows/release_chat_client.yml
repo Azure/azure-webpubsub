@@ -1,4 +1,4 @@
-name: Release Azure SocketIO package
+name: Release Azure Web PubSub chat client package
 permissions:
   id-token: write # This is required for requesting the JWT
   contents: write
@@ -6,12 +6,12 @@ on:
   push:
     branches: [ "main" ]
     paths:
-      - '.github/workflows/release_socketio.yml'
-      - 'sdk/webpubsub-socketio-extension/package.json'
-      - 'sdk/webpubsub-socketio-extension/CHANGELOG.md'
+      - '.github/workflows/release_chat_client.yml'
+      - 'sdk/webpubsub-chat-client/package.json'
+      - 'sdk/webpubsub-chat-client/CHANGELOG.md'
 jobs:
   release:
-    name: Release Azure SocketIO package
+    name: Release Azure Web PubSub chat client package
     uses: ./.github/workflows/workflow-call-release-package.yml
     secrets:
       AZURESDKPARTNERDROPS_URL: ${{ secrets.AZURESDKPARTNERDROPS_URL }}
@@ -20,17 +20,10 @@ jobs:
       AZURESDKPARTNERDROPS_TENANT_ID: ${{ secrets.AZURESDKPARTNERDROPS_TENANT_ID }}
       GH_PAT: ${{ secrets.GH_PAT }}
     with:
-      package_name: webpubsub-socketio-extension
-      package_folder: sdk/webpubsub-socketio-extension
+      package_name: web-pubsub-chat-client
+      package_folder: sdk/webpubsub-chat-client
       pack_command: |
-        pushd sdk/server-proxies
+        pushd sdk/webpubsub-chat-client
         yarn
-        popd
-        pushd tools/awps-tunnel/client
-        yarn
-        popd
-        pushd sdk/webpubsub-socketio-extension
-        yarn
-        yarn build
-        yarn pack
+        npm run pack:publish
         popd
