@@ -1,6 +1,8 @@
 
 # Changelog
 
+## [1.2.1-beta.1]
+
 ## [1.2.1] - 2026-04-22
 
 - Upgrade internal package `awps-tunnel` [#https://github.com/Azure/azure-webpubsub/pull/880](https://github.com/Azure/azure-webpubsub/pull/880) empty string subprotocol rejected issue

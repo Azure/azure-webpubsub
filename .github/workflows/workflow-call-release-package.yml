@@ -29,7 +29,7 @@ permissions:
   id-token: write # This is required for requesting the JWT
   contents: read
 env:
-  NODE_VERSION: '18.x'                # set this to the node version to use
+  NODE_VERSION: '20.x'                # set this to the node version to use
 
 jobs:
   check_version:
