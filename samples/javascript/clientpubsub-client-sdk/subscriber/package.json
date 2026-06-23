@@ -1,0 +1,24 @@
+{
+  "name": "clientpubsub-client-sdk",
+  "version": "1.0.0",
+  "description": "Client subscriber with client SDK",
+  "main": "index.js",
+  "engines": {
+    "node": ">=14.0.0"
+  },
+  "scripts": {
+    "start": "tsc && node dist/index.js"
+  },
+  "author": "chenyl",
+  "license": "MIT",
+  "dependencies": {
+    "@azure/web-pubsub": "^1.1.0",
+    "@azure/web-pubsub-client": "^1.0.0-beta.1",
+    "dotenv": "^16.0.3",
+    "events": "latest"
+  },
+  "devDependencies": {
+    "@types/node": "^14.0.0",
+    "typescript": "~4.8.0"
+  }
+}
