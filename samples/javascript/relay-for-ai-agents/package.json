@@ -8,7 +8,8 @@
     "control-plane": "tsx src/control-plane/server.ts",
     "connector:mock": "tsx src/connector/main.ts mock",
     "connector:foundry": "tsx src/connector/main.ts foundry",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "test": "npm run typecheck"
   },
   "dependencies": {
     "@azure/identity": "^4.5.0",
