@@ -18,7 +18,6 @@ export class ChatClient {
     addUserToRoom(roomId: string, userId: string, options?: AddUserToRoomOptions): Promise<void>;
     createRoom(title: string, members: string[], options?: CreateRoomOptions): Promise<RoomDetail>;
     getRoomDetail(roomId: string, options?: GetRoomDetailOptions): Promise<RoomDetail>;
-    getUserProfile(userId: string, options?: GetUserProfileOptions): Promise<UserProfile>;
     hasJoinedRoom(roomId: string): boolean;
     listRoomMessages(roomId: string, options?: ListRoomMessagesOptions): PagedAsyncIterableIterator<MessageInfo>;
     off(event: "started", listener: (e: OnStartedArgs) => void): void;
@@ -63,10 +62,6 @@ export interface CreateRoomOptions extends OperationOptions {
 // @public
 export interface GetRoomDetailOptions extends OperationOptions {
     withMembers?: boolean;
-}
-
-// @public
-export interface GetUserProfileOptions extends OperationOptions {
 }
 
 // @public

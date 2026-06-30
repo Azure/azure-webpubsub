@@ -26,7 +26,6 @@ export type {
   GetRoomDetailOptions,
   CreateRoomOptions,
   SendToRoomOptions,
-  GetUserProfileOptions,
   AddUserToRoomOptions,
   RemoveUserFromRoomOptions,
   ListRoomMessagesOptions,

@@ -15,7 +15,7 @@ import {
   MemberLeftNotificationBody,
   RoomLeftNotificationBody,
 } from "./generatedTypes.js";
-import type { MessageInfo, RoomInfo, RoomDetail, UserProfile, SendMessageResult } from "./models.js";
+import type { MessageInfo, RoomInfo, RoomDetail, SendMessageResult } from "./models.js";
 import type {
   ChatMessage,
   OnMemberJoinedArgs,
@@ -33,7 +33,6 @@ import type {
   GetRoomDetailOptions,
   CreateRoomOptions,
   SendToRoomOptions,
-  GetUserProfileOptions,
   AddUserToRoomOptions,
   RemoveUserFromRoomOptions,
 } from "./options.js";
@@ -350,22 +349,6 @@ class ChatClient {
     if (!this._isStarted) {
       throw new ChatError("Not started. Please call start() first.", ERRORS.NotStarted);
     }
-  }
-
-  /**
-   * Fetch a user's profile.
-   *
-   * @param userId - Id of the user to look up.
-   * @param options - Optional `{ abortSignal }`.
-   */
-  public async getUserProfile(userId: string, options?: GetUserProfileOptions): Promise<UserProfile> {
-    this.ensureStarted();
-    return this.invokeWithReturnType<WireUserProfile>(
-      INVOCATION_NAME.GET_USER_PROPERTIES,
-      { userId: userId },
-      "json",
-      options,
-    );
   }
 
   private async sendToConversation(
