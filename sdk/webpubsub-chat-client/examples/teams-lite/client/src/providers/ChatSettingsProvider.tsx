@@ -26,7 +26,7 @@ export const ChatSettingsProvider: React.FC<ChatSettingsProviderProps> = ({ chil
     async (client: ChatClient, roomName: string, memberIds: string[] = [], roomId: string | undefined = undefined): Promise<string> => {
       console.log(`client.createRoom, title: ${roomName}, id: ${roomId}, memberIds: [${memberIds.join(", ")}], client: `, client);
 
-      return await client.createRoom(roomName, memberIds, roomId)
+      return await client.createRoom(roomName, memberIds, roomId ? { roomId } : undefined)
         .then((newRoom) => {
             setRoomId(newRoom.roomId);
             return newRoom.roomId;

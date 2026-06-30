@@ -131,8 +131,7 @@ async function doLogin() {
     const resp = await fetch(`/negotiate?userId=${encodeURIComponent(username)}`);
     const { url } = await resp.json();
 
-    client = new ChatClient(url);
-    await client.start();
+    client = await ChatClient.start(url);
 
     btn.textContent = 'Logged in';
     $('display-username').textContent = `✓ Logged in as ${client.userId}`;
@@ -168,7 +167,7 @@ async function doLogin() {
 
 // SDK Listeners
 function setupListeners() {
-  client.onRoomJoined(async (event) => {
+  client.on("room-joined", async (event) => {
     const room = event.room;
     await loadGame(room.roomId, room.title);
 
@@ -185,11 +184,11 @@ function setupListeners() {
     if (games.size === 1) openGame(room.roomId);
   });
 
-  client.onMemberJoined((event) => {
+  client.on("member-joined", (event) => {
     if (event.roomId === currentGameId) renderPlayersBar();
   });
 
-  client.onMessage((event) => {
+  client.on("message", (event) => {
     const msg = event.message;
     const roomId = event.roomId;
     if (!roomId || msg.createdBy === client.userId) return;
@@ -253,7 +252,7 @@ async function loadGame(roomId, title) {
 
   try {
     const messages = [];
-    for await (const msg of client.listRoomMessages({ roomId })) {
+    for await (const msg of client.listRoomMessages(roomId)) {
       messages.push(msg);
     }
     for (const msg of messages) {

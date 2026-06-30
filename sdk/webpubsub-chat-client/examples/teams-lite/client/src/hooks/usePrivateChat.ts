@@ -36,7 +36,7 @@ export const usePrivateChat = () => {
       } else {
         // Room doesn't exist, create it
         console.log('Creating new private room:', privateRoomId);
-        const newRoom = await clientContext.client.createRoom(privateRoomName, [targetUserId], privateRoomId);
+        const newRoom = await clientContext.client.createRoom(privateRoomName, [targetUserId], { roomId: privateRoomId });
         console.log('Created private room:', newRoom);
         
         // Switch to new room

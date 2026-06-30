@@ -159,7 +159,7 @@ export const Sidebar: React.FC = () => {
         if (room.roomId.startsWith('private-')) continue;
         
         try {
-          const roomInfo = await clientContext.client.getRoom(room.roomId, true);
+          const roomInfo = await clientContext.client.getRoomDetail(room.roomId, { withMembers: true });
           const members = (roomInfo as any).members || [];
           membersMap.set(room.roomId, new Set(members));
         } catch (error) {

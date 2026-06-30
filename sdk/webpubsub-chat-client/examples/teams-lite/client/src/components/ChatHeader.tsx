@@ -38,7 +38,7 @@ export const ChatHeader: React.FC = () => {
       
       try {
         console.log("trying to fetch room members for room:", roomId);
-        const roomInfo = await clientContext.client.getRoom(roomId, true);
+        const roomInfo = await clientContext.client.getRoomDetail(roomId, { withMembers: true });
         console.log("fetched room member info:", roomInfo);
         const members = (roomInfo as any).members || [];
         setRoomMembersInfo({
@@ -119,7 +119,7 @@ export const ChatHeader: React.FC = () => {
       }
       setIsAddToRoomDialogOpen(false);
       // Refresh room members info
-      const roomInfo = await clientContext.client.getRoom(roomId, true);
+      const roomInfo = await clientContext.client.getRoomDetail(roomId, { withMembers: true });
       const members = (roomInfo as any).members || [];
       setRoomMembersInfo({
         count: members.length,
@@ -145,7 +145,7 @@ export const ChatHeader: React.FC = () => {
       await (clientContext.client as any).removeUserFromRoom(roomId, userId);
       
       // Refresh room members info
-      const roomInfo = await clientContext.client.getRoom(roomId, true);
+      const roomInfo = await clientContext.client.getRoomDetail(roomId, { withMembers: true });
       const members = (roomInfo as any).members || [];
       setRoomMembersInfo({
         count: members.length,
