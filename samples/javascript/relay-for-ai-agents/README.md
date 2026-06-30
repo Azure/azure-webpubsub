@@ -1,7 +1,7 @@
 # Agent Relay — Azure Web PubSub + Microsoft Foundry
 
 A runnable companion to the case study _Real-Time Infrastructure for AI Agents in
-diverse environments_. It demonstrates one idea:
+Diverse Environments_. It demonstrates one idea:
 
 > A managed real-time relay lets a control plane and clients talk to **every** agent
 > through one uniform contract — regardless of where or how the agent runs. Adding a
