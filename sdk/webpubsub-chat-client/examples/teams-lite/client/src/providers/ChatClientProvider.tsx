@@ -210,7 +210,7 @@ export const ChatClientProvider: React.FC<ChatClientProviderProps> = ({ children
     try {
       console.log(`Fetching history for room: ${targetRoomId}`);
       const messages: any[] = [];
-      for await (const msg of client.listRoomMessages({ roomId: targetRoomId })) {
+      for await (const msg of client.listRoomMessages(targetRoomId)) {
         messages.push(msg);
         if (messages.length >= 100) break;
       }
@@ -334,19 +334,17 @@ export const ChatClientProvider: React.FC<ChatClientProviderProps> = ({ children
         });
 
         // Assign clientRef before starting to prevent parallel starts from racing
-        // const newChatClient = new ChatClient(newClient); //await ChatClient.login(newClient);
         // Set up event listeners using refs for latest values
-        chatClient.connection.on("connected", (e: { connectionId: string; userId?: string }) => {
+        chatClient.on("started", (e) => {
           setConnectionStatus({
             status: "connected",
             message: "Connected",
-            connectionId: e.connectionId,
+            connectionId: undefined,
             userId: e.userId,
           });
           // If the event includes a userId, store it in settings
-          const evtUserId = e?.userId;
-          if (typeof evtUserId === "string" && evtUserId.length > 0) {
-            setUserIdRef.current?.(evtUserId);
+          if (typeof e.userId === "string" && e.userId.length > 0) {
+            setUserIdRef.current?.(e.userId);
           }
           // Server auto-joins the negotiated room; no client-side tracking needed
           // mark reconnection token to allow one-time refetch for current room
@@ -357,8 +355,8 @@ export const ChatClientProvider: React.FC<ChatClientProviderProps> = ({ children
           }
         });
 
-        // No additional listeners needed; userId is set via connected event above if provided
-        chatClient.connection.on("disconnected", () => {
+        // No additional listeners needed; userId is set via started event above
+        chatClient.on("stopped", () => {
           setConnectionStatus({
             status: "disconnected",
             message: `Disconnected: Connection closed`,
@@ -367,8 +365,7 @@ export const ChatClientProvider: React.FC<ChatClientProviderProps> = ({ children
         });
 
 
-        chatClient.onMessage((event) => {
-          const notification = event;
+        chatClient.on("message", (event) => {
           console.log("New message event:", event);
           const message = event.message;
           console.log(`Received new message from ${message.createdBy}, content = ${message.content?.text}, isSelf = ${message.createdBy === chatClient.userId}`);
@@ -416,7 +413,7 @@ export const ChatClientProvider: React.FC<ChatClientProviderProps> = ({ children
           } });
         });
 
-        chatClient.onRoomJoined((event) => {
+        chatClient.on("room-joined", (event) => {
           const room = event.room;
           console.log('New room created/joined:', room);
           
@@ -477,7 +474,7 @@ export const ChatClientProvider: React.FC<ChatClientProviderProps> = ({ children
           });
         });
 
-        chatClient.onMemberJoined((event) => {
+        chatClient.on("member-joined", (event) => {
           console.log('Member joined event:', event);
           const {roomId, userId, title} = event;
           // Skip notifications for global metadata room
@@ -489,7 +486,7 @@ export const ChatClientProvider: React.FC<ChatClientProviderProps> = ({ children
           setRoomMembersUpdateTrigger(prev => prev + 1);
         });
 
-        chatClient.onMemberLeft((event) => {
+        chatClient.on("member-left", (event) => {
           console.log('Member left event:', event);
           const {roomId, userId, title} = event;
           // Skip notifications for global metadata room
@@ -501,7 +498,7 @@ export const ChatClientProvider: React.FC<ChatClientProviderProps> = ({ children
           setRoomMembersUpdateTrigger(prev => prev + 1);
         });
 
-        chatClient.onRoomLeft((event) => {
+        chatClient.on("room-left", (event) => {
           console.log('Room left event (you were removed):', event);
           const {roomId, title} = event;
           

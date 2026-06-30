@@ -29,12 +29,12 @@ app.get('/api/negotiate', async (req, res) => {
   }
   let token = await serviceClient.getClientAccessToken({ userId: userId });
   if (userId !== "admin") {
-    await chatClient.addUserToRoom(DEFAULT_ROOM_ID, userId);
-    await chatClient.addUserToRoom(GLOBAL_METADATA_ROOM_ID, userId);
+    try { await chatClient.addUserToRoom(DEFAULT_ROOM_ID, userId); } catch (e) { /* already a member */ }
+    try { await chatClient.addUserToRoom(GLOBAL_METADATA_ROOM_ID, userId); } catch (e) { /* already a member */ }
     // Create self-chat room for user (chat with yourself)
     const selfChatRoomId = `private-${userId}-${userId}`;
     try {
-      await chatClient.createRoom(`${userId} (You)`, [userId], selfChatRoomId);
+      await chatClient.createRoom(`${userId} (You)`, [userId], { roomId: selfChatRoomId });
     } catch (err) {
       // Room may already exist, ignore error
       console.log(`Self-chat room for ${userId} may already exist:`, err.message);
@@ -63,7 +63,7 @@ app.listen(port, '0.0.0.0', async () => {
     },
   });
   await chatClient.start();
-  chatClient.onMessage((event) => {
+  chatClient.on("message", (event) => {
     const message = event.message;
     console.log(`new room message, roomId = ${event.roomId}, messageId = ${message.messageId}, createdBy = ${message.createdBy}, text = ${message.content.text}`);
   });
@@ -72,10 +72,10 @@ app.listen(port, '0.0.0.0', async () => {
   // Create initial rooms (ignore if already exists)
   const createRoomIfNotExists = async (name, members, roomId) => {
     try {
-      await chatClient.createRoom(name, members, roomId);
+      await chatClient.createRoom(name, members, { roomId });
       console.log(`Room created: ${name}`);
     } catch (err) {
-      if (err.message === 'RoomAlreadyExists') {
+      if (err.code === 'RoomAlreadyExists') {
         console.log(`Room already exists: ${name}`);
       } else {
         throw err;

@@ -14,7 +14,7 @@ A real-time auction app built with the **Web PubSub Chat SDK**. Bids appear inst
 | Real-time bid updates | `onMessage` |
 | Load bid history | `listRoomMessages` |
 | See who joined | `onMemberJoined` |
-| Show participants | `getRoom(roomId, withMembers: true)` |
+| Show participants | `getRoomDetail(roomId, { withMembers: true })` |
 
 ## Prerequisites
 

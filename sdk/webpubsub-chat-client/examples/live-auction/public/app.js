@@ -56,8 +56,7 @@ async function doLogin() {
     const resp = await fetch(`/negotiate?userId=${encodeURIComponent(username)}`);
     const { url } = await resp.json();
 
-    client = new ChatClient(url);
-    await client.start();
+    client = await ChatClient.start(url);
 
     // Show logged-in state
     btn.textContent = 'Logged in';
@@ -96,7 +95,7 @@ document.querySelectorAll('.item-preset').forEach(btn => {
 
 // Chat SDK listeners
 function setupListeners() {
-  client.onRoomJoined(async (event) => {
+  client.on("room-joined", async (event) => {
     const room = event.room;
     await loadAuctionFromRoom(room.roomId, room.title);
     renderAuctionList();
@@ -104,7 +103,7 @@ function setupListeners() {
     if (auctions.size === 1) openAuction(room.roomId);
   });
 
-  client.onMemberJoined((event) => {
+  client.on("member-joined", (event) => {
     const auction = auctions.get(event.roomId);
     if (auction) {
       auction.members.add(event.userId);
@@ -113,7 +112,7 @@ function setupListeners() {
   });
 
   // New message arrives in real time (skip self — already handled locally)
-  client.onMessage((event) => {
+  client.on("message", (event) => {
     const msg = event.message;
     const roomId = event.roomId;
     if (!roomId || msg.createdBy === client.userId) return;
@@ -161,7 +160,7 @@ async function loadAuctionFromRoom(roomId, title) {
 
   try {
     const messages = [];
-    for await (const msg of client.listRoomMessages({ roomId })) {
+    for await (const msg of client.listRoomMessages(roomId)) {
       messages.push(msg);
     }
     for (const msg of messages) {
@@ -263,7 +262,7 @@ async function openAuction(roomId) {
 
   // Load participants
   try {
-    const roomInfo = await client.getRoom(roomId, true);
+    const roomInfo = await client.getRoomDetail(roomId, { withMembers: true });
     auction.members = new Set(roomInfo.members);
   } catch { /* ignore */ }
   renderParticipants(auction);
@@ -333,7 +332,7 @@ async function renderBidHistory(roomId) {
 
   try {
     const messages = [];
-    for await (const msg of client.listRoomMessages({ roomId })) {
+    for await (const msg of client.listRoomMessages(roomId)) {
       messages.push(msg);
     }
 
