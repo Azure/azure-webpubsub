@@ -93,7 +93,6 @@ new ChatClient(credential: WebPubSubClientCredential)
 | `removeUserFromRoom(roomId, userId, options?)` | Remove user from room (admin operation) |
 | `sendToRoom(roomId, message, options?)` | Send text message to room, returns a `SendMessageResult` (`{ messageId }`) |
 | `listRoomMessages(roomId, options?)` | Paged async iterator over room message history (auto-paginates). Use `for await` to stream every message, or `.byPage({ maxPageSize })` to load up to `maxPageSize` messages at a time. `options = { startId?, endId?, maxPageSize?, abortSignal? }` |
-| `getUserProfile(userId, options?)` | Get user profile |
 
 Every asynchronous method accepts an optional final `options` argument
 extending `OperationOptions` (`{ abortSignal?: AbortSignalLike }`) to

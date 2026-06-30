@@ -43,9 +43,6 @@ export interface CreateRoomOptions extends OperationOptions {
 /** Options for `ChatClient.sendToRoom()`. */
 export interface SendToRoomOptions extends OperationOptions {}
 
-/** Options for `ChatClient.getUserProfile()`. */
-export interface GetUserProfileOptions extends OperationOptions {}
-
 /** Options for `ChatClient.addUserToRoom()`. */
 export interface AddUserToRoomOptions extends OperationOptions {}
 
