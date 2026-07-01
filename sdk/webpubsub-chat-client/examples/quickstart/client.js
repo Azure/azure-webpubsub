@@ -6,27 +6,28 @@ const getClientAccessUrl = (userId) =>
     fetch(`${SERVER_URL}/negotiate?userId=${userId}`).then(r => r.json()).then(d => d.url);
 
 function setupListeners(client) {
+    const userId = client.userId;
     // chat event listeners
-    client.onRoomJoined((event) => {
+    client.on("room-joined", (event) => {
         const room = event.room;
-        console.log(`[${client.userId}] joined room "${room.title}" (${room.roomId})`);
+        console.log(`[${userId}] joined room "${room.title}" (${room.roomId})`);
     });
-    client.onMessage((event) => {
+    client.on("message", (event) => {
         const msg = event.message;
-        console.log(`[${client.userId}] received message from ${msg.createdBy}: ${msg.content.text}`);
+        console.log(`[${userId}] received message from ${msg.createdBy}: ${msg.content.text}`);
     });
-    client.onMemberJoined((event) => {
-        console.log(`[${client.userId}] saw ${event.userId} joined room ${event.roomId}`);
+    client.on("member-joined", (event) => {
+        console.log(`[${userId}] saw ${event.userId} joined room ${event.roomId}`);
     });
-    client.onMemberLeft((event) => {
-        console.log(`[${client.userId}] saw ${event.userId} left room ${event.roomId}`);
+    client.on("member-left", (event) => {
+        console.log(`[${userId}] saw ${event.userId} left room ${event.roomId}`);
     });
-    client.onRoomLeft((event) => {
-        console.log(`[${client.userId}] left room ${event.roomId}`);
+    client.on("room-left", (event) => {
+        console.log(`[${userId}] left room ${event.roomId}`);
     });
     // chat lifecycle listener
     client.on("stopped", () => {
-        console.log(`chat client for ${client.userId} stopped`);
+        console.log(`chat client for ${userId} stopped`);
     });
 }
 
