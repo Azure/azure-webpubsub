@@ -7,26 +7,26 @@ const getClientAccessUrl = (userId) =>
 
 function setupListeners(client) {
     // chat event listeners
-    client.on("room-joined", (event) => {
+    client.onRoomJoined((event) => {
         const room = event.room;
         console.log(`[${client.userId}] joined room "${room.title}" (${room.roomId})`);
     });
-    client.on("message", (event) => {
+    client.onMessage((event) => {
         const msg = event.message;
         console.log(`[${client.userId}] received message from ${msg.createdBy}: ${msg.content.text}`);
     });
-    client.on("member-joined", (event) => {
+    client.onMemberJoined((event) => {
         console.log(`[${client.userId}] saw ${event.userId} joined room ${event.roomId}`);
     });
-    client.on("member-left", (event) => {
+    client.onMemberLeft((event) => {
         console.log(`[${client.userId}] saw ${event.userId} left room ${event.roomId}`);
     });
-    client.on("room-left", (event) => {
+    client.onRoomLeft((event) => {
         console.log(`[${client.userId}] left room ${event.roomId}`);
     });
     // chat lifecycle listener
     client.on("stopped", () => {
-        console.log(`chat client stopped`);
+        console.log(`chat client for ${client.userId} stopped`);
     });
 }
 

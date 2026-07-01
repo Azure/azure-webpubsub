@@ -2,7 +2,7 @@ import express from 'express';
 import { WebPubSubServiceClient } from '@azure/web-pubsub';
 
 const hubName = 'chat';
-const port = process.env.PORT || 3000;
+const port = 3000 || process.env.PORT
 
 // Get connection string from environment variable or command line argument
 const connectionString = process.env.WebPubSubConnectionString || process.argv[2];
