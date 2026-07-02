@@ -1,0 +1,128 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Agent Relay — Web PubSub + Foundry</title>
+    <style>
+      :root { color-scheme: light dark; }
+      * { box-sizing: border-box; }
+      body {
+        font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+        max-width: 1040px; margin: 2rem auto; padding: 0 1.5rem; line-height: 1.5;
+      }
+
+      header { margin-bottom: 1.5rem; }
+      h1 { font-size: 1.9rem; margin: 0 0 0.4rem; }
+      .lede { color: #888; margin: 0; max-width: 70ch; }
+      .pill { font-size: 0.7rem; vertical-align: middle; padding: 0.15rem 0.55rem; border-radius: 999px; border: 1px solid #8884; }
+
+      .card { border: 1px solid #8884; border-radius: 12px; padding: 1.1rem 1.3rem; margin: 1.25rem 0; }
+      .card > h2 { font-size: 1.4rem; margin: 0 0 0.3rem; }
+      .subtitle { color: #888; font-size: 0.9rem; margin: 0 0 1rem; max-width: 70ch; }
+      h3.minor {
+        font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.05em;
+        color: #888; margin: 1.25rem 0 0.4rem;
+      }
+
+      .row { display: flex; gap: 0.5rem; align-items: center; margin: 0.6rem 0; flex-wrap: wrap; }
+      label { color: #888; font-size: 0.9rem; }
+      select, input, button { font: inherit; padding: 0.5rem; }
+      input[type="text"] { flex: 1; min-width: 14rem; }
+      button { cursor: pointer; }
+
+      #response {
+        white-space: pre-wrap; border: 1px solid #8884; border-radius: 8px;
+        padding: 1rem; min-height: 4rem;
+      }
+      #log { font-size: 0.8rem; color: #888; white-space: pre-wrap; margin: 0; }
+
+      /* --- Data-flow slideshow --- */
+      #flow { margin: 0; }
+      .flow-stage {
+        position: relative; border-radius: 8px;
+        overflow: hidden; background: #8881; min-height: 160px;
+        display: flex; align-items: center; justify-content: center;
+      }
+      #flow-img { display: block; width: 100%; height: auto; max-height: 640px; object-fit: contain; }
+      #flow-missing { display: none; padding: 2.5rem 1rem; text-align: center; color: #888; font-size: 0.85rem; }
+      #flow-missing code { font-size: 0.85rem; }
+      .flow-nav {
+        position: absolute; top: 50%; transform: translateY(-50%);
+        border: none; background: #0008; color: #fff; width: 2.1rem; height: 2.8rem;
+        font-size: 1.3rem; line-height: 1; border-radius: 6px; opacity: 0.7;
+      }
+      .flow-nav:hover { opacity: 1; }
+      #flow-prev { left: 0.5rem; }
+      #flow-next { right: 0.5rem; }
+      .flow-dots { display: flex; gap: 0.5rem; justify-content: center; margin-top: 0.8rem; }
+      .flow-dot {
+        -webkit-appearance: none; appearance: none;
+        flex: 0 0 auto; box-sizing: border-box;
+        width: 0.7rem; height: 0.7rem; padding: 0; line-height: 0;
+        border-radius: 999px; border: 1px solid #888; background: transparent;
+      }
+      .flow-dot[aria-current="true"] { background: #1f6feb; border-color: #1f6feb; }
+    </style>
+  </head>
+  <body>
+    <header>
+      <h1>About the demo</h1>
+      <p class="lede">
+        One real-time relay, two agents running in different environments. The streamed reply takes the same
+        path whether the agent is a local mock (unreachable) or a hosted Foundry agent
+        (managed cloud compute).
+      </p>
+    </header>
+
+    <section class="card" aria-labelledby="flow-heading">
+      <h2 id="flow-heading">How the data flows</h2>
+      <p class="subtitle">
+        Step through the path a prompt and its streamed reply take through the relay.
+      </p>
+      <div id="flow" aria-label="Data flow walkthrough">
+        <div class="flow-stage">
+          <img id="flow-img" alt="Data flow step" />
+          <div id="flow-missing">
+            Add the flow illustrations to <code>src/web/flow/</code> as
+            <code>sample_flow_0.jpg</code> … <code>sample_flow_4.jpg</code>.
+          </div>
+          <button id="flow-prev" class="flow-nav" aria-label="Previous step">&#8249;</button>
+          <button id="flow-next" class="flow-nav" aria-label="Next step">&#8250;</button>
+        </div>
+        <div class="flow-dots" id="flow-dots"></div>
+      </div>
+    </section>
+
+    <section class="card" aria-labelledby="try-heading">
+      <h2 id="try-heading">Try it</h2>
+      <p class="subtitle">
+        Choose an agent, start a session, then send a prompt. The reply streams back
+        over Web PubSub in real time.
+      </p>
+
+      <div class="row">
+        <label for="agent">Agent</label>
+        <select id="agent"></select>
+        <button id="refresh">Refresh</button>
+        <button id="start">Start session</button>
+      </div>
+
+      <div class="row">
+        <input id="prompt" type="text" placeholder="Type a prompt…" disabled />
+        <button id="send" disabled>Send</button>
+      </div>
+
+      <h3 class="minor">Response</h3>
+      <div id="response"></div>
+    </section>
+
+    <section class="card" aria-labelledby="log-heading">
+      <h2 id="log-heading">Activity log</h2>
+      <p class="subtitle">Session and connection events, newest at the bottom.</p>
+      <div id="log"></div>
+    </section>
+
+    <script src="./client.js"></script>
+  </body>
+</html>
