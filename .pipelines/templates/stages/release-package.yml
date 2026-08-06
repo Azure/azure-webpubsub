@@ -35,103 +35,17 @@ parameters:
     default: '20.x'
 
 stages:
-  # -----------------------------------------------------------------------
-  # 1. Version gate
-  # -----------------------------------------------------------------------
-  - stage: ${{ format('{0}_check_version', parameters.package_key) }}
-    displayName: 'Check ${{ parameters.package_name }} version'
-    jobs:
-      - job: check
-        displayName: 'Read package.json + validate CHANGELOG'
-        pool:
-          type: linux
-        variables:
-          ob_outputDirectory: '$(Build.ArtifactStagingDirectory)'
-          ob_sdl_codeSignValidation_enabled: false
-          ob_sdl_binskim_enabled: false
-        steps:
-          - checkout: self
-            path: s/self
-            fetchDepth: 0
-            fetchTags: true
-            persistCredentials: false
-          - task: UseNode@1
-            displayName: 'Use Node ${{ parameters.node_version }}'
-            inputs:
-              version: ${{ parameters.node_version }}
-          - task: Bash@3
-            name: read
-            displayName: 'Read version and validate changelog'
-            inputs:
-              targetType: inline
-              workingDirectory: '$(Pipeline.Workspace)/s/self'
-              script: |
-                set -euo pipefail
-
-                PACKAGE_FOLDER='${{ parameters.package_folder }}'
-                PACKAGE_NAME='${{ parameters.package_name }}'
-
-                if [ ! -f "$PACKAGE_FOLDER/package.json" ]; then
-                  echo "ERROR: $PACKAGE_FOLDER/package.json not found"
-                  exit 1
-                fi
-                if [ ! -f "$PACKAGE_FOLDER/CHANGELOG.md" ]; then
-                  echo "ERROR: $PACKAGE_FOLDER/CHANGELOG.md not found"
-                  exit 1
-                fi
-
-                current_version=$(node -p "require('./$PACKAGE_FOLDER/package.json').version")
-                if [[ ! "$current_version" =~ ^[0-9]+\.[0-9]+\.[0-9]+(-beta\.[0-9]+)?$ ]]; then
-                  echo "ERROR: unsupported release version: $current_version"
-                  exit 1
-                fi
-                echo "Current version: $current_version"
-                echo "##vso[task.setvariable variable=releaseVersion;isOutput=true]$current_version"
-                if [[ "$current_version" == *-beta.* ]]; then
-                  echo "##vso[task.setvariable variable=productState;isOutput=true]Beta"
-                else
-                  echo "##vso[task.setvariable variable=productState;isOutput=true]Current"
-                fi
-
-                changelog_pattern="^##[[:space:]]+\[?${current_version}\]?[[:space:]]+-[[:space:]]+[0-9]{4}-[0-9]{1,2}-[0-9]{1,2}"
-                if grep -Eq "$changelog_pattern" "$PACKAGE_FOLDER/CHANGELOG.md"; then
-                  echo "Changelog entry for $current_version found."
-                  changelog_ok=true
-                else
-                  echo "No dated changelog entry for $current_version. Skipping release."
-                  changelog_ok=false
-                fi
-
-                tag="release/${PACKAGE_NAME}/v${current_version}"
-                if git rev-parse --verify "refs/tags/${tag}" >/dev/null 2>&1; then
-                  echo "Tag ${tag} already exists. Skipping release."
-                  tag_free=false
-                else
-                  tag_free=true
-                fi
-
-                if [ "$changelog_ok" = "true" ] && [ "$tag_free" = "true" ]; then
-                  echo "##vso[task.setvariable variable=needsRelease;isOutput=true]true"
-                  echo "needsRelease=true"
-                else
-                  echo "##vso[task.setvariable variable=needsRelease;isOutput=true]false"
-                  echo "needsRelease=false"
-                fi
-
-  # -----------------------------------------------------------------------
-  # 2. Build, pack, publish to npm through ESRP
-  # -----------------------------------------------------------------------
   - stage: ${{ format('{0}_build_deploy', parameters.package_key) }}
     displayName: 'Build and publish ${{ parameters.package_name }}'
-    dependsOn: ${{ format('{0}_check_version', parameters.package_key) }}
+    dependsOn: release_check
     condition: |
       and(
         succeeded(),
-        eq(dependencies.${{ format('{0}_check_version', parameters.package_key) }}.outputs['check.read.needsRelease'], 'true')
+        eq(dependencies.release_check.outputs['check.read.${{ parameters.package_key }}_needsRelease'], 'true')
       )
     variables:
-      releaseVersion: $[ stageDependencies.${{ format('{0}_check_version', parameters.package_key) }}.check.outputs['read.releaseVersion'] ]
-      productState: $[ stageDependencies.${{ format('{0}_check_version', parameters.package_key) }}.check.outputs['read.productState'] ]
+      releaseVersion: $[ stageDependencies.release_check.check.outputs['read.${{ parameters.package_key }}_releaseVersion'] ]
+      productState: $[ stageDependencies.release_check.check.outputs['read.${{ parameters.package_key }}_productState'] ]
     jobs:
       - job: build
         displayName: 'Build + pack + publish'
@@ -237,7 +151,7 @@ stages:
         pool:
           type: linux
         variables:
-          releaseVersion: $[ stageDependencies.${{ format('{0}_check_version', parameters.package_key) }}.check.outputs['read.releaseVersion'] ]
+          releaseVersion: $[ stageDependencies.release_check.check.outputs['read.${{ parameters.package_key }}_releaseVersion'] ]
           ob_outputDirectory: '$(Build.ArtifactStagingDirectory)'
           ob_sdl_codeSignValidation_enabled: false
           ob_sdl_binskim_enabled: false
@@ -286,21 +200,18 @@ stages:
               MainPublisher: '$(ESRP_MAIN_PUBLISHER)'
               ProductState: '$(productState)'
 
-  # -----------------------------------------------------------------------
-  # 3. Push release/<pkg>/v<ver> tag back to GitHub
-  # -----------------------------------------------------------------------
   - stage: ${{ format('{0}_post_deploy_tag', parameters.package_key) }}
     displayName: 'Tag ${{ parameters.package_name }} release'
     dependsOn:
-      - ${{ format('{0}_check_version', parameters.package_key) }}
+      - release_check
       - ${{ format('{0}_build_deploy', parameters.package_key) }}
     condition: |
       and(
-        eq(dependencies.${{ format('{0}_check_version', parameters.package_key) }}.outputs['check.read.needsRelease'], 'true'),
+        eq(dependencies.release_check.outputs['check.read.${{ parameters.package_key }}_needsRelease'], 'true'),
         in(dependencies.${{ format('{0}_build_deploy', parameters.package_key) }}.result, 'Succeeded')
       )
     variables:
-      releaseVersion: $[ stageDependencies.${{ format('{0}_check_version', parameters.package_key) }}.check.outputs['read.releaseVersion'] ]
+      releaseVersion: $[ stageDependencies.release_check.check.outputs['read.${{ parameters.package_key }}_releaseVersion'] ]
     jobs:
       - job: tag
         displayName: 'Push tag to GitHub'
@@ -335,23 +246,20 @@ stages:
                 git tag "${tag}"
                 git push origin "${tag}"
 
-  # -----------------------------------------------------------------------
-  # 4. Open a PR that bumps package.json to the next beta version
-  # -----------------------------------------------------------------------
   - stage: ${{ format('{0}_post_deploy_pr', parameters.package_key) }}
     displayName: 'Open ${{ parameters.package_name }} beta bump PR'
     dependsOn:
-      - ${{ format('{0}_check_version', parameters.package_key) }}
+      - release_check
       - ${{ format('{0}_build_deploy', parameters.package_key) }}
       - ${{ format('{0}_post_deploy_tag', parameters.package_key) }}
     condition: |
       and(
-        eq(dependencies.${{ format('{0}_check_version', parameters.package_key) }}.outputs['check.read.needsRelease'], 'true'),
+        eq(dependencies.release_check.outputs['check.read.${{ parameters.package_key }}_needsRelease'], 'true'),
         in(dependencies.${{ format('{0}_build_deploy', parameters.package_key) }}.result, 'Succeeded'),
         in(dependencies.${{ format('{0}_post_deploy_tag', parameters.package_key) }}.result, 'Succeeded')
       )
     variables:
-      releaseVersion: $[ stageDependencies.${{ format('{0}_check_version', parameters.package_key) }}.check.outputs['read.releaseVersion'] ]
+      releaseVersion: $[ stageDependencies.release_check.check.outputs['read.${{ parameters.package_key }}_releaseVersion'] ]
     jobs:
       - job: bump
         displayName: 'Bump version and open PR'

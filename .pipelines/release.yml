@@ -45,6 +45,82 @@ extends:
       policheck:
         break: true
     stages:
+      - ${{ if or(parameters.release_chat_client, parameters.release_socketio, parameters.release_tunnel) }}:
+          - stage: release_check
+            displayName: 'Check selected package versions'
+            jobs:
+              - job: check
+                displayName: 'Read package versions and validate changelogs'
+                pool:
+                  type: linux
+                variables:
+                  ob_outputDirectory: '$(Build.ArtifactStagingDirectory)'
+                  ob_sdl_codeSignValidation_enabled: false
+                  ob_sdl_binskim_enabled: false
+                steps:
+                  - checkout: self
+                    path: s/self
+                    fetchDepth: 0
+                    fetchTags: true
+                    persistCredentials: false
+                  - task: UseNode@1
+                    displayName: 'Use Node 20.x'
+                    inputs:
+                      version: '20.x'
+                  - task: Bash@3
+                    name: read
+                    displayName: 'Check selected packages'
+                    inputs:
+                      targetType: inline
+                      workingDirectory: '$(Pipeline.Workspace)/s/self'
+                      script: |
+                        set -euo pipefail
+
+                        packages=()
+                        if [[ "${RELEASE_CHAT_CLIENT,,}" == 'true' ]]; then
+                          packages+=('chat_client|web-pubsub-chat-client|sdk/webpubsub-chat-client')
+                        fi
+                        if [[ "${RELEASE_SOCKETIO,,}" == 'true' ]]; then
+                          packages+=('socketio|webpubsub-socketio-extension|sdk/webpubsub-socketio-extension')
+                        fi
+                        if [[ "${RELEASE_TUNNEL,,}" == 'true' ]]; then
+                          packages+=('tunnel|awps-tunnel|tools/awps-tunnel/server')
+                        fi
+
+                        for package in "${packages[@]}"; do
+                          IFS='|' read -r package_key package_name package_folder <<< "$package"
+                          if [[ ! -f "$package_folder/package.json" || ! -f "$package_folder/CHANGELOG.md" ]]; then
+                            echo "ERROR: package files not found in $package_folder"
+                            exit 1
+                          fi
+                          current_version=$(node -p "require('./$package_folder/package.json').version")
+                          if [[ ! "$current_version" =~ ^[0-9]+\.[0-9]+\.[0-9]+(-beta\.[0-9]+)?$ ]]; then
+                            echo "ERROR: unsupported release version for $package_name: $current_version"
+                            exit 1
+                          fi
+
+                          echo "##vso[task.setvariable variable=${package_key}_releaseVersion;isOutput=true]$current_version"
+                          if [[ "$current_version" == *-beta.* ]]; then
+                            echo "##vso[task.setvariable variable=${package_key}_productState;isOutput=true]Beta"
+                          else
+                            echo "##vso[task.setvariable variable=${package_key}_productState;isOutput=true]Current"
+                          fi
+
+                          changelog_pattern="^##[[:space:]]+\[?${current_version}\]?[[:space:]]+-[[:space:]]+[0-9]{4}-[0-9]{1,2}-[0-9]{1,2}"
+                          tag="release/${package_name}/v${current_version}"
+                          if grep -Eq "$changelog_pattern" "$package_folder/CHANGELOG.md" && \
+                             ! git rev-parse --verify "refs/tags/${tag}" >/dev/null 2>&1; then
+                            needs_release=true
+                          else
+                            needs_release=false
+                          fi
+                          echo "##vso[task.setvariable variable=${package_key}_needsRelease;isOutput=true]$needs_release"
+                          echo "$package_name $current_version: needsRelease=$needs_release"
+                        done
+                    env:
+                      RELEASE_CHAT_CLIENT: ${{ parameters.release_chat_client }}
+                      RELEASE_SOCKETIO: ${{ parameters.release_socketio }}
+                      RELEASE_TUNNEL: ${{ parameters.release_tunnel }}
       - ${{ if parameters.release_chat_client }}:
           - template: templates/stages/release-package.yml
             parameters:
