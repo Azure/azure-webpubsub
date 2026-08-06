@@ -1,0 +1,118 @@
+# Release one or more npm packages through ESRP.
+
+name: npm-release_$(Date:yyyyMMdd)$(Rev:.r)
+
+trigger: none
+
+pr: none
+
+parameters:
+  - name: release_chat_client
+    displayName: 'Release @azure/web-pubsub-chat-client'
+    type: boolean
+    default: false
+  - name: release_socketio
+    displayName: 'Release @azure/web-pubsub-socket.io'
+    type: boolean
+    default: false
+  - name: release_tunnel
+    displayName: 'Release @azure/web-pubsub-tunnel-tool'
+    type: boolean
+    default: false
+variables:
+  - group: 'npm-release'
+  - name: CDP_DEFINITION_BUILD_COUNT
+    value: $[counter('', 0)]
+  - name: LinuxContainerImage
+    value: 'mcr.microsoft.com/onebranch/azurelinux/build:3.0'
+
+resources:
+  repositories:
+    - repository: templates
+      type: git
+      name: OneBranch.Pipelines/GovernedTemplates
+      ref: refs/heads/main
+
+extends:
+  template: v2/OneBranch.Official.CrossPlat.yml@templates
+  parameters:
+    featureFlags:
+      WindowsHostVersion:
+        Version: 2022
+    globalSdl:
+      tsa:
+        enabled: false
+      policheck:
+        break: true
+    stages:
+      - ${{ if parameters.release_chat_client }}:
+          - template: templates/stages/release-package.yml
+            parameters:
+              package_key: chat_client
+              package_name: web-pubsub-chat-client
+              npm_package_name: '@azure/web-pubsub-chat-client'
+              package_folder: sdk/webpubsub-chat-client
+              pack_steps:
+                - task: Bash@3
+                  displayName: 'Build and pack chat client'
+                  inputs:
+                    targetType: inline
+                    workingDirectory: '$(Pipeline.Workspace)/s/self'
+                    script: |
+                      set -euo pipefail
+                      pushd sdk/webpubsub-chat-client
+                      yarn
+                      npm run pack:publish
+                      popd
+      - ${{ if parameters.release_socketio }}:
+          - template: templates/stages/release-package.yml
+            parameters:
+              package_key: socketio
+              package_name: webpubsub-socketio-extension
+              npm_package_name: '@azure/web-pubsub-socket.io'
+              package_folder: sdk/webpubsub-socketio-extension
+              pack_steps:
+                - task: Bash@3
+                  displayName: 'Build and pack socketio extension'
+                  inputs:
+                    targetType: inline
+                    workingDirectory: '$(Pipeline.Workspace)/s/self'
+                    script: |
+                      set -euo pipefail
+                      pushd sdk/server-proxies
+                      yarn
+                      popd
+                      pushd tools/awps-tunnel/client
+                      yarn
+                      popd
+                      pushd sdk/webpubsub-socketio-extension
+                      yarn
+                      yarn build
+                      yarn pack
+                      popd
+      - ${{ if parameters.release_tunnel }}:
+          - template: templates/stages/release-package.yml
+            parameters:
+              package_key: tunnel
+              package_name: awps-tunnel
+              npm_package_name: '@azure/web-pubsub-tunnel-tool'
+              package_folder: tools/awps-tunnel/server
+              pack_steps:
+                - task: Bash@3
+                  displayName: 'Build and pack awps-tunnel'
+                  inputs:
+                    targetType: inline
+                    workingDirectory: '$(Pipeline.Workspace)/s/self'
+                    script: |
+                      set -euo pipefail
+                      pushd sdk/server-proxies
+                      yarn
+                      popd
+                      pushd tools/awps-tunnel/client
+                      yarn
+                      popd
+                      pushd tools/awps-tunnel/server
+                      yarn
+                      yarn build
+                      yarn pack
+                      popd
