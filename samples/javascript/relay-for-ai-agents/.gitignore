@@ -1,0 +1,17 @@
+# Secrets / local config
+.env
+.env.*
+!.env.example
+
+# Dependencies & build output
+node_modules/
+dist/
+
+# Foundry hosted-agent scaffold created by foundry-agent/setup-foundry.sh
+# (contains azd environment files with subscription IDs, endpoints, and secrets)
+foundry-agent/agent/
+.azure/
+
+# Logs & OS
+*.log
+.DS_Store
