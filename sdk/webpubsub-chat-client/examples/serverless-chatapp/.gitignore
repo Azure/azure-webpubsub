@@ -1,0 +1,4 @@
+local.settings.json
+node_modules/
+public/client.js
+public/styles.css
