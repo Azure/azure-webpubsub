@@ -16,7 +16,7 @@ npm install
 
 1. Go to https://www.github.com, open your profile -> Settings -> Developer settings
 2. Go to OAuth Apps, click "New OAuth App"
-3. Fill in application name, homepage URL (can be anything you like), and set Authorization callback URL to `http://localhost:8080/auth/github/callback` (which matches the callback API you exposed in the server)
+3. Fill in application name, homepage URL (can be anything you like), and set Authorization callback URL to `https://localhost:8080/auth/github/callback` (which matches the callback API you exposed in the server)
 4. After the application is registered, copy the **Client ID** and click "Generate a new client secret" to generate a new **client secret**
 
 ## Start the app
@@ -30,6 +30,9 @@ Linux:
 export WebPubSubConnectionString="<connection_string>"
 export GitHubClientId="<client-id>"
 export GitHubClientSecret="<client-secret>"
+export SESSION_SECRET="<random-session-secret>"
+export TLS_KEY_PATH="<path-to-tls-private-key.pem>"
+export TLS_CERT_PATH="<path-to-tls-certificate.pem>"
 node server
 ```
 
@@ -39,10 +42,13 @@ Windows:
 SET WebPubSubConnectionString=<connection_string>
 SET GitHubClientId=<client-id>
 SET GitHubClientSecret=<client-secret>
+SET SESSION_SECRET=<random-session-secret>
+SET TLS_KEY_PATH=<path-to-tls-private-key.pem>
+SET TLS_CERT_PATH=<path-to-tls-certificate.pem>
 node server
 ```
 
-The web app is listening to request at `http://localhost:8080/eventhandler/`.
+The web app is listening to requests at `https://localhost:8080/eventhandler/`.
 
 ## Use `awps-tunnel` to tunnel traffic from Web PubSub service to your localhost
 
@@ -64,6 +70,6 @@ Go to the **Settings** tab to configure the event handler for this `sample_githu
 
 ## Start the chat
 
-Open http://localhost:8080, input your user name, and send messages.
+Open https://localhost:8080, input your user name, and send messages.
 
 You could open the webview of the tunnel tool http://127.0.0.1:9080/ to see the requests coming in with every message sent from the page.

@@ -1,4 +1,6 @@
 const express = require('express');
+const fs = require('fs');
+const https = require('https');
 const cookieParser = require('cookie-parser');
 const session = require('express-session');
 const passport = require('passport');
@@ -7,6 +9,15 @@ const { WebPubSubServiceClient } = require('@azure/web-pubsub');
 const { WebPubSubEventHandler } = require('@azure/web-pubsub-express');
 
 const app = express();
+const sessionSecret = process.env.SESSION_SECRET;
+if (!sessionSecret) {
+  throw new Error('SESSION_SECRET must be set');
+}
+const tlsKeyPath = process.env.TLS_KEY_PATH;
+const tlsCertPath = process.env.TLS_CERT_PATH;
+if (!tlsKeyPath || !tlsCertPath) {
+  throw new Error('TLS_KEY_PATH and TLS_CERT_PATH must be set');
+}
 
 // initialize github authentication
 const users = {};
@@ -34,7 +45,12 @@ app.use(cookieParser());
 app.use(session({
   resave: false,
   saveUninitialized: true,
-  secret: 'keyboard cat'
+  secret: sessionSecret,
+  cookie: {
+    httpOnly: true,
+    sameSite: 'lax',
+    secure: true
+  }
 }));
 app.use(passport.initialize());
 app.use(passport.session());
@@ -85,5 +101,8 @@ app.get('/negotiate', async (req, res) => {
 });
 
 app.use(express.static('public'));
-const port= 8080
-app.listen(port, () => console.log(`Event handler listening at http://localhost:${port}${handler.path}`));
+const port = 8080;
+https.createServer({
+  key: fs.readFileSync(tlsKeyPath),
+  cert: fs.readFileSync(tlsCertPath)
+}, app).listen(port, () => console.log(`Event handler listening at https://localhost:${port}${handler.path}`));

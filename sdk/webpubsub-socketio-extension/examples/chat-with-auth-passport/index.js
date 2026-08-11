@@ -1,4 +1,6 @@
 const express = require('express');
+const fs = require('fs');
+const https = require('https');
 const path = require('path');
 const session = require("express-session");
 const bodyParser = require("body-parser");
@@ -9,9 +11,31 @@ const { useAzureSocketIO, negotiate, usePassport, restorePassport } = require("@
 const wrap = middleware => (socket, next) => middleware(socket.request, {}, next);
 
 const app = express();
-const server = require("http").createServer(app);
+const tlsKeyPath = process.env.TLS_KEY_PATH;
+const tlsCertPath = process.env.TLS_CERT_PATH;
+if (!tlsKeyPath || !tlsCertPath) {
+  throw new Error("TLS_KEY_PATH and TLS_CERT_PATH must be set");
+}
+const server = https.createServer({
+  key: fs.readFileSync(tlsKeyPath),
+  cert: fs.readFileSync(tlsCertPath),
+}, app);
 const store = new session.MemoryStore();
-const sessionMiddleware = session({ store: store, secret: "changeit", resave: false, saveUninitialized: false });
+const sessionSecret = process.env.SESSION_SECRET;
+if (!sessionSecret) {
+  throw new Error("SESSION_SECRET must be set");
+}
+const sessionMiddleware = session({
+  store: store,
+  secret: sessionSecret,
+  resave: false,
+  saveUninitialized: false,
+  cookie: {
+    httpOnly: true,
+    sameSite: "lax",
+    secure: true,
+  },
+});
 
 app.use(sessionMiddleware);
 app.use(bodyParser.urlencoded({ extended: false }));
@@ -122,7 +146,7 @@ async function main() {
 
   const port = 3000;
   server.listen(port, () => {
-    console.log(`application is running at: http://localhost:${port}`);
+    console.log(`application is running at: https://localhost:${port}`);
   });
 }
 

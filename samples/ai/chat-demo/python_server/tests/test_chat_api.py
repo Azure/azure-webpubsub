@@ -85,6 +85,29 @@ class TestRoomsCrud:
         assert resp.status_code == 400
         assert 'Request body required' in resp.get_json()['error']
 
+    def test_create_room_does_not_expose_validation_details(self, app, auth_headers):
+        class _InvalidRoomStore:
+            async def create_room_metadata(self, *_args, **_kwargs):
+                raise ValueError('sensitive internal validation detail')
+
+        loop = app._test_loop  # type: ignore[attr-defined]
+        bp = create_chat_api_blueprint(
+            room_store_ref=lambda: _InvalidRoomStore(),
+            chat_service_ref=lambda: None,
+            event_loop_ref=lambda: loop,
+        )
+        isolated_app = Flask(__name__)
+        isolated_app.config['TESTING'] = True
+        isolated_app.register_blueprint(bp)
+        resp = isolated_app.test_client().post(
+            '/api/rooms',
+            json={'roomName': 'Test Room'},
+            headers=auth_headers,
+        )
+
+        assert resp.status_code == 400
+        assert resp.get_json()['error'] == 'Invalid room parameters'
+
     def test_get_specific_room_success(self, client, auth_headers):
         created = client.post('/api/rooms', json={'roomName': 'Test Room'}, headers=auth_headers).get_json()
         rid = created['roomId']
@@ -189,4 +212,3 @@ class TestMessagesEndpoint:
         resp = client.get('/api/rooms/public/messages', headers={'X-User-Id': 'userX'})
         assert resp.status_code == 503
         assert 'Service unavailable' in resp.get_json()['error']
-
