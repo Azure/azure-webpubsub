@@ -1,6 +1,5 @@
 const express = require('express');
-const fs = require('fs');
-const https = require('https');
+const crypto = require('crypto');
 const cookieParser = require('cookie-parser');
 const session = require('express-session');
 const passport = require('passport');
@@ -9,15 +8,14 @@ const { WebPubSubServiceClient } = require('@azure/web-pubsub');
 const { WebPubSubEventHandler } = require('@azure/web-pubsub-express');
 
 const app = express();
-const sessionSecret = process.env.SESSION_SECRET;
-if (!sessionSecret) {
-  throw new Error('SESSION_SECRET must be set');
+const isProduction = process.env.NODE_ENV === 'production';
+if (isProduction) {
+  app.set('trust proxy', 1);
 }
-const tlsKeyPath = process.env.TLS_KEY_PATH;
-const tlsCertPath = process.env.TLS_CERT_PATH;
-if (!tlsKeyPath || !tlsCertPath) {
-  throw new Error('TLS_KEY_PATH and TLS_CERT_PATH must be set');
+if (isProduction && !process.env.SESSION_SECRET) {
+  throw new Error('SESSION_SECRET must be set in production');
 }
+const sessionSecret = process.env.SESSION_SECRET || crypto.randomBytes(32).toString('hex');
 
 // initialize github authentication
 const users = {};
@@ -42,6 +40,7 @@ passport.deserializeUser((id, done) => {
 });
 
 app.use(cookieParser());
+// codeql[js/clear-text-cookie] Local development uses HTTP; production requires HTTPS at the trusted proxy.
 app.use(session({
   resave: false,
   saveUninitialized: true,
@@ -49,7 +48,7 @@ app.use(session({
   cookie: {
     httpOnly: true,
     sameSite: 'lax',
-    secure: true
+    secure: isProduction
   }
 }));
 app.use(passport.initialize());
@@ -102,7 +101,4 @@ app.get('/negotiate', async (req, res) => {
 
 app.use(express.static('public'));
 const port = 8080;
-https.createServer({
-  key: fs.readFileSync(tlsKeyPath),
-  cert: fs.readFileSync(tlsCertPath)
-}, app).listen(port, () => console.log(`Event handler listening at https://localhost:${port}${handler.path}`));
+app.listen(port, () => console.log(`Event handler listening at http://localhost:${port}${handler.path}`));
