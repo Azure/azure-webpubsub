@@ -9,6 +9,11 @@ import { DataRepo } from "./dataRepo";
 import { startUpstreamServer } from "./upstream";
 import { printer } from "./output";
 
+export interface DashboardAuthOptions {
+  token: string;
+  allowedOrigins: string[];
+}
+
 // singleton per hub?
 export class DataHub {
   // make sure only one server is there
@@ -23,8 +28,27 @@ export class DataHub {
   public hub = "";
   private io: Server;
   private repo: DataRepo;
-  constructor(server: http.Server, private tunnel: HttpServerProxy, upstreamUrl: URL, dbFile: string) {
-    const io = (this.io = new Server(server));
+  constructor(server: http.Server, private tunnel: HttpServerProxy, upstreamUrl: URL, dbFile: string, auth: DashboardAuthOptions) {
+    const io = (this.io = new Server(server, {
+      allowRequest: (req, callback) => {
+        const origin = req.headers.origin;
+        if (origin && auth.allowedOrigins.length > 0 && !auth.allowedOrigins.includes(origin)) {
+          printer.warn(`Rejected dashboard connection from disallowed origin: ${origin}`);
+          callback("origin_not_allowed", false);
+          return;
+        }
+        callback(null, true);
+      },
+    }));
+    io.use((socket, next) => {
+      const token = (socket.handshake.auth as { token?: string } | undefined)?.token;
+      if (!auth.token || token !== auth.token) {
+        printer.warn("Rejected dashboard connection with missing or invalid access token.");
+        next(new Error("unauthorized"));
+        return;
+      }
+      next();
+    });
     printer.log("Webview client connecting to get the latest status");
     this.repo = new DataRepo(dbFile);
     this.endpoint = tunnel.endpoint;

@@ -50,3 +50,12 @@ export function parseUrl(url: string, optionalScheme: false | "http" | "https" =
     return undefined;
   }
 }
+
+export function getDashboardAllowedOrigins(host: string, port: number): string[] {
+  const isWildcard = !host || host === "0.0.0.0" || host === "::" || host === "0000:0000:0000:0000:0000:0000:0000:0000";
+  if (isWildcard) {
+    return [];
+  }
+  const hosts = new Set<string>([host, "127.0.0.1", "localhost", "[::1]"]);
+  return Array.from(hosts, (h) => `http://${h}:${port}`);
+}
