@@ -12,3 +12,5 @@ npm run start -- <web-pubsub-connection-string>
 ```
 
 And point your browser to `http://localhost:3000`.
+
+For production, terminate HTTPS at a trusted reverse proxy and set `NODE_ENV=production` and `SESSION_SECRET` so session cookies are transmitted only over HTTPS.
