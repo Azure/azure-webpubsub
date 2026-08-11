@@ -120,9 +120,28 @@ abstract class ConnectionBasedDataFether implements IDataFetcher {
   }
 }
 
+const DASHBOARD_TOKEN_STORAGE_KEY = "awps-tunnel-dashboard-token";
+
+// Preserve the session value without retaining it in the address bar.
+function getDashboardToken(): string {
+  try {
+    const rawHash = window.location.hash ?? "";
+    const hash = rawHash.startsWith("#") ? rawHash.slice(1) : rawHash;
+    const fromHash = new URLSearchParams(hash).get("access_token");
+    if (fromHash) {
+      window.sessionStorage.setItem(DASHBOARD_TOKEN_STORAGE_KEY, fromHash);
+      window.history.replaceState(null, "", window.location.pathname + window.location.search);
+      return fromHash;
+    }
+    return window.sessionStorage.getItem(DASHBOARD_TOKEN_STORAGE_KEY) ?? "";
+  } catch {
+    return "";
+  }
+}
+
 export class SocketIODataFetcher extends ConnectionBasedDataFether {
   async _createConnection(): Promise<Socket> {
-    return io();
+    return io({ auth: { token: getDashboardToken() } });
   }
   async _startConnection(_: Socket): Promise<void> {
     console.log("SocketIO connection established.");
