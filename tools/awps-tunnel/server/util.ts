@@ -50,3 +50,17 @@ export function parseUrl(url: string, optionalScheme: false | "http" | "https" =
     return undefined;
   }
 }
+
+/**
+ * Build the set of browser origins allowed to connect to the local dashboard.
+ * A wildcard bind host (e.g. 0.0.0.0/::) has no predetermined browser origin, so the
+ * returned list is empty and origin is not enforced (the access token remains the sole gate).
+ */
+export function getDashboardAllowedOrigins(host: string, port: number): string[] {
+  const isWildcard = !host || host === "0.0.0.0" || host === "::" || host === "0000:0000:0000:0000:0000:0000:0000:0000";
+  if (isWildcard) {
+    return [];
+  }
+  const hosts = new Set<string>([host, "127.0.0.1", "localhost", "[::1]"]);
+  return Array.from(hosts, (h) => `http://${h}:${port}`);
+}

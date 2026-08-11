@@ -9,6 +9,16 @@ import { DataRepo } from "./dataRepo";
 import { startUpstreamServer } from "./upstream";
 import { printer } from "./output";
 
+export interface DashboardAuthOptions {
+  // Random per-process token that the dashboard page must present to connect.
+  // It is delivered through the printed webview URL.
+  token: string;
+  // Browser origins allowed to connect. An empty list means the bind host is a
+  // wildcard (e.g. 0.0.0.0) where the browser origin cannot be predetermined, so
+  // origin is not enforced and the token becomes the sole gate.
+  allowedOrigins: string[];
+}
+
 // singleton per hub?
 export class DataHub {
   // make sure only one server is there
@@ -23,8 +33,30 @@ export class DataHub {
   public hub = "";
   private io: Server;
   private repo: DataRepo;
-  constructor(server: http.Server, private tunnel: HttpServerProxy, upstreamUrl: URL, dbFile: string) {
-    const io = (this.io = new Server(server));
+  constructor(server: http.Server, private tunnel: HttpServerProxy, upstreamUrl: URL, dbFile: string, auth: DashboardAuthOptions) {
+    const io = (this.io = new Server(server, {
+      // Validate WebSocket and polling origins before establishing the connection.
+      allowRequest: (req, callback) => {
+        const origin = req.headers.origin;
+        if (origin && auth.allowedOrigins.length > 0 && !auth.allowedOrigins.includes(origin)) {
+          printer.warn(`Rejected dashboard connection from disallowed origin: ${origin}`);
+          callback("origin_not_allowed", false);
+          return;
+        }
+        callback(null, true);
+      },
+    }));
+    // Require the per-process access token as the primary connection gate, including for
+    // non-loopback interfaces where the Origin header can be spoofed or omitted.
+    io.use((socket, next) => {
+      const token = (socket.handshake.auth as { token?: string } | undefined)?.token;
+      if (!auth.token || token !== auth.token) {
+        printer.warn("Rejected dashboard connection with missing or invalid access token.");
+        next(new Error("unauthorized"));
+        return;
+      }
+      next();
+    });
     printer.log("Webview client connecting to get the latest status");
     this.repo = new DataRepo(dbFile);
     this.endpoint = tunnel.endpoint;
