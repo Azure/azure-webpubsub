@@ -16,7 +16,6 @@
   },
   "resolutions": {
     "**/@typescript-eslint/typescript-estree/minimatch": "9.0.9",
-    "path-to-regexp": "0.1.13",
-    "tar": "7.5.22"
+    "path-to-regexp": "0.1.13"
   }
 }
