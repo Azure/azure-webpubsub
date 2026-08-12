@@ -26,6 +26,8 @@ jobs:
   javascript:
     name: Build and Test JS code and samples
     runs-on: ubuntu-latest
+    env:
+      NPM_CONFIG_REGISTRY: 'https://packagefeedproxy.microsoft.io/npm/'
     strategy:
       matrix:
         node-version: [22.20.0]
@@ -37,7 +39,6 @@ jobs:
       with:
         node-version: ${{ matrix.node-version }}
         cache: 'npm'
-        registry-url: 'https://packagefeedproxy.microsoft.io/npm/'
     - name: Test VSCode Extension
       # See https://code.visualstudio.com/api/working-with-extensions/continuous-integration#github-actions
       run:  cd ./tools/vscode-azurewebpubsub && npm ci && xvfb-run -a npm run test && cd ../../
