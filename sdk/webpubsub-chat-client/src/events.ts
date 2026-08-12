@@ -1,11 +1,15 @@
 import type { MessageInfo, RoomInfo } from "./models.js";
+import type { DecodedMessage } from "./messageCodec.js";
 
 /**
  * A chat message payload. Extends the wire `MessageInfo` so existing
  * accessors keep working and reserves room for client-only metadata in
  * future revisions of the SDK.
  */
-export interface ChatMessage extends MessageInfo {}
+export interface ChatMessage extends MessageInfo {
+  /** Codec-specific decoded projection, when the message declares a supported codec. */
+  decodedMessage?: DecodedMessage;
+}
 
 /**
  * Argument of the `"started"` event listener. Fired after `start()`

@@ -258,8 +258,28 @@ export interface components {
                 text?: string | null;
                 /** Format: binary */
                 binary?: string | null;
+                items?: components["schemas"]["ContentItem"][] | null;
             };
+            metadata?: {
+                [key: string]: string;
+            } | null;
+            streamId?: string | null;
+            etag?: string | null;
             refMessageId?: string | null;
+        };
+        ContentItem: {
+            type?: string;
+            content?: {
+                text?: string | null;
+                /** Format: binary */
+                binary?: string | null;
+            };
+            metadata?: {
+                custom?: {
+                    [key: string]: string;
+                } | null;
+            } | null;
+            isAttachment?: boolean;
         };
         CreateTextMessage: {
             conversation: components["schemas"]["ChatConversation"];
@@ -392,6 +412,7 @@ export type RoomReactPermissionEnum = Schemas["RoomReactPermissionEnum"];
 export type RoomPolicy = Schemas["RoomPolicy"];
 export type MessageRangeQuery = Schemas["MessageRangeQuery"];
 export type MessageInfo = Schemas["MessageInfo"];
+export type ContentItem = Schemas["ContentItem"];
 export type CreateTextMessage = Schemas["CreateTextMessage"];
 export type CreateMessage = Schemas["CreateMessage"];
 export type MessageBody = Schemas["MessageBody"];

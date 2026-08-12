@@ -509,6 +509,22 @@ components:
               type: string
               format: binary
               nullable: true
+            items:
+              type: array
+              nullable: true
+              items:
+                $ref: '#/components/schemas/ContentItem'
+        metadata:
+          type: object
+          nullable: true
+          additionalProperties:
+            type: string
+        streamId:
+          type: string
+          nullable: true
+        etag:
+          type: string
+          nullable: true
         refMessageId:
           type: string
           nullable: true
@@ -518,6 +534,33 @@ components:
         - sentAt
         - messageType
         - messageBodyType
+    ContentItem:
+      type: object
+      properties:
+        type:
+          type: string
+        content:
+          type: object
+          properties:
+            text:
+              type: string
+              nullable: true
+            binary:
+              type: string
+              format: binary
+              nullable: true
+        metadata:
+          type: object
+          nullable: true
+          properties:
+            custom:
+              type: object
+              nullable: true
+              additionalProperties:
+                type: string
+        isAttachment:
+          type: boolean
+      required:
         - content
     
     CreateTextMessage:
