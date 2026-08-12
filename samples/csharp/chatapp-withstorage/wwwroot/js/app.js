@@ -81,7 +81,7 @@ function reset(data) {
      *    chats: []; // the chat items
      * }
      * */
-    data.userChats = {};
+    data.userChats = new Map();
     /**
      * Sample item:
      * { name: "user1", unread: false, new: false}
@@ -101,14 +101,18 @@ function getOrAddUserChat(from, to) {
     }
     // from-to & to-from share the same chat key
     var key = JSON.stringify([from, to].sort());
-    var chat = app.userChats[key] = app.userChats[key] ?? {
-        historyRequested: false,
-        historyLoaded: false,
-        lastestSequenceId: 0,
-        readSequenceId: 0,
-        pairReadSequenceId: 0,
-        chats: []
-    };
+    var chat = app.userChats.get(key);
+    if (!chat) {
+        chat = {
+            historyRequested: false,
+            historyLoaded: false,
+            lastestSequenceId: 0,
+            readSequenceId: 0,
+            pairReadSequenceId: 0,
+            chats: []
+        };
+        app.userChats.set(key, chat);
+    }
     // If the pair is not yet in the list, add it
     var pair = app.user === from ? to : from;
     var user = app.users.find(s => s.name === pair);

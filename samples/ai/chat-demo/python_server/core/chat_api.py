@@ -141,7 +141,8 @@ def create_chat_api_blueprint(
             except Exception:
                 return jsonify(body), 201
         except ValueError as e:  # fallback validation
-            return json_error(str(e), 400)
+            logger.warning("Invalid room creation request: %s", e)
+            return json_error('Invalid room parameters', 400)
         except Exception as e:  # noqa: BLE001
             logger.error("Error creating room: %s", e)
             return json_error('Failed to create room', 500)

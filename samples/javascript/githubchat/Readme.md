@@ -42,7 +42,9 @@ SET GitHubClientSecret=<client-secret>
 node server
 ```
 
-The web app is listening to request at `http://localhost:8080/eventhandler/`.
+The web app is listening to requests at `http://localhost:8080/eventhandler/`.
+
+For production, terminate HTTPS at a trusted reverse proxy and set `NODE_ENV=production` and `SESSION_SECRET` so session cookies are transmitted only over HTTPS.
 
 ## Use `awps-tunnel` to tunnel traffic from Web PubSub service to your localhost
 

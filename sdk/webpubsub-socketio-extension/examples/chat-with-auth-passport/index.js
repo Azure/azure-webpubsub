@@ -1,4 +1,5 @@
 const express = require('express');
+const crypto = require('crypto');
 const path = require('path');
 const session = require("express-session");
 const bodyParser = require("body-parser");
@@ -9,9 +10,28 @@ const { useAzureSocketIO, negotiate, usePassport, restorePassport } = require("@
 const wrap = middleware => (socket, next) => middleware(socket.request, {}, next);
 
 const app = express();
+const isProduction = process.env.NODE_ENV === "production";
+if (isProduction) {
+  app.set("trust proxy", 1);
+}
 const server = require("http").createServer(app);
 const store = new session.MemoryStore();
-const sessionMiddleware = session({ store: store, secret: "changeit", resave: false, saveUninitialized: false });
+if (isProduction && !process.env.SESSION_SECRET) {
+  throw new Error("SESSION_SECRET must be set in production");
+}
+const sessionSecret = process.env.SESSION_SECRET || crypto.randomBytes(32).toString("hex");
+// codeql[js/clear-text-cookie] Local development uses HTTP; production requires HTTPS at the trusted proxy.
+const sessionMiddleware = session({
+  store: store,
+  secret: sessionSecret,
+  resave: false,
+  saveUninitialized: false,
+  cookie: {
+    httpOnly: true,
+    sameSite: "lax",
+    secure: isProduction,
+  },
+});
 
 app.use(sessionMiddleware);
 app.use(bodyParser.urlencoded({ extended: false }));
