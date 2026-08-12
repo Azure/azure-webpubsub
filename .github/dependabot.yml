@@ -1,0 +1,110 @@
+version: 2
+
+registries:
+  npm:
+    type: npm-registry
+    url: https://packagefeedproxy.microsoft.io/npm/
+    replaces-base: true
+  pip:
+    type: python-index
+    url: https://packagefeedproxy.microsoft.io/pypi/simple
+    replaces-base: true
+  nuget:
+    type: nuget-feed
+    url: https://packagefeedproxy.microsoft.io/nuget/v3/index.json
+    replaces-base: true
+
+updates:
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+    groups:
+      actions:
+        patterns:
+          - "*"
+    commit-message:
+      prefix: deps
+
+  - package-ecosystem: npm
+    directories:
+      - "**/*"
+    registries:
+      - npm
+    schedule:
+      interval: weekly
+      day: monday
+    open-pull-requests-limit: 5
+    cooldown:
+      semver-major-days: 14
+      semver-minor-days: 7
+      semver-patch-days: 3
+    groups:
+      shared-dependencies:
+        patterns:
+          - "*"
+        group-by: dependency-name
+    commit-message:
+      prefix: deps
+
+  - package-ecosystem: pip
+    directories:
+      - "**/*"
+    registries:
+      - pip
+    schedule:
+      interval: weekly
+      day: monday
+    open-pull-requests-limit: 5
+    cooldown:
+      semver-major-days: 14
+      semver-minor-days: 7
+      semver-patch-days: 3
+    groups:
+      shared-dependencies:
+        patterns:
+          - "*"
+        group-by: dependency-name
+    commit-message:
+      prefix: deps
+
+  - package-ecosystem: maven
+    directories:
+      - "**/*"
+    schedule:
+      interval: weekly
+      day: monday
+    open-pull-requests-limit: 5
+    cooldown:
+      semver-major-days: 14
+      semver-minor-days: 7
+      semver-patch-days: 3
+    groups:
+      shared-dependencies:
+        patterns:
+          - "*"
+        group-by: dependency-name
+    commit-message:
+      prefix: deps
+
+  - package-ecosystem: nuget
+    directories:
+      - "**/*"
+    registries:
+      - nuget
+    schedule:
+      interval: weekly
+      day: monday
+    open-pull-requests-limit: 5
+    cooldown:
+      semver-major-days: 14
+      semver-minor-days: 7
+      semver-patch-days: 3
+    groups:
+      shared-dependencies:
+        patterns:
+          - "*"
+        group-by: dependency-name
+    commit-message:
+      prefix: deps
