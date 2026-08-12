@@ -7,7 +7,6 @@
     "icon": "resources/azure-web-pubsub.png",
     "aiKey": "3fc79002-1908-48c5-b7ac-794e604e6590",
     "engines": {
-        "node": ">=22",
         "vscode": "^1.76.0"
     },
     "repository": {
