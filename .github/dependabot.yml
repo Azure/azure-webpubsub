@@ -88,6 +88,21 @@ updates:
     commit-message:
       prefix: deps
 
+  - package-ecosystem: gomod
+    directories:
+      - "**/*"
+    schedule:
+      interval: weekly
+      day: monday
+    open-pull-requests-limit: 5
+    groups:
+      shared-dependencies:
+        patterns:
+          - "*"
+        group-by: dependency-name
+    commit-message:
+      prefix: deps
+
   - package-ecosystem: nuget
     directories:
       - "**/*"
@@ -103,6 +118,21 @@ updates:
       semver-patch-days: 3
     groups:
       shared-dependencies:
+        patterns:
+          - "*"
+        group-by: dependency-name
+    commit-message:
+      prefix: deps
+
+  - package-ecosystem: docker
+    directories:
+      - "**/*"
+    schedule:
+      interval: weekly
+      day: monday
+    open-pull-requests-limit: 3
+    groups:
+      container-images:
         patterns:
           - "*"
         group-by: dependency-name
