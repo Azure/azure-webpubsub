@@ -22,11 +22,17 @@
     "review/"
   ],
   "dependencies": {
-    "@azure/abort-controller": "^1.1.0",
-    "@azure/logger": "^1.0.4",
-    "@azure/web-pubsub": "^1.2.0",
+    "@azure/abort-controller": "2.1.2",
+    "@azure/core-auth": "1.9.0",
+    "@azure/core-client": "1.9.2",
+    "@azure/core-paging": "1.6.2",
+    "@azure/core-rest-pipeline": "1.19.0",
+    "@azure/core-tracing": "1.2.0",
+    "@azure/core-util": "1.11.0",
+    "@azure/logger": "1.1.4",
+    "@azure/web-pubsub": "1.2.0",
     "@azure/web-pubsub-client": "1.0.2",
-    "@azure/web-pubsub-express": "^1.0.6",
+    "@azure/web-pubsub-express": "1.0.6",
     "@msgpack/msgpack": "^3.0.0-beta2",
     "async-mutex": "^0.4.0",
     "base64url": "^3.0.1",
@@ -45,21 +51,21 @@
     "check-format": "prettier --list-different --config ./.prettierrc.json --ignore-path ./.prettierignore ./src/",
     "format": "prettier --write --config ./.prettierrc.json --ignore-path ./.prettierignore ./src/ ./test/",
     "test": "npm run build && npm run lint && npm run test:unit",
-    "test:unit": "nyc mocha --require ts-node/register --reporter spec --slow 200 --timeout 15000 --bail ./test/index.ts --exit",
+    "test:unit": "jest --config jest.config.cjs --runInBand --coverage --forceExit",
     "clean": "rimraf dist dist-esm test-dist temp types *.tgz *.log",
     "extract-api": "npm run build && api-extractor run --local",
     "lint": "eslint src --ext .ts,.javascript,.js ",
     "lint:fix": "eslint src --ext .ts,.javascript,.js --fix"
   },
   "devDependencies": {
-    "@microsoft/api-extractor": "^7.31.1",
+    "@microsoft/api-extractor": "7.47.0",
     "@types/debug": "^4.1.7",
     "@types/engine.io": "^3.1.7",
     "@types/expect.js": "^0.3.29",
     "@types/express": "^4.17.17",
     "@types/express-session": "^1.17.7",
+    "@types/jest": "^29.5.3",
     "@types/jsonwebtoken": "^9.0.1",
-    "@types/mocha": "^9.0.0",
     "@types/node": "^10.17.60",
     "@types/ws": "^8.5.4",
     "@typescript-eslint/eslint-plugin": "^5.59.8",
@@ -78,21 +84,24 @@
     "express": "4.22.2",
     "express-session": "^1.17.3",
     "http-shutdown": "^1.2.2",
-    "mocha": "^10.0.0",
-    "nyc": "^15.1.0",
+    "jest": "^29.6.1",
     "prettier": "^2.8.8",
     "rimraf": "^3.0.2",
     "socket.io-client": "^4.8.3",
     "supertest": "^6.3.3",
-    "ts-node": "^10.2.1",
+    "ts-jest": "^29.1.1",
     "tsd": "^0.21.0",
     "typescript": "^5.0.3"
   },
   "resolutions": {
-    "serialize-javascript": "^7.0.7"
-  },
-  "overrides": {
-    "serialize-javascript": "^7.0.7"
+    "@azure/abort-controller": "2.1.2",
+    "@azure/core-auth": "1.9.0",
+    "@azure/core-client": "1.9.2",
+    "@azure/core-paging": "1.6.2",
+    "@azure/core-rest-pipeline": "1.19.0",
+    "@azure/core-tracing": "1.2.0",
+    "@azure/core-util": "1.11.0",
+    "@azure/logger": "1.1.4"
   },
   "keywords": [
     "socket.io",
@@ -105,16 +114,5 @@
   },
   "tsd": {
     "directory": "test"
-  },
-  "mocha": {
-    "extensions": [
-      "ts"
-    ],
-    "spec": [
-      "test/*.ts"
-    ],
-    "require": [
-      "ts-node/register"
-    ]
   }
 }

@@ -21,4 +21,7 @@ if (wpsOptions.hub !== undefined || wpsOptions.connectionString !== undefined) {
   console.log(
     "WebPubSub Socket.IO Extension test skipped. Please set the environment variables in '.env.test' to enable the test."
   );
+  describe.skip("WebPubSub Socket.IO Extension", () => {
+    it("requires Web PubSub test configuration", () => {});
+  });
 }

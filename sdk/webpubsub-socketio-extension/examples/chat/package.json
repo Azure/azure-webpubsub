@@ -11,6 +11,14 @@
       "@azure/web-pubsub-socket.io": "^1.2.1"
     },
     "resolutions": {
+      "@azure/abort-controller": "2.1.2",
+      "@azure/core-auth": "1.9.0",
+      "@azure/core-client": "1.9.2",
+      "@azure/core-paging": "1.6.2",
+      "@azure/core-rest-pipeline": "1.19.0",
+      "@azure/core-tracing": "1.2.0",
+      "@azure/core-util": "1.11.0",
+      "@azure/logger": "1.1.4",
       "body-parser": "^1.20.3",
       "cookie": "^0.7.2",
       "engine.io": "6.6.7",
@@ -22,6 +30,14 @@
       "ws": "^8.21.2"
     },
     "overrides": {
+      "@azure/abort-controller": "2.1.2",
+      "@azure/core-auth": "1.9.0",
+      "@azure/core-client": "1.9.2",
+      "@azure/core-paging": "1.6.2",
+      "@azure/core-rest-pipeline": "1.19.0",
+      "@azure/core-tracing": "1.2.0",
+      "@azure/core-util": "1.11.0",
+      "@azure/logger": "1.1.4",
       "body-parser": "^1.20.3",
       "cookie": "^0.7.2",
       "engine.io": "6.6.7",
