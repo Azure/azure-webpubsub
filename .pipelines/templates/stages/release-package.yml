@@ -98,6 +98,7 @@ stages:
                   --output '$(Agent.TempDirectory)/yarn-1.22.22.tgz'
                 tar -xzf '$(Agent.TempDirectory)/yarn-1.22.22.tgz' --strip-components=1 -C "$yarn_root"
                 echo "##vso[task.prependpath]$yarn_root/bin"
+                export PATH="$yarn_root/bin:$PATH"
                 yarn config set registry "$feed_registry"
                 find . -name yarn.lock -type f -exec sed -Ei \
                   "s#https://registry\\.(npmjs\\.org|yarnpkg\\.com)/#${feed_registry}#g" {} +
