@@ -13,12 +13,10 @@ import { WebPubSubClientCredential } from '@azure/web-pubsub-client';
 export interface AddUserToRoomOptions extends OperationOptions {
 }
 
-// @public (undocumented)
+// @public
 export interface AgUiDecodedMessage extends DecodedMessage {
     readonly accumulated: readonly AGUIEvent[];
-    // (undocumented)
     readonly codecKind: "ag-ui-codec-v1";
-    // (undocumented)
     readonly delta: AGUIEvent | undefined;
 }
 
@@ -26,9 +24,7 @@ export { AGUIEvent }
 
 // @public
 export class AgUiMessageCodec implements MessageCodec {
-    // (undocumented)
     readonly codecKind = "ag-ui-codec-v1";
-    // (undocumented)
     createDecoder(messageId: string): MessageDecoder;
 }
 
@@ -85,7 +81,6 @@ export interface CreateRoomOptions extends OperationOptions {
 // @public
 export interface DecodedMessage {
     readonly accumulated: unknown;
-    // (undocumented)
     readonly codecKind: string;
     readonly delta: unknown;
 }
@@ -114,50 +109,37 @@ export interface ListRoomMessagesOptions extends OperationOptions {
 
 // @public
 export interface MessageCodec {
-    // (undocumented)
     readonly codecKind: string;
-    // (undocumented)
     createDecoder(messageId: string): MessageDecoder;
 }
 
 // @public
 export interface MessageContentItem {
-    // (undocumented)
     content?: {
         text?: string | null;
         binary?: string | null;
     };
-    // (undocumented)
     isAttachment?: boolean;
-    // (undocumented)
     metadata?: MessageContentItemMetadata | null;
-    // (undocumented)
     type?: string;
 }
 
 // @public
 export interface MessageContentItemMetadata {
-    // (undocumented)
     custom?: Record<string, string> | null;
 }
 
 // @public
 export interface MessageDecoder {
-    // (undocumented)
     readonly codecKind: string;
-    // (undocumented)
     decode(item: MessageDecoderInput): readonly DecodedMessage[];
 }
 
 // @public
 export interface MessageDecoderInput {
-    // (undocumented)
     readonly data: string;
-    // (undocumented)
     readonly itemId: number;
-    // (undocumented)
     readonly messageId: string;
-    // (undocumented)
     readonly metadata?: Readonly<Record<string, string>> | null;
 }
 
