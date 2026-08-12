@@ -96,7 +96,7 @@
     "semver": "^7.5.4",
     "socket.io": "^4.7.2",
     "sqlite3": "^5.1.6",
-    "ws": "^8.13.0"
+    "ws": "^8.21.0"
   },
   "main": "server.js",
   "directories": {
