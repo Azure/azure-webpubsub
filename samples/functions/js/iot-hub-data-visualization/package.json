@@ -3,13 +3,21 @@
   "version": "0.0.1",
   "private": true,
   "engines": {
-    "node": ">=10.6",
-    "npm": ">=6.0.0"
+    "node": ">=18.0.0",
+    "npm": ">=9.0.0"
   },
   "scripts": {
     "start": "func start"
   },
   "dependencies": {
-    "@azure/web-pubsub": "^1.0.0"
+    "@azure/abort-controller": "2.1.2",
+    "@azure/core-auth": "1.9.0",
+    "@azure/core-client": "1.9.2",
+    "@azure/core-paging": "1.6.2",
+    "@azure/core-rest-pipeline": "1.19.0",
+    "@azure/core-tracing": "1.2.0",
+    "@azure/core-util": "1.11.0",
+    "@azure/logger": "1.1.4",
+    "@azure/web-pubsub": "1.2.0"
   }
 }
