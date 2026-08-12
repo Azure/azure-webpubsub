@@ -1,25 +1,5 @@
 version: 2
 
-registries:
-  npm:
-    type: npm-registry
-    url: https://packagefeedproxy.microsoft.io/npm/
-    username: ""
-    password: ""
-    replaces-base: true
-  pip:
-    type: python-index
-    url: https://packagefeedproxy.microsoft.io/pypi/simple
-    username: ""
-    password: ""
-    replaces-base: true
-  nuget:
-    type: nuget-feed
-    url: https://packagefeedproxy.microsoft.io/nuget/v3/index.json
-    username: ""
-    password: ""
-    replaces-base: true
-
 updates:
   - package-ecosystem: github-actions
     directory: /
@@ -36,8 +16,6 @@ updates:
   - package-ecosystem: npm
     directories:
       - "**/*"
-    registries:
-      - npm
     schedule:
       interval: weekly
       day: monday
@@ -57,8 +35,6 @@ updates:
   - package-ecosystem: pip
     directories:
       - "**/*"
-    registries:
-      - pip
     schedule:
       interval: weekly
       day: monday
@@ -112,8 +88,6 @@ updates:
   - package-ecosystem: nuget
     directories:
       - "**/*"
-    registries:
-      - nuget
     schedule:
       interval: weekly
       day: monday
