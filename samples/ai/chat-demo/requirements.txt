@@ -6,7 +6,7 @@
 Flask[async]==3.0.0
 flask-sock==0.7.0
 openai==1.99.9
-websockets==11.0
+websockets==17.0
 flask-cors==6.0.1
 azure-storage-blob==12.26.0
 azure-messaging-webpubsubservice==1.2.2
