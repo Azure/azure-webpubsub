@@ -349,8 +349,13 @@ export class WebPubSubSyncClient {
             client.doc.clientID,
           ])
         );
-        const u8 = encoding.toUint8Array(encoder);
-        sendToControlGroup(client, client.topic, MessageDataType.Awareness, u8);
+        const awarenessUpdate = encoding.toUint8Array(encoderAwarenessState);
+        sendToControlGroup(
+          client,
+          client.topic,
+          MessageDataType.Awareness,
+          awarenessUpdate
+        );
       }
     };
   }
