@@ -18,7 +18,7 @@
     "@types/express": "^5.0.3",
     "dotenv-cli": "^11.0.0",
     "tsx": "^4.20.6",
-    "vitest": "^2.1.9"
+    "vitest": "3.2.6"
   },
   "dependencies": {
     "@azure/identity": "^4.13.1",
