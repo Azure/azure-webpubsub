@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "dependencies": {
-    "@azure/web-pubsub-client": "^1.0.0",
+    "@azure/web-pubsub-client": "^1.1.0",
     "@fluentui/react": "^8.106.3",
     "@fluentui/react-components": "^9.34.1",
     "@fluentui/react-nav-preview": "^0.7.6",

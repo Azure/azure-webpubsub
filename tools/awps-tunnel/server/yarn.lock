@@ -97,7 +97,7 @@
   dependencies:
     tslib "^2.6.2"
 
-"@azure/core-util@^1.1.1", "@azure/core-util@^1.10.0", "@azure/core-util@^1.11.0", "@azure/core-util@^1.2.0", "@azure/core-util@^1.6.1", "@azure/core-util@^1.9.0":
+"@azure/core-util@^1.10.0", "@azure/core-util@^1.11.0", "@azure/core-util@^1.2.0", "@azure/core-util@^1.6.1", "@azure/core-util@^1.9.0":
   version "1.11.0"
   resolved "https://registry.npmjs.org/@azure/core-util/-/core-util-1.11.0.tgz"
   integrity sha512-DxOSLua+NdpWoSqULhjDyAZTXFdP/LKkqtYuxxz1SCN289zk3OG8UOpnCQAz/tygyACBtWp/BoO72ptK7msY8g==
@@ -154,16 +154,17 @@
     uuid "^8.3.0"
 
 "@azure/web-pubsub-client@^1.0.1":
-  version "1.0.1"
-  resolved "https://registry.npmjs.org/@azure/web-pubsub-client/-/web-pubsub-client-1.0.1.tgz"
-  integrity sha512-zrKvqS4Nnu0s3RGVzsieVqaSRP2u0mQ2/Va1m9gMfhR3NHdy3vBECe837Z5hHd07jfBMmdfhDV5bNKDM78b+aQ==
+  version "1.1.0"
+  resolved "https://registry.yarnpkg.com/@azure/web-pubsub-client/-/web-pubsub-client-1.1.0.tgz#cfd661b050e67f99929b20bc26d097dc7d7fd2a6"
+  integrity sha512-qMGXwq+bf94tTTCItD57+J2gt21/cRUuCz8nPmoVeFFt6ibLa17lg4s0GU40zt7DS5S1F0PB0V7590tByvY5dw==
   dependencies:
-    "@azure/abort-controller" "^1.0.0"
-    "@azure/core-util" "^1.1.1"
-    "@azure/logger" "^1.0.0"
+    "@azure/abort-controller" "^2.1.2"
+    "@azure/core-util" "^1.11.0"
+    "@azure/logger" "^1.1.4"
     buffer "^6.0.0"
-    tslib "^2.2.0"
-    ws "^7.4.5"
+    events "^3.3.0"
+    tslib "^2.8.1"
+    ws "^8.18.0"
 
 "@azure/web-pubsub-express@^1.0.5":
   version "1.0.5"
@@ -2544,7 +2545,7 @@ etag@~1.8.1:
   resolved "https://registry.npmjs.org/etag/-/etag-1.8.1.tgz"
   integrity sha512-aIL5Fx7mawVa300al2BnEE4iNvo1qETxLrPI/o05L7z6go7fCw1J6EQmbK4FmJ2AS7kgVF/KEZWufBfdClMcPg==
 
-events@^3.0.0:
+events@^3.0.0, events@^3.3.0:
   version "3.3.0"
   resolved "https://registry.npmjs.org/events/-/events-3.3.0.tgz"
   integrity sha512-mQw+2fkQbALzQ7V0MY0IqdnXNOeTtP4r0lN9z7AAawCXgqea7bDii20AYrIBrFd/Hx0M2Ocz6S111CaFkUcb0Q==
@@ -5332,10 +5333,10 @@ tslib@^1.8.1:
   resolved "https://registry.npmjs.org/tslib/-/tslib-1.14.1.tgz"
   integrity sha512-Xni35NKzjgMrwevysHTCArtLDpPvye8zV/0E4EyYn43P7/7qvQwPh9BGkHewbMulVntbigmcT7rdX3BNo9wRJg==
 
-tslib@^2.2.0, tslib@^2.6.2:
-  version "2.7.0"
-  resolved "https://registry.npmjs.org/tslib/-/tslib-2.7.0.tgz"
-  integrity sha512-gLXCKdN1/j47AiHiOkJN69hJmcbGTHI0ImLmbYLHykhgeN0jVGola9yVjFgzCUklsZQMW55o+dW7IXv3RCXDzA==
+tslib@^2.2.0, tslib@^2.6.2, tslib@^2.8.1:
+  version "2.8.1"
+  resolved "https://registry.yarnpkg.com/tslib/-/tslib-2.8.1.tgz#612efe4ed235d567e8aba5f2a5fab70280ade83f"
+  integrity sha512-oJFu94HQb+KVduSUQL7wnpmqnfmLsOA/nAh6b6EH0wCEoK0/mPeXU6c3wKDV83MkOuHPRHtSXKKU99IBazS/2w==
 
 tsutils@^3.21.0:
   version "3.21.0"
@@ -5581,15 +5582,15 @@ write-file-atomic@^4.0.2:
     imurmurhash "^0.1.4"
     signal-exit "^3.0.7"
 
-ws@8.21.2, ws@~8.21.0:
+ws@8.21.2:
   version "8.21.2"
   resolved "https://packagefeedproxy.microsoft.io/npm/ws/-/ws-8.21.2.tgz"
   integrity sha512-54dMVAo4WIe6SKy3vBgN+9bJZqqQ8IMRevAkOLQALhi49qkkQDQfWdAZ8KQlXiEabw88ARXXdUrlvtbKQX+aKw==
 
-ws@^7.4.5:
-  version "7.5.9"
-  resolved "https://packagefeedproxy.microsoft.io/npm/ws/-/ws-7.5.9.tgz"
-  integrity sha512-F+P9Jil7UiSKSkppIiD94dN07AwvFixvLIj1Og1Rl9GGMuNipJnV9JzjD6XuqmAeiswGvUmNLjr5cFuXwNS77Q==
+ws@^8.18.0, ws@~8.21.0:
+  version "8.21.3"
+  resolved "https://registry.yarnpkg.com/ws/-/ws-8.21.3.tgz#660b4faddb6a3e575c86e078126919961f4de4fc"
+  integrity sha512-201TZ/kPWxoPr/OKWjquZR1SWKXcvxdH+e1xrx89b3YbmzLMFCLfnaG1HFIgWzJOEWZ7MvpK++odZufgYR50Rw==
 
 ws@~8.17.1:
   version "8.17.1"

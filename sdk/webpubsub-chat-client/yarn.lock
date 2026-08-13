@@ -24,7 +24,7 @@
     "@azure/abort-controller" "^2.0.0"
     tslib "^2.6.2"
 
-"@azure/logger@1.3.0":
+"@azure/logger@1.3.0", "@azure/logger@^1.1.4":
   version "1.3.0"
   resolved "https://packagefeedproxy.microsoft.io/npm/@azure/logger/-/logger-1.3.0.tgz"
   integrity sha512-fCqPIfOcLE+CGqGPd66c8bZpwAji98tZ4JI9i/mlTNTlsIWslCfpg48s/ypyLxZTump5sypjrKn2/kY7q8oAbA==
@@ -32,17 +32,10 @@
     "@typespec/ts-http-runtime" "^0.3.0"
     tslib "^2.6.2"
 
-"@azure/logger@^1.1.4":
-  version "1.1.4"
-  resolved "https://packagefeedproxy.microsoft.io/npm/@azure/logger/-/logger-1.1.4.tgz"
-  integrity sha512-4IXXzcCdLdlXuCG+8UKEwLA1T1NHqUfanhXYHiQTn+6sfWCZXduqbtXDGceg3Ce5QxTGo7EqmbV6Bi+aqKuClQ==
-  dependencies:
-    tslib "^2.6.2"
-
-"@azure/web-pubsub-client@1.0.4":
-  version "1.0.4"
-  resolved "https://packagefeedproxy.microsoft.io/npm/@azure/web-pubsub-client/-/web-pubsub-client-1.0.4.tgz"
-  integrity sha512-xnByN8E7EgZ3CmCFcD73YtxIIlPy0ShlJJtuSgpGuMQ2hCDqTVl1TczqM2lJyqFo+MDzJvMPh18dDHxjjzG5KA==
+"@azure/web-pubsub-client@1.1.0":
+  version "1.1.0"
+  resolved "https://registry.yarnpkg.com/@azure/web-pubsub-client/-/web-pubsub-client-1.1.0.tgz#cfd661b050e67f99929b20bc26d097dc7d7fd2a6"
+  integrity sha512-qMGXwq+bf94tTTCItD57+J2gt21/cRUuCz8nPmoVeFFt6ibLa17lg4s0GU40zt7DS5S1F0PB0V7590tByvY5dw==
   dependencies:
     "@azure/abort-controller" "^2.1.2"
     "@azure/core-util" "^1.11.0"
