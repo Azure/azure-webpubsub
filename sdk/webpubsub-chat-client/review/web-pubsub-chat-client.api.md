@@ -5,6 +5,7 @@
 ```ts
 
 import type { AbortSignalLike } from '@azure/abort-controller';
+import { AGUIEvent } from '@ag-ui/core';
 import { PagedAsyncIterableIterator } from '@azure/core-paging';
 import { WebPubSubClientCredential } from '@azure/web-pubsub-client';
 
@@ -13,13 +14,30 @@ export interface AddUserToRoomOptions extends OperationOptions {
 }
 
 // @public
+export interface AgUiDecodedMessage extends DecodedMessage {
+    readonly accumulated: readonly AGUIEvent[];
+    readonly codecKind: "ag-ui-codec-v1";
+    readonly delta: AGUIEvent | undefined;
+}
+
+export { AGUIEvent }
+
+// @public
+export class AgUiMessageCodec implements MessageCodec {
+    readonly codecKind = "ag-ui-codec-v1";
+    createDecoder(messageId: string): MessageDecoder;
+}
+
+// @public
 export class ChatClient {
-    constructor(credential: WebPubSubClientCredential);
+    constructor(credential: WebPubSubClientCredential, codecs?: readonly MessageCodec[]);
+    addCodec(codec: MessageCodec): void;
     addUserToRoom(roomId: string, userId: string, options?: AddUserToRoomOptions): Promise<void>;
+    clearCodec(): void;
     createRoom(title: string, members: string[], options?: CreateRoomOptions): Promise<RoomDetail>;
     getRoomDetail(roomId: string, options?: GetRoomDetailOptions): Promise<RoomDetail>;
     hasJoinedRoom(roomId: string): boolean;
-    listRoomMessages(roomId: string, options?: ListRoomMessagesOptions): PagedAsyncIterableIterator<MessageInfo>;
+    listRoomMessages(roomId: string, options?: ListRoomMessagesOptions): PagedAsyncIterableIterator<ChatMessage>;
     off(event: "started", listener: (e: OnStartedArgs) => void): void;
     off(event: "stopped", listener: (e: OnStoppedArgs) => void): void;
     off(event: "message", listener: (e: OnMessageArgs) => void): void;
@@ -52,11 +70,19 @@ export class ChatError extends Error {
 
 // @public
 export interface ChatMessage extends MessageInfo {
+    decodedMessage?: DecodedMessage;
 }
 
 // @public
 export interface CreateRoomOptions extends OperationOptions {
     roomId?: string;
+}
+
+// @public
+export interface DecodedMessage {
+    readonly accumulated: unknown;
+    readonly codecKind: string;
+    readonly delta: unknown;
 }
 
 // @public
@@ -82,17 +108,57 @@ export interface ListRoomMessagesOptions extends OperationOptions {
 }
 
 // @public
+export interface MessageCodec {
+    readonly codecKind: string;
+    createDecoder(messageId: string): MessageDecoder;
+}
+
+// @public
+export interface MessageContentItem {
+    content?: {
+        text?: string | null;
+        binary?: string | null;
+    };
+    isAttachment?: boolean;
+    metadata?: MessageContentItemMetadata | null;
+    type?: string;
+}
+
+// @public
+export interface MessageContentItemMetadata {
+    custom?: Record<string, string> | null;
+}
+
+// @public
+export interface MessageDecoder {
+    readonly codecKind: string;
+    decode(item: MessageDecoderInput): readonly DecodedMessage[];
+}
+
+// @public
+export interface MessageDecoderInput {
+    readonly data: string;
+    readonly itemId: number;
+    readonly messageId: string;
+    readonly metadata?: Readonly<Record<string, string>> | null;
+}
+
+// @public
 export interface MessageInfo {
     bodyType?: string;
     content: {
         text?: string | null;
         binary?: string | null;
+        items?: MessageContentItem[] | null;
     };
     createdAt?: string;
     createdBy?: string;
+    etag?: string | null;
     messageBodyType: string;
     messageId: string;
+    metadata?: Record<string, string> | null;
     refMessageId?: string | null;
+    streamId?: string | null;
 }
 
 // @public
