@@ -19,10 +19,10 @@
     "typecheck": "tsc"
   },
   "dependencies": {
-    "@docusaurus/core": "^3.9.2",
-    "@docusaurus/plugin-content-pages": "^3.9.2",
-    "@docusaurus/preset-classic": "^3.9.2",
-    "@docusaurus/types": "^3.9.2",
+    "@docusaurus/core": "^3.10.2",
+    "@docusaurus/plugin-content-pages": "^3.10.2",
+    "@docusaurus/preset-classic": "^3.10.2",
+    "@docusaurus/types": "^3.10.2",
     "@fluentui/react": "^8.72.2",
     "@mdx-js/react": "^3.0.0",
     "browser-cookies": "^1.2.0",
@@ -32,17 +32,17 @@
     "react-code-blocks": "^0.0.9-0",
     "react-dom": "^18.2.0",
     "react-responsive": "^9.0.0-beta.6",
-    "swiper": "^8.1.0"
+    "swiper": "^12.1.2"
   },
   "devDependencies": {
-    "@docusaurus/module-type-aliases": "^3.9.2",
-    "@tsconfig/docusaurus": "^1.0.6",
-    "autoprefixer": "^10.4.8",
-    "postcss": "^8.4.16",
+    "@docusaurus/module-type-aliases": "^3.10.2",
+    "@tsconfig/docusaurus": "^2.0.9",
+    "autoprefixer": "^10.5.4",
+    "postcss": "^8.5.18",
     "prettier": "^2.7.1",
     "prettier-plugin-tailwindcss": "^0.1.13",
-    "tailwindcss": "^3.1.8",
-    "typescript": "^4.7.3"
+    "tailwindcss": "^3.4.19",
+    "typescript": "^5.9.3"
   },
   "browserslist": {
     "production": [
