@@ -7,9 +7,13 @@ updates:
       interval: weekly
       day: monday
     groups:
-      actions:
+      actions-minor-patch:
+        applies-to: version-updates
         patterns:
           - "*"
+        update-types:
+          - minor
+          - patch
     commit-message:
       prefix: deps
 
@@ -25,10 +29,13 @@ updates:
       semver-minor-days: 7
       semver-patch-days: 3
     groups:
-      shared-dependencies:
+      npm-minor-patch:
+        applies-to: version-updates
         patterns:
           - "*"
-        group-by: dependency-name
+        update-types:
+          - minor
+          - patch
     commit-message:
       prefix: deps
 
@@ -44,10 +51,13 @@ updates:
       semver-minor-days: 7
       semver-patch-days: 3
     groups:
-      shared-dependencies:
+      pip-minor-patch:
+        applies-to: version-updates
         patterns:
           - "*"
-        group-by: dependency-name
+        update-types:
+          - minor
+          - patch
     commit-message:
       prefix: deps
 
@@ -63,10 +73,13 @@ updates:
       semver-minor-days: 7
       semver-patch-days: 3
     groups:
-      shared-dependencies:
+      maven-minor-patch:
+        applies-to: version-updates
         patterns:
           - "*"
-        group-by: dependency-name
+        update-types:
+          - minor
+          - patch
     commit-message:
       prefix: deps
 
@@ -78,10 +91,13 @@ updates:
       day: monday
     open-pull-requests-limit: 5
     groups:
-      shared-dependencies:
+      gomod-minor-patch:
+        applies-to: version-updates
         patterns:
           - "*"
-        group-by: dependency-name
+        update-types:
+          - minor
+          - patch
     commit-message:
       prefix: deps
 
@@ -97,10 +113,13 @@ updates:
       semver-minor-days: 7
       semver-patch-days: 3
     groups:
-      shared-dependencies:
+      nuget-minor-patch:
+        applies-to: version-updates
         patterns:
           - "*"
-        group-by: dependency-name
+        update-types:
+          - minor
+          - patch
     commit-message:
       prefix: deps
 
@@ -112,9 +131,12 @@ updates:
       day: monday
     open-pull-requests-limit: 3
     groups:
-      container-images:
+      docker-minor-patch:
+        applies-to: version-updates
         patterns:
           - "*"
-        group-by: dependency-name
+        update-types:
+          - minor
+          - patch
     commit-message:
       prefix: deps
