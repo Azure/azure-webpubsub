@@ -25,7 +25,7 @@ permissions:
 jobs:
   test:
     name: Integration tests for C#
-    if: github.actor != 'dependabot[bot]'
+    if: github.event_name != 'pull_request' || github.event.pull_request.user.login != 'dependabot[bot]'
     runs-on: ubuntu-latest
     env:
       WEB_PUBSUB_CONNECTION_STRING: ${{ github.event.inputs.web_pubsub_connection_string || secrets.WEB_PUBSUB_CONNECTION_STRING }}
