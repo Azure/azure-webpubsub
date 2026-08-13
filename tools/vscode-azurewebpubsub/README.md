@@ -89,8 +89,9 @@ There are a couple of ways you can contribute to this repo:
 - **Documentation**: Found a typo or strangely worded sentences? Submit a PR in the [Pull Request Session](https://github.com/Azure/azure-webpubsub/pulls)!
 - **Code**: Contribute bug fixes, features or design changes:
   - Clone the repository locally and open in VS Code.
+  - Install Node.js 22.20.0.
   - Install [TSLint for Visual Studio Code](https://marketplace.visualstudio.com/items?itemName=ms-vscode.vscode-typescript-tslint-plugin).
-  - Open the terminal (press `CTRL+`\`) and run `npm install`.
+  - Open the terminal (press `CTRL+`\`) and run `npm ci --registry https://packagefeedproxy.microsoft.io/npm/`.
   - To build, press `F1` and type in `Tasks: Run Build Task`.
   - Debug: press `F5` to start debugging the extension.
 
