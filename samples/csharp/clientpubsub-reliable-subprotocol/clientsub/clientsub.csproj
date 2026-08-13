@@ -7,7 +7,7 @@
 
   <ItemGroup>
     <PackageReference Include="Azure.Messaging.WebPubSub" Version="1.*" />
-    <PackageReference Include="System.IO.Pipelines" Version="5.0.1" />
+    <PackageReference Include="System.IO.Pipelines" Version="5.0.2" />
   </ItemGroup>
 
   <ItemGroup>
