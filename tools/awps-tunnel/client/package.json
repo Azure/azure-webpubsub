@@ -5,7 +5,7 @@
   "dependencies": {
     "@azure/web-pubsub-client": "^1.0.0",
     "@fluentui/react": "^8.106.3",
-    "@fluentui/react-components": "^9.34.1",
+    "@fluentui/react-components": "^9.74.5",
     "@fluentui/react-nav-preview": "^0.7.6",
     "@microsoft/signalr": "^8.0.0",
     "@monaco-editor/react": "^4.6.0",
