@@ -4,7 +4,8 @@
         "target": "es6",
         "outDir": "out",
         "lib": [
-            "es6"
+            "es6",
+            "DOM"
         ],
         "sourceMap": true,
         "rootDir": ".",
@@ -14,18 +15,13 @@
         "noImplicitReturns": true,
         "strictNullChecks": true,
         "noUnusedParameters": false,
-        "baseUrl": "./",
-        "paths": {
-            "*": [
-                "node_modules/vscode/*",
-                "*"
-            ]
-        }
+        "baseUrl": "./"
     },
     "exclude": [
         "node_modules",
         ".vscode-test",
         "gulpfile.ts",
-        "test/testProject"
+        "test/testProject",
+        "webview-ui"
     ]
 }
