@@ -1,11 +1,7 @@
 {
   "compilerOptions": {
     "target": "es6",
-    "lib": [
-      "ES6",
-      "ESNext.BigInt",
-      "DOM"
-    ],
+    "lib": ["ES6", "ESNext.BigInt", "DOM"],
     "allowJs": true,
     "module": "esnext",
     "declaration": true,
@@ -13,11 +9,9 @@
     "moduleResolution": "node",
     "sourceMap": true,
     "allowSyntheticDefaultImports": true,
-    "outDir": "dist",
+    "types": [],
+    "outDir": "dist"
   },
-  "include": [
-    "./src",
-  ],
-  "exclude": [
-  ]
+  "include": ["./src"],
+  "exclude": []
 }
