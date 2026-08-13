@@ -1,8 +1,11 @@
 # Changelog
 
-## [1.0.0-beta.13] - 2026-08-11
+## [1.0.0-beta.14] - 2026-08-13
 ### Changed
 - Harden local dashboard connection authorization and document secure container usage.
+
+### Fixed
+- Declare the dashboard test client dependency for isolated package builds.
 
 ## [1.0.0-beta.12] - 2026-04-13
 ### Fixed
