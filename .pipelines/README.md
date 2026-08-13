@@ -11,10 +11,11 @@ repository:
 
 1. Update the package version in `package.json`.
 2. Add a dated entry for that version to the package `CHANGELOG.md`.
-3. Run `.pipelines/release.yml` and select the packages to release.
+3. Run `.pipelines/release.yml` from `main` and select the packages to release.
 
-The pipeline skips a selected package when its changelog entry is missing or
-its release tag already exists.
+The pipeline skips a selected package when its changelog entry is missing. It
+fails when either the npm package version or its release tag already exists,
+preventing a published version from being reused.
 
 ## Release flow
 
