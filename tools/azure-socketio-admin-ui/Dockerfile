@@ -11,7 +11,7 @@ COPY . .
 
 RUN npm run build
 
-FROM nginx:1.20.1
+FROM nginx:1.31.3
 
 WORKDIR /usr/share/nginx/html
 
