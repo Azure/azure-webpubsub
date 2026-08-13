@@ -101,7 +101,7 @@ jobs:
         node-version: ${{ env.NODE_VERSION }}
         cache: 'npm'
     - name: Install dependencies
-      run: npm install -g yarn 
+      run: npm install --global yarn@1.22.22 --registry "https://packagefeedproxy.microsoft.io/npm/"
     - name: Pack the package
       run: |
         ${{ inputs.pack_command }}

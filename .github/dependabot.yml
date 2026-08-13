@@ -1,0 +1,120 @@
+version: 2
+
+updates:
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+    groups:
+      actions:
+        patterns:
+          - "*"
+    commit-message:
+      prefix: deps
+
+  - package-ecosystem: npm
+    directories:
+      - "**/*"
+    schedule:
+      interval: weekly
+      day: monday
+    open-pull-requests-limit: 5
+    cooldown:
+      semver-major-days: 14
+      semver-minor-days: 7
+      semver-patch-days: 3
+    groups:
+      shared-dependencies:
+        patterns:
+          - "*"
+        group-by: dependency-name
+    commit-message:
+      prefix: deps
+
+  - package-ecosystem: pip
+    directories:
+      - "**/*"
+    schedule:
+      interval: weekly
+      day: monday
+    open-pull-requests-limit: 5
+    cooldown:
+      semver-major-days: 14
+      semver-minor-days: 7
+      semver-patch-days: 3
+    groups:
+      shared-dependencies:
+        patterns:
+          - "*"
+        group-by: dependency-name
+    commit-message:
+      prefix: deps
+
+  - package-ecosystem: maven
+    directories:
+      - "**/*"
+    schedule:
+      interval: weekly
+      day: monday
+    open-pull-requests-limit: 5
+    cooldown:
+      semver-major-days: 14
+      semver-minor-days: 7
+      semver-patch-days: 3
+    groups:
+      shared-dependencies:
+        patterns:
+          - "*"
+        group-by: dependency-name
+    commit-message:
+      prefix: deps
+
+  - package-ecosystem: gomod
+    directories:
+      - "**/*"
+    schedule:
+      interval: weekly
+      day: monday
+    open-pull-requests-limit: 5
+    groups:
+      shared-dependencies:
+        patterns:
+          - "*"
+        group-by: dependency-name
+    commit-message:
+      prefix: deps
+
+  - package-ecosystem: nuget
+    directories:
+      - "**/*"
+    schedule:
+      interval: weekly
+      day: monday
+    open-pull-requests-limit: 5
+    cooldown:
+      semver-major-days: 14
+      semver-minor-days: 7
+      semver-patch-days: 3
+    groups:
+      shared-dependencies:
+        patterns:
+          - "*"
+        group-by: dependency-name
+    commit-message:
+      prefix: deps
+
+  - package-ecosystem: docker
+    directories:
+      - "**/*"
+    schedule:
+      interval: weekly
+      day: monday
+    open-pull-requests-limit: 3
+    groups:
+      container-images:
+        patterns:
+          - "*"
+        group-by: dependency-name
+    commit-message:
+      prefix: deps

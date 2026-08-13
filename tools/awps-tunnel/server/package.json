@@ -25,7 +25,7 @@
     "awps-tunnel": "dist/server/index.js"
   },
   "engines": {
-    "node": ">=16"
+    "node": ">=20.17.0"
   },
   "scripts": {
     "build:cpy:cjs": "cpy . ../../../tools/awps-tunnel/server/dist/server/serverProxies --cwd=../../../sdk/server-proxies/dist",
@@ -88,7 +88,7 @@
     "@msgpack/msgpack": "^3.0.0-beta2",
     "@types/sqlite3": "^3.1.8",
     "appdirsjs": "^1.2.7",
-    "axios": "^1.5.1",
+    "axios": "^1.16.0",
     "chalk": "^4.1.2",
     "commander": "^11.0.0",
     "dotenv": "^16.3.1",
@@ -96,8 +96,11 @@
     "jsonwebtoken": "^9.0.2",
     "semver": "^7.5.4",
     "socket.io": "^4.7.2",
-    "sqlite3": "^5.1.6",
-    "ws": "^8.21.0"
+    "sqlite3": "^6.0.1",
+    "ws": "8.21.2"
+  },
+  "resolutions": {
+    "path-to-regexp": "0.1.13"
   },
   "main": "server.js",
   "directories": {
