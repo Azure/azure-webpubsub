@@ -8,6 +8,7 @@ updates:
       day: monday
     groups:
       actions-minor-patch:
+        applies-to: version-updates
         patterns:
           - "*"
         update-types:
@@ -29,6 +30,7 @@ updates:
       semver-patch-days: 3
     groups:
       npm-minor-patch:
+        applies-to: version-updates
         patterns:
           - "*"
         update-types:
@@ -50,6 +52,7 @@ updates:
       semver-patch-days: 3
     groups:
       pip-minor-patch:
+        applies-to: version-updates
         patterns:
           - "*"
         update-types:
@@ -71,6 +74,7 @@ updates:
       semver-patch-days: 3
     groups:
       maven-minor-patch:
+        applies-to: version-updates
         patterns:
           - "*"
         update-types:
@@ -88,6 +92,7 @@ updates:
     open-pull-requests-limit: 5
     groups:
       gomod-minor-patch:
+        applies-to: version-updates
         patterns:
           - "*"
         update-types:
@@ -109,6 +114,7 @@ updates:
       semver-patch-days: 3
     groups:
       nuget-minor-patch:
+        applies-to: version-updates
         patterns:
           - "*"
         update-types:
@@ -126,6 +132,7 @@ updates:
     open-pull-requests-limit: 3
     groups:
       docker-minor-patch:
+        applies-to: version-updates
         patterns:
           - "*"
         update-types:
