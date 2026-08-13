@@ -12,7 +12,7 @@
   "author": "Liangying Wei <lianwei@microsoft.com>",
   "license": "MIT",
   "dependencies": {
-    "@octokit/rest": "^20.1.1"
+    "@octokit/rest": "^22.0.1"
   },
   "resolutions": {
     "**/@typescript-eslint/typescript-estree/minimatch": "9.0.9",
