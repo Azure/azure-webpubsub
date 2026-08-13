@@ -3,7 +3,7 @@
 # Snapshot date: 2025-10-13
 # To update: bump desired lines & reinstall
 ############################################################
-Flask[async]==3.0.0
+Flask[async]==3.1.3
 flask-sock==0.7.0
 openai==1.99.9
 websockets==11.0
