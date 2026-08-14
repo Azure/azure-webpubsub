@@ -12,7 +12,7 @@ npm install @azure/web-pubsub-chat-client
 
 ## Quick Start
 
-For a complete example, see [examples/quickstart](./examples/quickstart).
+For complete applications, see the [browser chat app](./examples/chatapp) and the [serverless Azure Functions chat app](./examples/serverless-chatapp). For a minimal console example, see [examples/quickstart](./examples/quickstart).
 
 ```javascript
 import { ChatClient } from '@azure/web-pubsub-chat-client';

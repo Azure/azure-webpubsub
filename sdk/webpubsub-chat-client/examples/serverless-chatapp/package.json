@@ -1,0 +1,22 @@
+{
+  "name": "azure-web-pubsub-serverless-chat-client-demo",
+  "version": "1.0.0",
+  "private": true,
+  "main": "src/functions/*.js",
+  "scripts": {
+    "build": "npm run build:js && npm run build:css",
+    "build:js": "esbuild src/client/client.js --bundle --platform=browser --format=esm --outfile=public/client.js",
+    "build:css": "tailwindcss -i src/client/styles.css -o public/styles.css --minify",
+    "start": "npm run build && func start --javascript",
+    "test:azure": "node test/azure.e2e.mjs"
+  },
+  "dependencies": {
+    "@azure/functions": "^4.7.2",
+    "@azure/web-pubsub": "^1.2.0",
+    "@azure/web-pubsub-chat-client": "1.0.0-beta.2"
+  },
+  "devDependencies": {
+    "esbuild": "^0.25.0",
+    "tailwindcss": "^3.4.17"
+  }
+}

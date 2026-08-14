@@ -1,0 +1,59 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Serverless Azure Web PubSub Chat</title>
+    <link rel="stylesheet" href="/api/styles.css" />
+  </head>
+  <body>
+    <main class="app-shell">
+      <div class="brand">
+        <span><strong>Azure Web PubSub</strong><span class="brand-divider">/</span>Serverless Chat Client demo</span>
+      </div>
+
+      <section id="login-shell" class="login-card">
+        <section class="login-intro">
+          <span class="eyebrow">Azure Functions</span>
+          <h1>Serverless, from sign-in to chat.</h1>
+          <p>Functions handles authentication and negotiation. Web PubSub Chat manages rooms, delivery, and history.</p>
+          <ul class="feature-list"><li><span class="check-dot">✓</span>Microsoft Entra authentication</li><li><span class="check-dot">✓</span>Serverless negotiation endpoint</li><li><span class="check-dot">✓</span>Persistent room history</li></ul>
+        </section>
+        <section class="login-form">
+          <p class="section-kicker">Welcome</p>
+          <h2>Connect to the demo</h2>
+          <p class="section-description">Sign in when hosted in Azure, or choose a temporary identity while developing locally.</p>
+          <p id="signed-out" class="sign-in-action" hidden><a class="primary-button full-button" href="/.auth/login/aad?post_login_redirect_uri=/api/index">Sign in with Microsoft Entra ID</a></p>
+          <form id="local-login" class="local-login" hidden>
+            <div class="local-badge"><span></span>Local development mode</div>
+            <label for="local-user-id" class="label">User ID</label>
+            <div class="field-row"><input id="local-user-id" class="field" required placeholder="for example, calm-panda-28" autocomplete="off" /><button class="dice-button" type="button" data-random-target="local-user-id" data-random-kind="user" aria-label="Generate a random user ID" title="Random user ID"><span aria-hidden="true">⚄</span></button></div>
+            <button class="primary-button full-button">Connect locally</button>
+          </form>
+        </section>
+      </section>
+
+      <section id="chat" class="chat-card" hidden>
+        <header class="chat-header"><div><h1>Serverless chat workspace</h1><div class="user-summary"><span>Connected as <strong id="current-user"></strong></span><button id="copy-user-id" class="text-button" type="button">Copy user ID</button></div></div><span class="connection-status"><span></span>Connected</span></header>
+        <div class="chat-layout">
+          <aside class="room-panel">
+            <h2>Create a room</h2>
+            <p>Rooms are private. Paste another user's ID to invite them when the room is created.</p>
+            <form id="create-room" class="room-form">
+              <div><label for="room-title" class="label">Room title</label><div class="field-row"><input id="room-title" class="field" required placeholder="Orbit Cafe" autocomplete="off" /><button class="dice-button" type="button" data-random-target="room-title" data-random-kind="room" aria-label="Generate a random room title" title="Random room title"><span aria-hidden="true">⚄</span></button></div></div>
+              <div><label for="invite-user-id" class="label">Invite user <span class="optional">(optional)</span></label><input id="invite-user-id" class="field" placeholder="Paste their exact User ID" autocomplete="off" /></div>
+              <button class="primary-button full-button">Create room</button>
+            </form>
+          </aside>
+          <section class="conversation-panel">
+            <nav class="room-toolbar"><div><label for="rooms" class="label">Active room</label><select id="rooms" class="field"><option value="">Create or receive a room invitation</option></select></div><button id="load-history" class="secondary-button" type="button">Load history</button></nav>
+            <div id="messages" class="message-list" aria-live="polite"><p id="empty-state" class="empty-state">Messages will appear here.</p></div>
+            <form id="send-message" class="message-form"><input id="message" class="field" required placeholder="Write a message…" autocomplete="off" /><button class="primary-button">Send</button></form>
+          </section>
+        </div>
+      </section>
+      <p id="error" class="error-message" role="alert"></p>
+    </main>
+    <script type="module" src="/api/client.js"></script>
+  </body>
+</html>
