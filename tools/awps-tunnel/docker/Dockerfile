@@ -1,5 +1,5 @@
 # Use a base image with Node.js installed
-FROM node:20-slim
+FROM node:26-slim
 
 # Set a placeholder for WebPubSubConnectionString
 ENV WebPubSubConnectionString=

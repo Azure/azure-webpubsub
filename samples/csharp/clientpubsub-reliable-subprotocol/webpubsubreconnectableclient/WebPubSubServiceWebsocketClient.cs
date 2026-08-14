@@ -12,7 +12,6 @@ using System.Text.Json.Nodes;
 using System.Threading;
 using System.Threading.Tasks;
 using Websocket.Client;
-using Websocket.Client.Models;
 
 namespace ClientPubSub
 {
