@@ -28,6 +28,9 @@ export async function useAzureSocketIOChain(
   debug(`useAzureSocketIOChain, webPubSubOptions: ${JSON.stringify(webPubSubOptions)}`);
   const engine = new WebPubSubEioServer(this.engine.opts, webPubSubOptions);
   const httpServer = this["httpServer"];
+  if (!httpServer || !("headersTimeout" in httpServer)) {
+    throw new Error("Azure Web PubSub Socket.IO does not support HTTP/2 servers.");
+  }
   engine.attach(httpServer, this["opts"]);
 
   // Add negotiate handler

@@ -19,9 +19,13 @@ on:
     paths:
       - 'tests/integration-tests/csharp/**'
 
+permissions:
+  contents: read
+
 jobs:
   test:
     name: Integration tests for C#
+    if: github.event_name != 'pull_request' || github.event.pull_request.user.login != 'dependabot[bot]'
     runs-on: ubuntu-latest
     env:
       WEB_PUBSUB_CONNECTION_STRING: ${{ github.event.inputs.web_pubsub_connection_string || secrets.WEB_PUBSUB_CONNECTION_STRING }}
@@ -30,7 +34,6 @@ jobs:
         # See supported Node.js release schedule at https://nodejs.org/en/about/releases/
         dotnet-version: [8.x]
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
     - name: Test csharp tests
       run: dotnet test tests/integration-tests/csharp/csharp.csproj
-

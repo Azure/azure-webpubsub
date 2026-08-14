@@ -9,6 +9,10 @@ on:
      - 'sdk/**'
 env:
   NODE_VERSION: '18.x'                # set this to the node version to use
+
+permissions:
+  contents: read
+
 jobs:
   build:
     name: Socket.IO E2E tests
@@ -18,24 +22,24 @@ jobs:
       matrix:
         node-version: [18.x]
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       with:
         fetch-depth: 3
     - name: Set up Node.js
-      uses: actions/setup-node@v3
+      uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
       with:
         node-version: ${{ env.NODE_VERSION }}
         cache: 'npm'
     - name: Install dependencies
-      run: npm install -g yarn
+      run: npm install -g yarn --registry=https://packagefeedproxy.microsoft.io/npm/
     - name: Install SocketIO SDK
       id: socketio
       run: |
         pushd sdk/server-proxies
-        yarn
+        yarn install --frozen-lockfile --registry=https://packagefeedproxy.microsoft.io/npm/
         popd
         pushd sdk/webpubsub-socketio-extension
-        yarn
+        yarn install --frozen-lockfile --registry=https://packagefeedproxy.microsoft.io/npm/
         yarn build
         popd
       shell: bash

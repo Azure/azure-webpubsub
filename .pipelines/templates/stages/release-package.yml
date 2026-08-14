@@ -1,0 +1,344 @@
+# Releases one npm package through ESRP, tags the release, and opens the next
+# beta version pull request.
+
+parameters:
+  - name: package_key
+    displayName: 'Identifier used to make stage names unique when multiple packages are released in one run.'
+    type: string
+  - name: package_name
+    displayName: 'Public package name used for the blob prefix and release tag (e.g. web-pubsub-chat-client).'
+    type: string
+  - name: package_folder
+    displayName: 'Folder containing package.json / CHANGELOG.md and the *.tgz emitted by pack_steps.'
+    type: string
+  - name: npm_package_name
+    displayName: 'Exact npm package name expected inside the tarball.'
+    type: string
+  - name: pack_steps
+    displayName: 'Steps that build and pack the package. Must run from the repo root and produce a single *.tgz inside package_folder.'
+    type: stepList
+  - name: esrp_service_connection
+    displayName: 'Azure Resource Manager service connection used by ESRP Release.'
+    type: string
+    default: '$(ESRP_SERVICE_CONNECTION)'
+  - name: npm_feed_registry
+    displayName: 'Authenticated npm registry used to restore release dependencies.'
+    type: string
+    default: '$(NPM_FEED_REGISTRY)'
+  - name: github_repo
+    displayName: 'GitHub repo the release tag / version-bump PR are pushed to.'
+    type: string
+    default: 'Azure/azure-webpubsub'
+  - name: node_version
+    displayName: 'Node.js version used for the build.'
+    type: string
+    default: '20.x'
+
+stages:
+  - stage: ${{ format('{0}_build_deploy', parameters.package_key) }}
+    displayName: 'Build and publish ${{ parameters.package_name }}'
+    dependsOn: release_check
+    condition: |
+      and(
+        succeeded(),
+        eq(dependencies.release_check.outputs['check.read.${{ parameters.package_key }}_needsRelease'], 'true')
+      )
+    variables:
+      releaseVersion: $[ stageDependencies.release_check.check.outputs['read.${{ parameters.package_key }}_releaseVersion'] ]
+      productState: $[ stageDependencies.release_check.check.outputs['read.${{ parameters.package_key }}_productState'] ]
+    jobs:
+      - job: build
+        displayName: 'Build + pack + publish'
+        pool:
+          type: linux
+        variables:
+          ob_outputDirectory: '$(Build.ArtifactStagingDirectory)'
+          ob_artifactBaseName: 'drop_${{ parameters.package_name }}'
+          ob_sdl_codeSignValidation_enabled: false
+          ob_sdl_binskim_enabled: false
+        steps:
+          - checkout: self
+            path: s/self
+            fetchDepth: 0
+            persistCredentials: false
+          - task: UseNode@1
+            displayName: 'Use Node ${{ parameters.node_version }}'
+            inputs:
+              version: ${{ parameters.node_version }}
+          - task: Bash@3
+            displayName: 'Create Azure Artifacts npm configuration'
+            inputs:
+              targetType: inline
+              workingDirectory: '$(Pipeline.Workspace)/s/self'
+              script: |
+                set -euo pipefail
+                feed_registry='${{ parameters.npm_feed_registry }}'
+                if [[ -z "$feed_registry" || "$feed_registry" == '$('* ]]; then
+                  echo 'ERROR: NPM_FEED_REGISTRY is not configured.'
+                  exit 1
+                fi
+                printf 'registry=%s\nalways-auth=true\n' "$feed_registry" > .npmrc
+          - task: npmAuthenticate@0
+            displayName: 'Authenticate to npm feed'
+            inputs:
+              workingFile: '$(Pipeline.Workspace)/s/self/.npmrc'
+          - task: Bash@3
+            displayName: 'Install Yarn through Azure Artifacts'
+            inputs:
+              targetType: inline
+              workingDirectory: '$(Pipeline.Workspace)/s/self'
+              script: |
+                set -euo pipefail
+                feed_registry='${{ parameters.npm_feed_registry }}'
+                yarn_root='$(Agent.TempDirectory)/yarn-1.22.22'
+                mkdir -p "$yarn_root"
+                curl --fail --location \
+                  --header "Authorization: Bearer $SYSTEM_ACCESSTOKEN" \
+                  "${feed_registry}yarn/-/yarn-1.22.22.tgz" \
+                  --output '$(Agent.TempDirectory)/yarn-1.22.22.tgz'
+                tar -xzf '$(Agent.TempDirectory)/yarn-1.22.22.tgz' --strip-components=1 -C "$yarn_root"
+                export PATH="$yarn_root/bin:$PATH"
+                echo "##vso[task.prependpath]$yarn_root/bin"
+                yarn config set registry "$feed_registry"
+                find . -name yarn.lock -type f -exec sed -Ei \
+                  "s#https://registry\\.(npmjs\\.org|yarnpkg\\.com)/#${feed_registry}#g" {} +
+            env:
+              SYSTEM_ACCESSTOKEN: $(System.AccessToken)
+          - task: Bash@3
+            displayName: 'Remove stale package tarballs'
+            inputs:
+              targetType: inline
+              workingDirectory: '$(Pipeline.Workspace)/s/self'
+              script: |
+                set -euo pipefail
+                rm -f '${{ parameters.package_folder }}'/*.tgz
+          - ${{ each step in parameters.pack_steps }}:
+              - ${{ step }}
+          - task: Bash@3
+            name: locate
+            displayName: 'Locate produced tarball'
+            inputs:
+              targetType: inline
+              workingDirectory: '$(Pipeline.Workspace)/s/self'
+              script: |
+                set -euo pipefail
+                PACKAGE_FOLDER='${{ parameters.package_folder }}'
+                cd "$PACKAGE_FOLDER"
+                tarballs=( *.tgz )
+                if [ ${#tarballs[@]} -ne 1 ] || [ ! -f "${tarballs[0]}" ]; then
+                  echo "ERROR: expected exactly one *.tgz in $PACKAGE_FOLDER, found: ${tarballs[*]}"
+                  exit 1
+                fi
+                tarball_name="${tarballs[0]}"
+                tarball_path="$(pwd)/$tarball_name"
+                package_metadata=$(tar -xOf "$tarball_path" package/package.json)
+                packed_name=$(printf '%s' "$package_metadata" | node -e "let data=''; process.stdin.on('data', chunk => data += chunk); process.stdin.on('end', () => console.log(JSON.parse(data).name));")
+                packed_version=$(printf '%s' "$package_metadata" | node -e "let data=''; process.stdin.on('data', chunk => data += chunk); process.stdin.on('end', () => console.log(JSON.parse(data).version));")
+                if [ "$packed_name" != '${{ parameters.npm_package_name }}' ]; then
+                  echo "ERROR: expected package name ${{ parameters.npm_package_name }}, found $packed_name"
+                  exit 1
+                fi
+                if [ "$packed_version" != "$(releaseVersion)" ]; then
+                  echo "ERROR: expected package version $(releaseVersion), found $packed_version"
+                  exit 1
+                fi
+                echo "Tarball: $tarball_path"
+                cp "$tarball_path" "$(ob_outputDirectory)/"
+
+      - job: publish
+        displayName: 'Publish npm package through ESRP'
+        dependsOn: build
+        condition: succeeded()
+        pool:
+          type: linux
+        variables:
+          releaseVersion: $[ stageDependencies.release_check.check.outputs['read.${{ parameters.package_key }}_releaseVersion'] ]
+          ob_outputDirectory: '$(Build.ArtifactStagingDirectory)'
+          ob_sdl_codeSignValidation_enabled: false
+          ob_sdl_binskim_enabled: false
+        templateContext:
+          type: releaseJob
+          isProduction: true
+          inputs:
+            - input: pipelineArtifact
+              artifactName: 'drop_${{ parameters.package_name }}'
+              targetPath: '$(Pipeline.Workspace)/esrp-release'
+        steps:
+          - checkout: self
+            path: s/self
+            fetchDepth: 1
+            fetchTags: true
+            persistCredentials: false
+          - task: Bash@3
+            displayName: 'Recheck release tag'
+            inputs:
+              targetType: inline
+              workingDirectory: '$(Pipeline.Workspace)/s/self'
+              script: |
+                set -euo pipefail
+                tag='release/${{ parameters.package_name }}/v$(releaseVersion)'
+                git fetch origin "refs/tags/$tag:refs/tags/$tag" 2>/dev/null || true
+                if git rev-parse --verify "refs/tags/$tag" >/dev/null 2>&1; then
+                  echo "ERROR: $tag was created by another release run"
+                  exit 1
+                fi
+          - task: ESRPRelease@12
+            displayName: 'Publish npm package through ESRP'
+            inputs:
+              ConnectedServiceName: ${{ parameters.esrp_service_connection }}
+              ClientId: '$(ESRP_CLIENT_ID)'
+              DomainTenantId: '$(ESRP_TENANT_ID)'
+              UseManagedIdentity: true
+              KeyVaultName: '$(ESRP_KEY_VAULT_NAME)'
+              SignCertName: '$(ESRP_SIGN_CERT_NAME)'
+              Intent: 'PackageDistribution'
+              ContentType: 'npm'
+              ContentSource: 'Folder'
+              FolderLocation: '$(Pipeline.Workspace)/esrp-release'
+              Owners: '$(ESRP_OWNERS)'
+              Approvers: '$(ESRP_APPROVERS)'
+              ServiceEndpointUrl: 'https://api.esrp.microsoft.com'
+              MainPublisher: '$(ESRP_MAIN_PUBLISHER)'
+              ProductState: '$(productState)'
+
+  - stage: ${{ format('{0}_post_deploy_tag', parameters.package_key) }}
+    displayName: 'Tag ${{ parameters.package_name }} release'
+    dependsOn:
+      - release_check
+      - ${{ format('{0}_build_deploy', parameters.package_key) }}
+    condition: |
+      and(
+        eq(dependencies.release_check.outputs['check.read.${{ parameters.package_key }}_needsRelease'], 'true'),
+        in(dependencies.${{ format('{0}_build_deploy', parameters.package_key) }}.result, 'Succeeded')
+      )
+    variables:
+      releaseVersion: $[ stageDependencies.release_check.check.outputs['read.${{ parameters.package_key }}_releaseVersion'] ]
+    jobs:
+      - job: tag
+        displayName: 'Push tag to GitHub'
+        pool:
+          type: linux
+        variables:
+          ob_outputDirectory: '$(Build.ArtifactStagingDirectory)'
+          ob_sdl_codeSignValidation_enabled: false
+          ob_sdl_binskim_enabled: false
+        steps:
+          - checkout: self
+            path: s/self
+            fetchDepth: 1
+            fetchTags: true
+            persistCredentials: true
+          - task: Bash@3
+            displayName: 'Create and push release tag'
+            inputs:
+              targetType: inline
+              workingDirectory: '$(Pipeline.Workspace)/s/self'
+              script: |
+                set -euo pipefail
+                tag="release/${{ parameters.package_name }}/v$(releaseVersion)"
+
+                if git rev-parse --verify "refs/tags/${tag}" >/dev/null 2>&1; then
+                  echo "Tag ${tag} already exists locally. Skipping."
+                  exit 0
+                fi
+
+                git config --global user.name 'azure-webpubsub-release-bot'
+                git config --global user.email 'azure-webpubsub-release-bot@users.noreply.github.com'
+                git tag "${tag}"
+                git push origin "${tag}"
+
+  - stage: ${{ format('{0}_post_deploy_pr', parameters.package_key) }}
+    displayName: 'Open ${{ parameters.package_name }} beta bump PR'
+    dependsOn:
+      - release_check
+      - ${{ format('{0}_build_deploy', parameters.package_key) }}
+      - ${{ format('{0}_post_deploy_tag', parameters.package_key) }}
+    condition: |
+      and(
+        eq(dependencies.release_check.outputs['check.read.${{ parameters.package_key }}_needsRelease'], 'true'),
+        in(dependencies.${{ format('{0}_build_deploy', parameters.package_key) }}.result, 'Succeeded'),
+        in(dependencies.${{ format('{0}_post_deploy_tag', parameters.package_key) }}.result, 'Succeeded')
+      )
+    variables:
+      releaseVersion: $[ stageDependencies.release_check.check.outputs['read.${{ parameters.package_key }}_releaseVersion'] ]
+    jobs:
+      - job: bump
+        displayName: 'Bump version and open PR'
+        pool:
+          type: linux
+        variables:
+          ob_outputDirectory: '$(Build.ArtifactStagingDirectory)'
+          ob_sdl_codeSignValidation_enabled: false
+          ob_sdl_binskim_enabled: false
+        steps:
+          - checkout: self
+            path: s/self
+            fetchDepth: 1
+            persistCredentials: true
+          - task: UseNode@1
+            displayName: 'Use Node ${{ parameters.node_version }}'
+            inputs:
+              version: ${{ parameters.node_version }}
+          - task: Bash@3
+            displayName: 'Bump package.json and open GitHub PR'
+            inputs:
+              targetType: inline
+              workingDirectory: '$(Pipeline.Workspace)/s/self'
+              script: |
+                set -euo pipefail
+
+                PACKAGE_FOLDER='${{ parameters.package_folder }}'
+                PACKAGE_NAME='${{ parameters.package_name }}'
+
+                package_json="$PACKAGE_FOLDER/package.json"
+                current_version=$(node -p "require('./$package_json').version")
+
+                new_version=$(CURRENT_VERSION="$current_version" node -e "
+                  const version = process.env.CURRENT_VERSION;
+                  const beta = version.match(/^(\\d+\\.\\d+\\.\\d+)-beta\\.(\\d+)$/);
+                  if (beta) {
+                    console.log(beta[1] + '-beta.' + (Number(beta[2]) + 1));
+                  } else {
+                    const stable = version.match(/^(\\d+)\\.(\\d+)\\.(\\d+)$/);
+                    if (!stable) throw new Error('Unsupported version: ' + version);
+                    console.log(stable[1] + '.' + stable[2] + '.' + (Number(stable[3]) + 1) + '-beta.1');
+                  }
+                ")
+                branch="auto/upv-${PACKAGE_NAME}-${new_version}"
+                echo "Current: $current_version  ->  Next: $new_version"
+                echo "Branch:  $branch"
+
+                PACKAGE_JSON="$package_json" NEW_VERSION="$new_version" node -e "
+                  const fs = require('fs');
+                  const path = process.env.PACKAGE_JSON;
+                  const pkg = JSON.parse(fs.readFileSync(path, 'utf8'));
+                  pkg.version = process.env.NEW_VERSION;
+                  fs.writeFileSync(path, JSON.stringify(pkg, null, 2) + '\n');
+                "
+
+                git config --global user.name 'azure-webpubsub-release-bot'
+                git config --global user.email 'azure-webpubsub-release-bot@users.noreply.github.com'
+                git checkout -b "$branch"
+                git add "$package_json"
+                git commit -m "Update ${PACKAGE_NAME} package.json to next beta version ${new_version}"
+                git push origin "$branch"
+
+                auth_header=$(git config --get-urlmatch http.extraheader "https://github.com/" || true)
+                if [ -z "$auth_header" ]; then
+                  echo "ERROR: no extraheader found in .git/config. Is checkout.persistCredentials true?"
+                  exit 1
+                fi
+
+                pr_body=$(BRANCH="$branch" NEW_VERSION="$new_version" PACKAGE_NAME="$PACKAGE_NAME" node -e "console.log(JSON.stringify({
+                  title: 'Update package.json to next beta version ' + process.env.NEW_VERSION,
+                  head: process.env.BRANCH,
+                  base: 'main',
+                  body: 'This PR updates ' + process.env.PACKAGE_NAME + ' package.json to the next beta version.'
+                }))")
+
+                curl -fsSL -X POST \
+                  -H "$auth_header" \
+                  -H 'Accept: application/vnd.github+json' \
+                  -H 'X-GitHub-Api-Version: 2022-11-28' \
+                  "https://api.github.com/repos/${{ parameters.github_repo }}/pulls" \
+                  -d "$pr_body"

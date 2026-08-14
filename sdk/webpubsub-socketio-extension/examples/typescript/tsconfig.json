@@ -1,7 +1,8 @@
 {
   "compilerOptions": {
     "module": "commonjs",
-    "target": "ESNext"
+    "target": "ESNext",
+    "skipLibCheck": true
   },
   "exclude": [
     "node_modules"

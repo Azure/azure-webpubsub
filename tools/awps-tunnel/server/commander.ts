@@ -11,8 +11,9 @@ import { WebPubSubManagementClient } from "@azure/arm-webpubsub";
 import fs from "fs";
 
 import { Command, program } from "commander";
+import { randomBytes } from "crypto";
 import { AzureCliCredential, ChainedTokenCredential, EnvironmentCredential, ManagedIdentityCredential, AzurePowerShellCredential } from "@azure/identity";
-import { parseUrl, dumpRawRequest, getRawResponse, tryParseInt } from "./util";
+import { parseUrl, dumpRawRequest, getRawResponse, tryParseInt, getDashboardAllowedOrigins } from "./util";
 
 import packageJson from "./package.json";
 const name = packageJson["cli-name"];
@@ -320,7 +321,26 @@ function createRunCommand(run: Command, dbFile: string, settings: Settings, comm
   const app = express();
   const server = createServer(app);
   printer.status(`Connecting to ${tunnel.endpoint}, hub: ${tunnel.hub}, upstream: ${currentUpstream}`);
-  const dataHub = new DataHub(server, tunnel, upstream, dbFile);
+
+  const upstreamPort = tryParseInt(upstream.port) ?? 80;
+  const webviewHost = command.webviewHost ?? settings.WebPubSub.WebviewHost ?? "127.0.0.1";
+  const webviewPortValue = command.webviewPort ?? settings.WebPubSub.WebviewPort ?? process.env.AWPS_TUNNEL_SERVER_PORT;
+  let webviewPort: number | undefined = upstreamPort + 1000;
+  if (webviewPortValue) {
+    webviewPort = tryParseInt(webviewPortValue);
+    if (!webviewPort) {
+      printer.error(`Error: invalid webview port: ${webviewPortValue}`);
+      return;
+    }
+  }
+
+  const dashboardToken = process.env.AWPS_TUNNEL_DASHBOARD_TOKEN || randomBytes(24).toString("hex");
+  const dashboardAllowedOrigins = getDashboardAllowedOrigins(webviewHost, webviewPort);
+
+  const dataHub = new DataHub(server, tunnel, upstream, dbFile, {
+    token: dashboardToken,
+    allowedOrigins: dashboardAllowedOrigins,
+  });
   dataHub.ReportStatusChange(ConnectionStatus.Connecting);
 
   reportServiceConfiguration(dataHub, subscription, resourceGroup, new URL(tunnel.endpoint), tunnel.hub);
@@ -359,22 +379,15 @@ function createRunCommand(run: Command, dbFile: string, settings: Settings, comm
       dataHub.ReportStatusChange(ConnectionStatus.Disconnected);
     });
 
-  const upstreamPort = tryParseInt(upstream.port) ?? 80;
   if (!command.noWebview) {
-    const webviewHost = command.webviewHost ?? settings.WebPubSub.WebviewHost ?? "127.0.0.1";
-    const webviewPort = command.webviewPort ?? settings.WebPubSub.WebviewPort ?? process.env.AWPS_TUNNEL_SERVER_PORT;
-    let port: number | undefined = upstreamPort + 1000;
-    if (webviewPort) {
-      port = tryParseInt(webviewPort);
-      if (!port) {
-        printer.error(`Error: invalid webview port: ${port}`);
-        return;
-      }
-    }
     app.use(express.static(path.join(__dirname, "../client/build")));
     server
-      .listen(port, webviewHost, () => {
-        printer.text(`Open webview at: http://${webviewHost}:${port}`);
+      .listen(webviewPort, webviewHost, () => {
+        // Wildcard bind hosts are not browsable.
+        const browseHost = dashboardAllowedOrigins.length === 0 ? "localhost" : webviewHost;
+        const url = `http://${browseHost}:${webviewPort}/#access_token=${dashboardToken}`;
+        printer.text(`Open webview at: ${url}`);
+        printer.status(`The dashboard requires the access token embedded in the URL above. Keep this URL private: anyone who obtains it can control the tunnel's messaging hub.`);
       })
       .on("error", (err) => {
         printer.error(`Error on starting webview server: ${err}`);

@@ -90,7 +90,7 @@ implements ComponentFramework.StandardControl<IInputs, IOutputs>
                     console.info(`latest value: ${jsonValue.data}`);
                     this._value = jsonValue.data;
                     this.inputElement.setAttribute("value", jsonValue.data);
-                    this.labelElement.innerHTML = jsonValue.data;
+                    this.labelElement.textContent = jsonValue.data;
                     this._notifyOutputChanged();
                 }
             };
@@ -105,7 +105,7 @@ implements ComponentFramework.StandardControl<IInputs, IOutputs>
             ? context.parameters.controlValue.formatted
             : "0"
         );
-        this.labelElement.innerHTML = context.parameters.controlValue.formatted
+        this.labelElement.textContent = context.parameters.controlValue.formatted
             ? context.parameters.controlValue.formatted
             : "0";
 
@@ -118,7 +118,7 @@ implements ComponentFramework.StandardControl<IInputs, IOutputs>
     public refreshData(evt: Event): void {
         console.info('refreshData');
         this._value = this.inputElement.value as any as number;
-        this.labelElement.innerHTML = this.inputElement.value;
+        this.labelElement.textContent = this.inputElement.value;
         if (this._switcher)
         {
             this._ws.send(JSON.stringify({
@@ -151,7 +151,7 @@ implements ComponentFramework.StandardControl<IInputs, IOutputs>
             ? context.parameters.controlValue.formatted
             : ""
         );
-        this.labelElement.innerHTML = context.parameters.controlValue.formatted
+        this.labelElement.textContent = context.parameters.controlValue.formatted
             ? context.parameters.controlValue.formatted
             : "";
     }

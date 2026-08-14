@@ -1,0 +1,236 @@
+# Release one or more npm packages through ESRP.
+
+name: npm-release_$(Date:yyyyMMdd)$(Rev:.r)
+
+trigger: none
+
+pr: none
+
+parameters:
+  - name: release_chat_client
+    displayName: 'Release @azure/web-pubsub-chat-client'
+    type: boolean
+    default: false
+  - name: release_socketio
+    displayName: 'Release @azure/web-pubsub-socket.io'
+    type: boolean
+    default: false
+  - name: release_tunnel
+    displayName: 'Release @azure/web-pubsub-tunnel-tool'
+    type: boolean
+    default: false
+variables:
+  - group: 'npm-release'
+  - name: CDP_DEFINITION_BUILD_COUNT
+    value: $[counter('', 0)]
+  - name: LinuxContainerImage
+    value: 'mcr.microsoft.com/onebranch/azurelinux/build:3.0'
+
+resources:
+  repositories:
+    - repository: templates
+      type: git
+      name: OneBranch.Pipelines/GovernedTemplates
+      ref: refs/heads/main
+
+extends:
+  template: v2/OneBranch.Official.CrossPlat.yml@templates
+  parameters:
+    featureFlags:
+      WindowsHostVersion:
+        Version: 2022
+    globalSdl:
+      tsa:
+        enabled: false
+      policheck:
+        break: true
+    stages:
+      - ${{ if or(parameters.release_chat_client, parameters.release_socketio, parameters.release_tunnel) }}:
+          - stage: release_check
+            displayName: 'Check selected package versions'
+            jobs:
+              - job: check
+                displayName: 'Read package versions and validate changelogs'
+                pool:
+                  type: linux
+                variables:
+                  ob_outputDirectory: '$(Build.ArtifactStagingDirectory)'
+                  ob_sdl_codeSignValidation_enabled: false
+                  ob_sdl_binskim_enabled: false
+                steps:
+                  - checkout: self
+                    path: s/self
+                    fetchDepth: 0
+                    fetchTags: true
+                    persistCredentials: false
+                  - task: UseNode@1
+                    displayName: 'Use Node 20.x'
+                    inputs:
+                      version: '20.x'
+                  - task: Bash@3
+                    displayName: 'Create Azure Artifacts npm configuration'
+                    inputs:
+                      targetType: inline
+                      workingDirectory: '$(Pipeline.Workspace)/s/self'
+                      script: |
+                        set -euo pipefail
+                        feed_registry='$(NPM_FEED_REGISTRY)'
+                        if [[ -z "$feed_registry" || "$feed_registry" == '$('* ]]; then
+                          echo 'ERROR: NPM_FEED_REGISTRY is not configured.'
+                          exit 1
+                        fi
+                        printf 'registry=%s\nalways-auth=true\n' "$feed_registry" > .npmrc
+                  - task: npmAuthenticate@0
+                    displayName: 'Authenticate to npm feed'
+                    inputs:
+                      workingFile: '$(Pipeline.Workspace)/s/self/.npmrc'
+                  - task: Bash@3
+                    name: read
+                    displayName: 'Check selected packages'
+                    inputs:
+                      targetType: inline
+                      workingDirectory: '$(Pipeline.Workspace)/s/self'
+                      script: |
+                        set -euo pipefail
+
+                        if [[ "$BUILD_SOURCEBRANCH" != 'refs/heads/main' ]]; then
+                          echo "ERROR: releases must run from main, not $BUILD_SOURCEBRANCH"
+                          exit 1
+                        fi
+
+                        packages=()
+                        if [[ "${RELEASE_CHAT_CLIENT,,}" == 'true' ]]; then
+                          packages+=('chat_client|web-pubsub-chat-client|sdk/webpubsub-chat-client')
+                        fi
+                        if [[ "${RELEASE_SOCKETIO,,}" == 'true' ]]; then
+                          packages+=('socketio|webpubsub-socketio-extension|sdk/webpubsub-socketio-extension')
+                        fi
+                        if [[ "${RELEASE_TUNNEL,,}" == 'true' ]]; then
+                          packages+=('tunnel|awps-tunnel|tools/awps-tunnel/server')
+                        fi
+
+                        for package in "${packages[@]}"; do
+                          IFS='|' read -r package_key package_name package_folder <<< "$package"
+                          if [[ ! -f "$package_folder/package.json" || ! -f "$package_folder/CHANGELOG.md" ]]; then
+                            echo "ERROR: package files not found in $package_folder"
+                            exit 1
+                          fi
+                          npm_package_name=$(node -p "require('./$package_folder/package.json').name")
+                          current_version=$(node -p "require('./$package_folder/package.json').version")
+                          if [[ ! "$current_version" =~ ^[0-9]+\.[0-9]+\.[0-9]+(-beta\.[0-9]+)?$ ]]; then
+                            echo "ERROR: unsupported release version for $package_name: $current_version"
+                            exit 1
+                          fi
+
+                          echo "##vso[task.setvariable variable=${package_key}_releaseVersion;isOutput=true]$current_version"
+                          if [[ "$current_version" == *-beta.* ]]; then
+                            echo "##vso[task.setvariable variable=${package_key}_productState;isOutput=true]Beta"
+                          else
+                            echo "##vso[task.setvariable variable=${package_key}_productState;isOutput=true]Current"
+                          fi
+
+                          changelog_pattern="^##[[:space:]]+\[?${current_version}\]?[[:space:]]+-[[:space:]]+[0-9]{4}-[0-9]{1,2}-[0-9]{1,2}"
+                          tag="release/${package_name}/v${current_version}"
+                          if git rev-parse --verify "refs/tags/${tag}" >/dev/null 2>&1; then
+                            echo "ERROR: release tag already exists: $tag"
+                            exit 1
+                          fi
+
+                          set +e
+                          registry_output=$(npm view "${npm_package_name}@${current_version}" version --json 2>&1)
+                          registry_status=$?
+                          set -e
+                          if [[ $registry_status -eq 0 ]]; then
+                            echo "ERROR: npm package version already exists: ${npm_package_name}@${current_version}"
+                            exit 1
+                          elif grep -Eq 'E404|404 Not Found|is not in this registry' <<< "$registry_output"; then
+                            echo "Package version is available: ${npm_package_name}@${current_version}"
+                          else
+                            echo "$registry_output"
+                            echo "ERROR: unable to query ${npm_package_name}@${current_version}"
+                            exit $registry_status
+                          fi
+
+                          if grep -Eq "$changelog_pattern" "$package_folder/CHANGELOG.md"; then
+                            needs_release=true
+                          else
+                            needs_release=false
+                          fi
+                          echo "##vso[task.setvariable variable=${package_key}_needsRelease;isOutput=true]$needs_release"
+                          echo "$package_name $current_version: needsRelease=$needs_release"
+                        done
+                    env:
+                      RELEASE_CHAT_CLIENT: ${{ parameters.release_chat_client }}
+                      RELEASE_SOCKETIO: ${{ parameters.release_socketio }}
+                      RELEASE_TUNNEL: ${{ parameters.release_tunnel }}
+      - ${{ if parameters.release_chat_client }}:
+          - template: templates/stages/release-package.yml
+            parameters:
+              package_key: chat_client
+              package_name: web-pubsub-chat-client
+              npm_package_name: '@azure/web-pubsub-chat-client'
+              package_folder: sdk/webpubsub-chat-client
+              pack_steps:
+                - task: Bash@3
+                  displayName: 'Build and pack chat client'
+                  inputs:
+                    targetType: inline
+                    workingDirectory: '$(Pipeline.Workspace)/s/self'
+                    script: |
+                      set -euo pipefail
+                      pushd sdk/webpubsub-chat-client
+                      yarn
+                      npm run pack:publish
+                      popd
+      - ${{ if parameters.release_socketio }}:
+          - template: templates/stages/release-package.yml
+            parameters:
+              package_key: socketio
+              package_name: webpubsub-socketio-extension
+              npm_package_name: '@azure/web-pubsub-socket.io'
+              package_folder: sdk/webpubsub-socketio-extension
+              pack_steps:
+                - task: Bash@3
+                  displayName: 'Build and pack socketio extension'
+                  inputs:
+                    targetType: inline
+                    workingDirectory: '$(Pipeline.Workspace)/s/self'
+                    script: |
+                      set -euo pipefail
+                      pushd sdk/server-proxies
+                      yarn
+                      popd
+                      pushd tools/awps-tunnel/client
+                      yarn
+                      popd
+                      pushd sdk/webpubsub-socketio-extension
+                      yarn
+                      yarn build
+                      yarn pack
+                      popd
+      - ${{ if parameters.release_tunnel }}:
+          - template: templates/stages/release-package.yml
+            parameters:
+              package_key: tunnel
+              package_name: awps-tunnel
+              npm_package_name: '@azure/web-pubsub-tunnel-tool'
+              package_folder: tools/awps-tunnel/server
+              pack_steps:
+                - task: Bash@3
+                  displayName: 'Build and pack awps-tunnel'
+                  inputs:
+                    targetType: inline
+                    workingDirectory: '$(Pipeline.Workspace)/s/self'
+                    script: |
+                      set -euo pipefail
+                      pushd sdk/server-proxies
+                      yarn
+                      popd
+                      pushd tools/awps-tunnel/client
+                      yarn
+                      popd
+                      pushd tools/awps-tunnel/server
+                      yarn
+                      yarn build
+                      yarn pack
+                      popd
