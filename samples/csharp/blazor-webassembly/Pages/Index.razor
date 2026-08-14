@@ -115,7 +115,7 @@
             }
             catch (SendMessageFailedException ex)
             {
-                errorMessage = ex.Error.Message;
+                errorMessage = ex.Message;
                 status = "Not connected.";
                 _ = client.StopAsync();
                 StateHasChanged();
@@ -146,7 +146,7 @@
         }
         catch (SendMessageFailedException ex)
         {
-            errorMessage = ex.Error.Message;
+            errorMessage = ex.Message;
         }
         catch (Exception ex)
         {

@@ -13,11 +13,11 @@
   </ItemGroup>
 
   <ItemGroup>
-	  <PackageReference Include="Azure.Messaging.WebPubSub" Version="1.4.0" />
+	  <PackageReference Include="Azure.Messaging.WebPubSub" Version="1.6.0" />
 	  <PackageReference Include="Azure.Messaging.WebPubSub.Client" Version="1.0.0" />
     <PackageReference Include="Microsoft.Extensions.Configuration" Version="8.0.0" />
     <PackageReference Include="Microsoft.Extensions.Configuration.EnvironmentVariables" Version="8.0.0" />
-    <PackageReference Include="Microsoft.Extensions.Configuration.Json" Version="8.0.0" />
+    <PackageReference Include="Microsoft.Extensions.Configuration.Json" Version="8.0.1" />
   </ItemGroup>
 
   <ItemGroup>
