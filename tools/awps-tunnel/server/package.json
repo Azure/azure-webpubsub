@@ -100,7 +100,18 @@
     "ws": "8.21.2"
   },
   "resolutions": {
-    "path-to-regexp": "0.1.13"
+    "@azure/identity": "4.13.1",
+    "@azure/web-pubsub": "1.2.0",
+    "@azure/web-pubsub-client": "1.1.0",
+    "@babel/core": "7.29.6",
+    "body-parser": "1.20.6",
+    "flatted": "3.4.2",
+    "jsonwebtoken": "9.0.3",
+    "path-to-regexp": "0.1.13",
+    "socket.io": "4.8.3",
+    "socket.io-client": "4.8.3",
+    "tar-fs": "2.1.4",
+    "ws": "8.21.2"
   },
   "main": "server.js",
   "directories": {
