@@ -7,6 +7,7 @@ if (!connectionString) {
 }
 
 const hubName = process.env.WebPubSubHub ?? "chat";
+const host = process.env.HOST ?? "127.0.0.1";
 const port = Number(process.env.PORT ?? 3000);
 const serviceClient = new WebPubSubServiceClient(connectionString, hubName);
 const app = express();
@@ -27,4 +28,4 @@ app.get("/negotiate", async (request, response) => {
 });
 
 app.use(express.static("public"));
-app.listen(port, () => console.log(`Open http://localhost:${port}`));
+app.listen(port, host, () => console.log(`Open http://${host}:${port}`));

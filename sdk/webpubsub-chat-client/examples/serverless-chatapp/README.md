@@ -12,9 +12,13 @@ This Azure Functions JavaScript v4 demo hosts a browser app and issues client ac
 
 ```bash
 npm install
+export WebPubSubConnectionString="<connection-string>"
+export WebPubSubHub="chat"
+export AllowLocalUserId="true"
+npm start
 ```
 
-Run `npm start` to prepare the browser assets and start the HTTP functions locally. The script explicitly selects the JavaScript worker, so a checked-in `local.settings.json` isn't required. App Service authentication isn't emulated by the local Functions host. To enable the local-only user ID form, set `AllowLocalUserId=true`; never enable this setting in a deployed app.
+`npm start` prepares the browser assets and starts the HTTP functions locally. The script explicitly selects the JavaScript worker, so a checked-in `local.settings.json` isn't required. App Service authentication isn't emulated by the local Functions host. `AllowLocalUserId` enables the local-only user ID form; never enable this setting in a deployed app.
 
 Open `http://localhost:7071/api/index` in two different browsers or two independent browser profiles, then follow this flow:
 
