@@ -17,6 +17,8 @@
   "resolutions": {
     "**/@typescript-eslint/typescript-estree/minimatch": "9.0.9",
     "nanoid": "3.3.17",
-    "path-to-regexp": "0.1.13"
+    "path-to-regexp": "0.1.13",
+    "shell-quote": "1.8.4",
+    "websocket-driver": "0.7.5"
   }
 }
