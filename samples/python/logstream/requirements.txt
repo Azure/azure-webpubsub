@@ -1,2 +1,2 @@
-azure-messaging-webpubsubservice==1.0.0
+azure-messaging-webpubsubservice==1.3.0
 websockets
