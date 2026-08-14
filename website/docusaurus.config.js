@@ -4,8 +4,8 @@
 const path = require('path')
 const plugins = require(path.resolve(__dirname, 'configs/plugins'))({ root: __dirname })
 
-const lightCodeTheme = require('prism-react-renderer/themes/github')
-const darkCodeTheme = require('prism-react-renderer/themes/dracula')
+const { themes } = require('prism-react-renderer')
+const { github: lightCodeTheme, dracula: darkCodeTheme } = themes
 
 /** @type {import('@docusaurus/types').Config} */
 const config = {
