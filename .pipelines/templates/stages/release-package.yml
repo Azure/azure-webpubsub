@@ -173,7 +173,7 @@ stages:
               artifactName: 'drop_${{ parameters.package_name }}'
               targetPath: '$(Pipeline.Workspace)/esrp-release'
         steps:
-          - task: ESRPRelease@12
+          - task: EsrpRelease@11
             displayName: 'Publish npm package through ESRP'
             inputs:
               ConnectedServiceName: ${{ parameters.esrp_service_connection }}

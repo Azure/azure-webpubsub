@@ -37,8 +37,11 @@ extends:
   template: v2/OneBranch.Official.CrossPlat.yml@templates
   parameters:
     featureFlags:
+      linuxEsrpSigning: true
       WindowsHostVersion:
         Version: 2022
+    release:
+      category: NonAzure
     globalSdl:
       tsa:
         enabled: false
