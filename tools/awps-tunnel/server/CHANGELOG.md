@@ -1,5 +1,9 @@
 # Changelog
 
+## [1.0.0-beta.15] - 2026-08-17
+### Changed
+- Validate the governed OneBranch npm release workflow.
+
 ## [1.0.0-beta.14] - 2026-08-13
 ### Changed
 - Harden local dashboard connection authorization and document secure container usage.
