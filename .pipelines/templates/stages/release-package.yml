@@ -17,6 +17,10 @@ parameters:
   - name: pack_steps
     displayName: 'Steps that build and pack the package. Must run from the repo root and produce a single *.tgz inside package_folder.'
     type: stepList
+  - name: publish_package
+    displayName: 'Whether to execute ESRP publishing and post-publish GitHub updates.'
+    type: boolean
+    default: true
   - name: esrp_service_connection
     displayName: 'Azure Resource Manager service connection used by ESRP Release.'
     type: string
@@ -175,6 +179,7 @@ stages:
         steps:
           - task: EsrpRelease@11
             displayName: 'Publish npm package through ESRP'
+            condition: and(succeeded(), ${{ eq(parameters.publish_package, true) }})
             inputs:
               ConnectedServiceName: ${{ parameters.esrp_service_connection }}
               ClientId: '$(ESRP_CLIENT_ID)'
@@ -199,6 +204,7 @@ stages:
       - ${{ format('Prod_{0}_publish', parameters.package_key) }}
     condition: |
       and(
+        ${{ eq(parameters.publish_package, true) }},
         eq(dependencies.release_check.outputs['check.read.${{ parameters.package_key }}_needsRelease'], 'true'),
         in(dependencies.${{ format('Prod_{0}_publish', parameters.package_key) }}.result, 'Succeeded')
       )
@@ -246,6 +252,7 @@ stages:
       - ${{ format('{0}_post_deploy_tag', parameters.package_key) }}
     condition: |
       and(
+        ${{ eq(parameters.publish_package, true) }},
         eq(dependencies.release_check.outputs['check.read.${{ parameters.package_key }}_needsRelease'], 'true'),
         in(dependencies.${{ format('Prod_{0}_publish', parameters.package_key) }}.result, 'Succeeded'),
         in(dependencies.${{ format('{0}_post_deploy_tag', parameters.package_key) }}.result, 'Succeeded')

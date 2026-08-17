@@ -19,6 +19,10 @@ parameters:
     displayName: 'Release @azure/web-pubsub-tunnel-tool'
     type: boolean
     default: false
+  - name: publish_packages
+    displayName: 'Publish selected packages through ESRP'
+    type: boolean
+    default: false
 variables:
   - group: 'npm-release'
   - name: CDP_DEFINITION_BUILD_COUNT
@@ -173,6 +177,7 @@ extends:
               package_name: web-pubsub-chat-client
               npm_package_name: '@azure/web-pubsub-chat-client'
               package_folder: sdk/webpubsub-chat-client
+              publish_package: ${{ parameters.publish_packages }}
               pack_steps:
                 - task: Bash@3
                   displayName: 'Build and pack chat client'
@@ -192,6 +197,7 @@ extends:
               package_name: webpubsub-socketio-extension
               npm_package_name: '@azure/web-pubsub-socket.io'
               package_folder: sdk/webpubsub-socketio-extension
+              publish_package: ${{ parameters.publish_packages }}
               pack_steps:
                 - task: Bash@3
                   displayName: 'Build and pack socketio extension'
@@ -218,6 +224,7 @@ extends:
               package_name: awps-tunnel
               npm_package_name: '@azure/web-pubsub-tunnel-tool'
               package_folder: tools/awps-tunnel/server
+              publish_package: ${{ parameters.publish_packages }}
               pack_steps:
                 - task: Bash@3
                   displayName: 'Build and pack awps-tunnel'
