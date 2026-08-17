@@ -31,15 +31,15 @@ jobs:
         node-version: ${{ env.NODE_VERSION }}
         cache: 'npm'
     - name: Install dependencies
-      run: npm install -g yarn
+      run: npm install -g yarn --registry=https://packagefeedproxy.microsoft.io/npm/
     - name: Install SocketIO SDK
       id: socketio
       run: |
         pushd sdk/server-proxies
-        yarn
+        yarn install --frozen-lockfile --registry=https://packagefeedproxy.microsoft.io/npm/
         popd
         pushd sdk/webpubsub-socketio-extension
-        yarn
+        yarn install --frozen-lockfile --registry=https://packagefeedproxy.microsoft.io/npm/
         yarn build
         popd
       shell: bash

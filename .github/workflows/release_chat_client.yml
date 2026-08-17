@@ -25,6 +25,6 @@ jobs:
       package_folder: sdk/webpubsub-chat-client
       pack_command: |
         pushd sdk/webpubsub-chat-client
-        yarn
+        yarn install --frozen-lockfile --registry https://packagefeedproxy.microsoft.io/npm/
         npm run pack:publish
         popd

@@ -2,12 +2,17 @@
 // Licensed under the MIT license.
 
 import { AzureSocketIOOptions, AzureSocketIOCredentialOptions, debugModule } from "../common/utils";
-import { WebPubSubTransport } from "./components/web-pubsub-transport";
+import {
+  isWebPubSubTransportRequest,
+  WebPubSubTransport,
+  WebPubSubTransportRequest,
+} from "./components/web-pubsub-transport";
 import { WebPubSubConnectionManager } from "./components/web-pubsub-connection-manager";
 import * as engine from "engine.io";
 import { InprocessServerProxy } from "../serverProxies";
-import { EIO_CONNECTION_ERROR, WEBPUBSUB_TRANSPORT_NAME } from "./components/constants";
+import { EIO_CONNECTION_ERROR } from "./components/constants";
 import { ClientConnectionContext } from "./components/client-connection-context";
+import { IncomingMessage } from "http";
 
 const debug = debugModule("wps-sio-ext:EIO:index");
 debug("load");
@@ -70,6 +75,9 @@ export class WebPubSubEioServer extends engine.Server {
 
   protected override createTransport(transportName: string, req: unknown): engine.Transport {
     debug(`create transport, transportName=${transportName}, force redirect to ${WebPubSubTransport.name}`);
+    if (!isWebPubSubTransportRequest(req)) {
+      throw new Error("Invalid Web PubSub Engine.IO transport request.");
+    }
     return new WebPubSubTransport(req);
   }
 
@@ -88,7 +96,12 @@ export class WebPubSubEioServer extends engine.Server {
   public override upgrades = (_transport: string): Array<string> => [];
 
   public async onConnect(connectionId: string, connectReq: unknown, context: ClientConnectionContext): Promise<void> {
-    await this.handshake(WEBPUBSUB_TRANSPORT_NAME, connectReq, (errorCode: number, errorContext: unknown) => {
+    if (!isWebPubSubTransportRequest(connectReq)) {
+      throw new Error("Invalid Web PubSub Engine.IO handshake request.");
+    }
+    // Engine.IO only reads the HTTP-shaped fields produced by getEioHandshakeRequest.
+    const handshakeRequest = connectReq as WebPubSubTransportRequest & IncomingMessage;
+    await this.handshake("websocket", handshakeRequest, (errorCode: number, errorContext: unknown) => {
       const message =
         errorContext && errorContext["message"] ? errorContext["message"] : EIO_CONNECTION_ERROR[errorCode];
       context.onRefuseEioConnection(message);
@@ -98,16 +111,23 @@ export class WebPubSubEioServer extends engine.Server {
   }
 
   public async onUserEvent(connectionId: string, content: unknown): Promise<void> {
-    const client = this.clients[connectionId];
-    const packets = await client.transport.parser.decodePayload(content);
+    const transport = this.clients[connectionId].transport;
+    if (!(transport instanceof WebPubSubTransport)) {
+      throw new Error("Expected a Web PubSub Engine.IO transport.");
+    }
+    const packets = transport.decodePayload(content);
 
     for (const packet of packets) {
       // Reference: https://github.com/socketio/engine.io/blob/6.5.3/lib/socket.ts#L238
-      (client.transport as engine.Transport).emit("packet", packet);
+      transport.emit("packet", packet);
     }
   }
 
   public async onDisconnected(connectionId: string): Promise<void> {
-    this.clients[connectionId].transport.onClose();
+    const transport = this.clients[connectionId].transport;
+    if (!(transport instanceof WebPubSubTransport)) {
+      throw new Error("Expected a Web PubSub Engine.IO transport.");
+    }
+    transport.notifyClose();
   }
 }

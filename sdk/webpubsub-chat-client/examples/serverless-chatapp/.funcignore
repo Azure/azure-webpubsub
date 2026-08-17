@@ -1,0 +1,5 @@
+.git*
+local.settings.json
+test
+src/client
+node_modules/.cache

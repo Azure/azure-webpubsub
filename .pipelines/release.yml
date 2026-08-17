@@ -71,6 +71,23 @@ extends:
                     inputs:
                       version: '20.x'
                   - task: Bash@3
+                    displayName: 'Create Azure Artifacts npm configuration'
+                    inputs:
+                      targetType: inline
+                      workingDirectory: '$(Pipeline.Workspace)/s/self'
+                      script: |
+                        set -euo pipefail
+                        feed_registry='$(NPM_FEED_REGISTRY)'
+                        if [[ -z "$feed_registry" || "$feed_registry" == '$('* ]]; then
+                          echo 'ERROR: NPM_FEED_REGISTRY is not configured.'
+                          exit 1
+                        fi
+                        printf 'registry=%s\nalways-auth=true\n' "$feed_registry" > .npmrc
+                  - task: npmAuthenticate@0
+                    displayName: 'Authenticate to npm feed'
+                    inputs:
+                      workingFile: '$(Pipeline.Workspace)/s/self/.npmrc'
+                  - task: Bash@3
                     name: read
                     displayName: 'Check selected packages'
                     inputs:
@@ -78,6 +95,11 @@ extends:
                       workingDirectory: '$(Pipeline.Workspace)/s/self'
                       script: |
                         set -euo pipefail
+
+                        if [[ "$BUILD_SOURCEBRANCH" != 'refs/heads/main' ]]; then
+                          echo "ERROR: releases must run from main, not $BUILD_SOURCEBRANCH"
+                          exit 1
+                        fi
 
                         packages=()
                         if [[ "${RELEASE_CHAT_CLIENT,,}" == 'true' ]]; then
@@ -96,6 +118,7 @@ extends:
                             echo "ERROR: package files not found in $package_folder"
                             exit 1
                           fi
+                          npm_package_name=$(node -p "require('./$package_folder/package.json').name")
                           current_version=$(node -p "require('./$package_folder/package.json').version")
                           if [[ ! "$current_version" =~ ^[0-9]+\.[0-9]+\.[0-9]+(-beta\.[0-9]+)?$ ]]; then
                             echo "ERROR: unsupported release version for $package_name: $current_version"
@@ -111,8 +134,27 @@ extends:
 
                           changelog_pattern="^##[[:space:]]+\[?${current_version}\]?[[:space:]]+-[[:space:]]+[0-9]{4}-[0-9]{1,2}-[0-9]{1,2}"
                           tag="release/${package_name}/v${current_version}"
-                          if grep -Eq "$changelog_pattern" "$package_folder/CHANGELOG.md" && \
-                             ! git rev-parse --verify "refs/tags/${tag}" >/dev/null 2>&1; then
+                          if git rev-parse --verify "refs/tags/${tag}" >/dev/null 2>&1; then
+                            echo "ERROR: release tag already exists: $tag"
+                            exit 1
+                          fi
+
+                          set +e
+                          registry_output=$(npm view "${npm_package_name}@${current_version}" version --json 2>&1)
+                          registry_status=$?
+                          set -e
+                          if [[ $registry_status -eq 0 ]]; then
+                            echo "ERROR: npm package version already exists: ${npm_package_name}@${current_version}"
+                            exit 1
+                          elif grep -Eq 'E404|404 Not Found|is not in this registry' <<< "$registry_output"; then
+                            echo "Package version is available: ${npm_package_name}@${current_version}"
+                          else
+                            echo "$registry_output"
+                            echo "ERROR: unable to query ${npm_package_name}@${current_version}"
+                            exit $registry_status
+                          fi
+
+                          if grep -Eq "$changelog_pattern" "$package_folder/CHANGELOG.md"; then
                             needs_release=true
                           else
                             needs_release=false
