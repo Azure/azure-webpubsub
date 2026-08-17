@@ -47,5 +47,13 @@
     "vuetify-loader": "^1.9.2",
     "webpack": "^5.109.2",
     "webpack-remove-debug": "^0.1.0"
+  },
+  "resolutions": {
+    "follow-redirects": "1.16.0",
+    "on-headers": "1.1.0",
+    "postcss": "8.5.25",
+    "serialize-javascript": "7.0.5",
+    "uuid": "11.1.1",
+    "webpack-dev-server": "5.2.6"
   }
 }
