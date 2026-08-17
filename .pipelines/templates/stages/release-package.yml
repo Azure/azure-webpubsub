@@ -46,6 +46,7 @@ stages:
     variables:
       releaseVersion: $[ stageDependencies.release_check.check.outputs['read.${{ parameters.package_key }}_releaseVersion'] ]
       productState: $[ stageDependencies.release_check.check.outputs['read.${{ parameters.package_key }}_productState'] ]
+      ob_release_environment: Production
     jobs:
       - job: build
         displayName: 'Build + pack + publish'
@@ -150,15 +151,13 @@ stages:
         dependsOn: build
         condition: succeeded()
         pool:
-          type: linux
+          type: release
         variables:
           releaseVersion: $[ stageDependencies.release_check.check.outputs['read.${{ parameters.package_key }}_releaseVersion'] ]
           ob_outputDirectory: '$(Build.ArtifactStagingDirectory)'
           ob_sdl_codeSignValidation_enabled: false
           ob_sdl_binskim_enabled: false
         templateContext:
-          type: releaseJob
-          isProduction: true
           inputs:
             - input: pipelineArtifact
               artifactName: 'drop_${{ parameters.package_name }}'
