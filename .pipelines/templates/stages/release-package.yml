@@ -321,7 +321,7 @@ stages:
                 git commit -m "Update ${PACKAGE_NAME} package.json to next beta version ${new_version}"
                 git push origin "$branch"
 
-                auth_header=$(git config --get-urlmatch http.extraheader "https://github.com/" || true)
+                auth_header=$(git config --get-urlmatch http.extraheader "https://github.com/${{ parameters.github_repo }}" || true)
                 if [ -z "$auth_header" ]; then
                   echo "ERROR: no extraheader found in .git/config. Is checkout.persistCredentials true?"
                   exit 1
