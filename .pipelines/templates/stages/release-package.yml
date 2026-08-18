@@ -36,7 +36,7 @@ parameters:
   - name: node_version
     displayName: 'Node.js version used for the build.'
     type: string
-    default: '20.x'
+    default: '22.x'
 
 stages:
   - stage: ${{ format('{0}_build', parameters.package_key) }}

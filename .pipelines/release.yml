@@ -71,9 +71,9 @@ extends:
                     fetchTags: true
                     persistCredentials: false
                   - task: UseNode@1
-                    displayName: 'Use Node 20.x'
+                    displayName: 'Use Node 22.x'
                     inputs:
-                      version: '20.x'
+                      version: '22.x'
                   - task: Bash@3
                     displayName: 'Create Azure Artifacts npm configuration'
                     inputs:
