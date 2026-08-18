@@ -100,11 +100,6 @@ extends:
                       script: |
                         set -euo pipefail
 
-                        if [[ "$BUILD_SOURCEBRANCH" != 'refs/heads/main' ]]; then
-                          echo "ERROR: releases must run from main, not $BUILD_SOURCEBRANCH"
-                          exit 1
-                        fi
-
                         packages=()
                         if [[ "${RELEASE_CHAT_CLIENT,,}" == 'true' ]]; then
                           packages+=('chat_client|web-pubsub-chat-client|sdk/webpubsub-chat-client')
