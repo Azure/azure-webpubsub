@@ -61,7 +61,6 @@ stages:
           ob_sdl_binskim_enabled: false
         steps:
           - checkout: self
-            path: s/self
             fetchDepth: 0
             persistCredentials: false
           - task: UseNode@1
@@ -72,7 +71,7 @@ stages:
             displayName: 'Create Azure Artifacts npm configuration'
             inputs:
               targetType: inline
-              workingDirectory: '$(Pipeline.Workspace)/s/self'
+              workingDirectory: '$(Build.SourcesDirectory)'
               script: |
                 set -euo pipefail
                 feed_registry='${{ parameters.npm_feed_registry }}'
@@ -84,12 +83,12 @@ stages:
           - task: npmAuthenticate@0
             displayName: 'Authenticate to npm feed'
             inputs:
-              workingFile: '$(Pipeline.Workspace)/s/self/.npmrc'
+              workingFile: '$(Build.SourcesDirectory)/.npmrc'
           - task: Bash@3
             displayName: 'Install Yarn through Azure Artifacts'
             inputs:
               targetType: inline
-              workingDirectory: '$(Pipeline.Workspace)/s/self'
+              workingDirectory: '$(Build.SourcesDirectory)'
               script: |
                 set -euo pipefail
                 feed_registry='${{ parameters.npm_feed_registry }}'
@@ -111,7 +110,7 @@ stages:
             displayName: 'Remove stale package tarballs'
             inputs:
               targetType: inline
-              workingDirectory: '$(Pipeline.Workspace)/s/self'
+              workingDirectory: '$(Build.SourcesDirectory)'
               script: |
                 set -euo pipefail
                 rm -f '${{ parameters.package_folder }}'/*.tgz
@@ -122,7 +121,7 @@ stages:
             displayName: 'Locate produced tarball'
             inputs:
               targetType: inline
-              workingDirectory: '$(Pipeline.Workspace)/s/self'
+              workingDirectory: '$(Build.SourcesDirectory)'
               script: |
                 set -euo pipefail
                 PACKAGE_FOLDER='${{ parameters.package_folder }}'
@@ -221,7 +220,6 @@ stages:
           ob_sdl_binskim_enabled: false
         steps:
           - checkout: self
-            path: s/self
             fetchDepth: 1
             fetchTags: true
             persistCredentials: true
@@ -229,7 +227,7 @@ stages:
             displayName: 'Create and push release tag'
             inputs:
               targetType: inline
-              workingDirectory: '$(Pipeline.Workspace)/s/self'
+              workingDirectory: '$(Build.SourcesDirectory)'
               script: |
                 set -euo pipefail
                 tag="release/${{ parameters.package_name }}/v$(releaseVersion)"
@@ -270,7 +268,6 @@ stages:
           ob_sdl_binskim_enabled: false
         steps:
           - checkout: self
-            path: s/self
             fetchDepth: 1
             persistCredentials: true
           - task: UseNode@1
@@ -281,7 +278,7 @@ stages:
             displayName: 'Bump package.json and open GitHub PR'
             inputs:
               targetType: inline
-              workingDirectory: '$(Pipeline.Workspace)/s/self'
+              workingDirectory: '$(Build.SourcesDirectory)'
               script: |
                 set -euo pipefail
 
