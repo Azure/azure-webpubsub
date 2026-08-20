@@ -132,25 +132,29 @@ extends:
                           fi
 
                           changelog_pattern="^##[[:space:]]+\[?${current_version}\]?[[:space:]]+-[[:space:]]+[0-9]{4}-[0-9]{1,2}-[0-9]{1,2}"
-                          tag="release/${package_name}/v${current_version}"
-                          if git rev-parse --verify "refs/tags/${tag}" >/dev/null 2>&1; then
-                            echo "ERROR: release tag already exists: $tag"
-                            exit 1
-                          fi
+                          if [[ "${PUBLISH_PACKAGES,,}" == 'true' ]]; then
+                            tag="release/${package_name}/v${current_version}"
+                            if git rev-parse --verify "refs/tags/${tag}" >/dev/null 2>&1; then
+                              echo "ERROR: release tag already exists: $tag"
+                              exit 1
+                            fi
 
-                          set +e
-                          registry_output=$(npm view "${npm_package_name}@${current_version}" version --json 2>&1)
-                          registry_status=$?
-                          set -e
-                          if [[ $registry_status -eq 0 ]]; then
-                            echo "ERROR: npm package version already exists: ${npm_package_name}@${current_version}"
-                            exit 1
-                          elif grep -Eq 'E404|404 Not Found|is not in this registry' <<< "$registry_output"; then
-                            echo "Package version is available: ${npm_package_name}@${current_version}"
+                            set +e
+                            registry_output=$(npm view "${npm_package_name}@${current_version}" version --json 2>&1)
+                            registry_status=$?
+                            set -e
+                            if [[ $registry_status -eq 0 ]]; then
+                              echo "ERROR: npm package version already exists: ${npm_package_name}@${current_version}"
+                              exit 1
+                            elif grep -Eq 'E404|404 Not Found|is not in this registry' <<< "$registry_output"; then
+                              echo "Package version is available: ${npm_package_name}@${current_version}"
+                            else
+                              echo "$registry_output"
+                              echo "ERROR: unable to query ${npm_package_name}@${current_version}"
+                              exit $registry_status
+                            fi
                           else
-                            echo "$registry_output"
-                            echo "ERROR: unable to query ${npm_package_name}@${current_version}"
-                            exit $registry_status
+                            echo "Validation mode: skipping release tag and npm availability checks."
                           fi
 
                           if grep -Eq "$changelog_pattern" "$package_folder/CHANGELOG.md"; then
@@ -165,6 +169,7 @@ extends:
                       RELEASE_CHAT_CLIENT: ${{ parameters.release_chat_client }}
                       RELEASE_SOCKETIO: ${{ parameters.release_socketio }}
                       RELEASE_TUNNEL: ${{ parameters.release_tunnel }}
+                      PUBLISH_PACKAGES: ${{ parameters.publish_packages }}
       - ${{ if parameters.release_chat_client }}:
           - template: templates/stages/release-package.yml
             parameters:
