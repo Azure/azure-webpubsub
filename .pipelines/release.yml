@@ -66,6 +66,7 @@ extends:
                   ob_sdl_binskim_enabled: false
                 steps:
                   - checkout: self
+                    path: s/azure-webpubsub
                     fetchDepth: 0
                     fetchTags: true
                     persistCredentials: false
@@ -77,7 +78,7 @@ extends:
                     displayName: 'Create Azure Artifacts npm configuration'
                     inputs:
                       targetType: inline
-                      workingDirectory: '$(Build.SourcesDirectory)'
+                      workingDirectory: '$(Pipeline.Workspace)/s/azure-webpubsub'
                       script: |
                         set -euo pipefail
                         feed_registry='$(NPM_FEED_REGISTRY)'
@@ -89,13 +90,13 @@ extends:
                   - task: npmAuthenticate@0
                     displayName: 'Authenticate to npm feed'
                     inputs:
-                      workingFile: '$(Build.SourcesDirectory)/.npmrc'
+                      workingFile: '$(Pipeline.Workspace)/s/azure-webpubsub/.npmrc'
                   - task: Bash@3
                     name: read
                     displayName: 'Check selected packages'
                     inputs:
                       targetType: inline
-                      workingDirectory: '$(Build.SourcesDirectory)'
+                      workingDirectory: '$(Pipeline.Workspace)/s/azure-webpubsub'
                       script: |
                         set -euo pipefail
 
@@ -177,7 +178,7 @@ extends:
                   displayName: 'Build and pack chat client'
                   inputs:
                     targetType: inline
-                    workingDirectory: '$(Build.SourcesDirectory)'
+                    workingDirectory: '$(Pipeline.Workspace)/s/azure-webpubsub'
                     script: |
                       set -euo pipefail
                       pushd sdk/webpubsub-chat-client
@@ -197,7 +198,7 @@ extends:
                   displayName: 'Build and pack socketio extension'
                   inputs:
                     targetType: inline
-                    workingDirectory: '$(Build.SourcesDirectory)'
+                    workingDirectory: '$(Pipeline.Workspace)/s/azure-webpubsub'
                     script: |
                       set -euo pipefail
                       pushd sdk/server-proxies
@@ -224,7 +225,7 @@ extends:
                   displayName: 'Build and pack awps-tunnel'
                   inputs:
                     targetType: inline
-                    workingDirectory: '$(Build.SourcesDirectory)'
+                    workingDirectory: '$(Pipeline.Workspace)/s/azure-webpubsub'
                     script: |
                       set -euo pipefail
                       pushd sdk/server-proxies
