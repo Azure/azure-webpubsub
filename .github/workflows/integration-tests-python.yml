@@ -30,7 +30,9 @@ jobs:
       WEB_PUBSUB_CONNECTION_STRING: ${{ github.event.inputs.web_pubsub_connection_string || secrets.WEB_PUBSUB_CONNECTION_STRING }}
     strategy:
       matrix:
-        python-version: [3.9]
+        # pytest 9 requires Python 3.10+, and 3.9 is end-of-life.
+        # Keep this in sync with chat-demo-tests.yml.
+        python-version: ['3.11']
     steps:
     - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
     - name: Set up Python ${{ matrix.python-version }}
