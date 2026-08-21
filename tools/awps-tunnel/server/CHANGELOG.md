@@ -1,5 +1,11 @@
 # Changelog
 
+## [1.0.0-beta.15] - 2026-08-21
+
+### Fixed
+
+- Prevent idle tunnel connections from reconnecting when using `@azure/web-pubsub-client` 1.0.4 or later.
+
 ## [1.0.0-beta.14] - 2026-08-13
 ### Changed
 - Harden local dashboard connection authorization and document secure container usage.
