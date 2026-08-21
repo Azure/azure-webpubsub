@@ -1,6 +1,6 @@
 {
   "name": "@azure/web-pubsub-socket.io",
-  "version": "1.2.2",
+  "version": "2.0.0",
   "socketio-version": "4.6.1",
   "description": "Enable Socket.IO server support Azure Web PubSub Service",
   "main": "./dist/index.js",
@@ -31,7 +31,7 @@
     "@azure/core-util": "1.11.0",
     "@azure/logger": "1.1.4",
     "@azure/web-pubsub": "1.2.0",
-    "@azure/web-pubsub-client": "1.0.2",
+    "@azure/web-pubsub-client": "1.1.0",
     "@azure/web-pubsub-express": "1.0.6",
     "@msgpack/msgpack": "^3.0.0-beta2",
     "async-mutex": "^0.4.0",
@@ -110,7 +110,7 @@
     "realtime-messaging"
   ],
   "engines": {
-    "node": ">=18.0.0"
+    "node": ">=22.0.0"
   },
   "tsd": {
     "directory": "test"
