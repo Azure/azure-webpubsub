@@ -8,6 +8,11 @@ import { Guid, PromiseCompletionSource } from "../utils";
 import { AbortSignalLike } from "@azure/abort-controller";
 import jwt from "jsonwebtoken";
 
+type TunnelClientOptions = WebPubSubClientOptions & {
+  keepAliveIntervalInMs: number;
+  keepAliveTimeoutInMs: number;
+};
+
 export class WebPubSubTunnelClient {
   private readonly _emitter: EventEmitter = new EventEmitter();
   private _client: WebPubSubClient;
@@ -23,9 +28,12 @@ export class WebPubSubTunnelClient {
     public readonly userId: string,
     public readonly target?: string,
   ) {
-    const options: WebPubSubClientOptions = {
+    const options: TunnelClientOptions = {
       protocol: new TunnelServerProtocol(),
       autoReconnect: true,
+      // Tunnel payloads are not Web PubSub protocol frames, so protocol-level ping/pong is unsupported.
+      keepAliveIntervalInMs: 0,
+      keepAliveTimeoutInMs: 0,
     };
     const client = (this._client = new WebPubSubClient(
       {
