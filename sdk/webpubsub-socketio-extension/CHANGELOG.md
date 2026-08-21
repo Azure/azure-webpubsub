@@ -1,7 +1,11 @@
 
 # Changelog
 
-## [1.2.1-beta.1]
+## [1.2.2] - 2026-08-21
+
+### Fixed
+
+- Prevent idle tunnel connections from reconnecting when using `@azure/web-pubsub-client` 1.0.4 or later [#1020](https://github.com/Azure/azure-webpubsub/issues/1020)
 
 ## [1.2.1] - 2026-04-22
 
