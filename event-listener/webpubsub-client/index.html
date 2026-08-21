@@ -1,0 +1,387 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+    <meta name="description" content="A simple WebSocket Client Demo using Azure Web PubSub service">
+
+    <title>A Simple Azure Web PubSub Client</title>
+    <link rel="icon" type="image/svg+xml" sizes="any" href="./images/favicon.svg">
+
+    <!-- Bootstrap core CSS -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@4.1.3/dist/css/bootstrap.min.css">
+    <!-- Google Tag Manager -->
+    <script>(function (w, d, s, l, i) {
+            w[l] = w[l] || []; w[l].push({
+                'gtm.start':
+                    new Date().getTime(), event: 'gtm.js'
+            }); var f = d.getElementsByTagName(s)[0],
+                j = d.createElement(s), dl = l != 'dataLayer' ? '&l=' + l : ''; j.async = true; j.src =
+                    'https://www.googletagmanager.com/gtm.js?id=' + i + dl; f.parentNode.insertBefore(j, f);
+        })(window, document, 'script', 'dataLayer', 'GTM-N67NT6N');</script>
+    <!-- End Google Tag Manager -->
+    <!-- Global site tag (gtag.js) - Google Analytics -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-9DVQRCY9L7"></script>
+    <script>
+        window.dataLayer = window.dataLayer || [];
+        function gtag() {
+            // dataLayer.push(arguments);
+        }
+        gtag('js', new Date());
+
+        gtag('config', 'G-9DVQRCY9L7');
+    </script>
+    <!-- Custom styles for this template -->
+    <style>
+        html,
+        body,
+        main>div {
+            height: 100%;
+        }
+
+        .chat {
+            height: calc(100% - 240px)
+        }
+
+        body {
+            font-size: .875rem;
+        }
+
+        /* Login */
+        .login {
+            display: flex;
+            align-items: center;
+            flex-direction: column;
+            justify-content: center;
+            width: 100%;
+            min-height: 100%;
+            padding: 20px;
+        }
+
+        /* Navbar */
+        .navbar-brand {
+            padding-top: .75rem;
+            padding-bottom: .75rem;
+            font-size: 1rem;
+            background-color: rgba(0, 0, 0, .25);
+            box-shadow: inset -1px 0 0 rgba(0, 0, 0, .25);
+        }
+
+        .navbar .form-control {
+            padding: .75rem 1rem;
+            border-width: 0;
+            border-radius: 0;
+        }
+
+        .form-control-dark {
+            color: #fff;
+            background-color: rgba(255, 255, 255, .1);
+            border-color: rgba(255, 255, 255, .1);
+        }
+
+        .form-control-dark:focus {
+            border-color: transparent;
+            box-shadow: 0 0 0 3px rgba(255, 25zd5, 255, .25);
+        }
+    </style>
+</head>
+
+<body>
+    <!-- Google Tag Manager (noscript) -->
+    <noscript><iframe src="https://www.googletagmanager.com/ns.html?id=GTM-N67NT6N" height="0" width="0"
+            style="display:none;visibility:hidden"></iframe></noscript>
+    <!-- End Google Tag Manager (noscript) -->
+    <div id="app" class="container-fluid h-100 d-flex flex-column flex-nowrap p-0">
+        <nav class="navbar navbar-dark bg-dark flex-md-nowrap p-0 shadow">
+            <a class="navbar-brand col-sm-3 col-md-2 mr-0" href="#">WebSocket Client</a>
+            <div class="m-3">
+                <span class="text-light">Welcome <a href="#"></a></span>
+                <template v-if="client.connected">
+                    <svg width="16" height="16">
+                        <circle cx="8" cy="8" r="8" fill="#168c46" />
+                    </svg>
+                </template>
+                <template v-else>
+                    <svg width="16" height="16">
+                        <circle cx="8" cy="8" r="8" fill="#a12323" />
+                    </svg>
+                </template>
+            </div>
+        </nav>
+
+        <main role="main" class="container">
+            <div class="m-2">
+                <span>Open your Web PubSub resource in portal, go to <b>Keys</b> tab, and get a temp <b>Client Access
+                        Url</b>:
+                </span>
+
+                <form v-on:submit.prevent="connect(client)" class="py-2">
+                    <div class="input-group">
+                        <input type="text" class="form-control" v-model="client.endpoint" id="endpointInput"
+                            aria-describedby="endpointHelp" placeholder="Paste your Client Access Url here">
+                        <button type="submit" class="btn btn-primary" :disabled="!client.endpoint"
+                            style="width: 100px;">Connect</button>
+                    </div>
+                </form>
+                <div v-show="client.connecting"
+                    style="background-color: black; color: blanchedalmond; height: 150px; overflow: auto;">
+                    <div v-for="l in client.logs" :key="l.id">
+                        [{{l.time}}] {{ l.log }}
+                    </div>
+                </div>
+                <hr>
+                <div v-show="!client.connected">
+                    <h4>Hints</h4>
+                    <p>Create your instance from the <a href="https://portal.azure.com/" target="_blank">Azure
+                            portal</a>, and go the <strong>Keys</strong> tab of the instance from the portal.
+                    </p>
+                    <p><strong>Keys</strong> tab contains a
+                        <strong>Client URL Generator</strong> for quick test purpose, and in this quick start
+                        demo
+                        we
+                        will use the temp Client URL generated from this generator. In
+                        real-world applications, SDKs are provided to generate the client URLs from
+                        <strong>Connection
+                            String</strong> provided in this <b>Keys</b> tab.
+                    </p>
+
+                    <p><img src="images/portal_client_url.png" alt="Client URL"></p>
+
+                    <ul>
+                        <li><strong>Connection</strong>: connection stands for a WebSocket client connection.
+                        </li>
+                        <li><strong>Hub</strong>: hub is the logical isolation for connections. Connections
+                            always
+                            connect to a hub,
+                            connections can only send to those within the same hub.</li>
+                        <li><strong>User ID</strong>: A connection can belong to a user when it is auth-ed.</li>
+                        <li><strong>Token Lifetime</strong>: Specifies the lifetime of this client URL’s token.
+                            When
+                            the
+                            token expires,
+                            you get 401 Unauthorized when connecting to the service with this URL.</li>
+                        <li><strong>Roles</strong>: Specifies the roles for the connection. It can be used when
+                            the
+                            connection connects
+                            with <code class="language-plaintext highlighter-rouge">json.webpubsub.azure.v1</code>
+                            subprotocol that empowers the client to join/leave/send to groups.
+                        </li>
+                    </ul>
+                </div>
+                <div v-show="client.connected" class="my-4">
+                    <form v-on:submit.prevent="publish(client)" class="my-2">
+                        <div class="form-group row">
+                            <div class="col-sm-2 ">
+                                <label for="eventName">Event Name</label>
+                            </div>
+                            <div class="col-sm-10">
+                                <input type="text" class="form-control" v-model="client.eventName" id="eventName"
+                                    aria-describedby="event name">
+                            </div>
+                        </div>
+                        <div class="form-group row">
+                            <div class="col-sm-2 ">
+                                <label for="body">Body</label>
+                            </div>
+                            <div class="col-sm-10">
+                                <input type="text" v-model="client.newMessage" class="form-control" id="body"
+                                    placeholder="Type messages to publish">
+                            </div>
+                        </div>
+                        <button type="submit" class="btn btn-success" style="width:60px"
+                            :disabled="!client.connected || !client.newMessage">Send</button>
+                    </form>
+                    <hr>
+                    <b>Sent Events:</b>
+                    <div class="bg-light chat" v-bind:scrollTop="$attrs.scrollHeight">
+                        <div class="m-2" v-for=" message in client.chat.messages" v-bind:key="message.id">
+                            <div class="col-md row" style="display: inline-block;">
+                                {{message.eventName}}:{{message.content}}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+    </div>
+
+    </div>
+    </main>
+    </div>
+    <script src="https://code.jquery.com/jquery-3.3.1.slim.min.js"
+        integrity="sha384-q8i/X+965DzO0rT7abK41JStQIAqVgRVzpbzo5smXKp4YfRvH+8abtTE1Pi6jizo"
+        crossorigin="anonymous"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.14.7/umd/popper.min.js"
+        integrity="sha384-UO2eT0CpHqdSJQ6hJty5KVphtPhzWj9WO1clHTMGa3JDZwrnQq4sF86dIHNDz0W1"
+        crossorigin="anonymous"></script>
+    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/js/bootstrap.min.js"
+        integrity="sha384-JjSmVgyd0p3pXB1rRibZUAYoIIy6OrQ6VrjIEaFf/nJGzIxFDsf4x0xIM+B07jRM"
+        crossorigin="anonymous"></script>
+
+    <script src="https://cdn.jsdelivr.net/npm/vue@2.5.17/dist/vue.min.js"></script>
+    <script>
+        const data = {
+            client: {
+                endpoint: '',
+                connection: null,
+                id: 1,
+                eventName: "event1",
+                newMessage: 'Hello World',
+                chat: { messages: [] },
+                connecting: false,
+                acks: [],
+                logs: [],
+                userId: null,
+                connectionId: null,
+                ackId: 0,
+            },
+        };
+
+        function addItem(item, owner) {
+            item.id = owner.length;
+            owner.unshift(item);
+        }
+
+        function connect(client, endpoint, onConnected, onMessage) {
+            client.connecting = true;
+            try {
+                var markedEndpoint = endpoint.indexOf('?') > -1 ? endpoint + "&awps-eventlistener-demo=true" : endpoint + "?awps-eventlistener-demo=true"
+                var websocket = client.connection = new WebSocket(markedEndpoint, 'json.webpubsub.azure.v1');
+                gtag('event', 'user_activity', {
+                    method: 'connect'
+                });
+                websocket.onopen = e => {
+                    addItem({
+                        time: new Date().toISOString(),
+                        log: `Client WebSocket opened.`,
+                    }, client.logs);
+                    if (onConnected) onConnected(client);
+                    var ep_endpoint = new URL(endpoint.indexOf('?') > -1 ? endpoint.substring(0, endpoint.indexOf('?')) : endpoint);
+                    gtag('event', 'user_activity', {
+                        method: 'connected',
+                        endpoint: ep_endpoint.host
+                    });
+                };
+                websocket.onclose = e => {
+                    this.connected = false;
+                    gtag('event', 'exception', {
+                        description: `Client WebSocket closed. Type: ${e.type}, code: ${e.code}, reason: ${e.reason}, wasClean: ${e.wasClean}.`,
+                        fatal: true
+                    });
+                    addItem({
+                        time: new Date().toISOString(),
+                        log: `Client WebSocket closed. Type: ${e.type}, code: ${e.code}, reason: ${e.reason}, wasClean: ${e.wasClean}.`,
+                    }, client.logs);
+                };
+                websocket.onmessage = e => {
+                    if (onMessage) onMessage(client, e);
+                }
+            } catch (err) {
+                gtag('event', 'exception', {
+                    description: err,
+                    fatal: true
+                });
+                addItem({
+                    time: new Date().toISOString(),
+                    log: `Error: ${err}`,
+                }, client.logs);
+            }
+        }
+
+        function addAckLog(ack, client) {
+            addItem({
+                time: ack.time,
+                log: `${ack.log}(ackId=${ack.ackId}) ${ack.status}`,
+            }, client.logs);
+        }
+
+        function addAck(ack, client) {
+            addItem(ack, client.acks);
+            addAckLog(ack, client);
+        }
+
+        function ack(toAck, ackId, status) {
+            var index = toAck.findIndex(i => i.ackId === ackId);
+            if (index > -1) {
+                var item = toAck[index];
+                toAck.splice(index, 1);
+                item.status = status.success ? "succeeded." : "error: " + status.error.name;
+                return item;
+            }
+            return undefined;
+        }
+
+        const app = new Vue({
+            el: '#app',
+            data: data,
+            methods: {
+                publish: function (client) {
+                    const ackId = ++client.ackId;
+                    client.connection.send(JSON.stringify(
+                        {
+                            type: "event",
+                            event: client.eventName,
+                            data: client.newMessage,
+                            ackId: ackId // ackId is optional, use ackId to make sure this action is executed
+                        }
+                    ));
+                    gtag('event', 'user_activity', {
+                        method: 'event'
+                    });
+                    addAck({
+                        time: new Date().toISOString(),
+                        ackId: ackId,
+                        log: `Sending message`,
+                        status: "requested",
+                    }, client);
+                    addItem({ eventName: client.eventName, content: client.newMessage }, client.chat.messages)
+                },
+                connect: function (client) {
+                    // close the previous connection if any and start a new connection
+                    if (client.connection) client.connection.close();
+                    connect(client, client.endpoint, null,
+                        (client, msg) => {
+                            let response = JSON.parse(msg.data);
+                            if (response.type === "system") {
+                                if (response.event === "connected") {
+                                    client.userId = response.userId;
+                                    client.connectionId = response.connectionId;
+                                    client.connected = true;
+                                    addItem({
+                                        time: new Date().toISOString(),
+                                        log: `${response.userId || ''}:${response.connectionId} connected.`,
+                                    }, client.logs);
+                                }
+                                else if (response.event === "disconnected")
+
+                                    addItem({
+                                        time: new Date().toISOString(),
+                                        log: `Disconnected. ${response.message}`,
+                                    }, client.logs);
+                            }
+                            else if (response.type === "ack") {
+                                var toAck = ack(client.acks, response.ackId, response)
+                                if (toAck) {
+                                    addAckLog(toAck, client);
+                                }
+
+                                if (!response.success) {
+                                    addItem({
+                                        time: new Date().toISOString(),
+                                        log: `Error: ${response.error.message}`,
+                                    }, client.logs);
+                                }
+                            }
+                            else if (response.type === "message") {
+                                let content = response.data;
+                                addItem({ from: `${response.group}`, content: content }, client.chat.messages);
+                            }
+                        });
+                }
+            }
+        });
+    </script>
+</body>
+
+</html>
