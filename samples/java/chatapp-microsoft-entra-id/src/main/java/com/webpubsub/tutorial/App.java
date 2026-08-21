@@ -117,46 +117,47 @@ public class App implements CommandLineRunner {
                 .buildClient();
 
         // start a server
-        Javalin app = Javalin.create(config -> {
-            config.addStaticFiles("public");
-        }).start(8080);
+        // Since Javalin 7 all routes are registered upfront, inside Javalin.create
+        Javalin.create(config -> {
+            config.staticFiles.add("public");
 
-        // Handle the negotiate request and return the token to the client
-        app.get("/negotiate", ctx -> {
-            String id = ctx.queryParam("id");
-            if (id == null) {
-                ctx.status(400);
-                ctx.result("missing user id");
+            // Handle the negotiate request and return the token to the client
+            config.routes.get("/negotiate", ctx -> {
+                String id = ctx.queryParam("id");
+                if (id == null) {
+                    ctx.status(400);
+                    ctx.result("missing user id");
+                    return;
+                }
+                GetClientAccessTokenOptions option = new GetClientAccessTokenOptions();
+                option.setUserId(id);
+                WebPubSubClientAccessToken token = service.getClientAccessToken(option);
+
+                ctx.result(token.getUrl());
                 return;
-            }
-            GetClientAccessTokenOptions option = new GetClientAccessTokenOptions();
-            option.setUserId(id);
-            WebPubSubClientAccessToken token = service.getClientAccessToken(option);
+            });
 
-            ctx.result(token.getUrl());
-            return;
-        });
+            // validation:
+            // https://azure.github.io/azure-webpubsub/references/protocol-cloudevents#validation
+            config.routes.options("/eventhandler", ctx -> {
+                ctx.header("WebHook-Allowed-Origin", "*");
+            });
 
-        // validation:
-        // https://azure.github.io/azure-webpubsub/references/protocol-cloudevents#validation
-        app.options("/eventhandler", ctx -> {
-            ctx.header("WebHook-Allowed-Origin", "*");
-        });
-
-        // handle events:
-        // https://azure.github.io/azure-webpubsub/references/protocol-cloudevents#events
-        app.post("/eventhandler", ctx -> {
-            String event = ctx.header("ce-type");
-            if ("azure.webpubsub.sys.connected".equals(event)) {
-                String id = ctx.header("ce-userId");
-                service.sendToAll(String.format("[SYSTEM] %s joined", id), WebPubSubContentType.TEXT_PLAIN);
-            } else if ("azure.webpubsub.user.message".equals(event)) {
-                String id = ctx.header("ce-userId");
-                String message = ctx.body();
-                service.sendToAll(String.format("[%s] %s", id, message), WebPubSubContentType.TEXT_PLAIN);
-            }
-            ctx.status(200);
-        });
+            // handle events:
+            // https://azure.github.io/azure-webpubsub/references/protocol-cloudevents#events
+            config.routes.post("/eventhandler", ctx -> {
+                String event = ctx.header("ce-type");
+                if ("azure.webpubsub.sys.connected".equals(event)) {
+                    String id = ctx.header("ce-userId");
+                    service.sendToAll(String.format("[SYSTEM] %s joined", id), WebPubSubContentType.TEXT_PLAIN);
+                } else if ("azure.webpubsub.user.message".equals(event)) {
+                    String id = ctx.header("ce-userId");
+                    String message = ctx.body();
+                    service.sendToAll(String.format("[%s] %s", id, message), WebPubSubContentType.TEXT_PLAIN);
+                }
+                ctx.status(200);
+            });
+        }).start(8080);
     }
 
     public static void main(String[] args) {
