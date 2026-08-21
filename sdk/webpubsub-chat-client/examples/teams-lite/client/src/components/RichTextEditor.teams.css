@@ -1,0 +1,180 @@
+/* Teams-like styling for chat input editor */
+.rich-text-editor {
+  background: #fafbfc;
+  border-radius: 8px;
+  border: none;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.1), 0 1px 2px rgba(0, 0, 0, 0.06);
+  width: 100%;
+  max-width: 100%;
+  display: flex;
+  flex-direction: column;
+  overflow: visible;
+  transition: box-shadow 0.15s ease;
+  box-sizing: border-box;
+  flex-shrink: 0;
+  position: relative;
+}
+
+.rich-text-editor:focus-within {
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.15), 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.rich-text-editor.disabled {
+  opacity: 0.6;
+  pointer-events: none;
+}
+
+/* Ribbon toolbar - Teams style formatting buttons */
+.rich-text-editor .roosterjs-ribbon {
+  display: flex;
+  align-items: center;
+  padding: 2px 8px;
+  gap: 1px;
+  background: #ffffff;
+  border-bottom: 1px solid #edebe9;
+}
+
+/* Editor content area */
+.rich-text-editor [contenteditable="true"] {
+  padding: 4px 12px 8px 12px;
+  min-height: 52px;
+  max-height: 200px;
+  overflow-y: auto;
+  overflow-x: hidden;
+  background: #ffffff !important;
+  font-size: 14px;
+  font-family: "Segoe UI", sans-serif;
+  color: #242424;
+  border: none !important;
+  outline: none !important;
+  box-shadow: none !important;
+  line-height: 1.5;
+  word-wrap: break-word;
+  word-break: break-word;
+}
+
+/* Fix list items overflow */
+.rich-text-editor [contenteditable="true"] ul,
+.rich-text-editor [contenteditable="true"] ol {
+  margin: 0;
+  padding-left: 20px;
+}
+
+.rich-text-editor [contenteditable="true"] li {
+  margin-left: 0;
+}
+
+/* Code formatting styles in editor */
+.rich-text-editor [contenteditable="true"] code {
+  background-color: #f3f2f1;
+  color: #c7254e;
+  padding: 2px 6px;
+  border-radius: 3px;
+  font-family: "Consolas", "Monaco", "Courier New", monospace;
+  font-size: 13px;
+}
+
+.rich-text-editor [contenteditable="true"]:focus {
+  outline: none !important;
+  box-shadow: none !important;
+  border: none !important;
+}
+
+/* Placeholder via data attribute */
+.rich-text-editor [contenteditable="true"]:empty:before {
+  content: attr(data-placeholder);
+  color: #999;
+  pointer-events: none;
+}
+
+/* Fix TooltipHost wrapper taking extra space */
+.rich-text-editor .roosterjs-ribbon .ms-TooltipHost {
+  display: inline-flex !important;
+  align-items: center !important;
+  line-height: 1 !important;
+}
+
+/* Rooster Ribbon buttons - minimal Teams style */
+.rich-text-editor .roosterjs-ribbon button,
+.rich-text-editor button[role="button"] {
+  min-width: 28px !important;
+  height: 28px !important;
+  padding: 2px 6px !important;
+  border-radius: 4px !important;
+  background: transparent !important;
+  color: #605e5c !important;
+  border: none !important;
+  font-size: 14px !important;
+  cursor: pointer !important;
+  transition: background 0.1s !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+}
+
+.rich-text-editor .roosterjs-ribbon button:hover,
+.rich-text-editor button[role="button"]:hover {
+  background: #f3f2f1 !important;
+  color: #323130 !important;
+}
+
+.rich-text-editor .roosterjs-ribbon button[aria-pressed="true"],
+.rich-text-editor button[role="button"][aria-pressed="true"] {
+  background: #edebe9 !important;
+  color: #201f1e !important;
+}
+
+/* Bottom action bar - inside editor */
+.rich-text-actions {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  padding: 8px 12px;
+  background: transparent;
+}
+
+/* Editor content wrapper with send button */
+.editor-content-wrapper {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+}
+
+.editor-content-wrapper .send-button {
+  position: absolute;
+  right: 12px;
+  bottom: 12px;
+  background: #6264a7;
+  color: #ffffff;
+  border: none;
+  border-radius: 50%;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: not-allowed;
+  transition: all 0.15s ease;
+  opacity: 0.4;
+  z-index: 10;
+}
+
+.editor-content-wrapper .send-button.enabled {
+  opacity: 1;
+  cursor: pointer;
+}
+
+.editor-content-wrapper .send-button.enabled:hover {
+  background: #464775;
+  transform: scale(1.05);
+}
+
+.editor-content-wrapper .send-button:disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
+}
+
+.editor-content-wrapper .send-button svg {
+  width: 14px;
+  height: 14px;
+}
