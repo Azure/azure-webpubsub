@@ -223,31 +223,10 @@ updates:
     commit-message:
       prefix: deps
 
-  # maven - sdk/ and tools/: majors stay as individual PRs.
-  - package-ecosystem: maven
-    directories:
-      - "/sdk"
-      - "/sdk/**/*"
-      - "/tools"
-      - "/tools/**/*"
-    schedule:
-      interval: weekly
-      day: monday
-    open-pull-requests-limit: 5
-    cooldown:
-      semver-major-days: 14
-      semver-minor-days: 7
-      semver-patch-days: 3
-    groups:
-      maven-sdk-tools-minor-patch:
-        applies-to: version-updates
-        patterns:
-          - "*"
-        update-types:
-          - minor
-          - patch
-    commit-message:
-      prefix: deps
+  # maven has no manifests under sdk/ or tools/, so there is no block for
+  # them: a block whose directories contain no manifest at all fails with
+  # DependencyFileNotFound. Add one alongside the npm/pip/nuget/docker
+  # sdk-tools blocks below if a Maven project is ever added there.
 
   # gomod - low-risk locations: majors are grouped.
   - package-ecosystem: gomod
@@ -288,27 +267,8 @@ updates:
     commit-message:
       prefix: deps
 
-  # gomod - sdk/ and tools/: majors stay as individual PRs.
-  - package-ecosystem: gomod
-    directories:
-      - "/sdk"
-      - "/sdk/**/*"
-      - "/tools"
-      - "/tools/**/*"
-    schedule:
-      interval: weekly
-      day: monday
-    open-pull-requests-limit: 5
-    groups:
-      gomod-sdk-tools-minor-patch:
-        applies-to: version-updates
-        patterns:
-          - "*"
-        update-types:
-          - minor
-          - patch
-    commit-message:
-      prefix: deps
+  # gomod has no manifests under sdk/ or tools/, so there is no block for
+  # them, for the same reason as maven above.
 
   # nuget - low-risk locations: majors are grouped.
   - package-ecosystem: nuget
