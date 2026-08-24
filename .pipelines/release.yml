@@ -100,6 +100,13 @@ extends:
                       script: |
                         set -euo pipefail
 
+                        if [[ "${PUBLISH_PACKAGES,,}" == 'true' &&
+                              "$BUILD_SOURCEBRANCH" != 'refs/heads/main' &&
+                              "$BUILD_SOURCEBRANCH" != refs/heads/release/* ]]; then
+                          echo "ERROR: package publishing must run from main or a release/* branch, not $BUILD_SOURCEBRANCH"
+                          exit 1
+                        fi
+
                         packages=()
                         if [[ "${RELEASE_CHAT_CLIENT,,}" == 'true' ]]; then
                           packages+=('chat_client|web-pubsub-chat-client|sdk/webpubsub-chat-client')
@@ -170,6 +177,7 @@ extends:
                       RELEASE_SOCKETIO: ${{ parameters.release_socketio }}
                       RELEASE_TUNNEL: ${{ parameters.release_tunnel }}
                       PUBLISH_PACKAGES: ${{ parameters.publish_packages }}
+                      BUILD_SOURCEBRANCH: $(Build.SourceBranch)
       - ${{ if parameters.release_chat_client }}:
           - template: templates/stages/release-package.yml
             parameters:
