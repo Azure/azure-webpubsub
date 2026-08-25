@@ -153,7 +153,7 @@ client.off('message', onMsg);
 | Event name | Listener argument | Description |
 |------------|-------------------|-------------|
 | `started` | `OnStartedArgs` | `start()` completed successfully — `userId` and `rooms` are populated. |
-| `stopped` | `OnStoppedArgs` | The client transitioned to not-started (explicit `stop()` or transport-driven). |
+| `stopped` | `OnStoppedArgs` | The client transitioned to not-started (explicit `stop()` or transport-driven); `userId` identifies the client before it stopped. |
 | `message` | `OnMessageArgs` | New message received (or sent by this client). |
 | `room-joined` | `OnRoomJoinedArgs` | This client joined a room. |
 | `room-left` | `OnRoomLeftArgs` | This client left a room. |

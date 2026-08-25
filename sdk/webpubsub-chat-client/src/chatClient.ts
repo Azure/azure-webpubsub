@@ -705,13 +705,14 @@ class ChatClient {
    * the post-failure rollback), no event fires.
    */
   private resetState(): void {
-    const wasStarted = this._isStarted;
+    const stoppedEvent: OnStoppedArgs | undefined = this._isStarted
+      ? { userId: this.userId }
+      : undefined;
     this._isStarted = false;
     this._userId = undefined;
     this._rooms.clear();
     this._conversationIds.clear();
-    if (wasStarted) {
-      const stoppedEvent: OnStoppedArgs = {};
+    if (stoppedEvent) {
       this._emitter.emit("stopped", stoppedEvent);
     }
   }

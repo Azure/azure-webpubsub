@@ -280,7 +280,7 @@ test("stopped event fires on started→not-started transitions only", async () =
   const fakeClient = new FakeWebPubSubClient();
   const client = createClient(fakeClient);
 
-  const stoppedEvents: unknown[] = [];
+  const stoppedEvents: Array<{ userId: string }> = [];
   client.on("stopped", (e) => stoppedEvents.push(e));
 
   // stop() before start() must not emit (no transition).
@@ -291,11 +291,18 @@ test("stopped event fires on started→not-started transitions only", async () =
   await client.start();
   await client.stop();
   assert.equal(stoppedEvents.length, 1, "stopped should fire exactly once per explicit stop()");
+  assert.deepEqual(stoppedEvents[0], { userId: "alice" }, "stopped should carry the previous chat identity");
 
-  // restart → network-driven stop also fires once.
+  // Restart with another identity → network-driven stop also fires once with the new identity.
+  fakeClient.loginResponse = { userId: "bob", roomIds: [], conversationIds: [] };
   await client.start();
   fakeClient.stop();
   // Allow the queued microtask that emits the underlying "stopped" to flush.
   await new Promise((resolve) => setTimeout(resolve, 0));
   assert.equal(stoppedEvents.length, 2, "stopped should fire when the transport terminates after a successful start");
+  assert.deepEqual(
+    stoppedEvents[1],
+    { userId: "bob" },
+    "transport-driven stopped should carry the identity from the current lifecycle",
+  );
 });

@@ -26,8 +26,8 @@ function setupListeners(client) {
         console.log(`[${userId}] left room ${event.roomId}`);
     });
     // chat lifecycle listener
-    client.on("stopped", () => {
-        console.log(`chat client for ${userId} stopped`);
+    client.on("stopped", (event) => {
+        console.log(`chat client for ${event.userId} stopped`);
     });
 }
 

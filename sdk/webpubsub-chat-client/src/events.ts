@@ -22,11 +22,12 @@ export interface OnStartedArgs {
 /**
  * Argument of the `"stopped"` event listener. Fired when the chat
  * client transitions from started to not-started — either because
- * `stop()` was called or the underlying connection terminated. Empty
- * payload (reserved for future fields), matching upstream
- * `WebPubSubClient.OnStoppedArgs`.
+ * `stop()` was called or the underlying connection terminated.
  */
-export interface OnStoppedArgs {}
+export interface OnStoppedArgs {
+  /** The chat-domain identity this client had before stopping. */
+  userId: string;
+}
 
 /**
  * Argument of the `"message"` event listener. Naming mirrors the
