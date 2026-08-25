@@ -19,6 +19,10 @@ parameters:
     displayName: 'Release @azure/web-pubsub-tunnel-tool'
     type: boolean
     default: false
+  - name: publish_packages
+    displayName: 'Publish selected packages through ESRP'
+    type: boolean
+    default: false
 variables:
   - group: 'npm-release'
   - name: CDP_DEFINITION_BUILD_COUNT
@@ -37,8 +41,11 @@ extends:
   template: v2/OneBranch.Official.CrossPlat.yml@templates
   parameters:
     featureFlags:
+      linuxEsrpSigning: true
       WindowsHostVersion:
         Version: 2022
+    release:
+      category: NonAzure
     globalSdl:
       tsa:
         enabled: false
@@ -59,19 +66,19 @@ extends:
                   ob_sdl_binskim_enabled: false
                 steps:
                   - checkout: self
-                    path: s/self
+                    path: s/azure-webpubsub
                     fetchDepth: 0
                     fetchTags: true
                     persistCredentials: false
                   - task: UseNode@1
-                    displayName: 'Use Node 20.x'
+                    displayName: 'Use Node 22.x'
                     inputs:
-                      version: '20.x'
+                      version: '22.x'
                   - task: Bash@3
                     displayName: 'Create Azure Artifacts npm configuration'
                     inputs:
                       targetType: inline
-                      workingDirectory: '$(Pipeline.Workspace)/s/self'
+                      workingDirectory: '$(Pipeline.Workspace)/s/azure-webpubsub'
                       script: |
                         set -euo pipefail
                         feed_registry='$(NPM_FEED_REGISTRY)'
@@ -83,18 +90,20 @@ extends:
                   - task: npmAuthenticate@0
                     displayName: 'Authenticate to npm feed'
                     inputs:
-                      workingFile: '$(Pipeline.Workspace)/s/self/.npmrc'
+                      workingFile: '$(Pipeline.Workspace)/s/azure-webpubsub/.npmrc'
                   - task: Bash@3
                     name: read
                     displayName: 'Check selected packages'
                     inputs:
                       targetType: inline
-                      workingDirectory: '$(Pipeline.Workspace)/s/self'
+                      workingDirectory: '$(Pipeline.Workspace)/s/azure-webpubsub'
                       script: |
                         set -euo pipefail
 
-                        if [[ "$BUILD_SOURCEBRANCH" != 'refs/heads/main' ]]; then
-                          echo "ERROR: releases must run from main, not $BUILD_SOURCEBRANCH"
+                        if [[ "${PUBLISH_PACKAGES,,}" == 'true' &&
+                              "$BUILD_SOURCEBRANCH" != 'refs/heads/main' &&
+                              "$BUILD_SOURCEBRANCH" != refs/heads/release/* ]]; then
+                          echo "ERROR: package publishing must run from main or a release/* branch, not $BUILD_SOURCEBRANCH"
                           exit 1
                         fi
 
@@ -130,25 +139,29 @@ extends:
                           fi
 
                           changelog_pattern="^##[[:space:]]+\[?${current_version}\]?[[:space:]]+-[[:space:]]+[0-9]{4}-[0-9]{1,2}-[0-9]{1,2}"
-                          tag="release/${package_name}/v${current_version}"
-                          if git rev-parse --verify "refs/tags/${tag}" >/dev/null 2>&1; then
-                            echo "ERROR: release tag already exists: $tag"
-                            exit 1
-                          fi
+                          if [[ "${PUBLISH_PACKAGES,,}" == 'true' ]]; then
+                            tag="release/${package_name}/v${current_version}"
+                            if git rev-parse --verify "refs/tags/${tag}" >/dev/null 2>&1; then
+                              echo "ERROR: release tag already exists: $tag"
+                              exit 1
+                            fi
 
-                          set +e
-                          registry_output=$(npm view "${npm_package_name}@${current_version}" version --json 2>&1)
-                          registry_status=$?
-                          set -e
-                          if [[ $registry_status -eq 0 ]]; then
-                            echo "ERROR: npm package version already exists: ${npm_package_name}@${current_version}"
-                            exit 1
-                          elif grep -Eq 'E404|404 Not Found|is not in this registry' <<< "$registry_output"; then
-                            echo "Package version is available: ${npm_package_name}@${current_version}"
+                            set +e
+                            registry_output=$(npm view "${npm_package_name}@${current_version}" version --json 2>&1)
+                            registry_status=$?
+                            set -e
+                            if [[ $registry_status -eq 0 ]]; then
+                              echo "ERROR: npm package version already exists: ${npm_package_name}@${current_version}"
+                              exit 1
+                            elif grep -Eq 'E404|404 Not Found|is not in this registry' <<< "$registry_output"; then
+                              echo "Package version is available: ${npm_package_name}@${current_version}"
+                            else
+                              echo "$registry_output"
+                              echo "ERROR: unable to query ${npm_package_name}@${current_version}"
+                              exit $registry_status
+                            fi
                           else
-                            echo "$registry_output"
-                            echo "ERROR: unable to query ${npm_package_name}@${current_version}"
-                            exit $registry_status
+                            echo "Validation mode: skipping release tag and npm availability checks."
                           fi
 
                           if grep -Eq "$changelog_pattern" "$package_folder/CHANGELOG.md"; then
@@ -163,6 +176,8 @@ extends:
                       RELEASE_CHAT_CLIENT: ${{ parameters.release_chat_client }}
                       RELEASE_SOCKETIO: ${{ parameters.release_socketio }}
                       RELEASE_TUNNEL: ${{ parameters.release_tunnel }}
+                      PUBLISH_PACKAGES: ${{ parameters.publish_packages }}
+                      BUILD_SOURCEBRANCH: $(Build.SourceBranch)
       - ${{ if parameters.release_chat_client }}:
           - template: templates/stages/release-package.yml
             parameters:
@@ -170,12 +185,13 @@ extends:
               package_name: web-pubsub-chat-client
               npm_package_name: '@azure/web-pubsub-chat-client'
               package_folder: sdk/webpubsub-chat-client
+              publish_package: ${{ parameters.publish_packages }}
               pack_steps:
                 - task: Bash@3
                   displayName: 'Build and pack chat client'
                   inputs:
                     targetType: inline
-                    workingDirectory: '$(Pipeline.Workspace)/s/self'
+                    workingDirectory: '$(Pipeline.Workspace)/s/azure-webpubsub'
                     script: |
                       set -euo pipefail
                       pushd sdk/webpubsub-chat-client
@@ -189,12 +205,13 @@ extends:
               package_name: webpubsub-socketio-extension
               npm_package_name: '@azure/web-pubsub-socket.io'
               package_folder: sdk/webpubsub-socketio-extension
+              publish_package: ${{ parameters.publish_packages }}
               pack_steps:
                 - task: Bash@3
                   displayName: 'Build and pack socketio extension'
                   inputs:
                     targetType: inline
-                    workingDirectory: '$(Pipeline.Workspace)/s/self'
+                    workingDirectory: '$(Pipeline.Workspace)/s/azure-webpubsub'
                     script: |
                       set -euo pipefail
                       pushd sdk/server-proxies
@@ -215,12 +232,13 @@ extends:
               package_name: awps-tunnel
               npm_package_name: '@azure/web-pubsub-tunnel-tool'
               package_folder: tools/awps-tunnel/server
+              publish_package: ${{ parameters.publish_packages }}
               pack_steps:
                 - task: Bash@3
                   displayName: 'Build and pack awps-tunnel'
                   inputs:
                     targetType: inline
-                    workingDirectory: '$(Pipeline.Workspace)/s/self'
+                    workingDirectory: '$(Pipeline.Workspace)/s/azure-webpubsub'
                     script: |
                       set -euo pipefail
                       pushd sdk/server-proxies
