@@ -834,6 +834,13 @@ public class WebPubSubEmulatorTests
         {
             Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
         }
+        using (var request = CreateAuthorizedRequest(
+            HttpMethod.Put,
+            $"/api/hubs/{Hub}/users/missing/groups/room?api-version=2024-12-01"))
+        using (var response = await application.GetTestClient().SendAsync(request).OrTimeout())
+        {
+            Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
+        }
 
         using (var request = CreateAuthorizedRequest(
             HttpMethod.Put,

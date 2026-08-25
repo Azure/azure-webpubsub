@@ -52,9 +52,9 @@ API. Unsupported routes return a structured `501 Not Implemented` response.
 | `HEAD` | `/api/hubs/{hub}/users/{userId}` | `WebPubSub_UserExists` | ✅ Implemented | Returns `200` when the user has at least one logical connection, otherwise `404`. |
 | `POST` | `/api/hubs/{hub}/users/{userId}/:closeConnections` | `WebPubSub_CloseUserConnections` | ✅ Implemented | Supports `excluded` and `reason` across all matching logical connections. |
 | `POST` | `/api/hubs/{hub}/users/{userId}/:send` | `WebPubSub_SendToUser` | ⚠️ Emulator semantics | Supports OData `filter`; validates `messageTtlSeconds` from 0 through 300, but delivery is immediate and TTL retention is not modeled. |
-| `DELETE` | `/api/hubs/{hub}/users/{userId}/groups` | `WebPubSub_RemoveUserFromAllGroups` | ⚠️ Emulator semantics | Removes every current logical connection for the user from all groups. |
-| `DELETE` | `/api/hubs/{hub}/users/{userId}/groups/{group}` | `WebPubSub_RemoveUserFromGroup` | ⚠️ Emulator semantics | Removes every current logical connection for the user from the group. |
-| `PUT` | `/api/hubs/{hub}/users/{userId}/groups/{group}` | `WebPubSub_AddUserToGroup` | ⚠️ Emulator semantics | Adds every current logical connection for the user to the group. |
+| `DELETE` | `/api/hubs/{hub}/users/{userId}/groups` | `WebPubSub_RemoveUserFromAllGroups` | ✅ Implemented | Removes every current logical connection for the user from all groups. |
+| `DELETE` | `/api/hubs/{hub}/users/{userId}/groups/{group}` | `WebPubSub_RemoveUserFromGroup` | ✅ Implemented | Removes every current logical connection for the user from the group. |
+| `PUT` | `/api/hubs/{hub}/users/{userId}/groups/{group}` | `WebPubSub_AddUserToGroup` | ✅ Implemented | Adds every current logical connection for the user to the group; returns `404` when the user has no connections. |
 
 ### REST operations not yet implemented
 
@@ -71,8 +71,6 @@ Implemented REST routes still have these feature gaps:
 - `WebPubSub_GenerateClientToken` does not generate MQTT client tokens.
 - `messageTtlSeconds` is validated as an integer from 0 through 300, but offline retention and
   delayed delivery are not modeled.
-- User group changes apply to the user's current logical connections. They are not retained for
-  brand-new connections created later for the same user.
 - `X-WebPubSub-Metadata-*` headers are not forwarded as client message metadata.
 
 ## Clients and protocols

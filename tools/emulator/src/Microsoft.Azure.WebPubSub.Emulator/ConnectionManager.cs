@@ -110,12 +110,15 @@ internal sealed class ConnectionManager
         return true;
     }
 
-    public void AddUserToGroup(string hub, string userId, string group)
+    public bool AddUserToGroup(string hub, string userId, string group)
     {
-        foreach (var connection in GetUserConnections(hub, userId))
+        var connections = GetUserConnections(hub, userId);
+        foreach (var connection in connections)
         {
             connection.Groups.TryAdd(group, 0);
         }
+
+        return connections.Length > 0;
     }
 
     public void RemoveUserFromGroup(string hub, string userId, string group)

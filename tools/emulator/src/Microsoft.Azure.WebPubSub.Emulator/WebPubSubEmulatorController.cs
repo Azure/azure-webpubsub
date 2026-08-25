@@ -341,8 +341,10 @@ internal sealed class WebPubSubEmulatorController : WebPubSubApiControllerDefini
             return Task.FromResult<IActionResult>(Unauthorized());
         }
 
-        _connections.AddUserToGroup(hub, userId, group);
-        return Task.FromResult<IActionResult>(Ok());
+        IActionResult result = _connections.AddUserToGroup(hub, userId, group)
+            ? Ok()
+            : NotFound();
+        return Task.FromResult(result);
     }
 
     public override Task<IActionResult> RemoveUserFromGroup(
