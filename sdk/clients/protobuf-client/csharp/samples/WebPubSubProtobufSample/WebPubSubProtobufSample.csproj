@@ -15,8 +15,8 @@
   <ItemGroup>
 	  <PackageReference Include="Azure.Messaging.WebPubSub" Version="1.6.0" />
 	  <PackageReference Include="Azure.Messaging.WebPubSub.Client" Version="1.0.0" />
-    <PackageReference Include="Microsoft.Extensions.Configuration" Version="10.0.10" />
-    <PackageReference Include="Microsoft.Extensions.Configuration.EnvironmentVariables" Version="10.0.10" />
+    <PackageReference Include="Microsoft.Extensions.Configuration" Version="10.0.11" />
+    <PackageReference Include="Microsoft.Extensions.Configuration.EnvironmentVariables" Version="10.0.11" />
     <PackageReference Include="Microsoft.Extensions.Configuration.Json" Version="8.0.1" />
   </ItemGroup>
 
