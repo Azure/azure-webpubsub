@@ -501,6 +501,7 @@ public class WebPubSubEmulatorTests
     [Theory]
     [InlineData("/api/hubs/testHub/:send")]
     [InlineData("/api/hubs/testHub/groups/room/:send")]
+    [InlineData("/api/hubs/testHub/users/user/:send")]
     public async Task RestApi_InvalidFilter_ReturnsRuntimeBadRequest(string path)
     {
         await using var application = await StartApplicationAsync();
@@ -808,6 +809,155 @@ public class WebPubSubEmulatorTests
     }
 
     [Fact]
+    public async Task RestApi_UserOperations_ApplyToEveryMatchingConnection()
+    {
+        await using var application = await StartApplicationAsync();
+        using var first = await ConnectAsync(application, GetClientUri(userId: "target-user"));
+        using var second = await ConnectAsync(application, GetClientUri(userId: "target-user"));
+        using var other = await ConnectAsync(application, GetClientUri(userId: "other-user"));
+        using var firstConnected = await ReceiveJsonAsync(first);
+        _ = await ReceiveJsonAsync(second);
+        _ = await ReceiveJsonAsync(other);
+        var firstConnectionId = firstConnected.RootElement.GetProperty("connectionId").GetString()!;
+
+        using (var request = CreateAuthorizedRequest(
+            HttpMethod.Head,
+            $"/api/hubs/{Hub}/users/target-user?api-version=2024-12-01"))
+        using (var response = await application.GetTestClient().SendAsync(request).OrTimeout())
+        {
+            Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        }
+        using (var request = CreateAuthorizedRequest(
+            HttpMethod.Head,
+            $"/api/hubs/{Hub}/users/missing?api-version=2024-12-01"))
+        using (var response = await application.GetTestClient().SendAsync(request).OrTimeout())
+        {
+            Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
+        }
+
+        using (var request = CreateAuthorizedRequest(
+            HttpMethod.Put,
+            $"/api/hubs/{Hub}/users/target-user/groups/room?api-version=2024-12-01"))
+        using (var response = await application.GetTestClient().SendAsync(request).OrTimeout())
+        {
+            Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        }
+        using (var request = CreateAuthorizedRequest(
+            HttpMethod.Post,
+            $"/api/hubs/{Hub}/groups/room/:send?api-version=2024-12-01"))
+        {
+            request.Content = new StringContent("group-message", Encoding.UTF8, "text/plain");
+            using var response = await application.GetTestClient().SendAsync(request).OrTimeout();
+            Assert.Equal(HttpStatusCode.Accepted, response.StatusCode);
+        }
+        using (var firstMessage = await ReceiveJsonAsync(first))
+        using (var secondMessage = await ReceiveJsonAsync(second))
+        {
+            Assert.Equal("group-message", firstMessage.RootElement.GetProperty("data").GetString());
+            Assert.Equal("group-message", secondMessage.RootElement.GetProperty("data").GetString());
+        }
+        await SendJsonAsync(other, """{"type":"ping"}""");
+        using (var pong = await ReceiveJsonAsync(other))
+        {
+            Assert.Equal("pong", pong.RootElement.GetProperty("type").GetString());
+        }
+
+        var filter = Uri.EscapeDataString($"connectionId eq '{firstConnectionId}'");
+        using (var request = CreateAuthorizedRequest(
+            HttpMethod.Post,
+            $"/api/hubs/{Hub}/users/target-user/:send?filter={filter}&api-version=2024-12-01"))
+        {
+            request.Content = new StringContent("filtered-message", Encoding.UTF8, "text/plain");
+            using var response = await application.GetTestClient().SendAsync(request).OrTimeout();
+            Assert.Equal(HttpStatusCode.Accepted, response.StatusCode);
+        }
+        using (var firstMessage = await ReceiveJsonAsync(first))
+        {
+            Assert.Equal("filtered-message", firstMessage.RootElement.GetProperty("data").GetString());
+        }
+        await SendJsonAsync(second, """{"type":"ping"}""");
+        using (var pong = await ReceiveJsonAsync(second))
+        {
+            Assert.Equal("pong", pong.RootElement.GetProperty("type").GetString());
+        }
+
+        using (var request = CreateAuthorizedRequest(
+            HttpMethod.Post,
+            $"/api/hubs/{Hub}/users/target-user/:send?api-version=2024-12-01"))
+        {
+            request.Content = new StringContent("user-message", Encoding.UTF8, "text/plain");
+            using var response = await application.GetTestClient().SendAsync(request).OrTimeout();
+            Assert.Equal(HttpStatusCode.Accepted, response.StatusCode);
+        }
+        using (var firstMessage = await ReceiveJsonAsync(first))
+        using (var secondMessage = await ReceiveJsonAsync(second))
+        {
+            Assert.Equal("user-message", firstMessage.RootElement.GetProperty("data").GetString());
+            Assert.Equal("user-message", secondMessage.RootElement.GetProperty("data").GetString());
+        }
+
+        using (var request = CreateAuthorizedRequest(
+            HttpMethod.Delete,
+            $"/api/hubs/{Hub}/users/target-user/groups/room?api-version=2024-12-01"))
+        using (var response = await application.GetTestClient().SendAsync(request).OrTimeout())
+        {
+            Assert.Equal(HttpStatusCode.NoContent, response.StatusCode);
+        }
+        foreach (var group in new[] { "room-a", "room-b" })
+        {
+            using var request = CreateAuthorizedRequest(
+                HttpMethod.Put,
+                $"/api/hubs/{Hub}/users/target-user/groups/{group}?api-version=2024-12-01");
+            using var response = await application.GetTestClient().SendAsync(request).OrTimeout();
+            Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        }
+        using (var request = CreateAuthorizedRequest(
+            HttpMethod.Delete,
+            $"/api/hubs/{Hub}/users/target-user/groups?api-version=2024-12-01"))
+        using (var response = await application.GetTestClient().SendAsync(request).OrTimeout())
+        {
+            Assert.Equal(HttpStatusCode.NoContent, response.StatusCode);
+        }
+        foreach (var group in new[] { "room", "room-a", "room-b" })
+        {
+            using var request = CreateAuthorizedRequest(
+                HttpMethod.Head,
+                $"/api/hubs/{Hub}/groups/{group}?api-version=2024-12-01");
+            using var response = await application.GetTestClient().SendAsync(request).OrTimeout();
+            Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
+        }
+
+        using (var request = CreateAuthorizedRequest(
+            HttpMethod.Post,
+            $"/api/hubs/{Hub}/users/target-user/:closeConnections" +
+            $"?excluded={Uri.EscapeDataString(firstConnectionId)}&reason=test-close&api-version=2024-12-01"))
+        using (var response = await application.GetTestClient().SendAsync(request).OrTimeout())
+        {
+            Assert.Equal(HttpStatusCode.NoContent, response.StatusCode);
+        }
+        var closeBuffer = new byte[256];
+        var close = await second
+            .ReceiveAsync(new ArraySegment<byte>(closeBuffer), CancellationToken.None)
+            .OrTimeout();
+        Assert.Equal(WebSocketMessageType.Close, close.MessageType);
+        Assert.Equal("test-close", close.CloseStatusDescription);
+        await SendJsonAsync(first, """{"type":"ping"}""");
+        using (var pong = await ReceiveJsonAsync(first))
+        {
+            Assert.Equal("pong", pong.RootElement.GetProperty("type").GetString());
+        }
+
+        await first.CloseAsync(
+            WebSocketCloseStatus.NormalClosure,
+            "Test complete.",
+            CancellationToken.None);
+        await other.CloseAsync(
+            WebSocketCloseStatus.NormalClosure,
+            "Test complete.",
+            CancellationToken.None);
+    }
+
+    [Fact]
     public async Task OfficialSdk_MissingRestResources_ReturnExpectedResults()
     {
         var endpoint = $"http://127.0.0.1:{GetAvailablePort()}";
@@ -849,6 +999,12 @@ public class WebPubSubEmulatorTests
     [InlineData("HEAD", "/api/hubs/testHub/groups/room")]
     [InlineData("PUT", "/api/hubs/testHub/groups/room/connections/connection")]
     [InlineData("DELETE", "/api/hubs/testHub/groups/room/connections/connection")]
+    [InlineData("HEAD", "/api/hubs/testHub/users/user")]
+    [InlineData("POST", "/api/hubs/testHub/users/user/:closeConnections")]
+    [InlineData("POST", "/api/hubs/testHub/users/user/:send")]
+    [InlineData("DELETE", "/api/hubs/testHub/users/user/groups")]
+    [InlineData("DELETE", "/api/hubs/testHub/users/user/groups/room")]
+    [InlineData("PUT", "/api/hubs/testHub/users/user/groups/room")]
     public async Task RestApi_WithoutBearerToken_IsUnauthorized(string method, string path)
     {
         await using var application = await StartApplicationAsync();
@@ -863,12 +1019,13 @@ public class WebPubSubEmulatorTests
     [InlineData(":send")]
     [InlineData("groups/room/:send")]
     [InlineData("connections/{connectionId}/:send")]
+    [InlineData("users/user/:send")]
     public async Task RestApi_MessageTtl_IsAcceptedForImmediateDelivery(string route)
     {
         await using var application = await StartApplicationAsync();
         using var webSocket = await ConnectAsync(
             application,
-            GetClientUri(groups: ["room"]));
+            GetClientUri(groups: ["room"], userId: "user"));
         using var connected = await ReceiveJsonAsync(webSocket);
         var connectionId = connected.RootElement.GetProperty("connectionId").GetString()!;
         var resolvedRoute = route.Replace(
@@ -902,6 +1059,9 @@ public class WebPubSubEmulatorTests
     [InlineData("connections/missing/:send", "abc")]
     [InlineData("connections/missing/:send", "-1")]
     [InlineData("connections/missing/:send", "301")]
+    [InlineData("users/user/:send", "abc")]
+    [InlineData("users/user/:send", "-1")]
+    [InlineData("users/user/:send", "301")]
     public async Task RestApi_InvalidMessageTtl_ReturnsBadRequest(string route, string ttl)
     {
         await using var application = await StartApplicationAsync();

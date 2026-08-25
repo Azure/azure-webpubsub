@@ -259,6 +259,121 @@ internal sealed class WebPubSubEmulatorController : WebPubSubApiControllerDefini
         return Task.FromResult(result);
     }
 
+    public override Task<IActionResult> UserExists(
+        string hub,
+        string userId,
+        CancellationToken cancellationToken = default)
+    {
+        IActionResult result = Authorize()
+            ? _connections.UserExists(hub, userId)
+                ? Ok()
+                : NotFound()
+            : Unauthorized();
+        return Task.FromResult(result);
+    }
+
+    public override Task<IActionResult> CloseUserConnections(
+        string hub,
+        string userId,
+        CancellationToken cancellationToken = default)
+    {
+        if (!Authorize())
+        {
+            return Task.FromResult<IActionResult>(Unauthorized());
+        }
+
+        var reason = Request.Query["reason"].ToString();
+        _connections.CloseUserConnections(
+            hub,
+            userId,
+            string.IsNullOrEmpty(reason) ? "Closed by REST API." : reason,
+            GetExcludedConnectionIds(Request));
+        return Task.FromResult<IActionResult>(NoContent());
+    }
+
+    public override async Task<IActionResult> SendToUser(
+        string hub,
+        string userId,
+        CancellationToken cancellationToken = default)
+    {
+        if (!Authorize())
+        {
+            return Unauthorized();
+        }
+        if (!HasValidMessageTtl())
+        {
+            return BadRequest();
+        }
+
+        var filter = Request.Query["filter"].ToString();
+        try
+        {
+            ODataFilterExecutor.Instance.Validate(filter);
+        }
+        catch (InvalidFilterException exception)
+        {
+            return InvalidFilter(exception);
+        }
+
+        if (!HasSupportedContentType(Request))
+        {
+            return UnsupportedContentType();
+        }
+
+        var data = await ReadDataAsync(Request, cancellationToken);
+        if (data is null)
+        {
+            return BadRequest();
+        }
+
+        _connections.SendToUser(hub, userId, data, filter);
+        return Accepted();
+    }
+
+    public override Task<IActionResult> AddUserToGroup(
+        string hub,
+        string userId,
+        string group,
+        CancellationToken cancellationToken = default)
+    {
+        if (!Authorize())
+        {
+            return Task.FromResult<IActionResult>(Unauthorized());
+        }
+
+        _connections.AddUserToGroup(hub, userId, group);
+        return Task.FromResult<IActionResult>(Ok());
+    }
+
+    public override Task<IActionResult> RemoveUserFromGroup(
+        string hub,
+        string userId,
+        string group,
+        CancellationToken cancellationToken = default)
+    {
+        if (!Authorize())
+        {
+            return Task.FromResult<IActionResult>(Unauthorized());
+        }
+
+        _connections.RemoveUserFromGroup(hub, userId, group);
+        return Task.FromResult<IActionResult>(NoContent());
+    }
+
+    public override Task<IActionResult> RemoveUserFromAllGroups(
+        string hub,
+        string userId,
+        CancellationToken cancellationToken = default)
+    {
+        if (!Authorize())
+        {
+            return Task.FromResult<IActionResult>(Unauthorized());
+        }
+
+        _connections.RemoveUserFromAllGroups(hub, userId);
+        return Task.FromResult<IActionResult>(NoContent());
+    }
+
     private bool HasValidMessageTtl()
     {
         if (!Request.Query.TryGetValue("messageTtlSeconds", out var values))
