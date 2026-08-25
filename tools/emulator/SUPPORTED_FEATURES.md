@@ -20,15 +20,15 @@ summarizes what you can use and the important differences from Azure Web PubSub.
 | --- | --- |
 | ✅ Implemented | The feature has real emulator behavior and is covered by tests. |
 | ⚠️ Emulator semantics | The feature works with an explicitly documented local-only semantic difference. |
-| 🟡 Partial | A useful subset is implemented, but one or more service modes are unavailable. |
 | ❌ Not implemented | The feature is unavailable. Registered REST routes return `501 Not Implemented`. |
 
 ## REST API
 
 The emulator registers all 25 operations from the Azure Web PubSub `2024-12-01` data-plane
-API. Unsupported routes return a structured `501 Not Implemented` response.
+API. Unsupported routes return a structured `501 Not Implemented` response. Distinct modes of
+the same operation are listed separately when their support status differs.
 
-| Method | Route | Operation | Status | Notes |
+| Method | Route | Operation or mode | Status | Notes |
 | --- | --- | --- | --- | --- |
 | `HEAD` | `/api/health` | `HealthApi_GetServiceStatus` | ✅ Implemented | Returns `200 OK`. |
 | `DELETE` | `/api/hubs/{hub}/connections/{connectionId}` | `WebPubSub_CloseConnection` | ✅ Implemented | Supports the `reason` query parameter. |
@@ -39,7 +39,8 @@ API. Unsupported routes return a structured `501 Not Implemented` response.
 | `POST` | `/api/hubs/{hub}/:send` | `WebPubSub_SendToAll` | ⚠️ Emulator semantics | Supports `excluded` and OData `filter`; validates `messageTtlSeconds` from 0 through 300, but delivery is immediate and TTL retention is not modeled. |
 | `POST` | `/api/hubs/{hub}/connections/{connectionId}/:send` | `WebPubSub_SendToConnection` | ⚠️ Emulator semantics | Validates `messageTtlSeconds` from 0 through 300, but delivery is immediate and TTL retention is not modeled. |
 | `POST` | `/api/hubs/{hub}/groups/{group}/:send` | `WebPubSub_SendToGroup` | ⚠️ Emulator semantics | Supports `excluded` and OData `filter`; validates `messageTtlSeconds` from 0 through 300, but delivery is immediate and TTL retention is not modeled. |
-| `POST` | `/api/hubs/{hub}/:generateToken` | `WebPubSub_GenerateClientToken` | 🟡 Partial | Default Web PubSub client tokens are supported; MQTT client tokens are not. |
+| `POST` | `/api/hubs/{hub}/:generateToken` | `WebPubSub_GenerateClientToken` (default) | ✅ Implemented | Generates access-key client tokens with user ID, roles, and groups. |
+| `POST` | `/api/hubs/{hub}/:generateToken` | `WebPubSub_GenerateClientToken` (`clientProtocol=mqtt`) | ❌ Not implemented | MQTT client-token generation is unavailable. |
 | `POST` | `/api/hubs/{hub}/:addToGroups` | `WebPubSub_AddConnectionsToGroups` | ✅ Implemented | Adds connections selected by the request-body OData `filter` to every requested group. |
 | `POST` | `/api/hubs/{hub}/:closeConnections` | `WebPubSub_CloseAllConnections` | ✅ Implemented | Supports repeated `excluded` values and the `reason` query parameter. |
 | `POST` | `/api/hubs/{hub}/:removeFromGroups` | `WebPubSub_RemoveConnectionsFromGroups` | ✅ Implemented | Removes connections selected by the request-body OData `filter` from every requested group. |
@@ -64,7 +65,7 @@ The following 3 registered operations return `501 Not Implemented`:
 | --- | --- |
 | Dynamic permissions | `WebPubSub_GrantPermission`, `WebPubSub_RevokePermission`, `WebPubSub_CheckPermission` |
 
-Implemented REST routes still have these feature gaps:
+Additional REST behavior notes:
 
 - `WebPubSub_GenerateClientToken` does not generate MQTT client tokens.
 - `messageTtlSeconds` is validated as an integer from 0 through 300, but offline retention and
@@ -79,8 +80,8 @@ Implemented REST routes still have these feature gaps:
 | Client `sendToGroup` | ✅ Implemented | Supports `noEcho` and role-based authorization. |
 | Group roles | ✅ Implemented | Supports roles that apply to every group, one named group, or groups matched by a wildcard pattern. |
 | Ack ID idempotency | ✅ Implemented | Reusing an `ackId` on the same logical connection returns `Duplicate` without executing the operation again. |
-| `json.webpubsub.azure.v1` | 🟡 Partial | Supports connection messages, user events, group join/leave, send-to-group, group state, metadata, acknowledgements, and ping/pong. |
-| `json.reliable.webpubsub.azure.v1` | 🟡 Partial | Adds local reconnect, sequence acknowledgement, and replay to the supported JSON features. |
+| `json.webpubsub.azure.v1` | ✅ Implemented | Supports connection messages, user events, group join/leave, send-to-group, group state, metadata, acknowledgements, and ping/pong. Unsupported message families are listed separately below. |
+| `json.reliable.webpubsub.azure.v1` | ⚠️ Emulator semantics | Adds reconnect, sequence acknowledgement, and replay while the emulator process remains running. |
 | MQTT | ❌ Not implemented | MQTT client tokens, connections, publish/subscribe, and MQTT session behavior are unavailable. |
 | Protobuf | ❌ Not implemented | `protobuf.webpubsub.azure.v1` and `protobuf.reliable.webpubsub.azure.v1` are unavailable. |
 | Custom WebSocket subprotocols | ❌ Not implemented | Raw WebSocket works without a subprotocol; arbitrary application subprotocol negotiation is rejected. |
@@ -114,7 +115,8 @@ whether and how the client connects.
 | Method | Status | Notes |
 | --- | --- | --- |
 | Access key | ✅ Implemented | Client and REST tokens are validated against the configured emulator access key. |
-| Server SDK `TokenCredential` | 🟡 Partial | Intended only for local SDK compatibility. The emulator does not validate token signatures, tenants, identities, or Azure role assignments. |
+| Server SDK `TokenCredential` compatibility mode | ⚠️ Emulator semantics | Accepts bearer tokens when `WebPubSub:AllowUnvalidatedEntraTokens` is enabled for trusted local development. |
+| Production Microsoft Entra token and role validation | ❌ Not implemented | Token signatures, tenants, identities, and Azure role assignments are not validated. |
 | Anonymous client connections | ❌ Not implemented | Clients must provide a signed access token. |
 
 ## Unsupported features summary
