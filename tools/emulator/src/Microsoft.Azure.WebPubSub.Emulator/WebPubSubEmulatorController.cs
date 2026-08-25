@@ -6,6 +6,7 @@ using System.Text;
 using System.Text.Json;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.WebUtilities;
 
 namespace Microsoft.Azure.WebPubSub.Emulator;
 
@@ -28,6 +29,30 @@ internal sealed class WebPubSubEmulatorController : WebPubSubApiControllerDefini
         CancellationToken cancellationToken = default)
     {
         return Task.FromResult<IActionResult>(Ok());
+    }
+
+    public override async Task<IActionResult> AddConnectionsToGroups(
+        string hub,
+        CancellationToken cancellationToken = default)
+    {
+        return await UpdateConnectionsInGroupsAsync(hub, add: true, cancellationToken);
+    }
+
+    public override Task<IActionResult> CloseAllConnections(
+        string hub,
+        CancellationToken cancellationToken = default)
+    {
+        if (!Authorize())
+        {
+            return Task.FromResult<IActionResult>(Unauthorized());
+        }
+
+        var reason = GetCloseReason();
+        _connections.CloseAllConnections(
+            hub,
+            reason,
+            GetExcludedConnectionIds(Request));
+        return Task.FromResult<IActionResult>(NoContent());
     }
 
     public override Task<IActionResult> GenerateClientToken(
@@ -69,6 +94,13 @@ internal sealed class WebPubSubEmulatorController : WebPubSubApiControllerDefini
             Request.Query["group"],
             lifetime);
         return Task.FromResult<IActionResult>(Ok(new { token }));
+    }
+
+    public override async Task<IActionResult> RemoveConnectionsFromGroups(
+        string hub,
+        CancellationToken cancellationToken = default)
+    {
+        return await UpdateConnectionsInGroupsAsync(hub, add: false, cancellationToken);
     }
 
     public override async Task<IActionResult> SendToAll(
@@ -259,6 +291,84 @@ internal sealed class WebPubSubEmulatorController : WebPubSubApiControllerDefini
         return Task.FromResult(result);
     }
 
+    public override Task<IActionResult> RemoveConnectionFromAllGroups(
+        string hub,
+        string connectionId,
+        CancellationToken cancellationToken = default)
+    {
+        if (!Authorize())
+        {
+            return Task.FromResult<IActionResult>(Unauthorized());
+        }
+
+        _connections.RemoveConnectionFromAllGroups(hub, connectionId);
+        return Task.FromResult<IActionResult>(NoContent());
+    }
+
+    public override Task<IActionResult> CloseGroupConnections(
+        string hub,
+        string group,
+        CancellationToken cancellationToken = default)
+    {
+        if (!Authorize())
+        {
+            return Task.FromResult<IActionResult>(Unauthorized());
+        }
+
+        _connections.CloseGroupConnections(
+            hub,
+            group,
+            GetCloseReason(),
+            GetExcludedConnectionIds(Request));
+        return Task.FromResult<IActionResult>(NoContent());
+    }
+
+    public override Task<IActionResult> ListConnectionsInGroup(
+        string hub,
+        string group,
+        CancellationToken cancellationToken = default)
+    {
+        if (!Authorize())
+        {
+            return Task.FromResult<IActionResult>(Unauthorized());
+        }
+        if (!TryGetPositiveQueryValue("maxpagesize", 200, out var maxPageSize) ||
+            maxPageSize > 200 ||
+            !TryGetOptionalPositiveQueryValue("top", out var top))
+        {
+            return Task.FromResult<IActionResult>(BadRequest());
+        }
+
+        var page = _connections.ListConnectionsInGroup(
+            hub,
+            group,
+            maxPageSize,
+            top,
+            Request.Query["continuationToken"].ToString());
+        Uri? nextLink = null;
+        if (page.HasMore)
+        {
+            int? remaining = top.HasValue ? top.Value - page.Value.Count : null;
+            var query = new Dictionary<string, string?>
+            {
+                ["maxpagesize"] = maxPageSize.ToString(CultureInfo.InvariantCulture),
+                ["continuationToken"] = page.ContinuationToken,
+                ["api-version"] = WebPubSubApiControllerDefinition.ApiVersion,
+            };
+            if (remaining.HasValue)
+            {
+                query["top"] = remaining.Value.ToString(CultureInfo.InvariantCulture);
+            }
+            var path = $"{Request.Scheme}://{Request.Host}{Request.PathBase}{Request.Path}";
+            nextLink = new Uri(QueryHelpers.AddQueryString(path, query));
+        }
+
+        return Task.FromResult<IActionResult>(Ok(new GroupMemberPageResponse(page.Value)
+        {
+            NextLink = nextLink,
+        }));
+    }
+
     public override Task<IActionResult> UserExists(
         string hub,
         string userId,
@@ -374,6 +484,95 @@ internal sealed class WebPubSubEmulatorController : WebPubSubApiControllerDefini
 
         _connections.RemoveUserFromAllGroups(hub, userId);
         return Task.FromResult<IActionResult>(NoContent());
+    }
+
+    private async Task<IActionResult> UpdateConnectionsInGroupsAsync(
+        string hub,
+        bool add,
+        CancellationToken cancellationToken)
+    {
+        if (!Authorize())
+        {
+            return Unauthorized();
+        }
+        if (!Request.HasJsonContentType())
+        {
+            return UnsupportedContentType();
+        }
+
+        BulkGroupRequest? operation;
+        try
+        {
+            operation = await Request.ReadFromJsonAsync<BulkGroupRequest>(cancellationToken);
+        }
+        catch (JsonException)
+        {
+            return BadRequest();
+        }
+        if (operation?.Groups is not { Length: > 0 } groups ||
+            groups.Any(group => string.IsNullOrWhiteSpace(group) || group.Length > 1024))
+        {
+            return BadRequest();
+        }
+
+        try
+        {
+            ODataFilterExecutor.Instance.Validate(operation.Filter);
+        }
+        catch (InvalidFilterException exception)
+        {
+            return InvalidFilter(exception);
+        }
+
+        if (add)
+        {
+            _connections.AddConnectionsToGroups(hub, groups, operation.Filter);
+        }
+        else
+        {
+            _connections.RemoveConnectionsFromGroups(hub, groups, operation.Filter);
+        }
+        return Ok();
+    }
+
+    private string GetCloseReason()
+    {
+        var reason = Request.Query["reason"].ToString();
+        return string.IsNullOrEmpty(reason) ? "Closed by REST API." : reason;
+    }
+
+    private bool TryGetPositiveQueryValue(string name, int defaultValue, out int value)
+    {
+        if (!Request.Query.TryGetValue(name, out var values))
+        {
+            value = defaultValue;
+            return true;
+        }
+
+        value = default;
+        return values.Count == 1 &&
+            int.TryParse(values[0], NumberStyles.None, CultureInfo.InvariantCulture, out value) &&
+            value > 0;
+    }
+
+    private bool TryGetOptionalPositiveQueryValue(string name, out int? value)
+    {
+        if (!Request.Query.TryGetValue(name, out var values))
+        {
+            value = null;
+            return true;
+        }
+
+        if (values.Count == 1 &&
+            int.TryParse(values[0], NumberStyles.None, CultureInfo.InvariantCulture, out var parsed) &&
+            parsed > 0)
+        {
+            value = parsed;
+            return true;
+        }
+
+        value = null;
+        return false;
     }
 
     private bool HasValidMessageTtl()

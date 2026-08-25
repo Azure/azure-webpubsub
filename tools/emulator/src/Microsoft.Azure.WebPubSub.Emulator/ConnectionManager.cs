@@ -110,6 +110,44 @@ internal sealed class ConnectionManager
         return true;
     }
 
+    public void RemoveConnectionFromAllGroups(string hub, string connectionId)
+    {
+        if (TryGet(hub, connectionId, out var connection))
+        {
+            connection.Groups.Clear();
+        }
+    }
+
+    public void AddConnectionsToGroups(
+        string hub,
+        IReadOnlyList<string> groups,
+        string? filter)
+    {
+        foreach (var connection in GetHubConnections(hub)
+            .Where(connection => ODataFilterExecutor.Instance.Matches(filter, connection)))
+        {
+            foreach (var group in groups)
+            {
+                connection.Groups.TryAdd(group, 0);
+            }
+        }
+    }
+
+    public void RemoveConnectionsFromGroups(
+        string hub,
+        IReadOnlyList<string> groups,
+        string? filter)
+    {
+        foreach (var connection in GetHubConnections(hub)
+            .Where(connection => ODataFilterExecutor.Instance.Matches(filter, connection)))
+        {
+            foreach (var group in groups)
+            {
+                connection.Groups.TryRemove(group, out _);
+            }
+        }
+    }
+
     public bool AddUserToGroup(string hub, string userId, string group)
     {
         var connections = GetUserConnections(hub, userId);
@@ -159,6 +197,57 @@ internal sealed class ConnectionManager
         {
             connection.Close(reason);
         }
+    }
+
+    public void CloseAllConnections(
+        string hub,
+        string reason,
+        IReadOnlySet<string>? excludedConnectionIds = null)
+    {
+        CloseConnections(
+            GetHubConnections(hub),
+            reason,
+            excludedConnectionIds);
+    }
+
+    public void CloseGroupConnections(
+        string hub,
+        string group,
+        string reason,
+        IReadOnlySet<string>? excludedConnectionIds = null)
+    {
+        CloseConnections(
+            GetHubConnections(hub).Where(connection => connection.Groups.ContainsKey(group)),
+            reason,
+            excludedConnectionIds);
+    }
+
+    public GroupMemberPage ListConnectionsInGroup(
+        string hub,
+        string group,
+        int maxPageSize,
+        int? top,
+        string? continuationToken)
+    {
+        var limit = Math.Min(maxPageSize, top ?? int.MaxValue);
+        var candidates = GetHubConnections(hub)
+            .Where(connection => connection.Groups.ContainsKey(group))
+            .Where(connection => string.Compare(
+                connection.ConnectionId,
+                continuationToken,
+                StringComparison.InvariantCulture) > 0)
+            .OrderBy(connection => connection.ConnectionId, StringComparer.InvariantCulture)
+            .Take(limit + 1)
+            .ToArray();
+        var members = candidates
+            .Take(limit)
+            .Select(connection => new GroupMember(connection.ConnectionId, connection.UserId))
+            .ToArray();
+        var hasMore = candidates.Length > limit && (!top.HasValue || top.Value > limit);
+        return new GroupMemberPage(
+            members,
+            hasMore ? members[^1].ConnectionId : null,
+            hasMore);
     }
 
     public void SendToAll(
@@ -230,6 +319,19 @@ internal sealed class ConnectionManager
         return GetHubConnections(hub)
             .Where(connection => string.Equals(connection.UserId, userId, StringComparison.Ordinal))
             .ToArray();
+    }
+
+    private static void CloseConnections(
+        IEnumerable<LogicalConnection> connections,
+        string reason,
+        IReadOnlySet<string>? excludedConnectionIds)
+    {
+        foreach (var connection in connections
+            .Where(connection => excludedConnectionIds?.Contains(connection.ConnectionId) != true)
+            .ToArray())
+        {
+            connection.Close(reason);
+        }
     }
 
     private async Task ExpireAsync(LogicalConnection connection, long generation)

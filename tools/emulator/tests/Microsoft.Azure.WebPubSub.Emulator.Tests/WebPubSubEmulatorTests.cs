@@ -112,12 +112,13 @@ public class WebPubSubEmulatorTests
     }
 
     [Fact]
-    public async Task RestApi_UnimplementedGeneratedOperation_ReturnsNotImplemented()
+    public async Task RestApi_UnimplementedPermissionOperation_ReturnsNotImplemented()
     {
         await using var application = await StartApplicationAsync();
         using var request = new HttpRequestMessage(
-            HttpMethod.Post,
-            $"/api/hubs/{Hub}/:addToGroups?api-version=2024-12-01");
+            HttpMethod.Put,
+            $"/api/hubs/{Hub}/permissions/sendToGroup/connections/connection" +
+            "?targetName=room&api-version=2024-12-01");
 
         using var response = await application.GetTestClient().SendAsync(request).OrTimeout();
 
@@ -128,7 +129,7 @@ public class WebPubSubEmulatorTests
         using var body = JsonDocument.Parse(await response.Content.ReadAsStringAsync());
         Assert.Equal("NotImplemented", body.RootElement.GetProperty("code").GetString());
         Assert.Contains(
-            "WebPubSub_AddConnectionsToGroups",
+            "WebPubSub_GrantPermission",
             body.RootElement.GetProperty("message").GetString());
     }
 
@@ -965,6 +966,260 @@ public class WebPubSubEmulatorTests
     }
 
     [Fact]
+    public async Task RestApi_BulkGroupOperations_ApplyFilterToCurrentConnections()
+    {
+        await using var application = await StartApplicationAsync();
+        using var target = await ConnectAsync(
+            application,
+            GetClientUri(userId: "target-user"));
+        using var other = await ConnectAsync(
+            application,
+            GetClientUri(groups: ["room-a"], userId: "other-user"));
+        using var targetConnected = await ReceiveJsonAsync(target);
+        using var otherConnected = await ReceiveJsonAsync(other);
+        var targetConnectionId = targetConnected.RootElement.GetProperty("connectionId").GetString()!;
+        var otherConnectionId = otherConnected.RootElement.GetProperty("connectionId").GetString()!;
+
+        using (var request = CreateAuthorizedRequest(
+            HttpMethod.Post,
+            $"/api/hubs/{Hub}/:addToGroups?api-version=2024-12-01"))
+        {
+            request.Content = new StringContent(
+                """{"groups":["room-a","room-b"],"filter":"userId eq 'target-user'"}""",
+                Encoding.UTF8,
+                "application/json");
+            using var response = await application.GetTestClient().SendAsync(request).OrTimeout();
+            Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        }
+
+        Assert.Equal(
+            new[] { targetConnectionId, otherConnectionId }.Order(StringComparer.InvariantCulture),
+            (await GetGroupMembersAsync(application, "room-a"))
+                .Order(StringComparer.InvariantCulture));
+        Assert.Equal(
+            [targetConnectionId],
+            await GetGroupMembersAsync(application, "room-b"));
+
+        using (var request = CreateAuthorizedRequest(
+            HttpMethod.Post,
+            $"/api/hubs/{Hub}/:removeFromGroups?api-version=2024-12-01"))
+        {
+            request.Content = new StringContent(
+                """{"groups":["room-a","room-b"],"filter":"userId eq 'target-user'"}""",
+                Encoding.UTF8,
+                "application/json");
+            using var response = await application.GetTestClient().SendAsync(request).OrTimeout();
+            Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        }
+
+        Assert.Equal([otherConnectionId], await GetGroupMembersAsync(application, "room-a"));
+        Assert.Empty(await GetGroupMembersAsync(application, "room-b"));
+
+        await target.CloseAsync(
+            WebSocketCloseStatus.NormalClosure,
+            "Test complete.",
+            CancellationToken.None);
+        await other.CloseAsync(
+            WebSocketCloseStatus.NormalClosure,
+            "Test complete.",
+            CancellationToken.None);
+    }
+
+    [Theory]
+    [InlineData("{}", "application/json", HttpStatusCode.BadRequest)]
+    [InlineData("{\"groups\":[]}", "application/json", HttpStatusCode.BadRequest)]
+    [InlineData("{\"groups\":[\" \" ]}", "application/json", HttpStatusCode.BadRequest)]
+    [InlineData("{", "application/json", HttpStatusCode.BadRequest)]
+    [InlineData(
+        "{\"groups\":[\"room\"],\"filter\":\"userId lt 1\"}",
+        "application/json",
+        HttpStatusCode.BadRequest)]
+    [InlineData("{\"groups\":[\"room\"]}", "application/xml", HttpStatusCode.UnsupportedMediaType)]
+    public async Task RestApi_BulkGroupOperations_ValidateRequest(
+        string body,
+        string contentType,
+        HttpStatusCode expectedStatus)
+    {
+        await using var application = await StartApplicationAsync();
+        using var request = CreateAuthorizedRequest(
+            HttpMethod.Post,
+            $"/api/hubs/{Hub}/:addToGroups?api-version=2024-12-01");
+        request.Content = new StringContent(body, Encoding.UTF8, contentType);
+
+        using var response = await application.GetTestClient().SendAsync(request).OrTimeout();
+
+        Assert.Equal(expectedStatus, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task RestApi_RemoveConnectionFromAllGroups_IsIdempotent()
+    {
+        await using var application = await StartApplicationAsync();
+        using var webSocket = await ConnectAsync(
+            application,
+            GetClientUri(groups: ["room-a", "room-b"]));
+        using var connected = await ReceiveJsonAsync(webSocket);
+        var connectionId = connected.RootElement.GetProperty("connectionId").GetString()!;
+
+        using (var request = CreateAuthorizedRequest(
+            HttpMethod.Delete,
+            $"/api/hubs/{Hub}/connections/{connectionId}/groups?api-version=2024-12-01"))
+        using (var response = await application.GetTestClient().SendAsync(request).OrTimeout())
+        {
+            Assert.Equal(HttpStatusCode.NoContent, response.StatusCode);
+        }
+        Assert.Empty(await GetGroupMembersAsync(application, "room-a"));
+        Assert.Empty(await GetGroupMembersAsync(application, "room-b"));
+
+        using (var request = CreateAuthorizedRequest(
+            HttpMethod.Delete,
+            $"/api/hubs/{Hub}/connections/missing/groups?api-version=2024-12-01"))
+        using (var response = await application.GetTestClient().SendAsync(request).OrTimeout())
+        {
+            Assert.Equal(HttpStatusCode.NoContent, response.StatusCode);
+        }
+
+        await webSocket.CloseAsync(
+            WebSocketCloseStatus.NormalClosure,
+            "Test complete.",
+            CancellationToken.None);
+    }
+
+    [Fact]
+    public async Task RestApi_CloseGroupAndHubConnections_HonorExclusionsAndReason()
+    {
+        await using var application = await StartApplicationAsync();
+        using var included = await ConnectAsync(application, GetClientUri(groups: ["room"]));
+        using var excluded = await ConnectAsync(application, GetClientUri(groups: ["room"]));
+        using var outside = await ConnectAsync(application, GetClientUri());
+        _ = await ReceiveJsonAsync(included);
+        using var excludedConnected = await ReceiveJsonAsync(excluded);
+        using var outsideConnected = await ReceiveJsonAsync(outside);
+        var excludedConnectionId = excludedConnected.RootElement.GetProperty("connectionId").GetString()!;
+        var outsideConnectionId = outsideConnected.RootElement.GetProperty("connectionId").GetString()!;
+
+        using (var request = CreateAuthorizedRequest(
+            HttpMethod.Post,
+            $"/api/hubs/{Hub}/groups/room/:closeConnections" +
+            $"?excluded={Uri.EscapeDataString(excludedConnectionId)}&reason=group-close&api-version=2024-12-01"))
+        using (var response = await application.GetTestClient().SendAsync(request).OrTimeout())
+        {
+            Assert.Equal(HttpStatusCode.NoContent, response.StatusCode);
+        }
+        var closeBuffer = new byte[256];
+        var groupClose = await included
+            .ReceiveAsync(new ArraySegment<byte>(closeBuffer), CancellationToken.None)
+            .OrTimeout();
+        Assert.Equal(WebSocketMessageType.Close, groupClose.MessageType);
+        Assert.Equal("group-close", groupClose.CloseStatusDescription);
+        await AssertWebSocketIsOpenAsync(excluded);
+        await AssertWebSocketIsOpenAsync(outside);
+
+        using (var request = CreateAuthorizedRequest(
+            HttpMethod.Post,
+            $"/api/hubs/{Hub}/:closeConnections" +
+            $"?excluded={Uri.EscapeDataString(outsideConnectionId)}&reason=hub-close&api-version=2024-12-01"))
+        using (var response = await application.GetTestClient().SendAsync(request).OrTimeout())
+        {
+            Assert.Equal(HttpStatusCode.NoContent, response.StatusCode);
+        }
+        var hubClose = await excluded
+            .ReceiveAsync(new ArraySegment<byte>(closeBuffer), CancellationToken.None)
+            .OrTimeout();
+        Assert.Equal(WebSocketMessageType.Close, hubClose.MessageType);
+        Assert.Equal("hub-close", hubClose.CloseStatusDescription);
+        await AssertWebSocketIsOpenAsync(outside);
+
+        await outside.CloseAsync(
+            WebSocketCloseStatus.NormalClosure,
+            "Test complete.",
+            CancellationToken.None);
+    }
+
+    [Fact]
+    public async Task RestApi_ListConnectionsInGroup_PagesInStableOrderAndHonorsTop()
+    {
+        await using var application = await StartApplicationAsync();
+        using var first = await ConnectAsync(
+            application,
+            GetClientUri(groups: ["room"], userId: "first-user"));
+        using var second = await ConnectAsync(
+            application,
+            GetClientUri(groups: ["room"], userId: "second-user"));
+        using var third = await ConnectAsync(
+            application,
+            GetClientUri(groups: ["room"], userId: "third-user"));
+        using var firstConnected = await ReceiveJsonAsync(first);
+        using var secondConnected = await ReceiveJsonAsync(second);
+        using var thirdConnected = await ReceiveJsonAsync(third);
+        var usersByConnection = new Dictionary<string, string>
+        {
+            [firstConnected.RootElement.GetProperty("connectionId").GetString()!] = "first-user",
+            [secondConnected.RootElement.GetProperty("connectionId").GetString()!] = "second-user",
+            [thirdConnected.RootElement.GetProperty("connectionId").GetString()!] = "third-user",
+        };
+        var orderedConnectionIds = usersByConnection.Keys
+            .Order(StringComparer.InvariantCulture)
+            .ToArray();
+
+        using var firstRequest = CreateAuthorizedRequest(
+            HttpMethod.Get,
+            $"/api/hubs/{Hub}/groups/room/connections" +
+            "?maxpagesize=1&top=2&api-version=2024-12-01");
+        using var firstResponse = await application.GetTestClient().SendAsync(firstRequest).OrTimeout();
+        Assert.Equal(HttpStatusCode.OK, firstResponse.StatusCode);
+        using var firstPage = JsonDocument.Parse(await firstResponse.Content.ReadAsByteArrayAsync());
+        var firstMember = Assert.Single(firstPage.RootElement.GetProperty("value").EnumerateArray());
+        Assert.Equal(orderedConnectionIds[0], firstMember.GetProperty("connectionId").GetString());
+        Assert.Equal(
+            usersByConnection[orderedConnectionIds[0]],
+            firstMember.GetProperty("userId").GetString());
+        var nextLink = firstPage.RootElement.GetProperty("nextLink").GetString();
+        Assert.NotNull(nextLink);
+
+        using var nextRequest = CreateAuthorizedRequest(
+            HttpMethod.Get,
+            new Uri(nextLink).PathAndQuery);
+        using var nextResponse = await application.GetTestClient().SendAsync(nextRequest).OrTimeout();
+        Assert.Equal(HttpStatusCode.OK, nextResponse.StatusCode);
+        using var secondPage = JsonDocument.Parse(await nextResponse.Content.ReadAsByteArrayAsync());
+        var secondMember = Assert.Single(secondPage.RootElement.GetProperty("value").EnumerateArray());
+        Assert.Equal(orderedConnectionIds[1], secondMember.GetProperty("connectionId").GetString());
+        Assert.False(secondPage.RootElement.TryGetProperty("nextLink", out _));
+
+        await first.CloseAsync(
+            WebSocketCloseStatus.NormalClosure,
+            "Test complete.",
+            CancellationToken.None);
+        await second.CloseAsync(
+            WebSocketCloseStatus.NormalClosure,
+            "Test complete.",
+            CancellationToken.None);
+        await third.CloseAsync(
+            WebSocketCloseStatus.NormalClosure,
+            "Test complete.",
+            CancellationToken.None);
+    }
+
+    [Theory]
+    [InlineData("maxpagesize=0")]
+    [InlineData("maxpagesize=201")]
+    [InlineData("maxpagesize=invalid")]
+    [InlineData("top=0")]
+    [InlineData("top=invalid")]
+    public async Task RestApi_ListConnectionsInGroup_ValidatesPagingArguments(string query)
+    {
+        await using var application = await StartApplicationAsync();
+        using var request = CreateAuthorizedRequest(
+            HttpMethod.Get,
+            $"/api/hubs/{Hub}/groups/room/connections?{query}&api-version=2024-12-01");
+
+        using var response = await application.GetTestClient().SendAsync(request).OrTimeout();
+
+        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+    }
+
+    [Fact]
     public async Task OfficialSdk_MissingRestResources_ReturnExpectedResults()
     {
         var endpoint = $"http://127.0.0.1:{GetAvailablePort()}";
@@ -998,12 +1253,18 @@ public class WebPubSubEmulatorTests
 
     [Theory]
     [InlineData("POST", "/api/hubs/testHub/:generateToken")]
+    [InlineData("POST", "/api/hubs/testHub/:addToGroups")]
+    [InlineData("POST", "/api/hubs/testHub/:removeFromGroups")]
+    [InlineData("POST", "/api/hubs/testHub/:closeConnections")]
     [InlineData("POST", "/api/hubs/testHub/:send")]
     [InlineData("POST", "/api/hubs/testHub/groups/room/:send")]
     [InlineData("POST", "/api/hubs/testHub/connections/connection/:send")]
     [InlineData("HEAD", "/api/hubs/testHub/connections/connection")]
     [InlineData("DELETE", "/api/hubs/testHub/connections/connection")]
+    [InlineData("DELETE", "/api/hubs/testHub/connections/connection/groups")]
     [InlineData("HEAD", "/api/hubs/testHub/groups/room")]
+    [InlineData("POST", "/api/hubs/testHub/groups/room/:closeConnections")]
+    [InlineData("GET", "/api/hubs/testHub/groups/room/connections")]
     [InlineData("PUT", "/api/hubs/testHub/groups/room/connections/connection")]
     [InlineData("DELETE", "/api/hubs/testHub/groups/room/connections/connection")]
     [InlineData("HEAD", "/api/hubs/testHub/users/user")]
@@ -1361,6 +1622,29 @@ public class WebPubSubEmulatorTests
             "Bearer",
             new JwtSecurityTokenHandler().WriteToken(token));
         return request;
+    }
+
+    private static async Task<string[]> GetGroupMembersAsync(
+        WebApplication application,
+        string group)
+    {
+        using var request = CreateAuthorizedRequest(
+            HttpMethod.Get,
+            $"/api/hubs/{Hub}/groups/{group}/connections?api-version=2024-12-01");
+        using var response = await application.GetTestClient().SendAsync(request).OrTimeout();
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        using var body = JsonDocument.Parse(await response.Content.ReadAsByteArrayAsync());
+        return body.RootElement.GetProperty("value")
+            .EnumerateArray()
+            .Select(member => member.GetProperty("connectionId").GetString()!)
+            .ToArray();
+    }
+
+    private static async Task AssertWebSocketIsOpenAsync(WebSocket webSocket)
+    {
+        await SendJsonAsync(webSocket, """{"type":"ping"}""");
+        using var pong = await ReceiveJsonAsync(webSocket);
+        Assert.Equal("pong", pong.RootElement.GetProperty("type").GetString());
     }
 
     private static async Task AssertUnsupportedFeatureAsync(HttpResponseMessage response)

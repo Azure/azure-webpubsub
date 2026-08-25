@@ -40,12 +40,12 @@ API. Unsupported routes return a structured `501 Not Implemented` response.
 | `POST` | `/api/hubs/{hub}/connections/{connectionId}/:send` | `WebPubSub_SendToConnection` | ⚠️ Emulator semantics | Validates `messageTtlSeconds` from 0 through 300, but delivery is immediate and TTL retention is not modeled. |
 | `POST` | `/api/hubs/{hub}/groups/{group}/:send` | `WebPubSub_SendToGroup` | ⚠️ Emulator semantics | Supports `excluded` and OData `filter`; validates `messageTtlSeconds` from 0 through 300, but delivery is immediate and TTL retention is not modeled. |
 | `POST` | `/api/hubs/{hub}/:generateToken` | `WebPubSub_GenerateClientToken` | 🟡 Partial | Default Web PubSub client tokens are supported; MQTT client tokens are not. |
-| `POST` | `/api/hubs/{hub}/:addToGroups` | `WebPubSub_AddConnectionsToGroups` | ❌ Not implemented | Needs request-body models and bulk connection/group mutation primitives. |
-| `POST` | `/api/hubs/{hub}/:closeConnections` | `WebPubSub_CloseAllConnections` | ❌ Not implemented | Needs hub-wide selection, `excluded`, and bulk close behavior. |
-| `POST` | `/api/hubs/{hub}/:removeFromGroups` | `WebPubSub_RemoveConnectionsFromGroups` | ❌ Not implemented | Needs request-body models and bulk connection/group mutation primitives. |
-| `DELETE` | `/api/hubs/{hub}/connections/{connectionId}/groups` | `WebPubSub_RemoveConnectionFromAllGroups` | ❌ Not implemented | The connection tracks its groups, but the manager does not yet expose this mutation. |
-| `POST` | `/api/hubs/{hub}/groups/{group}/:closeConnections` | `WebPubSub_CloseGroupConnections` | ❌ Not implemented | Needs group-wide selection, `excluded`, and bulk close behavior. |
-| `GET` | `/api/hubs/{hub}/groups/{group}/connections` | `WebPubSub_ListConnectionsInGroup` | ❌ Not implemented | Needs stable ordering, page-size handling, response models, and continuation-token semantics. |
+| `POST` | `/api/hubs/{hub}/:addToGroups` | `WebPubSub_AddConnectionsToGroups` | ✅ Implemented | Adds connections selected by the request-body OData `filter` to every requested group. |
+| `POST` | `/api/hubs/{hub}/:closeConnections` | `WebPubSub_CloseAllConnections` | ✅ Implemented | Supports repeated `excluded` values and the `reason` query parameter. |
+| `POST` | `/api/hubs/{hub}/:removeFromGroups` | `WebPubSub_RemoveConnectionsFromGroups` | ✅ Implemented | Removes connections selected by the request-body OData `filter` from every requested group. |
+| `DELETE` | `/api/hubs/{hub}/connections/{connectionId}/groups` | `WebPubSub_RemoveConnectionFromAllGroups` | ✅ Implemented | Removes all current group memberships and succeeds when the connection does not exist. |
+| `POST` | `/api/hubs/{hub}/groups/{group}/:closeConnections` | `WebPubSub_CloseGroupConnections` | ✅ Implemented | Supports repeated `excluded` values and the `reason` query parameter. |
+| `GET` | `/api/hubs/{hub}/groups/{group}/connections` | `WebPubSub_ListConnectionsInGroup` | ✅ Implemented | Supports stable continuation-token paging, `maxpagesize`, and `top`. |
 | `DELETE` | `/api/hubs/{hub}/permissions/{permission}/connections/{connectionId}` | `WebPubSub_RevokePermission` | ❌ Not implemented | Needs mutable per-connection permission state and enforcement. |
 | `HEAD` | `/api/hubs/{hub}/permissions/{permission}/connections/{connectionId}` | `WebPubSub_CheckPermission` | ❌ Not implemented | Current permissions are derived only from token roles at connection time. |
 | `PUT` | `/api/hubs/{hub}/permissions/{permission}/connections/{connectionId}` | `WebPubSub_GrantPermission` | ❌ Not implemented | Needs mutable per-connection permission state, `targetName` handling, and enforcement. |
@@ -58,12 +58,10 @@ API. Unsupported routes return a structured `501 Not Implemented` response.
 
 ### REST operations not yet implemented
 
-The following 9 registered operations return `501 Not Implemented`:
+The following 3 registered operations return `501 Not Implemented`:
 
 | Area | Operations |
 | --- | --- |
-| Hub-wide operations | `WebPubSub_AddConnectionsToGroups`, `WebPubSub_RemoveConnectionsFromGroups`, `WebPubSub_CloseAllConnections` |
-| Connection and group operations | `WebPubSub_RemoveConnectionFromAllGroups`, `WebPubSub_CloseGroupConnections`, `WebPubSub_ListConnectionsInGroup` |
 | Dynamic permissions | `WebPubSub_GrantPermission`, `WebPubSub_RevokePermission`, `WebPubSub_CheckPermission` |
 
 Implemented REST routes still have these feature gaps:
