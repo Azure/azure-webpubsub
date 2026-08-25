@@ -1,4 +1,4 @@
 -r python_server/requirements.txt
-mypy==2.3.0
+mypy==2.3.1
 pytest-timeout==2.4.0
 chevron==0.14.0
