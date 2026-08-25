@@ -26,6 +26,8 @@ internal sealed class LogicalConnection : IODataFilterModel
     private readonly int _outboundQueueCapacity;
     private readonly ConnectionRolePermissions _joinLeavePermissions;
     private readonly ConnectionRolePermissions _sendToGroupPermissions;
+    private readonly ConnectionRolePermissions _setGroupStatePermissions;
+    private readonly ConnectionRolePermissions _getGroupStatePermissions;
 
     private SocketTransport? _activeTransport;
     private long _generation;
@@ -77,6 +79,14 @@ internal sealed class LogicalConnection : IODataFilterModel
             Roles,
             "webpubsub.sendToGroup",
             "webpubsub.sendToGroups.");
+        _setGroupStatePermissions = new(
+            Roles,
+            "webpubsub.setGroupState",
+            "webpubsub.setGroupState.");
+        _getGroupStatePermissions = new(
+            Roles,
+            "webpubsub.getGroupState",
+            "webpubsub.getGroupState.");
     }
 
     public string ConnectionId { get; }
@@ -94,6 +104,10 @@ internal sealed class LogicalConnection : IODataFilterModel
     public string? ConnectionState { get; private set; }
 
     public ConcurrentDictionary<string, byte> Groups { get; } = new(StringComparer.Ordinal);
+
+    public GroupStateStore GroupStateStore { get; } = new();
+
+    public GroupStateSubscriptionSet GroupStateSubscriptions { get; } = new();
 
     string[] IODataFilterModel.Groups => Groups.Keys.ToArray();
 
@@ -187,6 +201,18 @@ internal sealed class LogicalConnection : IODataFilterModel
         SendData(sequenceId => WebPubSubJsonProtocol.WriteServerData(data, sequenceId));
     }
 
+    public void SendGroupStateUpdate(string group, GroupStateItem item)
+    {
+        SendData(sequenceId =>
+            WebPubSubJsonProtocol.WriteGroupStateUpdate(group, [item], sequenceId));
+    }
+
+    public void SendGroupStateSnapshot(string group, IReadOnlyList<GroupStateItem> items)
+    {
+        SendData(sequenceId =>
+            WebPubSubJsonProtocol.WriteGroupStateSnapshot(group, items, sequenceId));
+    }
+
     public void Acknowledge(ulong sequenceId)
     {
         lock (_stateLock)
@@ -217,6 +243,16 @@ internal sealed class LogicalConnection : IODataFilterModel
     public bool CanSendToGroup(string group)
     {
         return _sendToGroupPermissions.Check(group);
+    }
+
+    public bool CanSetGroupState(string group)
+    {
+        return _setGroupStatePermissions.Check(group);
+    }
+
+    public bool CanGetGroupState(string group)
+    {
+        return _getGroupStatePermissions.Check(group);
     }
 
     public UpstreamEvent CreateSystemEvent(string eventName, MessageData data)
@@ -295,7 +331,21 @@ internal sealed class LogicalConnection : IODataFilterModel
         }
 
         _manager.Remove(this, reason);
-        transport?.CloseOutput(WebSocketCloseStatus.NormalClosure, reason);
+        if (transport is not null)
+        {
+            if (IsRaw)
+            {
+                transport.CloseOutput(WebSocketCloseStatus.NormalClosure, reason);
+            }
+            else
+            {
+                transport.CloseOutput(
+                    WebPubSubJsonProtocol.WriteDisconnected(reason),
+                    WebSocketMessageType.Text,
+                    WebSocketCloseStatus.NormalClosure,
+                    reason);
+            }
+        }
     }
 
     private UpstreamEvent CreateEvent(
@@ -345,7 +395,11 @@ internal sealed class LogicalConnection : IODataFilterModel
             }
         }
 
-        dropped?.CloseOutput(WebSocketCloseStatus.PolicyViolation, reason);
+        if (dropped is not null)
+        {
+            _manager.Remove(this, reason);
+            dropped.CloseOutput(WebSocketCloseStatus.PolicyViolation, reason);
+        }
     }
 
     private void SendRaw(MessageData data)
@@ -369,7 +423,11 @@ internal sealed class LogicalConnection : IODataFilterModel
             dropped = _closed ? null : EnqueueLocked(payload, messageType);
         }
 
-        dropped?.CloseOutput(WebSocketCloseStatus.PolicyViolation, OutboundQueueFullReason);
+        if (dropped is not null)
+        {
+            _manager.Remove(this, OutboundQueueFullReason);
+            dropped.CloseOutput(WebSocketCloseStatus.PolicyViolation, OutboundQueueFullReason);
+        }
     }
 
     /// <summary>
@@ -400,7 +458,6 @@ internal sealed class LogicalConnection : IODataFilterModel
         var transport = _activeTransport;
         _activeTransport = null;
         _closed = true;
-        _manager.Remove(this, "The outbound message capacity was exceeded.");
         return transport;
     }
 }

@@ -114,6 +114,7 @@ public class UpstreamEventIntegrationTests
         await using var handler = await StartEventHandlerAsync(requests, async (context, _) =>
         {
             context.Response.Headers["ce-connectionState"] = "updated-state";
+            context.Response.Headers["X-WebPubSub-Metadata-Result"] = "handled";
             context.Response.ContentType = "text/plain";
             await context.Response.WriteAsync("handler-response");
         });
@@ -131,13 +132,16 @@ public class UpstreamEventIntegrationTests
 
         await SendJsonAsync(
             webSocket,
-            """{"type":"event","event":"chat-message","dataType":"text","data":"client-payload","ackId":7}""");
+            """{"type":"event","event":"chat-message","dataType":"text","data":"client-payload","metadata":{"TraceId":"abc-123"},"ackId":7}""");
 
         using (var response = await ReceiveJsonAsync(webSocket))
         {
             Assert.Equal("message", response.RootElement.GetProperty("type").GetString());
             Assert.Equal("server", response.RootElement.GetProperty("from").GetString());
             Assert.Equal("handler-response", response.RootElement.GetProperty("data").GetString());
+            Assert.Equal(
+                "handled",
+                response.RootElement.GetProperty("metadata").GetProperty("result").GetString());
         }
         using (var ack = await ReceiveJsonAsync(webSocket))
         {
@@ -148,13 +152,56 @@ public class UpstreamEventIntegrationTests
         var handlerEvent = await ReadEventAsync(requests);
         Assert.Equal("chat-message", handlerEvent.EventName);
         Assert.Equal("azure.webpubsub.user.chat-message", handlerEvent.Headers["ce-type"]);
+        Assert.Equal("abc-123", handlerEvent.Headers["X-WebPubSub-Metadata-traceid"]);
         Assert.Equal("client-payload", Encoding.UTF8.GetString(handlerEvent.Body));
 
         var published = await eventHub.Events.Reader.ReadAsync().AsTask().OrTimeout();
         Assert.Equal("chat-message", published.Event.EventName);
         Assert.Equal("client-payload", Encoding.UTF8.GetString(published.Event.Data.Bytes));
+        Assert.Equal("abc-123", published.Event.Data.Metadata!["TraceId"]);
         Assert.Equal("events.servicebus.windows.net", published.Endpoint.FullyQualifiedNamespace);
         Assert.Equal("client-events", published.Endpoint.EventHubName);
+
+        await webSocket.CloseAsync(
+            WebSocketCloseStatus.NormalClosure,
+            "Test complete.",
+            CancellationToken.None).OrTimeout();
+    }
+
+    [Fact]
+    public async Task UserEvent_MetadataOnlyHandlerResponse_IsDelivered()
+    {
+        var requests = Channel.CreateUnbounded<ReceivedEvent>();
+        await using var handler = await StartEventHandlerAsync(requests, (context, _) =>
+        {
+            context.Response.Headers["X-WebPubSub-Metadata-Result"] = "handled";
+            return Task.CompletedTask;
+        });
+        await using var emulator = await StartEmulatorAsync(new Dictionary<string, string?>
+        {
+            ["WebPubSub:Hubs:testHub:EventHandlers:0:UrlTemplate"] = $"{handler.Urls.Single()}/events/{{hub}}/{{event}}",
+            ["WebPubSub:Hubs:testHub:EventHandlers:0:EventPattern"] = "chat-message",
+        });
+        using var webSocket = await ConnectAsync(emulator);
+        _ = await ReceiveJsonAsync(webSocket);
+
+        await SendJsonAsync(
+            webSocket,
+            """{"type":"event","event":"chat-message","dataType":"text","data":"client-payload","ackId":7}""");
+
+        using (var response = await ReceiveJsonAsync(webSocket))
+        {
+            Assert.Equal("message", response.RootElement.GetProperty("type").GetString());
+            Assert.Equal(string.Empty, response.RootElement.GetProperty("data").GetString());
+            Assert.Equal(
+                "handled",
+                response.RootElement.GetProperty("metadata").GetProperty("result").GetString());
+        }
+        using (var ack = await ReceiveJsonAsync(webSocket))
+        {
+            Assert.Equal(7UL, ack.RootElement.GetProperty("ackId").GetUInt64());
+            Assert.True(ack.RootElement.GetProperty("success").GetBoolean());
+        }
 
         await webSocket.CloseAsync(
             WebSocketCloseStatus.NormalClosure,

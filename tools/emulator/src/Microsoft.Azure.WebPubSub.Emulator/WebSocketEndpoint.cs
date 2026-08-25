@@ -3,6 +3,7 @@
 
 using System.Net.WebSockets;
 using System.Security.Claims;
+using System.Text;
 using System.Text.Json;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Logging;
@@ -281,6 +282,9 @@ internal sealed class WebSocketEndpoint
             LeaveGroupMessage leave => leave.AckId,
             SendToGroupMessage send => send.AckId,
             EventMessage clientEvent => clientEvent.AckId,
+            SetGroupStateMessage setState => setState.AckId,
+            SubscribeGroupStateMessage subscribeState => subscribeState.AckId,
+            UnsubscribeGroupStateMessage unsubscribeState => unsubscribeState.AckId,
             _ => null,
         };
         if (ackId.HasValue && !connection.TryAddAckId(ackId.Value))
@@ -300,7 +304,10 @@ internal sealed class WebSocketEndpoint
                     SendForbiddenAck(connection, join.AckId, "join", join.Group);
                     return;
                 }
-                connection.Groups.TryAdd(join.Group, 0);
+                if (!_connections.AddToGroup(connection, join.Group))
+                {
+                    return;
+                }
                 SendAck(connection, join.AckId);
                 break;
             case LeaveGroupMessage leave:
@@ -309,7 +316,7 @@ internal sealed class WebSocketEndpoint
                     SendForbiddenAck(connection, leave.AckId, "leave", leave.Group);
                     return;
                 }
-                connection.Groups.TryRemove(leave.Group, out _);
+                _connections.RemoveFromGroup(connection, leave.Group);
                 SendAck(connection, leave.AckId);
                 break;
             case SendToGroupMessage send:
@@ -353,6 +360,75 @@ internal sealed class WebSocketEndpoint
                         result.Error ?? "Dispatching the event failed.");
                 }
                 break;
+            case SetGroupStateMessage setState:
+                if (!connection.CanSetGroupState(setState.Group))
+                {
+                    SendGroupStateError(connection, setState.AckId, "Forbidden", "Permission denied.");
+                    return;
+                }
+                if (setState.State is not null && GetGroupStateSize(setState.State) > 512)
+                {
+                    SendGroupStateError(
+                        connection,
+                        setState.AckId,
+                        "BadRequest",
+                        "State payload exceeds maximum size 512 bytes.");
+                    return;
+                }
+                if (!_connections.SetGroupState(connection, setState.Group, setState.State))
+                {
+                    SendGroupStateError(connection, setState.AckId, "Forbidden", "Not a member of group.");
+                    return;
+                }
+                SendAck(connection, setState.AckId);
+                break;
+            case SubscribeGroupStateMessage subscribeState:
+                if (!connection.CanGetGroupState(subscribeState.Group))
+                {
+                    SendGroupStateError(
+                        connection,
+                        subscribeState.AckId,
+                        "Forbidden",
+                        $"No permission to get states of group {subscribeState.Group}.");
+                    return;
+                }
+                if (!_connections.SubscribeGroupState(
+                    connection,
+                    subscribeState.Group,
+                    out var snapshot))
+                {
+                    SendGroupStateError(
+                        connection,
+                        subscribeState.AckId,
+                        "Forbidden",
+                        $"Not a member of group {subscribeState.Group}.");
+                    return;
+                }
+                SendAck(connection, subscribeState.AckId);
+                connection.SendGroupStateSnapshot(subscribeState.Group, snapshot);
+                break;
+            case UnsubscribeGroupStateMessage unsubscribeState:
+                _connections.UnsubscribeGroupState(connection, unsubscribeState.Group);
+                SendAck(connection, unsubscribeState.AckId);
+                break;
+        }
+    }
+
+    private static int GetGroupStateSize(IReadOnlyDictionary<string, string> state)
+    {
+        return state.Sum(item =>
+            Encoding.UTF8.GetByteCount(item.Key) + Encoding.UTF8.GetByteCount(item.Value));
+    }
+
+    private static void SendGroupStateError(
+        LogicalConnection connection,
+        ulong? ackId,
+        string name,
+        string message)
+    {
+        if (ackId.HasValue)
+        {
+            connection.SendErrorAck(ackId.Value, name, message);
         }
     }
 

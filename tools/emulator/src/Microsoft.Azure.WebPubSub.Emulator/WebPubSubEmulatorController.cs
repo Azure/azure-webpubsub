@@ -647,13 +647,24 @@ internal sealed class WebPubSubEmulatorController : WebPubSubApiControllerDefini
         HttpRequest request,
         CancellationToken cancellationToken)
     {
+        IReadOnlyDictionary<string, string>? metadata;
+        try
+        {
+            metadata = GetMetadata(request);
+            WebPubSubMetadata.Validate(metadata);
+        }
+        catch (InvalidDataException)
+        {
+            return null;
+        }
+
         using var stream = new MemoryStream();
         await request.Body.CopyToAsync(stream, cancellationToken);
         var bytes = stream.ToArray();
 
         if (request.ContentType?.StartsWith("application/octet-stream", StringComparison.OrdinalIgnoreCase) == true)
         {
-            return new MessageData(MessageDataType.Binary, bytes);
+            return new MessageData(MessageDataType.Binary, bytes, metadata);
         }
 
         if (request.ContentType?.StartsWith("application/json", StringComparison.OrdinalIgnoreCase) == true)
@@ -667,11 +678,31 @@ internal sealed class WebPubSubEmulatorController : WebPubSubApiControllerDefini
                 return null;
             }
 
-            return new MessageData(MessageDataType.Json, bytes);
+            return new MessageData(MessageDataType.Json, bytes, metadata);
         }
 
         return new MessageData(
             MessageDataType.Text,
-            bytes.Length == 0 ? Encoding.UTF8.GetBytes(string.Empty) : bytes);
+            bytes.Length == 0 ? Encoding.UTF8.GetBytes(string.Empty) : bytes,
+            metadata);
+    }
+
+    private static IReadOnlyDictionary<string, string>? GetMetadata(HttpRequest request)
+    {
+        Dictionary<string, string>? metadata = null;
+        foreach (var header in request.Headers)
+        {
+            if (!header.Key.StartsWith(WebPubSubMetadata.HeaderPrefix, StringComparison.OrdinalIgnoreCase))
+            {
+                continue;
+            }
+
+            var key = header.Key[WebPubSubMetadata.HeaderPrefix.Length..].ToLowerInvariant();
+            var value = header.Value.Count == 0 ? string.Empty : header.Value[^1] ?? string.Empty;
+            var lastComma = value.LastIndexOf(',');
+            metadata ??= new Dictionary<string, string>(StringComparer.Ordinal);
+            metadata[key] = (lastComma < 0 ? value : value[(lastComma + 1)..]).Trim();
+        }
+        return metadata;
     }
 }

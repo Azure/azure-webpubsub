@@ -32,8 +32,19 @@ internal static class WebPubSubJsonProtocol
                 GetRequiredString(root, "group"),
                 ReadData(root),
                 GetOptionalBoolean(root, "noEcho"),
+                GetOptionalUInt32(root, "ttlSeconds", 0, 300),
                 ackId),
             "event" => new EventMessage(GetRequiredString(root, "event"), ReadData(root), ackId),
+            "setGroupState" => new SetGroupStateMessage(
+                GetRequiredString(root, "group"),
+                ReadState(root),
+                ackId),
+            "subscribeGroupState" => new SubscribeGroupStateMessage(
+                GetRequiredString(root, "group"),
+                ackId),
+            "unsubscribeGroupState" => new UnsubscribeGroupStateMessage(
+                GetRequiredString(root, "group"),
+                ackId),
             "sequenceAck" => new SequenceAckMessage(GetRequiredUInt64(root, "sequenceId")),
             "ping" => new PingMessage(),
             _ => throw new InvalidDataException($"Unsupported Web PubSub message type '{type}'."),
@@ -52,6 +63,16 @@ internal static class WebPubSubJsonProtocol
             {
                 writer.WriteString("reconnectionToken", reconnectionToken);
             }
+        });
+    }
+
+    public static byte[] WriteDisconnected(string message)
+    {
+        return Write(writer =>
+        {
+            writer.WriteString("type", "system");
+            writer.WriteString("event", "disconnected");
+            writer.WriteString("message", message);
         });
     }
 
@@ -115,11 +136,30 @@ internal static class WebPubSubJsonProtocol
         });
     }
 
+    public static byte[] WriteGroupStateUpdate(
+        string group,
+        IReadOnlyList<GroupStateItem> items,
+        ulong? sequenceId)
+    {
+        return WriteGroupState("groupStateUpdate", group, items, sequenceId);
+    }
+
+    public static byte[] WriteGroupStateSnapshot(
+        string group,
+        IReadOnlyList<GroupStateItem> items,
+        ulong? sequenceId)
+    {
+        return WriteGroupState("groupStateSnapshot", group, items, sequenceId);
+    }
+
     private static MessageData ReadData(JsonElement root)
     {
+        var metadata = ReadMetadata(root);
         if (!root.TryGetProperty("data", out var data))
         {
-            throw new InvalidDataException("Missing required property 'data'.");
+            return metadata is not null
+                ? new MessageData(MessageDataType.Text, [], metadata)
+                : throw new InvalidDataException("Missing required property 'data'.");
         }
 
         string? dataType = "json";
@@ -136,13 +176,63 @@ internal static class WebPubSubJsonProtocol
         return dataType?.ToUpperInvariant() switch
         {
             "TEXT" when data.ValueKind == JsonValueKind.String =>
-                new MessageData(MessageDataType.Text, Encoding.UTF8.GetBytes(data.GetString()!)),
+                new MessageData(MessageDataType.Text, Encoding.UTF8.GetBytes(data.GetString()!), metadata),
             "BINARY" when data.ValueKind == JsonValueKind.String =>
-                new MessageData(MessageDataType.Binary, ReadBase64(data)),
+                new MessageData(MessageDataType.Binary, ReadBase64(data), metadata),
             "JSON" =>
-                new MessageData(MessageDataType.Json, Encoding.UTF8.GetBytes(data.GetRawText())),
+                new MessageData(MessageDataType.Json, Encoding.UTF8.GetBytes(data.GetRawText()), metadata),
             _ => throw new InvalidDataException($"Invalid data for dataType '{dataType}'."),
         };
+    }
+
+    private static IReadOnlyDictionary<string, string>? ReadMetadata(JsonElement root)
+    {
+        if (!root.TryGetProperty("metadata", out var metadata) ||
+            metadata.ValueKind == JsonValueKind.Null)
+        {
+            return null;
+        }
+        if (metadata.ValueKind != JsonValueKind.Object)
+        {
+            throw new InvalidDataException("Property 'metadata' must be a JSON object.");
+        }
+
+        var result = new Dictionary<string, string>(StringComparer.Ordinal);
+        foreach (var property in metadata.EnumerateObject())
+        {
+            if (property.Value.ValueKind != JsonValueKind.String)
+            {
+                throw new InvalidDataException(
+                    $"Metadata value for key '{property.Name}' must be a string.");
+            }
+            result[property.Name] = property.Value.GetString()!;
+        }
+        WebPubSubMetadata.Validate(result);
+        return result;
+    }
+
+    private static Dictionary<string, string>? ReadState(JsonElement root)
+    {
+        if (!root.TryGetProperty("state", out var state) || state.ValueKind == JsonValueKind.Null)
+        {
+            return null;
+        }
+        if (state.ValueKind != JsonValueKind.Object)
+        {
+            throw new InvalidDataException("Property 'state' must be a JSON object.");
+        }
+
+        var result = new Dictionary<string, string>(StringComparer.Ordinal);
+        foreach (var property in state.EnumerateObject())
+        {
+            if (property.Value.ValueKind != JsonValueKind.String)
+            {
+                throw new InvalidDataException(
+                    $"Group state value for key '{property.Name}' must be a string.");
+            }
+            result[property.Name] = property.Value.GetString()!;
+        }
+        return result;
     }
 
     private static byte[] ReadBase64(JsonElement data)
@@ -180,6 +270,16 @@ internal static class WebPubSubJsonProtocol
             default:
                 throw new InvalidOperationException($"Unsupported data type '{data.Type}'.");
         }
+
+        if (data.Metadata is not null)
+        {
+            writer.WriteStartObject("metadata");
+            foreach (var item in data.Metadata)
+            {
+                writer.WriteString(item.Key, item.Value);
+            }
+            writer.WriteEndObject();
+        }
     }
 
     private static byte[] Write(Action<Utf8JsonWriter> writeProperties)
@@ -191,6 +291,42 @@ internal static class WebPubSubJsonProtocol
         writer.WriteEndObject();
         writer.Flush();
         return buffer.WrittenSpan.ToArray();
+    }
+
+    private static byte[] WriteGroupState(
+        string type,
+        string group,
+        IReadOnlyList<GroupStateItem> items,
+        ulong? sequenceId)
+    {
+        return Write(writer =>
+        {
+            WriteSequenceId(writer, sequenceId);
+            writer.WriteString("type", type);
+            writer.WriteString("group", group);
+            writer.WriteStartArray("items");
+            foreach (var item in items)
+            {
+                writer.WriteStartObject();
+                writer.WriteString("connectionId", item.ConnectionId);
+                if (item.UserId is not null)
+                {
+                    writer.WriteString("userId", item.UserId);
+                }
+                if (item.State is not null)
+                {
+                    writer.WriteStartObject("state");
+                    foreach (var state in item.State)
+                    {
+                        writer.WriteString(state.Key, state.Value);
+                    }
+                    writer.WriteEndObject();
+                }
+                writer.WriteNumber("updatedAt", item.UpdatedAt);
+                writer.WriteEndObject();
+            }
+            writer.WriteEndArray();
+        });
     }
 
     private static void WriteSequenceId(Utf8JsonWriter writer, ulong? sequenceId)
@@ -252,6 +388,28 @@ internal static class WebPubSubJsonProtocol
             _ => throw new InvalidDataException($"Invalid property '{name}'."),
         };
     }
+
+    private static uint GetOptionalUInt32(
+        JsonElement root,
+        string name,
+        uint defaultValue,
+        uint maximum)
+    {
+        if (!root.TryGetProperty(name, out var value) || value.ValueKind == JsonValueKind.Null)
+        {
+            return defaultValue;
+        }
+
+        if (value.ValueKind != JsonValueKind.Number ||
+            !value.TryGetUInt32(out var result) ||
+            result > maximum)
+        {
+            throw new InvalidDataException(
+                $"Property '{name}' is out of range. Allowed range is [0,{maximum}].");
+        }
+
+        return result;
+    }
 }
 
 internal enum MessageDataType
@@ -261,7 +419,10 @@ internal enum MessageDataType
     Json,
 }
 
-internal sealed record MessageData(MessageDataType Type, byte[] Bytes);
+internal sealed record MessageData(
+    MessageDataType Type,
+    byte[] Bytes,
+    IReadOnlyDictionary<string, string>? Metadata = null);
 
 internal abstract record ClientMessage;
 
@@ -273,9 +434,25 @@ internal sealed record SendToGroupMessage(
     string Group,
     MessageData Data,
     bool NoEcho,
+    uint TtlSeconds,
     ulong? AckId) : ClientMessage;
 
 internal sealed record EventMessage(string Event, MessageData Data, ulong? AckId) : ClientMessage;
+
+internal sealed record SetGroupStateMessage(
+    string Group,
+    Dictionary<string, string>? State,
+    ulong? AckId) : ClientMessage;
+
+internal sealed record SubscribeGroupStateMessage(string Group, ulong? AckId) : ClientMessage;
+
+internal sealed record UnsubscribeGroupStateMessage(string Group, ulong? AckId) : ClientMessage;
+
+internal sealed record GroupStateItem(
+    string ConnectionId,
+    string? UserId,
+    IReadOnlyDictionary<string, string>? State,
+    long UpdatedAt);
 
 internal sealed record SequenceAckMessage(ulong SequenceId) : ClientMessage;
 

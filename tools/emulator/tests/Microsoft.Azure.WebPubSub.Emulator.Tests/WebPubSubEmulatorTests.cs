@@ -250,6 +250,186 @@ public class WebPubSubEmulatorTests
     }
 
     [Fact]
+    public async Task GroupState_SnapshotUpdatesCleanupAndUnsubscribe_MatchRuntime()
+    {
+        await using var application = await StartApplicationAsync();
+        using var setter = await ConnectAsync(
+            application,
+            GetClientUri(
+                groups: ["room"],
+                roles: ["webpubsub.setGroupState.**", "webpubsub.joinLeaveGroup"],
+                userId: "alice"));
+        using var subscriber = await ConnectAsync(
+            application,
+            GetClientUri(
+                groups: ["room"],
+                roles: ["webpubsub.getGroupState.**"],
+                userId: "bob"));
+        using var setterConnected = await ReceiveJsonAsync(setter);
+        _ = await ReceiveJsonAsync(subscriber);
+        var setterConnectionId = setterConnected.RootElement.GetProperty("connectionId").GetString();
+
+        await SendJsonAsync(
+            setter,
+            """{"type":"setGroupState","group":"room","state":{"activity":"typing"},"ackId":1}""");
+        using (var ack = await ReceiveJsonAsync(setter))
+        {
+            Assert.True(ack.RootElement.GetProperty("success").GetBoolean());
+        }
+
+        await SendJsonAsync(
+            subscriber,
+            """{"type":"subscribeGroupState","group":"room","ackId":1}""");
+        using (var ack = await ReceiveJsonAsync(subscriber))
+        {
+            Assert.True(ack.RootElement.GetProperty("success").GetBoolean());
+        }
+        using (var snapshot = await ReceiveJsonAsync(subscriber))
+        {
+            Assert.Equal("groupStateSnapshot", snapshot.RootElement.GetProperty("type").GetString());
+            var item = Assert.Single(snapshot.RootElement.GetProperty("items").EnumerateArray());
+            Assert.Equal(setterConnectionId, item.GetProperty("connectionId").GetString());
+            Assert.Equal("alice", item.GetProperty("userId").GetString());
+            Assert.Equal("typing", item.GetProperty("state").GetProperty("activity").GetString());
+            Assert.True(item.GetProperty("updatedAt").GetInt64() > 0);
+        }
+
+        await SendJsonAsync(
+            setter,
+            """{"type":"setGroupState","group":"room","state":{"activity":"idle"},"ackId":2}""");
+        using (var ack = await ReceiveJsonAsync(setter))
+        {
+            Assert.True(ack.RootElement.GetProperty("success").GetBoolean());
+        }
+        using (var update = await ReceiveJsonAsync(subscriber))
+        {
+            Assert.Equal("groupStateUpdate", update.RootElement.GetProperty("type").GetString());
+            var item = Assert.Single(update.RootElement.GetProperty("items").EnumerateArray());
+            Assert.Equal("idle", item.GetProperty("state").GetProperty("activity").GetString());
+        }
+
+        await SendJsonAsync(setter, """{"type":"leaveGroup","group":"room","ackId":3}""");
+        using (var ack = await ReceiveJsonAsync(setter))
+        {
+            Assert.True(ack.RootElement.GetProperty("success").GetBoolean());
+        }
+        using (var clear = await ReceiveJsonAsync(subscriber))
+        {
+            var item = Assert.Single(clear.RootElement.GetProperty("items").EnumerateArray());
+            Assert.Equal(setterConnectionId, item.GetProperty("connectionId").GetString());
+            Assert.False(item.TryGetProperty("state", out _));
+        }
+
+        await SendJsonAsync(setter, """{"type":"joinGroup","group":"room","ackId":4}""");
+        _ = await ReceiveJsonAsync(setter);
+        await SendJsonAsync(
+            subscriber,
+            """{"type":"unsubscribeGroupState","group":"room","ackId":2}""");
+        _ = await ReceiveJsonAsync(subscriber);
+        await SendJsonAsync(
+            setter,
+            """{"type":"setGroupState","group":"room","state":{"activity":"away"},"ackId":5}""");
+        _ = await ReceiveJsonAsync(setter);
+        await SendJsonAsync(subscriber, """{"type":"ping"}""");
+        using (var pong = await ReceiveJsonAsync(subscriber))
+        {
+            Assert.Equal("pong", pong.RootElement.GetProperty("type").GetString());
+        }
+
+        await setter.CloseAsync(WebSocketCloseStatus.NormalClosure, "Test complete.", CancellationToken.None);
+        await subscriber.CloseAsync(WebSocketCloseStatus.NormalClosure, "Test complete.", CancellationToken.None);
+    }
+
+    [Fact]
+    public async Task GroupState_PermissionMembershipAndSizeErrors_ReturnAcks()
+    {
+        await using var application = await StartApplicationAsync();
+        using var noPermission = await ConnectAsync(application, GetClientUri(groups: ["room"]));
+        using var notMember = await ConnectAsync(
+            application,
+            GetClientUri(roles: ["webpubsub.setGroupState.**"]));
+        using var oversized = await ConnectAsync(
+            application,
+            GetClientUri(groups: ["room"], roles: ["webpubsub.setGroupState.**"]));
+        _ = await ReceiveJsonAsync(noPermission);
+        _ = await ReceiveJsonAsync(notMember);
+        _ = await ReceiveJsonAsync(oversized);
+
+        await SendJsonAsync(
+            noPermission,
+            """{"type":"setGroupState","group":"room","state":{},"ackId":1}""");
+        await SendJsonAsync(
+            notMember,
+            """{"type":"setGroupState","group":"room","state":{},"ackId":1}""");
+        await SendJsonAsync(
+            oversized,
+            JsonSerializer.Serialize(new
+            {
+                type = "setGroupState",
+                group = "room",
+                state = new { value = new string('x', 513) },
+                ackId = 1,
+            }));
+
+        using var permissionAck = await ReceiveJsonAsync(noPermission);
+        using var membershipAck = await ReceiveJsonAsync(notMember);
+        using var sizeAck = await ReceiveJsonAsync(oversized);
+        Assert.Equal("Forbidden", permissionAck.RootElement.GetProperty("error").GetProperty("name").GetString());
+        Assert.Equal("Forbidden", membershipAck.RootElement.GetProperty("error").GetProperty("name").GetString());
+        Assert.Equal("BadRequest", sizeAck.RootElement.GetProperty("error").GetProperty("name").GetString());
+
+        await noPermission.CloseAsync(WebSocketCloseStatus.NormalClosure, "Test complete.", CancellationToken.None);
+        await notMember.CloseAsync(WebSocketCloseStatus.NormalClosure, "Test complete.", CancellationToken.None);
+        await oversized.CloseAsync(WebSocketCloseStatus.NormalClosure, "Test complete.", CancellationToken.None);
+    }
+
+    [Fact]
+    public async Task GroupState_Disconnect_PublishesClearUpdate()
+    {
+        await using var application = await StartApplicationAsync();
+        using var setter = await ConnectAsync(
+            application,
+            GetClientUri(
+                groups: ["room"],
+                roles: ["webpubsub.setGroupState.**"],
+                userId: "alice"));
+        using var subscriber = await ConnectAsync(
+            application,
+            GetClientUri(
+                groups: ["room"],
+                roles: ["webpubsub.getGroupState.**"]));
+        using var connected = await ReceiveJsonAsync(setter);
+        _ = await ReceiveJsonAsync(subscriber);
+        var setterConnectionId = connected.RootElement.GetProperty("connectionId").GetString();
+
+        await SendJsonAsync(
+            subscriber,
+            """{"type":"subscribeGroupState","group":"room","ackId":1}""");
+        _ = await ReceiveJsonAsync(subscriber);
+        _ = await ReceiveJsonAsync(subscriber);
+        await SendJsonAsync(
+            setter,
+            """{"type":"setGroupState","group":"room","state":{"activity":"typing"},"ackId":1}""");
+        _ = await ReceiveJsonAsync(setter);
+        _ = await ReceiveJsonAsync(subscriber);
+
+        await setter.CloseAsync(
+            WebSocketCloseStatus.NormalClosure,
+            "Test complete.",
+            CancellationToken.None);
+
+        using var clear = await ReceiveJsonAsync(subscriber);
+        var item = Assert.Single(clear.RootElement.GetProperty("items").EnumerateArray());
+        Assert.Equal(setterConnectionId, item.GetProperty("connectionId").GetString());
+        Assert.False(item.TryGetProperty("state", out _));
+
+        await subscriber.CloseAsync(
+            WebSocketCloseStatus.NormalClosure,
+            "Test complete.",
+            CancellationToken.None);
+    }
+
+    [Fact]
     public async Task ReliableSubprotocol_DuplicateAckId_DoesNotExecuteMessageAgain()
     {
         await using var application = await StartApplicationAsync();
@@ -426,6 +606,32 @@ public class WebPubSubEmulatorTests
             "Test complete.",
             CancellationToken.None);
         await included.CloseAsync(
+            WebSocketCloseStatus.NormalClosure,
+            "Test complete.",
+            CancellationToken.None);
+    }
+
+    [Fact]
+    public async Task RestApi_MetadataHeaders_AreDeliveredAndNormalized()
+    {
+        await using var application = await StartApplicationAsync();
+        using var webSocket = await ConnectAsync(application, GetClientUri());
+        _ = await ReceiveJsonAsync(webSocket);
+        using var request = CreateAuthorizedRequest(
+            HttpMethod.Post,
+            $"/api/hubs/{Hub}/:send?api-version=2024-12-01");
+        request.Headers.TryAddWithoutValidation("X-WebPubSub-Metadata-TraceId", "first, second");
+        request.Content = new StringContent("message");
+
+        using var response = await application.GetTestClient().SendAsync(request).OrTimeout();
+
+        Assert.Equal(HttpStatusCode.Accepted, response.StatusCode);
+        using var delivered = await ReceiveJsonAsync(webSocket);
+        Assert.Equal(
+            "second",
+            delivered.RootElement.GetProperty("metadata").GetProperty("traceid").GetString());
+
+        await webSocket.CloseAsync(
             WebSocketCloseStatus.NormalClosure,
             "Test complete.",
             CancellationToken.None);
@@ -742,11 +948,7 @@ public class WebPubSubEmulatorTests
 
         await serviceClient.CloseConnectionAsync(connectionId!).OrTimeout();
 
-        var buffer = new byte[256];
-        var result = await webSocket
-            .ReceiveAsync(new ArraySegment<byte>(buffer), CancellationToken.None)
-            .OrTimeout();
-        Assert.Equal(WebSocketMessageType.Close, result.MessageType);
+        await AssertDisconnectedThenCloseAsync(webSocket, "Closed by REST API.");
     }
 
     [Fact]
@@ -943,12 +1145,7 @@ public class WebPubSubEmulatorTests
         {
             Assert.Equal(HttpStatusCode.NoContent, response.StatusCode);
         }
-        var closeBuffer = new byte[256];
-        var close = await second
-            .ReceiveAsync(new ArraySegment<byte>(closeBuffer), CancellationToken.None)
-            .OrTimeout();
-        Assert.Equal(WebSocketMessageType.Close, close.MessageType);
-        Assert.Equal("test-close", close.CloseStatusDescription);
+        await AssertDisconnectedThenCloseAsync(second, "test-close");
         await SendJsonAsync(first, """{"type":"ping"}""");
         using (var pong = await ReceiveJsonAsync(first))
         {
@@ -1106,12 +1303,7 @@ public class WebPubSubEmulatorTests
         {
             Assert.Equal(HttpStatusCode.NoContent, response.StatusCode);
         }
-        var closeBuffer = new byte[256];
-        var groupClose = await included
-            .ReceiveAsync(new ArraySegment<byte>(closeBuffer), CancellationToken.None)
-            .OrTimeout();
-        Assert.Equal(WebSocketMessageType.Close, groupClose.MessageType);
-        Assert.Equal("group-close", groupClose.CloseStatusDescription);
+        await AssertDisconnectedThenCloseAsync(included, "group-close");
         await AssertWebSocketIsOpenAsync(excluded);
         await AssertWebSocketIsOpenAsync(outside);
 
@@ -1123,11 +1315,7 @@ public class WebPubSubEmulatorTests
         {
             Assert.Equal(HttpStatusCode.NoContent, response.StatusCode);
         }
-        var hubClose = await excluded
-            .ReceiveAsync(new ArraySegment<byte>(closeBuffer), CancellationToken.None)
-            .OrTimeout();
-        Assert.Equal(WebSocketMessageType.Close, hubClose.MessageType);
-        Assert.Equal("hub-close", hubClose.CloseStatusDescription);
+        await AssertDisconnectedThenCloseAsync(excluded, "hub-close");
         await AssertWebSocketIsOpenAsync(outside);
 
         await outside.CloseAsync(
@@ -1645,6 +1833,23 @@ public class WebPubSubEmulatorTests
         await SendJsonAsync(webSocket, """{"type":"ping"}""");
         using var pong = await ReceiveJsonAsync(webSocket);
         Assert.Equal("pong", pong.RootElement.GetProperty("type").GetString());
+    }
+
+    private static async Task AssertDisconnectedThenCloseAsync(
+        WebSocket webSocket,
+        string reason)
+    {
+        using var disconnected = await ReceiveJsonAsync(webSocket);
+        Assert.Equal("system", disconnected.RootElement.GetProperty("type").GetString());
+        Assert.Equal("disconnected", disconnected.RootElement.GetProperty("event").GetString());
+        Assert.Equal(reason, disconnected.RootElement.GetProperty("message").GetString());
+
+        var buffer = new byte[256];
+        var close = await webSocket
+            .ReceiveAsync(new ArraySegment<byte>(buffer), CancellationToken.None)
+            .OrTimeout();
+        Assert.Equal(WebSocketMessageType.Close, close.MessageType);
+        Assert.Equal(reason, close.CloseStatusDescription);
     }
 
     private static async Task AssertUnsupportedFeatureAsync(HttpResponseMessage response)

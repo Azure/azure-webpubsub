@@ -99,9 +99,13 @@ internal sealed class UpstreamEventDispatcher
             }
 
             var bytes = await ReadContentAsync(response.Content, cancellationToken);
-            var responseData = bytes.Length == 0
+            var metadata = GetMetadata(response);
+            var responseData = bytes.Length == 0 && metadata is null
                 ? null
-                : new MessageData(GetDataType(response.Content.Headers.ContentType), bytes);
+                : new MessageData(
+                    GetDataType(response.Content.Headers.ContentType),
+                    bytes,
+                    metadata);
             var connectionState = GetSingleHeader(response, "ce-connectionState");
             return new(true, true, responseData, connectionState, null);
         }
@@ -205,6 +209,7 @@ internal sealed class UpstreamEventDispatcher
         };
         request.Content.Headers.ContentType = new MediaTypeHeaderValue(GetContentType(upstreamEvent.Data.Type));
         AddCloudEventHeaders(request, upstreamEvent);
+        AddMetadataHeaders(request, upstreamEvent.Data.Metadata);
         await AddAuthorizationAsync(request, handler.Auth, cancellationToken);
 
         using var timeout = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
@@ -308,6 +313,51 @@ internal sealed class UpstreamEventDispatcher
         {
             request.Headers.TryAddWithoutValidation(name, value);
         }
+    }
+
+    private static void AddMetadataHeaders(
+        HttpRequestMessage request,
+        IReadOnlyDictionary<string, string>? metadata)
+    {
+        if (metadata is null)
+        {
+            return;
+        }
+
+        var normalized = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+        foreach (var item in metadata)
+        {
+            normalized[item.Key] = item.Value;
+        }
+        foreach (var item in normalized)
+        {
+            request.Headers.TryAddWithoutValidation(
+                $"{WebPubSubMetadata.HeaderPrefix}{item.Key.ToLowerInvariant()}",
+                item.Value);
+        }
+    }
+
+    private static IReadOnlyDictionary<string, string>? GetMetadata(HttpResponseMessage response)
+    {
+        Dictionary<string, string>? metadata = null;
+        foreach (var header in response.Headers)
+        {
+            if (!header.Key.StartsWith(WebPubSubMetadata.HeaderPrefix, StringComparison.OrdinalIgnoreCase))
+            {
+                continue;
+            }
+
+            var key = header.Key[WebPubSubMetadata.HeaderPrefix.Length..].ToLowerInvariant();
+            if (key.Length == 0)
+            {
+                continue;
+            }
+            var value = header.Value.LastOrDefault() ?? string.Empty;
+            var lastComma = value.LastIndexOf(',');
+            metadata ??= new Dictionary<string, string>(StringComparer.Ordinal);
+            metadata[key] = (lastComma < 0 ? value : value[(lastComma + 1)..]).Trim();
+        }
+        return metadata;
     }
 
     private static string? GetSingleHeader(HttpResponseMessage response, string name)

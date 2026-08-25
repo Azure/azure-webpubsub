@@ -69,7 +69,7 @@ Implemented REST routes still have these feature gaps:
 - `WebPubSub_GenerateClientToken` does not generate MQTT client tokens.
 - `messageTtlSeconds` is validated as an integer from 0 through 300, but offline retention and
   delayed delivery are not modeled.
-- `X-WebPubSub-Metadata-*` headers are not forwarded as client message metadata.
+- `X-WebPubSub-Metadata-*` headers are forwarded to JSON clients as message metadata.
 
 ## Clients and protocols
 
@@ -79,17 +79,17 @@ Implemented REST routes still have these feature gaps:
 | Client `sendToGroup` | ✅ Implemented | Supports `noEcho` and role-based authorization. |
 | Group roles | ✅ Implemented | Supports roles that apply to every group, one named group, or groups matched by a wildcard pattern. |
 | Ack ID idempotency | ✅ Implemented | Reusing an `ackId` on the same logical connection returns `Duplicate` without executing the operation again. |
-| `json.webpubsub.azure.v1` | 🟡 Partial | Supports connection messages, user events, group join/leave, send-to-group, acknowledgements, and ping/pong. |
+| `json.webpubsub.azure.v1` | 🟡 Partial | Supports connection messages, user events, group join/leave, send-to-group, group state, metadata, acknowledgements, and ping/pong. |
 | `json.reliable.webpubsub.azure.v1` | 🟡 Partial | Adds local reconnect, sequence acknowledgement, and replay to the supported JSON features. |
 | MQTT | ❌ Not implemented | MQTT client tokens, connections, publish/subscribe, and MQTT session behavior are unavailable. |
 | Protobuf | ❌ Not implemented | `protobuf.webpubsub.azure.v1` and `protobuf.reliable.webpubsub.azure.v1` are unavailable. |
 | Custom WebSocket subprotocols | ❌ Not implemented | Raw WebSocket works without a subprotocol; arbitrary application subprotocol negotiation is rejected. |
 | Invocation | ❌ Not implemented | `invoke`, `invokeResponse`, and `cancelInvocation` messages are unavailable. |
 | Streaming | ❌ Not implemented | Stream start, `streamData`, `streamEnd`, stream acknowledgements, stream closure, and downstream stream metadata are unavailable. |
-| Message metadata | ❌ Not implemented | Client metadata on `sendToGroup` and `event`, upstream metadata mapping, and downstream metadata are unavailable. |
-| Group state | ❌ Not implemented | `setGroupState`, `subscribeGroupState`, `unsubscribeGroupState`, snapshots, updates, and group-state roles are unavailable. |
-| Client message TTL | ❌ Not implemented | `ttlSeconds` on client `sendToGroup` messages is not parsed or applied. |
-| Disconnected system message | ❌ Not implemented | Connection shutdown uses a WebSocket close frame without a JSON `system/disconnected` message. |
+| Message metadata | ✅ Implemented | Supports metadata on client `sendToGroup` and `event` messages, REST metadata headers, HTTP event-handler request and response metadata, downstream messages, and reliable replay. |
+| Group state | ⚠️ Emulator semantics | Supports `setGroupState`, subscriptions, snapshots, updates, role checks, and membership cleanup. State is ephemeral and local to one emulator process. |
+| Client message TTL | ⚠️ Emulator semantics | Parses and validates `ttlSeconds` from 0 through 300 on client `sendToGroup` messages. Delivery is immediate and TTL retention is not modeled. |
+| Disconnected system message | ✅ Implemented | Active non-raw clients receive a JSON `system/disconnected` message before service-initiated WebSocket closure. |
 
 Wildcard group roles use the same role names and matching behavior as Azure Web PubSub. Use
 `webpubsub.sendToGroups.{pattern}` or `webpubsub.joinLeaveGroups.{pattern}` for patterns. `*`

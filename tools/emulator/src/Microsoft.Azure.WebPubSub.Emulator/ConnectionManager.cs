@@ -11,6 +11,7 @@ namespace Microsoft.Azure.WebPubSub.Emulator;
 internal sealed class ConnectionManager
 {
     private readonly ConcurrentDictionary<(string Hub, string ConnectionId), LogicalConnection> _connections = [];
+    private readonly object _groupStateLock = new();
     private readonly WebPubSubTokenService _tokenService;
     private readonly EmulatorRuntimeOptions _runtimeOptions;
     private readonly UpstreamEventDispatcher _events;
@@ -62,7 +63,17 @@ internal sealed class ConnectionManager
 
     public void Remove(LogicalConnection connection, string reason)
     {
-        if (_connections.TryRemove((connection.Hub, connection.ConnectionId), out _))
+        var removed = false;
+        lock (_groupStateLock)
+        {
+            if (_connections.TryRemove((connection.Hub, connection.ConnectionId), out _))
+            {
+                ClearAllGroupState(connection);
+                removed = true;
+            }
+        }
+
+        if (removed)
         {
             _ = NotifyDisconnectedAsync(connection, reason);
         }
@@ -90,13 +101,30 @@ internal sealed class ConnectionManager
 
     public bool AddConnectionToGroup(string hub, string connectionId, string group)
     {
-        if (!TryGet(hub, connectionId, out var connection))
+        lock (_groupStateLock)
         {
-            return false;
-        }
+            if (!TryGet(hub, connectionId, out var connection))
+            {
+                return false;
+            }
 
-        connection.Groups.TryAdd(group, 0);
-        return true;
+            connection.Groups.TryAdd(group, 0);
+            return true;
+        }
+    }
+
+    public bool AddToGroup(LogicalConnection connection, string group)
+    {
+        lock (_groupStateLock)
+        {
+            if (!IsActiveConnection(connection))
+            {
+                return false;
+            }
+
+            connection.Groups.TryAdd(group, 0);
+            return true;
+        }
     }
 
     public bool RemoveConnectionFromGroup(string hub, string connectionId, string group)
@@ -106,7 +134,7 @@ internal sealed class ConnectionManager
             return false;
         }
 
-        connection.Groups.TryRemove(group, out _);
+        RemoveFromGroup(connection, group);
         return true;
     }
 
@@ -114,7 +142,7 @@ internal sealed class ConnectionManager
     {
         if (TryGet(hub, connectionId, out var connection))
         {
-            connection.Groups.Clear();
+            RemoveFromAllGroups(connection);
         }
     }
 
@@ -123,12 +151,15 @@ internal sealed class ConnectionManager
         IReadOnlyList<string> groups,
         string? filter)
     {
-        foreach (var connection in GetHubConnections(hub)
-            .Where(connection => ODataFilterExecutor.Instance.Matches(filter, connection)))
+        lock (_groupStateLock)
         {
-            foreach (var group in groups)
+            foreach (var connection in GetHubConnections(hub)
+                .Where(connection => ODataFilterExecutor.Instance.Matches(filter, connection)))
             {
-                connection.Groups.TryAdd(group, 0);
+                foreach (var group in groups)
+                {
+                    connection.Groups.TryAdd(group, 0);
+                }
             }
         }
     }
@@ -143,27 +174,30 @@ internal sealed class ConnectionManager
         {
             foreach (var group in groups)
             {
-                connection.Groups.TryRemove(group, out _);
+                RemoveFromGroup(connection, group);
             }
         }
     }
 
     public bool AddUserToGroup(string hub, string userId, string group)
     {
-        var connections = GetUserConnections(hub, userId);
-        foreach (var connection in connections)
+        lock (_groupStateLock)
         {
-            connection.Groups.TryAdd(group, 0);
-        }
+            var connections = GetUserConnections(hub, userId);
+            foreach (var connection in connections)
+            {
+                connection.Groups.TryAdd(group, 0);
+            }
 
-        return connections.Length > 0;
+            return connections.Length > 0;
+        }
     }
 
     public void RemoveUserFromGroup(string hub, string userId, string group)
     {
         foreach (var connection in GetUserConnections(hub, userId))
         {
-            connection.Groups.TryRemove(group, out _);
+            RemoveFromGroup(connection, group);
         }
     }
 
@@ -171,8 +205,83 @@ internal sealed class ConnectionManager
     {
         foreach (var connection in GetUserConnections(hub, userId))
         {
-            connection.Groups.Clear();
+            RemoveFromAllGroups(connection);
         }
+    }
+
+    public void RemoveFromGroup(LogicalConnection connection, string group)
+    {
+        lock (_groupStateLock)
+        {
+            if (connection.Groups.TryRemove(group, out _))
+            {
+                ClearGroupState(connection, group);
+                connection.GroupStateSubscriptions.Unsubscribe(group);
+            }
+        }
+    }
+
+    public bool SetGroupState(
+        LogicalConnection connection,
+        string group,
+        Dictionary<string, string>? state)
+    {
+        lock (_groupStateLock)
+        {
+            if (!IsActiveGroupMember(connection, group))
+            {
+                return false;
+            }
+
+            var updatedAt = state is null
+                ? connection.GroupStateStore.ClearState(group)
+                : connection.GroupStateStore.SetState(group, state);
+            PublishGroupStateUpdate(connection, group, state, updatedAt);
+            return true;
+        }
+    }
+
+    public bool SubscribeGroupState(
+        LogicalConnection connection,
+        string group,
+        out GroupStateItem[] snapshot)
+    {
+        lock (_groupStateLock)
+        {
+            if (!IsActiveGroupMember(connection, group))
+            {
+                snapshot = [];
+                return false;
+            }
+
+            connection.GroupStateSubscriptions.Subscribe(group);
+            snapshot = GetGroupStateSnapshot(connection.Hub, group);
+            return true;
+        }
+    }
+
+    public void UnsubscribeGroupState(LogicalConnection connection, string group)
+    {
+        lock (_groupStateLock)
+        {
+            connection.GroupStateSubscriptions.Unsubscribe(group);
+        }
+    }
+
+    private GroupStateItem[] GetGroupStateSnapshot(string hub, string group)
+    {
+        return GetHubConnections(hub)
+            .Where(connection => connection.Groups.ContainsKey(group))
+            .Select(connection => (Connection: connection, Entry: connection.GroupStateStore.GetState(group)))
+            .Where(item => item.Entry is not null)
+            .OrderBy(item => item.Connection.ConnectionId, StringComparer.Ordinal)
+            .Take(200)
+            .Select(item => new GroupStateItem(
+                item.Connection.ConnectionId,
+                item.Connection.UserId,
+                item.Entry!.State,
+                item.Entry.UpdatedAt))
+            .ToArray();
     }
 
     public bool CloseConnection(string hub, string connectionId, string reason)
@@ -331,6 +440,63 @@ internal sealed class ConnectionManager
             .ToArray())
         {
             connection.Close(reason);
+        }
+    }
+
+    private void RemoveFromAllGroups(LogicalConnection connection)
+    {
+        lock (_groupStateLock)
+        {
+            foreach (var group in connection.Groups.Keys)
+            {
+                RemoveFromGroup(connection, group);
+            }
+        }
+    }
+
+    private bool IsActiveGroupMember(LogicalConnection connection, string group)
+    {
+        return IsActiveConnection(connection) &&
+            connection.Groups.ContainsKey(group);
+    }
+
+    private bool IsActiveConnection(LogicalConnection connection)
+    {
+        return _connections.TryGetValue((connection.Hub, connection.ConnectionId), out var active) &&
+            ReferenceEquals(active, connection);
+    }
+
+    private void ClearAllGroupState(LogicalConnection connection)
+    {
+        foreach (var group in connection.GroupStateStore.GetAllGroupsWithState())
+        {
+            ClearGroupState(connection, group);
+        }
+    }
+
+    private void ClearGroupState(LogicalConnection connection, string group)
+    {
+        if (connection.GroupStateStore.GetState(group) is null)
+        {
+            return;
+        }
+
+        var updatedAt = connection.GroupStateStore.ClearState(group);
+        PublishGroupStateUpdate(connection, group, state: null, updatedAt);
+    }
+
+    private void PublishGroupStateUpdate(
+        LogicalConnection owner,
+        string group,
+        IReadOnlyDictionary<string, string>? state,
+        long updatedAt)
+    {
+        var item = new GroupStateItem(owner.ConnectionId, owner.UserId, state, updatedAt);
+        foreach (var connection in GetHubConnections(owner.Hub)
+            .Where(connection => connection.Groups.ContainsKey(group))
+            .Where(connection => connection.GroupStateSubscriptions.IsSubscribed(group)))
+        {
+            connection.SendGroupStateUpdate(group, item);
         }
     }
 

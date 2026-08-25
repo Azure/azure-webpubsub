@@ -33,9 +33,13 @@ internal sealed class SocketTransport : IDisposable
     // turns concurrent send/detach/replace races into ObjectDisposedException.
     private readonly CancellationTokenSource _abortSource = new();
     private readonly CancellationToken _abortToken;
+    private readonly object _enqueueLock = new();
     private readonly Channel<OutboundMessage> _outbound;
+    private readonly int _dataCapacity;
     private readonly ILogger? _logger;
     private readonly Task _writeLoop;
+    private int _queuedDataMessages;
+    private bool _closeQueued;
     private int _ended;
 
     public SocketTransport(
@@ -48,8 +52,9 @@ internal sealed class SocketTransport : IDisposable
         Generation = generation;
         _logger = logger;
         _abortToken = _abortSource.Token;
+        _dataCapacity = Math.Min(Math.Max(queueCapacity, 1), int.MaxValue - 1);
         _outbound = Channel.CreateBounded<OutboundMessage>(
-            new BoundedChannelOptions(Math.Max(queueCapacity, 1))
+            new BoundedChannelOptions(_dataCapacity + 1)
             {
                 SingleReader = true,
                 SingleWriter = false,
@@ -69,19 +74,26 @@ internal sealed class SocketTransport : IDisposable
         ReadOnlyMemory<byte> payload,
         WebSocketMessageType messageType)
     {
-        if (Volatile.Read(ref _ended) != 0)
+        lock (_enqueueLock)
         {
+            if (Volatile.Read(ref _ended) != 0 || _closeQueued)
+            {
+                return TransportEnqueueResult.Closed;
+            }
+
+            if (_queuedDataMessages >= _dataCapacity)
+            {
+                return TransportEnqueueResult.Full;
+            }
+
+            if (_outbound.Writer.TryWrite(new OutboundMessage(payload, messageType, null, null)))
+            {
+                _queuedDataMessages++;
+                return TransportEnqueueResult.Enqueued;
+            }
+
             return TransportEnqueueResult.Closed;
         }
-
-        if (_outbound.Writer.TryWrite(new OutboundMessage(payload, messageType, null, null)))
-        {
-            return TransportEnqueueResult.Enqueued;
-        }
-
-        return Volatile.Read(ref _ended) != 0
-            ? TransportEnqueueResult.Closed
-            : TransportEnqueueResult.Full;
     }
 
     /// <summary>
@@ -90,12 +102,41 @@ internal sealed class SocketTransport : IDisposable
     /// </summary>
     public void CloseOutput(WebSocketCloseStatus status, string description)
     {
-        var close = new OutboundMessage(
+        QueueClose(new OutboundMessage(
             default,
             WebSocketMessageType.Close,
             status,
-            description);
-        if (!_outbound.Writer.TryWrite(close))
+            description));
+    }
+
+    public void CloseOutput(
+        ReadOnlyMemory<byte> finalPayload,
+        WebSocketMessageType messageType,
+        WebSocketCloseStatus status,
+        string description)
+    {
+        QueueClose(new OutboundMessage(
+            finalPayload,
+            messageType,
+            status,
+            description));
+    }
+
+    private void QueueClose(OutboundMessage close)
+    {
+        var abort = false;
+        lock (_enqueueLock)
+        {
+            if (Volatile.Read(ref _ended) != 0 || _closeQueued)
+            {
+                return;
+            }
+
+            _closeQueued = true;
+            abort = !_outbound.Writer.TryWrite(close);
+        }
+
+        if (abort)
         {
             Abort();
         }
@@ -176,10 +217,31 @@ internal sealed class SocketTransport : IDisposable
         {
             while (await _outbound.Reader.WaitToReadAsync(_abortToken).ConfigureAwait(false))
             {
-                while (_outbound.Reader.TryRead(out var message))
+                while (true)
                 {
+                    OutboundMessage message;
+                    lock (_enqueueLock)
+                    {
+                        if (!_outbound.Reader.TryRead(out message))
+                        {
+                            break;
+                        }
+
+                        if (message.CloseStatus is null)
+                        {
+                            _queuedDataMessages--;
+                        }
+                    }
+
                     if (message.CloseStatus is { } status)
                     {
+                        if (!message.Payload.IsEmpty)
+                        {
+                            await WebSocket
+                                .SendAsync(message.Payload, message.MessageType, endOfMessage: true, _abortToken)
+                                .ConfigureAwait(false);
+                        }
+
                         if (WebSocket.State is WebSocketState.Open or WebSocketState.CloseReceived)
                         {
                             await WebSocket
