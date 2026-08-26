@@ -12,7 +12,7 @@ internal enum UpstreamEventCategory
 }
 
 internal sealed record UpstreamEvent(
-    Guid Id,
+    int Id,
     string Hub,
     string EventName,
     UpstreamEventCategory Category,

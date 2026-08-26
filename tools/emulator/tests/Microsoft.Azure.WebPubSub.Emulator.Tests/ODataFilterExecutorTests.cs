@@ -13,6 +13,8 @@ public class ODataFilterExecutorTests
     [InlineData("userId eq 'a'", "A", false)]
     [InlineData("userId eq null", null, true)]
     [InlineData("userId in ('user1', 'user2')", "user2", true)]
+    [InlineData("userId in ('Doe, John', 'Alice')", "Doe, John", true)]
+    [InlineData("userId in ('O''Brien, Jane', 'Alice')", "O'Brien, Jane", true)]
     [InlineData("substring(userId, 1, 1) eq 'b'", "abc", true)]
     [InlineData("substring(userId, 1) eq 'b'", "", false)]
     [InlineData("substring(userId, 1, 2) eq 'bc'", "a", false)]

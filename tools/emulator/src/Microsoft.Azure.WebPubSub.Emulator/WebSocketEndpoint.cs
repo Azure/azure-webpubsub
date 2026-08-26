@@ -134,7 +134,7 @@ internal sealed class WebSocketEndpoint
             connection.SendConnected();
         }
 
-        await _events.DispatchNotificationAsync(
+        _ = _events.DispatchNotificationAsync(
             connection.CreateSystemEvent(
                 "connected",
                 new MessageData(MessageDataType.Json, "{}"u8.ToArray())),
@@ -219,6 +219,11 @@ internal sealed class WebSocketEndpoint
                     break;
                 }
 
+                if (transport.IsClosing)
+                {
+                    continue;
+                }
+
                 if (connection.IsRaw)
                 {
                     var dataType = message.MessageType == WebSocketMessageType.Binary
@@ -232,6 +237,14 @@ internal sealed class WebSocketEndpoint
                     if (result.Succeeded && result.Response is not null)
                     {
                         connection.SendServerData(result.Response);
+                    }
+                    if (!result.Succeeded)
+                    {
+                        await transport.CloseAsync(
+                            WebSocketCloseStatus.InternalServerError,
+                            result.Error ?? "Dispatching the message event failed.");
+                        normalClose = true;
+                        break;
                     }
                     continue;
                 }
@@ -385,7 +398,7 @@ internal sealed class WebSocketEndpoint
         });
 
         return new(
-            Guid.NewGuid(),
+            0,
             hub,
             "connect",
             UpstreamEventCategory.System,

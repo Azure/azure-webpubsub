@@ -84,4 +84,6 @@ internal sealed class EmulatorRuntimeOptions
     public int MaxMessageSizeBytes { get; init; } = 1024 * 1024;
 
     public int ReliableMessageBufferCapacity { get; init; } = 1000;
+
+    public int ReliableMessageBufferMaxBytes { get; init; } = 16 * 1024 * 1024;
 }

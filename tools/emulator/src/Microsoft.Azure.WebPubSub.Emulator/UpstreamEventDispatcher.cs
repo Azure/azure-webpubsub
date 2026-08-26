@@ -3,6 +3,8 @@
 
 using System.Net;
 using System.Net.Http.Headers;
+using System.Security.Cryptography;
+using System.Text;
 using System.Text.Json;
 using Azure.Core;
 using Microsoft.Extensions.Logging;
@@ -20,6 +22,7 @@ internal sealed class UpstreamEventDispatcher
     private readonly IEventHubPublisher _eventHubPublisher;
     private readonly TokenCredential _credential;
     private readonly ILogger<UpstreamEventDispatcher> _logger;
+    private readonly byte[] _accessKey;
 
     public UpstreamEventDispatcher(
         IOptions<EmulatorOptions> options,
@@ -33,6 +36,10 @@ internal sealed class UpstreamEventDispatcher
         _eventHubPublisher = eventHubPublisher;
         _credential = credential;
         _logger = logger;
+        _accessKey = Encoding.UTF8.GetBytes(
+            WebPubSubTokenService.GetRequiredConnectionStringValue(
+                _options.ConnectionString,
+                "AccessKey"));
     }
 
     public async Task<ConnectDispatchResult> DispatchConnectAsync(
@@ -290,7 +297,7 @@ internal sealed class UpstreamEventDispatcher
             matcher!.Matches(input, ignoreCase: true);
     }
 
-    private static void AddCloudEventHeaders(HttpRequestMessage request, UpstreamEvent upstreamEvent)
+    private void AddCloudEventHeaders(HttpRequestMessage request, UpstreamEvent upstreamEvent)
     {
         request.Headers.TryAddWithoutValidation("ce-specversion", "1.0");
         request.Headers.TryAddWithoutValidation("ce-awpsversion", "1.0");
@@ -301,6 +308,12 @@ internal sealed class UpstreamEventDispatcher
         request.Headers.TryAddWithoutValidation("ce-connectionId", upstreamEvent.ConnectionId);
         request.Headers.TryAddWithoutValidation("ce-hub", upstreamEvent.Hub);
         request.Headers.TryAddWithoutValidation("ce-eventName", upstreamEvent.EventName);
+        var signature = HMACSHA256.HashData(
+            _accessKey,
+            Encoding.UTF8.GetBytes(upstreamEvent.ConnectionId));
+        request.Headers.TryAddWithoutValidation(
+            "ce-signature",
+            $"sha256={Convert.ToHexStringLower(signature)}");
         request.Headers.TryAddWithoutValidation("WebHook-Request-Origin", upstreamEvent.Host);
         AddIfNotEmpty(request, "ce-userId", upstreamEvent.UserId);
         AddIfNotEmpty(request, "ce-subprotocol", upstreamEvent.Subprotocol);

@@ -33,6 +33,8 @@ public class SocketTransportTests
             WebSocketMessageType.Text,
             WebSocketCloseStatus.NormalClosure,
             "test-close");
+        Assert.True(transport.IsClosing);
+        Assert.False(transport.Aborted.IsCancellationRequested);
         webSocket.ReleaseFirstSend();
 
         await webSocket.Closed.OrTimeout();

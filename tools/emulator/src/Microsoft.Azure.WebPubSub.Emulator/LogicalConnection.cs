@@ -23,12 +23,15 @@ internal sealed class LogicalConnection : IODataFilterModel
     private readonly WebPubSubTokenService _tokenService;
     private readonly ILogger? _logger;
     private readonly int _bufferCapacity;
+    private readonly int _bufferMaxBytes;
     private readonly int _outboundQueueCapacity;
     private readonly ConnectionRolePermissions _joinLeavePermissions;
     private readonly ConnectionRolePermissions _sendToGroupPermissions;
 
     private SocketTransport? _activeTransport;
     private long _generation;
+    private int _messageId;
+    private long _unacknowledgedMessageBytes;
     private ulong _nextSequenceId;
     private bool _closed;
 
@@ -54,6 +57,7 @@ internal sealed class LogicalConnection : IODataFilterModel
         _tokenService = tokenService;
         _logger = logger;
         _bufferCapacity = runtimeOptions.ReliableMessageBufferCapacity;
+        _bufferMaxBytes = runtimeOptions.ReliableMessageBufferMaxBytes;
         _outboundQueueCapacity = ControlMessageAllowance +
             Math.Min(Math.Max(_bufferCapacity, 1), int.MaxValue - ControlMessageAllowance);
 
@@ -196,6 +200,7 @@ internal sealed class LogicalConnection : IODataFilterModel
                 .ToArray();
             foreach (var id in acknowledged)
             {
+                _unacknowledgedMessageBytes -= _unacknowledgedMessages[id].LongLength;
                 _unacknowledgedMessages.Remove(id);
             }
         }
@@ -318,7 +323,7 @@ internal sealed class LogicalConnection : IODataFilterModel
         MessageData data)
     {
         return new(
-            Guid.NewGuid(),
+            Interlocked.Increment(ref _messageId),
             Hub,
             eventName,
             category,
@@ -352,10 +357,20 @@ internal sealed class LogicalConnection : IODataFilterModel
             }
             else
             {
-                var sequenceId = ++_nextSequenceId;
+                var sequenceId = _nextSequenceId + 1;
                 var payload = payloadFactory(sequenceId);
-                _unacknowledgedMessages.Add(sequenceId, payload);
-                dropped = EnqueueLocked(payload, WebSocketMessageType.Text);
+                if (_unacknowledgedMessageBytes + payload.LongLength > _bufferMaxBytes)
+                {
+                    dropped = DropReceiverLocked();
+                    reason = ReliableBufferFullReason;
+                }
+                else
+                {
+                    _nextSequenceId = sequenceId;
+                    _unacknowledgedMessages.Add(sequenceId, payload);
+                    _unacknowledgedMessageBytes += payload.LongLength;
+                    dropped = EnqueueLocked(payload, WebSocketMessageType.Text);
+                }
             }
         }
 

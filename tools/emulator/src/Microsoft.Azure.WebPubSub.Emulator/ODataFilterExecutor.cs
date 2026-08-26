@@ -450,11 +450,49 @@ internal sealed class ODataFilterExecutor
                 throw new InvalidFilterTokenException(literal);
             }
 
-            foreach (var item in literal[1..^1]
-                .Split(',', StringSplitOptions.RemoveEmptyEntries)
-                .Select(value => value.Trim()))
+            foreach (var item in SplitCollectionItems(literal))
             {
                 yield return Parse(_parser.ParseFilter(item)).Value;
+            }
+        }
+
+        private static IEnumerable<string> SplitCollectionItems(string literal)
+        {
+            var start = 1;
+            var quoted = false;
+            for (var index = 1; index < literal.Length - 1; index++)
+            {
+                if (literal[index] == '\'')
+                {
+                    if (quoted && index + 1 < literal.Length - 1 && literal[index + 1] == '\'')
+                    {
+                        index++;
+                    }
+                    else
+                    {
+                        quoted = !quoted;
+                    }
+                }
+                else if (literal[index] == ',' && !quoted)
+                {
+                    var item = literal[start..index].Trim();
+                    if (item.Length > 0)
+                    {
+                        yield return item;
+                    }
+                    start = index + 1;
+                }
+            }
+
+            if (quoted)
+            {
+                throw new InvalidFilterTokenException(literal);
+            }
+
+            var last = literal[start..^1].Trim();
+            if (last.Length > 0)
+            {
+                yield return last;
             }
         }
 

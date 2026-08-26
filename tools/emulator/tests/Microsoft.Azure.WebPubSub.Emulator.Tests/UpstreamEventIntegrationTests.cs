@@ -8,6 +8,7 @@ using System.Linq;
 using System.Net;
 using System.Net.Sockets;
 using System.Net.WebSockets;
+using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
 using System.Threading;
@@ -70,6 +71,10 @@ public class UpstreamEventIntegrationTests
         Assert.Equal("azure.webpubsub.sys.connect", connectEvent.Headers["ce-type"]);
         Assert.Equal("1.0", connectEvent.Headers["ce-specversion"]);
         Assert.Equal(Hub, connectEvent.Headers["ce-hub"]);
+        Assert.Equal("0", connectEvent.Headers["ce-id"]);
+        Assert.Equal(
+            CreateExpectedSignature(connectEvent.Headers["ce-connectionId"]),
+            connectEvent.Headers["ce-signature"]);
         using (var body = JsonDocument.Parse(connectEvent.Body))
         {
             Assert.False(body.RootElement.GetProperty("query").TryGetProperty("access_token", out _));
@@ -81,6 +86,7 @@ public class UpstreamEventIntegrationTests
 
         var connectedEvent = await ReadEventAsync(requests);
         Assert.Equal("connected", connectedEvent.EventName);
+        Assert.Equal("1", connectedEvent.Headers["ce-id"]);
         Assert.Equal("initial-state", connectedEvent.Headers["ce-connectionState"]);
 
         await SendJsonAsync(
@@ -102,6 +108,7 @@ public class UpstreamEventIntegrationTests
             CancellationToken.None).OrTimeout();
         var disconnectedEvent = await ReadEventAsync(requests);
         Assert.Equal("disconnected", disconnectedEvent.EventName);
+        Assert.Equal("2", disconnectedEvent.Headers["ce-id"]);
         using var disconnectedBody = JsonDocument.Parse(disconnectedEvent.Body);
         Assert.False(string.IsNullOrEmpty(
             disconnectedBody.RootElement.GetProperty("reason").GetString()));
@@ -302,10 +309,73 @@ public class UpstreamEventIntegrationTests
     }
 
     [Fact]
+    public async Task RawWebSocket_WhenMessageHandlerRejects_ClosesConnection()
+    {
+        var requests = Channel.CreateUnbounded<ReceivedEvent>();
+        await using var handler = await StartEventHandlerAsync(requests, (context, _) =>
+        {
+            context.Response.StatusCode = StatusCodes.Status500InternalServerError;
+            return Task.CompletedTask;
+        });
+        await using var emulator = await StartEmulatorAsync(new Dictionary<string, string?>
+        {
+            ["WebPubSub:Hubs:testHub:EventHandlers:0:UrlTemplate"] = $"{handler.Urls.Single()}/events/{{hub}}/{{event}}",
+            ["WebPubSub:Hubs:testHub:EventHandlers:0:EventPattern"] = "message",
+        });
+        using var webSocket = await ConnectAsync(emulator, subprotocol: null);
+
+        await webSocket.SendAsync(
+            "rejected"u8.ToArray(),
+            WebSocketMessageType.Text,
+            endOfMessage: true,
+            CancellationToken.None).OrTimeout();
+        var buffer = new byte[256];
+        var close = await webSocket.ReceiveAsync(buffer, CancellationToken.None).OrTimeout();
+
+        Assert.Equal(WebSocketMessageType.Close, close.MessageType);
+        Assert.Equal(WebSocketCloseStatus.InternalServerError, close.CloseStatus);
+    }
+
+    [Fact]
+    public async Task ConnectedHandler_DoesNotBlockClientMessages()
+    {
+        var requests = Channel.CreateUnbounded<ReceivedEvent>();
+        var handlerStarted = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var releaseHandler = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        await using var handler = await StartEventHandlerAsync(requests, async (_, eventName) =>
+        {
+            if (eventName == "connected")
+            {
+                handlerStarted.TrySetResult();
+                await releaseHandler.Task;
+            }
+        });
+        await using var emulator = await StartEmulatorAsync(new Dictionary<string, string?>
+        {
+            ["WebPubSub:Hubs:testHub:EventHandlers:0:UrlTemplate"] = $"{handler.Urls.Single()}/events/{{hub}}/{{event}}",
+            ["WebPubSub:Hubs:testHub:EventHandlers:0:SystemEvents:0"] = "connected",
+        });
+        using var webSocket = await ConnectAsync(emulator);
+
+        try
+        {
+            _ = await ReceiveJsonAsync(webSocket);
+            await handlerStarted.Task.OrTimeout();
+            await SendJsonAsync(webSocket, """{"type":"ping"}""");
+            using var pong = await ReceiveJsonAsync(webSocket);
+            Assert.Equal("pong", pong.RootElement.GetProperty("type").GetString());
+        }
+        finally
+        {
+            releaseHandler.TrySetResult();
+        }
+    }
+
+    [Fact]
     public void EventHubPublisher_MessageMatchesRuntimeAmqpBinding()
     {
         var upstreamEvent = new UpstreamEvent(
-            Guid.Parse("11111111-1111-1111-1111-111111111111"),
+            42,
             Hub,
             "chat",
             UpstreamEventCategory.User,
@@ -318,12 +388,13 @@ public class UpstreamEventIntegrationTests
 
         var (eventData, sendOptions) = EventHubPublisher.CreateMessage(upstreamEvent);
 
-        Assert.Equal("connection-1/11111111-1111-1111-1111-111111111111", eventData.MessageId);
+        Assert.Equal("connection-1/42", eventData.MessageId);
         Assert.Equal("application/json", eventData.ContentType);
         Assert.Equal("connection-1", sendOptions.PartitionKey);
         Assert.Equal("1.0", eventData.Properties["cloudEvents:specversion"]);
         Assert.Equal("azure.webpubsub.user.chat", eventData.Properties["cloudEvents:type"]);
         Assert.Equal("/hubs/testHub/client/connection-1", eventData.Properties["cloudEvents:source"]);
+        Assert.Equal("42", eventData.Properties["cloudEvents:id"]);
         Assert.Equal(Hub, eventData.Properties["cloudEvents:hub"]);
         Assert.Equal("chat", eventData.Properties["cloudEvents:eventname"]);
         Assert.Equal("connection-1", eventData.Properties["cloudEvents:connectionid"]);
@@ -439,6 +510,14 @@ public class UpstreamEventIntegrationTests
         {
             listener.Stop();
         }
+    }
+
+    private static string CreateExpectedSignature(string connectionId)
+    {
+        var hash = HMACSHA256.HashData(
+            Encoding.UTF8.GetBytes(AccessKey),
+            Encoding.UTF8.GetBytes(connectionId));
+        return $"sha256={Convert.ToHexStringLower(hash)}";
     }
 
     private sealed record ReceivedEvent(

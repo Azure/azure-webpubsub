@@ -70,6 +70,17 @@ internal sealed class SocketTransport : IDisposable
 
     public CancellationToken Aborted => _abortToken;
 
+    public bool IsClosing
+    {
+        get
+        {
+            lock (_enqueueLock)
+            {
+                return _closeQueued;
+            }
+        }
+    }
+
     public TransportEnqueueResult TryEnqueue(
         ReadOnlyMemory<byte> payload,
         WebSocketMessageType messageType)

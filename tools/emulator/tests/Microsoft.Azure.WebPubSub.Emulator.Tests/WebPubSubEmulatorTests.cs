@@ -660,6 +660,40 @@ public class WebPubSubEmulatorTests
     }
 
     [Fact]
+    public async Task ReliableBuffer_WhenUnacknowledgedBytesExceedLimit_ClosesReceiver()
+    {
+        await using var application = await StartApplicationAsync(
+            reliableMessageBufferCapacity: 10,
+            reliableMessageBufferMaxBytes: 150);
+        using var receiver = await ConnectAsync(application, GetClientUri(groups: ["room"]));
+        using var sender = await ConnectAsync(
+            application,
+            GetClientUri(roles: ["webpubsub.sendToGroup.room"]));
+        _ = await ReceiveJsonAsync(receiver);
+        _ = await ReceiveJsonAsync(sender);
+
+        await SendJsonAsync(
+            sender,
+            """{"type":"sendToGroup","group":"room","dataType":"text","data":"first","ackId":1}""");
+        using var first = await ReceiveJsonAsync(receiver);
+        Assert.Equal(1UL, first.RootElement.GetProperty("sequenceId").GetUInt64());
+        _ = await ReceiveJsonAsync(sender);
+
+        await SendJsonAsync(
+            sender,
+            """{"type":"sendToGroup","group":"room","dataType":"text","data":"second","ackId":2}""");
+        _ = await ReceiveJsonAsync(sender);
+        var buffer = new byte[256];
+        var close = await receiver
+            .ReceiveAsync(new ArraySegment<byte>(buffer), CancellationToken.None)
+            .OrTimeout();
+
+        Assert.Equal(WebSocketMessageType.Close, close.MessageType);
+        Assert.Equal(WebSocketCloseStatus.PolicyViolation, close.CloseStatus);
+        Assert.Equal("The reliable message buffer is full.", close.CloseStatusDescription);
+    }
+
+    [Fact]
     public async Task ReliableReconnect_WithInvalidToken_ClosesWithPolicyViolation()
     {
         await using var application = await StartApplicationAsync();
@@ -1518,6 +1552,7 @@ public class WebPubSubEmulatorTests
         bool useTestServer = true,
         string? endpoint = null,
         int reliableMessageBufferCapacity = 1000,
+        int reliableMessageBufferMaxBytes = 16 * 1024 * 1024,
         X509Certificate2? certificate = null,
         bool allowUnvalidatedEntraTokens = false)
     {
@@ -1525,6 +1560,7 @@ public class WebPubSubEmulatorTests
         {
             ReconnectTimeout = TimeSpan.FromSeconds(10),
             ReliableMessageBufferCapacity = reliableMessageBufferCapacity,
+            ReliableMessageBufferMaxBytes = reliableMessageBufferMaxBytes,
         });
         if (useTestServer)
         {

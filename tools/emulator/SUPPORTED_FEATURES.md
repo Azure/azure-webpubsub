@@ -81,7 +81,7 @@ Additional REST behavior notes:
 | Group roles | ✅ Implemented | Supports roles that apply to every group, one named group, or groups matched by a wildcard pattern. |
 | Ack ID idempotency | ✅ Implemented | Reusing an `ackId` on the same logical connection returns `Duplicate` without executing the operation again. |
 | `json.webpubsub.azure.v1` | ✅ Implemented | Supports connection messages, user events, group join/leave, send-to-group, metadata, acknowledgements, and ping/pong. Unsupported message families are listed separately below. |
-| `json.reliable.webpubsub.azure.v1` | ⚠️ Emulator semantics | Adds reconnect, sequence acknowledgement, and replay while the emulator process remains running. |
+| `json.reliable.webpubsub.azure.v1` | ⚠️ Emulator semantics | Adds reconnect, sequence acknowledgement, and replay while the emulator process remains running. A connection is closed when its unacknowledged replay buffer reaches 1,000 messages or 16 MiB. |
 | MQTT | ❌ Not implemented | MQTT client tokens, connections, publish/subscribe, and MQTT session behavior are unavailable. |
 | Protobuf | ❌ Not implemented | `protobuf.webpubsub.azure.v1` and `protobuf.reliable.webpubsub.azure.v1` are unavailable. |
 | Custom WebSocket subprotocols | ❌ Not implemented | Raw WebSocket works without a subprotocol; arbitrary application subprotocol negotiation is rejected. |
@@ -101,10 +101,10 @@ non-dot character. Matching is case-sensitive.
 
 | Capability | Status | Notes |
 | --- | --- | --- |
-| HTTP event handlers | ✅ Implemented | Handles `connect`, `connected`, `disconnected`, user events, and raw WebSocket messages. Connect handlers can assign a user ID, roles, groups, and subprotocol. |
+| HTTP event handlers | ✅ Implemented | Handles `connect`, `connected`, `disconnected`, user events, and raw WebSocket messages. Requests include an access-key `ce-signature`; `connected` is nonblocking, and a rejected raw message closes its client. Connect handlers can assign a user ID, roles, groups, and subprotocol. |
 | Event handler responses | ✅ Implemented | Text, JSON, and binary responses to user events are returned to the client. |
 | Managed identity for handlers | ✅ Implemented | Uses the configured local or managed Azure identity. |
-| Event Hubs listeners | ✅ Implemented | Sends user events and `connected`/`disconnected` lifecycle events using the configured Azure identity. |
+| Event Hubs listeners | ✅ Implemented | Sends user events and `connected`/`disconnected` lifecycle events using the configured Azure identity and runtime-compatible connection-scoped event IDs. |
 | Group lifecycle events | ❌ Not implemented | `joined` and `left` events are not emitted. |
 
 The `connect` event is delivered only to an HTTP event handler because its response determines

@@ -170,6 +170,11 @@ internal sealed class WebPubSubTokenService
         }
     }
 
+    internal static string GetRequiredConnectionStringValue(string connectionString, string name)
+    {
+        return GetRequiredValue(ParseConnectionString(connectionString), name);
+    }
+
     private TokenValidationParameters CreateValidationParameters(string audience)
     {
         return new TokenValidationParameters
