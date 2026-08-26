@@ -4,7 +4,7 @@ This sample is to help you create a chat app using Microsoft Entra authenticatio
 
 ## Prerequisites
 
-1. [Java Development Kit (JDK)](/java/azure/jdk/) version 8 or above
+1. [Java Development Kit (JDK)](/java/azure/jdk/) version 17 or above
 2. [Apache Maven](https://maven.apache.org/download.cgi)
 3. Create an [Azure Web PubSub](https://ms.portal.azure.com/#blade/HubsExtension/BrowseResource/resourceType/Microsoft.SignalRService%2FWebPubSub) resource on Azure Portal
 4. [awps-tunnel](https://learn.microsoft.com/azure/azure-web-pubsub/howto-web-pubsub-tunnel-tool) to tunnel traffic from Web PubSub to your localhost

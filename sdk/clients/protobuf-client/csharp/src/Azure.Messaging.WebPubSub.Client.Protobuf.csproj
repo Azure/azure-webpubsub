@@ -15,7 +15,7 @@
     <None Remove="Protos\webpubsub.client.proto" />
   </ItemGroup>
   <ItemGroup>
-    <PackageReference Include="System.Threading.Channels" Version="10.0.10" />
+    <PackageReference Include="System.Threading.Channels" Version="10.0.11" />
     <PackageReference Include="Azure.Messaging.WebPubSub.Client" Version="1.0.0"/>
     <PackageReference Include="Google.Protobuf" Version="3.35.1" />
     <PackageReference Include="Grpc.Tools" Version="2.83.0">

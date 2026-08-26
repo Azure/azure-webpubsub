@@ -22,21 +22,21 @@ public class App {
                 .buildClient();
 
         // start a server
-        Javalin app = Javalin.create(config -> {
-            config.addStaticFiles("public");
+        // Since Javalin 7 all routes are registered upfront, inside Javalin.create
+        Javalin.create(config -> {
+            config.staticFiles.add("public");
+
+            // Handle the negotiate request and return the token to the client
+            config.routes.get("/negotiate", ctx -> {
+                GetClientAccessTokenOptions option = new GetClientAccessTokenOptions();
+                option.addRole("webpubsub.sendToGroup.stream");
+                option.addRole("webpubsub.joinLeaveGroup.stream");
+                WebPubSubClientAccessToken token = service.getClientAccessToken(option);
+
+                // return JSON string
+                ctx.result("{\"url\":\"" + token.getUrl() + "\"}");
+                return;
+            });
         }).start(8080);
-
-        
-        // Handle the negotiate request and return the token to the client
-        app.get("/negotiate", ctx -> {
-            GetClientAccessTokenOptions option = new GetClientAccessTokenOptions();
-            option.addRole("webpubsub.sendToGroup.stream");
-            option.addRole("webpubsub.joinLeaveGroup.stream");
-            WebPubSubClientAccessToken token = service.getClientAccessToken(option);
-
-            // return JSON string
-            ctx.result("{\"url\":\"" + token.getUrl() + "\"}");
-            return;
-        });
     }
 }
