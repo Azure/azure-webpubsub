@@ -101,7 +101,7 @@ non-dot character. Matching is case-sensitive.
 
 | Capability | Status | Notes |
 | --- | --- | --- |
-| HTTP event handlers | ✅ Implemented | Handles `connect`, `connected`, `disconnected`, user events, and raw WebSocket messages. Requests include an access-key `ce-signature`; `connect` blocks until the handler responds, `connected` and `disconnected` are nonblocking and are dropped when nothing subscribes, and a user event that reaches no handler or listener fails and closes its client. Connect handlers can assign a user ID, roles, groups, and subprotocol. |
+| HTTP event handlers | ✅ Implemented | Handles `connect`, `connected`, `disconnected`, user events, and raw WebSocket messages. Requests include an access-key `ce-signature`; `connect` blocks until the handler responds, while `connected` and `disconnected` are nonblocking and are dropped when nothing subscribes. An undeliverable JSON user event returns an error acknowledgement without closing the client; an undeliverable raw frame closes the client. Connect handlers can assign a user ID, roles, groups, and subprotocol. |
 | Event handler responses | ✅ Implemented | Text, JSON, and binary responses to user events are returned to the client. |
 | Managed identity for handlers | ✅ Implemented | Uses the configured local or managed Azure identity. |
 | Event Hubs listeners | ✅ Implemented | Sends user events and `connected`/`disconnected` lifecycle events using the configured Azure identity and runtime-compatible connection-scoped event IDs. |

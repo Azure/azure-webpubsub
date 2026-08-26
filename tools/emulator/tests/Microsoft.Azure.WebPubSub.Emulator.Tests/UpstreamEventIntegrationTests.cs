@@ -218,7 +218,7 @@ public class UpstreamEventIntegrationTests
     }
 
     [Fact]
-    public async Task UserEvent_InvalidHandlerResponseMetadata_ReturnsErrorAckAndClosesConnection()
+    public async Task UserEvent_InvalidHandlerResponseMetadata_ReturnsErrorAckAndKeepsConnectionAlive()
     {
         var requests = Channel.CreateUnbounded<ReceivedEvent>();
         await using var handler = await StartEventHandlerAsync(requests, (context, _) =>
@@ -245,10 +245,9 @@ public class UpstreamEventIntegrationTests
             "InternalServerError",
             ack.RootElement.GetProperty("error").GetProperty("name").GetString());
 
-        var buffer = new byte[256];
-        var close = await webSocket.ReceiveAsync(buffer, CancellationToken.None).OrTimeout();
-        Assert.Equal(WebSocketMessageType.Close, close.MessageType);
-        Assert.Equal(WebSocketCloseStatus.InternalServerError, close.CloseStatus);
+        await SendJsonAsync(webSocket, """{"type":"ping"}""");
+        using var pong = await ReceiveJsonAsync(webSocket);
+        Assert.Equal("pong", pong.RootElement.GetProperty("type").GetString());
     }
 
     [Fact]
@@ -363,7 +362,7 @@ public class UpstreamEventIntegrationTests
     }
 
     [Fact]
-    public async Task NoEventHandlerOrListener_JsonWebSocket_ReturnsErrorAckAndClosesConnection()
+    public async Task NoEventHandlerOrListener_JsonWebSocket_ReturnsErrorAckAndKeepsConnectionAlive()
     {
         await using var emulator = await StartEmulatorAsync(new Dictionary<string, string?>());
         using var webSocket = await ConnectAsync(emulator);
@@ -382,10 +381,9 @@ public class UpstreamEventIntegrationTests
                 ack.RootElement.GetProperty("error").GetProperty("name").GetString());
         }
 
-        var buffer = new byte[256];
-        var close = await webSocket.ReceiveAsync(buffer, CancellationToken.None).OrTimeout();
-        Assert.Equal(WebSocketMessageType.Close, close.MessageType);
-        Assert.Equal(WebSocketCloseStatus.InternalServerError, close.CloseStatus);
+        await SendJsonAsync(webSocket, """{"type":"ping"}""");
+        using var pong = await ReceiveJsonAsync(webSocket);
+        Assert.Equal("pong", pong.RootElement.GetProperty("type").GetString());
     }
 
     [Fact]
@@ -546,7 +544,7 @@ public class UpstreamEventIntegrationTests
     }
 
     [Fact]
-    public async Task JsonWebSocket_WhenEventHandlerRejects_ReturnsErrorAckAndClosesConnection()
+    public async Task JsonWebSocket_WhenEventHandlerRejects_ReturnsErrorAckAndKeepsConnectionAlive()
     {
         var requests = Channel.CreateUnbounded<ReceivedEvent>();
         await using var handler = await StartEventHandlerAsync(requests, (context, _) =>
@@ -574,10 +572,10 @@ public class UpstreamEventIntegrationTests
                 "InternalServerError",
                 ack.RootElement.GetProperty("error").GetProperty("name").GetString());
         }
-        var buffer = new byte[256];
-        var close = await webSocket.ReceiveAsync(buffer, CancellationToken.None).OrTimeout();
-        Assert.Equal(WebSocketMessageType.Close, close.MessageType);
-        Assert.Equal(WebSocketCloseStatus.InternalServerError, close.CloseStatus);
+
+        await SendJsonAsync(webSocket, """{"type":"ping"}""");
+        using var pong = await ReceiveJsonAsync(webSocket);
+        Assert.Equal("pong", pong.RootElement.GetProperty("type").GetString());
     }
 
     [Fact]

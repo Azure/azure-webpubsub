@@ -386,10 +386,6 @@ internal sealed class WebSocketEndpoint
                         "InternalServerError",
                         result.Error ?? "Dispatching the event failed.");
                 }
-                if (!result.Succeeded)
-                {
-                    return result.Error ?? "Dispatching the event failed.";
-                }
                 break;
         }
 

@@ -601,15 +601,20 @@ public class WebPubSubEmulatorTests
     }
 
     [Theory]
-    [InlineData("/api/hubs/testHub/:send")]
-    [InlineData("/api/hubs/testHub/groups/room/:send")]
-    [InlineData("/api/hubs/testHub/users/user/:send")]
-    public async Task RestApi_ShortCircuitedInvalidFilter_ReturnsRuntimeBadRequest(string path)
+    [InlineData("/api/hubs/testHub/:send", "userId eq null or connectionId")]
+    [InlineData("/api/hubs/testHub/:send", "userId ne null and connectionId")]
+    [InlineData("/api/hubs/testHub/groups/room/:send", "userId eq null or connectionId")]
+    [InlineData("/api/hubs/testHub/groups/room/:send", "userId ne null and connectionId")]
+    [InlineData("/api/hubs/testHub/users/user/:send", "userId eq null or connectionId")]
+    [InlineData("/api/hubs/testHub/users/user/:send", "userId ne null and connectionId")]
+    public async Task RestApi_ShortCircuitedInvalidFilter_ReturnsRuntimeBadRequest(
+        string path,
+        string filter)
     {
         await using var application = await StartApplicationAsync();
         using var request = CreateAuthorizedRequest(
             HttpMethod.Post,
-            $"{path}?filter={Uri.EscapeDataString("userId eq null or connectionId")}&api-version=2024-12-01");
+            $"{path}?filter={Uri.EscapeDataString(filter)}&api-version=2024-12-01");
         request.Content = new StringContent("message", Encoding.UTF8, "text/plain");
 
         using var response = await application.GetTestClient().SendAsync(request).OrTimeout();
