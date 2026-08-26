@@ -35,16 +35,6 @@ internal static class WebPubSubJsonProtocol
                 GetOptionalUInt32(root, "ttlSeconds", 0, 300),
                 ackId),
             "event" => new EventMessage(GetRequiredString(root, "event"), ReadData(root), ackId),
-            "setGroupState" => new SetGroupStateMessage(
-                GetRequiredString(root, "group"),
-                ReadState(root),
-                ackId),
-            "subscribeGroupState" => new SubscribeGroupStateMessage(
-                GetRequiredString(root, "group"),
-                ackId),
-            "unsubscribeGroupState" => new UnsubscribeGroupStateMessage(
-                GetRequiredString(root, "group"),
-                ackId),
             "sequenceAck" => new SequenceAckMessage(GetRequiredUInt64(root, "sequenceId")),
             "ping" => new PingMessage(),
             _ => throw new InvalidDataException($"Unsupported Web PubSub message type '{type}'."),
@@ -136,22 +126,6 @@ internal static class WebPubSubJsonProtocol
         });
     }
 
-    public static byte[] WriteGroupStateUpdate(
-        string group,
-        IReadOnlyList<GroupStateItem> items,
-        ulong? sequenceId)
-    {
-        return WriteGroupState("groupStateUpdate", group, items, sequenceId);
-    }
-
-    public static byte[] WriteGroupStateSnapshot(
-        string group,
-        IReadOnlyList<GroupStateItem> items,
-        ulong? sequenceId)
-    {
-        return WriteGroupState("groupStateSnapshot", group, items, sequenceId);
-    }
-
     private static MessageData ReadData(JsonElement root)
     {
         var metadata = ReadMetadata(root);
@@ -211,30 +185,6 @@ internal static class WebPubSubJsonProtocol
         return result;
     }
 
-    private static Dictionary<string, string>? ReadState(JsonElement root)
-    {
-        if (!root.TryGetProperty("state", out var state) || state.ValueKind == JsonValueKind.Null)
-        {
-            return null;
-        }
-        if (state.ValueKind != JsonValueKind.Object)
-        {
-            throw new InvalidDataException("Property 'state' must be a JSON object.");
-        }
-
-        var result = new Dictionary<string, string>(StringComparer.Ordinal);
-        foreach (var property in state.EnumerateObject())
-        {
-            if (property.Value.ValueKind != JsonValueKind.String)
-            {
-                throw new InvalidDataException(
-                    $"Group state value for key '{property.Name}' must be a string.");
-            }
-            result[property.Name] = property.Value.GetString()!;
-        }
-        return result;
-    }
-
     private static byte[] ReadBase64(JsonElement data)
     {
         if (!data.TryGetBytesFromBase64(out var bytes) || bytes is null)
@@ -291,42 +241,6 @@ internal static class WebPubSubJsonProtocol
         writer.WriteEndObject();
         writer.Flush();
         return buffer.WrittenSpan.ToArray();
-    }
-
-    private static byte[] WriteGroupState(
-        string type,
-        string group,
-        IReadOnlyList<GroupStateItem> items,
-        ulong? sequenceId)
-    {
-        return Write(writer =>
-        {
-            WriteSequenceId(writer, sequenceId);
-            writer.WriteString("type", type);
-            writer.WriteString("group", group);
-            writer.WriteStartArray("items");
-            foreach (var item in items)
-            {
-                writer.WriteStartObject();
-                writer.WriteString("connectionId", item.ConnectionId);
-                if (item.UserId is not null)
-                {
-                    writer.WriteString("userId", item.UserId);
-                }
-                if (item.State is not null)
-                {
-                    writer.WriteStartObject("state");
-                    foreach (var state in item.State)
-                    {
-                        writer.WriteString(state.Key, state.Value);
-                    }
-                    writer.WriteEndObject();
-                }
-                writer.WriteNumber("updatedAt", item.UpdatedAt);
-                writer.WriteEndObject();
-            }
-            writer.WriteEndArray();
-        });
     }
 
     private static void WriteSequenceId(Utf8JsonWriter writer, ulong? sequenceId)
@@ -438,21 +352,6 @@ internal sealed record SendToGroupMessage(
     ulong? AckId) : ClientMessage;
 
 internal sealed record EventMessage(string Event, MessageData Data, ulong? AckId) : ClientMessage;
-
-internal sealed record SetGroupStateMessage(
-    string Group,
-    Dictionary<string, string>? State,
-    ulong? AckId) : ClientMessage;
-
-internal sealed record SubscribeGroupStateMessage(string Group, ulong? AckId) : ClientMessage;
-
-internal sealed record UnsubscribeGroupStateMessage(string Group, ulong? AckId) : ClientMessage;
-
-internal sealed record GroupStateItem(
-    string ConnectionId,
-    string? UserId,
-    IReadOnlyDictionary<string, string>? State,
-    long UpdatedAt);
 
 internal sealed record SequenceAckMessage(ulong SequenceId) : ClientMessage;
 

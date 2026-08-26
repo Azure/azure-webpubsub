@@ -2,7 +2,6 @@
 // Licensed under the MIT License.
 
 using System;
-using System.Collections.Generic;
 using System.IO;
 using System.Text;
 using System.Text.Json;
@@ -36,8 +35,6 @@ public class WebPubSubJsonProtocolTests
     [InlineData("""{"type":"sendToGroup","group":"room","data":"hi","metadata":{"key":1}}""")]
     [InlineData("""{"type":"sendToGroup","group":"room","data":"hi","metadata":{"bad key":"value"}}""")]
     [InlineData("""{"type":"event","event":"message","metadata":{"key":"非 ASCII"}}""")]
-    [InlineData("""{"type":"setGroupState","group":"room","state":[]}""")]
-    [InlineData("""{"type":"setGroupState","group":"room","state":{"activity":1}}""")]
     [InlineData("""{"type":42}""")]
     [InlineData("""["joinGroup"]""")]
     [InlineData("""{"type":"unknown"}""")]
@@ -112,51 +109,6 @@ public class WebPubSubJsonProtocolTests
         Assert.Equal("system", message.RootElement.GetProperty("type").GetString());
         Assert.Equal("disconnected", message.RootElement.GetProperty("event").GetString());
         Assert.Equal("test-close", message.RootElement.GetProperty("message").GetString());
-    }
-
-    [Fact]
-    public void Parse_GroupStateRequests_RetainStateAndAckIds()
-    {
-        var set = Assert.IsType<SetGroupStateMessage>(Parse(
-            """{"type":"setGroupState","group":"room","state":{"activity":"typing"},"ackId":1}"""));
-        var subscribe = Assert.IsType<SubscribeGroupStateMessage>(Parse(
-            """{"type":"subscribeGroupState","group":"room","ackId":2}"""));
-        var unsubscribe = Assert.IsType<UnsubscribeGroupStateMessage>(Parse(
-            """{"type":"unsubscribeGroupState","group":"room","ackId":3}"""));
-        var clear = Assert.IsType<SetGroupStateMessage>(Parse(
-            """{"type":"setGroupState","group":"room","state":null}"""));
-
-        Assert.Equal("typing", set.State!["activity"]);
-        Assert.Equal(1UL, set.AckId);
-        Assert.Equal(2UL, subscribe.AckId);
-        Assert.Equal(3UL, unsubscribe.AckId);
-        Assert.Null(clear.State);
-    }
-
-    [Fact]
-    public void WriteGroupStateMessages_MatchRuntimeShape()
-    {
-        var items = new GroupStateItem[]
-        {
-            new("connection-1", "alice", new Dictionary<string, string>
-            {
-                ["activity"] = "typing",
-            }, 123),
-            new("connection-2", null, null, 124),
-        };
-
-        using var update = JsonDocument.Parse(
-            WebPubSubJsonProtocol.WriteGroupStateUpdate("room", items, 5));
-        using var snapshot = JsonDocument.Parse(
-            WebPubSubJsonProtocol.WriteGroupStateSnapshot("room", items, null));
-
-        Assert.Equal("groupStateUpdate", update.RootElement.GetProperty("type").GetString());
-        Assert.Equal(5UL, update.RootElement.GetProperty("sequenceId").GetUInt64());
-        Assert.Equal("typing", update.RootElement.GetProperty("items")[0]
-            .GetProperty("state").GetProperty("activity").GetString());
-        Assert.False(update.RootElement.GetProperty("items")[1].TryGetProperty("userId", out _));
-        Assert.False(update.RootElement.GetProperty("items")[1].TryGetProperty("state", out _));
-        Assert.Equal("groupStateSnapshot", snapshot.RootElement.GetProperty("type").GetString());
     }
 
     private static ClientMessage Parse(string json)

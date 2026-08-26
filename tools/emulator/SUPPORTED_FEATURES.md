@@ -80,7 +80,7 @@ Additional REST behavior notes:
 | Client `sendToGroup` | ✅ Implemented | Supports `noEcho` and role-based authorization. |
 | Group roles | ✅ Implemented | Supports roles that apply to every group, one named group, or groups matched by a wildcard pattern. |
 | Ack ID idempotency | ✅ Implemented | Reusing an `ackId` on the same logical connection returns `Duplicate` without executing the operation again. |
-| `json.webpubsub.azure.v1` | ✅ Implemented | Supports connection messages, user events, group join/leave, send-to-group, group state, metadata, acknowledgements, and ping/pong. Unsupported message families are listed separately below. |
+| `json.webpubsub.azure.v1` | ✅ Implemented | Supports connection messages, user events, group join/leave, send-to-group, metadata, acknowledgements, and ping/pong. Unsupported message families are listed separately below. |
 | `json.reliable.webpubsub.azure.v1` | ⚠️ Emulator semantics | Adds reconnect, sequence acknowledgement, and replay while the emulator process remains running. |
 | MQTT | ❌ Not implemented | MQTT client tokens, connections, publish/subscribe, and MQTT session behavior are unavailable. |
 | Protobuf | ❌ Not implemented | `protobuf.webpubsub.azure.v1` and `protobuf.reliable.webpubsub.azure.v1` are unavailable. |
@@ -88,7 +88,7 @@ Additional REST behavior notes:
 | Invocation | ❌ Not implemented | `invoke`, `invokeResponse`, and `cancelInvocation` messages are unavailable. |
 | Streaming | ❌ Not implemented | Stream start, `streamData`, `streamEnd`, stream acknowledgements, stream closure, and downstream stream metadata are unavailable. |
 | Message metadata | ✅ Implemented | Supports metadata on client `sendToGroup` and `event` messages, REST metadata headers, HTTP event-handler request and response metadata, downstream messages, and reliable replay. |
-| Group state | ⚠️ Emulator semantics | Supports `setGroupState`, subscriptions, snapshots, updates, role checks, and membership cleanup. State is ephemeral and local to one emulator process. |
+| Group state | ❌ Not implemented | `setGroupState`, subscriptions, snapshots, and updates are unavailable. |
 | Client message TTL | ⚠️ Emulator semantics | Parses and validates `ttlSeconds` from 0 through 300 on client `sendToGroup` messages. Delivery is immediate and TTL retention is not modeled. |
 | Disconnected system message | ✅ Implemented | Active non-raw clients receive a JSON `system/disconnected` message before service-initiated WebSocket closure. |
 

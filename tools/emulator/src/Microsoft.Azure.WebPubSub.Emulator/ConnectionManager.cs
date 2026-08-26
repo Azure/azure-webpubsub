@@ -62,20 +62,8 @@ internal sealed class ConnectionManager
 
     public void Remove(LogicalConnection connection, string reason)
     {
-        var removed = false;
-        List<GroupStateUpdate>? updates = null;
-        lock (connection.GroupStateMutationLock)
+        if (_connections.TryRemove((connection.Hub, connection.ConnectionId), out _))
         {
-            if (_connections.TryRemove((connection.Hub, connection.ConnectionId), out _))
-            {
-                updates = ClearAllGroupState(connection);
-                removed = true;
-            }
-        }
-
-        if (removed)
-        {
-            PublishGroupStateUpdates(connection, updates!);
             _ = NotifyDisconnectedAsync(connection, reason);
         }
     }
@@ -194,83 +182,7 @@ internal sealed class ConnectionManager
 
     public void RemoveFromGroup(LogicalConnection connection, string group)
     {
-        GroupStateUpdate? update = null;
-        lock (connection.GroupStateMutationLock)
-        {
-            if (connection.Groups.TryRemove(group, out _))
-            {
-                update = ClearGroupState(connection, group);
-                connection.GroupStateSubscriptions.Unsubscribe(group);
-            }
-        }
-
-        PublishGroupStateUpdate(connection, update);
-    }
-
-    public bool SetGroupState(
-        LogicalConnection connection,
-        string group,
-        Dictionary<string, string>? state)
-    {
-        GroupStateUpdate update;
-        lock (connection.GroupStateMutationLock)
-        {
-            if (!_connections.ContainsKey((connection.Hub, connection.ConnectionId)) ||
-                !connection.Groups.ContainsKey(group))
-            {
-                return false;
-            }
-
-            var updatedAt = state is null
-                ? connection.GroupStateStore.ClearState(group)
-                : connection.GroupStateStore.SetState(group, state);
-            update = new(group, state, updatedAt);
-        }
-
-        PublishGroupStateUpdate(connection, update);
-        return true;
-    }
-
-    public bool SubscribeGroupState(
-        LogicalConnection connection,
-        string group,
-        out GroupStateItem[] snapshot)
-    {
-        lock (connection.GroupStateMutationLock)
-        {
-            if (!_connections.ContainsKey((connection.Hub, connection.ConnectionId)) ||
-                !connection.Groups.ContainsKey(group))
-            {
-                snapshot = [];
-                return false;
-            }
-
-            connection.GroupStateSubscriptions.Subscribe(group);
-        }
-
-        snapshot = GetGroupStateSnapshot(connection.Hub, group);
-        return true;
-    }
-
-    public void UnsubscribeGroupState(LogicalConnection connection, string group)
-    {
-        connection.GroupStateSubscriptions.Unsubscribe(group);
-    }
-
-    private GroupStateItem[] GetGroupStateSnapshot(string hub, string group)
-    {
-        return GetHubConnections(hub)
-            .Where(connection => connection.Groups.ContainsKey(group))
-            .Select(connection => (Connection: connection, Entry: connection.GroupStateStore.GetState(group)))
-            .Where(item => item.Entry is not null)
-            .OrderBy(item => item.Connection.ConnectionId, StringComparer.Ordinal)
-            .Take(200)
-            .Select(item => new GroupStateItem(
-                item.Connection.ConnectionId,
-                item.Connection.UserId,
-                item.Entry!.State,
-                item.Entry.UpdatedAt))
-            .ToArray();
+        connection.Groups.TryRemove(group, out _);
     }
 
     public bool CloseConnection(string hub, string connectionId, string reason)
@@ -434,85 +346,8 @@ internal sealed class ConnectionManager
 
     private void RemoveFromAllGroups(LogicalConnection connection)
     {
-        List<GroupStateUpdate> updates = [];
-        lock (connection.GroupStateMutationLock)
-        {
-            foreach (var group in connection.Groups.Keys)
-            {
-                if (connection.Groups.TryRemove(group, out _))
-                {
-                    if (ClearGroupState(connection, group) is { } update)
-                    {
-                        updates.Add(update);
-                    }
-                    connection.GroupStateSubscriptions.Unsubscribe(group);
-                }
-            }
-        }
-
-        PublishGroupStateUpdates(connection, updates);
+        connection.Groups.Clear();
     }
-
-    private static List<GroupStateUpdate> ClearAllGroupState(LogicalConnection connection)
-    {
-        List<GroupStateUpdate> updates = [];
-        foreach (var group in connection.GroupStateStore.GetAllGroupsWithState())
-        {
-            if (ClearGroupState(connection, group) is { } update)
-            {
-                updates.Add(update);
-            }
-        }
-        return updates;
-    }
-
-    private static GroupStateUpdate? ClearGroupState(LogicalConnection connection, string group)
-    {
-        if (connection.GroupStateStore.GetState(group) is null)
-        {
-            return null;
-        }
-
-        var updatedAt = connection.GroupStateStore.ClearState(group);
-        return new(group, State: null, updatedAt);
-    }
-
-    private void PublishGroupStateUpdate(
-        LogicalConnection owner,
-        GroupStateUpdate? update)
-    {
-        if (update is null)
-        {
-            return;
-        }
-
-        var item = new GroupStateItem(
-            owner.ConnectionId,
-            owner.UserId,
-            update.State,
-            update.UpdatedAt);
-        foreach (var connection in GetHubConnections(owner.Hub)
-            .Where(connection => connection.Groups.ContainsKey(update.Group))
-            .Where(connection => connection.GroupStateSubscriptions.IsSubscribed(update.Group)))
-        {
-            connection.SendGroupStateUpdate(update.Group, item);
-        }
-    }
-
-    private void PublishGroupStateUpdates(
-        LogicalConnection owner,
-        IReadOnlyList<GroupStateUpdate> updates)
-    {
-        foreach (var update in updates)
-        {
-            PublishGroupStateUpdate(owner, update);
-        }
-    }
-
-    private sealed record GroupStateUpdate(
-        string Group,
-        IReadOnlyDictionary<string, string>? State,
-        long UpdatedAt);
 
     private async Task ExpireAsync(LogicalConnection connection, long generation)
     {
