@@ -304,10 +304,7 @@ internal sealed class WebSocketEndpoint
                     SendForbiddenAck(connection, join.AckId, "join", join.Group);
                     return;
                 }
-                if (!_connections.AddToGroup(connection, join.Group))
-                {
-                    return;
-                }
+                _connections.AddToGroup(connection, join.Group);
                 SendAck(connection, join.AckId);
                 break;
             case LeaveGroupMessage leave:

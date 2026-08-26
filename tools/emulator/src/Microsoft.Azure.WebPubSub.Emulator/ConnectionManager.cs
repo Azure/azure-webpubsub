@@ -111,15 +111,9 @@ internal sealed class ConnectionManager
         return true;
     }
 
-    public bool AddToGroup(LogicalConnection connection, string group)
+    public void AddToGroup(LogicalConnection connection, string group)
     {
-        if (!IsActiveConnection(connection))
-        {
-            return false;
-        }
-
         connection.Groups.TryAdd(group, 0);
-        return true;
     }
 
     public bool RemoveConnectionFromGroup(string hub, string connectionId, string group)
@@ -149,10 +143,6 @@ internal sealed class ConnectionManager
         foreach (var connection in GetHubConnections(hub)
             .Where(connection => ODataFilterExecutor.Instance.Matches(filter, connection)))
         {
-            if (!IsActiveConnection(connection))
-            {
-                continue;
-            }
             foreach (var group in groups)
             {
                 connection.Groups.TryAdd(group, 0);
@@ -180,10 +170,7 @@ internal sealed class ConnectionManager
         var connections = GetUserConnections(hub, userId);
         foreach (var connection in connections)
         {
-            if (IsActiveConnection(connection))
-            {
-                connection.Groups.TryAdd(group, 0);
-            }
+            connection.Groups.TryAdd(group, 0);
         }
 
         return connections.Length > 0;
@@ -228,7 +215,8 @@ internal sealed class ConnectionManager
         GroupStateUpdate update;
         lock (connection.GroupStateMutationLock)
         {
-            if (!IsActiveGroupMember(connection, group))
+            if (!_connections.ContainsKey((connection.Hub, connection.ConnectionId)) ||
+                !connection.Groups.ContainsKey(group))
             {
                 return false;
             }
@@ -248,13 +236,18 @@ internal sealed class ConnectionManager
         string group,
         out GroupStateItem[] snapshot)
     {
-        if (!IsActiveGroupMember(connection, group))
+        lock (connection.GroupStateMutationLock)
         {
-            snapshot = [];
-            return false;
+            if (!_connections.ContainsKey((connection.Hub, connection.ConnectionId)) ||
+                !connection.Groups.ContainsKey(group))
+            {
+                snapshot = [];
+                return false;
+            }
+
+            connection.GroupStateSubscriptions.Subscribe(group);
         }
 
-        connection.GroupStateSubscriptions.Subscribe(group);
         snapshot = GetGroupStateSnapshot(connection.Hub, group);
         return true;
     }
@@ -458,18 +451,6 @@ internal sealed class ConnectionManager
         }
 
         PublishGroupStateUpdates(connection, updates);
-    }
-
-    private bool IsActiveGroupMember(LogicalConnection connection, string group)
-    {
-        return IsActiveConnection(connection) &&
-            connection.Groups.ContainsKey(group);
-    }
-
-    private bool IsActiveConnection(LogicalConnection connection)
-    {
-        return _connections.TryGetValue((connection.Hub, connection.ConnectionId), out var active) &&
-            ReferenceEquals(active, connection);
     }
 
     private static List<GroupStateUpdate> ClearAllGroupState(LogicalConnection connection)
