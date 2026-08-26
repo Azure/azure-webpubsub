@@ -76,7 +76,7 @@ Additional REST behavior notes:
 
 | Capability | Status | Notes |
 | --- | --- | --- |
-| Raw WebSocket | ✅ Implemented | Sends and receives text and binary frames. Client frames can be forwarded to configured event handlers and listeners. |
+| Raw WebSocket | ✅ Implemented | Sends and receives text and binary frames. Client frames are dispatched as `message` events to configured event handlers and listeners; a frame that reaches neither closes the client. |
 | Client `sendToGroup` | ✅ Implemented | Supports `noEcho` and role-based authorization. |
 | Group roles | ✅ Implemented | Supports roles that apply to every group, one named group, or groups matched by a wildcard pattern. |
 | Ack ID idempotency | ✅ Implemented | Reusing an `ackId` on the same logical connection returns `Duplicate` without executing the operation again. |
@@ -101,7 +101,7 @@ non-dot character. Matching is case-sensitive.
 
 | Capability | Status | Notes |
 | --- | --- | --- |
-| HTTP event handlers | ✅ Implemented | Handles `connect`, `connected`, `disconnected`, user events, and raw WebSocket messages. Requests include an access-key `ce-signature`; `connected` is nonblocking, and a rejected raw message closes its client. Connect handlers can assign a user ID, roles, groups, and subprotocol. |
+| HTTP event handlers | ✅ Implemented | Handles `connect`, `connected`, `disconnected`, user events, and raw WebSocket messages. Requests include an access-key `ce-signature`; `connect` blocks until the handler responds, `connected` and `disconnected` are nonblocking and are dropped when nothing subscribes, and a user event that reaches no handler or listener fails and closes its client. Connect handlers can assign a user ID, roles, groups, and subprotocol. |
 | Event handler responses | ✅ Implemented | Text, JSON, and binary responses to user events are returned to the client. |
 | Managed identity for handlers | ✅ Implemented | Uses the configured local or managed Azure identity. |
 | Event Hubs listeners | ✅ Implemented | Sends user events and `connected`/`disconnected` lifecycle events using the configured Azure identity and runtime-compatible connection-scoped event IDs. |

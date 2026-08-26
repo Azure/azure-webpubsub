@@ -23,6 +23,7 @@ using Microsoft.AspNetCore.WebUtilities;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
+using Microsoft.Extensions.Primitives;
 using Xunit;
 
 namespace Microsoft.Azure.WebPubSub.Emulator.Tests;
@@ -340,6 +341,180 @@ public class UpstreamEventIntegrationTests
             WebSocketCloseStatus.NormalClosure,
             "Test complete.",
             CancellationToken.None).OrTimeout();
+    }
+
+    [Fact]
+    public async Task NoEventHandlerOrListener_RawWebSocket_ClosesConnection()
+    {
+        await using var emulator = await StartEmulatorAsync(new Dictionary<string, string?>());
+        using var webSocket = await ConnectAsync(emulator, subprotocol: null);
+
+        await webSocket.SendAsync(
+            "undeliverable"u8.ToArray(),
+            WebSocketMessageType.Text,
+            endOfMessage: true,
+            CancellationToken.None).OrTimeout();
+
+        var buffer = new byte[256];
+        var close = await webSocket.ReceiveAsync(buffer, CancellationToken.None).OrTimeout();
+
+        Assert.Equal(WebSocketMessageType.Close, close.MessageType);
+        Assert.Equal(WebSocketCloseStatus.InternalServerError, close.CloseStatus);
+    }
+
+    [Fact]
+    public async Task NoEventHandlerOrListener_JsonWebSocket_ReturnsErrorAckAndClosesConnection()
+    {
+        await using var emulator = await StartEmulatorAsync(new Dictionary<string, string?>());
+        using var webSocket = await ConnectAsync(emulator);
+        _ = await ReceiveJsonAsync(webSocket);
+
+        await SendJsonAsync(
+            webSocket,
+            """{"type":"event","event":"chat-message","dataType":"text","data":"undeliverable","ackId":4}""");
+
+        using (var ack = await ReceiveJsonAsync(webSocket))
+        {
+            Assert.Equal(4UL, ack.RootElement.GetProperty("ackId").GetUInt64());
+            Assert.False(ack.RootElement.GetProperty("success").GetBoolean());
+            Assert.Equal(
+                "InternalServerError",
+                ack.RootElement.GetProperty("error").GetProperty("name").GetString());
+        }
+
+        var buffer = new byte[256];
+        var close = await webSocket.ReceiveAsync(buffer, CancellationToken.None).OrTimeout();
+        Assert.Equal(WebSocketMessageType.Close, close.MessageType);
+        Assert.Equal(WebSocketCloseStatus.InternalServerError, close.CloseStatus);
+    }
+
+    [Fact]
+    public async Task NoEventHandlerOrListener_LifecycleNotifications_DoNotAffectConnection()
+    {
+        await using var emulator = await StartEmulatorAsync(new Dictionary<string, string?>());
+        using var webSocket = await ConnectAsync(emulator);
+        _ = await ReceiveJsonAsync(webSocket);
+
+        // connected is asynchronous, so an unsubscribed hub must leave the client untouched.
+        await SendJsonAsync(webSocket, """{"type":"ping"}""");
+        using var pong = await ReceiveJsonAsync(webSocket);
+        Assert.Equal("pong", pong.RootElement.GetProperty("type").GetString());
+
+        await webSocket.CloseOutputAsync(
+            WebSocketCloseStatus.NormalClosure,
+            "Test complete.",
+            CancellationToken.None).OrTimeout();
+        var buffer = new byte[256];
+        var close = await webSocket.ReceiveAsync(buffer, CancellationToken.None).OrTimeout();
+        Assert.Equal(WebSocketMessageType.Close, close.MessageType);
+        Assert.Equal(WebSocketCloseStatus.NormalClosure, close.CloseStatus);
+    }
+
+    [Fact]
+    public async Task RawWebSocket_HandlerConnectionState_IsSentWithFollowingEvent()
+    {
+        var requests = Channel.CreateUnbounded<ReceivedEvent>();
+        await using var handler = await StartEventHandlerAsync(requests, (context, _) =>
+        {
+            context.Response.Headers["ce-connectionState"] = "state-from-handler";
+            return Task.CompletedTask;
+        });
+        await using var emulator = await StartEmulatorAsync(new Dictionary<string, string?>
+        {
+            ["WebPubSub:Hubs:testHub:EventHandlers:0:UrlTemplate"] = $"{handler.Urls.Single()}/events/{{hub}}/{{event}}",
+            ["WebPubSub:Hubs:testHub:EventHandlers:0:EventPattern"] = "message",
+        });
+        using var webSocket = await ConnectAsync(emulator, subprotocol: null);
+
+        await webSocket.SendAsync(
+            "first"u8.ToArray(),
+            WebSocketMessageType.Text,
+            endOfMessage: true,
+            CancellationToken.None).OrTimeout();
+        var first = await ReadEventAsync(requests);
+        Assert.False(first.Headers.ContainsKey("ce-connectionState"));
+
+        await webSocket.SendAsync(
+            "second"u8.ToArray(),
+            WebSocketMessageType.Text,
+            endOfMessage: true,
+            CancellationToken.None).OrTimeout();
+        var second = await ReadEventAsync(requests);
+        Assert.Equal("state-from-handler", second.Headers["ce-connectionState"]);
+    }
+
+    [Fact]
+    public async Task UserEvent_DuplicateConnectionStateHeader_KeepsConnectionAlive()
+    {
+        var requests = Channel.CreateUnbounded<ReceivedEvent>();
+        await using var handler = await StartEventHandlerAsync(requests, (context, _) =>
+        {
+            context.Response.Headers["ce-connectionState"] = new StringValues(["first-state", "last-state"]);
+            return Task.CompletedTask;
+        });
+        await using var emulator = await StartEmulatorAsync(new Dictionary<string, string?>
+        {
+            ["WebPubSub:Hubs:testHub:EventHandlers:0:UrlTemplate"] = $"{handler.Urls.Single()}/events/{{hub}}/{{event}}",
+            ["WebPubSub:Hubs:testHub:EventHandlers:0:EventPattern"] = "chat-message",
+        });
+        using var webSocket = await ConnectAsync(emulator);
+        _ = await ReceiveJsonAsync(webSocket);
+
+        await SendJsonAsync(
+            webSocket,
+            """{"type":"event","event":"chat-message","dataType":"text","data":"first","ackId":5}""");
+        using (var ack = await ReceiveJsonAsync(webSocket))
+        {
+            Assert.Equal(5UL, ack.RootElement.GetProperty("ackId").GetUInt64());
+            Assert.True(ack.RootElement.GetProperty("success").GetBoolean());
+        }
+        _ = await ReadEventAsync(requests);
+
+        await SendJsonAsync(
+            webSocket,
+            """{"type":"event","event":"chat-message","dataType":"text","data":"second","ackId":6}""");
+        using (var ack = await ReceiveJsonAsync(webSocket))
+        {
+            Assert.True(ack.RootElement.GetProperty("success").GetBoolean());
+        }
+        var second = await ReadEventAsync(requests);
+        Assert.Equal("last-state", second.Headers["ce-connectionState"]);
+    }
+
+    [Fact]
+    public async Task RawWebSocket_WhenMessageHandlerRejects_ReportsServerCloseReason()
+    {
+        var requests = Channel.CreateUnbounded<ReceivedEvent>();
+        await using var handler = await StartEventHandlerAsync(requests, (context, eventName) =>
+        {
+            if (eventName == "message")
+            {
+                context.Response.StatusCode = StatusCodes.Status500InternalServerError;
+            }
+            return Task.CompletedTask;
+        });
+        await using var emulator = await StartEmulatorAsync(new Dictionary<string, string?>
+        {
+            ["WebPubSub:Hubs:testHub:EventHandlers:0:UrlTemplate"] = $"{handler.Urls.Single()}/events/{{hub}}/{{event}}",
+            ["WebPubSub:Hubs:testHub:EventHandlers:0:EventPattern"] = "message",
+            ["WebPubSub:Hubs:testHub:EventHandlers:0:SystemEvents:0"] = "disconnected",
+        });
+        using var webSocket = await ConnectAsync(emulator, subprotocol: null);
+
+        await webSocket.SendAsync(
+            "rejected"u8.ToArray(),
+            WebSocketMessageType.Text,
+            endOfMessage: true,
+            CancellationToken.None).OrTimeout();
+
+        var messageEvent = await ReadEventAsync(requests);
+        Assert.Equal("message", messageEvent.EventName);
+        var disconnectedEvent = await ReadEventAsync(requests);
+        Assert.Equal("disconnected", disconnectedEvent.EventName);
+        using var body = JsonDocument.Parse(disconnectedEvent.Body);
+        Assert.Equal(
+            "The event handler returned 500.",
+            body.RootElement.GetProperty("reason").GetString());
     }
 
     [Fact]

@@ -242,7 +242,12 @@ internal sealed class LogicalConnection : IODataFilterModel
         }
     }
 
-    public void Detach(long generation, bool normalClose)
+    /// <summary>
+    /// Ends this transport. A recoverable detach keeps a reliable connection alive until its
+    /// recovery window expires; anything else removes the connection now and reports
+    /// <paramref name="reason"/> as the disconnect reason.
+    /// </summary>
+    public void Detach(long generation, bool recoverable, string reason)
     {
         var remove = false;
         lock (_stateLock)
@@ -253,7 +258,7 @@ internal sealed class LogicalConnection : IODataFilterModel
             }
 
             _activeTransport = null;
-            if (normalClose || !IsReliable)
+            if (!recoverable || !IsReliable)
             {
                 _closed = true;
                 remove = true;
@@ -262,7 +267,7 @@ internal sealed class LogicalConnection : IODataFilterModel
 
         if (remove)
         {
-            _manager.Remove(this, normalClose ? "The client closed the connection." : "The connection ended.");
+            _manager.Remove(this, reason);
         }
         else
         {

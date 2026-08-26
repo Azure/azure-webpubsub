@@ -364,6 +364,57 @@ public class WebPubSubEmulatorTests
     }
 
     [Fact]
+    public async Task WithoutEventHandler_ClientPubSubIsUnaffectedByUserEventFailure()
+    {
+        await using var application = await StartApplicationAsync();
+        using var subscriber = await ConnectAsync(
+            application,
+            GetClientUri(groups: ["room"]),
+            JsonProtocol);
+        using var publisher = await ConnectAsync(
+            application,
+            GetClientUri(roles: ["webpubsub.joinLeaveGroup.room", "webpubsub.sendToGroup.room"]),
+            JsonProtocol);
+        _ = await ReceiveJsonAsync(subscriber);
+        _ = await ReceiveJsonAsync(publisher);
+
+        await SendJsonAsync(publisher, """{"type":"joinGroup","group":"room","ackId":1}""");
+        using (var joinAck = await ReceiveJsonAsync(publisher))
+        {
+            Assert.True(joinAck.RootElement.GetProperty("success").GetBoolean());
+        }
+
+        await SendJsonAsync(
+            publisher,
+            """{"type":"sendToGroup","group":"room","dataType":"text","data":"pubsub","noEcho":true,"ackId":2}""");
+        using (var sendAck = await ReceiveJsonAsync(publisher))
+        {
+            Assert.Equal(2UL, sendAck.RootElement.GetProperty("ackId").GetUInt64());
+            Assert.True(sendAck.RootElement.GetProperty("success").GetBoolean());
+        }
+        using (var delivered = await ReceiveJsonAsync(subscriber))
+        {
+            Assert.Equal("message", delivered.RootElement.GetProperty("type").GetString());
+            Assert.Equal("pubsub", delivered.RootElement.GetProperty("data").GetString());
+        }
+
+        // Only the synchronous user event needs an upstream receiver. Pub/sub never leaves the
+        // broker, so a hub without event handlers still publishes and subscribes normally.
+        await SendJsonAsync(
+            publisher,
+            """{"type":"event","event":"chat","dataType":"text","data":"undeliverable","ackId":3}""");
+        using (var eventAck = await ReceiveJsonAsync(publisher))
+        {
+            Assert.Equal(3UL, eventAck.RootElement.GetProperty("ackId").GetUInt64());
+            Assert.False(eventAck.RootElement.GetProperty("success").GetBoolean());
+        }
+
+        await SendJsonAsync(subscriber, """{"type":"ping"}""");
+        using var pong = await ReceiveJsonAsync(subscriber);
+        Assert.Equal("pong", pong.RootElement.GetProperty("type").GetString());
+    }
+
+    [Fact]
     public async Task RawWebSocket_RestBinarySend_DeliversBinaryFrame()
     {
         await using var application = await StartApplicationAsync();
@@ -549,6 +600,26 @@ public class WebPubSubEmulatorTests
             StringComparison.Ordinal);
     }
 
+    [Theory]
+    [InlineData("/api/hubs/testHub/:send")]
+    [InlineData("/api/hubs/testHub/groups/room/:send")]
+    [InlineData("/api/hubs/testHub/users/user/:send")]
+    public async Task RestApi_ShortCircuitedInvalidFilter_ReturnsRuntimeBadRequest(string path)
+    {
+        await using var application = await StartApplicationAsync();
+        using var request = CreateAuthorizedRequest(
+            HttpMethod.Post,
+            $"{path}?filter={Uri.EscapeDataString("userId eq null or connectionId")}&api-version=2024-12-01");
+        request.Content = new StringContent("message", Encoding.UTF8, "text/plain");
+
+        using var response = await application.GetTestClient().SendAsync(request).OrTimeout();
+
+        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+        using var error = JsonDocument.Parse(await response.Content.ReadAsByteArrayAsync());
+        Assert.Equal("Error.BadRequest", error.RootElement.GetProperty("code").GetString());
+        Assert.Equal("Request", error.RootElement.GetProperty("target").GetString());
+    }
+
     [Fact]
     public async Task WebSocket_UnsupportedSubprotocol_RejectsHandshake()
     {
@@ -669,7 +740,7 @@ public class WebPubSubEmulatorTests
         var manager = application.Services.GetRequiredService<ConnectionManager>();
         Assert.True(manager.TryGet(Hub, connectionId, out var connection));
 
-        connection.Detach(generation: 1, normalClose: false);
+        connection.Detach(generation: 1, recoverable: true, reason: "The connection ended.");
         Assert.True(manager.SendToConnection(
             Hub,
             connectionId,

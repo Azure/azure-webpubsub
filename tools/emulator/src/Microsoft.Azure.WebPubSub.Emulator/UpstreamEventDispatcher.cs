@@ -71,7 +71,7 @@ internal sealed class UpstreamEventDispatcher
             return new(
                 response.StatusCode,
                 connectResponse,
-                GetSingleHeader(response, "ce-connectionState"),
+                GetHeaderValue(response, "ce-connectionState"),
                 null);
         }
         catch (Exception exception) when (
@@ -94,7 +94,13 @@ internal sealed class UpstreamEventDispatcher
         var handler = GetMatchingHandler(upstreamEvent);
         if (handler is null)
         {
-            return new(hasListener, hasListener, null, null, hasListener ? null : "No event handler or listener is configured.");
+            // A user event is synchronous and expects to be delivered upstream, so it fails when
+            // no handler and no listener receives it. Only asynchronous notifications are dropped.
+            return new(
+                hasListener,
+                null,
+                null,
+                hasListener ? null : "No event handler or listener is configured.");
         }
 
         try
@@ -102,7 +108,7 @@ internal sealed class UpstreamEventDispatcher
             using var response = await SendToHandlerAsync(handler, upstreamEvent, cancellationToken);
             if (!response.IsSuccessStatusCode)
             {
-                return new(true, false, null, null, $"The event handler returned {(int)response.StatusCode}.");
+                return new(false, null, null, $"The event handler returned {(int)response.StatusCode}.");
             }
 
             var bytes = await ReadContentAsync(response.Content, cancellationToken);
@@ -114,8 +120,8 @@ internal sealed class UpstreamEventDispatcher
                     GetDataType(response.Content.Headers.ContentType),
                     bytes,
                     metadata);
-            var connectionState = GetSingleHeader(response, "ce-connectionState");
-            return new(true, true, responseData, connectionState, null);
+            var connectionState = GetHeaderValue(response, "ce-connectionState");
+            return new(true, responseData, connectionState, null);
         }
         catch (Exception exception) when (
             exception is HttpRequestException or TaskCanceledException or InvalidDataException)
@@ -125,7 +131,7 @@ internal sealed class UpstreamEventDispatcher
                 "Dispatching user event {EventName} for connection {ConnectionId} failed.",
                 upstreamEvent.EventName,
                 upstreamEvent.ConnectionId);
-            return new(true, false, null, null, "Dispatching the event failed.");
+            return new(false, null, null, "Dispatching the event failed.");
         }
     }
 
@@ -373,9 +379,11 @@ internal sealed class UpstreamEventDispatcher
         return metadata;
     }
 
-    private static string? GetSingleHeader(HttpResponseMessage response, string name)
+    private static string? GetHeaderValue(HttpResponseMessage response, string name)
     {
-        return response.Headers.TryGetValues(name, out var values) ? values.SingleOrDefault() : null;
+        // A handler that repeats the header must not tear the connection down; keep the last value,
+        // matching how duplicated metadata headers are collapsed.
+        return response.Headers.TryGetValues(name, out var values) ? values.LastOrDefault() : null;
     }
 
     private static string GetContentType(MessageDataType dataType)

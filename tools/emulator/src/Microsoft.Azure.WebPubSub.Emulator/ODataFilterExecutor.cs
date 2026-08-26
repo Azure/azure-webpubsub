@@ -219,8 +219,10 @@ internal sealed class ODataFilterExecutor
                 var right = Parse(token.Right);
                 return token.OperatorKind switch
                 {
-                    BinaryOperatorKind.Or => new(left.AsBoolean(token) || right.AsBoolean(token)),
-                    BinaryOperatorKind.And => new(left.AsBoolean(token) && right.AsBoolean(token)),
+                    // Non short-circuiting on purpose: both operands must be type checked so an
+                    // invalid filter is rejected up front instead of failing mid fan-out.
+                    BinaryOperatorKind.Or => new(left.AsBoolean(token) | right.AsBoolean(token)),
+                    BinaryOperatorKind.And => new(left.AsBoolean(token) & right.AsBoolean(token)),
                     BinaryOperatorKind.Equal => new(Equals(left.Value, right.Value)),
                     BinaryOperatorKind.NotEqual => new(!Equals(left.Value, right.Value)),
                     BinaryOperatorKind.GreaterThan => Compare(left, right, token, value => value > 0),

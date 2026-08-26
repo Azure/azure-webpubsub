@@ -46,7 +46,6 @@ internal sealed record ConnectDispatchResult(
 }
 
 internal sealed record UserEventDispatchResult(
-    bool Handled,
     bool Succeeded,
     MessageData? Response,
     string? ConnectionState,

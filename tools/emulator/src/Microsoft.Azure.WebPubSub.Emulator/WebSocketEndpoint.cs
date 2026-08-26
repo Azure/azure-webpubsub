@@ -194,7 +194,8 @@ internal sealed class WebSocketEndpoint
         SocketTransport transport,
         CancellationToken requestAborted)
     {
-        var normalClose = false;
+        var recoverable = true;
+        var detachReason = "The connection ended.";
         using var linkedCancellation = CancellationTokenSource.CreateLinkedTokenSource(
             requestAborted,
             transport.Aborted);
@@ -209,7 +210,11 @@ internal sealed class WebSocketEndpoint
 
                 if (message.IsClose)
                 {
-                    normalClose = message.CloseStatus == WebSocketCloseStatus.NormalClosure;
+                    if (message.CloseStatus == WebSocketCloseStatus.NormalClosure)
+                    {
+                        recoverable = false;
+                        detachReason = "The client closed the connection.";
+                    }
                     if (transport.WebSocket.State == WebSocketState.CloseReceived)
                     {
                         await transport.CloseAsync(
@@ -234,27 +239,33 @@ internal sealed class WebSocketEndpoint
                             "message",
                             new MessageData(dataType, message.Payload.ToArray())),
                         linkedCancellation.Token);
-                    if (result.Succeeded && result.Response is not null)
+                    connection.SetConnectionState(result.ConnectionState);
+                    if (result.Succeeded)
                     {
-                        connection.SendServerData(result.Response);
+                        if (result.Response is not null)
+                        {
+                            connection.SendServerData(result.Response);
+                        }
+                        continue;
                     }
-                    if (!result.Succeeded)
-                    {
-                        await transport.CloseAsync(
-                            WebSocketCloseStatus.InternalServerError,
-                            result.Error ?? "Dispatching the message event failed.");
-                        normalClose = true;
-                        break;
-                    }
-                    continue;
+
+                    var rejectReason = result.Error ?? "Dispatching the message event failed.";
+                    await transport.CloseAsync(
+                        WebSocketCloseStatus.InternalServerError,
+                        rejectReason);
+                    recoverable = false;
+                    detachReason = rejectReason;
+                    break;
                 }
 
                 if (message.MessageType != WebSocketMessageType.Text)
                 {
+                    const string invalidTypeReason = "The JSON subprotocol only accepts text messages.";
                     await transport.CloseAsync(
                         WebSocketCloseStatus.InvalidMessageType,
-                        "The JSON subprotocol only accepts text messages.");
-                    normalClose = true;
+                        invalidTypeReason);
+                    recoverable = false;
+                    detachReason = invalidTypeReason;
                     break;
                 }
 
@@ -267,7 +278,8 @@ internal sealed class WebSocketEndpoint
                     await transport.CloseAsync(
                         WebSocketCloseStatus.InternalServerError,
                         closeReason);
-                    normalClose = true;
+                    recoverable = false;
+                    detachReason = closeReason;
                     break;
                 }
             }
@@ -288,7 +300,7 @@ internal sealed class WebSocketEndpoint
         }
         finally
         {
-            connection.Detach(transport.Generation, normalClose);
+            connection.Detach(transport.Generation, recoverable, detachReason);
         }
     }
 
@@ -371,7 +383,7 @@ internal sealed class WebSocketEndpoint
                 {
                     connection.SendErrorAck(
                         clientEvent.AckId.Value,
-                        result.Handled ? "InternalServerError" : "BadRequest",
+                        "InternalServerError",
                         result.Error ?? "Dispatching the event failed.");
                 }
                 if (!result.Succeeded)
