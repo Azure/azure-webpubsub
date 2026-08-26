@@ -1,7 +1,11 @@
 
 # Changelog
 
-## [1.2.2] - 2026-08-21
+## [2.0.0] - 2026-08-21
+
+### Breaking Changes
+
+- Require Node.js 22 or later.
 
 ### Fixed
 

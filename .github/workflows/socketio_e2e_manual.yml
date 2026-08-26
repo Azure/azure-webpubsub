@@ -11,7 +11,7 @@ on:
         default: ''
 
 env:
-  NODE_VERSION: '18.x'                # set this to the node version to use
+  NODE_VERSION: '22.x'                # set this to the node version to use
 
 permissions:
   contents: read
@@ -23,7 +23,7 @@ jobs:
     timeout-minutes: 15
     strategy:
       matrix:
-        node-version: [18.x]
+        node-version: [22.x]
     steps:
     - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       with:

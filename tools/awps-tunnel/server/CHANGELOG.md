@@ -2,6 +2,10 @@
 
 ## [1.0.0-beta.15] - 2026-08-21
 
+### Changed
+
+- Require Node.js 22 or later and upgrade `@azure/web-pubsub-client` to 1.1.0.
+
 ### Fixed
 
 - Prevent idle tunnel connections from reconnecting when using `@azure/web-pubsub-client` 1.0.4 or later.
