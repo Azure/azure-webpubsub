@@ -11,6 +11,11 @@ on:
       - 'tools/**'
       - 'samples/**'
       - 'experimental/**'
+      # Root workspace manifests: they pin the dependency versions used by
+      # tools/awps-tunnel/client and tools/awps-tunnel/server.
+      - 'package.json'
+      - 'yarn.lock'
+      - '.github/workflows/build.yml'
   pull_request:
     branches: [ "main" ]
     paths:
@@ -18,6 +23,9 @@ on:
       - 'tools/**'
       - 'samples/**'
       - 'experimental/**'
+      - 'package.json'
+      - 'yarn.lock'
+      - '.github/workflows/build.yml'
 
 permissions:
   contents: read
