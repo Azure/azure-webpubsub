@@ -17,6 +17,7 @@ internal sealed class LogicalConnection : IODataFilterModel
     private const string ReliableBufferFullReason = "The reliable message buffer is full.";
 
     private readonly object _stateLock = new();
+    private readonly object _groupStateMutationLock = new();
     private readonly HashSet<ulong> _ackIds = [];
     private readonly SortedDictionary<ulong, byte[]> _unacknowledgedMessages = [];
     private readonly ConnectionManager _manager;
@@ -108,6 +109,8 @@ internal sealed class LogicalConnection : IODataFilterModel
     public GroupStateStore GroupStateStore { get; } = new();
 
     public GroupStateSubscriptionSet GroupStateSubscriptions { get; } = new();
+
+    public object GroupStateMutationLock => _groupStateMutationLock;
 
     string[] IODataFilterModel.Groups => Groups.Keys.ToArray();
 
