@@ -1518,6 +1518,52 @@ public class WebPubSubEmulatorTests
         Assert.Equal(HttpStatusCode.UnsupportedMediaType, response.StatusCode);
     }
 
+    [Fact]
+    public async Task RestApi_MessageExceedsLimit_ReturnsPayloadTooLarge()
+    {
+        await using var application = await StartApplicationAsync();
+        using var request = CreateAuthorizedRequest(
+            HttpMethod.Post,
+            $"/api/hubs/{Hub}/:send?api-version=2024-12-01");
+        request.Content = new ByteArrayContent(new byte[(1024 * 1024) + 1]);
+        request.Content.Headers.ContentType = new("application/octet-stream");
+
+        using var response = await application.GetTestClient().SendAsync(request).OrTimeout();
+
+        Assert.Equal(HttpStatusCode.RequestEntityTooLarge, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task RestApi_MessageAtLimit_IsAccepted()
+    {
+        await using var application = await StartApplicationAsync();
+        using var request = CreateAuthorizedRequest(
+            HttpMethod.Post,
+            $"/api/hubs/{Hub}/:send?api-version=2024-12-01");
+        request.Content = new ByteArrayContent(new byte[1024 * 1024]);
+        request.Content.Headers.ContentType = new("application/octet-stream");
+
+        using var response = await application.GetTestClient().SendAsync(request).OrTimeout();
+
+        Assert.Equal(HttpStatusCode.Accepted, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task RestApi_StreamedMessageExceedsLimit_ReturnsPayloadTooLarge()
+    {
+        await using var application = await StartApplicationAsync();
+        using var request = CreateAuthorizedRequest(
+            HttpMethod.Post,
+            $"/api/hubs/{Hub}/:send?api-version=2024-12-01");
+        request.Content = new UnknownLengthContent(new byte[(1024 * 1024) + 1]);
+        request.Content.Headers.ContentType = new("application/octet-stream");
+        Assert.Null(request.Content.Headers.ContentLength);
+
+        using var response = await application.GetTestClient().SendAsync(request).OrTimeout();
+
+        Assert.Equal(HttpStatusCode.RequestEntityTooLarge, response.StatusCode);
+    }
+
     [Theory]
     [InlineData("clientType=MQTT", true)]
     [InlineData("clientType=invalid", false)]
@@ -1785,6 +1831,20 @@ public class WebPubSubEmulatorTests
             "Bearer",
             new JwtSecurityTokenHandler().WriteToken(token));
         return request;
+    }
+
+    private sealed class UnknownLengthContent(byte[] bytes) : HttpContent
+    {
+        protected override Task SerializeToStreamAsync(Stream stream, TransportContext? context)
+        {
+            return stream.WriteAsync(bytes).AsTask();
+        }
+
+        protected override bool TryComputeLength(out long length)
+        {
+            length = 0;
+            return false;
+        }
     }
 
     private static async Task<string[]> GetGroupMembersAsync(

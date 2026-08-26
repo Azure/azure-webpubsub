@@ -217,7 +217,7 @@ public class UpstreamEventIntegrationTests
     }
 
     [Fact]
-    public async Task UserEvent_InvalidHandlerResponseMetadata_ReturnsErrorAck()
+    public async Task UserEvent_InvalidHandlerResponseMetadata_ReturnsErrorAckAndClosesConnection()
     {
         var requests = Channel.CreateUnbounded<ReceivedEvent>();
         await using var handler = await StartEventHandlerAsync(requests, (context, _) =>
@@ -244,10 +244,10 @@ public class UpstreamEventIntegrationTests
             "InternalServerError",
             ack.RootElement.GetProperty("error").GetProperty("name").GetString());
 
-        await webSocket.CloseAsync(
-            WebSocketCloseStatus.NormalClosure,
-            "Test complete.",
-            CancellationToken.None).OrTimeout();
+        var buffer = new byte[256];
+        var close = await webSocket.ReceiveAsync(buffer, CancellationToken.None).OrTimeout();
+        Assert.Equal(WebSocketMessageType.Close, close.MessageType);
+        Assert.Equal(WebSocketCloseStatus.InternalServerError, close.CloseStatus);
     }
 
     [Fact]
@@ -366,6 +366,41 @@ public class UpstreamEventIntegrationTests
         var buffer = new byte[256];
         var close = await webSocket.ReceiveAsync(buffer, CancellationToken.None).OrTimeout();
 
+        Assert.Equal(WebSocketMessageType.Close, close.MessageType);
+        Assert.Equal(WebSocketCloseStatus.InternalServerError, close.CloseStatus);
+    }
+
+    [Fact]
+    public async Task JsonWebSocket_WhenEventHandlerRejects_ReturnsErrorAckAndClosesConnection()
+    {
+        var requests = Channel.CreateUnbounded<ReceivedEvent>();
+        await using var handler = await StartEventHandlerAsync(requests, (context, _) =>
+        {
+            context.Response.StatusCode = StatusCodes.Status500InternalServerError;
+            return Task.CompletedTask;
+        });
+        await using var emulator = await StartEmulatorAsync(new Dictionary<string, string?>
+        {
+            ["WebPubSub:Hubs:testHub:EventHandlers:0:UrlTemplate"] = $"{handler.Urls.Single()}/events/{{hub}}/{{event}}",
+            ["WebPubSub:Hubs:testHub:EventHandlers:0:EventPattern"] = "chat-message",
+        });
+        using var webSocket = await ConnectAsync(emulator);
+        _ = await ReceiveJsonAsync(webSocket);
+
+        await SendJsonAsync(
+            webSocket,
+            """{"type":"event","event":"chat-message","dataType":"text","data":"rejected","ackId":10}""");
+
+        using (var ack = await ReceiveJsonAsync(webSocket))
+        {
+            Assert.Equal(10UL, ack.RootElement.GetProperty("ackId").GetUInt64());
+            Assert.False(ack.RootElement.GetProperty("success").GetBoolean());
+            Assert.Equal(
+                "InternalServerError",
+                ack.RootElement.GetProperty("error").GetProperty("name").GetString());
+        }
+        var buffer = new byte[256];
+        var close = await webSocket.ReceiveAsync(buffer, CancellationToken.None).OrTimeout();
         Assert.Equal(WebSocketMessageType.Close, close.MessageType);
         Assert.Equal(WebSocketCloseStatus.InternalServerError, close.CloseStatus);
     }

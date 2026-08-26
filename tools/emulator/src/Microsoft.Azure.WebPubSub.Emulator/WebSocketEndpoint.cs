@@ -258,10 +258,18 @@ internal sealed class WebSocketEndpoint
                     break;
                 }
 
-                await ProcessMessageAsync(
+                var closeReason = await ProcessMessageAsync(
                     connection,
                     WebPubSubJsonProtocol.Parse(message.Payload),
                     linkedCancellation.Token);
+                if (closeReason is not null)
+                {
+                    await transport.CloseAsync(
+                        WebSocketCloseStatus.InternalServerError,
+                        closeReason);
+                    normalClose = true;
+                    break;
+                }
             }
         }
         catch (OperationCanceledException) when (linkedCancellation.IsCancellationRequested)
@@ -284,7 +292,7 @@ internal sealed class WebSocketEndpoint
         }
     }
 
-    private async Task ProcessMessageAsync(
+    private async Task<string?> ProcessMessageAsync(
         LogicalConnection connection,
         ClientMessage message,
         CancellationToken cancellationToken)
@@ -303,7 +311,7 @@ internal sealed class WebSocketEndpoint
                 ackId.Value,
                 "Duplicate",
                 $"The ackId '{ackId.Value}' has already been used by this connection.");
-            return;
+            return null;
         }
 
         switch (message)
@@ -312,7 +320,7 @@ internal sealed class WebSocketEndpoint
                 if (!connection.CanJoinOrLeave(join.Group))
                 {
                     SendForbiddenAck(connection, join.AckId, "join", join.Group);
-                    return;
+                    return null;
                 }
                 _connections.AddToGroup(connection, join.Group);
                 SendAck(connection, join.AckId);
@@ -321,7 +329,7 @@ internal sealed class WebSocketEndpoint
                 if (!connection.CanJoinOrLeave(leave.Group))
                 {
                     SendForbiddenAck(connection, leave.AckId, "leave", leave.Group);
-                    return;
+                    return null;
                 }
                 _connections.RemoveFromGroup(connection, leave.Group);
                 SendAck(connection, leave.AckId);
@@ -330,7 +338,7 @@ internal sealed class WebSocketEndpoint
                 if (!connection.CanSendToGroup(send.Group))
                 {
                     SendForbiddenAck(connection, send.AckId, "send to", send.Group);
-                    return;
+                    return null;
                 }
                 _connections.SendToGroup(
                     connection.Hub,
@@ -366,8 +374,14 @@ internal sealed class WebSocketEndpoint
                         result.Handled ? "InternalServerError" : "BadRequest",
                         result.Error ?? "Dispatching the event failed.");
                 }
+                if (!result.Succeeded)
+                {
+                    return result.Error ?? "Dispatching the event failed.";
+                }
                 break;
         }
+
+        return null;
     }
 
     private static UpstreamEvent CreateConnectEvent(

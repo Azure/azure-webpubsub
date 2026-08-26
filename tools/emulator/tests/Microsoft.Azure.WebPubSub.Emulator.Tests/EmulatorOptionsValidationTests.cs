@@ -15,6 +15,19 @@ namespace Microsoft.Azure.WebPubSub.Emulator.Tests;
 public class EmulatorOptionsValidationTests
 {
     [Theory]
+    [InlineData("not-a-connection-string")]
+    [InlineData("Endpoint=relative;AccessKey=key;")]
+    [InlineData("Endpoint=http://localhost;")]
+    [InlineData("AccessKey=key;")]
+    public async Task ConnectionString_MustBeValid(string connectionString)
+    {
+        await AssertInvalidAsync(new Dictionary<string, string?>
+        {
+            ["WebPubSub:ConnectionString"] = connectionString,
+        });
+    }
+
+    [Theory]
     [InlineData("00:00:00")]
     [InlineData("-00:00:01")]
     public async Task EventHandlerTimeout_MustBePositive(string timeout)

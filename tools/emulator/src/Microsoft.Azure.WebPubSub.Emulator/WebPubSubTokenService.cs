@@ -27,9 +27,7 @@ internal sealed class WebPubSubTokenService
         EmulatorRuntimeOptions runtimeOptions,
         ILogger<WebPubSubTokenService> logger)
     {
-        var connectionString = ParseConnectionString(options.Value.ConnectionString);
-        _endpoint = new Uri(GetRequiredValue(connectionString, "Endpoint"), UriKind.Absolute);
-        var accessKey = GetRequiredValue(connectionString, "AccessKey");
+        (_endpoint, var accessKey) = ParseRequiredConnectionString(options.Value.ConnectionString);
         _signingKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(accessKey))
         {
             KeyId = accessKey.GetHashCode().ToString(),
@@ -173,6 +171,34 @@ internal sealed class WebPubSubTokenService
     internal static string GetRequiredConnectionStringValue(string connectionString, string name)
     {
         return GetRequiredValue(ParseConnectionString(connectionString), name);
+    }
+
+    internal static bool IsValidConnectionString(string? connectionString)
+    {
+        if (string.IsNullOrWhiteSpace(connectionString))
+        {
+            return false;
+        }
+
+        try
+        {
+            _ = ParseRequiredConnectionString(connectionString);
+            return true;
+        }
+        catch (Exception exception) when (
+            exception is InvalidOperationException or UriFormatException)
+        {
+            return false;
+        }
+    }
+
+    private static (Uri Endpoint, string AccessKey) ParseRequiredConnectionString(
+        string connectionString)
+    {
+        var values = ParseConnectionString(connectionString);
+        var endpoint = new Uri(GetRequiredValue(values, "Endpoint"), UriKind.Absolute);
+        var accessKey = GetRequiredValue(values, "AccessKey");
+        return (endpoint, accessKey);
     }
 
     private TokenValidationParameters CreateValidationParameters(string audience)

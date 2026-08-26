@@ -16,14 +16,17 @@ internal sealed class WebPubSubEmulatorController : WebPubSubApiControllerDefini
 {
     private static readonly TimeSpan DefaultClientTokenLifetime = TimeSpan.FromHours(1);
     private readonly ConnectionManager _connections;
+    private readonly int _maxMessageSizeBytes;
     private readonly WebPubSubTokenService _tokenService;
 
     public WebPubSubEmulatorController(
         ConnectionManager connections,
-        WebPubSubTokenService tokenService)
+        WebPubSubTokenService tokenService,
+        EmulatorRuntimeOptions runtimeOptions)
     {
         _connections = connections;
         _tokenService = tokenService;
+        _maxMessageSizeBytes = runtimeOptions.MaxMessageSizeBytes;
     }
 
     public override Task<IActionResult> GetServiceStatus(
@@ -132,15 +135,19 @@ internal sealed class WebPubSubEmulatorController : WebPubSubApiControllerDefini
             return UnsupportedContentType();
         }
 
-        var data = await ReadDataAsync(Request, cancellationToken);
-        if (data is null)
+        var readResult = await ReadDataAsync(Request, _maxMessageSizeBytes, cancellationToken);
+        if (readResult.IsTooLarge)
+        {
+            return StatusCode(StatusCodes.Status413PayloadTooLarge);
+        }
+        if (readResult.Data is null)
         {
             return BadRequest();
         }
 
         _connections.SendToAll(
             hub,
-            data,
+            readResult.Data,
             GetExcludedConnectionIds(Request),
             filter);
         return Accepted();
@@ -175,8 +182,12 @@ internal sealed class WebPubSubEmulatorController : WebPubSubApiControllerDefini
             return UnsupportedContentType();
         }
 
-        var data = await ReadDataAsync(Request, cancellationToken);
-        if (data is null)
+        var readResult = await ReadDataAsync(Request, _maxMessageSizeBytes, cancellationToken);
+        if (readResult.IsTooLarge)
+        {
+            return StatusCode(StatusCodes.Status413PayloadTooLarge);
+        }
+        if (readResult.Data is null)
         {
             return BadRequest();
         }
@@ -184,7 +195,7 @@ internal sealed class WebPubSubEmulatorController : WebPubSubApiControllerDefini
         _connections.SendToGroup(
             hub,
             group,
-            data,
+            readResult.Data,
             sender: null,
             noEcho: false,
             GetExcludedConnectionIds(Request),
@@ -210,13 +221,17 @@ internal sealed class WebPubSubEmulatorController : WebPubSubApiControllerDefini
             return UnsupportedContentType();
         }
 
-        var data = await ReadDataAsync(Request, cancellationToken);
-        if (data is null)
+        var readResult = await ReadDataAsync(Request, _maxMessageSizeBytes, cancellationToken);
+        if (readResult.IsTooLarge)
+        {
+            return StatusCode(StatusCodes.Status413PayloadTooLarge);
+        }
+        if (readResult.Data is null)
         {
             return BadRequest();
         }
 
-        var found = _connections.SendToConnection(hub, connectionId, data);
+        var found = _connections.SendToConnection(hub, connectionId, readResult.Data);
         return found ? Accepted() : NotFound();
     }
 
@@ -434,13 +449,17 @@ internal sealed class WebPubSubEmulatorController : WebPubSubApiControllerDefini
             return UnsupportedContentType();
         }
 
-        var data = await ReadDataAsync(Request, cancellationToken);
-        if (data is null)
+        var readResult = await ReadDataAsync(Request, _maxMessageSizeBytes, cancellationToken);
+        if (readResult.IsTooLarge)
+        {
+            return StatusCode(StatusCodes.Status413PayloadTooLarge);
+        }
+        if (readResult.Data is null)
         {
             return BadRequest();
         }
 
-        _connections.SendToUser(hub, userId, data, filter);
+        _connections.SendToUser(hub, userId, readResult.Data, filter);
         return Accepted();
     }
 
@@ -675,10 +694,16 @@ internal sealed class WebPubSubEmulatorController : WebPubSubApiControllerDefini
         return BadRequest(new { code = "NotSupported", message });
     }
 
-    private static async Task<MessageData?> ReadDataAsync(
+    private static async Task<MessageDataReadResult> ReadDataAsync(
         HttpRequest request,
+        int maxMessageSizeBytes,
         CancellationToken cancellationToken)
     {
+        if (maxMessageSizeBytes < 0 || request.ContentLength > maxMessageSizeBytes)
+        {
+            return new(null, true);
+        }
+
         IReadOnlyDictionary<string, string>? metadata;
         try
         {
@@ -687,16 +712,32 @@ internal sealed class WebPubSubEmulatorController : WebPubSubApiControllerDefini
         }
         catch (InvalidDataException)
         {
-            return null;
+            return new(null, false);
         }
 
         using var stream = new MemoryStream();
-        await request.Body.CopyToAsync(stream, cancellationToken);
+        var buffer = new byte[Math.Min(81920, Math.Max(maxMessageSizeBytes, 1))];
+        while (true)
+        {
+            var remaining = maxMessageSizeBytes - stream.Length;
+            var read = await request.Body.ReadAsync(
+                buffer.AsMemory(0, (int)Math.Min(buffer.Length, remaining + 1)),
+                cancellationToken);
+            if (read == 0)
+            {
+                break;
+            }
+            if (read > remaining)
+            {
+                return new(null, true);
+            }
+            stream.Write(buffer, 0, read);
+        }
         var bytes = stream.ToArray();
 
         if (request.ContentType?.StartsWith("application/octet-stream", StringComparison.OrdinalIgnoreCase) == true)
         {
-            return new MessageData(MessageDataType.Binary, bytes, metadata);
+            return new(new MessageData(MessageDataType.Binary, bytes, metadata), false);
         }
 
         if (request.ContentType?.StartsWith("application/json", StringComparison.OrdinalIgnoreCase) == true)
@@ -707,17 +748,21 @@ internal sealed class WebPubSubEmulatorController : WebPubSubApiControllerDefini
             }
             catch (JsonException)
             {
-                return null;
+                return new(null, false);
             }
 
-            return new MessageData(MessageDataType.Json, bytes, metadata);
+            return new(new MessageData(MessageDataType.Json, bytes, metadata), false);
         }
 
-        return new MessageData(
-            MessageDataType.Text,
-            bytes.Length == 0 ? Encoding.UTF8.GetBytes(string.Empty) : bytes,
-            metadata);
+        return new(
+            new MessageData(
+                MessageDataType.Text,
+                bytes.Length == 0 ? Encoding.UTF8.GetBytes(string.Empty) : bytes,
+                metadata),
+            false);
     }
+
+    private readonly record struct MessageDataReadResult(MessageData? Data, bool IsTooLarge);
 
     private static IReadOnlyDictionary<string, string>? GetMetadata(HttpRequest request)
     {

@@ -26,8 +26,8 @@ internal static class EmulatorApplication
             .AddOptions<EmulatorOptions>()
             .Bind(builder.Configuration.GetSection(EmulatorOptions.SectionName))
             .Validate(
-                options => !string.IsNullOrWhiteSpace(options.ConnectionString),
-                $"{EmulatorOptions.SectionName}:ConnectionString is required.")
+                options => WebPubSubTokenService.IsValidConnectionString(options.ConnectionString),
+                $"{EmulatorOptions.SectionName}:ConnectionString is invalid.")
             .Validate(
                 ValidateEventConfiguration,
                 $"{EmulatorOptions.SectionName} event handler or event listener configuration is invalid.")
