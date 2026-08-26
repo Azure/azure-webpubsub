@@ -107,6 +107,7 @@ internal sealed class UpstreamEventDispatcher
 
             var bytes = await ReadContentAsync(response.Content, cancellationToken);
             var metadata = GetMetadata(response);
+            WebPubSubMetadata.Validate(metadata);
             var responseData = bytes.Length == 0 && metadata is null
                 ? null
                 : new MessageData(
@@ -366,9 +367,8 @@ internal sealed class UpstreamEventDispatcher
                 continue;
             }
             var value = header.Value.LastOrDefault() ?? string.Empty;
-            var lastComma = value.LastIndexOf(',');
             metadata ??= new Dictionary<string, string>(StringComparer.Ordinal);
-            metadata[key] = (lastComma < 0 ? value : value[(lastComma + 1)..]).Trim();
+            metadata[key] = value;
         }
         return metadata;
     }

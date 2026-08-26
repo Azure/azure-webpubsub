@@ -440,7 +440,7 @@ public class WebPubSubEmulatorTests
         using var request = CreateAuthorizedRequest(
             HttpMethod.Post,
             $"/api/hubs/{Hub}/:send?api-version=2024-12-01");
-        request.Headers.TryAddWithoutValidation("X-WebPubSub-Metadata-TraceId", "first, second");
+        request.Headers.TryAddWithoutValidation("X-WebPubSub-Metadata-TraceId", "north,west");
         request.Content = new StringContent("message");
 
         using var response = await application.GetTestClient().SendAsync(request).OrTimeout();
@@ -448,7 +448,7 @@ public class WebPubSubEmulatorTests
         Assert.Equal(HttpStatusCode.Accepted, response.StatusCode);
         using var delivered = await ReceiveJsonAsync(webSocket);
         Assert.Equal(
-            "second",
+            "north,west",
             delivered.RootElement.GetProperty("metadata").GetProperty("traceid").GetString());
 
         await webSocket.CloseAsync(
@@ -660,6 +660,30 @@ public class WebPubSubEmulatorTests
     }
 
     [Fact]
+    public async Task ReliableBuffer_WhenDetachedBufferFills_RemovesLogicalConnection()
+    {
+        await using var application = await StartApplicationAsync(reliableMessageBufferCapacity: 1);
+        using var webSocket = await ConnectAsync(application, GetClientUri());
+        using var connected = await ReceiveJsonAsync(webSocket);
+        var connectionId = connected.RootElement.GetProperty("connectionId").GetString()!;
+        var manager = application.Services.GetRequiredService<ConnectionManager>();
+        Assert.True(manager.TryGet(Hub, connectionId, out var connection));
+
+        connection.Detach(generation: 1, normalClose: false);
+        Assert.True(manager.SendToConnection(
+            Hub,
+            connectionId,
+            new MessageData(MessageDataType.Text, "first"u8.ToArray())));
+        Assert.True(manager.ConnectionExists(Hub, connectionId));
+
+        Assert.True(manager.SendToConnection(
+            Hub,
+            connectionId,
+            new MessageData(MessageDataType.Text, "second"u8.ToArray())));
+        Assert.False(manager.ConnectionExists(Hub, connectionId));
+    }
+
+    [Fact]
     public async Task ReliableBuffer_WhenUnacknowledgedBytesExceedLimit_ClosesReceiver()
     {
         await using var application = await StartApplicationAsync(
@@ -803,6 +827,101 @@ public class WebPubSubEmulatorTests
         await serviceClient.CloseConnectionAsync(connectionId!).OrTimeout();
 
         await AssertDisconnectedThenCloseAsync(webSocket, "Closed by REST API.");
+    }
+
+    [Fact]
+    public async Task RestApi_UserIdContainingSlash_MatchesUserOperations()
+    {
+        const string userId = "tenant/alice";
+        await using var application = await StartApplicationAsync();
+        using var webSocket = await ConnectAsync(application, GetClientUri(userId: userId));
+        _ = await ReceiveJsonAsync(webSocket);
+        var encodedUserId = Uri.EscapeDataString(userId);
+
+        using (var request = CreateAuthorizedRequest(
+            HttpMethod.Head,
+            $"/api/hubs/{Hub}/users/{encodedUserId}?api-version=2024-12-01"))
+        using (var response = await application.GetTestClient().SendAsync(request).OrTimeout())
+        {
+            Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        }
+
+        using (var request = CreateAuthorizedRequest(
+            HttpMethod.Put,
+            $"/api/hubs/{Hub}/users/{encodedUserId}/groups/room?api-version=2024-12-01"))
+        using (var response = await application.GetTestClient().SendAsync(request).OrTimeout())
+        {
+            Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        }
+        using (var request = CreateAuthorizedRequest(
+            HttpMethod.Delete,
+            $"/api/hubs/{Hub}/users/{encodedUserId}/groups/room?api-version=2024-12-01"))
+        using (var response = await application.GetTestClient().SendAsync(request).OrTimeout())
+        {
+            Assert.Equal(HttpStatusCode.NoContent, response.StatusCode);
+        }
+        foreach (var group in new[] { "room-a", "room-b" })
+        {
+            using var request = CreateAuthorizedRequest(
+                HttpMethod.Put,
+                $"/api/hubs/{Hub}/users/{encodedUserId}/groups/{group}?api-version=2024-12-01");
+            using var response = await application.GetTestClient().SendAsync(request).OrTimeout();
+            Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        }
+        using (var request = CreateAuthorizedRequest(
+            HttpMethod.Delete,
+            $"/api/hubs/{Hub}/users/{encodedUserId}/groups?api-version=2024-12-01"))
+        using (var response = await application.GetTestClient().SendAsync(request).OrTimeout())
+        {
+            Assert.Equal(HttpStatusCode.NoContent, response.StatusCode);
+        }
+
+        using (var request = CreateAuthorizedRequest(
+            HttpMethod.Post,
+            $"/api/hubs/{Hub}/users/{encodedUserId}/:send?api-version=2024-12-01"))
+        {
+            request.Content = new StringContent("user-message", Encoding.UTF8, "text/plain");
+            using var response = await application.GetTestClient().SendAsync(request).OrTimeout();
+            Assert.Equal(HttpStatusCode.Accepted, response.StatusCode);
+        }
+        using (var delivered = await ReceiveJsonAsync(webSocket))
+        {
+            Assert.Equal("user-message", delivered.RootElement.GetProperty("data").GetString());
+        }
+
+        using (var request = CreateAuthorizedRequest(
+            HttpMethod.Post,
+            $"/api/hubs/{Hub}/users/{encodedUserId}/:closeConnections?api-version=2024-12-01"))
+        using (var response = await application.GetTestClient().SendAsync(request).OrTimeout())
+        {
+            Assert.Equal(HttpStatusCode.NoContent, response.StatusCode);
+        }
+        await AssertDisconnectedThenCloseAsync(webSocket, "Closed by REST API.");
+    }
+
+    [Fact]
+    public async Task RestApi_UserIdContainingLiteralPercentEncoding_IsNotDecodedTwice()
+    {
+        const string userId = "tenant%2Falice";
+        var endpoint = $"http://127.0.0.1:{GetAvailablePort()}";
+        var connectionString = $"Endpoint={endpoint};AccessKey={AccessKey};Version=1.0;";
+        await using var application = await StartApplicationAsync(
+            connectionString,
+            useTestServer: false,
+            endpoint);
+        var serviceClient = new WebPubSubServiceClient(connectionString, Hub);
+        using var webSocket = new ClientWebSocket();
+        webSocket.Options.AddSubProtocol(ReliableProtocol);
+        await webSocket
+            .ConnectAsync(serviceClient.GetClientAccessUri(userId: userId), CancellationToken.None)
+            .OrTimeout();
+        _ = await ReceiveJsonAsync(webSocket);
+
+        Assert.True((await serviceClient.UserExistsAsync(userId).OrTimeout()).Value);
+        await webSocket.CloseAsync(
+            WebSocketCloseStatus.NormalClosure,
+            "Test complete.",
+            CancellationToken.None);
     }
 
     [Fact]

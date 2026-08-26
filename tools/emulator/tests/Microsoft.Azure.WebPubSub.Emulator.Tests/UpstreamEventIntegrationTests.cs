@@ -181,7 +181,7 @@ public class UpstreamEventIntegrationTests
         var requests = Channel.CreateUnbounded<ReceivedEvent>();
         await using var handler = await StartEventHandlerAsync(requests, (context, _) =>
         {
-            context.Response.Headers["X-WebPubSub-Metadata-Result"] = "handled";
+            context.Response.Headers["X-WebPubSub-Metadata-Result"] = "north,west";
             return Task.CompletedTask;
         });
         await using var emulator = await StartEmulatorAsync(new Dictionary<string, string?>
@@ -201,7 +201,7 @@ public class UpstreamEventIntegrationTests
             Assert.Equal("message", response.RootElement.GetProperty("type").GetString());
             Assert.Equal(string.Empty, response.RootElement.GetProperty("data").GetString());
             Assert.Equal(
-                "handled",
+                "north,west",
                 response.RootElement.GetProperty("metadata").GetProperty("result").GetString());
         }
         using (var ack = await ReceiveJsonAsync(webSocket))
@@ -209,6 +209,40 @@ public class UpstreamEventIntegrationTests
             Assert.Equal(7UL, ack.RootElement.GetProperty("ackId").GetUInt64());
             Assert.True(ack.RootElement.GetProperty("success").GetBoolean());
         }
+
+        await webSocket.CloseAsync(
+            WebSocketCloseStatus.NormalClosure,
+            "Test complete.",
+            CancellationToken.None).OrTimeout();
+    }
+
+    [Fact]
+    public async Task UserEvent_InvalidHandlerResponseMetadata_ReturnsErrorAck()
+    {
+        var requests = Channel.CreateUnbounded<ReceivedEvent>();
+        await using var handler = await StartEventHandlerAsync(requests, (context, _) =>
+        {
+            context.Response.Headers["X-WebPubSub-Metadata-Result"] = new string('a', 1025);
+            return Task.CompletedTask;
+        });
+        await using var emulator = await StartEmulatorAsync(new Dictionary<string, string?>
+        {
+            ["WebPubSub:Hubs:testHub:EventHandlers:0:UrlTemplate"] = $"{handler.Urls.Single()}/events/{{hub}}/{{event}}",
+            ["WebPubSub:Hubs:testHub:EventHandlers:0:EventPattern"] = "chat-message",
+        });
+        using var webSocket = await ConnectAsync(emulator);
+        _ = await ReceiveJsonAsync(webSocket);
+
+        await SendJsonAsync(
+            webSocket,
+            """{"type":"event","event":"chat-message","dataType":"text","data":"client-payload","ackId":8}""");
+
+        using var ack = await ReceiveJsonAsync(webSocket);
+        Assert.Equal(8UL, ack.RootElement.GetProperty("ackId").GetUInt64());
+        Assert.False(ack.RootElement.GetProperty("success").GetBoolean());
+        Assert.Equal(
+            "InternalServerError",
+            ack.RootElement.GetProperty("error").GetProperty("name").GetString());
 
         await webSocket.CloseAsync(
             WebSocketCloseStatus.NormalClosure,

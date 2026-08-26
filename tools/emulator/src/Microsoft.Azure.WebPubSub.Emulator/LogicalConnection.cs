@@ -338,6 +338,7 @@ internal sealed class LogicalConnection : IODataFilterModel
     private void SendData(Func<ulong?, byte[]> payloadFactory)
     {
         SocketTransport? dropped;
+        var remove = false;
         var reason = OutboundQueueFullReason;
         lock (_stateLock)
         {
@@ -349,10 +350,12 @@ internal sealed class LogicalConnection : IODataFilterModel
             if (!IsReliable)
             {
                 dropped = EnqueueLocked(payloadFactory(null), WebSocketMessageType.Text);
+                remove = dropped is not null;
             }
             else if (_unacknowledgedMessages.Count >= _bufferCapacity)
             {
                 dropped = DropReceiverLocked();
+                remove = true;
                 reason = ReliableBufferFullReason;
             }
             else
@@ -362,6 +365,7 @@ internal sealed class LogicalConnection : IODataFilterModel
                 if (_unacknowledgedMessageBytes + payload.LongLength > _bufferMaxBytes)
                 {
                     dropped = DropReceiverLocked();
+                    remove = true;
                     reason = ReliableBufferFullReason;
                 }
                 else
@@ -370,13 +374,17 @@ internal sealed class LogicalConnection : IODataFilterModel
                     _unacknowledgedMessages.Add(sequenceId, payload);
                     _unacknowledgedMessageBytes += payload.LongLength;
                     dropped = EnqueueLocked(payload, WebSocketMessageType.Text);
+                    remove = dropped is not null;
                 }
             }
         }
 
-        if (dropped is not null)
+        if (remove)
         {
             _manager.Remove(this, reason);
+        }
+        if (dropped is not null)
+        {
             dropped.CloseOutput(WebSocketCloseStatus.PolicyViolation, reason);
         }
     }
@@ -437,6 +445,8 @@ internal sealed class LogicalConnection : IODataFilterModel
         var transport = _activeTransport;
         _activeTransport = null;
         _closed = true;
+        _unacknowledgedMessages.Clear();
+        _unacknowledgedMessageBytes = 0;
         return transport;
     }
 }

@@ -5,6 +5,7 @@ using System.Globalization;
 using System.Text;
 using System.Text.Json;
 using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Http.Features;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.WebUtilities;
 
@@ -374,6 +375,7 @@ internal sealed class WebPubSubEmulatorController : WebPubSubApiControllerDefini
         string userId,
         CancellationToken cancellationToken = default)
     {
+        userId = DecodeUserId(Request, userId);
         IActionResult result = Authorize()
             ? _connections.UserExists(hub, userId)
                 ? Ok()
@@ -392,6 +394,7 @@ internal sealed class WebPubSubEmulatorController : WebPubSubApiControllerDefini
             return Task.FromResult<IActionResult>(Unauthorized());
         }
 
+        userId = DecodeUserId(Request, userId);
         var reason = Request.Query["reason"].ToString();
         _connections.CloseUserConnections(
             hub,
@@ -415,6 +418,7 @@ internal sealed class WebPubSubEmulatorController : WebPubSubApiControllerDefini
             return BadRequest();
         }
 
+        userId = DecodeUserId(Request, userId);
         var filter = Request.Query["filter"].ToString();
         try
         {
@@ -451,6 +455,7 @@ internal sealed class WebPubSubEmulatorController : WebPubSubApiControllerDefini
             return Task.FromResult<IActionResult>(Unauthorized());
         }
 
+        userId = DecodeUserId(Request, userId);
         IActionResult result = _connections.AddUserToGroup(hub, userId, group)
             ? Ok()
             : NotFound();
@@ -468,6 +473,7 @@ internal sealed class WebPubSubEmulatorController : WebPubSubApiControllerDefini
             return Task.FromResult<IActionResult>(Unauthorized());
         }
 
+        userId = DecodeUserId(Request, userId);
         _connections.RemoveUserFromGroup(hub, userId, group);
         return Task.FromResult<IActionResult>(NoContent());
     }
@@ -482,6 +488,7 @@ internal sealed class WebPubSubEmulatorController : WebPubSubApiControllerDefini
             return Task.FromResult<IActionResult>(Unauthorized());
         }
 
+        userId = DecodeUserId(Request, userId);
         _connections.RemoveUserFromAllGroups(hub, userId);
         return Task.FromResult<IActionResult>(NoContent());
     }
@@ -601,9 +608,11 @@ internal sealed class WebPubSubEmulatorController : WebPubSubApiControllerDefini
         }
 
         var token = authorization[bearerPrefix.Length..].Trim();
-        var requestUri = new Uri(
-            $"{Request.Scheme}://{Request.Host}{Request.PathBase}" +
-            $"{Request.Path}{Request.QueryString}");
+        var rawTarget = Request.HttpContext.Features.Get<IHttpRequestFeature>()?.RawTarget;
+        var requestTarget = rawTarget?.StartsWith('/') == true
+            ? rawTarget
+            : $"{Request.PathBase}{Request.Path}{Request.QueryString}";
+        var requestUri = new Uri($"{Request.Scheme}://{Request.Host}{requestTarget}");
         return _tokenService.ValidateRestToken(requestUri, token);
     }
 
@@ -613,6 +622,29 @@ internal sealed class WebPubSubEmulatorController : WebPubSubApiControllerDefini
             .Where(value => value is not null)
             .Select(value => value!)
             .ToHashSet(StringComparer.Ordinal);
+    }
+
+    private static string DecodeUserId(HttpRequest request, string userId)
+    {
+        var rawTarget = request.HttpContext.Features.Get<IHttpRequestFeature>()?.RawTarget;
+        if (string.IsNullOrEmpty(rawTarget))
+        {
+            return userId.Replace("%2F", "/", StringComparison.OrdinalIgnoreCase);
+        }
+
+        const string userSegment = "/users/";
+        var userStart = rawTarget.IndexOf(userSegment, StringComparison.OrdinalIgnoreCase);
+        if (userStart < 0)
+        {
+            return userId;
+        }
+
+        userStart += userSegment.Length;
+        var userEnd = rawTarget.IndexOfAny(['/', '?'], userStart);
+        var rawUserId = userEnd < 0
+            ? rawTarget[userStart..]
+            : rawTarget[userStart..userEnd];
+        return Uri.UnescapeDataString(rawUserId);
     }
 
     private static bool HasSupportedContentType(HttpRequest request)
@@ -699,9 +731,8 @@ internal sealed class WebPubSubEmulatorController : WebPubSubApiControllerDefini
 
             var key = header.Key[WebPubSubMetadata.HeaderPrefix.Length..].ToLowerInvariant();
             var value = header.Value.Count == 0 ? string.Empty : header.Value[^1] ?? string.Empty;
-            var lastComma = value.LastIndexOf(',');
             metadata ??= new Dictionary<string, string>(StringComparer.Ordinal);
-            metadata[key] = (lastComma < 0 ? value : value[(lastComma + 1)..]).Trim();
+            metadata[key] = value;
         }
         return metadata;
     }
