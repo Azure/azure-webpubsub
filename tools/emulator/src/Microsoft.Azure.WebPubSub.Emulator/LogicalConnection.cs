@@ -15,10 +15,12 @@ internal sealed class LogicalConnection
     private readonly object _stateLock = new();
     private readonly ConnectionManager _manager;
     private readonly ILogger? _logger;
+    private readonly EmulatorRuntimeOptions _runtimeOptions;
     private readonly int _outboundQueueCapacity;
     private readonly long _outboundQueueMaxBytes;
     private readonly ConnectionRolePermissions _sendToGroupPermissions;
 
+    private IClientPayloadProcessor? _activePayloadProcessor;
     private SocketTransport? _activeTransport;
     private bool _closed;
 
@@ -26,16 +28,21 @@ internal sealed class LogicalConnection
         string connectionId,
         string hub,
         ClaimsPrincipal user,
+        string? rawSendToGroup,
         ConnectionManager manager,
         EmulatorRuntimeOptions runtimeOptions,
         ILogger? logger = null)
     {
         ConnectionId = connectionId;
         Hub = hub;
+        RawSendToGroup = rawSendToGroup;
         _manager = manager;
         _logger = logger;
+        _runtimeOptions = runtimeOptions;
         _outboundQueueCapacity = runtimeOptions.OutboundQueueCapacity;
         _outboundQueueMaxBytes = runtimeOptions.MaxOutboundQueueBytes;
+
+        UserId = user.FindFirstValue("sub") ?? user.FindFirstValue(ClaimTypes.NameIdentifier);
 
         foreach (var group in user.FindAll("webpubsub.group").Select(claim => claim.Value))
         {
@@ -60,9 +67,15 @@ internal sealed class LogicalConnection
 
     public string Hub { get; }
 
+    public string? RawSendToGroup { get; }
+
+    public string? UserId { get; }
+
     public ConcurrentDictionary<string, byte> Groups { get; } = new(StringComparer.Ordinal);
 
-    public SocketTransport? TryAttach(WebSocket webSocket)
+    public SocketTransport? TryAttach(
+        WebSocket webSocket,
+        IClientPayloadProcessor payloadProcessor)
     {
         lock (_stateLock)
         {
@@ -73,9 +86,11 @@ internal sealed class LogicalConnection
 
             _activeTransport = new SocketTransport(
                 webSocket,
+                _runtimeOptions.MaxMessageSizeBytes,
                 _outboundQueueCapacity,
                 _outboundQueueMaxBytes,
                 _logger);
+            _activePayloadProcessor = payloadProcessor;
             return _activeTransport;
         }
     }
@@ -85,20 +100,41 @@ internal sealed class LogicalConnection
         return _sendToGroupPermissions.Check(group);
     }
 
-    public void Send(RawMessage message)
+    public void SendGroupData(
+        string group,
+        string? fromUserId,
+        MessageData data)
     {
+        IClientPayloadProcessor? payloadProcessor;
+        SocketTransport? transport;
+        lock (_stateLock)
+        {
+            payloadProcessor = _activePayloadProcessor;
+            transport = _activeTransport;
+            if (_closed || payloadProcessor is null || transport is null)
+            {
+                return;
+            }
+        }
+
+        var payload = payloadProcessor.EncodeGroupData(this, group, fromUserId, data);
         SocketTransport? dropped;
         lock (_stateLock)
         {
-            dropped = _closed || _activeTransport is null
-                ? null
-                : _activeTransport.TryEnqueue(message.Payload, message.MessageType) switch
-                {
-                    TransportEnqueueResult.Enqueued => null,
-                    TransportEnqueueResult.Closed => null,
-                    TransportEnqueueResult.Full => DropTransportLocked(),
-                    _ => throw new InvalidOperationException("Unknown transport enqueue result."),
-                };
+            if (_closed ||
+                !ReferenceEquals(_activePayloadProcessor, payloadProcessor) ||
+                !ReferenceEquals(_activeTransport, transport))
+            {
+                return;
+            }
+
+            dropped = transport.TryEnqueue(payload.Bytes, payload.MessageType) switch
+            {
+                TransportEnqueueResult.Enqueued => null,
+                TransportEnqueueResult.Closed => null,
+                TransportEnqueueResult.Full => DropTransportLocked(),
+                _ => throw new InvalidOperationException("Unknown transport enqueue result."),
+            };
         }
 
         if (dropped is not null)
@@ -120,6 +156,7 @@ internal sealed class LogicalConnection
             if (ReferenceEquals(_activeTransport, transport))
             {
                 _activeTransport = null;
+                _activePayloadProcessor = null;
                 _closed = true;
                 remove = true;
             }
@@ -135,6 +172,7 @@ internal sealed class LogicalConnection
     {
         var transport = _activeTransport;
         _activeTransport = null;
+        _activePayloadProcessor = null;
         _closed = true;
         return transport;
     }

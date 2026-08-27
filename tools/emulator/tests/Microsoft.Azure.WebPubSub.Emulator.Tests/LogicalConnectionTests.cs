@@ -22,14 +22,14 @@ public class LogicalConnectionTests
         using var application = EmulatorApplication.Build();
         var manager = application.Services.GetRequiredService<ConnectionManager>();
         var connection = CreateConnection(manager, "connection");
-        using var transport = connection.TryAttach(new TestWebSocket());
+        using var transport = connection.TryAttach(new TestWebSocket(), TestClientPayloadProcessor.Instance);
         Assert.NotNull(transport);
         Assert.True(manager.TryActivate(connection));
 
         connection.Detach(transport);
 
         Assert.False(manager.TryGet(connection.Hub, connection.ConnectionId, out _));
-        Assert.Null(connection.TryAttach(new TestWebSocket()));
+        Assert.Null(connection.TryAttach(new TestWebSocket(), TestClientPayloadProcessor.Instance));
     }
 
     [Fact]
@@ -45,6 +45,28 @@ public class LogicalConnectionTests
     }
 
     [Fact]
+    public async Task GroupDataUsesAttachedPayloadProcessor()
+    {
+        using var application = EmulatorApplication.Build();
+        var manager = application.Services.GetRequiredService<ConnectionManager>();
+        var connection = CreateConnection(manager, "connection");
+        var webSocket = new RecordingSendWebSocket();
+        var processor = new TestClientPayloadProcessor(
+            new WebSocketPayload("encoded"u8.ToArray(), WebSocketMessageType.Text));
+        using var transport = connection.TryAttach(webSocket, processor);
+        Assert.NotNull(transport);
+
+        connection.SendGroupData(
+            "room",
+            fromUserId: null,
+            new MessageData(MessageDataType.Binary, new byte[] { 1, 2, 3 }));
+        var sent = await webSocket.Sent.Task.WaitAsync(TestTimeout);
+
+        Assert.Equal(WebSocketMessageType.Text, sent.MessageType);
+        Assert.Equal("encoded"u8.ToArray(), sent.Payload);
+    }
+
+    [Fact]
     public async Task OutboundByteLimitAbortsAndRemovesConnection()
     {
         using var application = EmulatorApplication.Build(
@@ -57,18 +79,24 @@ public class LogicalConnectionTests
         var manager = application.Services.GetRequiredService<ConnectionManager>();
         var connection = CreateConnection(manager, "connection");
         var webSocket = new BlockingSendWebSocket();
-        using var transport = connection.TryAttach(webSocket);
+        using var transport = connection.TryAttach(webSocket, TestClientPayloadProcessor.Instance);
         Assert.NotNull(transport);
         Assert.True(manager.TryActivate(connection));
 
-        connection.Send(new RawMessage(WebSocketMessageType.Binary, new byte[4]));
+        connection.SendGroupData(
+            "room",
+            fromUserId: null,
+            new MessageData(MessageDataType.Binary, new byte[4]));
         await webSocket.SendStarted.Task.WaitAsync(TestTimeout);
-        connection.Send(new RawMessage(WebSocketMessageType.Binary, new byte[3]));
+        connection.SendGroupData(
+            "room",
+            fromUserId: null,
+            new MessageData(MessageDataType.Binary, new byte[3]));
 
         Assert.False(manager.TryGet(connection.Hub, connection.ConnectionId, out _));
         Assert.Equal(WebSocketState.Aborted, webSocket.State);
         Assert.True(transport.Aborted.IsCancellationRequested);
-        Assert.Null(connection.TryAttach(new TestWebSocket()));
+        Assert.Null(connection.TryAttach(new TestWebSocket(), TestClientPayloadProcessor.Instance));
     }
 
     private static LogicalConnection CreateConnection(
@@ -83,6 +111,43 @@ public class LogicalConnectionTests
             connectionId,
             "chat",
             new ClaimsPrincipal(new ClaimsIdentity(claims)));
+    }
+
+    private sealed class TestClientPayloadProcessor : IClientPayloadProcessor
+    {
+        public static TestClientPayloadProcessor Instance { get; } = new(
+            new WebSocketPayload(ReadOnlyMemory<byte>.Empty, WebSocketMessageType.Text));
+
+        private readonly WebSocketPayload _webSocketPayload;
+
+        public TestClientPayloadProcessor(WebSocketPayload webSocketPayload)
+        {
+            _webSocketPayload = webSocketPayload;
+        }
+
+        public ValueTask<PayloadProcessingResult> ProcessAsync(
+            LogicalConnection connection,
+            WebSocketMessageType messageType,
+            byte[] payload,
+            CancellationToken cancellationToken)
+        {
+            return ValueTask.FromResult(PayloadProcessingResult.Continue);
+        }
+
+        public WebSocketPayload EncodeGroupData(
+            LogicalConnection connection,
+            string group,
+            string? fromUserId,
+            MessageData data)
+        {
+            return _webSocketPayload.Bytes.IsEmpty
+                ? new WebSocketPayload(
+                    data.Bytes,
+                    data.Type == MessageDataType.Binary
+                        ? WebSocketMessageType.Binary
+                        : WebSocketMessageType.Text)
+                : _webSocketPayload;
+        }
     }
 
     private class TestWebSocket : WebSocket
@@ -155,6 +220,22 @@ public class LogicalConnectionTests
         {
             SendStarted.TrySetResult();
             await Task.Delay(Timeout.InfiniteTimeSpan, cancellationToken);
+        }
+    }
+
+    private sealed class RecordingSendWebSocket : TestWebSocket
+    {
+        public TaskCompletionSource<(byte[] Payload, WebSocketMessageType MessageType)> Sent { get; } =
+            new(TaskCreationOptions.RunContinuationsAsynchronously);
+
+        public override Task SendAsync(
+            ArraySegment<byte> buffer,
+            WebSocketMessageType messageType,
+            bool endOfMessage,
+            CancellationToken cancellationToken)
+        {
+            Sent.TrySetResult((buffer.ToArray(), messageType));
+            return Task.CompletedTask;
         }
     }
 }

@@ -25,12 +25,14 @@ internal sealed class ConnectionManager
     public LogicalConnection Create(
         string connectionId,
         string hub,
-        ClaimsPrincipal user)
+        ClaimsPrincipal user,
+        string? rawSendToGroup = null)
     {
         return new LogicalConnection(
             connectionId,
             hub,
             user,
+            rawSendToGroup,
             this,
             _runtimeOptions,
             _logger);
@@ -56,14 +58,20 @@ internal sealed class ConnectionManager
         _connections.TryRemove((connection.Hub, connection.ConnectionId), out _);
     }
 
-    public void SendToGroup(string hub, string group, RawMessage message)
+    public void SendToGroup(
+        string hub,
+        string group,
+        MessageData data,
+        LogicalConnection? sender,
+        bool noEcho)
     {
         foreach (var connection in _connections
             .Where(item => string.Equals(item.Key.Hub, hub, StringComparison.Ordinal))
             .Select(item => item.Value)
-            .Where(connection => connection.Groups.ContainsKey(group)))
+            .Where(connection => connection.Groups.ContainsKey(group))
+            .Where(connection => !noEcho || connection != sender))
         {
-            connection.Send(message);
+            connection.SendGroupData(group, sender?.UserId, data);
         }
     }
 }

@@ -28,6 +28,7 @@ internal sealed class SocketTransport : IDisposable
     private readonly CancellationToken _abortToken;
     private readonly object _enqueueLock = new();
     private readonly Channel<OutboundMessage> _outbound;
+    private readonly int _maxMessageSizeBytes;
     private readonly int _dataCapacity;
     private readonly long _maxDataBytes;
     private readonly ILogger? _logger;
@@ -39,6 +40,7 @@ internal sealed class SocketTransport : IDisposable
 
     public SocketTransport(
         WebSocket webSocket,
+        int maxMessageSizeBytes,
         int queueCapacity,
         long maxQueueBytes,
         ILogger? logger = null)
@@ -46,6 +48,7 @@ internal sealed class SocketTransport : IDisposable
         WebSocket = webSocket;
         _logger = logger;
         _abortToken = _abortSource.Token;
+        _maxMessageSizeBytes = maxMessageSizeBytes;
         _dataCapacity = Math.Min(Math.Max(queueCapacity, 1), int.MaxValue - 1);
         _maxDataBytes = Math.Max(maxQueueBytes, 1);
         _outbound = Channel.CreateBounded<OutboundMessage>(
@@ -59,7 +62,7 @@ internal sealed class SocketTransport : IDisposable
         _writeLoop = Task.Run(RunWriteLoopAsync);
     }
 
-    public WebSocket WebSocket { get; }
+    private WebSocket WebSocket { get; }
 
     public CancellationToken Aborted => _abortToken;
 
@@ -72,6 +75,29 @@ internal sealed class SocketTransport : IDisposable
                 return _closeQueued;
             }
         }
+    }
+
+    public ValueTask<ReceivedWebSocketMessage> ReceiveAsync(
+        CancellationToken cancellationToken)
+    {
+        return WebSocketMessageReader.ReadAsync(
+            WebSocket,
+            _maxMessageSizeBytes,
+            cancellationToken);
+    }
+
+    public Task AcknowledgeCloseAsync(ReceivedWebSocketMessage message)
+    {
+        if (!message.IsClose)
+        {
+            throw new ArgumentException("The message is not a close message.", nameof(message));
+        }
+
+        return WebSocket.State == WebSocketState.CloseReceived
+            ? CloseAsync(
+                message.CloseStatus ?? WebSocketCloseStatus.NormalClosure,
+                message.CloseStatusDescription ?? string.Empty)
+            : Task.CompletedTask;
     }
 
     public TransportEnqueueResult TryEnqueue(

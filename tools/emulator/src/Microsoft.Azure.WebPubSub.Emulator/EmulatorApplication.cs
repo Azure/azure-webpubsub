@@ -28,6 +28,9 @@ internal static class EmulatorApplication
         builder.Services.AddSingleton(runtimeOptions ?? new EmulatorRuntimeOptions());
         builder.Services.AddSingleton<WebPubSubTokenService>();
         builder.Services.AddSingleton<ConnectionManager>();
+        builder.Services.AddSingleton<SimpleWebSocketPayloadProcessor>();
+        builder.Services.AddSingleton<ClientPayloadProcessorFactory>();
+        builder.Services.AddSingleton<ClientConnectionHandler>();
         builder.Services.AddSingleton<ClientWebSocketEndpoint>();
         builder.Services
             .AddControllers()

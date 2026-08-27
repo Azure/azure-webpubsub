@@ -52,6 +52,43 @@ public class ClientWebSocketEndpointTests
     }
 
     [Fact]
+    public async Task RawSendersUseConnectionScopedGroups()
+    {
+        await using var application = await StartApplicationAsync();
+        using var firstReceiver = await ConnectAsync(application, groups: ["first"]);
+        using var secondReceiver = await ConnectAsync(application, groups: ["second"]);
+        using var firstSender = await ConnectAsync(
+            application,
+            roles: ["webpubsub.sendToGroup.first"],
+            query: "webpubsub_mode=sendToGroup&group=first");
+        using var secondSender = await ConnectAsync(
+            application,
+            roles: ["webpubsub.sendToGroup.second"],
+            query: "webpubsub_mode=sendToGroup&group=second");
+
+        await firstSender.SendAsync(
+            "first"u8.ToArray(),
+            WebSocketMessageType.Text,
+            endOfMessage: true,
+            CancellationToken.None).WaitAsync(TestTimeout);
+        await secondSender.SendAsync(
+            "second"u8.ToArray(),
+            WebSocketMessageType.Text,
+            endOfMessage: true,
+            CancellationToken.None).WaitAsync(TestTimeout);
+
+        var firstBuffer = new byte[16];
+        var firstResult = await firstReceiver.ReceiveAsync(firstBuffer, CancellationToken.None)
+            .WaitAsync(TestTimeout);
+        var secondBuffer = new byte[16];
+        var secondResult = await secondReceiver.ReceiveAsync(secondBuffer, CancellationToken.None)
+            .WaitAsync(TestTimeout);
+
+        Assert.Equal("first"u8.ToArray(), firstBuffer[..firstResult.Count]);
+        Assert.Equal("second"u8.ToArray(), secondBuffer[..secondResult.Count]);
+    }
+
+    [Fact]
     public async Task RawSendWithoutRoleClosesConnection()
     {
         await using var application = await StartApplicationAsync();
@@ -72,15 +109,30 @@ public class ClientWebSocketEndpointTests
     }
 
     [Fact]
-    public async Task RequestedSubprotocolIsRejected()
+    public async Task RequestedSubprotocolIsNotSelectedWithoutConnectUpstream()
     {
         await using var application = await StartApplicationAsync();
         var client = application.GetTestServer().CreateWebSocketClient();
-        client.SubProtocols.Add("json.webpubsub.azure.v1");
+        client.SubProtocols.Add("custom.protocol");
         var uri = CreateClientUri(application);
 
-        await Assert.ThrowsAsync<InvalidOperationException>(
+        using var webSocket = await client.ConnectAsync(uri, CancellationToken.None)
+            .WaitAsync(TestTimeout);
+
+        Assert.Null(webSocket.SubProtocol);
+    }
+
+    [Fact]
+    public async Task EmptyRawModeIsRejectedBeforeUpgrade()
+    {
+        await using var application = await StartApplicationAsync();
+        var client = application.GetTestServer().CreateWebSocketClient();
+        var uri = CreateClientUri(application, query: "webpubsub_mode=");
+
+        var exception = await Assert.ThrowsAsync<InvalidOperationException>(
             () => client.ConnectAsync(uri, CancellationToken.None));
+
+        Assert.Contains("status code: 400", exception.Message, StringComparison.Ordinal);
     }
 
     [Fact]
