@@ -9,6 +9,8 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "tests", "tests", "{2C5B7A11
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Microsoft.Azure.WebPubSub.Emulator", "src\Microsoft.Azure.WebPubSub.Emulator\Microsoft.Azure.WebPubSub.Emulator.csproj", "{3F1E2A44-9C7B-4E51-8B21-5D2A6C0F1A01}"
 EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Microsoft.Azure.WebPubSub.Emulator.ApiSourceGenerator", "src\Microsoft.Azure.WebPubSub.Emulator.ApiSourceGenerator\Microsoft.Azure.WebPubSub.Emulator.ApiSourceGenerator.csproj", "{3F1E2A44-9C7B-4E51-8B21-5D2A6C0F1A03}"
+EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Microsoft.Azure.WebPubSub.Emulator.Tests", "tests\Microsoft.Azure.WebPubSub.Emulator.Tests\Microsoft.Azure.WebPubSub.Emulator.Tests.csproj", "{3F1E2A44-9C7B-4E51-8B21-5D2A6C0F1A02}"
 EndProject
 Global
@@ -21,6 +23,10 @@ Global
 		{3F1E2A44-9C7B-4E51-8B21-5D2A6C0F1A01}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{3F1E2A44-9C7B-4E51-8B21-5D2A6C0F1A01}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{3F1E2A44-9C7B-4E51-8B21-5D2A6C0F1A01}.Release|Any CPU.Build.0 = Release|Any CPU
+		{3F1E2A44-9C7B-4E51-8B21-5D2A6C0F1A03}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{3F1E2A44-9C7B-4E51-8B21-5D2A6C0F1A03}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{3F1E2A44-9C7B-4E51-8B21-5D2A6C0F1A03}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{3F1E2A44-9C7B-4E51-8B21-5D2A6C0F1A03}.Release|Any CPU.Build.0 = Release|Any CPU
 		{3F1E2A44-9C7B-4E51-8B21-5D2A6C0F1A02}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{3F1E2A44-9C7B-4E51-8B21-5D2A6C0F1A02}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{3F1E2A44-9C7B-4E51-8B21-5D2A6C0F1A02}.Release|Any CPU.ActiveCfg = Release|Any CPU
@@ -31,6 +37,7 @@ Global
 	EndGlobalSection
 	GlobalSection(NestedProjects) = preSolution
 		{3F1E2A44-9C7B-4E51-8B21-5D2A6C0F1A01} = {2C5B7A11-8D3F-4E62-9A04-6B1C8E5D2F10}
+		{3F1E2A44-9C7B-4E51-8B21-5D2A6C0F1A03} = {2C5B7A11-8D3F-4E62-9A04-6B1C8E5D2F10}
 		{3F1E2A44-9C7B-4E51-8B21-5D2A6C0F1A02} = {2C5B7A11-8D3F-4E62-9A04-6B1C8E5D2F11}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution

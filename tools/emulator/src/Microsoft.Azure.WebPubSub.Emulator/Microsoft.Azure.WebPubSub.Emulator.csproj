@@ -24,6 +24,13 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <ProjectReference
+      Include="..\Microsoft.Azure.WebPubSub.Emulator.ApiSourceGenerator\Microsoft.Azure.WebPubSub.Emulator.ApiSourceGenerator.csproj"
+      OutputItemType="Analyzer"
+      ReferenceOutputAssembly="false" />
+  </ItemGroup>
+
+  <ItemGroup>
     <AssemblyAttribute Include="System.Runtime.CompilerServices.InternalsVisibleToAttribute">
       <_Parameter1>Microsoft.Azure.WebPubSub.Emulator.Tests</_Parameter1>
     </AssemblyAttribute>
