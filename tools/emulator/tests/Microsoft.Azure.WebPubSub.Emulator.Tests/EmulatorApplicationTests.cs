@@ -3,7 +3,7 @@
 
 using System;
 using System.Net;
-using System.Net.Http.Json;
+using System.Net.Http;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.TestHost;
@@ -16,20 +16,18 @@ public class EmulatorApplicationTests
     private static readonly TimeSpan TestTimeout = TimeSpan.FromSeconds(30);
 
     [Fact]
-    public async Task HealthEndpoint_ReturnsHealthyStatus()
+    public async Task ServiceHealthEndpoint_HeadReturnsOk()
     {
         var builder = EmulatorApplication.CreateBuilder();
         builder.WebHost.UseTestServer();
         await using var application = EmulatorApplication.Build(builder);
         await application.StartAsync().WaitAsync(TestTimeout);
 
-        using var response = await application.GetTestClient().GetAsync("/health").WaitAsync(TestTimeout);
+        using var request = new HttpRequestMessage(
+            HttpMethod.Head,
+            "/api/health?api-version=2024-12-01");
+        using var response = await application.GetTestClient().SendAsync(request).WaitAsync(TestTimeout);
 
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
-        var payload = await response.Content.ReadFromJsonAsync<HealthResponse>();
-        Assert.NotNull(payload);
-        Assert.Equal("Healthy", payload.Status);
     }
-
-    private sealed record HealthResponse(string Status);
 }

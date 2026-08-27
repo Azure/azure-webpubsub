@@ -32,7 +32,7 @@ static void WriteStartupMessage(WebApplication app)
     Console.WriteLine("Health:");
     foreach (var address in addresses)
     {
-        Console.WriteLine($"  {address.TrimEnd('/')}/health");
+        Console.WriteLine($"  {address.TrimEnd('/')}/api/health?api-version=2024-12-01");
     }
     Console.WriteLine();
     Console.WriteLine("Press Ctrl+C to stop the emulator.");

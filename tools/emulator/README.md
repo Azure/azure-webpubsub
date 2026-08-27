@@ -17,11 +17,13 @@ dotnet run --project tools\emulator\src\Microsoft.Azure.WebPubSub.Emulator
 ```
 
 The tool listens on `http://localhost:8080` by default. To check whether it is ready, open
-`http://localhost:8080/health`. A healthy process returns:
+the service health endpoint:
 
-```json
-{ "status": "Healthy" }
+```powershell
+curl.exe --head "http://localhost:8080/api/health?api-version=2024-12-01"
 ```
+
+A healthy process returns `200 OK`.
 
 Set the ASP.NET Core `Urls` configuration value to use another address. For example:
 
