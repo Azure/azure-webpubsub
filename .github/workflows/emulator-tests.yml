@@ -18,11 +18,13 @@ permissions:
 jobs:
   test:
     name: Build, Test, and Pack Emulator
-    runs-on: ubuntu-latest
+    runs-on: ${{ matrix.os }}
     env:
       PACKAGE_VERSION: 0.0.0-ci.${{ github.run_number }}
     strategy:
+      fail-fast: false
       matrix:
+        os: [ubuntu-latest, windows-latest]
         dotnet-version: [10.x]
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -56,35 +58,80 @@ jobs:
           -p:PackageVersion=${{ env.PACKAGE_VERSION }}
 
       - name: Install and run packed tool
-        shell: bash
+        shell: pwsh
         run: |
-          set -euo pipefail
-          dotnet tool install \
-            --tool-path artifacts/tool \
-            Microsoft.Azure.WebPubSub.Emulator \
-            --version "${PACKAGE_VERSION}" \
-            --add-source artifacts/build \
-            --configfile tools/emulator/NuGet.Config \
+          $ErrorActionPreference = 'Stop'
+          dotnet tool install `
+            --tool-path artifacts/tool `
+            Microsoft.Azure.WebPubSub.Emulator `
+            --version $env:PACKAGE_VERSION `
+            --add-source artifacts/build `
+            --configfile tools/emulator/NuGet.Config `
             --no-cache
 
-          artifacts/tool/awps-emulator > artifacts/emulator.log 2>&1 &
-          emulator_pid=$!
-          trap 'kill "${emulator_pid}" >/dev/null 2>&1 || true' EXIT
+          $toolName = if ($IsWindows) { 'awps-emulator.exe' } else { 'awps-emulator' }
+          $toolPath = Join-Path $PWD "artifacts/tool/$toolName"
+          $stdoutPath = Join-Path $PWD 'artifacts/emulator.stdout.log'
+          $stderrPath = Join-Path $PWD 'artifacts/emulator.stderr.log'
+          Add-Type -AssemblyName System.Net.Http
+          $process = $null
+          $client = $null
+          try {
+            $process = Start-Process `
+              -FilePath $toolPath `
+              -RedirectStandardOutput $stdoutPath `
+              -RedirectStandardError $stderrPath `
+              -PassThru
+            $client = [System.Net.Http.HttpClient]::new()
+            $healthy = $false
+            for ($attempt = 1; $attempt -le 30; $attempt++) {
+              try {
+                $response = $null
+                $request = [System.Net.Http.HttpRequestMessage]::new(
+                  [System.Net.Http.HttpMethod]::Head,
+                  'http://127.0.0.1:8080/api/health')
+                try {
+                  $response = $client.SendAsync($request).GetAwaiter().GetResult()
+                  if ($response.IsSuccessStatusCode) {
+                    $healthy = $true
+                    break
+                  }
+                }
+                finally {
+                  if ($null -ne $response) {
+                    $response.Dispose()
+                  }
+                  $request.Dispose()
+                }
+              }
+              catch {
+                if ($process.HasExited) {
+                  break
+                }
+              }
+              [System.Threading.Thread]::Sleep(1000)
+            }
 
-          for attempt in {1..30}; do
-            if curl --fail --silent --show-error --head \
-              'http://127.0.0.1:8080/api/health'; then
-              exit 0
+            if (-not $healthy) {
+              Get-Content $stdoutPath, $stderrPath -ErrorAction SilentlyContinue
+              throw 'The packaged emulator did not become healthy.'
             fi
-            sleep 1
-          done
-
-          cat artifacts/emulator.log
-          exit 1
+          }
+          finally {
+            if ($null -ne $client) {
+              $client.Dispose()
+            }
+            if ($null -ne $process -and -not $process.HasExited) {
+              Stop-Process -Id $process.Id -Force
+            }
+            if ($null -ne $process) {
+              $process.Dispose()
+            }
+          }
 
       - name: Upload emulator package
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
-          name: Microsoft.Azure.WebPubSub.Emulator.${{ env.PACKAGE_VERSION }}
+          name: Microsoft.Azure.WebPubSub.Emulator.${{ env.PACKAGE_VERSION }}.${{ runner.os }}
           path: artifacts/build/*.nupkg
           if-no-files-found: error
