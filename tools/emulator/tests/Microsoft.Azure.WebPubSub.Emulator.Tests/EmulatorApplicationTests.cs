@@ -16,7 +16,7 @@ public class EmulatorApplicationTests
     private static readonly TimeSpan TestTimeout = TimeSpan.FromSeconds(30);
 
     [Fact]
-    public async Task ServiceHealthEndpoint_HeadReturnsOk()
+    public async Task ServiceHealthEndpoint_WithoutApiVersionFallsBackToLatest()
     {
         var builder = EmulatorApplication.CreateBuilder();
         builder.WebHost.UseTestServer();
@@ -25,7 +25,7 @@ public class EmulatorApplicationTests
 
         using var request = new HttpRequestMessage(
             HttpMethod.Head,
-            "/api/health?api-version=2024-12-01");
+            "/api/health");
         using var response = await application.GetTestClient().SendAsync(request).WaitAsync(TestTimeout);
 
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);

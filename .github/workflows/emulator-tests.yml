@@ -69,7 +69,7 @@ jobs:
 
           for attempt in {1..30}; do
             if curl --fail --silent --show-error --head \
-              'http://127.0.0.1:8080/api/health?api-version=2024-12-01'; then
+              'http://127.0.0.1:8080/api/health'; then
               exit 0
             fi
             sleep 1

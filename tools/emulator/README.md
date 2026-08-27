@@ -20,10 +20,11 @@ The tool listens on `http://localhost:8080` by default. To check whether it is r
 the service health endpoint:
 
 ```powershell
-curl.exe --head "http://localhost:8080/api/health?api-version=2024-12-01"
+curl.exe --head "http://localhost:8080/api/health"
 ```
 
-A healthy process returns `200 OK`.
+A healthy process returns `200 OK`. When `api-version` is omitted, the emulator uses its latest
+supported API version.
 
 Set the ASP.NET Core `Urls` configuration value to use another address. For example:
 
