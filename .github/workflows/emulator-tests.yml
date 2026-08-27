@@ -115,7 +115,7 @@ jobs:
             if (-not $healthy) {
               Get-Content $stdoutPath, $stderrPath -ErrorAction SilentlyContinue
               throw 'The packaged emulator did not become healthy.'
-            fi
+            }
           }
           finally {
             if ($null -ne $client) {
