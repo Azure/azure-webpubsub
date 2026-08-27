@@ -38,7 +38,11 @@ jobs:
           --configfile tools/emulator/NuGet.Config
 
       - name: Build solution
-        run: dotnet build tools/emulator/Microsoft.Azure.WebPubSub.Emulator.sln --configuration Release --no-restore
+        run: >-
+          dotnet build tools/emulator/Microsoft.Azure.WebPubSub.Emulator.sln
+          --configuration Release
+          --no-restore
+          -p:Version=${{ env.PACKAGE_VERSION }}
 
       - name: Run tests
         run: dotnet test tools/emulator/Microsoft.Azure.WebPubSub.Emulator.sln --configuration Release --no-build

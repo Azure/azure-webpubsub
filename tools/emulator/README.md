@@ -43,10 +43,17 @@ dotnet pack tools\emulator\src\Microsoft.Azure.WebPubSub.Emulator `
 dotnet tool install `
   --tool-path artifacts\emulator-tool `
   Microsoft.Azure.WebPubSub.Emulator `
+  --version 1.0.0-beta.1 `
   --add-source artifacts\emulator `
   --configfile tools\emulator\NuGet.Config
 
 artifacts\emulator-tool\awps-emulator
 ```
+
+## Versioning
+
+The next release version is declared in `version.props` and documented in `CHANGELOG.md`.
+Continuous integration packages use a unique `0.0.0-ci.<run-number>` version instead of the
+release version.
 
 See [Supported Features and Gaps](SUPPORTED_FEATURES.md) for the current implementation status.

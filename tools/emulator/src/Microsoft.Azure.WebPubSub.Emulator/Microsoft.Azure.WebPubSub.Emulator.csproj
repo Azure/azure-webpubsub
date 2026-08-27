@@ -16,7 +16,9 @@
     <Authors>Microsoft</Authors>
     <Copyright>Microsoft Corporation. All rights reserved.</Copyright>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <PackageIcon>microsoft.png</PackageIcon>
     <PackageProjectUrl>https://github.com/Azure/azure-webpubsub/tree/main/tools/emulator</PackageProjectUrl>
+    <PackageReleaseNotes>See https://github.com/Azure/azure-webpubsub/blob/main/tools/emulator/CHANGELOG.md.</PackageReleaseNotes>
     <RepositoryUrl>https://github.com/Azure/azure-webpubsub</RepositoryUrl>
     <RepositoryType>git</RepositoryType>
     <PackageTags>azure;webpubsub;emulator;dotnet-tool</PackageTags>
@@ -38,7 +40,9 @@
 
   <ItemGroup>
     <None Include="..\..\README.md" Pack="true" PackagePath="\" />
+    <None Include="..\..\CHANGELOG.md" Pack="true" PackagePath="\" />
     <None Include="..\..\SUPPORTED_FEATURES.md" Pack="true" PackagePath="\" />
+    <None Include="..\..\..\..\microsoft.png" Pack="true" PackagePath="\" />
   </ItemGroup>
 
 </Project>
