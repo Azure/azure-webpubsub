@@ -15,6 +15,15 @@ public class EmulatorApplicationTests
 {
     private static readonly TimeSpan TestTimeout = TimeSpan.FromSeconds(30);
 
+    [Theory]
+    [InlineData("Endpoint=http://localhost:8080/base;AccessKey=key;Version=1.0;")]
+    [InlineData("Endpoint=http://localhost:8080?query=value;AccessKey=key;Version=1.0;")]
+    [InlineData("Endpoint=ftp://localhost:8080;AccessKey=key;Version=1.0;")]
+    public void ConnectionStringEndpointMustBeAnOrigin(string connectionString)
+    {
+        Assert.False(WebPubSubTokenService.IsValidConnectionString(connectionString));
+    }
+
     [Fact]
     public async Task ServiceHealthEndpoint_WithoutApiVersionFallsBackToLatest()
     {

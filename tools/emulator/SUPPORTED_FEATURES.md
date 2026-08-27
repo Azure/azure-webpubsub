@@ -1,7 +1,7 @@
 # Supported Features and Gaps
 
-The current implementation establishes the executable and packaging foundation for the Azure
-Web PubSub Emulator. It does not yet emulate service behavior beyond the health operation.
+The current implementation provides the executable foundation and raw WebSocket client endpoint
+for local Azure Web PubSub development.
 
 ## Current support
 
@@ -10,19 +10,25 @@ Web PubSub Emulator. It does not yet emulate service behavior beyond the health 
 | .NET tool | Implemented | Builds and installs as `Microsoft.Azure.WebPubSub.Emulator`; runs as `awps-emulator`. |
 | Configurable host address | Implemented | Listens on `http://localhost:8080` by default and supports ASP.NET Core `Urls` configuration. |
 | Service health | Implemented | `HEAD /api/health` returns `200 OK`. |
+| Client token authentication | Implemented | Validates access-key JWTs supplied by query string or bearer header. |
+| Raw WebSocket | Implemented | Receives group messages and publishes text or binary frames with raw `sendToGroup` mode. |
+| Connection state | Implemented | Tracks active connections and removes their state when the WebSocket disconnects. |
+| Groups and roles | Implemented | Supports connection-scoped token groups and authorized raw group send, including wildcard roles. |
+| Outbound delivery | Implemented | Uses a bounded, single-writer queue for each WebSocket connection. |
 
 ## Not yet implemented
 
-The current tool does not accept WebSocket clients or provide messaging and management APIs.
 The following areas are planned for follow-up changes:
 
-- Client endpoints and Web PubSub client protocols
-- Client messaging, groups, roles, and metadata
-- Reliable protocol reconnect and replay
 - REST APIs and server SDK compatibility
 - HTTP upstream event handlers
 - Event Hubs listeners
-- Authentication and authorization behavior
+- JSON and reliable JSON subprotocols
+- Client join, leave, acknowledgement, metadata, and message TTL
+- Reliable reconnect and message replay
+- Protobuf subprotocols
+- Client message streaming
+- Microsoft Entra ID authentication
 
-Until those capabilities are implemented, use the tool only to validate installation, process
-startup, host configuration, and health checks.
+Raw `sendEvent` mode requires an upstream event handler and is not available in the current
+implementation.

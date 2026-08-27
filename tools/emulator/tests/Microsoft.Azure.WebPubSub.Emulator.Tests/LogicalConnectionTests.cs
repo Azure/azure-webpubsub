@@ -1,0 +1,160 @@
+// Copyright (c) Microsoft Corporation. All rights reserved.
+// Licensed under the MIT License.
+
+using System;
+using System.Net.WebSockets;
+using System.Security.Claims;
+using System.Threading;
+using System.Threading.Tasks;
+using Microsoft.AspNetCore.Builder;
+using Microsoft.Extensions.DependencyInjection;
+using Xunit;
+
+namespace Microsoft.Azure.WebPubSub.Emulator.Tests;
+
+public class LogicalConnectionTests
+{
+    private static readonly TimeSpan TestTimeout = TimeSpan.FromSeconds(30);
+
+    [Fact]
+    public void DetachRemovesActivatedConnection()
+    {
+        using var application = EmulatorApplication.Build();
+        var manager = application.Services.GetRequiredService<ConnectionManager>();
+        var connection = CreateConnection(manager, "connection");
+        using var transport = connection.TryAttach(new TestWebSocket());
+        Assert.NotNull(transport);
+        Assert.True(manager.TryActivate(connection));
+
+        connection.Detach(transport);
+
+        Assert.False(manager.TryGet(connection.Hub, connection.ConnectionId, out _));
+        Assert.Null(connection.TryAttach(new TestWebSocket()));
+    }
+
+    [Fact]
+    public void TokenGroupsAreScopedToEachConnection()
+    {
+        using var application = EmulatorApplication.Build();
+        var manager = application.Services.GetRequiredService<ConnectionManager>();
+        var first = CreateConnection(manager, "first", "room");
+        var second = CreateConnection(manager, "second");
+
+        Assert.True(first.Groups.ContainsKey("room"));
+        Assert.False(second.Groups.ContainsKey("room"));
+    }
+
+    [Fact]
+    public async Task OutboundByteLimitAbortsAndRemovesConnection()
+    {
+        using var application = EmulatorApplication.Build(
+            EmulatorApplication.CreateBuilder(
+                runtimeOptions: new EmulatorRuntimeOptions
+                {
+                    OutboundQueueCapacity = 10,
+                    MaxOutboundQueueBytes = 6,
+                }));
+        var manager = application.Services.GetRequiredService<ConnectionManager>();
+        var connection = CreateConnection(manager, "connection");
+        var webSocket = new BlockingSendWebSocket();
+        using var transport = connection.TryAttach(webSocket);
+        Assert.NotNull(transport);
+        Assert.True(manager.TryActivate(connection));
+
+        connection.Send(new RawMessage(WebSocketMessageType.Binary, new byte[4]));
+        await webSocket.SendStarted.Task.WaitAsync(TestTimeout);
+        connection.Send(new RawMessage(WebSocketMessageType.Binary, new byte[3]));
+
+        Assert.False(manager.TryGet(connection.Hub, connection.ConnectionId, out _));
+        Assert.Equal(WebSocketState.Aborted, webSocket.State);
+        Assert.True(transport.Aborted.IsCancellationRequested);
+        Assert.Null(connection.TryAttach(new TestWebSocket()));
+    }
+
+    private static LogicalConnection CreateConnection(
+        ConnectionManager manager,
+        string connectionId,
+        string? group = null)
+    {
+        var claims = group is null
+            ? []
+            : new[] { new Claim("webpubsub.group", group) };
+        return manager.Create(
+            connectionId,
+            "chat",
+            new ClaimsPrincipal(new ClaimsIdentity(claims)));
+    }
+
+    private class TestWebSocket : WebSocket
+    {
+        private WebSocketState _state = WebSocketState.Open;
+
+        public override WebSocketCloseStatus? CloseStatus => null;
+
+        public override string? CloseStatusDescription => null;
+
+        public override WebSocketState State => _state;
+
+        public override string? SubProtocol => null;
+
+        public override void Abort()
+        {
+            _state = WebSocketState.Aborted;
+        }
+
+        public override Task CloseAsync(
+            WebSocketCloseStatus closeStatus,
+            string? statusDescription,
+            CancellationToken cancellationToken)
+        {
+            _state = WebSocketState.Closed;
+            return Task.CompletedTask;
+        }
+
+        public override Task CloseOutputAsync(
+            WebSocketCloseStatus closeStatus,
+            string? statusDescription,
+            CancellationToken cancellationToken)
+        {
+            _state = WebSocketState.CloseSent;
+            return Task.CompletedTask;
+        }
+
+        public override void Dispose()
+        {
+            _state = WebSocketState.Closed;
+        }
+
+        public override Task<WebSocketReceiveResult> ReceiveAsync(
+            ArraySegment<byte> buffer,
+            CancellationToken cancellationToken)
+        {
+            throw new NotSupportedException();
+        }
+
+        public override Task SendAsync(
+            ArraySegment<byte> buffer,
+            WebSocketMessageType messageType,
+            bool endOfMessage,
+            CancellationToken cancellationToken)
+        {
+            return Task.CompletedTask;
+        }
+    }
+
+    private sealed class BlockingSendWebSocket : TestWebSocket
+    {
+        public TaskCompletionSource SendStarted { get; } =
+            new(TaskCreationOptions.RunContinuationsAsynchronously);
+
+        public override async Task SendAsync(
+            ArraySegment<byte> buffer,
+            WebSocketMessageType messageType,
+            bool endOfMessage,
+            CancellationToken cancellationToken)
+        {
+            SendStarted.TrySetResult();
+            await Task.Delay(Timeout.InfiniteTimeSpan, cancellationToken);
+        }
+    }
+}

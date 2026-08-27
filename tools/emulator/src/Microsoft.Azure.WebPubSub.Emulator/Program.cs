@@ -5,6 +5,7 @@ using Microsoft.Azure.WebPubSub.Emulator;
 using Microsoft.AspNetCore.Hosting.Server;
 using Microsoft.AspNetCore.Hosting.Server.Features;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Options;
 
 var app = EmulatorApplication.Build(args);
 app.Lifetime.ApplicationStarted.Register(() => WriteStartupMessage(app));
@@ -19,25 +20,17 @@ static void WriteStartupMessage(WebApplication app)
         .OrderBy(address => address, StringComparer.Ordinal)
         .ToArray() ?? [];
 
-    Console.WriteLine();
-    Console.WriteLine("===================================================");
-    Console.WriteLine("Azure Web PubSub Emulator is ready.");
-    Console.WriteLine();
-    Console.WriteLine("Listening on:");
-    foreach (var address in addresses)
-    {
-        Console.WriteLine($"  {address}");
-    }
-    Console.WriteLine();
-    Console.WriteLine("Health:");
-    foreach (var address in addresses)
-    {
-        Console.WriteLine($"  {address.TrimEnd('/')}/api/health");
-    }
-    Console.WriteLine();
-    Console.WriteLine("Press Ctrl+C to stop the emulator.");
-    Console.WriteLine("===================================================");
-    Console.WriteLine();
+    var options = app.Services.GetRequiredService<IOptions<EmulatorOptions>>().Value;
+    var tokenService = app.Services.GetRequiredService<WebPubSubTokenService>();
+    StartupMessageWriter.Write(
+        Console.Out,
+        addresses,
+        options.ConnectionString,
+        tokenService.Endpoint,
+        string.Equals(
+            options.ConnectionString,
+            EmulatorOptions.DefaultConnectionString,
+            StringComparison.Ordinal));
 }
 
 partial class Program;
