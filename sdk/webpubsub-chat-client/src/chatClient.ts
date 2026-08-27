@@ -705,8 +705,16 @@ class ChatClient {
    * the post-failure rollback), no event fires.
    */
   private resetState(): void {
+    // Copy public room state so the stopped event retains an independent snapshot.
     const stoppedEvent: OnStoppedArgs | undefined = this._isStarted
-      ? { userId: this.userId }
+      ? {
+          userId: this.userId,
+          rooms: this.rooms.map(({ roomId, title, properties }) => ({
+            roomId,
+            title,
+            properties: properties ? { ...properties } : properties,
+          })),
+        }
       : undefined;
     this._isStarted = false;
     this._userId = undefined;

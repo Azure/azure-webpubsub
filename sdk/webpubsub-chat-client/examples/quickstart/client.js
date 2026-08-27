@@ -27,7 +27,7 @@ function setupListeners(client) {
     });
     // chat lifecycle listener
     client.on("stopped", (event) => {
-        console.log(`chat client for ${event.userId} stopped`);
+        console.log(`chat client for ${event.userId} stopped with ${event.rooms.length} joined rooms`);
     });
 }
 

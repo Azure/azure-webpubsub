@@ -133,6 +133,7 @@ export interface OnStartedArgs {
 
 // @public
 export interface OnStoppedArgs {
+    rooms: RoomInfo[];
     userId: string;
 }
 

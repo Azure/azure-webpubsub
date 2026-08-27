@@ -27,6 +27,8 @@ export interface OnStartedArgs {
 export interface OnStoppedArgs {
   /** The chat-domain identity this client had before stopping. */
   userId: string;
+  /** Snapshot of the rooms known to the client before stopping. */
+  rooms: RoomInfo[];
 }
 
 /**

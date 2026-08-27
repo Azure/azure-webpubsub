@@ -278,9 +278,21 @@ test("started event fires once after start() completes with userId payload", asy
 
 test("stopped event fires on started→not-started transitions only", async () => {
   const fakeClient = new FakeWebPubSubClient();
+  fakeClient.loginResponse = {
+    userId: "alice",
+    roomIds: ["room1"],
+    conversationIds: ["conversation-room1"],
+  };
+  const roomInfo: RoomInfoWithMembers = {
+    roomId: "room1",
+    title: "Room 1",
+    defaultConversationId: "conversation-room1",
+    members: [],
+  };
+  fakeClient.roomResponses.set("room1", roomInfo);
   const client = createClient(fakeClient);
 
-  const stoppedEvents: Array<{ userId: string }> = [];
+  const stoppedEvents: Array<{ userId: string; rooms: Array<{ roomId: string; title: string }> }> = [];
   client.on("stopped", (e) => stoppedEvents.push(e));
 
   // stop() before start() must not emit (no transition).
@@ -291,7 +303,16 @@ test("stopped event fires on started→not-started transitions only", async () =
   await client.start();
   await client.stop();
   assert.equal(stoppedEvents.length, 1, "stopped should fire exactly once per explicit stop()");
-  assert.deepEqual(stoppedEvents[0], { userId: "alice" }, "stopped should carry the previous chat identity");
+  assert.deepEqual(
+    stoppedEvents[0],
+    {
+      userId: "alice",
+      rooms: [{ roomId: "room1", title: "Room 1", properties: undefined }],
+    },
+    "stopped should carry a snapshot of the previous client state",
+  );
+  roomInfo.title = "Updated Room";
+  assert.equal(stoppedEvents[0]?.rooms[0]?.title, "Room 1", "stopped room state should be copied");
 
   // Restart with another identity → network-driven stop also fires once with the new identity.
   fakeClient.loginResponse = { userId: "bob", roomIds: [], conversationIds: [] };
@@ -302,7 +323,7 @@ test("stopped event fires on started→not-started transitions only", async () =
   assert.equal(stoppedEvents.length, 2, "stopped should fire when the transport terminates after a successful start");
   assert.deepEqual(
     stoppedEvents[1],
-    { userId: "bob" },
-    "transport-driven stopped should carry the identity from the current lifecycle",
+    { userId: "bob", rooms: [] },
+    "transport-driven stopped should carry the state from the current lifecycle",
   );
 });
