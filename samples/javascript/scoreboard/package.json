@@ -13,6 +13,9 @@
         "pack:zip": "npm-build-zip --source ./dist/",
         "test": "echo TODO"
     },
+    "resolutions": {
+        "serialize-javascript": "7.1.0"
+    },
     "dependencies": {
         "@azure/web-pubsub": "^1.0.0",
         "@azure/web-pubsub-express": "^1.0.2",
