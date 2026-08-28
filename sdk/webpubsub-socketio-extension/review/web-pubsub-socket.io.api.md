@@ -4,8 +4,6 @@
 
 ```ts
 
-/// <reference types="node" />
-
 import { AzureKeyCredential } from '@azure/core-auth';
 import { IncomingMessage } from 'http';
 import { ServerResponse } from 'http';

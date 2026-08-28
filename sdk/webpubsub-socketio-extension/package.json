@@ -58,7 +58,7 @@
     "lint:fix": "eslint src --ext .ts,.javascript,.js --fix"
   },
   "devDependencies": {
-    "@microsoft/api-extractor": "7.47.0",
+    "@microsoft/api-extractor": "7.58.13",
     "@types/debug": "^4.1.7",
     "@types/engine.io": "^3.1.7",
     "@types/expect.js": "^0.3.29",
