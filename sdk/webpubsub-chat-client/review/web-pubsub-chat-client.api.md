@@ -45,6 +45,12 @@ export class ChatClient {
 }
 
 // @public
+export interface ChatClientSnapshot {
+    rooms: RoomInfo[];
+    userId: string;
+}
+
+// @public
 export class ChatError extends Error {
     constructor(message: string, code: string);
     readonly code: string;
@@ -133,8 +139,7 @@ export interface OnStartedArgs {
 
 // @public
 export interface OnStoppedArgs {
-    rooms: RoomInfo[];
-    userId: string;
+    previousState: ChatClientSnapshot;
 }
 
 // @public

@@ -11,6 +11,7 @@ export type {
 
 export type {
   ChatMessage,
+  ChatClientSnapshot,
   OnMessageArgs,
   OnRoomJoinedArgs,
   OnRoomLeftArgs,
@@ -55,4 +56,3 @@ export type {
 export const KnownChatErrorCode = ERRORS;
 
 export { ChatClient, ChatError };
-

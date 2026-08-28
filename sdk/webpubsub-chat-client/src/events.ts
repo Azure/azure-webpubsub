@@ -19,16 +19,22 @@ export interface OnStartedArgs {
   userId: string;
 }
 
+/** Snapshot of the chat client's public state at a point in time. */
+export interface ChatClientSnapshot {
+  /** The chat-domain identity of the client. */
+  userId: string;
+  /** Rooms known to the client. */
+  rooms: RoomInfo[];
+}
+
 /**
  * Argument of the `"stopped"` event listener. Fired when the chat
  * client transitions from started to not-started — either because
  * `stop()` was called or the underlying connection terminated.
  */
 export interface OnStoppedArgs {
-  /** The chat-domain identity this client had before stopping. */
-  userId: string;
-  /** Snapshot of the rooms known to the client before stopping. */
-  rooms: RoomInfo[];
+  /** Snapshot of the client state before it stopped. */
+  previousState: ChatClientSnapshot;
 }
 
 /**
