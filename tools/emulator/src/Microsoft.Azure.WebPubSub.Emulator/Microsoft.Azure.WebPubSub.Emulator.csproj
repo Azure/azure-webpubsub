@@ -12,7 +12,7 @@
     <IsPackable>true</IsPackable>
     <PackageId>Microsoft.Azure.WebPubSub.Emulator</PackageId>
     <Title>Azure Web PubSub Emulator</Title>
-    <Description>Tool host for the Azure Web PubSub local emulator.</Description>
+    <Description>Local emulator for Azure Web PubSub raw WebSocket clients.</Description>
     <Authors>Microsoft</Authors>
     <Copyright>Microsoft Corporation. All rights reserved.</Copyright>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
@@ -24,6 +24,10 @@
     <PackageTags>azure;webpubsub;emulator;dotnet-tool</PackageTags>
     <PackageReadmeFile>README.md</PackageReadmeFile>
   </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="System.IdentityModel.Tokens.Jwt" />
+  </ItemGroup>
 
   <ItemGroup>
     <ProjectReference

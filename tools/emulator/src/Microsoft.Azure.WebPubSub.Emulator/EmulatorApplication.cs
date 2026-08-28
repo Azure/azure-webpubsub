@@ -6,16 +6,32 @@ using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Mvc.Controllers;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Options;
 
 namespace Microsoft.Azure.WebPubSub.Emulator;
 
 internal static class EmulatorApplication
 {
     internal static WebApplicationBuilder CreateBuilder(
-        string[]? args = null)
+        string[]? args = null,
+        EmulatorRuntimeOptions? runtimeOptions = null)
     {
         var builder = WebApplication.CreateBuilder(args ?? []);
         builder.Configuration[WebHostDefaults.ServerUrlsKey] ??= "http://localhost:8080";
+        builder.Services
+            .AddOptions<EmulatorOptions>()
+            .Bind(builder.Configuration.GetSection(EmulatorOptions.SectionName))
+            .Validate(
+                options => WebPubSubTokenService.IsValidConnectionString(options.ConnectionString),
+                "WebPubSub:ConnectionString must contain a valid Endpoint and AccessKey.")
+            .ValidateOnStart();
+        builder.Services.AddSingleton(runtimeOptions ?? new EmulatorRuntimeOptions());
+        builder.Services.AddSingleton<WebPubSubTokenService>();
+        builder.Services.AddSingleton<ConnectionManager>();
+        builder.Services.AddSingleton<SimpleWebSocketPayloadProcessor>();
+        builder.Services.AddSingleton<ClientPayloadProcessorFactory>();
+        builder.Services.AddSingleton<ClientConnectionHandler>();
+        builder.Services.AddSingleton<ClientWebSocketEndpoint>();
         builder.Services
             .AddControllers()
             .AddApplicationPart(typeof(WebPubSubEmulatorController).Assembly)
@@ -35,7 +51,11 @@ internal static class EmulatorApplication
     {
         var app = builder.Build();
 
+        app.UseWebSockets();
         app.MapControllers();
+        app.Map(
+            $"{WebPubSubTokenService.ClientPathPrefix}{{hub}}",
+            (HttpContext context, ClientWebSocketEndpoint endpoint) => endpoint.HandleAsync(context));
 
         return app;
     }

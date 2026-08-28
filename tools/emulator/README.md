@@ -1,8 +1,7 @@
 # Azure Web PubSub Emulator
 
-This directory contains the .NET tool host for the Azure Web PubSub Emulator. The current
-scaffold starts an ASP.NET Core process and exposes a health endpoint. Client protocols, REST
-APIs, event handlers, and other service behavior will be added in follow-up changes.
+This directory contains the .NET tool for running an Azure Web PubSub-compatible raw WebSocket
+client endpoint locally.
 
 ## Prerequisites
 
@@ -16,8 +15,8 @@ From the repository root, run:
 dotnet run --project tools\emulator\src\Microsoft.Azure.WebPubSub.Emulator
 ```
 
-The tool listens on `http://localhost:8080` by default. To check whether it is ready, open
-the service health endpoint:
+The tool listens on `http://localhost:8080` by default and prints its connection string and client
+endpoint at startup. To check whether it is ready, open the service health endpoint:
 
 ```powershell
 curl.exe --head "http://localhost:8080/api/health"
@@ -26,11 +25,39 @@ curl.exe --head "http://localhost:8080/api/health"
 A healthy process returns `200 OK`. When `api-version` is omitted, the emulator uses its latest
 supported API version.
 
+## Connect a client
+
+The client endpoint is available at:
+
+```text
+ws://localhost:8080/client/hubs/{hub}?access_token={token}
+```
+
+The token must be signed with the access key from `WebPubSub:ConnectionString` and have the
+client endpoint URL as its audience. Tokens may provide `sub`, `role`, and `webpubsub.group`
+claims. The default local connection string is:
+
+```text
+Endpoint=http://localhost:8080;AccessKey=ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789ABCDEFGH;Version=1.0;
+```
+
+Raw clients do not request a WebSocket subprotocol. A client receives messages for groups listed
+in its token's `webpubsub.group` claims. To publish raw text or binary frames to a group, add
+`webpubsub_mode=sendToGroup&group={group}` and use a token with the corresponding
+`webpubsub.sendToGroup` role.
+
 Set the ASP.NET Core `Urls` configuration value to use another address. For example:
 
 ```powershell
 $env:Urls = "http://localhost:8090"
 dotnet run --project tools\emulator\src\Microsoft.Azure.WebPubSub.Emulator
+```
+
+Set `WebPubSub__ConnectionString` when changing the public endpoint or access key:
+
+```powershell
+$env:WebPubSub__ConnectionString = `
+  "Endpoint=http://localhost:8090;AccessKey=<local-access-key>;Version=1.0;"
 ```
 
 ## Pack and install the tool
