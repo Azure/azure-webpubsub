@@ -30,6 +30,11 @@ internal static class EmulatorApplication
         builder.Services.AddSingleton<WebPubSubTokenService>();
         builder.Services.AddSingleton<ConnectionManager>();
         builder.Services.AddSingleton<SimpleWebSocketPayloadProcessor>();
+        builder.Services.AddSingleton<WebPubSubJsonV1Protocol>();
+        builder.Services.AddSingleton<
+            IWebPubSubConnectionLifetimeHandler,
+            WebPubSubClientConnectionLifetimeHandler>();
+        builder.Services.AddSingleton<WebPubSubJsonV1PayloadProcessor>();
         builder.Services.AddSingleton<ClientPayloadProcessorFactory>();
         builder.Services.AddSingleton<ClientConnectionHandler>();
         builder.Services.AddSingleton<ClientWebSocketEndpoint>();

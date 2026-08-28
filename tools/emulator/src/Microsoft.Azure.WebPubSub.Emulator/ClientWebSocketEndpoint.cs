@@ -76,14 +76,16 @@ internal sealed class ClientWebSocketEndpoint
             return;
         }
 
-        if (!TryGetRawSendToGroup(context, out var rawSendToGroup, out var error))
+        var selectedSubprotocol = SelectSubprotocol(context);
+        string? rawSendToGroup = null;
+        if (selectedSubprotocol is null &&
+            !TryGetRawSendToGroup(context, out rawSendToGroup, out var error))
         {
             context.Response.StatusCode = StatusCodes.Status400BadRequest;
             await context.Response.WriteAsync(error);
             return;
         }
 
-        string? selectedSubprotocol = null;
         var connection = _connections.Create(
             Guid.NewGuid().ToString("N"),
             hub,
@@ -175,5 +177,14 @@ internal sealed class ClientWebSocketEndpoint
         return authorization.StartsWith(bearerPrefix, StringComparison.OrdinalIgnoreCase)
             ? authorization[bearerPrefix.Length..].Trim()
             : null;
+    }
+
+    private static string? SelectSubprotocol(HttpContext context)
+    {
+        return context.WebSockets.WebSocketRequestedProtocols.FirstOrDefault(
+            protocol => string.Equals(
+                protocol,
+                WebPubSubJsonV1PayloadProcessor.SubprotocolName,
+                StringComparison.OrdinalIgnoreCase));
     }
 }

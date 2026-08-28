@@ -7,8 +7,10 @@ internal enum MessageDataType
 {
     Text,
     Binary,
+    Json,
 }
 
 internal sealed record MessageData(
     MessageDataType Type,
-    ReadOnlyMemory<byte> Bytes);
+    ReadOnlyMemory<byte> Bytes,
+    IReadOnlyDictionary<string, string>? Metadata = null);

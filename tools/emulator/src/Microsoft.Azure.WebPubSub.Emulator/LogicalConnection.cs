@@ -18,6 +18,7 @@ internal sealed class LogicalConnection
     private readonly EmulatorRuntimeOptions _runtimeOptions;
     private readonly int _outboundQueueCapacity;
     private readonly long _outboundQueueMaxBytes;
+    private readonly ConnectionRolePermissions _joinLeaveGroupPermissions;
     private readonly ConnectionRolePermissions _sendToGroupPermissions;
 
     private IClientPayloadProcessor? _activePayloadProcessor;
@@ -57,6 +58,10 @@ internal sealed class LogicalConnection
             .Where(claim => claim.Type is "role" or ClaimTypes.Role)
             .Select(claim => claim.Value)
             .ToHashSet(StringComparer.Ordinal);
+        _joinLeaveGroupPermissions = new(
+            roles,
+            "webpubsub.joinLeaveGroup",
+            "webpubsub.joinLeaveGroups.");
         _sendToGroupPermissions = new(
             roles,
             "webpubsub.sendToGroup",
@@ -70,6 +75,8 @@ internal sealed class LogicalConnection
     public string? RawSendToGroup { get; }
 
     public string? UserId { get; }
+
+    public AckCache AckIdCache { get; } = new();
 
     public ConcurrentDictionary<string, byte> Groups { get; } = new(StringComparer.Ordinal);
 
@@ -100,6 +107,11 @@ internal sealed class LogicalConnection
         return _sendToGroupPermissions.Check(group);
     }
 
+    public bool CanJoinLeaveGroup(string group)
+    {
+        return _joinLeaveGroupPermissions.Check(group);
+    }
+
     public void SendGroupData(
         string group,
         string? fromUserId,
@@ -117,7 +129,23 @@ internal sealed class LogicalConnection
             }
         }
 
-        var payload = payloadProcessor.EncodeGroupData(this, group, fromUserId, data);
+        Send(payloadProcessor.EncodeGroupData(this, group, fromUserId, data));
+    }
+
+    public void Send(WebSocketPayload payload)
+    {
+        IClientPayloadProcessor? payloadProcessor;
+        SocketTransport? transport;
+        lock (_stateLock)
+        {
+            payloadProcessor = _activePayloadProcessor;
+            transport = _activeTransport;
+            if (_closed || payloadProcessor is null || transport is null)
+            {
+                return;
+            }
+        }
+
         SocketTransport? dropped;
         lock (_stateLock)
         {
