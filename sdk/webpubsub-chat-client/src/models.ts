@@ -15,6 +15,22 @@
  * shape changes here instead of silently diverging.
  */
 
+/** Metadata associated with one message content item. */
+export interface MessageContentItemMetadata {
+  custom?: Record<string, string> | null;
+}
+
+/** One item in an item-backed message. */
+export interface MessageContentItem {
+  type?: string;
+  content?: {
+    text?: string | null;
+    binary?: string | null;
+  };
+  metadata?: MessageContentItemMetadata | null;
+  isAttachment?: boolean;
+}
+
 /** A single chat message. */
 export interface MessageInfo {
   /** Service-assigned message id, unique and monotonically increasing within a conversation. */
@@ -31,7 +47,14 @@ export interface MessageInfo {
   content: {
     text?: string | null;
     binary?: string | null;
+    items?: MessageContentItem[] | null;
   };
+  /** Message metadata, including the agent codec discriminator when present. */
+  metadata?: Record<string, string> | null;
+  /** Active group-stream identifier for this message. */
+  streamId?: string | null;
+  /** Latest persisted entity tag, including streaming checkpoints. */
+  etag?: string | null;
   /** Id of the message this one references (e.g. a reply), when applicable. */
   refMessageId?: string | null;
 }

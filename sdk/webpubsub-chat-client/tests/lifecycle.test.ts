@@ -70,6 +70,8 @@ class FakeWebPubSubClient {
     this.emitter.off(event, listener);
   }
 
+  public onGroupStream(_listener: (stream: unknown) => void): void {}
+
   public async invokeEvent(eventName: string, payload: any, dataType: WebPubSubDataType): Promise<{ data: unknown }> {
     void dataType;
     if (eventName === INVOCATION_NAME.LOGIN) {
