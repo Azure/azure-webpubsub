@@ -337,11 +337,10 @@
         "mocha-multi-reporters": "^1.1.7",
         "ts-node": "^10.9.1",
         "typescript": "5.1.6",
-        "webpack": "5.90.0",
+        "webpack": "5.104.1",
         "webpack-cli": "^4.6.0"
     },
     "dependencies": {
-        "@microsoft/applicationinsights-common": "^3.4.3",
         "@azure/arm-monitor": "7.0.0",
         "@azure/arm-resources": "5.2.0",
         "@azure/arm-webpubsub": "2.0.0-beta.2",
@@ -354,6 +353,7 @@
         "@azure/core-util": "1.6.1",
         "@azure/logger": "1.0.4",
         "@azure/storage-blob": "12.17.0",
+        "@microsoft/applicationinsights-common": "^3.4.3",
         "@microsoft/vscode-azext-azureutils": "2.0.5",
         "@microsoft/vscode-azext-utils": "2.1.5",
         "@microsoft/vscode-azureresources-api": "^2.2.1",

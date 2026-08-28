@@ -8,7 +8,7 @@
       "whiteboard"
     ],
     "dependencies": {
-      "express": "~4.17.1",
+      "express": "^4.22.2",
       "@azure/web-pubsub-socket.io": "1.0.0-beta.6"
     },
     "scripts": {
