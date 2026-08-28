@@ -13,28 +13,40 @@ namespace Microsoft.Azure.WebPubSub.Emulator;
 internal sealed class WebPubSubTokenService
 {
     internal const string ClientPathPrefix = "/client/hubs/";
+    private const string WebPubSubAudience = "https://webpubsub.azure.com";
 
     private readonly JwtSecurityTokenHandler _handler = new();
-    private readonly Uri _endpoint;
     private readonly SymmetricSecurityKey _signingKey;
+    private readonly bool _allowUnvalidatedEntraTokens;
     private readonly ILogger<WebPubSubTokenService> _logger;
 
     public WebPubSubTokenService(
         IOptions<EmulatorOptions> options,
         ILogger<WebPubSubTokenService> logger)
     {
-        (_endpoint, var accessKey) = ParseRequiredConnectionString(options.Value.ConnectionString);
-        _signingKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(accessKey));
+        var emulatorOptions = options.Value;
+        _signingKey = new SymmetricSecurityKey(
+            Encoding.UTF8.GetBytes(emulatorOptions.AccessKey));
+        _allowUnvalidatedEntraTokens = emulatorOptions.AllowUnvalidatedEntraTokens;
         _logger = logger;
+
+        if (_allowUnvalidatedEntraTokens)
+        {
+            _logger.LogWarning(
+                "WebPubSub:AllowUnvalidatedEntraTokens is enabled. Azure Web PubSub audience tokens " +
+                "will be accepted without validating their signature, algorithm, issuer, tenant, " +
+                "identity, or RBAC assignments. Use this setting only for trusted local development.");
+        }
     }
 
-    internal Uri Endpoint => _endpoint;
-
-    public ClaimsPrincipal ValidateClientToken(string hub, string token)
+    public ClaimsPrincipal ValidateClientToken(Uri endpoint, string hub, string token)
     {
         try
         {
-            return _handler.ValidateToken(token, CreateValidationParameters(GetClientAudience(hub)), out _);
+            return _handler.ValidateToken(
+                token,
+                CreateValidationParameters(GetClientAudience(endpoint, hub)),
+                out _);
         }
         catch (Exception exception) when (exception is SecurityTokenException or ArgumentException)
         {
@@ -43,20 +55,52 @@ internal sealed class WebPubSubTokenService
         }
     }
 
-    internal static bool IsValidConnectionString(string? connectionString)
+    public bool ValidateRestToken(Uri requestUri, string token)
     {
-        if (string.IsNullOrWhiteSpace(connectionString))
+        JwtSecurityToken jwt;
+        try
         {
+            jwt = _handler.ReadJwtToken(token);
+        }
+        catch (ArgumentException exception)
+        {
+            _logger.LogDebug(
+                exception,
+                "REST access token could not be parsed for {Path}.",
+                requestUri.AbsolutePath);
             return false;
+        }
+
+        if (jwt.Audiences.Contains(WebPubSubAudience, StringComparer.Ordinal))
+        {
+            if (!_allowUnvalidatedEntraTokens)
+            {
+                _logger.LogDebug(
+                    "Rejected an Azure Web PubSub audience token because unvalidated Entra token " +
+                    "compatibility is disabled.");
+                return false;
+            }
+
+            var now = DateTime.UtcNow;
+            return jwt.ValidFrom <= now.AddMinutes(5) &&
+                jwt.ValidTo >= now.Subtract(TimeSpan.FromMinutes(5));
         }
 
         try
         {
-            _ = ParseRequiredConnectionString(connectionString);
+            _handler.ValidateToken(
+                token,
+                CreateValidationParameters(requestUri.AbsoluteUri),
+                out _);
             return true;
         }
-        catch (Exception exception) when (exception is InvalidOperationException or UriFormatException)
+        catch (Exception exception) when (
+            exception is SecurityTokenException or ArgumentException)
         {
+            _logger.LogDebug(
+                exception,
+                "REST access token validation failed for {Path}.",
+                requestUri.AbsolutePath);
             return false;
         }
     }
@@ -76,47 +120,10 @@ internal sealed class WebPubSubTokenService
         };
     }
 
-    private string GetClientAudience(string hub)
+    private static string GetClientAudience(Uri endpoint, string hub)
     {
         return new Uri(
-            _endpoint,
+            endpoint,
             $"{ClientPathPrefix.TrimStart('/')}{Uri.EscapeDataString(hub)}").AbsoluteUri;
-    }
-
-    private static (Uri Endpoint, string AccessKey) ParseRequiredConnectionString(string connectionString)
-    {
-        var values = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
-        foreach (var part in connectionString.Split(';', StringSplitOptions.RemoveEmptyEntries))
-        {
-            var separator = part.IndexOf('=');
-            if (separator <= 0 || separator == part.Length - 1)
-            {
-                throw new InvalidOperationException("ConnectionString is invalid.");
-            }
-
-            values[part[..separator].Trim()] = part[(separator + 1)..].Trim();
-        }
-
-        if (!values.TryGetValue("Endpoint", out var endpoint) || string.IsNullOrWhiteSpace(endpoint))
-        {
-            throw new InvalidOperationException("ConnectionString must contain Endpoint.");
-        }
-        if (!values.TryGetValue("AccessKey", out var accessKey) || string.IsNullOrWhiteSpace(accessKey))
-        {
-            throw new InvalidOperationException("ConnectionString must contain AccessKey.");
-        }
-
-        var endpointUri = new Uri(endpoint, UriKind.Absolute);
-        if ((!endpointUri.Scheme.Equals(Uri.UriSchemeHttp, StringComparison.OrdinalIgnoreCase) &&
-            !endpointUri.Scheme.Equals(Uri.UriSchemeHttps, StringComparison.OrdinalIgnoreCase)) ||
-            endpointUri.AbsolutePath != "/" ||
-            !string.IsNullOrEmpty(endpointUri.Query) ||
-            !string.IsNullOrEmpty(endpointUri.Fragment))
-        {
-            throw new InvalidOperationException(
-                "ConnectionString Endpoint must be an HTTP or HTTPS origin without a path, query, or fragment.");
-        }
-
-        return (endpointUri, accessKey);
     }
 }

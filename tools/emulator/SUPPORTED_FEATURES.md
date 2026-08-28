@@ -8,7 +8,7 @@ for local Azure Web PubSub development.
 | Area | Status | Notes |
 | --- | --- | --- |
 | .NET tool | Implemented | Builds and installs as `Microsoft.Azure.WebPubSub.Emulator`; runs as `awps-emulator`. |
-| Configurable host address | Implemented | Listens on `http://localhost:8080` by default and supports ASP.NET Core `Urls` configuration. |
+| Local connection settings | Implemented | Derives the endpoint from the bound ASP.NET Core `Urls` address and supports a separate `WebPubSub:AccessKey` setting. |
 | Service health | Implemented | `HEAD /api/health` returns `200 OK`. |
 | Client token authentication | Implemented | Validates access-key JWTs supplied by query string or bearer header. |
 | Raw WebSocket | Implemented | Receives group messages and publishes text or binary frames with raw `sendToGroup` mode. |
@@ -28,7 +28,7 @@ The following areas are planned for follow-up changes:
 - Reliable reconnect and message replay
 - Protobuf subprotocols
 - Client message streaming
-- Microsoft Entra ID authentication
+- Production Microsoft Entra ID validation
 
 Raw `sendEvent` mode requires an upstream event handler and is not available in the current
 implementation.

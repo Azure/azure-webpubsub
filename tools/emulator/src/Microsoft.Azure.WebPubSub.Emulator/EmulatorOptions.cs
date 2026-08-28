@@ -7,12 +7,25 @@ internal sealed class EmulatorOptions
 {
     public const string SectionName = "WebPubSub";
 
-    public const string DefaultConnectionString =
-        "Endpoint=http://localhost:8080;" +
-        "AccessKey=ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789ABCDEFGH;" +
-        "Version=1.0;";
+    public const string DefaultAccessKey = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789ABCDEFGH";
 
-    public string ConnectionString { get; set; } = DefaultConnectionString;
+    public string AccessKey { get; set; } = DefaultAccessKey;
+
+    public bool AllowUnvalidatedEntraTokens { get; set; }
+
+    public string GetConnectionString(Uri endpoint)
+    {
+        return $"Endpoint={endpoint.GetLeftPart(UriPartial.Authority)};" +
+            $"AccessKey={AccessKey};Version=1.0;";
+    }
+
+    internal static bool IsValidAccessKey(string? accessKey)
+    {
+        return !string.IsNullOrWhiteSpace(accessKey) &&
+            accessKey.Length == accessKey.Trim().Length &&
+            !accessKey.Any(character => character == ';' || char.IsControl(character)) &&
+            System.Text.Encoding.UTF8.GetByteCount(accessKey) >= 32;
+    }
 }
 
 internal sealed class EmulatorRuntimeOptions

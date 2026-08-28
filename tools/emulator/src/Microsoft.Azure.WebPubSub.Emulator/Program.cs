@@ -13,24 +13,25 @@ await app.RunAsync();
 
 static void WriteStartupMessage(WebApplication app)
 {
-    var server = app.Services.GetRequiredService<IServer>();
-    var addresses = server.Features
+    var addresses = app.Services
+        .GetRequiredService<IServer>()
+        .Features
         .Get<IServerAddressesFeature>()?
         .Addresses
         .OrderBy(address => address, StringComparer.Ordinal)
         .ToArray() ?? [];
+    if (addresses.Length == 0)
+    {
+        throw new InvalidOperationException("The emulator server did not report a bound address.");
+    }
 
+    var endpoint = new Uri(addresses[0]);
     var options = app.Services.GetRequiredService<IOptions<EmulatorOptions>>().Value;
-    var tokenService = app.Services.GetRequiredService<WebPubSubTokenService>();
     StartupMessageWriter.Write(
         Console.Out,
         addresses,
-        options.ConnectionString,
-        tokenService.Endpoint,
-        string.Equals(
-            options.ConnectionString,
-            EmulatorOptions.DefaultConnectionString,
-            StringComparison.Ordinal));
+        options.GetConnectionString(endpoint),
+        endpoint);
 }
 
 partial class Program;

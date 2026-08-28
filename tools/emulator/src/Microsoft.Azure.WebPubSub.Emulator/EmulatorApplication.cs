@@ -22,8 +22,9 @@ internal static class EmulatorApplication
             .AddOptions<EmulatorOptions>()
             .Bind(builder.Configuration.GetSection(EmulatorOptions.SectionName))
             .Validate(
-                options => WebPubSubTokenService.IsValidConnectionString(options.ConnectionString),
-                "WebPubSub:ConnectionString must contain a valid Endpoint and AccessKey.")
+                options => EmulatorOptions.IsValidAccessKey(options.AccessKey),
+                "WebPubSub:AccessKey must be at least 32 UTF-8 bytes and cannot contain " +
+                    "leading or trailing whitespace, semicolons, or control characters.")
             .ValidateOnStart();
         builder.Services.AddSingleton(runtimeOptions ?? new EmulatorRuntimeOptions());
         builder.Services.AddSingleton<WebPubSubTokenService>();

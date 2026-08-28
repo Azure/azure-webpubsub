@@ -58,7 +58,8 @@ internal sealed class ClientWebSocketEndpoint
         ClaimsPrincipal user;
         try
         {
-            user = _tokenService.ValidateClientToken(hub, accessToken);
+            var endpoint = new Uri($"{context.Request.Scheme}://{context.Request.Host}");
+            user = _tokenService.ValidateClientToken(endpoint, hub, accessToken);
         }
         catch (Exception exception) when (
             exception is SecurityTokenException or ArgumentException)

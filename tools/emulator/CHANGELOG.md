@@ -9,3 +9,5 @@
 - Add raw WebSocket client endpoint support for text and binary group messages.
 - Add access-key client authentication, connection-scoped token groups, and role-based raw group send.
 - Add build, test, package, installation, and health-check validation in CI.
+- Add endpoint-derived local connection strings with a configurable `WebPubSub:AccessKey`.
+- Add opt-in unvalidated Entra token compatibility for trusted local server SDK testing.
