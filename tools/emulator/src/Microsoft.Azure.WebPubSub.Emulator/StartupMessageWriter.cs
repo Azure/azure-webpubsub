@@ -9,8 +9,7 @@ internal static class StartupMessageWriter
         TextWriter writer,
         IReadOnlyList<string> addresses,
         string connectionString,
-        Uri endpoint,
-        bool showConnectionString)
+        Uri endpoint)
     {
         writer.WriteLine();
         writer.WriteLine("===================================================");
@@ -23,9 +22,7 @@ internal static class StartupMessageWriter
         }
         writer.WriteLine();
         writer.WriteLine("Connection string:");
-        writer.WriteLine(showConnectionString
-            ? $"  {connectionString}"
-            : "  Configured (AccessKey hidden).");
+        writer.WriteLine($"  {connectionString}");
         writer.WriteLine();
         writer.WriteLine("Client endpoint:");
         writer.WriteLine($"  {GetClientEndpoint(endpoint)}");

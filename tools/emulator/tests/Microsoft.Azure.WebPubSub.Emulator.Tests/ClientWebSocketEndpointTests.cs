@@ -22,7 +22,6 @@ namespace Microsoft.Azure.WebPubSub.Emulator.Tests;
 public class ClientWebSocketEndpointTests
 {
     private const string Hub = "chat";
-    private const string AccessKey = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789ABCDEFGH";
     private static readonly TimeSpan TestTimeout = TimeSpan.FromSeconds(10);
 
     [Fact]
@@ -114,7 +113,7 @@ public class ClientWebSocketEndpointTests
         await using var application = await StartApplicationAsync();
         var client = application.GetTestServer().CreateWebSocketClient();
         client.SubProtocols.Add("custom.protocol");
-        var uri = CreateClientUri(application);
+        var uri = CreateClientUri();
 
         using var webSocket = await client.ConnectAsync(uri, CancellationToken.None)
             .WaitAsync(TestTimeout);
@@ -127,7 +126,7 @@ public class ClientWebSocketEndpointTests
     {
         await using var application = await StartApplicationAsync();
         var client = application.GetTestServer().CreateWebSocketClient();
-        var uri = CreateClientUri(application, query: "webpubsub_mode=");
+        var uri = CreateClientUri(query: "webpubsub_mode=");
 
         var exception = await Assert.ThrowsAsync<InvalidOperationException>(
             () => client.ConnectAsync(uri, CancellationToken.None));
@@ -191,13 +190,12 @@ public class ClientWebSocketEndpointTests
         IEnumerable<string>? groups = null,
         string? query = null)
     {
-        var uri = CreateClientUri(application, roles, groups, query);
+        var uri = CreateClientUri(roles, groups, query);
         var client = application.GetTestServer().CreateWebSocketClient();
         return await client.ConnectAsync(uri, CancellationToken.None).WaitAsync(TestTimeout);
     }
 
     private static Uri CreateClientUri(
-        WebApplication application,
         IEnumerable<string>? roles = null,
         IEnumerable<string>? groups = null,
         string? query = null)
@@ -219,11 +217,11 @@ public class ClientWebSocketEndpointTests
             .Select(role => new Claim("role", role))
             .Concat(groups.Select(group => new Claim("webpubsub.group", group)));
         var token = new JwtSecurityToken(
-            audience: $"http://localhost:8080/client/hubs/{Hub}",
+            audience: $"http://localhost{WebPubSubTokenService.ClientPathPrefix}{Hub}",
             claims: claims,
             expires: DateTime.UtcNow.AddHours(1),
             signingCredentials: new SigningCredentials(
-                new SymmetricSecurityKey(Encoding.UTF8.GetBytes(AccessKey)),
+                new SymmetricSecurityKey(Encoding.UTF8.GetBytes(EmulatorOptions.DefaultAccessKey)),
                 SecurityAlgorithms.HmacSha256));
         return new JwtSecurityTokenHandler().WriteToken(token);
     }

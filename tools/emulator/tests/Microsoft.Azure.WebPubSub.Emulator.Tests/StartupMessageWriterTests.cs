@@ -20,14 +20,12 @@ public class StartupMessageWriterTests
             writer,
             ["http://127.0.0.1:8090"],
             connectionString,
-            new Uri("https://localhost:8443"),
-            showConnectionString: false);
+            new Uri("https://localhost:8443"));
 
         var message = writer.ToString();
         Assert.Contains(
-            "Connection string:" + Environment.NewLine + "  Configured (AccessKey hidden).",
+            "Connection string:" + Environment.NewLine + $"  {connectionString}",
             message);
-        Assert.DoesNotContain("local-key", message);
         Assert.Contains(
             "Client endpoint:" + Environment.NewLine +
                 "  wss://localhost:8443/client/hubs/{hub}?access_token={token}",
@@ -36,17 +34,19 @@ public class StartupMessageWriterTests
     }
 
     [Fact]
-    public void WriteIncludesBuiltInConnectionString()
+    public void WriteIncludesGeneratedDefaultConnectionString()
     {
+        const string connectionString =
+            "Endpoint=http://localhost:8080;" +
+            $"AccessKey={EmulatorOptions.DefaultAccessKey};Version=1.0;";
         using var writer = new StringWriter();
 
         StartupMessageWriter.Write(
             writer,
             ["http://localhost:8080"],
-            EmulatorOptions.DefaultConnectionString,
-            new Uri("http://localhost:8080"),
-            showConnectionString: true);
+            connectionString,
+            new Uri("http://localhost:8080"));
 
-        Assert.Contains(EmulatorOptions.DefaultConnectionString, writer.ToString());
+        Assert.Contains(connectionString, writer.ToString());
     }
 }
