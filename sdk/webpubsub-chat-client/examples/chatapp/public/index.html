@@ -1,0 +1,71 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Azure Web PubSub Chat</title>
+    <link rel="stylesheet" href="/styles.css" />
+  </head>
+  <body>
+    <main class="app-shell">
+      <div class="brand">
+        <span><strong>Azure Web PubSub</strong><span class="brand-divider">/</span>Chat Client SDK demo</span>
+      </div>
+
+      <form id="login" class="login-card">
+        <section class="login-intro">
+          <span class="eyebrow">Real-time chat</span>
+          <h1>Start a room in seconds.</h1>
+          <p>Web PubSub Chat handles room membership, message delivery, and persistent history for you.</p>
+          <ul class="feature-list">
+            <li><span class="check-dot">✓</span>Create and invite</li>
+            <li><span class="check-dot">✓</span>Send messages in real time</li>
+            <li><span class="check-dot">✓</span>Reload message history</li>
+          </ul>
+        </section>
+        <section class="login-form">
+          <p class="section-kicker">Welcome</p>
+          <h2>Choose an identity</h2>
+          <p class="section-description">Use any user ID, or generate a demo-friendly one.</p>
+          <label for="user-id" class="label login-label">User ID</label>
+          <div class="field-row">
+            <input id="user-id" class="field" required placeholder="for example, bright-otter-42" autocomplete="off" />
+            <button class="dice-button" type="button" data-random-target="user-id" data-random-kind="user" aria-label="Generate a random user ID" title="Random user ID"><span aria-hidden="true">⚄</span></button>
+          </div>
+          <button class="primary-button full-button">Connect to chat</button>
+        </section>
+      </form>
+
+      <section id="chat" class="chat-card" hidden>
+        <header class="chat-header">
+          <div>
+            <h1>Chat workspace</h1>
+            <div class="user-summary"><span>Connected as <strong id="current-user"></strong></span><button id="copy-user-id" class="text-button" type="button">Copy user ID</button></div>
+          </div>
+          <span class="connection-status"><span></span>Connected</span>
+        </header>
+        <div class="chat-layout">
+          <aside class="room-panel">
+            <h2>Create a room</h2>
+            <p>Rooms are private. Paste another user's ID to invite them when the room is created.</p>
+            <form id="create-room" class="room-form">
+              <div>
+                <label for="room-title" class="label">Room title</label>
+                <div class="field-row"><input id="room-title" class="field" required placeholder="Project Moonbeam" autocomplete="off" /><button class="dice-button" type="button" data-random-target="room-title" data-random-kind="room" aria-label="Generate a random room title" title="Random room title"><span aria-hidden="true">⚄</span></button></div>
+              </div>
+              <div><label for="invite-user-id" class="label">Invite user <span class="optional">(optional)</span></label><input id="invite-user-id" class="field" placeholder="Paste their exact User ID" autocomplete="off" /></div>
+              <button class="primary-button full-button">Create room</button>
+            </form>
+          </aside>
+          <section class="conversation-panel">
+            <nav class="room-toolbar"><div><label for="rooms" class="label">Active room</label><select id="rooms" class="field"><option value="">Create or receive a room invitation</option></select></div><button id="load-history" class="secondary-button" type="button">Load history</button></nav>
+            <div id="messages" class="message-list" aria-live="polite"><p id="empty-state" class="empty-state">Messages will appear here.</p></div>
+            <form id="send-message" class="message-form"><input id="message" class="field" required placeholder="Write a message…" autocomplete="off" /><button class="primary-button">Send</button></form>
+          </section>
+        </div>
+      </section>
+      <p id="error" class="error-message" role="alert"></p>
+    </main>
+    <script type="module" src="/client.js"></script>
+  </body>
+</html>

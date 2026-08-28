@@ -1,0 +1,22 @@
+{
+  "name": "azure-web-pubsub-chat-client-demo",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "npm run build:js && npm run build:css",
+    "build:js": "esbuild src/client.js --bundle --platform=browser --format=esm --outfile=public/client.js",
+    "build:css": "tailwindcss -i src/styles.css -o public/styles.css --minify",
+    "start": "npm run build && node server.js",
+    "test:azure": "node test/azure.e2e.js"
+  },
+  "dependencies": {
+    "@azure/web-pubsub": "^1.2.0",
+    "@azure/web-pubsub-chat-client": "1.0.0-beta.2",
+    "express": "^5.1.0"
+  },
+  "devDependencies": {
+    "esbuild": "^0.25.0",
+    "tailwindcss": "^3.4.17"
+  }
+}

@@ -26,6 +26,9 @@ export class WebPubSubTunnelClient {
     const options: WebPubSubClientOptions = {
       protocol: new TunnelServerProtocol(),
       autoReconnect: true,
+      // Tunnel payloads are not Web PubSub protocol frames, so protocol-level ping/pong is unsupported.
+      keepAliveIntervalInMs: 0,
+      keepAliveTimeoutInMs: 0,
     };
     const client = (this._client = new WebPubSubClient(
       {
@@ -112,7 +115,7 @@ class TunnelServerProtocol implements WebPubSubClientProtocol {
     if (typeof input === "string") {
       throw new Error("Expecting ArrayBuffer or Buffer.");
     }
-    const buffer = input instanceof Uint8Array ? input : new Uint8Array(input);
+    const buffer = input instanceof ArrayBuffer ? new Uint8Array(input) : Uint8Array.from(input);
     const tunnel = this._protocol.parseMessage(buffer);
     if (!tunnel) {
       throw new Error("Expecting tunnel message");
@@ -141,7 +144,7 @@ class TunnelServerProtocol implements WebPubSubClientProtocol {
       if (message.data instanceof ArrayBuffer) {
         return message.data;
       } else if (message.data instanceof Uint8Array) {
-        return message.data.buffer;
+        return Uint8Array.from(message.data).buffer;
       } else {
         throw new Error("Expecting ArrayBuffer or Buffer.");
       }

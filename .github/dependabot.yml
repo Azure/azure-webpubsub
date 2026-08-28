@@ -1,0 +1,401 @@
+# Dependabot version-update policy for this repository.
+#
+# Grouping is split by risk of the consuming code, not by package:
+#
+#   * sdk/ and tools/ ship or back product artifacts, so a breaking
+#     major update there must be reviewed on its own. Those directories
+#     group minor/patch updates only; majors stay as individual PRs.
+#
+#   * Everywhere else (samples/, tests/, website/, docs/, eng/,
+#     experimental/, protocols/ and the repo root) is demo, test or
+#     site code. A broken major there is cheap to fix, so majors are
+#     grouped into a single PR per ecosystem to cut review noise.
+#
+# Dependabot does not allow two update blocks for the same ecosystem to
+# cover overlapping directories, so the directory list is enumerated
+# explicitly instead of using "**/*". When a new top-level directory is
+# added to the repo, add it to the low-risk list of each ecosystem below
+# (or to the sdk/tools block if it ships product code).
+
+version: 2
+
+updates:
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+    groups:
+      actions-minor-patch:
+        applies-to: version-updates
+        patterns:
+          - "*"
+        update-types:
+          - minor
+          - patch
+      actions-major:
+        applies-to: version-updates
+        patterns:
+          - "*"
+        update-types:
+          - major
+    commit-message:
+      prefix: deps
+
+  # npm - low-risk locations: majors are grouped.
+  - package-ecosystem: npm
+    directories:
+      - "/"
+      - "/docs"
+      - "/docs/**/*"
+      - "/eng"
+      - "/eng/**/*"
+      - "/experimental"
+      - "/experimental/**/*"
+      - "/protocols"
+      - "/protocols/**/*"
+      - "/samples"
+      - "/samples/**/*"
+      - "/tests"
+      - "/tests/**/*"
+      - "/website"
+      - "/website/**/*"
+    schedule:
+      interval: weekly
+      day: monday
+    open-pull-requests-limit: 5
+    cooldown:
+      semver-major-days: 14
+      semver-minor-days: 7
+      semver-patch-days: 3
+    groups:
+      npm-minor-patch:
+        applies-to: version-updates
+        patterns:
+          - "*"
+        update-types:
+          - minor
+          - patch
+      npm-major:
+        applies-to: version-updates
+        patterns:
+          - "*"
+        update-types:
+          - major
+    commit-message:
+      prefix: deps
+
+  # npm - sdk/ and tools/: majors stay as individual PRs.
+  - package-ecosystem: npm
+    directories:
+      - "/sdk"
+      - "/sdk/**/*"
+      - "/tools"
+      - "/tools/**/*"
+    schedule:
+      interval: weekly
+      day: monday
+    open-pull-requests-limit: 5
+    cooldown:
+      semver-major-days: 14
+      semver-minor-days: 7
+      semver-patch-days: 3
+    groups:
+      npm-sdk-tools-minor-patch:
+        applies-to: version-updates
+        patterns:
+          - "*"
+        update-types:
+          - minor
+          - patch
+    commit-message:
+      prefix: deps
+
+  # pip - low-risk locations: majors are grouped.
+  - package-ecosystem: pip
+    directories:
+      - "/"
+      - "/docs"
+      - "/docs/**/*"
+      - "/eng"
+      - "/eng/**/*"
+      - "/experimental"
+      - "/experimental/**/*"
+      - "/protocols"
+      - "/protocols/**/*"
+      - "/samples"
+      - "/samples/**/*"
+      - "/tests"
+      - "/tests/**/*"
+      - "/website"
+      - "/website/**/*"
+    schedule:
+      interval: weekly
+      day: monday
+    open-pull-requests-limit: 5
+    cooldown:
+      semver-major-days: 14
+      semver-minor-days: 7
+      semver-patch-days: 3
+    groups:
+      pip-minor-patch:
+        applies-to: version-updates
+        patterns:
+          - "*"
+        update-types:
+          - minor
+          - patch
+      pip-major:
+        applies-to: version-updates
+        patterns:
+          - "*"
+        update-types:
+          - major
+    commit-message:
+      prefix: deps
+
+  # pip - sdk/ and tools/: majors stay as individual PRs.
+  - package-ecosystem: pip
+    directories:
+      - "/sdk"
+      - "/sdk/**/*"
+      - "/tools"
+      - "/tools/**/*"
+    schedule:
+      interval: weekly
+      day: monday
+    open-pull-requests-limit: 5
+    cooldown:
+      semver-major-days: 14
+      semver-minor-days: 7
+      semver-patch-days: 3
+    groups:
+      pip-sdk-tools-minor-patch:
+        applies-to: version-updates
+        patterns:
+          - "*"
+        update-types:
+          - minor
+          - patch
+    commit-message:
+      prefix: deps
+
+  # maven - low-risk locations: majors are grouped.
+  - package-ecosystem: maven
+    directories:
+      - "/"
+      - "/docs"
+      - "/docs/**/*"
+      - "/eng"
+      - "/eng/**/*"
+      - "/experimental"
+      - "/experimental/**/*"
+      - "/protocols"
+      - "/protocols/**/*"
+      - "/samples"
+      - "/samples/**/*"
+      - "/tests"
+      - "/tests/**/*"
+      - "/website"
+      - "/website/**/*"
+    schedule:
+      interval: weekly
+      day: monday
+    open-pull-requests-limit: 5
+    cooldown:
+      semver-major-days: 14
+      semver-minor-days: 7
+      semver-patch-days: 3
+    groups:
+      maven-minor-patch:
+        applies-to: version-updates
+        patterns:
+          - "*"
+        update-types:
+          - minor
+          - patch
+      maven-major:
+        applies-to: version-updates
+        patterns:
+          - "*"
+        update-types:
+          - major
+    commit-message:
+      prefix: deps
+
+  # maven has no manifests under sdk/ or tools/, so there is no block for
+  # them: a block whose directories contain no manifest at all fails with
+  # DependencyFileNotFound. Add one alongside the npm/pip/nuget/docker
+  # sdk-tools blocks below if a Maven project is ever added there.
+
+  # gomod - low-risk locations: majors are grouped.
+  - package-ecosystem: gomod
+    directories:
+      - "/"
+      - "/docs"
+      - "/docs/**/*"
+      - "/eng"
+      - "/eng/**/*"
+      - "/experimental"
+      - "/experimental/**/*"
+      - "/protocols"
+      - "/protocols/**/*"
+      - "/samples"
+      - "/samples/**/*"
+      - "/tests"
+      - "/tests/**/*"
+      - "/website"
+      - "/website/**/*"
+    schedule:
+      interval: weekly
+      day: monday
+    open-pull-requests-limit: 5
+    groups:
+      gomod-minor-patch:
+        applies-to: version-updates
+        patterns:
+          - "*"
+        update-types:
+          - minor
+          - patch
+      gomod-major:
+        applies-to: version-updates
+        patterns:
+          - "*"
+        update-types:
+          - major
+    commit-message:
+      prefix: deps
+
+  # gomod has no manifests under sdk/ or tools/, so there is no block for
+  # them, for the same reason as maven above.
+
+  # nuget - low-risk locations: majors are grouped.
+  - package-ecosystem: nuget
+    directories:
+      - "/"
+      - "/docs"
+      - "/docs/**/*"
+      - "/eng"
+      - "/eng/**/*"
+      - "/experimental"
+      - "/experimental/**/*"
+      - "/protocols"
+      - "/protocols/**/*"
+      - "/samples"
+      - "/samples/**/*"
+      - "/tests"
+      - "/tests/**/*"
+      - "/website"
+      - "/website/**/*"
+    schedule:
+      interval: weekly
+      day: monday
+    open-pull-requests-limit: 5
+    cooldown:
+      semver-major-days: 14
+      semver-minor-days: 7
+      semver-patch-days: 3
+    groups:
+      nuget-minor-patch:
+        applies-to: version-updates
+        patterns:
+          - "*"
+        update-types:
+          - minor
+          - patch
+      nuget-major:
+        applies-to: version-updates
+        patterns:
+          - "*"
+        update-types:
+          - major
+    commit-message:
+      prefix: deps
+
+  # nuget - sdk/ and tools/: majors stay as individual PRs.
+  - package-ecosystem: nuget
+    directories:
+      - "/sdk"
+      - "/sdk/**/*"
+      - "/tools"
+      - "/tools/**/*"
+    schedule:
+      interval: weekly
+      day: monday
+    open-pull-requests-limit: 5
+    cooldown:
+      semver-major-days: 14
+      semver-minor-days: 7
+      semver-patch-days: 3
+    groups:
+      nuget-sdk-tools-minor-patch:
+        applies-to: version-updates
+        patterns:
+          - "*"
+        update-types:
+          - minor
+          - patch
+    commit-message:
+      prefix: deps
+
+  # docker - low-risk locations: majors are grouped.
+  - package-ecosystem: docker
+    directories:
+      - "/"
+      - "/docs"
+      - "/docs/**/*"
+      - "/eng"
+      - "/eng/**/*"
+      - "/experimental"
+      - "/experimental/**/*"
+      - "/protocols"
+      - "/protocols/**/*"
+      - "/samples"
+      - "/samples/**/*"
+      - "/tests"
+      - "/tests/**/*"
+      - "/website"
+      - "/website/**/*"
+    schedule:
+      interval: weekly
+      day: monday
+    open-pull-requests-limit: 3
+    groups:
+      docker-minor-patch:
+        applies-to: version-updates
+        patterns:
+          - "*"
+        update-types:
+          - minor
+          - patch
+      docker-major:
+        applies-to: version-updates
+        patterns:
+          - "*"
+        update-types:
+          - major
+    commit-message:
+      prefix: deps
+
+  # docker - sdk/ and tools/: majors stay as individual PRs.
+  - package-ecosystem: docker
+    directories:
+      - "/sdk"
+      - "/sdk/**/*"
+      - "/tools"
+      - "/tools/**/*"
+    schedule:
+      interval: weekly
+      day: monday
+    open-pull-requests-limit: 3
+    groups:
+      docker-sdk-tools-minor-patch:
+        applies-to: version-updates
+        patterns:
+          - "*"
+        update-types:
+          - minor
+          - patch
+    commit-message:
+      prefix: deps

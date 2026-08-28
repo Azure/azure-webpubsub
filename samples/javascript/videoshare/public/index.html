@@ -98,7 +98,9 @@
     integrity="sha384-JjSmVgyd0p3pXB1rRibZUAYoIIy6OrQ6VrjIEaFf/nJGzIxFDsf4x0xIM+B07jRM"
     crossorigin="anonymous"></script>
 
-  <script src="https://cdn.jsdelivr.net/npm/vue@2.5.17/dist/vue.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/vue@2.7.16/dist/vue.min.js"
+    integrity="sha384-YVYXhPGIH/Gmcr0W5Rin4PcpcsG1a4pcdUUod1CnbDEJut7XiUaJtSlNKeRLJBPk"
+    crossorigin="anonymous"></script>
   <script src="video.js"></script>
   <script>
     const data = {
@@ -172,7 +174,7 @@
               log(`You're in sharing, auto deny new call from ${sender}`)
               this.deny(client, sender, receiver)
             } else {
-              document.getElementById('exampleModalLabel').innerHTML = `Do you Accept call request from user ${sender}?`
+              document.getElementById('exampleModalLabel').textContent = `Do you Accept call request from user ${sender}?`
               $('#acceptDialog').modal('toggle');
               document.getElementById('acceptButton').onclick = () => this.accept(client, sender, receiver);
               document.getElementById('denyButton').onclick = () => this.deny(client, sender, receiver);

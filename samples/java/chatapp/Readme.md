@@ -2,7 +2,7 @@
 
 ## Prerequisites
 
-- [Java Development Kit (JDK)](/java/azure/jdk/) version 8 or above
+- [Java Development Kit (JDK)](/java/azure/jdk/) version 17 or above
 - [Apache Maven](https://maven.apache.org/download.cgi)
 - Create an Azure Web PubSub resource
 - [awps-tunnel](https://learn.microsoft.com/azure/azure-web-pubsub/howto-web-pubsub-tunnel-tool) to tunnel traffic from Web PubSub to your localhost

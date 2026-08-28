@@ -11,6 +11,21 @@ import { PacketType as SioPacketType } from "socket.io-parser";
 
 const debug = debugModule("wps-sio-ext:EIO:WebPubSubTransport");
 
+export type WebPubSubTransportRequest = {
+  _query: Record<string, string>;
+  [WEBPUBSUB_CLIENT_CONNECTION_FILED_NAME]: ClientConnectionContext;
+};
+
+export function isWebPubSubTransportRequest(req: unknown): req is WebPubSubTransportRequest {
+  return (
+    typeof req === "object" &&
+    req !== null &&
+    "_query" in req &&
+    WEBPUBSUB_CLIENT_CONNECTION_FILED_NAME in req &&
+    req[WEBPUBSUB_CLIENT_CONNECTION_FILED_NAME] instanceof ClientConnectionContext
+  );
+}
+
 /**
  * A class inherited from Engine.IO Transport class, it plays the same role as `Polling` Transport and `WebSocket` Transport.
  * Similar with `Polling`, this transport always does batch send (send mulitple packets at once) and batch receive.
@@ -38,7 +53,7 @@ export class WebPubSubTransport extends Transport {
    */
   private _sioMode: boolean;
 
-  constructor(req: unknown, sioMode = true) {
+  constructor(req: WebPubSubTransportRequest, sioMode = true) {
     debug("constructor");
     super(req);
     this.clientConnectionContext = req[WEBPUBSUB_CLIENT_CONNECTION_FILED_NAME];
@@ -52,9 +67,22 @@ export class WebPubSubTransport extends Transport {
     this._encodeEioPayloadAsync = toAsync<string>(this.parser.encodePayload);
   }
 
-  public override supportsFraming = (): boolean => false;
+  public supportsFraming = (): boolean => false;
 
-  public override name = (): string => WEBPUBSUB_TRANSPORT_NAME;
+  public override get name(): string {
+    return WEBPUBSUB_TRANSPORT_NAME;
+  }
+
+  public decodePayload(content: unknown): EioPacket[] {
+    if (typeof content !== "string") {
+      throw new Error("Expected a string Engine.IO payload.");
+    }
+    return this.parser.decodePayload(content);
+  }
+
+  public notifyClose(): void {
+    this.onClose();
+  }
 
   /**
    * sends an array of `Packet` to the client.
