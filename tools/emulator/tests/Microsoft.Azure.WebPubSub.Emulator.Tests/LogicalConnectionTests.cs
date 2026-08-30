@@ -125,6 +125,10 @@ public class LogicalConnectionTests
             _webSocketPayload = webSocketPayload;
         }
 
+        public void OnConnected(LogicalConnection connection)
+        {
+        }
+
         public ValueTask<PayloadProcessingResult> ProcessAsync(
             LogicalConnection connection,
             WebSocketMessageType messageType,

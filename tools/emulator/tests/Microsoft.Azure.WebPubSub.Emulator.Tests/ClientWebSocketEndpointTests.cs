@@ -8,6 +8,7 @@ using System.Linq;
 using System.Net.WebSockets;
 using System.Security.Claims;
 using System.Text;
+using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Builder;
@@ -107,18 +108,53 @@ public class ClientWebSocketEndpointTests
         Assert.Equal(WebSocketCloseStatus.PolicyViolation, result.CloseStatus);
     }
 
-    [Fact]
-    public async Task RequestedSubprotocolIsNotSelectedWithoutConnectUpstream()
+    [Theory]
+    [InlineData("custom.protocol")]
+    [InlineData("json.reliable.webpubsub.azure.v1")]
+    [InlineData("protobuf.webpubsub.azure.v1")]
+    public async Task UnsupportedSubprotocolIsNotSelected(string subprotocol)
     {
         await using var application = await StartApplicationAsync();
         var client = application.GetTestServer().CreateWebSocketClient();
-        client.SubProtocols.Add("custom.protocol");
+        client.SubProtocols.Add(subprotocol);
         var uri = CreateClientUri();
 
         using var webSocket = await client.ConnectAsync(uri, CancellationToken.None)
             .WaitAsync(TestTimeout);
 
         Assert.Null(webSocket.SubProtocol);
+    }
+
+    [Fact]
+    public async Task JsonSubprotocolReceivesConnectedMessage()
+    {
+        await using var application = await StartApplicationAsync();
+        using var webSocket = await ConnectAsync(
+            application,
+            subprotocol: WebPubSubJsonV1PayloadProcessor.SubprotocolName);
+
+        var message = await ReceiveJsonAsync(webSocket);
+
+        Assert.Equal(WebPubSubJsonV1PayloadProcessor.SubprotocolName, webSocket.SubProtocol);
+        Assert.Equal("system", message.RootElement.GetProperty("type").GetString());
+        Assert.Equal("connected", message.RootElement.GetProperty("event").GetString());
+        Assert.False(string.IsNullOrEmpty(
+            message.RootElement.GetProperty("connectionId").GetString()));
+    }
+
+    [Fact]
+    public async Task JsonSubprotocolNegotiationIsCaseInsensitive()
+    {
+        const string requestedSubprotocol = "JSON.WEBPUBSUB.AZURE.V1";
+        await using var application = await StartApplicationAsync();
+        using var webSocket = await ConnectAsync(
+            application,
+            subprotocol: requestedSubprotocol);
+
+        using var message = await ReceiveJsonAsync(webSocket);
+
+        Assert.Equal(requestedSubprotocol, webSocket.SubProtocol);
+        Assert.Equal("connected", message.RootElement.GetProperty("event").GetString());
     }
 
     [Fact]
@@ -188,11 +224,26 @@ public class ClientWebSocketEndpointTests
         WebApplication application,
         IEnumerable<string>? roles = null,
         IEnumerable<string>? groups = null,
-        string? query = null)
+        string? query = null,
+        string? subprotocol = null)
     {
         var uri = CreateClientUri(roles, groups, query);
         var client = application.GetTestServer().CreateWebSocketClient();
+        if (subprotocol is not null)
+        {
+            client.SubProtocols.Add(subprotocol);
+        }
         return await client.ConnectAsync(uri, CancellationToken.None).WaitAsync(TestTimeout);
+    }
+
+    private static async Task<JsonDocument> ReceiveJsonAsync(WebSocket webSocket)
+    {
+        var buffer = new byte[4096];
+        var result = await webSocket.ReceiveAsync(buffer, CancellationToken.None)
+            .WaitAsync(TestTimeout);
+        Assert.Equal(WebSocketMessageType.Text, result.MessageType);
+        Assert.True(result.EndOfMessage);
+        return JsonDocument.Parse(buffer.AsMemory(0, result.Count));
     }
 
     private static Uri CreateClientUri(

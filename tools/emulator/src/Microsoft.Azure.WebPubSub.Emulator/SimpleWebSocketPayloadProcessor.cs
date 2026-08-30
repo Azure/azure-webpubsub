@@ -13,6 +13,10 @@ internal sealed class SimpleWebSocketPayloadProcessor : IClientPayloadProcessor
         _connections = connections;
     }
 
+    public void OnConnected(LogicalConnection connection)
+    {
+    }
+
     public ValueTask<PayloadProcessingResult> ProcessAsync(
         LogicalConnection connection,
         WebSocketMessageType messageType,

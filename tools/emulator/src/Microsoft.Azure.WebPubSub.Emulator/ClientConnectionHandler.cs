@@ -27,6 +27,7 @@ internal sealed class ClientConnectionHandler
             transport.Aborted);
         try
         {
+            processor.OnConnected(connection);
             while (!linkedCancellation.IsCancellationRequested)
             {
                 var message = await transport.ReceiveAsync(linkedCancellation.Token);
