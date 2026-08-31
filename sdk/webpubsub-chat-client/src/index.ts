@@ -3,6 +3,8 @@ import { ERRORS } from './constant.js';
 
 export type {
   MessageInfo,
+  MessageContentItem,
+  MessageContentItemMetadata,
   RoomInfo,
   RoomDetail,
   UserProfile,
@@ -20,6 +22,19 @@ export type {
   OnStartedArgs,
   OnStoppedArgs,
 } from './events.js';
+
+export type {
+  DecodedMessage,
+  MessageCodec,
+  MessageDecoder,
+  MessageDecoderInput,
+} from './messageCodec.js';
+
+export type {
+  AGUIEvent,
+  AgUiDecodedMessage,
+} from './agUiCodec.js';
+export { AgUiMessageCodec } from './agUiCodec.js';
 
 export type {
   OperationOptions,

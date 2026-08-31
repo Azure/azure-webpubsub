@@ -12,7 +12,7 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
-    "@azure/identity": "^2.0.1",
+    "@azure/identity": "^4.13.2",
     "@azure/web-pubsub": "^1.0.0",
     "@azure/web-pubsub-express": "^1.0.0",
     "dotenv": "^16.4.7",

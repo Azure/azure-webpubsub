@@ -7,6 +7,11 @@ on:
   push:
     branches: [ "main" ]
     paths:
+      - '.github/workflows/build.yml'
+      # Root workspace manifests: they pin the dependency versions used by
+      # tools/awps-tunnel/client and tools/awps-tunnel/server.
+      - 'package.json'
+      - 'yarn.lock'
       - 'sdk/**'
       - 'tools/**'
       - 'samples/**'
@@ -14,6 +19,9 @@ on:
   pull_request:
     branches: [ "main" ]
     paths:
+      - '.github/workflows/build.yml'
+      - 'package.json'
+      - 'yarn.lock'
       - 'sdk/**'
       - 'tools/**'
       - 'samples/**'
@@ -21,10 +29,45 @@ on:
 
 permissions:
   contents: read
+  pull-requests: read
 
 jobs:
+  changes:
+    name: Detect affected components
+    runs-on: ubuntu-latest
+    outputs:
+      javascript: ${{ steps.filter.outputs.javascript }}
+      chat_client: ${{ steps.filter.outputs.chat_client }}
+      csharp: ${{ steps.filter.outputs.csharp }}
+      java: ${{ steps.filter.outputs.java }}
+      python: ${{ steps.filter.outputs.python }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: dorny/paths-filter@ceb8a2b8f2d89434be7ff52d3de7ec3738c5cc9d # v4.0.3
+        id: filter
+        with:
+          filters: |
+            javascript:
+              - 'package.json'
+              - 'yarn.lock'
+              - 'sdk/**'
+              - 'tools/vscode-azurewebpubsub/**'
+              - 'tools/awps-tunnel/**'
+              - 'samples/javascript/**'
+              - 'experimental/**'
+            chat_client:
+              - 'sdk/webpubsub-chat-client/**'
+            csharp:
+              - 'samples/csharp/**'
+            java:
+              - 'samples/java/**'
+            python:
+              - 'samples/python/**'
+
   javascript:
     name: Build and Test JS code and samples
+    needs: changes
+    if: needs.changes.outputs.javascript == 'true'
     runs-on: ubuntu-latest
     env:
       NPM_CONFIG_REGISTRY: 'https://packagefeedproxy.microsoft.io/npm/'
@@ -78,6 +121,8 @@ jobs:
 
   chat-client:
     name: Build and Test Chat Client (20.x)
+    needs: changes
+    if: needs.changes.outputs.chat_client == 'true'
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -99,6 +144,8 @@ jobs:
 
   csharp:
     name: Build and Test C#
+    needs: changes
+    if: needs.changes.outputs.csharp == 'true'
     runs-on: ubuntu-latest
     strategy:
       matrix:
@@ -115,6 +162,8 @@ jobs:
   # Java Stage
   java:
     name: Build and Test Java
+    needs: changes
+    if: needs.changes.outputs.java == 'true'
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
@@ -141,6 +190,8 @@ jobs:
   # Python Stage
   python:
     name: Build and Test Python
+    needs: changes
+    if: needs.changes.outputs.python == 'true'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1

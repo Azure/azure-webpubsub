@@ -1,4 +1,10 @@
-import { InvocationError, WebPubSubClient, WebPubSubClientCredential, WebPubSubDataType } from "@azure/web-pubsub-client";
+import {
+  InvocationError,
+  WebPubSubClient,
+  WebPubSubClientCredential,
+  WebPubSubDataType,
+  type GroupStream,
+} from "@azure/web-pubsub-client";
 import { getPagedAsyncIterator, type PagedAsyncIterableIterator, type PageSettings } from "@azure/core-paging";
 import { EventEmitter } from "events";
 import {
@@ -8,6 +14,7 @@ import {
   MessageRangeQuery,
   Notification,
   NewMessageNotificationBody,
+  UpdateMessageNotificationBody,
   NewRoomNotificationBody,
   SendMessageResponse,
   ManageRoomMemberRequest,
@@ -36,6 +43,10 @@ import type {
   AddUserToRoomOptions,
   RemoveUserFromRoomOptions,
 } from "./options.js";
+import type { AgentMessageReceiver } from "./agentMessageReceiver.js";
+import { AgUiMessageCodec } from "./agUiCodec.js";
+import type { MessageCodec } from "./messageCodec.js";
+import { ReceiverFactory } from "./receiverFactory.js";
 
 import { ERRORS, INVOCATION_NAME } from "./constant.js";
 import { logger } from "./logger.js";
@@ -81,8 +92,8 @@ class PromiseCompletionSource {
  * A `ChatClient` wraps a `WebPubSubClient` and exposes a room-based chat
  * API: create and inspect rooms, manage members, send messages, page
  * through history, and subscribe to real-time chat events. It owns the
- * underlying connection's lifecycle — call {@link ChatClient.start} to
- * connect and authenticate, and {@link ChatClient.stop} to disconnect.
+ * underlying connection's lifecycle — call `start()` to connect and
+ * authenticate, and `stop()` to disconnect.
  *
  * Construct from a `WebPubSubClientCredential`, then call `start()` to
  * connect and authenticate.
@@ -99,6 +110,10 @@ class PromiseCompletionSource {
 class ChatClient {
   /** The underlying transport. Private — `ChatClient` builds and owns it. */
   private readonly _connection: WebPubSubClient;
+  /** Creates message receivers and their message-scoped decoders. */
+  private readonly _receiverFactory: ReceiverFactory;
+  private readonly _codecs: MessageCodec[];
+  private readonly _streamReceivers = new Map<string, AgentMessageReceiver>();
 
   private readonly _emitter = new EventEmitter();
   private readonly _rooms = new Map<string, WireRoomInfo>();
@@ -111,7 +126,7 @@ class ChatClient {
   private _isConnectionStopping = false;
 
   /**
-   * Create a `ChatClient` from a {@link WebPubSubClientCredential}.
+   * Create a `ChatClient` from a `WebPubSubClientCredential`.
    *
    * `ChatClient` builds and owns the underlying transport: `start()`
    * connects and authenticates, `stop()` disconnects. The instance is
@@ -119,11 +134,24 @@ class ChatClient {
    *
    * @param credential - A `WebPubSubClientCredential` that yields a
    *   client-access URL.
+   * @param codecs - Additional decoder providers. A provider with the AG-UI
+   *   codec kind replaces the default AG-UI provider.
    */
-  constructor(credential: WebPubSubClientCredential);
+  constructor(
+    credential: WebPubSubClientCredential,
+    codecs?: readonly MessageCodec[],
+  );
   // Implementation also accepts a pre-built connection (test seam); this is
   // not a public overload, so it does not appear in the public API surface.
-  constructor(credentialOrConnection: WebPubSubClientCredential | WebPubSubClient) {
+  constructor(
+    credentialOrConnection: WebPubSubClientCredential | WebPubSubClient,
+    codecs: readonly MessageCodec[] = [],
+  ) {
+    this._codecs = [new AgUiMessageCodec()];
+    for (const codec of codecs) {
+      this.addCodec(codec);
+    }
+    this._receiverFactory = new ReceiverFactory(this._codecs);
     this._connection = isWebPubSubClient(credentialOrConnection)
       ? credentialOrConnection
       : new WebPubSubClient(credentialOrConnection);
@@ -133,12 +161,57 @@ class ChatClient {
     this._connection.on("server-message", (e) => {
       this._handleNotification(e.message.data as Notification);
     });
+    this._connection.onGroupStream((stream) => this._handleGroupStream(stream));
     this._connection.on("stopped", () => {
       this._connectionStoppedTCS?.setResult();
       this._connectionStoppedTCS = undefined;
       this._isConnectionStopping = false;
       this.resetState();
     });
+  }
+
+  /** Adds or replaces the decoder provider for its codec kind. */
+  public addCodec(codec: MessageCodec): void {
+    const index = this._codecs.findIndex((candidate) => candidate.codecKind === codec.codecKind);
+    if (index === -1) {
+      this._codecs.push(codec);
+      return;
+    }
+    this._codecs[index] = codec;
+  }
+
+  /** Removes all decoder providers, including the default AG-UI codec. */
+  public clearCodec(): void {
+    this._codecs.length = 0;
+    this._streamReceivers.clear();
+  }
+
+  private async _handleGroupStream(stream: GroupStream): Promise<void> {
+    const key = streamCodecKey(stream.groupName, stream.streamId);
+    const receiver = this._streamReceivers.get(key);
+    if (!receiver) {
+      logger.warning(
+        `Received group stream '${stream.streamId}' without an announced agent codec.`,
+      );
+      try {
+        for await (const _message of stream) {
+          // Drain unmatched frames so their buffers can be released.
+        }
+      } catch (error) {
+        logger.warning(`Failed to drain unmatched group stream '${stream.streamId}': ${error}`);
+      }
+      return;
+    }
+
+    try {
+      for await (const message of stream) {
+        receiver.receiveLive(message);
+      }
+    } catch (error) {
+      logger.warning(`Failed to consume agent group stream '${stream.streamId}': ${error}`);
+    } finally {
+      this._streamReceivers.delete(key);
+    }
   }
 
   private async _handleNotification(data: Notification): Promise<void> {
@@ -162,6 +235,32 @@ class ChatClient {
             message: body.message as ChatMessage,
           };
           this._emitter.emit("message", event);
+          break;
+        }
+        case "MessageUpdated": {
+          const body = data.body as UpdateMessageNotificationBody;
+          const roomId = body.conversation.roomId;
+          const message = body.message as ChatMessage;
+          if (!this.useReceiver(message)) {
+            // TODO: Handle non-agent message update notifications.
+            break;
+          }
+          if (!roomId || !message.streamId) {
+            logger.warning("Agent MessageUpdated notification is missing room or stream metadata.");
+            break;
+          }
+
+          const receiver = this._receiverFactory.createReceiver(
+            message,
+            (decoded) => {
+              const event: OnMessageArgs = { roomId, message: decoded };
+              this._emitter.emit("message", event);
+            },
+          );
+          if (!receiver) {
+            break;
+          }
+          this._streamReceivers.set(streamCodecKey(roomId, message.streamId), receiver);
           break;
         }
         case "RoomJoined": {
@@ -196,7 +295,6 @@ class ChatClient {
           this._rooms.delete(body.roomId);
           break;
         }
-        case "MessageUpdated":
         case "MessageDeleted":
         case "RoomClosed":
         case "AddContact":
@@ -556,7 +654,10 @@ class ChatClient {
    *
    * The room must be one this client has created or joined.
    */
-  public listRoomMessages(roomId: string, options?: ListRoomMessagesOptions): PagedAsyncIterableIterator<MessageInfo> {
+  public listRoomMessages(
+    roomId: string,
+    options?: ListRoomMessagesOptions,
+  ): PagedAsyncIterableIterator<ChatMessage> {
     this.ensureStarted();
     const conversationId = this._rooms.get(roomId)?.defaultConversationId;
     if (!conversationId) {
@@ -574,7 +675,7 @@ class ChatClient {
     const fetchPage = async (
       link: MessageRangeQuery,
       maxPageSize?: number,
-    ): Promise<{ page: MessageInfo[]; nextPageLink?: MessageRangeQuery } | undefined> => {
+    ): Promise<{ page: ChatMessage[]; nextPageLink?: MessageRangeQuery } | undefined> => {
       const query: MessageRangeQuery = {
         ...link,
         maxCount: maxPageSize ?? link.maxCount ?? defaultPageSize,
@@ -588,10 +689,21 @@ class ChatClient {
       if (result.messages.length === 0) {
         return undefined;
       }
-      return { page: result.messages, nextPageLink: result.nextQuery ?? undefined };
+      const page = result.messages.map((wireMessage): ChatMessage => {
+        const message = wireMessage as ChatMessage;
+        if (!this.useReceiver(message)) {
+          return message;
+        }
+        const receiver = this._receiverFactory.createReceiver(message, () => {});
+        if (!receiver) {
+          return message;
+        }
+        return receiver.receiveHistory();
+      });
+      return { page, nextPageLink: result.nextQuery ?? undefined };
     };
 
-    return getPagedAsyncIterator<MessageInfo, MessageInfo[], PageSettings, MessageRangeQuery>({
+    return getPagedAsyncIterator<ChatMessage, ChatMessage[], PageSettings, MessageRangeQuery>({
       firstPageLink,
       getPage: (link, maxPageSize) => fetchPage(link, maxPageSize),
     });
@@ -722,9 +834,14 @@ class ChatClient {
     this._userId = undefined;
     this._rooms.clear();
     this._conversationIds.clear();
+    this._streamReceivers.clear();
     if (stoppedEvent) {
       this._emitter.emit("stopped", stoppedEvent);
     }
+  }
+
+  private useReceiver(message: ChatMessage): boolean {
+    return Boolean(message.metadata?.codecKind);
   }
 
   private async stopConnection(): Promise<void> {
@@ -747,3 +864,7 @@ class ChatClient {
 }
 
 export { ChatClient, ChatError };
+
+function streamCodecKey(roomId: string, streamId: string): string {
+  return `${roomId}\u0000${streamId}`;
+}

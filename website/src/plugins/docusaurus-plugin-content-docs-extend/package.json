@@ -3,6 +3,9 @@
   "version": "0.0.0",
   "private": true,
   "main": "index.js",
+  "resolutions": {
+    "serialize-javascript": "7.1.0"
+  },
   "dependencies": {
     "@docusaurus/plugin-content-docs": "^3.10.2",
     "@docusaurus/types": "^3.10.2",

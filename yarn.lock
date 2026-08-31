@@ -131,7 +131,7 @@
   dependencies:
     tslib "^2.6.2"
 
-"@azure/core-util@^1.1.0", "@azure/core-util@^1.1.1", "@azure/core-util@^1.2.0", "@azure/core-util@^1.6.1", "@azure/core-util@^1.9.0":
+"@azure/core-util@^1.1.0", "@azure/core-util@^1.2.0", "@azure/core-util@^1.6.1", "@azure/core-util@^1.9.0":
   version "1.9.0"
   resolved "https://registry.npmjs.org/@azure/core-util/-/core-util-1.9.0.tgz"
   integrity sha512-AfalUQ1ZppaKuxPPMsFEUdX6GZPB3d9paR9d/TTL7Ow2De8cJaC7ibi7kWVlFAVPCYo31OcnGymc0R89DX8Oaw==
@@ -202,19 +202,7 @@
     jsonwebtoken "^9.0.0"
     uuid "^8.3.0"
 
-"@azure/web-pubsub-client@^1.0.1":
-  version "1.0.1"
-  resolved "https://registry.npmjs.org/@azure/web-pubsub-client/-/web-pubsub-client-1.0.1.tgz"
-  integrity sha512-zrKvqS4Nnu0s3RGVzsieVqaSRP2u0mQ2/Va1m9gMfhR3NHdy3vBECe837Z5hHd07jfBMmdfhDV5bNKDM78b+aQ==
-  dependencies:
-    "@azure/abort-controller" "^1.0.0"
-    "@azure/core-util" "^1.1.1"
-    "@azure/logger" "^1.0.0"
-    buffer "^6.0.0"
-    tslib "^2.2.0"
-    ws "^7.4.5"
-
-"@azure/web-pubsub-client@^1.1.0":
+"@azure/web-pubsub-client@1.1.0", "@azure/web-pubsub-client@^1.1.0":
   version "1.1.0"
   resolved "https://ms-feed-25.pkgs.visualstudio.com/1es-public/_packaging/npm-public/npm/registry/@azure/web-pubsub-client/-/web-pubsub-client-1.1.0.tgz#cfd661b050e67f99929b20bc26d097dc7d7fd2a6"
   integrity sha1-z9ZhsFDmf5mSmyC8JtCX3H1/0qY=
@@ -9954,10 +9942,10 @@ lodash.uniq@^4.5.0:
   resolved "https://registry.npmjs.org/lodash.uniq/-/lodash.uniq-4.5.0.tgz"
   integrity sha512-xfBaXQd9ryd9dlSDvnvI0lvxfLJlYAZzXomUYzLKtUeOQvOP5piqAWuGtrhWeqaXK9hhoM/iyJc5AV+XfsX3HQ==
 
-lodash@4.17.21, lodash@^4.17.15, lodash@^4.17.20, lodash@^4.17.21, lodash@^4.7.0:
-  version "4.17.21"
-  resolved "https://ms-feed-2.pkgs.visualstudio.com/1es-public/_packaging/npm-public/npm/registry/lodash/-/lodash-4.17.21.tgz#679591c564c3bffaae8454cf0b3df370c3d6911c"
-  integrity sha1-Z5WRxWTDv/quhFTPCz3zcMPWkRw=
+lodash@4.18.0, lodash@^4.17.15, lodash@^4.17.20, lodash@^4.17.21, lodash@^4.7.0:
+  version "4.18.0"
+  resolved "https://ms-feed-17.pkgs.visualstudio.com/1es-public/_packaging/npm-public/npm/registry/lodash/-/lodash-4.18.0.tgz#dfd726f07ab2e39dd763de28fcf66e395c03e440"
+  integrity sha1-39cm8Hqy453XY94o/PZuOVwD5EA=
 
 longest-streak@^3.0.0:
   version "3.1.0"

@@ -19,7 +19,7 @@
   "devDependencies": {
     "clean-webpack-plugin": "latest",
     "html-webpack-plugin": "latest",
-    "webpack": "5.90.0",
+    "webpack": "5.104.1",
     "webpack-cli": "^5.0.1"
   }
 }
