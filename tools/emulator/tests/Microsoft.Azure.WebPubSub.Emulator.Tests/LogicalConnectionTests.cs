@@ -2,6 +2,7 @@
 // Licensed under the MIT License.
 
 using System;
+using System.Collections.Generic;
 using System.Net.WebSockets;
 using System.Security.Claims;
 using System.Threading;
@@ -99,10 +100,157 @@ public class LogicalConnectionTests
         Assert.Null(connection.TryAttach(new TestWebSocket(), TestClientPayloadProcessor.Instance));
     }
 
+    [Fact]
+    public void ReliableGroupDataUsesIncreasingSequenceIds()
+    {
+        using var application = EmulatorApplication.Build();
+        var manager = application.Services.GetRequiredService<ConnectionManager>();
+        var connection = CreateConnection(manager, "connection", reliable: true);
+        var processor = new RecordingSequencePayloadProcessor();
+        using var transport = connection.TryAttach(new TestWebSocket(), processor);
+        Assert.NotNull(transport);
+
+        connection.SendGroupData(
+            "room",
+            fromUserId: null,
+            new MessageData(MessageDataType.Text, "first"u8.ToArray()));
+        connection.SendGroupData(
+            "room",
+            fromUserId: null,
+            new MessageData(MessageDataType.Text, "second"u8.ToArray()));
+
+        Assert.Equal(new ulong?[] { 1, 2 }, processor.SequenceIds);
+    }
+
+    [Fact]
+    public void SequenceAckReleasesReliableBufferCapacity()
+    {
+        using var application = EmulatorApplication.Build(
+            EmulatorApplication.CreateBuilder(
+                runtimeOptions: new EmulatorRuntimeOptions
+                {
+                    ReliableMessageBufferCapacity = 1,
+                }));
+        var manager = application.Services.GetRequiredService<ConnectionManager>();
+        var connection = CreateConnection(manager, "connection", reliable: true);
+        using var transport = connection.TryAttach(
+            new TestWebSocket(),
+            TestClientPayloadProcessor.Instance);
+        Assert.NotNull(transport);
+        Assert.True(manager.TryActivate(connection));
+
+        connection.SendGroupData(
+            "room",
+            fromUserId: null,
+            new MessageData(MessageDataType.Text, "first"u8.ToArray()));
+        connection.Acknowledge(1);
+        connection.SendGroupData(
+            "room",
+            fromUserId: null,
+            new MessageData(MessageDataType.Text, "second"u8.ToArray()));
+
+        Assert.True(manager.TryGet(connection.Hub, connection.ConnectionId, out _));
+    }
+
+    [Fact]
+    public void CumulativeSequenceAckReleasesReliableBufferBytes()
+    {
+        using var application = EmulatorApplication.Build(
+            EmulatorApplication.CreateBuilder(
+                runtimeOptions: new EmulatorRuntimeOptions
+                {
+                    MaxReliableMessageBufferBytes = 8,
+                }));
+        var manager = application.Services.GetRequiredService<ConnectionManager>();
+        var connection = CreateConnection(manager, "connection", reliable: true);
+        using var transport = connection.TryAttach(
+            new TestWebSocket(),
+            TestClientPayloadProcessor.Instance);
+        Assert.NotNull(transport);
+        Assert.True(manager.TryActivate(connection));
+
+        connection.SendGroupData(
+            "room",
+            fromUserId: null,
+            new MessageData(MessageDataType.Binary, new byte[4]));
+        connection.SendGroupData(
+            "room",
+            fromUserId: null,
+            new MessageData(MessageDataType.Binary, new byte[4]));
+        connection.Acknowledge(2);
+        connection.SendGroupData(
+            "room",
+            fromUserId: null,
+            new MessageData(MessageDataType.Binary, new byte[8]));
+
+        Assert.True(manager.TryGet(connection.Hub, connection.ConnectionId, out _));
+    }
+
+    [Fact]
+    public void FutureSequenceAckDoesNotReleaseReliableBufferCapacity()
+    {
+        using var application = EmulatorApplication.Build(
+            EmulatorApplication.CreateBuilder(
+                runtimeOptions: new EmulatorRuntimeOptions
+                {
+                    ReliableMessageBufferCapacity = 1,
+                }));
+        var manager = application.Services.GetRequiredService<ConnectionManager>();
+        var connection = CreateConnection(manager, "connection", reliable: true);
+        using var transport = connection.TryAttach(
+            new TestWebSocket(),
+            TestClientPayloadProcessor.Instance);
+        Assert.NotNull(transport);
+        Assert.True(manager.TryActivate(connection));
+
+        connection.SendGroupData(
+            "room",
+            fromUserId: null,
+            new MessageData(MessageDataType.Text, "first"u8.ToArray()));
+        connection.Acknowledge(ulong.MaxValue);
+        connection.SendGroupData(
+            "room",
+            fromUserId: null,
+            new MessageData(MessageDataType.Text, "second"u8.ToArray()));
+
+        Assert.False(manager.TryGet(connection.Hub, connection.ConnectionId, out _));
+    }
+
+    [Fact]
+    public void ReliableBufferByteLimitAbortsAndRemovesConnection()
+    {
+        using var application = EmulatorApplication.Build(
+            EmulatorApplication.CreateBuilder(
+                runtimeOptions: new EmulatorRuntimeOptions
+                {
+                    MaxReliableMessageBufferBytes = 6,
+                }));
+        var manager = application.Services.GetRequiredService<ConnectionManager>();
+        var connection = CreateConnection(manager, "connection", reliable: true);
+        using var transport = connection.TryAttach(
+            new TestWebSocket(),
+            TestClientPayloadProcessor.Instance);
+        Assert.NotNull(transport);
+        Assert.True(manager.TryActivate(connection));
+
+        connection.SendGroupData(
+            "room",
+            fromUserId: null,
+            new MessageData(MessageDataType.Binary, new byte[4]));
+        connection.SendGroupData(
+            "room",
+            fromUserId: null,
+            new MessageData(MessageDataType.Binary, new byte[3]));
+
+        Assert.False(manager.TryGet(connection.Hub, connection.ConnectionId, out _));
+        Assert.True(transport.Aborted.IsCancellationRequested);
+    }
+
     private static LogicalConnection CreateConnection(
         ConnectionManager manager,
         string connectionId,
-        string? group = null)
+        string? group = null,
+        bool reliable = false)
     {
         var claims = group is null
             ? []
@@ -110,7 +258,8 @@ public class LogicalConnectionTests
         return manager.Create(
             connectionId,
             "chat",
-            new ClaimsPrincipal(new ClaimsIdentity(claims)));
+            new ClaimsPrincipal(new ClaimsIdentity(claims)),
+            reliable: reliable);
     }
 
     private sealed class TestClientPayloadProcessor : IClientPayloadProcessor
@@ -142,7 +291,8 @@ public class LogicalConnectionTests
             LogicalConnection connection,
             string group,
             string? fromUserId,
-            MessageData data)
+            MessageData data,
+            ulong? sequenceId)
         {
             return _webSocketPayload.Bytes.IsEmpty
                 ? new WebSocketPayload(
@@ -151,6 +301,35 @@ public class LogicalConnectionTests
                         ? WebSocketMessageType.Binary
                         : WebSocketMessageType.Text)
                 : _webSocketPayload;
+        }
+    }
+
+    private sealed class RecordingSequencePayloadProcessor : IClientPayloadProcessor
+    {
+        public List<ulong?> SequenceIds { get; } = [];
+
+        public void OnConnected(LogicalConnection connection)
+        {
+        }
+
+        public ValueTask<PayloadProcessingResult> ProcessAsync(
+            LogicalConnection connection,
+            WebSocketMessageType messageType,
+            byte[] payload,
+            CancellationToken cancellationToken)
+        {
+            return ValueTask.FromResult(PayloadProcessingResult.Continue);
+        }
+
+        public WebSocketPayload EncodeGroupData(
+            LogicalConnection connection,
+            string group,
+            string? fromUserId,
+            MessageData data,
+            ulong? sequenceId)
+        {
+            SequenceIds.Add(sequenceId);
+            return new WebSocketPayload(data.Bytes, WebSocketMessageType.Text);
         }
     }
 

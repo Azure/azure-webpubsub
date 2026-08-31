@@ -67,8 +67,9 @@ internal sealed class WebPubSubJsonV1PayloadProcessor : IClientPayloadProcessor
             return PayloadProcessingResult.Continue;
         }
 
-        if (request is WebPubSubClientSequenceAckRequest)
+        if (request is WebPubSubClientSequenceAckRequest sequenceAck)
         {
+            connection.Acknowledge(sequenceAck.SequenceId);
             return PayloadProcessingResult.Continue;
         }
 
@@ -128,9 +129,10 @@ internal sealed class WebPubSubJsonV1PayloadProcessor : IClientPayloadProcessor
         LogicalConnection connection,
         string group,
         string? fromUserId,
-        MessageData data)
+        MessageData data,
+        ulong? sequenceId)
     {
-        return _protocol.WriteGroupData(group, fromUserId, data);
+        return _protocol.WriteGroupData(group, fromUserId, data, sequenceId);
     }
 
     private void DispatchClientRequest(
@@ -179,7 +181,8 @@ internal sealed class WebPubSubJsonV1PayloadProcessor : IClientPayloadProcessor
                 cancellationToken);
             if (result.Response is not null)
             {
-                connection.Send(_protocol.WriteServerData(result.Response));
+                connection.SendData(
+                    sequenceId => _protocol.WriteServerData(result.Response, sequenceId));
             }
             if (request.AckId is { } ackId)
             {

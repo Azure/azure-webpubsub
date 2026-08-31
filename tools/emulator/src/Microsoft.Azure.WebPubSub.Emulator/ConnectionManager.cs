@@ -26,7 +26,8 @@ internal sealed class ConnectionManager
         string connectionId,
         string hub,
         ClaimsPrincipal user,
-        string? rawSendToGroup = null)
+        string? rawSendToGroup = null,
+        bool reliable = false)
     {
         return new LogicalConnection(
             connectionId,
@@ -35,6 +36,7 @@ internal sealed class ConnectionManager
             rawSendToGroup,
             this,
             _runtimeOptions,
+            reliable,
             _logger);
     }
 

@@ -19,7 +19,8 @@ internal interface IClientPayloadProcessor
         LogicalConnection connection,
         string group,
         string? fromUserId,
-        MessageData data);
+        MessageData data,
+        ulong? sequenceId);
 }
 
 internal readonly record struct WebSocketPayload(

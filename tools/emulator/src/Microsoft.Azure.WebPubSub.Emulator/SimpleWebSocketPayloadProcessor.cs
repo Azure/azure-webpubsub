@@ -47,7 +47,8 @@ internal sealed class SimpleWebSocketPayloadProcessor : IClientPayloadProcessor
         LogicalConnection connection,
         string group,
         string? fromUserId,
-        MessageData data)
+        MessageData data,
+        ulong? sequenceId)
     {
         var messageType = data.Type == MessageDataType.Binary
             ? WebSocketMessageType.Binary

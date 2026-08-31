@@ -180,7 +180,8 @@ internal sealed partial class WebPubSubJsonV1Protocol
     public WebSocketPayload WriteGroupData(
         string group,
         string? fromUserId,
-        MessageData data)
+        MessageData data,
+        ulong? sequenceId = null)
     {
         return WriteJson(writer =>
         {
@@ -190,11 +191,17 @@ internal sealed partial class WebPubSubJsonV1Protocol
             writer.WriteString("group", group);
             writer.WriteString("fromUserId", fromUserId);
             WriteData(writer, data);
+            if (sequenceId is not null)
+            {
+                writer.WriteNumber("sequenceId", sequenceId.Value);
+            }
             writer.WriteEndObject();
         });
     }
 
-    public WebSocketPayload WriteServerData(MessageData data)
+    public WebSocketPayload WriteServerData(
+        MessageData data,
+        ulong? sequenceId = null)
     {
         return WriteJson(writer =>
         {
@@ -202,6 +209,10 @@ internal sealed partial class WebPubSubJsonV1Protocol
             writer.WriteString("type", "message");
             writer.WriteString("from", "server");
             WriteData(writer, data);
+            if (sequenceId is not null)
+            {
+                writer.WriteNumber("sequenceId", sequenceId.Value);
+            }
             writer.WriteEndObject();
         });
     }
