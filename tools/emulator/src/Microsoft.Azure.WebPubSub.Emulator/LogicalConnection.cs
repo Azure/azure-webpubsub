@@ -253,11 +253,6 @@ internal sealed class LogicalConnection
 
         lock (_stateLock)
         {
-            if (sequenceId > _nextSequenceId)
-            {
-                return;
-            }
-
             while (_unacknowledgedMessages.TryPeek(out var item) &&
                 item.SequenceId <= sequenceId)
             {

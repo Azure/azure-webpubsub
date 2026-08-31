@@ -187,7 +187,7 @@ public class LogicalConnectionTests
     }
 
     [Fact]
-    public void FutureSequenceAckDoesNotReleaseReliableBufferCapacity()
+    public void FutureSequenceAckReleasesReliableBufferCapacity()
     {
         using var application = EmulatorApplication.Build(
             EmulatorApplication.CreateBuilder(
@@ -213,7 +213,7 @@ public class LogicalConnectionTests
             fromUserId: null,
             new MessageData(MessageDataType.Text, "second"u8.ToArray()));
 
-        Assert.False(manager.TryGet(connection.Hub, connection.ConnectionId, out _));
+        Assert.True(manager.TryGet(connection.Hub, connection.ConnectionId, out _));
     }
 
     [Fact]
