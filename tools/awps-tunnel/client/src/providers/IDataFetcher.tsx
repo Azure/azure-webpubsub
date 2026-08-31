@@ -9,7 +9,7 @@ export interface IDataFetcher {
 }
 
 export function getDataFetcher(onModelUpdate: (model: DataModel) => void): IDataFetcher {
-  switch (process.env.REACT_APP_DATA_FETCHER) {
+  switch (import.meta.env.VITE_DATA_FETCHER) {
     case "mock":
       return new MockDataFetcher(onModelUpdate);
     case "manual":
@@ -17,6 +17,6 @@ export function getDataFetcher(onModelUpdate: (model: DataModel) => void): IData
     case "npm":
       return new SocketIODataFetcher(onModelUpdate);
     default:
-      throw Error(`Unknown data fetcher: ${process.env.REACT_APP_DATA_FETCHER}`);
+      throw Error(`Unknown data fetcher: ${import.meta.env.VITE_DATA_FETCHER}`);
   }
 }

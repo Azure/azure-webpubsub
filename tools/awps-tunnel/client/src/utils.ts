@@ -1,7 +1,7 @@
 import { RESTApi } from "./models";
 
 export async function loadApiSpec(): Promise<RESTApi> {
-  const response = await fetch(`./api/${process.env.REACT_APP_API_VERSION}/webpubsub.json`);
+  const response = await fetch(`./api/${import.meta.env.VITE_API_VERSION}/webpubsub.json`);
   const apiSpec = await response.json() as RESTApi;
   // expand the schema reference into the schema
   Object.entries(apiSpec.paths).forEach(([path, item]) => {

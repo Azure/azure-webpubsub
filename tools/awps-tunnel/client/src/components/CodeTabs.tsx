@@ -13,7 +13,7 @@ const CodeTabs = ({ className }: { className?: string | undefined }) => {
   useEffect(() => {
     // Load your Markdown file here (e.g., via fetch or import)
     // For example, using fetch:
-    fetch(process.env.PUBLIC_URL + "/sample.md")
+    fetch(import.meta.env.BASE_URL + "sample.md")
       .then((response) => response.text())
       .then((data) => {
         setMarkdownContent(data);

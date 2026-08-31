@@ -43,7 +43,7 @@ export function RequestHistory(props: RequestHistoryProps) {
       return;
     }
     if (detailId !== undefined && detailId >= 0) {
-      var selected = items.find((s) => s.id === detailId);
+      const selected = items.find((s) => s.id === detailId);
       if (selected) {
         setSelectedItem(selected);
       }
@@ -167,7 +167,7 @@ export function parseRawMessage(rawText: string): { headers: Record<string, stri
   rawText = rawText.replace(/\r\n/g, "\n");
   const spacingIndex: number = rawText.indexOf("\n\n");
   const lines: string[] = rawText.substring(0, spacingIndex).split("\n");
-  let headers: Record<string, string> = {};
+  const headers: Record<string, string> = {};
   let contentType: string = "";
   for (let i: number = 0; i < lines.length; i++) {
     const splitIndex: number = lines[i].indexOf(":");

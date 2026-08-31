@@ -91,7 +91,7 @@ abstract class ConnectionBasedDataFether implements IDataFetcher {
     });
 
     newConnection.on("updateTraffic", (item) => {
-      let currentItems = this.model.trafficHistory.map((i) => {
+      const currentItems = this.model.trafficHistory.map((i) => {
         if (i.id === item.id) {
           return item;
         }
