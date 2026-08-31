@@ -2,7 +2,7 @@
     <el-card height="100vh">
         <el-row class="horizontal-center">
             <el-col :span="2">
-                <el-tag type="danger" size="medium" class="live" effect="dark" color="#bc5151">● Live </el-tag>
+                <el-tag type="danger" size="default" class="live" effect="dark" color="#bc5151">● Live </el-tag>
             </el-col>
             <el-col :span="12" :offset="4" class="horizontal-center vertical-center">
                 <img class="title-logo" :src="titleLogo" alt="World Q League logo" aria-label="World Q League logo"/>
