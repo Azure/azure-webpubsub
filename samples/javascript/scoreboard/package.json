@@ -14,7 +14,8 @@
         "test": "echo TODO"
     },
     "resolutions": {
-        "serialize-javascript": "7.1.0"
+        "serialize-javascript": "7.1.0",
+        "uuid": "11.1.1"
     },
     "dependencies": {
         "@azure/web-pubsub": "^1.0.0",
