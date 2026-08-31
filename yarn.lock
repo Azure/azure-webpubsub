@@ -3707,11 +3707,6 @@
   resolved "https://registry.npmjs.org/@popperjs/core/-/core-2.11.8.tgz"
   integrity sha512-P1st0aksCrn9sGZhp8GMYwBnQsbvAWsZAX44oXNNvLHGqAOcoVxmjZiohstwQ7SqKnbR47akdNi+uleWD8+g6A==
 
-"@remix-run/router@1.23.3":
-  version "1.23.3"
-  resolved "https://ms-feed-25.pkgs.visualstudio.com/1es-public/_packaging/npm-public/npm/registry/@remix-run/router/-/router-1.23.3.tgz#957c098d4393d301a8aa7dccf3ef28ea5430e36a"
-  integrity sha1-lXwJjUOT0wGoqn3M8+8o6lQw42o=
-
 "@rollup/plugin-babel@^5.2.0":
   version "5.3.1"
   resolved "https://registry.npmjs.org/@rollup/plugin-babel/-/plugin-babel-5.3.1.tgz"
@@ -5951,7 +5946,7 @@ cookie-signature@~1.0.6:
   resolved "https://packagefeedproxy.microsoft.io/npm/cookie-signature/-/cookie-signature-1.0.7.tgz"
   integrity sha512-NXdYc3dLr47pBkpUCHtKSwIOQXLVn8dZEuywboCOJY/osA0wFSLlSawr3KN8qXJEyX66FcONTH8EIlVuK0yyFA==
 
-cookie@0.7.2, cookie@~0.7.1, cookie@~0.7.2:
+cookie@0.7.2, cookie@^1.0.1, cookie@~0.7.1, cookie@~0.7.2:
   version "0.7.2"
   resolved "https://ms-feed-17.pkgs.visualstudio.com/1es-public/_packaging/npm-public/npm/registry/cookie/-/cookie-0.7.2.tgz#556369c472a2ba910f2979891b526b3436237ed7"
   integrity sha1-VWNpxHKiupEPKXmJG1JrNDYjftc=
@@ -11759,7 +11754,7 @@ prompts@^2.0.1, prompts@^2.4.2:
     kleur "^3.0.3"
     sisteransi "^1.0.5"
 
-prop-types@^15.5.8, prop-types@^15.6.2, prop-types@^15.7.2, prop-types@^15.8.1:
+prop-types@^15.5.8, prop-types@^15.6.2, prop-types@^15.8.1:
   version "15.8.1"
   resolved "https://registry.npmjs.org/prop-types/-/prop-types-15.8.1.tgz"
   integrity sha512-oj87CgZICdulUohogVAR7AjlC0327U4el4L6eAvOqCeudMDVU0NThNaV+b9Df4dXgSP1gXMTnPdhfe/2qDH5cg==
@@ -11982,27 +11977,20 @@ react-refresh@^0.11.0:
   resolved "https://registry.npmjs.org/react-refresh/-/react-refresh-0.11.0.tgz"
   integrity sha512-F27qZr8uUqwhWZboondsPx8tnC3Ct3SxZA3V5WyEvujRyyNv0VYPhoBg1gZ8/MV5tubQp76Trw8lTv9hzRBa+A==
 
-react-router-bootstrap@^0.26.1:
-  version "0.26.2"
-  resolved "https://registry.npmjs.org/react-router-bootstrap/-/react-router-bootstrap-0.26.2.tgz"
-  integrity sha512-YlpI9Xi+Uqp6zFAUO8D/wu6P8mr1ujqq+0V5MhJG1kx9dr/95fAMoGk4J+/CsysOkwtR3tYSac4DDWmHwXvC8w==
+react-router-dom@^7.18.2:
+  version "7.18.2"
+  resolved "https://ms-feed-17.pkgs.visualstudio.com/1es-public/_packaging/npm-public/npm/registry/react-router-dom/-/react-router-dom-7.18.2.tgz#00bf1d0ce8bf17a6d831949aacda72a6120e4926"
+  integrity sha1-AL8dDOi/F6bYMZSarNpyphIOSSY=
   dependencies:
-    prop-types "^15.7.2"
+    react-router "7.18.2"
 
-react-router-dom@^6.30.4:
-  version "6.30.4"
-  resolved "https://ms-feed-17.pkgs.visualstudio.com/1es-public/_packaging/npm-public/npm/registry/react-router-dom/-/react-router-dom-6.30.4.tgz#f7167bf3da6c7d9132130ea985dd06def25e84d5"
-  integrity sha1-9xZ789psfZEyEw6phd0G3vJehNU=
+react-router@7.18.2:
+  version "7.18.2"
+  resolved "https://ms-feed-17.pkgs.visualstudio.com/1es-public/_packaging/npm-public/npm/registry/react-router/-/react-router-7.18.2.tgz#a76c46ce9e5edacd4f51289d5a71f71305db9152"
+  integrity sha1-p2xGzp5e2s1PUSidWnH3EwXbkVI=
   dependencies:
-    "@remix-run/router" "1.23.3"
-    react-router "6.30.4"
-
-react-router@6.30.4:
-  version "6.30.4"
-  resolved "https://ms-feed-17.pkgs.visualstudio.com/1es-public/_packaging/npm-public/npm/registry/react-router/-/react-router-6.30.4.tgz#638f35176527bd243d96d81d35d33b757bad46c2"
-  integrity sha1-Y481F2UnvSQ9ltgdNdM7dXutRsI=
-  dependencies:
-    "@remix-run/router" "1.23.3"
+    cookie "^1.0.1"
+    set-cookie-parser "^2.6.0"
 
 react-scripts@^5.0.1:
   version "5.0.1"
@@ -12603,6 +12591,11 @@ set-cookie-parser@^2.4.8:
   version "2.6.0"
   resolved "https://registry.npmjs.org/set-cookie-parser/-/set-cookie-parser-2.6.0.tgz"
   integrity sha512-RVnVQxTXuerk653XfuliOxBP81Sf0+qfQE73LIYKcyMYHG94AuH0kgrQpRDuTZnSmjpysHmzxJXKNfa6PjFhyQ==
+
+set-cookie-parser@^2.6.0:
+  version "2.7.2"
+  resolved "https://ms-feed-2.pkgs.visualstudio.com/1es-public/_packaging/npm-public/npm/registry/set-cookie-parser/-/set-cookie-parser-2.7.2.tgz#ccd08673a9ae5d2e44ea2a2de25089e67c7edf68"
+  integrity sha1-zNCGc6muXS5E6iot4lCJ5nx+32g=
 
 set-function-length@^1.2.1:
   version "1.2.2"
