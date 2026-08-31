@@ -158,7 +158,12 @@ internal sealed class WebPubSubJsonV1PayloadProcessor : IClientPayloadProcessor
                 _connections.SendToGroup(
                     connection.Hub,
                     send.Group,
-                    send.Data,
+                    send.TtlSeconds == 0
+                        ? send.Data
+                        : send.Data with
+                        {
+                            ExpireAt = DateTime.UtcNow.AddSeconds(send.TtlSeconds),
+                        },
                     connection,
                     send.NoEcho);
                 break;

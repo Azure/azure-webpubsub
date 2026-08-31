@@ -248,6 +248,63 @@ public class LogicalConnectionTests
     }
 
     [Fact]
+    public async Task ExpiredNonReliableMessagesDoNotConsumeOutboundCapacity()
+    {
+        using var application = EmulatorApplication.Build(
+            EmulatorApplication.CreateBuilder(
+                runtimeOptions: new EmulatorRuntimeOptions
+                {
+                    OutboundQueueCapacity = 2,
+                    MaxOutboundQueueBytes = 12,
+                }));
+        var manager = application.Services.GetRequiredService<ConnectionManager>();
+        var jsonProcessor = application.Services
+            .GetRequiredService<WebPubSubJsonV1PayloadProcessor>();
+        var sender = manager.Create(
+            "sender",
+            "chat",
+            new ClaimsPrincipal(new ClaimsIdentity(
+                [new Claim("role", "webpubsub.sendToGroup")])),
+            reliable: false);
+        var connection = CreateConnection(manager, "connection", "room");
+        var webSocket = new GatedQueueingSendWebSocket();
+        using var transport = connection.TryAttach(
+            webSocket,
+            TestClientPayloadProcessor.Instance);
+        Assert.NotNull(transport);
+        Assert.True(manager.TryActivate(connection));
+
+        connection.SendGroupData(
+            "room",
+            fromUserId: null,
+            new MessageData(MessageDataType.Text, "first"u8.ToArray()));
+        await webSocket.SendStarted.Task.WaitAsync(TestTimeout);
+        connection.SendGroupData(
+            "room",
+            fromUserId: null,
+            new MessageData(
+                MessageDataType.Text,
+                "expired"u8.ToArray(),
+                ExpireAt: DateTime.UtcNow.AddSeconds(-1)));
+        await jsonProcessor.ProcessAsync(
+            sender,
+            WebSocketMessageType.Text,
+            """{"type":"sendToGroup","group":"room","dataType":"text","data":"expired","ttlSeconds":1}"""u8.ToArray(),
+            CancellationToken.None);
+        await Task.Delay(1100);
+        connection.SendGroupData(
+            "room",
+            fromUserId: null,
+            new MessageData(MessageDataType.Text, "third"u8.ToArray()));
+
+        Assert.True(manager.TryGet(connection.Hub, connection.ConnectionId, out _));
+        Assert.False(transport.Aborted.IsCancellationRequested);
+        webSocket.Release.TrySetResult();
+        Assert.Equal("first"u8.ToArray(), await webSocket.ReadAsync());
+        Assert.Equal("third"u8.ToArray(), await webSocket.ReadAsync());
+    }
+
+    [Fact]
     public async Task ReliableDetachBuffersAndReplaysUnacknowledgedDataInOrder()
     {
         using var application = EmulatorApplication.Build();
@@ -337,6 +394,50 @@ public class LogicalConnectionTests
             new MessageData(MessageDataType.Text, "second"u8.ToArray()));
 
         Assert.False(manager.TryGet(connection.Hub, connection.ConnectionId, out _));
+    }
+
+    [Fact]
+    public async Task ExpiredReliableMessageIsRemovedBeforeReplayAndCapacityCheck()
+    {
+        using var application = EmulatorApplication.Build(
+            EmulatorApplication.CreateBuilder(
+                runtimeOptions: new EmulatorRuntimeOptions
+                {
+                    ReliableMessageBufferCapacity = 1,
+                    MaxReliableMessageBufferBytes = 7,
+                }));
+        var manager = application.Services.GetRequiredService<ConnectionManager>();
+        var connection = CreateConnection(manager, "connection", reliable: true);
+        var processor = new RecordingSequencePayloadProcessor();
+        using var original = connection.TryAttach(
+            new TestWebSocket(),
+            processor);
+        Assert.NotNull(original);
+        Assert.True(manager.TryActivate(connection));
+        connection.Detach(original);
+        connection.SendGroupData(
+            "room",
+            fromUserId: null,
+            new MessageData(
+                MessageDataType.Text,
+                "expired"u8.ToArray(),
+                ExpireAt: DateTime.UtcNow.AddMilliseconds(10)));
+        await Task.Delay(100);
+
+        connection.SendGroupData(
+            "room",
+            fromUserId: null,
+            new MessageData(MessageDataType.Text, "live"u8.ToArray()));
+        var recoveredSocket = new QueueingSendWebSocket();
+        using var recovered = await connection.TryReconnectAsync(
+            recoveredSocket,
+            TestClientPayloadProcessor.Instance,
+            CancellationToken.None);
+
+        Assert.NotNull(recovered);
+        Assert.Equal("live"u8.ToArray(), await recoveredSocket.ReadAsync());
+        Assert.Equal(new ulong?[] { 1, 2 }, processor.SequenceIds);
+        Assert.True(manager.TryGet(connection.Hub, connection.ConnectionId, out _));
     }
 
     [Fact]
@@ -630,6 +731,38 @@ public class LogicalConnectionTests
         {
             Sent.TrySetResult((buffer.ToArray(), messageType));
             return Task.CompletedTask;
+        }
+    }
+
+    private sealed class GatedQueueingSendWebSocket : TestWebSocket
+    {
+        private readonly Channel<byte[]> _sent = Channel.CreateUnbounded<byte[]>();
+        private int _sendCount;
+
+        public TaskCompletionSource SendStarted { get; } =
+            new(TaskCreationOptions.RunContinuationsAsynchronously);
+
+        public TaskCompletionSource Release { get; } =
+            new(TaskCreationOptions.RunContinuationsAsynchronously);
+
+        public override async Task SendAsync(
+            ArraySegment<byte> buffer,
+            WebSocketMessageType messageType,
+            bool endOfMessage,
+            CancellationToken cancellationToken)
+        {
+            if (Interlocked.Increment(ref _sendCount) == 1)
+            {
+                SendStarted.TrySetResult();
+                await Release.Task.WaitAsync(cancellationToken);
+            }
+
+            _sent.Writer.TryWrite(buffer.ToArray());
+        }
+
+        public async Task<byte[]> ReadAsync()
+        {
+            return await _sent.Reader.ReadAsync().AsTask().WaitAsync(TestTimeout);
         }
     }
 

@@ -16,7 +16,8 @@ internal sealed class LogicalConnection
     private const string ReliableBufferFullReason = "The reliable message buffer is full.";
 
     private readonly object _stateLock = new();
-    private readonly Queue<(ulong SequenceId, WebSocketPayload Payload)> _unacknowledgedMessages = [];
+    private readonly Queue<(ulong SequenceId, WebSocketPayload Payload, DateTime? ExpireAt)>
+        _unacknowledgedMessages = [];
     private readonly ConnectionManager _manager;
     private readonly ILogger? _logger;
     private readonly EmulatorRuntimeOptions _runtimeOptions;
@@ -147,9 +148,13 @@ internal sealed class LogicalConnection
                 queueCapacity,
                 queueMaxBytes,
                 _logger);
+            RemoveExpiredMessagesLocked(DateTime.UtcNow);
             foreach (var item in _unacknowledgedMessages)
             {
-                if (transport.TryEnqueue(item.Payload.Bytes, item.Payload.MessageType) !=
+                if (transport.TryEnqueue(
+                        item.Payload.Bytes,
+                        item.Payload.MessageType,
+                        item.ExpireAt) !=
                     TransportEnqueueResult.Enqueued)
                 {
                     transport.Abort();
@@ -190,7 +195,8 @@ internal sealed class LogicalConnection
             group,
             fromUserId,
             data,
-            sequenceId));
+            sequenceId),
+            data.ExpireAt);
     }
 
     public void Send(WebSocketPayload payload)
@@ -232,7 +238,9 @@ internal sealed class LogicalConnection
         }
     }
 
-    public void SendData(Func<ulong?, WebSocketPayload> payloadFactory)
+    public void SendData(
+        Func<ulong?, WebSocketPayload> payloadFactory,
+        DateTime? expireAt = null)
     {
         SocketTransport? dropped = null;
         var failureReason = OutboundQueueFullReason;
@@ -245,9 +253,15 @@ internal sealed class LogicalConnection
                 return;
             }
 
+            if (expireAt.HasValue && expireAt.Value < DateTime.UtcNow)
+            {
+                return;
+            }
+
             WebSocketPayload payload;
             if (IsReliable)
             {
+                RemoveExpiredMessagesLocked(DateTime.UtcNow);
                 if (_nextSequenceId == ulong.MaxValue ||
                     _unacknowledgedMessages.Count >= _reliableBufferCapacity)
                 {
@@ -268,7 +282,7 @@ internal sealed class LogicalConnection
                 }
 
                 _nextSequenceId = sequenceId;
-                _unacknowledgedMessages.Enqueue((sequenceId, payload));
+                _unacknowledgedMessages.Enqueue((sequenceId, payload, expireAt));
                 _unacknowledgedBytes += payload.Bytes.Length;
             }
             else
@@ -277,7 +291,7 @@ internal sealed class LogicalConnection
             }
 
             if (_activeTransport is not null &&
-                _activeTransport.TryEnqueue(payload.Bytes, payload.MessageType) ==
+                _activeTransport.TryEnqueue(payload.Bytes, payload.MessageType, expireAt) ==
                 TransportEnqueueResult.Full)
             {
                 dropped = DropTransportLocked();
@@ -387,5 +401,22 @@ internal sealed class LogicalConnection
     {
         _unacknowledgedMessages.Clear();
         _unacknowledgedBytes = 0;
+    }
+
+    private void RemoveExpiredMessagesLocked(DateTime utcNow)
+    {
+        var count = _unacknowledgedMessages.Count;
+        for (var i = 0; i < count; i++)
+        {
+            var item = _unacknowledgedMessages.Dequeue();
+            if (item.ExpireAt.HasValue && item.ExpireAt.Value < utcNow)
+            {
+                _unacknowledgedBytes -= item.Payload.Bytes.Length;
+            }
+            else
+            {
+                _unacknowledgedMessages.Enqueue(item);
+            }
+        }
     }
 }

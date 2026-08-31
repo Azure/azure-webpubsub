@@ -10,6 +10,7 @@ namespace Microsoft.Azure.WebPubSub.Emulator;
 internal readonly record struct OutboundMessage(
     ReadOnlyMemory<byte> Payload,
     WebSocketMessageType MessageType,
+    DateTime? ExpireAt,
     WebSocketCloseStatus? CloseStatus,
     string? CloseDescription);
 
@@ -54,7 +55,7 @@ internal sealed class SocketTransport : IDisposable
         _outbound = Channel.CreateBounded<OutboundMessage>(
             new BoundedChannelOptions(_dataCapacity + 1)
             {
-                SingleReader = true,
+                SingleReader = false,
                 SingleWriter = false,
                 AllowSynchronousContinuations = false,
                 FullMode = BoundedChannelFullMode.Wait,
@@ -102,7 +103,8 @@ internal sealed class SocketTransport : IDisposable
 
     public TransportEnqueueResult TryEnqueue(
         ReadOnlyMemory<byte> payload,
-        WebSocketMessageType messageType)
+        WebSocketMessageType messageType,
+        DateTime? expireAt = null)
     {
         lock (_enqueueLock)
         {
@@ -114,12 +116,19 @@ internal sealed class SocketTransport : IDisposable
             if (_queuedDataMessages >= _dataCapacity ||
                 payload.Length > _maxDataBytes - _queuedDataBytes)
             {
+                RemoveExpiredQueuedMessagesLocked(DateTime.UtcNow);
+            }
+
+            if (_queuedDataMessages >= _dataCapacity ||
+                payload.Length > _maxDataBytes - _queuedDataBytes)
+            {
                 return TransportEnqueueResult.Full;
             }
 
             if (_outbound.Writer.TryWrite(new OutboundMessage(
                 payload,
                 messageType,
+                expireAt,
                 null,
                 null)))
             {
@@ -137,6 +146,7 @@ internal sealed class SocketTransport : IDisposable
         QueueClose(new OutboundMessage(
             default,
             WebSocketMessageType.Close,
+            null,
             status,
             description));
     }
@@ -194,9 +204,12 @@ internal sealed class SocketTransport : IDisposable
 
     private void End(bool abortSocket)
     {
-        if (Interlocked.Exchange(ref _ended, 1) == 0)
+        lock (_enqueueLock)
         {
-            _outbound.Writer.TryComplete();
+            if (Interlocked.Exchange(ref _ended, 1) == 0)
+            {
+                _outbound.Writer.TryComplete();
+            }
         }
 
         if (abortSocket)
@@ -263,14 +276,17 @@ internal sealed class SocketTransport : IDisposable
                         return;
                     }
 
+                    if (message.ExpireAt.HasValue &&
+                        message.ExpireAt.Value < DateTime.UtcNow)
+                    {
+                        CompleteDataMessage(message);
+                        continue;
+                    }
+
                     await WebSocket
                         .SendAsync(message.Payload, message.MessageType, endOfMessage: true, _abortToken)
                         .ConfigureAwait(false);
-                    lock (_enqueueLock)
-                    {
-                        _queuedDataMessages--;
-                        _queuedDataBytes -= message.Payload.Length;
-                    }
+                    CompleteDataMessage(message);
                 }
             }
         }
@@ -283,6 +299,48 @@ internal sealed class SocketTransport : IDisposable
         finally
         {
             End(abortSocket: !closedGracefully);
+        }
+    }
+
+    private void CompleteDataMessage(OutboundMessage message)
+    {
+        lock (_enqueueLock)
+        {
+            _queuedDataMessages--;
+            _queuedDataBytes -= message.Payload.Length;
+        }
+    }
+
+    private void RemoveExpiredQueuedMessagesLocked(DateTime utcNow)
+    {
+        List<OutboundMessage>? retained = null;
+        while (_outbound.Reader.TryRead(out var message))
+        {
+            if (message.CloseStatus is null &&
+                message.ExpireAt.HasValue &&
+                message.ExpireAt.Value < utcNow)
+            {
+                _queuedDataMessages--;
+                _queuedDataBytes -= message.Payload.Length;
+            }
+            else
+            {
+                retained ??= [];
+                retained.Add(message);
+            }
+        }
+
+        if (retained is null)
+        {
+            return;
+        }
+
+        foreach (var message in retained)
+        {
+            if (!_outbound.Writer.TryWrite(message))
+            {
+                throw new InvalidOperationException("Failed to compact the outbound queue.");
+            }
         }
     }
 }

@@ -13,4 +13,5 @@ internal enum MessageDataType
 internal sealed record MessageData(
     MessageDataType Type,
     ReadOnlyMemory<byte> Bytes,
-    IReadOnlyDictionary<string, string>? Metadata = null);
+    IReadOnlyDictionary<string, string>? Metadata = null,
+    DateTime? ExpireAt = null);
