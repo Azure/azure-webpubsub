@@ -13,6 +13,7 @@ export type {
 
 export type {
   ChatMessage,
+  ChatClientSnapshot,
   OnMessageArgs,
   OnRoomJoinedArgs,
   OnRoomLeftArgs,
