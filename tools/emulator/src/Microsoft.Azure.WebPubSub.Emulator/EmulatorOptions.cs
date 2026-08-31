@@ -36,6 +36,8 @@ internal sealed class EmulatorRuntimeOptions
 
     public long MaxOutboundQueueBytes { get; init; } = 16 * 1024 * 1024;
 
+    public TimeSpan ReconnectTimeout { get; init; } = TimeSpan.FromSeconds(30);
+
     public int ReliableMessageBufferCapacity { get; init; } = 1000;
 
     public long MaxReliableMessageBufferBytes { get; init; } = 16 * 1024 * 1024;

@@ -60,6 +60,11 @@ internal sealed class ConnectionManager
         _connections.TryRemove((connection.Hub, connection.ConnectionId), out _);
     }
 
+    public void ScheduleExpiration(LogicalConnection connection, long generation)
+    {
+        _ = ExpireAsync(connection, generation);
+    }
+
     public void SendToGroup(
         string hub,
         string group,
@@ -74,6 +79,25 @@ internal sealed class ConnectionManager
             .Where(connection => !noEcho || connection != sender))
         {
             connection.SendGroupData(group, sender?.UserId, data);
+        }
+    }
+
+    private async Task ExpireAsync(LogicalConnection connection, long generation)
+    {
+        try
+        {
+            await Task.Delay(_runtimeOptions.ReconnectTimeout);
+            if (connection.TryExpire(generation))
+            {
+                Remove(connection);
+            }
+        }
+        catch (Exception exception)
+        {
+            _logger.LogDebug(
+                exception,
+                "Expiring connection {ConnectionId} failed.",
+                connection.ConnectionId);
         }
     }
 }

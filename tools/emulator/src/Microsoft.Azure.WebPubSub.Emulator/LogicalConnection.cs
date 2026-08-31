@@ -10,6 +10,8 @@ namespace Microsoft.Azure.WebPubSub.Emulator;
 
 internal sealed class LogicalConnection
 {
+    private const long ReliableControlByteAllowance = 64 * 1024;
+    private const int ReliableControlMessageAllowance = 32;
     private const string OutboundQueueFullReason = "The outbound message queue is full.";
     private const string ReliableBufferFullReason = "The reliable message buffer is full.";
 
@@ -27,6 +29,7 @@ internal sealed class LogicalConnection
 
     private IClientPayloadProcessor? _activePayloadProcessor;
     private SocketTransport? _activeTransport;
+    private long _generation;
     private ulong _nextSequenceId;
     private long _unacknowledgedBytes;
     private bool _closed;
@@ -98,7 +101,7 @@ internal sealed class LogicalConnection
     {
         lock (_stateLock)
         {
-            if (_closed || _activeTransport is not null)
+            if (_closed || _activeTransport is not null || _generation != 0)
             {
                 return null;
             }
@@ -110,7 +113,60 @@ internal sealed class LogicalConnection
                 _outboundQueueMaxBytes,
                 _logger);
             _activePayloadProcessor = payloadProcessor;
+            _generation++;
             return _activeTransport;
+        }
+    }
+
+    public ValueTask<SocketTransport?> TryReconnectAsync(
+        WebSocket webSocket,
+        IClientPayloadProcessor payloadProcessor,
+        CancellationToken cancellationToken)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+        lock (_stateLock)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            if (_closed || !IsReliable || _activeTransport is not null ||
+                _activePayloadProcessor is null)
+            {
+                return ValueTask.FromResult<SocketTransport?>(null);
+            }
+
+            var dataQueueCapacity = Math.Max(_outboundQueueCapacity, _reliableBufferCapacity);
+            var queueCapacity =
+                Math.Min(Math.Max(dataQueueCapacity, 1), int.MaxValue - ReliableControlMessageAllowance) +
+                ReliableControlMessageAllowance;
+            var dataQueueMaxBytes = Math.Max(_outboundQueueMaxBytes, _reliableBufferMaxBytes);
+            var queueMaxBytes =
+                Math.Min(Math.Max(dataQueueMaxBytes, 1), long.MaxValue - ReliableControlByteAllowance) +
+                ReliableControlByteAllowance;
+            var transport = new SocketTransport(
+                webSocket,
+                _runtimeOptions.MaxMessageSizeBytes,
+                queueCapacity,
+                queueMaxBytes,
+                _logger);
+            foreach (var item in _unacknowledgedMessages)
+            {
+                if (transport.TryEnqueue(item.Payload.Bytes, item.Payload.MessageType) !=
+                    TransportEnqueueResult.Enqueued)
+                {
+                    transport.Abort();
+                    return ValueTask.FromResult<SocketTransport?>(null);
+                }
+            }
+
+            if (cancellationToken.IsCancellationRequested)
+            {
+                transport.Abort();
+                cancellationToken.ThrowIfCancellationRequested();
+            }
+
+            _activeTransport = transport;
+            _activePayloadProcessor = payloadProcessor;
+            _generation++;
+            return ValueTask.FromResult<SocketTransport?>(transport);
         }
     }
 
@@ -129,19 +185,7 @@ internal sealed class LogicalConnection
         string? fromUserId,
         MessageData data)
     {
-        IClientPayloadProcessor? payloadProcessor;
-        SocketTransport? transport;
-        lock (_stateLock)
-        {
-            payloadProcessor = _activePayloadProcessor;
-            transport = _activeTransport;
-            if (_closed || payloadProcessor is null || transport is null)
-            {
-                return;
-            }
-        }
-
-        SendData(sequenceId => payloadProcessor.EncodeGroupData(
+        SendData(sequenceId => _activePayloadProcessor!.EncodeGroupData(
             this,
             group,
             fromUserId,
@@ -192,9 +236,11 @@ internal sealed class LogicalConnection
     {
         SocketTransport? dropped = null;
         var failureReason = OutboundQueueFullReason;
+        var failed = false;
         lock (_stateLock)
         {
-            if (_closed || _activeTransport is null)
+            if (_closed || _activePayloadProcessor is null ||
+                (!IsReliable && _activeTransport is null))
             {
                 return;
             }
@@ -206,6 +252,7 @@ internal sealed class LogicalConnection
                     _unacknowledgedMessages.Count >= _reliableBufferCapacity)
                 {
                     dropped = DropTransportLocked();
+                    failed = true;
                     failureReason = ReliableBufferFullReason;
                     goto Complete;
                 }
@@ -215,6 +262,7 @@ internal sealed class LogicalConnection
                 if (payload.Bytes.Length > _reliableBufferMaxBytes - _unacknowledgedBytes)
                 {
                     dropped = DropTransportLocked();
+                    failed = true;
                     failureReason = ReliableBufferFullReason;
                     goto Complete;
                 }
@@ -228,17 +276,19 @@ internal sealed class LogicalConnection
                 payload = payloadFactory(null);
             }
 
-            if (_activeTransport.TryEnqueue(payload.Bytes, payload.MessageType) ==
+            if (_activeTransport is not null &&
+                _activeTransport.TryEnqueue(payload.Bytes, payload.MessageType) ==
                 TransportEnqueueResult.Full)
             {
                 dropped = DropTransportLocked();
+                failed = true;
             }
 
         Complete:
             ;
         }
 
-        if (dropped is not null)
+        if (failed)
         {
             FailConnection(dropped, failureReason);
         }
@@ -265,21 +315,51 @@ internal sealed class LogicalConnection
     public void Detach(SocketTransport transport)
     {
         var remove = false;
+        var expire = false;
+        long generation = 0;
         lock (_stateLock)
         {
             if (ReferenceEquals(_activeTransport, transport))
             {
                 _activeTransport = null;
-                _activePayloadProcessor = null;
-                _closed = true;
-                ClearReliableBufferLocked();
-                remove = true;
+                if (!IsReliable || transport.IsClosing)
+                {
+                    _activePayloadProcessor = null;
+                    _closed = true;
+                    ClearReliableBufferLocked();
+                    remove = true;
+                }
+                else
+                {
+                    generation = _generation;
+                    expire = true;
+                }
             }
         }
 
         if (remove)
         {
             _manager.Remove(this);
+        }
+        else if (expire)
+        {
+            _manager.ScheduleExpiration(this, generation);
+        }
+    }
+
+    public bool TryExpire(long generation)
+    {
+        lock (_stateLock)
+        {
+            if (_closed || _activeTransport is not null || _generation != generation)
+            {
+                return false;
+            }
+
+            _closed = true;
+            _activePayloadProcessor = null;
+            ClearReliableBufferLocked();
+            return true;
         }
     }
 
@@ -293,14 +373,14 @@ internal sealed class LogicalConnection
         return transport;
     }
 
-    private void FailConnection(SocketTransport transport, string reason)
+    private void FailConnection(SocketTransport? transport, string reason)
     {
         _manager.Remove(this);
         _logger?.LogDebug(
             "Closing connection {ConnectionId}: {Reason}",
             ConnectionId,
             reason);
-        transport.Abort();
+        transport?.Abort();
     }
 
     private void ClearReliableBufferLocked()
