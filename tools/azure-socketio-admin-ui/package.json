@@ -22,7 +22,7 @@
     "vue-echarts": "latest",
     "vue-i18n": "^8.22.3",
     "vue-router": "^3.2.0",
-    "vuetify": "^2.7.2",
+    "vuetify": "^3.0.0",
     "vuex": "^3.4.0"
   },
   "devDependencies": {
