@@ -11,18 +11,24 @@ namespace Microsoft.Azure.WebPubSub.Emulator;
 internal sealed class LogicalConnection
 {
     private const string OutboundQueueFullReason = "The outbound message queue is full.";
+    private const string ReliableBufferFullReason = "The reliable message buffer is full.";
 
     private readonly object _stateLock = new();
+    private readonly Queue<(ulong SequenceId, WebSocketPayload Payload)> _unacknowledgedMessages = [];
     private readonly ConnectionManager _manager;
     private readonly ILogger? _logger;
     private readonly EmulatorRuntimeOptions _runtimeOptions;
     private readonly int _outboundQueueCapacity;
     private readonly long _outboundQueueMaxBytes;
+    private readonly int _reliableBufferCapacity;
+    private readonly long _reliableBufferMaxBytes;
     private readonly ConnectionRolePermissions _joinLeaveGroupPermissions;
     private readonly ConnectionRolePermissions _sendToGroupPermissions;
 
     private IClientPayloadProcessor? _activePayloadProcessor;
     private SocketTransport? _activeTransport;
+    private ulong _nextSequenceId;
+    private long _unacknowledgedBytes;
     private bool _closed;
 
     public LogicalConnection(
@@ -32,16 +38,20 @@ internal sealed class LogicalConnection
         string? rawSendToGroup,
         ConnectionManager manager,
         EmulatorRuntimeOptions runtimeOptions,
+        bool reliable = false,
         ILogger? logger = null)
     {
         ConnectionId = connectionId;
         Hub = hub;
         RawSendToGroup = rawSendToGroup;
+        IsReliable = reliable;
         _manager = manager;
         _logger = logger;
         _runtimeOptions = runtimeOptions;
         _outboundQueueCapacity = runtimeOptions.OutboundQueueCapacity;
         _outboundQueueMaxBytes = runtimeOptions.MaxOutboundQueueBytes;
+        _reliableBufferCapacity = runtimeOptions.ReliableMessageBufferCapacity;
+        _reliableBufferMaxBytes = runtimeOptions.MaxReliableMessageBufferBytes;
 
         UserId = user.FindFirstValue("sub") ?? user.FindFirstValue(ClaimTypes.NameIdentifier);
 
@@ -75,6 +85,8 @@ internal sealed class LogicalConnection
     public string? RawSendToGroup { get; }
 
     public string? UserId { get; }
+
+    public bool IsReliable { get; }
 
     public AckCache AckIdCache { get; } = new();
 
@@ -129,7 +141,12 @@ internal sealed class LogicalConnection
             }
         }
 
-        Send(payloadProcessor.EncodeGroupData(this, group, fromUserId, data));
+        SendData(sequenceId => payloadProcessor.EncodeGroupData(
+            this,
+            group,
+            fromUserId,
+            data,
+            sequenceId));
     }
 
     public void Send(WebSocketPayload payload)
@@ -167,12 +184,81 @@ internal sealed class LogicalConnection
 
         if (dropped is not null)
         {
-            _manager.Remove(this);
-            _logger?.LogDebug(
-                "Closing connection {ConnectionId}: {Reason}",
-                ConnectionId,
-                OutboundQueueFullReason);
-            dropped.Abort();
+            FailConnection(dropped, OutboundQueueFullReason);
+        }
+    }
+
+    public void SendData(Func<ulong?, WebSocketPayload> payloadFactory)
+    {
+        SocketTransport? dropped = null;
+        var failureReason = OutboundQueueFullReason;
+        lock (_stateLock)
+        {
+            if (_closed || _activeTransport is null)
+            {
+                return;
+            }
+
+            WebSocketPayload payload;
+            if (IsReliable)
+            {
+                if (_nextSequenceId == ulong.MaxValue ||
+                    _unacknowledgedMessages.Count >= _reliableBufferCapacity)
+                {
+                    dropped = DropTransportLocked();
+                    failureReason = ReliableBufferFullReason;
+                    goto Complete;
+                }
+
+                var sequenceId = _nextSequenceId + 1;
+                payload = payloadFactory(sequenceId);
+                if (payload.Bytes.Length > _reliableBufferMaxBytes - _unacknowledgedBytes)
+                {
+                    dropped = DropTransportLocked();
+                    failureReason = ReliableBufferFullReason;
+                    goto Complete;
+                }
+
+                _nextSequenceId = sequenceId;
+                _unacknowledgedMessages.Enqueue((sequenceId, payload));
+                _unacknowledgedBytes += payload.Bytes.Length;
+            }
+            else
+            {
+                payload = payloadFactory(null);
+            }
+
+            if (_activeTransport.TryEnqueue(payload.Bytes, payload.MessageType) ==
+                TransportEnqueueResult.Full)
+            {
+                dropped = DropTransportLocked();
+            }
+
+        Complete:
+            ;
+        }
+
+        if (dropped is not null)
+        {
+            FailConnection(dropped, failureReason);
+        }
+    }
+
+    public void Acknowledge(ulong sequenceId)
+    {
+        if (!IsReliable)
+        {
+            return;
+        }
+
+        lock (_stateLock)
+        {
+            while (_unacknowledgedMessages.TryPeek(out var item) &&
+                item.SequenceId <= sequenceId)
+            {
+                _unacknowledgedMessages.Dequeue();
+                _unacknowledgedBytes -= item.Payload.Bytes.Length;
+            }
         }
     }
 
@@ -186,6 +272,7 @@ internal sealed class LogicalConnection
                 _activeTransport = null;
                 _activePayloadProcessor = null;
                 _closed = true;
+                ClearReliableBufferLocked();
                 remove = true;
             }
         }
@@ -202,6 +289,23 @@ internal sealed class LogicalConnection
         _activeTransport = null;
         _activePayloadProcessor = null;
         _closed = true;
+        ClearReliableBufferLocked();
         return transport;
+    }
+
+    private void FailConnection(SocketTransport transport, string reason)
+    {
+        _manager.Remove(this);
+        _logger?.LogDebug(
+            "Closing connection {ConnectionId}: {Reason}",
+            ConnectionId,
+            reason);
+        transport.Abort();
+    }
+
+    private void ClearReliableBufferLocked()
+    {
+        _unacknowledgedMessages.Clear();
+        _unacknowledgedBytes = 0;
     }
 }
