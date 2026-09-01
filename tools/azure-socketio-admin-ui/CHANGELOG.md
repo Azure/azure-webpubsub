@@ -7,6 +7,8 @@ All notable changes to this project will be documented in this file.
 - Re-synced with [socket.io-admin-ui@3dae74e](https://github.com/socketio/socket.io-admin-ui/commit/3dae74e), upgrading to Vue 3, Vuetify 4 and Vite
 - Migrated the benchmark view to Vue 3 and ECharts 6
 - Resolved security advisories in `vue`, `vuetify`, `vue-template-compiler` and `echarts`
+- Recorded the upstream baseline and the Azure changes in `upstream.json`, enforced by `yarn verify:upstream`
+- Added `ThirdPartyNotices.txt` for the upstream MIT license
 
 ## [0.1.0] - 2024-07-02
 
