@@ -33,7 +33,14 @@ internal sealed class ClientConnectionHandler
                 var message = await transport.ReceiveAsync(linkedCancellation.Token);
                 if (message.IsClose)
                 {
-                    await transport.AcknowledgeCloseAsync(message);
+                    if (message.CloseStatus == WebSocketCloseStatus.NormalClosure)
+                    {
+                        await transport.AcknowledgeCloseAsync(message);
+                    }
+                    else
+                    {
+                        transport.Abort();
+                    }
                     break;
                 }
 
