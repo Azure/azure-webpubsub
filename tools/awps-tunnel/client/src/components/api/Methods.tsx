@@ -24,7 +24,7 @@ export function Method({ method, path, methodName }: {
         if (method.operationId) {
             const operationId = method.operationId;
             const example = method["x-ms-examples"][operationId].$ref;
-            fetch(`./api/${process.env.REACT_APP_API_VERSION}/${example}`)
+            fetch(`./api/${import.meta.env.VITE_API_VERSION}/${example}`)
                 .then(res => res.json()).then(res => setExample(res))
         }
     }, [method, path]);

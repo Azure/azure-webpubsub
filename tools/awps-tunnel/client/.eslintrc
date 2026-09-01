@@ -36,7 +36,15 @@
     "jsx-a11y/no-redundant-roles": "warn",
     "jsx-a11y/role-has-required-aria-props": "warn",
     "jsx-a11y/role-supports-aria-props": "warn",
-    "jsx-a11y/scope": "warn"
+    "jsx-a11y/scope": "warn",
+    "no-restricted-properties": [
+      "error",
+      {
+        "object": "process",
+        "property": "env",
+        "message": "This code is bundled by Vite, where process.env is undefined. Use import.meta.env.VITE_* instead."
+      }
+    ]
   },
   "overrides": [
     {
