@@ -5,10 +5,12 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
+    "prebuild": "node scripts/verify-upstream.js",
     "build": "vite build",
     "format": "prettier --write src/",
     "lint": "eslint . --fix --cache",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "verify:upstream": "node scripts/verify-upstream.js"
   },
   "dependencies": {
     "chart.js": "^4.0.0",
