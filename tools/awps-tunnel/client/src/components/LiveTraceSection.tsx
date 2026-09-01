@@ -54,7 +54,7 @@ function LiveTraceGrid(props: { headers: Record<string, string>; items: LogDataV
   }
 
   function columnSizingOptions(items: Record<string, string>): TableColumnSizingOptions {
-    let options: TableColumnSizingOptions = {};
+    const options: TableColumnSizingOptions = {};
     for (const key in items) {
       options[key] = {
         defaultWidth: 200,

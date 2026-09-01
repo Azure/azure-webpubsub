@@ -33,7 +33,7 @@ function getGroups(item: ApiItem, spec: ApiSpec): string[]{
     return groups.length > 0 ? groups : [Object.keys(spec.groups)[0]];
 }
 function ToApiSpec(apiSpec: RESTApi) : ApiSpec {
-    var spec : ApiSpec = {
+    const spec : ApiSpec = {
         groups:{
             "general": {header: "Default", items: []},
             "groups": {header: "Manage Groups", items: []},

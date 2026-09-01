@@ -9,7 +9,7 @@ import { ResponseSchema } from "../../models";
 import { Editor } from "@monaco-editor/react";
 import { ApiResponse } from "./Parameters";
 
-export var jsonColor =
+export const jsonColor =
 {
     default: "black",
     background: "white",

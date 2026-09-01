@@ -103,7 +103,7 @@ export function Parameters({ path, parameters, example, setResponse, methodName,
             return;
         }
         if (model.header) {
-            let i = Object.entries(model.header).find(([k, i]) => i.required && !i.value);
+            const i = Object.entries(model.header).find(([k, i]) => i.required && !i.value);
             if (i && i.length > 0) {
                 console.log(i);
                 setInvokeDisabled(true);
@@ -111,7 +111,7 @@ export function Parameters({ path, parameters, example, setResponse, methodName,
             }
         }
         if (model.path) {
-            let i = Object.entries(model.path).find(([k, i]) => i.required && !i.value);
+            const i = Object.entries(model.path).find(([k, i]) => i.required && !i.value);
             if (i && i.length > 0) {
                 console.log(i);
                 setInvokeDisabled(true);
@@ -119,7 +119,7 @@ export function Parameters({ path, parameters, example, setResponse, methodName,
             }
         }
         if (model.query) {
-            let i = Object.entries(model.query).find(([k, i]) => i.required && !i.value);
+            const i = Object.entries(model.query).find(([k, i]) => i.required && !i.value);
             if (i && i.length > 0) {
                 console.log(i);
                 setInvokeDisabled(true);
@@ -184,7 +184,7 @@ export function Parameters({ path, parameters, example, setResponse, methodName,
 
     async function sendRequest(methodName: string, model: TryItModel, needAuth: boolean, contentType?: string): Promise<void> {
         setInvoking(true);
-        let headers: HeadersInit = {};
+        const headers: HeadersInit = {};
         if (contentType) {
             headers["Content-Type"] = contentType;
         }
@@ -197,7 +197,7 @@ export function Parameters({ path, parameters, example, setResponse, methodName,
             headers: headers,
             body: model.body?.value
         }).then(async response => {
-            let res: ApiResponse = {
+            const res: ApiResponse = {
                 ok: response.ok,
                 status: response.status,
                 isJson: hasJsonBody(response.headers, methodName)
@@ -296,7 +296,7 @@ function isKnownParameter(element: Parameter): boolean {
 }
 
 function getTryItModel(parameter: Parameter[], example: Example): TryItModel {
-    let m: TryItModel = { hasParameter: false };
+    const m: TryItModel = { hasParameter: false };
     parameter.forEach(element => {
         const i = { value: element.default ?? "", type: element.type ?? "object", required: element.required ?? false, name: element.name, description: element.description, parameterDefinition: element };
         if (element.in === "body" || element.in === "formData") {

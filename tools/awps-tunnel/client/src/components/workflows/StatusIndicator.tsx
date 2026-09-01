@@ -2,7 +2,7 @@ import { Icon } from "@fluentui/react";
 import { ConnectionStatus, ConnectionStatusPair } from "../../models";
 
 export function StatusIndicator({ status }: { status?: ConnectionStatus }) {
-  let className = status === ConnectionStatus.Connected ? "text-success" : status === ConnectionStatus.Disconnected ? "text-error" : "text-warning";
+  const className = status === ConnectionStatus.Connected ? "text-success" : status === ConnectionStatus.Disconnected ? "text-error" : "text-warning";
   return <Icon iconName="StatusCircleInner" className={`${className} mx-2`}></Icon>;
 }
 
