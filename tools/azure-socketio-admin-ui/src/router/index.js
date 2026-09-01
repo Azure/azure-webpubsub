@@ -1,5 +1,4 @@
-import Vue from "vue";
-import VueRouter from "vue-router";
+import { createRouter, createWebHashHistory } from "vue-router";
 import Benchmark from "../views/Benchmark";
 import Dashboard from "../views/Dashboard";
 import Sockets from "../views/Sockets";
@@ -10,8 +9,6 @@ import Client from "../views/Client";
 import Servers from "../views/Servers";
 import Room from "../views/Room";
 import Events from "@/views/Events";
-
-Vue.use(VueRouter);
 
 const routes = [
   {
@@ -103,9 +100,8 @@ const routes = [
   },
 ];
 
-const router = new VueRouter({
-  mode: "hash",
-  base: process.env.BASE_URL,
+const router = createRouter({
+  history: createWebHashHistory(import.meta.env.BASE_URL),
   routes,
 });
 

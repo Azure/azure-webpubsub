@@ -1,6 +1,75 @@
+<script setup>
+import { ref, computed } from "vue";
+import { useI18n } from "vue-i18n";
+
+const props = defineProps({
+  isOpen: Boolean,
+  isConnecting: Boolean,
+  initialServiceEndpoint: String,
+  initialHub: String,
+  initialWsOnly: Boolean,
+  initialPath: String,
+  initialNamespace: String,
+  initialQueryString: String,
+  initialParser: String,
+  error: String,
+});
+
+const emit = defineEmits(["submit"]);
+
+const { t } = useI18n();
+
+const showAdvancedOptions = ref(true);
+const serviceEndpoint = ref("https://<resource-name>.webpubsub.azure.com");
+const hub = ref("eio_hub");
+const wsOnly = ref(true);
+const namespace = ref(props.initialNamespace);
+const username = ref("");
+const password = ref("");
+const queryString = ref(props.initialQueryString);
+const parser = ref(props.initialParser);
+
+const path = computed(() => `/clients/socketio/hubs/${hub.value}`);
+
+const parserOptions = [
+  {
+    value: "default",
+    title: t("connection.default-parser"),
+  },
+  {
+    value: "msgpack",
+    title: t("connection.msgpack-parser"),
+  },
+];
+
+const isValid = computed(
+  () => serviceEndpoint.value && serviceEndpoint.value.length,
+);
+
+const errorMessage = computed(() => {
+  return props.error === "invalid credentials"
+    ? t("connection.invalid-credentials")
+    : t("connection.error") + t("separator") + props.error;
+});
+
+const onSubmit = () => {
+  emit("submit", {
+    serviceEndpoint: serviceEndpoint.value,
+    hub: hub.value,
+    wsOnly: wsOnly.value,
+    path: path.value,
+    namespace: namespace.value,
+    queryString: queryString.value,
+    username: username.value,
+    password: password.value,
+    parser: parser.value,
+  });
+};
+</script>
+
 <template>
   <v-dialog
-    :value="isOpen"
+    :model-value="isOpen"
     transition="dialog-bottom-transition"
     max-width="550"
     persistent
@@ -23,9 +92,9 @@
           ></v-text-field>
 
           <v-text-field
-              v-model="path"
-              disabled
-              :label="$t('connection.path')"
+            :model-value="path"
+            disabled
+            :label="$t('connection.path')"
           ></v-text-field>
 
           <v-text-field
@@ -51,13 +120,12 @@
                 v-model="wsOnly"
                 :label="$t('connection.websocket-only')"
                 inset
-                dense
+                density="compact"
                 v-show="showAdvancedOptions"
               />
 
               <v-text-field
                 v-model="queryString"
-                caption
                 :label="$t('connection.queryString')"
                 clearable
               ></v-text-field>
@@ -79,10 +147,10 @@
             :loading="isConnecting"
             :disabled="isConnecting || !isValid"
             type="submit"
-            class="primary"
+            color="primary"
             >{{ $t("connection.connect") }}</v-btn
           >
-          <div v-if="error" class="red--text mt-3">
+          <div v-if="error" class="text-red mt-3">
             {{ errorMessage }}
           </div>
         </form>
@@ -90,78 +158,5 @@
     </v-card>
   </v-dialog>
 </template>
-
-<script>
-export default {
-  name: "ConnectionModal",
-
-  props: {
-    isOpen: Boolean,
-    isConnecting: Boolean,
-    initialServiceEndpoint: String,
-    initialHub: String,
-    initialWsOnly: Boolean,
-    initialPath: String,
-    initialNamespace: String,
-    initialQueryString: String,
-    initialParser: String,
-    error: String,
-  },
-
-  data() {
-    return {
-      showAdvancedOptions: true,
-      serviceEndpoint: "https://<resource-name>.webpubsub.azure.com",
-      hub: "eio_hub",
-      wsOnly: true,
-      namespace: this.initialNamespace,
-      username: "",
-      password: "",
-      queryString: this.initialQueryString,
-      parser: this.initialParser,
-      parserOptions: [
-        {
-          value: "default",
-          text: this.$t("connection.default-parser"),
-        },
-        {
-          value: "msgpack",
-          text: this.$t("connection.msgpack-parser"),
-        },
-      ],
-    };
-  },
-
-  computed: {
-    path() {
-      return `/clients/socketio/hubs/${this.hub}`;
-    },
-    isValid() {
-      return this.serviceEndpoint && this.serviceEndpoint.length;
-    },
-    errorMessage() {
-      return this.error === "invalid credentials"
-        ? this.$t("connection.invalid-credentials")
-        : this.$t("connection.error") + this.$t("separator") + this.error;
-    },
-  },
-
-  methods: {
-    onSubmit() {
-      this.$emit("submit", {
-        serviceEndpoint: this.serviceEndpoint,
-        hub: this.hub,
-        wsOnly: this.wsOnly,
-        path: this.path,
-        namespace: this.namespace,
-        queryString: this.queryString,
-        username: this.username,
-        password: this.password,
-        parser: this.parser,
-      });
-    },
-  },
-};
-</script>
 
 <style scoped></style>
