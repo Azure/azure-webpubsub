@@ -2,9 +2,9 @@
   "name": "azure-webpubsub-workspace",
   "private": true,
   "workspaces": [
-    "sdk/",
-    "tools/awps-tunnel/client/",
-    "tools/awps-tunnel/server/"
+    "sdk",
+    "tools/awps-tunnel/client",
+    "tools/awps-tunnel/server"
   ],
   "version": "1.0.0",
   "main": "index.js",
