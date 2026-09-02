@@ -77,10 +77,10 @@ internal sealed class SocketTransport : IDisposable
         }
     }
 
-    public ValueTask<ReceivedWebSocketMessage> ReceiveAsync(
+    public async ValueTask<ReceivedWebSocketMessage> ReceiveAsync(
         CancellationToken cancellationToken)
     {
-        return WebSocketMessageReader.ReadAsync(
+        return await WebSocketMessageReader.ReadAsync(
             WebSocket,
             _maxMessageSizeBytes,
             cancellationToken);
@@ -134,7 +134,12 @@ internal sealed class SocketTransport : IDisposable
 
     public void CloseOutput(WebSocketCloseStatus status, string description)
     {
-        QueueClose(new OutboundMessage(
+        TryCloseOutput(status, description);
+    }
+
+    public bool TryCloseOutput(WebSocketCloseStatus status, string description)
+    {
+        return QueueClose(new OutboundMessage(
             default,
             WebSocketMessageType.Close,
             status,
@@ -144,6 +149,37 @@ internal sealed class SocketTransport : IDisposable
     public void Abort()
     {
         End(abortSocket: true);
+    }
+
+    public bool TryAbortForReconnect()
+    {
+        var abort = false;
+        lock (_enqueueLock)
+        {
+            if (_closeQueued)
+            {
+                return false;
+            }
+
+            if (Volatile.Read(ref _ended) == 0)
+            {
+                Interlocked.Exchange(ref _ended, 1);
+                _outbound.Writer.TryComplete();
+                abort = true;
+            }
+        }
+
+        if (abort)
+        {
+            End(abortSocket: true);
+        }
+
+        return true;
+    }
+
+    public Task WaitForCompletionAsync(CancellationToken cancellationToken)
+    {
+        return _writeLoop.WaitAsync(cancellationToken);
     }
 
     public async Task CloseAsync(WebSocketCloseStatus status, string description)
@@ -172,14 +208,14 @@ internal sealed class SocketTransport : IDisposable
         }
     }
 
-    private void QueueClose(OutboundMessage close)
+    private bool QueueClose(OutboundMessage close)
     {
         var abort = false;
         lock (_enqueueLock)
         {
             if (Volatile.Read(ref _ended) != 0 || _closeQueued)
             {
-                return;
+                return _closeQueued;
             }
 
             _closeQueued = true;
@@ -190,6 +226,8 @@ internal sealed class SocketTransport : IDisposable
         {
             Abort();
         }
+
+        return true;
     }
 
     private void End(bool abortSocket)

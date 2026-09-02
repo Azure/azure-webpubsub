@@ -27,38 +27,115 @@ internal sealed class ClientConnectionHandler
             transport.Aborted);
         try
         {
-            processor.OnConnected(connection);
+            if (!await connection.ProcessIfCurrentAsync(
+                transport,
+                () =>
+                {
+                    processor.OnConnected(connection);
+                    return ValueTask.CompletedTask;
+                },
+                linkedCancellation.Token))
+            {
+                return;
+            }
+
             while (!linkedCancellation.IsCancellationRequested)
             {
-                var message = await transport.ReceiveAsync(linkedCancellation.Token);
-                if (message.IsClose)
+                ReceivedWebSocketMessage? message = null;
+                WebSocketCloseStatus? terminalCloseStatus = null;
+                string terminalCloseDescription = string.Empty;
+                var current = await connection.ProcessIfCurrentAsync(
+                    transport,
+                    async () =>
+                    {
+                        try
+                        {
+                            message = await transport.ReceiveAsync(linkedCancellation.Token);
+                        }
+                        catch (WebSocketMessageTooLargeException exception)
+                        {
+                            _logger.LogDebug(
+                                exception,
+                                "WebSocket connection {ConnectionId} exceeded the message size limit.",
+                                connectionId);
+                            terminalCloseStatus = WebSocketCloseStatus.MessageTooBig;
+                            terminalCloseDescription = "The client message is too large.";
+                            connection.CloseIfCurrent(
+                                transport,
+                                terminalCloseStatus.Value,
+                                terminalCloseDescription);
+                            return;
+                        }
+                        catch (InvalidDataException exception)
+                        {
+                            _logger.LogDebug(
+                                exception,
+                                "WebSocket connection {ConnectionId} received an invalid frame.",
+                                connectionId);
+                            terminalCloseStatus = WebSocketCloseStatus.ProtocolError;
+                            terminalCloseDescription = "The client frame is invalid.";
+                            connection.CloseIfCurrent(
+                                transport,
+                                terminalCloseStatus.Value,
+                                terminalCloseDescription);
+                            return;
+                        }
+
+                        if (message.IsClose)
+                        {
+                            if (message.CloseStatus == WebSocketCloseStatus.NormalClosure)
+                            {
+                                terminalCloseStatus = WebSocketCloseStatus.NormalClosure;
+                                terminalCloseDescription =
+                                    message.CloseStatusDescription ?? string.Empty;
+                                connection.CloseIfCurrent(
+                                    transport,
+                                    terminalCloseStatus.Value,
+                                    terminalCloseDescription);
+                            }
+                            else
+                            {
+                                transport.Abort();
+                            }
+                            return;
+                        }
+
+                        if (transport.IsClosing)
+                        {
+                            return;
+                        }
+
+                        var result = await processor.ProcessAsync(
+                            connection,
+                            message.MessageType,
+                            message.Payload,
+                            linkedCancellation.Token);
+                        if (result.CloseStatus is { } closeStatus)
+                        {
+                            terminalCloseStatus = closeStatus;
+                            terminalCloseDescription = result.CloseDescription ?? string.Empty;
+                            connection.CloseIfCurrent(
+                                transport,
+                                terminalCloseStatus.Value,
+                                terminalCloseDescription);
+                        }
+                    },
+                    linkedCancellation.Token);
+                if (!current)
                 {
-                    if (message.CloseStatus == WebSocketCloseStatus.NormalClosure)
-                    {
-                        await transport.AcknowledgeCloseAsync(message);
-                    }
-                    else
-                    {
-                        transport.Abort();
-                    }
                     break;
                 }
 
-                if (transport.IsClosing)
-                {
-                    continue;
-                }
-
-                var result = await processor.ProcessAsync(
-                    connection,
-                    message.MessageType,
-                    message.Payload,
-                    linkedCancellation.Token);
-                if (result.CloseStatus is { } closeStatus)
+                if (terminalCloseStatus is { } closeStatus)
                 {
                     await transport.CloseAsync(
                         closeStatus,
-                        result.CloseDescription ?? string.Empty);
+                        terminalCloseDescription);
+                    break;
+                }
+
+                if (message?.IsClose == true)
+                {
                     break;
                 }
             }
@@ -72,6 +149,10 @@ internal sealed class ClientConnectionHandler
                 exception,
                 "WebSocket connection {ConnectionId} exceeded the message size limit.",
                 connectionId);
+            connection.CloseIfCurrent(
+                transport,
+                WebSocketCloseStatus.MessageTooBig,
+                "The client message is too large.");
             await transport.CloseAsync(
                 WebSocketCloseStatus.MessageTooBig,
                 "The client message is too large.");
@@ -82,6 +163,10 @@ internal sealed class ClientConnectionHandler
                 exception,
                 "WebSocket connection {ConnectionId} received an invalid frame.",
                 connectionId);
+            connection.CloseIfCurrent(
+                transport,
+                WebSocketCloseStatus.ProtocolError,
+                "The client frame is invalid.");
             await transport.CloseAsync(
                 WebSocketCloseStatus.ProtocolError,
                 "The client frame is invalid.");

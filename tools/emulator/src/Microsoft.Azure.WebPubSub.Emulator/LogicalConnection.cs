@@ -15,6 +15,7 @@ internal sealed class LogicalConnection
     private const string OutboundQueueFullReason = "The outbound message queue is full.";
     private const string ReliableBufferFullReason = "The reliable message buffer is full.";
 
+    private readonly SemaphoreSlim _processingGate = new(1, 1);
     private readonly object _stateLock = new();
     private readonly Queue<(ulong SequenceId, WebSocketPayload Payload)> _unacknowledgedMessages = [];
     private readonly ConnectionManager _manager;
@@ -29,10 +30,12 @@ internal sealed class LogicalConnection
 
     private IClientPayloadProcessor? _activePayloadProcessor;
     private SocketTransport? _activeTransport;
+    private SocketTransport? _detachedTransport;
     private long _generation;
     private ulong _nextSequenceId;
     private long _unacknowledgedBytes;
     private bool _closed;
+    private bool _reconnecting;
 
     public LogicalConnection(
         string connectionId,
@@ -106,68 +109,121 @@ internal sealed class LogicalConnection
                 return null;
             }
 
-            _activeTransport = new SocketTransport(
-                webSocket,
-                _runtimeOptions.MaxMessageSizeBytes,
-                _outboundQueueCapacity,
-                _outboundQueueMaxBytes,
-                _logger);
-            _activePayloadProcessor = payloadProcessor;
-            _generation++;
-            return _activeTransport;
+            return AttachLocked(webSocket, payloadProcessor, replay: false);
         }
     }
 
-    public ValueTask<SocketTransport?> TryReconnectAsync(
+    public async ValueTask<SocketTransport?> TryReconnectAsync(
         WebSocket webSocket,
         IClientPayloadProcessor payloadProcessor,
         CancellationToken cancellationToken)
     {
         cancellationToken.ThrowIfCancellationRequested();
+        SocketTransport? previousTransport;
         lock (_stateLock)
         {
             cancellationToken.ThrowIfCancellationRequested();
-            if (_closed || !IsReliable || _activeTransport is not null ||
-                _activePayloadProcessor is null)
+            if (_closed || !IsReliable || _activePayloadProcessor is null || _reconnecting)
             {
-                return ValueTask.FromResult<SocketTransport?>(null);
+                return null;
             }
 
-            var dataQueueCapacity = Math.Max(_outboundQueueCapacity, _reliableBufferCapacity);
-            var queueCapacity =
-                Math.Min(Math.Max(dataQueueCapacity, 1), int.MaxValue - ReliableControlMessageAllowance) +
-                ReliableControlMessageAllowance;
-            var dataQueueMaxBytes = Math.Max(_outboundQueueMaxBytes, _reliableBufferMaxBytes);
-            var queueMaxBytes =
-                Math.Min(Math.Max(dataQueueMaxBytes, 1), long.MaxValue - ReliableControlByteAllowance) +
-                ReliableControlByteAllowance;
-            var transport = new SocketTransport(
-                webSocket,
-                _runtimeOptions.MaxMessageSizeBytes,
-                queueCapacity,
-                queueMaxBytes,
-                _logger);
+            previousTransport = _activeTransport ?? _detachedTransport;
+            if (previousTransport is not null && !previousTransport.TryAbortForReconnect())
+            {
+                return null;
+            }
+
+            _reconnecting = true;
+        }
+
+        using var timeout = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+        timeout.CancelAfter(_runtimeOptions.ReconnectTimeout);
+        try
+        {
+            if (previousTransport is not null)
+            {
+                await previousTransport.WaitForCompletionAsync(timeout.Token);
+            }
+
+            await _processingGate.WaitAsync(timeout.Token);
+            try
+            {
+                timeout.Token.ThrowIfCancellationRequested();
+                lock (_stateLock)
+                {
+                    timeout.Token.ThrowIfCancellationRequested();
+                    if (_closed || _activePayloadProcessor is null ||
+                        (_activeTransport is not null &&
+                            !ReferenceEquals(_activeTransport, previousTransport)))
+                    {
+                        return null;
+                    }
+
+                    return AttachLocked(webSocket, payloadProcessor, replay: true);
+                }
+            }
+            finally
+            {
+                _processingGate.Release();
+            }
+        }
+        catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested)
+        {
+            throw new TimeoutException("Timed out waiting to recover the connection.");
+        }
+        finally
+        {
+            lock (_stateLock)
+            {
+                _reconnecting = false;
+            }
+        }
+    }
+
+    private SocketTransport? AttachLocked(
+        WebSocket webSocket,
+        IClientPayloadProcessor payloadProcessor,
+        bool replay)
+    {
+        var dataQueueCapacity = IsReliable
+            ? Math.Max(_outboundQueueCapacity, _reliableBufferCapacity)
+            : _outboundQueueCapacity;
+        var queueCapacity = IsReliable
+            ? Math.Min(Math.Max(dataQueueCapacity, 1), int.MaxValue - ReliableControlMessageAllowance) +
+                ReliableControlMessageAllowance
+            : dataQueueCapacity;
+        var dataQueueMaxBytes = IsReliable
+            ? Math.Max(_outboundQueueMaxBytes, _reliableBufferMaxBytes)
+            : _outboundQueueMaxBytes;
+        var queueMaxBytes = IsReliable
+            ? Math.Min(Math.Max(dataQueueMaxBytes, 1), long.MaxValue - ReliableControlByteAllowance) +
+                ReliableControlByteAllowance
+            : dataQueueMaxBytes;
+        var transport = new SocketTransport(
+            webSocket,
+            _runtimeOptions.MaxMessageSizeBytes,
+            queueCapacity,
+            queueMaxBytes,
+            _logger);
+        if (replay)
+        {
             foreach (var item in _unacknowledgedMessages)
             {
                 if (transport.TryEnqueue(item.Payload.Bytes, item.Payload.MessageType) !=
                     TransportEnqueueResult.Enqueued)
                 {
                     transport.Abort();
-                    return ValueTask.FromResult<SocketTransport?>(null);
+                    return null;
                 }
             }
-
-            if (cancellationToken.IsCancellationRequested)
-            {
-                transport.Abort();
-                cancellationToken.ThrowIfCancellationRequested();
-            }
-
-            _activeTransport = transport;
-            _activePayloadProcessor = payloadProcessor;
-            _generation++;
-            return ValueTask.FromResult<SocketTransport?>(transport);
         }
+
+        _activeTransport = transport;
+        _detachedTransport = null;
+        _activePayloadProcessor = payloadProcessor;
+        _generation++;
+        return transport;
     }
 
     public bool CanSendToGroup(string group)
@@ -312,6 +368,86 @@ internal sealed class LogicalConnection
         }
     }
 
+    public async ValueTask<bool> ProcessIfCurrentAsync(
+        SocketTransport transport,
+        Func<ValueTask> process,
+        CancellationToken cancellationToken)
+    {
+        await _processingGate.WaitAsync(cancellationToken);
+        try
+        {
+            lock (_stateLock)
+            {
+                if (_closed || !ReferenceEquals(_activeTransport, transport))
+                {
+                    return false;
+                }
+            }
+
+            await process();
+            return true;
+        }
+        finally
+        {
+            _processingGate.Release();
+        }
+    }
+
+    public async ValueTask<PayloadProcessingResult?> ProcessMessageIfCurrentAsync(
+        SocketTransport transport,
+        Func<ValueTask<PayloadProcessingResult>> process,
+        CancellationToken cancellationToken)
+    {
+        await _processingGate.WaitAsync(cancellationToken);
+        try
+        {
+            lock (_stateLock)
+            {
+                if (_closed || !ReferenceEquals(_activeTransport, transport))
+                {
+                    return null;
+                }
+            }
+
+            var result = await process();
+            if (result.CloseStatus is { } closeStatus && !CloseIfCurrent(
+                transport,
+                closeStatus,
+                result.CloseDescription ?? string.Empty))
+            {
+                return null;
+            }
+
+            return result;
+        }
+        finally
+        {
+            _processingGate.Release();
+        }
+    }
+
+    public bool CloseIfCurrent(
+        SocketTransport transport,
+        WebSocketCloseStatus closeStatus,
+        string closeDescription)
+    {
+        lock (_stateLock)
+        {
+            if (_closed || !ReferenceEquals(_activeTransport, transport))
+            {
+                return false;
+            }
+
+            transport.TryCloseOutput(closeStatus, closeDescription);
+            _closed = true;
+            _activePayloadProcessor = null;
+            ClearReliableBufferLocked();
+        }
+
+        _manager.Remove(this);
+        return true;
+    }
+
     public void Detach(SocketTransport transport)
     {
         var remove = false;
@@ -322,15 +458,17 @@ internal sealed class LogicalConnection
             if (ReferenceEquals(_activeTransport, transport))
             {
                 _activeTransport = null;
-                if (!IsReliable || transport.IsClosing)
+                if (_closed || !IsReliable || transport.IsClosing)
                 {
                     _activePayloadProcessor = null;
+                    _detachedTransport = null;
                     _closed = true;
                     ClearReliableBufferLocked();
                     remove = true;
                 }
                 else
                 {
+                    _detachedTransport = transport;
                     generation = _generation;
                     expire = true;
                 }
@@ -358,6 +496,8 @@ internal sealed class LogicalConnection
 
             _closed = true;
             _activePayloadProcessor = null;
+            _detachedTransport?.Abort();
+            _detachedTransport = null;
             ClearReliableBufferLocked();
             return true;
         }
@@ -365,8 +505,9 @@ internal sealed class LogicalConnection
 
     private SocketTransport? DropTransportLocked()
     {
-        var transport = _activeTransport;
+        var transport = _activeTransport ?? _detachedTransport;
         _activeTransport = null;
+        _detachedTransport = null;
         _activePayloadProcessor = null;
         _closed = true;
         ClearReliableBufferLocked();
