@@ -20,18 +20,24 @@ internal sealed class ClientConnectionHandler
         LogicalConnection connection,
         SocketTransport transport,
         IClientPayloadProcessor processor,
-        CancellationToken requestAborted)
+        CancellationToken requestAborted,
+        bool isInitialConnection = true)
     {
         using var linkedCancellation = CancellationTokenSource.CreateLinkedTokenSource(
             requestAborted,
             transport.Aborted);
+        using var detachOnCancellation = linkedCancellation.Token.Register(
+            () => connection.Detach(transport));
         try
         {
             if (!await connection.ProcessIfCurrentAsync(
                 transport,
                 () =>
                 {
-                    processor.OnConnected(connection);
+                    if (isInitialConnection)
+                    {
+                        processor.OnConnected(connection);
+                    }
                     return ValueTask.CompletedTask;
                 },
                 linkedCancellation.Token))
@@ -105,20 +111,6 @@ internal sealed class ClientConnectionHandler
                             return;
                         }
 
-                        var result = await processor.ProcessAsync(
-                            connection,
-                            message.MessageType,
-                            message.Payload,
-                            linkedCancellation.Token);
-                        if (result.CloseStatus is { } closeStatus)
-                        {
-                            terminalCloseStatus = closeStatus;
-                            terminalCloseDescription = result.CloseDescription ?? string.Empty;
-                            connection.CloseIfCurrent(
-                                transport,
-                                terminalCloseStatus.Value,
-                                terminalCloseDescription);
-                        }
                     },
                     linkedCancellation.Token);
                 if (!current)
@@ -136,6 +128,35 @@ internal sealed class ClientConnectionHandler
 
                 if (message?.IsClose == true)
                 {
+                    break;
+                }
+
+                if (message is null)
+                {
+                    continue;
+                }
+
+                var processing = await connection.ProcessReceivedMessageAsync(
+                    () => processor.ProcessAsync(
+                        connection,
+                        message.MessageType,
+                        message.Payload,
+                        linkedCancellation.Token),
+                    linkedCancellation.Token);
+                if (processing is null)
+                {
+                    break;
+                }
+
+                var (result, closingTransport) = processing.Value;
+                if (result.CloseStatus is { } processingCloseStatus)
+                {
+                    if (closingTransport is not null)
+                    {
+                        await closingTransport.CloseAsync(
+                            processingCloseStatus,
+                            result.CloseDescription ?? string.Empty);
+                    }
                     break;
                 }
             }

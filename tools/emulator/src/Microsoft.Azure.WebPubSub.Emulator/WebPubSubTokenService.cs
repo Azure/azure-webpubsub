@@ -18,16 +18,19 @@ internal sealed class WebPubSubTokenService
     private readonly JwtSecurityTokenHandler _handler = new();
     private readonly SymmetricSecurityKey _signingKey;
     private readonly bool _allowUnvalidatedEntraTokens;
+    private readonly TimeSpan _reconnectionTokenLifetime;
     private readonly ILogger<WebPubSubTokenService> _logger;
 
     public WebPubSubTokenService(
         IOptions<EmulatorOptions> options,
+        EmulatorRuntimeOptions runtimeOptions,
         ILogger<WebPubSubTokenService> logger)
     {
         var emulatorOptions = options.Value;
         _signingKey = new SymmetricSecurityKey(
             Encoding.UTF8.GetBytes(emulatorOptions.AccessKey));
         _allowUnvalidatedEntraTokens = emulatorOptions.AllowUnvalidatedEntraTokens;
+        _reconnectionTokenLifetime = runtimeOptions.ReconnectionTokenLifetime;
         _logger = logger;
 
         if (_allowUnvalidatedEntraTokens)
@@ -101,6 +104,43 @@ internal sealed class WebPubSubTokenService
                 exception,
                 "REST access token validation failed for {Path}.",
                 requestUri.AbsolutePath);
+            return false;
+        }
+    }
+
+    public string IssueReconnectionToken(string connectionId)
+    {
+        var now = DateTime.UtcNow;
+        var token = new JwtSecurityToken(
+            issuer: WebPubSubAudience,
+            audience: connectionId,
+            claims: [new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString("N"))],
+            notBefore: now,
+            expires: now.Add(_reconnectionTokenLifetime),
+            signingCredentials: new SigningCredentials(
+                _signingKey,
+                SecurityAlgorithms.HmacSha256));
+        return _handler.WriteToken(token);
+    }
+
+    public bool ValidateReconnectionToken(string connectionId, string token)
+    {
+        try
+        {
+            var parameters = CreateValidationParameters(connectionId);
+            parameters.ValidateIssuer = true;
+            parameters.ValidIssuer = WebPubSubAudience;
+            parameters.ClockSkew = TimeSpan.Zero;
+            _handler.ValidateToken(token, parameters, out _);
+            return true;
+        }
+        catch (Exception exception) when (
+            exception is SecurityTokenException or ArgumentException)
+        {
+            _logger.LogDebug(
+                exception,
+                "Reconnection token validation failed for connection {ConnectionId}.",
+                connectionId);
             return false;
         }
     }

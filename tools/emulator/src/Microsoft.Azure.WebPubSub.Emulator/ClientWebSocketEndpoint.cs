@@ -12,6 +12,8 @@ namespace Microsoft.Azure.WebPubSub.Emulator;
 internal sealed class ClientWebSocketEndpoint
 {
     private const string AccessTokenQueryName = "access_token";
+    private const string ConnectionIdQueryName = "awps_connection_id";
+    private const string ReconnectionTokenQueryName = "awps_reconnection_token";
 
     private readonly ConnectionManager _connections;
     private readonly ClientPayloadProcessorFactory _payloadProcessorFactory;
@@ -41,10 +43,23 @@ internal sealed class ClientWebSocketEndpoint
             return;
         }
 
-        var hub = context.Request.RouteValues["hub"]?.ToString();
-        if (string.IsNullOrWhiteSpace(hub))
+        var rawHub = context.Request.RouteValues["hub"]?.ToString();
+        if (string.IsNullOrWhiteSpace(rawHub))
         {
             context.Response.StatusCode = StatusCodes.Status400BadRequest;
+            return;
+        }
+
+        var selectedSubprotocol = SelectSubprotocol(context);
+        var reconnectConnectionId = context.Request.Query[ConnectionIdQueryName].ToString();
+        if (!string.IsNullOrEmpty(reconnectConnectionId))
+        {
+            await HandleReconnectAsync(
+                context,
+                rawHub.ToLowerInvariant(),
+                selectedSubprotocol,
+                reconnectConnectionId,
+                context.Request.Query[ReconnectionTokenQueryName].ToString());
             return;
         }
 
@@ -59,7 +74,7 @@ internal sealed class ClientWebSocketEndpoint
         try
         {
             var endpoint = new Uri($"{context.Request.Scheme}://{context.Request.Host}");
-            user = _tokenService.ValidateClientToken(endpoint, hub, accessToken);
+            user = _tokenService.ValidateClientToken(endpoint, rawHub, accessToken);
         }
         catch (Exception exception) when (
             exception is SecurityTokenException or ArgumentException)
@@ -76,7 +91,6 @@ internal sealed class ClientWebSocketEndpoint
             return;
         }
 
-        var selectedSubprotocol = SelectSubprotocol(context);
         string? rawSendToGroup = null;
         if (selectedSubprotocol is null &&
             !TryGetRawSendToGroup(context, out rawSendToGroup, out var error))
@@ -86,11 +100,14 @@ internal sealed class ClientWebSocketEndpoint
             return;
         }
 
+        var hub = rawHub.ToLowerInvariant();
         var connection = _connections.Create(
             Guid.NewGuid().ToString("N"),
             hub,
             user,
-            rawSendToGroup);
+            rawSendToGroup,
+            WebPubSubJsonV1PayloadProcessor.IsReliableSubprotocol(selectedSubprotocol),
+            selectedSubprotocol);
         var processor = _payloadProcessorFactory.Get(selectedSubprotocol);
 
         using var webSocket = await context.WebSockets.AcceptWebSocketAsync(selectedSubprotocol);
@@ -108,11 +125,74 @@ internal sealed class ClientWebSocketEndpoint
                 connection,
                 transport,
                 processor,
-                context.RequestAborted);
+                context.RequestAborted,
+                isInitialConnection: true);
         }
         finally
         {
             connection.Detach(transport);
+        }
+    }
+
+    private async Task HandleReconnectAsync(
+        HttpContext context,
+        string hub,
+        string? selectedSubprotocol,
+        string connectionId,
+        string reconnectionToken)
+    {
+        if (!_tokenService.ValidateReconnectionToken(connectionId, reconnectionToken) ||
+            !_connections.TryGet(hub, connectionId, out var connection) ||
+            !connection.IsReliable)
+        {
+            using var rejectedSocket = await context.WebSockets.AcceptWebSocketAsync(
+                selectedSubprotocol);
+            await CloseAsync(rejectedSocket, "The connection could not be recovered.");
+            return;
+        }
+
+        var processor = _payloadProcessorFactory.Get(connection.Subprotocol);
+        using var webSocket = await context.WebSockets.AcceptWebSocketAsync(connection.Subprotocol);
+        SocketTransport? transport;
+        try
+        {
+            transport = await connection.TryReconnectAsync(
+                webSocket,
+                processor,
+                context.RequestAborted);
+        }
+        catch (TimeoutException exception)
+        {
+            _logger.LogDebug(
+                exception,
+                "Recovering connection {ConnectionId} timed out.",
+                connectionId);
+            webSocket.Abort();
+            return;
+        }
+
+        using (transport)
+        {
+            if (transport is null)
+            {
+                await CloseAsync(webSocket, "The connection could not be recovered.");
+                return;
+            }
+
+            try
+            {
+                await _connectionHandler.RunAsync(
+                    connection.ConnectionId,
+                    connection,
+                    transport,
+                    processor,
+                    context.RequestAborted,
+                    isInitialConnection: false);
+            }
+            finally
+            {
+                connection.Detach(transport);
+            }
         }
     }
 
@@ -182,9 +262,6 @@ internal sealed class ClientWebSocketEndpoint
     private static string? SelectSubprotocol(HttpContext context)
     {
         return context.WebSockets.WebSocketRequestedProtocols.FirstOrDefault(
-            protocol => string.Equals(
-                protocol,
-                WebPubSubJsonV1PayloadProcessor.SubprotocolName,
-                StringComparison.OrdinalIgnoreCase));
+            WebPubSubJsonV1PayloadProcessor.IsSupportedSubprotocol);
     }
 }

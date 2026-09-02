@@ -56,10 +56,7 @@ internal sealed class ClientPayloadProcessorFactory
 
     public IClientPayloadProcessor Get(string? subprotocol)
     {
-        return string.Equals(
-            subprotocol,
-            WebPubSubJsonV1PayloadProcessor.SubprotocolName,
-            StringComparison.OrdinalIgnoreCase)
+        return WebPubSubJsonV1PayloadProcessor.IsSupportedSubprotocol(subprotocol)
             ? _jsonV1Processor
             : _defaultProcessor;
     }

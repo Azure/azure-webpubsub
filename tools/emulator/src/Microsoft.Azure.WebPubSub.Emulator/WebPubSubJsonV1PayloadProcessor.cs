@@ -9,27 +9,34 @@ namespace Microsoft.Azure.WebPubSub.Emulator;
 internal sealed class WebPubSubJsonV1PayloadProcessor : IClientPayloadProcessor
 {
     public const string SubprotocolName = "json.webpubsub.azure.v1";
+    public const string ReliableSubprotocolName = "json.reliable.webpubsub.azure.v1";
 
     private readonly ConnectionManager _connections;
     private readonly IWebPubSubConnectionLifetimeHandler _lifetimeHandler;
     private readonly ILogger<WebPubSubJsonV1PayloadProcessor> _logger;
     private readonly WebPubSubJsonV1Protocol _protocol;
+    private readonly WebPubSubTokenService _tokenService;
 
     public WebPubSubJsonV1PayloadProcessor(
         ConnectionManager connections,
         IWebPubSubConnectionLifetimeHandler lifetimeHandler,
         WebPubSubJsonV1Protocol protocol,
+        WebPubSubTokenService tokenService,
         ILogger<WebPubSubJsonV1PayloadProcessor> logger)
     {
         _connections = connections;
         _lifetimeHandler = lifetimeHandler;
         _protocol = protocol;
+        _tokenService = tokenService;
         _logger = logger;
     }
 
     public void OnConnected(LogicalConnection connection)
     {
-        connection.Send(_protocol.WriteConnected(connection));
+        var reconnectionToken = connection.IsReliable
+            ? _tokenService.IssueReconnectionToken(connection.ConnectionId)
+            : null;
+        connection.Send(_protocol.WriteConnected(connection, reconnectionToken));
     }
 
     public async ValueTask<PayloadProcessingResult> ProcessAsync(
@@ -135,6 +142,20 @@ internal sealed class WebPubSubJsonV1PayloadProcessor : IClientPayloadProcessor
         return _protocol.WriteGroupData(group, fromUserId, data, sequenceId);
     }
 
+    public static bool IsSupportedSubprotocol(string? subprotocol)
+    {
+        return string.Equals(subprotocol, SubprotocolName, StringComparison.OrdinalIgnoreCase) ||
+            IsReliableSubprotocol(subprotocol);
+    }
+
+    public static bool IsReliableSubprotocol(string? subprotocol)
+    {
+        return string.Equals(
+            subprotocol,
+            ReliableSubprotocolName,
+            StringComparison.OrdinalIgnoreCase);
+    }
+
     private void DispatchClientRequest(
         LogicalConnection connection,
         WebPubSubClientRequest request)
@@ -189,6 +210,10 @@ internal sealed class WebPubSubJsonV1PayloadProcessor : IClientPayloadProcessor
                 connection.AckIdCache.Add(ackId);
                 connection.Send(_protocol.WriteAck(ackId));
             }
+        }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+            throw;
         }
         catch (Exception exception)
         {

@@ -47,6 +47,18 @@ in its token's `webpubsub.group` claims. To publish raw text or binary frames to
 `webpubsub_mode=sendToGroup&group={group}` and use a token with the corresponding
 `webpubsub.sendToGroup` role.
 
+JSON clients can request `json.webpubsub.azure.v1` or
+`json.reliable.webpubsub.azure.v1`. The reliable protocol includes a `reconnectionToken` in the
+connected message. After an unexpected disconnect, recover the logical connection with:
+
+```text
+ws://localhost:8080/client/hubs/{hub}?awps_connection_id={connectionId}&awps_reconnection_token={reconnectionToken}
+```
+
+Reliable connections retain groups and unacknowledged messages for 30 seconds within the running
+emulator process. The replay buffer is limited to 1,000 messages and 16 MiB per connection. Send
+`sequenceAck` messages to cumulatively acknowledge delivered sequence IDs.
+
 Set the ASP.NET Core `Urls` configuration value to use another address. The generated connection
 string automatically uses the address and port that the emulator actually binds. For example:
 

@@ -278,6 +278,73 @@ public class WebPubSubJsonV1IntegrationTests
     }
 
     [Fact]
+    public async Task ReliableReconnectReplaysUnacknowledgedMessagesAndPreservesGroups()
+    {
+        await using var application = await StartApplicationAsync();
+        var initial = await ConnectReliableAsync(
+            application,
+            roles: ["webpubsub.joinLeaveGroup.room"]);
+        using var initialSocket = initial.WebSocket;
+        await SendJsonAsync(initialSocket, new
+        {
+            type = "joinGroup",
+            group = "room",
+            ackId = 1,
+        });
+        using (var joinAck = await ReceiveJsonAsync(initialSocket))
+        {
+            AssertSuccessAck(joinAck.RootElement, 1);
+        }
+        using var sender = await ConnectJsonAsync(
+            application,
+            roles: ["webpubsub.sendToGroup.room"]);
+        await SendJsonAsync(sender, new
+        {
+            type = "sendToGroup",
+            group = "room",
+            dataType = "text",
+            data = "first",
+        });
+        using (var delivered = await ReceiveJsonAsync(initialSocket))
+        {
+            Assert.Equal(1UL, delivered.RootElement.GetProperty("sequenceId").GetUInt64());
+            Assert.Equal("first", delivered.RootElement.GetProperty("data").GetString());
+        }
+
+        initialSocket.Abort();
+        using var firstRecovery = await ReconnectReliableAsync(
+            application,
+            initial.ConnectionId,
+            initial.ReconnectionToken);
+        using (var replayed = await ReceiveJsonAsync(firstRecovery))
+        {
+            Assert.Equal(1UL, replayed.RootElement.GetProperty("sequenceId").GetUInt64());
+            Assert.Equal("first", replayed.RootElement.GetProperty("data").GetString());
+        }
+        await SendJsonAsync(firstRecovery, new { type = "sequenceAck", sequenceId = 1 });
+
+        firstRecovery.Abort();
+        using var secondRecovery = await ReconnectReliableAsync(
+            application,
+            initial.ConnectionId,
+            initial.ReconnectionToken);
+        await SendJsonAsync(sender, new
+        {
+            type = "sendToGroup",
+            group = "room",
+            dataType = "text",
+            data = "second",
+        });
+        using var deliveredAfterRecovery = await ReceiveJsonAsync(secondRecovery);
+        Assert.Equal(
+            2UL,
+            deliveredAfterRecovery.RootElement.GetProperty("sequenceId").GetUInt64());
+        Assert.Equal(
+            "second",
+            deliveredAfterRecovery.RootElement.GetProperty("data").GetString());
+    }
+
+    [Fact]
     public async Task JsonAckReportsForbiddenAndDuplicateRequests()
     {
         await using var application = await StartApplicationAsync();
@@ -484,6 +551,42 @@ public class WebPubSubJsonV1IntegrationTests
         using var connected = await ReceiveJsonAsync(webSocket);
         Assert.Equal("connected", connected.RootElement.GetProperty("event").GetString());
         return webSocket;
+    }
+
+    private static async Task<(
+        WebSocket WebSocket,
+        string ConnectionId,
+        string ReconnectionToken)> ConnectReliableAsync(
+        WebApplication application,
+        IEnumerable<string>? roles = null)
+    {
+        var client = application.GetTestServer().CreateWebSocketClient();
+        client.SubProtocols.Add(WebPubSubJsonV1PayloadProcessor.ReliableSubprotocolName);
+        var token = CreateToken(roles ?? [], [], userId: null);
+        var uri = new Uri(
+            $"ws://localhost{WebPubSubTokenService.ClientPathPrefix}{Hub}?access_token={Uri.EscapeDataString(token)}");
+        var webSocket = await client.ConnectAsync(uri, CancellationToken.None)
+            .WaitAsync(TestTimeout);
+        using var connected = await ReceiveJsonAsync(webSocket);
+        return (
+            webSocket,
+            connected.RootElement.GetProperty("connectionId").GetString()!,
+            connected.RootElement.GetProperty("reconnectionToken").GetString()!);
+    }
+
+    private static async Task<WebSocket> ReconnectReliableAsync(
+        WebApplication application,
+        string connectionId,
+        string reconnectionToken)
+    {
+        var client = application.GetTestServer().CreateWebSocketClient();
+        client.SubProtocols.Add(WebPubSubJsonV1PayloadProcessor.ReliableSubprotocolName);
+        var uri = new Uri(
+            $"ws://localhost{WebPubSubTokenService.ClientPathPrefix}{Hub}" +
+            $"?awps_connection_id={Uri.EscapeDataString(connectionId)}" +
+            $"&awps_reconnection_token={Uri.EscapeDataString(reconnectionToken)}");
+        return await client.ConnectAsync(uri, CancellationToken.None)
+            .WaitAsync(TestTimeout);
     }
 
     private static Task SendJsonAsync(WebSocket webSocket, object message)

@@ -11,3 +11,4 @@
 - Add build, test, package, installation, and health-check validation in CI.
 - Add endpoint-derived local connection strings with a configurable `WebPubSub:AccessKey`.
 - Add opt-in unvalidated Entra token compatibility for trusted local server SDK testing.
+- Add reliable JSON connections with scoped recovery tokens, sequence acknowledgements, and bounded message replay.
