@@ -139,9 +139,17 @@ internal sealed class SocketTransport : IDisposable
 
     public bool TryCloseOutput(WebSocketCloseStatus status, string description)
     {
+        return TryCloseOutput(status, description, finalPayload: null);
+    }
+
+    public bool TryCloseOutput(
+        WebSocketCloseStatus status,
+        string description,
+        WebSocketPayload? finalPayload)
+    {
         return QueueClose(new OutboundMessage(
-            default,
-            WebSocketMessageType.Close,
+            finalPayload?.Bytes ?? default,
+            finalPayload?.MessageType ?? WebSocketMessageType.Close,
             status,
             description));
     }

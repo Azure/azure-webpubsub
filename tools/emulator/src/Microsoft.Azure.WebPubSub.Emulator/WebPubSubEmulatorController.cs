@@ -61,6 +61,32 @@ internal sealed class WebPubSubEmulatorController : WebPubSubApiControllerDefini
         return Task.FromResult(result);
     }
 
+    [HttpDelete(
+        "/api/hubs/{hub}/connections/{connectionId}",
+        Name = "WebPubSub_CloseConnection")]
+    public IActionResult CloseConnection(
+        [RegularExpression(
+            WebPubSubNameValidator.HubNamePattern,
+            ErrorMessage = "Invalid hub name.")]
+        string hub,
+        [MinLength(1, ErrorMessage = "Invalid connection ID.")]
+        string connectionId,
+        [FromQuery(Name = "reason")]
+        string? reason,
+        CancellationToken cancellationToken = default)
+    {
+        if (!Authorize())
+        {
+            return Unauthorized();
+        }
+
+        _connections.CloseConnection(
+            hub.ToLowerInvariant(),
+            connectionId,
+            reason);
+        return NoContent();
+    }
+
     [HttpPost(
         "/api/hubs/{hub}/connections/{connectionId}/:send",
         Name = "WebPubSub_SendToConnection")]

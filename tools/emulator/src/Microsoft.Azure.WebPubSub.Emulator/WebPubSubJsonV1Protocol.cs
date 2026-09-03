@@ -142,6 +142,18 @@ internal sealed partial class WebPubSubJsonV1Protocol
         });
     }
 
+    public WebSocketPayload WriteDisconnected(string message)
+    {
+        return WriteJson(writer =>
+        {
+            writer.WriteStartObject();
+            writer.WriteString("type", "system");
+            writer.WriteString("event", "disconnected");
+            writer.WriteString("message", message);
+            writer.WriteEndObject();
+        });
+    }
+
     public WebSocketPayload WritePong()
     {
         return WriteJson(writer =>
