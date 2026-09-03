@@ -80,8 +80,8 @@ await serviceClient.SendToConnectionAsync(
 ```
 
 Direct sends return success when the connection does not exist, matching the service's
-fire-and-forget behavior. Nonzero `messageTtlSeconds` values are not implemented and return
-`501 Not Implemented` rather than silently ignoring message expiry.
+fire-and-forget behavior. Valid `messageTtlSeconds` values are accepted, but the emulator does not
+model message expiration.
 
 Set the ASP.NET Core `Urls` configuration value to use another address. The generated connection
 string automatically uses the address and port that the emulator actually binds. For example:

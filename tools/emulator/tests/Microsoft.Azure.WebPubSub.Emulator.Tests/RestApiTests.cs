@@ -462,8 +462,9 @@ public class RestApiTests
     [InlineData("-1", HttpStatusCode.BadRequest)]
     [InlineData("301", HttpStatusCode.BadRequest)]
     [InlineData("invalid", HttpStatusCode.BadRequest)]
-    [InlineData("1", HttpStatusCode.NotImplemented)]
-    public async Task SendToConnectionDoesNotPretendToSupportMessageTtl(
+    [InlineData("1", HttpStatusCode.Accepted)]
+    [InlineData("300", HttpStatusCode.Accepted)]
+    public async Task SendToConnectionValidatesMessageTtl(
         string ttl,
         HttpStatusCode expectedStatus)
     {
@@ -481,7 +482,7 @@ public class RestApiTests
     }
 
     [Fact]
-    public async Task UnsupportedMessageTtlDoesNotDeliverMessage()
+    public async Task MessageTtlIsAcceptedForImmediateDelivery()
     {
         await using var application = await StartApplicationAsync();
         using var webSocket = await ConnectAsync(application);
@@ -490,24 +491,14 @@ public class RestApiTests
         var ttlPath = $"/api/hubs/{Hub}/connections/{connectionId}/:send" +
             "?api-version=2024-12-01&messageTtlSeconds=1";
         using var ttlRequest = CreateAuthorizedRequest(HttpMethod.Post, ttlPath);
-        ttlRequest.Content = new StringContent("expired", Encoding.UTF8, "text/plain");
+        ttlRequest.Content = new StringContent("delivered", Encoding.UTF8, "text/plain");
 
         using var ttlResponse = await application.GetTestClient()
             .SendAsync(ttlRequest)
             .WaitAsync(TestTimeout);
-
-        Assert.Equal(HttpStatusCode.NotImplemented, ttlResponse.StatusCode);
-
-        var validPath = $"/api/hubs/{Hub}/connections/{connectionId}/:send" +
-            "?api-version=2024-12-01";
-        using var validRequest = CreateAuthorizedRequest(HttpMethod.Post, validPath);
-        validRequest.Content = new StringContent("delivered", Encoding.UTF8, "text/plain");
-        using var validResponse = await application.GetTestClient()
-            .SendAsync(validRequest)
-            .WaitAsync(TestTimeout);
         using var delivered = await ReceiveJsonAsync(webSocket);
 
-        Assert.Equal(HttpStatusCode.Accepted, validResponse.StatusCode);
+        Assert.Equal(HttpStatusCode.Accepted, ttlResponse.StatusCode);
         Assert.Equal("delivered", delivered.RootElement.GetProperty("data").GetString());
     }
 

@@ -18,7 +18,7 @@ local Azure Web PubSub development.
 | Groups and roles | Supports connection-scoped token groups and authorized join, leave, and group send, including wildcard roles. | ✅ |
 | Outbound delivery | Uses a bounded, single-writer queue for each WebSocket connection. | ✅ |
 | REST connection operations | Authenticated connection presence and direct text, JSON, and binary sends for GA API versions from `2021-10-01` through `2024-12-01`. | ✅ |
-| REST direct-send TTL | Validates `messageTtlSeconds`, but returns `501 Not Implemented` for nonzero values. | ❌ |
+| REST direct-send TTL | Accepts valid `messageTtlSeconds` values; delivery is immediate and expiration is not modeled. | ⚠️ |
 | Other REST APIs | Group, user, permission, close-connection, and broadcast operations. | ❌ |
 
 ## Not yet implemented

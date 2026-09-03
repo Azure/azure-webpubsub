@@ -80,16 +80,6 @@ internal sealed class WebPubSubEmulatorController : WebPubSubApiControllerDefini
         {
             return Unauthorized();
         }
-        if (messageTtlSeconds.GetValueOrDefault() != 0)
-        {
-            return StatusCode(
-                StatusCodes.Status501NotImplemented,
-                new
-                {
-                    code = "NotImplemented",
-                    message = "Non-zero messageTtlSeconds is not implemented by the emulator.",
-                });
-        }
         if (Request.ContentLength is not { } contentLength ||
             contentLength < 0 ||
             contentLength > _runtimeOptions.MaxMessageSizeBytes)
