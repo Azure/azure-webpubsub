@@ -26,6 +26,15 @@ Agent sessions usually do not have that scope. When a change is needed there:
 2. Ask a human to push the branch, or point them at the GitHub web editor.
 3. Keep workflow-only changes in their own commit so they are easy to hand off.
 
+This restriction is enforced per *credential*, not per repository, so pushing to a fork
+does not avoid it. It also reaches further than it first appears: pushing **any** branch
+whose history contains a workflow commit the target does not already have will be
+rejected, even when your own commits touch nothing under `.github/`. A fork that has
+fallen behind an upstream `main` containing workflow changes therefore cannot receive any
+branch at all — and `POST /repos/{owner}/{repo}/merge-upstream` is gated by the same
+scope, so the fork cannot be resynced without the scope either. Until a human syncs the
+fork, push the branch to the upstream repository instead.
+
 ## Package feeds
 
 All dependency installation must go through the approved proxy. Public registries are
