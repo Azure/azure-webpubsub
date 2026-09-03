@@ -26,6 +26,11 @@ internal interface IClientPayloadProcessor
         LogicalConnection connection,
         MessageData data,
         ulong? sequenceId);
+
+    WebSocketPayload? EncodeDisconnected(string message)
+    {
+        return null;
+    }
 }
 
 internal readonly record struct WebSocketPayload(

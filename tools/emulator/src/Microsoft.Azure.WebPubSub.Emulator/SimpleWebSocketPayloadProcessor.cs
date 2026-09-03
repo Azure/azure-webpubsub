@@ -66,4 +66,9 @@ internal sealed class SimpleWebSocketPayloadProcessor : IClientPayloadProcessor
             : WebSocketMessageType.Text;
         return new WebSocketPayload(data.Bytes, messageType);
     }
+
+    public WebSocketPayload? EncodeDisconnected(string message)
+    {
+        return null;
+    }
 }

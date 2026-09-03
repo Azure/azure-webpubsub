@@ -3,6 +3,7 @@
 
 using System.Collections.Concurrent;
 using System.Diagnostics.CodeAnalysis;
+using System.Net.WebSockets;
 using System.Security.Claims;
 using Microsoft.Extensions.Logging;
 
@@ -67,6 +68,23 @@ internal sealed class ConnectionManager
         if (_connections.TryGetValue((hub, connectionId), out var connection))
         {
             connection.SendServerData(data);
+        }
+    }
+
+    public void CloseConnection(
+        string hub,
+        string connectionId,
+        string? reason)
+    {
+        if (!_connections.TryGetValue((hub, connectionId), out var connection))
+        {
+            return;
+        }
+
+        var transport = connection.CloseByAppServer(reason);
+        if (transport is not null)
+        {
+            _ = transport.CloseAsync(WebSocketCloseStatus.NormalClosure, string.Empty);
         }
     }
 

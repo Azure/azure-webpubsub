@@ -498,6 +498,26 @@ internal sealed class LogicalConnection
         WebSocketCloseStatus closeStatus,
         string closeDescription)
     {
+        return Close(closeStatus, closeDescription, finalPayloadFactory: null);
+    }
+
+    public SocketTransport? CloseByAppServer(string? reason)
+    {
+        const string closedMessage = "Application server closed the connection.";
+        var message = string.IsNullOrEmpty(reason)
+            ? closedMessage
+            : $"{closedMessage} Reason: {reason}";
+        return Close(
+            WebSocketCloseStatus.NormalClosure,
+            string.Empty,
+            processor => processor.EncodeDisconnected(message));
+    }
+
+    private SocketTransport? Close(
+        WebSocketCloseStatus closeStatus,
+        string closeDescription,
+        Func<IClientPayloadProcessor, WebSocketPayload?>? finalPayloadFactory)
+    {
         SocketTransport? transport;
         lock (_stateLock)
         {
@@ -507,7 +527,10 @@ internal sealed class LogicalConnection
             }
 
             transport = _activeTransport ?? _detachedTransport;
-            transport?.TryCloseOutput(closeStatus, closeDescription);
+            var finalPayload = _activePayloadProcessor is not null
+                ? finalPayloadFactory?.Invoke(_activePayloadProcessor)
+                : null;
+            transport?.TryCloseOutput(closeStatus, closeDescription, finalPayload);
             _closed = true;
             _activeTransport = null;
             _detachedTransport = null;

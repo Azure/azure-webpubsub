@@ -61,9 +61,9 @@ emulator process. The replay buffer is limited to 1,000 messages and 16 MiB per 
 
 ## Use a server SDK
 
-The emulator supports checking whether a connection exists and sending text, JSON, or binary data
-to a connection through the Azure Web PubSub REST API. For example, use the generated connection
-string with the Azure Web PubSub .NET server SDK:
+The emulator supports checking whether a connection exists, sending text, JSON, or binary data,
+and closing a connection through the Azure Web PubSub REST API. For example, use the generated
+connection string with the Azure Web PubSub .NET server SDK:
 
 ```csharp
 using Azure.Messaging.WebPubSub;
@@ -77,6 +77,7 @@ await serviceClient.SendToConnectionAsync(
   connectionId,
   BinaryData.FromString("Hello"),
   ContentType.TextPlain);
+await serviceClient.CloseConnectionAsync(connectionId, "Done");
 ```
 
 Direct sends return success when the connection does not exist, matching the service's
@@ -100,10 +101,23 @@ dotnet run --project tools\emulator\src\Microsoft.Azure.WebPubSub.Emulator
 ```
 
 `WebPubSub:AllowUnvalidatedEntraTokens` is disabled by default. Enable it only for trusted local
-server SDK `TokenCredential` testing. This compatibility mode checks the Azure Web PubSub audience
-and token lifetime, but does not validate the signature, algorithm, issuer, tenant, identity, or
-Azure RBAC assignments. It does not change client WebSocket token validation. Server SDKs require
-an HTTPS endpoint when sending bearer tokens.
+server SDK `TokenCredential` testing. With an HTTPS emulator endpoint, the SDK can use
+`DefaultAzureCredential`:
+
+```csharp
+using Azure.Identity;
+using Azure.Messaging.WebPubSub;
+
+var serviceClient = new WebPubSubServiceClient(
+  new Uri("https://localhost:8080"),
+  "chat",
+  new DefaultAzureCredential());
+```
+
+`DefaultAzureCredential` obtains a real token, but this emulator mode does **not** validate Azure
+RBAC. It checks only the Azure Web PubSub audience and token lifetime; it does not validate the
+signature, algorithm, issuer, tenant, identity, or role assignments. It does not change client
+WebSocket token validation. Server SDKs require an HTTPS endpoint when sending bearer tokens.
 
 When multiple listener addresses are configured, the first address in ordinal order is the
 effective endpoint.

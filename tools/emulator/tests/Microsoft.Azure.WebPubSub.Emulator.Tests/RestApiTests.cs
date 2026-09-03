@@ -81,10 +81,23 @@ public class RestApiTests
             BinaryData.FromString("ignored"),
             ContentType.TextPlain).WaitAsync(TestTimeout);
 
-        await webSocket.CloseAsync(
-            WebSocketCloseStatus.NormalClosure,
-            "done",
-            CancellationToken.None).WaitAsync(TestTimeout);
+        await serviceClient.CloseConnectionAsync(connectionId, "server-close")
+            .WaitAsync(TestTimeout);
+        using var disconnected = await ReceiveJsonAsync(webSocket);
+        var close = await webSocket.ReceiveAsync(new byte[256], CancellationToken.None)
+            .WaitAsync(TestTimeout);
+
+        Assert.Equal("system", disconnected.RootElement.GetProperty("type").GetString());
+        Assert.Equal("disconnected", disconnected.RootElement.GetProperty("event").GetString());
+        Assert.Equal(
+            "Application server closed the connection. Reason: server-close",
+            disconnected.RootElement.GetProperty("message").GetString());
+        Assert.Equal(WebSocketMessageType.Close, close.MessageType);
+        Assert.Equal(WebSocketCloseStatus.NormalClosure, close.CloseStatus);
+        Assert.Equal(string.Empty, close.CloseStatusDescription);
+        Assert.False((await serviceClient.ConnectionExistsAsync(connectionId)
+            .WaitAsync(TestTimeout)).Value);
+        await serviceClient.CloseConnectionAsync("missing").WaitAsync(TestTimeout);
     }
 
     [Fact]
@@ -199,6 +212,124 @@ public class RestApiTests
 
         Assert.Equal(HttpStatusCode.NotFound, existsResponse.StatusCode);
         Assert.Equal(HttpStatusCode.Accepted, sendResponse.StatusCode);
+    }
+
+    [Fact]
+    public async Task CloseConnectionSendsDisconnectedMessageWithReason()
+    {
+        await using var application = await StartApplicationAsync();
+        using var webSocket = await ConnectAsync(application);
+        using var connected = await ReceiveJsonAsync(webSocket);
+        var connectionId = connected.RootElement.GetProperty("connectionId").GetString()!;
+        var reason = new string('x', 200);
+        var path = $"/api/hubs/{Hub}/connections/{connectionId}" +
+            $"?reason={reason}&api-version=2024-12-01";
+        using var request = CreateAuthorizedRequest(HttpMethod.Delete, path);
+
+        using var response = await application.GetTestClient()
+            .SendAsync(request)
+            .WaitAsync(TestTimeout);
+        using var disconnected = await ReceiveJsonAsync(webSocket);
+        var close = await webSocket.ReceiveAsync(new byte[256], CancellationToken.None)
+            .WaitAsync(TestTimeout);
+
+        Assert.Equal(HttpStatusCode.NoContent, response.StatusCode);
+        Assert.Equal("system", disconnected.RootElement.GetProperty("type").GetString());
+        Assert.Equal("disconnected", disconnected.RootElement.GetProperty("event").GetString());
+        Assert.Equal(
+            $"Application server closed the connection. Reason: {reason}",
+            disconnected.RootElement.GetProperty("message").GetString());
+        Assert.Equal(WebSocketMessageType.Close, close.MessageType);
+        Assert.Equal(WebSocketCloseStatus.NormalClosure, close.CloseStatus);
+        Assert.Equal(string.Empty, close.CloseStatusDescription);
+    }
+
+    [Fact]
+    public async Task CloseMissingConnectionReturnsNoContent()
+    {
+        await using var application = await StartApplicationAsync();
+        const string path =
+            "/api/hubs/chat/connections/missing?api-version=2024-12-01";
+        using var request = CreateAuthorizedRequest(HttpMethod.Delete, path);
+
+        using var response = await application.GetTestClient()
+            .SendAsync(request)
+            .WaitAsync(TestTimeout);
+
+        Assert.Equal(HttpStatusCode.NoContent, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task CloseDetachedReliableConnectionPreventsRecovery()
+    {
+        await using var application = await StartApplicationAsync();
+        var initial = await ConnectReliableAsync(application);
+        using var initialSocket = initial.WebSocket;
+        initialSocket.Abort();
+        var path = $"/api/hubs/{Hub}/connections/{initial.ConnectionId}" +
+            "?api-version=2024-12-01";
+        using var request = CreateAuthorizedRequest(HttpMethod.Delete, path);
+
+        using var response = await application.GetTestClient()
+            .SendAsync(request)
+            .WaitAsync(TestTimeout);
+        using var recovered = await ConnectRecoveryAsync(
+            application,
+            initial.ConnectionId,
+            initial.ReconnectionToken);
+        var close = await recovered.ReceiveAsync(new byte[256], CancellationToken.None)
+            .WaitAsync(TestTimeout);
+
+        Assert.Equal(HttpStatusCode.NoContent, response.StatusCode);
+        Assert.Equal(WebSocketMessageType.Close, close.MessageType);
+        Assert.Equal(WebSocketCloseStatus.PolicyViolation, close.CloseStatus);
+    }
+
+    [Fact]
+    public async Task CloseConnectionRequiresAuthorization()
+    {
+        await using var application = await StartApplicationAsync();
+        using var webSocket = await ConnectAsync(application);
+        using var connected = await ReceiveJsonAsync(webSocket);
+        var connectionId = connected.RootElement.GetProperty("connectionId").GetString()!;
+        var path = $"/api/hubs/{Hub}/connections/{connectionId}" +
+            "?api-version=2024-12-01";
+
+        using var response = await application.GetTestClient()
+            .DeleteAsync(path)
+            .WaitAsync(TestTimeout);
+        using var existsRequest = CreateAuthorizedRequest(HttpMethod.Head, path);
+        using var existsResponse = await application.GetTestClient()
+            .SendAsync(existsRequest)
+            .WaitAsync(TestTimeout);
+
+        Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
+        Assert.Equal(HttpStatusCode.OK, existsResponse.StatusCode);
+    }
+
+    [Fact]
+    public async Task InvalidApiVersionDoesNotCloseConnection()
+    {
+        await using var application = await StartApplicationAsync();
+        using var webSocket = await ConnectAsync(application);
+        using var connected = await ReceiveJsonAsync(webSocket);
+        var connectionId = connected.RootElement.GetProperty("connectionId").GetString()!;
+        var invalidPath = $"/api/hubs/{Hub}/connections/{connectionId}" +
+            "?api-version=unsupported";
+        using var invalidRequest = CreateAuthorizedRequest(HttpMethod.Delete, invalidPath);
+
+        using var invalidResponse = await application.GetTestClient()
+            .SendAsync(invalidRequest)
+            .WaitAsync(TestTimeout);
+        var validPath = $"/api/hubs/{Hub}/connections/{connectionId}" +
+            "?api-version=2024-12-01";
+        using var existsRequest = CreateAuthorizedRequest(HttpMethod.Head, validPath);
+        using var existsResponse = await application.GetTestClient()
+            .SendAsync(existsRequest)
+            .WaitAsync(TestTimeout);
+
+        Assert.Equal(HttpStatusCode.BadRequest, invalidResponse.StatusCode);
+        Assert.Equal(HttpStatusCode.OK, existsResponse.StatusCode);
     }
 
     [Fact]

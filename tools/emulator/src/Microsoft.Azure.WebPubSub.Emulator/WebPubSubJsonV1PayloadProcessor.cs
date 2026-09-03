@@ -150,6 +150,11 @@ internal sealed class WebPubSubJsonV1PayloadProcessor : IClientPayloadProcessor
         return _protocol.WriteServerData(data, sequenceId);
     }
 
+    public WebSocketPayload? EncodeDisconnected(string message)
+    {
+        return _protocol.WriteDisconnected(message);
+    }
+
     public static bool IsSupportedSubprotocol(string? subprotocol)
     {
         return string.Equals(subprotocol, SubprotocolName, StringComparison.OrdinalIgnoreCase) ||
