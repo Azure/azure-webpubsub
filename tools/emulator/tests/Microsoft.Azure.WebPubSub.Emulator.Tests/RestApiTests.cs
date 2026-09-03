@@ -101,6 +101,113 @@ public class RestApiTests
     }
 
     [Fact]
+    public async Task OfficialServerSdkCanManageConnectionGroupMembership()
+    {
+        await using var application = EmulatorApplication.Build(
+            ["--urls=http://127.0.0.1:0"]);
+        await application.StartAsync().WaitAsync(TestTimeout);
+        var server = application.Services.GetRequiredService<IServer>();
+        var endpoint = Assert.Single(
+            server.Features.Get<IServerAddressesFeature>()!.Addresses);
+        var connectionString =
+            $"Endpoint={endpoint};AccessKey={EmulatorOptions.DefaultAccessKey};Version=1.0;";
+        var serviceClient = new WebPubSubServiceClient(connectionString, Hub);
+        using var webSocket = new ClientWebSocket();
+        webSocket.Options.AddSubProtocol(WebPubSubJsonV1PayloadProcessor.SubprotocolName);
+        await webSocket.ConnectAsync(
+            serviceClient.GetClientAccessUri(),
+            CancellationToken.None).WaitAsync(TestTimeout);
+        using var connected = await ReceiveJsonAsync(webSocket);
+        var connectionId = connected.RootElement.GetProperty("connectionId").GetString()!;
+        var manager = application.Services.GetRequiredService<ConnectionManager>();
+        Assert.True(manager.TryGet(Hub, connectionId, out var connection));
+
+        var addResponse = await serviceClient.AddConnectionToGroupAsync(
+            "room",
+            connection.ConnectionId).WaitAsync(TestTimeout);
+
+        Assert.Equal((int)HttpStatusCode.OK, addResponse.Status);
+        Assert.True(connection.Groups.ContainsKey("room"));
+
+        var removeResponse = await serviceClient.RemoveConnectionFromGroupAsync(
+            "room",
+            connection.ConnectionId).WaitAsync(TestTimeout);
+
+        Assert.Equal((int)HttpStatusCode.NoContent, removeResponse.Status);
+        Assert.False(connection.Groups.ContainsKey("room"));
+
+        var exception = await Assert.ThrowsAsync<RequestFailedException>(() =>
+            serviceClient.AddConnectionToGroupAsync("room", "missing"));
+        Assert.Equal((int)HttpStatusCode.NotFound, exception.Status);
+        Assert.Equal("Error.Connection.NotExisted", exception.ErrorCode);
+        var rawResponse = Assert.IsAssignableFrom<Response>(exception.GetRawResponse());
+        Assert.True(rawResponse.Headers.TryGetValue("x-ms-error-code", out var errorCode));
+        Assert.Equal(
+            "Error.Connection.NotExisted",
+            errorCode);
+        using var error = JsonDocument.Parse(rawResponse.Content);
+        Assert.Equal(
+            "Connection `missing` is not found.",
+            error.RootElement.GetProperty("message").GetString());
+        Assert.Equal("Connection", error.RootElement.GetProperty("target").GetString());
+        var missingRemoveResponse = await serviceClient.RemoveConnectionFromGroupAsync(
+            "room",
+            "missing").WaitAsync(TestTimeout);
+        Assert.Equal((int)HttpStatusCode.NoContent, missingRemoveResponse.Status);
+    }
+
+    [Fact]
+    public async Task DetachedReliableMembershipChangesAffectGroupDeliveryAfterRecovery()
+    {
+        await using var application = await StartApplicationAsync();
+        var initial = await ConnectReliableAsync(application);
+        using var initialSocket = initial.WebSocket;
+        initialSocket.Abort();
+        var manager = application.Services.GetRequiredService<ConnectionManager>();
+        Assert.True(manager.TryGet(Hub, initial.ConnectionId, out var connection));
+        var upperGroupPath = $"/api/hubs/CHAT/groups/Room/connections/{initial.ConnectionId}" +
+            "?api-version=2024-12-01";
+        using var addRequest = CreateAuthorizedRequest(HttpMethod.Put, upperGroupPath);
+
+        using var addResponse = await application.GetTestClient()
+            .SendAsync(addRequest)
+            .WaitAsync(TestTimeout);
+        manager.SendToGroup(
+            Hub,
+            "room",
+            new MessageData(MessageDataType.Text, "wrong-case"u8.ToArray()),
+            sender: null,
+            noEcho: false);
+        manager.SendToGroup(
+            Hub,
+            "Room",
+            new MessageData(MessageDataType.Text, "delivered"u8.ToArray()),
+            sender: null,
+            noEcho: false);
+        using var recovered = await ConnectRecoveryAsync(
+            application,
+            initial.ConnectionId,
+            initial.ReconnectionToken);
+        using var delivered = await ReceiveJsonAsync(recovered);
+
+        Assert.Equal(HttpStatusCode.OK, addResponse.StatusCode);
+        Assert.True(connection.Groups.ContainsKey("Room"));
+        Assert.False(connection.Groups.ContainsKey("room"));
+        Assert.Equal("Room", delivered.RootElement.GetProperty("group").GetString());
+        Assert.Equal("delivered", delivered.RootElement.GetProperty("data").GetString());
+
+        var removePath = $"/api/hubs/chat/groups/Room/connections/{initial.ConnectionId}" +
+            "?api-version=2024-12-01";
+        using var removeRequest = CreateAuthorizedRequest(HttpMethod.Delete, removePath);
+        using var removeResponse = await application.GetTestClient()
+            .SendAsync(removeRequest)
+            .WaitAsync(TestTimeout);
+
+        Assert.Equal(HttpStatusCode.NoContent, removeResponse.StatusCode);
+        Assert.False(connection.Groups.ContainsKey("Room"));
+    }
+
+    [Fact]
     public async Task ConnectionExistsAndSendToConnectionUseLiveConnection()
     {
         await using var application = await StartApplicationAsync();
@@ -330,6 +437,72 @@ public class RestApiTests
 
         Assert.Equal(HttpStatusCode.BadRequest, invalidResponse.StatusCode);
         Assert.Equal(HttpStatusCode.OK, existsResponse.StatusCode);
+    }
+
+    [Fact]
+    public async Task RejectedGroupMembershipRequestsDoNotMutateConnection()
+    {
+        await using var application = await StartApplicationAsync();
+        using var webSocket = await ConnectAsync(application);
+        using var connected = await ReceiveJsonAsync(webSocket);
+        var connectionId = connected.RootElement.GetProperty("connectionId").GetString()!;
+        var manager = application.Services.GetRequiredService<ConnectionManager>();
+        Assert.True(manager.TryGet(Hub, connectionId, out var connection));
+        var validPath = $"/api/hubs/{Hub}/groups/room/connections/{connectionId}" +
+            "?api-version=2024-12-01";
+
+        using var unauthorizedResponse = await application.GetTestClient()
+            .PutAsync(validPath, content: null)
+            .WaitAsync(TestTimeout);
+        var invalidVersionPath = $"/api/hubs/{Hub}/groups/room/connections/{connectionId}" +
+            "?api-version=unsupported";
+        using var invalidVersionRequest = CreateAuthorizedRequest(
+            HttpMethod.Put,
+            invalidVersionPath);
+        using var invalidVersionResponse = await application.GetTestClient()
+            .SendAsync(invalidVersionRequest)
+            .WaitAsync(TestTimeout);
+
+        Assert.Equal(HttpStatusCode.Unauthorized, unauthorizedResponse.StatusCode);
+        Assert.Equal(HttpStatusCode.BadRequest, invalidVersionResponse.StatusCode);
+        Assert.False(connection.Groups.ContainsKey("room"));
+    }
+
+    [Theory]
+    [InlineData(" ")]
+    [InlineData("\t")]
+    public async Task GroupMembershipRejectsWhitespaceGroupName(string group)
+    {
+        await using var application = await StartApplicationAsync();
+        var path = $"/api/hubs/{Hub}/groups/{Uri.EscapeDataString(group)}" +
+            "/connections/missing?api-version=2024-12-01";
+        using var request = CreateAuthorizedRequest(HttpMethod.Put, path);
+
+        using var response = await application.GetTestClient()
+            .SendAsync(request)
+            .WaitAsync(TestTimeout);
+        using var error = JsonDocument.Parse(
+            await response.Content.ReadAsByteArrayAsync().WaitAsync(TestTimeout));
+
+        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+        Assert.Equal("Error.BadRequest", error.RootElement.GetProperty("code").GetString());
+        Assert.False(string.IsNullOrEmpty(error.RootElement.GetProperty("message").GetString()));
+    }
+
+    [Fact]
+    public async Task GroupMembershipRejectsGroupNameOverMaximumLength()
+    {
+        await using var application = await StartApplicationAsync();
+        var group = new string('g', WebPubSubNameValidator.MaximumGroupNameLength + 1);
+        var path = $"/api/hubs/{Hub}/groups/{group}" +
+            "/connections/missing?api-version=2024-12-01";
+        using var request = CreateAuthorizedRequest(HttpMethod.Delete, path);
+
+        using var response = await application.GetTestClient()
+            .SendAsync(request)
+            .WaitAsync(TestTimeout);
+
+        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
     }
 
     [Fact]

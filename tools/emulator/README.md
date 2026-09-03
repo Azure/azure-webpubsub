@@ -77,6 +77,8 @@ await serviceClient.SendToConnectionAsync(
   connectionId,
   BinaryData.FromString("Hello"),
   ContentType.TextPlain);
+await serviceClient.AddConnectionToGroupAsync("room", connectionId);
+await serviceClient.RemoveConnectionFromGroupAsync("room", connectionId);
 await serviceClient.CloseConnectionAsync(connectionId, "Done");
 ```
 

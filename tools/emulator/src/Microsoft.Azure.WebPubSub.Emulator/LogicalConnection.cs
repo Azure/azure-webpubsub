@@ -241,6 +241,31 @@ internal sealed class LogicalConnection
         return _joinLeaveGroupPermissions.Check(group);
     }
 
+    public bool TryAddToGroup(string group)
+    {
+        lock (_stateLock)
+        {
+            if (_closed)
+            {
+                return false;
+            }
+
+            Groups.TryAdd(group, 0);
+            return true;
+        }
+    }
+
+    public void RemoveFromGroup(string group)
+    {
+        lock (_stateLock)
+        {
+            if (!_closed)
+            {
+                Groups.TryRemove(group, out _);
+            }
+        }
+    }
+
     public void SendGroupData(
         string group,
         string? fromUserId,
