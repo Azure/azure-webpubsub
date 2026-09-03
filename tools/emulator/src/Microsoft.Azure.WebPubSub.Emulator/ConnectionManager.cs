@@ -57,6 +57,19 @@ internal sealed class ConnectionManager
         return _connections.TryGetValue((hub, connectionId), out connection);
     }
 
+    public bool ConnectionExists(string hub, string connectionId)
+    {
+        return _connections.ContainsKey((hub, connectionId));
+    }
+
+    public void SendToConnection(string hub, string connectionId, MessageData data)
+    {
+        if (_connections.TryGetValue((hub, connectionId), out var connection))
+        {
+            connection.SendServerData(data);
+        }
+    }
+
     public void Remove(LogicalConnection connection)
     {
         _connections.TryRemove((connection.Hub, connection.ConnectionId), out _);

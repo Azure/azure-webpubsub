@@ -124,7 +124,7 @@ public class EmulatorApplicationTests
 
         using var request = new HttpRequestMessage(
             HttpMethod.Head,
-            "/api/hubs/chat/connections/connection?api-version=2024-12-01");
+            "/api/hubs/chat/groups/group?api-version=2024-12-01");
         using var response = await application.GetTestClient().SendAsync(request).WaitAsync(TestTimeout);
 
         Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);

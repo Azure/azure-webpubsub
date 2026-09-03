@@ -254,6 +254,14 @@ internal sealed class LogicalConnection
             sequenceId));
     }
 
+    public void SendServerData(MessageData data)
+    {
+        SendData(sequenceId => _activePayloadProcessor!.EncodeServerData(
+            this,
+            data,
+            sequenceId));
+    }
+
     public void Send(WebSocketPayload payload)
     {
         IClientPayloadProcessor? payloadProcessor;

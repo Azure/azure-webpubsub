@@ -3,6 +3,7 @@
 
 using System.Reflection;
 using Microsoft.AspNetCore.Builder;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Controllers;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
@@ -45,6 +46,23 @@ internal static class EmulatorApplication
             {
                 manager.FeatureProviders.Add(new EmulatorControllerFeatureProvider());
             });
+        builder.Services.Configure<ApiBehaviorOptions>(options =>
+        {
+            options.InvalidModelStateResponseFactory = context =>
+            {
+                var error = context.ModelState.Values
+                    .SelectMany(value => value.Errors)
+                    .Select(value => value.ErrorMessage)
+                    .FirstOrDefault(message => !string.IsNullOrEmpty(message)) ??
+                    "The request parameters are invalid.";
+                return new BadRequestObjectResult(new
+                {
+                    code = "Error.BadRequest",
+                    message = error,
+                    target = "Request",
+                });
+            };
+        });
         return builder;
     }
 

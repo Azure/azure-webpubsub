@@ -142,6 +142,14 @@ internal sealed class WebPubSubJsonV1PayloadProcessor : IClientPayloadProcessor
         return _protocol.WriteGroupData(group, fromUserId, data, sequenceId);
     }
 
+    public WebSocketPayload EncodeServerData(
+        LogicalConnection connection,
+        MessageData data,
+        ulong? sequenceId)
+    {
+        return _protocol.WriteServerData(data, sequenceId);
+    }
+
     public static bool IsSupportedSubprotocol(string? subprotocol)
     {
         return string.Equals(subprotocol, SubprotocolName, StringComparison.OrdinalIgnoreCase) ||
