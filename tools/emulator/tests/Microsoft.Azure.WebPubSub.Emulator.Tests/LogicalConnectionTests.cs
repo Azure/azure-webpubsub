@@ -375,7 +375,8 @@ public class LogicalConnectionTests
             connection,
             original,
             TestClientPayloadProcessor.Instance,
-            CancellationToken.None);
+            CancellationToken.None,
+            isInitialConnection: true);
         connection.Detach(original);
         using var recovered = await connection.TryReconnectAsync(
             new TestWebSocket(),
@@ -540,7 +541,7 @@ public class LogicalConnectionTests
     }
 
     [Fact]
-    public async Task ReconnectWaitsForReceivedMessageProcessing()
+    public async Task ReconnectDoesNotWaitForBlockedMessageProcessing()
     {
         using var application = EmulatorApplication.Build();
         var manager = application.Services.GetRequiredService<ConnectionManager>();
@@ -548,9 +549,44 @@ public class LogicalConnectionTests
         var connection = CreateConnection(manager, "connection", reliable: true);
         var originalSocket = new GatedReceiveWebSocket(
             new WebSocketReceiveResult(1, WebSocketMessageType.Text, endOfMessage: true));
-        var processor = new RecordingProcessPayloadProcessor();
+        var processor = new GatedProcessPayloadProcessor();
         using var original = connection.TryAttach(originalSocket, processor);
         Assert.NotNull(original);
+        using var requestAborted = new CancellationTokenSource();
+        var handlerTask = handler.RunAsync(
+            connection.ConnectionId,
+            connection,
+            original,
+            processor,
+            requestAborted.Token);
+        await originalSocket.ReceiveStarted.Task.WaitAsync(TestTimeout);
+
+        originalSocket.Release.TrySetResult();
+        await processor.Started.Task.WaitAsync(TestTimeout);
+        requestAborted.Cancel();
+
+        using var recovered = await connection.TryReconnectAsync(
+            new TestWebSocket(),
+            processor,
+            CancellationToken.None).AsTask().WaitAsync(TestTimeout);
+        Assert.NotNull(recovered);
+        processor.Release.TrySetResult();
+        await handlerTask.WaitAsync(TestTimeout);
+    }
+
+    [Fact]
+    public async Task TerminalMessageResultClosesTransportAttachedDuringProcessing()
+    {
+        using var application = EmulatorApplication.Build();
+        var manager = application.Services.GetRequiredService<ConnectionManager>();
+        var handler = application.Services.GetRequiredService<ClientConnectionHandler>();
+        var connection = CreateConnection(manager, "connection", reliable: true);
+        var originalSocket = new GatedReceiveWebSocket(
+            new WebSocketReceiveResult(1, WebSocketMessageType.Text, endOfMessage: true));
+        var processor = new GatedClosingPayloadProcessor();
+        using var original = connection.TryAttach(originalSocket, processor);
+        Assert.NotNull(original);
+        Assert.True(manager.TryActivate(connection));
         var handlerTask = handler.RunAsync(
             connection.ConnectionId,
             connection,
@@ -558,18 +594,62 @@ public class LogicalConnectionTests
             processor,
             CancellationToken.None);
         await originalSocket.ReceiveStarted.Task.WaitAsync(TestTimeout);
+        originalSocket.Release.TrySetResult();
+        await processor.Started.Task.WaitAsync(TestTimeout);
 
-        var reconnect = connection.TryReconnectAsync(
-            new TestWebSocket(),
+        var recoveredSocket = new TestWebSocket();
+        using var recovered = await connection.TryReconnectAsync(
+            recoveredSocket,
             processor,
+            CancellationToken.None).AsTask().WaitAsync(TestTimeout);
+        Assert.NotNull(recovered);
+        processor.Release.TrySetResult();
+        await handlerTask.WaitAsync(TestTimeout);
+
+        Assert.Equal(WebSocketState.CloseSent, recoveredSocket.State);
+        Assert.False(manager.TryGet(connection.Hub, connection.ConnectionId, out _));
+    }
+
+    [Fact]
+    public async Task TerminalMessageResultPreventsQueuedMessageProcessing()
+    {
+        using var application = EmulatorApplication.Build();
+        var manager = application.Services.GetRequiredService<ConnectionManager>();
+        var connection = CreateConnection(manager, "connection", reliable: true);
+        using var transport = connection.TryAttach(
+            new TestWebSocket(),
+            TestClientPayloadProcessor.Instance);
+        Assert.NotNull(transport);
+        Assert.True(manager.TryActivate(connection));
+        var processingStarted = new TaskCompletionSource(
+            TaskCreationOptions.RunContinuationsAsynchronously);
+        var releaseProcessing = new TaskCompletionSource(
+            TaskCreationOptions.RunContinuationsAsynchronously);
+        var terminalProcessing = connection.ProcessReceivedMessageAsync(
+            async () =>
+            {
+                processingStarted.TrySetResult();
+                await releaseProcessing.Task;
+                return PayloadProcessingResult.Close(
+                    WebSocketCloseStatus.InvalidPayloadData,
+                    "invalid");
+            },
+            CancellationToken.None).AsTask();
+        await processingStarted.Task.WaitAsync(TestTimeout);
+        var queuedMessageProcessed = false;
+        var queuedProcessing = connection.ProcessReceivedMessageAsync(
+            () =>
+            {
+                queuedMessageProcessed = true;
+                return ValueTask.FromResult(PayloadProcessingResult.Continue);
+            },
             CancellationToken.None).AsTask();
 
-        Assert.False(reconnect.IsCompleted);
-        originalSocket.Release.TrySetResult();
-        await processor.Processed.Task.WaitAsync(TestTimeout);
-        using var recovered = await reconnect.WaitAsync(TestTimeout);
-        Assert.NotNull(recovered);
-        await handlerTask.WaitAsync(TestTimeout);
+        releaseProcessing.TrySetResult();
+
+        Assert.NotNull(await terminalProcessing.WaitAsync(TestTimeout));
+        Assert.Null(await queuedProcessing.WaitAsync(TestTimeout));
+        Assert.False(queuedMessageProcessed);
     }
 
     [Fact]
@@ -677,6 +757,83 @@ public class LogicalConnectionTests
         Assert.NotNull(result);
         Assert.False(manager.TryGet(connection.Hub, connection.ConnectionId, out _));
         Assert.Null(recovered);
+    }
+
+    [Fact]
+    public async Task DetachedTransportCanCommitTerminalCloseBeforeReconnect()
+    {
+        using var application = EmulatorApplication.Build();
+        var manager = application.Services.GetRequiredService<ConnectionManager>();
+        var connection = CreateConnection(manager, "connection", reliable: true);
+        using var original = connection.TryAttach(
+            new TestWebSocket(),
+            TestClientPayloadProcessor.Instance);
+        Assert.NotNull(original);
+        Assert.True(manager.TryActivate(connection));
+        var processingStarted = new TaskCompletionSource(
+            TaskCreationOptions.RunContinuationsAsynchronously);
+        var releaseProcessing = new TaskCompletionSource(
+            TaskCreationOptions.RunContinuationsAsynchronously);
+        var processing = connection.ProcessIfCurrentAsync(
+            original,
+            async () =>
+            {
+                processingStarted.TrySetResult();
+                await releaseProcessing.Task;
+                connection.Detach(original);
+                Assert.True(connection.CloseIfCurrent(
+                    original,
+                    WebSocketCloseStatus.NormalClosure,
+                    "done"));
+            },
+            CancellationToken.None).AsTask();
+        await processingStarted.Task.WaitAsync(TestTimeout);
+
+        var reconnect = connection.TryReconnectAsync(
+            new TestWebSocket(),
+            TestClientPayloadProcessor.Instance,
+            CancellationToken.None).AsTask();
+        releaseProcessing.TrySetResult();
+
+        Assert.True(await processing.WaitAsync(TestTimeout));
+        Assert.Null(await reconnect.WaitAsync(TestTimeout));
+        Assert.False(manager.TryGet(connection.Hub, connection.ConnectionId, out _));
+    }
+
+    [Fact]
+    public async Task TransportAbortExpiresWhileMessageProcessingIsBlocked()
+    {
+        using var application = EmulatorApplication.Build(
+            EmulatorApplication.CreateBuilder(
+                runtimeOptions: new EmulatorRuntimeOptions
+                {
+                    ReconnectTimeout = TimeSpan.FromMilliseconds(50),
+                }));
+        var manager = application.Services.GetRequiredService<ConnectionManager>();
+        var handler = application.Services.GetRequiredService<ClientConnectionHandler>();
+        var connection = CreateConnection(manager, "connection", reliable: true);
+        var socket = new GatedReceiveWebSocket(
+            new WebSocketReceiveResult(1, WebSocketMessageType.Text, endOfMessage: true));
+        var processor = new GatedProcessPayloadProcessor();
+        using var transport = connection.TryAttach(socket, processor);
+        Assert.NotNull(transport);
+        Assert.True(manager.TryActivate(connection));
+        var handlerTask = handler.RunAsync(
+            connection.ConnectionId,
+            connection,
+            transport,
+            processor,
+            CancellationToken.None);
+        await socket.ReceiveStarted.Task.WaitAsync(TestTimeout);
+        socket.Release.TrySetResult();
+        await processor.Started.Task.WaitAsync(TestTimeout);
+
+        transport.Abort();
+        await Task.Delay(TimeSpan.FromMilliseconds(250));
+
+        Assert.False(manager.TryGet(connection.Hub, connection.ConnectionId, out _));
+        processor.Release.TrySetResult();
+        await handlerTask.WaitAsync(TestTimeout);
     }
 
     [Fact]
@@ -828,6 +985,76 @@ public class LogicalConnectionTests
         {
             Processed.TrySetResult();
             return ValueTask.FromResult(PayloadProcessingResult.Continue);
+        }
+
+        public WebSocketPayload EncodeGroupData(
+            LogicalConnection connection,
+            string group,
+            string? fromUserId,
+            MessageData data,
+            ulong? sequenceId)
+        {
+            return new WebSocketPayload(data.Bytes, WebSocketMessageType.Text);
+        }
+    }
+
+    private sealed class GatedProcessPayloadProcessor : IClientPayloadProcessor
+    {
+        public TaskCompletionSource Started { get; } =
+            new(TaskCreationOptions.RunContinuationsAsynchronously);
+
+        public TaskCompletionSource Release { get; } =
+            new(TaskCreationOptions.RunContinuationsAsynchronously);
+
+        public void OnConnected(LogicalConnection connection)
+        {
+        }
+
+        public async ValueTask<PayloadProcessingResult> ProcessAsync(
+            LogicalConnection connection,
+            WebSocketMessageType messageType,
+            byte[] payload,
+            CancellationToken cancellationToken)
+        {
+            Started.TrySetResult();
+            await Release.Task;
+            return PayloadProcessingResult.Continue;
+        }
+
+        public WebSocketPayload EncodeGroupData(
+            LogicalConnection connection,
+            string group,
+            string? fromUserId,
+            MessageData data,
+            ulong? sequenceId)
+        {
+            return new WebSocketPayload(data.Bytes, WebSocketMessageType.Text);
+        }
+    }
+
+    private sealed class GatedClosingPayloadProcessor : IClientPayloadProcessor
+    {
+        public TaskCompletionSource Started { get; } =
+            new(TaskCreationOptions.RunContinuationsAsynchronously);
+
+        public TaskCompletionSource Release { get; } =
+            new(TaskCreationOptions.RunContinuationsAsynchronously);
+
+        public void OnConnected(LogicalConnection connection)
+        {
+        }
+
+        public async ValueTask<PayloadProcessingResult> ProcessAsync(
+            LogicalConnection connection,
+            WebSocketMessageType messageType,
+            byte[] payload,
+            CancellationToken cancellationToken)
+        {
+            Started.TrySetResult();
+            await Release.Task;
+            return PayloadProcessingResult.Close(
+                WebSocketCloseStatus.InvalidPayloadData,
+                "invalid");
         }
 
         public WebSocketPayload EncodeGroupData(

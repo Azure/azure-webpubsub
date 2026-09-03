@@ -110,7 +110,6 @@ public class ClientWebSocketEndpointTests
 
     [Theory]
     [InlineData("custom.protocol")]
-    [InlineData("json.reliable.webpubsub.azure.v1")]
     [InlineData("protobuf.webpubsub.azure.v1")]
     public async Task UnsupportedSubprotocolIsNotSelected(string subprotocol)
     {
@@ -140,6 +139,162 @@ public class ClientWebSocketEndpointTests
         Assert.Equal("connected", message.RootElement.GetProperty("event").GetString());
         Assert.False(string.IsNullOrEmpty(
             message.RootElement.GetProperty("connectionId").GetString()));
+    }
+
+    [Fact]
+    public async Task ReliableJsonSubprotocolReceivesReconnectionToken()
+    {
+        await using var application = await StartApplicationAsync();
+        using var webSocket = await ConnectAsync(
+            application,
+            subprotocol: WebPubSubJsonV1PayloadProcessor.ReliableSubprotocolName);
+
+        using var message = await ReceiveJsonAsync(webSocket);
+
+        Assert.Equal(
+            WebPubSubJsonV1PayloadProcessor.ReliableSubprotocolName,
+            webSocket.SubProtocol);
+        var reconnectionToken = message.RootElement
+            .GetProperty("reconnectionToken")
+            .GetString();
+        Assert.False(string.IsNullOrEmpty(reconnectionToken));
+        Assert.Equal(
+            "https://webpubsub.azure.com",
+            new JwtSecurityTokenHandler().ReadJwtToken(reconnectionToken).Issuer);
+    }
+
+    [Fact]
+    public async Task InvalidReconnectionTokenClosesWithPolicyViolation()
+    {
+        await using var application = await StartApplicationAsync();
+        var client = application.GetTestServer().CreateWebSocketClient();
+        client.SubProtocols.Add(WebPubSubJsonV1PayloadProcessor.ReliableSubprotocolName);
+
+        using var recovered = await client.ConnectAsync(
+            CreateReconnectUri("missing", "invalid-token"),
+            CancellationToken.None).WaitAsync(TestTimeout);
+        var result = await recovered.ReceiveAsync(new byte[256], CancellationToken.None)
+            .WaitAsync(TestTimeout);
+
+        Assert.Equal(WebSocketMessageType.Close, result.MessageType);
+        Assert.Equal(WebSocketCloseStatus.PolicyViolation, result.CloseStatus);
+    }
+
+    [Fact]
+    public async Task ReconnectionTokenIsScopedToConnectionId()
+    {
+        await using var application = await StartApplicationAsync();
+        using var initial = await ConnectAsync(
+            application,
+            subprotocol: WebPubSubJsonV1PayloadProcessor.ReliableSubprotocolName);
+        using var connected = await ReceiveJsonAsync(initial);
+        var reconnectionToken = connected.RootElement
+            .GetProperty("reconnectionToken")
+            .GetString()!;
+        var client = application.GetTestServer().CreateWebSocketClient();
+        client.SubProtocols.Add(WebPubSubJsonV1PayloadProcessor.ReliableSubprotocolName);
+
+        using var recovered = await client.ConnectAsync(
+            CreateReconnectUri("another-connection", reconnectionToken),
+            CancellationToken.None).WaitAsync(TestTimeout);
+        var result = await recovered.ReceiveAsync(new byte[256], CancellationToken.None)
+            .WaitAsync(TestTimeout);
+
+        Assert.Equal(WebSocketMessageType.Close, result.MessageType);
+        Assert.Equal(WebSocketCloseStatus.PolicyViolation, result.CloseStatus);
+    }
+
+    [Fact]
+    public async Task ReconnectWithoutTokenClosesWithPolicyViolation()
+    {
+        await using var application = await StartApplicationAsync();
+        var client = application.GetTestServer().CreateWebSocketClient();
+        client.SubProtocols.Add(WebPubSubJsonV1PayloadProcessor.ReliableSubprotocolName);
+        var uri = new Uri(
+            $"ws://localhost/client/hubs/{Hub}?awps_connection_id=connection");
+
+        using var webSocket = await client.ConnectAsync(uri, CancellationToken.None)
+            .WaitAsync(TestTimeout);
+        var result = await webSocket.ReceiveAsync(new byte[256], CancellationToken.None)
+            .WaitAsync(TestTimeout);
+
+        Assert.Equal(WebSocketMessageType.Close, result.MessageType);
+        Assert.Equal(WebSocketCloseStatus.PolicyViolation, result.CloseStatus);
+    }
+
+    [Theory]
+    [InlineData(null)]
+    [InlineData(WebPubSubJsonV1PayloadProcessor.SubprotocolName)]
+    public async Task ReconnectUsesOriginalReliableSubprotocol(string? requestedSubprotocol)
+    {
+        await using var application = await StartApplicationAsync();
+        using var initial = await ConnectAsync(
+            application,
+            subprotocol: WebPubSubJsonV1PayloadProcessor.ReliableSubprotocolName);
+        using var connected = await ReceiveJsonAsync(initial);
+        var connectionId = connected.RootElement.GetProperty("connectionId").GetString()!;
+        var reconnectionToken = connected.RootElement
+            .GetProperty("reconnectionToken")
+            .GetString()!;
+        var client = application.GetTestServer().CreateWebSocketClient();
+        if (requestedSubprotocol is not null)
+        {
+            client.SubProtocols.Add(requestedSubprotocol);
+        }
+
+        using var recovered = await client.ConnectAsync(
+            CreateReconnectUri(connectionId, reconnectionToken),
+            CancellationToken.None).WaitAsync(TestTimeout);
+        await recovered.SendAsync(
+            "{\"type\":\"ping\"}"u8.ToArray(),
+            WebSocketMessageType.Text,
+            endOfMessage: true,
+            CancellationToken.None).WaitAsync(TestTimeout);
+        using var pong = await ReceiveJsonAsync(recovered);
+
+        Assert.Equal(
+            WebPubSubJsonV1PayloadProcessor.ReliableSubprotocolName,
+            recovered.SubProtocol,
+            ignoreCase: true);
+        Assert.Equal("pong", pong.RootElement.GetProperty("type").GetString());
+    }
+
+    [Fact]
+    public async Task ReconnectionTokenWithoutConnectionIdStartsNewConnection()
+    {
+        await using var application = await StartApplicationAsync();
+        using var webSocket = await ConnectAsync(
+            application,
+            query: "awps_reconnection_token=stray",
+            subprotocol: WebPubSubJsonV1PayloadProcessor.SubprotocolName);
+
+        using var connected = await ReceiveJsonAsync(webSocket);
+
+        Assert.Equal("connected", connected.RootElement.GetProperty("event").GetString());
+    }
+
+    [Fact]
+    public async Task ReconnectCanonicalizesHubName()
+    {
+        await using var application = await StartApplicationAsync();
+        using var initial = await ConnectAsync(
+            application,
+            subprotocol: WebPubSubJsonV1PayloadProcessor.ReliableSubprotocolName);
+        using var connected = await ReceiveJsonAsync(initial);
+        var connectionId = connected.RootElement.GetProperty("connectionId").GetString()!;
+        var reconnectionToken = connected.RootElement
+            .GetProperty("reconnectionToken")
+            .GetString()!;
+        var client = application.GetTestServer().CreateWebSocketClient();
+
+        using var recovered = await client.ConnectAsync(
+            CreateReconnectUri(connectionId, reconnectionToken, hub: "CHAT"),
+            CancellationToken.None).WaitAsync(TestTimeout);
+
+        Assert.Equal(
+            WebPubSubJsonV1PayloadProcessor.ReliableSubprotocolName,
+            recovered.SubProtocol,
+            ignoreCase: true);
     }
 
     [Fact]
@@ -258,6 +413,16 @@ public class ClientWebSocketEndpointTests
             uri += $"&{query}";
         }
         return new Uri(uri);
+    }
+
+    private static Uri CreateReconnectUri(
+        string connectionId,
+        string reconnectionToken,
+        string hub = Hub)
+    {
+        return new Uri(
+            $"ws://localhost/client/hubs/{hub}?awps_connection_id={Uri.EscapeDataString(connectionId)}" +
+            $"&awps_reconnection_token={Uri.EscapeDataString(reconnectionToken)}");
     }
 
     private static string CreateToken(

@@ -123,7 +123,9 @@ internal sealed partial class WebPubSubJsonV1Protocol
         }
     }
 
-    public WebSocketPayload WriteConnected(LogicalConnection connection)
+    public WebSocketPayload WriteConnected(
+        LogicalConnection connection,
+        string? reconnectionToken = null)
     {
         return WriteJson(writer =>
         {
@@ -132,6 +134,10 @@ internal sealed partial class WebPubSubJsonV1Protocol
             writer.WriteString("event", "connected");
             writer.WriteString("userId", connection.UserId);
             writer.WriteString("connectionId", connection.ConnectionId);
+            if (reconnectionToken is not null)
+            {
+                writer.WriteString("reconnectionToken", reconnectionToken);
+            }
             writer.WriteEndObject();
         });
     }

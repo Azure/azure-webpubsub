@@ -38,6 +38,8 @@ internal sealed class EmulatorRuntimeOptions
 
     public TimeSpan ReconnectTimeout { get; init; } = TimeSpan.FromSeconds(30);
 
+    public TimeSpan ReconnectionTokenLifetime { get; init; } = TimeSpan.FromDays(7);
+
     public int ReliableMessageBufferCapacity { get; init; } = 1000;
 
     public long MaxReliableMessageBufferBytes { get; init; } = 16 * 1024 * 1024;

@@ -16,6 +16,7 @@ internal sealed class LogicalConnection
     private const string ReliableBufferFullReason = "The reliable message buffer is full.";
 
     private readonly SemaphoreSlim _processingGate = new(1, 1);
+    private readonly SemaphoreSlim _messageProcessingGate = new(1, 1);
     private readonly object _stateLock = new();
     private readonly Queue<(ulong SequenceId, WebSocketPayload Payload)> _unacknowledgedMessages = [];
     private readonly ConnectionManager _manager;
@@ -45,12 +46,14 @@ internal sealed class LogicalConnection
         ConnectionManager manager,
         EmulatorRuntimeOptions runtimeOptions,
         bool reliable = false,
+        string? subprotocol = null,
         ILogger? logger = null)
     {
         ConnectionId = connectionId;
         Hub = hub;
         RawSendToGroup = rawSendToGroup;
         IsReliable = reliable;
+        Subprotocol = subprotocol;
         _manager = manager;
         _logger = logger;
         _runtimeOptions = runtimeOptions;
@@ -93,6 +96,8 @@ internal sealed class LogicalConnection
     public string? UserId { get; }
 
     public bool IsReliable { get; }
+
+    public string? Subprotocol { get; }
 
     public AckCache AckIdCache { get; } = new();
 
@@ -426,6 +431,35 @@ internal sealed class LogicalConnection
         }
     }
 
+    public async ValueTask<(
+        PayloadProcessingResult Result,
+        SocketTransport? ClosingTransport)?> ProcessReceivedMessageAsync(
+        Func<ValueTask<PayloadProcessingResult>> process,
+        CancellationToken cancellationToken)
+    {
+        await _messageProcessingGate.WaitAsync(cancellationToken);
+        try
+        {
+            lock (_stateLock)
+            {
+                if (_closed)
+                {
+                    return null;
+                }
+            }
+
+            var result = await process();
+            var closingTransport = result.CloseStatus is { } closeStatus
+                ? Close(closeStatus, result.CloseDescription ?? string.Empty)
+                : null;
+            return (result, closingTransport);
+        }
+        finally
+        {
+            _messageProcessingGate.Release();
+        }
+    }
+
     public bool CloseIfCurrent(
         SocketTransport transport,
         WebSocketCloseStatus closeStatus,
@@ -433,19 +467,48 @@ internal sealed class LogicalConnection
     {
         lock (_stateLock)
         {
-            if (_closed || !ReferenceEquals(_activeTransport, transport))
+            if (_closed ||
+                (!ReferenceEquals(_activeTransport, transport) &&
+                    !ReferenceEquals(_detachedTransport, transport)))
             {
                 return false;
             }
 
             transport.TryCloseOutput(closeStatus, closeDescription);
             _closed = true;
+            _activeTransport = null;
+            _detachedTransport = null;
             _activePayloadProcessor = null;
             ClearReliableBufferLocked();
         }
 
         _manager.Remove(this);
         return true;
+    }
+
+    public SocketTransport? Close(
+        WebSocketCloseStatus closeStatus,
+        string closeDescription)
+    {
+        SocketTransport? transport;
+        lock (_stateLock)
+        {
+            if (_closed)
+            {
+                return null;
+            }
+
+            transport = _activeTransport ?? _detachedTransport;
+            transport?.TryCloseOutput(closeStatus, closeDescription);
+            _closed = true;
+            _activeTransport = null;
+            _detachedTransport = null;
+            _activePayloadProcessor = null;
+            ClearReliableBufferLocked();
+        }
+
+        _manager.Remove(this);
+        return transport;
     }
 
     public void Detach(SocketTransport transport)
