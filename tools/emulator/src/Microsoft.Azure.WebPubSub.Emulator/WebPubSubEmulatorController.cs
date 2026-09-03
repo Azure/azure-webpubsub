@@ -145,6 +145,81 @@ internal sealed class WebPubSubEmulatorController : WebPubSubApiControllerDefini
         return Accepted();
     }
 
+    [HttpPut(
+        "/api/hubs/{hub}/groups/{group}/connections/{connectionId}",
+        Name = "WebPubSub_AddConnectionToGroup")]
+    public IActionResult AddConnectionToGroup(
+        [RegularExpression(
+            WebPubSubNameValidator.HubNamePattern,
+            ErrorMessage = "Invalid hub name.")]
+        string hub,
+        [StringLength(
+            WebPubSubNameValidator.MaximumGroupNameLength,
+            MinimumLength = 1,
+            ErrorMessage = "Invalid group name.")]
+        [RegularExpression(
+            WebPubSubNameValidator.NotWhitespacePattern,
+            ErrorMessage = "Invalid group name.")]
+        string group,
+        [MinLength(1, ErrorMessage = "Invalid connection ID.")]
+        string connectionId,
+        CancellationToken cancellationToken = default)
+    {
+        if (!Authorize())
+        {
+            return Unauthorized();
+        }
+
+        if (_connections.AddConnectionToGroup(
+            hub.ToLowerInvariant(),
+            group,
+            connectionId))
+        {
+            return Ok();
+        }
+
+        const string errorCode = "Error.Connection.NotExisted";
+        Response.Headers["x-ms-error-code"] = errorCode;
+        return NotFound(new
+        {
+            code = errorCode,
+            message = $"Connection `{connectionId}` is not found.",
+            target = "Connection",
+        });
+    }
+
+    [HttpDelete(
+        "/api/hubs/{hub}/groups/{group}/connections/{connectionId}",
+        Name = "WebPubSub_RemoveConnectionFromGroup")]
+    public IActionResult RemoveConnectionFromGroup(
+        [RegularExpression(
+            WebPubSubNameValidator.HubNamePattern,
+            ErrorMessage = "Invalid hub name.")]
+        string hub,
+        [StringLength(
+            WebPubSubNameValidator.MaximumGroupNameLength,
+            MinimumLength = 1,
+            ErrorMessage = "Invalid group name.")]
+        [RegularExpression(
+            WebPubSubNameValidator.NotWhitespacePattern,
+            ErrorMessage = "Invalid group name.")]
+        string group,
+        [MinLength(1, ErrorMessage = "Invalid connection ID.")]
+        string connectionId,
+        CancellationToken cancellationToken = default)
+    {
+        if (!Authorize())
+        {
+            return Unauthorized();
+        }
+
+        _connections.RemoveConnectionFromGroup(
+            hub.ToLowerInvariant(),
+            group,
+            connectionId);
+        return NoContent();
+    }
+
     private bool Authorize()
     {
         var authorization = Request.Headers.Authorization.ToString();

@@ -71,6 +71,20 @@ internal sealed class ConnectionManager
         }
     }
 
+    public bool AddConnectionToGroup(string hub, string group, string connectionId)
+    {
+        return _connections.TryGetValue((hub, connectionId), out var connection) &&
+            connection.TryAddToGroup(group);
+    }
+
+    public void RemoveConnectionFromGroup(string hub, string group, string connectionId)
+    {
+        if (_connections.TryGetValue((hub, connectionId), out var connection))
+        {
+            connection.RemoveFromGroup(group);
+        }
+    }
+
     public void CloseConnection(
         string hub,
         string connectionId,

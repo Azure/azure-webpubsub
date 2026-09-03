@@ -8,6 +8,7 @@ namespace Microsoft.Azure.WebPubSub.Emulator;
 internal static partial class WebPubSubNameValidator
 {
     public const string HubNamePattern = "^[A-Za-z][A-Za-z0-9_`,.\\[\\]]{0,127}$";
+    public const string NotWhitespacePattern = "^(?!\\s+$).+$";
     public const int MaximumGroupNameLength = 1024;
 
     public static bool IsValidGroupName(string? group)
