@@ -1,6 +1,7 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License.
 
+using System.Collections;
 using System.Text;
 using System.Text.RegularExpressions;
 using Microsoft.CodeAnalysis;
@@ -9,8 +10,8 @@ using Microsoft.CodeAnalysis.Text;
 
 namespace Microsoft.Azure.WebPubSub.Emulator.ApiSourceGenerator;
 
-[Generator]
-public sealed class ApiSourceGenerator : ISourceGenerator
+[Generator(LanguageNames.CSharp)]
+public sealed class ApiSourceGenerator : IIncrementalGenerator
 {
     private const string ApiAttributeName =
         "Microsoft.Azure.WebPubSub.Emulator.WebPubSubApiAttribute";
@@ -37,91 +38,120 @@ public sealed class ApiSourceGenerator : ISourceGenerator
         DiagnosticSeverity.Error,
         isEnabledByDefault: true);
 
-    public void Initialize(GeneratorInitializationContext context)
+    public void Initialize(IncrementalGeneratorInitializationContext context)
     {
-        context.RegisterForSyntaxNotifications(static () => new SyntaxReceiver());
+        var definitions = context.SyntaxProvider.ForAttributeWithMetadataName(
+            ApiAttributeName,
+            static (node, _) => node is ClassDeclarationSyntax,
+            static (attributeContext, cancellationToken) => Transform(attributeContext, cancellationToken));
+
+        context.RegisterSourceOutput(definitions, static (context, definition) => Emit(context, definition));
     }
 
-    public void Execute(GeneratorExecutionContext context)
+    private static ApiDefinition Transform(
+        GeneratorAttributeSyntaxContext context,
+        CancellationToken cancellationToken)
     {
-        if (context.SyntaxReceiver is not SyntaxReceiver receiver)
+        cancellationToken.ThrowIfCancellationRequested();
+
+        if (context.TargetSymbol is not INamedTypeSymbol type ||
+            context.TargetNode is not ClassDeclarationSyntax declaration)
+        {
+            return ApiDefinition.Empty;
+        }
+
+        var location = LocationInfo.From(declaration.Identifier);
+        var diagnostics = new List<DiagnosticInfo>();
+        var attributes = type.GetAttributes();
+        var api = attributes.SingleOrDefault(attribute =>
+            attribute.AttributeClass?.ToDisplayString() == ApiAttributeName);
+        if (api is null)
+        {
+            return ApiDefinition.Empty;
+        }
+
+        if (!TryGetString(api, 0, out var apiVersion))
+        {
+            diagnostics.Add(new DiagnosticInfo(location, "The WebPubSubApi attribute requires an API version."));
+            return ApiDefinition.Invalid(diagnostics);
+        }
+
+        var operations = new List<ApiOperation>();
+        var valid = true;
+        foreach (var attribute in attributes
+            .Where(attribute => attribute.AttributeClass?.ToDisplayString() == OperationAttributeName)
+            .OrderBy(attribute => attribute.ApplicationSyntaxReference?.Span.Start))
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+
+            ApiOperation? operation = null;
+            string? error = null;
+            if (!TryGetString(attribute, 0, out var method) ||
+                !TryGetString(attribute, 1, out var path) ||
+                !TryGetString(attribute, 2, out var operationId) ||
+                !TryCreateOperation(method, path, operationId, out operation, out error))
+            {
+                diagnostics.Add(new DiagnosticInfo(
+                    location,
+                    error ?? "A WebPubSubApiOperation attribute is invalid."));
+                valid = false;
+                continue;
+            }
+
+            operations.Add(operation!);
+        }
+
+        if (!valid || operations.Count == 0 || !ValidateOperations(diagnostics, location, operations))
+        {
+            return ApiDefinition.Invalid(diagnostics);
+        }
+
+        return new ApiDefinition(
+            type.Name,
+            type.ContainingNamespace.ToDisplayString(),
+            apiVersion,
+            new EquatableArray<ApiOperation>(operations.ToArray()),
+            new EquatableArray<DiagnosticInfo>(diagnostics.ToArray()));
+    }
+
+    private static void Emit(SourceProductionContext context, ApiDefinition definition)
+    {
+        foreach (var diagnostic in definition.Diagnostics)
+        {
+            context.ReportDiagnostic(Diagnostic.Create(
+                InvalidDefinition,
+                diagnostic.Location?.ToLocation(),
+                diagnostic.Message));
+        }
+
+        if (!definition.HasSource)
         {
             return;
         }
 
-        foreach (var declaration in receiver.Candidates)
-        {
-            var model = context.Compilation.GetSemanticModel(declaration.SyntaxTree);
-            if (model.GetDeclaredSymbol(declaration) is not INamedTypeSymbol type)
-            {
-                continue;
-            }
-
-            var attributes = type.GetAttributes();
-            var api = attributes.SingleOrDefault(attribute =>
-                attribute.AttributeClass?.ToDisplayString() == ApiAttributeName);
-            if (api is null)
-            {
-                continue;
-            }
-
-            if (!TryGetString(api, 0, out var apiVersion))
-            {
-                Report(context, declaration, "The WebPubSubApi attribute requires an API version.");
-                continue;
-            }
-
-            var operations = new List<ApiOperation>();
-            var valid = true;
-            foreach (var attribute in attributes
-                .Where(attribute => attribute.AttributeClass?.ToDisplayString() == OperationAttributeName)
-                .OrderBy(attribute => attribute.ApplicationSyntaxReference?.Span.Start))
-            {
-                ApiOperation? operation = null;
-                string? error = null;
-                if (!TryGetString(attribute, 0, out var method) ||
-                    !TryGetString(attribute, 1, out var path) ||
-                    !TryGetString(attribute, 2, out var operationId) ||
-                    !TryCreateOperation(method, path, operationId, out operation, out error))
-                {
-                    Report(context, declaration, error ?? "A WebPubSubApiOperation attribute is invalid.");
-                    valid = false;
-                    continue;
-                }
-
-                operations.Add(operation!);
-            }
-
-            if (!valid || operations.Count == 0 || !ValidateOperations(context, declaration, operations))
-            {
-                continue;
-            }
-
-            context.AddSource(
-                $"{type.Name}.g.cs",
-                SourceText.From(Generate(type, apiVersion, operations), Encoding.UTF8));
-        }
+        context.AddSource(
+            $"{definition.TypeName}.g.cs",
+            SourceText.From(Generate(definition), Encoding.UTF8));
     }
 
     private static bool ValidateOperations(
-        GeneratorExecutionContext context,
-        ClassDeclarationSyntax declaration,
+        List<DiagnosticInfo> diagnostics,
+        LocationInfo? location,
         IReadOnlyCollection<ApiOperation> operations)
     {
         var valid = true;
         foreach (var duplicate in operations.GroupBy(operation => operation.ActionName)
             .Where(group => group.Count() > 1))
         {
-            Report(context, declaration, $"Action name '{duplicate.Key}' is duplicated.");
+            diagnostics.Add(new DiagnosticInfo(location, $"Action name '{duplicate.Key}' is duplicated."));
             valid = false;
         }
         foreach (var duplicate in operations.GroupBy(operation => (operation.Method, operation.Path))
             .Where(group => group.Count() > 1))
         {
-            Report(
-                context,
-                declaration,
-                $"Route '{duplicate.Key.Method} {duplicate.Key.Path}' is duplicated.");
+            diagnostics.Add(new DiagnosticInfo(
+                location,
+                $"Route '{duplicate.Key.Method} {duplicate.Key.Path}' is duplicated."));
             valid = false;
         }
 
@@ -172,15 +202,18 @@ public sealed class ApiSourceGenerator : ISourceGenerator
             .Cast<Match>()
             .Select(match => GetParameterName(match.Groups[1].Value))
             .ToArray();
-        operation = new(attributeName, method.ToUpperInvariant(), path, operationId, actionName, parameters);
+        operation = new(
+            attributeName,
+            method.ToUpperInvariant(),
+            path,
+            operationId,
+            actionName,
+            new EquatableArray<string>(parameters));
         error = null;
         return true;
     }
 
-    private static string Generate(
-        INamedTypeSymbol type,
-        string apiVersion,
-        IReadOnlyCollection<ApiOperation> operations)
+    private static string Generate(ApiDefinition definition)
     {
         var builder = new StringBuilder();
         builder.AppendLine("// <auto-generated />");
@@ -188,15 +221,15 @@ public sealed class ApiSourceGenerator : ISourceGenerator
         builder.AppendLine("using Microsoft.AspNetCore.Mvc;");
         builder.AppendLine("using Microsoft.AspNetCore.Mvc.Filters;");
         builder.AppendLine();
-        builder.Append("namespace ").Append(type.ContainingNamespace.ToDisplayString()).AppendLine(";");
+        builder.Append("namespace ").Append(definition.Namespace).AppendLine(";");
         builder.AppendLine();
         builder.AppendLine("[ApiController]");
-        builder.Append("internal abstract partial class ").Append(type.Name)
+        builder.Append("internal abstract partial class ").Append(definition.TypeName)
             .AppendLine(" : ControllerBase, IAsyncActionFilter");
         builder.AppendLine("{");
-        builder.Append("    public const string ApiVersion = \"").Append(Escape(apiVersion)).AppendLine("\";");
+        builder.Append("    public const string ApiVersion = \"").Append(Escape(definition.ApiVersion!)).AppendLine("\";");
 
-        foreach (var operation in operations)
+        foreach (var operation in definition.Operations)
         {
             builder.AppendLine();
             builder.Append("    [").Append(operation.AttributeName).Append("(\"")
@@ -244,31 +277,70 @@ public sealed class ApiSourceGenerator : ISourceGenerator
     private static string Escape(string value) =>
         value.Replace("\\", "\\\\").Replace("\"", "\\\"");
 
-    private static void Report(
-        GeneratorExecutionContext context,
-        ClassDeclarationSyntax declaration,
-        string message)
+    /// <summary>
+    /// The model that flows through the incremental pipeline. It carries only
+    /// value-equatable data so successive runs can be compared without rooting a
+    /// compilation.
+    /// </summary>
+    private sealed class ApiDefinition : IEquatable<ApiDefinition>
     {
-        context.ReportDiagnostic(Diagnostic.Create(
-            InvalidDefinition,
-            declaration.Identifier.GetLocation(),
-            message));
-    }
+        public static readonly ApiDefinition Empty = new(null, null, null, default, default);
 
-    private sealed class SyntaxReceiver : ISyntaxReceiver
-    {
-        public List<ClassDeclarationSyntax> Candidates { get; } = new();
-
-        public void OnVisitSyntaxNode(SyntaxNode syntaxNode)
+        public ApiDefinition(
+            string? typeName,
+            string? containingNamespace,
+            string? apiVersion,
+            EquatableArray<ApiOperation> operations,
+            EquatableArray<DiagnosticInfo> diagnostics)
         {
-            if (syntaxNode is ClassDeclarationSyntax declaration && declaration.AttributeLists.Count > 0)
+            TypeName = typeName;
+            Namespace = containingNamespace;
+            ApiVersion = apiVersion;
+            Operations = operations;
+            Diagnostics = diagnostics;
+        }
+
+        public static ApiDefinition Invalid(List<DiagnosticInfo> diagnostics) =>
+            new(null, null, null, default, new EquatableArray<DiagnosticInfo>(diagnostics.ToArray()));
+
+        public string? TypeName { get; }
+
+        public string? Namespace { get; }
+
+        public string? ApiVersion { get; }
+
+        public EquatableArray<ApiOperation> Operations { get; }
+
+        public EquatableArray<DiagnosticInfo> Diagnostics { get; }
+
+        public bool HasSource => TypeName is not null && ApiVersion is not null;
+
+        public bool Equals(ApiDefinition? other) =>
+            other is not null &&
+            TypeName == other.TypeName &&
+            Namespace == other.Namespace &&
+            ApiVersion == other.ApiVersion &&
+            Operations.Equals(other.Operations) &&
+            Diagnostics.Equals(other.Diagnostics);
+
+        public override bool Equals(object? obj) => Equals(obj as ApiDefinition);
+
+        public override int GetHashCode()
+        {
+            unchecked
             {
-                Candidates.Add(declaration);
+                var hash = 17;
+                hash = (hash * 31) + (TypeName?.GetHashCode() ?? 0);
+                hash = (hash * 31) + (Namespace?.GetHashCode() ?? 0);
+                hash = (hash * 31) + (ApiVersion?.GetHashCode() ?? 0);
+                hash = (hash * 31) + Operations.GetHashCode();
+                hash = (hash * 31) + Diagnostics.GetHashCode();
+                return hash;
             }
         }
     }
 
-    private sealed class ApiOperation
+    private sealed class ApiOperation : IEquatable<ApiOperation>
     {
         public ApiOperation(
             string attributeName,
@@ -276,7 +348,7 @@ public sealed class ApiSourceGenerator : ISourceGenerator
             string path,
             string operationId,
             string actionName,
-            string[] parameters)
+            EquatableArray<string> parameters)
         {
             AttributeName = attributeName;
             Method = method;
@@ -296,6 +368,174 @@ public sealed class ApiSourceGenerator : ISourceGenerator
 
         public string ActionName { get; }
 
-        public string[] Parameters { get; }
+        public EquatableArray<string> Parameters { get; }
+
+        public bool Equals(ApiOperation? other) =>
+            other is not null &&
+            AttributeName == other.AttributeName &&
+            Method == other.Method &&
+            Path == other.Path &&
+            OperationId == other.OperationId &&
+            ActionName == other.ActionName &&
+            Parameters.Equals(other.Parameters);
+
+        public override bool Equals(object? obj) => Equals(obj as ApiOperation);
+
+        public override int GetHashCode()
+        {
+            unchecked
+            {
+                var hash = 17;
+                hash = (hash * 31) + AttributeName.GetHashCode();
+                hash = (hash * 31) + Method.GetHashCode();
+                hash = (hash * 31) + Path.GetHashCode();
+                hash = (hash * 31) + OperationId.GetHashCode();
+                hash = (hash * 31) + ActionName.GetHashCode();
+                hash = (hash * 31) + Parameters.GetHashCode();
+                return hash;
+            }
+        }
+    }
+
+    private readonly struct DiagnosticInfo : IEquatable<DiagnosticInfo>
+    {
+        public DiagnosticInfo(LocationInfo? location, string message)
+        {
+            Location = location;
+            Message = message;
+        }
+
+        public LocationInfo? Location { get; }
+
+        public string Message { get; }
+
+        public bool Equals(DiagnosticInfo other) =>
+            Nullable.Equals(Location, other.Location) && Message == other.Message;
+
+        public override bool Equals(object? obj) => obj is DiagnosticInfo other && Equals(other);
+
+        public override int GetHashCode()
+        {
+            unchecked
+            {
+                return ((Location?.GetHashCode() ?? 0) * 31) + Message.GetHashCode();
+            }
+        }
+    }
+
+    /// <summary>
+    /// A value-equatable stand-in for <see cref="Microsoft.CodeAnalysis.Location"/>.
+    /// Carrying a <c>Location</c> through the pipeline would root a syntax tree and defeat
+    /// caching, because structurally identical trees from different compilations never
+    /// compare equal.
+    /// </summary>
+    private readonly struct LocationInfo : IEquatable<LocationInfo>
+    {
+        public LocationInfo(string filePath, TextSpan textSpan, LinePositionSpan lineSpan)
+        {
+            FilePath = filePath;
+            TextSpan = textSpan;
+            LineSpan = lineSpan;
+        }
+
+        public string FilePath { get; }
+
+        public TextSpan TextSpan { get; }
+
+        public LinePositionSpan LineSpan { get; }
+
+        public static LocationInfo? From(SyntaxToken token)
+        {
+            var location = token.GetLocation();
+            if (location?.SourceTree is null)
+            {
+                return null;
+            }
+
+            return new LocationInfo(
+                location.SourceTree.FilePath,
+                location.SourceSpan,
+                location.GetLineSpan().Span);
+        }
+
+        public Location ToLocation() => Location.Create(FilePath, TextSpan, LineSpan);
+
+        public bool Equals(LocationInfo other) =>
+            FilePath == other.FilePath &&
+            TextSpan.Equals(other.TextSpan) &&
+            LineSpan.Equals(other.LineSpan);
+
+        public override bool Equals(object? obj) => obj is LocationInfo other && Equals(other);
+
+        public override int GetHashCode()
+        {
+            unchecked
+            {
+                var hash = 17;
+                hash = (hash * 31) + FilePath.GetHashCode();
+                hash = (hash * 31) + TextSpan.GetHashCode();
+                hash = (hash * 31) + LineSpan.GetHashCode();
+                return hash;
+            }
+        }
+    }
+
+    /// <summary>
+    /// Arrays compare by reference, which would make every pipeline comparison a cache
+    /// miss. This wrapper gives sequence equality instead.
+    /// </summary>
+    private readonly struct EquatableArray<T> : IEquatable<EquatableArray<T>>, IReadOnlyList<T>
+        where T : IEquatable<T>
+    {
+        private readonly T[]? _values;
+
+        public EquatableArray(T[] values)
+        {
+            _values = values;
+        }
+
+        public int Count => _values?.Length ?? 0;
+
+        public T this[int index] => _values![index];
+
+        public bool Equals(EquatableArray<T> other)
+        {
+            var left = _values ?? Array.Empty<T>();
+            var right = other._values ?? Array.Empty<T>();
+            if (left.Length != right.Length)
+            {
+                return false;
+            }
+
+            for (var i = 0; i < left.Length; i++)
+            {
+                if (!EqualityComparer<T>.Default.Equals(left[i], right[i]))
+                {
+                    return false;
+                }
+            }
+
+            return true;
+        }
+
+        public override bool Equals(object? obj) => obj is EquatableArray<T> other && Equals(other);
+
+        public override int GetHashCode()
+        {
+            unchecked
+            {
+                var hash = 17;
+                foreach (var value in _values ?? Array.Empty<T>())
+                {
+                    hash = (hash * 31) + (value?.GetHashCode() ?? 0);
+                }
+                return hash;
+            }
+        }
+
+        public IEnumerator<T> GetEnumerator() =>
+            ((IEnumerable<T>)(_values ?? Array.Empty<T>())).GetEnumerator();
+
+        IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
     }
 }
