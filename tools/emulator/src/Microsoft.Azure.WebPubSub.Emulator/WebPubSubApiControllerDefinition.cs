@@ -9,14 +9,6 @@ namespace Microsoft.Azure.WebPubSub.Emulator;
 
 [WebPubSubApi("2024-12-01")]
 [WebPubSubApiOperation("HEAD", "/api/health", "HealthApi_GetServiceStatus")]
-[WebPubSubApiOperation(
-    "HEAD",
-    "/api/hubs/{hub}/connections/{connectionId}",
-    "WebPubSub_ConnectionExists")]
-[WebPubSubApiOperation(
-    "POST",
-    "/api/hubs/{hub}/connections/{connectionId}/:send",
-    "WebPubSub_SendToConnection")]
 internal abstract partial class WebPubSubApiControllerDefinition
 {
     private const string SupportedApiVersionsHeader =

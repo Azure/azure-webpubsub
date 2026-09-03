@@ -7,16 +7,12 @@ namespace Microsoft.Azure.WebPubSub.Emulator;
 
 internal static partial class WebPubSubNameValidator
 {
+    public const string HubNamePattern = "^[A-Za-z][A-Za-z0-9_`,.\\[\\]]{0,127}$";
     public const int MaximumGroupNameLength = 1024;
 
     public static bool IsValidGroupName(string? group)
     {
         return !string.IsNullOrWhiteSpace(group) && group.Length <= MaximumGroupNameLength;
-    }
-
-    public static bool IsValidHubName(string? hub)
-    {
-        return !string.IsNullOrEmpty(hub) && HubNameRegex().IsMatch(hub);
     }
 
     public static bool IsValidEventName(string? eventName)
@@ -28,9 +24,4 @@ internal static partial class WebPubSubNameValidator
         "^[a-z][a-z0-9_.-]{0,127}$",
         RegexOptions.IgnoreCase | RegexOptions.CultureInvariant)]
     private static partial Regex EventNameRegex();
-
-    [GeneratedRegex(
-        "^[A-Za-z][A-Za-z0-9_`,.\\[\\]]{0,127}$",
-        RegexOptions.CultureInvariant)]
-    private static partial Regex HubNameRegex();
 }

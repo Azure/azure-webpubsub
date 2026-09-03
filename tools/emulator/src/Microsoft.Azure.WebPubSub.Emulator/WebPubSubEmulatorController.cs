@@ -1,7 +1,7 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License.
 
-using System.Globalization;
+using System.ComponentModel.DataAnnotations;
 using System.Text;
 using System.Text.Json;
 using Microsoft.AspNetCore.Http;
@@ -12,6 +12,7 @@ namespace Microsoft.Azure.WebPubSub.Emulator;
 [ApiController]
 internal sealed class WebPubSubEmulatorController : WebPubSubApiControllerDefinition
 {
+    private const int MaximumMessageTtlSeconds = 300;
     private const string MetadataHeaderPrefix = "X-WebPubSub-Metadata-";
     private readonly ConnectionManager _connections;
     private readonly EmulatorRuntimeOptions _runtimeOptions;
@@ -33,8 +34,15 @@ internal sealed class WebPubSubEmulatorController : WebPubSubApiControllerDefini
         return Task.FromResult<IActionResult>(Ok());
     }
 
-    public override Task<IActionResult> ConnectionExists(
+    [HttpHead(
+        "/api/hubs/{hub}/connections/{connectionId}",
+        Name = "WebPubSub_ConnectionExists")]
+    public Task<IActionResult> ConnectionExists(
+        [RegularExpression(
+            WebPubSubNameValidator.HubNamePattern,
+            ErrorMessage = "Invalid hub name.")]
         string hub,
+        [MinLength(1, ErrorMessage = "Invalid connection ID.")]
         string connectionId,
         CancellationToken cancellationToken = default)
     {
@@ -42,14 +50,6 @@ internal sealed class WebPubSubEmulatorController : WebPubSubApiControllerDefini
         if (!Authorize())
         {
             result = Unauthorized();
-        }
-        else if (!WebPubSubNameValidator.IsValidHubName(hub))
-        {
-            result = CreateBadRequest("Invalid hub name.");
-        }
-        else if (string.IsNullOrEmpty(connectionId))
-        {
-            result = CreateBadRequest("Invalid connection ID.");
         }
         else
         {
@@ -61,28 +61,26 @@ internal sealed class WebPubSubEmulatorController : WebPubSubApiControllerDefini
         return Task.FromResult(result);
     }
 
-    public override async Task<IActionResult> SendToConnection(
+    [HttpPost(
+        "/api/hubs/{hub}/connections/{connectionId}/:send",
+        Name = "WebPubSub_SendToConnection")]
+    public async Task<IActionResult> SendToConnection(
+        [RegularExpression(
+            WebPubSubNameValidator.HubNamePattern,
+            ErrorMessage = "Invalid hub name.")]
         string hub,
+        [MinLength(1, ErrorMessage = "Invalid connection ID.")]
         string connectionId,
+        [Range(0, MaximumMessageTtlSeconds, ErrorMessage = "Invalid messageTtlSeconds.")]
+        [FromQuery(Name = "messageTtlSeconds")]
+        uint? messageTtlSeconds,
         CancellationToken cancellationToken = default)
     {
         if (!Authorize())
         {
             return Unauthorized();
         }
-        if (!WebPubSubNameValidator.IsValidHubName(hub))
-        {
-            return CreateBadRequest("Invalid hub name.");
-        }
-        if (string.IsNullOrEmpty(connectionId))
-        {
-            return CreateBadRequest("Invalid connection ID.");
-        }
-        if (!TryGetMessageTtl(out var messageTtlSeconds))
-        {
-            return CreateBadRequest("Invalid messageTtlSeconds.");
-        }
-        if (messageTtlSeconds != 0)
+        if (messageTtlSeconds.GetValueOrDefault() != 0)
         {
             return StatusCode(
                 StatusCodes.Status501NotImplemented,
@@ -218,23 +216,6 @@ internal sealed class WebPubSubEmulatorController : WebPubSubApiControllerDefini
         {
             return false;
         }
-    }
-
-    private bool TryGetMessageTtl(out int messageTtlSeconds)
-    {
-        messageTtlSeconds = 0;
-        if (!Request.Query.TryGetValue("messageTtlSeconds", out var values))
-        {
-            return true;
-        }
-
-        return values.Count == 1 &&
-            int.TryParse(
-                values[0],
-                NumberStyles.None,
-                CultureInfo.InvariantCulture,
-                out messageTtlSeconds) &&
-            messageTtlSeconds is >= 0 and <= 300;
     }
 
     private async Task<byte[]?> ReadBodyAsync(
