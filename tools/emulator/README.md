@@ -59,6 +59,30 @@ Reliable connections retain groups and unacknowledged messages for 30 seconds wi
 emulator process. The replay buffer is limited to 1,000 messages and 16 MiB per connection. Send
 `sequenceAck` messages to cumulatively acknowledge delivered sequence IDs.
 
+## Use a server SDK
+
+The emulator supports checking whether a connection exists and sending text, JSON, or binary data
+to a connection through the Azure Web PubSub REST API. For example, use the generated connection
+string with the Azure Web PubSub .NET server SDK:
+
+```csharp
+using Azure.Messaging.WebPubSub;
+
+var serviceClient = new WebPubSubServiceClient(
+  "Endpoint=http://localhost:8080;AccessKey=ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789ABCDEFGH;Version=1.0;",
+  "chat");
+
+bool exists = await serviceClient.ConnectionExistsAsync(connectionId);
+await serviceClient.SendToConnectionAsync(
+  connectionId,
+  BinaryData.FromString("Hello"),
+  ContentType.TextPlain);
+```
+
+Direct sends return success when the connection does not exist, matching the service's
+fire-and-forget behavior. Nonzero `messageTtlSeconds` values are not implemented and return
+`501 Not Implemented` rather than silently ignoring message expiry.
+
 Set the ASP.NET Core `Urls` configuration value to use another address. The generated connection
 string automatically uses the address and port that the emulator actually binds. For example:
 

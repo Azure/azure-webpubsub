@@ -12,3 +12,4 @@
 - Add endpoint-derived local connection strings with a configurable `WebPubSub:AccessKey`.
 - Add opt-in unvalidated Entra token compatibility for trusted local server SDK testing.
 - Add reliable JSON connections with scoped recovery tokens, sequence acknowledgements, and bounded message replay.
+- Add authenticated REST operations and official .NET server SDK compatibility for checking connection presence and sending directly to a connection.

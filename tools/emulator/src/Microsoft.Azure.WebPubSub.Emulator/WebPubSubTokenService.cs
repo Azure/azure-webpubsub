@@ -91,11 +91,23 @@ internal sealed class WebPubSubTokenService
 
         try
         {
-            _handler.ValidateToken(
-                token,
-                CreateValidationParameters(requestUri.AbsoluteUri),
-                out _);
-            return true;
+            foreach (var audience in GetRestAudiences(requestUri))
+            {
+                try
+                {
+                    var parameters = CreateValidationParameters(audience);
+                    parameters.AudienceValidator = (audiences, _, _) => audiences.Any(
+                        input => string.Equals(input, audience, StringComparison.OrdinalIgnoreCase));
+                    _handler.ValidateToken(
+                        token,
+                        parameters,
+                        out _);
+                    return true;
+                }
+                catch (SecurityTokenInvalidAudienceException)
+                {
+                }
+            }
         }
         catch (Exception exception) when (
             exception is SecurityTokenException or ArgumentException)
@@ -106,6 +118,8 @@ internal sealed class WebPubSubTokenService
                 requestUri.AbsolutePath);
             return false;
         }
+
+        return false;
     }
 
     public string IssueReconnectionToken(string connectionId)
@@ -165,5 +179,14 @@ internal sealed class WebPubSubTokenService
         return new Uri(
             endpoint,
             $"{ClientPathPrefix.TrimStart('/')}{Uri.EscapeDataString(hub)}").AbsoluteUri;
+    }
+
+    private static IEnumerable<string> GetRestAudiences(Uri requestUri)
+    {
+        yield return requestUri.AbsoluteUri;
+        if (!string.IsNullOrEmpty(requestUri.Query))
+        {
+            yield return requestUri.GetLeftPart(UriPartial.Path);
+        }
     }
 }

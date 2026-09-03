@@ -55,4 +55,15 @@ internal sealed class SimpleWebSocketPayloadProcessor : IClientPayloadProcessor
             : WebSocketMessageType.Text;
         return new WebSocketPayload(data.Bytes, messageType);
     }
+
+    public WebSocketPayload EncodeServerData(
+        LogicalConnection connection,
+        MessageData data,
+        ulong? sequenceId)
+    {
+        var messageType = data.Type == MessageDataType.Binary
+            ? WebSocketMessageType.Binary
+            : WebSocketMessageType.Text;
+        return new WebSocketPayload(data.Bytes, messageType);
+    }
 }

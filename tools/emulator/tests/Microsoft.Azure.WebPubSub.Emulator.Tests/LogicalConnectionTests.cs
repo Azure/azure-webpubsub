@@ -124,6 +124,28 @@ public class LogicalConnectionTests
     }
 
     [Fact]
+    public async Task RawDirectServerDataPreservesBinaryFrame()
+    {
+        using var application = EmulatorApplication.Build();
+        var manager = application.Services.GetRequiredService<ConnectionManager>();
+        var connection = CreateConnection(manager, "connection");
+        var webSocket = new RecordingSendWebSocket();
+        var processor = new SimpleWebSocketPayloadProcessor(manager);
+        using var transport = connection.TryAttach(webSocket, processor);
+        Assert.NotNull(transport);
+        Assert.True(manager.TryActivate(connection));
+
+        manager.SendToConnection(
+            connection.Hub,
+            connection.ConnectionId,
+            new MessageData(MessageDataType.Binary, new byte[] { 0, 1, 2 }));
+        var sent = await webSocket.Sent.Task.WaitAsync(TestTimeout);
+
+        Assert.Equal(new byte[] { 0, 1, 2 }, sent.Payload);
+        Assert.Equal(WebSocketMessageType.Binary, sent.MessageType);
+    }
+
+    [Fact]
     public void SequenceAckReleasesReliableBufferCapacity()
     {
         using var application = EmulatorApplication.Build(
@@ -283,6 +305,38 @@ public class LogicalConnectionTests
         Assert.True(connection.Groups.ContainsKey("room"));
         Assert.Equal("second"u8.ToArray(), await recoveredSocket.ReadAsync());
         Assert.Equal("third"u8.ToArray(), await recoveredSocket.ReadAsync());
+    }
+
+    [Fact]
+    public async Task ReliableDetachBuffersAndReplaysDirectServerDataInOrder()
+    {
+        using var application = EmulatorApplication.Build();
+        var manager = application.Services.GetRequiredService<ConnectionManager>();
+        var connection = CreateConnection(manager, "connection", reliable: true);
+        var processor = new RecordingSequencePayloadProcessor();
+        using var original = connection.TryAttach(new TestWebSocket(), processor);
+        Assert.NotNull(original);
+        Assert.True(manager.TryActivate(connection));
+        connection.Detach(original);
+
+        manager.SendToConnection(
+            connection.Hub,
+            connection.ConnectionId,
+            new MessageData(MessageDataType.Text, "first"u8.ToArray()));
+        manager.SendToConnection(
+            connection.Hub,
+            connection.ConnectionId,
+            new MessageData(MessageDataType.Text, "second"u8.ToArray()));
+        var recoveredSocket = new QueueingSendWebSocket();
+        using var recovered = await connection.TryReconnectAsync(
+            recoveredSocket,
+            processor,
+            CancellationToken.None);
+
+        Assert.NotNull(recovered);
+        Assert.Equal(new ulong?[] { 1, 2 }, processor.SequenceIds);
+        Assert.Equal("first"u8.ToArray(), await recoveredSocket.ReadAsync());
+        Assert.Equal("second"u8.ToArray(), await recoveredSocket.ReadAsync());
     }
 
     [Fact]
@@ -937,6 +991,14 @@ public class LogicalConnectionTests
                         : WebSocketMessageType.Text)
                 : _webSocketPayload;
         }
+
+        public WebSocketPayload EncodeServerData(
+            LogicalConnection connection,
+            MessageData data,
+            ulong? sequenceId)
+        {
+            return EncodeGroupData(connection, string.Empty, null, data, sequenceId);
+        }
     }
 
     private sealed class RecordingSequencePayloadProcessor : IClientPayloadProcessor
@@ -965,6 +1027,14 @@ public class LogicalConnectionTests
         {
             SequenceIds.Add(sequenceId);
             return new WebSocketPayload(data.Bytes, WebSocketMessageType.Text);
+        }
+
+        public WebSocketPayload EncodeServerData(
+            LogicalConnection connection,
+            MessageData data,
+            ulong? sequenceId)
+        {
+            return EncodeGroupData(connection, string.Empty, null, data, sequenceId);
         }
     }
 
@@ -995,6 +1065,14 @@ public class LogicalConnectionTests
             ulong? sequenceId)
         {
             return new WebSocketPayload(data.Bytes, WebSocketMessageType.Text);
+        }
+
+        public WebSocketPayload EncodeServerData(
+            LogicalConnection connection,
+            MessageData data,
+            ulong? sequenceId)
+        {
+            return EncodeGroupData(connection, string.Empty, null, data, sequenceId);
         }
     }
 
@@ -1029,6 +1107,14 @@ public class LogicalConnectionTests
             ulong? sequenceId)
         {
             return new WebSocketPayload(data.Bytes, WebSocketMessageType.Text);
+        }
+
+        public WebSocketPayload EncodeServerData(
+            LogicalConnection connection,
+            MessageData data,
+            ulong? sequenceId)
+        {
+            return EncodeGroupData(connection, string.Empty, null, data, sequenceId);
         }
     }
 
@@ -1065,6 +1151,14 @@ public class LogicalConnectionTests
             ulong? sequenceId)
         {
             return new WebSocketPayload(data.Bytes, WebSocketMessageType.Text);
+        }
+
+        public WebSocketPayload EncodeServerData(
+            LogicalConnection connection,
+            MessageData data,
+            ulong? sequenceId)
+        {
+            return EncodeGroupData(connection, string.Empty, null, data, sequenceId);
         }
     }
 
