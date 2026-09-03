@@ -35,7 +35,7 @@
     "compile": "tsc",
     "demo:client": "tsc && mocha --reporter spec --full-trace ./dist/demos/client-websockets/demo-awps.js",
     "posttest": "npm run lint",
-    "test": "echo TODO",
+    "test": "tsc --noEmit",
     "lint": "tslint --project ./tsconfig.json ./src/**/*.ts"
   },
   "dependencies": {
@@ -64,6 +64,6 @@
     "mocha": "^9.2.1",
     "simple-mock": "^0.8.0",
     "tslint": "^5.16.0",
-    "typescript": "^3.4.5"
+    "typescript": "^5.9.0"
   }
 }

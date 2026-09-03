@@ -13,6 +13,17 @@ Secondly, this package provides a replacement for `PubSub` using Azure Web PubSu
 
 Let's show how to apply the package into [the subscription sample provided by Apollo GraphQL](https://github.com/apollographql/docs-examples/tree/50808f11c5cfeaf029422dee3a3b324a6e93783e/apollo-server/v3/subscriptions).
 
+## Prerequisites
+
+- **Node.js.** Verified on Node 22; use a current LTS release. Runtimes older than Node 12
+  fail on startup with `ReferenceError: globalThis is not defined`.
+- **[Yarn](https://classic.yarnpkg.com/en/docs/install) 1.x.** The upstream Apollo sample
+  uses yarn, and this guide follows it for consistency.
+- **[Git](https://git-scm.com/downloads)**, to clone the Apollo sample.
+- **An Azure subscription**, and the
+  **[Azure CLI](https://learn.microsoft.com/cli/azure/install-azure-cli)** for the
+  `az webpubsub` commands below.
+
 ## Get the subscription sample
 
 > [!NOTE]
@@ -90,17 +101,24 @@ Copy the fetched ConnectionString and it will be used later in this article as t
 
 Run the below command with `<connection_string>` replaced by the value fetched in the above step:
 
-Linux:
+Linux or macOS:
 
 ```bash
 export WebPubSubConnectionString="<connection_string>"
 yarn start
 ```
 
-Windows:
+Windows (Command Prompt):
 
 ```cmd
 SET WebPubSubConnectionString=<connection_string>
+yarn start
+```
+
+Windows (PowerShell):
+
+```powershell
+$env:WebPubSubConnectionString = "<connection_string>"
 yarn start
 ```
 
@@ -116,9 +134,19 @@ The console log shows that the exposed endpoint for Azure Web PubSub event handl
 
 ### Use `awps-tunnel` to tunnel traffic from Web PubSub service to your localhost
 
+Linux or macOS:
+
 ```bash
 npm install -g @azure/web-pubsub-tunnel-tool
 export WebPubSubConnectionString="<connection_string>"
+awps-tunnel run --hub graphql_subscription --upstream http://localhost:4000
+```
+
+Windows (PowerShell):
+
+```powershell
+npm install -g @azure/web-pubsub-tunnel-tool
+$env:WebPubSubConnectionString = "<connection_string>"
 awps-tunnel run --hub graphql_subscription --upstream http://localhost:4000
 ```
 
