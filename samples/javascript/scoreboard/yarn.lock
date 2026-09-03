@@ -2621,9 +2621,9 @@ fast-levenshtein@^2.0.6:
   integrity sha512-DCXu6Ifhqcks7TZKY3Hxp3y6qphY5SJZmrWMDrKcERSOXWQdMhU9Ig/PYrzyw/ul9jOIyh0N4M0tbC5hodg8dw==
 
 fast-uri@^3.0.1:
-  version "3.1.5"
-  resolved "https://packagefeedproxy.microsoft.io/npm/fast-uri/-/fast-uri-3.1.5.tgz"
-  integrity sha512-gHwA1O9LDIcKunMKhObS/HimwtehO1nPUECKAu5TpKgaO19fcWEl4bliWe1jWxVFvIXztJjjQ4L8XQ1EU9f7Jw==
+  version "3.1.6"
+  resolved "https://registry.npmjs.org/fast-uri/-/fast-uri-3.1.6.tgz"
+  integrity sha512-7Ical1vFEMr0onbVzEDIreM22I4khW+fzyQPwvAFWBp1iwdshSZRsL4jjRvPG9JP1uiqMHRto+YU6R2/CzDz5Q==
 
 fastest-levenshtein@^1.0.12:
   version "1.0.12"
