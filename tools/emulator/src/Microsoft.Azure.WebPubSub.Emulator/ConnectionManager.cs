@@ -63,6 +63,11 @@ internal sealed class ConnectionManager
         return _connections.ContainsKey((hub, connectionId));
     }
 
+    public bool GroupExists(string hub, string group)
+    {
+        return GetHubConnections(hub).Any(connection => connection.Groups.ContainsKey(group));
+    }
+
     public void SendToConnection(string hub, string connectionId, MessageData data)
     {
         if (_connections.TryGetValue((hub, connectionId), out var connection))
@@ -117,16 +122,25 @@ internal sealed class ConnectionManager
         string group,
         MessageData data,
         LogicalConnection? sender,
-        bool noEcho)
+        bool noEcho,
+        IReadOnlySet<string>? excludedConnectionIds = null,
+        string? filter = null)
     {
-        foreach (var connection in _connections
-            .Where(item => string.Equals(item.Key.Hub, hub, StringComparison.Ordinal))
-            .Select(item => item.Value)
+        foreach (var connection in GetHubConnections(hub)
             .Where(connection => connection.Groups.ContainsKey(group))
-            .Where(connection => !noEcho || connection != sender))
+            .Where(connection => !noEcho || connection != sender)
+            .Where(connection => excludedConnectionIds?.Contains(connection.ConnectionId) != true)
+            .Where(connection => ODataFilterExecutor.Instance.Matches(filter, connection)))
         {
             connection.SendGroupData(group, sender?.UserId, data);
         }
+    }
+
+    private IEnumerable<LogicalConnection> GetHubConnections(string hub)
+    {
+        return _connections
+            .Where(item => string.Equals(item.Key.Hub, hub, StringComparison.Ordinal))
+            .Select(item => item.Value);
     }
 
     private async Task ExpireAsync(LogicalConnection connection, long generation)

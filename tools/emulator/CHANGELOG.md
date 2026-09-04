@@ -15,3 +15,4 @@
 - Add authenticated REST operations and official .NET server SDK compatibility for checking connection presence and sending directly to a connection.
 - Add authenticated REST and official .NET server SDK support for closing a connection.
 - Add authenticated REST and official .NET server SDK support for adding and removing a connection from a group.
+- Add authenticated REST and official .NET server SDK support for checking group presence and sending to a group with excluded connection IDs and OData filters.
