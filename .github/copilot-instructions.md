@@ -69,11 +69,15 @@ on a path filter. **A job that did not match its filter is reported as skipped, 
 pull request still looks green.** Before trusting a green run:
 
 - Cross-check the files you changed against which checks *ran* versus *were skipped*.
-- Known gap: the `csharp` job's filter is `samples/csharp/**` only. C# projects that live
-  under `sdk/**` — for example `sdk/webpubsub-socketio-extension/examples/*/extensions.csproj`
-  — are never compiled by it, so a change to them shows an all-green pull request that
-  proves nothing. Build those locally before merging. (`tools/emulator/**` is covered
-  separately by `emulator-tests.yml`.)
+- Known gap: the `csharp` job's filter is `samples/csharp/**` only, so that job compiles no
+  C# outside `samples/csharp/`. Much of the rest is picked up by dedicated workflows that
+  do run on pull requests — `tools/emulator/**` by `emulator-tests.yml`,
+  `sdk/clients/protobuf-client/csharp/**` by `protobuf-client-tests.yml`, and
+  `tests/integration-tests/csharp/**` by `integration-tests-csharp.yml`. Check for one of
+  those before assuming a directory is uncovered. What is genuinely left over is
+  `sdk/webpubsub-socketio-extension/examples/*/extensions.csproj`: the only other workflow
+  matching `sdk/**` is `socketio_e2e.yml`, which triggers on `push` alone and builds
+  nothing but the Node packages. Build those locally before merging.
 - Read the test source before trusting a green test job. For example,
   `samples/ai/chat-demo/tests/test_chat_model_client.py` monkeypatches the `OpenAI` class
   away entirely, so it passes regardless of which `openai` version is installed.
@@ -103,4 +107,8 @@ re-read the run before drawing a conclusion.
 
 - `website/` is built only by `deploy-demo-website.yml`, not by pull request CI. Run
   `yarn build` there yourself when you change its dependencies.
-- C# projects under `sdk/**`, per the path filter gap noted above.
+- C# outside `samples/csharp/`, `tools/emulator/`, `sdk/clients/protobuf-client/csharp/`
+  and `tests/integration-tests/csharp/` — in practice
+  `sdk/webpubsub-socketio-extension/examples/*/extensions.csproj`. See the path-filter
+  note above; do not generalise this to all of `sdk/**`, which does contain covered
+  projects.
