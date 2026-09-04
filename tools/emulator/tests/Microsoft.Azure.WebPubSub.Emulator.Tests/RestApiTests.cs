@@ -9,6 +9,7 @@ using System.Net;
 using System.Net.Http;
 using System.Net.Http.Headers;
 using System.Net.WebSockets;
+using System.Security.Claims;
 using System.Text;
 using System.Text.Json;
 using System.Threading;
@@ -154,6 +155,390 @@ public class RestApiTests
             "room",
             "missing").WaitAsync(TestTimeout);
         Assert.Equal((int)HttpStatusCode.NoContent, missingRemoveResponse.Status);
+    }
+
+    [Fact]
+    public async Task OfficialServerSdkCanSendToAllWithFilterAndExclusions()
+    {
+        await using var application = EmulatorApplication.Build(
+            ["--urls=http://127.0.0.1:0"]);
+        await application.StartAsync().WaitAsync(TestTimeout);
+        var server = application.Services.GetRequiredService<IServer>();
+        var endpoint = Assert.Single(
+            server.Features.Get<IServerAddressesFeature>()!.Addresses);
+        var connectionString =
+            $"Endpoint={endpoint};AccessKey={EmulatorOptions.DefaultAccessKey};Version=1.0;";
+        var serviceClient = new WebPubSubServiceClient(connectionString, Hub);
+        using var matchingSocket = new ClientWebSocket();
+        matchingSocket.Options.AddSubProtocol(WebPubSubJsonV1PayloadProcessor.SubprotocolName);
+        await matchingSocket.ConnectAsync(
+            serviceClient.GetClientAccessUri(),
+            CancellationToken.None).WaitAsync(TestTimeout);
+        using var matchingConnected = await ReceiveJsonAsync(matchingSocket);
+        var matchingConnectionId = matchingConnected.RootElement
+            .GetProperty("connectionId")
+            .GetString()!;
+        using var excludedSocket = new ClientWebSocket();
+        excludedSocket.Options.AddSubProtocol(WebPubSubJsonV1PayloadProcessor.SubprotocolName);
+        await excludedSocket.ConnectAsync(
+            serviceClient.GetClientAccessUri(),
+            CancellationToken.None).WaitAsync(TestTimeout);
+        using var excludedConnected = await ReceiveJsonAsync(excludedSocket);
+        var excludedConnectionId = excludedConnected.RootElement
+            .GetProperty("connectionId")
+            .GetString()!;
+        using var secondExcludedSocket = new ClientWebSocket();
+        secondExcludedSocket.Options.AddSubProtocol(WebPubSubJsonV1PayloadProcessor.SubprotocolName);
+        await secondExcludedSocket.ConnectAsync(
+            serviceClient.GetClientAccessUri(),
+            CancellationToken.None).WaitAsync(TestTimeout);
+        using var secondExcludedConnected = await ReceiveJsonAsync(secondExcludedSocket);
+        var secondExcludedConnectionId = secondExcludedConnected.RootElement
+            .GetProperty("connectionId")
+            .GetString()!;
+        using var nonmatchingSocket = new ClientWebSocket();
+        nonmatchingSocket.Options.AddSubProtocol(WebPubSubJsonV1PayloadProcessor.SubprotocolName);
+        await nonmatchingSocket.ConnectAsync(
+            serviceClient.GetClientAccessUri(),
+            CancellationToken.None).WaitAsync(TestTimeout);
+        using var nonmatchingConnected = await ReceiveJsonAsync(nonmatchingSocket);
+        var nonmatchingConnectionId = nonmatchingConnected.RootElement
+            .GetProperty("connectionId")
+            .GetString()!;
+        var filter = $"connectionId in ('{matchingConnectionId}','{excludedConnectionId}'," +
+            $"'{secondExcludedConnectionId}')";
+
+        var sendResponse = await serviceClient.SendToAllAsync(
+            BinaryData.FromString("from-broadcast-sdk"),
+            ContentType.TextPlain,
+            excluded: [excludedConnectionId, secondExcludedConnectionId],
+            filter: filter).WaitAsync(TestTimeout);
+        using var matchingMessage = await ReceiveJsonAsync(matchingSocket);
+
+        Assert.Equal((int)HttpStatusCode.Accepted, sendResponse.Status);
+        Assert.Equal("server", matchingMessage.RootElement.GetProperty("from").GetString());
+        Assert.Equal(
+            "from-broadcast-sdk",
+            matchingMessage.RootElement.GetProperty("data").GetString());
+
+        await serviceClient.SendToConnectionAsync(
+            excludedConnectionId,
+            BinaryData.FromString("excluded-sentinel"),
+            ContentType.TextPlain).WaitAsync(TestTimeout);
+        using var excludedMessage = await ReceiveJsonAsync(excludedSocket);
+        Assert.Equal(
+            "excluded-sentinel",
+            excludedMessage.RootElement.GetProperty("data").GetString());
+
+        await serviceClient.SendToConnectionAsync(
+            secondExcludedConnectionId,
+            BinaryData.FromString("second-excluded-sentinel"),
+            ContentType.TextPlain).WaitAsync(TestTimeout);
+        using var secondExcludedMessage = await ReceiveJsonAsync(secondExcludedSocket);
+        Assert.Equal(
+            "second-excluded-sentinel",
+            secondExcludedMessage.RootElement.GetProperty("data").GetString());
+
+        await serviceClient.SendToConnectionAsync(
+            nonmatchingConnectionId,
+            BinaryData.FromString("nonmatching-sentinel"),
+            ContentType.TextPlain).WaitAsync(TestTimeout);
+        using var nonmatchingMessage = await ReceiveJsonAsync(nonmatchingSocket);
+        Assert.Equal(
+            "nonmatching-sentinel",
+            nonmatchingMessage.RootElement.GetProperty("data").GetString());
+
+        var emptyHubClient = new WebPubSubServiceClient(connectionString, "empty");
+        var emptyHubResponse = await emptyHubClient.SendToAllAsync(
+            BinaryData.FromString("ignored"),
+            ContentType.TextPlain).WaitAsync(TestTimeout);
+        Assert.Equal((int)HttpStatusCode.Accepted, emptyHubResponse.Status);
+    }
+
+    [Fact]
+    public async Task SendToAllPreservesRawBinaryPayload()
+    {
+        await using var application = await StartApplicationAsync();
+        using var webSocket = await ConnectRawAsync(application);
+        var payload = new byte[] { 0, 1, 2, 3 };
+        const string path = "/api/hubs/CHAT/:send" +
+            "?api-version=2024-12-01&messageTtlSeconds=1";
+        using var request = CreateAuthorizedRequest(HttpMethod.Post, path);
+        request.Content = new ByteArrayContent(payload);
+        request.Content.Headers.ContentType =
+            new MediaTypeHeaderValue("application/octet-stream");
+
+        using var response = await application.GetTestClient()
+            .SendAsync(request)
+            .WaitAsync(TestTimeout);
+        var buffer = new byte[16];
+        var received = await webSocket.ReceiveAsync(buffer, CancellationToken.None)
+            .WaitAsync(TestTimeout);
+
+        Assert.Equal(HttpStatusCode.Accepted, response.StatusCode);
+        Assert.Equal(WebSocketMessageType.Binary, received.MessageType);
+        Assert.True(received.EndOfMessage);
+        Assert.Equal(payload, buffer[..received.Count]);
+    }
+
+    [Fact]
+    public async Task SendToAllQueuesForFilteredDetachedReliableConnection()
+    {
+        await using var application = await StartApplicationAsync();
+        var initial = await ConnectReliableAsync(application);
+        using var initialSocket = initial.WebSocket;
+        initialSocket.Abort();
+        var filter = $"connectionId eq '{initial.ConnectionId}' and " +
+            "protocol eq 'json.reliable.webpubsub.azure.v1'";
+        var path = "/api/hubs/CHAT/:send?api-version=2024-12-01" +
+            $"&filter={Uri.EscapeDataString(filter)}";
+        using var request = CreateAuthorizedRequest(HttpMethod.Post, path);
+        request.Content = new StringContent(
+            """{"value":42}""",
+            Encoding.UTF8,
+            "application/json");
+        request.Headers.Add("X-WebPubSub-Metadata-Trace", "broadcast");
+
+        using var response = await application.GetTestClient()
+            .SendAsync(request)
+            .WaitAsync(TestTimeout);
+        using var recovered = await ConnectRecoveryAsync(
+            application,
+            initial.ConnectionId,
+            initial.ReconnectionToken);
+        using var delivered = await ReceiveJsonAsync(recovered);
+
+        Assert.Equal(HttpStatusCode.Accepted, response.StatusCode);
+        Assert.Equal("server", delivered.RootElement.GetProperty("from").GetString());
+        Assert.Equal("json", delivered.RootElement.GetProperty("dataType").GetString());
+        Assert.Equal(
+            42,
+            delivered.RootElement.GetProperty("data").GetProperty("value").GetInt32());
+        Assert.Equal(
+            "broadcast",
+            delivered.RootElement.GetProperty("metadata").GetProperty("trace").GetString());
+    }
+
+    [Fact]
+    public async Task SendToAllRejectsInvalidFilterBeforeReadingBody()
+    {
+        await using var application = await StartApplicationAsync();
+        using var webSocket = await ConnectAsync(application);
+        using var connected = await ReceiveJsonAsync(webSocket);
+        var connectionId = connected.RootElement.GetProperty("connectionId").GetString()!;
+        const string path = "/api/hubs/chat/:send" +
+            "?api-version=2024-12-01&filter=userId%20lt%201";
+        using var request = CreateAuthorizedRequest(HttpMethod.Post, path);
+        request.Content = new UnknownLengthContent("ignored"u8.ToArray());
+        request.Content.Headers.ContentType = new MediaTypeHeaderValue("text/plain");
+
+        using var response = await application.GetTestClient()
+            .SendAsync(request)
+            .WaitAsync(TestTimeout);
+        using var error = JsonDocument.Parse(
+            await response.Content.ReadAsByteArrayAsync().WaitAsync(TestTimeout));
+
+        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+        Assert.Equal("Error.BadRequest", error.RootElement.GetProperty("code").GetString());
+        Assert.Equal("Request", error.RootElement.GetProperty("target").GetString());
+        Assert.Equal(
+            "Invalid syntax for 'userId lt 1': Type 'string', expect 'int'. " +
+            "(Parameter 'filter')",
+            error.RootElement.GetProperty("message").GetString());
+        await AssertReceivesDirectSentinelAsync(
+            application,
+            webSocket,
+            connectionId,
+            "invalid-broadcast-filter-sentinel");
+    }
+
+    [Fact]
+    public async Task OfficialServerSdkCanCheckAndSendToEncodedUser()
+    {
+        const string userId = "tenant/alice";
+        await using var application = EmulatorApplication.Build(
+            ["--urls=http://127.0.0.1:0"]);
+        await application.StartAsync().WaitAsync(TestTimeout);
+        var server = application.Services.GetRequiredService<IServer>();
+        var endpoint = Assert.Single(
+            server.Features.Get<IServerAddressesFeature>()!.Addresses);
+        var connectionString =
+            $"Endpoint={endpoint};AccessKey={EmulatorOptions.DefaultAccessKey};Version=1.0;";
+        var serviceClient = new WebPubSubServiceClient(connectionString, Hub);
+        using var firstSocket = new ClientWebSocket();
+        firstSocket.Options.AddSubProtocol(WebPubSubJsonV1PayloadProcessor.SubprotocolName);
+        await firstSocket.ConnectAsync(
+            serviceClient.GetClientAccessUri(userId: userId),
+            CancellationToken.None).WaitAsync(TestTimeout);
+        using var firstConnected = await ReceiveJsonAsync(firstSocket);
+        var firstConnectionId = firstConnected.RootElement
+            .GetProperty("connectionId")
+            .GetString()!;
+        using var secondSocket = new ClientWebSocket();
+        secondSocket.Options.AddSubProtocol(WebPubSubJsonV1PayloadProcessor.SubprotocolName);
+        await secondSocket.ConnectAsync(
+            serviceClient.GetClientAccessUri(userId: userId),
+            CancellationToken.None).WaitAsync(TestTimeout);
+        using var secondConnected = await ReceiveJsonAsync(secondSocket);
+        var secondConnectionId = secondConnected.RootElement
+            .GetProperty("connectionId")
+            .GetString()!;
+        using var otherSocket = new ClientWebSocket();
+        otherSocket.Options.AddSubProtocol(WebPubSubJsonV1PayloadProcessor.SubprotocolName);
+        await otherSocket.ConnectAsync(
+            serviceClient.GetClientAccessUri(userId: "Tenant/alice"),
+            CancellationToken.None).WaitAsync(TestTimeout);
+        using var otherConnected = await ReceiveJsonAsync(otherSocket);
+        var otherConnectionId = otherConnected.RootElement
+            .GetProperty("connectionId")
+            .GetString()!;
+
+        Assert.True((await serviceClient.UserExistsAsync(userId)
+            .WaitAsync(TestTimeout)).Value);
+        Assert.False((await serviceClient.UserExistsAsync("tenant/Alice")
+            .WaitAsync(TestTimeout)).Value);
+        Assert.False((await serviceClient.UserExistsAsync("missing")
+            .WaitAsync(TestTimeout)).Value);
+
+        var fanOutResponse = await serviceClient.SendToUserAsync(
+            userId,
+            BinaryData.FromString("user-fan-out"),
+            ContentType.TextPlain).WaitAsync(TestTimeout);
+        using var firstFanOut = await ReceiveJsonAsync(firstSocket);
+        using var secondFanOut = await ReceiveJsonAsync(secondSocket);
+        Assert.Equal((int)HttpStatusCode.Accepted, fanOutResponse.Status);
+        Assert.Equal(
+            "user-fan-out",
+            firstFanOut.RootElement.GetProperty("data").GetString());
+        Assert.Equal(
+            "user-fan-out",
+            secondFanOut.RootElement.GetProperty("data").GetString());
+
+        var filteredResponse = await serviceClient.SendToUserAsync(
+            userId,
+            RequestContent.Create(BinaryData.FromString("filtered-user-send")),
+            ContentType.TextPlain,
+            filter: $"connectionId eq '{firstConnectionId}'").WaitAsync(TestTimeout);
+        using var filtered = await ReceiveJsonAsync(firstSocket);
+        Assert.Equal((int)HttpStatusCode.Accepted, filteredResponse.Status);
+        Assert.Equal(
+            "filtered-user-send",
+            filtered.RootElement.GetProperty("data").GetString());
+
+        await serviceClient.SendToConnectionAsync(
+            secondConnectionId,
+            BinaryData.FromString("second-sentinel"),
+            ContentType.TextPlain).WaitAsync(TestTimeout);
+        using var secondSentinel = await ReceiveJsonAsync(secondSocket);
+        Assert.Equal(
+            "second-sentinel",
+            secondSentinel.RootElement.GetProperty("data").GetString());
+        await serviceClient.SendToConnectionAsync(
+            otherConnectionId,
+            BinaryData.FromString("case-sentinel"),
+            ContentType.TextPlain).WaitAsync(TestTimeout);
+        using var caseSentinel = await ReceiveJsonAsync(otherSocket);
+        Assert.Equal(
+            "case-sentinel",
+            caseSentinel.RootElement.GetProperty("data").GetString());
+
+        var missingResponse = await serviceClient.SendToUserAsync(
+            "missing",
+            BinaryData.FromString("ignored"),
+            ContentType.TextPlain).WaitAsync(TestTimeout);
+        Assert.Equal((int)HttpStatusCode.Accepted, missingResponse.Status);
+    }
+
+    [Fact]
+    public async Task UserExistsMissingResponseUsesServiceErrorCode()
+    {
+        await using var application = await StartApplicationAsync();
+        const string path =
+            "/api/hubs/chat/users/missing?api-version=2024-12-01";
+        using var request = CreateAuthorizedRequest(HttpMethod.Head, path);
+
+        using var response = await application.GetTestClient()
+            .SendAsync(request)
+            .WaitAsync(TestTimeout);
+
+        Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
+        Assert.Equal(
+            "Warning.User.NotExisted",
+            response.Headers.GetValues("x-ms-error-code").Single());
+    }
+
+    [Fact]
+    public async Task SendToUserQueuesForFilteredDetachedReliableConnection()
+    {
+        const string userId = "tenant/alice";
+        await using var application = await StartApplicationAsync();
+        var initial = await ConnectReliableAsync(application, userId);
+        using var initialSocket = initial.WebSocket;
+        initialSocket.Abort();
+        var filter = $"userId eq '{userId}' and connectionId eq '{initial.ConnectionId}' and " +
+            "protocol eq 'json.reliable.webpubsub.azure.v1'";
+        var path = "/api/hubs/CHAT/users/tenant%2Falice/:send" +
+            "?api-version=2024-12-01&messageTtlSeconds=1" +
+            $"&filter={Uri.EscapeDataString(filter)}";
+        using var request = CreateAuthorizedRequest(HttpMethod.Post, path);
+        request.Content = new StringContent(
+            """{"value":42}""",
+            Encoding.UTF8,
+            "application/json");
+        request.Headers.Add("X-WebPubSub-Metadata-Trace", "user-send");
+
+        using var response = await application.GetTestClient()
+            .SendAsync(request)
+            .WaitAsync(TestTimeout);
+        using var recovered = await ConnectRecoveryAsync(
+            application,
+            initial.ConnectionId,
+            initial.ReconnectionToken);
+        using var delivered = await ReceiveJsonAsync(recovered);
+
+        Assert.Equal(HttpStatusCode.Accepted, response.StatusCode);
+        Assert.Equal("server", delivered.RootElement.GetProperty("from").GetString());
+        Assert.Equal("json", delivered.RootElement.GetProperty("dataType").GetString());
+        Assert.Equal(
+            42,
+            delivered.RootElement.GetProperty("data").GetProperty("value").GetInt32());
+        Assert.Equal(
+            "user-send",
+            delivered.RootElement.GetProperty("metadata").GetProperty("trace").GetString());
+    }
+
+    [Fact]
+    public async Task SendToUserRejectsInvalidFilterBeforeReadingBody()
+    {
+        const string userId = "alice";
+        await using var application = await StartApplicationAsync();
+        using var webSocket = await ConnectAsync(application, userId);
+        using var connected = await ReceiveJsonAsync(webSocket);
+        var connectionId = connected.RootElement.GetProperty("connectionId").GetString()!;
+        const string path = "/api/hubs/chat/users/alice/:send" +
+            "?api-version=2024-12-01&filter=userId%20lt%201";
+        using var request = CreateAuthorizedRequest(HttpMethod.Post, path);
+        request.Content = new UnknownLengthContent("ignored"u8.ToArray());
+        request.Content.Headers.ContentType = new MediaTypeHeaderValue("text/plain");
+
+        using var response = await application.GetTestClient()
+            .SendAsync(request)
+            .WaitAsync(TestTimeout);
+        using var error = JsonDocument.Parse(
+            await response.Content.ReadAsByteArrayAsync().WaitAsync(TestTimeout));
+
+        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+        Assert.Equal("Error.BadRequest", error.RootElement.GetProperty("code").GetString());
+        Assert.Equal("Request", error.RootElement.GetProperty("target").GetString());
+        Assert.Equal(
+            "Invalid syntax for 'userId lt 1': Type 'string', expect 'int'. " +
+            "(Parameter 'filter')",
+            error.RootElement.GetProperty("message").GetString());
+        await AssertReceivesDirectSentinelAsync(
+            application,
+            webSocket,
+            connectionId,
+            "invalid-user-filter-sentinel");
     }
 
     [Fact]
@@ -1062,10 +1447,22 @@ public class RestApiTests
         return application;
     }
 
-    private static async Task<WebSocket> ConnectAsync(WebApplication application)
+    private static async Task<WebSocket> ConnectAsync(
+        WebApplication application,
+        string? userId = null)
     {
         var client = application.GetTestServer().CreateWebSocketClient();
         client.SubProtocols.Add(WebPubSubJsonV1PayloadProcessor.SubprotocolName);
+        var path = $"{WebPubSubTokenService.ClientPathPrefix}{Hub}";
+        var token = CreateToken($"http://localhost{path}", userId);
+        return await client.ConnectAsync(
+            new Uri($"ws://localhost{path}?access_token={Uri.EscapeDataString(token)}"),
+            CancellationToken.None).WaitAsync(TestTimeout);
+    }
+
+    private static async Task<WebSocket> ConnectRawAsync(WebApplication application)
+    {
+        var client = application.GetTestServer().CreateWebSocketClient();
         var path = $"{WebPubSubTokenService.ClientPathPrefix}{Hub}";
         var token = CreateToken($"http://localhost{path}");
         return await client.ConnectAsync(
@@ -1074,12 +1471,12 @@ public class RestApiTests
     }
 
     private static async Task<(WebSocket WebSocket, string ConnectionId, string ReconnectionToken)>
-        ConnectReliableAsync(WebApplication application)
+        ConnectReliableAsync(WebApplication application, string? userId = null)
     {
         var client = application.GetTestServer().CreateWebSocketClient();
         client.SubProtocols.Add(WebPubSubJsonV1PayloadProcessor.ReliableSubprotocolName);
         var path = $"{WebPubSubTokenService.ClientPathPrefix}{Hub}";
-        var token = CreateToken($"http://localhost{path}");
+        var token = CreateToken($"http://localhost{path}", userId);
         var webSocket = await client.ConnectAsync(
             new Uri($"ws://localhost{path}?access_token={Uri.EscapeDataString(token)}"),
             CancellationToken.None).WaitAsync(TestTimeout);
@@ -1130,10 +1527,11 @@ public class RestApiTests
         Assert.Equal(sentinel, delivered.RootElement.GetProperty("data").GetString());
     }
 
-    private static string CreateToken(string audience)
+    private static string CreateToken(string audience, string? userId = null)
     {
         var token = new JwtSecurityToken(
             audience: audience,
+            claims: userId is null ? [] : [new Claim("sub", userId)],
             expires: DateTime.UtcNow.AddHours(1),
             signingCredentials: new SigningCredentials(
                 new SymmetricSecurityKey(Encoding.UTF8.GetBytes(EmulatorOptions.DefaultAccessKey)),

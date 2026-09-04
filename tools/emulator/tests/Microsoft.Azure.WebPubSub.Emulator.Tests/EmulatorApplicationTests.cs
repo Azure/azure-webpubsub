@@ -115,7 +115,7 @@ public class EmulatorApplicationTests
     }
 
     [Fact]
-    public async Task OtherServiceApiEndpoint_HeadReturnsNotFound()
+    public async Task UnimplementedPermissionEndpoint_HeadReturnsNotFound()
     {
         var builder = EmulatorApplication.CreateBuilder();
         builder.WebHost.UseTestServer();
@@ -124,7 +124,8 @@ public class EmulatorApplicationTests
 
         using var request = new HttpRequestMessage(
             HttpMethod.Head,
-            "/api/hubs/chat/users/user?api-version=2024-12-01");
+            "/api/hubs/chat/connections/connection/permissions/sendToGroup/room" +
+                "?api-version=2024-12-01");
         using var response = await application.GetTestClient().SendAsync(request).WaitAsync(TestTimeout);
 
         Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);

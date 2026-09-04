@@ -19,8 +19,10 @@ local Azure Web PubSub development.
 | Outbound delivery | Uses a bounded, single-writer queue for each WebSocket connection. | ✅ |
 | REST connection operations | Authenticated connection presence, direct text, JSON, and binary sends, close, and single-connection group membership changes for GA API versions from `2021-10-01` through `2024-12-01`. | ✅ |
 | REST group operations | Authenticated group presence and text, JSON, or binary fan-out with excluded connection IDs and OData filters. | ✅ |
+| REST broadcast | Authenticated text, JSON, or binary fan-out with excluded connection IDs and OData filters. | ✅ |
+| REST user operations | Authenticated user presence and text, JSON, or binary fan-out to all matching connections with OData filters. | ✅ |
 | REST send TTL | Accepts valid `messageTtlSeconds` values; delivery is immediate and expiration is not modeled. | ⚠️ |
-| Other REST APIs | User, permission, and broadcast operations. | ❌ |
+| Other REST APIs | User-group and permission operations. | ❌ |
 
 ## Not yet implemented
 

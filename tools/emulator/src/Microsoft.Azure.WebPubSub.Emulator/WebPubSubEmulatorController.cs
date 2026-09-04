@@ -5,6 +5,7 @@ using System.ComponentModel.DataAnnotations;
 using System.Text;
 using System.Text.Json;
 using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Http.Features;
 using Microsoft.AspNetCore.Mvc;
 
 namespace Microsoft.Azure.WebPubSub.Emulator;
@@ -32,6 +33,49 @@ internal sealed class WebPubSubEmulatorController : WebPubSubApiControllerDefini
         CancellationToken cancellationToken = default)
     {
         return Task.FromResult<IActionResult>(Ok());
+    }
+
+    [HttpPost(
+        "/api/hubs/{hub}/:send",
+        Name = "WebPubSub_SendToAll")]
+    public async Task<IActionResult> SendToAll(
+        [RegularExpression(
+            WebPubSubNameValidator.HubNamePattern,
+            ErrorMessage = "Invalid hub name.")]
+        string hub,
+        [FromQuery(Name = "messageTtlSeconds")]
+        [Range(0, MaximumMessageTtlSeconds, ErrorMessage = "Invalid messageTtlSeconds.")]
+        uint? messageTtlSeconds,
+        [FromQuery(Name = "filter")]
+        string? filter,
+        CancellationToken cancellationToken = default)
+    {
+        if (!Authorize())
+        {
+            return Unauthorized();
+        }
+
+        try
+        {
+            ODataFilterExecutor.Instance.Validate(filter);
+        }
+        catch (InvalidFilterException exception)
+        {
+            return CreateBadRequest(exception.Message);
+        }
+
+        var (data, error) = await ReadMessageDataAsync(cancellationToken);
+        if (error is not null)
+        {
+            return error;
+        }
+
+        _connections.SendToAll(
+            hub.ToLowerInvariant(),
+            data!,
+            GetExcludedConnectionIds(),
+            filter);
+        return Accepted();
     }
 
     [HttpHead(
@@ -117,6 +161,78 @@ internal sealed class WebPubSubEmulatorController : WebPubSubApiControllerDefini
             hub.ToLowerInvariant(),
             connectionId,
             data!);
+        return Accepted();
+    }
+
+    [HttpHead(
+        "/api/hubs/{hub}/users/{userId}",
+        Name = "WebPubSub_UserExists")]
+    public IActionResult UserExists(
+        [RegularExpression(
+            WebPubSubNameValidator.HubNamePattern,
+            ErrorMessage = "Invalid hub name.")]
+        string hub,
+        [MinLength(1, ErrorMessage = "Invalid user ID.")]
+        string userId,
+        CancellationToken cancellationToken = default)
+    {
+        if (!Authorize())
+        {
+            return Unauthorized();
+        }
+
+        userId = DecodeUserId(userId);
+        if (_connections.UserExists(hub.ToLowerInvariant(), userId))
+        {
+            return Ok();
+        }
+
+        Response.Headers["x-ms-error-code"] = "Warning.User.NotExisted";
+        return NotFound();
+    }
+
+    [HttpPost(
+        "/api/hubs/{hub}/users/{userId}/:send",
+        Name = "WebPubSub_SendToUser")]
+    public async Task<IActionResult> SendToUser(
+        [RegularExpression(
+            WebPubSubNameValidator.HubNamePattern,
+            ErrorMessage = "Invalid hub name.")]
+        string hub,
+        [MinLength(1, ErrorMessage = "Invalid user ID.")]
+        string userId,
+        [FromQuery(Name = "messageTtlSeconds")]
+        [Range(0, MaximumMessageTtlSeconds, ErrorMessage = "Invalid messageTtlSeconds.")]
+        uint? messageTtlSeconds,
+        [FromQuery(Name = "filter")]
+        string? filter,
+        CancellationToken cancellationToken = default)
+    {
+        if (!Authorize())
+        {
+            return Unauthorized();
+        }
+
+        try
+        {
+            ODataFilterExecutor.Instance.Validate(filter);
+        }
+        catch (InvalidFilterException exception)
+        {
+            return CreateBadRequest(exception.Message);
+        }
+
+        var (data, error) = await ReadMessageDataAsync(cancellationToken);
+        if (error is not null)
+        {
+            return error;
+        }
+
+        _connections.SendToUser(
+            hub.ToLowerInvariant(),
+            DecodeUserId(userId),
+            data!,
+            filter);
         return Accepted();
     }
 
@@ -322,6 +438,29 @@ internal sealed class WebPubSubEmulatorController : WebPubSubApiControllerDefini
             .Where(value => value is not null)
             .Select(value => value!)
             .ToHashSet(StringComparer.Ordinal);
+    }
+
+    private string DecodeUserId(string userId)
+    {
+        var rawTarget = HttpContext.Features.Get<IHttpRequestFeature>()?.RawTarget;
+        if (string.IsNullOrEmpty(rawTarget))
+        {
+            return userId.Replace("%2F", "/", StringComparison.OrdinalIgnoreCase);
+        }
+
+        const string userSegment = "/users/";
+        var userStart = rawTarget.IndexOf(userSegment, StringComparison.OrdinalIgnoreCase);
+        if (userStart < 0)
+        {
+            return userId;
+        }
+
+        userStart += userSegment.Length;
+        var userEnd = rawTarget.IndexOfAny(['/', '?'], userStart);
+        var rawUserId = userEnd < 0
+            ? rawTarget[userStart..]
+            : rawTarget[userStart..userEnd];
+        return Uri.UnescapeDataString(rawUserId);
     }
 
     private async Task<(MessageData? Data, IActionResult? Error)> ReadMessageDataAsync(
