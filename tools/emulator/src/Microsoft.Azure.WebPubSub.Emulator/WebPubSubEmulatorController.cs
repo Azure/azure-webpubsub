@@ -106,42 +106,103 @@ internal sealed class WebPubSubEmulatorController : WebPubSubApiControllerDefini
         {
             return Unauthorized();
         }
-        if (Request.ContentLength is not { } contentLength ||
-            contentLength < 0 ||
-            contentLength > _runtimeOptions.MaxMessageSizeBytes)
-        {
-            return CreateBadRequest("Invalid Content-Length header.");
-        }
-        if (!TryGetDataType(out var dataType, out var encoding))
-        {
-            return StatusCode(StatusCodes.Status415UnsupportedMediaType);
-        }
 
-        var bytes = await ReadBodyAsync(encoding, cancellationToken);
-        if (bytes is null)
+        var (data, error) = await ReadMessageDataAsync(cancellationToken);
+        if (error is not null)
         {
-            return CreateBadRequest("Invalid Content-Length header.");
-        }
-        if (dataType == MessageDataType.Json && !IsValidJson(bytes))
-        {
-            return CreateBadRequest("The request body is not a valid JSON.");
-        }
-
-        IReadOnlyDictionary<string, string>? metadata;
-        try
-        {
-            metadata = GetMetadata();
-            WebPubSubMetadataValidator.Validate(metadata);
-        }
-        catch (InvalidDataException exception)
-        {
-            return CreateBadRequest(exception.Message);
+            return error;
         }
 
         _connections.SendToConnection(
             hub.ToLowerInvariant(),
             connectionId,
-            new MessageData(dataType, bytes, metadata));
+            data!);
+        return Accepted();
+    }
+
+    [HttpHead(
+        "/api/hubs/{hub}/groups/{group}",
+        Name = "WebPubSub_GroupExists")]
+    public IActionResult GroupExists(
+        [RegularExpression(
+            WebPubSubNameValidator.HubNamePattern,
+            ErrorMessage = "Invalid hub name.")]
+        string hub,
+        [StringLength(
+            WebPubSubNameValidator.MaximumGroupNameLength,
+            MinimumLength = 1,
+            ErrorMessage = "Invalid group name.")]
+        [RegularExpression(
+            WebPubSubNameValidator.NotWhitespacePattern,
+            ErrorMessage = "Invalid group name.")]
+        string group,
+        CancellationToken cancellationToken = default)
+    {
+        if (!Authorize())
+        {
+            return Unauthorized();
+        }
+
+        if (_connections.GroupExists(hub.ToLowerInvariant(), group))
+        {
+            return Ok();
+        }
+
+        Response.Headers["x-ms-error-code"] = "Warning.Group.NotExisted";
+        return NotFound();
+    }
+
+    [HttpPost(
+        "/api/hubs/{hub}/groups/{group}/:send",
+        Name = "WebPubSub_SendToGroup")]
+    public async Task<IActionResult> SendToGroup(
+        [RegularExpression(
+            WebPubSubNameValidator.HubNamePattern,
+            ErrorMessage = "Invalid hub name.")]
+        string hub,
+        [StringLength(
+            WebPubSubNameValidator.MaximumGroupNameLength,
+            MinimumLength = 1,
+            ErrorMessage = "Invalid group name.")]
+        [RegularExpression(
+            WebPubSubNameValidator.NotWhitespacePattern,
+            ErrorMessage = "Invalid group name.")]
+        string group,
+        [FromQuery(Name = "messageTtlSeconds")]
+        [Range(0, MaximumMessageTtlSeconds, ErrorMessage = "Invalid messageTtlSeconds.")]
+        uint? messageTtlSeconds,
+        [FromQuery(Name = "filter")]
+        string? filter,
+        CancellationToken cancellationToken = default)
+    {
+        if (!Authorize())
+        {
+            return Unauthorized();
+        }
+
+        try
+        {
+            ODataFilterExecutor.Instance.Validate(filter);
+        }
+        catch (InvalidFilterException exception)
+        {
+            return CreateBadRequest(exception.Message);
+        }
+
+        var (data, error) = await ReadMessageDataAsync(cancellationToken);
+        if (error is not null)
+        {
+            return error;
+        }
+
+        _connections.SendToGroup(
+            hub.ToLowerInvariant(),
+            group,
+            data!,
+            sender: null,
+            noEcho: false,
+            GetExcludedConnectionIds(),
+            filter);
         return Accepted();
     }
 
@@ -253,6 +314,52 @@ internal sealed class WebPubSubEmulatorController : WebPubSubApiControllerDefini
             metadata[key] = lastComma < 0 ? value.Trim() : value[(lastComma + 1)..].Trim();
         }
         return metadata;
+    }
+
+    private IReadOnlySet<string> GetExcludedConnectionIds()
+    {
+        return Request.Query["excluded"]
+            .Where(value => value is not null)
+            .Select(value => value!)
+            .ToHashSet(StringComparer.Ordinal);
+    }
+
+    private async Task<(MessageData? Data, IActionResult? Error)> ReadMessageDataAsync(
+        CancellationToken cancellationToken)
+    {
+        if (Request.ContentLength is not { } contentLength ||
+            contentLength < 0 ||
+            contentLength > _runtimeOptions.MaxMessageSizeBytes)
+        {
+            return (null, CreateBadRequest("Invalid Content-Length header."));
+        }
+        if (!TryGetDataType(out var dataType, out var encoding))
+        {
+            return (null, StatusCode(StatusCodes.Status415UnsupportedMediaType));
+        }
+
+        var bytes = await ReadBodyAsync(encoding, cancellationToken);
+        if (bytes is null)
+        {
+            return (null, CreateBadRequest("Invalid Content-Length header."));
+        }
+        if (dataType == MessageDataType.Json && !IsValidJson(bytes))
+        {
+            return (null, CreateBadRequest("The request body is not a valid JSON."));
+        }
+
+        IReadOnlyDictionary<string, string>? metadata;
+        try
+        {
+            metadata = GetMetadata();
+            WebPubSubMetadataValidator.Validate(metadata);
+        }
+        catch (InvalidDataException exception)
+        {
+            return (null, CreateBadRequest(exception.Message));
+        }
+
+        return (new MessageData(dataType, bytes, metadata), null);
     }
 
     private bool TryGetDataType(out MessageDataType dataType, out Encoding? encoding)

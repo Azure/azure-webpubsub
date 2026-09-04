@@ -61,11 +61,13 @@ emulator process. The replay buffer is limited to 1,000 messages and 16 MiB per 
 
 ## Use a server SDK
 
-The emulator supports checking whether a connection exists, sending text, JSON, or binary data,
-and closing a connection through the Azure Web PubSub REST API. For example, use the generated
-connection string with the Azure Web PubSub .NET server SDK:
+The emulator supports checking whether connections and groups exist, sending text, JSON, or binary
+data to connections and groups, changing connection group membership, and closing a connection
+through the Azure Web PubSub REST API. For example, use the generated connection string with the
+Azure Web PubSub .NET server SDK:
 
 ```csharp
+using Azure.Core;
 using Azure.Messaging.WebPubSub;
 
 var serviceClient = new WebPubSubServiceClient(
@@ -78,13 +80,21 @@ await serviceClient.SendToConnectionAsync(
   BinaryData.FromString("Hello"),
   ContentType.TextPlain);
 await serviceClient.AddConnectionToGroupAsync("room", connectionId);
+bool groupExists = await serviceClient.GroupExistsAsync("room");
+await serviceClient.SendToGroupAsync(
+  "room",
+  BinaryData.FromString("Hello, room"),
+  ContentType.TextPlain,
+  excluded: new[] { connectionId });
 await serviceClient.RemoveConnectionFromGroupAsync("room", connectionId);
 await serviceClient.CloseConnectionAsync(connectionId, "Done");
 ```
 
-Direct sends return success when the connection does not exist, matching the service's
-fire-and-forget behavior. Valid `messageTtlSeconds` values are accepted, but the emulator does not
-model message expiration.
+Connection and group sends return success when the target does not exist, matching the service's
+fire-and-forget behavior. Group sends support repeated `excluded` connection IDs and OData `filter`
+expressions over `connectionId`, `userId`, `groups`, and `protocol`. Invalid filters return an
+`Error.BadRequest` response before the message body is processed. Valid `messageTtlSeconds` values
+are accepted, but the emulator does not model message expiration.
 
 Set the ASP.NET Core `Urls` configuration value to use another address. The generated connection
 string automatically uses the address and port that the emulator actually binds. For example:

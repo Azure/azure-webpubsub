@@ -8,7 +8,7 @@ using Microsoft.Extensions.Logging;
 
 namespace Microsoft.Azure.WebPubSub.Emulator;
 
-internal sealed class LogicalConnection
+internal sealed class LogicalConnection : IODataFilterModel
 {
     private const long ReliableControlByteAllowance = 64 * 1024;
     private const int ReliableControlMessageAllowance = 32;
@@ -102,6 +102,10 @@ internal sealed class LogicalConnection
     public AckCache AckIdCache { get; } = new();
 
     public ConcurrentDictionary<string, byte> Groups { get; } = new(StringComparer.Ordinal);
+
+    string[] IODataFilterModel.Groups => Groups.Keys.ToArray();
+
+    string? IODataFilterModel.Protocol => Subprotocol;
 
     public SocketTransport? TryAttach(
         WebSocket webSocket,
