@@ -71,7 +71,7 @@
     "esbuild-plugin-polyfill-node": "^0.3.0",
     "openapi-typescript": "^7.10.1",
     "tsx": "^4.21.0",
-    "typescript": "^5.9.3"
+    "typescript": "^7.0.2"
   },
   "resolutions": {
     "@typespec/ts-http-runtime": "0.3.6",
