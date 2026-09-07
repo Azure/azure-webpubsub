@@ -2,76 +2,77 @@
 # yarn lockfile v1
 
 
-"@azure/abort-controller@2.1.2", "@azure/abort-controller@^2.0.0", "@azure/abort-controller@^2.1.2":
-  version "2.1.2"
-  resolved "https://packagefeedproxy.microsoft.io/npm/@azure/abort-controller/-/abort-controller-2.1.2.tgz"
-  integrity sha512-nBrLsEWm4J2u5LpAPjxADTlq3trDgVZZXHNKabeXZtpq3d3AbN/KGO82R87rdDz5/lYB024rtEf10/q0urNgsA==
+"@azure/abort-controller@2.2.0", "@azure/abort-controller@^2.1.2":
+  version "2.2.0"
+  resolved "https://registry.yarnpkg.com/@azure/abort-controller/-/abort-controller-2.2.0.tgz#93e0e82b01862e7ea3b5b69958719d3f3fd2c8ac"
+  integrity sha512-fNAjWnA/nZ2jz31kxR/AqRaUT8ewHBw/WuBIosK0moMy1C9e5ValbDfFdIxJzVOOYaYkV/b2F1S4H/aHiqfVQg==
   dependencies:
     tslib "^2.6.2"
 
-"@azure/core-auth@1.9.0", "@azure/core-auth@^1.4.0", "@azure/core-auth@^1.8.0", "@azure/core-auth@^1.9.0":
-  version "1.9.0"
-  resolved "https://packagefeedproxy.microsoft.io/npm/@azure/core-auth/-/core-auth-1.9.0.tgz"
-  integrity sha512-FPwHpZywuyasDSLMqJ6fhbOK3TqUdviZNF8OqRGA4W5Ewib2lEEZ+pBsYcBa88B2NGO/SEnYPGhyBqNlE8ilSw==
-  dependencies:
-    "@azure/abort-controller" "^2.0.0"
-    "@azure/core-util" "^1.11.0"
-    tslib "^2.6.2"
-
-"@azure/core-client@1.9.2", "@azure/core-client@^1.9.2":
-  version "1.9.2"
-  resolved "https://packagefeedproxy.microsoft.io/npm/@azure/core-client/-/core-client-1.9.2.tgz"
-  integrity sha512-kRdry/rav3fUKHl/aDLd/pDLcB+4pOFwPPTVEExuMyaI5r+JBbMWqRbCY1pn5BniDaU3lRxO9eaQ1AmSMehl/w==
-  dependencies:
-    "@azure/abort-controller" "^2.0.0"
-    "@azure/core-auth" "^1.4.0"
-    "@azure/core-rest-pipeline" "^1.9.1"
-    "@azure/core-tracing" "^1.0.0"
-    "@azure/core-util" "^1.6.1"
-    "@azure/logger" "^1.0.0"
-    tslib "^2.6.2"
-
-"@azure/core-paging@1.6.2", "@azure/core-paging@^1.6.2":
-  version "1.6.2"
-  resolved "https://packagefeedproxy.microsoft.io/npm/@azure/core-paging/-/core-paging-1.6.2.tgz"
-  integrity sha512-YKWi9YuCU04B55h25cnOYZHxXYtEvQEbKST5vqRga7hWY9ydd3FZHdeQF8pyh+acWZvppw13M/LMGx0LABUVMA==
-  dependencies:
-    tslib "^2.6.2"
-
-"@azure/core-rest-pipeline@1.19.0", "@azure/core-rest-pipeline@^1.19.0", "@azure/core-rest-pipeline@^1.9.1":
-  version "1.19.0"
-  resolved "https://packagefeedproxy.microsoft.io/npm/@azure/core-rest-pipeline/-/core-rest-pipeline-1.19.0.tgz"
-  integrity sha512-bM3308LRyg5g7r3Twprtqww0R/r7+GyVxj4BafcmVPo4WQoGt5JXuaqxHEFjw2o3rvFZcUPiqJMg6WuvEEeVUA==
-  dependencies:
-    "@azure/abort-controller" "^2.0.0"
-    "@azure/core-auth" "^1.8.0"
-    "@azure/core-tracing" "^1.0.1"
-    "@azure/core-util" "^1.11.0"
-    "@azure/logger" "^1.0.0"
-    http-proxy-agent "^7.0.0"
-    https-proxy-agent "^7.0.0"
-    tslib "^2.6.2"
-
-"@azure/core-tracing@1.2.0", "@azure/core-tracing@^1.0.0", "@azure/core-tracing@^1.0.1", "@azure/core-tracing@^1.2.0":
-  version "1.2.0"
-  resolved "https://packagefeedproxy.microsoft.io/npm/@azure/core-tracing/-/core-tracing-1.2.0.tgz"
-  integrity sha512-UKTiEJPkWcESPYJz3X5uKRYyOcJD+4nYph+KpfdPRnQJVrZfk0KJgdnaAWKfhsBBtAf/D58Az4AvCJEmWgIBAg==
-  dependencies:
-    tslib "^2.6.2"
-
-"@azure/core-util@1.11.0", "@azure/core-util@^1.11.0", "@azure/core-util@^1.6.1":
+"@azure/core-auth@1.11.0", "@azure/core-auth@^1.10.0", "@azure/core-auth@^1.9.0":
   version "1.11.0"
-  resolved "https://packagefeedproxy.microsoft.io/npm/@azure/core-util/-/core-util-1.11.0.tgz"
-  integrity sha512-DxOSLua+NdpWoSqULhjDyAZTXFdP/LKkqtYuxxz1SCN289zk3OG8UOpnCQAz/tygyACBtWp/BoO72ptK7msY8g==
+  resolved "https://registry.yarnpkg.com/@azure/core-auth/-/core-auth-1.11.0.tgz#1daeffdf62d1a871d22b865f9f3164a63ea1f575"
+  integrity sha512-IUZydyTUkDnYdstOW9pFOOUQlBjAepK5teihDE3x6yxsPJs/hsAaaYpeGxdxrgtOiJbBKSjKW7MDk7AEhb4LRg==
   dependencies:
-    "@azure/abort-controller" "^2.0.0"
+    "@azure/abort-controller" "^2.1.2"
+    "@azure/core-util" "^1.13.0"
     tslib "^2.6.2"
 
-"@azure/logger@1.1.4", "@azure/logger@^1.0.0", "@azure/logger@^1.1.4":
-  version "1.1.4"
-  resolved "https://packagefeedproxy.microsoft.io/npm/@azure/logger/-/logger-1.1.4.tgz"
-  integrity sha512-4IXXzcCdLdlXuCG+8UKEwLA1T1NHqUfanhXYHiQTn+6sfWCZXduqbtXDGceg3Ce5QxTGo7EqmbV6Bi+aqKuClQ==
+"@azure/core-client@1.11.0", "@azure/core-client@^1.9.2":
+  version "1.11.0"
+  resolved "https://registry.yarnpkg.com/@azure/core-client/-/core-client-1.11.0.tgz#e73d09ac7977de5d7b415696b7ed45d3fdeb67b0"
+  integrity sha512-JjQWO6akOck45PH/XBrxzsQGAiKrfFl4m5iggJ0ItMIz5omRufOXWpqCPpdjKN3vKDzlSUvFjaMb7Zwf0gvAdA==
   dependencies:
+    "@azure/abort-controller" "^2.1.2"
+    "@azure/core-auth" "^1.10.0"
+    "@azure/core-rest-pipeline" "^1.22.0"
+    "@azure/core-tracing" "^1.3.0"
+    "@azure/core-util" "^1.13.0"
+    "@azure/logger" "^1.3.0"
+    tslib "^2.6.2"
+
+"@azure/core-paging@1.7.0", "@azure/core-paging@^1.6.2":
+  version "1.7.0"
+  resolved "https://registry.yarnpkg.com/@azure/core-paging/-/core-paging-1.7.0.tgz#59597a2f5438ba3c6c8789fc870f69e0e78531a8"
+  integrity sha512-7GEAoIsaoBr6KELNRb8nypowCqvk8dnCHFCYg4XD4lOQGY2GqjQg5IhkRjyBFRO18CGSMq05PaNqSOE9GQro3g==
+  dependencies:
+    tslib "^2.6.2"
+
+"@azure/core-rest-pipeline@1.25.0", "@azure/core-rest-pipeline@^1.19.0", "@azure/core-rest-pipeline@^1.22.0":
+  version "1.25.0"
+  resolved "https://registry.yarnpkg.com/@azure/core-rest-pipeline/-/core-rest-pipeline-1.25.0.tgz#92ea4912edbb1f7395f4829a300631174aa82f08"
+  integrity sha512-bMs8ekJLjX8wPV+9IPBges1SLPyuDtE9g5gLDWOpxzKcoOFQnpLGkbcT1tdw3FaAmDS1gnPmMmJ6y/T5B96kIA==
+  dependencies:
+    "@azure/abort-controller" "^2.1.2"
+    "@azure/core-auth" "^1.10.0"
+    "@azure/core-tracing" "^1.3.0"
+    "@azure/core-util" "^1.13.0"
+    "@azure/logger" "^1.3.0"
+    "@typespec/ts-http-runtime" "^0.3.4"
+    tslib "^2.6.2"
+
+"@azure/core-tracing@1.4.0", "@azure/core-tracing@^1.2.0", "@azure/core-tracing@^1.3.0":
+  version "1.4.0"
+  resolved "https://registry.yarnpkg.com/@azure/core-tracing/-/core-tracing-1.4.0.tgz#d657a700e24d256d195e628a795db6a8cc475eab"
+  integrity sha512-eGwxD0AtncrxeBM4tG8R55Pc3rdX1hNW2WibJAgYpCVA6E93mvvVH+LcssoVjOBrSKWS55yEIHsk0X8ctHmfOQ==
+  dependencies:
+    tslib "^2.6.2"
+
+"@azure/core-util@1.14.0", "@azure/core-util@^1.11.0", "@azure/core-util@^1.13.0":
+  version "1.14.0"
+  resolved "https://registry.yarnpkg.com/@azure/core-util/-/core-util-1.14.0.tgz#7ce9fe57958f132dd422573856e5a45c7232bb04"
+  integrity sha512-9n2pWK61veAuN0V20t9lOuoV4CFMdyAZ1ygZzvBGk/pBBJRib/PjL9PLXa/aI2CcPpyHfqVsxxqLCYl6uZlfDw==
+  dependencies:
+    "@azure/abort-controller" "^2.1.2"
+    "@typespec/ts-http-runtime" "^0.3.0"
+    tslib "^2.6.2"
+
+"@azure/logger@1.4.0", "@azure/logger@^1.1.4", "@azure/logger@^1.3.0":
+  version "1.4.0"
+  resolved "https://registry.yarnpkg.com/@azure/logger/-/logger-1.4.0.tgz#3d5a627fe59a276ece7487a79dd92ad5c508c339"
+  integrity sha512-rbAE25KUfjU/s3XHUdJgceoCP5dEOpMx85J04kF+QMdta73XkuG9JGHHinch+XIoKpBdqljin+KqURpJriSzLA==
+  dependencies:
+    "@typespec/ts-http-runtime" "^0.3.0"
     tslib "^2.6.2"
 
 "@azure/web-pubsub-client@1.1.0":
@@ -831,6 +832,15 @@
   integrity sha512-qUHkeCyQFxMXg79wQfTtfndEC+N9ZZg76HJftDJp+qH2tV7Gj4OJi7l+PiWwJ+pWtW8GwSmqsDj/oymhrTWXjg==
   dependencies:
     "@types/yargs-parser" "*"
+
+"@typespec/ts-http-runtime@^0.3.0", "@typespec/ts-http-runtime@^0.3.4":
+  version "0.3.9"
+  resolved "https://registry.yarnpkg.com/@typespec/ts-http-runtime/-/ts-http-runtime-0.3.9.tgz#332855bbd729ab36e0779b2dfc24edc920d12461"
+  integrity sha512-edSdeAqkdxBVzA1yL1LrLCml1YjyCVvPMtMqJpbF+6K609tHe8V6sQUzFQSGcYNhcuhOceZtjvN32+mpIth30A==
+  dependencies:
+    http-proxy-agent "^7.0.0"
+    https-proxy-agent "^7.0.0"
+    tslib "^2.6.2"
 
 acorn-walk@^8.1.1:
   version "8.3.5"
@@ -2905,15 +2915,10 @@ write-file-atomic@^4.0.2:
     imurmurhash "^0.1.4"
     signal-exit "^3.0.7"
 
-ws@^8.18.0:
+ws@^8.18.0, ws@^8.21.3:
   version "8.21.3"
   resolved "https://ms-feed-2.pkgs.visualstudio.com/1es-public/_packaging/npm-public/npm/registry/ws/-/ws-8.21.3.tgz#660b4faddb6a3e575c86e078126919961f4de4fc"
   integrity sha1-ZgtPrdtqPldchuB4EmkZlh9N5Pw=
-
-ws@^8.21.2:
-  version "8.21.2"
-  resolved "https://packagefeedproxy.microsoft.io/npm/ws/-/ws-8.21.2.tgz"
-  integrity sha512-54dMVAo4WIe6SKy3vBgN+9bJZqqQ8IMRevAkOLQALhi49qkkQDQfWdAZ8KQlXiEabw88ARXXdUrlvtbKQX+aKw==
 
 xtend@^4.0.0:
   version "4.0.2"

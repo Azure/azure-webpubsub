@@ -2,48 +2,42 @@
 # yarn lockfile v1
 
 
-"@ag-ui/core@0.0.57":
-  version "0.0.57"
-  resolved "https://packagefeedproxy.microsoft.io/npm/@ag-ui/core/-/core-0.0.57.tgz"
-  integrity sha512-gho1OWjNE6E3Rl7ZEZ1wr2CEpUHjLFU0FqzCZZk439TicLu+BfLCMkMokB07bMGlRmbJ60hM6LW60iOVauCx+Q==
+"@ag-ui/core@0.0.59":
+  version "0.0.59"
+  resolved "https://registry.yarnpkg.com/@ag-ui/core/-/core-0.0.59.tgz#5037eca730afe944214bf85c30d136efcf559545"
+  integrity sha512-hDgy4ipTqXieT8YG8Mr917Y+FD/f11VK1GefZ5CwTDCuNqS/oTwjJ5l/DZkicThgS8hQW/Y7wPylPBMBJ8BkUg==
   dependencies:
     zod "^3.22.4"
 
-"@azure/abort-controller@2.1.2", "@azure/abort-controller@^2.0.0", "@azure/abort-controller@^2.1.2":
-  version "2.1.2"
-  resolved "https://packagefeedproxy.microsoft.io/npm/@azure/abort-controller/-/abort-controller-2.1.2.tgz"
-  integrity sha512-nBrLsEWm4J2u5LpAPjxADTlq3trDgVZZXHNKabeXZtpq3d3AbN/KGO82R87rdDz5/lYB024rtEf10/q0urNgsA==
+"@azure/abort-controller@2.2.0", "@azure/abort-controller@^2.1.2":
+  version "2.2.0"
+  resolved "https://registry.yarnpkg.com/@azure/abort-controller/-/abort-controller-2.2.0.tgz#93e0e82b01862e7ea3b5b69958719d3f3fd2c8ac"
+  integrity sha512-fNAjWnA/nZ2jz31kxR/AqRaUT8ewHBw/WuBIosK0moMy1C9e5ValbDfFdIxJzVOOYaYkV/b2F1S4H/aHiqfVQg==
   dependencies:
     tslib "^2.6.2"
 
 "@azure/core-paging@^1.6.2":
-  version "1.6.2"
-  resolved "https://packagefeedproxy.microsoft.io/npm/@azure/core-paging/-/core-paging-1.6.2.tgz"
-  integrity sha512-YKWi9YuCU04B55h25cnOYZHxXYtEvQEbKST5vqRga7hWY9ydd3FZHdeQF8pyh+acWZvppw13M/LMGx0LABUVMA==
+  version "1.7.0"
+  resolved "https://registry.yarnpkg.com/@azure/core-paging/-/core-paging-1.7.0.tgz#59597a2f5438ba3c6c8789fc870f69e0e78531a8"
+  integrity sha512-7GEAoIsaoBr6KELNRb8nypowCqvk8dnCHFCYg4XD4lOQGY2GqjQg5IhkRjyBFRO18CGSMq05PaNqSOE9GQro3g==
   dependencies:
     tslib "^2.6.2"
 
 "@azure/core-util@^1.11.0":
-  version "1.11.0"
-  resolved "https://packagefeedproxy.microsoft.io/npm/@azure/core-util/-/core-util-1.11.0.tgz"
-  integrity sha512-DxOSLua+NdpWoSqULhjDyAZTXFdP/LKkqtYuxxz1SCN289zk3OG8UOpnCQAz/tygyACBtWp/BoO72ptK7msY8g==
+  version "1.14.0"
+  resolved "https://registry.yarnpkg.com/@azure/core-util/-/core-util-1.14.0.tgz#7ce9fe57958f132dd422573856e5a45c7232bb04"
+  integrity sha512-9n2pWK61veAuN0V20t9lOuoV4CFMdyAZ1ygZzvBGk/pBBJRib/PjL9PLXa/aI2CcPpyHfqVsxxqLCYl6uZlfDw==
   dependencies:
-    "@azure/abort-controller" "^2.0.0"
-    tslib "^2.6.2"
-
-"@azure/logger@1.3.0":
-  version "1.3.0"
-  resolved "https://packagefeedproxy.microsoft.io/npm/@azure/logger/-/logger-1.3.0.tgz"
-  integrity sha512-fCqPIfOcLE+CGqGPd66c8bZpwAji98tZ4JI9i/mlTNTlsIWslCfpg48s/ypyLxZTump5sypjrKn2/kY7q8oAbA==
-  dependencies:
+    "@azure/abort-controller" "^2.1.2"
     "@typespec/ts-http-runtime" "^0.3.0"
     tslib "^2.6.2"
 
-"@azure/logger@^1.1.4":
-  version "1.1.4"
-  resolved "https://packagefeedproxy.microsoft.io/npm/@azure/logger/-/logger-1.1.4.tgz"
-  integrity sha512-4IXXzcCdLdlXuCG+8UKEwLA1T1NHqUfanhXYHiQTn+6sfWCZXduqbtXDGceg3Ce5QxTGo7EqmbV6Bi+aqKuClQ==
+"@azure/logger@1.4.0", "@azure/logger@^1.1.4":
+  version "1.4.0"
+  resolved "https://registry.yarnpkg.com/@azure/logger/-/logger-1.4.0.tgz#3d5a627fe59a276ece7487a79dd92ad5c508c339"
+  integrity sha512-rbAE25KUfjU/s3XHUdJgceoCP5dEOpMx85J04kF+QMdta73XkuG9JGHHinch+XIoKpBdqljin+KqURpJriSzLA==
   dependencies:
+    "@typespec/ts-http-runtime" "^0.3.0"
     tslib "^2.6.2"
 
 "@azure/web-pubsub-client@1.1.0":
@@ -73,260 +67,130 @@
   resolved "https://packagefeedproxy.microsoft.io/npm/@babel/helper-validator-identifier/-/helper-validator-identifier-7.29.7.tgz"
   integrity sha512-qehxGkRj55h/ff8EMaJ+cYhyaKlHIxqYDn682wQD7RNp9UujOQsHog2uS0r2vzr4pW+sXf90NeeayjcNaX3fFg==
 
-"@esbuild/aix-ppc64@0.28.1":
-  version "0.28.1"
-  resolved "https://packagefeedproxy.microsoft.io/npm/@esbuild/aix-ppc64/-/aix-ppc64-0.28.1.tgz"
-  integrity sha512-Svl7tq8k/08+p6CXPpRjQ1fKX+1odH/BQbb48fV6fj3CWHhsoIOoY87w1oHXm0qEpkIK3ZfVgp0hed3XBXzXMQ==
-
 "@esbuild/aix-ppc64@0.28.2":
   version "0.28.2"
   resolved "https://registry.yarnpkg.com/@esbuild/aix-ppc64/-/aix-ppc64-0.28.2.tgz#bf6e10303bcf2e7c686975fa52f937ec2728d8bc"
   integrity sha512-XExcO+dvLKvVtNTibSTBej1NCAbaGhWn9Ww1ZPx80qsahhPFe/8jgWP0IchNe0F3HwkU7n8ejhH8bjonqht8mQ==
-
-"@esbuild/android-arm64@0.28.1":
-  version "0.28.1"
-  resolved "https://packagefeedproxy.microsoft.io/npm/@esbuild/android-arm64/-/android-arm64-0.28.1.tgz"
-  integrity sha512-34EGEbCIAgosYz6goLcopX6Mo7NyGv9tfwEM2/7Ce2VcVRk568iSvniGWcUXIy7wEDR1wzolcxcriFVrWYcwBg==
 
 "@esbuild/android-arm64@0.28.2":
   version "0.28.2"
   resolved "https://registry.yarnpkg.com/@esbuild/android-arm64/-/android-arm64-0.28.2.tgz#0c6246bc8d2c4d172aac2db3fb1190d72bd65504"
   integrity sha512-5YfKeeI8qWfBZIX+u2xZC3Zlb3Os/gLS2sbEKM+I4ZOcsWmHS2WLysCcQZDAFRslDUU5Oiq44gf6PYN1vGwG5A==
 
-"@esbuild/android-arm@0.28.1":
-  version "0.28.1"
-  resolved "https://packagefeedproxy.microsoft.io/npm/@esbuild/android-arm/-/android-arm-0.28.1.tgz"
-  integrity sha512-0k2F129Xdio1TdJfzJ8sy1Q47vUD2NnwdhiAf7drUN1EBTfPf4hsFCtmMgu/6m8JSzsBrlmVjudMBQqOfG8usQ==
-
 "@esbuild/android-arm@0.28.2":
   version "0.28.2"
   resolved "https://registry.yarnpkg.com/@esbuild/android-arm/-/android-arm-0.28.2.tgz#2d84ece6a4e2684d92be26ee13d42757d831c381"
   integrity sha512-kXXoiPVVGQcnIYGOeaovwOURpniDBpSq4A03qkQ+BMQqtGG6HYap3xne9C1O1yo4TR3qxlCX5IqqmX6fFo2Lqg==
-
-"@esbuild/android-x64@0.28.1":
-  version "0.28.1"
-  resolved "https://packagefeedproxy.microsoft.io/npm/@esbuild/android-x64/-/android-x64-0.28.1.tgz"
-  integrity sha512-dbwY7ltSMDWsRatcRpCnES4F+im88OCUgGZjy52shC7GqHRE/cYlxNbB4Z4UpJswpcc4Qxd2oE/ufM0p61IKng==
 
 "@esbuild/android-x64@0.28.2":
   version "0.28.2"
   resolved "https://registry.yarnpkg.com/@esbuild/android-x64/-/android-x64-0.28.2.tgz#fc38d4d6358d8dc1cf53f09f7589fe436eb64801"
   integrity sha512-O387ite7SzUyCcy3JQX4P4bLtEA7bLLkx+esve5JHnyYfNTxcVpXZo9jhdB0lTKN44gztELTdU7nS8Nr16Fs1Q==
 
-"@esbuild/darwin-arm64@0.28.1":
-  version "0.28.1"
-  resolved "https://packagefeedproxy.microsoft.io/npm/@esbuild/darwin-arm64/-/darwin-arm64-0.28.1.tgz"
-  integrity sha512-TZbWkQY7kvTAXbXUT7uVACR5cMHsDiSz9z7ZKAX/RTq/WJEk3QyRr0wZpNhBDX+/0CtdqUIJlOiodQcta6tY3Q==
-
 "@esbuild/darwin-arm64@0.28.2":
   version "0.28.2"
   resolved "https://registry.yarnpkg.com/@esbuild/darwin-arm64/-/darwin-arm64-0.28.2.tgz#f83afeeac1d7dac01c7a2fd012b3e451a0591fcc"
   integrity sha512-n4KqkOQrraxHJcgjM1RvwbigfQKIKJVpM7xp+KsxiyUSrRdIXnt73VhrPAx0fV44hgfmIVKjxMN9J1t5jySVkw==
-
-"@esbuild/darwin-x64@0.28.1":
-  version "0.28.1"
-  resolved "https://packagefeedproxy.microsoft.io/npm/@esbuild/darwin-x64/-/darwin-x64-0.28.1.tgz"
-  integrity sha512-zfdzgK9ACBNZLI/CyHTOx81SyNbM6YXn7rxSgX97VjyiPl9W1i4Ka4fgKECEoFCKGpvBj5qArWIGgQjOwkgskQ==
 
 "@esbuild/darwin-x64@0.28.2":
   version "0.28.2"
   resolved "https://registry.yarnpkg.com/@esbuild/darwin-x64/-/darwin-x64-0.28.2.tgz#510147c055a795588dbbe14fd6b1b8ad0a2f30de"
   integrity sha512-uq6suIWYP37qzGddBKPw5QEQPi6HiLGsO7UmkpfyaYNQ3D+rN6w6WfwH+nuqcGXWvawGwxOEroO4YGnFh95azw==
 
-"@esbuild/freebsd-arm64@0.28.1":
-  version "0.28.1"
-  resolved "https://packagefeedproxy.microsoft.io/npm/@esbuild/freebsd-arm64/-/freebsd-arm64-0.28.1.tgz"
-  integrity sha512-wG2EA8ENdEI0qhkSZMjfqrdY+ziCYCPMmtZjjIwOmXFjmyzEHn+UUxk5of+SYsjtfs3VpnlC7QLzSI5hY/rOAw==
-
 "@esbuild/freebsd-arm64@0.28.2":
   version "0.28.2"
   resolved "https://registry.yarnpkg.com/@esbuild/freebsd-arm64/-/freebsd-arm64-0.28.2.tgz#093b9200ecf0b115ba4e5e248a7485c9c5f8bd5e"
   integrity sha512-n+I0BTSRIoy+d6RPKnEVwql5UwBJolytvY4mAOIEJorKlqgPII8ix6slVVrfZ5Tnj7glIZvloylbB/EJPMWEXw==
-
-"@esbuild/freebsd-x64@0.28.1":
-  version "0.28.1"
-  resolved "https://packagefeedproxy.microsoft.io/npm/@esbuild/freebsd-x64/-/freebsd-x64-0.28.1.tgz"
-  integrity sha512-i7dZ9vQgnvSCzi/rYCXNgtF/U+eKZNJBzu3eTQbRgHnM7tNSizLOkRFAl3qzVc/Op/u5YkHHa4pf/3DOYHthLQ==
 
 "@esbuild/freebsd-x64@0.28.2":
   version "0.28.2"
   resolved "https://registry.yarnpkg.com/@esbuild/freebsd-x64/-/freebsd-x64-0.28.2.tgz#0be22b6df925d213e841ea87123af5df80b0faf7"
   integrity sha512-78XJTJkvPs0kz2w61301PJjXl4g7q3JqiYMZ/M/yVI73EHBrCRTgkhu9oqG7vPqq+a/yadEW8aD+agKlk5xrmg==
 
-"@esbuild/linux-arm64@0.28.1":
-  version "0.28.1"
-  resolved "https://packagefeedproxy.microsoft.io/npm/@esbuild/linux-arm64/-/linux-arm64-0.28.1.tgz"
-  integrity sha512-yHs+0uc8+nvEAfAfxrWQKK5peSNzBc4PegcMO0EJ2hT71uA7vB8Ihg2e77R2P7SG5uYjPbHlLLmve4LLLRCf0g==
-
 "@esbuild/linux-arm64@0.28.2":
   version "0.28.2"
   resolved "https://registry.yarnpkg.com/@esbuild/linux-arm64/-/linux-arm64-0.28.2.tgz#1bdbc651cda9ba9995c53ed9c71ceaa65094762d"
   integrity sha512-pW4AC0P3it8c7do9MVM4p51FzHzdM/TZrerurgRcHJ2WTa1VQ1CIq18xncfpBJw4ojkiZZrKW2yIBWBP92j6Ug==
-
-"@esbuild/linux-arm@0.28.1":
-  version "0.28.1"
-  resolved "https://packagefeedproxy.microsoft.io/npm/@esbuild/linux-arm/-/linux-arm-0.28.1.tgz"
-  integrity sha512-qVXBOHQS+d5Y722GwJzJUtOLlX7km3CraOaGormF1pDtPd2C/l1SHRPgjLunLGe51Sh5YYWKMFDyV4SxgMQYTQ==
 
 "@esbuild/linux-arm@0.28.2":
   version "0.28.2"
   resolved "https://registry.yarnpkg.com/@esbuild/linux-arm/-/linux-arm-0.28.2.tgz#beb12ad72b84f72d28488cc1b8ee9f7eb141d753"
   integrity sha512-XlDnu2q5yoqems+xay6wSAcg9DDD7K9RLKZEBOMZm3ckNpJBvOX20tSfby8KfrrhINDyv9V2YVZKY/SpoGJI8w==
 
-"@esbuild/linux-ia32@0.28.1":
-  version "0.28.1"
-  resolved "https://packagefeedproxy.microsoft.io/npm/@esbuild/linux-ia32/-/linux-ia32-0.28.1.tgz"
-  integrity sha512-d1z4ZuP0ajrfz/FhGT4vv278rX8KnPPJx8i5+AtK7TYbx9Le9F1hyzurZpkEyjkGa9dUGhQow4C1NmeGvqxN2w==
-
 "@esbuild/linux-ia32@0.28.2":
   version "0.28.2"
   resolved "https://registry.yarnpkg.com/@esbuild/linux-ia32/-/linux-ia32-0.28.2.tgz#b81f9d55529b45c206a46a138214b1aa6879696b"
   integrity sha512-CYbnj78HsIeA+DhgUKgFCfvNsTHFhMMrinUrMZpDXJXKN8T3XViTZ/+wtHeVxEWY8ewSzTFN+nRmSwO2tZaLUQ==
-
-"@esbuild/linux-loong64@0.28.1":
-  version "0.28.1"
-  resolved "https://packagefeedproxy.microsoft.io/npm/@esbuild/linux-loong64/-/linux-loong64-0.28.1.tgz"
-  integrity sha512-M5sRjUVZrkm1OAPR3dlOYzNmN+loZKGVi1VUQGrwuqLcbR6qeAz+famMhjASeH3YVKvZz+zT1jlh/keC3Rj/lg==
 
 "@esbuild/linux-loong64@0.28.2":
   version "0.28.2"
   resolved "https://registry.yarnpkg.com/@esbuild/linux-loong64/-/linux-loong64-0.28.2.tgz#598667241a04c99b76ed6ef940ac50038c419f98"
   integrity sha512-buwkd8nsph4R+ajRvw0qM5Hja/TXQow3ptzWO2EbG/cqcIkHloRrdlBtQlshyYGTNFvfkfJ5tpPLVkY4DtsPfQ==
 
-"@esbuild/linux-mips64el@0.28.1":
-  version "0.28.1"
-  resolved "https://packagefeedproxy.microsoft.io/npm/@esbuild/linux-mips64el/-/linux-mips64el-0.28.1.tgz"
-  integrity sha512-mRObBZeHh2OxcBFPWE/FjylkRgZdYuiTR3vaTozquCGOH14iP9oN4x4Ge81CoIDYQrXmIxpFumJBu5MtZpnQJQ==
-
 "@esbuild/linux-mips64el@0.28.2":
   version "0.28.2"
   resolved "https://registry.yarnpkg.com/@esbuild/linux-mips64el/-/linux-mips64el-0.28.2.tgz#1c51eb9cea903f53d97b5af3b1841db70f5596ca"
   integrity sha512-ZVykbDyk7519VwiNb9Lcj9m8XM6v5V9uKPvrEMkkEedVewf+0itkhahp4HDpgERXhwLRpWFypsGbG/J8s0QjJA==
-
-"@esbuild/linux-ppc64@0.28.1":
-  version "0.28.1"
-  resolved "https://packagefeedproxy.microsoft.io/npm/@esbuild/linux-ppc64/-/linux-ppc64-0.28.1.tgz"
-  integrity sha512-slScBsMAb3GFDcdrCgLwZtPYRoH2H/youv10QiZyRjmsP48fznoveWytSgCI/R0ZcUgpc0ZhIUEx6LHts8yrfQ==
 
 "@esbuild/linux-ppc64@0.28.2":
   version "0.28.2"
   resolved "https://registry.yarnpkg.com/@esbuild/linux-ppc64/-/linux-ppc64-0.28.2.tgz#63dd61f17ceb31a81227f413feac8a71bc2c51f2"
   integrity sha512-CAXl+Dtd9UUuJd8pKKdwh6MLm3MUMiqMPmhZ3tTSXPqfyQ3vDl6R5hZdZ/kYojK4ofXtdfSv1tFq8XzWx3heNQ==
 
-"@esbuild/linux-riscv64@0.28.1":
-  version "0.28.1"
-  resolved "https://packagefeedproxy.microsoft.io/npm/@esbuild/linux-riscv64/-/linux-riscv64-0.28.1.tgz"
-  integrity sha512-kw0owk1o0GFETUJyW0jc0G4Yzs0BHZn0JDZ8JRT088vjJYX777BAs1fDGxAC+q831qOs2DTC96mNsG2opdfyyQ==
-
 "@esbuild/linux-riscv64@0.28.2":
   version "0.28.2"
   resolved "https://registry.yarnpkg.com/@esbuild/linux-riscv64/-/linux-riscv64-0.28.2.tgz#3763b08fde5cf25ab1facb8e7752edfe45fbfc27"
   integrity sha512-GeXCej4IQtU1B+QlDV8W/RRvbzI3O/Stss+/bCXv4lZls5WGRtu2a+3JkA3i4qIUlMXpcHebWpF8AkJhATowuA==
-
-"@esbuild/linux-s390x@0.28.1":
-  version "0.28.1"
-  resolved "https://packagefeedproxy.microsoft.io/npm/@esbuild/linux-s390x/-/linux-s390x-0.28.1.tgz"
-  integrity sha512-/lAIjX8aYFRByhh6L5rYtPEDRqa9de/4V/juOXcta5frjvzXO4/sqEtyytse0g3zZFuWu5cDN0MkLz2qRDD2Ag==
 
 "@esbuild/linux-s390x@0.28.2":
   version "0.28.2"
   resolved "https://registry.yarnpkg.com/@esbuild/linux-s390x/-/linux-s390x-0.28.2.tgz#1a137ff293a82906eb3176385bd7e8e0e5cfb7cb"
   integrity sha512-3H1weTYZPxt/WOhByszQZybS9w5lKzUn1FDMsgEChbHWQwHYQQRfBxgCcZvPhjHfKyJjIievvMmEUawJrdY9Dg==
 
-"@esbuild/linux-x64@0.28.1":
-  version "0.28.1"
-  resolved "https://packagefeedproxy.microsoft.io/npm/@esbuild/linux-x64/-/linux-x64-0.28.1.tgz"
-  integrity sha512-u/anNYF2mmVOEDwLtnQ1wOr3EZ9sTNGLWrsYGYwHWzGA3Si84IOkHXlbWTD1NB+9/1lcnweYKO54uhxZydNzfA==
-
 "@esbuild/linux-x64@0.28.2":
   version "0.28.2"
   resolved "https://registry.yarnpkg.com/@esbuild/linux-x64/-/linux-x64-0.28.2.tgz#268b36211c146ca54f8fe12c578a8d6ef8979485"
   integrity sha512-4xTZr1FUmSoQW4XIWmit3tzQrUTZM+N3P0XV8xROKYF50XfI7xeO90+1bZvNwxIufQ9hDQVRJH5YhgPVF8A/HQ==
-
-"@esbuild/netbsd-arm64@0.28.1":
-  version "0.28.1"
-  resolved "https://packagefeedproxy.microsoft.io/npm/@esbuild/netbsd-arm64/-/netbsd-arm64-0.28.1.tgz"
-  integrity sha512-oks0DYbLwWMmaakTsCb+zL4E+aHRVLom9IJZOAthMQEPiQmydXHkziYEsGYRx0uNV/IjEKGAV941JzH02pflqw==
 
 "@esbuild/netbsd-arm64@0.28.2":
   version "0.28.2"
   resolved "https://registry.yarnpkg.com/@esbuild/netbsd-arm64/-/netbsd-arm64-0.28.2.tgz#22571ad951d62bb6accc82d8d1fad5c8c1ac0ba1"
   integrity sha512-sSATRjPeDBg3pdgHoQfoYBob11Kk1FGa9lui5RIHZCoCkJa9QKlvl3/vKz2usCmYYjs7ymJR/2Nnsqe+Hjt5nw==
 
-"@esbuild/netbsd-x64@0.28.1":
-  version "0.28.1"
-  resolved "https://packagefeedproxy.microsoft.io/npm/@esbuild/netbsd-x64/-/netbsd-x64-0.28.1.tgz"
-  integrity sha512-aeL6lAnN89Hz43Mlh1G8ARasbuoYvSITDEx0tHh5b7jJnHcssqgjy9Yx430GDpmCa6OyrKoS0aNRjKundRizGg==
-
 "@esbuild/netbsd-x64@0.28.2":
   version "0.28.2"
   resolved "https://registry.yarnpkg.com/@esbuild/netbsd-x64/-/netbsd-x64-0.28.2.tgz#42fcc57297eb0a0ca3f5fc475291f4c1a3f7c0de"
   integrity sha512-lqnzCV+mM0gIADaKihiCg6ifgfU2L3h5E33rNQBN1Y4MaVGnzryzmvvf7UHxprpQdE8hpqLolJ9Rl+SkIRDpyw==
-
-"@esbuild/openbsd-arm64@0.28.1":
-  version "0.28.1"
-  resolved "https://packagefeedproxy.microsoft.io/npm/@esbuild/openbsd-arm64/-/openbsd-arm64-0.28.1.tgz"
-  integrity sha512-MEFJe5C3R8pwXdZ5Y21oo6m7ePiS0d9pWucn99O/wvyJZChoIQKrQDxKrGeW8F5+T0okTHesAmDeiHDTIq0V/Q==
 
 "@esbuild/openbsd-arm64@0.28.2":
   version "0.28.2"
   resolved "https://registry.yarnpkg.com/@esbuild/openbsd-arm64/-/openbsd-arm64-0.28.2.tgz#9eb32af104ac3dacf4edca01f596664aab0c73ef"
   integrity sha512-AL2qJILH7lNjrDmCQDvdxMfAUIv8KMNZOvrwAQ8i8//ntL9FflhOyMJ8OZSMBb8/AWXe3/5v5S20y3zCoZWKoQ==
 
-"@esbuild/openbsd-x64@0.28.1":
-  version "0.28.1"
-  resolved "https://packagefeedproxy.microsoft.io/npm/@esbuild/openbsd-x64/-/openbsd-x64-0.28.1.tgz"
-  integrity sha512-i/ZLIOafE0Z8cI/XANJAixoJL/uRAoS2xOA3rb0xN+KK0K177cMAsQYkzHtBrtMXAKuAc7HGgcWiZ/sRC1Nxgw==
-
 "@esbuild/openbsd-x64@0.28.2":
   version "0.28.2"
   resolved "https://registry.yarnpkg.com/@esbuild/openbsd-x64/-/openbsd-x64-0.28.2.tgz#febed2402d6088225e91f20fb4ce2522ad0a4efd"
   integrity sha512-QtiuPytchRyC4rwUKhexJdQKvDuZ6hWloi3igqPQNUJCS1/v9EiO3UTOXR6A3FoMo4fnAKbWJdqaIwhOzh8qEw==
-
-"@esbuild/openharmony-arm64@0.28.1":
-  version "0.28.1"
-  resolved "https://packagefeedproxy.microsoft.io/npm/@esbuild/openharmony-arm64/-/openharmony-arm64-0.28.1.tgz"
-  integrity sha512-ge+Z7EXFNt2BO1oAMsVpiQ8EwndV9i1xXerAeTIK7AtPs3bKFXQM7nlRxDSIUIMeueR1CNXxqztLzdNeReKBJg==
 
 "@esbuild/openharmony-arm64@0.28.2":
   version "0.28.2"
   resolved "https://registry.yarnpkg.com/@esbuild/openharmony-arm64/-/openharmony-arm64-0.28.2.tgz#85641c3d466428bfbccea5f21c26836663fef5ce"
   integrity sha512-WkhYDmpTjLvGlScA1rwjRUmhl4k8oXR3cIbtqWmELgU/dFeHHlEllxDvdWcNJV9rbzCexB5vz8gtNewWLgCT7Q==
 
-"@esbuild/sunos-x64@0.28.1":
-  version "0.28.1"
-  resolved "https://packagefeedproxy.microsoft.io/npm/@esbuild/sunos-x64/-/sunos-x64-0.28.1.tgz"
-  integrity sha512-BEjgtECkL3vY+SaSQ6nzVfiALUeFxpawyp8Jmf5PtYhf1Ug40N1h/hxlhts+f1FvSvarEigdxS3BlSMI2PJLcQ==
-
 "@esbuild/sunos-x64@0.28.2":
   version "0.28.2"
   resolved "https://registry.yarnpkg.com/@esbuild/sunos-x64/-/sunos-x64-0.28.2.tgz#a736f9d8962481045fc4c3e54f5479f22c870fb4"
   integrity sha512-GPMSkTOtMnv2U2F8gxe4Io6qmVs+YKyp832Etqqxr0hFngmXQ3rzwytelm3GIn7T4VviRUlf3sOgBOiTdvaf7g==
-
-"@esbuild/win32-arm64@0.28.1":
-  version "0.28.1"
-  resolved "https://packagefeedproxy.microsoft.io/npm/@esbuild/win32-arm64/-/win32-arm64-0.28.1.tgz"
-  integrity sha512-lCv9eK/H6ZJWbE7bh2nw54CZ9M2nupBxJcTsdk/QQnWkdSjKGuxmmH8/GWrlT1eMmZfn4dGcCjRte397WqfQXA==
 
 "@esbuild/win32-arm64@0.28.2":
   version "0.28.2"
   resolved "https://registry.yarnpkg.com/@esbuild/win32-arm64/-/win32-arm64-0.28.2.tgz#ee5ab40fad186201b652a33f8a5eb149e9e42532"
   integrity sha512-PIhhEkE9uPBleRBrQEJpUn7MBnibZzbGzYWPmY3x+YoVg/95zbjB4CxPPOQ8l5tYYM4mMaCthF8/1DIfBQQyWQ==
 
-"@esbuild/win32-ia32@0.28.1":
-  version "0.28.1"
-  resolved "https://packagefeedproxy.microsoft.io/npm/@esbuild/win32-ia32/-/win32-ia32-0.28.1.tgz"
-  integrity sha512-zvb/mB2bSCoJOpoCBgYKKpX6YM6mJBlBUVUtVj41DlZJVEB6/0CKlRYxP5wWl1C1ILiCoAU5wZZ4q1P3qeS6Eg==
-
 "@esbuild/win32-ia32@0.28.2":
   version "0.28.2"
   resolved "https://registry.yarnpkg.com/@esbuild/win32-ia32/-/win32-ia32-0.28.2.tgz#c40d28a6d99a127da6711f2afd74b11cb63b06a7"
   integrity sha512-YmJbfTlvU7Sdn9BB+4PRES4oB6pxgS37MAONj+hBr/cpXS1aBPKXxNnDbu+QCWPj0o9dgyxeq79g6c5P8KeuYA==
-
-"@esbuild/win32-x64@0.28.1":
-  version "0.28.1"
-  resolved "https://packagefeedproxy.microsoft.io/npm/@esbuild/win32-x64/-/win32-x64-0.28.1.tgz"
-  integrity sha512-bm4Mowrv+GXMlpWX++EcXw/iLyd1o3+bJkC2DkWXYVvgZCqD/bSj9ctZeAMC3cIxgjRVR2Dufaiu4YPxr5gW1A==
 
 "@esbuild/win32-x64@0.28.2":
   version "0.28.2"
@@ -338,27 +202,27 @@
   resolved "https://packagefeedproxy.microsoft.io/npm/@jspm/core/-/core-2.1.0.tgz"
   integrity sha512-3sRl+pkyFY/kLmHl0cgHiFp2xEqErA8N3ECjMs7serSUBmoJ70lBa0PG5t0IM6WJgdZNyyI0R8YFfi5wM8+mzg==
 
-"@microsoft/api-extractor-model@7.33.10":
-  version "7.33.10"
-  resolved "https://packagefeedproxy.microsoft.io/npm/@microsoft/api-extractor-model/-/api-extractor-model-7.33.10.tgz"
-  integrity sha512-uPUK17xGxeQ3av6TN7awp+dTTSTvx8fZC0XFL1gyt7hFapYuxND3XLXH8vkmI7UjfW92oogzFAFqHSifmJROaw==
+"@microsoft/api-extractor-model@7.33.11":
+  version "7.33.11"
+  resolved "https://registry.yarnpkg.com/@microsoft/api-extractor-model/-/api-extractor-model-7.33.11.tgz#bd0176a07f6aaa02da10c12283347ef7ad890a28"
+  integrity sha512-iDu1AtuRC2Z8XVs2SieZieVavF1FXPBX1C9pMexJh8Dx/Dd/3ZZ4nRQp/PU2Vk2rUHWuBz1wOyL4DcuhVnBXwg==
   dependencies:
     "@microsoft/tsdoc" "~0.16.0"
     "@microsoft/tsdoc-config" "~0.18.1"
-    "@rushstack/node-core-library" "5.23.3"
+    "@rushstack/node-core-library" "5.24.0"
 
 "@microsoft/api-extractor@^7.58.12":
-  version "7.58.12"
-  resolved "https://packagefeedproxy.microsoft.io/npm/@microsoft/api-extractor/-/api-extractor-7.58.12.tgz"
-  integrity sha512-VNpgC/1LaroLbn+UKmwDYspq+9r3EHyj4vJ3qUy/g8vB0rKt+1Wgs7WFj/JGpgxhG8SNyXs1XwYwe7nqkk8IDg==
+  version "7.59.0"
+  resolved "https://registry.yarnpkg.com/@microsoft/api-extractor/-/api-extractor-7.59.0.tgz#a34506bcea6f2bd7c09c0f6c83589070291f1634"
+  integrity sha512-KDYV8kSVjmG8JJWVg1f1aKxteNG1IQ44D07Rjhlcci8wlqrSFNhUfgv7dJhwT0W2h3NDIL5Vz2f+/DfO4OpDHw==
   dependencies:
-    "@microsoft/api-extractor-model" "7.33.10"
+    "@microsoft/api-extractor-model" "7.33.11"
     "@microsoft/tsdoc" "~0.16.0"
     "@microsoft/tsdoc-config" "~0.18.1"
-    "@rushstack/node-core-library" "5.23.3"
+    "@rushstack/node-core-library" "5.24.0"
     "@rushstack/rig-package" "0.7.3"
-    "@rushstack/terminal" "0.24.2"
-    "@rushstack/ts-command-line" "5.3.12"
+    "@rushstack/terminal" "0.24.3"
+    "@rushstack/ts-command-line" "5.3.13"
     diff "~8.0.2"
     minimatch "10.2.3"
     resolve "~1.22.1"
@@ -411,10 +275,10 @@
     pluralize "8.0.0"
     yaml-ast-parser "0.0.43"
 
-"@rushstack/node-core-library@5.23.3":
-  version "5.23.3"
-  resolved "https://packagefeedproxy.microsoft.io/npm/@rushstack/node-core-library/-/node-core-library-5.23.3.tgz"
-  integrity sha512-f6uuza7Um65bwsIJgf0MRs7IPA5IG+A+zs1AYGQvpZmLjtTGdfHowhQw4kwF0pPhJCrU4UHNhK8Qa6tLygYZCA==
+"@rushstack/node-core-library@5.24.0":
+  version "5.24.0"
+  resolved "https://registry.yarnpkg.com/@rushstack/node-core-library/-/node-core-library-5.24.0.tgz#036c5cfc3b61ed6f5d7f02bfa0a4c6998c88b75c"
+  integrity sha512-g/Z47ZwARn/VkTnHcyJslrR26erRf1G5JbqPlfGZGBCrOcrEt8fTQXXDVhUDDNl/g/v3TXI1dNiAAT5FEks8BA==
   dependencies:
     ajv "~8.20.0"
     ajv-draft-04 "~1.0.0"
@@ -438,21 +302,21 @@
     jju "~1.4.0"
     resolve "~1.22.1"
 
-"@rushstack/terminal@0.24.2":
-  version "0.24.2"
-  resolved "https://packagefeedproxy.microsoft.io/npm/@rushstack/terminal/-/terminal-0.24.2.tgz"
-  integrity sha512-KB7PpvzDyKMw/RGU3TxOwxTs3OwZ4gq6+WHlTJN/JfQH4ezliNtWIqver78jTaAJyz/ZAAlJGH7a/M1WyFLFSw==
+"@rushstack/terminal@0.24.3":
+  version "0.24.3"
+  resolved "https://registry.yarnpkg.com/@rushstack/terminal/-/terminal-0.24.3.tgz#008e35748d892789caadb67b0201ec22433df6b1"
+  integrity sha512-KxphDhPGC4xDrKg8O4yrWCEpPMi87aJc1iycXqMVh1dLgV0M34hiH9ZTgWjBRmcrT/OIHoOeWf48npcQFzgp+g==
   dependencies:
-    "@rushstack/node-core-library" "5.23.3"
+    "@rushstack/node-core-library" "5.24.0"
     "@rushstack/problem-matcher" "0.2.1"
     supports-color "~8.1.1"
 
-"@rushstack/ts-command-line@5.3.12":
-  version "5.3.12"
-  resolved "https://packagefeedproxy.microsoft.io/npm/@rushstack/ts-command-line/-/ts-command-line-5.3.12.tgz"
-  integrity sha512-Vg2n24arSf7JvUNga2DMHYTbxnVq9L5OtVCp4Gfr8YC/kmL/bmdR8FQhGcpMzMYNY9Vdw3+TaimG11Sf+z1Tpw==
+"@rushstack/ts-command-line@5.3.13":
+  version "5.3.13"
+  resolved "https://registry.yarnpkg.com/@rushstack/ts-command-line/-/ts-command-line-5.3.13.tgz#9fef63098215bb6490ede5bde5345df5d3cc8038"
+  integrity sha512-+jNbxhh8CkrZYxMk9X3GRYM2+Myr1xCCj+eHbJ9Vp+PCdNHS0TUl5QQFT6UbM/aTFRCzs5jiBTKYzBRpe5uYbQ==
   dependencies:
-    "@rushstack/terminal" "0.24.2"
+    "@rushstack/terminal" "0.24.3"
     "@types/argparse" "1.0.38"
     argparse "~1.0.9"
     string-argv "~0.3.1"
@@ -609,7 +473,7 @@ esbuild-plugin-polyfill-node@^0.3.0:
     "@jspm/core" "^2.0.1"
     import-meta-resolve "^3.0.0"
 
-esbuild@^0.28.2:
+esbuild@^0.28.2, esbuild@~0.28.0:
   version "0.28.2"
   resolved "https://registry.yarnpkg.com/esbuild/-/esbuild-0.28.2.tgz#0f43bd1bad955b72d24e2261e3abe5957ccf0816"
   integrity sha512-HKVLS8dvII+xoKW9kmqxbRKrnWEXfJJr/FZhhJmiqIB0e053QNYFqOBouTMO/k5sID4MvCiUCvv8b9M4h32wIA==
@@ -640,38 +504,6 @@ esbuild@^0.28.2:
     "@esbuild/win32-arm64" "0.28.2"
     "@esbuild/win32-ia32" "0.28.2"
     "@esbuild/win32-x64" "0.28.2"
-
-esbuild@~0.28.0:
-  version "0.28.1"
-  resolved "https://packagefeedproxy.microsoft.io/npm/esbuild/-/esbuild-0.28.1.tgz"
-  integrity sha512-HrJrvZv5ayxBzPfwphOoNzkzOIIlifzk0KJrGK2c8R4+LKpMtpYLQeUdjnwjWv/LZlkH2laZk+4w78pi99D4Vw==
-  optionalDependencies:
-    "@esbuild/aix-ppc64" "0.28.1"
-    "@esbuild/android-arm" "0.28.1"
-    "@esbuild/android-arm64" "0.28.1"
-    "@esbuild/android-x64" "0.28.1"
-    "@esbuild/darwin-arm64" "0.28.1"
-    "@esbuild/darwin-x64" "0.28.1"
-    "@esbuild/freebsd-arm64" "0.28.1"
-    "@esbuild/freebsd-x64" "0.28.1"
-    "@esbuild/linux-arm" "0.28.1"
-    "@esbuild/linux-arm64" "0.28.1"
-    "@esbuild/linux-ia32" "0.28.1"
-    "@esbuild/linux-loong64" "0.28.1"
-    "@esbuild/linux-mips64el" "0.28.1"
-    "@esbuild/linux-ppc64" "0.28.1"
-    "@esbuild/linux-riscv64" "0.28.1"
-    "@esbuild/linux-s390x" "0.28.1"
-    "@esbuild/linux-x64" "0.28.1"
-    "@esbuild/netbsd-arm64" "0.28.1"
-    "@esbuild/netbsd-x64" "0.28.1"
-    "@esbuild/openbsd-arm64" "0.28.1"
-    "@esbuild/openbsd-x64" "0.28.1"
-    "@esbuild/openharmony-arm64" "0.28.1"
-    "@esbuild/sunos-x64" "0.28.1"
-    "@esbuild/win32-arm64" "0.28.1"
-    "@esbuild/win32-ia32" "0.28.1"
-    "@esbuild/win32-x64" "0.28.1"
 
 events@^3.3.0:
   version "3.3.0"
@@ -916,9 +748,9 @@ tslib@^2.6.2, tslib@^2.8.1:
   integrity sha512-oJFu94HQb+KVduSUQL7wnpmqnfmLsOA/nAh6b6EH0wCEoK0/mPeXU6c3wKDV83MkOuHPRHtSXKKU99IBazS/2w==
 
 tsx@^4.21.0:
-  version "4.23.7"
-  resolved "https://packagefeedproxy.microsoft.io/npm/tsx/-/tsx-4.23.7.tgz"
-  integrity sha512-3f/u/+UDCNQ7iwUZW9FCMnNGIHzElGJYh0S/yy8IvWSsn5O7fEO/897FaG7FA2W8yryiRyuwXZ1PYLAKYaqSuQ==
+  version "4.23.13"
+  resolved "https://registry.yarnpkg.com/tsx/-/tsx-4.23.13.tgz#393b8dd813d49e25aed7b1d7cbac6930da49ec08"
+  integrity sha512-BL5MGkRln6aDYhb0xbQlEAGw743BaZYWdbWtdJOBriYJboKgUUYCadFp2/FpBBZquBC/ezNBn7wMMPx7FDZUDw==
   dependencies:
     esbuild "~0.28.0"
   optionalDependencies:
@@ -950,9 +782,9 @@ uri-js-replace@^1.0.1:
   integrity sha512-W+C9NWNLFOoBI2QWDp4UT9pv65r2w5Cx+3sTYFvtMdDBxkKt1syCqsUdSFAChbEe1uK5TfS04wt/nGwmaeIQ0g==
 
 ws@^8.18.0, ws@^8.21.2:
-  version "8.21.2"
-  resolved "https://packagefeedproxy.microsoft.io/npm/ws/-/ws-8.21.2.tgz"
-  integrity sha512-54dMVAo4WIe6SKy3vBgN+9bJZqqQ8IMRevAkOLQALhi49qkkQDQfWdAZ8KQlXiEabw88ARXXdUrlvtbKQX+aKw==
+  version "8.21.3"
+  resolved "https://registry.yarnpkg.com/ws/-/ws-8.21.3.tgz#660b4faddb6a3e575c86e078126919961f4de4fc"
+  integrity sha512-201TZ/kPWxoPr/OKWjquZR1SWKXcvxdH+e1xrx89b3YbmzLMFCLfnaG1HFIgWzJOEWZ7MvpK++odZufgYR50Rw==
 
 yaml-ast-parser@0.0.43:
   version "0.0.43"

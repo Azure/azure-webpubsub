@@ -27,28 +27,28 @@
     "typescript": "^5.1.6"
   },
   "dependencies": {
-    "@azure/abort-controller": "2.1.2",
-    "@azure/core-auth": "1.9.0",
-    "@azure/core-client": "1.9.2",
-    "@azure/core-paging": "1.6.2",
-    "@azure/core-rest-pipeline": "1.19.0",
-    "@azure/core-tracing": "1.2.0",
-    "@azure/core-util": "1.11.0",
-    "@azure/logger": "1.1.4",
+    "@azure/abort-controller": "2.2.0",
+    "@azure/core-auth": "1.11.0",
+    "@azure/core-client": "1.11.0",
+    "@azure/core-paging": "1.7.0",
+    "@azure/core-rest-pipeline": "1.25.0",
+    "@azure/core-tracing": "1.4.0",
+    "@azure/core-util": "1.14.0",
+    "@azure/logger": "1.4.0",
     "@azure/web-pubsub": "1.2.0",
     "@azure/web-pubsub-client": "1.1.0",
     "@msgpack/msgpack": "^3.0.0-beta2",
     "jsonwebtoken": "^9.0.2",
-    "ws": "^8.21.2"
+    "ws": "^8.21.3"
   },
   "resolutions": {
-    "@azure/abort-controller": "2.1.2",
-    "@azure/core-auth": "1.9.0",
-    "@azure/core-client": "1.9.2",
-    "@azure/core-paging": "1.6.2",
-    "@azure/core-rest-pipeline": "1.19.0",
-    "@azure/core-tracing": "1.2.0",
-    "@azure/core-util": "1.11.0",
-    "@azure/logger": "1.1.4"
+    "@azure/abort-controller": "2.2.0",
+    "@azure/core-auth": "1.11.0",
+    "@azure/core-client": "1.11.0",
+    "@azure/core-paging": "1.7.0",
+    "@azure/core-rest-pipeline": "1.25.0",
+    "@azure/core-tracing": "1.4.0",
+    "@azure/core-util": "1.14.0",
+    "@azure/logger": "1.4.0"
   }
 }

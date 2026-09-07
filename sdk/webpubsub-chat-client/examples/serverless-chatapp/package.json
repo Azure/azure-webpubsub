@@ -16,7 +16,7 @@
     "@azure/web-pubsub-chat-client": "1.0.0-beta.2"
   },
   "devDependencies": {
-    "esbuild": "^0.25.0",
+    "esbuild": "^0.28.2",
     "tailwindcss": "^3.4.17"
   }
 }
