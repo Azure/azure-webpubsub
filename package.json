@@ -42,7 +42,7 @@
     "path-to-regexp": "0.1.13",
     "postcss": "8.5.26",
     "prismjs": "1.30.0",
-    "qs": "6.15.3",
+    "qs": "6.16.0",
     "rollup": "4.62.5",
     "send": "0.19.2",
     "serialize-javascript": "7.0.5",
