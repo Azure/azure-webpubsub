@@ -20,9 +20,9 @@ local Azure Web PubSub development.
 | REST connection operations | Authenticated connection presence, direct text, JSON, and binary sends, close, and single-connection group membership changes for GA API versions from `2021-10-01` through `2024-12-01`. | ✅ |
 | REST group operations | Authenticated group presence and text, JSON, or binary fan-out with excluded connection IDs and OData filters. | ✅ |
 | REST broadcast | Authenticated text, JSON, or binary fan-out with excluded connection IDs and OData filters. | ✅ |
-| REST user operations | Authenticated user presence and text, JSON, or binary fan-out to all matching connections with OData filters. | ✅ |
+| REST user operations | Authenticated user presence, group membership changes, and text, JSON, or binary fan-out to all matching connections with OData filters. | ✅ |
 | REST send TTL | Accepts valid `messageTtlSeconds` values; delivery is immediate and expiration is not modeled. | ⚠️ |
-| Other REST APIs | User-group and permission operations. | ❌ |
+| Other REST APIs | Permission operations. | ❌ |
 
 For the currently supported API versions (`2021-10-01` through `2024-12-01`) and versionless
 requests, REST user operations preserve the legacy runtime route-binding behavior and pass the

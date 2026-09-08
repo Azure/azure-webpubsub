@@ -108,6 +108,36 @@ internal sealed class ConnectionManager
         }
     }
 
+    public bool AddUserToGroup(string hub, string userId, string group)
+    {
+        var connections = GetUserConnections(hub, userId).ToArray();
+        foreach (var connection in connections)
+        {
+            connection.TryAddToGroup(group);
+        }
+
+        return connections.Length > 0;
+    }
+
+    public void RemoveUserFromGroup(string hub, string userId, string group)
+    {
+        foreach (var connection in GetUserConnections(hub, userId))
+        {
+            connection.RemoveFromGroup(group);
+        }
+    }
+
+    public void RemoveUserFromAllGroups(string hub, string userId)
+    {
+        foreach (var connection in GetUserConnections(hub, userId))
+        {
+            foreach (var group in connection.Groups.Keys)
+            {
+                connection.RemoveFromGroup(group);
+            }
+        }
+    }
+
     public bool AddConnectionToGroup(string hub, string group, string connectionId)
     {
         return _connections.TryGetValue((hub, connectionId), out var connection) &&
