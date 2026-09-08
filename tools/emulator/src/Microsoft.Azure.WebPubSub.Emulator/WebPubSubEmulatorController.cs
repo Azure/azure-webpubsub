@@ -234,6 +234,86 @@ internal sealed class WebPubSubEmulatorController : WebPubSubApiControllerDefini
         return Accepted();
     }
 
+    [HttpPut(
+        "/api/hubs/{hub}/users/{userId}/groups/{group}",
+        Name = "WebPubSub_AddUserToGroup")]
+    public IActionResult AddUserToGroup(
+        [RegularExpression(
+            WebPubSubNameValidator.HubNamePattern,
+            ErrorMessage = "Invalid hub name.")]
+        string hub,
+        [MinLength(1, ErrorMessage = "Invalid user ID.")]
+        string userId,
+        [StringLength(
+            WebPubSubNameValidator.MaximumGroupNameLength,
+            MinimumLength = 1,
+            ErrorMessage = "Invalid group name.")]
+        [RegularExpression(
+            WebPubSubNameValidator.NotWhitespacePattern,
+            ErrorMessage = "Invalid group name.")]
+        string group,
+        CancellationToken cancellationToken = default)
+    {
+        if (!Authorize())
+        {
+            return Unauthorized();
+        }
+
+        return _connections.AddUserToGroup(hub.ToLowerInvariant(), userId, group)
+            ? Ok()
+            : NotFound();
+    }
+
+    [HttpDelete(
+        "/api/hubs/{hub}/users/{userId}/groups/{group}",
+        Name = "WebPubSub_RemoveUserFromGroup")]
+    public IActionResult RemoveUserFromGroup(
+        [RegularExpression(
+            WebPubSubNameValidator.HubNamePattern,
+            ErrorMessage = "Invalid hub name.")]
+        string hub,
+        [MinLength(1, ErrorMessage = "Invalid user ID.")]
+        string userId,
+        [StringLength(
+            WebPubSubNameValidator.MaximumGroupNameLength,
+            MinimumLength = 1,
+            ErrorMessage = "Invalid group name.")]
+        [RegularExpression(
+            WebPubSubNameValidator.NotWhitespacePattern,
+            ErrorMessage = "Invalid group name.")]
+        string group,
+        CancellationToken cancellationToken = default)
+    {
+        if (!Authorize())
+        {
+            return Unauthorized();
+        }
+
+        _connections.RemoveUserFromGroup(hub.ToLowerInvariant(), userId, group);
+        return NoContent();
+    }
+
+    [HttpDelete(
+        "/api/hubs/{hub}/users/{userId}/groups",
+        Name = "WebPubSub_RemoveUserFromAllGroups")]
+    public IActionResult RemoveUserFromAllGroups(
+        [RegularExpression(
+            WebPubSubNameValidator.HubNamePattern,
+            ErrorMessage = "Invalid hub name.")]
+        string hub,
+        [MinLength(1, ErrorMessage = "Invalid user ID.")]
+        string userId,
+        CancellationToken cancellationToken = default)
+    {
+        if (!Authorize())
+        {
+            return Unauthorized();
+        }
+
+        _connections.RemoveUserFromAllGroups(hub.ToLowerInvariant(), userId);
+        return NoContent();
+    }
+
     [HttpHead(
         "/api/hubs/{hub}/groups/{group}",
         Name = "WebPubSub_GroupExists")]

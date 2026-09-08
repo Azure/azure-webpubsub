@@ -449,6 +449,120 @@ public class RestApiTests
         Assert.Equal((int)HttpStatusCode.Accepted, missingResponse.Status);
     }
 
+    [Fact]
+    public async Task OfficialServerSdkCanManageUserGroupMembership()
+    {
+        const string userId = "tenant-alice";
+        await using var application = EmulatorApplication.Build(
+            ["--urls=http://127.0.0.1:0"]);
+        await application.StartAsync().WaitAsync(TestTimeout);
+        var server = application.Services.GetRequiredService<IServer>();
+        var endpoint = Assert.Single(
+            server.Features.Get<IServerAddressesFeature>()!.Addresses);
+        var connectionString =
+            $"Endpoint={endpoint};AccessKey={EmulatorOptions.DefaultAccessKey};Version=1.0;";
+        var serviceClient = new WebPubSubServiceClient(connectionString, Hub);
+        using var firstSocket = new ClientWebSocket();
+        firstSocket.Options.AddSubProtocol(WebPubSubJsonV1PayloadProcessor.SubprotocolName);
+        await firstSocket.ConnectAsync(
+            serviceClient.GetClientAccessUri(userId: userId),
+            CancellationToken.None).WaitAsync(TestTimeout);
+        using var firstConnected = await ReceiveJsonAsync(firstSocket);
+        var firstConnectionId = firstConnected.RootElement
+            .GetProperty("connectionId")
+            .GetString()!;
+        using var secondSocket = new ClientWebSocket();
+        secondSocket.Options.AddSubProtocol(WebPubSubJsonV1PayloadProcessor.SubprotocolName);
+        await secondSocket.ConnectAsync(
+            serviceClient.GetClientAccessUri(userId: userId),
+            CancellationToken.None).WaitAsync(TestTimeout);
+        using var secondConnected = await ReceiveJsonAsync(secondSocket);
+        var secondConnectionId = secondConnected.RootElement
+            .GetProperty("connectionId")
+            .GetString()!;
+        using var otherSocket = new ClientWebSocket();
+        otherSocket.Options.AddSubProtocol(WebPubSubJsonV1PayloadProcessor.SubprotocolName);
+        await otherSocket.ConnectAsync(
+            serviceClient.GetClientAccessUri(userId: userId.ToUpperInvariant()),
+            CancellationToken.None).WaitAsync(TestTimeout);
+        using var otherConnected = await ReceiveJsonAsync(otherSocket);
+        var otherConnectionId = otherConnected.RootElement
+            .GetProperty("connectionId")
+            .GetString()!;
+
+        var addResponse = await serviceClient.AddUserToGroupAsync("room", userId)
+            .WaitAsync(TestTimeout);
+        Assert.Equal((int)HttpStatusCode.OK, addResponse.Status);
+        await serviceClient.SendToGroupAsync(
+            "room",
+            BinaryData.FromString("user-group-send"),
+            ContentType.TextPlain).WaitAsync(TestTimeout);
+        using var firstGroupMessage = await ReceiveJsonAsync(firstSocket);
+        using var secondGroupMessage = await ReceiveJsonAsync(secondSocket);
+        Assert.Equal(
+            "user-group-send",
+            firstGroupMessage.RootElement.GetProperty("data").GetString());
+        Assert.Equal(
+            "user-group-send",
+            secondGroupMessage.RootElement.GetProperty("data").GetString());
+        await serviceClient.SendToConnectionAsync(
+            otherConnectionId,
+            BinaryData.FromString("case-sensitive-user-sentinel"),
+            ContentType.TextPlain).WaitAsync(TestTimeout);
+        using var otherSentinel = await ReceiveJsonAsync(otherSocket);
+        Assert.Equal(
+            "case-sensitive-user-sentinel",
+            otherSentinel.RootElement.GetProperty("data").GetString());
+
+        var removeResponse = await serviceClient.RemoveUserFromGroupAsync("room", userId)
+            .WaitAsync(TestTimeout);
+        Assert.Equal((int)HttpStatusCode.NoContent, removeResponse.Status);
+        await serviceClient.SendToGroupAsync(
+            "room",
+            BinaryData.FromString("removed-user-send"),
+            ContentType.TextPlain).WaitAsync(TestTimeout);
+        await serviceClient.SendToConnectionAsync(
+            firstConnectionId,
+            BinaryData.FromString("removed-first-sentinel"),
+            ContentType.TextPlain).WaitAsync(TestTimeout);
+        using var firstSentinel = await ReceiveJsonAsync(firstSocket);
+        Assert.Equal(
+            "removed-first-sentinel",
+            firstSentinel.RootElement.GetProperty("data").GetString());
+        await serviceClient.SendToConnectionAsync(
+            secondConnectionId,
+            BinaryData.FromString("removed-second-sentinel"),
+            ContentType.TextPlain).WaitAsync(TestTimeout);
+        using var secondSentinel = await ReceiveJsonAsync(secondSocket);
+        Assert.Equal(
+            "removed-second-sentinel",
+            secondSentinel.RootElement.GetProperty("data").GetString());
+
+        await serviceClient.AddUserToGroupAsync("first-room", userId)
+            .WaitAsync(TestTimeout);
+        await serviceClient.AddUserToGroupAsync("second-room", userId)
+            .WaitAsync(TestTimeout);
+        var removeAllResponse = await serviceClient.RemoveUserFromAllGroupsAsync(userId)
+            .WaitAsync(TestTimeout);
+        Assert.Equal((int)HttpStatusCode.NoContent, removeAllResponse.Status);
+        var manager = application.Services.GetRequiredService<ConnectionManager>();
+        Assert.True(manager.TryGet(Hub, firstConnectionId, out var firstConnection));
+        Assert.True(manager.TryGet(Hub, secondConnectionId, out var secondConnection));
+        Assert.Empty(firstConnection.Groups);
+        Assert.Empty(secondConnection.Groups);
+
+        var exception = await Assert.ThrowsAsync<RequestFailedException>(() =>
+            serviceClient.AddUserToGroupAsync("room", "missing"));
+        Assert.Equal((int)HttpStatusCode.NotFound, exception.Status);
+        var missingRemoveResponse = await serviceClient.RemoveUserFromGroupAsync(
+            "room",
+            "missing").WaitAsync(TestTimeout);
+        Assert.Equal((int)HttpStatusCode.NoContent, missingRemoveResponse.Status);
+        var missingRemoveAllResponse = await serviceClient.RemoveUserFromAllGroupsAsync(
+            "missing").WaitAsync(TestTimeout);
+        Assert.Equal((int)HttpStatusCode.NoContent, missingRemoveAllResponse.Status);
+    }
+
     [Theory]
     [InlineData("tenant%2Falice", "tenant%2Falice", HttpStatusCode.NotFound)]
     [InlineData("tenant%2falice", "tenant%2falice", HttpStatusCode.NotFound)]
