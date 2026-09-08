@@ -24,6 +24,16 @@ local Azure Web PubSub development.
 | REST send TTL | Accepts valid `messageTtlSeconds` values; delivery is immediate and expiration is not modeled. | ⚠️ |
 | Other REST APIs | User-group and permission operations. | ❌ |
 
+REST user operations pass ASP.NET Core route-bound user IDs through unchanged, matching the
+current runtime implementation rather than adding another URL-decoding step. In particular,
+`tenant%2Falice` in the request path targets the literal user ID `tenant%2Falice`, not
+`tenant/alice`.
+A slash-containing user ID can still be used in a client token, but these REST user operations
+do not resolve `%2F` to a slash in that ID.
+Separately, double-encoded paths such as `tenant%252Falice` currently return `401` when the
+access-key token audience uses the original request URL. This existing emulator authentication
+limitation is not changed by preserving runtime route binding.
+
 ## Not yet implemented
 
 The following areas are planned for follow-up changes:

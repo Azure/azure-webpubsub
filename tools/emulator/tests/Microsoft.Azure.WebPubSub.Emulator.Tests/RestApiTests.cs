@@ -353,9 +353,9 @@ public class RestApiTests
     }
 
     [Fact]
-    public async Task OfficialServerSdkCanCheckAndSendToEncodedUser()
+    public async Task OfficialServerSdkCanCheckAndSendToUser()
     {
-        const string userId = "tenant/alice";
+        const string userId = "tenant-alice";
         await using var application = EmulatorApplication.Build(
             ["--urls=http://127.0.0.1:0"]);
         await application.StartAsync().WaitAsync(TestTimeout);
@@ -386,7 +386,7 @@ public class RestApiTests
         using var otherSocket = new ClientWebSocket();
         otherSocket.Options.AddSubProtocol(WebPubSubJsonV1PayloadProcessor.SubprotocolName);
         await otherSocket.ConnectAsync(
-            serviceClient.GetClientAccessUri(userId: "Tenant/alice"),
+            serviceClient.GetClientAccessUri(userId: userId.ToUpperInvariant()),
             CancellationToken.None).WaitAsync(TestTimeout);
         using var otherConnected = await ReceiveJsonAsync(otherSocket);
         var otherConnectionId = otherConnected.RootElement
@@ -395,7 +395,7 @@ public class RestApiTests
 
         Assert.True((await serviceClient.UserExistsAsync(userId)
             .WaitAsync(TestTimeout)).Value);
-        Assert.False((await serviceClient.UserExistsAsync("tenant/Alice")
+        Assert.False((await serviceClient.UserExistsAsync("tenant-Alice")
             .WaitAsync(TestTimeout)).Value);
         Assert.False((await serviceClient.UserExistsAsync("missing")
             .WaitAsync(TestTimeout)).Value);
@@ -449,6 +449,100 @@ public class RestApiTests
         Assert.Equal((int)HttpStatusCode.Accepted, missingResponse.Status);
     }
 
+    [Theory]
+    [InlineData("tenant%2Falice", "tenant%2Falice", HttpStatusCode.NotFound)]
+    [InlineData("tenant%2falice", "tenant%2falice", HttpStatusCode.NotFound)]
+    [InlineData("tenant%252Falice", "tenant%2Falice", HttpStatusCode.Unauthorized)]
+    public async Task UserRestApisPreserveEncodedUserCompatibility(
+        string userPathSegment,
+        string boundUserId,
+        HttpStatusCode missingStatus)
+    {
+        // Use Kestrel so requests exercise real HTTP path decoding before MVC binding.
+        await using var application = EmulatorApplication.Build(
+            ["--urls=http://127.0.0.1:0"]);
+        await application.StartAsync().WaitAsync(TestTimeout);
+        var server = application.Services.GetRequiredService<IServer>();
+        var endpoint = Assert.Single(
+            server.Features.Get<IServerAddressesFeature>()!.Addresses);
+        var connectionString =
+            $"Endpoint={endpoint};AccessKey={EmulatorOptions.DefaultAccessKey};Version=1.0;";
+        var serviceClient = new WebPubSubServiceClient(connectionString, Hub);
+        using var httpClient = new HttpClient { BaseAddress = new Uri(endpoint) };
+        using var slashSocket = new ClientWebSocket();
+        slashSocket.Options.AddSubProtocol(WebPubSubJsonV1PayloadProcessor.SubprotocolName);
+        await slashSocket.ConnectAsync(
+            serviceClient.GetClientAccessUri(userId: "tenant/alice"),
+            CancellationToken.None).WaitAsync(TestTimeout);
+        using var slashConnected = await ReceiveJsonAsync(slashSocket);
+        Assert.Equal("tenant/alice", slashConnected.RootElement.GetProperty("userId").GetString());
+        var slashConnectionId = slashConnected.RootElement.GetProperty("connectionId").GetString()!;
+        var userPath = $"/api/hubs/{Hub}/users/{userPathSegment}";
+        var existsPath = userPath + "?api-version=2024-12-01";
+        var sendPath = userPath + "/:send?api-version=2024-12-01";
+
+        using var missingRequest = CreateUserRequest(HttpMethod.Head, existsPath);
+        using var missingResponse = await httpClient.SendAsync(missingRequest).WaitAsync(TestTimeout);
+        Assert.Equal(missingStatus, missingResponse.StatusCode);
+        if (missingStatus == HttpStatusCode.NotFound)
+        {
+            Assert.Equal("Warning.User.NotExisted", missingResponse.Headers.GetValues("x-ms-error-code").Single());
+        }
+        using var missingSendRequest = CreateUserRequest(HttpMethod.Post, sendPath);
+        missingSendRequest.Content = new StringContent("missing-user-send", Encoding.UTF8, "text/plain");
+        using var missingSendResponse = await httpClient.SendAsync(missingSendRequest).WaitAsync(TestTimeout);
+        var sendStatus = missingStatus == HttpStatusCode.Unauthorized
+            ? HttpStatusCode.Unauthorized
+            : HttpStatusCode.Accepted;
+        Assert.Equal(sendStatus, missingSendResponse.StatusCode);
+
+        // A literal percent-encoded user is distinct from the user containing a slash.
+        using var literalSocket = new ClientWebSocket();
+        literalSocket.Options.AddSubProtocol(WebPubSubJsonV1PayloadProcessor.SubprotocolName);
+        await literalSocket.ConnectAsync(
+            serviceClient.GetClientAccessUri(userId: boundUserId),
+            CancellationToken.None).WaitAsync(TestTimeout);
+        using var literalConnected = await ReceiveJsonAsync(literalSocket);
+        Assert.Equal(boundUserId, literalConnected.RootElement.GetProperty("userId").GetString());
+        using var existsRequest = CreateUserRequest(HttpMethod.Head, existsPath);
+        using var existsResponse = await httpClient.SendAsync(existsRequest).WaitAsync(TestTimeout);
+        // Double-encoded paths currently fail audience validation even with the literal user online.
+        // Keep that existing limitation separate from route binding; do not change authentication here.
+        Assert.Equal(
+            missingStatus == HttpStatusCode.Unauthorized ? HttpStatusCode.Unauthorized : HttpStatusCode.OK,
+            existsResponse.StatusCode);
+        using var sendRequest = CreateUserRequest(HttpMethod.Post, sendPath);
+        sendRequest.Content = new StringContent("literal-user-send", Encoding.UTF8, "text/plain");
+        using var sendResponse = await httpClient.SendAsync(sendRequest).WaitAsync(TestTimeout);
+        Assert.Equal(sendStatus, sendResponse.StatusCode);
+        if (sendStatus == HttpStatusCode.Unauthorized)
+        {
+            await serviceClient.SendToConnectionAsync(
+                literalConnected.RootElement.GetProperty("connectionId").GetString()!,
+                BinaryData.FromString("literal-user-sentinel"),
+                ContentType.TextPlain).WaitAsync(TestTimeout);
+        }
+        using var delivered = await ReceiveJsonAsync(literalSocket);
+        Assert.Equal(
+            sendStatus == HttpStatusCode.Unauthorized ? "literal-user-sentinel" : "literal-user-send",
+            delivered.RootElement.GetProperty("data").GetString());
+
+        await serviceClient.SendToConnectionAsync(
+            slashConnectionId,
+            BinaryData.FromString("slash-user-sentinel"),
+            ContentType.TextPlain).WaitAsync(TestTimeout);
+        using var sentinel = await ReceiveJsonAsync(slashSocket);
+        Assert.Equal("slash-user-sentinel", sentinel.RootElement.GetProperty("data").GetString());
+
+        HttpRequestMessage CreateUserRequest(HttpMethod method, string path)
+        {
+            var request = new HttpRequestMessage(method, path);
+            request.Headers.Authorization = new AuthenticationHeaderValue(
+                "Bearer", CreateToken($"{endpoint}{path}"));
+            return request;
+        }
+    }
+
     [Fact]
     public async Task UserExistsMissingResponseUsesServiceErrorCode()
     {
@@ -470,14 +564,14 @@ public class RestApiTests
     [Fact]
     public async Task SendToUserQueuesForFilteredDetachedReliableConnection()
     {
-        const string userId = "tenant/alice";
+        const string userId = "tenant-alice";
         await using var application = await StartApplicationAsync();
         var initial = await ConnectReliableAsync(application, userId);
         using var initialSocket = initial.WebSocket;
         initialSocket.Abort();
         var filter = $"userId eq '{userId}' and connectionId eq '{initial.ConnectionId}' and " +
             "protocol eq 'json.reliable.webpubsub.azure.v1'";
-        var path = "/api/hubs/CHAT/users/tenant%2Falice/:send" +
+        var path = "/api/hubs/CHAT/users/tenant-alice/:send" +
             "?api-version=2024-12-01&messageTtlSeconds=1" +
             $"&filter={Uri.EscapeDataString(filter)}";
         using var request = CreateAuthorizedRequest(HttpMethod.Post, path);

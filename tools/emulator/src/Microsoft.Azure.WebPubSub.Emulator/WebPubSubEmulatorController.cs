@@ -5,7 +5,6 @@ using System.ComponentModel.DataAnnotations;
 using System.Text;
 using System.Text.Json;
 using Microsoft.AspNetCore.Http;
-using Microsoft.AspNetCore.Http.Features;
 using Microsoft.AspNetCore.Mvc;
 
 namespace Microsoft.Azure.WebPubSub.Emulator;
@@ -181,7 +180,6 @@ internal sealed class WebPubSubEmulatorController : WebPubSubApiControllerDefini
             return Unauthorized();
         }
 
-        userId = DecodeUserId(userId);
         if (_connections.UserExists(hub.ToLowerInvariant(), userId))
         {
             return Ok();
@@ -230,7 +228,7 @@ internal sealed class WebPubSubEmulatorController : WebPubSubApiControllerDefini
 
         _connections.SendToUser(
             hub.ToLowerInvariant(),
-            DecodeUserId(userId),
+            userId,
             data!,
             filter);
         return Accepted();
@@ -438,29 +436,6 @@ internal sealed class WebPubSubEmulatorController : WebPubSubApiControllerDefini
             .Where(value => value is not null)
             .Select(value => value!)
             .ToHashSet(StringComparer.Ordinal);
-    }
-
-    private string DecodeUserId(string userId)
-    {
-        var rawTarget = HttpContext.Features.Get<IHttpRequestFeature>()?.RawTarget;
-        if (string.IsNullOrEmpty(rawTarget))
-        {
-            return userId.Replace("%2F", "/", StringComparison.OrdinalIgnoreCase);
-        }
-
-        const string userSegment = "/users/";
-        var userStart = rawTarget.IndexOf(userSegment, StringComparison.OrdinalIgnoreCase);
-        if (userStart < 0)
-        {
-            return userId;
-        }
-
-        userStart += userSegment.Length;
-        var userEnd = rawTarget.IndexOfAny(['/', '?'], userStart);
-        var rawUserId = userEnd < 0
-            ? rawTarget[userStart..]
-            : rawTarget[userStart..userEnd];
-        return Uri.UnescapeDataString(rawUserId);
     }
 
     private async Task<(MessageData? Data, IActionResult? Error)> ReadMessageDataAsync(
