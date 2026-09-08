@@ -1,0 +1,173 @@
+body {
+  position: fixed;
+  height: 100%;
+  width: 100%;
+}
+
+#app {
+  width: 100%;
+  height: 100%;
+}
+
+@media screen and (max-width: 1200px) {
+  .limit-width {
+    width: 100%;
+  }
+}
+
+@media screen and (min-width: 1200px) {
+  .limit-width {
+    width: 1200px;
+  }
+}
+
+.borderless-button {
+  border: none;
+}
+
+.limit-width {
+  margin: auto;
+  padding: 0 8px;
+}
+
+.sessions {
+  max-height: calc(100% - 56px);
+  overflow-y: auto;
+}
+
+.session-title {
+  display: flex;
+  height: 40px;
+}
+
+.session-title-content {
+  color: #666;
+  cursor: pointer;
+  margin: auto;
+}
+
+.session {
+  width: 100%;
+  color: #666;
+  cursor: pointer;
+}
+
+.session-content {
+  height: 56px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.session:hover {
+  background: #eee !important;
+}
+
+.current-session {
+  font-weight: bold;
+}
+
+.floating-button {
+  display: none;
+  color: #888;
+}
+
+.floating-button:hover {
+  color: #000;
+}
+
+.welcome-message:hover .floating-button,
+.session:hover .floating-button {
+  display: inline;
+}
+
+.session .btn {
+  padding: 0;
+}
+
+.update-session-input {
+  padding-right: 48px;
+}
+
+.delete-session {
+  width: 100%;
+}
+
+.yes-button {
+  margin-left: -48px;
+}
+
+.messages {
+  height: calc(100% - 120px);
+  overflow-y: auto;
+}
+
+.message {
+  display: inline-block;
+  max-width: 90%;
+  background: #f0f0f0;
+  border-radius: 0.5em;
+  color: #444;
+  box-shadow: 1px 1px 8px #ccc;
+}
+
+.message p:last-child {
+  margin-bottom: 0;
+}
+
+.local-message .message {
+  background: #f8f8f8;
+}
+
+.message-header {
+  font-size: 12px;
+  font-weight: bold;
+}
+
+.message-content {
+  text-align: justify;
+}
+
+.local-message {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.welcome-window {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.welcome-message {
+  background: #f8f8f8;
+  border-radius: 0.5em;
+  width: 50%;
+  color: #444;
+  box-shadow: 1px 1px 8px #ddd;
+}
+
+.system-message-input {
+  resize: none;
+  overflow: hidden;
+}
+
+.system-message {
+  padding: 7px 13px;
+}
+
+.input-box {
+  height: 64px;
+  display: flex;
+  align-items: center;
+}
+
+.message-input {
+  padding-right: 40px;
+}
+
+.send-button {
+  margin-left: -40px;
+}
