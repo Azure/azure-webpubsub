@@ -17,6 +17,7 @@ local Azure Web PubSub development.
 | Connection state | Tracks active connections and temporarily retains reliable logical connections after unexpected disconnects. | ✅ |
 | Groups and roles | Supports connection-scoped token groups and authorized join, leave, and group send, including wildcard roles. | ✅ |
 | Outbound delivery | Uses a bounded, single-writer queue for each WebSocket connection. | ✅ |
+| HTTP upstream event handlers | Supports `connect`, `connected`, `disconnected`, JSON user events, and raw `message` events with CloudEvents headers, responses, connection state, metadata, and managed identity authentication. | ✅ |
 | REST connection operations | Authenticated connection presence, direct text, JSON, and binary sends, close, and single-connection group membership changes for GA API versions from `2021-10-01` through `2024-12-01`. | ✅ |
 | REST group operations | Authenticated group presence and text, JSON, or binary fan-out with excluded connection IDs and OData filters. | ✅ |
 | REST broadcast | Authenticated text, JSON, or binary fan-out with excluded connection IDs and OData filters. | ✅ |
@@ -47,13 +48,12 @@ runtime's new contract and decode the original user ID path segment exactly once
 
 The following areas are planned for follow-up changes:
 
-- HTTP upstream event handlers
 - Tunnel connections (`tunnel://` upstream URLs)
 - Event Hubs listeners
 - Protobuf subprotocols
 - Client message streaming
 - Production Microsoft Entra ID validation
 
-Client events require an upstream event handler. Until upstream handlers are implemented, JSON
-events with an `ackId` receive an `InternalServerError` acknowledgement; events without an
-`ackId` are logged without closing the client connection. Raw `sendEvent` mode is not available.
+Client events require a matching HTTP event handler. JSON events with an `ackId` receive an
+`InternalServerError` acknowledgement when no configured handler matches. Raw
+messages require a matching HTTP event handler unless raw `sendToGroup` mode is selected.

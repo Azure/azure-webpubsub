@@ -8,10 +8,14 @@ namespace Microsoft.Azure.WebPubSub.Emulator;
 
 internal sealed class ClientConnectionHandler
 {
+    private readonly UpstreamEventDispatcher _events;
     private readonly ILogger<ClientConnectionHandler> _logger;
 
-    public ClientConnectionHandler(ILogger<ClientConnectionHandler> logger)
+    public ClientConnectionHandler(
+        UpstreamEventDispatcher events,
+        ILogger<ClientConnectionHandler> logger)
     {
+        _events = events;
         _logger = logger;
     }
 
@@ -28,6 +32,7 @@ internal sealed class ClientConnectionHandler
             transport.Aborted);
         using var detachOnCancellation = linkedCancellation.Token.Register(
             () => connection.Detach(transport));
+        string? disconnectReason = null;
         try
         {
             if (!await connection.ProcessIfCurrentAsync(
@@ -37,6 +42,10 @@ internal sealed class ClientConnectionHandler
                     if (isInitialConnection)
                     {
                         processor.OnConnected(connection);
+                        _ = _events.DispatchNotificationAsync(
+                            connection.CreateSystemEvent(
+                                "connected",
+                                new MessageData(MessageDataType.Json, "{}"u8.ToArray())));
                     }
                     return ValueTask.CompletedTask;
                 },
@@ -94,6 +103,7 @@ internal sealed class ClientConnectionHandler
                                 terminalCloseStatus = WebSocketCloseStatus.NormalClosure;
                                 terminalCloseDescription =
                                     message.CloseStatusDescription ?? string.Empty;
+                                disconnectReason = terminalCloseDescription;
                                 connection.CloseIfCurrent(
                                     transport,
                                     terminalCloseStatus.Value,
@@ -174,6 +184,7 @@ internal sealed class ClientConnectionHandler
                 transport,
                 WebSocketCloseStatus.MessageTooBig,
                 "The client message is too large.");
+            disconnectReason = "The client message is too large.";
             await transport.CloseAsync(
                 WebSocketCloseStatus.MessageTooBig,
                 "The client message is too large.");
@@ -188,6 +199,7 @@ internal sealed class ClientConnectionHandler
                 transport,
                 WebSocketCloseStatus.ProtocolError,
                 "The client frame is invalid.");
+            disconnectReason = "The client frame is invalid.";
             await transport.CloseAsync(
                 WebSocketCloseStatus.ProtocolError,
                 "The client frame is invalid.");
@@ -200,6 +212,10 @@ internal sealed class ClientConnectionHandler
                 "WebSocket connection {ConnectionId} ended.",
                 connectionId);
             transport.Abort();
+        }
+        finally
+        {
+            connection.Detach(transport, disconnectReason);
         }
     }
 }

@@ -20,12 +20,27 @@ internal sealed record UpstreamEventResult(MessageData? Response = null);
 internal sealed class WebPubSubClientConnectionLifetimeHandler :
     IWebPubSubConnectionLifetimeHandler
 {
-    public Task<UpstreamEventResult> SendMessageAsync(
+    private readonly UpstreamEventDispatcher _events;
+
+    public WebPubSubClientConnectionLifetimeHandler(UpstreamEventDispatcher events)
+    {
+        _events = events;
+    }
+
+    public async Task<UpstreamEventResult> SendMessageAsync(
         LogicalConnection connection,
         ClientMessagePayload message,
         CancellationToken cancellationToken = default)
     {
-        throw new NotImplementedException(
-            "HTTP upstream event handlers are not implemented.");
+        var result = await _events.DispatchUserEventAsync(
+            connection.CreateUserEvent(message.EventName, message.Data),
+            cancellationToken);
+        if (!result.Succeeded)
+        {
+            throw new InvalidOperationException(result.Error);
+        }
+
+        connection.ConnectionState = result.ConnectionState ?? connection.ConnectionState;
+        return new UpstreamEventResult(result.Response);
     }
 }

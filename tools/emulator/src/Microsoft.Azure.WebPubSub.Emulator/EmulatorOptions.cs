@@ -13,6 +13,11 @@ internal sealed class EmulatorOptions
 
     public bool AllowUnvalidatedEntraTokens { get; set; }
 
+    public string? ManagedIdentityClientId { get; set; }
+
+    public Dictionary<string, HubOptions> Hubs { get; set; } =
+        new(StringComparer.OrdinalIgnoreCase);
+
     public string GetConnectionString(Uri endpoint)
     {
         return $"Endpoint={endpoint.GetLeftPart(UriPartial.Authority)};" +
@@ -26,6 +31,34 @@ internal sealed class EmulatorOptions
             !accessKey.Any(character => character == ';' || char.IsControl(character)) &&
             System.Text.Encoding.UTF8.GetByteCount(accessKey) >= 32;
     }
+}
+
+internal sealed class HubOptions
+{
+    public EventHandlerOptions[] EventHandlers { get; set; } = [];
+}
+
+internal sealed class EventHandlerOptions
+{
+    public string UrlTemplate { get; set; } = string.Empty;
+
+    public string? EventPattern { get; set; }
+
+    public string[] SystemEvents { get; set; } = [];
+
+    public EventHandlerAuthOptions? Auth { get; set; }
+}
+
+internal sealed class EventHandlerAuthOptions
+{
+    public string Type { get; set; } = "None";
+
+    public ManagedIdentityAuthOptions? ManagedIdentity { get; set; }
+}
+
+internal sealed class ManagedIdentityAuthOptions
+{
+    public string Resource { get; set; } = string.Empty;
 }
 
 internal sealed class EmulatorRuntimeOptions

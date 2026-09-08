@@ -33,10 +33,12 @@ internal sealed class LogicalConnection : IODataFilterModel
     private SocketTransport? _activeTransport;
     private SocketTransport? _detachedTransport;
     private long _generation;
+    private int _nextEventId;
     private ulong _nextSequenceId;
     private long _unacknowledgedBytes;
     private bool _closed;
     private bool _reconnecting;
+    private string _disconnectReason = "The connection ended.";
 
     public LogicalConnection(
         string connectionId,
@@ -47,10 +49,12 @@ internal sealed class LogicalConnection : IODataFilterModel
         EmulatorRuntimeOptions runtimeOptions,
         bool reliable = false,
         string? subprotocol = null,
-        ILogger? logger = null)
+        ILogger? logger = null,
+        string host = "localhost")
     {
         ConnectionId = connectionId;
         Hub = hub;
+        Host = host;
         RawSendToGroup = rawSendToGroup;
         IsReliable = reliable;
         Subprotocol = subprotocol;
@@ -91,6 +95,8 @@ internal sealed class LogicalConnection : IODataFilterModel
 
     public string Hub { get; }
 
+    public string Host { get; }
+
     public string? RawSendToGroup { get; }
 
     public string? UserId { get; }
@@ -99,6 +105,8 @@ internal sealed class LogicalConnection : IODataFilterModel
 
     public string? Subprotocol { get; }
 
+    public string? ConnectionState { get; set; }
+
     public AckCache AckIdCache { get; } = new();
 
     public ConcurrentDictionary<string, byte> Groups { get; } = new(StringComparer.Ordinal);
@@ -106,6 +114,36 @@ internal sealed class LogicalConnection : IODataFilterModel
     string[] IODataFilterModel.Groups => Groups.Keys.ToArray();
 
     string? IODataFilterModel.Protocol => Subprotocol;
+
+    public UpstreamEvent CreateUserEvent(string eventName, MessageData data)
+    {
+        return new UpstreamEvent(
+            Interlocked.Increment(ref _nextEventId),
+            Hub,
+            eventName,
+            UpstreamEventCategory.User,
+            ConnectionId,
+            UserId,
+            Subprotocol,
+            ConnectionState,
+            data,
+            Host);
+    }
+
+    public UpstreamEvent CreateSystemEvent(string eventName, MessageData data)
+    {
+        return new UpstreamEvent(
+            Interlocked.Increment(ref _nextEventId),
+            Hub,
+            eventName,
+            UpstreamEventCategory.System,
+            ConnectionId,
+            UserId,
+            Subprotocol,
+            ConnectionState,
+            data,
+            Host);
+    }
 
     public SocketTransport? TryAttach(
         WebSocket webSocket,
@@ -512,6 +550,7 @@ internal sealed class LogicalConnection : IODataFilterModel
             }
 
             transport.TryCloseOutput(closeStatus, closeDescription);
+            _disconnectReason = GetDisconnectReason(closeDescription);
             _closed = true;
             _activeTransport = null;
             _detachedTransport = null;
@@ -539,13 +578,15 @@ internal sealed class LogicalConnection : IODataFilterModel
         return Close(
             WebSocketCloseStatus.NormalClosure,
             string.Empty,
-            processor => processor.EncodeDisconnected(message));
+            processor => processor.EncodeDisconnected(message),
+            message);
     }
 
     private SocketTransport? Close(
         WebSocketCloseStatus closeStatus,
         string closeDescription,
-        Func<IClientPayloadProcessor, WebSocketPayload?>? finalPayloadFactory)
+        Func<IClientPayloadProcessor, WebSocketPayload?>? finalPayloadFactory,
+        string? disconnectReason = null)
     {
         SocketTransport? transport;
         lock (_stateLock)
@@ -560,6 +601,7 @@ internal sealed class LogicalConnection : IODataFilterModel
                 ? finalPayloadFactory?.Invoke(_activePayloadProcessor)
                 : null;
             transport?.TryCloseOutput(closeStatus, closeDescription, finalPayload);
+            _disconnectReason = GetDisconnectReason(disconnectReason ?? closeDescription);
             _closed = true;
             _activeTransport = null;
             _detachedTransport = null;
@@ -571,7 +613,7 @@ internal sealed class LogicalConnection : IODataFilterModel
         return transport;
     }
 
-    public void Detach(SocketTransport transport)
+    public void Detach(SocketTransport transport, string? reason = null)
     {
         var remove = false;
         var expire = false;
@@ -583,6 +625,7 @@ internal sealed class LogicalConnection : IODataFilterModel
                 _activeTransport = null;
                 if (_closed || !IsReliable || transport.IsClosing)
                 {
+                    _disconnectReason = GetDisconnectReason(reason);
                     _activePayloadProcessor = null;
                     _detachedTransport = null;
                     _closed = true;
@@ -618,6 +661,7 @@ internal sealed class LogicalConnection : IODataFilterModel
             }
 
             _closed = true;
+            _disconnectReason = "The connection recovery timeout expired.";
             _activePayloadProcessor = null;
             _detachedTransport?.Abort();
             _detachedTransport = null;
@@ -639,6 +683,10 @@ internal sealed class LogicalConnection : IODataFilterModel
 
     private void FailConnection(SocketTransport? transport, string reason)
     {
+        lock (_stateLock)
+        {
+            _disconnectReason = reason;
+        }
         _manager.Remove(this);
         _logger?.LogDebug(
             "Closing connection {ConnectionId}: {Reason}",
@@ -651,5 +699,20 @@ internal sealed class LogicalConnection : IODataFilterModel
     {
         _unacknowledgedMessages.Clear();
         _unacknowledgedBytes = 0;
+    }
+
+    public string GetDisconnectReason()
+    {
+        lock (_stateLock)
+        {
+            return _disconnectReason;
+        }
+    }
+
+    private static string GetDisconnectReason(string? closeDescription)
+    {
+        return string.IsNullOrEmpty(closeDescription)
+            ? "The connection ended."
+            : closeDescription;
     }
 }

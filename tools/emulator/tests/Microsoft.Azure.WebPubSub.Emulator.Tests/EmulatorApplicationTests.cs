@@ -21,6 +21,21 @@ public class EmulatorApplicationTests
     private static readonly TimeSpan TestTimeout = TimeSpan.FromSeconds(30);
 
     [Fact]
+    public void EventHandlerUrlTemplateResolvesRuntimeParameters()
+    {
+        const string template =
+            "https://example.test/{HUB}/{event}/{unknown}/" +
+            "{@Microsoft.KeyVault(SecretUri=https://vault.example/secrets/path)}";
+
+        var uri = EventHandlerUrlTemplate.Resolve(template, "tenant/chat", "message sent");
+
+        Assert.Equal(
+            "https://example.test/tenant%2Fchat/message%20sent/{unknown}/" +
+                "{@Microsoft.KeyVault(SecretUri=https://vault.example/secrets/path)}",
+            uri.OriginalString);
+    }
+
+    [Fact]
     public async Task EffectiveEndpointComesFromBoundAddress()
     {
         const string accessKey = "custom-emulator-access-key-1234567890";
@@ -91,6 +106,24 @@ public class EmulatorApplicationTests
 
         Assert.Contains(
             "WebPubSub:AccessKey must be at least 32 UTF-8 bytes",
+            exception.Message,
+            StringComparison.Ordinal);
+    }
+
+    [Theory]
+    [InlineData("WebPubSub:Hubs:chat:EventHandlers:0:UrlTemplate", "not-a-url")]
+    [InlineData("WebPubSub:Hubs:chat:EventHandlers:0:Auth:Type", "ApiKey")]
+    public async Task InvalidEventConfigurationIsRejected(string key, string value)
+    {
+        var builder = EmulatorApplication.CreateBuilder([$"--{key}={value}"]);
+        builder.WebHost.UseTestServer();
+        await using var application = EmulatorApplication.Build(builder);
+
+        var exception = await Assert.ThrowsAsync<OptionsValidationException>(
+            () => application.StartAsync());
+
+        Assert.Contains(
+            "event handler or event listener configuration is invalid",
             exception.Message,
             StringComparison.Ordinal);
     }
