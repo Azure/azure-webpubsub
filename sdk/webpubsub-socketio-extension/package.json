@@ -91,7 +91,7 @@
     "supertest": "^6.3.3",
     "ts-jest": "^29.1.1",
     "tsd": "^0.21.0",
-    "typescript": "^5.0.3"
+    "typescript": "^6.0.3"
   },
   "resolutions": {
     "@azure/abort-controller": "2.1.2",
