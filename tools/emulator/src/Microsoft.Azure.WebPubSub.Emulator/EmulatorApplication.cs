@@ -2,6 +2,8 @@
 // Licensed under the MIT License.
 
 using System.Reflection;
+using Azure.Core;
+using Azure.Identity;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Controllers;
@@ -26,12 +28,28 @@ internal static class EmulatorApplication
                 options => EmulatorOptions.IsValidAccessKey(options.AccessKey),
                 "WebPubSub:AccessKey must be at least 32 UTF-8 bytes and cannot contain " +
                     "leading or trailing whitespace, semicolons, or control characters.")
+            .Validate(
+                ValidateEventConfiguration,
+                "WebPubSub event handler or event listener configuration is invalid.")
             .ValidateOnStart();
         builder.Services.AddSingleton(runtimeOptions ?? new EmulatorRuntimeOptions());
+        builder.Services.AddSingleton<TokenCredential>(services =>
+        {
+            var options = services.GetRequiredService<IOptions<EmulatorOptions>>().Value;
+            return new DefaultAzureCredential(new DefaultAzureCredentialOptions
+            {
+                ManagedIdentityClientId = options.ManagedIdentityClientId,
+            });
+        });
         builder.Services.AddSingleton<WebPubSubTokenService>();
         builder.Services.AddSingleton<ConnectionManager>();
         builder.Services.AddSingleton<SimpleWebSocketPayloadProcessor>();
         builder.Services.AddSingleton<WebPubSubJsonV1Protocol>();
+        builder.Services.AddSingleton<UpstreamEventDispatcher>();
+        builder.Services.AddHttpClient(UpstreamEventDispatcher.HttpClientName, client =>
+        {
+            client.Timeout = Timeout.InfiniteTimeSpan;
+        });
         builder.Services.AddSingleton<
             IWebPubSubConnectionLifetimeHandler,
             WebPubSubClientConnectionLifetimeHandler>();
@@ -82,6 +100,34 @@ internal static class EmulatorApplication
             (HttpContext context, ClientWebSocketEndpoint endpoint) => endpoint.HandleAsync(context));
 
         return app;
+    }
+
+    private static bool ValidateEventConfiguration(EmulatorOptions options)
+    {
+        foreach (var hub in options.Hubs.Values)
+        {
+            foreach (var handler in hub.EventHandlers)
+            {
+                if (!EventHandlerUrlTemplate.TryResolve(handler.UrlTemplate, "hub", "event", out _) ||
+                    handler.EventPattern?.Split(',')
+                        .Select(pattern => pattern.Trim())
+                        .Any(pattern => !WildcardPattern.TryCreate(pattern, out _)) == true)
+                {
+                    return false;
+                }
+
+                var auth = handler.Auth;
+                if (auth is not null &&
+                    !string.Equals(auth.Type, "None", StringComparison.OrdinalIgnoreCase) &&
+                    (!string.Equals(auth.Type, "ManagedIdentity", StringComparison.OrdinalIgnoreCase) ||
+                        string.IsNullOrWhiteSpace(auth.ManagedIdentity?.Resource)))
+                {
+                    return false;
+                }
+            }
+
+        }
+        return true;
     }
 
     private sealed class EmulatorControllerFeatureProvider : ControllerFeatureProvider

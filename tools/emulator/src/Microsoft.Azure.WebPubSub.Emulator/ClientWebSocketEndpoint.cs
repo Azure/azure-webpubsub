@@ -3,6 +3,7 @@
 
 using System.Net.WebSockets;
 using System.Security.Claims;
+using System.Text.Json;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Logging;
 using Microsoft.IdentityModel.Tokens;
@@ -19,6 +20,7 @@ internal sealed class ClientWebSocketEndpoint
     private readonly ClientPayloadProcessorFactory _payloadProcessorFactory;
     private readonly ClientConnectionHandler _connectionHandler;
     private readonly WebPubSubTokenService _tokenService;
+    private readonly UpstreamEventDispatcher _events;
     private readonly ILogger<ClientWebSocketEndpoint> _logger;
 
     public ClientWebSocketEndpoint(
@@ -26,12 +28,14 @@ internal sealed class ClientWebSocketEndpoint
         ClientPayloadProcessorFactory payloadProcessorFactory,
         ClientConnectionHandler connectionHandler,
         WebPubSubTokenService tokenService,
+        UpstreamEventDispatcher events,
         ILogger<ClientWebSocketEndpoint> logger)
     {
         _connections = connections;
         _payloadProcessorFactory = payloadProcessorFactory;
         _connectionHandler = connectionHandler;
         _tokenService = tokenService;
+        _events = events;
         _logger = logger;
     }
 
@@ -101,13 +105,43 @@ internal sealed class ClientWebSocketEndpoint
         }
 
         var hub = rawHub.ToLowerInvariant();
+        var connectionId = Guid.NewGuid().ToString("N");
+        var connectResult = await _events.DispatchConnectAsync(
+            CreateConnectEvent(context, hub, connectionId, user),
+            context.RequestAborted);
+        if (!connectResult.Succeeded)
+        {
+            context.Response.StatusCode = (int)connectResult.StatusCode;
+            if (connectResult.Error is not null)
+            {
+                await context.Response.WriteAsync(connectResult.Error);
+            }
+            return;
+        }
+
+        if (!TryApplyConnectResponse(
+            context,
+            user,
+            selectedSubprotocol,
+            connectResult.Response,
+            out user,
+            out selectedSubprotocol,
+            out var connectError))
+        {
+            context.Response.StatusCode = StatusCodes.Status500InternalServerError;
+            await context.Response.WriteAsync(connectError);
+            return;
+        }
+
         var connection = _connections.Create(
-            Guid.NewGuid().ToString("N"),
+            connectionId,
             hub,
             user,
             rawSendToGroup,
             WebPubSubJsonV1PayloadProcessor.IsReliableSubprotocol(selectedSubprotocol),
-            selectedSubprotocol);
+            selectedSubprotocol,
+            host: context.Request.Host.ToString());
+        connection.ConnectionState = connectResult.ConnectionState;
         var processor = _payloadProcessorFactory.Get(selectedSubprotocol);
 
         using var webSocket = await context.WebSockets.AcceptWebSocketAsync(selectedSubprotocol);
@@ -210,6 +244,95 @@ internal sealed class ClientWebSocketEndpoint
         {
             _logger.LogDebug(exception, "Closing a WebSocket request failed.");
         }
+    }
+
+    private static UpstreamEvent CreateConnectEvent(
+        HttpContext context,
+        string hub,
+        string connectionId,
+        ClaimsPrincipal user)
+    {
+        var claims = user.Claims
+            .GroupBy(claim => claim.Type, StringComparer.Ordinal)
+            .ToDictionary(
+                group => group.Key,
+                group => group.Select(claim => claim.Value).ToArray(),
+                StringComparer.Ordinal);
+        var query = context.Request.Query
+            .Where(item => !string.Equals(item.Key, AccessTokenQueryName, StringComparison.OrdinalIgnoreCase))
+            .ToDictionary(item => item.Key, item => item.Value.ToArray(), StringComparer.OrdinalIgnoreCase);
+        var headers = context.Request.Headers
+            .Where(item => !string.Equals(item.Key, "Authorization", StringComparison.OrdinalIgnoreCase))
+            .ToDictionary(item => item.Key, item => item.Value.ToArray(), StringComparer.OrdinalIgnoreCase);
+        var body = JsonSerializer.SerializeToUtf8Bytes(new
+        {
+            claims,
+            query,
+            headers,
+            subprotocols = context.WebSockets.WebSocketRequestedProtocols,
+            clientCertificates = Array.Empty<object>(),
+        });
+
+        return new UpstreamEvent(
+            0,
+            hub,
+            "connect",
+            UpstreamEventCategory.System,
+            connectionId,
+            user.FindFirstValue("sub") ?? user.FindFirstValue(ClaimTypes.NameIdentifier),
+            null,
+            null,
+            new MessageData(MessageDataType.Json, body),
+            context.Request.Host.ToString());
+    }
+
+    private static bool TryApplyConnectResponse(
+        HttpContext context,
+        ClaimsPrincipal user,
+        string? selectedSubprotocol,
+        ConnectEventResponse? response,
+        out ClaimsPrincipal resultUser,
+        out string? resultSubprotocol,
+        out string error)
+    {
+        resultUser = user;
+        resultSubprotocol = selectedSubprotocol;
+        error = string.Empty;
+        if (response is null)
+        {
+            return true;
+        }
+
+        if (response.Subprotocol is not null)
+        {
+            if (!context.WebSockets.WebSocketRequestedProtocols.Contains(
+                response.Subprotocol,
+                StringComparer.Ordinal))
+            {
+                error = $"The connect event handler selected unrequested subprotocol '{response.Subprotocol}'.";
+                return false;
+            }
+            resultSubprotocol = response.Subprotocol;
+        }
+
+        var claims = user.Claims.ToList();
+        if (response.UserId is not null)
+        {
+            claims.RemoveAll(claim => claim.Type is "sub" || claim.Type == ClaimTypes.NameIdentifier);
+            claims.Add(new Claim("sub", response.UserId));
+        }
+        if (response.Roles is not null)
+        {
+            claims.RemoveAll(claim => claim.Type is "role" || claim.Type == ClaimTypes.Role);
+            claims.AddRange(response.Roles.Select(role => new Claim("role", role)));
+        }
+        if (response.Groups?.Length > 0)
+        {
+            claims.RemoveAll(claim => claim.Type == "webpubsub.group");
+            claims.AddRange(response.Groups.Select(group => new Claim("webpubsub.group", group)));
+        }
+        resultUser = new ClaimsPrincipal(new ClaimsIdentity(claims, user.Identity?.AuthenticationType));
+        return true;
     }
 
     private static bool TryGetRawSendToGroup(

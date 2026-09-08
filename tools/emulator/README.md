@@ -124,6 +124,36 @@ $env:WebPubSub__AccessKey = "custom-emulator-access-key-1234567890"
 dotnet run --project tools\emulator\src\Microsoft.Azure.WebPubSub.Emulator
 ```
 
+## Configure event handlers
+
+Configure HTTP upstream handlers under `WebPubSub:Hubs`. A hub-specific entry takes precedence
+over the optional `_default` entry. Handler user-event patterns support the service wildcard
+syntax. For example:
+
+```json
+{
+  "WebPubSub": {
+    "Hubs": {
+      "chat": {
+        "EventHandlers": [
+          {
+            "UrlTemplate": "https://localhost:7071/runtime/webhooks/webpubsub?hub={hub}&event={event}",
+            "EventPattern": "chat-*",
+            "SystemEvents": ["connect", "connected", "disconnected"]
+          }
+        ]
+      }
+    }
+  }
+}
+```
+
+HTTP handlers default to no authentication. Set `Auth:Type` to `ManagedIdentity` and
+`Auth:ManagedIdentity:Resource` to the handler resource
+when bearer authentication is required. `WebPubSub:ManagedIdentityClientId` selects a user-assigned
+managed identity. Event handler requests use binary CloudEvents headers and preserve message
+content type and Web PubSub metadata.
+
 `WebPubSub:AllowUnvalidatedEntraTokens` is disabled by default. Enable it only for trusted local
 server SDK `TokenCredential` testing. With an HTTPS emulator endpoint, the SDK can use
 `DefaultAzureCredential`:
