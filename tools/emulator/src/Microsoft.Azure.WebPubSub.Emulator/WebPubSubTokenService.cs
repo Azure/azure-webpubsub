@@ -2,6 +2,7 @@
 // Licensed under the MIT License.
 
 using System.IdentityModel.Tokens.Jwt;
+using System.Net;
 using System.Security.Claims;
 using System.Text;
 using Microsoft.Extensions.Logging;
@@ -97,7 +98,11 @@ internal sealed class WebPubSubTokenService
                 {
                     var parameters = CreateValidationParameters(audience);
                     parameters.AudienceValidator = (audiences, _, _) => audiences.Any(
-                        input => string.Equals(input, audience, StringComparison.OrdinalIgnoreCase));
+                        input => string.Equals(input, audience, StringComparison.OrdinalIgnoreCase) ||
+                            string.Equals(
+                                WebUtility.UrlDecode(input),
+                                audience,
+                                StringComparison.OrdinalIgnoreCase));
                     _handler.ValidateToken(
                         token,
                         parameters,

@@ -452,7 +452,9 @@ public class RestApiTests
     [Theory]
     [InlineData("tenant%2Falice", "tenant%2Falice", HttpStatusCode.NotFound)]
     [InlineData("tenant%2falice", "tenant%2falice", HttpStatusCode.NotFound)]
-    [InlineData("tenant%252Falice", "tenant%2Falice", HttpStatusCode.Unauthorized)]
+    [InlineData("tenant%252Falice", "tenant%2Falice", HttpStatusCode.NotFound)]
+    [InlineData("alice%20smith", "alice smith", HttpStatusCode.NotFound)]
+    [InlineData("alice+bob", "alice+bob", HttpStatusCode.NotFound)]
     public async Task UserRestApisPreserveEncodedUserCompatibility(
         string userPathSegment,
         string boundUserId,
@@ -491,10 +493,7 @@ public class RestApiTests
         using var missingSendRequest = CreateUserRequest(HttpMethod.Post, sendPath);
         missingSendRequest.Content = new StringContent("missing-user-send", Encoding.UTF8, "text/plain");
         using var missingSendResponse = await httpClient.SendAsync(missingSendRequest).WaitAsync(TestTimeout);
-        var sendStatus = missingStatus == HttpStatusCode.Unauthorized
-            ? HttpStatusCode.Unauthorized
-            : HttpStatusCode.Accepted;
-        Assert.Equal(sendStatus, missingSendResponse.StatusCode);
+        Assert.Equal(HttpStatusCode.Accepted, missingSendResponse.StatusCode);
 
         // A literal percent-encoded user is distinct from the user containing a slash.
         using var literalSocket = new ClientWebSocket();
@@ -506,26 +505,13 @@ public class RestApiTests
         Assert.Equal(boundUserId, literalConnected.RootElement.GetProperty("userId").GetString());
         using var existsRequest = CreateUserRequest(HttpMethod.Head, existsPath);
         using var existsResponse = await httpClient.SendAsync(existsRequest).WaitAsync(TestTimeout);
-        // Double-encoded paths currently fail audience validation even with the literal user online.
-        // Keep that existing limitation separate from route binding; do not change authentication here.
-        Assert.Equal(
-            missingStatus == HttpStatusCode.Unauthorized ? HttpStatusCode.Unauthorized : HttpStatusCode.OK,
-            existsResponse.StatusCode);
+        Assert.Equal(HttpStatusCode.OK, existsResponse.StatusCode);
         using var sendRequest = CreateUserRequest(HttpMethod.Post, sendPath);
         sendRequest.Content = new StringContent("literal-user-send", Encoding.UTF8, "text/plain");
         using var sendResponse = await httpClient.SendAsync(sendRequest).WaitAsync(TestTimeout);
-        Assert.Equal(sendStatus, sendResponse.StatusCode);
-        if (sendStatus == HttpStatusCode.Unauthorized)
-        {
-            await serviceClient.SendToConnectionAsync(
-                literalConnected.RootElement.GetProperty("connectionId").GetString()!,
-                BinaryData.FromString("literal-user-sentinel"),
-                ContentType.TextPlain).WaitAsync(TestTimeout);
-        }
+        Assert.Equal(HttpStatusCode.Accepted, sendResponse.StatusCode);
         using var delivered = await ReceiveJsonAsync(literalSocket);
-        Assert.Equal(
-            sendStatus == HttpStatusCode.Unauthorized ? "literal-user-sentinel" : "literal-user-send",
-            delivered.RootElement.GetProperty("data").GetString());
+        Assert.Equal("literal-user-send", delivered.RootElement.GetProperty("data").GetString());
 
         await serviceClient.SendToConnectionAsync(
             slashConnectionId,
