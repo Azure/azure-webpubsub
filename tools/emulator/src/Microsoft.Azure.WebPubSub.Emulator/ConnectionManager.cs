@@ -68,9 +68,41 @@ internal sealed class ConnectionManager
         return GetHubConnections(hub).Any(connection => connection.Groups.ContainsKey(group));
     }
 
+    public bool UserExists(string hub, string userId)
+    {
+        return GetUserConnections(hub, userId).Any();
+    }
+
+    public void SendToAll(
+        string hub,
+        MessageData data,
+        IReadOnlySet<string>? excludedConnectionIds = null,
+        string? filter = null)
+    {
+        foreach (var connection in GetHubConnections(hub)
+            .Where(connection => excludedConnectionIds?.Contains(connection.ConnectionId) != true)
+            .Where(connection => ODataFilterExecutor.Instance.Matches(filter, connection)))
+        {
+            connection.SendServerData(data);
+        }
+    }
+
     public void SendToConnection(string hub, string connectionId, MessageData data)
     {
         if (_connections.TryGetValue((hub, connectionId), out var connection))
+        {
+            connection.SendServerData(data);
+        }
+    }
+
+    public void SendToUser(
+        string hub,
+        string userId,
+        MessageData data,
+        string? filter = null)
+    {
+        foreach (var connection in GetUserConnections(hub, userId)
+            .Where(connection => ODataFilterExecutor.Instance.Matches(filter, connection)))
         {
             connection.SendServerData(data);
         }
@@ -141,6 +173,15 @@ internal sealed class ConnectionManager
         return _connections
             .Where(item => string.Equals(item.Key.Hub, hub, StringComparison.Ordinal))
             .Select(item => item.Value);
+    }
+
+    private IEnumerable<LogicalConnection> GetUserConnections(string hub, string userId)
+    {
+        return GetHubConnections(hub)
+            .Where(connection => string.Equals(
+                connection.UserId,
+                userId,
+                StringComparison.Ordinal));
     }
 
     private async Task ExpireAsync(LogicalConnection connection, long generation)

@@ -19,8 +19,29 @@ local Azure Web PubSub development.
 | Outbound delivery | Uses a bounded, single-writer queue for each WebSocket connection. | ✅ |
 | REST connection operations | Authenticated connection presence, direct text, JSON, and binary sends, close, and single-connection group membership changes for GA API versions from `2021-10-01` through `2024-12-01`. | ✅ |
 | REST group operations | Authenticated group presence and text, JSON, or binary fan-out with excluded connection IDs and OData filters. | ✅ |
+| REST broadcast | Authenticated text, JSON, or binary fan-out with excluded connection IDs and OData filters. | ✅ |
+| REST user operations | Authenticated user presence and text, JSON, or binary fan-out to all matching connections with OData filters. | ✅ |
 | REST send TTL | Accepts valid `messageTtlSeconds` values; delivery is immediate and expiration is not modeled. | ⚠️ |
-| Other REST APIs | User, permission, and broadcast operations. | ❌ |
+| Other REST APIs | User-group and permission operations. | ❌ |
+
+For the currently supported API versions (`2021-10-01` through `2024-12-01`) and versionless
+requests, REST user operations preserve the legacy runtime route-binding behavior and pass the
+ASP.NET Core route value through without another URL-decoding step. For example:
+
+| Request path segment | User ID targeted by current API versions |
+| --- | --- |
+| `tenant%2Falice` | `tenant%2Falice` (not `tenant/alice`) |
+| `tenant%252Falice` | `tenant%2Falice` |
+| `alice%20smith` | `alice smith` |
+| `alice+bob` | `alice+bob` (not `alice bob`) |
+
+As in the runtime, access-key authentication compares a URL-decoded token audience with the
+request path, allowing a token created from the original `tenant%252Falice` URL to authenticate
+while preserving the legacy route value above.
+
+Support for this behavior in a new API version is planned. The new version will adopt the
+runtime's new contract and decode the original user ID path segment exactly once: for example,
+`tenant%2Falice` targets `tenant/alice`, while `tenant%252Falice` targets `tenant%2Falice`.
 
 ## Not yet implemented
 
