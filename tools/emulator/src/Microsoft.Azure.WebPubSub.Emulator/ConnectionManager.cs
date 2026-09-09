@@ -5,6 +5,7 @@ using System.Collections.Concurrent;
 using System.Diagnostics.CodeAnalysis;
 using System.Net.WebSockets;
 using System.Security.Claims;
+using System.Text.Json;
 using Microsoft.Extensions.Logging;
 
 namespace Microsoft.Azure.WebPubSub.Emulator;
@@ -14,19 +15,23 @@ internal sealed class ConnectionManager
     private readonly ConcurrentDictionary<(string Hub, string ConnectionId), LogicalConnection> _connections = [];
     private readonly EmulatorRuntimeOptions _runtimeOptions;
     private readonly ILogger<ConnectionManager> _logger;
+    private readonly UpstreamEventDispatcher _events;
 
     public ConnectionManager(
         EmulatorRuntimeOptions runtimeOptions,
-        ILogger<ConnectionManager> logger)
+        ILogger<ConnectionManager> logger,
+        UpstreamEventDispatcher events)
     {
         _runtimeOptions = runtimeOptions;
         _logger = logger;
+        _events = events;
     }
 
     public LogicalConnection Create(
         string connectionId,
         string hub,
         ClaimsPrincipal user,
+        string host,
         string? rawSendToGroup = null,
         bool reliable = false,
         string? subprotocol = null)
@@ -35,6 +40,7 @@ internal sealed class ConnectionManager
             connectionId,
             hub,
             user,
+            host,
             rawSendToGroup,
             this,
             _runtimeOptions,
@@ -169,9 +175,14 @@ internal sealed class ConnectionManager
         }
     }
 
-    public void Remove(LogicalConnection connection)
+    public void Remove(LogicalConnection connection, string? reason = null)
     {
-        _connections.TryRemove((connection.Hub, connection.ConnectionId), out _);
+        if (_connections.TryRemove(new KeyValuePair<(string, string), LogicalConnection>(
+            (connection.Hub, connection.ConnectionId), connection)))
+        {
+            _ = _events.DispatchNotificationAsync(connection.UpstreamContext, "disconnected",
+                JsonSerializer.SerializeToUtf8Bytes(new { reason = reason ?? "The connection ended." }));
+        }
     }
 
     public void ScheduleExpiration(LogicalConnection connection, long generation)
@@ -221,7 +232,7 @@ internal sealed class ConnectionManager
             await Task.Delay(_runtimeOptions.ReconnectTimeout);
             if (connection.TryExpire(generation))
             {
-                Remove(connection);
+                Remove(connection, "The connection recovery timeout expired.");
             }
         }
         catch (Exception exception)

@@ -20,6 +20,29 @@ public class EmulatorApplicationTests
 {
     private static readonly TimeSpan TestTimeout = TimeSpan.FromSeconds(30);
 
+    [Theory]
+    [InlineData("not-a-url", "connected")]
+    [InlineData("ftp://handler/events", "connected")]
+    [InlineData("https://handler/{@Microsoft.KeyVault(SecretUri=https://vault/secrets/key)}", "connected")]
+    [InlineData("https://handler/events", "connect")]
+    public async Task UnsupportedNotificationConfigurationIsRejected(string template, string eventName)
+    {
+        var builder = EmulatorApplication.CreateBuilder([
+            $"--WebPubSub:Hubs:chat:EventHandlers:0:UrlTemplate={template}",
+            $"--WebPubSub:Hubs:chat:EventHandlers:0:SystemEvents:0={eventName}"]);
+        builder.WebHost.UseTestServer();
+        await using var app = EmulatorApplication.Build(builder);
+        await Assert.ThrowsAsync<OptionsValidationException>(() => app.StartAsync());
+    }
+
+    [Fact]
+    public void NotificationUrlResolutionEscapesOnlyRecognizedParameters()
+    {
+        Assert.True(EventHandlerUrlTemplate.TryResolve(
+            "https://handler/{HUB}/{event}/{unknown}?event={EVENT}", "tenant/chat", "message sent", out var uri));
+        Assert.Equal("https://handler/tenant%2Fchat/message%20sent/{unknown}?event=message%20sent", uri.OriginalString);
+    }
+
     [Fact]
     public async Task EffectiveEndpointComesFromBoundAddress()
     {

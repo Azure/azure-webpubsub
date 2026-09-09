@@ -8,10 +8,12 @@ namespace Microsoft.Azure.WebPubSub.Emulator;
 
 internal sealed class ClientConnectionHandler
 {
+    private readonly UpstreamEventDispatcher _events;
     private readonly ILogger<ClientConnectionHandler> _logger;
 
-    public ClientConnectionHandler(ILogger<ClientConnectionHandler> logger)
+    public ClientConnectionHandler(UpstreamEventDispatcher events, ILogger<ClientConnectionHandler> logger)
     {
+        _events = events;
         _logger = logger;
     }
 
@@ -37,6 +39,7 @@ internal sealed class ClientConnectionHandler
                     if (isInitialConnection)
                     {
                         processor.OnConnected(connection);
+                        _ = _events.DispatchNotificationAsync(connection.UpstreamContext, "connected", "{}"u8.ToArray());
                     }
                     return ValueTask.CompletedTask;
                 },

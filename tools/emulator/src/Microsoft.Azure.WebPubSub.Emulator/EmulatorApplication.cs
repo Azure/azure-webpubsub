@@ -21,17 +21,28 @@ internal static class EmulatorApplication
         builder.Configuration[WebHostDefaults.ServerUrlsKey] ??= "http://localhost:8080";
         builder.Services
             .AddOptions<EmulatorOptions>()
-            .Bind(builder.Configuration.GetSection(EmulatorOptions.SectionName))
+            .Bind(builder.Configuration.GetSection(EmulatorOptions.SectionName),
+                options => options.ErrorOnUnknownConfiguration = true)
             .Validate(
                 options => EmulatorOptions.IsValidAccessKey(options.AccessKey),
                 "WebPubSub:AccessKey must be at least 32 UTF-8 bytes and cannot contain " +
                     "leading or trailing whitespace, semicolons, or control characters.")
+            .Validate(options => options.Hubs.Values.All(hub => hub.EventHandlers.All(handler =>
+                EventHandlerUrlTemplate.TryResolve(handler.UrlTemplate, "hub", "event", out _) &&
+                handler.SystemEvents.All(name =>
+                    string.Equals(name, "connected", StringComparison.OrdinalIgnoreCase) ||
+                    string.Equals(name, "disconnected", StringComparison.OrdinalIgnoreCase)))),
+                "Event handlers currently require an HTTP(S) URL without Key Vault references and support only connected/disconnected.")
             .ValidateOnStart();
         builder.Services.AddSingleton(runtimeOptions ?? new EmulatorRuntimeOptions());
         builder.Services.AddSingleton<WebPubSubTokenService>();
         builder.Services.AddSingleton<ConnectionManager>();
         builder.Services.AddSingleton<SimpleWebSocketPayloadProcessor>();
         builder.Services.AddSingleton<WebPubSubJsonV1Protocol>();
+        builder.Services.AddSingleton<HttpUpstreamTrigger>();
+        builder.Services.AddSingleton<UpstreamEventDispatcher>();
+        builder.Services.AddHttpClient(HttpUpstreamTrigger.HttpClientName)
+            .ConfigurePrimaryHttpMessageHandler(CustomerOutboundConfiguration.ConfigureHttpMessageHandler);
         builder.Services.AddSingleton<
             IWebPubSubConnectionLifetimeHandler,
             WebPubSubClientConnectionLifetimeHandler>();

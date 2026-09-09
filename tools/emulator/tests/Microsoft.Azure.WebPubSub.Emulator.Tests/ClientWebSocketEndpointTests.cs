@@ -355,8 +355,10 @@ public class ClientWebSocketEndpointTests
         var connection = manager.Create(
             "pending-connection",
             Hub,
-            new ClaimsPrincipal(new ClaimsIdentity()));
+            new ClaimsPrincipal(new ClaimsIdentity()),
+            host: "emulator.example.test");
 
+        Assert.Equal("emulator.example.test", connection.UpstreamContext.Host);
         Assert.False(manager.TryGet(Hub, connection.ConnectionId, out _));
         Assert.True(manager.TryActivate(connection));
         Assert.True(manager.TryGet(Hub, connection.ConnectionId, out var activated));

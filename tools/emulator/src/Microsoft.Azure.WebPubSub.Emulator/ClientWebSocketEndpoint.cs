@@ -105,6 +105,7 @@ internal sealed class ClientWebSocketEndpoint
             Guid.NewGuid().ToString("N"),
             hub,
             user,
+            context.Request.Host.Host,
             rawSendToGroup,
             WebPubSubJsonV1PayloadProcessor.IsReliableSubprotocol(selectedSubprotocol),
             selectedSubprotocol);

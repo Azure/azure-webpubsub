@@ -948,6 +948,7 @@ public class LogicalConnectionTests
             connectionId,
             "chat",
             new ClaimsPrincipal(new ClaimsIdentity(claims)),
+            host: "localhost",
             reliable: reliable);
     }
 
