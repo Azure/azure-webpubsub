@@ -124,6 +124,39 @@ $env:WebPubSub__AccessKey = "custom-emulator-access-key-1234567890"
 dotnet run --project tools\emulator\src\Microsoft.Azure.WebPubSub.Emulator
 ```
 
+## HTTP lifecycle notifications
+
+Configure per-hub `connected` and `disconnected` handlers through ASP.NET Core configuration:
+
+```json
+{
+  "WebPubSub": {
+    "Hubs": {
+      "chat": {
+        "EventHandlers": [{
+          "UrlTemplate": "http://localhost:7071/events/{hub}/{event}",
+          "SystemEvents": ["connected", "disconnected"]
+        }]
+      }
+    }
+  }
+}
+```
+
+Hub names and event names match case-insensitively; the first matching handler is used.
+There is no `_default` fallback. URL parameters are escaped. Notifications use binary-mode
+CloudEvents with JSON bodies (`{}` for connected, `{"reason":"..."}` for disconnected),
+an access-key signature, and cookies isolated to each logical connection. Notification failures
+are logged without rejecting the WebSocket. Reliable reconnects do not produce another connected
+notification; disconnected is sent only on final close or recovery expiration.
+
+This slice sends notifications directly, without webhook endpoint validation, retries, or bearer
+authentication. The HTTP client retains its default 100-second timeout to response headers.
+Connect interception, user-event responses, Key Vault URL references, and Event Hubs listeners
+are not supported yet. Unsupported handler configuration is rejected at startup.
+
+## Local server SDK authentication
+
 `WebPubSub:AllowUnvalidatedEntraTokens` is disabled by default. Enable it only for trusted local
 server SDK `TokenCredential` testing. With an HTTPS emulator endpoint, the SDK can use
 `DefaultAzureCredential`:

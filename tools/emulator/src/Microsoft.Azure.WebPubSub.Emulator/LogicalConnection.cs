@@ -47,7 +47,8 @@ internal sealed class LogicalConnection : IODataFilterModel
         EmulatorRuntimeOptions runtimeOptions,
         bool reliable = false,
         string? subprotocol = null,
-        ILogger? logger = null)
+        ILogger? logger = null,
+        string host = "localhost")
     {
         ConnectionId = connectionId;
         Hub = hub;
@@ -63,6 +64,7 @@ internal sealed class LogicalConnection : IODataFilterModel
         _reliableBufferMaxBytes = runtimeOptions.MaxReliableMessageBufferBytes;
 
         UserId = user.FindFirstValue("sub") ?? user.FindFirstValue(ClaimTypes.NameIdentifier);
+        UpstreamContext = new UpstreamConnectionContext(connectionId, hub, UserId, subprotocol, host);
 
         foreach (var group in user.FindAll("webpubsub.group").Select(claim => claim.Value))
         {
@@ -98,6 +100,8 @@ internal sealed class LogicalConnection : IODataFilterModel
     public bool IsReliable { get; }
 
     public string? Subprotocol { get; }
+
+    public UpstreamConnectionContext UpstreamContext { get; }
 
     public AckCache AckIdCache { get; } = new();
 
@@ -519,7 +523,7 @@ internal sealed class LogicalConnection : IODataFilterModel
             ClearReliableBufferLocked();
         }
 
-        _manager.Remove(this);
+        _manager.Remove(this, closeDescription);
         return true;
     }
 
@@ -539,13 +543,15 @@ internal sealed class LogicalConnection : IODataFilterModel
         return Close(
             WebSocketCloseStatus.NormalClosure,
             string.Empty,
-            processor => processor.EncodeDisconnected(message));
+            processor => processor.EncodeDisconnected(message),
+            message);
     }
 
     private SocketTransport? Close(
         WebSocketCloseStatus closeStatus,
         string closeDescription,
-        Func<IClientPayloadProcessor, WebSocketPayload?>? finalPayloadFactory)
+        Func<IClientPayloadProcessor, WebSocketPayload?>? finalPayloadFactory,
+        string? disconnectReason = null)
     {
         SocketTransport? transport;
         lock (_stateLock)
@@ -567,7 +573,7 @@ internal sealed class LogicalConnection : IODataFilterModel
             ClearReliableBufferLocked();
         }
 
-        _manager.Remove(this);
+        _manager.Remove(this, disconnectReason ?? closeDescription);
         return transport;
     }
 
@@ -639,7 +645,7 @@ internal sealed class LogicalConnection : IODataFilterModel
 
     private void FailConnection(SocketTransport? transport, string reason)
     {
-        _manager.Remove(this);
+        _manager.Remove(this, reason);
         _logger?.LogDebug(
             "Closing connection {ConnectionId}: {Reason}",
             ConnectionId,
