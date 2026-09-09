@@ -105,10 +105,10 @@ internal sealed class ClientWebSocketEndpoint
             Guid.NewGuid().ToString("N"),
             hub,
             user,
+            context.Request.Host.Host,
             rawSendToGroup,
             WebPubSubJsonV1PayloadProcessor.IsReliableSubprotocol(selectedSubprotocol),
-            selectedSubprotocol,
-            host: context.Request.Host.Host);
+            selectedSubprotocol);
         var processor = _payloadProcessorFactory.Get(selectedSubprotocol);
 
         using var webSocket = await context.WebSockets.AcceptWebSocketAsync(selectedSubprotocol);

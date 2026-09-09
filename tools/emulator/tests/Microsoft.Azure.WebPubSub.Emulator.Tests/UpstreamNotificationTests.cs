@@ -101,7 +101,7 @@ public class UpstreamNotificationTests
         Assert.Equal(3, connection!.UpstreamContext.GetNextEventId());
         Assert.False(events.Reader.TryRead(out _));
 
-        var replacement = manager.Create(id, "chat", new ClaimsPrincipal());
+        var replacement = manager.Create(id, "chat", new ClaimsPrincipal(), host: connection.UpstreamContext.Host);
         Assert.True(manager.TryActivate(replacement));
         manager.Remove(connection);
         Assert.True(manager.TryGet("chat", id, out var current));

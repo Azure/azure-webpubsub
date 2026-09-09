@@ -42,13 +42,13 @@ internal sealed class LogicalConnection : IODataFilterModel
         string connectionId,
         string hub,
         ClaimsPrincipal user,
+        string host,
         string? rawSendToGroup,
         ConnectionManager manager,
         EmulatorRuntimeOptions runtimeOptions,
         bool reliable = false,
         string? subprotocol = null,
-        ILogger? logger = null,
-        string host = "localhost")
+        ILogger? logger = null)
     {
         ConnectionId = connectionId;
         Hub = hub;

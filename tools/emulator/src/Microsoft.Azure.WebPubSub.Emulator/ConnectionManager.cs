@@ -31,22 +31,22 @@ internal sealed class ConnectionManager
         string connectionId,
         string hub,
         ClaimsPrincipal user,
+        string host,
         string? rawSendToGroup = null,
         bool reliable = false,
-        string? subprotocol = null,
-        string host = "localhost")
+        string? subprotocol = null)
     {
         return new LogicalConnection(
             connectionId,
             hub,
             user,
+            host,
             rawSendToGroup,
             this,
             _runtimeOptions,
             reliable,
             subprotocol,
-            _logger,
-            host);
+            _logger);
     }
 
     public bool TryActivate(LogicalConnection connection)
