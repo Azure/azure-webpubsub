@@ -40,8 +40,11 @@ internal static class EmulatorApplication
         builder.Services.AddSingleton<SimpleWebSocketPayloadProcessor>();
         builder.Services.AddSingleton<WebPubSubJsonV1Protocol>();
         builder.Services.AddSingleton<HttpUpstreamTrigger>();
+        builder.Services.AddSingleton(TimeProvider.System);
+        builder.Services.AddSingleton<AbuseProtector>();
         builder.Services.AddSingleton<UpstreamEventDispatcher>();
         builder.Services.AddHttpClient(HttpUpstreamTrigger.HttpClientName)
+            .AddPolicyHandler(CustomerOutboundConfiguration.CreateRetryPolicy())
             .ConfigurePrimaryHttpMessageHandler(CustomerOutboundConfiguration.ConfigureHttpMessageHandler);
         builder.Services.AddSingleton<
             IWebPubSubConnectionLifetimeHandler,

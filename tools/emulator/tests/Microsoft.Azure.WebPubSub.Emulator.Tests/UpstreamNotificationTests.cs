@@ -33,7 +33,7 @@ public class UpstreamNotificationTests
     [Theory]
     [InlineData(null, "client", 200)]
     [InlineData(JsonProtocol, "server", 200)]
-    [InlineData(JsonProtocol, "client", 503)]
+    [InlineData(JsonProtocol, "client", 400)]
     [InlineData(JsonProtocol, "protocol", 200)]
     [InlineData(ReliableProtocol, "client", 200)]
     public async Task LifecycleUsesCloudEventsAndNotifiesOnlyOnce(
@@ -77,8 +77,18 @@ public class UpstreamNotificationTests
         else if (closeMode == "protocol")
         {
             await socket.SendAsync(new byte[] { 1 }, WebSocketMessageType.Binary, true, CancellationToken.None).WaitAsync(TestTimeout);
+            // Verify the server's error close before acknowledging it.
+            var close = await socket.ReceiveAsync(new byte[4096], CancellationToken.None).WaitAsync(TestTimeout);
+            Assert.Equal(WebSocketMessageType.Close, close.MessageType);
+            Assert.Equal(WebSocketCloseStatus.InvalidMessageType, close.CloseStatus);
+            Assert.Equal("The JSON subprotocol requires text messages.", close.CloseStatusDescription);
+            await socket.CloseAsync(close.CloseStatus.Value, close.CloseStatusDescription, CancellationToken.None).WaitAsync(TestTimeout);
+            Assert.Equal(WebSocketState.Closed, socket.State);
         }
-        await socket.CloseAsync(WebSocketCloseStatus.NormalClosure, "test-close", CancellationToken.None).WaitAsync(TestTimeout);
+        if (closeMode != "protocol")
+        {
+            await socket.CloseAsync(WebSocketCloseStatus.NormalClosure, "test-close", CancellationToken.None).WaitAsync(TestTimeout);
+        }
         var disconnected = await events.Reader.ReadAsync().AsTask().WaitAsync(TestTimeout);
         Assert.Equal("2", disconnected.Headers["ce-id"]);
         Assert.Equal("azure.webpubsub.sys.disconnected", disconnected.Headers["ce-type"]);
@@ -210,6 +220,13 @@ public class UpstreamNotificationTests
         var app = builder.Build();
         app.Run(async context =>
         {
+            if (HttpMethods.IsOptions(context.Request.Method))
+            {
+                Assert.Equal("/events/chat/validate", context.Request.Path.Value, ignoreCase: true);
+                Assert.Equal("1.0", context.Request.Headers["ce-awpsversion"].ToString());
+                context.Response.Headers["WebHook-Allowed-Origin"] = "*";
+                return;
+            }
             var body = await new System.IO.StreamReader(context.Request.Body).ReadToEndAsync();
             events.Writer.TryWrite(new ReceivedEvent(context.Request.Path.Value!,
                 context.Request.Headers.ToDictionary(p => p.Key, p => p.Value.ToString(), StringComparer.OrdinalIgnoreCase), body));

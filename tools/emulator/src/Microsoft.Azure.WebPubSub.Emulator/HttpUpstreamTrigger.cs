@@ -7,13 +7,17 @@ using Microsoft.Extensions.Logging;
 namespace Microsoft.Azure.WebPubSub.Emulator;
 
 internal sealed class HttpUpstreamTrigger(
-    IHttpClientFactory clients, ILogger<HttpUpstreamTrigger> logger)
+    IHttpClientFactory clients, AbuseProtector abuseProtector, ILogger<HttpUpstreamTrigger> logger)
 {
     public const string HttpClientName = "WebPubSubEventHandler";
 
     public async Task<HttpResponseMessage> SendAsync(
-        HttpRequestMessage request, UpstreamConnectionContext connection, CancellationToken cancellationToken)
+        HttpRequestMessage request, Uri validationUri, UpstreamConnectionContext connection, CancellationToken cancellationToken)
     {
+        if (!await abuseProtector.ValidateAsync(validationUri, connection.Host))
+        {
+            throw new HttpRequestException("The upstream endpoint did not allow the WebHook-Request-Origin.");
+        }
         var uri = request.RequestUri!;
         var cookies = connection.Cookies.GetCookieHeader(uri);
         if (cookies.Length > 0)
