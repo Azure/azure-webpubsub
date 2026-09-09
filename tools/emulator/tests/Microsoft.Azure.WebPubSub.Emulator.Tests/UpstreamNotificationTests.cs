@@ -77,8 +77,17 @@ public class UpstreamNotificationTests
         else if (closeMode == "protocol")
         {
             await socket.SendAsync(new byte[] { 1 }, WebSocketMessageType.Binary, true, CancellationToken.None).WaitAsync(TestTimeout);
+            // Protocol failure is a server-initiated close. Sending another close here
+            // races the server ending the transport with unread client data.
+            var close = await socket.ReceiveAsync(new byte[4096], CancellationToken.None).WaitAsync(TestTimeout);
+            Assert.Equal(WebSocketMessageType.Close, close.MessageType);
+            Assert.Equal(WebSocketCloseStatus.InvalidMessageType, close.CloseStatus);
+            Assert.Equal("The JSON subprotocol requires text messages.", close.CloseStatusDescription);
         }
-        await socket.CloseAsync(WebSocketCloseStatus.NormalClosure, "test-close", CancellationToken.None).WaitAsync(TestTimeout);
+        if (closeMode != "protocol")
+        {
+            await socket.CloseAsync(WebSocketCloseStatus.NormalClosure, "test-close", CancellationToken.None).WaitAsync(TestTimeout);
+        }
         var disconnected = await events.Reader.ReadAsync().AsTask().WaitAsync(TestTimeout);
         Assert.Equal("2", disconnected.Headers["ce-id"]);
         Assert.Equal("azure.webpubsub.sys.disconnected", disconnected.Headers["ce-type"]);
