@@ -411,6 +411,36 @@ public class LogicalConnectionTests
         Assert.False(manager.TryGet(connection.Hub, connection.ConnectionId, out _));
     }
 
+    [Theory]
+    [InlineData("acknowledge")]
+    [InlineData("abort")]
+    [InlineData("timeout")]
+    public async Task TransportCloseWaitsForPeerOrAborts(string outcome)
+    {
+        using var socket = new GatedCloseWebSocket();
+        using var transport = new SocketTransport(socket, 4096, 4, 16384);
+        var closing = transport.CloseAsync(WebSocketCloseStatus.InvalidMessageType, "invalid");
+
+        await Task.WhenAny(closing, socket.CloseStarted.Task).WaitAsync(TestTimeout);
+        Assert.True(socket.CloseStarted.Task.IsCompleted, "The transport must wait for the peer close before returning.");
+        Assert.False(closing.IsCompleted);
+        Assert.Equal(WebSocketState.CloseSent, socket.State);
+
+        if (outcome == "acknowledge")
+        {
+            socket.Acknowledge.TrySetResult();
+        }
+        else if (outcome == "abort")
+        {
+            transport.Abort();
+        }
+
+        await closing.WaitAsync(TestTimeout);
+        Assert.Equal(outcome == "acknowledge" ? WebSocketState.Closed : WebSocketState.Aborted, socket.State);
+        Assert.Equal(outcome != "acknowledge", transport.Aborted.IsCancellationRequested);
+        Assert.Equal(1, socket.CloseOutputCount);
+    }
+
     [Fact]
     public async Task ReliableNonNormalCloseCanReconnect()
     {
@@ -651,16 +681,21 @@ public class LogicalConnectionTests
         originalSocket.Release.TrySetResult();
         await processor.Started.Task.WaitAsync(TestTimeout);
 
-        var recoveredSocket = new TestWebSocket();
+        var recoveredSocket = new GatedCloseWebSocket();
         using var recovered = await connection.TryReconnectAsync(
             recoveredSocket,
             processor,
             CancellationToken.None).AsTask().WaitAsync(TestTimeout);
         Assert.NotNull(recovered);
         processor.Release.TrySetResult();
+        await Task.WhenAny(handlerTask, recoveredSocket.CloseStarted.Task).WaitAsync(TestTimeout);
+        Assert.True(recoveredSocket.CloseStarted.Task.IsCompleted);
+        Assert.False(handlerTask.IsCompleted);
+        Assert.Equal(WebSocketState.CloseSent, recoveredSocket.State);
+        recoveredSocket.Acknowledge.TrySetResult();
         await handlerTask.WaitAsync(TestTimeout);
 
-        Assert.Equal(WebSocketState.CloseSent, recoveredSocket.State);
+        Assert.Equal(WebSocketState.Closed, recoveredSocket.State);
         Assert.False(manager.TryGet(connection.Hub, connection.ConnectionId, out _));
     }
 
@@ -1217,6 +1252,36 @@ public class LogicalConnectionTests
             CancellationToken cancellationToken)
         {
             return Task.CompletedTask;
+        }
+    }
+
+    private sealed class GatedCloseWebSocket : TestWebSocket
+    {
+        public TaskCompletionSource CloseStarted { get; } =
+            new(TaskCreationOptions.RunContinuationsAsynchronously);
+
+        public TaskCompletionSource Acknowledge { get; } =
+            new(TaskCreationOptions.RunContinuationsAsynchronously);
+
+        public int CloseOutputCount { get; private set; }
+
+        public override Task CloseOutputAsync(
+            WebSocketCloseStatus closeStatus,
+            string? statusDescription,
+            CancellationToken cancellationToken)
+        {
+            CloseOutputCount++;
+            return base.CloseOutputAsync(closeStatus, statusDescription, cancellationToken);
+        }
+
+        public override async Task CloseAsync(
+            WebSocketCloseStatus closeStatus,
+            string? statusDescription,
+            CancellationToken cancellationToken)
+        {
+            CloseStarted.TrySetResult();
+            await Acknowledge.Task.WaitAsync(cancellationToken);
+            await base.CloseAsync(closeStatus, statusDescription, cancellationToken);
         }
     }
 

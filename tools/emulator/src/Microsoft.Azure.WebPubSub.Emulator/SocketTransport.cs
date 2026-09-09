@@ -193,12 +193,21 @@ internal sealed class SocketTransport : IDisposable
     public async Task CloseAsync(WebSocketCloseStatus status, string description)
     {
         CloseOutput(status, description);
+        using var closeCancellation = CancellationTokenSource.CreateLinkedTokenSource(_abortToken);
+        closeCancellation.CancelAfter(CloseDrainTimeout);
         try
         {
-            await _writeLoop.WaitAsync(CloseDrainTimeout).ConfigureAwait(false);
+            await _writeLoop.WaitAsync(closeCancellation.Token).ConfigureAwait(false);
+            if (WebSocket.State == WebSocketState.CloseSent)
+            {
+                // Sending the close frame alone is not a completed handshake. Wait for
+                // the peer before the request disposes (and aborts) the transport.
+                // CloseAsync does not send a second close frame in CloseSent state.
+                await WebSocket.CloseAsync(status, description, closeCancellation.Token)
+                    .ConfigureAwait(false);
+            }
         }
-        catch (Exception exception) when (
-            exception is TimeoutException or OperationCanceledException)
+        catch (OperationCanceledException)
         {
             Abort();
         }

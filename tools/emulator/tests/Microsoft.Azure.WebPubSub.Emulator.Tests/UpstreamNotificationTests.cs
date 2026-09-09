@@ -77,12 +77,13 @@ public class UpstreamNotificationTests
         else if (closeMode == "protocol")
         {
             await socket.SendAsync(new byte[] { 1 }, WebSocketMessageType.Binary, true, CancellationToken.None).WaitAsync(TestTimeout);
-            // Protocol failure is a server-initiated close. Sending another close here
-            // races the server ending the transport with unread client data.
+            // Verify the server's error close before acknowledging it.
             var close = await socket.ReceiveAsync(new byte[4096], CancellationToken.None).WaitAsync(TestTimeout);
             Assert.Equal(WebSocketMessageType.Close, close.MessageType);
             Assert.Equal(WebSocketCloseStatus.InvalidMessageType, close.CloseStatus);
             Assert.Equal("The JSON subprotocol requires text messages.", close.CloseStatusDescription);
+            await socket.CloseAsync(close.CloseStatus.Value, close.CloseStatusDescription, CancellationToken.None).WaitAsync(TestTimeout);
+            Assert.Equal(WebSocketState.Closed, socket.State);
         }
         if (closeMode != "protocol")
         {
