@@ -33,7 +33,7 @@ public class UpstreamNotificationTests
     [Theory]
     [InlineData(null, "client", 200)]
     [InlineData(JsonProtocol, "server", 200)]
-    [InlineData(JsonProtocol, "client", 503)]
+    [InlineData(JsonProtocol, "client", 400)]
     [InlineData(JsonProtocol, "protocol", 200)]
     [InlineData(ReliableProtocol, "client", 200)]
     public async Task LifecycleUsesCloudEventsAndNotifiesOnlyOnce(
@@ -210,6 +210,13 @@ public class UpstreamNotificationTests
         var app = builder.Build();
         app.Run(async context =>
         {
+            if (HttpMethods.IsOptions(context.Request.Method))
+            {
+                Assert.Equal("/events/chat/validate", context.Request.Path.Value, ignoreCase: true);
+                Assert.Equal("1.0", context.Request.Headers["ce-awpsversion"].ToString());
+                context.Response.Headers["WebHook-Allowed-Origin"] = "*";
+                return;
+            }
             var body = await new System.IO.StreamReader(context.Request.Body).ReadToEndAsync();
             events.Writer.TryWrite(new ReceivedEvent(context.Request.Path.Value!,
                 context.Request.Headers.ToDictionary(p => p.Key, p => p.Value.ToString(), StringComparer.OrdinalIgnoreCase), body));

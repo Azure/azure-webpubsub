@@ -150,9 +150,25 @@ an access-key signature, and cookies isolated to each logical connection. Notifi
 are logged without rejecting the WebSocket. Reliable reconnects do not produce another connected
 notification; disconnected is sent only on final close or recovery expiration.
 
-This slice sends notifications directly, without webhook endpoint validation, retries, or bearer
-authentication. The HTTP client retains its default 100-second timeout to response headers.
-Connect interception, user-event responses, Key Vault URL references, and Event Hubs listeners
+Before sending notifications, the emulator validates the handler URL with `{event}` set to
+`validate`. The endpoint must answer OPTIONS (or GET when OPTIONS returns 404) with a 2xx status
+and `WebHook-Allowed-Origin` containing `*` or the request's `WebHook-Request-Origin` host.
+Origin matching is case-insensitive; values are matched as returned by the HTTP header parser,
+not additionally split on commas. Validation carries `ce-awpsversion: 1.0`, but no connection
+cookies or signature, and has a 10-second deadline per OPTIONS/GET operation.
+
+Validation results are cached per resolved validation URL. The first request waits for validation;
+later requests use the previous result while an expired entry refreshes. Success is cached for
+one minute. Failed validation retries on subsequent use after 1, 2, 4, 8, 16, 32, then 60 seconds
+(capped at one minute). Restart the emulator after changing handler configuration to clear the cache.
+
+Both validation and notification requests retry HTTP 408, 5xx, and eligible `HttpRequestException`
+failures after 1, 3, and 5 seconds (at most four attempts). HTTP 429, other 4xx responses,
+cancellation/timeouts, and the non-ASCII-header exception are not retried. Retries reuse the event
+identity and body, so handlers should tolerate duplicates. The notification HTTP client's default
+100-second deadline covers sending through response headers, including retry delays.
+
+Connect interception, user-event responses, bearer authentication, Key Vault URL references, and Event Hubs listeners
 are not supported yet. Unsupported handler configuration is rejected at startup.
 
 ## Local server SDK authentication

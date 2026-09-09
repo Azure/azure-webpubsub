@@ -29,7 +29,8 @@ internal sealed class UpstreamEventDispatcher(
 
         try
         {
-            if (!EventHandlerUrlTemplate.TryResolve(handler.UrlTemplate, connection.Hub, eventName, out var uri))
+            if (!EventHandlerUrlTemplate.TryResolve(handler.UrlTemplate, connection.Hub, eventName, out var uri) ||
+                !EventHandlerUrlTemplate.TryResolve(handler.UrlTemplate, connection.Hub, "validate", out var validationUri))
             {
                 throw new InvalidDataException("Event handler URL must resolve to an HTTP or HTTPS URL without Key Vault references.");
             }
@@ -61,7 +62,7 @@ internal sealed class UpstreamEventDispatcher(
             }
 
             // Notifications survive the client request ending, as in PushModeUpstreamInvoker.
-            using var response = await trigger.SendAsync(request, connection, CancellationToken.None);
+            using var response = await trigger.SendAsync(request, validationUri, connection, CancellationToken.None);
             if (!response.IsSuccessStatusCode)
             {
                 logger.LogWarning("The {EventName} handler returned {StatusCode} for {ConnectionId}.",
