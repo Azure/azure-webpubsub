@@ -102,8 +102,8 @@ internal sealed class ClientWebSocketEndpoint
         }
 
         var hub = rawHub.ToLowerInvariant();
-        var upstreamContext = new UpstreamConnectionContext(Guid.NewGuid().ToString("N"), hub,
-            user.FindFirstValue("sub") ?? user.FindFirstValue(ClaimTypes.NameIdentifier), null, context.Request.Host.Host);
+        var upstreamContext = UpstreamConnectionContext.FromUser(
+            Guid.NewGuid().ToString("N"), hub, user, null, context.Request.Host.Host);
         var (status, response) = await _events.DispatchConnectAsync(
             upstreamContext, new ConnectEventRequest(context.Request, user), context.RequestAborted);
         if ((int)status is < 200 or >= 300)

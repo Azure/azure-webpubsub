@@ -36,8 +36,7 @@ internal sealed class ConnectionManager
         bool reliable = false,
         string? subprotocol = null)
     {
-        var context = new UpstreamConnectionContext(connectionId, hub,
-            user.FindFirstValue("sub") ?? user.FindFirstValue(ClaimTypes.NameIdentifier), subprotocol, host);
+        var context = UpstreamConnectionContext.FromUser(connectionId, hub, user, subprotocol, host);
         return Create(context, user, rawSendToGroup, reliable);
     }
 

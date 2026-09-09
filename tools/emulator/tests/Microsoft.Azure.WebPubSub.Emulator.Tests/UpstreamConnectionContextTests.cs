@@ -2,6 +2,7 @@
 // Licensed under the MIT License.
 
 using System;
+using System.Security.Claims;
 using System.Security.Cryptography;
 using System.Text;
 using System.Threading.Tasks;
@@ -11,6 +12,28 @@ namespace Microsoft.Azure.WebPubSub.Emulator.Tests;
 
 public class UpstreamConnectionContextTests
 {
+    [Theory]
+    [InlineData("subject", "name", "subject")]
+    [InlineData("subject", null, "subject")]
+    [InlineData(null, "name", "name")]
+    [InlineData(null, null, null)]
+    [InlineData("", "name", "")]
+    public void FromUserPreservesUserIdPrecedence(string? subject, string? nameIdentifier, string? expected)
+    {
+        var identity = new ClaimsIdentity();
+        if (subject is not null) identity.AddClaim(new Claim("sub", subject));
+        if (nameIdentifier is not null) identity.AddClaim(new Claim(ClaimTypes.NameIdentifier, nameIdentifier));
+
+        var context = UpstreamConnectionContext.FromUser(
+            "connection", "chat", new ClaimsPrincipal(identity), "custom.protocol", "example.test");
+
+        Assert.Equal(expected, context.UserId);
+        Assert.Equal("connection", context.ConnectionId);
+        Assert.Equal("chat", context.Hub);
+        Assert.Equal("custom.protocol", context.Subprotocol);
+        Assert.Equal("example.test", context.Host);
+    }
+
     [Fact]
     public void SignatureIsReusedForEqualKeysAndRefreshedWhenKeyChanges()
     {
