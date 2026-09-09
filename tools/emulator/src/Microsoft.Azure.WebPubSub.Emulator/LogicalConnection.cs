@@ -39,22 +39,19 @@ internal sealed class LogicalConnection : IODataFilterModel
     private bool _reconnecting;
 
     public LogicalConnection(
-        string connectionId,
-        string hub,
+        UpstreamConnectionContext upstreamContext,
         ClaimsPrincipal user,
-        string host,
         string? rawSendToGroup,
         ConnectionManager manager,
         EmulatorRuntimeOptions runtimeOptions,
         bool reliable = false,
-        string? subprotocol = null,
         ILogger? logger = null)
     {
-        ConnectionId = connectionId;
-        Hub = hub;
+        ConnectionId = upstreamContext.ConnectionId;
+        Hub = upstreamContext.Hub;
         RawSendToGroup = rawSendToGroup;
         IsReliable = reliable;
-        Subprotocol = subprotocol;
+        Subprotocol = upstreamContext.Subprotocol;
         _manager = manager;
         _logger = logger;
         _runtimeOptions = runtimeOptions;
@@ -63,8 +60,8 @@ internal sealed class LogicalConnection : IODataFilterModel
         _reliableBufferCapacity = runtimeOptions.ReliableMessageBufferCapacity;
         _reliableBufferMaxBytes = runtimeOptions.MaxReliableMessageBufferBytes;
 
-        UserId = user.FindFirstValue("sub") ?? user.FindFirstValue(ClaimTypes.NameIdentifier);
-        UpstreamContext = new UpstreamConnectionContext(connectionId, hub, UserId, subprotocol, host);
+        UserId = upstreamContext.UserId;
+        UpstreamContext = upstreamContext;
 
         foreach (var group in user.FindAll("webpubsub.group").Select(claim => claim.Value))
         {

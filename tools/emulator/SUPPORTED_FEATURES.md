@@ -17,7 +17,7 @@ local Azure Web PubSub development.
 | Connection state | Tracks active connections and temporarily retains reliable logical connections after unexpected disconnects. | ✅ |
 | Groups and roles | Supports connection-scoped token groups and authorized join, leave, and group send, including wildcard roles. | ✅ |
 | Outbound delivery | Uses a bounded, single-writer queue for each WebSocket connection. | ✅ |
-| HTTP lifecycle notifications | Sends `connected` and final `disconnected` CloudEvents to per-hub HTTP handlers; no connect interception or user events yet. See [configuration and limitations](README.md#http-lifecycle-notifications). | ⚠️ |
+| HTTP lifecycle handlers | Intercepts `connect` before upgrade, applies user/role/group/subprotocol overrides, and sends `connected` and final `disconnected` CloudEvents. Retains connect cookies and connection state. See [configuration and limitations](README.md#http-lifecycle-notifications). | ✅ |
 | HTTP handler validation and retries | Validates endpoints with OPTIONS/GET and cached allowed-origin results; retries HTTP 408, 5xx, and eligible network failures with 1/3/5-second delays. | ✅ |
 | REST connection operations | Authenticated connection presence, direct text, JSON, and binary sends, close, and single-connection group membership changes for GA API versions from `2021-10-01` through `2024-12-01`. | ✅ |
 | REST group operations | Authenticated group presence and text, JSON, or binary fan-out with excluded connection IDs and OData filters. | ✅ |
@@ -49,7 +49,7 @@ runtime's new contract and decode the original user ID path segment exactly once
 
 The following areas are planned for follow-up changes:
 
-- HTTP connect/user-event handlers, bearer authentication, and Key Vault URL references
+- HTTP user-event handlers, bearer authentication, and Key Vault URL references
 - Tunnel connections (`tunnel://` upstream URLs)
 - Event Hubs listeners
 - Protobuf subprotocols

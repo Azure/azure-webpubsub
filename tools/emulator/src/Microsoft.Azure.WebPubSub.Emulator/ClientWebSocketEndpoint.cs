@@ -18,6 +18,7 @@ internal sealed class ClientWebSocketEndpoint
     private readonly ConnectionManager _connections;
     private readonly ClientPayloadProcessorFactory _payloadProcessorFactory;
     private readonly ClientConnectionHandler _connectionHandler;
+    private readonly UpstreamEventDispatcher _events;
     private readonly WebPubSubTokenService _tokenService;
     private readonly ILogger<ClientWebSocketEndpoint> _logger;
 
@@ -25,12 +26,14 @@ internal sealed class ClientWebSocketEndpoint
         ConnectionManager connections,
         ClientPayloadProcessorFactory payloadProcessorFactory,
         ClientConnectionHandler connectionHandler,
+        UpstreamEventDispatcher events,
         WebPubSubTokenService tokenService,
         ILogger<ClientWebSocketEndpoint> logger)
     {
         _connections = connections;
         _payloadProcessorFactory = payloadProcessorFactory;
         _connectionHandler = connectionHandler;
+        _events = events;
         _tokenService = tokenService;
         _logger = logger;
     }
@@ -91,9 +94,7 @@ internal sealed class ClientWebSocketEndpoint
             return;
         }
 
-        string? rawSendToGroup = null;
-        if (selectedSubprotocol is null &&
-            !TryGetRawSendToGroup(context, out rawSendToGroup, out var error))
+        if (!TryGetRawSendToGroup(context, out var rawSendToGroup, out var error))
         {
             context.Response.StatusCode = StatusCodes.Status400BadRequest;
             await context.Response.WriteAsync(error);
@@ -101,14 +102,33 @@ internal sealed class ClientWebSocketEndpoint
         }
 
         var hub = rawHub.ToLowerInvariant();
+        var upstreamContext = new UpstreamConnectionContext(Guid.NewGuid().ToString("N"), hub,
+            user.FindFirstValue("sub") ?? user.FindFirstValue(ClaimTypes.NameIdentifier), null, context.Request.Host.Host);
+        var (status, response) = await _events.DispatchConnectAsync(
+            upstreamContext, new ConnectEventRequest(context.Request, user), context.RequestAborted);
+        if ((int)status is < 200 or >= 300)
+        {
+            context.Response.StatusCode = (int)status;
+            await context.Response.WriteAsync("The connect event handler rejected the connection.", context.RequestAborted);
+            return;
+        }
+        selectedSubprotocol = response?.Subprotocol ?? selectedSubprotocol;
+        upstreamContext.UserId = response?.UserId ?? upstreamContext.UserId;
+        upstreamContext.Subprotocol = selectedSubprotocol;
+        if (response is not null)
+        {
+            var claims = user.Claims.Where(claim =>
+                !(response.Roles is not null && claim.Type is "role" or ClaimTypes.Role) &&
+                !(response.Groups is { Length: > 0 } && claim.Type == "webpubsub.group"));
+            claims = claims.Concat(response.Roles?.Select(role => new Claim("role", role)) ?? []);
+            claims = claims.Concat(response.Groups?.Select(group => new Claim("webpubsub.group", group)) ?? []);
+            user = new ClaimsPrincipal(new ClaimsIdentity(claims));
+        }
         var connection = _connections.Create(
-            Guid.NewGuid().ToString("N"),
-            hub,
+            upstreamContext,
             user,
-            context.Request.Host.Host,
             rawSendToGroup,
-            WebPubSubJsonV1PayloadProcessor.IsReliableSubprotocol(selectedSubprotocol),
-            selectedSubprotocol);
+            WebPubSubJsonV1PayloadProcessor.IsReliableSubprotocol(selectedSubprotocol));
         var processor = _payloadProcessorFactory.Get(selectedSubprotocol);
 
         using var webSocket = await context.WebSockets.AcceptWebSocketAsync(selectedSubprotocol);

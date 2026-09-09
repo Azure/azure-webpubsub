@@ -17,8 +17,9 @@ internal sealed class UpstreamConnectionContext(
 
     public string ConnectionId { get; } = connectionId;
     public string Hub { get; } = hub;
-    public string? UserId { get; } = userId;
-    public string? Subprotocol { get; } = subprotocol;
+    public string? UserId { get; set; } = userId;
+    public string? Subprotocol { get; set; } = subprotocol;
+    public string? ConnectionState { get; set; }
     public string Host { get; } = host;
     public CookieContainer Cookies { get; } = new();
 
