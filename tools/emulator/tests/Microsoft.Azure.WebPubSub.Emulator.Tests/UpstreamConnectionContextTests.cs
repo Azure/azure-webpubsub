@@ -18,13 +18,13 @@ public class UpstreamConnectionContextTests
     [InlineData(null, "name", "name")]
     [InlineData(null, null, null)]
     [InlineData("", "name", "")]
-    public void FromUserPreservesUserIdPrecedence(string? subject, string? nameIdentifier, string? expected)
+    public void CreatePreservesUserIdPrecedence(string? subject, string? nameIdentifier, string? expected)
     {
         var identity = new ClaimsIdentity();
         if (subject is not null) identity.AddClaim(new Claim("sub", subject));
         if (nameIdentifier is not null) identity.AddClaim(new Claim(ClaimTypes.NameIdentifier, nameIdentifier));
 
-        var context = UpstreamConnectionContext.FromUser(
+        var context = UpstreamConnectionContext.Create(
             "connection", "chat", new ClaimsPrincipal(identity), "custom.protocol", "example.test");
 
         Assert.Equal(expected, context.UserId);

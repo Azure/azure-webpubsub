@@ -24,7 +24,7 @@ internal sealed class UpstreamConnectionContext(
     public string Host { get; } = host;
     public CookieContainer Cookies { get; } = new();
 
-    public static UpstreamConnectionContext FromUser(
+    public static UpstreamConnectionContext Create(
         string connectionId, string hub, ClaimsPrincipal user, string? subprotocol, string host) =>
         new(connectionId, hub,
             user.FindFirstValue("sub") ?? user.FindFirstValue(ClaimTypes.NameIdentifier), subprotocol, host);

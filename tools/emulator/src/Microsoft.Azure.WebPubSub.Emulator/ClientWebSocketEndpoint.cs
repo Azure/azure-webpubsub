@@ -102,7 +102,7 @@ internal sealed class ClientWebSocketEndpoint
         }
 
         var hub = rawHub.ToLowerInvariant();
-        var upstreamContext = UpstreamConnectionContext.FromUser(
+        var upstreamContext = UpstreamConnectionContext.Create(
             Guid.NewGuid().ToString("N"), hub, user, null, context.Request.Host.Host);
         var (status, response) = await _events.DispatchConnectAsync(
             upstreamContext, new ConnectEventRequest(context.Request, user), context.RequestAborted);
