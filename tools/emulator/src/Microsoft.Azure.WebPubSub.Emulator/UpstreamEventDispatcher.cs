@@ -4,8 +4,6 @@
 using System.Globalization;
 using System.Net;
 using System.Net.Http.Headers;
-using System.Security.Cryptography;
-using System.Text;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 
@@ -52,9 +50,7 @@ internal sealed class UpstreamEventDispatcher(
             request.Headers.Add("ce-eventName", eventName);
             request.Headers.Add("WebHook-Request-Origin", connection.Host);
             request.Headers.Add("x-ms-client-request-id", Guid.NewGuid().ToString());
-            var signature = HMACSHA256.HashData(
-                Encoding.UTF8.GetBytes(options.Value.AccessKey), Encoding.UTF8.GetBytes(connection.ConnectionId));
-            request.Headers.Add("ce-signature", $"sha256={Convert.ToHexStringLower(signature)}");
+            request.Headers.Add("ce-signature", connection.GetSignature(options.Value.AccessKey));
             if (!string.IsNullOrEmpty(connection.UserId))
             {
                 request.Headers.Add("ce-userId", connection.UserId);

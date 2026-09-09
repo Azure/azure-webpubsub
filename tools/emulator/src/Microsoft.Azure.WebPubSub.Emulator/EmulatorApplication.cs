@@ -2,7 +2,6 @@
 // Licensed under the MIT License.
 
 using System.Reflection;
-using System.Text;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Controllers;
@@ -43,12 +42,7 @@ internal static class EmulatorApplication
         builder.Services.AddSingleton<HttpUpstreamTrigger>();
         builder.Services.AddSingleton<UpstreamEventDispatcher>();
         builder.Services.AddHttpClient(HttpUpstreamTrigger.HttpClientName)
-            .ConfigurePrimaryHttpMessageHandler(() => new SocketsHttpHandler
-            {
-                UseCookies = false,
-                RequestHeaderEncodingSelector = (name, _) =>
-                    name.Equals("ce-userId", StringComparison.OrdinalIgnoreCase) ? Encoding.UTF8 : null,
-            });
+            .ConfigurePrimaryHttpMessageHandler(CustomerOutboundConfiguration.ConfigureHttpMessageHandler);
         builder.Services.AddSingleton<
             IWebPubSubConnectionLifetimeHandler,
             WebPubSubClientConnectionLifetimeHandler>();

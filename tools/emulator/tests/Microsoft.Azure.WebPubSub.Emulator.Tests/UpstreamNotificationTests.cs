@@ -82,6 +82,8 @@ public class UpstreamNotificationTests
         var disconnected = await events.Reader.ReadAsync().AsTask().WaitAsync(TestTimeout);
         Assert.Equal("2", disconnected.Headers["ce-id"]);
         Assert.Equal("azure.webpubsub.sys.disconnected", disconnected.Headers["ce-type"]);
+        Assert.Equal(connected.Headers["ce-signature"], disconnected.Headers["ce-signature"]);
+        Assert.NotEqual(connected.Headers["x-ms-client-request-id"], disconnected.Headers["x-ms-client-request-id"]);
         using var body = JsonDocument.Parse(disconnected.Body);
         Assert.Equal(closeMode switch
             {
