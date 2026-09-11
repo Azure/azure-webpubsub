@@ -40,6 +40,16 @@ internal sealed class EventHandlerOptions
     public string UrlTemplate { get; set; } = string.Empty;
 
     public string[] SystemEvents { get; set; } = [];
+
+    public string? EventPattern { get; set; }
+
+    public bool MatchesUserEvent(string eventName) => EventPattern?.Split(',').Any(value =>
+    {
+        var pattern = value.Trim();
+        // Unlike a wildcard within a pattern, a standalone * also matches dots.
+        return pattern == "*" || string.Equals(pattern, eventName, StringComparison.OrdinalIgnoreCase) ||
+            WildcardPattern.TryCreate(pattern, out var matcher) && matcher!.Matches(eventName, ignoreCase: true);
+    }) == true;
 }
 
 internal sealed class EmulatorRuntimeOptions

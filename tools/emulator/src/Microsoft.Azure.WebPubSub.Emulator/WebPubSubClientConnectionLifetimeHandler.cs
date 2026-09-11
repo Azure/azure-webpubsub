@@ -17,7 +17,7 @@ internal sealed record ClientMessagePayload(
 
 internal sealed record UpstreamEventResult(MessageData? Response = null);
 
-internal sealed class WebPubSubClientConnectionLifetimeHandler :
+internal sealed class WebPubSubClientConnectionLifetimeHandler(UpstreamEventDispatcher events) :
     IWebPubSubConnectionLifetimeHandler
 {
     public Task<UpstreamEventResult> SendMessageAsync(
@@ -25,7 +25,6 @@ internal sealed class WebPubSubClientConnectionLifetimeHandler :
         ClientMessagePayload message,
         CancellationToken cancellationToken = default)
     {
-        throw new NotImplementedException(
-            "HTTP upstream event handlers are not implemented.");
+        return events.DispatchUserEventAsync(connection.UpstreamContext, message, cancellationToken);
     }
 }

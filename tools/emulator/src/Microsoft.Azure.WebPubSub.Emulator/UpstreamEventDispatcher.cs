@@ -13,6 +13,51 @@ namespace Microsoft.Azure.WebPubSub.Emulator;
 internal sealed class UpstreamEventDispatcher(
     IOptions<EmulatorOptions> options, HttpUpstreamTrigger trigger, ILogger<UpstreamEventDispatcher> logger)
 {
+    private const string MetadataHeaderPrefix = "x-webpubsub-metadata-";
+
+    public async Task<UpstreamEventResult> DispatchUserEventAsync(
+        UpstreamConnectionContext connection, ClientMessagePayload message, CancellationToken cancellationToken)
+    {
+        var id = connection.GetNextEventId();
+        var handler = options.Value.Hubs.TryGetValue(connection.Hub, out var settings)
+            ? settings.EventHandlers.FirstOrDefault(item => item.MatchesUserEvent(message.EventName))
+            : null;
+        if (handler is null)
+        {
+            throw new InvalidOperationException("No event handler is configured for this user event.");
+        }
+
+        using var response = await SendAsync(handler, connection, message.EventName, id,
+            message.Data.Bytes.ToArray(), cancellationToken, message.Data);
+        response.EnsureSuccessStatusCode();
+        await response.Content.LoadIntoBufferAsync(16 * 1024 * 1024, cancellationToken);
+        var bytes = await response.Content.ReadAsByteArrayAsync(cancellationToken);
+        // Runtime treats empty bodies as text, regardless of their Content-Type.
+        var type = bytes.Length == 0 ? MessageDataType.Text :
+            response.Content.Headers.ContentType?.MediaType?.ToLowerInvariant() switch
+            {
+                null or "application/octet-stream" => MessageDataType.Binary,
+                "text/plain" => MessageDataType.Text,
+                "application/json" => MessageDataType.Json,
+                _ => throw new InvalidDataException("Unsupported event handler response content type."),
+            };
+        Dictionary<string, string>? metadata = null;
+        foreach (var header in response.Headers)
+        {
+            if (!header.Key.StartsWith(MetadataHeaderPrefix, StringComparison.OrdinalIgnoreCase)) continue;
+            var key = header.Key[MetadataHeaderPrefix.Length..].ToLowerInvariant();
+            if (key.Length == 0) continue;
+            var value = header.Value.LastOrDefault() ?? string.Empty;
+            metadata ??= new(StringComparer.Ordinal);
+            metadata[key] = value[(value.LastIndexOf(',') + 1)..].Trim();
+        }
+        if (response.Headers.TryGetValues("ce-connectionState", out var state))
+        {
+            connection.ConnectionState = state.LastOrDefault();
+        }
+        return new(bytes.Length == 0 && metadata is null ? null : new MessageData(type, bytes, metadata));
+    }
+
     public async Task<(HttpStatusCode Status, ConnectEventResponse? Response)> DispatchConnectAsync(
         UpstreamConnectionContext connection, ConnectEventRequest body, CancellationToken cancellationToken)
     {
@@ -94,7 +139,7 @@ internal sealed class UpstreamEventDispatcher(
 
     private async Task<HttpResponseMessage> SendAsync(
         EventHandlerOptions handler, UpstreamConnectionContext connection, string eventName, int id,
-        byte[] body, CancellationToken cancellationToken)
+        byte[] body, CancellationToken cancellationToken, MessageData? userData = null)
     {
         if (!EventHandlerUrlTemplate.TryResolve(handler.UrlTemplate, connection.Hub, eventName, out var uri) ||
             !EventHandlerUrlTemplate.TryResolve(handler.UrlTemplate, connection.Hub, "validate", out var validationUri))
@@ -106,10 +151,24 @@ internal sealed class UpstreamEventDispatcher(
             Version = HttpVersion.Version20,
             Content = new ByteArrayContent(body),
         };
-        request.Content.Headers.ContentType = new MediaTypeHeaderValue("application/json");
+        request.Content.Headers.ContentType = MediaTypeHeaderValue.Parse(userData?.Type switch
+        {
+            MessageDataType.Text => "text/plain; charset=utf-8",
+            MessageDataType.Binary => "application/octet-stream",
+            _ => "application/json",
+        });
+        if (userData?.Metadata is { } metadata)
+        {
+            var normalized = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+            foreach (var item in metadata) normalized[item.Key] = item.Value;
+            foreach (var item in normalized)
+            {
+                request.Headers.TryAddWithoutValidation(MetadataHeaderPrefix + item.Key.ToLowerInvariant(), item.Value);
+            }
+        }
         request.Headers.Add("ce-specversion", "1.0");
         request.Headers.Add("ce-awpsversion", "1.0");
-        request.Headers.Add("ce-type", $"azure.webpubsub.sys.{eventName}");
+        request.Headers.Add("ce-type", $"azure.webpubsub.{(userData is null ? "sys" : "user")}.{eventName}");
         request.Headers.Add("ce-source", $"/hubs/{connection.Hub}/client/{connection.ConnectionId}");
         request.Headers.Add("ce-id", id.ToString(CultureInfo.InvariantCulture));
         request.Headers.Add("ce-time", DateTime.UtcNow.ToString("yyyy-MM-ddTHH:mm:ssZ", CultureInfo.InvariantCulture));

@@ -43,6 +43,20 @@ public class EmulatorApplicationTests
         Assert.Equal("https://handler/tenant%2Fchat/message%20sent/{unknown}?event=message%20sent", uri.OriginalString);
     }
 
+    [Theory]
+    [InlineData("room\\")]
+    [InlineData("room\\x")]
+    public async Task InvalidEventPatternIsRejectedAtStartup(string pattern)
+    {
+        var builder = EmulatorApplication.CreateBuilder([
+            "--WebPubSub:Hubs:chat:EventHandlers:0:UrlTemplate=https://handler/events",
+            $"--WebPubSub:Hubs:chat:EventHandlers:0:EventPattern={pattern}"]);
+        builder.WebHost.UseTestServer();
+        await using var app = EmulatorApplication.Build(builder);
+        var error = await Assert.ThrowsAsync<OptionsValidationException>(() => app.StartAsync());
+        Assert.Contains("EventPattern", error.Message);
+    }
+
     [Fact]
     public async Task EffectiveEndpointComesFromBoundAddress()
     {
