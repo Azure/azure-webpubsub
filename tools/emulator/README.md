@@ -126,7 +126,7 @@ dotnet run --project tools\emulator\src\Microsoft.Azure.WebPubSub.Emulator
 
 ## HTTP lifecycle notifications
 
-Configure per-hub `connected` and `disconnected` handlers through ASP.NET Core configuration:
+Configure per-hub `connect`, `connected`, and `disconnected` handlers through ASP.NET Core configuration:
 
 ```json
 {
@@ -135,7 +135,7 @@ Configure per-hub `connected` and `disconnected` handlers through ASP.NET Core c
       "chat": {
         "EventHandlers": [{
           "UrlTemplate": "http://localhost:7071/events/{hub}/{event}",
-          "SystemEvents": ["connected", "disconnected"]
+          "SystemEvents": ["connect", "connected", "disconnected"]
         }]
       }
     }
@@ -150,7 +150,29 @@ an access-key signature, and cookies isolated to each logical connection. Notifi
 are logged without rejecting the WebSocket. Reliable reconnects do not produce another connected
 notification; disconnected is sent only on final close or recovery expiration.
 
-Before sending notifications, the emulator validates the handler URL with `{event}` set to
+The optional `connect` handler runs after token validation and before the WebSocket upgrade or
+connection activation. Its event ID is `0`; connected and disconnected start at `1` and `2`.
+The JSON request contains `claims`, `query`, `headers` (values are arrays), `subprotocols`, and
+`clientCertificates` (empty; client-certificate authentication is not supported). Client
+`access_token` query parameters, `Authorization`, and `X-ASRS-Internal-*` headers are excluded
+from this body. Other request headers, including client cookies, remain in the JSON body;
+they are not copied to the outbound HTTP headers.
+
+A 2xx connect response accepts the connection. An empty body or JSON `null` leaves token defaults
+unchanged. A JSON object can override `userId` (including the empty string), `roles` (an empty
+array removes token roles), and `groups` (only a nonempty array replaces token groups). Invalid
+groups, malformed JSON, or responses larger than 16 MiB fail with HTTP 500. JSON parsing does
+not depend on response Content-Type. Non-2xx statuses are returned before upgrading; rejected
+connections do not emit connected/disconnected notifications. Error bodies are not forwarded.
+
+`subprotocol` selects the WebSocket protocol; if absent or null, the first supported protocol
+offered by the client is used. Handlers should select a protocol the client offered. Custom
+protocols use the raw WebSocket processor. Raw-mode query parameters are validated before connect,
+even when the initial protocol offer includes JSON. Successful connect cookies and
+`ce-connectionState` (including an empty value) are retained for later notifications. Reliable
+recovery reuses the original connection context and does not invoke connect again.
+
+Before sending connect events or notifications, the emulator validates the handler URL with `{event}` set to
 `validate`. The endpoint must answer OPTIONS (or GET when OPTIONS returns 404) with a 2xx status
 and `WebHook-Allowed-Origin` containing `*` or the request's `WebHook-Request-Origin` host.
 Origin matching is case-insensitive; values are matched as returned by the HTTP header parser,
@@ -162,13 +184,13 @@ later requests use the previous result while an expired entry refreshes. Success
 one minute. Failed validation retries on subsequent use after 1, 2, 4, 8, 16, 32, then 60 seconds
 (capped at one minute). Restart the emulator after changing handler configuration to clear the cache.
 
-Both validation and notification requests retry HTTP 408, 5xx, and eligible `HttpRequestException`
+Validation, connect, and notification requests retry HTTP 408, 5xx, and eligible `HttpRequestException`
 failures after 1, 3, and 5 seconds (at most four attempts). HTTP 429, other 4xx responses,
 cancellation/timeouts, and the non-ASCII-header exception are not retried. Retries reuse the event
-identity and body, so handlers should tolerate duplicates. The notification HTTP client's default
+identity and body, so handlers should tolerate duplicates. The HTTP client's default
 100-second deadline covers sending through response headers, including retry delays.
 
-Connect interception, user-event responses, bearer authentication, Key Vault URL references, and Event Hubs listeners
+User-event responses, bearer authentication, Key Vault URL references, and Event Hubs listeners
 are not supported yet. Unsupported handler configuration is rejected at startup.
 
 ## Local server SDK authentication

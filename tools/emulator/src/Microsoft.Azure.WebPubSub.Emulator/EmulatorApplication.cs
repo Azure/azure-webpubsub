@@ -30,9 +30,10 @@ internal static class EmulatorApplication
             .Validate(options => options.Hubs.Values.All(hub => hub.EventHandlers.All(handler =>
                 EventHandlerUrlTemplate.TryResolve(handler.UrlTemplate, "hub", "event", out _) &&
                 handler.SystemEvents.All(name =>
+                    string.Equals(name, "connect", StringComparison.OrdinalIgnoreCase) ||
                     string.Equals(name, "connected", StringComparison.OrdinalIgnoreCase) ||
                     string.Equals(name, "disconnected", StringComparison.OrdinalIgnoreCase)))),
-                "Event handlers currently require an HTTP(S) URL without Key Vault references and support only connected/disconnected.")
+                "Event handlers currently require an HTTP(S) URL without Key Vault references and support only connect/connected/disconnected.")
             .ValidateOnStart();
         builder.Services.AddSingleton(runtimeOptions ?? new EmulatorRuntimeOptions());
         builder.Services.AddSingleton<WebPubSubTokenService>();

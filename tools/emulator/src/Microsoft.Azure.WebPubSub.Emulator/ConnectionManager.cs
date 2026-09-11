@@ -36,16 +36,20 @@ internal sealed class ConnectionManager
         bool reliable = false,
         string? subprotocol = null)
     {
+        var context = UpstreamConnectionContext.Create(connectionId, hub, user, subprotocol, host);
+        return Create(context, user, rawSendToGroup, reliable);
+    }
+
+    public LogicalConnection Create(
+        UpstreamConnectionContext context, ClaimsPrincipal user, string? rawSendToGroup = null, bool reliable = false)
+    {
         return new LogicalConnection(
-            connectionId,
-            hub,
+            context,
             user,
-            host,
             rawSendToGroup,
             this,
             _runtimeOptions,
             reliable,
-            subprotocol,
             _logger);
     }
 

@@ -24,7 +24,7 @@ public class EmulatorApplicationTests
     [InlineData("not-a-url", "connected")]
     [InlineData("ftp://handler/events", "connected")]
     [InlineData("https://handler/{@Microsoft.KeyVault(SecretUri=https://vault/secrets/key)}", "connected")]
-    [InlineData("https://handler/events", "connect")]
+    [InlineData("https://handler/events", "joinedGroups")]
     public async Task UnsupportedNotificationConfigurationIsRejected(string template, string eventName)
     {
         var builder = EmulatorApplication.CreateBuilder([

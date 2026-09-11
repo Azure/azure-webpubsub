@@ -2,6 +2,7 @@
 // Licensed under the MIT License.
 
 using System.Net;
+using System.Security.Claims;
 using System.Security.Cryptography;
 using System.Text;
 
@@ -17,10 +18,16 @@ internal sealed class UpstreamConnectionContext(
 
     public string ConnectionId { get; } = connectionId;
     public string Hub { get; } = hub;
-    public string? UserId { get; } = userId;
-    public string? Subprotocol { get; } = subprotocol;
+    public string? UserId { get; set; } = userId;
+    public string? Subprotocol { get; set; } = subprotocol;
+    public string? ConnectionState { get; set; }
     public string Host { get; } = host;
     public CookieContainer Cookies { get; } = new();
+
+    public static UpstreamConnectionContext Create(
+        string connectionId, string hub, ClaimsPrincipal user, string? subprotocol, string host) =>
+        new(connectionId, hub,
+            user.FindFirstValue("sub") ?? user.FindFirstValue(ClaimTypes.NameIdentifier), subprotocol, host);
 
     public int GetNextEventId() => Interlocked.Increment(ref _eventId);
 
