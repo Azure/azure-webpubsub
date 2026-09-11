@@ -312,17 +312,72 @@ public class ClientWebSocketEndpointTests
         Assert.Equal("connected", message.RootElement.GetProperty("event").GetString());
     }
 
-    [Fact]
-    public async Task EmptyRawModeIsRejectedBeforeUpgrade()
+    [Theory]
+    [InlineData("webpubsub_mode=invalid", null)]
+    [InlineData("webpubsub_mode=sendToGroup", null)]
+    [InlineData("webpubsub_mode=sendToGroup&group=%20", null)]
+    [InlineData("webpubsub_mode=sendToGroup&group=room&noEcho=1", null)]
+    [InlineData("webpubsub_mode=sendToGroup&group=room&noEcho=true&noEcho=invalid", "json.webpubsub.azure.v1")]
+    public async Task InvalidRawModeIsRejectedBeforeUpgrade(string query, string? protocol)
     {
         await using var application = await StartApplicationAsync();
         var client = application.GetTestServer().CreateWebSocketClient();
-        var uri = CreateClientUri(query: "webpubsub_mode=");
+        if (protocol is not null) client.SubProtocols.Add(protocol);
+        var uri = CreateClientUri(query: query);
 
         var exception = await Assert.ThrowsAsync<InvalidOperationException>(
             () => client.ConnectAsync(uri, CancellationToken.None));
 
         Assert.Contains("status code: 400", exception.Message, StringComparison.Ordinal);
+    }
+
+    [Theory]
+    [InlineData("", false)]
+    [InlineData("&noEcho=", false)]
+    [InlineData("&noEcho=false", false)]
+    [InlineData("&noEcho=TrUe", true)]
+    [InlineData("&noEcho=invalid&noEcho=true", true)]
+    public async Task RawGroupNoEchoExcludesOnlySender(string query, bool noEcho)
+    {
+        await using var application = await StartApplicationAsync();
+        using var receiver = await ConnectAsync(application, groups: ["room/你好"]);
+        using var sender = await ConnectAsync(application,
+            roles: ["webpubsub.sendToGroup"], groups: ["room/你好"],
+            query: "webpubsub_mode=invalid&webpubsub_mode=SENDTOGROUP&group=wrong&group=room%2F%E4%BD%A0%E5%A5%BD" + query);
+        await sender.SendAsync("hello"u8.ToArray(), WebSocketMessageType.Text, true, CancellationToken.None);
+        await sender.SendAsync("second"u8.ToArray(), WebSocketMessageType.Text, true, CancellationToken.None);
+        var buffer = new byte[64];
+        var received = await receiver.ReceiveAsync(buffer, CancellationToken.None).WaitAsync(TestTimeout);
+        Assert.Equal("hello", Encoding.UTF8.GetString(buffer, 0, received.Count));
+        var second = await receiver.ReceiveAsync(buffer, CancellationToken.None).WaitAsync(TestTimeout);
+        Assert.Equal("second", Encoding.UTF8.GetString(buffer, 0, second.Count));
+
+        // Processing the second message proves the first fan-out (including any echo) completed.
+        if (!noEcho)
+        {
+            foreach (var expected in new[] { "hello", "second" })
+            {
+                var echo = await sender.ReceiveAsync(buffer, CancellationToken.None).WaitAsync(TestTimeout);
+                Assert.Equal(expected, Encoding.UTF8.GetString(buffer, 0, echo.Count));
+            }
+        }
+        application.Services.GetRequiredService<ConnectionManager>().SendToAll(
+            Hub, new MessageData(MessageDataType.Text, "sentinel"u8.ToArray()));
+        var first = await sender.ReceiveAsync(buffer, CancellationToken.None).WaitAsync(TestTimeout);
+        Assert.Equal("sentinel", Encoding.UTF8.GetString(buffer, 0, first.Count));
+    }
+
+    [Fact]
+    public async Task JsonProtocolIgnoresValidRawMode()
+    {
+        await using var application = await StartApplicationAsync();
+        using var socket = await ConnectAsync(application,
+            query: "webpubsub_mode=sendToGroup&group=room&noEcho=true",
+            subprotocol: WebPubSubJsonV1PayloadProcessor.SubprotocolName);
+        using var connected = await ReceiveJsonAsync(socket);
+        await socket.SendAsync("{\"type\":\"ping\"}"u8.ToArray(), WebSocketMessageType.Text, true, CancellationToken.None);
+        using var pong = await ReceiveJsonAsync(socket);
+        Assert.Equal("pong", pong.RootElement.GetProperty("type").GetString());
     }
 
     [Fact]

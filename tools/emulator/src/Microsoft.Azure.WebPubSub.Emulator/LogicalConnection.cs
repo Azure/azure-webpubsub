@@ -41,7 +41,7 @@ internal sealed class LogicalConnection : IODataFilterModel
     public LogicalConnection(
         UpstreamConnectionContext upstreamContext,
         ClaimsPrincipal user,
-        string? rawSendToGroup,
+        SimpleWebSocketModeFeature? simpleWebSocketMode,
         ConnectionManager manager,
         EmulatorRuntimeOptions runtimeOptions,
         bool reliable = false,
@@ -49,7 +49,7 @@ internal sealed class LogicalConnection : IODataFilterModel
     {
         ConnectionId = upstreamContext.ConnectionId;
         Hub = upstreamContext.Hub;
-        RawSendToGroup = rawSendToGroup;
+        SimpleWebSocketMode = simpleWebSocketMode;
         IsReliable = reliable;
         Subprotocol = upstreamContext.Subprotocol;
         _manager = manager;
@@ -90,7 +90,7 @@ internal sealed class LogicalConnection : IODataFilterModel
 
     public string Hub { get; }
 
-    public string? RawSendToGroup { get; }
+    public SimpleWebSocketModeFeature? SimpleWebSocketMode { get; }
 
     public string? UserId { get; }
 

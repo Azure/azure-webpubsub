@@ -165,6 +165,20 @@ public class EmulatorApplicationTests
             StringComparison.Ordinal);
     }
 
+    [Theory]
+    [InlineData("None")]
+    [InlineData("ManagedIdentity")]
+    public async Task HandlerAuthConfigurationIsUnsupported(string type)
+    {
+        var builder = EmulatorApplication.CreateBuilder([
+            "--WebPubSub:Hubs:chat:EventHandlers:0:UrlTemplate=http://localhost/events",
+            $"--WebPubSub:Hubs:chat:EventHandlers:0:Auth:Type={type}"]);
+        builder.WebHost.UseTestServer();
+        await using var application = EmulatorApplication.Build(builder);
+        var exception = await Assert.ThrowsAsync<InvalidOperationException>(() => application.StartAsync());
+        Assert.Contains("Auth", exception.GetBaseException().Message, StringComparison.Ordinal);
+    }
+
     [Fact]
     public async Task ServiceHealthEndpoint_WithoutApiVersionFallsBackToLatest()
     {

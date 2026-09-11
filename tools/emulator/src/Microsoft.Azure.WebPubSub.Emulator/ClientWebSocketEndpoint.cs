@@ -94,7 +94,7 @@ internal sealed class ClientWebSocketEndpoint
             return;
         }
 
-        if (!TryGetRawSendToGroup(context, out var rawSendToGroup, out var error))
+        if (!TryGetSimpleWebSocketMode(context, out var simpleWebSocketMode, out var error))
         {
             context.Response.StatusCode = StatusCodes.Status400BadRequest;
             await context.Response.WriteAsync(error);
@@ -127,7 +127,7 @@ internal sealed class ClientWebSocketEndpoint
         var connection = _connections.Create(
             upstreamContext,
             user,
-            rawSendToGroup,
+            simpleWebSocketMode,
             WebPubSubJsonV1PayloadProcessor.IsReliableSubprotocol(selectedSubprotocol));
         var processor = _payloadProcessorFactory.Get(selectedSubprotocol);
 
@@ -233,35 +233,47 @@ internal sealed class ClientWebSocketEndpoint
         }
     }
 
-    private static bool TryGetRawSendToGroup(
+    private static bool TryGetSimpleWebSocketMode(
         HttpContext context,
-        out string? sendToGroup,
+        out SimpleWebSocketModeFeature? feature,
         out string error)
     {
-        sendToGroup = null;
+        feature = null;
         error = string.Empty;
-        if (!context.Request.Query.ContainsKey("webpubsub_mode"))
+        var mode = context.Request.Query["webpubsub_mode"].LastOrDefault();
+        if (string.IsNullOrEmpty(mode))
         {
             return true;
         }
 
-        if (!string.Equals(
-            context.Request.Query["webpubsub_mode"],
-            "sendToGroup",
-            StringComparison.OrdinalIgnoreCase))
+        if (string.Equals(mode, "sendEvent", StringComparison.OrdinalIgnoreCase))
         {
-            error = "Only raw sendToGroup mode is supported.";
+            feature = new(SimpleWebSocketMode.SendEvent, null, null);
+            return true;
+        }
+
+        if (!string.Equals(mode, "sendToGroup", StringComparison.OrdinalIgnoreCase))
+        {
+            error = "Invalid webpubsub_mode. Valid modes are sendToGroup and sendEvent.";
             return false;
         }
 
-        var group = context.Request.Query["group"].ToString();
+        var group = context.Request.Query["group"].LastOrDefault();
         if (!WebPubSubNameValidator.IsValidGroupName(group))
         {
             error = "The raw sendToGroup group name is invalid.";
             return false;
         }
 
-        sendToGroup = group;
+        var noEchoQuery = context.Request.Query["noEcho"].LastOrDefault();
+        var noEcho = false;
+        if (!string.IsNullOrEmpty(noEchoQuery) && !bool.TryParse(noEchoQuery, out noEcho))
+        {
+            error = "Invalid noEcho. Valid values are true and false.";
+            return false;
+        }
+
+        feature = new(SimpleWebSocketMode.SendToGroup, group, noEcho);
         return true;
     }
 
