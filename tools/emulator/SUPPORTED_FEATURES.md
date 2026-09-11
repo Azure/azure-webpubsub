@@ -19,6 +19,7 @@ local Azure Web PubSub development.
 | Outbound delivery | Uses a bounded, single-writer queue for each WebSocket connection. | ✅ |
 | HTTP lifecycle handlers | Intercepts `connect` before upgrade, applies user/role/group/subprotocol overrides, and sends `connected` and final `disconnected` CloudEvents. Retains connect cookies and connection state. See [configuration and limitations](README.md#http-lifecycle-notifications). | ✅ |
 | HTTP handler validation and retries | Validates endpoints with OPTIONS/GET and cached allowed-origin results; retries HTTP 408, 5xx, and eligible network failures with 1/3/5-second delays. | ✅ |
+| HTTP user-event handlers | Routes JSON/reliable JSON events by `EventPattern`, forwards typed payloads and metadata, handles response data/metadata/state, and reuses reliable replay and acknowledgements. See [user events](README.md#user-events). | ✅ |
 | REST connection operations | Authenticated connection presence, direct text, JSON, and binary sends, close, and single-connection group membership changes for GA API versions from `2021-10-01` through `2024-12-01`. | ✅ |
 | REST group operations | Authenticated group presence and text, JSON, or binary fan-out with excluded connection IDs and OData filters. | ✅ |
 | REST broadcast | Authenticated text, JSON, or binary fan-out with excluded connection IDs and OData filters. | ✅ |
@@ -49,13 +50,13 @@ runtime's new contract and decode the original user ID path segment exactly once
 
 The following areas are planned for follow-up changes:
 
-- HTTP user-event handlers, bearer authentication, and Key Vault URL references
+- HTTP handler bearer authentication and Key Vault URL references
 - Tunnel connections (`tunnel://` upstream URLs)
 - Event Hubs listeners
 - Protobuf subprotocols
 - Client message streaming
 - Production Microsoft Entra ID validation
 
-Client events require a response-capable upstream handler. Until user-event handlers are implemented, JSON
+Client events require a matching response-capable upstream handler. Without one, JSON
 events with an `ackId` receive an `InternalServerError` acknowledgement; events without an
 `ackId` are logged without closing the client connection. Raw `sendEvent` mode is not available.

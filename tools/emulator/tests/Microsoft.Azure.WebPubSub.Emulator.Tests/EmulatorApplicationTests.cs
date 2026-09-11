@@ -43,6 +43,53 @@ public class EmulatorApplicationTests
         Assert.Equal("https://handler/tenant%2Fchat/message%20sent/{unknown}?event=message%20sent", uri.OriginalString);
     }
 
+    [Theory]
+    [InlineData("room\\")]
+    [InlineData("room\\x")]
+    [InlineData("room\\x,*")]
+    public async Task InvalidEventPatternIsRejectedAtStartup(string pattern)
+    {
+        var builder = EmulatorApplication.CreateBuilder([
+            "--WebPubSub:Hubs:chat:EventHandlers:0:UrlTemplate=https://handler/events",
+            $"--WebPubSub:Hubs:chat:EventHandlers:0:EventPattern={pattern}"]);
+        builder.WebHost.UseTestServer();
+        await using var app = EmulatorApplication.Build(builder);
+        var error = await Assert.ThrowsAsync<OptionsValidationException>(() => app.StartAsync());
+        Assert.Contains("EventPattern", error.Message);
+    }
+
+    [Theory]
+    [InlineData(@"room\*", "room*", false)]
+    [InlineData(@"room\*", @"room\*", true)]
+    [InlineData(@"room\?", "room?", false)]
+    [InlineData(@"room\?", @"room\?", true)]
+    [InlineData(@"room\\", @"room\", false)]
+    [InlineData(@"room\\", @"room\\", true)]
+    [InlineData(@"room\*?", "room*a", true)]
+    [InlineData(@"room\?*", "room?abc", true)]
+    [InlineData(@"room\\*", @"room\abc", true)]
+    [InlineData(@"*,room\x", "any.event", true)]
+    public void EventPatternPreservesRuntimeLiteralAndWildcardPaths(string pattern, string input, bool expected)
+    {
+        Assert.Equal(expected, new EventHandlerOptions { EventPattern = pattern }.MatchesUserEvent(input));
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task EventPatternsDoNotInheritPermissionLengthLimit(bool wildcard)
+    {
+        var pattern = new string('a', 1025) + (wildcard ? "*" : "");
+        Assert.False(WildcardPattern.TryCreate(pattern, out _)); // Existing permission callers retain their limit.
+        Assert.True(new EventHandlerOptions { EventPattern = pattern }.MatchesUserEvent(new string('a', wildcard ? 1026 : 1025)));
+        var builder = EmulatorApplication.CreateBuilder([
+            "--WebPubSub:Hubs:chat:EventHandlers:0:UrlTemplate=https://handler/events",
+            $"--WebPubSub:Hubs:chat:EventHandlers:0:EventPattern={pattern},*,ignored\\x"]);
+        builder.WebHost.UseTestServer();
+        await using var app = EmulatorApplication.Build(builder);
+        await app.StartAsync();
+    }
+
     [Fact]
     public async Task EffectiveEndpointComesFromBoundAddress()
     {

@@ -126,7 +126,7 @@ dotnet run --project tools\emulator\src\Microsoft.Azure.WebPubSub.Emulator
 
 ## HTTP lifecycle notifications
 
-Configure per-hub `connect`, `connected`, and `disconnected` handlers through ASP.NET Core configuration:
+Configure per-hub lifecycle and user-event handlers through ASP.NET Core configuration:
 
 ```json
 {
@@ -135,7 +135,8 @@ Configure per-hub `connect`, `connected`, and `disconnected` handlers through AS
       "chat": {
         "EventHandlers": [{
           "UrlTemplate": "http://localhost:7071/events/{hub}/{event}",
-          "SystemEvents": ["connect", "connected", "disconnected"]
+          "SystemEvents": ["connect", "connected", "disconnected"],
+          "EventPattern": "*"
         }]
       }
     }
@@ -151,7 +152,7 @@ are logged without rejecting the WebSocket. Reliable reconnects do not produce a
 notification; disconnected is sent only on final close or recovery expiration.
 
 The optional `connect` handler runs after token validation and before the WebSocket upgrade or
-connection activation. Its event ID is `0`; connected and disconnected start at `1` and `2`.
+connection activation. Its event ID is `0`; later lifecycle and user events share increasing IDs starting at `1`.
 The JSON request contains `claims`, `query`, `headers` (values are arrays), `subprotocols`, and
 `clientCertificates` (empty; client-certificate authentication is not supported). Client
 `access_token` query parameters, `Authorization`, and `X-ASRS-Internal-*` headers are excluded
@@ -172,7 +173,7 @@ even when the initial protocol offer includes JSON. Successful connect cookies a
 `ce-connectionState` (including an empty value) are retained for later notifications. Reliable
 recovery reuses the original connection context and does not invoke connect again.
 
-Before sending connect events or notifications, the emulator validates the handler URL with `{event}` set to
+Before sending any handler event, the emulator validates the handler URL with `{event}` set to
 `validate`. The endpoint must answer OPTIONS (or GET when OPTIONS returns 404) with a 2xx status
 and `WebHook-Allowed-Origin` containing `*` or the request's `WebHook-Request-Origin` host.
 Origin matching is case-insensitive; values are matched as returned by the HTTP header parser,
@@ -184,13 +185,43 @@ later requests use the previous result while an expired entry refreshes. Success
 one minute. Failed validation retries on subsequent use after 1, 2, 4, 8, 16, 32, then 60 seconds
 (capped at one minute). Restart the emulator after changing handler configuration to clear the cache.
 
-Validation, connect, and notification requests retry HTTP 408, 5xx, and eligible `HttpRequestException`
+Validation and handler requests retry HTTP 408, 5xx, and eligible `HttpRequestException`
 failures after 1, 3, and 5 seconds (at most four attempts). HTTP 429, other 4xx responses,
 cancellation/timeouts, and the non-ASCII-header exception are not retried. Retries reuse the event
 identity and body, so handlers should tolerate duplicates. The HTTP client's default
 100-second deadline covers sending through response headers, including retry delays.
 
-User-event responses, bearer authentication, Key Vault URL references, and Event Hubs listeners
+### User events
+
+JSON and reliable JSON `event` messages use `EventPattern`, independently of `SystemEvents`.
+Patterns are comma-separated and case-insensitive. A standalone `*` matches all events, including
+dotted names. Within a pattern, `*` matches zero or more non-dot characters, `?` matches one
+non-dot character, and `**` crosses dots. Event patterns do not inherit the 1024-character
+permission-pattern limit. The tokenizer accepts `\*`, `\?`, and `\\` escapes. As in the runtime,
+patterns containing no unescaped wildcard use the original pattern string for literal comparison:
+`room\*` matches `room\*`, not `room*`; `room\*?` matches `room*a` through the wildcard matcher.
+A standalone `*` stops parsing the remaining list entries; invalid escapes before it are rejected
+at startup. The first matching handler wins; there is no `_default` hub fallback.
+
+Requests carry `azure.webpubsub.user.<event>` CloudEvents, the original text/JSON/binary bytes,
+and per-message `x-webpubsub-metadata-*` headers. They reuse connection identity, signature,
+cookies, validation, and retries. A successful HTTP response may send a server message before
+the acknowledgement. Nonempty response bodies use `text/plain`, `application/json`, or
+`application/octet-stream`; absent Content-Type means binary. Empty bodies use text regardless
+of Content-Type and produce a message only when response metadata is present.
+
+Response metadata keys are lowercased; the last header value and its last comma-separated value
+(trimmed) win. Metadata belongs to that response, not the connection. Successful responses may
+update `ce-connectionState`, including an empty value; absent state preserves the previous value.
+Replies use the existing reliable buffer and are replayed after recovery without re-dispatching
+the event. Successful `ackId` values are cached; duplicates do not invoke the handler again.
+
+Missing handlers, non-2xx responses, unsupported nonempty response Content-Type, and response
+bodies exceeding 16 MiB yield a generic `InternalServerError` acknowledgement when `ackId` is
+present. Without `ackId`, errors are logged without closing the connection. Error response bodies
+and metadata are not forwarded for these `event` messages. Failed acknowledgements are not cached.
+
+Raw `sendEvent`/`noEcho`, protobuf responses, bearer authentication, Key Vault URL references, and Event Hubs listeners
 are not supported yet. Unsupported handler configuration is rejected at startup.
 
 ## Local server SDK authentication
