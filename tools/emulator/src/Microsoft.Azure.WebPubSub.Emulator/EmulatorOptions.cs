@@ -47,8 +47,10 @@ internal sealed class EventHandlerOptions
     {
         var pattern = value.Trim();
         // Unlike a wildcard within a pattern, a standalone * also matches dots.
-        return pattern == "*" || string.Equals(pattern, eventName, StringComparison.OrdinalIgnoreCase) ||
-            WildcardPattern.TryCreate(pattern, out var matcher) && matcher!.Matches(eventName, ignoreCase: true);
+        return pattern == "*" || WildcardPattern.TryCreate(pattern, out var matcher, maximumLength: null) &&
+            // EventHandlerTemplateItem retains the original string for its literal fast path.
+            (matcher!.IsLiteral ? string.Equals(pattern, eventName, StringComparison.OrdinalIgnoreCase) :
+                matcher.Matches(eventName, ignoreCase: true));
     }) == true;
 }
 

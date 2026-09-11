@@ -13,13 +13,16 @@ internal sealed class WildcardPattern
         _tokens = tokens;
     }
 
+    public bool IsLiteral => Array.TrueForAll(_tokens, token => token.Type == PatternTokenType.Literal);
+
     public static bool TryCreate(
         string pattern,
         out WildcardPattern? result,
-        int? maximumAsteriskCount = null)
+        int? maximumAsteriskCount = null,
+        int? maximumLength = MaxLength)
     {
         result = null;
-        if (string.IsNullOrEmpty(pattern) || pattern.Length > MaxLength)
+        if (string.IsNullOrEmpty(pattern) || pattern.Length > maximumLength)
         {
             return false;
         }

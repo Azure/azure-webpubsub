@@ -35,9 +35,10 @@ internal static class EmulatorApplication
                     string.Equals(name, "disconnected", StringComparison.OrdinalIgnoreCase)))),
                 "Event handlers require an HTTP(S) URL without Key Vault references; supported system events are connect/connected/disconnected.")
             .Validate(options => options.Hubs.Values.All(hub => hub.EventHandlers.All(handler =>
-                handler.EventPattern?.Split(',').All(pattern => string.IsNullOrWhiteSpace(pattern) ||
-                    WildcardPattern.TryCreate(pattern.Trim(), out _)) != false)),
-                "EventPattern must contain comma-separated wildcard patterns of at most 1024 characters with valid escapes.")
+                handler.EventPattern?.Split(',').TakeWhile(pattern => pattern.Trim() != "*")
+                    .All(pattern => string.IsNullOrWhiteSpace(pattern) ||
+                        WildcardPattern.TryCreate(pattern.Trim(), out _, maximumLength: null)) != false)),
+                "EventPattern must contain comma-separated wildcard patterns with valid escapes before any standalone *.")
             .ValidateOnStart();
         builder.Services.AddSingleton(runtimeOptions ?? new EmulatorRuntimeOptions());
         builder.Services.AddSingleton<WebPubSubTokenService>();

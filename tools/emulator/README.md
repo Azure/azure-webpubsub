@@ -196,9 +196,12 @@ identity and body, so handlers should tolerate duplicates. The HTTP client's def
 JSON and reliable JSON `event` messages use `EventPattern`, independently of `SystemEvents`.
 Patterns are comma-separated and case-insensitive. A standalone `*` matches all events, including
 dotted names. Within a pattern, `*` matches zero or more non-dot characters, `?` matches one
-non-dot character, and `**` crosses dots. The existing wildcard parser limits each pattern to
-1024 characters and accepts `\*`, `\?`, and `\\` escapes. The first matching handler wins;
-there is no `_default` hub fallback. Invalid patterns are rejected at startup.
+non-dot character, and `**` crosses dots. Event patterns do not inherit the 1024-character
+permission-pattern limit. The tokenizer accepts `\*`, `\?`, and `\\` escapes. As in the runtime,
+patterns containing no unescaped wildcard use the original pattern string for literal comparison:
+`room\*` matches `room\*`, not `room*`; `room\*?` matches `room*a` through the wildcard matcher.
+A standalone `*` stops parsing the remaining list entries; invalid escapes before it are rejected
+at startup. The first matching handler wins; there is no `_default` hub fallback.
 
 Requests carry `azure.webpubsub.user.<event>` CloudEvents, the original text/JSON/binary bytes,
 and per-message `x-webpubsub-metadata-*` headers. They reuse connection identity, signature,
