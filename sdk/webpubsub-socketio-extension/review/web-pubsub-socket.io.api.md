@@ -44,6 +44,7 @@ export interface NegotiateResponse {
     endpoint: string;
     path: string;
     token: string;
+    url: string;
 }
 
 // @public
