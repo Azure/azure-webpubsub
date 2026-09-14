@@ -13,6 +13,7 @@ using System.Text.Json;
 using System.Threading;
 using System.Threading.Channels;
 using System.Threading.Tasks;
+using Azure.Messaging.EventHubs.Producer;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Configuration;
@@ -26,6 +27,44 @@ namespace Microsoft.Azure.WebPubSub.Emulator.Tests;
 public class UpstreamUserEventTests
 {
     private static readonly TimeSpan Timeout = TimeSpan.FromSeconds(15);
+
+    [Theory]
+    [InlineData(false, false)]
+    [InlineData(true, false)]
+    [InlineData(false, true)]
+    public async Task ListenerPrecedesHttpHandlerAndDoesNotControlItsResponse(bool failListener, bool failHandler)
+    {
+        var producer = new EventHubNotifierTests.RecordingProducer
+        {
+            OnSend = _ => failListener ? Task.FromException(new InvalidOperationException("test failure")) : Task.CompletedTask,
+        };
+        await using var fixture = await Fixture.StartAsync(context =>
+        {
+            Assert.True(producer.Events.Reader.TryPeek(out _));
+            if (failHandler) { context.Response.StatusCode = 400; return Task.CompletedTask; }
+            context.Response.ContentType = "text/plain";
+            context.Response.Headers["ce-connectionState"] = "after-http";
+            return context.Response.WriteAsync("reply");
+        }, extraSettings: new Dictionary<string, string?>
+        {
+            ["WebPubSub:Hubs:chat:EventListeners:0:EventHubEndpoint:FullyQualifiedNamespace"] = "local.test",
+            ["WebPubSub:Hubs:chat:EventListeners:0:EventHubEndpoint:EventHubName"] = "events",
+            ["WebPubSub:Hubs:chat:EventListeners:0:EventNameFilter:UserEventPattern"] = "message",
+        }, producer: producer);
+        using var socket = await fixture.ConnectAsync();
+        await SendAsync(socket, "message");
+        if (!failHandler)
+        {
+            using var reply = await ReceiveAsync(socket);
+            Assert.Equal("reply", reply.RootElement.GetProperty("data").GetString());
+        }
+        using var ack = await ReceiveAsync(socket);
+        Assert.Equal(!failHandler, ack.RootElement.GetProperty("success").GetBoolean());
+        var listener = await producer.ReadAsync();
+        var handler = await fixture.ReadAsync();
+        Assert.Equal(handler.Headers["ce-id"], listener.Event.Properties["cloudEvents:id"]);
+        Assert.Equal("initial", listener.Event.Properties["cloudEvents:connectionstate"]);
+    }
 
     [Theory]
     [InlineData("", false, "text/plain", null)]
@@ -423,7 +462,8 @@ public class UpstreamUserEventTests
         }
 
         public static async Task<Fixture> StartAsync(Func<HttpContext, Task> onEvent, string? pattern = "*",
-            Dictionary<string, string?>? extraSettings = null, bool allowOrigin = true, string? rawSubprotocol = null)
+            Dictionary<string, string?>? extraSettings = null, bool allowOrigin = true, string? rawSubprotocol = null,
+            EventHubProducerClient? producer = null)
         {
             var events = Channel.CreateUnbounded<Received>();
             var builder = WebApplication.CreateBuilder(["--urls=http://127.0.0.1:0"]);
@@ -460,6 +500,7 @@ public class UpstreamUserEventTests
                 ["WebPubSub:Hubs:chat:EventHandlers:0:EventPattern"] = pattern,
             });
             if (extraSettings is not null) emulator.Configuration.AddInMemoryCollection(extraSettings);
+            if (producer is not null) emulator.Services.AddSingleton<Func<EventHubEndpointOptions, EventHubProducerClient>>(_ => _ => producer);
             var app = EmulatorApplication.Build(emulator);
             await app.StartAsync();
             return new Fixture(upstream, app, events);

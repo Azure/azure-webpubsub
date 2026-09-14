@@ -145,7 +145,7 @@ Configure per-hub lifecycle and user-event handlers through ASP.NET Core configu
 ```
 
 Hub names and event names match case-insensitively; the first matching handler is used.
-There is no `_default` fallback. URL parameters are escaped. Notifications use binary-mode
+URL parameters are escaped. Notifications use binary-mode
 CloudEvents with JSON bodies (`{}` for connected, `{"reason":"..."}` for disconnected),
 an access-key signature, and cookies isolated to each logical connection. Notification failures
 are logged without rejecting the WebSocket. Reliable reconnects do not produce another connected
@@ -201,7 +201,7 @@ permission-pattern limit. The tokenizer accepts `\*`, `\?`, and `\\` escapes. As
 patterns containing no unescaped wildcard use the original pattern string for literal comparison:
 `room\*` matches `room\*`, not `room*`; `room\*?` matches `room*a` through the wildcard matcher.
 A standalone `*` stops parsing the remaining list entries; invalid escapes before it are rejected
-at startup. The first matching handler wins; there is no `_default` hub fallback.
+at startup. The first matching handler wins.
 
 Requests carry `azure.webpubsub.user.<event>` CloudEvents, the original text/JSON/binary bytes,
 and per-message `x-webpubsub-metadata-*` headers. They reuse connection identity, signature,
@@ -216,7 +216,7 @@ update `ce-connectionState`, including an empty value; absent state preserves th
 Replies use the existing reliable buffer and are replayed after recovery without re-dispatching
 the event. Successful `ackId` values are cached; duplicates do not invoke the handler again.
 
-Missing handlers, non-2xx responses, unsupported nonempty response Content-Type, and response
+Missing both a handler and a matching listener, non-2xx handler responses, unsupported nonempty response Content-Type, and response
 bodies exceeding 16 MiB yield a generic `InternalServerError` acknowledgement when `ackId` is
 present. Without `ackId`, errors are logged without closing the connection. Error response bodies
 and metadata are not forwarded for these `event` messages. Failed acknowledgements are not cached.
@@ -225,11 +225,11 @@ and metadata are not forwarded for these `event` messages. Failed acknowledgemen
 
 Raw clients (including custom subprotocols selected by a connect handler) send text/binary frames
 as the user event `message`. This is the default when `webpubsub_mode` is absent or empty, or when
-it is `sendEvent`. Configure an `EventPattern` that matches `message`; group-send roles are not
+it is `sendEvent`. Configure a handler `EventPattern` or listener `UserEventPattern` that matches `message`; group-send roles are not
 required for user events. Replies contain only the response bytes: text/JSON use text frames and
 binary uses binary frames. There is no JSON envelope, acknowledgement, or metadata encoding.
 An empty response with metadata produces an empty text frame; without metadata it sends no frame.
-Missing handlers and failed handler calls close the raw connection with status 1011 and a generic
+Missing both a handler and a matching listener, or failed handler calls, close the raw connection with status 1011 and a generic
 reason; handler error details are not forwarded. Raw connections do not support reliable recovery.
 
 `webpubsub_mode=sendToGroup&group=room&noEcho=true` publishes raw frames to the named group using
@@ -247,8 +247,64 @@ for all initial connections but only affect the raw processor, not JSON/reliable
 Client access tokens are never reused as handler credentials. This does not change access-key
 client/REST authentication or the separate inbound REST compatibility option below.
 
-Protobuf responses, Key Vault URL references, and Event Hubs listeners are also unsupported.
+Protobuf responses and Key Vault URL references are also unsupported.
 Unsupported handler configuration is rejected at startup.
+
+## Event Hubs listeners
+
+Listeners send events **from the Web PubSub emulator to Event Hubs** using the Azure Event Hubs SDK.
+Configure `EventListeners` alongside `EventHandlers` within `WebPubSub:Hubs:<hub>`:
+
+```json
+"EventListeners": [{
+  "EventNameFilter": {
+    "SystemEvents": ["connected", "disconnected"],
+    "UserEventPattern": "message, join"
+  },
+  "EventHubEndpoint": {
+    "FullyQualifiedNamespace": "<namespace>.servicebus.windows.net",
+    "EventHubName": "<event-hub-name>"
+  }
+}]
+```
+
+For Azure, the emulator uses `DefaultAzureCredential` for the **host's identity**, which needs
+**Azure Event Hubs Data Sender** on the target, and connects over AMQP WebSockets. It does not
+impersonate a Web PubSub resource's managed identity or reproduce trusted-service firewall bypass.
+This credential is only for Event Hubs; HTTP handler `Auth` remains unsupported.
+
+For the [local Event Hubs emulator](https://learn.microsoft.com/azure/event-hubs/test-locally-with-event-hub-emulator),
+omit `FullyQualifiedNamespace` and set `EventHubEndpoint:ConnectionString` through configuration,
+for example the environment variable
+`WebPubSub__Hubs__chat__EventListeners__0__EventHubEndpoint__ConnectionString`.
+It must contain `UseDevelopmentEmulator=true`; cloud SAS connection strings are not supported.
+Keep `EventHubName` set and do not commit credentials. Running the separate Event Hubs emulator
+requires its Docker prerequisites and your acceptance of its license terms.
+
+- All matching listeners receive the event, including duplicate settings.
+  `UserEventPattern` is a case-insensitive, comma-separated list of trimmed **literal
+  names**, or a standalone `*`. Unlike HTTP `EventPattern`, `room.*` is not a wildcard pattern.
+- Only `connected` and `disconnected` system events are eligible; `connect` and unknown system
+  names are ignored. Reliable recovery does not emit another connected event.
+- Listeners are attempted before HTTP handlers and share their event ID. Listener-only events
+  need no response handler: JSON acknowledgements succeed and raw connections remain open.
+  Listeners cannot reply or update state. If an HTTP handler is also configured, its failures
+  still fail the event. Cached successful acknowledgements suppress duplicate dispatch.
+- Event Hubs messages use `cloudEvents:*` AMQP properties, `MessageId=connectionId/eventId`, and
+  `PartitionKey=connectionId`. Bodies preserve user payload bytes; connected uses `{}` and
+  disconnected uses `{"reason":"..."}`. Ordinary message metadata, signatures, and cookies are
+  not forwarded. Empty connection state is omitted. Partition affinity is not an ordering guarantee
+  between concurrently dispatched lifecycle and user events.
+- **Acknowledgement success is not proof of broker delivery.** As in the runtime, a matched
+  listener counts even if delivery fails; failures are logged. The SDK handles transport retries;
+  there is no emulator dead-letter store or durable replay. Shutdown allows 10 seconds to drain.
+
+The opt-in `EventHubLiveTests` test sends raw WebSocket events through the actual producer and
+reads them from a broker. Set `AWPS_TEST_EVENTHUB_NAME` plus either `AWPS_TEST_EVENTHUB_NAMESPACE`
+or `AWPS_TEST_EVENTHUB_CONNECTION_STRING` (local emulator only) before running the test suite.
+Use a dedicated test Event Hub with a `$Default` consumer group; Azure testing also needs
+**Azure Event Hubs Data Receiver**. Without those settings the test is explicitly skipped;
+SDK test doubles in the regular suite do not establish real-broker interoperability.
 
 ## Local server SDK authentication
 

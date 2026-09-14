@@ -11,7 +11,7 @@ using Microsoft.Extensions.Options;
 namespace Microsoft.Azure.WebPubSub.Emulator;
 
 internal sealed class UpstreamEventDispatcher(
-    IOptions<EmulatorOptions> options, HttpUpstreamTrigger trigger, ILogger<UpstreamEventDispatcher> logger)
+    IOptions<EmulatorOptions> options, HttpUpstreamTrigger trigger, EventHubNotifier notifier, ILogger<UpstreamEventDispatcher> logger)
 {
     private const string MetadataHeaderPrefix = "x-webpubsub-metadata-";
 
@@ -19,11 +19,13 @@ internal sealed class UpstreamEventDispatcher(
         UpstreamConnectionContext connection, ClientMessagePayload message, CancellationToken cancellationToken)
     {
         var id = connection.GetNextEventId();
+        var hasListener = await NotifyListenersAsync(connection, message.EventName, id, message.Data, userEvent: true);
         var handler = options.Value.Hubs.TryGetValue(connection.Hub, out var settings)
             ? settings.EventHandlers.FirstOrDefault(item => item.MatchesUserEvent(message.EventName))
             : null;
         if (handler is null)
         {
+            if (hasListener) return new();
             throw new InvalidOperationException("No event handler is configured for this user event.");
         }
 
@@ -109,6 +111,7 @@ internal sealed class UpstreamEventDispatcher(
         UpstreamConnectionContext connection, string eventName, byte[] body)
     {
         var id = connection.GetNextEventId();
+        await NotifyListenersAsync(connection, eventName, id, new MessageData(MessageDataType.Json, body), userEvent: false);
         var handler = GetHandler(connection.Hub, eventName);
         if (handler is null)
         {
@@ -129,6 +132,17 @@ internal sealed class UpstreamEventDispatcher(
         {
             logger.LogWarning(exception, "Dispatching {EventName} for {ConnectionId} failed.",
                 eventName, connection.ConnectionId);
+        }
+    }
+
+    private async Task<bool> NotifyListenersAsync(UpstreamConnectionContext connection, string eventName,
+        int id, MessageData data, bool userEvent)
+    {
+        try { return await notifier.TryNotifyAsync(connection, eventName, id, data, userEvent); }
+        catch (Exception exception)
+        {
+            logger.LogWarning("Notifying listeners failed for {ConnectionId} ({ErrorType}).", connection.ConnectionId, exception.GetType().Name);
+            return true;
         }
     }
 
