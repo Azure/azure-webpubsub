@@ -28,6 +28,114 @@ public class UpstreamUserEventTests
     private static readonly TimeSpan Timeout = TimeSpan.FromSeconds(15);
 
     [Theory]
+    [InlineData("", false, "text/plain", null)]
+    [InlineData("webpubsub_mode=", false, "application/json", null)]
+    [InlineData("webpubsub_mode=sendEvent", true, "application/octet-stream", null)]
+    [InlineData("webpubsub_mode=invalid&webpubsub_mode=SENDEVENT&group=&noEcho=invalid", false, null, null)]
+    [InlineData("webpubsub_mode=sendEvent", false, "text/plain", "custom.protocol")]
+    public async Task RawEventsReuseHandlerAndReturnUnwrappedFrames(string query, bool binary, string? responseType, string? protocol)
+    {
+        var payload = binary ? new byte[] { 0, 255, 1 } : "\"你好\""u8.ToArray();
+        await using var fixture = await Fixture.StartAsync(async context =>
+        {
+            context.Response.ContentType = responseType;
+            context.Response.Headers["ce-connectionState"] = "updated";
+            context.Response.Headers["x-webpubsub-metadata-trace"] = "not-a-raw-envelope";
+            context.Response.Cookies.Append("affinity", "raw");
+            await context.Response.Body.WriteAsync(payload);
+        }, pattern: "message", rawSubprotocol: protocol);
+        using var socket = await fixture.ConnectAsync(raw: true, query: query, protocol: protocol);
+        Assert.Equal(protocol, socket.SubProtocol);
+        for (var i = 0; i < 2; i++)
+        {
+            await socket.SendAsync(payload, binary ? WebSocketMessageType.Binary : WebSocketMessageType.Text, true, CancellationToken.None);
+            var buffer = new byte[256];
+            var result = await socket.ReceiveAsync(buffer, CancellationToken.None).WaitAsync(Timeout);
+            Assert.True(result.EndOfMessage);
+            Assert.Equal(responseType is null or "application/octet-stream" ? WebSocketMessageType.Binary : WebSocketMessageType.Text, result.MessageType);
+            Assert.Equal(payload, buffer[..result.Count]);
+            var received = await fixture.ReadAsync();
+            Assert.Equal(payload, received.Body);
+            Assert.Equal("azure.webpubsub.user.message", received.Headers["ce-type"]);
+            Assert.Equal(binary ? "application/octet-stream" : "text/plain; charset=utf-8", received.Headers["Content-Type"]);
+            Assert.Equal((i + 2).ToString(), received.Headers["ce-id"]);
+            Assert.Equal(i == 0 ? "initial" : "updated", received.Headers["ce-connectionState"]);
+            Assert.False(received.Headers.ContainsKey("Authorization"));
+            if (i == 1) Assert.Equal("affinity=raw", received.Headers["Cookie"]);
+        }
+        await socket.CloseAsync(WebSocketCloseStatus.NormalClosure, "done", CancellationToken.None).WaitAsync(Timeout);
+    }
+
+    [Theory]
+    [InlineData(null, 200, "text/plain")]
+    [InlineData("message", 400, "text/plain")]
+    [InlineData("message", 200, "unsupported/type")]
+    public async Task RawEventFailureClosesWithoutExposingHandlerDetails(string? pattern, int status, string type)
+    {
+        await using var fixture = await Fixture.StartAsync(async context =>
+        {
+            context.Response.StatusCode = status;
+            context.Response.ContentType = type;
+            await context.Response.WriteAsync("private handler details");
+        }, pattern);
+        using var socket = await fixture.ConnectAsync(raw: true);
+        await socket.SendAsync("hello"u8.ToArray(), WebSocketMessageType.Text, true, CancellationToken.None);
+        var result = await socket.ReceiveAsync(new byte[256], CancellationToken.None).WaitAsync(Timeout);
+        Assert.Equal(WebSocketMessageType.Close, result.MessageType);
+        Assert.Equal(WebSocketCloseStatus.InternalServerError, result.CloseStatus);
+        Assert.Equal("Internal server error", result.CloseStatusDescription);
+        await socket.CloseOutputAsync(WebSocketCloseStatus.NormalClosure, "", CancellationToken.None);
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task RawEmptyResponseOnlySendsFrameWhenMetadataIsPresent(bool metadata)
+    {
+        var count = 0;
+        await using var fixture = await Fixture.StartAsync(async context =>
+        {
+            if (++count == 1)
+            {
+                if (metadata) context.Response.Headers["x-webpubsub-metadata-trace"] = "value";
+                return;
+            }
+            context.Response.ContentType = "text/plain";
+            await context.Response.WriteAsync("next");
+        });
+        using var socket = await fixture.ConnectAsync(raw: true);
+        await socket.SendAsync("first"u8.ToArray(), WebSocketMessageType.Text, true, CancellationToken.None);
+        await socket.SendAsync("second"u8.ToArray(), WebSocketMessageType.Text, true, CancellationToken.None);
+        var buffer = new byte[256];
+        if (metadata)
+        {
+            var empty = await socket.ReceiveAsync(buffer, CancellationToken.None).WaitAsync(Timeout);
+            Assert.Equal(WebSocketMessageType.Text, empty.MessageType);
+            Assert.Equal(0, empty.Count);
+            Assert.True(empty.EndOfMessage);
+        }
+        var next = await socket.ReceiveAsync(buffer, CancellationToken.None).WaitAsync(Timeout);
+        Assert.Equal("next", Encoding.UTF8.GetString(buffer, 0, next.Count));
+        await socket.CloseAsync(WebSocketCloseStatus.NormalClosure, "done", CancellationToken.None).WaitAsync(Timeout);
+    }
+
+    [Fact]
+    public async Task RawDisconnectCancelsPendingHandler()
+    {
+        var aborted = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        await using var fixture = await Fixture.StartAsync(async context =>
+        {
+            using var registration = context.RequestAborted.Register(() => aborted.TrySetResult());
+            await aborted.Task.WaitAsync(Timeout);
+        });
+        using var socket = await fixture.ConnectAsync(raw: true);
+        await socket.SendAsync("hello"u8.ToArray(), WebSocketMessageType.Text, true, CancellationToken.None);
+        await fixture.ReadAsync();
+        socket.Abort();
+        await aborted.Task.WaitAsync(Timeout);
+    }
+
+    [Theory]
     [InlineData("*", "room.message", true)]
     [InlineData("join, ROOM.*", "room.message", true)]
     [InlineData("room.*", "room.message.more", false)]
@@ -292,15 +400,16 @@ public class UpstreamUserEventTests
         public Uri RecoveryUri(string connectionId) => new(app.Urls.Single().Replace("http:", "ws:") +
             $"/client/hubs/chat?awps_connection_id={connectionId}&awps_reconnection_token={Uri.EscapeDataString(_reconnectionToken!)}");
 
-        public async Task<ClientWebSocket> ConnectAsync(bool reliable = false)
+        public async Task<ClientWebSocket> ConnectAsync(bool reliable = false, bool raw = false, string query = "", string? protocol = null)
         {
             var endpoint = app.Urls.Single() + "/client/hubs/chat";
             var token = new JwtSecurityTokenHandler().WriteToken(new JwtSecurityToken(
                 audience: endpoint, expires: DateTime.UtcNow.AddHours(1), signingCredentials: new SigningCredentials(
                     new SymmetricSecurityKey(Encoding.UTF8.GetBytes(EmulatorOptions.DefaultAccessKey)), SecurityAlgorithms.HmacSha256)));
             var socket = new ClientWebSocket();
-            socket.Options.AddSubProtocol(reliable ? "json.reliable.webpubsub.azure.v1" : "json.webpubsub.azure.v1");
-            await socket.ConnectAsync(new Uri(endpoint.Replace("http:", "ws:") + "?access_token=" + token), CancellationToken.None).WaitAsync(Timeout);
+            if (!raw || protocol is not null) socket.Options.AddSubProtocol(protocol ?? (reliable ? "json.reliable.webpubsub.azure.v1" : "json.webpubsub.azure.v1"));
+            await socket.ConnectAsync(new Uri(endpoint.Replace("http:", "ws:") + "?access_token=" + token + "&" + query), CancellationToken.None).WaitAsync(Timeout);
+            if (raw) return socket;
             using var connected = await ReceiveAsync(socket);
             Assert.Equal("connected", connected.RootElement.GetProperty("event").GetString());
             if (reliable) _reconnectionToken = connected.RootElement.GetProperty("reconnectionToken").GetString();
@@ -314,7 +423,7 @@ public class UpstreamUserEventTests
         }
 
         public static async Task<Fixture> StartAsync(Func<HttpContext, Task> onEvent, string? pattern = "*",
-            Dictionary<string, string?>? extraSettings = null, bool allowOrigin = true)
+            Dictionary<string, string?>? extraSettings = null, bool allowOrigin = true, string? rawSubprotocol = null)
         {
             var events = Channel.CreateUnbounded<Received>();
             var builder = WebApplication.CreateBuilder(["--urls=http://127.0.0.1:0"]);
@@ -330,6 +439,8 @@ public class UpstreamUserEventTests
                 if (context.Request.Headers["ce-type"].ToString().StartsWith("azure.webpubsub.sys.", StringComparison.Ordinal))
                 {
                     context.Response.Headers["ce-connectionState"] = "initial";
+                    if (rawSubprotocol is not null && context.Request.Headers["ce-type"] == "azure.webpubsub.sys.connect")
+                        await context.Response.WriteAsJsonAsync(new { subprotocol = rawSubprotocol });
                     return;
                 }
                 using var body = new MemoryStream();

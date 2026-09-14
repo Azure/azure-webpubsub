@@ -32,21 +32,21 @@ internal sealed class ConnectionManager
         string hub,
         ClaimsPrincipal user,
         string host,
-        string? rawSendToGroup = null,
+        SimpleWebSocketModeFeature? simpleWebSocketMode = null,
         bool reliable = false,
         string? subprotocol = null)
     {
         var context = UpstreamConnectionContext.Create(connectionId, hub, user, subprotocol, host);
-        return Create(context, user, rawSendToGroup, reliable);
+        return Create(context, user, simpleWebSocketMode, reliable);
     }
 
     public LogicalConnection Create(
-        UpstreamConnectionContext context, ClaimsPrincipal user, string? rawSendToGroup = null, bool reliable = false)
+        UpstreamConnectionContext context, ClaimsPrincipal user, SimpleWebSocketModeFeature? simpleWebSocketMode = null, bool reliable = false)
     {
         return new LogicalConnection(
             context,
             user,
-            rawSendToGroup,
+            simpleWebSocketMode,
             this,
             _runtimeOptions,
             reliable,

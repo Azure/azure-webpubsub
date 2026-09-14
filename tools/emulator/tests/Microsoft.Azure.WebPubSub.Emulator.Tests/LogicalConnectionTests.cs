@@ -130,7 +130,7 @@ public class LogicalConnectionTests
         var manager = application.Services.GetRequiredService<ConnectionManager>();
         var connection = CreateConnection(manager, "connection");
         var webSocket = new RecordingSendWebSocket();
-        var processor = new SimpleWebSocketPayloadProcessor(manager);
+        var processor = application.Services.GetRequiredService<SimpleWebSocketPayloadProcessor>();
         using var transport = connection.TryAttach(webSocket, processor);
         Assert.NotNull(transport);
         Assert.True(manager.TryActivate(connection));

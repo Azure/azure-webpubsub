@@ -11,7 +11,7 @@ local Azure Web PubSub development.
 | Local connection settings | Derives the endpoint from the bound ASP.NET Core `Urls` address and supports a separate `WebPubSub:AccessKey` setting. | ✅ |
 | Service health | `HEAD /api/health` returns `200 OK`. | ✅ |
 | Client token authentication | Validates access-key JWTs supplied by query string or bearer header. | ✅ |
-| Raw WebSocket | Receives group messages and publishes text or binary frames with raw `sendToGroup` mode. | ✅ |
+| Raw WebSocket | Sends text/binary frames as user event `message` by default or with `sendEvent`; supports handler replies and authorized `sendToGroup` with `noEcho`. See [raw modes](README.md#raw-websocket-events-and-group-sends). | ✅ |
 | JSON WebSocket | Supports `json.webpubsub.azure.v1` negotiation, connection messages, group operations, acknowledgements, ping, metadata, and message TTL validation. | ✅ |
 | Reliable JSON WebSocket | Supports `json.reliable.webpubsub.azure.v1`, scoped reconnection tokens, 30-second local recovery, ordered replay, and `sequenceAck`. | ✅ |
 | Connection state | Tracks active connections and temporarily retains reliable logical connections after unexpected disconnects. | ✅ |
@@ -20,6 +20,7 @@ local Azure Web PubSub development.
 | HTTP lifecycle handlers | Intercepts `connect` before upgrade, applies user/role/group/subprotocol overrides, and sends `connected` and final `disconnected` CloudEvents. Retains connect cookies and connection state. See [configuration and limitations](README.md#http-lifecycle-notifications). | ✅ |
 | HTTP handler validation and retries | Validates endpoints with OPTIONS/GET and cached allowed-origin results; retries HTTP 408, 5xx, and eligible network failures with 1/3/5-second delays. | ✅ |
 | HTTP user-event handlers | Routes JSON/reliable JSON events by `EventPattern`, forwards typed payloads and metadata, handles response data/metadata/state, and reuses reliable replay and acknowledgements. See [user events](README.md#user-events). | ✅ |
+| HTTP handler authentication | Outbound bearer/managed identity authentication is unsupported. Omit `Auth`; configured auth is rejected at startup. | ❌ |
 | REST connection operations | Authenticated connection presence, direct text, JSON, and binary sends, close, and single-connection group membership changes for GA API versions from `2021-10-01` through `2024-12-01`. | ✅ |
 | REST group operations | Authenticated group presence and text, JSON, or binary fan-out with excluded connection IDs and OData filters. | ✅ |
 | REST broadcast | Authenticated text, JSON, or binary fan-out with excluded connection IDs and OData filters. | ✅ |
@@ -50,7 +51,7 @@ runtime's new contract and decode the original user ID path segment exactly once
 
 The following areas are planned for follow-up changes:
 
-- HTTP handler bearer authentication and Key Vault URL references
+- Key Vault URL references
 - Tunnel connections (`tunnel://` upstream URLs)
 - Event Hubs listeners
 - Protobuf subprotocols
@@ -59,4 +60,5 @@ The following areas are planned for follow-up changes:
 
 Client events require a matching response-capable upstream handler. Without one, JSON
 events with an `ackId` receive an `InternalServerError` acknowledgement; events without an
-`ackId` are logged without closing the client connection. Raw `sendEvent` mode is not available.
+`ackId` are logged without closing the client connection. Raw user-event failures close the
+connection with status 1011; raw clients do not receive acknowledgements.

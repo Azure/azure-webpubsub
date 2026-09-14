@@ -221,8 +221,34 @@ bodies exceeding 16 MiB yield a generic `InternalServerError` acknowledgement wh
 present. Without `ackId`, errors are logged without closing the connection. Error response bodies
 and metadata are not forwarded for these `event` messages. Failed acknowledgements are not cached.
 
-Raw `sendEvent`/`noEcho`, protobuf responses, bearer authentication, Key Vault URL references, and Event Hubs listeners
-are not supported yet. Unsupported handler configuration is rejected at startup.
+### Raw WebSocket events and group sends
+
+Raw clients (including custom subprotocols selected by a connect handler) send text/binary frames
+as the user event `message`. This is the default when `webpubsub_mode` is absent or empty, or when
+it is `sendEvent`. Configure an `EventPattern` that matches `message`; group-send roles are not
+required for user events. Replies contain only the response bytes: text/JSON use text frames and
+binary uses binary frames. There is no JSON envelope, acknowledgement, or metadata encoding.
+An empty response with metadata produces an empty text frame; without metadata it sends no frame.
+Missing handlers and failed handler calls close the raw connection with status 1011 and a generic
+reason; handler error details are not forwarded. Raw connections do not support reliable recovery.
+
+`webpubsub_mode=sendToGroup&group=room&noEcho=true` publishes raw frames to the named group using
+the connection's group-send permission. `noEcho` excludes only the sending connection; absent,
+empty, or `false` retains the default echo behavior. It does not automatically join the sender to
+the group. Mode names and boolean values are case-insensitive. Repeated `webpubsub_mode`, `group`,
+and `noEcho` parameters use their last value. Invalid modes, group names, or group-send `noEcho`
+values fail before upgrade; `sendEvent` ignores `group` and `noEcho`. These parameters are validated
+for all initial connections but only affect the raw processor, not JSON/reliable JSON messages.
+
+### Unsupported handler options
+
+**Outbound handler authentication is not supported by the emulator.** Omit `Auth` entirely
+(including `Auth.Type=None`); configuring it is rejected at startup, not silently sent anonymously.
+Client access tokens are never reused as handler credentials. This does not change access-key
+client/REST authentication or the separate inbound REST compatibility option below.
+
+Protobuf responses, Key Vault URL references, and Event Hubs listeners are also unsupported.
+Unsupported handler configuration is rejected at startup.
 
 ## Local server SDK authentication
 
