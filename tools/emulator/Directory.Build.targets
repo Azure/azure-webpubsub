@@ -1,0 +1,9 @@
+<Project>
+  <!-- global.json is selected from the invoking directory, not the project directory. -->
+  <Target Name="ValidateEmulatorSdkVersion"
+          BeforeTargets="Restore;PrepareForBuild"
+          Condition="'$(NETCoreSdkVersion)' != ''">
+    <Error Condition="$([MSBuild]::VersionLessThan('$(NETCoreSdkVersion)', '10.0.401'))"
+           Text="The Web PubSub emulator requires .NET SDK 10.0.401 or later. The selected SDK is $(NETCoreSdkVersion). Install a compatible SDK and check dotnet --list-sdks." />
+  </Target>
+</Project>
