@@ -5,7 +5,13 @@ client endpoint locally.
 
 ## Prerequisites
 
-- .NET 10 SDK
+- .NET SDK 10.0.401 or later in the .NET 10 release line.
+
+The API source generator uses Roslyn 5.9, which requires the compiler included in SDK
+10.0.401 or later. `global.json` selects that minimum feature band or a newer .NET 10
+feature band when commands run from this directory. Builds started from the repository
+root also check the SDK version and report an error before compiling with an older SDK.
+Check installed SDKs with `dotnet --list-sdks`.
 
 ## Run from source
 
