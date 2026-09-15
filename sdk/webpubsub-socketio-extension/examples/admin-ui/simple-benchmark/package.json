@@ -1,0 +1,17 @@
+{
+  "name": "socket.io-chat",
+  "version": "0.0.0",
+  "description": "A simple chat client using socket.io",
+  "main": "index.js",
+  "private": true,
+  "license": "BSD",
+  "dependencies": {
+    "@azure/web-pubsub-socket.io": "^1.1.0",
+    "@socket.io/admin-ui": "^0.5.1",
+    "express": "~4.17.1",
+    "socket.io": "^4.6.1"
+  },
+  "scripts": {
+    "start": "node index.js"
+  }
+}
