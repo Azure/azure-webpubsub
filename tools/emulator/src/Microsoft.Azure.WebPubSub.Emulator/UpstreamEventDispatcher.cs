@@ -41,6 +41,7 @@ internal sealed class UpstreamEventDispatcher(
                 null or "application/octet-stream" => MessageDataType.Binary,
                 "text/plain" => MessageDataType.Text,
                 "application/json" => MessageDataType.Json,
+                "application/x-protobuf" => MessageDataType.Protobuf,
                 _ => throw new InvalidDataException("Unsupported event handler response content type."),
             };
         Dictionary<string, string>? metadata = null;
@@ -169,6 +170,7 @@ internal sealed class UpstreamEventDispatcher(
         {
             MessageDataType.Text => "text/plain; charset=utf-8",
             MessageDataType.Binary => "application/octet-stream",
+            MessageDataType.Protobuf => "application/x-protobuf",
             _ => "application/json",
         });
         if (userData?.Metadata is { } metadata)

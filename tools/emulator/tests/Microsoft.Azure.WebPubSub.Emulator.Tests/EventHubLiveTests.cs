@@ -13,6 +13,9 @@ using System.Threading.Tasks;
 using Azure.Identity;
 using Azure.Messaging.EventHubs;
 using Azure.Messaging.EventHubs.Consumer;
+using Google.Protobuf;
+using Google.Protobuf.WellKnownTypes;
+using Microsoft.Azure.WebPubSub.Emulator.Protobuf;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using Microsoft.IdentityModel.Tokens;
@@ -23,7 +26,12 @@ namespace Microsoft.Azure.WebPubSub.Emulator.Tests;
 public class EventHubLiveTests
 {
     [EventHubFact]
-    public async Task RawClientEventsReachRealBrokerAndConsumer()
+    public Task RawClientEventsReachRealBrokerAndConsumer() => RunAsync(protobuf: false);
+
+    [EventHubFact]
+    public Task ProtobufMetadataReachesRealBrokerAndConsumer() => RunAsync(protobuf: true);
+
+    private static async Task RunAsync(bool protobuf)
     {
         var local = Environment.GetEnvironmentVariable("AWPS_TEST_EVENTHUB_CONNECTION_STRING");
         var ns = Environment.GetEnvironmentVariable("AWPS_TEST_EVENTHUB_NAMESPACE");
@@ -52,17 +60,50 @@ public class EventHubLiveTests
             claims: [new Claim("sub", marker)], expires: DateTime.UtcNow.AddMinutes(5),
             signingCredentials: new SigningCredentials(new SymmetricSecurityKey(Encoding.UTF8.GetBytes(EmulatorOptions.DefaultAccessKey)), SecurityAlgorithms.HmacSha256)));
         using var socket = new ClientWebSocket();
+        if (protobuf) socket.Options.AddSubProtocol(WebPubSubProtobufV1Protocol.SubprotocolName);
         var received = ReadAsync();
         await socket.ConnectAsync(new Uri(endpoint.Replace("http:", "ws:") + "?access_token=" + token), timeout.Token);
-        await socket.SendAsync("real-event"u8.ToArray(), WebSocketMessageType.Text, true, timeout.Token);
+        var body = protobuf ? Any.Pack(new StringValue { Value = "real-event" }).ToByteArray() : "real-event"u8.ToArray();
+        if (protobuf)
+        {
+            Assert.NotNull((await ReadClientAsync()).SystemMessage?.ConnectedMessage);
+            await socket.SendAsync(new UpstreamMessage { EventMessage = new UpstreamMessage.Types.EventMessage
+            {
+                Event = "message", AckId = 1,
+                Data = new Protobuf.MessageData { ProtobufData = Any.Parser.ParseFrom(body) },
+                Metadata = { ["TraceId"] = "first", ["traceid"] = "last", ["Tag"] = "", ["Values"] = " alpha, beta " },
+            } }.ToByteArray(), WebSocketMessageType.Binary, true, timeout.Token);
+            var ack = (await ReadClientAsync()).AckMessage;
+            Assert.NotNull(ack);
+            Assert.True(ack.Success);
+            Assert.Equal(1UL, ack.AckId);
+        }
+        else await socket.SendAsync(body, WebSocketMessageType.Text, true, timeout.Token);
         await socket.CloseAsync(WebSocketCloseStatus.NormalClosure, "done", timeout.Token);
         var events = await received;
         Assert.Equal(new[] { "1", "2", "3" }, events.Select(item => (string)item.Data.Properties["cloudEvents:id"]).OrderBy(id => id));
         Assert.Single(events.Select(item => item.Partition.PartitionId).Distinct());
         var message = Assert.Single(events, item => (string)item.Data.Properties["cloudEvents:type"] == "azure.webpubsub.user.message").Data;
-        Assert.Equal("real-event", message.EventBody.ToString());
-        Assert.Equal("text/plain", message.ContentType);
+        Assert.Equal(body, message.EventBody.ToArray());
+        Assert.Equal(protobuf ? "application/x-protobuf" : "text/plain", message.ContentType);
         Assert.Equal($"{message.Properties["cloudEvents:connectionid"]}/2", message.MessageId);
+        if (protobuf)
+        {
+            Assert.Equal("last", message.Properties["x-webpubsub-metadata-traceid"]);
+            Assert.Equal("", message.Properties["x-webpubsub-metadata-tag"]);
+            Assert.Equal(" alpha, beta ", message.Properties["x-webpubsub-metadata-values"]);
+            foreach (var item in events.Where(item => !ReferenceEquals(item.Data, message)))
+                Assert.DoesNotContain(item.Data.Properties.Keys, key => key.StartsWith("x-webpubsub-metadata-", StringComparison.OrdinalIgnoreCase));
+        }
+
+        async Task<DownstreamMessage> ReadClientAsync()
+        {
+            var buffer = new byte[4096];
+            var result = await socket.ReceiveAsync(buffer, timeout.Token);
+            Assert.Equal(WebSocketMessageType.Binary, result.MessageType);
+            Assert.True(result.EndOfMessage);
+            return DownstreamMessage.Parser.ParseFrom(buffer, 0, result.Count);
+        }
 
         async Task<List<PartitionEvent>> ReadAsync()
         {

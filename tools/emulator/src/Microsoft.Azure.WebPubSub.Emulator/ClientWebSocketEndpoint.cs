@@ -295,6 +295,6 @@ internal sealed class ClientWebSocketEndpoint
     private static string? SelectSubprotocol(HttpContext context)
     {
         return context.WebSockets.WebSocketRequestedProtocols.FirstOrDefault(
-            WebPubSubJsonV1PayloadProcessor.IsSupportedSubprotocol);
+            ClientPayloadProcessorFactory.IsSupportedSubprotocol);
     }
 }

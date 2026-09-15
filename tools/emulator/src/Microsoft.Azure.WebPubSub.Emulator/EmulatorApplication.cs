@@ -62,6 +62,7 @@ internal static class EmulatorApplication
         builder.Services.AddSingleton<ConnectionManager>();
         builder.Services.AddSingleton<SimpleWebSocketPayloadProcessor>();
         builder.Services.AddSingleton<WebPubSubJsonV1Protocol>();
+        builder.Services.AddSingleton<WebPubSubProtobufV1Protocol>();
         builder.Services.AddSingleton<HttpUpstreamTrigger>();
         builder.Services.AddSingleton(TimeProvider.System);
         builder.Services.AddSingleton<AbuseProtector>();
@@ -73,6 +74,7 @@ internal static class EmulatorApplication
             IWebPubSubConnectionLifetimeHandler,
             WebPubSubClientConnectionLifetimeHandler>();
         builder.Services.AddSingleton<WebPubSubJsonV1PayloadProcessor>();
+        builder.Services.AddSingleton<WebPubSubProtobufV1PayloadProcessor>();
         builder.Services.AddSingleton<ClientPayloadProcessorFactory>();
         builder.Services.AddSingleton<ClientConnectionHandler>();
         builder.Services.AddSingleton<ClientWebSocketEndpoint>();

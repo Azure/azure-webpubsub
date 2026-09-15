@@ -55,19 +55,33 @@ internal sealed class ClientPayloadProcessorFactory
 {
     private readonly SimpleWebSocketPayloadProcessor _defaultProcessor;
     private readonly WebPubSubJsonV1PayloadProcessor _jsonV1Processor;
+    private readonly WebPubSubProtobufV1PayloadProcessor _protobufV1Processor;
 
     public ClientPayloadProcessorFactory(
         SimpleWebSocketPayloadProcessor defaultProcessor,
-        WebPubSubJsonV1PayloadProcessor jsonV1Processor)
+        WebPubSubJsonV1PayloadProcessor jsonV1Processor,
+        WebPubSubProtobufV1PayloadProcessor protobufV1Processor)
     {
         _defaultProcessor = defaultProcessor;
         _jsonV1Processor = jsonV1Processor;
+        _protobufV1Processor = protobufV1Processor;
     }
 
     public IClientPayloadProcessor Get(string? subprotocol)
     {
+        if (WebPubSubProtobufV1PayloadProcessor.IsSupportedSubprotocol(subprotocol))
+        {
+            return _protobufV1Processor;
+        }
+
         return WebPubSubJsonV1PayloadProcessor.IsSupportedSubprotocol(subprotocol)
             ? _jsonV1Processor
             : _defaultProcessor;
+    }
+
+    public static bool IsSupportedSubprotocol(string? subprotocol)
+    {
+        return WebPubSubJsonV1PayloadProcessor.IsSupportedSubprotocol(subprotocol) ||
+            WebPubSubProtobufV1PayloadProcessor.IsSupportedSubprotocol(subprotocol);
     }
 }

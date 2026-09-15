@@ -93,6 +93,7 @@ internal sealed class EventHubNotifier : IAsyncDisposable
             {
                 MessageDataType.Text => "text/plain",
                 MessageDataType.Binary => "application/octet-stream",
+                MessageDataType.Protobuf => "application/x-protobuf",
                 _ => "application/json",
             },
         };
