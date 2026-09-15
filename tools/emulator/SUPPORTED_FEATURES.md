@@ -21,6 +21,7 @@ local Azure Web PubSub development.
 | HTTP handler validation and retries | Validates endpoints with OPTIONS/GET and cached allowed-origin results; retries HTTP 408, 5xx, and eligible network failures with 1/3/5-second delays. | ✅ |
 | HTTP user-event handlers | Routes JSON/reliable JSON events by `EventPattern`, forwards typed payloads and metadata, handles response data/metadata/state, and reuses reliable replay and acknowledgements. See [user events](README.md#user-events). | ✅ |
 | HTTP handler authentication | Outbound bearer/managed identity authentication is unsupported. Omit `Auth`; configured auth is rejected at startup. | ❌ |
+| Event Hubs listeners | Outbound lifecycle/user events through the Azure SDK, all matching targets, AMQP CloudEvents, user metadata and listener-only dispatch. Raw WebSocket delivery verified against the official local Event Hubs emulator; Azure-hosted delivery and metadata broker round-trips are not yet verified. See [configuration and live-test requirements](README.md#event-hubs-listeners). | ⚠️ |
 | REST connection operations | Authenticated connection presence, direct text, JSON, and binary sends, close, and single-connection group membership changes for GA API versions from `2021-10-01` through `2024-12-01`. | ✅ |
 | REST group operations | Authenticated group presence and text, JSON, or binary fan-out with excluded connection IDs and OData filters. | ✅ |
 | REST broadcast | Authenticated text, JSON, or binary fan-out with excluded connection IDs and OData filters. | ✅ |
@@ -53,12 +54,11 @@ The following areas are planned for follow-up changes:
 
 - Key Vault URL references
 - Tunnel connections (`tunnel://` upstream URLs)
-- Event Hubs listeners
 - Protobuf subprotocols
 - Client message streaming
 - Production Microsoft Entra ID validation
 
-Client events require a matching response-capable upstream handler. Without one, JSON
+Client events require a matching upstream handler or listener. Without either, JSON
 events with an `ackId` receive an `InternalServerError` acknowledgement; events without an
 `ackId` are logged without closing the client connection. Raw user-event failures close the
 connection with status 1011; raw clients do not receive acknowledgements.

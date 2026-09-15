@@ -26,6 +26,8 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <PackageReference Include="Azure.Identity" />
+    <PackageReference Include="Azure.Messaging.EventHubs" />
     <PackageReference Include="Microsoft.Extensions.Http.Polly" />
     <PackageReference Include="Microsoft.OData.Core" />
     <PackageReference Include="System.IdentityModel.Tokens.Jwt" />

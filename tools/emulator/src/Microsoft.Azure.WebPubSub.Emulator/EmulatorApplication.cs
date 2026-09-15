@@ -2,6 +2,10 @@
 // Licensed under the MIT License.
 
 using System.Reflection;
+using Azure.Core;
+using Azure.Identity;
+using Azure.Messaging.EventHubs;
+using Azure.Messaging.EventHubs.Producer;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Controllers;
@@ -39,7 +43,20 @@ internal static class EmulatorApplication
                     .All(pattern => string.IsNullOrWhiteSpace(pattern) ||
                         WildcardPattern.TryCreate(pattern.Trim(), out _, maximumLength: null)) != false)),
                 "EventPattern must contain comma-separated wildcard patterns with valid escapes before any standalone *.")
+            .Validate(options => options.Hubs.Values.All(hub => hub.EventListeners.All(listener =>
+                listener.EventHubEndpoint.IsValid())),
+                "Event listeners require an EventHubName and a namespace, or a local Event Hubs emulator connection string (not both).")
             .ValidateOnStart();
+        builder.Services.AddSingleton<TokenCredential>(_ => new DefaultAzureCredential());
+        builder.Services.AddSingleton<Func<EventHubEndpointOptions, EventHubProducerClient>>(services => endpoint =>
+            endpoint.ConnectionString is { } local
+                ? new EventHubProducerClient(local, endpoint.EventHubName)
+                : new EventHubProducerClient(endpoint.FullyQualifiedNamespace, endpoint.EventHubName,
+                    services.GetRequiredService<TokenCredential>(), new EventHubProducerClientOptions
+                    {
+                        ConnectionOptions = new EventHubConnectionOptions { TransportType = EventHubsTransportType.AmqpWebSockets },
+                    }));
+        builder.Services.AddSingleton<EventHubNotifier>();
         builder.Services.AddSingleton(runtimeOptions ?? new EmulatorRuntimeOptions());
         builder.Services.AddSingleton<WebPubSubTokenService>();
         builder.Services.AddSingleton<ConnectionManager>();

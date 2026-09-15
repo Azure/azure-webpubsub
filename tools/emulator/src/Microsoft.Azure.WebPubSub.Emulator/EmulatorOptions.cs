@@ -33,6 +33,8 @@ internal sealed class EmulatorOptions
 internal sealed class HubOptions
 {
     public EventHandlerOptions[] EventHandlers { get; set; } = [];
+
+    public EventListenerOptions[] EventListeners { get; set; } = [];
 }
 
 internal sealed class EventHandlerOptions
