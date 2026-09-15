@@ -109,7 +109,15 @@ internal sealed class EventHubNotifier : IAsyncDisposable
         SetIfNotEmpty(properties, "cloudEvents:userid", connection.UserId);
         SetIfNotEmpty(properties, "cloudEvents:subprotocol", connection.Subprotocol);
         SetIfNotEmpty(properties, "cloudEvents:connectionstate", connection.ConnectionState);
-        // Runtime EventHubNotifier does not serialize ordinary user-message metadata.
+        if (userEvent && data.Metadata is { } metadata)
+        {
+            var normalized = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+            foreach (var item in metadata) normalized[item.Key] = item.Value;
+            foreach (var item in normalized)
+            {
+                properties["x-webpubsub-metadata-" + item.Key.ToLowerInvariant()] = item.Value;
+            }
+        }
         return message;
     }
 

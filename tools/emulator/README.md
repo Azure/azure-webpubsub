@@ -292,8 +292,12 @@ requires its Docker prerequisites and your acceptance of its license terms.
   still fail the event. Cached successful acknowledgements suppress duplicate dispatch.
 - Event Hubs messages use `cloudEvents:*` AMQP properties, `MessageId=connectionId/eventId`, and
   `PartitionKey=connectionId`. Bodies preserve user payload bytes; connected uses `{}` and
-  disconnected uses `{"reason":"..."}`. Ordinary message metadata, signatures, and cookies are
-  not forwarded. Empty connection state is omitted. Partition affinity is not an ordering guarantee
+  disconnected uses `{"reason":"..."}`. User metadata uses `x-webpubsub-metadata-{lowercase-key}`
+  application properties; case-insensitive duplicate keys use the last value, matching HTTP upstream.
+  Values, including empty strings, whitespace, and commas, are preserved without splitting or trimming.
+  Existing metadata validation is unchanged. Metadata-only events retain an empty body; metadata
+  remains separate from `cloudEvents:*` attributes and is not retained on the connection.
+  Signatures and cookies are not forwarded. Empty connection state is omitted. Partition affinity is not an ordering guarantee
   between concurrently dispatched lifecycle and user events.
 - **Acknowledgement success is not proof of broker delivery.** As in the runtime, a matched
   listener counts even if delivery fails; failures are logged. The SDK handles transport retries;

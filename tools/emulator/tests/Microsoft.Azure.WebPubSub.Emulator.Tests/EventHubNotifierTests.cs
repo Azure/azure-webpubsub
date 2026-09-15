@@ -48,10 +48,16 @@ public class EventHubNotifierTests
     [InlineData("Text", "text/plain")]
     [InlineData("Json", "application/json")]
     [InlineData("Binary", "application/octet-stream")]
-    public void MessageUsesAmqpCloudEventsWithoutHttpMetadata(string type, string contentType)
+    public void MessageUsesAmqpCloudEventsWithUserMetadata(string type, string contentType)
     {
         var connection = new UpstreamConnectionContext("connection", "chat", "用户", "custom", "localhost") { ConnectionState = "state" };
-        var data = new MessageData(Enum.Parse<MessageDataType>(type), new byte[] { 0, 1, 255 }, new Dictionary<string, string> { ["trace"] = "not-forwarded" });
+        var metadata = new Dictionary<string, string>(StringComparer.Ordinal)
+        {
+            ["TraceId"] = "first", ["traceid"] = "last", ["Empty"] = "",
+            ["File-Name"] = "report.txt", ["Values"] = " alpha, beta ", ["Type"] = "user-value",
+        };
+        WebPubSubMetadataValidator.Validate(metadata);
+        var data = new MessageData(Enum.Parse<MessageDataType>(type), new byte[] { 0, 1, 255 }, metadata);
         var message = EventHubNotifier.CreateMessage(connection, "message", 7, data, true);
         Assert.Equal(data.Bytes.ToArray(), message.EventBody.ToArray());
         Assert.Equal(contentType, message.ContentType);
@@ -63,9 +69,60 @@ public class EventHubNotifierTests
         Assert.Equal("custom", message.Properties["cloudEvents:subprotocol"]);
         Assert.Equal("state", message.Properties["cloudEvents:connectionstate"]);
         Assert.Matches(@"^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z$", (string)message.Properties["cloudEvents:time"]);
-        Assert.Equal(12, message.Properties.Count);
+        Assert.Equal("last", message.Properties["x-webpubsub-metadata-traceid"]);
+        Assert.Equal("", message.Properties["x-webpubsub-metadata-empty"]);
+        Assert.Equal("report.txt", message.Properties["x-webpubsub-metadata-file-name"]);
+        Assert.Equal(" alpha, beta ", message.Properties["x-webpubsub-metadata-values"]);
+        Assert.Equal("user-value", message.Properties["x-webpubsub-metadata-type"]);
+        Assert.Equal(17, message.Properties.Count);
+        Assert.Equal("first", metadata["TraceId"]);
+        Assert.Equal(6, metadata.Count);
         connection.ConnectionState = "";
         Assert.False(EventHubNotifier.CreateMessage(connection, "message", 8, data, true).Properties.ContainsKey("cloudEvents:connectionstate"));
+    }
+
+    [Theory]
+    [InlineData(true, false)]
+    [InlineData(true, true)]
+    [InlineData(false, false)]
+    public void AbsentMetadataAndSystemEventsHaveNoUserProperties(bool userEvent, bool emptyMetadata)
+    {
+        var data = new MessageData(MessageDataType.Json, "{}"u8.ToArray(),
+            emptyMetadata ? new Dictionary<string, string>() : userEvent ? null : new Dictionary<string, string> { ["Tag"] = "ignored" });
+        var message = EventHubNotifier.CreateMessage(new("connection", "chat", null, null, "localhost"),
+            userEvent ? "message" : "connected", 1, data, userEvent);
+        Assert.DoesNotContain(message.Properties.Keys, key => key.StartsWith("x-webpubsub-metadata-", StringComparison.OrdinalIgnoreCase));
+    }
+
+    [Theory]
+    [InlineData("json.webpubsub.azure.v1", false)]
+    [InlineData("json.webpubsub.azure.v1", true)]
+    [InlineData("json.reliable.webpubsub.azure.v1", false)]
+    [InlineData("json.reliable.webpubsub.azure.v1", true)]
+    public async Task ListenerReceivesPerMessageMetadata(string protocol, bool metadataOnly)
+    {
+        var producer = new RecordingProducer();
+        await using var app = await StartAsync(producer);
+        var client = app.GetTestServer().CreateWebSocketClient();
+        client.SubProtocols.Add(protocol);
+        using var socket = await client.ConnectAsync(ClientUri(), CancellationToken.None).WaitAsync(Timeout);
+        await ReceiveAsync(socket);
+        var connected = await producer.ReadAsync();
+        Assert.DoesNotContain(connected.Event.Properties.Keys, key => key.StartsWith("x-webpubsub-metadata-", StringComparison.OrdinalIgnoreCase));
+        var data = metadataOnly ? "" : "\"dataType\":\"text\",\"data\":\"hello\",";
+        var payload = "{\"type\":\"event\",\"event\":\"message\",\"ackId\":1," + data + "\"metadata\":{\"TraceId\":\"first\",\"traceid\":\"last\",\"Tag\":\"\"}}";
+        await socket.SendAsync(Encoding.UTF8.GetBytes(payload), WebSocketMessageType.Text, true, CancellationToken.None);
+        using var ack = JsonDocument.Parse(await ReceiveAsync(socket));
+        Assert.True(ack.RootElement.GetProperty("success").GetBoolean());
+        var received = await producer.ReadAsync();
+        Assert.Equal(metadataOnly ? "" : "hello", received.Event.EventBody.ToString());
+        Assert.Equal("text/plain", received.Event.ContentType);
+        Assert.Equal("last", received.Event.Properties["x-webpubsub-metadata-traceid"]);
+        Assert.Equal("", received.Event.Properties["x-webpubsub-metadata-tag"]);
+        Assert.Equal(connected.Partition, received.Partition);
+        await socket.CloseAsync(WebSocketCloseStatus.NormalClosure, "done", CancellationToken.None).WaitAsync(Timeout);
+        var disconnected = await producer.ReadAsync();
+        Assert.DoesNotContain(disconnected.Event.Properties.Keys, key => key.StartsWith("x-webpubsub-metadata-", StringComparison.OrdinalIgnoreCase));
     }
 
     [Theory]
