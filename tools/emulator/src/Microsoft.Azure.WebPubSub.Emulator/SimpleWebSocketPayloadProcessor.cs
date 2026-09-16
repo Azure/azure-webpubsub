@@ -76,7 +76,7 @@ internal sealed class SimpleWebSocketPayloadProcessor : IClientPayloadProcessor
         MessageData data,
         ulong? sequenceId)
     {
-        var messageType = data.Type == MessageDataType.Binary
+        var messageType = data.Type is MessageDataType.Binary or MessageDataType.Protobuf
             ? WebSocketMessageType.Binary
             : WebSocketMessageType.Text;
         return new WebSocketPayload(data.Bytes, messageType);
@@ -87,7 +87,7 @@ internal sealed class SimpleWebSocketPayloadProcessor : IClientPayloadProcessor
         MessageData data,
         ulong? sequenceId)
     {
-        var messageType = data.Type == MessageDataType.Binary
+        var messageType = data.Type is MessageDataType.Binary or MessageDataType.Protobuf
             ? WebSocketMessageType.Binary
             : WebSocketMessageType.Text;
         return new WebSocketPayload(data.Bytes, messageType);

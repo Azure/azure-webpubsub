@@ -427,10 +427,11 @@ public class UpstreamUserEventTests
         return JsonDocument.Parse(buffer.AsMemory(0, result.Count));
     }
 
-    private sealed record Received(byte[] Body, Dictionary<string, string> Headers);
+    internal sealed record Received(byte[] Body, Dictionary<string, string> Headers);
 
-    private sealed class Fixture(WebApplication upstream, WebApplication app, Channel<Received> events) : IAsyncDisposable
+    internal sealed class Fixture(WebApplication upstream, WebApplication app, Channel<Received> events) : IAsyncDisposable
     {
+        public string Endpoint => app.Urls.Single();
         public Channel<Received> Events => events;
         public UpstreamEventDispatcher Dispatcher => app.Services.GetRequiredService<UpstreamEventDispatcher>();
         public Task<Received> ReadAsync() => events.Reader.ReadAsync().AsTask().WaitAsync(Timeout);

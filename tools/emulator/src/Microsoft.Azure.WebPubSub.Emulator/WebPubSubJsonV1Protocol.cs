@@ -44,12 +44,16 @@ internal enum WebPubSubAckErrorName
     Duplicate,
 }
 
-internal sealed partial class WebPubSubJsonV1Protocol
+internal sealed partial class WebPubSubJsonV1Protocol : IWebPubSubClientDataProtocol
 {
     private const int MaximumMessageTtlSeconds = 300;
     private const int MaximumMetadataBytes = 8 * 1024;
     private const int MaximumMetadataKeyBytes = 256;
     private const int MaximumMetadataValueBytes = 1024;
+
+    public string Name => "json.webpubsub.azure.v1";
+
+    public WebSocketMessageType MessageType => WebSocketMessageType.Text;
 
     public WebPubSubClientRequest ParseMessage(byte[] payload)
     {
@@ -361,6 +365,7 @@ internal sealed partial class WebPubSubJsonV1Protocol
                 writer.WriteString("data", Encoding.UTF8.GetString(data.Bytes.Span));
                 break;
             case MessageDataType.Binary:
+            case MessageDataType.Protobuf:
                 writer.WriteBase64String("data", data.Bytes.Span);
                 break;
             case MessageDataType.Json:

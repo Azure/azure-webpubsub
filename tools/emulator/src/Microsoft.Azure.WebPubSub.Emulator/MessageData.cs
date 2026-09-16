@@ -8,6 +8,7 @@ internal enum MessageDataType
     Text,
     Binary,
     Json,
+    Protobuf,
 }
 
 internal sealed record MessageData(

@@ -253,8 +253,27 @@ for all initial connections but only affect the raw processor, not JSON/reliable
 Client access tokens are never reused as handler credentials. This does not change access-key
 client/REST authentication or the separate inbound REST compatibility option below.
 
-Protobuf responses and Key Vault URL references are also unsupported.
+Key Vault URL references are also unsupported.
 Unsupported handler configuration is rejected at startup.
+
+## Protobuf clients
+
+Negotiate `protobuf.webpubsub.azure.v1` and send binary WebSocket messages containing an
+`UpstreamMessage`. The emulator uses generated protobuf messages, sharing group permissions,
+acknowledgement caching, HTTP event handlers and Event Hubs listeners with JSON clients.
+Supported operations are join/leave group, send to group (`no_echo`, metadata and TTL validation),
+user events, and ping. Replies use binary `DownstreamMessage` envelopes.
+
+Payloads support text, binary, JSON and native `google.protobuf.Any`. HTTP handlers receive and
+return native Any envelopes with `application/x-protobuf`; Event Hubs preserves those bytes and
+content type. Mixed group recipients receive native Any in protobuf, base64 with `dataType=protobuf`
+in JSON, or a binary frame in raw WebSocket. Protobuf has no `fromUserId` field.
+Metadata-only protobuf events require a nonempty metadata map; explicitly selected empty text or
+binary data is also valid. Existing REST text/JSON/binary sends can target protobuf clients;
+REST `application/x-protobuf` input remains unsupported.
+
+Reliable protobuf, invocation and streaming are not enabled by this slice. Unsupported streaming
+requests are rejected rather than dispatched as ordinary messages. Reliable JSON is unchanged.
 
 ## Event Hubs listeners
 
@@ -309,8 +328,9 @@ requires its Docker prerequisites and your acceptance of its license terms.
   listener counts even if delivery fails; failures are logged. The SDK handles transport retries;
   there is no emulator dead-letter store or durable replay. Shutdown allows 10 seconds to drain.
 
-The opt-in `EventHubLiveTests` test sends raw WebSocket events through the actual producer and
-reads them from a broker. Set `AWPS_TEST_EVENTHUB_NAME` plus either `AWPS_TEST_EVENTHUB_NAMESPACE`
+The opt-in `EventHubLiveTests` tests send raw WebSocket and protobuf events through the actual
+producer and read them from a broker, including native Any and user metadata round-trips.
+Set `AWPS_TEST_EVENTHUB_NAME` plus either `AWPS_TEST_EVENTHUB_NAMESPACE`
 or `AWPS_TEST_EVENTHUB_CONNECTION_STRING` (local emulator only) before running the test suite.
 Use a dedicated test Event Hub with a `$Default` consumer group; Azure testing also needs
 **Azure Event Hubs Data Receiver**. Without those settings the test is explicitly skipped;

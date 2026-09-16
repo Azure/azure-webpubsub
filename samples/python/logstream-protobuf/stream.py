@@ -2,7 +2,7 @@ import asyncio
 import websockets
 import requests
 
-from pubsub_pb2 import UpstreamMessage
+from generated.webpubsub.v1_pb2 import UpstreamMessage
 
 
 async def connect(url):

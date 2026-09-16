@@ -10,16 +10,36 @@ This application is based on the following technologies:
 
 ## Build and run locally
 
-1. Generate protobuf client if you update `proto/pubsub.proto` or you can skip this step.
-   ```bash
-   protoc --js_out=import_style=commonjs,binary:src proto/pubsub.proto
-   ```
+Use Node.js 22 or later and a checkout of this repository, not just the sample directory.
+The service types are generated from the canonical
+[Web PubSub schema](../../../protocols/protobuf.webpubsub.azure.v1/webpubsub.v1.proto)
+(`azure.webpubsub`). The sample's [payload schema](proto/pubsub.proto) contains only
+`video.CameraControl` and `video.CameraControlAck`; their `Any` type URLs remain
+`type.googleapis.com/video.CameraControl` and `type.googleapis.com/video.CameraControlAck`.
 
-1. Build
+1. Install dependencies, test the codecs offline, and build:
    ```bash
-   npm install
+   npm install --registry=https://packagefeedproxy.microsoft.io/npm/
+   npm test
    npm run build
    ```
+
+   `npm run generate` uses pinned `protobufjs-cli` and `protobufjs` versions to generate
+   separate service and video CommonJS modules under `src/generated/`. No system
+   `protoc`, JavaScript plugin, or binary download is required. Generated files are
+   ignored by Git; do not edit or check them in. Tests, development builds and production
+   builds always regenerate them. Run `npm run generate` separately after a schema change
+   if you are not building yet.
+
+   JavaScript 64-bit fields use `Long`. Use decimal strings with generated `fromObject`
+   methods and `.toString()` when inspecting IDs; do not convert large IDs to `Number`.
+   The offline tests build the browser bundle and check its custom payload calls,
+   canonical wire compatibility, join/ack IDs through the full uint64 range, metadata,
+   video `Any` payloads, and current stream/group-state fields.
+
+   CI must install development dependencies before `npm test` or `npm run build`.
+   The existing sample test job runs generation through `npm test`; a packaged app also
+   needs `npm run build` before packaging its browser assets.
 
 2. Run
    ```bash

@@ -5,9 +5,10 @@
   "main": "index.js",
   "scripts": {
     "start": "node server.js",
-    "dev": "webpack --mode development",
-    "build": "webpack --mode production",
-    "test": "echo TODO"
+    "generate": "node scripts/generate-proto.js",
+    "dev": "npm run generate && webpack --mode development",
+    "build": "npm run generate && webpack --mode production",
+    "test": "npm run build && node --test test/*.test.cjs"
   },
   "keywords": [],
   "author": "",
@@ -17,10 +18,11 @@
     "@azure/web-pubsub-express": "^1.0.0",
     "express": "^4.17.1",
     "express-fileupload": "^1.2.1",
-    "google-protobuf": "^3.17.3"
+    "protobufjs": "8.8.0"
   },
   "devDependencies": {
     "copy-webpack-plugin": "^8.1.1",
+    "protobufjs-cli": "2.5.6",
     "webpack": "^5.35.1",
     "webpack-cli": "^4.7.2"
   }

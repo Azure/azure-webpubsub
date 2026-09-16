@@ -5,11 +5,13 @@ on:
     branches: ["main"]
     paths:
       - 'tools/emulator/**'
+      - 'protocols/protobuf.webpubsub.azure.v1/**'
       - '.github/workflows/emulator-tests.yml'
   pull_request:
     branches: ["main"]
     paths:
       - 'tools/emulator/**'
+      - 'protocols/protobuf.webpubsub.azure.v1/**'
       - '.github/workflows/emulator-tests.yml'
 
 permissions:

@@ -1,6 +1,6 @@
 # Supported Features and Gaps
 
-The current implementation provides raw WebSocket, JSON, and reliable JSON client endpoints for
+The current implementation provides raw WebSocket, JSON, reliable JSON, and ordinary protobuf client endpoints for
 local Azure Web PubSub development.
 
 ## Current support
@@ -13,6 +13,7 @@ local Azure Web PubSub development.
 | Client token authentication | Validates access-key JWTs supplied by query string or bearer header. | ✅ |
 | Raw WebSocket | Sends text/binary frames as user event `message` by default or with `sendEvent`; supports handler replies and authorized `sendToGroup` with `noEcho`. See [raw modes](README.md#raw-websocket-events-and-group-sends). | ✅ |
 | JSON WebSocket | Supports `json.webpubsub.azure.v1` negotiation, connection messages, group operations, acknowledgements, ping, metadata, and message TTL validation. | ✅ |
+| Protobuf WebSocket | Supports `protobuf.webpubsub.azure.v1` with binary envelopes, group operations, acknowledgements, ping, metadata, TTL validation and native Any payloads. Shares HTTP handlers and listeners with JSON clients. See [scope](README.md#protobuf-clients). | ✅ |
 | Reliable JSON WebSocket | Supports `json.reliable.webpubsub.azure.v1`, scoped reconnection tokens, 30-second local recovery, ordered replay, and `sequenceAck`. | ✅ |
 | Connection state | Tracks active connections and temporarily retains reliable logical connections after unexpected disconnects. | ✅ |
 | Groups and roles | Supports connection-scoped token groups and authorized join, leave, and group send, including wildcard roles. | ✅ |
@@ -21,7 +22,7 @@ local Azure Web PubSub development.
 | HTTP handler validation and retries | Validates endpoints with OPTIONS/GET and cached allowed-origin results; retries HTTP 408, 5xx, and eligible network failures with 1/3/5-second delays. | ✅ |
 | HTTP user-event handlers | Routes JSON/reliable JSON events by `EventPattern`, forwards typed payloads and metadata, handles response data/metadata/state, and reuses reliable replay and acknowledgements. See [user events](README.md#user-events). | ✅ |
 | HTTP handler authentication | Outbound bearer/managed identity authentication is unsupported. Omit `Auth`; configured auth is rejected at startup. | ❌ |
-| Event Hubs listeners | Outbound lifecycle/user events through the Azure SDK, all matching targets, AMQP CloudEvents, user metadata and listener-only dispatch. Raw WebSocket delivery verified against the official local Event Hubs emulator; Azure-hosted delivery and metadata broker round-trips are not yet verified. See [configuration and live-test requirements](README.md#event-hubs-listeners). | ⚠️ |
+| Event Hubs listeners | Outbound lifecycle/user events through the Azure SDK, all matching targets, AMQP CloudEvents, user metadata and listener-only dispatch. Raw and protobuf delivery, including native Any and metadata, verified against the official local Event Hubs emulator; Azure-hosted delivery is not yet verified. See [configuration and live-test requirements](README.md#event-hubs-listeners). | ⚠️ |
 | REST connection operations | Authenticated connection presence, direct text, JSON, and binary sends, close, and single-connection group membership changes for GA API versions from `2021-10-01` through `2024-12-01`. | ✅ |
 | REST group operations | Authenticated group presence and text, JSON, or binary fan-out with excluded connection IDs and OData filters. | ✅ |
 | REST broadcast | Authenticated text, JSON, or binary fan-out with excluded connection IDs and OData filters. | ✅ |
@@ -54,7 +55,7 @@ The following areas are planned for follow-up changes:
 
 - Key Vault URL references
 - Tunnel connections (`tunnel://` upstream URLs)
-- Protobuf subprotocols
+- Reliable protobuf subprotocol
 - Client message streaming
 - Production Microsoft Entra ID validation
 

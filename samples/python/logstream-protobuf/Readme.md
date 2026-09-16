@@ -2,9 +2,9 @@
 
 ## Prerequisites
 
-1. [python](https://www.python.org/)
-1. [Protobuf](https://github.com/protocolbuffers/protobuf/releases/)
-1. Create an Azure Web PubSub resource
+1. [Python](https://www.python.org/) 3.11 or later
+1. A checkout of this repository (generation reads the shared protocol source)
+1. An Azure Web PubSub resource to run the application; not needed for generation or codec tests
 
 ## Setup
 
@@ -12,18 +12,34 @@
 # Create venv
 python -m venv env
 
-# Active venv
+# Activate venv (Windows PowerShell: .\env\Scripts\Activate.ps1)
 source ./env/bin/activate
 
-# pip install
-pip install -r requirements.txt
+# Install runtime and pinned generation dependencies
+python -m pip install --index-url https://packagefeedproxy.microsoft.io/pypi/simple -r requirements.txt
+
+# Required before starting the log streamer on a clean checkout
+python generate_proto.py
+
+# Offline codec verification (also regenerates the bindings)
+python -m unittest -v test_codec
 ```
 
-If you makes some changes to `proto/pubsub.proto` you need to re-generate client from `.proto` file
+Service types come only from the canonical
+[Web PubSub schema](../../../protocols/protobuf.webpubsub.azure.v1/webpubsub.v1.proto),
+with package `azure.webpubsub`. The pinned `grpcio-tools` compiler generates the Python
+module and type stubs under `generated/webpubsub/`; [stream.py](stream.py) imports
+`generated.webpubsub.v1_pb2` directly. No system `protoc` or mypy plugin is needed.
 
-```bash
-protoc --proto_path==./proto --python_out=./ --mypy_out=./ pubsub.proto
-```
+Generated files are ignored by Git. Re-run `python generate_proto.py` after updating
+the canonical schema; do not edit or copy the generated bindings. Python integers retain
+the full uint64 ID range. Tests cover join/ack IDs, optional presence, metadata, JSON,
+`Any` payloads and current stream/group-state fields without connecting to a service.
+
+CI and packaging must install [requirements.txt](requirements.txt) and run
+`python generate_proto.py` before importing the streamer. Both `unittest` and the
+existing sample CI's `pytest` discovery run generation automatically through the codec
+test setup; no workflow edit is needed for these tests.
 
 ## Start the server
 
