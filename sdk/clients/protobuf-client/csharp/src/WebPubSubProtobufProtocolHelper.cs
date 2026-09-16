@@ -35,11 +35,11 @@ internal static class WebPubSubProtobufProtocolHelper
                 {
                     error = new AckMessageError(downstreamMessage.AckMessage.Error.Name, downstreamMessage.AckMessage.Error.Message);
                 }
-                return [ new AckMessage(downstreamMessage.AckMessage.AckId, downstreamMessage.AckMessage.Success, error!) ];
+                return [ new AckMessage(ToSdkId(downstreamMessage.AckMessage.AckId, "ack_id"), downstreamMessage.AckMessage.Success, error!) ];
 
             case DownstreamMessage.MessageOneofCase.DataMessage:
                 var from = downstreamMessage.DataMessage.From;
-                long? sequenceId = downstreamMessage.DataMessage.HasSequenceId ? downstreamMessage.DataMessage.SequenceId : null;
+                long? sequenceId = downstreamMessage.DataMessage.HasSequenceId ? ToSdkId(downstreamMessage.DataMessage.SequenceId, "sequence_id") : null;
                 if (!TryParseMessageData(downstreamMessage.DataMessage.Data, out var dataType, out var binaryData))
                 {
                     throw new InvalidDataException($"Invalid data type: {downstreamMessage.DataMessage.Data.DataCase}");
@@ -81,14 +81,14 @@ internal static class WebPubSubProtobufProtocolHelper
         switch (message)
         {
             case SequenceAckMessage sequenceAck:
-                new UpstreamMessage { SequenceAckMessage = new UpstreamMessage.Types.SequenceAckMessage { SequenceId = sequenceAck.SequenceId } }.WriteTo(output);
+                new UpstreamMessage { SequenceAckMessage = new UpstreamMessage.Types.SequenceAckMessage { SequenceId = ToProtobufId(sequenceAck.SequenceId, nameof(sequenceAck.SequenceId)) } }.WriteTo(output);
                 break;
 
             case JoinGroupMessage joinGroupMessage:
                 var joinGroup = new UpstreamMessage.Types.JoinGroupMessage { Group = joinGroupMessage.Group };
                 if (joinGroupMessage.AckId.HasValue)
                 {
-                    joinGroup.AckId = joinGroupMessage.AckId.Value;
+                    joinGroup.AckId = ToProtobufId(joinGroupMessage.AckId.Value, nameof(joinGroupMessage.AckId));
                 }
                 new UpstreamMessage { JoinGroupMessage = joinGroup}.WriteTo(output);
                 break;
@@ -96,7 +96,7 @@ internal static class WebPubSubProtobufProtocolHelper
                 var leaveGroup = new UpstreamMessage.Types.LeaveGroupMessage { Group = leaveGroupMessage.Group };
                 if (leaveGroupMessage.AckId.HasValue)
                 {
-                    leaveGroup.AckId = leaveGroupMessage.AckId.Value;
+                    leaveGroup.AckId = ToProtobufId(leaveGroupMessage.AckId.Value, nameof(leaveGroupMessage.AckId));
                 }
                 new UpstreamMessage { LeaveGroupMessage = leaveGroup}.WriteTo(output);
                 break;
@@ -104,7 +104,7 @@ internal static class WebPubSubProtobufProtocolHelper
                 var groupMessage = new UpstreamMessage.Types.SendToGroupMessage { Group = sendToGroupMessage.Group, NoEcho = sendToGroupMessage.NoEcho };
                 if (sendToGroupMessage.AckId.HasValue)
                 {
-                    groupMessage.AckId = sendToGroupMessage.AckId.Value;
+                    groupMessage.AckId = ToProtobufId(sendToGroupMessage.AckId.Value, nameof(sendToGroupMessage.AckId));
                 }
                 groupMessage.Data = WriteData(sendToGroupMessage.DataType, sendToGroupMessage.Data);
                 new UpstreamMessage {  SendToGroupMessage= groupMessage}.WriteTo(output);
@@ -113,12 +113,32 @@ internal static class WebPubSubProtobufProtocolHelper
                 var eventMessage = new UpstreamMessage.Types.EventMessage { Event = sendEventMessage.EventName};
                 if (sendEventMessage.AckId.HasValue)
                 {
-                    eventMessage.AckId = sendEventMessage.AckId.Value;
+                    eventMessage.AckId = ToProtobufId(sendEventMessage.AckId.Value, nameof(sendEventMessage.AckId));
                 }
                 eventMessage.Data = WriteData(sendEventMessage.DataType, sendEventMessage.Data);
                 new UpstreamMessage { EventMessage = eventMessage }.WriteTo(output);
                 break;
         }
+    }
+
+    private static ulong ToProtobufId(long value, string paramName)
+    {
+        if (value < 0)
+        {
+            throw new ArgumentOutOfRangeException(paramName, value, "Protobuf IDs must be non-negative.");
+        }
+
+        return (ulong)value;
+    }
+
+    private static long ToSdkId(ulong value, string fieldName)
+    {
+        if (value > (ulong)long.MaxValue)
+        {
+            throw new InvalidDataException($"Protobuf {fieldName} exceeds the SDK maximum ID of {long.MaxValue}.");
+        }
+
+        return (long)value;
     }
 
     private static bool TryParseMessageData(MessageData data, out WebPubSubDataType type, out BinaryData? binaryData)

@@ -1,4 +1,5 @@
 import WebSocketClient from './websocketclient';
+const { CameraControl, CameraControlAck } = require('./generated/video').video;
 
 export async function connect(userName, log) {
   let ws = new WebSocketClient(async function () {
@@ -40,13 +41,13 @@ export async function connect(userName, log) {
     }
 
     ws.onProtobufData = any => {
-      let type = any.getTypeName();
+      let type = any.type_url.split('/').pop();
       if (type == 'video.CameraControl') {
-        let controlData = any.unpack(proto.video.CameraControl.deserializeBinary, 'video.CameraControl');
-        app.receiveCall(data.client, controlData.getSender(), controlData.getReciver());
+        let controlData = CameraControl.decode(any.value);
+        app.receiveCall(data.client, controlData.sender, controlData.reciver);
       } else if (type == 'video.CameraControlAck') {
-        let ackData = any.unpack(proto.video.CameraControlAck.deserializeBinary, 'video.CameraControlAck');
-        app.receiveAck(data.client, ackData.getApproved(), ackData.getSender(), ackData.getReciver());
+        let ackData = CameraControlAck.decode(any.value);
+        app.receiveAck(data.client, ackData.approved, ackData.sender, ackData.reciver);
       }
     }
 
@@ -82,18 +83,13 @@ export async function shareVideo(ws, receiver, log) {
 export async function callRequest(ws, user, receiver, log) {
   const receiverGroup = `${receiver}_control`
 
-  const request = new proto.video.CameraControl();
-  request.setSender(user);
-  request.setReciver(receiver);
-  ws.sendProtobufData(receiverGroup, request.serializeBinary(), 'video.CameraControl')
+  const request = CameraControl.create({ sender: user, reciver: receiver });
+  ws.sendProtobufData(receiverGroup, CameraControl.encode(request).finish(), 'video.CameraControl')
 }
 
 export async function ackRequest(ws, approved, user, receiver, log) {
   const receiverGroup = `${receiver}_control`
 
-  const request = new proto.video.CameraControlAck();
-  request.setSender(user);
-  request.setReciver(receiver);
-  request.setApproved(approved);
-  ws.sendProtobufData(receiverGroup, request.serializeBinary(), 'video.CameraControlAck')
+  const request = CameraControlAck.create({ sender: user, reciver: receiver, approved });
+  ws.sendProtobufData(receiverGroup, CameraControlAck.encode(request).finish(), 'video.CameraControlAck')
 }
