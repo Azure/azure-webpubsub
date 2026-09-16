@@ -200,7 +200,8 @@ public class HttpUpstreamTriggerTests
             var gate = Queue(false);
             clock.Advance(TimeSpan.FromMilliseconds(1));
             Assert.False(await Validate());
-            await attempts.Reader.ReadAsync().AsTask().WaitAsync(TestTimeout);
+            // A refresh can publish its result before its task is marked completed.
+            await WaitForAttemptAsync(Validate, attempts.Reader);
             var reads = clock.ReadCount;
             gate.SetResult();
             await clock.WaitForReadAsync(reads);
@@ -264,6 +265,19 @@ public class HttpUpstreamTriggerTests
         while (await validate() != expected)
         {
             timeout.Token.ThrowIfCancellationRequested();
+            await Task.Yield();
+        }
+    }
+
+    private static async Task WaitForAttemptAsync(
+        Func<Task<bool>> validate,
+        ChannelReader<bool> attempts)
+    {
+        using var timeout = new CancellationTokenSource(TestTimeout);
+        while (!attempts.TryRead(out _))
+        {
+            timeout.Token.ThrowIfCancellationRequested();
+            await validate();
             await Task.Yield();
         }
     }

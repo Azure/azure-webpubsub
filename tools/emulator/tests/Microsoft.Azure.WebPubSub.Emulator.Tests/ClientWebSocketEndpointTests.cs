@@ -439,13 +439,31 @@ public class ClientWebSocketEndpointTests
         string? query = null,
         string? subprotocol = null)
     {
-        var uri = CreateClientUri(roles, groups, query);
+        var userId = Guid.NewGuid().ToString("N");
+        var uri = CreateClientUri(roles, groups, query, userId);
         var client = application.GetTestServer().CreateWebSocketClient();
         if (subprotocol is not null)
         {
             client.SubProtocols.Add(subprotocol);
         }
-        return await client.ConnectAsync(uri, CancellationToken.None).WaitAsync(TestTimeout);
+        var socket = await client.ConnectAsync(uri, CancellationToken.None).WaitAsync(TestTimeout);
+        try
+        {
+            // The HTTP upgrade can finish before the server activates token group membership.
+            var manager = application.Services.GetRequiredService<ConnectionManager>();
+            using var timeout = new CancellationTokenSource(TestTimeout);
+            while (!manager.UserExists(Hub, userId))
+            {
+                timeout.Token.ThrowIfCancellationRequested();
+                await Task.Yield();
+            }
+            return socket;
+        }
+        catch
+        {
+            socket.Dispose();
+            throw;
+        }
     }
 
     private static async Task<JsonDocument> ReceiveJsonAsync(WebSocket webSocket)
@@ -461,9 +479,10 @@ public class ClientWebSocketEndpointTests
     private static Uri CreateClientUri(
         IEnumerable<string>? roles = null,
         IEnumerable<string>? groups = null,
-        string? query = null)
+        string? query = null,
+        string? userId = null)
     {
-        var token = CreateToken(roles ?? [], groups ?? []);
+        var token = CreateToken(roles ?? [], groups ?? [], userId);
         var uri = $"ws://localhost/client/hubs/{Hub}?access_token={Uri.EscapeDataString(token)}";
         if (!string.IsNullOrEmpty(query))
         {
@@ -484,11 +503,16 @@ public class ClientWebSocketEndpointTests
 
     private static string CreateToken(
         IEnumerable<string> roles,
-        IEnumerable<string> groups)
+        IEnumerable<string> groups,
+        string? userId = null)
     {
         var claims = roles
             .Select(role => new Claim("role", role))
             .Concat(groups.Select(group => new Claim("webpubsub.group", group)));
+        if (userId is not null)
+        {
+            claims = claims.Append(new Claim("sub", userId));
+        }
         var token = new JwtSecurityToken(
             audience: $"http://localhost{WebPubSubTokenService.ClientPathPrefix}{Hub}",
             claims: claims,

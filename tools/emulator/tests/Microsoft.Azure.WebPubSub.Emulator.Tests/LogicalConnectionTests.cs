@@ -501,7 +501,7 @@ public class LogicalConnectionTests
             EmulatorApplication.CreateBuilder(
                 runtimeOptions: new EmulatorRuntimeOptions
                 {
-                    ReconnectTimeout = TimeSpan.FromMilliseconds(50),
+                    ReconnectTimeout = TestTimeout,
                 }));
         var manager = application.Services.GetRequiredService<ConnectionManager>();
         var connection = CreateConnection(manager, "connection", reliable: true);
@@ -516,10 +516,14 @@ public class LogicalConnectionTests
             new TestWebSocket(),
             TestClientPayloadProcessor.Instance,
             CancellationToken.None);
-        await Task.Delay(250);
 
         Assert.NotNull(recovered);
+        Assert.False(connection.TryExpire(generation: 1));
         Assert.True(manager.TryGet(connection.Hub, connection.ConnectionId, out _));
+
+        connection.Detach(recovered);
+        Assert.False(connection.TryExpire(generation: 1));
+        Assert.True(connection.TryExpire(generation: 2));
     }
 
     [Fact]
