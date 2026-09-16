@@ -128,7 +128,7 @@ internal sealed class ClientWebSocketEndpoint
             upstreamContext,
             user,
             simpleWebSocketMode,
-            WebPubSubJsonV1PayloadProcessor.IsReliableSubprotocol(selectedSubprotocol));
+            ClientPayloadProcessorFactory.IsReliableSubprotocol(selectedSubprotocol));
         var processor = _payloadProcessorFactory.Get(selectedSubprotocol);
 
         using var webSocket = await context.WebSockets.AcceptWebSocketAsync(selectedSubprotocol);

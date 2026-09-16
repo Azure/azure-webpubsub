@@ -110,7 +110,6 @@ public class ClientWebSocketEndpointTests
 
     [Theory]
     [InlineData("custom.protocol")]
-    [InlineData("protobuf.reliable.webpubsub.azure.v1")]
     public async Task UnsupportedSubprotocolIsNotSelected(string subprotocol)
     {
         await using var application = await StartApplicationAsync();

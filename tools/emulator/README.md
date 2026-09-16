@@ -272,8 +272,17 @@ Metadata-only protobuf events require a nonempty metadata map; explicitly select
 binary data is also valid. Existing REST text/JSON/binary sends can target protobuf clients;
 REST `application/x-protobuf` input remains unsupported.
 
-Reliable protobuf, invocation and streaming are not enabled by this slice. Unsupported streaming
-requests are rejected rather than dispatched as ordinary messages. Reliable JSON is unchanged.
+For recovery, negotiate `protobuf.reliable.webpubsub.azure.v1`. The binary connected message
+includes a `reconnection_token`; reconnect with `awps_connection_id` and
+`awps_reconnection_token` on the same hub, using the original subprotocol. Like reliable JSON,
+the emulator retains the connection for 30 seconds after an unexpected disconnect, preserving
+groups and acknowledgement IDs. Unacknowledged data is replayed in sequence order, including
+metadata and native Any payloads. Send `sequence_ack_message` with the last received
+`sequence_id` to release buffered messages through that ID. Recovery requires the same running
+emulator process and keeps the original protocol rather than switching to a newly offered one.
+
+Invocation and streaming remain unsupported. Unsupported streaming requests are rejected rather
+than dispatched as ordinary messages. Reliable JSON is unchanged.
 
 ## Event Hubs listeners
 

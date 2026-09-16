@@ -1,7 +1,7 @@
 # Supported Features and Gaps
 
-The current implementation provides raw WebSocket, JSON, reliable JSON, and ordinary protobuf client endpoints for
-local Azure Web PubSub development.
+The current implementation provides raw WebSocket, JSON, and protobuf client endpoints, including
+reliable JSON and reliable protobuf, for local Azure Web PubSub development.
 
 ## Current support
 
@@ -15,6 +15,7 @@ local Azure Web PubSub development.
 | JSON WebSocket | Supports `json.webpubsub.azure.v1` negotiation, connection messages, group operations, acknowledgements, ping, metadata, and message TTL validation. | ✅ |
 | Protobuf WebSocket | Supports `protobuf.webpubsub.azure.v1` with binary envelopes, group operations, acknowledgements, ping, metadata, TTL validation and native Any payloads. Shares HTTP handlers and listeners with JSON clients. See [scope](README.md#protobuf-clients). | ✅ |
 | Reliable JSON WebSocket | Supports `json.reliable.webpubsub.azure.v1`, scoped reconnection tokens, 30-second local recovery, ordered replay, and `sequenceAck`. | ✅ |
+| Reliable Protobuf WebSocket | Supports `protobuf.reliable.webpubsub.azure.v1` with the same local recovery, group/acknowledgement state retention, ordered binary replay and cumulative `sequence_ack_message`. See [scope](README.md#protobuf-clients). | ✅ |
 | Connection state | Tracks active connections and temporarily retains reliable logical connections after unexpected disconnects. | ✅ |
 | Groups and roles | Supports connection-scoped token groups and authorized join, leave, and group send, including wildcard roles. | ✅ |
 | Outbound delivery | Uses a bounded, single-writer queue for each WebSocket connection. | ✅ |
@@ -55,7 +56,6 @@ The following areas are planned for follow-up changes:
 
 - Key Vault URL references
 - Tunnel connections (`tunnel://` upstream URLs)
-- Reliable protobuf subprotocol
 - Client message streaming
 - Production Microsoft Entra ID validation
 

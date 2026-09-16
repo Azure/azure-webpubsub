@@ -8,6 +8,7 @@ namespace Microsoft.Azure.WebPubSub.Emulator;
 internal sealed class WebPubSubProtobufV1PayloadProcessor : WebPubSubSubprotocolPayloadProcessor
 {
     public const string SubprotocolName = WebPubSubProtobufV1Protocol.SubprotocolName;
+    public const string ReliableSubprotocolName = "protobuf.reliable.webpubsub.azure.v1";
 
     public WebPubSubProtobufV1PayloadProcessor(
         ConnectionManager connections,
@@ -21,9 +22,15 @@ internal sealed class WebPubSubProtobufV1PayloadProcessor : WebPubSubSubprotocol
 
     public static bool IsSupportedSubprotocol(string? subprotocol)
     {
+        return string.Equals(subprotocol, SubprotocolName, StringComparison.OrdinalIgnoreCase) ||
+            IsReliableSubprotocol(subprotocol);
+    }
+
+    public static bool IsReliableSubprotocol(string? subprotocol)
+    {
         return string.Equals(
             subprotocol,
-            SubprotocolName,
+            ReliableSubprotocolName,
             StringComparison.OrdinalIgnoreCase);
     }
 }
