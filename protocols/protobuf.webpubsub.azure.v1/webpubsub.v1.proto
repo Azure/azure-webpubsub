@@ -1,5 +1,9 @@
 syntax = "proto3";
 
+option csharp_namespace = "Azure.Messaging.WebPubSub.Client.Protobuf";
+
+package azure.webpubsub;
+
 import "google/protobuf/any.proto";
 
 message UpstreamMessage {
@@ -8,35 +12,99 @@ message UpstreamMessage {
         EventMessage event_message = 5;
         JoinGroupMessage join_group_message = 6;
         LeaveGroupMessage leave_group_message = 7;
+        SequenceAckMessage sequence_ack_message = 8;
+        PingMessage ping_message = 9;
+        InvokeEventMessage invoke_event_message = 10;
+        CancelInvocationMessage cancel_invocation_message = 11;
+        StreamDataMessage stream_data_message = 13;
+        StreamEndMessage stream_end_message = 14;
+        SetGroupStateMessage set_group_state_message = 15;
+        SubscribeGroupStateMessage subscribe_group_state_message = 16;
+        UnsubscribeGroupStateMessage unsubscribe_group_state_message = 17;
     }
 
     message SendToGroupMessage {
         string group = 1;
-        optional int32 ack_id = 2;
+        optional uint64 ack_id = 2;
         MessageData data = 3;
+        optional bool no_echo = 4;
+        optional uint32 ttl_seconds = 5;
+        map<string, string> metadata = 6;
+        StreamStartInfo stream = 7;
     }
 
     message EventMessage {
         string event = 1;
         MessageData data = 2;
+        optional uint64 ack_id = 3;
+        map<string, string> metadata = 4;
+        StreamStartInfo stream = 5;
     }
-    
+
     message JoinGroupMessage {
         string group = 1;
-        optional int32 ack_id = 2;
+        optional uint64 ack_id = 2;
     }
 
     message LeaveGroupMessage {
         string group = 1;
-        optional int32 ack_id = 2;
+        optional uint64 ack_id = 2;
     }
-}
 
-message MessageData {
-    oneof data {
-        string text_data = 1;
-        bytes binary_data = 2;
-        google.protobuf.Any protobuf_data = 3;
+    message SequenceAckMessage {
+        uint64 sequence_id = 1;
+    }
+
+    message PingMessage {
+    }
+
+    message InvokeEventMessage {
+        string event = 1;
+        string invocation_id = 2;
+        MessageData data = 3;
+        map<string, string> metadata = 4;
+        StreamStartInfo stream = 5;
+    }
+
+    message CancelInvocationMessage {
+        string invocation_id = 1;
+    }
+
+    message StreamStartInfo {
+        string stream_id = 1;
+        optional uint32 idle_timeout_ms = 2;
+    }
+
+    message StreamDataMessage {
+        string stream_id = 1;
+        optional uint64 stream_sequence_id = 2;
+        optional MessageData data = 3;
+    }
+
+    message StreamEndMessage {
+        string stream_id = 1;
+        optional StreamEndError error = 2;
+
+        message StreamEndError {
+            optional string message = 1;
+            optional string user_error_code = 2;
+        }
+    }
+
+    message SetGroupStateMessage {
+        string group = 1;
+        optional uint64 ack_id = 2;
+        optional GroupStateItem.GroupState state = 3;
+    }
+
+    message SubscribeGroupStateMessage {
+        string group = 1;
+        optional uint64 ack_id = 2;
+    }
+
+    message UnsubscribeGroupStateMessage {
+        string group = 1;
+        optional uint64 ack_id = 2;
     }
 }
 
@@ -45,13 +113,20 @@ message DownstreamMessage {
         AckMessage ack_message = 1;
         DataMessage data_message = 2;
         SystemMessage system_message = 3;
+        PongMessage pong_message = 4;
+        InvokeResponseMessage invoke_response_message = 5;
+        StreamAckMessage stream_ack_message = 6;
+        StreamNackMessage stream_nack_message = 7;
+        StreamClosedMessage stream_closed_message = 8;
+        GroupStateUpdateMessage group_state_update_message = 9;
+        GroupStateSnapshotMessage group_state_snapshot_message = 10;
     }
-    
+
     message AckMessage {
-        int32 ack_id = 1;
+        uint64 ack_id = 1;
         bool success = 2;
         optional ErrorMessage error = 3;
-    
+
         message ErrorMessage {
             string name = 1;
             string message = 2;
@@ -62,6 +137,9 @@ message DownstreamMessage {
         string from = 1;
         optional string group = 2;
         MessageData data = 3;
+        optional uint64 sequence_id = 4;
+        map<string, string> metadata = 5;
+        optional StreamInfo stream = 6;
     }
 
     message SystemMessage {
@@ -69,15 +147,99 @@ message DownstreamMessage {
             ConnectedMessage connected_message = 1;
             DisconnectedMessage disconnected_message = 2;
         }
-    
+
         message ConnectedMessage {
             string connection_id = 1;
             string user_id = 2;
+            optional string reconnection_token = 3;
         }
 
         message DisconnectedMessage {
             string reason = 2;
         }
+    }
+
+    message PongMessage {
+    }
+
+    message InvokeResponseMessage {
+        string invocation_id = 1;
+        bool success = 2;
+        optional MessageData data = 3;
+        optional ErrorMessage error = 4;
+        map<string, string> metadata = 5;
+        message ErrorMessage {
+            string name = 1;
+            string message = 2;
+        }
+
+    }
+
+    message StreamAckMessage {
+        string stream_id = 1;
+        uint64 expected_sequence_id = 2;
+    }
+
+    message StreamNackMessage {
+        string stream_id = 1;
+        string name = 2;
+        string message = 3;
+        uint64 expected_sequence_id = 4;
+    }
+
+    message StreamClosedMessage {
+        string stream_id = 1;
+        optional StreamClosedError error = 2;
+
+        message StreamClosedError {
+            string name = 1;
+            string message = 2;
+        }
+    }
+
+    message GroupStateSnapshotMessage {
+        string group = 1;
+        repeated GroupStateItem items = 2;
+        optional uint64 sequence_id = 3;
+    }
+
+    message GroupStateUpdateMessage {
+        string group = 1;
+        repeated GroupStateItem items = 2;
+        optional uint64 sequence_id = 3;
+    }
+}
+
+message MessageData {
+    oneof data {
+        string text_data = 1;
+        bytes binary_data = 2;
+        google.protobuf.Any protobuf_data = 3;
+        string json_data = 4;
+    }
+}
+
+message GroupStateItem {
+    string connection_id = 1;
+    optional string user_id = 2;
+    optional GroupState state = 3;
+    int64 updated_at = 4;
+
+    message GroupState {
+        map<string, string> entries = 1;
+    }
+}
+
+message StreamInfo {
+    string stream_id = 1;
+    uint64 stream_sequence_id = 2;
+    optional bool end_of_stream = 3;
+    optional StreamError error = 4;
+
+    message StreamError {
+        string name = 1;
+        string message = 2;
+        string user_error_code = 3;
     }
 }
 

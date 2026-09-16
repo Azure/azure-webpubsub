@@ -12,9 +12,6 @@
   </PropertyGroup>
   
   <ItemGroup>
-    <None Remove="Protos\webpubsub.client.proto" />
-  </ItemGroup>
-  <ItemGroup>
     <PackageReference Include="System.Threading.Channels" Version="10.0.12" />
     <PackageReference Include="Azure.Messaging.WebPubSub.Client" Version="1.0.0"/>
     <PackageReference Include="Google.Protobuf" Version="3.36.1" />
@@ -25,6 +22,9 @@
   </ItemGroup>
   
   <ItemGroup>
-    <Protobuf Include="Protos\webpubsub.client.proto" />
+    <Protobuf Include="..\..\..\..\..\protocols\protobuf.webpubsub.azure.v1\webpubsub.v1.proto"
+              ProtoRoot="..\..\..\..\..\protocols\protobuf.webpubsub.azure.v1"
+              Link="Protos\webpubsub.v1.proto"
+              GrpcServices="None" />
   </ItemGroup>
 </Project>

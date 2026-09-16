@@ -1,4 +1,4 @@
-var pb = require('./proto/pubsub_pb');
+const { UpstreamMessage, DownstreamMessage } = require('./generated/webpubsub').azure.webpubsub;
 
 function WebSocketClient(urlFactory, userName, reconnectInterval, log) {
   this._userName = userName;
@@ -17,14 +17,13 @@ WebSocketClient.prototype.connect = async function () {
   ws.onopen = () => {
     this._log('WebSocket connected');
 
-    var upstreamMessage = new proto.video.UpstreamMessage();
-    var joinGroupMessage = new proto.video.UpstreamMessage.JoinGroupMessage();
-    joinGroupMessage.setGroup(`${this._userName}_control`);
-    upstreamMessage.setJoinGroupMessage(joinGroupMessage);
-    this._webSocket.send(upstreamMessage.serializeBinary());
+    var upstreamMessage = UpstreamMessage.create({
+      joinGroupMessage: { group: `${this._userName}_control` }
+    });
+    this._webSocket.send(UpstreamMessage.encode(upstreamMessage).finish());
 
-    joinGroupMessage.setGroup(`${this._userName}_data`);
-    this._webSocket.send(upstreamMessage.serializeBinary());
+    upstreamMessage.joinGroupMessage.group = `${this._userName}_data`;
+    this._webSocket.send(UpstreamMessage.encode(upstreamMessage).finish());
     if (this.onopen) this.onopen();
   };
 
@@ -39,15 +38,14 @@ WebSocketClient.prototype.connect = async function () {
 
   ws.onmessage = async message => {
     var d = await message.data.arrayBuffer()
-    let downstreamMessage = proto.video.DownstreamMessage.deserializeBinary(d);
-    if (downstreamMessage.hasDataMessage()) {
-      let dataMessage = downstreamMessage.getDataMessage();
-      if (dataMessage.hasData()) {
-        let data = dataMessage.getData();
-        if (data.hasBinaryData() && this.onData) {
-          this.onData(data.getBinaryData());
-        } else if (data.hasProtobufData() && this.onProtobufData) {
-          this.onProtobufData(data.getProtobufData())
+    let downstreamMessage = DownstreamMessage.decode(new Uint8Array(d));
+    if (downstreamMessage.dataMessage) {
+      let data = downstreamMessage.dataMessage.data;
+      if (data) {
+        if (data.data === 'binaryData' && this.onData) {
+          this.onData(data.binaryData);
+        } else if (data.data === 'protobufData' && this.onProtobufData) {
+          this.onProtobufData(data.protobufData)
         }
       }
     }
@@ -55,34 +53,20 @@ WebSocketClient.prototype.connect = async function () {
 }
 
 WebSocketClient.prototype.sendData = function (group, data) {
-  const messageData = new proto.video.MessageData();
-  messageData.setBinaryData(data)
-
-  const sendToGroupMessage = new proto.video.UpstreamMessage.SendToGroupMessage();
-  sendToGroupMessage.setGroup(group);
-  sendToGroupMessage.setData(messageData)
-
-  const upstreamMessage = new proto.video.UpstreamMessage();
-  upstreamMessage.setSendToGroupMessage(sendToGroupMessage)
-
-  this._webSocket.send(upstreamMessage.serializeBinary());
+  const upstreamMessage = UpstreamMessage.create({
+    sendToGroupMessage: { group, data: { binaryData: new Uint8Array(data) } }
+  });
+  this._webSocket.send(UpstreamMessage.encode(upstreamMessage).finish());
 }
 
 WebSocketClient.prototype.sendProtobufData = function (group, data, typeName) {
-  const any = new proto.google.protobuf.Any();
-  any.pack(data, typeName)
-
-  const messageData = new proto.video.MessageData();
-  messageData.setProtobufData(any)
-
-  const sendToGroupMessage = new proto.video.UpstreamMessage.SendToGroupMessage();
-  sendToGroupMessage.setGroup(group);
-  sendToGroupMessage.setData(messageData)
-
-  const upstreamMessage = new proto.video.UpstreamMessage();
-  upstreamMessage.setSendToGroupMessage(sendToGroupMessage)
-
-  this._webSocket.send(upstreamMessage.serializeBinary());
+  const upstreamMessage = UpstreamMessage.create({
+    sendToGroupMessage: {
+      group,
+      data: { protobufData: { type_url: `type.googleapis.com/${typeName}`, value: data } }
+    }
+  });
+  this._webSocket.send(UpstreamMessage.encode(upstreamMessage).finish());
 }
 
 export default WebSocketClient;

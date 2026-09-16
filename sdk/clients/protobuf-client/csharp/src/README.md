@@ -4,6 +4,28 @@
 
 You can use this library to add protobuf subprotocols including `protobuf.reliable.webpubsub.azure.v1` and `protobuf.webpubsub.azure.v1` support to the Azure.Messaging.WebPubSub.Client library.
 
+## Schema source and compatibility
+
+The [canonical wire schema](../../../../../protocols/protobuf.webpubsub.azure.v1/webpubsub.v1.proto)
+is the single source for this client's generated messages. Update that schema rather
+than keeping a client-local copy. The project references it directly with `ProtoRoot`
+and `Link`, generates messages only (`GrpcServices="None"`), and resolves
+`google.protobuf.Any` through the standard includes supplied by `Grpc.Tools`.
+
+- The generated namespace remains `Azure.Messaging.WebPubSub.Client.Protobuf`.
+    Generated acknowledgment and sequence ID properties change from `long` to `ulong`
+    to match the wire's `uint64` fields. The renamed schema changes the public reflection
+    class from `WebpubsubClientReflection` to `WebpubsubV1Reflection`. These are intentional
+    breaking changes for consumers using generated types or descriptors directly.
+- The high-level SDK APIs still use `long` / `long?`. Both protocol variants accept IDs
+    from `0` through `long.MaxValue`; an omitted optional ID remains omitted. Negative
+    outgoing IDs throw `ArgumentOutOfRangeException`. Incoming acknowledgment or data
+    sequence IDs above `long.MaxValue` throw `InvalidDataException`, rather than wrapping.
+    Generated messages themselves support the full `ulong` range.
+- Schema declarations for metadata, TTL, ping/pong, invocation, group state, and
+    streaming do not add high-level client support for those features. Existing message
+    handling is unchanged, including the legacy encoding of outgoing JSON as text data.
+
 ## Usage
 
 ### Create a client connection with protobuf protocol
