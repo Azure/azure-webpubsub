@@ -13,13 +13,14 @@ using System.Threading.Tasks;
 using Azure.Identity;
 using Azure.Messaging.EventHubs;
 using Azure.Messaging.EventHubs.Consumer;
+using Azure.Messaging.WebPubSub.Client.Protobuf;
 using Google.Protobuf;
 using Google.Protobuf.WellKnownTypes;
-using Microsoft.Azure.WebPubSub.Emulator.Protobuf;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using Microsoft.IdentityModel.Tokens;
 using Xunit;
+using ProtoData = Azure.Messaging.WebPubSub.Client.Protobuf.MessageData;
 
 namespace Microsoft.Azure.WebPubSub.Emulator.Tests;
 
@@ -70,7 +71,7 @@ public class EventHubLiveTests
             await socket.SendAsync(new UpstreamMessage { EventMessage = new UpstreamMessage.Types.EventMessage
             {
                 Event = "message", AckId = 1,
-                Data = new Protobuf.MessageData { ProtobufData = Any.Parser.ParseFrom(body) },
+                Data = new ProtoData { ProtobufData = Any.Parser.ParseFrom(body) },
                 Metadata = { ["TraceId"] = "first", ["traceid"] = "last", ["Tag"] = "", ["Values"] = " alpha, beta " },
             } }.ToByteArray(), WebSocketMessageType.Binary, true, timeout.Token);
             var ack = (await ReadClientAsync()).AckMessage;

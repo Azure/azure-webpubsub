@@ -36,7 +36,10 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Protobuf Include="Protos/*.proto" GrpcServices="None" Access="Internal" />
+    <Protobuf Include="../../../../protocols/protobuf.webpubsub.azure.v1/webpubsub.v1.proto"
+          ProtoRoot="../../../../protocols/protobuf.webpubsub.azure.v1"
+          Link="Protos/webpubsub.v1.proto"
+          GrpcServices="None" Access="Internal" />
   </ItemGroup>
 
   <ItemGroup>

@@ -10,14 +10,14 @@ using System.Threading;
 using System.Threading.Tasks;
 using Azure.Core;
 using Azure.Messaging.WebPubSub;
+using Azure.Messaging.WebPubSub.Client.Protobuf;
 using Google.Protobuf;
 using Google.Protobuf.WellKnownTypes;
 using Microsoft.AspNetCore.Http;
-using Microsoft.Azure.WebPubSub.Emulator.Protobuf;
 using Xunit;
 using Fixture = Microsoft.Azure.WebPubSub.Emulator.Tests.UpstreamUserEventTests.Fixture;
-using ProtoData = Microsoft.Azure.WebPubSub.Emulator.Protobuf.MessageData;
-using static Microsoft.Azure.WebPubSub.Emulator.Protobuf.UpstreamMessage.Types;
+using ProtoData = Azure.Messaging.WebPubSub.Client.Protobuf.MessageData;
+using static Azure.Messaging.WebPubSub.Client.Protobuf.UpstreamMessage.Types;
 
 namespace Microsoft.Azure.WebPubSub.Emulator.Tests;
 

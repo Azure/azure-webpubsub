@@ -3,12 +3,12 @@
 
 using System.Net.WebSockets;
 using System.Text;
+using Azure.Messaging.WebPubSub.Client.Protobuf;
 using Google.Protobuf;
 using Google.Protobuf.WellKnownTypes;
-using Microsoft.Azure.WebPubSub.Emulator.Protobuf;
-using ProtoMessageData = Microsoft.Azure.WebPubSub.Emulator.Protobuf.MessageData;
-using static Microsoft.Azure.WebPubSub.Emulator.Protobuf.DownstreamMessage.Types;
-using static Microsoft.Azure.WebPubSub.Emulator.Protobuf.DownstreamMessage.Types.SystemMessage.Types;
+using ProtoMessageData = Azure.Messaging.WebPubSub.Client.Protobuf.MessageData;
+using static Azure.Messaging.WebPubSub.Client.Protobuf.DownstreamMessage.Types;
+using static Azure.Messaging.WebPubSub.Client.Protobuf.DownstreamMessage.Types.SystemMessage.Types;
 
 namespace Microsoft.Azure.WebPubSub.Emulator;
 

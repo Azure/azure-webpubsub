@@ -4,17 +4,36 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using Azure.Messaging.WebPubSub.Client.Protobuf;
 using Google.Protobuf;
-using Microsoft.Azure.WebPubSub.Emulator.Protobuf;
 using Xunit;
-using ProtoData = Microsoft.Azure.WebPubSub.Emulator.Protobuf.MessageData;
-using static Microsoft.Azure.WebPubSub.Emulator.Protobuf.UpstreamMessage.Types;
+using ProtoData = Azure.Messaging.WebPubSub.Client.Protobuf.MessageData;
+using static Azure.Messaging.WebPubSub.Client.Protobuf.UpstreamMessage.Types;
 
 namespace Microsoft.Azure.WebPubSub.Emulator.Tests;
 
 public class WebPubSubProtobufV1ProtocolTests
 {
     private readonly WebPubSubProtobufV1Protocol _protocol = new();
+
+    [Fact]
+    public void CanonicalSchemaTypesRemainInternalAndDeferredOperationsAreRejected()
+    {
+        Assert.Equal("webpubsub.v1.proto", UpstreamMessage.Descriptor.File.Name);
+        Assert.False(typeof(UpstreamMessage).IsPublic);
+        Assert.False(typeof(DownstreamMessage).IsPublic);
+        foreach (var field in UpstreamMessage.Descriptor.Fields.InFieldNumberOrder())
+        {
+            if (field.FieldNumber < 10)
+            {
+                continue;
+            }
+
+            var message = new UpstreamMessage();
+            field.Accessor.SetValue(message, field.MessageType.Parser.ParseFrom(Array.Empty<byte>()));
+            Assert.Throws<InvalidDataException>(() => _protocol.ParseMessage(message.ToByteArray()));
+        }
+    }
 
     [Fact]
     public void MetadataOnlyRequiresNonemptyMetadataAndPreservesCasing()
