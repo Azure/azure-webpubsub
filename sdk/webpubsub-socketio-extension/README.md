@@ -156,6 +156,8 @@ The transport regressions run against both the lockfile's Engine.IO version and 
 minimum version, 6.6.0, using a test-only package alias. Both runs use the production transport
 and real Engine.IO Socket; the minimum-version project maps the extension's Engine.IO imports
 as well as the test's imports to that alias.
+The alias uses the already-locked patched `ws` version instead of Engine.IO 6.6.0's
+vulnerable historical `ws` dependency; Engine.IO itself remains exactly 6.6.0.
 Pull requests run this credential-free check; pushes to `main` also run the live suite
 with the configured CI secret.
 
