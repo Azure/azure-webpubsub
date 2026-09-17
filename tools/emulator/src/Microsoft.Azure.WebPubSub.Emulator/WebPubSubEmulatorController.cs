@@ -12,7 +12,6 @@ namespace Microsoft.Azure.WebPubSub.Emulator;
 [ApiController]
 internal sealed class WebPubSubEmulatorController : WebPubSubApiControllerDefinition
 {
-    private const int MaximumMessageTtlSeconds = 300;
     private const string MetadataHeaderPrefix = "X-WebPubSub-Metadata-";
     private readonly ConnectionManager _connections;
     private readonly EmulatorRuntimeOptions _runtimeOptions;
@@ -43,7 +42,7 @@ internal sealed class WebPubSubEmulatorController : WebPubSubApiControllerDefini
             ErrorMessage = "Invalid hub name.")]
         string hub,
         [FromQuery(Name = "messageTtlSeconds")]
-        [Range(0, MaximumMessageTtlSeconds, ErrorMessage = "Invalid messageTtlSeconds.")]
+        [Range(0, Constants.Message.MaxTtlSeconds, ErrorMessage = "Invalid messageTtlSeconds.")]
         uint? messageTtlSeconds,
         [FromQuery(Name = "filter")]
         string? filter,
@@ -140,7 +139,7 @@ internal sealed class WebPubSubEmulatorController : WebPubSubApiControllerDefini
         string hub,
         [MinLength(1, ErrorMessage = "Invalid connection ID.")]
         string connectionId,
-        [Range(0, MaximumMessageTtlSeconds, ErrorMessage = "Invalid messageTtlSeconds.")]
+        [Range(0, Constants.Message.MaxTtlSeconds, ErrorMessage = "Invalid messageTtlSeconds.")]
         [FromQuery(Name = "messageTtlSeconds")]
         uint? messageTtlSeconds,
         CancellationToken cancellationToken = default)
@@ -200,7 +199,7 @@ internal sealed class WebPubSubEmulatorController : WebPubSubApiControllerDefini
         [MinLength(1, ErrorMessage = "Invalid user ID.")]
         string userId,
         [FromQuery(Name = "messageTtlSeconds")]
-        [Range(0, MaximumMessageTtlSeconds, ErrorMessage = "Invalid messageTtlSeconds.")]
+        [Range(0, Constants.Message.MaxTtlSeconds, ErrorMessage = "Invalid messageTtlSeconds.")]
         uint? messageTtlSeconds,
         [FromQuery(Name = "filter")]
         string? filter,
@@ -363,7 +362,7 @@ internal sealed class WebPubSubEmulatorController : WebPubSubApiControllerDefini
             ErrorMessage = "Invalid group name.")]
         string group,
         [FromQuery(Name = "messageTtlSeconds")]
-        [Range(0, MaximumMessageTtlSeconds, ErrorMessage = "Invalid messageTtlSeconds.")]
+        [Range(0, Constants.Message.MaxTtlSeconds, ErrorMessage = "Invalid messageTtlSeconds.")]
         uint? messageTtlSeconds,
         [FromQuery(Name = "filter")]
         string? filter,

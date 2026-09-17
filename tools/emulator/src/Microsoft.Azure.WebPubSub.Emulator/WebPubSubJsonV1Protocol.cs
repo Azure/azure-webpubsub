@@ -46,11 +46,6 @@ internal enum WebPubSubAckErrorName
 
 internal sealed partial class WebPubSubJsonV1Protocol : IWebPubSubClientDataProtocol
 {
-    private const int MaximumMessageTtlSeconds = 300;
-    private const int MaximumMetadataBytes = 8 * 1024;
-    private const int MaximumMetadataKeyBytes = 256;
-    private const int MaximumMetadataValueBytes = 1024;
-
     public string Name => "json.webpubsub.azure.v1";
 
     public WebSocketMessageType MessageType => WebSocketMessageType.Text;
@@ -330,21 +325,21 @@ internal sealed partial class WebPubSubJsonV1Protocol : IWebPubSubClientDataProt
             {
                 throw new InvalidDataException("Metadata keys and values must be ASCII.");
             }
-            if (property.Name.Length > MaximumMetadataKeyBytes)
+            if (property.Name.Length > Constants.Metadata.MaxKeyBytes)
             {
                 throw new InvalidDataException(
-                    $"Metadata key '{property.Name}' exceeds {MaximumMetadataKeyBytes} bytes.");
+                    $"Metadata key '{property.Name}' exceeds {Constants.Metadata.MaxKeyBytes} bytes.");
             }
-            if (value.Length > MaximumMetadataValueBytes)
+            if (value.Length > Constants.Metadata.MaxValueBytes)
             {
                 throw new InvalidDataException(
-                    $"Metadata value for key '{property.Name}' exceeds {MaximumMetadataValueBytes} bytes.");
+                    $"Metadata value for key '{property.Name}' exceeds {Constants.Metadata.MaxValueBytes} bytes.");
             }
 
             totalBytes += property.Name.Length + value.Length;
-            if (totalBytes > MaximumMetadataBytes)
+            if (totalBytes > Constants.Metadata.MaxTotalBytes)
             {
-                throw new InvalidDataException($"Metadata exceeds {MaximumMetadataBytes} bytes.");
+                throw new InvalidDataException($"Metadata exceeds {Constants.Metadata.MaxTotalBytes} bytes.");
             }
             if (!result.TryAdd(property.Name, value))
             {
@@ -468,10 +463,10 @@ internal sealed partial class WebPubSubJsonV1Protocol : IWebPubSubClientDataProt
         }
         if (value.ValueKind != JsonValueKind.Number ||
             !value.TryGetUInt32(out var result) ||
-            result > MaximumMessageTtlSeconds)
+            result > Constants.Message.MaxTtlSeconds)
         {
             throw new InvalidDataException(
-                "'ttlSeconds' is out of range. Allowed range is [0,300].");
+                $"'ttlSeconds' is out of range. Allowed range is [0,{Constants.Message.MaxTtlSeconds}].");
         }
         return result;
     }

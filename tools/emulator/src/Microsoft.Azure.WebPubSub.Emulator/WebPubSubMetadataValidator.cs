@@ -7,10 +7,6 @@ namespace Microsoft.Azure.WebPubSub.Emulator;
 
 internal static partial class WebPubSubMetadataValidator
 {
-    private const int MaximumTotalBytes = 8 * 1024;
-    private const int MaximumKeyBytes = 256;
-    private const int MaximumValueBytes = 1024;
-
     public static void Validate(IReadOnlyDictionary<string, string>? metadata)
     {
         if (metadata is null)
@@ -31,21 +27,21 @@ internal static partial class WebPubSubMetadataValidator
                 throw new InvalidDataException(
                     $"Metadata value for key '{item.Key}' must be ASCII.");
             }
-            if (item.Key.Length > MaximumKeyBytes)
+            if (item.Key.Length > Constants.Metadata.MaxKeyBytes)
             {
                 throw new InvalidDataException(
-                    $"Metadata key '{item.Key}' exceeds {MaximumKeyBytes} bytes.");
+                    $"Metadata key '{item.Key}' exceeds {Constants.Metadata.MaxKeyBytes} bytes.");
             }
-            if (item.Value.Length > MaximumValueBytes)
+            if (item.Value.Length > Constants.Metadata.MaxValueBytes)
             {
                 throw new InvalidDataException(
-                    $"Metadata value for key '{item.Key}' exceeds {MaximumValueBytes} bytes.");
+                    $"Metadata value for key '{item.Key}' exceeds {Constants.Metadata.MaxValueBytes} bytes.");
             }
 
             totalBytes += item.Key.Length + item.Value.Length;
-            if (totalBytes > MaximumTotalBytes)
+            if (totalBytes > Constants.Metadata.MaxTotalBytes)
             {
-                throw new InvalidDataException($"Metadata exceeds {MaximumTotalBytes} bytes.");
+                throw new InvalidDataException($"Metadata exceeds {Constants.Metadata.MaxTotalBytes} bytes.");
             }
         }
     }
