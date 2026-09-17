@@ -20,10 +20,12 @@ See the [README](README.md) for setup and configuration.
 | HTTP handlers | Accept or reject new connections, customize user IDs, roles, groups, and subprotocols, handle user events, and receive lifecycle notifications. See [handler configuration](README.md#http-lifecycle-notifications). |
 | Handler validation and retries | Validate webhook endpoints and retry eligible transient failures. Handlers must tolerate duplicate events. See [validation and retries](README.md#handler-validation-and-retries). |
 | REST messaging | Send text, JSON, or binary data to connections, users, groups, or all clients. Filter recipients with OData and exclude connection IDs where supported. |
+| Client token generation | Use `POST /api/hubs/{hub}/:generateToken` with the optional local Entra compatibility mode to generate a signed client token. See [local server SDK authentication](README.md#local-server-sdk-authentication). |
 | REST connection and group management | Check connection, user, or group presence; change group membership for connections or users; close individual connections. |
 
-REST operations support GA API versions from `2021-10-01` through `2024-12-01`.
+Implemented REST operations support GA API versions from `2021-10-01` through `2024-12-01`.
 Requests without `api-version` use the latest supported version.
+Not all service REST operations are available; see [unsupported REST operations](#unsupported-rest-operations).
 
 ## Development limits
 
@@ -77,6 +79,25 @@ user IDs, check the target against these examples:
 - Native protobuf request bodies (`application/x-protobuf`) in REST send operations. Use
 	text, JSON, or binary REST payloads; native Any payloads are supported through protobuf clients.
 - Client-certificate authentication and production Microsoft Entra ID token validation.
+- MQTT clients and MQTT client-token generation.
+
+### Unsupported REST operations
+
+The following service operations are not implemented by the emulator. Paths below are relative
+to `/api/hubs/{hub}`.
+
+| Operation | Method | Path |
+| --- | --- | --- |
+| Add connections selected by a filter to multiple groups | POST | `/:addToGroups` |
+| Remove connections selected by a filter from multiple groups | POST | `/:removeFromGroups` |
+| Close connections in a hub | POST | `/:closeConnections` |
+| Close connections in a group | POST | `/groups/{group}/:closeConnections` |
+| Close a user's connections | POST | `/users/{userId}/:closeConnections` |
+| Remove a connection from all groups | DELETE | `/connections/{connectionId}/groups` |
+| List connections in a group, including pagination | GET | `/groups/{group}/connections` |
+
+Closing individual connections and adding or removing individual connection-to-group memberships
+remain supported.
 
 ## User-event errors
 

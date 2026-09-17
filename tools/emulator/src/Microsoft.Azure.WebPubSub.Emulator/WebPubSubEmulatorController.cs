@@ -10,7 +10,7 @@ using Microsoft.AspNetCore.Mvc;
 namespace Microsoft.Azure.WebPubSub.Emulator;
 
 [ApiController]
-internal sealed class WebPubSubEmulatorController : WebPubSubApiControllerDefinition
+internal sealed partial class WebPubSubEmulatorController : WebPubSubApiControllerDefinition
 {
     private const string MetadataHeaderPrefix = "X-WebPubSub-Metadata-";
     private readonly ConnectionManager _connections;
@@ -546,7 +546,7 @@ internal sealed class WebPubSubEmulatorController : WebPubSubApiControllerDefini
         return StatusCode(statusCode, new { code, message, target = "Connection" });
     }
 
-    private bool Authorize()
+    private bool Authorize(bool requireEntraAudience = false)
     {
         var authorization = Request.Headers.Authorization.ToString();
         const string bearerPrefix = "Bearer ";
@@ -559,7 +559,7 @@ internal sealed class WebPubSubEmulatorController : WebPubSubApiControllerDefini
         var requestUri = new Uri(
             $"{Request.Scheme}://{Request.Host}{Request.PathBase}" +
             $"{Request.Path}{Request.QueryString}");
-        return _tokenService.ValidateRestToken(requestUri, token);
+        return _tokenService.ValidateRestToken(requestUri, token, requireEntraAudience);
     }
 
     private IReadOnlyDictionary<string, string>? GetMetadata()

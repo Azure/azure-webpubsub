@@ -47,9 +47,13 @@ internal sealed class WebPubSubTokenService
     {
         try
         {
+            var audience = GetClientAudience(endpoint, hub);
+            var parameters = CreateValidationParameters(audience);
+            parameters.AudienceValidator = (audiences, _, _) => audiences.Any(
+                value => string.Equals(value, audience, StringComparison.OrdinalIgnoreCase));
             return _handler.ValidateToken(
                 token,
-                CreateValidationParameters(GetClientAudience(endpoint, hub)),
+                parameters,
                 out _);
         }
         catch (Exception exception) when (exception is SecurityTokenException or ArgumentException)
@@ -59,7 +63,7 @@ internal sealed class WebPubSubTokenService
         }
     }
 
-    public bool ValidateRestToken(Uri requestUri, string token)
+    public bool ValidateRestToken(Uri requestUri, string token, bool requireEntraAudience = false)
     {
         JwtSecurityToken jwt;
         try
@@ -88,6 +92,11 @@ internal sealed class WebPubSubTokenService
             var now = DateTime.UtcNow;
             return jwt.ValidFrom <= now.AddMinutes(5) &&
                 jwt.ValidTo >= now.Subtract(TimeSpan.FromMinutes(5));
+        }
+
+        if (requireEntraAudience)
+        {
+            return false;
         }
 
         try
@@ -125,6 +134,26 @@ internal sealed class WebPubSubTokenService
         }
 
         return false;
+    }
+
+    public string IssueClientToken(
+        Uri endpoint, string hub, string? userId, IEnumerable<string> roles,
+        IEnumerable<string> groups, int minutesToExpire)
+    {
+        var claims = new List<Claim>();
+        if (!string.IsNullOrEmpty(userId))
+        {
+            claims.Add(new Claim(JwtRegisteredClaimNames.Sub, userId));
+        }
+        claims.AddRange(roles.Select(role => new Claim("role", role)));
+        claims.AddRange(groups.Select(group => new Claim("webpubsub.group", group)));
+        var now = DateTime.UtcNow;
+        return _handler.WriteToken(new JwtSecurityToken(
+            audience: GetClientAudience(endpoint, hub),
+            claims: claims,
+            notBefore: now,
+            expires: now.AddMinutes(minutesToExpire),
+            signingCredentials: new SigningCredentials(_signingKey, SecurityAlgorithms.HmacSha256)));
     }
 
     public string IssueReconnectionToken(string connectionId)
