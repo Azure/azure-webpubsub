@@ -13,6 +13,8 @@ if (Boolean(wpsOptions.hub) !== Boolean(wpsOptions.connectionString)) {
   throw new Error("Set both WebPubSubHub and WebPubSubConnectionString to run the live Socket.IO tests.");
 }
 require("./shutdown");
+require("./transport-readiness");
+require("./http-helpers");
 
 const liveTests = wpsOptions.hub && wpsOptions.connectionString ? describe : describe.skip;
 if (liveTests === describe.skip) {

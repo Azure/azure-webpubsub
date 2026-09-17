@@ -1,6 +1,13 @@
 
 # Changelog
 
+## [Unreleased]
+
+### Fixed
+
+- Resume queued direct Socket.IO messages after an asynchronous send with Engine.IO 6.6.
+- Await listener setup and cleanup in the Engine.IO protocol-violation tests.
+
 ## [2.0.0] - 2026-08-21
 
 ### Breaking Changes

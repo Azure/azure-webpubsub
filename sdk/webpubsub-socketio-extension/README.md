@@ -140,7 +140,7 @@ yarn run build
 
 ## Unit Test
 
-After building both libraries, run the local HTTP shutdown regression tests:
+After building both libraries, run the local transport and HTTP helper regression tests:
 
 ```bash
 yarn test:unit

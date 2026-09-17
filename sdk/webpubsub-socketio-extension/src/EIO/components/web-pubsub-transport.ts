@@ -127,10 +127,11 @@ _buffer=${JSON.stringify(this._buffer)}`);
       await this._webPubSubSend(payloads);
     }
 
-    this.writable = true;
-    // Transport's event `drain` is binded to `flush` method in `Socket` class by its father socket.
+    // Engine.IO completes send callbacks on drain and flushes queued packets on ready.
     debug(`send, emit drain`);
     this.emit("drain");
+    this.writable = true;
+    this.emit("ready");
 
     debug(`send, finish, _buffer.length=${this._buffer.length}, _buffer=${JSON.stringify(this._buffer)}`);
   }
