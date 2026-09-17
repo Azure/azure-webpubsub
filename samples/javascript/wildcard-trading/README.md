@@ -73,6 +73,10 @@ This single command starts three processes:
 From `backend`, run `npm test` to check order creation with Vitest. These tests
 run locally without Azure credentials or a running Web PubSub resource.
 
+Installing from `backend` still uses this sample's npm workspace root. Keep the
+Vitest/Vite overrides in the root `package.json` aligned with the backend manifest;
+npm ignores overrides declared only in a workspace's own manifest.
+
 ## Running the Demo
 
 Open `http://localhost:5173`. You'll see the trading dashboard with:
