@@ -899,6 +899,11 @@
   dependencies:
     "@types/node" "*"
 
+"@types/cookie@^0.4.1":
+  version "0.4.1"
+  resolved "https://registry.npmjs.org/@types/cookie/-/cookie-0.4.1.tgz#bfd02c1f2224567676c1545199f87c3a861d878d"
+  integrity sha1-v9AsHyIkVnZ2wVRRmfh8OoYdh40=
+
 "@types/cors@^2.8.12":
   version "2.8.19"
   resolved "https://packagefeedproxy.microsoft.io/npm/@types/cors/-/cors-2.8.19.tgz"
@@ -1835,6 +1840,11 @@ cookie-signature@~1.0.6, cookie-signature@~1.0.7:
   resolved "https://packagefeedproxy.microsoft.io/npm/cookie-signature/-/cookie-signature-1.0.7.tgz"
   integrity sha512-NXdYc3dLr47pBkpUCHtKSwIOQXLVn8dZEuywboCOJY/osA0wFSLlSawr3KN8qXJEyX66FcONTH8EIlVuK0yyFA==
 
+cookie@~0.4.1:
+  version "0.4.2"
+  resolved "https://registry.npmjs.org/cookie/-/cookie-0.4.2.tgz#0e41f24de5ecf317947c82fc789e06a884824432"
+  integrity sha1-DkHyTeXs8xeUfIL8eJ4GqISCRDI=
+
 cookie@~0.7.1, cookie@~0.7.2:
   version "0.7.2"
   resolved "https://packagefeedproxy.microsoft.io/npm/cookie/-/cookie-0.7.2.tgz"
@@ -1953,6 +1963,13 @@ debug@^3.2.7:
   integrity sha512-CFjzYYAi4ThfiQvizrFQevTTXHtnCqWfe7x1AhgEscTz6ZbLbfoLRLPugTQyBth6f8ZERVUSyWHFD/7Wu4t1XQ==
   dependencies:
     ms "^2.1.1"
+
+debug@~4.3.1:
+  version "4.3.7"
+  resolved "https://registry.npmjs.org/debug/-/debug-4.3.7.tgz#87945b4151a011d76d95a198d7111c865c360a52"
+  integrity sha1-h5RbQVGgEddtlaGY1xEchlw2ClI=
+  dependencies:
+    ms "^2.1.3"
 
 decamelize-keys@^1.1.0:
   version "1.1.1"
@@ -2115,6 +2132,22 @@ engine.io-client@~6.6.1:
     engine.io-parser "~5.2.1"
     ws "~8.21.0"
     xmlhttprequest-ssl "~2.1.1"
+
+"engine.io-minimum@npm:engine.io@6.6.0":
+  version "6.6.0"
+  resolved "https://registry.npmjs.org/engine.io/-/engine.io-6.6.0.tgz#acf421e82a7dc2c069a50dcd63818f1187bf130b"
+  integrity sha512-+ky8JKEyy2WqFkzwp8ntm8EFZAW/o5YfTi2pQEoByAAFCtXiXhbBNpBi1HqLGPCjPHCqyKMlyLvc7GMNM8/1/w==
+  dependencies:
+    "@types/cookie" "^0.4.1"
+    "@types/cors" "^2.8.12"
+    "@types/node" ">=10.0.0"
+    accepts "~1.3.4"
+    base64id "2.0.0"
+    cookie "~0.4.1"
+    cors "~2.8.5"
+    debug "~4.3.1"
+    engine.io-parser "~5.2.1"
+    ws "~8.17.1"
 
 engine.io-parser@~5.2.1:
   version "5.2.3"
@@ -5599,6 +5632,11 @@ ws@^8.18.0:
   version "8.21.3"
   resolved "https://registry.yarnpkg.com/ws/-/ws-8.21.3.tgz#660b4faddb6a3e575c86e078126919961f4de4fc"
   integrity sha512-201TZ/kPWxoPr/OKWjquZR1SWKXcvxdH+e1xrx89b3YbmzLMFCLfnaG1HFIgWzJOEWZ7MvpK++odZufgYR50Rw==
+
+ws@~8.17.1:
+  version "8.17.1"
+  resolved "https://registry.npmjs.org/ws/-/ws-8.17.1.tgz#9293da530bb548febc95371d90f9c878727d919b"
+  integrity sha1-kpPaUwu1SP68lTcdkPnIeHJ9kZs=
 
 ws@~8.21.0:
   version "8.21.2"

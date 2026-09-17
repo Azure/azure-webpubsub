@@ -77,6 +77,10 @@ async function createTransportFixture() {
 }
 
 describe("Web PubSub transport readiness (local)", () => {
+  it("declares the Engine.IO readiness contract as a runtime dependency", () => {
+    expect(require("../package.json").dependencies["engine.io"]).to.be("~6.6.0");
+  });
+
   it("flushes queued packets after an asynchronous send and preserves callbacks", async () => {
     const fixture = await createTransportFixture();
     try {
