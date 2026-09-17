@@ -73,9 +73,10 @@ This single command starts three processes:
 From `backend`, run `npm test` to check order creation with Vitest. These tests
 run locally without Azure credentials or a running Web PubSub resource.
 
-Installing from `backend` still uses this sample's npm workspace root. Keep the
-Vitest/Vite overrides in the root `package.json` aligned with the backend manifest;
-npm ignores overrides declared only in a workspace's own manifest.
+Installing from `backend` still uses this sample's npm workspace root. The
+Vitest/Vite override belongs only in the root `package.json`; npm ignores overrides
+declared in a workspace's own manifest. It keeps Vitest on Vite 7 and avoids the
+npm 10 peer-resolution error encountered with an unconstrained fresh install.
 
 ## Running the Demo
 

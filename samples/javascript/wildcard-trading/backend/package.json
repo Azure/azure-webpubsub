@@ -12,14 +12,6 @@
   "keywords": [],
   "author": "",
   "license": "ISC",
-  "overrides": {
-    "vitest": {
-      "vite": "7.3.6"
-    }
-  },
-  "resolutions": {
-    "vitest/vite": "7.3.6"
-  },
   "devDependencies": {
     "@azure/web-pubsub-tunnel-tool": "^1.0.0-beta.11",
     "@types/cors": "^2.8.19",

@@ -7,9 +7,6 @@
       "vite": "7.3.6"
     }
   },
-  "resolutions": {
-    "vitest/vite": "7.3.6"
-  },
   "scripts": {
     "dev": "concurrently -n backend,tunnel,frontend -c blue,magenta,green \"npm run dev -w backend\" \"npm run tunnel -w backend\" \"npm run dev -w web-client\"",
     "test": "echo TODO"
