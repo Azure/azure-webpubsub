@@ -3,6 +3,11 @@
   "private": true,
   "version": "0.0.0",
   "type": "module",
+  "overrides": {
+    "vitest": {
+      "vite": "7.3.6"
+    }
+  },
   "scripts": {
     "dev": "vite",
     "build": "tsc -p tsconfig.app.json && vite build",
@@ -30,7 +35,7 @@
     "@testing-library/user-event": "^14.6.1",
     "@types/node": "^22.7.5",
     "jsdom": "^25.0.1",
-    "vitest": "3.2.6",
+    "vitest": "4.1.11",
     "@vitejs/plugin-react": "^4.6.0",
     "autoprefixer": "^10.4.21",
     "eslint": "^9.30.1",

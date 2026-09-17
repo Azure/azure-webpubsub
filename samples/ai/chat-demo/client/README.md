@@ -19,7 +19,7 @@ Lightweight React + TypeScript + Vite frontend for the AI chat demo. Connects to
 - **TypeScript**: Type safety and development experience
 
 ### Quick Start
-Prereqs: Node.js 18+ and the server running at http://localhost:5000 by default.
+Prereqs: Node.js 22 LTS (22.12 or later), or a newer LTS release, and the server running at http://localhost:5000 by default.
 
 ```bash
 cd client
