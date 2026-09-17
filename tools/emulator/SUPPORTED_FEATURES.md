@@ -28,8 +28,18 @@ reliable JSON and reliable protobuf, for local Azure Web PubSub development.
 | REST group operations | Authenticated group presence and text, JSON, or binary fan-out with excluded connection IDs and OData filters. | ✅ |
 | REST broadcast | Authenticated text, JSON, or binary fan-out with excluded connection IDs and OData filters. | ✅ |
 | REST user operations | Authenticated user presence, group membership changes, and text, JSON, or binary fan-out to all matching connections with OData filters. | ✅ |
+| REST connection permissions | Authenticated query, grant, and revoke of `sendToGroup` and `joinLeaveGroup`, effective immediately and retained during reliable recovery. | ✅ |
 | REST send TTL | Accepts valid `messageTtlSeconds` values; delivery is immediate and expiration is not modeled. | ⚠️ |
-| Other REST APIs | Permission operations. | ❌ |
+
+Connection permission APIs use `HEAD`, `PUT`, and `DELETE` on
+`/api/hubs/{hub}/permissions/{permission}/connections/{connectionId}?targetName={group}`.
+The target is a required, case-sensitive literal group name (1–1024 characters, not all
+whitespace); `*` does not mean all groups. Token wildcard roles still apply, but revoking
+a matching literal group denies that group until granted again. Revocation does not remove
+existing group membership. Query returns `200` when allowed, otherwise `404`; grant returns
+`200` or `404` for a missing connection; revoke returns `204`, including missing connections.
+Updates exceeding 1,000 literal rules per permission return `409` without changing state.
+These APIs support the same GA versions as the other REST connection operations.
 
 For the currently supported API versions (`2021-10-01` through `2024-12-01`) and versionless
 requests, REST user operations preserve the legacy runtime route-binding behavior and pass the

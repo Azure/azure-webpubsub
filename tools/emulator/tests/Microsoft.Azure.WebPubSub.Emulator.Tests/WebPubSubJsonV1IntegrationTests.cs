@@ -323,6 +323,13 @@ public class WebPubSubJsonV1IntegrationTests
         }
         await SendJsonAsync(firstRecovery, new { type = "sequenceAck", sequenceId = 1 });
 
+        // Wait for the acknowledgement to be processed before aborting the transport.
+        await SendJsonAsync(firstRecovery, new { type = "ping" });
+        using (var pong = await ReceiveJsonAsync(firstRecovery))
+        {
+            Assert.Equal("pong", pong.RootElement.GetProperty("type").GetString());
+        }
+
         firstRecovery.Abort();
         using var secondRecovery = await ReconnectReliableAsync(
             application,

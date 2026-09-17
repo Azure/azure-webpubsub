@@ -199,7 +199,7 @@ public class EmulatorApplicationTests
     }
 
     [Fact]
-    public async Task UnimplementedPermissionEndpoint_HeadReturnsNotFound()
+    public async Task IncorrectPermissionRoute_HeadReturnsNotFound()
     {
         var builder = EmulatorApplication.CreateBuilder();
         builder.WebHost.UseTestServer();

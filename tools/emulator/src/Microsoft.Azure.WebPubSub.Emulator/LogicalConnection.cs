@@ -75,15 +75,17 @@ internal sealed class LogicalConnection : IODataFilterModel
         var roles = user.Claims
             .Where(claim => claim.Type is "role" or ClaimTypes.Role)
             .Select(claim => claim.Value)
-            .ToHashSet(StringComparer.Ordinal);
+            .ToArray();
         _joinLeaveGroupPermissions = new(
             roles,
             "webpubsub.joinLeaveGroup",
-            "webpubsub.joinLeaveGroups.");
+            "webpubsub.joinLeaveGroups.",
+            logger);
         _sendToGroupPermissions = new(
             roles,
             "webpubsub.sendToGroup",
-            "webpubsub.sendToGroups.");
+            "webpubsub.sendToGroups.",
+            logger);
     }
 
     public string ConnectionId { get; }
@@ -245,6 +247,13 @@ internal sealed class LogicalConnection : IODataFilterModel
     {
         return _joinLeaveGroupPermissions.Check(group);
     }
+
+    public ConnectionRolePermissions GetPermissions(ConnectionRoleAction action) => action switch
+    {
+        ConnectionRoleAction.SendToGroup => _sendToGroupPermissions,
+        ConnectionRoleAction.JoinLeaveGroup => _joinLeaveGroupPermissions,
+        _ => throw new ArgumentOutOfRangeException(nameof(action)),
+    };
 
     public bool TryAddToGroup(string group)
     {
