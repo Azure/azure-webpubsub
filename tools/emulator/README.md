@@ -144,6 +144,12 @@ to close connections in a hub, group, or user scope. These operations accept rep
 connection IDs (exact matches) and an optional `reason`, and return `204` even when no connections
 match. Closing a reliable connection also prevents recovery, including when it is already detached.
 
+Use `AddConnectionsToGroupsAsync` and `RemoveConnectionsFromGroupsAsync` to change membership
+for connections selected by an OData filter, or `RemoveConnectionFromAllGroupsAsync` to remove
+one connection from every group. These operations also update detached reliable connections
+without changing their permissions or preventing recovery. See [bulk group operations](SUPPORTED_FEATURES.md#bulk-group-operations)
+for request validation and selection behavior.
+
 ## Configure the endpoint and access key
 
 Set the ASP.NET Core `Urls` configuration value to use another address. The generated connection

@@ -21,7 +21,7 @@ See the [README](README.md) for setup and configuration.
 | Handler validation and retries | Validate webhook endpoints and retry eligible transient failures. Handlers must tolerate duplicate events. See [validation and retries](README.md#handler-validation-and-retries). |
 | REST messaging | Send text, JSON, or binary data to connections, users, groups, or all clients. Filter recipients with OData and exclude connection IDs where supported. |
 | Client token generation | Use `POST /api/hubs/{hub}/:generateToken` with the optional local Entra compatibility mode to generate a signed client token. See [local server SDK authentication](README.md#local-server-sdk-authentication). |
-| REST connection and group management | Check connection, user, or group presence; change group membership for connections or users; close individual connections or connections in a hub, group, or user scope, with exclusions and an optional reason. |
+| REST connection and group management | Check connection, user, or group presence; change group membership for connections, users, or filtered connections; remove a connection from all groups; close individual connections or connections in a hub, group, or user scope, with exclusions and an optional reason. |
 
 Implemented REST operations support GA API versions from `2021-10-01` through `2024-12-01`.
 Requests without `api-version` use the latest supported version.
@@ -56,6 +56,21 @@ existing group membership. Query returns `200` when allowed, otherwise `404`; gr
 Updates exceeding 1,000 literal rules per permission return `409` without changing state.
 These APIs support the same GA versions as the other REST connection operations.
 
+## Bulk group operations
+
+`POST /api/hubs/{hub}/:addToGroups` and `POST /api/hubs/{hub}/:removeFromGroups` accept a JSON
+object such as `{"groups":["room","updates"],"filter":"userId eq 'alice'"}` and return `200`,
+including when no connections match. `groups` is required and nonempty; each case-sensitive
+name must be 1–1024 characters and not all whitespace. There is no separate group-count cap.
+Omitting `filter`, or passing null or an empty string, selects all connections in the hub.
+Requests require `application/json` and a known Content-Length within the emulator's body limit
+(1 MiB by default); reads are also bounded. Invalid bodies, names, or filters return `400`, and
+unsupported content types return `415`. All input is validated and matching connections are
+selected before any membership changes. This is not a transaction against concurrent updates.
+`DELETE /api/hubs/{hub}/connections/{connectionId}/groups` returns `204`, including missing
+connections or already-empty memberships. All three operations preserve permissions and
+reliable recovery, and support the same API versions as other implemented REST operations.
+
 ## User IDs in REST URLs
 
 For the supported API versions and requests without `api-version`, encoded slashes in user IDs
@@ -88,9 +103,6 @@ to `/api/hubs/{hub}`.
 
 | Operation | Method | Path |
 | --- | --- | --- |
-| Add connections selected by a filter to multiple groups | POST | `/:addToGroups` |
-| Remove connections selected by a filter from multiple groups | POST | `/:removeFromGroups` |
-| Remove a connection from all groups | DELETE | `/connections/{connectionId}/groups` |
 | List connections in a group, including pagination | GET | `/groups/{group}/connections` |
 
 Closing connections and adding or removing individual connection-to-group memberships remain supported.
