@@ -9,6 +9,7 @@ import { debugModule } from "../../../src/common/utils";
 import * as wpsExt from "../../../src";
 import "../../../src"; // Otherwise: Error `this.useAzureSocketIO` is not a function
 import { InternalCounter } from "./internal-counter";
+import wrapShutdown from "http-shutdown";
 
 export const debug = debugModule("wps-sio-ext:ut:sio:util");
 export const envFilePath = ".env.test";
@@ -41,8 +42,18 @@ export const getClientConnectDomain = (): string => getEndpointFullPath(process.
 // e.g. /client/socket/hubs/eio_hub
 export const getClientConnectPath = (idx: number = 0): string => `/clients/socketio/hubs/${getIndexedHub(idx)}`;
 
-export const enableFastClose = (server: _Server): void => {
-  server["httpServer"] = require("http-shutdown")(server["httpServer"]);
+const shutdownServers = new WeakMap<_Server["httpServer"], ReturnType<typeof wrapShutdown>>();
+
+export const enableFastClose = (server: _Server): ReturnType<typeof wrapShutdown> | undefined => {
+  const httpServer = server.httpServer;
+  if (!httpServer) return undefined;
+
+  let shutdownServer = shutdownServers.get(httpServer);
+  if (!shutdownServer) {
+    shutdownServer = wrapShutdown(httpServer);
+    shutdownServers.set(httpServer, shutdownServer);
+  }
+  return shutdownServer;
 };
 
 export class Server extends _Server {
@@ -58,7 +69,6 @@ export class Server extends _Server {
     // `Server.close()` will trigger `HttpServer.close()`, which costs a lot of time
     // This is a trick to shutdown http server in a short time
     enableFastClose(this);
-    // this["httpServer"] = require("http-shutdown")(this["httpServer"]);
     debug(`Server, constructor, finish, srv=${srv}, opts=${JSON.stringify(opts)}`);
   }
 }
@@ -141,31 +151,32 @@ export function createClient(nsp: string = "/", opts?: Partial<ManagerOptions & 
   return ioc(uri, opts);
 }
 
-export function shutdown(io: Server, cb?: (err?: Error) => void) {
+export function shutdown(io: _Server, cb?: (err?: Error) => void) {
   debug("shutdown");
-  const commonShutdown = () => {
+  const commonShutdown = (shutdownError?: Error) => {
     debug("commonShutdown");
-    io.close(() => {
+    io.close((closeError) => {
       io.removeAllListeners();
       debug("SIO Server closed");
-      cb && cb();
+      cb && cb(shutdownError ?? closeError);
     });
   };
-  if (!io["httpServer"]) return commonShutdown();
+  const httpServer = enableFastClose(io);
+  if (!httpServer) return commonShutdown();
   // http server shutdown will trigger EIO engine close
-  io["httpServer"].shutdown((err: Error) => {
-    io["httpServer"] = null;
+  httpServer.shutdown((err?: Error) => {
+    io.httpServer = null;
     debug(`Http Server shutdown ` + (err ? `failed: ${err.message}` : "successfully"));
-    commonShutdown();
+    // Some cleanup callers already closed the server while testing disconnect behavior.
+    const alreadyClosed = err && "code" in err && err.code === "ERR_SERVER_NOT_RUNNING";
+    commonShutdown(alreadyClosed ? undefined : err);
   });
 }
 
 export async function success(done: Function, io: Server, ...clients: (ClientSocket | Socket)[]) {
   clients.forEach((client) => client.disconnect());
   debug("start cleanup for success");
-  shutdown(io, () => {
-    done();
-  });
+  shutdown(io, (err) => done(err));
 }
 
 export function successFn(done: Function, sio: Server, ...clientSockets: ClientSocket[]) {

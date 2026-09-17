@@ -140,7 +140,19 @@ yarn run build
 
 ## Unit Test
 
-1. Rename `.env.test.example` to `.env.test`. And update the WebPubSubConnectionString inside:
+After building both libraries, run the local HTTP shutdown regression tests:
+
+```bash
+yarn test:unit
+```
+
+These tests run without Azure credentials. The live suite is also loaded and checked by
+TypeScript, but its tests are explicitly skipped when no service configuration is supplied.
+Pull requests run this credential-free check; pushes to `main` also run the live suite
+with the configured CI secret.
+
+To run the live Web PubSub suite as well, copy `.env.test.example` to `.env.test` and set both
+`WebPubSubConnectionString` and `WebPubSubHub`:
 
 ```file
 WebPubSubConnectionString="<web-pubsub-connection-string>"
@@ -148,7 +160,7 @@ WebPubSubHub="eio_hub"
 SocketIoPort=3000
 ```
 
-1. Run command
+Then run:
 
 ```bash
 yarn test:unit
