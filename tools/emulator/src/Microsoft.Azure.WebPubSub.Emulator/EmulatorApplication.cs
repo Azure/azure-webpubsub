@@ -39,10 +39,10 @@ internal static class EmulatorApplication
                     string.Equals(name, "disconnected", StringComparison.OrdinalIgnoreCase)))),
                 "Event handlers require an HTTP(S) URL without Key Vault references; supported system events are connect/connected/disconnected.")
             .Validate(options => options.Hubs.Values.All(hub => hub.EventHandlers.All(handler =>
-                handler.EventPattern?.Split(',').TakeWhile(pattern => pattern.Trim() != "*")
-                    .All(pattern => string.IsNullOrWhiteSpace(pattern) ||
-                        WildcardPattern.TryCreate(pattern.Trim(), out _, maximumLength: null)) != false)),
-                "EventPattern must contain comma-separated wildcard patterns with valid escapes before any standalone *.")
+                handler.EventPattern?.Split(',').All(pattern =>
+                    pattern.Trim() == "*" || pattern.IndexOfAny(['*', '?', '\\']) < 0) != false)),
+                "EventPattern must contain a single event name, comma-separated event names, or a standalone *. " +
+                    "Other wildcard and escape syntax is not supported.")
             .Validate(options => options.Hubs.Values.All(hub => hub.EventListeners.All(listener =>
                 listener.EventHubEndpoint.IsValid())),
                 "Event listeners require an EventHubName and a namespace, or a local Event Hubs emulator connection string (not both).")

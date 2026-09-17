@@ -47,6 +47,18 @@ public class EmulatorApplicationTests
     [InlineData("room\\")]
     [InlineData("room\\x")]
     [InlineData("room\\x,*")]
+    [InlineData("room.*")]
+    [InlineData("room.**")]
+    [InlineData("**")]
+    [InlineData("room?")]
+    [InlineData(@"room\*")]
+    [InlineData(@"room\?")]
+    [InlineData(@"room\\")]
+    [InlineData("message,room.*")]
+    [InlineData("room.*,*")]
+    [InlineData("*,room.*")]
+    [InlineData("*,room?")]
+    [InlineData(@"*,room\x")]
     public async Task InvalidEventPatternIsRejectedAtStartup(string pattern)
     {
         var builder = EmulatorApplication.CreateBuilder([
@@ -75,16 +87,35 @@ public class EmulatorApplicationTests
     }
 
     [Theory]
-    [InlineData(false)]
-    [InlineData(true)]
-    public async Task EventPatternsDoNotInheritPermissionLengthLimit(bool wildcard)
+    [InlineData(null, "message", false)]
+    [InlineData("", "message", false)]
+    [InlineData("message", "MESSAGE", true)]
+    [InlineData("message", "messages", false)]
+    [InlineData(" message, join ", "JOIN", true)]
+    [InlineData("message,join", "other", false)]
+    [InlineData("room.message", "ROOM.MESSAGE", true)]
+    [InlineData(" * ", "room.message", true)]
+    [InlineData("message,*,join", "room.message", true)]
+    public async Task SupportedEventPatternsAreAcceptedAtStartup(string? pattern, string input, bool expected)
     {
-        var pattern = new string('a', 1025) + (wildcard ? "*" : "");
-        Assert.False(WildcardPattern.TryCreate(pattern, out _)); // Existing permission callers retain their limit.
-        Assert.True(new EventHandlerOptions { EventPattern = pattern }.MatchesUserEvent(new string('a', wildcard ? 1026 : 1025)));
+        var builder = EmulatorApplication.CreateBuilder([
+            "--WebPubSub:Hubs:chat:EventHandlers:0:UrlTemplate=https://handler/events"]);
+        builder.Configuration["WebPubSub:Hubs:chat:EventHandlers:0:EventPattern"] = pattern;
+        builder.WebHost.UseTestServer();
+        await using var app = EmulatorApplication.Build(builder);
+        await app.StartAsync();
+        var options = app.Services.GetRequiredService<IOptions<EmulatorOptions>>().Value;
+        Assert.Equal(expected, Assert.Single(options.Hubs["chat"].EventHandlers).MatchesUserEvent(input));
+    }
+
+    [Fact]
+    public async Task EventNamesDoNotInheritPermissionLengthLimit()
+    {
+        var pattern = new string('a', 1025);
+        Assert.True(new EventHandlerOptions { EventPattern = pattern }.MatchesUserEvent(pattern));
         var builder = EmulatorApplication.CreateBuilder([
             "--WebPubSub:Hubs:chat:EventHandlers:0:UrlTemplate=https://handler/events",
-            $"--WebPubSub:Hubs:chat:EventHandlers:0:EventPattern={pattern},*,ignored\\x"]);
+            $"--WebPubSub:Hubs:chat:EventHandlers:0:EventPattern={pattern}"]);
         builder.WebHost.UseTestServer();
         await using var app = EmulatorApplication.Build(builder);
         await app.StartAsync();
