@@ -127,10 +127,11 @@ _buffer=${JSON.stringify(this._buffer)}`);
       await this._webPubSubSend(payloads);
     }
 
-    // Engine.IO completes send callbacks on drain and flushes queued packets on ready.
+    // Engine.IO 6.5 flushes on drain; newer versions flush on ready.
+    // A drain listener may start another send and set writable back to false.
+    this.writable = true;
     debug(`send, emit drain`);
     this.emit("drain");
-    this.writable = true;
     this.emit("ready");
 
     debug(`send, finish, _buffer.length=${this._buffer.length}, _buffer=${JSON.stringify(this._buffer)}`);

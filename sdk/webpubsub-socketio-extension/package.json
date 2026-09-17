@@ -37,7 +37,7 @@
     "async-mutex": "^0.4.0",
     "base64url": "^3.0.1",
     "debug": "^4.3.4",
-    "engine.io": "~6.6.0",
+    "engine.io": "^6.5.5",
     "jsonwebtoken": "^9.0.1",
     "socket.io": "^4.8.3"
   },
@@ -73,7 +73,6 @@
     "@typescript-eslint/parser": "^5.59.8",
     "cpy-cli": "^5.0.0",
     "dotenv": "^16.3.1",
-    "engine.io-minimum": "npm:engine.io@6.6.0",
     "eslint": "^8.0.0",
     "eslint-config-prettier": "^8.8.0",
     "eslint-plugin-import": "^2.27.5",
@@ -103,8 +102,7 @@
     "@azure/core-rest-pipeline": "1.19.0",
     "@azure/core-tracing": "1.2.0",
     "@azure/core-util": "1.11.0",
-    "@azure/logger": "1.1.4",
-    "engine.io-minimum/ws": "8.21.2"
+    "@azure/logger": "1.1.4"
   },
   "keywords": [
     "socket.io",

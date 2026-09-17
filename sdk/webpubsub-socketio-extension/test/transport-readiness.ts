@@ -20,16 +20,26 @@ function deferred() {
 
 const nextTurn = () => new Promise<void>((resolve) => setImmediate(resolve));
 
-async function createTransportFixture() {
+async function createTransportFixture(blockSecondSend = false) {
   const sent: string[] = [];
   const releaseFirst = deferred();
+  const releaseSecond = deferred();
+  let activeSends = 0;
+  let maxConcurrentSends = 0;
   const unsupported = async () => {
     throw new Error("Unexpected service operation in transport test.");
   };
   const service: WebPubSubServiceCaller = {
     async sendToConnection(_id, payload) {
       sent.push(payload);
-      if (sent.length === 1) await releaseFirst.promise;
+      activeSends++;
+      maxConcurrentSends = Math.max(maxConcurrentSends, activeSends);
+      try {
+        if (sent.length === 1) await releaseFirst.promise;
+        else if (sent.length === 2 && blockSecondSend) await releaseSecond.promise;
+      } finally {
+        activeSends--;
+      }
     },
     sendToAll: unsupported,
     addConnectionsToGroups: unsupported,
@@ -66,8 +76,13 @@ async function createTransportFixture() {
     transport,
     sent,
     releaseFirst: releaseFirst.release,
+    releaseSecond: releaseSecond.release,
+    get maxConcurrentSends() {
+      return maxConcurrentSends;
+    },
     async dispose() {
       releaseFirst.release();
+      releaseSecond.release();
       socket.close(true);
       server.close();
       networkSocket.destroy();
@@ -77,16 +92,10 @@ async function createTransportFixture() {
 }
 
 describe("Web PubSub transport readiness (local)", () => {
-  it("declares the Engine.IO readiness contract as a runtime dependency", () => {
-    expect(require("../package.json").dependencies["engine.io"]).to.be("~6.6.0");
-  });
-
   it("flushes queued packets after an asynchronous send and preserves callbacks", async () => {
     const fixture = await createTransportFixture();
     try {
       const callbacks: string[] = [];
-      const writableAtDrain: boolean[] = [];
-      fixture.transport.on("drain", () => writableAtDrain.push(fixture.transport.writable));
       fixture.socket.send('2["first"]', {}, () => callbacks.push("first"));
       fixture.socket.send('2["second"]', {}, () => callbacks.push("second"));
       await nextTurn();
@@ -98,7 +107,55 @@ describe("Web PubSub transport readiness (local)", () => {
 
       expect(fixture.sent).to.eql(['42["first"]', '42["second"]']);
       expect(callbacks).to.eql(["first", "second"]);
-      expect(writableAtDrain).to.eql([false, false]);
+      expect(fixture.maxConcurrentSends).to.be(1);
+    } finally {
+      await fixture.dispose();
+    }
+  });
+
+  it("preserves an in-flight send started by a send callback", async () => {
+    const fixture = await createTransportFixture(true);
+    try {
+      const callbacks: string[] = [];
+      fixture.socket.send('2["first"]', {}, () => {
+        callbacks.push("first");
+        fixture.socket.send('2["second"]', {}, () => callbacks.push("second"));
+        fixture.socket.send('2["third"]', {}, () => callbacks.push("third"));
+      });
+      fixture.releaseFirst();
+      await nextTurn();
+
+      expect(fixture.sent).to.eql(['42["first"]', '42["second"]']);
+      expect(callbacks).to.eql(["first"]);
+      expect(fixture.transport.writable).to.be(false);
+
+      fixture.releaseSecond();
+      await nextTurn();
+
+      expect(fixture.sent).to.eql(['42["first"]', '42["second"]', '42["third"]']);
+      expect(callbacks).to.eql(["first", "second", "third"]);
+      expect(fixture.maxConcurrentSends).to.be(1);
+    } finally {
+      await fixture.dispose();
+    }
+  });
+
+  it("preserves an in-flight close started by a send callback", async () => {
+    const fixture = await createTransportFixture(true);
+    try {
+      fixture.socket.send('2["first"]', {}, () => fixture.socket.close());
+      fixture.releaseFirst();
+      await nextTurn();
+
+      expect(fixture.socket.readyState).to.be("closed");
+      expect(fixture.sent).to.eql(['42["first"]', "1"]);
+      expect(fixture.transport.writable).to.be(false);
+
+      fixture.releaseSecond();
+      await nextTurn();
+
+      expect(fixture.sent).to.eql(['42["first"]', "1"]);
+      expect(fixture.maxConcurrentSends).to.be(1);
     } finally {
       await fixture.dispose();
     }

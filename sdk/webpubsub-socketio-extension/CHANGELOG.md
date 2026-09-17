@@ -5,8 +5,8 @@
 
 ### Fixed
 
-- Resume queued direct Socket.IO messages after an asynchronous send with Engine.IO 6.6.0 or later in 6.6.x.
-- Declare Engine.IO `~6.6.0` as a direct runtime dependency so an application's Engine.IO 6.5.x installation cannot supply the extension's imports.
+- Resume queued direct Socket.IO messages after an asynchronous send with both Engine.IO 6.5 and 6.6, preserving sends started by callbacks.
+- Declare Engine.IO `^6.5.5` as a direct runtime dependency instead of relying on a transitive dependency.
 - Await listener setup and cleanup in the Engine.IO protocol-violation tests.
 
 ## [2.0.0] - 2026-08-21

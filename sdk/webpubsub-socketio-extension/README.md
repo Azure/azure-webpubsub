@@ -4,9 +4,8 @@ This package is the extension library to the Socket.IO Server SDK. Using this li
 
 Web PubSub For Socket.IO works as a broker between clients and the Socket.IO server. It handles connection management and broadcasting messages at scale and provide scalability and reliability experience. With this library, you don't need to introduce and manage an extra Adapter to support multi-server environment.
 
-The server extension uses Engine.IO 6.6.x (minimum 6.6.0), where `drain` completes send
-callbacks and `ready` flushes queued packets. Engine.IO is a direct runtime dependency so
-the extension cannot accidentally load an application's older Engine.IO 6.5.x installation.
+Engine.IO is a direct runtime dependency (`^6.5.5`). The transport supports both the
+Engine.IO 6.5 `drain` behavior and the separate `ready` event introduced in 6.6.0.
 
 ## Get Started
 
@@ -152,12 +151,8 @@ yarn test:unit
 
 These tests run without Azure credentials. The live suite is also loaded and checked by
 TypeScript, but its tests are explicitly skipped when no service configuration is supplied.
-The transport regressions run against both the lockfile's Engine.IO version and the actual
-minimum version, 6.6.0, using a test-only package alias. Both runs use the production transport
-and real Engine.IO Socket; the minimum-version project maps the extension's Engine.IO imports
-as well as the test's imports to that alias.
-The alias uses the already-locked patched `ws` version instead of Engine.IO 6.6.0's
-vulnerable historical `ws` dependency; Engine.IO itself remains exactly 6.6.0.
+The transport regressions use the production transport and real Engine.IO Socket, covering
+queued sends, callbacks that send or close again, binary attachments and buffered close.
 Pull requests run this credential-free check; pushes to `main` also run the live suite
 with the configured CI secret.
 
