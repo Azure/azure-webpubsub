@@ -75,9 +75,10 @@ pull request still looks green.** Before trusting a green run:
   `sdk/clients/protobuf-client/csharp/**` by `protobuf-client-tests.yml`, and
   `tests/integration-tests/csharp/**` by `integration-tests-csharp.yml`. Check for one of
   those before assuming a directory is uncovered. What is genuinely left over is
-  `sdk/webpubsub-socketio-extension/examples/*/extensions.csproj`: the only other workflow
-  matching `sdk/**` is `socketio_e2e.yml`, which triggers on `push` alone and builds
-  nothing but the Node packages. Build those locally before merging.
+  `sdk/webpubsub-socketio-extension/examples/*/extensions.csproj`: `socketio_e2e.yml`
+  builds Node packages and checks the credential-free test harness on pull requests,
+  with live service tests restricted to pushes to `main`. It does not build the C#
+  examples. Build those locally before merging.
 - Read the test source before trusting a green test job. For example,
   `samples/ai/chat-demo/tests/test_chat_model_client.py` monkeypatches the `OpenAI` class
   away entirely, so it passes regardless of which `openai` version is installed.

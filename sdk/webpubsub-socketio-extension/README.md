@@ -4,6 +4,9 @@ This package is the extension library to the Socket.IO Server SDK. Using this li
 
 Web PubSub For Socket.IO works as a broker between clients and the Socket.IO server. It handles connection management and broadcasting messages at scale and provide scalability and reliability experience. With this library, you don't need to introduce and manage an extra Adapter to support multi-server environment.
 
+Engine.IO is a direct runtime dependency (`^6.5.5`). The transport supports both the
+Engine.IO 6.5 `drain` behavior and the separate `ready` event introduced in 6.6.0.
+
 ## Get Started
 
 The following steps show you how to create a Web PubSub for Socket.IO resource and use this library to enable your Socket.IO server to work together with the service. For more details step of how to get started with Web PubSub for Socket.IO, please refer to [Get started with Web PubSub for Socket.IO](https://learn.microsoft.com/azure/azure-web-pubsub/socketio-quickstart).
@@ -140,7 +143,7 @@ yarn run build
 
 ## Unit Test
 
-After building both libraries, run the local HTTP shutdown regression tests:
+After building both libraries, run the local transport and HTTP helper regression tests:
 
 ```bash
 yarn test:unit
@@ -148,6 +151,8 @@ yarn test:unit
 
 These tests run without Azure credentials. The live suite is also loaded and checked by
 TypeScript, but its tests are explicitly skipped when no service configuration is supplied.
+The transport regressions use the production transport and real Engine.IO Socket, covering
+queued sends, callbacks that send or close again, binary attachments and buffered close.
 Pull requests run this credential-free check; pushes to `main` also run the live suite
 with the configured CI secret.
 

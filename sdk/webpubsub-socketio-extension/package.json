@@ -37,6 +37,7 @@
     "async-mutex": "^0.4.0",
     "base64url": "^3.0.1",
     "debug": "^4.3.4",
+    "engine.io": "^6.5.5",
     "jsonwebtoken": "^9.0.1",
     "socket.io": "^4.8.3"
   },

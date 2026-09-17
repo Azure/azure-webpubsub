@@ -1,6 +1,14 @@
 
 # Changelog
 
+## [Unreleased]
+
+### Fixed
+
+- Resume queued direct Socket.IO messages after an asynchronous send with both Engine.IO 6.5 and 6.6, preserving sends started by callbacks.
+- Declare Engine.IO `^6.5.5` as a direct runtime dependency instead of relying on a transitive dependency.
+- Await listener setup and cleanup in the Engine.IO protocol-violation tests.
+
 ## [2.0.0] - 2026-08-21
 
 ### Breaking Changes

@@ -2121,7 +2121,7 @@ engine.io-parser@~5.2.1:
   resolved "https://packagefeedproxy.microsoft.io/npm/engine.io-parser/-/engine.io-parser-5.2.3.tgz"
   integrity sha512-HqD3yTBfnBxIrbnM1DoD6Pcq8NECnh8d4As1Qgh0z5Gg3jRRIqijury0CL3ghu/edArpUYiYqQiDUQBIs4np3Q==
 
-engine.io@~6.6.0:
+engine.io@^6.5.5, engine.io@~6.6.0:
   version "6.6.9"
   resolved "https://packagefeedproxy.microsoft.io/npm/engine.io/-/engine.io-6.6.9.tgz"
   integrity sha512-clKkw4C7nJ22mGgoVcCg6V/W/TxdNyIOTr89k2ONZu81qqkddPFDF0LXcbAwhzPD8DjkiRCjzuiO6Y+fkpD4vg==

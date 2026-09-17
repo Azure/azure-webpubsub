@@ -4,7 +4,6 @@ import { Server as _Server, ServerOptions, Socket } from "socket.io";
 import { io as ioc, ManagerOptions, Socket as ClientSocket, SocketOptions } from "socket.io-client";
 import { Server as HttpServer } from "http";
 import * as fs from "fs";
-import type { AddressInfo } from "net";
 import { debugModule } from "../../../src/common/utils";
 import * as wpsExt from "../../../src";
 import "../../../src"; // Otherwise: Error `this.useAzureSocketIO` is not a function
@@ -89,18 +88,11 @@ export async function getServer(
   wpsOpts?: wpsExt.AzureSocketIOOptions
 ): Promise<Server> {
   debug(`getServer, srv = ${srv}, opts = ${JSON.stringify(opts)}, wpsOpts = ${JSON.stringify(wpsOpts)}`);
-  let port = baseServerPort + updateAndGetInternalCounter();
-  if (typeof srv === "number") {
-    port = srv > 0 ? srv : internalCounter.getInternalCounter() + baseServerPort;
-    debug(`getServer, srv is port number, actual port = ${port}`);
-  } else {
-    port = getPort(srv as HttpServer);
-    debug(`getServer, srv is HttpServer, actual port = ${port}`);
-  }
+  updateAndGetInternalCounter();
   const io = new Server(srv, opts);
 
   const finalWpsOptions = getSioServerOptions(wpsOpts);
-  debug(`http port=${port}, hub=${finalWpsOptions.hub}`);
+  debug(`hub=${finalWpsOptions.hub}`);
   return io.useAzureSocketIO(finalWpsOptions);
 }
 
@@ -184,8 +176,12 @@ export function successFn(done: Function, sio: Server, ...clientSockets: ClientS
 }
 
 export function getPort(srv: Server | HttpServer): number {
-  const _getPort = (x: HttpServer) => (x.address() as AddressInfo).port;
-  return (srv as any).httpServer ? _getPort(srv["httpServer"]) : _getPort(srv as HttpServer);
+  const httpServer = srv instanceof _Server ? srv.httpServer : srv;
+  const address = httpServer?.address();
+  if (!address || typeof address === "string") {
+    throw new Error("The HTTP server is not listening on a TCP port.");
+  }
+  return address.port;
 }
 
 export function createPartialDone(count: number, done: (err?: Error) => void) {
@@ -208,20 +204,29 @@ export function waitFor<T = unknown>(emitter, event) {
 
 // TODO: update superagent as latest release now supports promises
 export function eioHandshake(): Promise<string> {
-  return new Promise((resolve) => {
+  return new Promise((resolve, reject) => {
     request(getClientConnectDomain())
       .get(getClientConnectPath())
       .query({ transport: "polling", EIO: 4 })
+      .expect(200)
       .end((err, res) => {
         debug(`eioHandshake, err = ${err} response = ${JSON.stringify(res)}`);
-        const sid = JSON.parse(res.text.substring(1)).sid;
-        resolve(sid);
+        if (err) return reject(err);
+        try {
+          const sid = JSON.parse(res.text.substring(1)).sid;
+          if (typeof sid !== "string") {
+            throw new Error("The Engine.IO handshake response has no session ID.");
+          }
+          resolve(sid);
+        } catch (error) {
+          reject(error);
+        }
       });
   });
 }
 
 export function eioPush(sid: string, body: string): Promise<void> {
-  return new Promise((resolve) => {
+  return new Promise((resolve, reject) => {
     request(getClientConnectDomain())
       .post(getClientConnectPath())
       .type("text/plain")
@@ -230,19 +235,21 @@ export function eioPush(sid: string, body: string): Promise<void> {
       .expect(200)
       .end((err, res) => {
         debug(`eioPush, err = ${err}, res = ${JSON.stringify(res)}`);
+        if (err) return reject(err);
         resolve();
       });
   });
 }
 
 export function eioPoll(sid: string): Promise<string> {
-  return new Promise((resolve) => {
+  return new Promise((resolve, reject) => {
     request(getClientConnectDomain())
       .get(getClientConnectPath())
       .query({ transport: "polling", EIO: 4, sid })
       .expect(200)
       .end((err, res) => {
         debug(`eioPoll, err = ${err}, res = ${JSON.stringify(res)}`);
+        if (err) return reject(err);
         resolve(res.text);
       });
   });

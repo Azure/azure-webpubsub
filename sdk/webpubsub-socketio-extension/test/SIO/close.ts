@@ -1,4 +1,5 @@
 import { createServer, Server as HttpServer } from "http";
+import { once } from "events";
 import expect from "expect.js";
 import {
   Server,
@@ -8,12 +9,17 @@ import {
   eioPush,
   getPort,
   getServer,
+  shutdown,
   success,
   baseServerPort,
 } from "./support/util";
 const net = require("net");
 
 const serverPort = baseServerPort;
+
+function closeServer(io: Server): Promise<void> {
+  return new Promise((resolve, reject) => shutdown(io, (error) => (error ? reject(error) : resolve())));
+}
 
 describe("close", () => {
   it("should be able to close sio sending a srv (1)", (done) => {
@@ -89,9 +95,9 @@ describe("close", () => {
   describe("protocol violations", () => {
     it("should close the connection when receiving several CONNECT packets", async () => {
       const httpServer = createServer();
-      const ioPromise = getServer(httpServer);
-      ioPromise.then(async (io) => {
-        httpServer.listen(serverPort);
+      const io = await getServer(httpServer);
+      try {
+        await once(httpServer.listen(serverPort), "listening");
 
         const sid = await eioHandshake();
 
@@ -108,15 +114,16 @@ describe("close", () => {
         // then a close packet
         const body = await eioPoll(sid);
         expect(body).to.be("6\u001e1");
-        io.close();
-      });
+      } finally {
+        await closeServer(io);
+      }
     });
 
     it("should close the connection when receiving an EVENT packet while not connected", async () => {
       const httpServer = createServer();
-      const ioPromise = getServer(httpServer);
-      ioPromise.then(async (io) => {
-        httpServer.listen(serverPort);
+      const io = await getServer(httpServer);
+      try {
+        await once(httpServer.listen(serverPort), "listening");
 
         const sid = await eioHandshake();
         // send an EVENT packet
@@ -124,17 +131,16 @@ describe("close", () => {
         // session is cleanly closed, we receive a close packet
         const body = await eioPoll(sid);
         expect(body).to.be("6\u001e1");
-
-        io.close();
-      });
+      } finally {
+        await closeServer(io);
+      }
     });
 
     it("should close the connection when receiving an invalid packet", async () => {
       const httpServer = createServer();
-      const ioPromise = getServer(httpServer);
-
-      ioPromise.then(async (io) => {
-        httpServer.listen(serverPort);
+      const io = await getServer(httpServer);
+      try {
+        await once(httpServer.listen(serverPort), "listening");
 
         const sid = await eioHandshake();
         // send a CONNECT packet
@@ -147,9 +153,9 @@ describe("close", () => {
         // then a close packet
         const body = await eioPoll(sid);
         expect(body).to.be("6\u001e1");
-
-        io.close();
-      });
+      } finally {
+        await closeServer(io);
+      }
     });
   });
 });
