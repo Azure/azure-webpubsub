@@ -15,7 +15,7 @@ Multi‑room real‑time chat with optional AI answers. Start locally in a minut
 
 Prereqs:
 * Python 3.12+
-* Node 18+
+* Node.js 22 LTS (22.12 or later), or a newer LTS release
 
 1. Create a PAT with **Models – Read**: https://docs.github.com/en/authentication/keeping-your-account-and-data-secure/managing-your-personal-access-tokens
 2. (Recommended) Create and activate a virtual environment:

@@ -26,7 +26,7 @@ A sample application demonstrating **wildcard group roles** in Azure Web PubSub.
 
 ## Prerequisites
 
-- [Node.js](https://nodejs.org/) 18+
+- [Node.js](https://nodejs.org/) 22 LTS (22.12 or later), or a newer LTS release
 - An [Azure Web PubSub](https://learn.microsoft.com/azure/azure-web-pubsub/overview) resource
 
 ## Setup
@@ -67,6 +67,11 @@ This single command starts three processes:
 | **backend**  | Express server (watch mode) + bots   | `http://localhost:8080` |
 | **tunnel**   | `awps-tunnel` connecting to Azure    | Tunnel dashboard at `http://127.0.0.1:4000` |
 | **frontend** | Vite dev server (React)              | `http://localhost:5173` |
+
+## Backend tests
+
+From `backend`, run `npm test` to check order creation with Vitest. These tests
+run locally without Azure credentials or a running Web PubSub resource.
 
 ## Running the Demo
 

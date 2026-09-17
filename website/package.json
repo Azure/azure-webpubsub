@@ -47,9 +47,11 @@
   "resolutions": {
     "@babel/core": "7.29.6",
     "body-parser": "1.20.6",
+    "colord": "2.9.4",
     "follow-redirects": "1.16.0",
     "http-proxy-middleware": "2.0.10",
-    "joi": "17.13.4",
+    "joi": "17.13.6",
+    "js-yaml": "4.3.2",
     "launch-editor": "2.14.1",
     "prismjs": "1.30.0",
     "qs": "6.16.0",

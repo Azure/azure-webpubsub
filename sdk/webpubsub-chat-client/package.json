@@ -75,11 +75,11 @@
   },
   "resolutions": {
     "@typespec/ts-http-runtime": "0.3.6",
-    "js-yaml": "^4.3.1"
+    "js-yaml": "^4.3.2"
   },
   "overrides": {
     "@typespec/ts-http-runtime": "0.3.6",
-    "js-yaml": "^4.3.1"
+    "js-yaml": "^4.3.2"
   },
   "engines": {
     "node": ">=20.0.0"

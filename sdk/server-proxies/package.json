@@ -42,6 +42,7 @@
     "ws": "^8.21.2"
   },
   "resolutions": {
+    "js-yaml": "3.15.2",
     "@azure/abort-controller": "2.1.2",
     "@azure/core-auth": "1.9.0",
     "@azure/core-client": "1.9.2",
