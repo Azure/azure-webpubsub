@@ -475,6 +475,78 @@ internal sealed class WebPubSubEmulatorController : WebPubSubApiControllerDefini
         return NoContent();
     }
 
+    [HttpHead("/api/hubs/{hub}/permissions/{permission}/connections/{connectionId}",
+        Name = "WebPubSub_CheckPermission")]
+    public IActionResult CheckPermission(
+        [RegularExpression(WebPubSubNameValidator.HubNamePattern)] string hub,
+        ConnectionRoleAction permission,
+        [MinLength(1)] string connectionId,
+        [FromQuery] string? targetName)
+    {
+        return HandlePermission(hub, permission, connectionId, targetName, grant: null);
+    }
+
+    [HttpPut("/api/hubs/{hub}/permissions/{permission}/connections/{connectionId}",
+        Name = "WebPubSub_GrantPermission")]
+    public IActionResult GrantPermission(
+        [RegularExpression(WebPubSubNameValidator.HubNamePattern)] string hub,
+        ConnectionRoleAction permission,
+        [MinLength(1)] string connectionId,
+        [FromQuery] string? targetName)
+    {
+        return HandlePermission(hub, permission, connectionId, targetName, grant: true);
+    }
+
+    [HttpDelete("/api/hubs/{hub}/permissions/{permission}/connections/{connectionId}",
+        Name = "WebPubSub_RevokePermission")]
+    public IActionResult RevokePermission(
+        [RegularExpression(WebPubSubNameValidator.HubNamePattern)] string hub,
+        ConnectionRoleAction permission,
+        [MinLength(1)] string connectionId,
+        [FromQuery] string? targetName)
+    {
+        return HandlePermission(hub, permission, connectionId, targetName, grant: false);
+    }
+
+    private IActionResult HandlePermission(
+        string hub, ConnectionRoleAction permission, string connectionId, string? targetName, bool? grant)
+    {
+        if (!Authorize())
+        {
+            return Unauthorized();
+        }
+        if (!WebPubSubNameValidator.IsValidGroupName(targetName))
+        {
+            return CreateBadRequest("Invalid group name.");
+        }
+        if (!_connections.TryGet(hub.ToLowerInvariant(), connectionId, out var connection))
+        {
+            return grant == false ? NoContent() : PermissionError(
+                StatusCodes.Status404NotFound, "Info.Connection.NotExisted",
+                $"Connection `{connectionId}` is not found.");
+        }
+
+        var permissions = connection.GetPermissions(permission);
+        if (grant is null)
+        {
+            return permissions.Check(targetName!) ? Ok() : PermissionError(
+                StatusCodes.Status404NotFound, "Info.Connection.NotExisted",
+                $"Connection `{connectionId}` doesn't have the permission `{permission}`.");
+        }
+        if (!(grant.Value ? permissions.TryGrant(targetName!) : permissions.TryRevoke(targetName!)))
+        {
+            return PermissionError(StatusCodes.Status409Conflict, "Error.Connection.Conflict",
+                $"Connection `{connectionId}` has reached the limit of {ConnectionRolePermissions.MaximumLiteralCount} literal permissions for `{permission}`.");
+        }
+        return grant.Value ? Ok() : NoContent();
+    }
+
+    private IActionResult PermissionError(int statusCode, string code, string message)
+    {
+        Response.Headers["x-ms-error-code"] = code;
+        return StatusCode(statusCode, new { code, message, target = "Connection" });
+    }
+
     private bool Authorize()
     {
         var authorization = Request.Headers.Authorization.ToString();

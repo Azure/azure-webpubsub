@@ -28,7 +28,7 @@ using Xunit;
 
 namespace Microsoft.Azure.WebPubSub.Emulator.Tests;
 
-public class RestApiTests
+public partial class RestApiTests
 {
     private const string Hub = "chat";
     private static readonly TimeSpan TestTimeout = TimeSpan.FromSeconds(10);
