@@ -172,11 +172,36 @@ internal sealed class ConnectionManager
             return;
         }
 
-        var transport = connection.CloseByAppServer(reason);
-        if (transport is not null)
-        {
-            _ = transport.CloseAsync(WebSocketCloseStatus.NormalClosure, string.Empty);
-        }
+        CloseConnection(connection, reason);
+    }
+
+    public void CloseAllConnections(
+        string hub,
+        IReadOnlySet<string>? excludedConnectionIds = null,
+        string? reason = null)
+    {
+        CloseConnections(GetHubConnections(hub), excludedConnectionIds, reason);
+    }
+
+    public void CloseGroupConnections(
+        string hub,
+        string group,
+        IReadOnlySet<string>? excludedConnectionIds = null,
+        string? reason = null)
+    {
+        CloseConnections(
+            GetHubConnections(hub).Where(connection => connection.Groups.ContainsKey(group)),
+            excludedConnectionIds,
+            reason);
+    }
+
+    public void CloseUserConnections(
+        string hub,
+        string userId,
+        IReadOnlySet<string>? excludedConnectionIds = null,
+        string? reason = null)
+    {
+        CloseConnections(GetUserConnections(hub, userId), excludedConnectionIds, reason);
     }
 
     public void Remove(LogicalConnection connection, string? reason = null)
@@ -210,6 +235,30 @@ internal sealed class ConnectionManager
             .Where(connection => ODataFilterExecutor.Instance.Matches(filter, connection)))
         {
             connection.SendGroupData(group, sender?.UserId, data);
+        }
+    }
+
+    private static void CloseConnections(
+        IEnumerable<LogicalConnection> connections,
+        IReadOnlySet<string>? excludedConnectionIds,
+        string? reason)
+    {
+        var snapshot = connections
+            .Where(connection => excludedConnectionIds?.Contains(connection.ConnectionId) != true)
+            .ToArray();
+        foreach (var connection in snapshot)
+        {
+            // Close the selected instance, not a replacement registered under the same ID.
+            CloseConnection(connection, reason);
+        }
+    }
+
+    private static void CloseConnection(LogicalConnection connection, string? reason)
+    {
+        var transport = connection.CloseByAppServer(reason);
+        if (transport is not null)
+        {
+            _ = transport.CloseAsync(WebSocketCloseStatus.NormalClosure, string.Empty);
         }
     }
 
