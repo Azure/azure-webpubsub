@@ -1,4 +1,14 @@
-import { createClient, createPartialDone, success, successFn, waitFor, spinCheck, getServer } from "./support/util";
+import {
+  cleanup,
+  createClient,
+  createPartialDone,
+  success,
+  successFn,
+  waitFor,
+  spinCheck,
+  getServer,
+} from "./support/util";
+import assert from "assert";
 import { timeoutMap } from "./support/constants";
 import { debugModule } from "../../src/common/utils";
 const expect = require("expect.js");
@@ -484,13 +494,12 @@ describe("messaging many", () => {
     });
   });
 
-  it("should broadcast and expect multiple acknowledgements", (done) => {
-    const ioPromise = getServer(0);
-    ioPromise.then((io) => {
-      const socket1 = createClient("/", { multiplex: false });
-      const socket2 = createClient("/", { multiplex: false });
-      const socket3 = createClient("/", { multiplex: false });
-
+  it("should broadcast and expect multiple acknowledgements", async () => {
+    const io = await getServer(0);
+    const socket1 = createClient("/", { multiplex: false });
+    const socket2 = createClient("/", { multiplex: false });
+    const socket3 = createClient("/", { multiplex: false });
+    try {
       socket1.on("some event", (cb) => {
         cb(1);
       });
@@ -503,25 +512,26 @@ describe("messaging many", () => {
         cb(3);
       });
 
-      Promise.all([waitFor(socket1, "connect"), waitFor(socket2, "connect"), waitFor(socket3, "connect")]).then(() => {
+      await Promise.all([waitFor(socket1, "connect"), waitFor(socket2, "connect"), waitFor(socket3, "connect")]);
+      const result = await new Promise<{ error: Error | null; responses: unknown[] }>((resolve) => {
         io.timeout(timeoutMap[2000]).emit("some event", (err, responses) => {
-          expect(err).to.be(null);
-          expect(responses).to.have.length(3);
-          expect(responses).to.contain(1, 2, 3);
-
-          success(done, io, socket1, socket2, socket3);
+          resolve({ error: err, responses });
         });
       });
-    });
+      expect(result.error).to.be(null);
+      expect(result.responses).to.have.length(3);
+      expect(result.responses).to.contain(1, 2, 3);
+    } finally {
+      await cleanup(io, socket1, socket2, socket3);
+    }
   });
 
-  it("should fail when a client does not acknowledge the event in the given delay", (done) => {
-    const ioPromise = getServer(0);
-    ioPromise.then((io) => {
-      const socket1 = createClient("/", { multiplex: false });
-      const socket2 = createClient("/", { multiplex: false });
-      const socket3 = createClient("/", { multiplex: false });
-
+  it("should fail when a client does not acknowledge the event in the given delay", async () => {
+    const io = await getServer(0);
+    const socket1 = createClient("/", { multiplex: false });
+    const socket2 = createClient("/", { multiplex: false });
+    const socket3 = createClient("/", { multiplex: false });
+    try {
       socket1.on("some event", (cb) => {
         cb(1);
       });
@@ -534,25 +544,26 @@ describe("messaging many", () => {
         // timeout
       });
 
-      Promise.all([waitFor(socket1, "connect"), waitFor(socket2, "connect"), waitFor(socket3, "connect")]).then(() => {
+      await Promise.all([waitFor(socket1, "connect"), waitFor(socket2, "connect"), waitFor(socket3, "connect")]);
+      const result = await new Promise<{ error: Error | null; responses: unknown[] }>((resolve) => {
         io.timeout(timeoutMap[200]).emit("some event", (err, responses) => {
-          expect(err).to.be.an(Error);
-          expect(responses).to.have.length(2);
-          expect(responses).to["contain"](1, 2);
-
-          success(done, io, socket1, socket2, socket3);
+          resolve({ error: err, responses });
         });
       });
-    });
+      expect(result.error).to.be.an(Error);
+      expect(result.responses).to.have.length(2);
+      expect(result.responses).to["contain"](1, 2);
+    } finally {
+      await cleanup(io, socket1, socket2, socket3);
+    }
   });
 
-  it("should broadcast and expect multiple acknowledgements (promise)", (done) => {
-    const ioPromise = getServer(0);
-    ioPromise.then((io) => {
-      const socket1 = createClient("/", { multiplex: false });
-      const socket2 = createClient("/", { multiplex: false });
-      const socket3 = createClient("/", { multiplex: false });
-
+  it("should broadcast and expect multiple acknowledgements (promise)", async () => {
+    const io = await getServer(0);
+    const socket1 = createClient("/", { multiplex: false });
+    const socket2 = createClient("/", { multiplex: false });
+    const socket3 = createClient("/", { multiplex: false });
+    try {
       socket1.on("some event", (cb) => {
         cb(1);
       });
@@ -565,24 +576,21 @@ describe("messaging many", () => {
         cb(3);
       });
 
-      Promise.all([waitFor(socket1, "connect"), waitFor(socket2, "connect"), waitFor(socket3, "connect")]).then(
-        async () => {
-          const responses = await io.timeout(2000).emitWithAck("some event");
-          expect(responses).to["contain"](1, 2, 3);
-
-          success(done, io, socket1, socket2, socket3);
-        }
-      );
-    });
+      await Promise.all([waitFor(socket1, "connect"), waitFor(socket2, "connect"), waitFor(socket3, "connect")]);
+      const responses = await io.timeout(timeoutMap[2000]).emitWithAck("some event");
+      expect(responses).to.have.length(3);
+      expect(responses).to["contain"](1, 2, 3);
+    } finally {
+      await cleanup(io, socket1, socket2, socket3);
+    }
   });
 
-  it("should fail when a client does not acknowledge the event in the given delay (promise)", (done) => {
-    const ioPromise = getServer(0);
-    ioPromise.then((io) => {
-      const socket1 = createClient("/", { multiplex: false });
-      const socket2 = createClient("/", { multiplex: false });
-      const socket3 = createClient("/", { multiplex: false });
-
+  it("should fail when a client does not acknowledge the event in the given delay (promise)", async () => {
+    const io = await getServer(0);
+    const socket1 = createClient("/", { multiplex: false });
+    const socket2 = createClient("/", { multiplex: false });
+    const socket3 = createClient("/", { multiplex: false });
+    try {
       socket1.on("some event", (cb) => {
         cb(1);
       });
@@ -595,23 +603,16 @@ describe("messaging many", () => {
         // timeout
       });
 
-      Promise.all([waitFor(socket1, "connect"), waitFor(socket2, "connect"), waitFor(socket3, "connect")]).then(
-        async () => {
-          try {
-            await io.timeout(200).emitWithAck("some event");
-            expect["fail"]();
-          } catch (err) {
-            expect(err).to.be.an(Error);
-            // @ts-ignore
-            expect(err.responses).to.have.length(2);
-            // @ts-ignore
-            expect(err.responses).to["contain"](1, 2);
-
-            success(done, io, socket1, socket2, socket3);
-          }
-        }
-      );
-    });
+      await Promise.all([waitFor(socket1, "connect"), waitFor(socket2, "connect"), waitFor(socket3, "connect")]);
+      await assert.rejects(io.timeout(timeoutMap[200]).emitWithAck("some event"), (err: unknown) => {
+        assert.ok(err instanceof Error && "responses" in err);
+        expect(err.responses).to.have.length(2);
+        expect(err.responses).to["contain"](1, 2);
+        return true;
+      });
+    } finally {
+      await cleanup(io, socket1, socket2, socket3);
+    }
   });
 
   it("should broadcast and return if the packet is sent to 0 client", (done) => {

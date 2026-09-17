@@ -143,7 +143,7 @@ yarn run build
 
 ## Unit Test
 
-After building both libraries, run the local transport and HTTP helper regression tests:
+After building both libraries, run the local transport, HTTP helper, and acknowledgement lifecycle regression tests:
 
 ```bash
 yarn test:unit
@@ -153,6 +153,8 @@ These tests run without Azure credentials. The live suite is also loaded and che
 TypeScript, but its tests are explicitly skipped when no service configuration is supplied.
 The transport regressions use the production transport and real Engine.IO Socket, covering
 queued sends, callbacks that send or close again, binary attachments and buffered close.
+HTTP helper checks cover the current per-test hub. Acknowledgement checks ensure every
+submitted request settles before cleanup, including failure paths.
 Pull requests run this credential-free check; pushes to `main` also run the live suite
 with the configured CI secret.
 

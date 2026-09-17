@@ -15,6 +15,7 @@ if (Boolean(wpsOptions.hub) !== Boolean(wpsOptions.connectionString)) {
 require("./shutdown");
 require("./transport-readiness");
 require("./http-helpers");
+require("./ack-lifecycle");
 
 const liveTests = wpsOptions.hub && wpsOptions.connectionString ? describe : describe.skip;
 if (liveTests === describe.skip) {
