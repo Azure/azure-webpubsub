@@ -14,7 +14,6 @@
         "test": "echo TODO"
     },
     "resolutions": {
-        "js-yaml": "4.3.2",
         "qs": "6.16.0",
         "serialize-javascript": "7.1.0",
         "uuid": "11.1.1"

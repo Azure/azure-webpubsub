@@ -94,9 +94,6 @@
     "typescript": "^5.0.3"
   },
   "resolutions": {
-    "**/@eslint/eslintrc/js-yaml": "4.3.2",
-    "**/@istanbuljs/load-nyc-config/js-yaml": "3.15.2",
-    "**/eslint/js-yaml": "4.3.2",
     "@azure/abort-controller": "2.1.2",
     "@azure/core-auth": "1.9.0",
     "@azure/core-client": "1.9.2",

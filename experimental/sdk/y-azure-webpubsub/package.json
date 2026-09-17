@@ -62,8 +62,5 @@
   },
   "optionalDependencies": {
     "ws": "^8.21.0"
-  },
-  "overrides": {
-    "js-yaml": "3.15.2"
   }
 }
