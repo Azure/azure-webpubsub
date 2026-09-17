@@ -84,4 +84,10 @@ internal sealed class ClientPayloadProcessorFactory
         return WebPubSubJsonV1PayloadProcessor.IsSupportedSubprotocol(subprotocol) ||
             WebPubSubProtobufV1PayloadProcessor.IsSupportedSubprotocol(subprotocol);
     }
+
+    public static bool IsReliableSubprotocol(string? subprotocol)
+    {
+        return WebPubSubJsonV1PayloadProcessor.IsReliableSubprotocol(subprotocol) ||
+            WebPubSubProtobufV1PayloadProcessor.IsReliableSubprotocol(subprotocol);
+    }
 }
