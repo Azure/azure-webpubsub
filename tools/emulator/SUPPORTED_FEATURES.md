@@ -1,35 +1,48 @@
-# Supported Features and Gaps
+# Supported features and limitations
 
-The current implementation provides raw WebSocket, JSON, and protobuf client endpoints, including
-reliable JSON and reliable protobuf, for local Azure Web PubSub development.
+Use the Azure Web PubSub Emulator to develop and test messaging applications locally with
+raw WebSocket, JSON, or protobuf clients. It is a local development tool, not a production
+service or a substitute for validating your application against Azure Web PubSub.
 
-## Current support
+See the [README](README.md) for setup and configuration.
 
-| Area | Features | Support |
-| --- | --- | --- |
-| .NET tool | Builds and installs as `Microsoft.Azure.WebPubSub.Emulator`; runs as `awps-emulator`. | ✅ |
-| Local connection settings | Derives the endpoint from the bound ASP.NET Core `Urls` address and supports a separate `WebPubSub:AccessKey` setting. | ✅ |
-| Service health | `HEAD /api/health` returns `200 OK`. | ✅ |
-| Client token authentication | Validates access-key JWTs supplied by query string or bearer header. | ✅ |
-| Raw WebSocket | Sends text/binary frames as user event `message` by default or with `sendEvent`; supports handler replies and authorized `sendToGroup` with `noEcho`. See [raw modes](README.md#raw-websocket-events-and-group-sends). | ✅ |
-| JSON WebSocket | Supports `json.webpubsub.azure.v1` negotiation, connection messages, group operations, acknowledgements, ping, metadata, and message TTL validation. | ✅ |
-| Protobuf WebSocket | Supports `protobuf.webpubsub.azure.v1` with binary envelopes, group operations, acknowledgements, ping, metadata, TTL validation and native Any payloads. Shares HTTP handlers and listeners with JSON clients. See [scope](README.md#protobuf-clients). | ✅ |
-| Reliable JSON WebSocket | Supports `json.reliable.webpubsub.azure.v1`, scoped reconnection tokens, 30-second local recovery, ordered replay, and `sequenceAck`. | ✅ |
-| Reliable Protobuf WebSocket | Supports `protobuf.reliable.webpubsub.azure.v1` with the same local recovery, group/acknowledgement state retention, ordered binary replay and cumulative `sequence_ack_message`. See [scope](README.md#protobuf-clients). | ✅ |
-| Connection state | Tracks active connections and temporarily retains reliable logical connections after unexpected disconnects. | ✅ |
-| Groups and roles | Supports connection-scoped token groups and authorized join, leave, and group send, including wildcard roles. | ✅ |
-| Outbound delivery | Uses a bounded, single-writer queue for each WebSocket connection. | ✅ |
-| HTTP lifecycle handlers | Intercepts `connect` before upgrade, applies user/role/group/subprotocol overrides, and sends `connected` and final `disconnected` CloudEvents. Retains connect cookies and connection state. See [configuration and limitations](README.md#http-lifecycle-notifications). | ✅ |
-| HTTP handler validation and retries | Validates endpoints with OPTIONS/GET and cached allowed-origin results; retries HTTP 408, 5xx, and eligible network failures with 1/3/5-second delays. | ✅ |
-| HTTP user-event handlers | Routes JSON/reliable JSON events by `EventPattern`, forwards typed payloads and metadata, handles response data/metadata/state, and reuses reliable replay and acknowledgements. See [user events](README.md#user-events). | ✅ |
-| HTTP handler authentication | Outbound bearer/managed identity authentication is unsupported. Omit `Auth`; configured auth is rejected at startup. | ❌ |
-| Event Hubs listeners | Outbound lifecycle/user events through the Azure SDK, all matching targets, AMQP CloudEvents, user metadata and listener-only dispatch. Raw and protobuf delivery, including native Any and metadata, verified against the official local Event Hubs emulator; Azure-hosted delivery is not yet verified. See [configuration and live-test requirements](README.md#event-hubs-listeners). | ⚠️ |
-| REST connection operations | Authenticated connection presence, direct text, JSON, and binary sends, close, and single-connection group membership changes for GA API versions from `2021-10-01` through `2024-12-01`. | ✅ |
-| REST group operations | Authenticated group presence and text, JSON, or binary fan-out with excluded connection IDs and OData filters. | ✅ |
-| REST broadcast | Authenticated text, JSON, or binary fan-out with excluded connection IDs and OData filters. | ✅ |
-| REST user operations | Authenticated user presence, group membership changes, and text, JSON, or binary fan-out to all matching connections with OData filters. | ✅ |
-| REST connection permissions | Authenticated query, grant, and revoke of `sendToGroup` and `joinLeaveGroup`, effective immediately and retained during reliable recovery. | ✅ |
-| REST send TTL | Accepts valid `messageTtlSeconds` values; delivery is immediate and expiration is not modeled. | ⚠️ |
+## Supported features
+
+| Area | What you can do |
+| --- | --- |
+| Local endpoint | Choose a listening address and access key, and use the connection string printed at startup. Check readiness with `HEAD /api/health`. |
+| Client authentication | Connect with an access-key-signed JWT in the query string or bearer header. |
+| Raw WebSocket | Send text or binary user events, receive handler replies, or publish to a group with `noEcho`. See [raw modes](README.md#raw-websocket-events-and-group-sends). |
+| JSON clients | Use `json.webpubsub.azure.v1` for group operations, user events, acknowledgements, ping, and metadata. |
+| Protobuf clients | Use `protobuf.webpubsub.azure.v1` for the same operations with binary envelopes and native `google.protobuf.Any` payloads. See [protobuf clients](README.md#protobuf-clients). |
+| Reliable clients | Use `json.reliable.webpubsub.azure.v1` or `protobuf.reliable.webpubsub.azure.v1` to recover after an unexpected disconnect and replay unacknowledged messages. See the recovery limits below. |
+| Groups and permissions | Set initial groups and roles in client tokens, authorize group operations with wildcard roles, and query, grant, or revoke connection permissions through REST. |
+| HTTP handlers | Accept or reject new connections, customize user IDs, roles, groups, and subprotocols, handle user events, and receive lifecycle notifications. See [handler configuration](README.md#http-lifecycle-notifications). |
+| Handler validation and retries | Validate webhook endpoints and retry eligible transient failures. Handlers must tolerate duplicate events. See [validation and retries](README.md#handler-validation-and-retries). |
+| REST messaging | Send text, JSON, or binary data to connections, users, groups, or all clients. Filter recipients with OData and exclude connection IDs where supported. |
+| REST connection and group management | Check connection, user, or group presence; change group membership for connections or users; close individual connections. |
+
+REST operations support GA API versions from `2021-10-01` through `2024-12-01`.
+Requests without `api-version` use the latest supported version.
+
+## Development limits
+
+- **Message expiration:** TTL values are validated but messages are not expired by TTL.
+	Do not use the emulator to test whether expired messages are discarded.
+- **Recovery:** Reliable connections can recover for 30 seconds after an unexpected disconnect,
+	only while the same emulator process is running. Restarting loses connections, groups, and
+	pending messages. Each connection can buffer up to 1,000 unacknowledged messages and 16 MiB;
+	connections that exceed the buffer limits are closed. Acknowledge received sequence IDs regularly.
+- **Event Hubs:** Delivery failures are logged but do not fail the client event when a listener
+	matches. A successful client acknowledgement
+	does not confirm Event Hubs delivery.
+	See [Event Hubs setup and limitations](README.md#event-hubs-listeners).
+- **Authentication testing:** Access-key authentication is supported. The optional server SDK
+	token-credential mode skips signature and identity validation and must only be used in trusted
+	local environments. It cannot validate Microsoft Entra ID authentication or Azure RBAC.
+	See [local server SDK authentication](README.md#local-server-sdk-authentication).
+
+## Connection permission APIs
 
 Connection permission APIs use `HEAD`, `PUT`, and `DELETE` on
 `/api/hubs/{hub}/permissions/{permission}/connections/{connectionId}?targetName={group}`.
@@ -41,9 +54,11 @@ existing group membership. Query returns `200` when allowed, otherwise `404`; gr
 Updates exceeding 1,000 literal rules per permission return `409` without changing state.
 These APIs support the same GA versions as the other REST connection operations.
 
-For the currently supported API versions (`2021-10-01` through `2024-12-01`) and versionless
-requests, REST user operations preserve the legacy runtime route-binding behavior and pass the
-ASP.NET Core route value through without another URL-decoding step. For example:
+## User IDs in REST URLs
+
+For the supported API versions and requests without `api-version`, encoded slashes in user IDs
+are not interpreted as `/`. If your application uses slashes or percent-encoded characters in
+user IDs, check the target against these examples:
 
 | Request path segment | User ID targeted by current API versions |
 | --- | --- |
@@ -52,24 +67,21 @@ ASP.NET Core route value through without another URL-decoding step. For example:
 | `alice%20smith` | `alice smith` |
 | `alice+bob` | `alice+bob` (not `alice bob`) |
 
-As in the runtime, access-key authentication compares a URL-decoded token audience with the
-request path, allowing a token created from the original `tenant%252Falice` URL to authenticate
-while preserving the legacy route value above.
+## Unsupported features
 
-Support for this behavior in a new API version is planned. The new version will adopt the
-runtime's new contract and decode the original user ID path segment exactly once: for example,
-`tenant%2Falice` targets `tenant/alice`, while `tenant%252Falice` targets `tenant%2Falice`.
+- Bearer or managed identity authentication for outbound HTTP handlers. Omit `Auth` from
+	handler configuration; configuring it prevents startup.
+- Key Vault URL references and `tunnel://` handler URLs. Use a directly reachable HTTP(S)
+	handler URL for local development.
+- Client invocation and message streaming.
+- Native protobuf request bodies (`application/x-protobuf`) in REST send operations. Use
+	text, JSON, or binary REST payloads; native Any payloads are supported through protobuf clients.
+- Client-certificate authentication and production Microsoft Entra ID token validation.
 
-## Not yet implemented
+## User-event errors
 
-The following areas are planned for follow-up changes:
-
-- Key Vault URL references
-- Tunnel connections (`tunnel://` upstream URLs)
-- Client message streaming
-- Production Microsoft Entra ID validation
-
-Client events require a matching upstream handler or listener. Without either, JSON
-events with an `ackId` receive an `InternalServerError` acknowledgement; events without an
-`ackId` are logged without closing the client connection. Raw user-event failures close the
-connection with status 1011; raw clients do not receive acknowledgements.
+To handle client user events, configure a matching HTTP handler or Event Hubs listener.
+Without either, JSON and protobuf events with an `ackId` receive an `InternalServerError`
+acknowledgement; events without an `ackId` are logged without closing the client connection.
+Raw user-event failures close the connection with status 1011; raw clients do not receive
+acknowledgements. Group sends do not require a handler or listener.
