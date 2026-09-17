@@ -40,9 +40,9 @@ internal sealed class WebPubSubProtobufV1Protocol : IWebPubSubClientDataProtocol
                     return new WebPubSubClientLeaveGroupRequest(ValidateGroup(leave.Group), leave.HasAckId ? leave.AckId : null);
                 case UpstreamMessage.MessageOneofCase.SendToGroupMessage:
                     var send = message.SendToGroupMessage!;
-                    if (send.TtlSeconds > 300)
+                    if (send.TtlSeconds > Constants.Message.MaxTtlSeconds)
                     {
-                        throw new InvalidDataException("'ttl_seconds' is out of range. Allowed range is [0,300].");
+                        throw new InvalidDataException($"'ttl_seconds' is out of range. Allowed range is [0,{Constants.Message.MaxTtlSeconds}].");
                     }
                     return new WebPubSubClientSendToGroupRequest(
                         ValidateGroup(send.Group), ReadData(send.Data, send.Metadata), send.NoEcho,

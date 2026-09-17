@@ -95,7 +95,7 @@ internal readonly struct PatternTokenString(PatternToken[] tokens)
 
     public PatternMatcher CreateMatcher()
     {
-        if (GetComplexity() > 5)
+        if (GetComplexity() > Constants.Permission.MaxPatternComplexity)
         {
             throw new NotSupportedException("Pattern contains too many wildcards to create a matcher. Consider simplifying the pattern.");
         }
