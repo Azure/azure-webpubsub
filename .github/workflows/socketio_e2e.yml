@@ -7,6 +7,13 @@ on:
     branches: [ "main" ]
     paths:
      - 'sdk/**'
+     - '.github/workflows/socketio_e2e.yml'
+  pull_request:
+    branches: [ "main" ]
+    paths:
+     - 'sdk/server-proxies/**'
+     - 'sdk/webpubsub-socketio-extension/**'
+     - '.github/workflows/socketio_e2e.yml'
 env:
   NODE_VERSION: '22.x'                # set this to the node version to use
 
@@ -43,7 +50,15 @@ jobs:
         yarn build
         popd
       shell: bash
-    - name: Test
+    - name: Compile E2E suite and test local helpers
+      env:
+        WebPubSubConnectionString: ''
+        WebPubSubHub: ''
+      run: |
+        pushd sdk/webpubsub-socketio-extension
+        yarn test:unit
+    - name: Run live Socket.IO E2E tests
+      if: github.event_name == 'push'
       env:
         WebPubSubConnectionString: ${{ secrets.SOCKETIO_E2E_CONNECTION_STRING }}
         WebPubSubHub: eio_hub
