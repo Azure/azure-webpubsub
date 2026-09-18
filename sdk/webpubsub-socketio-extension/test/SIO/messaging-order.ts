@@ -1,147 +1,98 @@
-import { createClient, createPartialDone, success, successFn, spinCheck, getServer } from "./support/util";
-import { debugModule } from "../../src/common/utils";
+import { Socket } from "socket.io";
+import { Socket as ClientSocket } from "socket.io-client";
+import { cleanup, createClient, emitSequenceWithAck, getServer, waitFor } from "./support/util";
+import { timeoutMap } from "./support/constants";
 const expect = require("expect.js");
 
-const debug = debugModule("wps-sio-ext:ut");
+function receiveMessages(client: ClientSocket, count: number): Promise<unknown[][]> {
+  return new Promise((resolve) => {
+    const messages: unknown[][] = [];
+    const receive = (...args: unknown[]) => {
+      messages.push(args);
+      if (messages.length === count) {
+        client.off("bc", receive);
+        resolve(messages);
+      }
+    };
+    client.on("bc", receive);
+  });
+}
 
 describe("it should guarantee order", () => {
-  it("when emit to a socket", (done) => {
-    const ioPromise = getServer(0);
-    ioPromise.then((io) => {
-      const socket1 = createClient("/", { multiplex: false });
-      const totalCount = 200;
-
-      let receivedCount = 0;
-      socket1.on("bc", (a) => {
-        expect(a).to.be(receivedCount);
-        receivedCount++;
-        if (receivedCount === totalCount) {
-          success(done, io, socket1);
-        }
-      });
-
-      io.on("connection", async (socket) => {
-        await emit(socket);
-      });
-
-      async function emit(socket) {
-        await spinCheck(() => {
-          expect(socket1.connected).to.eql(true);
-        });
-
-        for (let i = 0; i <= totalCount; i++) {
-          socket.emit("bc", i);
-        }
+  it("when emit to a socket", async () => {
+    const io = await getServer(0);
+    const serverConnected = waitFor<Socket>(io, "connection");
+    const socket1 = createClient("/", { multiplex: false });
+    const totalCount = 200;
+    try {
+      const received = receiveMessages(socket1, totalCount);
+      const [socket] = await Promise.all([serverConnected, waitFor(socket1, "connect")]);
+      for (let i = 0; i < totalCount; i++) {
+        socket.emit("bc", i);
       }
-    });
+      expect(await received).to.eql(Array.from({ length: totalCount }, (_, i) => [i]));
+    } finally {
+      await cleanup(io, socket1);
+    }
   });
 
-  it("when broadcasting to a namespace", (done) => {
-    const ioPromise = getServer(0);
-    ioPromise.then((io) => {
-      const socket1 = createClient("/", { multiplex: false });
-      const totalCount = 200;
-
-      let receivedCount = 0;
-      socket1.on("bc", (a) => {
-        expect(a).to.be(receivedCount);
-        receivedCount++;
-        if (receivedCount === totalCount) {
-          success(done, io, socket1);
-        }
-      });
-
-      io.on("connection", async () => {
-        await emit();
-      });
-
-      async function emit() {
-        await spinCheck(() => {
-          expect(socket1.connected).to.eql(true);
-        });
-
-        for (let i = 0; i <= totalCount; i++) {
-          io.emit("bc", i);
-        }
+  it("when broadcasting to a namespace", async () => {
+    const io = await getServer(0);
+    const socket1 = createClient("/", { multiplex: false });
+    const totalCount = 200;
+    try {
+      const received = receiveMessages(socket1, totalCount);
+      await waitFor(socket1, "connect");
+      for (let i = 0; i < totalCount; i++) {
+        io.emit("bc", i);
       }
-    });
+      expect(await received).to.eql(Array.from({ length: totalCount }, (_, i) => [i]));
+    } finally {
+      await cleanup(io, socket1);
+    }
   });
 
-  it("when broadcasting to a group", (done) => {
-    const ioPromise = getServer(0);
-    ioPromise.then((io) => {
-      const socket1 = createClient("/", { multiplex: false });
-      const partialDone = createPartialDone(2, successFn(done, io, socket1));
-      const totalCount = 200;
-
-      let receivedCountForG1 = 0;
-      let receivedCountForG2 = 0;
-
-      socket1.on("bc", (a, g) => {
-        if (g === "g1") {
-          expect(a).to.be(receivedCountForG1);
-          receivedCountForG1++;
-          if (receivedCountForG1 === totalCount) {
-            partialDone();
-          }
-        } else if (g === "g2") {
-          expect(a).to.be(receivedCountForG2);
-          receivedCountForG2++;
-          if (receivedCountForG2 === totalCount) {
-            partialDone();
-          }
-        }
-      });
-
-      io.on("connection", async (socket) => {
-        await emit(socket);
-      });
-
-      async function emit(socket) {
-        await spinCheck(() => {
-          expect(socket1.connected).to.eql(true);
-        });
-
-        await socket.join("g1");
-        await socket.join("g2");
-
-        for (let i = 0; i <= totalCount; i++) {
-          io.to("g1").emit("bc", i, "g1");
-          io.to("g2").emit("bc", i, "g2");
-        }
+  it("when broadcasting to a group", async () => {
+    const io = await getServer(0);
+    const serverConnected = waitFor<Socket>(io, "connection");
+    const socket1 = createClient("/", { multiplex: false });
+    const totalCount = 200;
+    try {
+      const received = receiveMessages(socket1, totalCount * 2);
+      const [socket] = await Promise.all([serverConnected, waitFor(socket1, "connect")]);
+      await socket.join("g1");
+      await socket.join("g2");
+      for (let i = 0; i < totalCount; i++) {
+        io.to("g1").emit("bc", i, "g1");
+        io.to("g2").emit("bc", i, "g2");
       }
-    });
+      const messages = await received;
+      for (const group of ["g1", "g2"]) {
+        expect(messages.filter((message) => message[1] === group)).to.eql(
+          Array.from({ length: totalCount }, (_, i) => [i, group])
+        );
+      }
+    } finally {
+      await cleanup(io, socket1);
+    }
   });
 
-  it("when broadcasting to a namespace with ack", (done) => {
-    const ioPromise = getServer(0);
-    ioPromise.then((io) => {
-      const socket1 = createClient("/", { multiplex: false });
-      const totalCount = 200;
-
-      let receivedCount = 0;
-      socket1.on("bc", (a, cb) => {
-        expect(a).to.be(receivedCount);
-        receivedCount++;
-        cb(a);
-        if (receivedCount === totalCount) {
-          success(done, io, socket1);
-        }
+  it("when broadcasting to a namespace with ack", async () => {
+    const io = await getServer(0);
+    const socket1 = createClient("/", { multiplex: false });
+    const totalCount = 200;
+    const received: number[] = [];
+    try {
+      socket1.on("bc", (sequence: number, acknowledge: (sequence: number) => void) => {
+        received.push(sequence);
+        acknowledge(sequence);
       });
-
-      io.on("connection", async () => {
-        await emit();
-      });
-
-      async function emit() {
-        await spinCheck(() => {
-          expect(socket1.connected).to.eql(true);
-        });
-
-        for (let i = 0; i <= totalCount; i++) {
-          io.timeout(2000).emitWithAck("bc", i);
-        }
-      }
-    });
+      await waitFor(socket1, "connect");
+      const responses = await emitSequenceWithAck(io, "bc", totalCount, timeoutMap[2000]);
+      expect(received).to.eql(Array.from({ length: totalCount }, (_, i) => i));
+      expect(responses).to.eql(Array.from({ length: totalCount }, (_, i) => [i]));
+    } finally {
+      await cleanup(io, socket1);
+    }
   });
 });

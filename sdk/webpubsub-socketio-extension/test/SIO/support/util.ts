@@ -39,7 +39,8 @@ export const getIndexedHub = (idx: number): string => `${process.env.WebPubSubHu
 export const getClientConnectDomain = (): string => getEndpointFullPath(process.env.WebPubSubConnectionString ?? "");
 
 // e.g. /client/socket/hubs/eio_hub
-export const getClientConnectPath = (idx: number = 0): string => `/clients/socketio/hubs/${getIndexedHub(idx)}`;
+export const getClientConnectPath = (idx: number = internalCounter.getInternalCounter()): string =>
+  `/clients/socketio/hubs/${getIndexedHub(idx)}`;
 
 const shutdownServers = new WeakMap<_Server["httpServer"], ReturnType<typeof wrapShutdown>>();
 
@@ -165,10 +166,17 @@ export function shutdown(io: _Server, cb?: (err?: Error) => void) {
   });
 }
 
-export async function success(done: Function, io: Server, ...clients: (ClientSocket | Socket)[]) {
+export function cleanup(io: _Server, ...clients: (ClientSocket | Socket)[]): Promise<void> {
   clients.forEach((client) => client.disconnect());
-  debug("start cleanup for success");
-  shutdown(io, (err) => done(err));
+  debug("start cleanup");
+  return new Promise((resolve, reject) => shutdown(io, (err) => (err ? reject(err) : resolve())));
+}
+
+export function success(done: Function, io: Server, ...clients: (ClientSocket | Socket)[]) {
+  return cleanup(io, ...clients).then(
+    () => done(),
+    (err) => done(err)
+  );
 }
 
 export function successFn(done: Function, sio: Server, ...clientSockets: ClientSocket[]) {
@@ -199,6 +207,21 @@ export function createPartialDone(count: number, done: (err?: Error) => void) {
 export function waitFor<T = unknown>(emitter, event) {
   return new Promise<T>((resolve) => {
     emitter.once(event, resolve);
+  });
+}
+
+export async function emitSequenceWithAck(
+  io: _Server,
+  event: string,
+  count: number,
+  timeout: number
+): Promise<unknown[][]> {
+  const results = await Promise.allSettled(
+    Array.from({ length: count }, (_, sequence) => io.timeout(timeout).emitWithAck(event, sequence))
+  );
+  return results.map((result) => {
+    if (result.status === "rejected") throw result.reason;
+    return result.value;
   });
 }
 

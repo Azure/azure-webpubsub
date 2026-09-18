@@ -1,7 +1,14 @@
 import assert from "assert";
 import { once } from "events";
 import { createServer, RequestListener } from "http";
-import { eioHandshake, eioPoll, eioPush } from "./SIO/support/util";
+import {
+  eioHandshake,
+  eioPoll,
+  eioPush,
+  getClientConnectPath,
+  getSioServerOptions,
+  updateAndGetInternalCounter,
+} from "./SIO/support/util";
 
 async function withLocalResponse(handler: RequestListener, check: () => Promise<void>) {
   const server = createServer(handler);
@@ -24,6 +31,38 @@ async function withLocalResponse(handler: RequestListener, check: () => Promise<
 }
 
 describe("Engine.IO HTTP test helpers (local)", () => {
+  it("routes every raw request to the currently configured test hub", async () => {
+    let expectedPath: string;
+    const paths: string[] = [];
+    await withLocalResponse(
+      (req, res) => {
+        const url = new URL(req.url!, "http://localhost");
+        paths.push(url.pathname);
+        res.setHeader("Content-Type", "text/plain");
+        if (url.pathname !== expectedPath) {
+          res.statusCode = 400;
+          res.end("Wrong test hub.");
+        } else if (!url.searchParams.has("sid")) {
+          res.end('0{"sid":"current-session"}');
+        } else {
+          res.end(req.method === "POST" ? "ok" : "6\u001e1");
+        }
+      },
+      async () => {
+        for (let iteration = 0; iteration < 2; iteration++) {
+          const index = updateAndGetInternalCounter();
+          expectedPath = `/clients/socketio/hubs/${getSioServerOptions().hub}`;
+          assert.strictEqual(getClientConnectPath(index), expectedPath);
+          assert.notStrictEqual(getClientConnectPath(0), expectedPath);
+          const sid = await eioHandshake();
+          await eioPush(sid, "40");
+          assert.strictEqual(await eioPoll(sid), "6\u001e1");
+          assert.deepStrictEqual(paths.slice(-3), [expectedPath, expectedPath, expectedPath]);
+        }
+      }
+    );
+  });
+
   it("awaits the handshake, post and poll responses", async () => {
     const methods: string[] = [];
     await withLocalResponse(
