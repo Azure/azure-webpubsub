@@ -141,10 +141,7 @@ internal sealed class ConnectionManager
     {
         foreach (var connection in GetUserConnections(hub, userId))
         {
-            foreach (var group in connection.Groups.Keys)
-            {
-                connection.RemoveFromGroup(group);
-            }
+            RemoveFromAllGroups(connection);
         }
     }
 
@@ -160,6 +157,24 @@ internal sealed class ConnectionManager
         {
             connection.RemoveFromGroup(group);
         }
+    }
+
+    public void RemoveConnectionFromAllGroups(string hub, string connectionId)
+    {
+        if (TryGet(hub, connectionId, out var connection))
+        {
+            RemoveFromAllGroups(connection);
+        }
+    }
+
+    public void AddConnectionsToGroups(string hub, IReadOnlyList<string> groups, string? filter)
+    {
+        UpdateGroups(hub, groups, filter, add: true);
+    }
+
+    public void RemoveConnectionsFromGroups(string hub, IReadOnlyList<string> groups, string? filter)
+    {
+        UpdateGroups(hub, groups, filter, add: false);
     }
 
     public void CloseConnection(
@@ -235,6 +250,36 @@ internal sealed class ConnectionManager
             .Where(connection => ODataFilterExecutor.Instance.Matches(filter, connection)))
         {
             connection.SendGroupData(group, sender?.UserId, data);
+        }
+    }
+
+    private void UpdateGroups(string hub, IReadOnlyList<string> groups, string? filter, bool add)
+    {
+        // Select every target before changing membership: the filter can depend on groups.
+        var snapshot = GetHubConnections(hub)
+            .Where(connection => ODataFilterExecutor.Instance.Matches(filter, connection))
+            .ToArray();
+        foreach (var connection in snapshot)
+        {
+            foreach (var group in groups)
+            {
+                if (add)
+                {
+                    connection.TryAddToGroup(group);
+                }
+                else
+                {
+                    connection.RemoveFromGroup(group);
+                }
+            }
+        }
+    }
+
+    private static void RemoveFromAllGroups(LogicalConnection connection)
+    {
+        foreach (var group in connection.Groups.Keys)
+        {
+            connection.RemoveFromGroup(group);
         }
     }
 
