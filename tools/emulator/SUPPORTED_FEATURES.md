@@ -21,7 +21,7 @@ See the [README](README.md) for setup and configuration.
 | Handler validation and retries | Validate webhook endpoints and retry eligible transient failures. Handlers must tolerate duplicate events. See [validation and retries](README.md#handler-validation-and-retries). |
 | REST messaging | Send text, JSON, or binary data to connections, users, groups, or all clients. Filter recipients with OData and exclude connection IDs where supported. |
 | Client token generation | Use `POST /api/hubs/{hub}/:generateToken` with the optional local Entra compatibility mode to generate a signed client token. See [local server SDK authentication](README.md#local-server-sdk-authentication). |
-| REST connection and group management | Check connection, user, or group presence; change group membership for connections or users; close individual connections. |
+| REST connection and group management | Check connection, user, or group presence; change group membership for connections or users; close individual connections or connections in a hub, group, or user scope, with exclusions and an optional reason. |
 
 Implemented REST operations support GA API versions from `2021-10-01` through `2024-12-01`.
 Requests without `api-version` use the latest supported version.
@@ -90,14 +90,10 @@ to `/api/hubs/{hub}`.
 | --- | --- | --- |
 | Add connections selected by a filter to multiple groups | POST | `/:addToGroups` |
 | Remove connections selected by a filter from multiple groups | POST | `/:removeFromGroups` |
-| Close connections in a hub | POST | `/:closeConnections` |
-| Close connections in a group | POST | `/groups/{group}/:closeConnections` |
-| Close a user's connections | POST | `/users/{userId}/:closeConnections` |
 | Remove a connection from all groups | DELETE | `/connections/{connectionId}/groups` |
 | List connections in a group, including pagination | GET | `/groups/{group}/connections` |
 
-Closing individual connections and adding or removing individual connection-to-group memberships
-remain supported.
+Closing connections and adding or removing individual connection-to-group memberships remain supported.
 
 ## User-event errors
 

@@ -86,7 +86,8 @@ recovery details.
 
 The emulator supports checking whether connections, users, and groups exist, broadcasting or
 sending text, JSON, or binary data to connections, users, and groups, changing connection group
-membership, managing connection permissions, and closing individual connections through REST.
+membership, managing connection permissions, and closing individual connections or connections
+in a hub, group, or user scope through REST.
 Use the connection string printed at startup with the Azure Web PubSub .NET server SDK
 (`Azure.Messaging.WebPubSub`). In this example, replace the connection and user IDs with those
 of a client connected to the `chat` hub:
@@ -137,6 +138,11 @@ response. Valid `messageTtlSeconds` values are accepted, but the emulator does n
 based on TTL. See [connection permission APIs](SUPPORTED_FEATURES.md#connection-permission-apis)
 for permission operations and [user IDs in REST URLs](SUPPORTED_FEATURES.md#user-ids-in-rest-urls)
 if your user IDs contain slashes or percent-encoded characters.
+
+Use `CloseAllConnectionsAsync`, `CloseGroupConnectionsAsync`, or `CloseUserConnectionsAsync`
+to close connections in a hub, group, or user scope. These operations accept repeated `excluded`
+connection IDs (exact matches) and an optional `reason`, and return `204` even when no connections
+match. Closing a reliable connection also prevents recovery, including when it is already detached.
 
 ## Configure the endpoint and access key
 
