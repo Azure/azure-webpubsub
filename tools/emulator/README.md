@@ -144,11 +144,45 @@ to close connections in a hub, group, or user scope. These operations accept rep
 connection IDs (exact matches) and an optional `reason`, and return `204` even when no connections
 match. Closing a reliable connection also prevents recovery, including when it is already detached.
 
-Use `AddConnectionsToGroupsAsync` and `RemoveConnectionsFromGroupsAsync` to change membership
-for connections selected by an OData filter, or `RemoveConnectionFromAllGroupsAsync` to remove
-one connection from every group. These operations also update detached reliable connections
-without changing their permissions or preventing recovery. See [bulk group operations](SUPPORTED_FEATURES.md#bulk-group-operations)
-for request validation and selection behavior.
+### Manage group membership
+
+These server-side operations use the access key in your connection string; no HTTP handler or
+unvalidated Entra mode is needed. With `serviceClient` configured as above, connect clients as
+user `alice` and use a still-connected `connectionId` (before calling `CloseConnectionAsync`):
+
+```csharp
+// Alice's current connections join both groups and can receive messages sent to either.
+await serviceClient.AddConnectionsToGroupsAsync(
+  new[] { "room1", "room2" }, "userId eq 'alice'");
+
+// Current room2 members leave room1; their room2 membership is unchanged.
+await serviceClient.RemoveConnectionsFromGroupsAsync(
+  new[] { "room1" }, "'room2' in groups");
+
+// This connection leaves every group but remains connected for direct messages.
+await serviceClient.RemoveConnectionFromAllGroupsAsync(connectionId);
+```
+
+The filter selects connections within the hub: `userId eq 'alice'` selects a user's connections,
+`connectionId eq 'abc'` selects one connection, and `'room1' in groups` selects group members.
+**Omitting the filter, or passing null or an empty string, selects every current connection in
+the hub.** Group names and user IDs are case-sensitive.
+
+These operations also update retained reliable connections, but do not affect future connections,
+change client permissions, disconnect clients, or prevent recovery. See
+[bulk group operations](SUPPORTED_FEATURES.md#bulk-group-operations) for REST paths, request
+bodies, response codes, and validation limits.
+
+For an executable example, see `OfficialSdkGroupApisPreserveSelectionMembershipAndPermissions`
+in [RestApiTests.Groups.cs](tests/Microsoft.Azure.WebPubSub.Emulator.Tests/RestApiTests.Groups.cs).
+It calls all three SDK methods with real WebSocket clients and checks selection, delivery,
+and permissions. The same file covers invalid requests, omitted filters, and reliable recovery.
+Run the group tests from the repository root; they start their own emulator. Stop any emulator
+running from this checkout first to avoid executable file locks on Windows:
+
+```powershell
+dotnet test tools/emulator/tests/Microsoft.Azure.WebPubSub.Emulator.Tests --filter "FullyQualifiedName~OfficialSdkGroupApis|FullyQualifiedName~GroupApis"
+```
 
 ## Configure the endpoint and access key
 

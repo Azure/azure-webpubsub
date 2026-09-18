@@ -58,15 +58,20 @@ These APIs support the same GA versions as the other REST connection operations.
 
 ## Bulk group operations
 
+See [manage group membership](README.md#manage-group-membership) for SDK examples, filter
+behavior, and the executable integration tests.
+
 `POST /api/hubs/{hub}/:addToGroups` and `POST /api/hubs/{hub}/:removeFromGroups` accept a JSON
 object such as `{"groups":["room","updates"],"filter":"userId eq 'alice'"}` and return `200`,
 including when no connections match. `groups` is required and nonempty; each case-sensitive
 name must be 1–1024 characters and not all whitespace. There is no separate group-count cap.
-Omitting `filter`, or passing null or an empty string, selects all connections in the hub.
+**Omitting `filter`, or passing null or an empty string, selects all connections in the hub.**
+
 Requests require `application/json` and a known Content-Length within the emulator's body limit
 (1 MiB by default); reads are also bounded. Invalid bodies, names, or filters return `400`, and
 unsupported content types return `415`. All input is validated and matching connections are
 selected before any membership changes. This is not a transaction against concurrent updates.
+
 `DELETE /api/hubs/{hub}/connections/{connectionId}/groups` returns `204`, including missing
 connections or already-empty memberships. All three operations preserve permissions and
 reliable recovery, and support the same API versions as other implemented REST operations.
