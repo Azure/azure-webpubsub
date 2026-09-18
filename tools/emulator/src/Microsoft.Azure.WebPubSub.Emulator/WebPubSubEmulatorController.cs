@@ -556,10 +556,8 @@ internal sealed partial class WebPubSubEmulatorController : WebPubSubApiControll
         }
 
         var token = authorization[bearerPrefix.Length..].Trim();
-        var requestUri = new Uri(
-            $"{Request.Scheme}://{Request.Host}{Request.PathBase}" +
-            $"{Request.Path}{Request.QueryString}");
-        return _tokenService.ValidateRestToken(requestUri, token, requireEntraAudience);
+        return _tokenService.ValidateRestToken(Request.Host.Value ?? string.Empty, Request.Path.Value ?? string.Empty,
+            token, requireEntraAudience);
     }
 
     private IReadOnlyDictionary<string, string>? GetMetadata()
