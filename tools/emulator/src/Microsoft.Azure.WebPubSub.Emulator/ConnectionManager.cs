@@ -78,6 +78,28 @@ internal sealed class ConnectionManager
         return GetHubConnections(hub).Any(connection => connection.Groups.ContainsKey(group));
     }
 
+    public (string ConnectionId, string? UserId)[] GetGroupMembers(
+        string hub, string group, string? afterConnectionId, int count)
+    {
+        // Keep only the requested page (plus the caller's lookahead), not a full group snapshot.
+        var members = new SortedSet<LogicalConnection>(Comparer<LogicalConnection>.Create(
+            (left, right) => StringComparer.InvariantCulture.Compare(left.ConnectionId, right.ConnectionId)));
+        foreach (var connection in GetHubConnections(hub))
+        {
+            if (string.Compare(connection.ConnectionId, afterConnectionId, StringComparison.InvariantCulture) > 0 &&
+                connection.Groups.ContainsKey(group))
+            {
+                members.Add(connection);
+                if (members.Count > count)
+                {
+                    members.Remove(members.Max!);
+                }
+            }
+        }
+
+        return members.Select(connection => (connection.ConnectionId, connection.UserId)).ToArray();
+    }
+
     public bool UserExists(string hub, string userId)
     {
         return GetUserConnections(hub, userId).Any();
