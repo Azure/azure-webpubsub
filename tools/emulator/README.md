@@ -396,6 +396,12 @@ RBAC. It checks only the Azure Web PubSub audience and token lifetime; it does n
 signature, algorithm, issuer, tenant, identity, or role assignments. It does not change client
 WebSocket token validation. Server SDKs require an HTTPS endpoint when sending bearer tokens.
 
+In this mode, `POST /api/hubs/{hub}/:generateToken` returns a signed client token. It accepts
+`userId`, repeated `role` and `group` parameters, and `minutesToExpire` (a positive integer,
+default 60). Only `clientType=Default` is supported. The endpoint requires a Web PubSub-audience
+bearer token and rejects access-key REST tokens. With an access-key connection string, server
+SDKs can instead generate client tokens locally without calling this endpoint.
+
 When multiple listening addresses are configured, use the connection string printed at startup
 to identify the selected endpoint.
 
