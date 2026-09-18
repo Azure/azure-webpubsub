@@ -87,7 +87,8 @@ recovery details.
 The emulator supports checking whether connections, users, and groups exist, broadcasting or
 sending text, JSON, or binary data to connections, users, and groups, changing connection group
 membership, managing connection permissions, and closing individual connections or connections
-in a hub, group, or user scope through REST.
+in a hub, group, or user scope through REST. All 25 operations in the public `2024-12-01` REST
+specification have endpoint coverage, subject to the documented behavior limitations.
 Use the connection string printed at startup with the Azure Web PubSub .NET server SDK
 (`Azure.Messaging.WebPubSub`). In this example, replace the connection and user IDs with those
 of a client connected to the `chat` hub:
@@ -183,6 +184,12 @@ running from this checkout first to avoid executable file locks on Windows:
 ```powershell
 dotnet test tools/emulator/tests/Microsoft.Azure.WebPubSub.Emulator.Tests --filter "FullyQualifiedName~OfficialSdkGroupApis|FullyQualifiedName~GroupApis"
 ```
+
+Use `ListConnectionsInGroupAsync("room", maxpagesize: 200, maxCount: 500)` to enumerate up to
+500 group members with the .NET SDK, or follow the absolute `nextLink` returned by
+`GET /api/hubs/{hub}/groups/{group}/connections`. Each member includes `connectionId` and
+nullable `userId`. Missing groups return an empty list. See [group member pagination](SUPPORTED_FEATURES.md#group-member-pagination)
+for limits, continuation tokens, and behavior when membership changes.
 
 ## Configure the endpoint and access key
 

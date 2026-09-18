@@ -21,11 +21,12 @@ See the [README](README.md) for setup and configuration.
 | Handler validation and retries | Validate webhook endpoints and retry eligible transient failures. Handlers must tolerate duplicate events. See [validation and retries](README.md#handler-validation-and-retries). |
 | REST messaging | Send text, JSON, or binary data to connections, users, groups, or all clients. Filter recipients with OData and exclude connection IDs where supported. |
 | Client token generation | Use `POST /api/hubs/{hub}/:generateToken` with the optional local Entra compatibility mode to generate a signed client token. See [local server SDK authentication](README.md#local-server-sdk-authentication). |
-| REST connection and group management | Check connection, user, or group presence; change group membership for connections, users, or filtered connections; remove a connection from all groups; close individual connections or connections in a hub, group, or user scope, with exclusions and an optional reason. |
+| REST connection and group management | Check connection, user, or group presence; list group members with pagination; change group membership for connections, users, or filtered connections; remove a connection from all groups; close individual connections or connections in a hub, group, or user scope, with exclusions and an optional reason. |
 
 Implemented REST operations support GA API versions from `2021-10-01` through `2024-12-01`.
 Requests without `api-version` use the latest supported version.
-Not all service REST operations are available; see [unsupported REST operations](#unsupported-rest-operations).
+Endpoint coverage is **25/25 operations** in the [public `2024-12-01` REST specification](https://github.com/Azure/azure-rest-api-specs/blob/main/specification/webpubsub/data-plane/WebPubSub/stable/2024-12-01/webpubsub.json).
+This is endpoint coverage, not full service parity; the limitations below still apply.
 
 ## Development limits
 
@@ -76,6 +77,45 @@ selected before any membership changes. This is not a transaction against concur
 connections or already-empty memberships. All three operations preserve permissions and
 reliable recovery, and support the same API versions as other implemented REST operations.
 
+## Group member pagination
+
+`GET /api/hubs/{hub}/groups/{group}/connections` returns `200` with
+`{"value":[{"connectionId":"...","userId":null}],"nextLink":null}`. Missing or empty groups
+return an empty `value`. `maxpagesize` is an integer from 1 to 200 (default 200); optional `top`
+is an integer from 1 to 2147483647 limiting the total across pages. Follow `nextLink` until null;
+it uses API version `2024-12-01`, preserves the page size, and reduces `top` by the number returned.
+
+Members are ordered by connection ID using invariant-culture comparison. Each request
+materializes a bounded page from current membership, including retained reliable connections,
+not a consistent multi-request snapshot. Removing earlier members does not shift later pages.
+New members after the cursor may appear; insertions at or before it are not revisited.
+
+The emulator protects continuation tokens with ASP.NET Core Data Protection. Tokens are opaque,
+bound to the case-insensitive hub and case-sensitive group, and valid only in the same emulator
+process. Malformed, modified, wrong-scope, empty, or oversized tokens (over 2048 characters)
+return `400`. After restarting the emulator, start a new listing without a continuation token.
+Clients should follow the returned `nextLink` rather than construct or interpret tokens. Token
+protection does not replace authorization: each page request still requires it. No cursor or
+group snapshot cache is retained between requests.
+
+Group paths use the same decoding as existing REST APIs: `%2F` stays literal `%2F`, `%252F`
+targets literal `%2F`, `%20` targets a space, and `+` stays `+`. Next links follow legacy URL
+reconstruction from the ASP.NET request path, not the raw request target. Original escaping is
+not guaranteed to survive: `%252F` becomes `%2F`, and `%2520` becomes `%20`. The latter changes
+the group on the next request, so the emulator's group-bound continuation token returns `400`.
+Avoid literal percent-encoded sequences in group names when paging. Links retain the local
+endpoint scheme, port, and path base; no newer path-decoding behavior is enabled.
+
+## REST access-token audiences
+
+Access-key token audiences are checked against the request host and ASP.NET request path,
+using the audience as supplied or URL-decoded once. Query values do not scope access: a valid
+token for the same path can be reused across pages. Signature and expiration checks still apply.
+Mixed encodings can require an audience matching the partially decoded path: for example,
+`/hubs/chat%5B1%5D/groups/room%2Fpart/connections` needs an audience path containing
+`/hubs/chat[1]/groups/room%2Fpart/connections`. When a group contains a literal `?`, use a
+path-only audience without appending the pagination query.
+
 ## User IDs in REST URLs
 
 For the supported API versions and requests without `api-version`, encoded slashes in user IDs
@@ -100,17 +140,6 @@ user IDs, check the target against these examples:
 	text, JSON, or binary REST payloads; native Any payloads are supported through protobuf clients.
 - Client-certificate authentication and production Microsoft Entra ID token validation.
 - MQTT clients and MQTT client-token generation.
-
-### Unsupported REST operations
-
-The following service operations are not implemented by the emulator. Paths below are relative
-to `/api/hubs/{hub}`.
-
-| Operation | Method | Path |
-| --- | --- | --- |
-| List connections in a group, including pagination | GET | `/groups/{group}/connections` |
-
-Closing connections and adding or removing individual connection-to-group memberships remain supported.
 
 ## User-event errors
 

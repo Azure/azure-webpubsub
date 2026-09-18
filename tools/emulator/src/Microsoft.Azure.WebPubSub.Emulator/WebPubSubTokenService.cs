@@ -63,7 +63,7 @@ internal sealed class WebPubSubTokenService
         }
     }
 
-    public bool ValidateRestToken(Uri requestUri, string token, bool requireEntraAudience = false)
+    public bool ValidateRestToken(string host, string path, string token, bool requireEntraAudience = false)
     {
         JwtSecurityToken jwt;
         try
@@ -75,7 +75,7 @@ internal sealed class WebPubSubTokenService
             _logger.LogDebug(
                 exception,
                 "REST access token could not be parsed for {Path}.",
-                requestUri.AbsolutePath);
+                path);
             return false;
         }
 
@@ -101,27 +101,14 @@ internal sealed class WebPubSubTokenService
 
         try
         {
-            foreach (var audience in GetRestAudiences(requestUri))
-            {
-                try
-                {
-                    var parameters = CreateValidationParameters(audience);
-                    parameters.AudienceValidator = (audiences, _, _) => audiences.Any(
-                        input => string.Equals(input, audience, StringComparison.OrdinalIgnoreCase) ||
-                            string.Equals(
-                                WebUtility.UrlDecode(input),
-                                audience,
-                                StringComparison.OrdinalIgnoreCase));
-                    _handler.ValidateToken(
-                        token,
-                        parameters,
-                        out _);
-                    return true;
-                }
-                catch (SecurityTokenInvalidAudienceException)
-                {
-                }
-            }
+            // Request.Path is already partially decoded. Do not normalize it through Uri again.
+            var audience = host + path.TrimEnd('/');
+            var parameters = CreateValidationParameters(audience);
+            parameters.AudienceValidator = (audiences, _, _) => audiences.Any(
+                input => MatchesRestAudience(input, audience) ||
+                    MatchesRestAudience(WebUtility.UrlDecode(input), audience));
+            _handler.ValidateToken(token, parameters, out _);
+            return true;
         }
         catch (Exception exception) when (
             exception is SecurityTokenException or ArgumentException)
@@ -129,11 +116,9 @@ internal sealed class WebPubSubTokenService
             _logger.LogDebug(
                 exception,
                 "REST access token validation failed for {Path}.",
-                requestUri.AbsolutePath);
+                path);
             return false;
         }
-
-        return false;
     }
 
     public string IssueClientToken(
@@ -215,12 +200,27 @@ internal sealed class WebPubSubTokenService
             $"{ClientPathPrefix.TrimStart('/')}{Uri.EscapeDataString(hub)}").AbsoluteUri;
     }
 
-    private static IEnumerable<string> GetRestAudiences(Uri requestUri)
+    private static bool MatchesRestAudience(string input, string audience)
     {
-        yield return requestUri.AbsoluteUri;
-        if (!string.IsNullOrEmpty(requestUri.Query))
+        foreach (var scheme in new[] { "http://", "https://", "ws://", "wss://" })
         {
-            yield return requestUri.GetLeftPart(UriPartial.Path);
+            if (!input.StartsWith(scheme, StringComparison.OrdinalIgnoreCase))
+            {
+                continue;
+            }
+
+            var value = input.AsSpan(scheme.Length);
+            if (!value.StartsWith(audience, StringComparison.OrdinalIgnoreCase))
+            {
+                return false;
+            }
+
+            // REST query values are not part of the expected audience. Require a path/query
+            // boundary rather than allowing partial resource-name prefixes.
+            return value.Length == audience.Length || value[audience.Length] == '/' ||
+                (value[audience.Length] == '?' && !audience.Contains('?'));
         }
+
+        return false;
     }
 }
