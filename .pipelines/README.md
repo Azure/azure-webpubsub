@@ -1,13 +1,29 @@
-# npm package release pipeline
+# Package release pipeline
 
-The manual release pipeline publishes one or more npm packages from this
-repository:
+`.pipelines/release.yml` automatically publishes emulator CI packages to MyGet
+and supports manual releases of these npm packages:
 
 - `@azure/web-pubsub-chat-client`
 - `@azure/web-pubsub-socket.io`
 - `@azure/web-pubsub-tunnel-tool`
 
-## Run a release
+## Emulator preview packages
+
+Changes to the emulator, its protobuf definitions, or its pipeline on `main` trigger
+a batched CI run. The pipeline builds and tests the solution, packs the .NET tool,
+and verifies installation and startup before publishing that same package to MyGet
+through the existing `azure-signalr-dev` service connection.
+Versions append `.ci.<Build.BuildId>` to the preview version in
+`tools/emulator/version.props` (for example, `1.0.0-beta.1.ci.12345`); a stable
+version instead gets `-ci.<Build.BuildId>`. CI does not edit the changelog or create
+release tags.
+
+For a validation-only manual run, select `build_emulator`. Manual runs, PRs, and
+branches other than `main` never publish emulator packages. `publish_packages`
+continues to control only npm publication; official NuGet publication is not configured.
+The validated package is available in the `drop_emulator` pipeline artifact.
+
+## Run an npm release
 
 1. Update the package version in `package.json`.
 2. Add a dated entry for that version to the package `CHANGELOG.md`.
@@ -27,13 +43,13 @@ For each selected package, the pipeline:
 4. creates a `release/<package>/v<version>` Git tag; and
 5. opens a pull request that advances `package.json` to the next beta version.
 
-Package-specific build commands are declared in `.pipelines/release.yml`.
-The shared release implementation is in
-`.pipelines/templates/stages/release-package.yml`.
+Emulator build and MyGet publication stages are defined directly in
+`.pipelines/release.yml`, alongside the npm release configuration. The shared npm
+release implementation is in `.pipelines/templates/stages/release-package.yml`.
 
 ## Pipeline configuration
 
-The `npm-release` Azure DevOps variable group provides the release settings:
+The pipeline expects these settings in the `npm-release` Azure DevOps variable group:
 
 - `ESRP_SERVICE_CONNECTION`
 - `NPM_FEED_REGISTRY`

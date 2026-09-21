@@ -4,17 +4,8 @@
 
 ### Added
 
-- Add the `Microsoft.Azure.WebPubSub.Emulator` .NET tool scaffold.
-- Add the service-compatible `HEAD /api/health` endpoint.
-- Add raw WebSocket client endpoint support for text and binary group messages.
-- Add access-key client authentication, connection-scoped token groups, and role-based raw group send.
-- Add build, test, package, installation, and health-check validation in CI.
-- Add endpoint-derived local connection strings with a configurable `WebPubSub:AccessKey`.
-- Add opt-in unvalidated Entra token compatibility for trusted local server SDK testing.
-- Add reliable JSON connections with scoped recovery tokens, sequence acknowledgements, and bounded message replay.
-- Add authenticated REST operations and official .NET server SDK compatibility for checking connection presence and sending directly to a connection.
-- Add authenticated REST and official .NET server SDK support for closing a connection.
-- Add authenticated REST and official .NET server SDK support for adding and removing a connection from a group.
-- Add authenticated REST and official .NET server SDK support for checking group presence and sending to a group with excluded connection IDs and OData filters.
-- Add authenticated REST and official .NET server SDK support for broadcasting with excluded connection IDs and OData filters.
-- Add authenticated REST and official .NET server SDK support for checking user presence and sending to all of a user's connections with OData filters.
+- Initial preview of the Azure Web PubSub local emulator, available as the `awps-emulator`
+  .NET tool for local development and testing.
+
+See [supported features and limitations](SUPPORTED_FEATURES.md) for compatibility details.
+This preview is not intended for production use.
