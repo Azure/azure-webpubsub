@@ -137,7 +137,7 @@ extends:
                       command: push
                       packagesToPush: '$(Pipeline.Workspace)/drop_emulator/*.nupkg'
                       nuGetFeedType: external
-                      publishFeedCredentials: '$(EMULATOR_MYGET_SERVICE_CONNECTION)'
+                      publishFeedCredentials: azure-signalr-dev
 
       - ${{ if or(parameters.release_chat_client, parameters.release_socketio, parameters.release_tunnel) }}:
           - stage: release_check

@@ -11,7 +11,8 @@ and supports manual releases of these npm packages:
 
 Changes to the emulator, its protobuf definitions, or its pipeline on `main` trigger
 a batched CI run. The pipeline builds and tests the solution, packs the .NET tool,
-and verifies installation and startup before publishing that same package to MyGet.
+and verifies installation and startup before publishing that same package to MyGet
+through the existing `azure-signalr-dev` service connection.
 Versions append `.ci.<Build.BuildId>` to the preview version in
 `tools/emulator/version.props` (for example, `1.0.0-beta.1.ci.12345`); a stable
 version instead gets `-ci.<Build.BuildId>`. CI does not edit the changelog or create
@@ -52,8 +53,6 @@ The pipeline expects these settings in the `npm-release` Azure DevOps variable g
 
 - `ESRP_SERVICE_CONNECTION`
 - `NPM_FEED_REGISTRY`
-- `EMULATOR_MYGET_SERVICE_CONNECTION`: authorized external NuGet service connection
-  containing the MyGet feed URL and publishing credentials.
 - `ESRP_CLIENT_ID`
 - `ESRP_TENANT_ID`
 - `ESRP_KEY_VAULT_NAME`
