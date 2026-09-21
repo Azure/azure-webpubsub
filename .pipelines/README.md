@@ -22,18 +22,6 @@ branches other than `main` never publish emulator packages. `publish_packages`
 continues to control only npm publication; official NuGet publication is not configured.
 The validated package is available in the `drop_emulator` pipeline artifact.
 
-### One-time pipeline configuration
-
-- Set the pipeline's default branch to `main` and let the YAML control CI triggers.
-- Create and authorize an external NuGet service connection for the intended MyGet
-  feed, with its API key stored in that connection.
-- Set `EMULATOR_MYGET_SERVICE_CONNECTION` in the existing `npm-release` variable group
-  to that connection's name. No GitHub Actions secret is used.
-
-After this configuration, matching merges publish automatically; no manual upload
-or publish parameter is required. Use the exact version from the run and the MyGet
-feed's consumer URL when installing a preview for testing.
-
 ## Run an npm release
 
 1. Update the package version in `package.json`.
@@ -54,16 +42,18 @@ For each selected package, the pipeline:
 4. creates a `release/<package>/v<version>` Git tag; and
 5. opens a pull request that advances `package.json` to the next beta version.
 
-Package-specific build commands are declared in `.pipelines/release.yml`.
-The shared release implementation is in
-`.pipelines/templates/stages/release-package.yml`.
+Emulator build and MyGet publication stages are defined directly in
+`.pipelines/release.yml`, alongside the npm release configuration. The shared npm
+release implementation is in `.pipelines/templates/stages/release-package.yml`.
 
 ## Pipeline configuration
 
-The `npm-release` Azure DevOps variable group provides the release settings:
+The pipeline expects these settings in the `npm-release` Azure DevOps variable group:
 
 - `ESRP_SERVICE_CONNECTION`
 - `NPM_FEED_REGISTRY`
+- `EMULATOR_MYGET_SERVICE_CONNECTION`: authorized external NuGet service connection
+  containing the MyGet feed URL and publishing credentials.
 - `ESRP_CLIENT_ID`
 - `ESRP_TENANT_ID`
 - `ESRP_KEY_VAULT_NAME`
