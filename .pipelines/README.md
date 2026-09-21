@@ -22,15 +22,6 @@ For a validation-only manual run, select `build_emulator`. Manual runs, PRs, and
 branches other than `main` never publish emulator packages. `publish_packages`
 continues to control only npm publication; official NuGet publication is not configured.
 The validated package is available in the `drop_emulator` pipeline artifact.
-`ob_artifactBaseName` fixes that name; the MyGet job downloads it from the current
-run and pushes only its `*.nupkg` files, without rebuilding the package.
-
-The MyGet job uses a OneBranch Linux build pool, so it follows the other Linux
-jobs' explicit `checkout: self` convention. Do not use `checkout: none` here:
-OneBranch adds checkout steps, and Azure DevOps rejects `none` alongside another
-checkout. The npm ESRP jobs instead use `type: release` and
-`templateContext.inputs`; their checkout and artifact downloads are managed by
-the release template.
 
 ## Run an npm release
 
