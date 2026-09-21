@@ -12,16 +12,30 @@ depend on cloud authentication, message expiration, or recovery across process r
 
 ## Get started
 
+The emulator is in preview. The instructions below build it from source; they do not require
+or assume an available public NuGet release. See the [changelog](CHANGELOG.md) for the current
+preview's features and [supported features and limitations](SUPPORTED_FEATURES.md) for
+compatibility with Azure Web PubSub.
+
 1. [Run from source](#run-from-source), or [build and install a local tool package](#pack-and-install-the-tool).
 2. Copy the connection string printed at startup into your server application's configuration.
 3. [Connect a client](#connect-a-client) and [send messages with a server SDK](#use-a-server-sdk).
 4. To receive client user events in your application, [configure an HTTP handler](#http-lifecycle-notifications)
-  or [Event Hubs listener](#event-hubs-listeners). Server-to-client and group messaging do not require a handler.
+   or [Event Hubs listener](#event-hubs-listeners). Server-to-client and group messaging do not require a handler.
+
+For additional setup, see [endpoint and access key configuration](#configure-the-endpoint-and-access-key),
+[protobuf clients](#protobuf-clients), and [troubleshooting](#troubleshooting).
 
 ## Prerequisites
 
 - To build or run from source: .NET SDK 10.0.401 or later in the .NET 10 release line.
 - A local checkout of this repository for the source and packaging commands below.
+- To run the packaged tool on another machine: the .NET 10 and ASP.NET Core 10 runtimes.
+  The .NET SDK above includes both. The package is not a self-contained executable.
+
+No Azure subscription is needed for access-key-based local messaging. Forwarding events to
+Azure Event Hubs and obtaining real Microsoft Entra tokens require their own Azure access;
+these are optional scenarios.
 
 Check your installed SDKs with `dotnet --list-sdks`. The commands below use PowerShell and
 run from the repository root.
@@ -41,7 +55,9 @@ client endpoint at startup. To check whether it is ready:
 curl.exe --head "http://localhost:8080/api/health"
 ```
 
-A healthy process returns `200 OK`.
+A healthy process returns `200 OK`. Keep the emulator running while your application connects.
+Press Ctrl+C to stop it; connections, group membership, and pending messages are not preserved
+across restarts.
 
 ## Connect a client
 
@@ -87,8 +103,8 @@ recovery details.
 The emulator supports checking whether connections, users, and groups exist, broadcasting or
 sending text, JSON, or binary data to connections, users, and groups, changing connection group
 membership, managing connection permissions, and closing individual connections or connections
-in a hub, group, or user scope through REST. All 25 operations in the public `2024-12-01` REST
-specification have endpoint coverage, subject to the documented behavior limitations.
+in a hub, group, or user scope through REST. See [REST compatibility](SUPPORTED_FEATURES.md#supported-features)
+for supported API versions and differences from the Azure service.
 Use the connection string printed at startup with the Azure Web PubSub .NET server SDK
 (`Azure.Messaging.WebPubSub`). In this example, replace the connection and user IDs with those
 of a client connected to the `chat` hub:
@@ -174,17 +190,6 @@ change client permissions, disconnect clients, or prevent recovery. See
 [bulk group operations](SUPPORTED_FEATURES.md#bulk-group-operations) for REST paths, request
 bodies, response codes, and validation limits.
 
-For an executable example, see `OfficialSdkGroupApisPreserveSelectionMembershipAndPermissions`
-in [RestApiTests.Groups.cs](tests/Microsoft.Azure.WebPubSub.Emulator.Tests/RestApiTests.Groups.cs).
-It calls all three SDK methods with real WebSocket clients and checks selection, delivery,
-and permissions. The same file covers invalid requests, omitted filters, and reliable recovery.
-Run the group tests from the repository root; they start their own emulator. Stop any emulator
-running from this checkout first to avoid executable file locks on Windows:
-
-```powershell
-dotnet test tools/emulator/tests/Microsoft.Azure.WebPubSub.Emulator.Tests --filter "FullyQualifiedName~OfficialSdkGroupApis|FullyQualifiedName~GroupApis"
-```
-
 Use `ListConnectionsInGroupAsync("room", maxpagesize: 200, maxCount: 500)` to enumerate up to
 500 group members with the .NET SDK, or follow the absolute `nextLink` returned by
 `GET /api/hubs/{hub}/groups/{group}/connections`. Each member includes `connectionId` and
@@ -233,6 +238,21 @@ environment variables with `__` separators, for example
   }
 }
 ```
+
+For the locally installed tool, you can configure the same handler without editing the package:
+
+```powershell
+$env:WebPubSub__Hubs__chat__EventHandlers__0__UrlTemplate = "http://localhost:7071/events/{hub}/{event}"
+$env:WebPubSub__Hubs__chat__EventHandlers__0__SystemEvents__0 = "connect"
+$env:WebPubSub__Hubs__chat__EventHandlers__0__SystemEvents__1 = "connected"
+$env:WebPubSub__Hubs__chat__EventHandlers__0__SystemEvents__2 = "disconnected"
+$env:WebPubSub__Hubs__chat__EventHandlers__0__EventPattern = "*"
+artifacts\emulator-tool\awps-emulator
+```
+
+Start your application at the configured URL before connecting clients, and implement
+[handler validation](#handler-validation-and-retries). Environment variables apply to processes
+started from this shell. Restart the emulator after changing them.
 
 Hub names and event names match case-insensitively; the first matching handler is used.
 URL parameters are escaped. Notifications use binary-mode
@@ -478,10 +498,28 @@ dotnet tool install `
 artifacts\emulator-tool\awps-emulator
 ```
 
-## Versioning
+The package version is declared in [version.props](version.props); use that version in the
+install command if it differs from the example. The tool-path installation does not add
+`awps-emulator` to your PATH; run it with the path shown above.
 
-The source package version is declared in [version.props](version.props); use that version in
-the install command if it differs from the example. See [CHANGELOG.md](CHANGELOG.md) for changes.
+To install a newer version, stop the running tool and use `dotnet tool update` with the same
+tool path, package ID, and source options, specifying the new version. To replace a local build
+without changing its version, stop the tool, run
+`dotnet tool uninstall Microsoft.Azure.WebPubSub.Emulator --tool-path artifacts\emulator-tool`,
+then repeat the install command with `--no-cache` to avoid reusing an earlier package.
 
-See [Supported features and limitations](SUPPORTED_FEATURES.md) for supported scenarios and
-differences to account for when testing locally.
+## Troubleshooting
+
+| Symptom | What to check |
+| --- | --- |
+| The SDK cannot be found, or the tool reports a missing framework | Run `dotnet --list-sdks` and `dotnet --list-runtimes`, and check the [prerequisites](#prerequisites). |
+| The emulator cannot bind to port 8080 | Stop the process using that port or [choose another endpoint](#configure-the-endpoint-and-access-key). Update your application's connection string to the one printed at startup. |
+| A client cannot connect, or a REST request returns `401` | Use the current endpoint and access key. Generate a fresh token for that endpoint and check its expiration; a token for your Azure resource cannot be reused locally. |
+| A group operation is denied | Check the client's token roles or granted connection permissions. Group membership alone does not grant permission to publish. |
+| A user event fails, or a raw client closes with status 1011 | Configure a matching HTTP handler or Event Hubs listener. Check the emulator logs and verify that your HTTP handler responds to validation requests. |
+| The client receives an acknowledgement but no message arrives in Event Hubs | Check the emulator's delivery logs, target event hub, network access, and sender permissions. A client acknowledgement is not a delivery receipt. |
+| Recovery or a group-list continuation fails after restarting | Reconnect clients and start a new group listing. Recovery state and continuation tokens cannot be reused across emulator restarts. |
+
+If the problem persists, [open an issue](https://github.com/Azure/azure-webpubsub/issues/new/choose)
+with the emulator version, operating system, reproduction steps, and relevant logs. Remove access
+keys, tokens, connection strings, and other sensitive data before sharing.

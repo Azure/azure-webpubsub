@@ -19,14 +19,16 @@ See the [README](README.md) for setup and configuration.
 | Groups and permissions | Set initial groups and roles in client tokens, authorize group operations with wildcard roles, and query, grant, or revoke connection permissions through REST. |
 | HTTP handlers | Accept or reject new connections, customize user IDs, roles, groups, and subprotocols, handle user events, and receive lifecycle notifications. See [handler configuration](README.md#http-lifecycle-notifications). |
 | Handler validation and retries | Validate webhook endpoints and retry eligible transient failures. Handlers must tolerate duplicate events. See [validation and retries](README.md#handler-validation-and-retries). |
+| Event Hubs listeners | Forward lifecycle and user events to Azure Event Hubs or a separately running Event Hubs emulator. See [listener setup and delivery limitations](README.md#event-hubs-listeners). |
 | REST messaging | Send text, JSON, or binary data to connections, users, groups, or all clients. Filter recipients with OData and exclude connection IDs where supported. |
 | Client token generation | Use `POST /api/hubs/{hub}/:generateToken` with the optional local Entra compatibility mode to generate a signed client token. See [local server SDK authentication](README.md#local-server-sdk-authentication). |
 | REST connection and group management | Check connection, user, or group presence; list group members with pagination; change group membership for connections, users, or filtered connections; remove a connection from all groups; close individual connections or connections in a hub, group, or user scope, with exclusions and an optional reason. |
 
 Implemented REST operations support GA API versions from `2021-10-01` through `2024-12-01`.
 Requests without `api-version` use the latest supported version.
-Endpoint coverage is **25/25 operations** in the [public `2024-12-01` REST specification](https://github.com/Azure/azure-rest-api-specs/blob/main/specification/webpubsub/data-plane/WebPubSub/stable/2024-12-01/webpubsub.json).
-This is endpoint coverage, not full service parity; the limitations below still apply.
+The emulator supports the operations in the [public `2024-12-01` REST specification](https://github.com/Azure/azure-rest-api-specs/blob/main/specification/webpubsub/data-plane/WebPubSub/stable/2024-12-01/webpubsub.json),
+with the behavior differences described below. Validate your application against Azure Web PubSub
+before deploying; local compatibility does not imply full service parity.
 
 ## Development limits
 
@@ -59,8 +61,8 @@ These APIs support the same GA versions as the other REST connection operations.
 
 ## Bulk group operations
 
-See [manage group membership](README.md#manage-group-membership) for SDK examples, filter
-behavior, and the executable integration tests.
+See [manage group membership](README.md#manage-group-membership) for SDK examples and how
+filters select connections.
 
 `POST /api/hubs/{hub}/:addToGroups` and `POST /api/hubs/{hub}/:removeFromGroups` accept a JSON
 object such as `{"groups":["room","updates"],"filter":"userId eq 'alice'"}` and return `200`,
@@ -85,26 +87,21 @@ return an empty `value`. `maxpagesize` is an integer from 1 to 200 (default 200)
 is an integer from 1 to 2147483647 limiting the total across pages. Follow `nextLink` until null;
 it uses API version `2024-12-01`, preserves the page size, and reduces `top` by the number returned.
 
-Members are ordered by connection ID using invariant-culture comparison. Each request
-materializes a bounded page from current membership, including retained reliable connections,
-not a consistent multi-request snapshot. Removing earlier members does not shift later pages.
-New members after the cursor may appear; insertions at or before it are not revisited.
+Results are ordered by connection ID and include reliable connections retained for recovery.
+Membership can change between pages: removed members disappear, and newly added members may
+appear only if they sort after the last returned connection. Do not treat a multi-page listing
+as a fixed membership list.
 
-The emulator protects continuation tokens with ASP.NET Core Data Protection. Tokens are opaque,
-bound to the case-insensitive hub and case-sensitive group, and valid only in the same emulator
-process. Malformed, modified, wrong-scope, empty, or oversized tokens (over 2048 characters)
-return `400`. After restarting the emulator, start a new listing without a continuation token.
-Clients should follow the returned `nextLink` rather than construct or interpret tokens. Token
-protection does not replace authorization: each page request still requires it. No cursor or
-group snapshot cache is retained between requests.
+Follow the returned `nextLink` rather than constructing or interpreting continuation tokens.
+Each page requires authorization. Tokens are valid only for the original hub and group within
+the same emulator process; invalid tokens return `400`. After restarting the emulator, start
+a new listing without a continuation token.
 
 Group paths use the same decoding as existing REST APIs: `%2F` stays literal `%2F`, `%252F`
-targets literal `%2F`, `%20` targets a space, and `+` stays `+`. Next links follow legacy URL
-reconstruction from the ASP.NET request path, not the raw request target. Original escaping is
-not guaranteed to survive: `%252F` becomes `%2F`, and `%2520` becomes `%20`. The latter changes
-the group on the next request, so the emulator's group-bound continuation token returns `400`.
-Avoid literal percent-encoded sequences in group names when paging. Links retain the local
-endpoint scheme, port, and path base; no newer path-decoding behavior is enabled.
+targets literal `%2F`, `%20` targets a space, and `+` stays `+`. Avoid literal percent-encoded
+sequences in group names when paging: the returned link can change their escaping. For example,
+`%2520` becomes `%20`, which changes the group on the next request and causes a `400` response.
+Links retain the local endpoint scheme, port, and path base.
 
 ## REST access-token audiences
 
