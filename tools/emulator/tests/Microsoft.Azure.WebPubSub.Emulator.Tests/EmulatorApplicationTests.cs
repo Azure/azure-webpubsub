@@ -170,7 +170,7 @@ public class EmulatorApplicationTests
             application.Services.GetRequiredService<WebPubSubTokenService>();
 
         var actual = tokenService.ValidateRestToken(
-            new Uri("http://localhost/api/hubs/chat/:send"),
+            "localhost", "/api/hubs/chat/:send",
             encodedToken);
 
         Assert.Equal(expected, actual);
