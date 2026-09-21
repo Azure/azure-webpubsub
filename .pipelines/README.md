@@ -1,13 +1,40 @@
-# npm package release pipeline
+# Package release pipeline
 
-The manual release pipeline publishes one or more npm packages from this
-repository:
+`.pipelines/release.yml` automatically publishes emulator CI packages to MyGet
+and supports manual releases of these npm packages:
 
 - `@azure/web-pubsub-chat-client`
 - `@azure/web-pubsub-socket.io`
 - `@azure/web-pubsub-tunnel-tool`
 
-## Run a release
+## Emulator preview packages
+
+Changes to the emulator, its protobuf definitions, or its pipeline on `main` trigger
+a batched CI run. The pipeline builds and tests the solution, packs the .NET tool,
+and verifies installation and startup before publishing that same package to MyGet.
+Versions append `.ci.<Build.BuildId>` to the preview version in
+`tools/emulator/version.props` (for example, `1.0.0-beta.1.ci.12345`); a stable
+version instead gets `-ci.<Build.BuildId>`. CI does not edit the changelog or create
+release tags.
+
+For a validation-only manual run, select `build_emulator`. Manual runs, PRs, and
+branches other than `main` never publish emulator packages. `publish_packages`
+continues to control only npm publication; official NuGet publication is not configured.
+The validated package is available in the `drop_emulator` pipeline artifact.
+
+### One-time pipeline configuration
+
+- Set the pipeline's default branch to `main` and let the YAML control CI triggers.
+- Create and authorize an external NuGet service connection for the intended MyGet
+  feed, with its API key stored in that connection.
+- Set `EMULATOR_MYGET_SERVICE_CONNECTION` in the existing `npm-release` variable group
+  to that connection's name. No GitHub Actions secret is used.
+
+After this configuration, matching merges publish automatically; no manual upload
+or publish parameter is required. Use the exact version from the run and the MyGet
+feed's consumer URL when installing a preview for testing.
+
+## Run an npm release
 
 1. Update the package version in `package.json`.
 2. Add a dated entry for that version to the package `CHANGELOG.md`.

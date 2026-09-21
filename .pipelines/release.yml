@@ -1,8 +1,19 @@
-# Release one or more npm packages through ESRP.
+# Publish emulator CI packages automatically; release selected packages manually.
 
-name: npm-release_$(Date:yyyyMMdd)$(Rev:.r)
+name: package-release_$(Date:yyyyMMdd)$(Rev:.r)
 
-trigger: none
+trigger:
+  batch: true
+  branches:
+    include:
+      - main
+  paths:
+    include:
+      - tools/emulator/**
+      - protocols/protobuf.webpubsub.azure.v1/**
+      - .pipelines/release.yml
+      - .pipelines/templates/stages/release-emulator.yml
+      - .pipelines/scripts/Build-EmulatorPackage.ps1
 
 pr: none
 
@@ -17,6 +28,10 @@ parameters:
     default: false
   - name: release_tunnel
     displayName: 'Release @azure/web-pubsub-tunnel-tool'
+    type: boolean
+    default: false
+  - name: build_emulator
+    displayName: 'Validate emulator preview package (no manual publication)'
     type: boolean
     default: false
   - name: publish_packages
@@ -52,9 +67,13 @@ extends:
       policheck:
         break: true
     stages:
+      - template: templates/stages/release-emulator.yml
+        parameters:
+          build_emulator: ${{ parameters.build_emulator }}
       - ${{ if or(parameters.release_chat_client, parameters.release_socketio, parameters.release_tunnel) }}:
           - stage: release_check
             displayName: 'Check selected package versions'
+            dependsOn: []
             jobs:
               - job: check
                 displayName: 'Read package versions and validate changelogs'
