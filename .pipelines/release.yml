@@ -202,7 +202,7 @@ extends:
               - job: publish
                 pool:
                   type: release
-                  os: linux
+                  os: windows
                 variables:
                   ob_outputDirectory: '$(Build.ArtifactStagingDirectory)'
                   ob_sdl_codeSignValidation_enabled: false
