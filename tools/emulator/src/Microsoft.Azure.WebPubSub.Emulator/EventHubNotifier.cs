@@ -10,7 +10,7 @@ namespace Microsoft.Azure.WebPubSub.Emulator;
 
 internal sealed class EventHubNotifier : IAsyncDisposable
 {
-    private readonly EventRoutingConfiguration _configuration;
+    private readonly HubSettingsConfiguration _configuration;
     private readonly Func<EventHubEndpointOptions, EventHubProducerClient> _createProducer;
     private readonly ILogger<EventHubNotifier> _logger;
     private readonly Dictionary<EventHubEndpointOptions, ProducerEntry> _producers = [];
@@ -22,7 +22,7 @@ internal sealed class EventHubNotifier : IAsyncDisposable
     private int _pending;
     private bool _stopping;
 
-    public EventHubNotifier(EventRoutingConfiguration configuration,
+    public EventHubNotifier(HubSettingsConfiguration configuration,
         Func<EventHubEndpointOptions, EventHubProducerClient> createProducer, ILogger<EventHubNotifier> logger)
     {
         _configuration = configuration;

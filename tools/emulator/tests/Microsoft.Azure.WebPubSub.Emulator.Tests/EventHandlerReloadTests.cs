@@ -120,7 +120,7 @@ public class EventHandlerReloadTests
         await fixture.SendAsync(socket, "override", "/second");
     }
 
-    private sealed class ReloadLogger : ILogger<EventRoutingConfiguration>
+    private sealed class ReloadLogger : ILogger<HubSettingsConfiguration>
     {
         public Channel<LogLevel> Notices { get; } = Channel.CreateUnbounded<LogLevel>();
         public IDisposable? BeginScope<TState>(TState state) where TState : notnull => null;
@@ -233,7 +233,7 @@ public class EventHandlerReloadTests
                 var emulator = EmulatorApplication.CreateBuilder(args.ToArray());
                 emulator.Configuration.AddJsonFile(Path.Combine(directory, "other.json"), optional: true, reloadOnChange: true);
                 emulator.Logging.ClearProviders();
-                emulator.Services.AddSingleton<ILogger<EventRoutingConfiguration>>(logger);
+                emulator.Services.AddSingleton<ILogger<HubSettingsConfiguration>>(logger);
                 app = EmulatorApplication.Build(emulator);
                 var fixture = new Fixture(directory, upstream, app, logger, events);
                 await app.StartAsync().WaitAsync(Timeout);

@@ -117,12 +117,12 @@ public class EventListenerReloadTests
             _ => updated.Replace("\"EventNameFilter\":{", "\"EventNameFilter\":{\"Unexpected\":true,"),
         };
         await fixture.WriteAsync(json, LogLevel.Warning);
-        Assert.Equal("http://localhost:1/original", Assert.Single(fixture.Routing.GetHandlers("chat")).UrlTemplate);
+        Assert.Equal("http://localhost:1/original", Assert.Single(fixture.Configuration.GetHandlers("chat")).UrlTemplate);
         Assert.True(await fixture.SendAsync());
         Assert.Equal(1, fixture.Creations);
         Assert.False(first.Disposed);
         await fixture.WriteAsync(updated);
-        Assert.Equal("http://localhost:1/changed", Assert.Single(fixture.Routing.GetHandlers("chat")).UrlTemplate);
+        Assert.Equal("http://localhost:1/changed", Assert.Single(fixture.Configuration.GetHandlers("chat")).UrlTemplate);
         Assert.True(await fixture.SendAsync());
         Assert.Equal(2, fixture.Creations);
         await first.DisposalStarted.Task.WaitAsync(Timeout);
@@ -202,7 +202,7 @@ public class EventListenerReloadTests
             },
         } } });
 
-    private sealed class ReloadLogger : ILogger<EventRoutingConfiguration>
+    private sealed class ReloadLogger : ILogger<HubSettingsConfiguration>
     {
         public Channel<LogLevel> Notices { get; } = Channel.CreateUnbounded<LogLevel>();
         public IDisposable? BeginScope<TState>(TState state) where TState : notnull => null;
@@ -215,7 +215,7 @@ public class EventListenerReloadTests
     {
         public WebApplication App => app;
         public int Creations { get; private set; }
-        public EventRoutingConfiguration Routing => app.Services.GetRequiredService<EventRoutingConfiguration>();
+        public HubSettingsConfiguration Configuration => app.Services.GetRequiredService<HubSettingsConfiguration>();
         public EventHubNotifier Notifier => app.Services.GetRequiredService<EventHubNotifier>();
         public Task<bool> SendAsync(string name = "message", bool userEvent = true) => Notifier.TryNotifyAsync(
             new("connection", "chat", null, null, "localhost"), name, 1, new(MessageDataType.Text, "hello"u8.ToArray()), userEvent);
@@ -238,7 +238,7 @@ public class EventListenerReloadTests
             builder.WebHost.UseTestServer();
             builder.Logging.ClearProviders();
             var logger = new ReloadLogger();
-            builder.Services.AddSingleton<ILogger<EventRoutingConfiguration>>(logger);
+            builder.Services.AddSingleton<ILogger<HubSettingsConfiguration>>(logger);
             Fixture? fixture = null;
             builder.Services.AddSingleton<Func<EventHubEndpointOptions, EventHubProducerClient>>(_ => endpoint =>
             {

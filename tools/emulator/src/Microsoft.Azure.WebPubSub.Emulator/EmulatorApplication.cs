@@ -48,8 +48,8 @@ internal static class EmulatorApplication
                 listener?.EventNameFilter?.SystemEvents is not null &&
                 listener.EventHubEndpoint?.IsValid() == true) == true) == true,
                 "Event listeners require an EventNameFilter, EventHubName and a namespace, or a local Event Hubs emulator connection string (not both).");
-        builder.Services.AddSingleton<EventRoutingConfiguration>();
-        builder.Services.AddHostedService(services => services.GetRequiredService<EventRoutingConfiguration>());
+        builder.Services.AddSingleton<HubSettingsConfiguration>();
+        builder.Services.AddHostedService(services => services.GetRequiredService<HubSettingsConfiguration>());
         builder.Services.AddSingleton<TokenCredential>(_ => new DefaultAzureCredential());
         builder.Services.AddSingleton<Func<EventHubEndpointOptions, EventHubProducerClient>>(services => endpoint =>
             endpoint.ConnectionString is { } local

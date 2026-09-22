@@ -150,9 +150,9 @@ public class EventHubNotifierTests
         var second = new EventListenerOptions { EventHubEndpoint = listener.EventHubEndpoint with { EventHubName = "other" }, EventNameFilter = listener.EventNameFilter };
         var options = Options.Create(new EmulatorOptions { Hubs = new() { ["chat"] = new() { EventListeners = [listener, listener, second] } } });
         var creations = 0;
-        using var routing = new EventRoutingConfiguration(new ConfigurationBuilder().Build(), options,
-            new OptionsFactory<EmulatorOptions>([], []), NullLogger<EventRoutingConfiguration>.Instance);
-        await using var notifier = new EventHubNotifier(routing, endpoint => { creations++; return endpoint.EventHubName == "other" ? other : producer; }, NullLogger<EventHubNotifier>.Instance);
+        using var configuration = new HubSettingsConfiguration(new ConfigurationBuilder().Build(), options,
+            new OptionsFactory<EmulatorOptions>([], []), NullLogger<HubSettingsConfiguration>.Instance);
+        await using var notifier = new EventHubNotifier(configuration, endpoint => { creations++; return endpoint.EventHubName == "other" ? other : producer; }, NullLogger<EventHubNotifier>.Instance);
         var sending = notifier.TryNotifyAsync(new("connection", "chat", null, null, "localhost"), "message", 2,
             new(MessageDataType.Text, "hi"u8.ToArray()), true);
         await producer.ReadAsync();

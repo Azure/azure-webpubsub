@@ -7,10 +7,10 @@ using Microsoft.Extensions.Primitives;
 
 namespace Microsoft.Azure.WebPubSub.Emulator;
 
-internal sealed class EventRoutingConfiguration : IHostedService, IDisposable
+internal sealed class HubSettingsConfiguration : IHostedService, IDisposable
 {
     private readonly IOptionsFactory<EmulatorOptions> _factory;
-    private readonly ILogger<EventRoutingConfiguration> _logger;
+    private readonly ILogger<HubSettingsConfiguration> _logger;
     private readonly object _gate = new();
     private readonly HashSet<IConfigurationProvider> _failedLoads = [];
     private readonly HashSet<IConfigurationProvider> _invalidFiles = [];
@@ -19,8 +19,8 @@ internal sealed class EventRoutingConfiguration : IHostedService, IDisposable
     private EmulatorOptions _current;
     private bool _disposed;
 
-    public EventRoutingConfiguration(IConfiguration configuration, IOptions<EmulatorOptions> initial,
-        IOptionsFactory<EmulatorOptions> factory, ILogger<EventRoutingConfiguration> logger)
+    public HubSettingsConfiguration(IConfiguration configuration, IOptions<EmulatorOptions> initial,
+        IOptionsFactory<EmulatorOptions> factory, ILogger<HubSettingsConfiguration> logger)
     {
         _factory = factory;
         _logger = logger;
