@@ -11,7 +11,7 @@ using Microsoft.Extensions.Options;
 namespace Microsoft.Azure.WebPubSub.Emulator;
 
 internal sealed class UpstreamEventDispatcher(
-    IOptions<EmulatorOptions> options, EventHandlerConfiguration configuration,
+    IOptions<EmulatorOptions> options, EventRoutingConfiguration configuration,
     HttpUpstreamTrigger trigger, EventHubNotifier notifier, ILogger<UpstreamEventDispatcher> logger)
 {
     private const string MetadataHeaderPrefix = "x-webpubsub-metadata-";

@@ -7,10 +7,10 @@ using Microsoft.Extensions.Primitives;
 
 namespace Microsoft.Azure.WebPubSub.Emulator;
 
-internal sealed class EventHandlerConfiguration : IHostedService, IDisposable
+internal sealed class EventRoutingConfiguration : IHostedService, IDisposable
 {
     private readonly IOptionsFactory<EmulatorOptions> _factory;
-    private readonly ILogger<EventHandlerConfiguration> _logger;
+    private readonly ILogger<EventRoutingConfiguration> _logger;
     private readonly object _gate = new();
     private readonly HashSet<IConfigurationProvider> _failedLoads = [];
     private readonly HashSet<IConfigurationProvider> _invalidFiles = [];
@@ -19,8 +19,8 @@ internal sealed class EventHandlerConfiguration : IHostedService, IDisposable
     private EmulatorOptions _current;
     private bool _disposed;
 
-    public EventHandlerConfiguration(IConfiguration configuration, IOptions<EmulatorOptions> initial,
-        IOptionsFactory<EmulatorOptions> factory, ILogger<EventHandlerConfiguration> logger)
+    public EventRoutingConfiguration(IConfiguration configuration, IOptions<EmulatorOptions> initial,
+        IOptionsFactory<EmulatorOptions> factory, ILogger<EventRoutingConfiguration> logger)
     {
         _factory = factory;
         _logger = logger;
@@ -42,34 +42,41 @@ internal sealed class EventHandlerConfiguration : IHostedService, IDisposable
         }
     }
 
+    public EmulatorOptions Current => Volatile.Read(ref _current);
+
+    public event Action? Changed;
+
     public EventHandlerOptions[] GetHandlers(string hub) =>
-        Volatile.Read(ref _current).Hubs.TryGetValue(hub, out var settings) ? settings.EventHandlers : [];
+        Current.Hubs.TryGetValue(hub, out var settings) ? settings.EventHandlers : [];
 
     private void Reload(IConfigurationProvider provider)
     {
         lock (_gate)
         {
             if (_disposed) return;
-            // A malformed JSON provider clears its data. Keep the last valid handlers
+            // A malformed JSON provider clears its data. Keep the last valid event settings
             // until that provider loads successfully, even if another provider changes.
             if (_failedLoads.Remove(provider)) _invalidFiles.Add(provider);
             else _invalidFiles.Remove(provider);
             if (_invalidFiles.Count != 0) return;
+            EmulatorOptions updated;
             try
             {
-                var updated = _factory.Create(Options.DefaultName);
-                Volatile.Write(ref _current, updated);
-                _logger.LogInformation("Event handler configuration reloaded. Existing connections remain open.");
+                updated = _factory.Create(Options.DefaultName);
             }
             catch (Exception exception) when (exception is OptionsValidationException or InvalidOperationException or ArgumentException)
             {
                 WarnRejected();
+                return;
             }
+            Volatile.Write(ref _current, updated);
+            Changed?.Invoke();
+            _logger.LogInformation("Event handler and listener configuration reloaded. Existing connections remain open.");
         }
     }
 
     private void WarnRejected() => _logger.LogWarning(
-        "Could not reload event handler configuration. The last valid configuration is still in use; check the JSON and WebPubSub settings.");
+        "Could not reload event handler and listener configuration. The last valid configuration is still in use; check the JSON and WebPubSub settings.");
 
     public Task StartAsync(CancellationToken cancellationToken) => Task.CompletedTask;
 

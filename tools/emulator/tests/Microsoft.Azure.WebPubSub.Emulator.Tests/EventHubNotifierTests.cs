@@ -150,7 +150,9 @@ public class EventHubNotifierTests
         var second = new EventListenerOptions { EventHubEndpoint = listener.EventHubEndpoint with { EventHubName = "other" }, EventNameFilter = listener.EventNameFilter };
         var options = Options.Create(new EmulatorOptions { Hubs = new() { ["chat"] = new() { EventListeners = [listener, listener, second] } } });
         var creations = 0;
-        await using var notifier = new EventHubNotifier(options, endpoint => { creations++; return endpoint.EventHubName == "other" ? other : producer; }, NullLogger<EventHubNotifier>.Instance);
+        using var routing = new EventRoutingConfiguration(new ConfigurationBuilder().Build(), options,
+            new OptionsFactory<EmulatorOptions>([], []), NullLogger<EventRoutingConfiguration>.Instance);
+        await using var notifier = new EventHubNotifier(routing, endpoint => { creations++; return endpoint.EventHubName == "other" ? other : producer; }, NullLogger<EventHubNotifier>.Instance);
         var sending = notifier.TryNotifyAsync(new("connection", "chat", null, null, "localhost"), "message", 2,
             new(MessageDataType.Text, "hi"u8.ToArray()), true);
         await producer.ReadAsync();
@@ -256,6 +258,9 @@ public class EventHubNotifierTests
     {
         public Channel<(EventData Event, string? Partition)> Events { get; } = Channel.CreateUnbounded<(EventData, string?)>();
         public Func<CancellationToken, Task> OnSend { get; init; } = _ => Task.CompletedTask;
+        public Func<Task> OnDispose { get; init; } = () => Task.CompletedTask;
+        public TaskCompletionSource DisposalStarted { get; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
+        public int DisposeCount { get; private set; }
         public bool Disposed { get; private set; }
         public Task<(EventData Event, string? Partition)> ReadAsync() => Events.Reader.ReadAsync().AsTask().WaitAsync(Timeout);
         public override Task SendAsync(IEnumerable<EventData> events, SendEventOptions options, CancellationToken cancellationToken = default)
@@ -263,6 +268,12 @@ public class EventHubNotifierTests
             Events.Writer.TryWrite((Assert.Single(events), options.PartitionKey));
             return OnSend(cancellationToken);
         }
-        public override ValueTask DisposeAsync() { Disposed = true; return ValueTask.CompletedTask; }
+        public override async ValueTask DisposeAsync()
+        {
+            Disposed = true;
+            DisposeCount++;
+            DisposalStarted.TrySetResult();
+            await OnDispose();
+        }
     }
 }

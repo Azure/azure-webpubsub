@@ -45,10 +45,11 @@ internal static class EmulatorApplication
                 "EventPattern must contain a single event name, comma-separated event names, or a standalone *. " +
                     "Other wildcard and escape syntax is not supported.")
             .Validate(options => options.Hubs?.Values.All(hub => hub?.EventListeners?.All(listener =>
-                listener?.EventHubEndpoint?.IsValid() == true) == true) == true,
-                "Event listeners require an EventHubName and a namespace, or a local Event Hubs emulator connection string (not both).");
-        builder.Services.AddSingleton<EventHandlerConfiguration>();
-        builder.Services.AddHostedService(services => services.GetRequiredService<EventHandlerConfiguration>());
+                listener?.EventNameFilter?.SystemEvents is not null &&
+                listener.EventHubEndpoint?.IsValid() == true) == true) == true,
+                "Event listeners require an EventNameFilter, EventHubName and a namespace, or a local Event Hubs emulator connection string (not both).");
+        builder.Services.AddSingleton<EventRoutingConfiguration>();
+        builder.Services.AddHostedService(services => services.GetRequiredService<EventRoutingConfiguration>());
         builder.Services.AddSingleton<TokenCredential>(_ => new DefaultAzureCredential());
         builder.Services.AddSingleton<Func<EventHubEndpointOptions, EventHubProducerClient>>(services => endpoint =>
             endpoint.ConnectionString is { } local
