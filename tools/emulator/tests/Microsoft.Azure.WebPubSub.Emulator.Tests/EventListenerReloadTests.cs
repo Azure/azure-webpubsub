@@ -43,7 +43,7 @@ public class EventListenerReloadTests
     }
 
     [Fact]
-    public async Task ChangedTargetDrainsInflightSendBeforeDisposingOldProducer()
+    public async Task ChangedTargetKeepsInflightSendAndCachesBothClientsUntilShutdown()
     {
         var finish = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
         var first = new RecordingProducer { OnSend = _ => finish.Task };
@@ -61,27 +61,32 @@ public class EventListenerReloadTests
         }
         finally { finish.TrySetResult(); }
         Assert.True(await sending.WaitAsync(Timeout));
-        await first.DisposalStarted.Task.WaitAsync(Timeout);
-        Assert.Equal(1, first.DisposeCount);
+        Assert.False(first.Disposed);
         Assert.False(second.Disposed);
+        await fixture.Notifier.DisposeAsync();
+        Assert.Equal(1, first.DisposeCount);
+        Assert.Equal(1, second.DisposeCount);
     }
 
     [Fact]
-    public async Task RemovalDisposesUsedProducerAndReadditionCreatesAnother()
+    public async Task RemovalStopsDeliveryAndReadditionReusesCachedProducer()
     {
-        var first = new RecordingProducer();
-        var second = new RecordingProducer();
-        var count = 0;
-        await using var fixture = await Fixture.StartAsync(_ => ++count == 1 ? first : second);
+        var producer = new RecordingProducer();
+        await using var fixture = await Fixture.StartAsync(_ => producer);
         Assert.True(await fixture.SendAsync());
+        await producer.ReadAsync();
         await fixture.WriteAsync(Settings(null));
-        await first.DisposalStarted.Task.WaitAsync(Timeout);
+        Assert.False(producer.Disposed);
         Assert.False(await fixture.SendAsync());
+        Assert.False(producer.Events.Reader.TryRead(out _));
         await fixture.WriteAsync(Settings("first"));
         Assert.True(await fixture.SendAsync());
-        Assert.Equal(2, fixture.Creations);
-        Assert.Equal(1, first.DisposeCount);
-        Assert.False(second.Disposed);
+        await producer.ReadAsync();
+        Assert.Equal(1, fixture.Creations);
+        Assert.False(producer.Disposed);
+        await fixture.Notifier.DisposeAsync();
+        Assert.Equal(1, producer.DisposeCount);
+        await Assert.ThrowsAsync<ObjectDisposedException>(() => fixture.SendAsync());
     }
 
     [Fact]
@@ -125,11 +130,14 @@ public class EventListenerReloadTests
         Assert.Equal("http://localhost:1/changed", Assert.Single(fixture.Configuration.GetHandlers("chat")).UrlTemplate);
         Assert.True(await fixture.SendAsync());
         Assert.Equal(2, fixture.Creations);
-        await first.DisposalStarted.Task.WaitAsync(Timeout);
+        Assert.False(first.Disposed);
+        await fixture.Notifier.DisposeAsync();
+        Assert.Equal(1, first.DisposeCount);
+        Assert.Equal(1, second.DisposeCount);
     }
 
     [Fact]
-    public async Task ShutdownAwaitsAlreadyRemovedProducerDisposal()
+    public async Task ShutdownAwaitsCachedRemovedProducerDisposal()
     {
         var finish = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
         var producer = new RecordingProducer { OnDispose = () => finish.Task };
@@ -138,14 +146,29 @@ public class EventListenerReloadTests
         {
             await fixture.SendAsync();
             await fixture.WriteAsync(Settings(null));
-            await producer.DisposalStarted.Task.WaitAsync(Timeout);
+            Assert.False(producer.Disposed);
             var disposing = fixture.Notifier.DisposeAsync().AsTask();
+            await producer.DisposalStarted.Task.WaitAsync(Timeout);
             Assert.False(disposing.IsCompleted);
             finish.TrySetResult();
             await disposing.WaitAsync(Timeout);
             Assert.Equal(1, producer.DisposeCount);
         }
         finally { finish.TrySetResult(); }
+    }
+
+    [Fact]
+    public async Task ShutdownDisposesAllCachedClientsWhenOneDisposalFails()
+    {
+        var first = new RecordingProducer { OnDispose = () => throw new InvalidOperationException("test failure") };
+        var second = new RecordingProducer();
+        await using var fixture = await Fixture.StartAsync(endpoint => endpoint.EventHubName == "first" ? first : second);
+        await fixture.SendAsync();
+        await fixture.WriteAsync(Settings("second"));
+        await fixture.SendAsync();
+        await Assert.ThrowsAsync<InvalidOperationException>(() => fixture.Notifier.DisposeAsync().AsTask());
+        Assert.Equal(1, first.DisposeCount);
+        Assert.Equal(1, second.DisposeCount);
     }
 
     [Fact]

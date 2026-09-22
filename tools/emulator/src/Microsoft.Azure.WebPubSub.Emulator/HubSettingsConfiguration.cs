@@ -18,15 +18,12 @@ internal sealed class HubSettingsConfiguration : IHostedService, IDisposable
         _subscription = monitor.OnChange(updated =>
         {
             Volatile.Write(ref _current, updated);
-            Changed?.Invoke();
             logger.LogInformation("Event handler and listener configuration reloaded. Existing connections remain open.");
         });
         Interlocked.CompareExchange(ref _current, monitor.CurrentValue, initial.Value);
     }
 
     public EmulatorOptions Current => Volatile.Read(ref _current);
-
-    public event Action? Changed;
 
     public EventHandlerOptions[] GetHandlers(string hub) =>
         Current.Hubs.TryGetValue(hub, out var settings) ? settings.EventHandlers : [];
