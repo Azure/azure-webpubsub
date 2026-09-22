@@ -8,7 +8,6 @@ import itertools
 import json
 from pathlib import Path
 import re
-import subprocess
 import unittest
 
 import yaml
@@ -108,16 +107,12 @@ def evaluate(expression, values, canceled=False):
     return result
 
 
-def context(affected=(), branch='refs/heads/main', reason='IndividualCI'):
+def context(branch='refs/heads/main', reason='Manual'):
     values = {"variables['Build.SourceBranch']": branch, "variables['Build.Reason']": reason}
     for name, stage in STAGES.items():
         values[f'dependencies.{name}.result'] = 'Succeeded'
         for job in stage['jobs']:
             values[f"stageDependencies.{name}.{job['job']}.result"] = 'Succeeded'
-    for key in ('emulator', *NPM_KEYS):
-        values[f"dependencies.release_check.outputs['check.read.{key}_needsRelease']"] = str(key in affected).lower()
-        values[f"stageDependencies.npm_release_prepare.{key}_check.outputs['read.{key}_needsRelease']"] = str(key in affected).lower()
-        values[f'dependencies.{key}_build.result'] = 'Succeeded' if key in affected else 'Skipped'
     return values
 
 
@@ -143,10 +138,12 @@ class ReleasePipelineTests(unittest.TestCase):
         self.assertTrue(PIPELINE['trigger']['batch'])
         self.assertEqual(PIPELINE['trigger']['branches']['include'], ['main'])
         self.assertEqual(PIPELINE['pr'], 'none')
+        self.assertNotIn('paths', PIPELINE['trigger'])
+        self.assertTrue(all('trigger' not in stage for stage in STAGES.values()))
 
     def test_manual_release_jobs_are_inline(self):
         expected = {
-            MANUAL_STAGE: ['verify', 'approve'],
+            MANUAL_STAGE: ['approve'],
             'npm_release_prepare': [f'{key}_check' for key in NPM_KEYS],
             'Prod_npm_publish': [f'{key}_publish' for key in NPM_KEYS],
             'npm_release_finalize': [f'{key}_{suffix}' for key in NPM_KEYS
@@ -159,7 +156,7 @@ class ReleasePipelineTests(unittest.TestCase):
 
     def test_stage_and_release_job_graphs(self):
         self.assertEqual(len(STAGES), 10)
-        self.assertEqual(len(RELEASE_JOBS), 14)
+        self.assertEqual(len(RELEASE_JOBS), 13)
         graphs = [STAGES] + [{job['job']: job for job in stage['jobs']} for stage in STAGES.values()]
         for graph in graphs:
             completed = set()
@@ -178,34 +175,39 @@ class ReleasePipelineTests(unittest.TestCase):
             self.assertIs(stage['isSkippable'], False)
         self.assertEqual(dependencies(STAGES['emulator_build']), ['release_check'])
         self.assertEqual(set(dependencies(STAGES['emulator_myget'])), {'release_check', 'emulator_build'})
-        self.assertNotIn('dependsOn', STAGES[MANUAL_STAGE])
-        self.assertNotIn('dependencies.', STAGES[MANUAL_STAGE]['condition'])
-        self.assertNotIn('stageDependencies.', json.dumps(STAGES[MANUAL_STAGE]))
-        self.assertEqual(dependencies(RELEASE_JOBS['approve']), ['verify'])
-        self.assertEqual(dependencies(STAGES['npm_release_prepare']), [MANUAL_STAGE])
-        self.assertEqual(dependencies(STAGES['Prod_npm_publish']), [MANUAL_STAGE, 'npm_release_prepare'])
+        self.assertEqual(set(dependencies(STAGES[MANUAL_STAGE])),
+                         {'release_check', *(f'{key}_build' for key in NPM_KEYS)})
+        self.assertEqual(dependencies(RELEASE_JOBS['approve']), [])
+        self.assertEqual(dependencies(STAGES['npm_release_prepare']), ['release_check', MANUAL_STAGE])
+        self.assertEqual(dependencies(STAGES['Prod_npm_publish']),
+                         ['release_check', MANUAL_STAGE, 'npm_release_prepare'])
         self.assertEqual(dependencies(STAGES['npm_release_finalize']),
-                         [MANUAL_STAGE, 'npm_release_prepare', 'Prod_npm_publish'])
+                         ['release_check', MANUAL_STAGE, 'npm_release_prepare', 'Prod_npm_publish'])
+        seen = set()
+        for name, stage in STAGES.items():
+            self.assertTrue(set(dependencies(stage)) <= seen)
+            seen.add(name)
 
-    def test_automatic_ci_is_independent_of_the_manual_release_chain(self):
-        manual = [name for name, stage in STAGES.items() if stage.get('trigger') == 'manual']
-        self.assertEqual(manual, [MANUAL_STAGE])
+    def test_main_ci_builds_everything_and_publishes_only_to_myget(self):
+        for reason in ('IndividualCI', 'BatchedCI'):
+            values = context(reason=reason)
+            ran = set()
+            for name in STAGES:
+                allowed = permits(name, values)
+                values[f'dependencies.{name}.result'] = 'Succeeded' if allowed else 'Skipped'
+                if allowed:
+                    ran.add(name)
+            self.assertEqual(ran, {'release_check', 'emulator_build', 'emulator_myget',
+                                   *(f'{key}_build' for key in NPM_KEYS)})
+            for name in RELEASE_JOBS:
+                self.assertFalse(permits_job(name, values))
         self.assertEqual(STAGES[MANUAL_STAGE]['variables']['ob_release_environment'], 'Production')
         self.assertTrue(PIPELINE['extends']['parameters']['featureFlags']['use1esentry'])
         for name, stage in STAGES.items():
-            if name in NPM_STAGES:
-                continue
-            self.assertEqual(stage.get('trigger', 'automatic'), 'automatic')
-            self.assertTrue(set(dependencies(stage)).isdisjoint(NPM_STAGES))
-            for forbidden in ('ManualValidation@1', 'EsrpRelease@11', 'git push', 'Npm-Release.mjs bump'):
-                self.assertNotIn(forbidden, json.dumps(stage), name)
-        for name in NPM_STAGES[1:]:
-            self.assertEqual(STAGES[name].get('trigger', 'automatic'), 'automatic')
-            for result in ('Skipped', 'Failed', 'Canceled', 'Pending', 'SucceededWithIssues', ''):
-                values = context(NPM_KEYS)
-                values[f'dependencies.{MANUAL_STAGE}.result'] = result
-                self.assertFalse(permits(name, values), (name, result))
-            self.assertTrue(permits(name, context(NPM_KEYS)))
+            if name not in NPM_STAGES:
+                self.assertTrue(set(dependencies(stage)).isdisjoint(NPM_STAGES))
+                for forbidden in ('ManualValidation@1', 'EsrpRelease@11', 'git push', 'Npm-Release.mjs bump'):
+                    self.assertNotIn(forbidden, json.dumps(stage), name)
 
     def test_onebranch_release_jobs_are_artifact_only_and_git_jobs_are_normal_linux_jobs(self):
         for stage in STAGES.values():
@@ -244,101 +246,110 @@ class ReleasePipelineTests(unittest.TestCase):
                     self.assertEqual(output.split('.')[0], 'read')
                     self.assertIn('read', [step.get('name') for step in job['steps']])
 
-    def test_trigger_mapping_matches_detector(self):
-        output = subprocess.check_output([
-            'node', '--input-type=module', '-e',
-            "import {TRIGGER_PATHS} from './.pipelines/scripts/Get-ReleasePackages.mjs'; console.log(JSON.stringify(TRIGGER_PATHS))"
-        ], cwd=ROOT, text=True)
-        self.assertEqual(set(PIPELINE['trigger']['paths']['include']), set(json.loads(output)))
+    def test_version_check_has_no_history_or_readiness_tracking(self):
+        job = STAGES['release_check']['jobs'][0]
+        self.assertEqual(job['steps'][-1]['name'], 'read')
+        self.assertEqual(job['steps'][-1]['inputs']['script'],
+                         'set -euo pipefail\nnode .pipelines/scripts/Get-ReleasePackages.mjs\n')
+        self.assertNotIn('env', job['steps'][-1])
+        self.assertNotIn('ob_artifactBaseName', job['variables'])
+        for filename in ('Get-ReadyNpmRelease.mjs', 'Get-ReadyNpmRelease.test.mjs'):
+            self.assertFalse((ROOT / '.pipelines/scripts' / filename).exists())
+        helper = (ROOT / '.pipelines/scripts/Get-ReleasePackages.mjs').read_text(encoding='utf-8')
+        for forbidden in ('needsRelease', 'anyChanged', 'Get-ReadyNpmRelease', 'drop_release_source',
+                          'findAutomaticBaseline', 'createAdoClient', 'SYSTEM_ACCESSTOKEN'):
+            self.assertNotIn(forbidden, helper + json.dumps(PIPELINE))
+        for forbidden in ('node:child_process', 'fetch(', 'BUILD_SOURCEVERSION', 'SYSTEM_COLLECTIONURI'):
+            self.assertNotIn(forbidden, helper)
 
-    def test_branch_eligibility_and_manual_test_branch(self):
-        cases = [('refs/heads/main', 'IndividualCI', True),
-                 ('refs/heads/release/1.0', 'Manual', True),
-                 ('refs/heads/vicancy/vicancy-fix-emulator-publish-runtime', 'Manual', True),
-                 ('refs/heads/vicancy/vicancy-fix-emulator-publish-runtime', 'IndividualCI', False),
-                 ('refs/heads/topic', 'Manual', False), ('refs/pull/1/merge', 'PullRequest', False)]
-        for branch, reason, eligible in cases:
+    def test_branch_eligibility_and_manual_feature_branches(self):
+        cases = [('refs/heads/main', 'IndividualCI', True, False),
+                 ('refs/heads/main', 'BatchedCI', True, False),
+                 ('refs/heads/main', 'Manual', True, True),
+                 ('refs/heads/release/1.0', 'Manual', True, True),
+                 ('refs/heads/release/1.0', 'IndividualCI', False, False),
+                 ('refs/heads/vicancy/vicancy-fix-emulator-publish-runtime', 'Manual', True, False),
+                 ('refs/heads/vicancy/vicancy-fix-emulator-publish-runtime', 'IndividualCI', False, False),
+                 ('refs/heads/topic', 'Manual', True, False),
+                 ('refs/heads/topic', 'BatchedCI', False, False),
+                 ('refs/pull/1/merge', 'PullRequest', False, False)]
+        for branch, reason, eligible, npm_eligible in cases:
             with self.subTest(branch=branch, reason=reason):
-                values = context((*NPM_KEYS, 'emulator'), branch, reason)
+                values = context(branch, reason)
                 self.assertEqual(permits('release_check', values), eligible)
                 if not eligible:
                     values['dependencies.release_check.result'] = 'Skipped'
+                for key in ('emulator', *NPM_KEYS):
+                    self.assertEqual(permits(f'{key}_build', values), eligible)
                 self.assertEqual(permits('emulator_myget', values), eligible)
-                npm_eligible = eligible and (branch == 'refs/heads/main' or branch.startswith('refs/heads/release/'))
                 self.assertEqual(permits(MANUAL_STAGE, values), npm_eligible)
-        # Manually starting a stage of a CI run does not change Build.Reason to Manual.
-        for reason in ('IndividualCI', 'BatchedCI', 'Manual'):
-            self.assertTrue(permits(MANUAL_STAGE, context(NPM_KEYS, reason=reason)))
 
-    def test_affected_builds_and_myget_fail_closed(self):
+    def test_all_builds_and_myget_fail_closed(self):
+        states = ('Skipped', 'Failed', 'Canceled', 'SucceededWithIssues', 'Pending', '')
         for key in ('emulator', *NPM_KEYS):
-            self.assertTrue(permits(f'{key}_build', context([key])))
-            self.assertFalse(permits(f'{key}_build', context()))
-            for result in ('Skipped', 'Failed', 'Canceled', 'SucceededWithIssues', ''):
-                values = context([key])
+            self.assertEqual(dependencies(STAGES[f'{key}_build']), ['release_check'])
+            self.assertTrue(permits(f'{key}_build', context()))
+            for result in states:
+                values = context()
                 values['dependencies.release_check.result'] = result
                 self.assertFalse(permits(f'{key}_build', values))
-        for affected, result in itertools.product((True, False), ('Succeeded', 'Skipped', 'Failed', 'Canceled')):
-            values = context(['emulator'] if affected else [])
+                self.assertFalse(permits('emulator_myget', values))
+        for result in ('Succeeded', *states):
+            values = context()
             values['dependencies.emulator_build.result'] = result
-            self.assertEqual(permits('emulator_myget', values), affected and result == 'Succeeded')
+            self.assertEqual(permits('emulator_myget', values), result == 'Succeeded')
+        for key, result in itertools.product(NPM_KEYS, states):
+            values = context()
+            values[f'dependencies.{key}_build.result'] = result
+            self.assertFalse(permits(MANUAL_STAGE, values))
 
-    def test_preflight_blocks_approval_and_all_publication_side_effects(self):
+    def test_rejected_or_incomplete_approval_blocks_every_public_side_effect(self):
         for result in ('Skipped', 'Failed', 'Canceled', 'SucceededWithIssues', 'Pending', ''):
-            values = context(NPM_KEYS)
-            values['dependencies.verify.result'] = result
-            self.assertFalse(permits_job('approve', values), result)
+            values = context()
             values[f'dependencies.{MANUAL_STAGE}.result'] = result
             for name in RELEASE_JOBS:
-                if name not in ('verify', 'approve'):
+                if name != 'approve':
                     self.assertFalse(permits_job(name, values), (name, result))
-        self.assertTrue(permits_job('approve', context(NPM_KEYS)))
+        self.assertTrue(permits_job('approve', context()))
 
-    def test_preflight_uses_same_run_helper_and_artifact_names(self):
-        verify = RELEASE_JOBS['verify']
-        self.assertEqual(verify['pool'], {'type': 'release', 'os': 'linux'})
-        self.assertEqual(verify['templateContext']['inputs'], [{
-            'input': 'pipelineArtifact', 'artifactName': 'drop_release_source',
-            'targetPath': '$(Pipeline.Workspace)/release-source/$(Build.BuildId)',
-        }])
-        step = verify['steps'][-1]
-        self.assertEqual(step['name'], 'read')
-        self.assertIn('node .pipelines/scripts/Get-ReadyNpmRelease.mjs --from-artifact', step['inputs']['script'])
-        self.assertEqual(step['inputs']['workingDirectory'], verify['templateContext']['inputs'][0]['targetPath'])
-        self.assertEqual(step['env'], {'SYSTEM_ACCESSTOKEN': '$(System.AccessToken)'})
-        check = STAGES['release_check']['jobs'][0]
-        self.assertEqual(check['variables']['ob_artifactBaseName'], 'drop_release_source')
-        self.assertIn("Get-ReadyNpmRelease.mjs --prepare-artifact '$(ob_outputDirectory)'", check['steps'][-1]['inputs']['script'])
-        output = subprocess.check_output([
-            'node', '--input-type=module', '-e',
-            "import {NPM_ARTIFACTS,RELEASE_SOURCE_ARTIFACT} from './.pipelines/scripts/Get-ReadyNpmRelease.mjs'; console.log(JSON.stringify([NPM_ARTIFACTS,RELEASE_SOURCE_ARTIFACT]))"
-        ], cwd=ROOT, text=True)
-        expected = {key: STAGES[f'{key}_build']['jobs'][0]['variables']['ob_artifactBaseName'] for key in NPM_KEYS}
-        self.assertEqual(json.loads(output), [expected, 'drop_release_source'])
+    def test_myget_and_npm_have_no_dependency_on_each_other(self):
+        self.assertEqual(set(dependencies(STAGES['emulator_myget'])), {'release_check', 'emulator_build'})
+        for name in NPM_STAGES:
+            self.assertTrue(set(dependencies(STAGES[name])).isdisjoint({'emulator_build', 'emulator_myget'}))
+        for state in ('Succeeded', 'Skipped', 'Failed', 'Canceled', 'Pending', 'SucceededWithIssues', ''):
+            values = context()
+            for name in ('emulator_build', 'emulator_myget'):
+                values[f'dependencies.{name}.result'] = state
+            self.assertTrue(permits_job('approve', values))
+            for key in NPM_KEYS:
+                self.assertTrue(permits_job(f'{key}_publish', values))
+            values = context()
+            for name in (*NPM_STAGES, *(f'{key}_build' for key in NPM_KEYS)):
+                values[f'dependencies.{name}.result'] = state
+            self.assertTrue(permits('emulator_myget', values))
 
-    def test_publication_requires_approval_and_verified_package_selection(self):
+    def test_publication_requires_approval_and_package_availability(self):
         states = ('Succeeded', 'Failed', 'Canceled', 'Skipped', 'Pending', 'SucceededWithIssues', '')
         for key in NPM_KEYS:
-            for gate, verification, selected in itertools.product(states, states, ('true', 'false', '')):
-                values = context([key])
-                values[f'dependencies.{MANUAL_STAGE}.result'] = gate
-                values[f'stageDependencies.npm_release_prepare.{key}_check.result'] = verification
-                values[f"stageDependencies.npm_release_prepare.{key}_check.outputs['read.{key}_needsRelease']"] = selected
-                self.assertEqual(permits_job(f'{key}_publish', values),
-                                 gate == verification == 'Succeeded' and selected == 'true')
-            values = context([key])
-            del values[f"stageDependencies.npm_release_prepare.{key}_check.outputs['read.{key}_needsRelease']"]
+            for approval, check in itertools.product(states, repeat=2):
+                values = context()
+                values[f'dependencies.{MANUAL_STAGE}.result'] = approval
+                values[f'stageDependencies.npm_release_prepare.{key}_check.result'] = check
+                self.assertEqual(permits_job(f'{key}_publish', values), approval == check == 'Succeeded')
+            values = context()
+            del values[f'stageDependencies.npm_release_prepare.{key}_check.result']
             self.assertFalse(permits_job(f'{key}_publish', values))
-            for publish, tag in itertools.product(states, repeat=2):
-                values = context([key])
+            for check, publish, tag in itertools.product(states, repeat=3):
+                values = context()
+                values[f'stageDependencies.npm_release_prepare.{key}_check.result'] = check
                 values[f'stageDependencies.Prod_npm_publish.{key}_publish.result'] = publish
                 values[f'dependencies.{key}_post_deploy_tag.result'] = tag
-                self.assertEqual(permits_job(f'{key}_post_deploy_tag', values), publish == 'Succeeded')
-                self.assertEqual(permits_job(f'{key}_post_deploy_pr', values), publish == tag == 'Succeeded')
+                self.assertEqual(permits_job(f'{key}_post_deploy_tag', values), check == publish == 'Succeeded')
+                self.assertEqual(permits_job(f'{key}_post_deploy_pr', values), check == publish == tag == 'Succeeded')
 
     def test_unrelated_package_failure_does_not_prevent_successful_package_finalization(self):
         for key in NPM_KEYS:
-            values = context(NPM_KEYS)
+            values = context()
             values['dependencies.npm_release_prepare.result'] = 'Failed'
             values['dependencies.Prod_npm_publish.result'] = 'Failed'
             for other in NPM_KEYS:
@@ -353,9 +364,9 @@ class ReleasePipelineTests(unittest.TestCase):
 
     def test_cancellation_blocks_every_stage_and_release_job(self):
         for name in STAGES:
-            self.assertFalse(permits(name, context((*NPM_KEYS, 'emulator')), canceled=True), name)
+            self.assertFalse(permits(name, context(), canceled=True), name)
         for name in RELEASE_JOBS:
-            self.assertFalse(permits_job(name, context(NPM_KEYS), canceled=True), name)
+            self.assertFalse(permits_job(name, context(), canceled=True), name)
 
     def test_agentless_npm_only_approval(self):
         job = RELEASE_JOBS['approve']
@@ -380,9 +391,9 @@ class ReleasePipelineTests(unittest.TestCase):
                 'artifactName': build['variables']['ob_artifactBaseName'],
                 'targetPath': f'$(Pipeline.Workspace)/esrp-release/$(Build.BuildId)/{key}',
             }])
-            for variable in ('needsRelease', 'releaseVersion', 'productState'):
+            for variable in ('releaseVersion', 'productState'):
                 self.assertEqual(publish['variables'][variable],
-                                 f"$[ stageDependencies.npm_release_prepare.{key}_check.outputs['read.{key}_{variable}'] ]")
+                                 f"$[ stageDependencies.release_check.check.outputs['read.{key}_{variable}'] ]")
             steps = publish['steps']
             self.assertEqual(len(steps), 1)
             self.assertEqual(steps[-1]['task'], 'EsrpRelease@11')
@@ -391,13 +402,13 @@ class ReleasePipelineTests(unittest.TestCase):
             self.assertEqual(steps[-1]['inputs']['ContentType'], 'npm')
             self.assertEqual(steps[-1]['inputs']['ConnectedServiceName'], '$(ESRP_SERVICE_CONNECTION)')
             check = RELEASE_JOBS[f'{key}_check']
-            self.assertIn('node .pipelines/scripts/Get-ReadyNpmRelease.mjs', check['steps'][-2]['inputs']['script'])
-            self.assertEqual(check['steps'][-2]['name'], 'read')
-            self.assertEqual(check['steps'][-1]['condition'],
-                             f"and(succeeded(), eq(variables['read.{key}_needsRelease'], 'true'))")
+            self.assertEqual(len(check['steps']), 3)
+            self.assertNotIn('condition', check['steps'][-1])
+            self.assertEqual(check['variables']['releaseVersion'],
+                             f"$[ stageDependencies.release_check.check.outputs['read.{key}_releaseVersion'] ]")
             check_script = check['steps'][-1]['inputs']['script']
             self.assertIn('Npm-Release.mjs check', check_script)
-            self.assertIn(f"'$(read.{key}_releaseVersion)'", check_script)
+            self.assertIn("'$(releaseVersion)'", check_script)
             for field in ('package_folder', 'npm_package_name', 'package_name'):
                 self.assertIn(f"'{package[field]}'", check_script)
             tag_script = RELEASE_JOBS[f'{key}_post_deploy_tag']['steps'][-1]['inputs']['script']
@@ -463,9 +474,9 @@ class ReleasePipelineTests(unittest.TestCase):
                           'PackagePublishingKeyVaultName', 'Prod_emulator_publish', 'AzureKeyVault@2'):
             self.assertNotIn(forbidden, json.dumps(PIPELINE))
 
-    def test_npm_pack_commands_and_full_history(self):
+    def test_npm_pack_commands_and_shallow_version_checkout(self):
         checkout = STAGES['release_check']['jobs'][0]['steps'][0]
-        self.assertEqual(checkout['fetchDepth'], 0)
+        self.assertEqual(checkout['fetchDepth'], 1)
         packages = {e['parameters']['package_key']: e['parameters'] for e in ENTRIES if 'template' in e}
         for key, package in packages.items():
             script = package['pack_steps'][0]['inputs']['script']

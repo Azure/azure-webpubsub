@@ -1,4 +1,4 @@
-# Build affected packages automatically; start public npm releases on demand.
+# Build all packages and publish emulator previews; npm publication requires approval.
 
 name: package-release_$(Date:yyyyMMdd)$(Rev:.r)
 
@@ -7,34 +7,6 @@ trigger:
   branches:
     include:
       - main
-  paths:
-    include:
-      - tools/emulator/**
-      - protocols/protobuf.webpubsub.azure.v1/**
-      - microsoft.png
-      - sdk/webpubsub-chat-client/**
-      - sdk/webpubsub-socketio-extension/**
-      - sdk/server-proxies/**
-      - tools/awps-tunnel/**
-      - .pipelines/**
-      - package.json
-      - yarn.lock
-      - package-lock.json
-      - .npmrc
-      - .yarnrc
-      - .yarnrc.yml
-      - .node-version
-      - .nvmrc
-      - .gitignore
-      - .gitattributes
-      - .prettierrc
-      - LICENSE
-      - global.json
-      - NuGet.Config
-      - nuget.config
-      - Directory.Build.props
-      - Directory.Build.targets
-      - Directory.Packages.props
 
 pr: none
 
@@ -70,7 +42,7 @@ extends:
         break: true
     stages:
       - stage: release_check
-        displayName: 'Detect affected packages and check release versions'
+        displayName: 'Check release versions'
         isSkippable: false
         dependsOn: []
         condition: |
@@ -78,11 +50,7 @@ extends:
             not(canceled()),
             or(
               eq(variables['Build.SourceBranch'], 'refs/heads/main'),
-              startsWith(variables['Build.SourceBranch'], 'refs/heads/release/'),
-              and(
-                eq(variables['Build.SourceBranch'], 'refs/heads/vicancy/vicancy-fix-emulator-publish-runtime'),
-                eq(variables['Build.Reason'], 'Manual')
-              )
+              eq(variables['Build.Reason'], 'Manual')
             )
           )
         jobs:
@@ -90,14 +58,13 @@ extends:
             pool:
               type: linux
             variables:
-              ob_outputDirectory: '$(Build.ArtifactStagingDirectory)/release-source'
-              ob_artifactBaseName: 'drop_release_source'
+              ob_outputDirectory: '$(Build.ArtifactStagingDirectory)'
               ob_sdl_codeSignValidation_enabled: false
               ob_sdl_binskim_enabled: false
             steps:
               - checkout: self
                 path: s/azure-webpubsub
-                fetchDepth: 0
+                fetchDepth: 1
                 persistCredentials: false
               - task: UseNode@1
                 displayName: 'Use Node 22.x'
@@ -105,16 +72,13 @@ extends:
                   version: '22.x'
               - task: Bash@3
                 name: read
-                displayName: 'Compare with the last successful automatic stages'
+                displayName: 'Validate package and changelog versions'
                 inputs:
                   targetType: inline
                   workingDirectory: '$(Pipeline.Workspace)/s/azure-webpubsub'
                   script: |
                     set -euo pipefail
                     node .pipelines/scripts/Get-ReleasePackages.mjs
-                    node .pipelines/scripts/Get-ReadyNpmRelease.mjs --prepare-artifact '$(ob_outputDirectory)'
-                env:
-                  SYSTEM_ACCESSTOKEN: $(System.AccessToken)
 
       - stage: emulator_build
         displayName: 'Build, sign, and validate formal and preview emulator packages'
@@ -123,8 +87,7 @@ extends:
         condition: |
           and(
             not(canceled()),
-            eq(dependencies.release_check.result, 'Succeeded'),
-            eq(dependencies.release_check.outputs['check.read.emulator_needsRelease'], 'true')
+            eq(dependencies.release_check.result, 'Succeeded')
           )
         jobs:
           - job: build
@@ -197,6 +160,81 @@ extends:
                       -OutputDirectory '$(ob_outputDirectory)/preview' `
                       -BuildId $env:BUILD_BUILDID -Phase Validate
 
+      - template: templates/stages/release-package.yml
+        parameters:
+          package_key: chat_client
+          package_name: web-pubsub-chat-client
+          npm_package_name: '@azure/web-pubsub-chat-client'
+          package_folder: sdk/webpubsub-chat-client
+          pack_steps:
+            - task: Bash@3
+              displayName: 'Build, test, and pack chat client'
+              inputs:
+                targetType: inline
+                workingDirectory: '$(Pipeline.Workspace)/s/azure-webpubsub'
+                script: |
+                  set -euo pipefail
+                  pushd sdk/webpubsub-chat-client
+                  yarn --frozen-lockfile
+                  npm run pack:publish
+                  yarn test:unit
+                  popd
+
+      - template: templates/stages/release-package.yml
+        parameters:
+          package_key: socketio
+          package_name: webpubsub-socketio-extension
+          npm_package_name: '@azure/web-pubsub-socket.io'
+          package_folder: sdk/webpubsub-socketio-extension
+          pack_steps:
+            - task: Bash@3
+              displayName: 'Build, lint, test, and pack Socket.IO extension'
+              inputs:
+                targetType: inline
+                workingDirectory: '$(Pipeline.Workspace)/s/azure-webpubsub'
+                script: |
+                  set -euo pipefail
+                  pushd sdk/server-proxies
+                  yarn --frozen-lockfile
+                  popd
+                  pushd tools/awps-tunnel/client
+                  yarn --frozen-lockfile
+                  popd
+                  pushd sdk/webpubsub-socketio-extension
+                  yarn --frozen-lockfile
+                  yarn build
+                  yarn lint
+                  yarn test:unit
+                  yarn pack
+                  popd
+
+      - template: templates/stages/release-package.yml
+        parameters:
+          package_key: tunnel
+          package_name: awps-tunnel
+          npm_package_name: '@azure/web-pubsub-tunnel-tool'
+          package_folder: tools/awps-tunnel/server
+          pack_steps:
+            - task: Bash@3
+              displayName: 'Build, test, and pack tunnel tool'
+              inputs:
+                targetType: inline
+                workingDirectory: '$(Pipeline.Workspace)/s/azure-webpubsub'
+                script: |
+                  set -euo pipefail
+                  pushd sdk/server-proxies
+                  yarn --frozen-lockfile
+                  popd
+                  pushd tools/awps-tunnel/client
+                  yarn --frozen-lockfile
+                  popd
+                  pushd tools/awps-tunnel/server
+                  yarn --frozen-lockfile
+                  yarn build
+                  yarn test:unit --runInBand
+                  yarn pack
+                  popd
+
       - stage: emulator_myget
         displayName: 'Publish only the emulator preview to MyGet'
         isSkippable: false
@@ -208,7 +246,10 @@ extends:
             not(canceled()),
             eq(dependencies.release_check.result, 'Succeeded'),
             eq(dependencies.emulator_build.result, 'Succeeded'),
-            eq(dependencies.release_check.outputs['check.read.emulator_needsRelease'], 'true')
+            or(
+              eq(variables['Build.SourceBranch'], 'refs/heads/main'),
+              eq(variables['Build.Reason'], 'Manual')
+            )
           )
         variables:
           ob_release_environment: Test
@@ -242,12 +283,21 @@ extends:
                   publishFeedCredentials: azure-webpubsub-dev
 
       - stage: Prod_npm_release
-        displayName: 'Release npm packages (manual)'
-        trigger: manual
+        displayName: 'Approve npm release'
+        dependsOn:
+          - release_check
+          - chat_client_build
+          - socketio_build
+          - tunnel_build
         isSkippable: false
         condition: |
           and(
             not(canceled()),
+            eq(variables['Build.Reason'], 'Manual'),
+            eq(dependencies.release_check.result, 'Succeeded'),
+            eq(dependencies.chat_client_build.result, 'Succeeded'),
+            eq(dependencies.socketio_build.result, 'Succeeded'),
+            eq(dependencies.tunnel_build.result, 'Succeeded'),
             or(
               eq(variables['Build.SourceBranch'], 'refs/heads/main'),
               startsWith(variables['Build.SourceBranch'], 'refs/heads/release/')
@@ -256,40 +306,9 @@ extends:
         variables:
           ob_release_environment: Production
         jobs:
-          - job: verify
-            displayName: 'Check completed npm builds and available packages'
-            condition: not(canceled())
-            pool:
-              type: release
-              os: linux
-            variables:
-              ob_outputDirectory: '$(Build.ArtifactStagingDirectory)'
-              ob_sdl_codeSignValidation_enabled: false
-              ob_sdl_binskim_enabled: false
-            templateContext:
-              inputs:
-                - input: pipelineArtifact
-                  artifactName: 'drop_release_source'
-                  targetPath: '$(Pipeline.Workspace)/release-source/$(Build.BuildId)'
-            steps:
-              - task: UseNode@1
-                inputs:
-                  version: '22.x'
-              - task: Bash@3
-                name: read
-                displayName: 'Verify this build before requesting approval'
-                inputs:
-                  targetType: inline
-                  workingDirectory: '$(Pipeline.Workspace)/release-source/$(Build.BuildId)'
-                  script: |
-                    set -euo pipefail
-                    node .pipelines/scripts/Get-ReadyNpmRelease.mjs --from-artifact
-                env:
-                  SYSTEM_ACCESSTOKEN: $(System.AccessToken)
           - job: approve
-            displayName: 'Review affected npm packages before public publication'
-            dependsOn: verify
-            condition: and(not(canceled()), eq(dependencies.verify.result, 'Succeeded'))
+            displayName: 'Review npm packages before public publication'
+            condition: not(canceled())
             pool:
               type: server
             timeoutInMinutes: 1500
@@ -306,6 +325,7 @@ extends:
         displayName: 'Check npm and GitHub release availability'
         isSkippable: false
         dependsOn:
+          - release_check
           - Prod_npm_release
         condition: |
           and(
@@ -319,6 +339,7 @@ extends:
             pool:
               type: linux
             variables:
+              releaseVersion: $[ stageDependencies.release_check.check.outputs['read.chat_client_releaseVersion'] ]
               ob_outputDirectory: '$(Build.ArtifactStagingDirectory)'
               ob_sdl_codeSignValidation_enabled: false
               ob_sdl_binskim_enabled: false
@@ -331,19 +352,7 @@ extends:
                 displayName: 'Use Node 22.x'
                 inputs:
                   version: 22.x
-              - task: Bash@3
-                name: read
-                displayName: 'Recheck this build and source commit'
-                inputs:
-                  targetType: inline
-                  workingDirectory: '$(Pipeline.Workspace)/s/azure-webpubsub'
-                  script: |
-                    set -euo pipefail
-                    node .pipelines/scripts/Get-ReadyNpmRelease.mjs
-                env:
-                  SYSTEM_ACCESSTOKEN: $(System.AccessToken)
               - task: PowerShell@2
-                condition: and(succeeded(), eq(variables['read.chat_client_needsRelease'], 'true'))
                 displayName: 'Check public npm version and GitHub tag availability'
                 inputs:
                   pwsh: true
@@ -355,7 +364,7 @@ extends:
                       'sdk/webpubsub-chat-client' `
                       '@azure/web-pubsub-chat-client' `
                       'web-pubsub-chat-client' `
-                      '$(read.chat_client_releaseVersion)' `
+                      '$(releaseVersion)' `
                       'Azure/azure-webpubsub'
                     if ($LASTEXITCODE -ne 0) { throw 'Public package availability checks failed.' }
 
@@ -365,6 +374,7 @@ extends:
             pool:
               type: linux
             variables:
+              releaseVersion: $[ stageDependencies.release_check.check.outputs['read.socketio_releaseVersion'] ]
               ob_outputDirectory: '$(Build.ArtifactStagingDirectory)'
               ob_sdl_codeSignValidation_enabled: false
               ob_sdl_binskim_enabled: false
@@ -377,19 +387,7 @@ extends:
                 displayName: 'Use Node 22.x'
                 inputs:
                   version: 22.x
-              - task: Bash@3
-                name: read
-                displayName: 'Recheck this build and source commit'
-                inputs:
-                  targetType: inline
-                  workingDirectory: '$(Pipeline.Workspace)/s/azure-webpubsub'
-                  script: |
-                    set -euo pipefail
-                    node .pipelines/scripts/Get-ReadyNpmRelease.mjs
-                env:
-                  SYSTEM_ACCESSTOKEN: $(System.AccessToken)
               - task: PowerShell@2
-                condition: and(succeeded(), eq(variables['read.socketio_needsRelease'], 'true'))
                 displayName: 'Check public npm version and GitHub tag availability'
                 inputs:
                   pwsh: true
@@ -401,7 +399,7 @@ extends:
                       'sdk/webpubsub-socketio-extension' `
                       '@azure/web-pubsub-socket.io' `
                       'webpubsub-socketio-extension' `
-                      '$(read.socketio_releaseVersion)' `
+                      '$(releaseVersion)' `
                       'Azure/azure-webpubsub'
                     if ($LASTEXITCODE -ne 0) { throw 'Public package availability checks failed.' }
 
@@ -411,6 +409,7 @@ extends:
             pool:
               type: linux
             variables:
+              releaseVersion: $[ stageDependencies.release_check.check.outputs['read.tunnel_releaseVersion'] ]
               ob_outputDirectory: '$(Build.ArtifactStagingDirectory)'
               ob_sdl_codeSignValidation_enabled: false
               ob_sdl_binskim_enabled: false
@@ -423,19 +422,7 @@ extends:
                 displayName: 'Use Node 22.x'
                 inputs:
                   version: 22.x
-              - task: Bash@3
-                name: read
-                displayName: 'Recheck this build and source commit'
-                inputs:
-                  targetType: inline
-                  workingDirectory: '$(Pipeline.Workspace)/s/azure-webpubsub'
-                  script: |
-                    set -euo pipefail
-                    node .pipelines/scripts/Get-ReadyNpmRelease.mjs
-                env:
-                  SYSTEM_ACCESSTOKEN: $(System.AccessToken)
               - task: PowerShell@2
-                condition: and(succeeded(), eq(variables['read.tunnel_needsRelease'], 'true'))
                 displayName: 'Check public npm version and GitHub tag availability'
                 inputs:
                   pwsh: true
@@ -447,7 +434,7 @@ extends:
                       'tools/awps-tunnel/server' `
                       '@azure/web-pubsub-tunnel-tool' `
                       'awps-tunnel' `
-                      '$(read.tunnel_releaseVersion)' `
+                      '$(releaseVersion)' `
                       'Azure/azure-webpubsub'
                     if ($LASTEXITCODE -ne 0) { throw 'Public package availability checks failed.' }
 
@@ -455,6 +442,7 @@ extends:
         displayName: 'Publish approved npm packages'
         isSkippable: false
         dependsOn:
+          - release_check
           - Prod_npm_release
           - npm_release_prepare
         condition: |
@@ -471,17 +459,15 @@ extends:
             condition: |
               and(
                 not(canceled()),
-                eq(variables['checkResult'], 'Succeeded'),
-                eq(variables['needsRelease'], 'true')
+                eq(variables['checkResult'], 'Succeeded')
               )
             pool:
               type: release
               os: windows
             variables:
               checkResult: $[ stageDependencies.npm_release_prepare.chat_client_check.result ]
-              needsRelease: $[ stageDependencies.npm_release_prepare.chat_client_check.outputs['read.chat_client_needsRelease'] ]
-              releaseVersion: $[ stageDependencies.npm_release_prepare.chat_client_check.outputs['read.chat_client_releaseVersion'] ]
-              productState: $[ stageDependencies.npm_release_prepare.chat_client_check.outputs['read.chat_client_productState'] ]
+              releaseVersion: $[ stageDependencies.release_check.check.outputs['read.chat_client_releaseVersion'] ]
+              productState: $[ stageDependencies.release_check.check.outputs['read.chat_client_productState'] ]
               ob_outputDirectory: '$(Build.ArtifactStagingDirectory)'
               ob_sdl_codeSignValidation_enabled: false
               ob_sdl_binskim_enabled: false
@@ -516,17 +502,15 @@ extends:
             condition: |
               and(
                 not(canceled()),
-                eq(variables['checkResult'], 'Succeeded'),
-                eq(variables['needsRelease'], 'true')
+                eq(variables['checkResult'], 'Succeeded')
               )
             pool:
               type: release
               os: windows
             variables:
               checkResult: $[ stageDependencies.npm_release_prepare.socketio_check.result ]
-              needsRelease: $[ stageDependencies.npm_release_prepare.socketio_check.outputs['read.socketio_needsRelease'] ]
-              releaseVersion: $[ stageDependencies.npm_release_prepare.socketio_check.outputs['read.socketio_releaseVersion'] ]
-              productState: $[ stageDependencies.npm_release_prepare.socketio_check.outputs['read.socketio_productState'] ]
+              releaseVersion: $[ stageDependencies.release_check.check.outputs['read.socketio_releaseVersion'] ]
+              productState: $[ stageDependencies.release_check.check.outputs['read.socketio_productState'] ]
               ob_outputDirectory: '$(Build.ArtifactStagingDirectory)'
               ob_sdl_codeSignValidation_enabled: false
               ob_sdl_binskim_enabled: false
@@ -561,17 +545,15 @@ extends:
             condition: |
               and(
                 not(canceled()),
-                eq(variables['checkResult'], 'Succeeded'),
-                eq(variables['needsRelease'], 'true')
+                eq(variables['checkResult'], 'Succeeded')
               )
             pool:
               type: release
               os: windows
             variables:
               checkResult: $[ stageDependencies.npm_release_prepare.tunnel_check.result ]
-              needsRelease: $[ stageDependencies.npm_release_prepare.tunnel_check.outputs['read.tunnel_needsRelease'] ]
-              releaseVersion: $[ stageDependencies.npm_release_prepare.tunnel_check.outputs['read.tunnel_releaseVersion'] ]
-              productState: $[ stageDependencies.npm_release_prepare.tunnel_check.outputs['read.tunnel_productState'] ]
+              releaseVersion: $[ stageDependencies.release_check.check.outputs['read.tunnel_releaseVersion'] ]
+              productState: $[ stageDependencies.release_check.check.outputs['read.tunnel_productState'] ]
               ob_outputDirectory: '$(Build.ArtifactStagingDirectory)'
               ob_sdl_codeSignValidation_enabled: false
               ob_sdl_binskim_enabled: false
@@ -604,6 +586,7 @@ extends:
         displayName: 'Tag published npm packages and open next-beta PRs'
         isSkippable: false
         dependsOn:
+          - release_check
           - Prod_npm_release
           - npm_release_prepare
           - Prod_npm_publish
@@ -627,7 +610,7 @@ extends:
             variables:
               checkResult: $[ stageDependencies.npm_release_prepare.chat_client_check.result ]
               publishResult: $[ stageDependencies.Prod_npm_publish.chat_client_publish.result ]
-              releaseVersion: $[ stageDependencies.npm_release_prepare.chat_client_check.outputs['read.chat_client_releaseVersion'] ]
+              releaseVersion: $[ stageDependencies.release_check.check.outputs['read.chat_client_releaseVersion'] ]
               ob_outputDirectory: '$(Build.ArtifactStagingDirectory)'
               ob_sdl_codeSignValidation_enabled: false
               ob_sdl_binskim_enabled: false
@@ -671,7 +654,7 @@ extends:
             variables:
               checkResult: $[ stageDependencies.npm_release_prepare.chat_client_check.result ]
               publishResult: $[ stageDependencies.Prod_npm_publish.chat_client_publish.result ]
-              releaseVersion: $[ stageDependencies.npm_release_prepare.chat_client_check.outputs['read.chat_client_releaseVersion'] ]
+              releaseVersion: $[ stageDependencies.release_check.check.outputs['read.chat_client_releaseVersion'] ]
               ob_outputDirectory: '$(Build.ArtifactStagingDirectory)'
               ob_sdl_codeSignValidation_enabled: false
               ob_sdl_binskim_enabled: false
@@ -743,7 +726,7 @@ extends:
             variables:
               checkResult: $[ stageDependencies.npm_release_prepare.socketio_check.result ]
               publishResult: $[ stageDependencies.Prod_npm_publish.socketio_publish.result ]
-              releaseVersion: $[ stageDependencies.npm_release_prepare.socketio_check.outputs['read.socketio_releaseVersion'] ]
+              releaseVersion: $[ stageDependencies.release_check.check.outputs['read.socketio_releaseVersion'] ]
               ob_outputDirectory: '$(Build.ArtifactStagingDirectory)'
               ob_sdl_codeSignValidation_enabled: false
               ob_sdl_binskim_enabled: false
@@ -787,7 +770,7 @@ extends:
             variables:
               checkResult: $[ stageDependencies.npm_release_prepare.socketio_check.result ]
               publishResult: $[ stageDependencies.Prod_npm_publish.socketio_publish.result ]
-              releaseVersion: $[ stageDependencies.npm_release_prepare.socketio_check.outputs['read.socketio_releaseVersion'] ]
+              releaseVersion: $[ stageDependencies.release_check.check.outputs['read.socketio_releaseVersion'] ]
               ob_outputDirectory: '$(Build.ArtifactStagingDirectory)'
               ob_sdl_codeSignValidation_enabled: false
               ob_sdl_binskim_enabled: false
@@ -859,7 +842,7 @@ extends:
             variables:
               checkResult: $[ stageDependencies.npm_release_prepare.tunnel_check.result ]
               publishResult: $[ stageDependencies.Prod_npm_publish.tunnel_publish.result ]
-              releaseVersion: $[ stageDependencies.npm_release_prepare.tunnel_check.outputs['read.tunnel_releaseVersion'] ]
+              releaseVersion: $[ stageDependencies.release_check.check.outputs['read.tunnel_releaseVersion'] ]
               ob_outputDirectory: '$(Build.ArtifactStagingDirectory)'
               ob_sdl_codeSignValidation_enabled: false
               ob_sdl_binskim_enabled: false
@@ -903,7 +886,7 @@ extends:
             variables:
               checkResult: $[ stageDependencies.npm_release_prepare.tunnel_check.result ]
               publishResult: $[ stageDependencies.Prod_npm_publish.tunnel_publish.result ]
-              releaseVersion: $[ stageDependencies.npm_release_prepare.tunnel_check.outputs['read.tunnel_releaseVersion'] ]
+              releaseVersion: $[ stageDependencies.release_check.check.outputs['read.tunnel_releaseVersion'] ]
               ob_outputDirectory: '$(Build.ArtifactStagingDirectory)'
               ob_sdl_codeSignValidation_enabled: false
               ob_sdl_binskim_enabled: false
@@ -960,76 +943,3 @@ extends:
                       -H 'X-GitHub-Api-Version: 2022-11-28' \
                       "https://api.github.com/repos/Azure/azure-webpubsub/pulls" \
                       -d "$pr_body"
-
-      - template: templates/stages/release-package.yml
-        parameters:
-          package_key: chat_client
-          package_name: web-pubsub-chat-client
-          npm_package_name: '@azure/web-pubsub-chat-client'
-          package_folder: sdk/webpubsub-chat-client
-          pack_steps:
-            - task: Bash@3
-              displayName: 'Build, test, and pack chat client'
-              inputs:
-                targetType: inline
-                workingDirectory: '$(Pipeline.Workspace)/s/azure-webpubsub'
-                script: |
-                  set -euo pipefail
-                  pushd sdk/webpubsub-chat-client
-                  yarn --frozen-lockfile
-                  npm run pack:publish
-                  yarn test:unit
-                  popd
-      - template: templates/stages/release-package.yml
-        parameters:
-          package_key: socketio
-          package_name: webpubsub-socketio-extension
-          npm_package_name: '@azure/web-pubsub-socket.io'
-          package_folder: sdk/webpubsub-socketio-extension
-          pack_steps:
-            - task: Bash@3
-              displayName: 'Build, lint, test, and pack Socket.IO extension'
-              inputs:
-                targetType: inline
-                workingDirectory: '$(Pipeline.Workspace)/s/azure-webpubsub'
-                script: |
-                  set -euo pipefail
-                  pushd sdk/server-proxies
-                  yarn --frozen-lockfile
-                  popd
-                  pushd tools/awps-tunnel/client
-                  yarn --frozen-lockfile
-                  popd
-                  pushd sdk/webpubsub-socketio-extension
-                  yarn --frozen-lockfile
-                  yarn build
-                  yarn lint
-                  yarn test:unit
-                  yarn pack
-                  popd
-      - template: templates/stages/release-package.yml
-        parameters:
-          package_key: tunnel
-          package_name: awps-tunnel
-          npm_package_name: '@azure/web-pubsub-tunnel-tool'
-          package_folder: tools/awps-tunnel/server
-          pack_steps:
-            - task: Bash@3
-              displayName: 'Build, test, and pack tunnel tool'
-              inputs:
-                targetType: inline
-                workingDirectory: '$(Pipeline.Workspace)/s/azure-webpubsub'
-                script: |
-                  set -euo pipefail
-                  pushd sdk/server-proxies
-                  yarn --frozen-lockfile
-                  popd
-                  pushd tools/awps-tunnel/client
-                  yarn --frozen-lockfile
-                  popd
-                  pushd tools/awps-tunnel/server
-                  yarn --frozen-lockfile
-                  yarn build
-                  yarn test:unit --runInBand
-                  yarn pack
-                  popd

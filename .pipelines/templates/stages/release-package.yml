@@ -1,4 +1,4 @@
-# Build, test, and pack an affected npm package for later manual publication.
+# Build, test, and pack an npm package for later manual publication.
 
 parameters:
   - name: package_key
@@ -33,8 +33,7 @@ stages:
     condition: |
       and(
         not(canceled()),
-        eq(dependencies.release_check.result, 'Succeeded'),
-        eq(dependencies.release_check.outputs['check.read.${{ parameters.package_key }}_needsRelease'], 'true')
+        eq(dependencies.release_check.result, 'Succeeded')
       )
     variables:
       releaseVersion: $[ stageDependencies.release_check.check.outputs['read.${{ parameters.package_key }}_releaseVersion'] ]
@@ -51,7 +50,7 @@ stages:
         steps:
           - checkout: self
             path: s/azure-webpubsub
-            fetchDepth: 0
+            fetchDepth: 1
             persistCredentials: false
           - task: UseNode@1
             displayName: 'Use Node ${{ parameters.node_version }}'
