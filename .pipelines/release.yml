@@ -115,18 +115,23 @@ extends:
             displayName: 'Publish emulator CI package to MyGet'
             dependsOn: emulator_build
             condition: succeeded()
+            variables:
+              ob_release_environment: Test
             jobs:
               - job: publish
                 pool:
-                  type: linux
+                  type: release
+                  os: linux
                 variables:
                   ob_outputDirectory: '$(Build.ArtifactStagingDirectory)'
                   ob_sdl_codeSignValidation_enabled: false
                   ob_sdl_binskim_enabled: false
+                templateContext:
+                  inputs:
+                    - input: pipelineArtifact
+                      artifactName: drop_emulator
+                      targetPath: '$(Pipeline.Workspace)/drop_emulator'
                 steps:
-                  - checkout: none
-                  - download: current
-                    artifact: drop_emulator
                   - task: UseDotNet@2
                     displayName: 'Use .NET 10'
                     inputs:
