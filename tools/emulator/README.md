@@ -77,8 +77,7 @@ Open <http://localhost:8080/index.html> in two tabs and send messages. The clien
 `sendToAll` to broadcast the message back to clients. Skip the sample README's Azure resource,
 portal, and tunnel steps: the JSON above replaces that event handler configuration.
 
-Save edits to `EventHandlers` or `EventListeners` to apply them without restarting the emulator.
-See [Hot reload](#hot-reload) for limits; older packages need a new build to gain this feature.
+`EventHandlers` and `EventListeners` in `appsettings.json` support hot reload.
 
 ## Prerequisites
 
@@ -337,24 +336,6 @@ even when the initial protocol offer includes JSON. Successful connect cookies a
 `ce-connectionState` (including an empty value) are retained for later notifications. Reliable
 recovery retains these values and does not invoke `connect` again.
 
-### Hot reload
-
-Save `appsettings.json` to update per-hub `EventHandlers` and `EventListeners` under
-`WebPubSub:Hubs` while the emulator runs. Handler URLs, system/user event filters, listener targets,
-and additions or removals of hubs, handlers, and listeners apply to subsequent events without
-restarting or dropping connected clients. Events already in progress may finish with the previous
-configuration; in-flight Event Hubs sends drain before the old producer is released.
-
-Updates that fail settings binding or validation are logged and are not applied to running
-handlers or listeners; correct and save the settings to try again. JSON syntax errors follow
-ASP.NET Core's normal configuration error handling, without custom recovery for broken files.
-Invalid configuration at startup still prevents the emulator from starting. Environment variables
-and command-line values override JSON and do not hot reload.
-
-Only per-hub `EventHandlers` and `EventListeners` hot reload. Access keys,
-`AllowUnvalidatedEntraTokens`, and listening URLs still require a restart. An older installed package
-must be replaced with a build containing this feature; editing JSON cannot upgrade the executable.
-
 ### Handler validation and retries
 
 Before sending any handler event, the emulator validates the handler URL with `{event}` set to
@@ -465,9 +446,7 @@ Invocation and streaming are not supported. Streaming requests are rejected.
 
 Listeners forward lifecycle and user events **from the Web PubSub emulator to Event Hubs**.
 
-Configure `EventListeners` alongside `EventHandlers` within `WebPubSub:Hubs:<hub>`.
-JSON changes to listener filters and targets [hot reload](#hot-reload); existing sends drain before
-retired producers are released:
+Configure `EventListeners` alongside `EventHandlers` within `WebPubSub:Hubs:<hub>`:
 
 ```json
 "EventListeners": [{
@@ -616,7 +595,6 @@ then repeat the install command with `--no-cache` to avoid reusing an earlier pa
 | --- | --- |
 | The SDK cannot be found, or the tool reports a missing framework | Run `dotnet --list-sdks` and `dotnet --list-runtimes`, and check the [prerequisites](#prerequisites). |
 | The emulator cannot bind to port 8080 | The chat sample uses 8080. Start the emulator with `--urls http://localhost:8081`, or [choose another endpoint](#configure-the-endpoint-and-access-key), and pass the printed connection string to the sample. |
-| JSON handler or listener edits do not take effect | Check the working directory, confirm the installed build supports [hot reload](#hot-reload), remove overriding environment/command-line values, and check logs for rejected edits. |
 | A client cannot connect, or a REST request returns `401` | Use the current endpoint and access key. Generate a fresh token for that endpoint and check its expiration; a token for your Azure resource cannot be reused locally. |
 | A group operation is denied | Check the client's token roles or granted connection permissions. Group membership alone does not grant permission to publish. |
 | A user event fails, or a raw client closes with status 1011 | Configure a matching HTTP handler or Event Hubs listener. Check the emulator logs and verify that your HTTP handler responds to validation requests. |
