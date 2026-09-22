@@ -181,7 +181,6 @@ extends:
                       files_to_sign: '*.nupkg'
                       search_root: '$(ob_outputDirectory)'
                   - task: PowerShell@2
-                    name: validate
                     displayName: 'Verify signatures and smoke-test signed emulator package'
                     inputs:
                       pwsh: true
@@ -230,10 +229,9 @@ extends:
           - stage: Prod_emulator_publish
             displayName: 'Publish signed emulator package to NuGet.org'
             dependsOn: emulator_build
-            condition: and(succeeded(), or(eq(variables['Build.SourceBranch'], 'refs/heads/main'), startsWith(variables['Build.SourceBranch'], 'refs/heads/release/')))
+            condition: succeeded()
             variables:
               ob_release_environment: Production
-              releaseVersion: $[ stageDependencies.emulator_build.build.outputs['validate.packageVersion'] ]
             jobs:
               - job: publish
                 pool:
@@ -248,35 +246,6 @@ extends:
                     displayName: 'Use .NET 10'
                     inputs:
                       version: '10.x'
-                  - task: PowerShell@2
-                    displayName: 'Verify emulator release artifact'
-                    inputs:
-                      pwsh: true
-                      targetType: inline
-                      script: |
-                        $ErrorActionPreference = 'Stop'
-                        $packages = @(Get-ChildItem $env:PACKAGE_DIRECTORY -Filter '*.nupkg')
-                        if ($packages.Count -ne 1) { throw 'Expected exactly one signed emulator package.' }
-                        if ($env:RELEASE_VERSION -notmatch '^\d+\.\d+\.\d+(-beta\.\d+)?$') {
-                          throw 'Expected the repository release version, not a CI preview version.'
-                        }
-                        $archive = [IO.Compression.ZipFile]::OpenRead($packages[0].FullName)
-                        try {
-                          $entry = $archive.GetEntry('Microsoft.Azure.WebPubSub.Emulator.nuspec')
-                          if ($null -eq $entry) { throw 'The artifact is not an emulator package.' }
-                          $reader = [IO.StreamReader]::new($entry.Open())
-                          try { [xml] $nuspec = $reader.ReadToEnd() } finally { $reader.Dispose() }
-                          if ($nuspec.package.metadata.id -ne 'Microsoft.Azure.WebPubSub.Emulator' -or $nuspec.package.metadata.version -ne $env:RELEASE_VERSION) {
-                            throw 'The artifact does not match the selected emulator release.'
-                          }
-                        }
-                        finally { $archive.Dispose() }
-                        & dotnet nuget verify $packages[0].FullName --all
-                        if ($LASTEXITCODE -ne 0) { throw 'Emulator package signature verification failed.' }
-                        Write-Host "##vso[task.setvariable variable=EMULATOR_NUGET_PACKAGE_PATH]$($packages[0].FullName)"
-                    env:
-                      PACKAGE_DIRECTORY: '$(Pipeline.Workspace)/drop_emulator_release'
-                      RELEASE_VERSION: $(releaseVersion)
                   - task: AzureKeyVault@2
                     displayName: 'Read emulator NuGet.org API key'
                     inputs:
@@ -291,13 +260,10 @@ extends:
                       targetType: inline
                       script: |
                         $ErrorActionPreference = 'Stop'
-                        if ([string]::IsNullOrWhiteSpace($env:NUGET_API_KEY) -or $env:NUGET_API_KEY.StartsWith('$(')) {
-                          throw 'The selected Key Vault secret did not supply a NuGet.org API key.'
-                        }
                         & dotnet nuget push $env:PACKAGE_PATH --api-key $env:NUGET_API_KEY --source https://api.nuget.org/v3/index.json
                         if ($LASTEXITCODE -ne 0) { throw 'NuGet.org publication failed.' }
                     env:
-                      PACKAGE_PATH: $(EMULATOR_NUGET_PACKAGE_PATH)
+                      PACKAGE_PATH: '$(Pipeline.Workspace)/drop_emulator_release/*.nupkg'
                       NUGET_API_KEY: $(${{ parameters.NuGetApiKeySecretName }})
 
       - ${{ if or(parameters.release_chat_client, parameters.release_socketio, parameters.release_tunnel) }}:

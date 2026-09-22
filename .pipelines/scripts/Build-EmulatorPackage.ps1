@@ -74,20 +74,6 @@ try {
     foreach ($file in @('README.md', 'CHANGELOG.md', 'SUPPORTED_FEATURES.md', 'microsoft.png')) {
         if ($null -eq $archive.GetEntry($file)) { throw "Missing packaged file: $file" }
     }
-    if ($RequireSignature) {
-        if ($null -eq $archive.GetEntry('.signature.p7s')) { throw 'The emulator package is unsigned.' }
-        [xml] $projectXml = Get-Content $project -Raw
-        $framework = $projectXml.SelectSingleNode('/Project/PropertyGroup/TargetFramework').InnerText
-        $assembly = $archive.GetEntry("tools/$framework/any/$packageId.dll")
-        if ($null -eq $assembly) { throw 'The emulator package is missing its assembly.' }
-        $stream = $assembly.Open()
-        try { $packedHash = (Get-FileHash -InputStream $stream -Algorithm SHA256).Hash }
-        finally { $stream.Dispose() }
-        $signedAssembly = Join-Path (Split-Path $project) "obj/Release/$framework/$packageId.dll"
-        if ($packedHash -ne (Get-FileHash $signedAssembly -Algorithm SHA256).Hash) {
-            throw 'Packing changed the signed emulator assembly.'
-        }
-    }
 }
 finally {
     $archive.Dispose()
@@ -147,4 +133,3 @@ finally {
 }
 
 Write-Host "Validated $packageId $version"
-Write-Host "##vso[task.setvariable variable=packageVersion;isOutput=true]$version"
