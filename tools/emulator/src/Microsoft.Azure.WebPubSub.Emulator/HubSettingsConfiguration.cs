@@ -21,7 +21,7 @@ internal sealed class HubSettingsConfiguration : IHostedService, IDisposable
             Changed?.Invoke();
             logger.LogInformation("Event handler and listener configuration reloaded. Existing connections remain open.");
         });
-        _current = monitor.CurrentValue;
+        Interlocked.CompareExchange(ref _current, monitor.CurrentValue, initial.Value);
     }
 
     public EmulatorOptions Current => Volatile.Read(ref _current);
