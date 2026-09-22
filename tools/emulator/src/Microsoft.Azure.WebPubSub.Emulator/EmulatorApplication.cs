@@ -23,31 +23,27 @@ internal static class EmulatorApplication
     {
         var builder = WebApplication.CreateBuilder(args ?? []);
         builder.Configuration[WebHostDefaults.ServerUrlsKey] ??= "http://localhost:8080";
-        builder.Services
-            .AddOptions<EmulatorOptions>()
-            .Bind(builder.Configuration.GetSection(EmulatorOptions.SectionName),
-                options => options.ErrorOnUnknownConfiguration = true)
-            .Validate(
-                options => EmulatorOptions.IsValidAccessKey(options.AccessKey),
-                "WebPubSub:AccessKey must be at least 32 UTF-8 bytes and cannot contain " +
-                    "leading or trailing whitespace, semicolons, or control characters.")
-            .Validate(options => options.Hubs?.Values.All(hub => hub?.EventHandlers?.All(handler =>
-                handler?.SystemEvents is not null &&
-                EventHandlerUrlTemplate.TryResolve(handler.UrlTemplate, "hub", "event", out _) &&
-                handler.SystemEvents.All(name =>
-                    string.Equals(name, "connect", StringComparison.OrdinalIgnoreCase) ||
-                    string.Equals(name, "connected", StringComparison.OrdinalIgnoreCase) ||
-                    string.Equals(name, "disconnected", StringComparison.OrdinalIgnoreCase))) == true) == true,
-                "Event handlers require an HTTP(S) URL without Key Vault references; supported system events are connect/connected/disconnected.")
-            .Validate(options => options.Hubs?.Values.All(hub => hub?.EventHandlers?.All(handler =>
-                handler is not null && (handler.EventPattern?.Split(',').All(pattern =>
-                    pattern.Trim() == "*" || pattern.IndexOfAny(['*', '?', '\\']) < 0) != false)) == true) == true,
-                "EventPattern must contain a single event name, comma-separated event names, or a standalone *. " +
-                    "Other wildcard and escape syntax is not supported.")
-            .Validate(options => options.Hubs?.Values.All(hub => hub?.EventListeners?.All(listener =>
-                listener?.EventNameFilter?.SystemEvents is not null &&
-                listener.EventHubEndpoint?.IsValid() == true) == true) == true,
-                "Event listeners require an EventNameFilter, EventHubName and a namespace, or a local Event Hubs emulator connection string (not both).");
+        builder.Services.AddOptions<EmulatorOptions>()
+            .Configure<ILogger<HubSettingsConfiguration>>((options, logger) =>
+            {
+                try
+                {
+                    builder.Configuration.GetSection(EmulatorOptions.SectionName).Bind(options,
+                        binder => binder.ErrorOnUnknownConfiguration = true);
+                    options.Validate();
+                }
+                catch (Exception exception) when (exception is OptionsValidationException or InvalidOperationException or ArgumentException)
+                {
+                    var reason = exception is OptionsValidationException validation
+                        ? string.Join(" ", validation.Failures)
+                        : "Check configuration property names and value types.";
+                    logger.LogWarning("Invalid WebPubSub configuration: {Reason} New settings were not applied.", reason);
+                    throw;
+                }
+            })
+            .ValidateOnStart();
+        builder.Services.AddSingleton<IOptionsChangeTokenSource<EmulatorOptions>>(
+            new ConfigurationChangeTokenSource<EmulatorOptions>(builder.Configuration));
         builder.Services.AddSingleton<HubSettingsConfiguration>();
         builder.Services.AddHostedService(services => services.GetRequiredService<HubSettingsConfiguration>());
         builder.Services.AddSingleton<TokenCredential>(_ => new DefaultAzureCredential());

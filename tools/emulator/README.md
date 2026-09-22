@@ -345,10 +345,11 @@ and additions or removals of hubs, handlers, and listeners apply to subsequent e
 restarting or dropping connected clients. Events already in progress may finish with the previous
 configuration; in-flight Event Hubs sends drain before the old producer is released.
 
-Malformed JSON or invalid settings log a warning and retain the last valid **entire event
-configuration**; correct and save the file to try again. Invalid configuration at startup still
-prevents the emulator from starting. Environment variables and command-line values override JSON
-and do not hot reload.
+Updates that fail settings binding or validation are logged and are not applied to running
+handlers or listeners; correct and save the settings to try again. JSON syntax errors follow
+ASP.NET Core's normal configuration error handling, without custom recovery for broken files.
+Invalid configuration at startup still prevents the emulator from starting. Environment variables
+and command-line values override JSON and do not hot reload.
 
 Only per-hub `EventHandlers` and `EventListeners` hot reload. Access keys,
 `AllowUnvalidatedEntraTokens`, and listening URLs still require a restart. An older installed package

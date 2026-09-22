@@ -98,7 +98,7 @@ public class EventListenerReloadTests
     }
 
     [Theory]
-    [InlineData("malformed")]
+    [InlineData("invalidHandler")]
     [InlineData("endpoint")]
     [InlineData("missingName")]
     [InlineData("unknownFilter")]
@@ -111,7 +111,7 @@ public class EventListenerReloadTests
         var updated = Settings("second", handlerPath: "/changed");
         var json = invalid switch
         {
-            "malformed" => "{\"WebPubSub\":",
+            "invalidHandler" => updated.Replace("http://localhost:1/changed", "ftp://localhost/changed"),
             "endpoint" => updated.Replace("local.test", "https://invalid.example"),
             "missingName" => updated.Replace("\"EventHubName\":\"second\"", "\"EventHubName\":\"\""),
             _ => updated.Replace("\"EventNameFilter\":{", "\"EventNameFilter\":{\"Unexpected\":true,"),

@@ -14,7 +14,6 @@ using System.Threading.Channels;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
-using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
@@ -53,7 +52,7 @@ public class EventHandlerReloadTests
     }
 
     [Theory]
-    [InlineData("malformed")]
+    [InlineData("invalidType")]
     [InlineData("url")]
     [InlineData("pattern")]
     [InlineData("systemEvent")]
@@ -64,7 +63,7 @@ public class EventHandlerReloadTests
         using var socket = await fixture.ConnectAsync();
         var json = invalid switch
         {
-            "malformed" => "{\"WebPubSub\":",
+            "invalidType" => fixture.Json("/wrong", "message", []).Replace("\"Hubs\":", "\"AllowUnvalidatedEntraTokens\":\"not-a-boolean\",\"Hubs\":"),
             "url" => fixture.Json("/wrong", "message", []).Replace("http://", "ftp://"),
             "pattern" => fixture.Json("/wrong", "room.*", []),
             "systemEvent" => fixture.Json("/wrong", "message", ["not-a-system-event"]),
@@ -90,18 +89,37 @@ public class EventHandlerReloadTests
     }
 
     [Fact]
-    public async Task AnotherFileCannotReplaceHandlersWhileJsonIsInvalid()
+    public async Task RejectedOptionsDoNotNotifyOrReplaceAppliedSettings()
     {
         await using var fixture = await Fixture.StartAsync();
         using var socket = await fixture.ConnectAsync();
-        await fixture.WriteAsync("{broken", LogLevel.Warning);
-        await File.WriteAllTextAsync(fixture.OtherPath, "{\"Unrelated\":\"changed\"}");
-        // Reload all providers as well as exercising the file watcher. A failed provider
-        // must not become an empty, valid handler configuration on another notification.
-        ((IConfigurationRoot)fixture.App.Configuration).Reload();
+        var monitor = fixture.App.Services.GetRequiredService<IOptionsMonitor<EmulatorOptions>>();
+        var applied = fixture.App.Services.GetRequiredService<HubSettingsConfiguration>();
+        var previous = applied.Current;
+        var callbacks = 0;
+        using var subscription = monitor.OnChange(_ => Interlocked.Increment(ref callbacks));
+        await fixture.WriteAsync(fixture.Json("/wrong", "room.*", []), LogLevel.Warning);
+        Assert.Throws<OptionsValidationException>(() => monitor.CurrentValue);
+        Assert.Same(previous, applied.Current);
+        Assert.Equal(0, callbacks);
         await fixture.SendAsync(socket, "message", "/first");
         await fixture.WriteAsync(fixture.Json("/fixed", "message", []));
         await fixture.SendAsync(socket, "message", "/fixed");
+        Assert.NotSame(previous, applied.Current);
+        Assert.True(callbacks > 0);
+    }
+
+    [Fact]
+    public void MalformedJsonUsesFrameworkLoadErrors()
+    {
+        var directory = Path.Combine(Path.GetTempPath(), "awps-invalid-json-" + Guid.NewGuid());
+        Directory.CreateDirectory(directory);
+        try
+        {
+            File.WriteAllText(Path.Combine(directory, "appsettings.json"), "{broken");
+            Assert.Throws<InvalidDataException>(() => EmulatorApplication.CreateBuilder(["--contentRoot=" + directory]));
+        }
+        finally { Directory.Delete(directory, recursive: true); }
     }
 
     [Fact]
@@ -133,7 +151,6 @@ public class EventHandlerReloadTests
         ReloadLogger logger, Channel<(string, string)> systemEvents) : IAsyncDisposable
     {
         public WebApplication App => app;
-        public string OtherPath => Path.Combine(directory, "other.json");
         public Channel<(string, string)> SystemEvents => systemEvents;
         private int _ackId;
 
@@ -231,7 +248,6 @@ public class EventHandlerReloadTests
                 var logger = new ReloadLogger();
                 await File.WriteAllTextAsync(Path.Combine(directory, "appsettings.json"), Settings(upstream.Urls.Single(), "/first", "message", []));
                 var emulator = EmulatorApplication.CreateBuilder(args.ToArray());
-                emulator.Configuration.AddJsonFile(Path.Combine(directory, "other.json"), optional: true, reloadOnChange: true);
                 emulator.Logging.ClearProviders();
                 emulator.Services.AddSingleton<ILogger<HubSettingsConfiguration>>(logger);
                 app = EmulatorApplication.Build(emulator);
