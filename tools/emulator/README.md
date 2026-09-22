@@ -12,44 +12,73 @@ depend on cloud authentication, message expiration, or recovery across process r
 
 ## Quick start
 
-The small [Getting started sample](getting-started) runs entirely in your terminal: no frontend build,
-Azure resource, tunnel, or certificates. You need Node.js 20 or later, a repository checkout, and an
+Run the existing [JavaScript SDK chat sample](../../samples/javascript/chatapp/sdk) against the
+emulator instead of Azure. You need Node.js, a repository checkout, and an
 [installed emulator](#install-a-local-package) with the [.NET prerequisites](#prerequisites).
+No Azure resource, tunnel, or certificates are needed.
 
-**Terminal 1**, from the repository root:
+### 1. Configure the event handler and start the emulator
+
+In the directory where you will run the emulator, create `appsettings.json`:
+
+```json
+{
+  "WebPubSub": {
+    "Hubs": {
+      "sample_chat": {
+        "EventHandlers": [{
+          "UrlTemplate": "http://localhost:8080/eventhandler",
+          "SystemEvents": ["connected"],
+          "EventPattern": "broadcast"
+        }]
+      }
+    }
+  }
+}
+```
+
+From that same directory, run:
 
 ```powershell
-Set-Location .\tools\emulator\getting-started
 awps-emulator --urls http://localhost:8081
 ```
 
-Use the executable's full path if it is not on PATH, **without changing this working directory**.
-The emulator reads and watches the included [appsettings.json](getting-started/appsettings.json).
-It routes the `getting_started` hub's `connected` and `message` events to
-`http://127.0.0.1:8080/eventhandler`.
+Use the executable's full path if it is not on PATH. The emulator reads `appsettings.json`
+from its working directory. Port **8081** leaves **8080** for the sample's HTTP handler.
+Copy the connection string printed at startup.
 
-**Terminal 2**, also from the repository root:
+### 2. Allow local HTTP in the sample's server SDK
 
-```powershell
-Set-Location .\tools\emulator\getting-started
-npm install
-npm start
+For this local run, change the `WebPubSubServiceClient` construction in
+`samples/javascript/chatapp/sdk/server.js` to:
+
+```javascript
+let serviceClient = new WebPubSubServiceClient(connectionString, hubName, {
+  allowInsecureConnection: true
+});
 ```
 
-Type `hello` and press Enter. You should see `Received: hello`: your WebSocket message becomes a
-client event, the HTTP handler calls the real server SDK's `sendToAll`, and the connected client
-receives the broadcast. Ctrl+C stops the sample. Piped input also works: `"hello" | npm start`
-waits for the reply before exiting (a missing reply fails after 10 seconds).
+This allows the sample's REST calls, including `sendToAll`, to reach the HTTP emulator.
+It does not disable TLS certificate checks. Keep this opt-in local; use HTTPS for Azure.
 
-The sample explicitly uses `{ allowInsecureConnection: true }` for SDK REST calls to the local
-HTTP emulator. It rejects non-loopback endpoints, binds its handler to `127.0.0.1`, and does not
-disable TLS certificate validation. Set `WebPubSubConnectionString` to the emulator's printed
-connection string if you change its endpoint or access key. If handler port 8080 is busy, set
-`PORT` (PowerShell: `$env:PORT = "8090"`) and change the handler URL in `appsettings.json` to match.
+### 3. Start the existing sample
 
-Save edits to per-hub `EventHandlers` or `EventListeners` to update subsequent events without
-restarting or disconnecting clients. See [Hot reload](#hot-reload) for limits; older installed
-packages need a new build to gain this feature.
+In another terminal, from the repository root:
+
+```powershell
+Set-Location .\samples\javascript\chatapp\sdk
+npm install
+npm run release
+npm run start -- "<connection string printed by the emulator>"
+```
+
+Open <http://localhost:8080/index.html> in two tabs and send messages. The client sends a
+`broadcast` event to the emulator, the emulator calls `/eventhandler`, and the sample uses
+`sendToAll` to broadcast the message back to clients. Skip the sample README's Azure resource,
+portal, and tunnel steps: the JSON above replaces that event handler configuration.
+
+Save edits to `EventHandlers` or `EventListeners` to apply them without restarting the emulator.
+See [Hot reload](#hot-reload) for limits; older packages need a new build to gain this feature.
 
 ## Prerequisites
 
@@ -585,7 +614,7 @@ then repeat the install command with `--no-cache` to avoid reusing an earlier pa
 | Symptom | What to check |
 | --- | --- |
 | The SDK cannot be found, or the tool reports a missing framework | Run `dotnet --list-sdks` and `dotnet --list-runtimes`, and check the [prerequisites](#prerequisites). |
-| The emulator cannot bind to port 8080 | The Getting started handler uses 8080. Start the emulator with `--urls http://localhost:8081`. Otherwise, [choose another endpoint](#configure-the-endpoint-and-access-key) and set the sample's `WebPubSubConnectionString` to its printed connection string. |
+| The emulator cannot bind to port 8080 | The chat sample uses 8080. Start the emulator with `--urls http://localhost:8081`, or [choose another endpoint](#configure-the-endpoint-and-access-key), and pass the printed connection string to the sample. |
 | JSON handler or listener edits do not take effect | Check the working directory, confirm the installed build supports [hot reload](#hot-reload), remove overriding environment/command-line values, and check logs for rejected edits. |
 | A client cannot connect, or a REST request returns `401` | Use the current endpoint and access key. Generate a fresh token for that endpoint and check its expiration; a token for your Azure resource cannot be reused locally. |
 | A group operation is denied | Check the client's token roles or granted connection permissions. Group membership alone does not grant permission to publish. |
