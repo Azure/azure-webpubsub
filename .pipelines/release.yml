@@ -1,9 +1,9 @@
-# Publish emulator CI packages automatically; release selected packages manually.
+# Build affected packages automatically; approve only public npm publication.
 
 name: package-release_$(Date:yyyyMMdd)$(Rev:.r)
 
 trigger:
-  batch: true
+  batch: false
   branches:
     include:
       - main
@@ -12,41 +12,34 @@ trigger:
       - tools/emulator/**
       - protocols/protobuf.webpubsub.azure.v1/**
       - microsoft.png
-      - .pipelines/release.yml
-      - .pipelines/scripts/Build-EmulatorPackage.ps1
+      - sdk/webpubsub-chat-client/**
+      - sdk/webpubsub-socketio-extension/**
+      - sdk/server-proxies/**
+      - tools/awps-tunnel/**
+      - .pipelines/**
+      - package.json
+      - yarn.lock
+      - package-lock.json
+      - .npmrc
+      - .yarnrc
+      - .yarnrc.yml
+      - .node-version
+      - .nvmrc
+      - .gitignore
+      - .gitattributes
+      - .prettierrc
+      - LICENSE
+      - global.json
+      - NuGet.Config
+      - nuget.config
+      - Directory.Build.props
+      - Directory.Build.targets
+      - Directory.Packages.props
 
 pr: none
 
-parameters:
-  - name: release_chat_client
-    displayName: 'Release @azure/web-pubsub-chat-client'
-    type: boolean
-    default: false
-  - name: release_socketio
-    displayName: 'Release @azure/web-pubsub-socket.io'
-    type: boolean
-    default: false
-  - name: release_tunnel
-    displayName: 'Release @azure/web-pubsub-tunnel-tool'
-    type: boolean
-    default: false
-  - name: build_emulator
-    displayName: 'Validate emulator preview package only (no publication)'
-    type: boolean
-    default: false
-  - name: release_emulator
-    displayName: 'Release Microsoft.Azure.WebPubSub.Emulator'
-    type: boolean
-    default: false
-  - name: publish_packages
-    displayName: 'Publish selected packages'
-    type: boolean
-    default: false
 variables:
   - group: 'npm-release'
-  # Set this non-secret entry name here before publishing to NuGet.org.
-  - name: NuGetApiKeySecretName
-    value: ''
   - name: CDP_DEFINITION_BUILD_COUNT
     value: $[counter('', 0)]
   - name: LinuxContainerImage
@@ -74,16 +67,16 @@ extends:
       policheck:
         break: true
     stages:
-      - stage: emulator_build
-        displayName: 'Build and validate emulator package'
+      - stage: release_check
+        displayName: 'Detect affected packages and check release versions'
+        isSkippable: false
         dependsOn: []
         condition: |
           and(
-            succeeded(),
+            not(canceled()),
             or(
-              ${{ eq(parameters.build_emulator, true) }},
-              ${{ eq(parameters.release_emulator, true) }},
               eq(variables['Build.SourceBranch'], 'refs/heads/main'),
+              startsWith(variables['Build.SourceBranch'], 'refs/heads/release/'),
               and(
                 eq(variables['Build.SourceBranch'], 'refs/heads/vicancy/vicancy-fix-emulator-publish-runtime'),
                 eq(variables['Build.Reason'], 'Manual')
@@ -91,384 +84,276 @@ extends:
             )
           )
         jobs:
+          - job: check
+            pool:
+              type: linux
+            variables:
+              ob_outputDirectory: '$(Build.ArtifactStagingDirectory)'
+              ob_sdl_codeSignValidation_enabled: false
+              ob_sdl_binskim_enabled: false
+            steps:
+              - checkout: self
+                path: s/azure-webpubsub
+                fetchDepth: 0
+                persistCredentials: false
+              - task: UseNode@1
+                displayName: 'Use Node 22.x'
+                inputs:
+                  version: '22.x'
+              - task: Bash@3
+                name: read
+                displayName: 'Compare with the last successful automatic stages'
+                inputs:
+                  targetType: inline
+                  workingDirectory: '$(Pipeline.Workspace)/s/azure-webpubsub'
+                  script: |
+                    set -euo pipefail
+                    node .pipelines/scripts/Get-ReleasePackages.mjs
+                env:
+                  SYSTEM_ACCESSTOKEN: $(System.AccessToken)
+
+      - stage: emulator_build
+        displayName: 'Build, sign, and validate formal and preview emulator packages'
+        isSkippable: false
+        dependsOn: release_check
+        condition: |
+          and(
+            not(canceled()),
+            eq(dependencies.release_check.result, 'Succeeded'),
+            eq(dependencies.release_check.outputs['check.read.emulator_needsRelease'], 'true')
+          )
+        jobs:
           - job: build
             pool:
               type: linux
             variables:
-              ${{ if parameters.release_emulator }}:
-                ob_outputDirectory: '$(Pipeline.Workspace)/s/azure-webpubsub/out/emulator'
-                ob_artifactBaseName: 'drop_emulator_release'
-              ${{ else }}:
-                ob_outputDirectory: '$(Build.ArtifactStagingDirectory)/emulator'
-                ob_artifactBaseName: 'drop_emulator'
+              ob_outputDirectory: '$(Pipeline.Workspace)/s/azure-webpubsub/out/emulator'
+              ob_artifactBaseName: 'drop_emulator'
               ob_sdl_codeSignValidation_enabled: false
               ob_sdl_binskim_enabled: false
             steps:
               - checkout: self
                 path: s/azure-webpubsub
                 persistCredentials: false
-              - ${{ if parameters.release_emulator }}:
-                  - task: PowerShell@2
-                    displayName: 'Check emulator release selection'
-                    inputs:
-                      pwsh: true
-                      targetType: inline
-                      script: |
-                        if ($env:BUILD_EMULATOR -eq 'true') {
-                          throw 'Select either emulator preview validation or emulator release, not both.'
-                        }
-                        if ($env:PUBLISH_PACKAGES -eq 'true') {
-                          if ($env:BUILD_SOURCEBRANCH -ne 'refs/heads/main' -and $env:BUILD_SOURCEBRANCH -notlike 'refs/heads/release/*') {
-                            throw 'Package publishing must run from main or a release/* branch.'
-                          }
-                          if ($env:NUGET_API_KEY_SECRET -cnotmatch '^[A-Za-z0-9-]{1,127}$') {
-                            throw 'Set NuGetApiKeySecretName in release.yml to a single Key Vault secret name (letters, digits, and hyphens only).'
-                          }
-                        }
-                    env:
-                      BUILD_EMULATOR: ${{ parameters.build_emulator }}
-                      PUBLISH_PACKAGES: ${{ parameters.publish_packages }}
-                      NUGET_API_KEY_SECRET: ${{ variables.NuGetApiKeySecretName }}
               - task: UseDotNet@2
                 displayName: 'Use emulator .NET SDK'
                 inputs:
                   useGlobalJson: true
                   workingDirectory: '$(Pipeline.Workspace)/s/azure-webpubsub/tools/emulator'
-              - ${{ if not(parameters.release_emulator) }}:
-                  - task: PowerShell@2
-                    name: package
-                    displayName: 'Build, test, pack, and smoke-test emulator preview'
-                    inputs:
-                      pwsh: true
-                      targetType: inline
-                      workingDirectory: '$(Pipeline.Workspace)/s/azure-webpubsub'
-                      script: |
-                        & ./.pipelines/scripts/Build-EmulatorPackage.ps1 `
-                          -OutputDirectory '$(ob_outputDirectory)' `
-                          -BuildId $env:BUILD_BUILDID
-              - ${{ if parameters.release_emulator }}:
-                  - task: PowerShell@2
-                    displayName: 'Build and test emulator release'
-                    inputs:
-                      pwsh: true
-                      targetType: inline
-                      workingDirectory: '$(Pipeline.Workspace)/s/azure-webpubsub'
-                      script: |
-                        & ./.pipelines/scripts/Build-EmulatorPackage.ps1 `
-                          -OutputDirectory '$(ob_outputDirectory)' `
-                          -BuildId $env:BUILD_BUILDID -ReleaseVersion -Phase Build
-                  - task: onebranch.pipeline.signing@1
-                    displayName: 'Sign emulator assembly for external distribution'
-                    inputs:
-                      command: sign
-                      signing_profile: external_distribution
-                      # Tool packing publishes the intermediate assembly, even with --no-build.
-                      files_to_sign: 'obj/Release/*/Microsoft.Azure.WebPubSub.Emulator.dll'
-                      search_root: '$(Pipeline.Workspace)/s/azure-webpubsub/tools/emulator/src/Microsoft.Azure.WebPubSub.Emulator'
-                  - task: PowerShell@2
-                    displayName: 'Pack signed emulator assembly'
-                    inputs:
-                      pwsh: true
-                      targetType: inline
-                      workingDirectory: '$(Pipeline.Workspace)/s/azure-webpubsub'
-                      script: |
-                        & ./.pipelines/scripts/Build-EmulatorPackage.ps1 `
-                          -OutputDirectory '$(ob_outputDirectory)' `
-                          -BuildId $env:BUILD_BUILDID -ReleaseVersion -Phase Pack
-                  - task: onebranch.pipeline.signing@1
-                    displayName: 'Sign emulator NuGet package'
-                    inputs:
-                      command: sign
-                      signing_profile: external_distribution
-                      cp_code: CP-401405
-                      files_to_sign: '*.nupkg'
-                      search_root: '$(ob_outputDirectory)'
-                  - task: PowerShell@2
-                    displayName: 'Verify signatures and smoke-test signed emulator package'
-                    inputs:
-                      pwsh: true
-                      targetType: inline
-                      workingDirectory: '$(Pipeline.Workspace)/s/azure-webpubsub'
-                      script: |
-                        & ./.pipelines/scripts/Build-EmulatorPackage.ps1 `
-                          -OutputDirectory '$(ob_outputDirectory)' `
-                          -BuildId $env:BUILD_BUILDID -ReleaseVersion -Phase Validate -RequireSignature
+              - task: PowerShell@2
+                displayName: 'Build and test emulator once at the release-note version'
+                inputs:
+                  pwsh: true
+                  targetType: inline
+                  workingDirectory: '$(Pipeline.Workspace)/s/azure-webpubsub'
+                  script: |
+                    & ./.pipelines/scripts/Build-EmulatorPackage.ps1 `
+                      -OutputDirectory '$(ob_outputDirectory)/release' `
+                      -BuildId $env:BUILD_BUILDID -ReleaseVersion -Phase Build
+              - task: onebranch.pipeline.signing@1
+                displayName: 'Sign emulator assembly for both packages'
+                inputs:
+                  command: sign
+                  signing_profile: external_distribution
+                  # Tool packing consumes obj, not bin, even with --no-build.
+                  files_to_sign: 'obj/Release/*/Microsoft.Azure.WebPubSub.Emulator.dll'
+                  search_root: '$(Pipeline.Workspace)/s/azure-webpubsub/tools/emulator/src/Microsoft.Azure.WebPubSub.Emulator'
+              - task: PowerShell@2
+                displayName: 'Pack formal and preview packages without rebuilding'
+                inputs:
+                  pwsh: true
+                  targetType: inline
+                  workingDirectory: '$(Pipeline.Workspace)/s/azure-webpubsub'
+                  script: |
+                    & ./.pipelines/scripts/Build-EmulatorPackage.ps1 `
+                      -OutputDirectory '$(ob_outputDirectory)/release' `
+                      -BuildId $env:BUILD_BUILDID -ReleaseVersion -Phase Pack
+                    & ./.pipelines/scripts/Build-EmulatorPackage.ps1 `
+                      -OutputDirectory '$(ob_outputDirectory)/preview' `
+                      -BuildId $env:BUILD_BUILDID -Phase Pack
+              - task: onebranch.pipeline.signing@1
+                displayName: 'Sign formal NuGet package for download (no publication)'
+                inputs:
+                  command: sign
+                  signing_profile: external_distribution
+                  cp_code: CP-401405
+                  files_to_sign: '*.nupkg'
+                  search_root: '$(ob_outputDirectory)/release'
+              - task: PowerShell@2
+                displayName: 'Verify formal signature; install and smoke-test both packages'
+                inputs:
+                  pwsh: true
+                  targetType: inline
+                  workingDirectory: '$(Pipeline.Workspace)/s/azure-webpubsub'
+                  script: |
+                    & ./.pipelines/scripts/Build-EmulatorPackage.ps1 `
+                      -OutputDirectory '$(ob_outputDirectory)/release' `
+                      -BuildId $env:BUILD_BUILDID -ReleaseVersion -Phase Validate -RequireSignature
+                    & ./.pipelines/scripts/Build-EmulatorPackage.ps1 `
+                      -OutputDirectory '$(ob_outputDirectory)/preview' `
+                      -BuildId $env:BUILD_BUILDID -Phase Validate
 
-      - ${{ if and(or(eq(variables['Build.SourceBranch'], 'refs/heads/main'), and(eq(variables['Build.SourceBranch'], 'refs/heads/vicancy/vicancy-fix-emulator-publish-runtime'), eq(variables['Build.Reason'], 'Manual'))), not(parameters.build_emulator), not(parameters.release_emulator)) }}:
-          - stage: emulator_myget
-            displayName: 'Publish emulator CI package to MyGet'
-            dependsOn: emulator_build
-            condition: succeeded()
+      - stage: emulator_myget
+        displayName: 'Publish only the emulator preview to MyGet'
+        isSkippable: false
+        dependsOn:
+          - release_check
+          - emulator_build
+        condition: |
+          and(
+            not(canceled()),
+            eq(dependencies.release_check.result, 'Succeeded'),
+            eq(dependencies.emulator_build.result, 'Succeeded'),
+            eq(dependencies.release_check.outputs['check.read.emulator_needsRelease'], 'true')
+          )
+        variables:
+          ob_release_environment: Test
+        jobs:
+          - job: publish
+            pool:
+              type: release
+              os: windows
             variables:
-              ob_release_environment: Test
-            jobs:
-              - job: publish
-                pool:
-                  type: release
-                  os: windows
-                variables:
-                  ob_outputDirectory: '$(Build.ArtifactStagingDirectory)'
-                  ob_sdl_codeSignValidation_enabled: false
-                  ob_sdl_binskim_enabled: false
-                templateContext:
-                  inputs:
-                    - input: pipelineArtifact
-                      artifactName: drop_emulator
-                      targetPath: '$(Pipeline.Workspace)/drop_emulator'
-                steps:
-                  - task: UseDotNet@2
-                    displayName: 'Use .NET 8'
-                    inputs:
-                      version: '8.x'
-                  # The OneBranch NuGetCommand wrapper forces DotNet, which cannot use this API-key connection.
-                  - task: 1ES.PublishNuGet@1
-                    displayName: 'Push validated emulator package to MyGet'
-                    inputs:
-                      useDotNetTask: false
-                      packageParentPath: '$(Pipeline.Workspace)/drop_emulator'
-                      packagesToPush: '$(Pipeline.Workspace)/drop_emulator/*.nupkg'
-                      nuGetFeedType: external
-                      publishFeedCredentials: azure-webpubsub-dev
+              ob_outputDirectory: '$(Build.ArtifactStagingDirectory)'
+              ob_sdl_codeSignValidation_enabled: false
+              ob_sdl_binskim_enabled: false
+            templateContext:
+              inputs:
+                - input: pipelineArtifact
+                  artifactName: drop_emulator
+                  targetPath: '$(Pipeline.Workspace)/drop_emulator'
+            steps:
+              - task: UseDotNet@2
+                displayName: 'Use .NET 8 for Windows publishing tasks'
+                inputs:
+                  version: '8.x'
+              # The OneBranch NuGetCommand wrapper forces DotNet, which cannot use this API-key connection.
+              - task: 1ES.PublishNuGet@1
+                displayName: 'Push validated emulator preview to MyGet'
+                inputs:
+                  useDotNetTask: false
+                  packageParentPath: '$(Pipeline.Workspace)/drop_emulator/preview'
+                  packagesToPush: '$(Pipeline.Workspace)/drop_emulator/preview/*.nupkg'
+                  nuGetFeedType: external
+                  publishFeedCredentials: azure-webpubsub-dev
 
-      - ${{ if and(parameters.release_emulator, parameters.publish_packages) }}:
-          - stage: Prod_emulator_publish
-            displayName: 'Publish signed emulator package to NuGet.org'
-            dependsOn: emulator_build
-            condition: succeeded()
-            variables:
-              ob_release_environment: Production
-            jobs:
-              - job: publish
-                pool:
-                  type: release
-                templateContext:
-                  inputs:
-                    - input: pipelineArtifact
-                      artifactName: drop_emulator_release
-                      targetPath: '$(Pipeline.Workspace)/drop_emulator_release'
-                steps:
-                  - task: UseDotNet@2
-                    displayName: 'Use .NET 10'
-                    inputs:
-                      version: '10.x'
-                  - task: AzureKeyVault@2
-                    displayName: 'Read emulator NuGet.org API key'
-                    inputs:
-                      azureSubscription: $(PackagePublishingAzureSubscription)
-                      KeyVaultName: $(PackagePublishingKeyVaultName)
-                      SecretsFilter: ${{ variables.NuGetApiKeySecretName }}
-                      RunAsPreJob: false
-                  - task: PowerShell@2
-                    displayName: 'Publish signed emulator package to NuGet.org'
-                    inputs:
-                      pwsh: true
-                      targetType: inline
-                      script: |
-                        $ErrorActionPreference = 'Stop'
-                        & dotnet nuget push $env:PACKAGE_PATH --api-key $env:NUGET_API_KEY --source https://api.nuget.org/v3/index.json
-                        if ($LASTEXITCODE -ne 0) { throw 'NuGet.org publication failed.' }
-                    env:
-                      PACKAGE_PATH: '$(Pipeline.Workspace)/drop_emulator_release/*.nupkg'
-                      NUGET_API_KEY: $(${{ variables.NuGetApiKeySecretName }})
-
-      - ${{ if or(parameters.release_chat_client, parameters.release_socketio, parameters.release_tunnel) }}:
-          - stage: release_check
-            displayName: 'Check selected package versions'
-            dependsOn: []
-            jobs:
-              - job: check
-                displayName: 'Read package versions and validate changelogs'
-                pool:
-                  type: linux
-                variables:
-                  ob_outputDirectory: '$(Build.ArtifactStagingDirectory)'
-                  ob_sdl_codeSignValidation_enabled: false
-                  ob_sdl_binskim_enabled: false
-                steps:
-                  - checkout: self
-                    path: s/azure-webpubsub
-                    fetchDepth: 0
-                    fetchTags: true
-                    persistCredentials: false
-                  - task: UseNode@1
-                    displayName: 'Use Node 22.x'
-                    inputs:
-                      version: '22.x'
-                  - task: Bash@3
-                    displayName: 'Create Azure Artifacts npm configuration'
-                    inputs:
-                      targetType: inline
-                      workingDirectory: '$(Pipeline.Workspace)/s/azure-webpubsub'
-                      script: |
-                        set -euo pipefail
-                        feed_registry='$(NPM_FEED_REGISTRY)'
-                        if [[ -z "$feed_registry" || "$feed_registry" == '$('* ]]; then
-                          echo 'ERROR: NPM_FEED_REGISTRY is not configured.'
-                          exit 1
-                        fi
-                        printf 'registry=%s\nalways-auth=true\n' "$feed_registry" > .npmrc
-                  - task: npmAuthenticate@0
-                    displayName: 'Authenticate to npm feed'
-                    inputs:
-                      workingFile: '$(Pipeline.Workspace)/s/azure-webpubsub/.npmrc'
-                  - task: Bash@3
-                    name: read
-                    displayName: 'Check selected packages'
-                    inputs:
-                      targetType: inline
-                      workingDirectory: '$(Pipeline.Workspace)/s/azure-webpubsub'
-                      script: |
-                        set -euo pipefail
-
-                        if [[ "${PUBLISH_PACKAGES,,}" == 'true' &&
-                              "$BUILD_SOURCEBRANCH" != 'refs/heads/main' &&
-                              "$BUILD_SOURCEBRANCH" != refs/heads/release/* ]]; then
-                          echo "ERROR: package publishing must run from main or a release/* branch, not $BUILD_SOURCEBRANCH"
-                          exit 1
-                        fi
-
-                        packages=()
-                        if [[ "${RELEASE_CHAT_CLIENT,,}" == 'true' ]]; then
-                          packages+=('chat_client|web-pubsub-chat-client|sdk/webpubsub-chat-client')
-                        fi
-                        if [[ "${RELEASE_SOCKETIO,,}" == 'true' ]]; then
-                          packages+=('socketio|webpubsub-socketio-extension|sdk/webpubsub-socketio-extension')
-                        fi
-                        if [[ "${RELEASE_TUNNEL,,}" == 'true' ]]; then
-                          packages+=('tunnel|awps-tunnel|tools/awps-tunnel/server')
-                        fi
-
-                        for package in "${packages[@]}"; do
-                          IFS='|' read -r package_key package_name package_folder <<< "$package"
-                          if [[ ! -f "$package_folder/package.json" || ! -f "$package_folder/CHANGELOG.md" ]]; then
-                            echo "ERROR: package files not found in $package_folder"
-                            exit 1
-                          fi
-                          npm_package_name=$(node -p "require('./$package_folder/package.json').name")
-                          current_version=$(node -p "require('./$package_folder/package.json').version")
-                          if [[ ! "$current_version" =~ ^[0-9]+\.[0-9]+\.[0-9]+(-beta\.[0-9]+)?$ ]]; then
-                            echo "ERROR: unsupported release version for $package_name: $current_version"
-                            exit 1
-                          fi
-
-                          echo "##vso[task.setvariable variable=${package_key}_releaseVersion;isOutput=true]$current_version"
-                          if [[ "$current_version" == *-beta.* ]]; then
-                            echo "##vso[task.setvariable variable=${package_key}_productState;isOutput=true]Beta"
-                          else
-                            echo "##vso[task.setvariable variable=${package_key}_productState;isOutput=true]Current"
-                          fi
-
-                          changelog_pattern="^##[[:space:]]+\[?${current_version}\]?[[:space:]]+-[[:space:]]+[0-9]{4}-[0-9]{1,2}-[0-9]{1,2}"
-                          if [[ "${PUBLISH_PACKAGES,,}" == 'true' ]]; then
-                            tag="release/${package_name}/v${current_version}"
-                            if git rev-parse --verify "refs/tags/${tag}" >/dev/null 2>&1; then
-                              echo "ERROR: release tag already exists: $tag"
-                              exit 1
-                            fi
-
-                            set +e
-                            registry_output=$(npm view "${npm_package_name}@${current_version}" version --json 2>&1)
-                            registry_status=$?
-                            set -e
-                            if [[ $registry_status -eq 0 ]]; then
-                              echo "ERROR: npm package version already exists: ${npm_package_name}@${current_version}"
-                              exit 1
-                            elif grep -Eq 'E404|404 Not Found|is not in this registry' <<< "$registry_output"; then
-                              echo "Package version is available: ${npm_package_name}@${current_version}"
-                            else
-                              echo "$registry_output"
-                              echo "ERROR: unable to query ${npm_package_name}@${current_version}"
-                              exit $registry_status
-                            fi
-                          else
-                            echo "Validation mode: skipping release tag and npm availability checks."
-                          fi
-
-                          if grep -Eq "$changelog_pattern" "$package_folder/CHANGELOG.md"; then
-                            needs_release=true
-                          else
-                            needs_release=false
-                          fi
-                          echo "##vso[task.setvariable variable=${package_key}_needsRelease;isOutput=true]$needs_release"
-                          echo "$package_name $current_version: needsRelease=$needs_release"
-                        done
-                    env:
-                      RELEASE_CHAT_CLIENT: ${{ parameters.release_chat_client }}
-                      RELEASE_SOCKETIO: ${{ parameters.release_socketio }}
-                      RELEASE_TUNNEL: ${{ parameters.release_tunnel }}
-                      PUBLISH_PACKAGES: ${{ parameters.publish_packages }}
-                      BUILD_SOURCEBRANCH: $(Build.SourceBranch)
-      - ${{ if parameters.release_chat_client }}:
-          - template: templates/stages/release-package.yml
-            parameters:
-              package_key: chat_client
-              package_name: web-pubsub-chat-client
-              npm_package_name: '@azure/web-pubsub-chat-client'
-              package_folder: sdk/webpubsub-chat-client
-              publish_package: ${{ parameters.publish_packages }}
-              pack_steps:
-                - task: Bash@3
-                  displayName: 'Build and pack chat client'
-                  inputs:
-                    targetType: inline
-                    workingDirectory: '$(Pipeline.Workspace)/s/azure-webpubsub'
-                    script: |
-                      set -euo pipefail
-                      pushd sdk/webpubsub-chat-client
-                      yarn
-                      npm run pack:publish
-                      popd
-      - ${{ if parameters.release_socketio }}:
-          - template: templates/stages/release-package.yml
-            parameters:
-              package_key: socketio
-              package_name: webpubsub-socketio-extension
-              npm_package_name: '@azure/web-pubsub-socket.io'
-              package_folder: sdk/webpubsub-socketio-extension
-              publish_package: ${{ parameters.publish_packages }}
-              pack_steps:
-                - task: Bash@3
-                  displayName: 'Build and pack socketio extension'
-                  inputs:
-                    targetType: inline
-                    workingDirectory: '$(Pipeline.Workspace)/s/azure-webpubsub'
-                    script: |
-                      set -euo pipefail
-                      pushd sdk/server-proxies
-                      yarn
-                      popd
-                      pushd tools/awps-tunnel/client
-                      yarn
-                      popd
-                      pushd sdk/webpubsub-socketio-extension
-                      yarn
-                      yarn build
-                      yarn pack
-                      popd
-      - ${{ if parameters.release_tunnel }}:
-          - template: templates/stages/release-package.yml
-            parameters:
-              package_key: tunnel
-              package_name: awps-tunnel
-              npm_package_name: '@azure/web-pubsub-tunnel-tool'
-              package_folder: tools/awps-tunnel/server
-              publish_package: ${{ parameters.publish_packages }}
-              pack_steps:
-                - task: Bash@3
-                  displayName: 'Build and pack awps-tunnel'
-                  inputs:
-                    targetType: inline
-                    workingDirectory: '$(Pipeline.Workspace)/s/azure-webpubsub'
-                    script: |
-                      set -euo pipefail
-                      pushd sdk/server-proxies
-                      yarn
-                      popd
-                      pushd tools/awps-tunnel/client
-                      yarn
-                      popd
-                      pushd tools/awps-tunnel/server
-                      yarn
-                      yarn build
-                      yarn pack
-                      popd
+      - stage: manual_release
+        displayName: 'Approve public npm publication'
+        isSkippable: false
+        dependsOn:
+          - release_check
+          - chat_client_build
+          - socketio_build
+          - tunnel_build
+        condition: |
+          and(
+            not(canceled()),
+            eq(dependencies.release_check.result, 'Succeeded'),
+            or(
+              eq(variables['Build.SourceBranch'], 'refs/heads/main'),
+              startsWith(variables['Build.SourceBranch'], 'refs/heads/release/')
+            ),
+            or(
+              eq(dependencies.release_check.outputs['check.read.chat_client_needsRelease'], 'true'),
+              eq(dependencies.release_check.outputs['check.read.socketio_needsRelease'], 'true'),
+              eq(dependencies.release_check.outputs['check.read.tunnel_needsRelease'], 'true')
+            ),
+            or(
+              and(eq(dependencies.release_check.outputs['check.read.chat_client_needsRelease'], 'false'), in(dependencies.chat_client_build.result, 'Succeeded', 'Skipped')),
+              and(eq(dependencies.release_check.outputs['check.read.chat_client_needsRelease'], 'true'), eq(dependencies.chat_client_build.result, 'Succeeded'))
+            ),
+            or(
+              and(eq(dependencies.release_check.outputs['check.read.socketio_needsRelease'], 'false'), in(dependencies.socketio_build.result, 'Succeeded', 'Skipped')),
+              and(eq(dependencies.release_check.outputs['check.read.socketio_needsRelease'], 'true'), eq(dependencies.socketio_build.result, 'Succeeded'))
+            ),
+            or(
+              and(eq(dependencies.release_check.outputs['check.read.tunnel_needsRelease'], 'false'), in(dependencies.tunnel_build.result, 'Succeeded', 'Skipped')),
+              and(eq(dependencies.release_check.outputs['check.read.tunnel_needsRelease'], 'true'), eq(dependencies.tunnel_build.result, 'Succeeded'))
+            )
+          )
+        jobs:
+          - job: approve
+            displayName: 'Review affected npm packages before public publication'
+            pool:
+              type: agentless
+            timeoutInMinutes: 1500
+            steps:
+              - task: ManualValidation@1
+                timeoutInMinutes: 1440
+                inputs:
+                  notifyUsers: ''
+                  allowApproversToApproveTheirOwnRuns: true
+                  instructions: 'Review the affected npm package versions, build results, and tarballs. Approve to publish those npm packages through ESRP, create release tags, and open next-beta PRs. Emulator MyGet publication and the signed formal NuGet download do not require this approval.'
+                  onTimeout: reject
+      - template: templates/stages/release-package.yml
+        parameters:
+          package_key: chat_client
+          package_name: web-pubsub-chat-client
+          npm_package_name: '@azure/web-pubsub-chat-client'
+          package_folder: sdk/webpubsub-chat-client
+          pack_steps:
+            - task: Bash@3
+              displayName: 'Build, test, and pack chat client'
+              inputs:
+                targetType: inline
+                workingDirectory: '$(Pipeline.Workspace)/s/azure-webpubsub'
+                script: |
+                  set -euo pipefail
+                  pushd sdk/webpubsub-chat-client
+                  yarn --frozen-lockfile
+                  npm run pack:publish
+                  yarn test:unit
+                  popd
+      - template: templates/stages/release-package.yml
+        parameters:
+          package_key: socketio
+          package_name: webpubsub-socketio-extension
+          npm_package_name: '@azure/web-pubsub-socket.io'
+          package_folder: sdk/webpubsub-socketio-extension
+          pack_steps:
+            - task: Bash@3
+              displayName: 'Build, lint, test, and pack Socket.IO extension'
+              inputs:
+                targetType: inline
+                workingDirectory: '$(Pipeline.Workspace)/s/azure-webpubsub'
+                script: |
+                  set -euo pipefail
+                  pushd sdk/server-proxies
+                  yarn --frozen-lockfile
+                  popd
+                  pushd tools/awps-tunnel/client
+                  yarn --frozen-lockfile
+                  popd
+                  pushd sdk/webpubsub-socketio-extension
+                  yarn --frozen-lockfile
+                  yarn build
+                  yarn lint
+                  yarn test:unit
+                  yarn pack
+                  popd
+      - template: templates/stages/release-package.yml
+        parameters:
+          package_key: tunnel
+          package_name: awps-tunnel
+          npm_package_name: '@azure/web-pubsub-tunnel-tool'
+          package_folder: tools/awps-tunnel/server
+          pack_steps:
+            - task: Bash@3
+              displayName: 'Build, test, and pack tunnel tool'
+              inputs:
+                targetType: inline
+                workingDirectory: '$(Pipeline.Workspace)/s/azure-webpubsub'
+                script: |
+                  set -euo pipefail
+                  pushd sdk/server-proxies
+                  yarn --frozen-lockfile
+                  popd
+                  pushd tools/awps-tunnel/client
+                  yarn --frozen-lockfile
+                  popd
+                  pushd tools/awps-tunnel/server
+                  yarn --frozen-lockfile
+                  yarn build
+                  yarn test:unit --runInBand
+                  yarn pack
+                  popd

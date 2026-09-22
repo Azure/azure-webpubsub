@@ -17,10 +17,6 @@ parameters:
   - name: pack_steps
     displayName: 'Steps that build and pack the package. Must run from the repo root and produce a single *.tgz inside package_folder.'
     type: stepList
-  - name: publish_package
-    displayName: 'Whether to execute ESRP publishing and post-publish GitHub updates.'
-    type: boolean
-    default: true
   - name: esrp_service_connection
     displayName: 'Azure Resource Manager service connection used by ESRP Release.'
     type: string
@@ -42,16 +38,18 @@ stages:
   - stage: ${{ format('{0}_build', parameters.package_key) }}
     displayName: 'Build ${{ parameters.package_name }}'
     dependsOn: release_check
+    isSkippable: false
     condition: |
       and(
-        succeeded(),
+        not(canceled()),
+        eq(dependencies.release_check.result, 'Succeeded'),
         eq(dependencies.release_check.outputs['check.read.${{ parameters.package_key }}_needsRelease'], 'true')
       )
     variables:
       releaseVersion: $[ stageDependencies.release_check.check.outputs['read.${{ parameters.package_key }}_releaseVersion'] ]
     jobs:
       - job: build
-        displayName: 'Build + pack + publish'
+        displayName: 'Build, test, and pack npm package'
         pool:
           type: linux
         variables:
@@ -153,10 +151,18 @@ stages:
     dependsOn:
       - release_check
       - ${{ format('{0}_build', parameters.package_key) }}
+      - manual_release
     condition: |
       and(
-        succeeded(),
-        eq(dependencies.release_check.outputs['check.read.${{ parameters.package_key }}_needsRelease'], 'true')
+        not(canceled()),
+        eq(dependencies.release_check.result, 'Succeeded'),
+        eq(dependencies.manual_release.result, 'Succeeded'),
+        eq(dependencies.${{ format('{0}_build', parameters.package_key) }}.result, 'Succeeded'),
+        eq(dependencies.release_check.outputs['check.read.${{ parameters.package_key }}_needsRelease'], 'true'),
+        or(
+          eq(variables['Build.SourceBranch'], 'refs/heads/main'),
+          startsWith(variables['Build.SourceBranch'], 'refs/heads/release/')
+        )
       )
     variables:
       releaseVersion: $[ stageDependencies.release_check.check.outputs['read.${{ parameters.package_key }}_releaseVersion'] ]
@@ -167,6 +173,7 @@ stages:
         displayName: 'Publish npm package through ESRP'
         pool:
           type: release
+          os: windows
         variables:
           ob_outputDirectory: '$(Build.ArtifactStagingDirectory)'
           ob_sdl_codeSignValidation_enabled: false
@@ -177,9 +184,31 @@ stages:
               artifactName: 'drop_${{ parameters.package_name }}'
               targetPath: '$(Pipeline.Workspace)/esrp-release'
         steps:
+          - checkout: self
+            path: s/azure-webpubsub
+            fetchDepth: 1
+            persistCredentials: true
+          - task: UseNode@1
+            displayName: 'Use Node ${{ parameters.node_version }}'
+            inputs:
+              version: ${{ parameters.node_version }}
+          - task: PowerShell@2
+            displayName: 'Check public npm version and GitHub tag availability'
+            inputs:
+              pwsh: true
+              targetType: inline
+              workingDirectory: '$(Pipeline.Workspace)/s/azure-webpubsub'
+              script: |
+                $ErrorActionPreference = 'Stop'
+                & node .pipelines/scripts/Npm-Release.mjs check `
+                  '${{ parameters.package_folder }}' `
+                  '${{ parameters.npm_package_name }}' `
+                  '${{ parameters.package_name }}' `
+                  '$(releaseVersion)' `
+                  '${{ parameters.github_repo }}'
+                if ($LASTEXITCODE -ne 0) { throw 'Public package availability checks failed.' }
           - task: EsrpRelease@11
             displayName: 'Publish npm package through ESRP'
-            condition: and(succeeded(), ${{ eq(parameters.publish_package, true) }})
             inputs:
               ConnectedServiceName: ${{ parameters.esrp_service_connection }}
               ClientId: '$(ESRP_CLIENT_ID)'
@@ -204,9 +233,10 @@ stages:
       - ${{ format('Prod_{0}_publish', parameters.package_key) }}
     condition: |
       and(
-        ${{ eq(parameters.publish_package, true) }},
+        not(canceled()),
+        eq(dependencies.release_check.result, 'Succeeded'),
         eq(dependencies.release_check.outputs['check.read.${{ parameters.package_key }}_needsRelease'], 'true'),
-        in(dependencies.${{ format('Prod_{0}_publish', parameters.package_key) }}.result, 'Succeeded')
+        eq(dependencies.${{ format('Prod_{0}_publish', parameters.package_key) }}.result, 'Succeeded')
       )
     variables:
       releaseVersion: $[ stageDependencies.release_check.check.outputs['read.${{ parameters.package_key }}_releaseVersion'] ]
@@ -252,10 +282,11 @@ stages:
       - ${{ format('{0}_post_deploy_tag', parameters.package_key) }}
     condition: |
       and(
-        ${{ eq(parameters.publish_package, true) }},
+        not(canceled()),
+        eq(dependencies.release_check.result, 'Succeeded'),
         eq(dependencies.release_check.outputs['check.read.${{ parameters.package_key }}_needsRelease'], 'true'),
-        in(dependencies.${{ format('Prod_{0}_publish', parameters.package_key) }}.result, 'Succeeded'),
-        in(dependencies.${{ format('{0}_post_deploy_tag', parameters.package_key) }}.result, 'Succeeded')
+        eq(dependencies.${{ format('Prod_{0}_publish', parameters.package_key) }}.result, 'Succeeded'),
+        eq(dependencies.${{ format('{0}_post_deploy_tag', parameters.package_key) }}.result, 'Succeeded')
       )
     variables:
       releaseVersion: $[ stageDependencies.release_check.check.outputs['read.${{ parameters.package_key }}_releaseVersion'] ]
@@ -278,7 +309,7 @@ stages:
             inputs:
               version: ${{ parameters.node_version }}
           - task: Bash@3
-            displayName: 'Bump package.json and open GitHub PR'
+            displayName: 'Bump package.json and changelog, then open GitHub PR'
             inputs:
               targetType: inline
               workingDirectory: '$(Pipeline.Workspace)/s/azure-webpubsub'
@@ -289,36 +320,17 @@ stages:
                 PACKAGE_NAME='${{ parameters.package_name }}'
 
                 package_json="$PACKAGE_FOLDER/package.json"
-                current_version=$(node -p "require('./$package_json').version")
-
-                new_version=$(CURRENT_VERSION="$current_version" node -e "
-                  const version = process.env.CURRENT_VERSION;
-                  const beta = version.match(/^(\\d+\\.\\d+\\.\\d+)-beta\\.(\\d+)$/);
-                  if (beta) {
-                    console.log(beta[1] + '-beta.' + (Number(beta[2]) + 1));
-                  } else {
-                    const stable = version.match(/^(\\d+)\\.(\\d+)\\.(\\d+)$/);
-                    if (!stable) throw new Error('Unsupported version: ' + version);
-                    console.log(stable[1] + '.' + stable[2] + '.' + (Number(stable[3]) + 1) + '-beta.1');
-                  }
-                ")
+                current_version='$(releaseVersion)'
+                new_version=$(node .pipelines/scripts/Npm-Release.mjs bump "$PACKAGE_FOLDER" "$current_version")
                 branch="auto/upv-${PACKAGE_NAME}-${new_version}"
                 echo "Current: $current_version  ->  Next: $new_version"
                 echo "Branch:  $branch"
 
-                PACKAGE_JSON="$package_json" NEW_VERSION="$new_version" node -e "
-                  const fs = require('fs');
-                  const path = process.env.PACKAGE_JSON;
-                  const pkg = JSON.parse(fs.readFileSync(path, 'utf8'));
-                  pkg.version = process.env.NEW_VERSION;
-                  fs.writeFileSync(path, JSON.stringify(pkg, null, 2) + '\n');
-                "
-
                 git config --global user.name 'azure-webpubsub-release-bot'
                 git config --global user.email 'azure-webpubsub-release-bot@users.noreply.github.com'
                 git checkout -b "$branch"
-                git add "$package_json"
-                git commit -m "Update ${PACKAGE_NAME} package.json to next beta version ${new_version}"
+                git add "$package_json" "$PACKAGE_FOLDER/CHANGELOG.md"
+                git commit -m "Update ${PACKAGE_NAME} to next beta version ${new_version}"
                 git push origin "$branch"
 
                 auth_header=$(git config --get-urlmatch http.extraheader "https://github.com/${{ parameters.github_repo }}" || true)
@@ -331,7 +343,7 @@ stages:
                   title: 'Update package.json to next beta version ' + process.env.NEW_VERSION,
                   head: process.env.BRANCH,
                   base: 'main',
-                  body: 'This PR updates ' + process.env.PACKAGE_NAME + ' package.json to the next beta version.'
+                  body: 'This PR updates ' + process.env.PACKAGE_NAME + ' package.json and CHANGELOG.md to the next beta version.'
                 }))")
 
                 curl -fsSL -X POST \
