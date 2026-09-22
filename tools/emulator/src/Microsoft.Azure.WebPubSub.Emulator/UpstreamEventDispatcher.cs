@@ -11,7 +11,8 @@ using Microsoft.Extensions.Options;
 namespace Microsoft.Azure.WebPubSub.Emulator;
 
 internal sealed class UpstreamEventDispatcher(
-    IOptions<EmulatorOptions> options, HttpUpstreamTrigger trigger, EventHubNotifier notifier, ILogger<UpstreamEventDispatcher> logger)
+    IOptions<EmulatorOptions> options, EventHandlerConfiguration configuration,
+    HttpUpstreamTrigger trigger, EventHubNotifier notifier, ILogger<UpstreamEventDispatcher> logger)
 {
     private const string MetadataHeaderPrefix = "x-webpubsub-metadata-";
 
@@ -20,9 +21,8 @@ internal sealed class UpstreamEventDispatcher(
     {
         var id = connection.GetNextEventId();
         var hasListener = await NotifyListenersAsync(connection, message.EventName, id, message.Data, userEvent: true);
-        var handler = options.Value.Hubs.TryGetValue(connection.Hub, out var settings)
-            ? settings.EventHandlers.FirstOrDefault(item => item.MatchesUserEvent(message.EventName))
-            : null;
+        var handler = configuration.GetHandlers(connection.Hub)
+            .FirstOrDefault(item => item.MatchesUserEvent(message.EventName));
         if (handler is null)
         {
             if (hasListener) return new();
@@ -148,9 +148,7 @@ internal sealed class UpstreamEventDispatcher(
     }
 
     private EventHandlerOptions? GetHandler(string hub, string eventName) =>
-        options.Value.Hubs.TryGetValue(hub, out var settings)
-            ? settings.EventHandlers.FirstOrDefault(item => item.SystemEvents.Contains(eventName, StringComparer.OrdinalIgnoreCase))
-            : null;
+        configuration.GetHandlers(hub).FirstOrDefault(item => item.SystemEvents.Contains(eventName, StringComparer.OrdinalIgnoreCase));
 
     private async Task<HttpResponseMessage> SendAsync(
         EventHandlerOptions handler, UpstreamConnectionContext connection, string eventName, int id,

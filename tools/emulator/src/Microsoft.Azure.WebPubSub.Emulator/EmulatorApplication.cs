@@ -31,22 +31,24 @@ internal static class EmulatorApplication
                 options => EmulatorOptions.IsValidAccessKey(options.AccessKey),
                 "WebPubSub:AccessKey must be at least 32 UTF-8 bytes and cannot contain " +
                     "leading or trailing whitespace, semicolons, or control characters.")
-            .Validate(options => options.Hubs.Values.All(hub => hub.EventHandlers.All(handler =>
+            .Validate(options => options.Hubs?.Values.All(hub => hub?.EventHandlers?.All(handler =>
+                handler?.SystemEvents is not null &&
                 EventHandlerUrlTemplate.TryResolve(handler.UrlTemplate, "hub", "event", out _) &&
                 handler.SystemEvents.All(name =>
                     string.Equals(name, "connect", StringComparison.OrdinalIgnoreCase) ||
                     string.Equals(name, "connected", StringComparison.OrdinalIgnoreCase) ||
-                    string.Equals(name, "disconnected", StringComparison.OrdinalIgnoreCase)))),
+                    string.Equals(name, "disconnected", StringComparison.OrdinalIgnoreCase))) == true) == true,
                 "Event handlers require an HTTP(S) URL without Key Vault references; supported system events are connect/connected/disconnected.")
-            .Validate(options => options.Hubs.Values.All(hub => hub.EventHandlers.All(handler =>
-                handler.EventPattern?.Split(',').All(pattern =>
-                    pattern.Trim() == "*" || pattern.IndexOfAny(['*', '?', '\\']) < 0) != false)),
+            .Validate(options => options.Hubs?.Values.All(hub => hub?.EventHandlers?.All(handler =>
+                handler is not null && (handler.EventPattern?.Split(',').All(pattern =>
+                    pattern.Trim() == "*" || pattern.IndexOfAny(['*', '?', '\\']) < 0) != false)) == true) == true,
                 "EventPattern must contain a single event name, comma-separated event names, or a standalone *. " +
                     "Other wildcard and escape syntax is not supported.")
-            .Validate(options => options.Hubs.Values.All(hub => hub.EventListeners.All(listener =>
-                listener.EventHubEndpoint.IsValid())),
-                "Event listeners require an EventHubName and a namespace, or a local Event Hubs emulator connection string (not both).")
-            .ValidateOnStart();
+            .Validate(options => options.Hubs?.Values.All(hub => hub?.EventListeners?.All(listener =>
+                listener?.EventHubEndpoint?.IsValid() == true) == true) == true,
+                "Event listeners require an EventHubName and a namespace, or a local Event Hubs emulator connection string (not both).");
+        builder.Services.AddSingleton<EventHandlerConfiguration>();
+        builder.Services.AddHostedService(services => services.GetRequiredService<EventHandlerConfiguration>());
         builder.Services.AddSingleton<TokenCredential>(_ => new DefaultAzureCredential());
         builder.Services.AddSingleton<Func<EventHubEndpointOptions, EventHubProducerClient>>(services => endpoint =>
             endpoint.ConnectionString is { } local
