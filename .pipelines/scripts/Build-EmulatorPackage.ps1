@@ -1,7 +1,10 @@
 [CmdletBinding()]
 param(
     [Parameter(Mandatory)][string] $OutputDirectory,
-    [Parameter(Mandatory)][ValidatePattern('^[1-9]\d*$')][string] $BuildId
+    [Parameter(Mandatory)][ValidatePattern('^[1-9]\d*$')][string] $BuildId,
+    [switch] $ReleaseVersion,
+    [ValidateSet('All', 'Build', 'Pack', 'Validate')][string] $Phase = 'All',
+    [switch] $RequireSignature
 )
 
 $ErrorActionPreference = 'Stop'
@@ -26,26 +29,33 @@ $version = if ($suffix) { "$prefix-$suffix" } else { $prefix }
 if ($version -notmatch '^\d+\.\d+\.\d+(-beta\.\d+)?$') {
     throw "Unsupported emulator version: $version"
 }
-$version = if ($suffix) { "$version.ci.$BuildId" } else { "$version-ci.$BuildId" }
+if (-not $ReleaseVersion) {
+    $version = if ($suffix) { "$version.ci.$BuildId" } else { "$version-ci.$BuildId" }
+}
 
 $output = [IO.Path]::GetFullPath($OutputDirectory)
-if (Test-Path $output) {
-    if (Get-ChildItem $output -Force | Select-Object -First 1) {
+if ($Phase -ne 'Validate') {
+    if ((Test-Path $output) -and (Get-ChildItem $output -Force | Select-Object -First 1)) {
         throw "Package output directory must be empty: $output"
     }
+    New-Item -ItemType Directory -Force $output | Out-Null
 }
-New-Item -ItemType Directory -Force $output | Out-Null
 
 Push-Location $emulatorRoot
 try {
-    Invoke-DotNet restore $solution --configfile $config
-    Invoke-DotNet build $solution --configuration Release --no-restore "-p:Version=$version" '-p:ContinuousIntegrationBuild=true'
-    Invoke-DotNet test $solution --configuration Release --no-build --no-restore
-    Invoke-DotNet pack $project --configuration Release --no-build --no-restore --output $output "-p:PackageVersion=$version"
+    if ($Phase -in @('All', 'Build')) {
+        Invoke-DotNet restore $solution --configfile $config
+        Invoke-DotNet build $solution --configuration Release --no-restore "-p:Version=$version" '-p:ContinuousIntegrationBuild=true'
+        Invoke-DotNet test $solution --configuration Release --no-build --no-restore
+    }
+    if ($Phase -in @('All', 'Pack')) {
+        Invoke-DotNet pack $project --configuration Release --no-build --no-restore --output $output "-p:PackageVersion=$version"
+    }
 }
 finally {
     Pop-Location
 }
+if ($Phase -in @('Build', 'Pack')) { return }
 
 $packages = @(Get-ChildItem $output -Filter '*.nupkg')
 if ($packages.Count -ne 1) {
@@ -68,6 +78,7 @@ try {
 finally {
     $archive.Dispose()
 }
+if ($RequireSignature) { Invoke-DotNet nuget verify $packages[0].FullName --all }
 
 $scratch = Join-Path ([IO.Path]::GetTempPath()) "emulator-package-$([guid]::NewGuid())"
 New-Item -ItemType Directory $scratch | Out-Null

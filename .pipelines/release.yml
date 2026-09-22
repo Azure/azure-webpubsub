@@ -11,6 +11,7 @@ trigger:
     include:
       - tools/emulator/**
       - protocols/protobuf.webpubsub.azure.v1/**
+      - microsoft.png
       - .pipelines/release.yml
       - .pipelines/scripts/Build-EmulatorPackage.ps1
 
@@ -30,13 +31,21 @@ parameters:
     type: boolean
     default: false
   - name: build_emulator
-    displayName: 'Validate emulator preview package (no manual publication)'
+    displayName: 'Validate emulator preview package only (no publication)'
+    type: boolean
+    default: false
+  - name: release_emulator
+    displayName: 'Release Microsoft.Azure.WebPubSub.Emulator'
     type: boolean
     default: false
   - name: publish_packages
-    displayName: 'Publish selected packages through ESRP'
+    displayName: 'Publish selected packages'
     type: boolean
     default: false
+  - name: NuGetApiKeySecretName
+    displayName: 'Key Vault secret name for emulator NuGet.org publication'
+    type: string
+    default: ''
 variables:
   - group: 'npm-release'
   - name: CDP_DEFINITION_BUILD_COUNT
@@ -74,10 +83,8 @@ extends:
             succeeded(),
             or(
               ${{ eq(parameters.build_emulator, true) }},
-              and(
-                eq(variables['Build.SourceBranch'], 'refs/heads/main'),
-                in(variables['Build.Reason'], 'IndividualCI', 'BatchedCI')
-              )
+              ${{ eq(parameters.release_emulator, true) }},
+              eq(variables['Build.SourceBranch'], 'refs/heads/main')
             )
           )
         jobs:
@@ -85,32 +92,106 @@ extends:
             pool:
               type: linux
             variables:
-              ob_outputDirectory: '$(Build.ArtifactStagingDirectory)/emulator'
-              ob_artifactBaseName: 'drop_emulator'
+              ${{ if parameters.release_emulator }}:
+                ob_outputDirectory: '$(Pipeline.Workspace)/s/azure-webpubsub/out/emulator'
+                ob_artifactBaseName: 'drop_emulator_release'
+              ${{ else }}:
+                ob_outputDirectory: '$(Build.ArtifactStagingDirectory)/emulator'
+                ob_artifactBaseName: 'drop_emulator'
               ob_sdl_codeSignValidation_enabled: false
               ob_sdl_binskim_enabled: false
             steps:
               - checkout: self
                 path: s/azure-webpubsub
                 persistCredentials: false
+              - ${{ if parameters.release_emulator }}:
+                  - task: PowerShell@2
+                    displayName: 'Check emulator release selection'
+                    inputs:
+                      pwsh: true
+                      targetType: inline
+                      script: |
+                        if ($env:BUILD_EMULATOR -eq 'true') {
+                          throw 'Select either emulator preview validation or emulator release, not both.'
+                        }
+                        if ($env:PUBLISH_PACKAGES -eq 'true') {
+                          if ($env:BUILD_SOURCEBRANCH -ne 'refs/heads/main' -and $env:BUILD_SOURCEBRANCH -notlike 'refs/heads/release/*') {
+                            throw 'Package publishing must run from main or a release/* branch.'
+                          }
+                          if ($env:NUGET_API_KEY_SECRET -cnotmatch '^[A-Za-z0-9-]{1,127}$') {
+                            throw 'Set NuGetApiKeySecretName to a single Key Vault secret name (letters, digits, and hyphens only).'
+                          }
+                        }
+                    env:
+                      BUILD_EMULATOR: ${{ parameters.build_emulator }}
+                      PUBLISH_PACKAGES: ${{ parameters.publish_packages }}
+                      NUGET_API_KEY_SECRET: ${{ parameters.NuGetApiKeySecretName }}
               - task: UseDotNet@2
                 displayName: 'Use emulator .NET SDK'
                 inputs:
                   useGlobalJson: true
                   workingDirectory: '$(Pipeline.Workspace)/s/azure-webpubsub/tools/emulator'
-              - task: PowerShell@2
-                name: package
-                displayName: 'Build, test, pack, and smoke-test emulator'
-                inputs:
-                  pwsh: true
-                  targetType: inline
-                  workingDirectory: '$(Pipeline.Workspace)/s/azure-webpubsub'
-                  script: |
-                    & ./.pipelines/scripts/Build-EmulatorPackage.ps1 `
-                      -OutputDirectory '$(ob_outputDirectory)' `
-                      -BuildId $env:BUILD_BUILDID
+              - ${{ if not(parameters.release_emulator) }}:
+                  - task: PowerShell@2
+                    name: package
+                    displayName: 'Build, test, pack, and smoke-test emulator preview'
+                    inputs:
+                      pwsh: true
+                      targetType: inline
+                      workingDirectory: '$(Pipeline.Workspace)/s/azure-webpubsub'
+                      script: |
+                        & ./.pipelines/scripts/Build-EmulatorPackage.ps1 `
+                          -OutputDirectory '$(ob_outputDirectory)' `
+                          -BuildId $env:BUILD_BUILDID
+              - ${{ if parameters.release_emulator }}:
+                  - task: PowerShell@2
+                    displayName: 'Build and test emulator release'
+                    inputs:
+                      pwsh: true
+                      targetType: inline
+                      workingDirectory: '$(Pipeline.Workspace)/s/azure-webpubsub'
+                      script: |
+                        & ./.pipelines/scripts/Build-EmulatorPackage.ps1 `
+                          -OutputDirectory '$(ob_outputDirectory)' `
+                          -BuildId $env:BUILD_BUILDID -ReleaseVersion -Phase Build
+                  - task: onebranch.pipeline.signing@1
+                    displayName: 'Sign emulator assembly for external distribution'
+                    inputs:
+                      command: sign
+                      signing_profile: external_distribution
+                      # Tool packing publishes the intermediate assembly, even with --no-build.
+                      files_to_sign: 'obj/Release/*/Microsoft.Azure.WebPubSub.Emulator.dll'
+                      search_root: '$(Pipeline.Workspace)/s/azure-webpubsub/tools/emulator/src/Microsoft.Azure.WebPubSub.Emulator'
+                  - task: PowerShell@2
+                    displayName: 'Pack signed emulator assembly'
+                    inputs:
+                      pwsh: true
+                      targetType: inline
+                      workingDirectory: '$(Pipeline.Workspace)/s/azure-webpubsub'
+                      script: |
+                        & ./.pipelines/scripts/Build-EmulatorPackage.ps1 `
+                          -OutputDirectory '$(ob_outputDirectory)' `
+                          -BuildId $env:BUILD_BUILDID -ReleaseVersion -Phase Pack
+                  - task: onebranch.pipeline.signing@1
+                    displayName: 'Sign emulator NuGet package'
+                    inputs:
+                      command: sign
+                      signing_profile: external_distribution
+                      cp_code: CP-401405
+                      files_to_sign: '*.nupkg'
+                      search_root: '$(ob_outputDirectory)'
+                  - task: PowerShell@2
+                    displayName: 'Verify signatures and smoke-test signed emulator package'
+                    inputs:
+                      pwsh: true
+                      targetType: inline
+                      workingDirectory: '$(Pipeline.Workspace)/s/azure-webpubsub'
+                      script: |
+                        & ./.pipelines/scripts/Build-EmulatorPackage.ps1 `
+                          -OutputDirectory '$(ob_outputDirectory)' `
+                          -BuildId $env:BUILD_BUILDID -ReleaseVersion -Phase Validate -RequireSignature
 
-      - ${{ if and(eq(variables['Build.SourceBranch'], 'refs/heads/main'), in(variables['Build.Reason'], 'IndividualCI', 'BatchedCI')) }}:
+      - ${{ if and(eq(variables['Build.SourceBranch'], 'refs/heads/main'), not(parameters.build_emulator), not(parameters.release_emulator)) }}:
           - stage: emulator_myget
             displayName: 'Publish emulator CI package to MyGet'
             dependsOn: emulator_build
@@ -142,7 +223,48 @@ extends:
                       command: push
                       packagesToPush: '$(Pipeline.Workspace)/drop_emulator/*.nupkg'
                       nuGetFeedType: external
-                      publishFeedCredentials: azure-signalr-dev
+                      publishFeedCredentials: azure-webpubsub-dev
+
+      - ${{ if and(parameters.release_emulator, parameters.publish_packages) }}:
+          - stage: Prod_emulator_publish
+            displayName: 'Publish signed emulator package to NuGet.org'
+            dependsOn: emulator_build
+            condition: succeeded()
+            variables:
+              ob_release_environment: Production
+            jobs:
+              - job: publish
+                pool:
+                  type: release
+                templateContext:
+                  inputs:
+                    - input: pipelineArtifact
+                      artifactName: drop_emulator_release
+                      targetPath: '$(Pipeline.Workspace)/drop_emulator_release'
+                steps:
+                  - task: UseDotNet@2
+                    displayName: 'Use .NET 10'
+                    inputs:
+                      version: '10.x'
+                  - task: AzureKeyVault@2
+                    displayName: 'Read emulator NuGet.org API key'
+                    inputs:
+                      azureSubscription: $(PackagePublishingAzureSubscription)
+                      KeyVaultName: $(PackagePublishingKeyVaultName)
+                      SecretsFilter: ${{ parameters.NuGetApiKeySecretName }}
+                      RunAsPreJob: false
+                  - task: PowerShell@2
+                    displayName: 'Publish signed emulator package to NuGet.org'
+                    inputs:
+                      pwsh: true
+                      targetType: inline
+                      script: |
+                        $ErrorActionPreference = 'Stop'
+                        & dotnet nuget push $env:PACKAGE_PATH --api-key $env:NUGET_API_KEY --source https://api.nuget.org/v3/index.json
+                        if ($LASTEXITCODE -ne 0) { throw 'NuGet.org publication failed.' }
+                    env:
+                      PACKAGE_PATH: '$(Pipeline.Workspace)/drop_emulator_release/*.nupkg'
+                      NUGET_API_KEY: $(${{ parameters.NuGetApiKeySecretName }})
 
       - ${{ if or(parameters.release_chat_client, parameters.release_socketio, parameters.release_tunnel) }}:
           - stage: release_check
