@@ -202,7 +202,7 @@ extends:
               - job: publish
                 pool:
                   type: release
-                  os: linux
+                  os: windows
                 variables:
                   ob_outputDirectory: '$(Build.ArtifactStagingDirectory)'
                   ob_sdl_codeSignValidation_enabled: false
@@ -214,9 +214,9 @@ extends:
                       targetPath: '$(Pipeline.Workspace)/drop_emulator'
                 steps:
                   - task: UseDotNet@2
-                    displayName: 'Use .NET 10'
+                    displayName: 'Use .NET 8'
                     inputs:
-                      version: '10.x'
+                      version: '8.x'
                   - task: DotNetCoreCLI@2
                     displayName: 'Push validated emulator package to MyGet'
                     inputs:
