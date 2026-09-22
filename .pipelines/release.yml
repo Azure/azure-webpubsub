@@ -220,10 +220,12 @@ extends:
                     displayName: 'Use .NET 8'
                     inputs:
                       version: '8.x'
-                  - task: DotNetCoreCLI@2
+                  # The OneBranch NuGetCommand wrapper forces DotNet, which cannot use this API-key connection.
+                  - task: 1ES.PublishNuGet@1
                     displayName: 'Push validated emulator package to MyGet'
                     inputs:
-                      command: push
+                      useDotNetTask: false
+                      packageParentPath: '$(Pipeline.Workspace)/drop_emulator'
                       packagesToPush: '$(Pipeline.Workspace)/drop_emulator/*.nupkg'
                       nuGetFeedType: external
                       publishFeedCredentials: azure-webpubsub-dev
