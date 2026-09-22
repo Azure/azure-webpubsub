@@ -1,11 +1,11 @@
 import assert from 'node:assert/strict';
 import { spawn, spawnSync } from 'node:child_process';
-import { copyFileSync, mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
+import { copyFileSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, rmSync, statSync, writeFileSync } from 'node:fs';
 import { createServer } from 'node:http';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import test from 'node:test';
-import { NPM_ARTIFACTS, assertSameBuild, main, readyPackages } from './Get-ReadyNpmRelease.mjs';
+import { NPM_ARTIFACTS, RELEASE_SOURCE_ARTIFACT, assertSameBuild, main, prepareSourceArtifact, readyPackages } from './Get-ReadyNpmRelease.mjs';
 import { PACKAGES } from './Get-ReleasePackages.mjs';
 
 const helperPath = fileURLToPath(new URL('./Get-ReadyNpmRelease.mjs', import.meta.url));
@@ -198,6 +198,108 @@ test('artifact names are the immutable npm build contract, without emulator arti
     chat_client: 'drop_web-pubsub-chat-client', socketio: 'drop_webpubsub-socketio-extension', tunnel: 'drop_awps-tunnel',
   });
   assert.equal(Object.isFrozen(NPM_ARTIFACTS), true);
+});
+
+test('source artifact contains only exact committed release inputs and build identity, never checkout credentials', t => {
+  const { root, head } = gitFixture(t);
+  const output = fixture(t);
+  git(root, 'config', 'http.https://github.com/.extraheader', 'Authorization: test-only-not-a-secret');
+  put(root, 'untracked-config.json', '{"credential":"test-only-not-a-secret"}');
+  put(root, `${PACKAGES.chat_client.folder}/CHANGELOG.md`, '## [9.9.9]\n');
+  prepareSourceArtifact(output, environment({ BUILD_SOURCEVERSION: head }), root);
+  const files = readdirSync(output, { recursive: true }).filter(file => statSync(join(output, file)).isFile())
+    .map(file => file.replaceAll('\\', '/')).sort();
+  const expected = ['release-source.json', '.pipelines/scripts/Get-ReadyNpmRelease.mjs',
+    '.pipelines/scripts/Get-ReleasePackages.mjs',
+    ...Object.values(PACKAGES).flatMap(pkg => [`${pkg.folder}/${pkg.metadata}`, `${pkg.folder}/CHANGELOG.md`])].sort();
+  assert.deepEqual(files, expected);
+  assert.deepEqual(JSON.parse(readFileSync(join(output, 'release-source.json'), 'utf8')), {
+    id: 100, definition: { id: 12 }, sourceBranch: 'refs/heads/main', sourceVersion: head,
+  });
+  for (const file of files) {
+    const content = readFileSync(join(output, file), 'utf8');
+    assert.ok(!content.includes(token));
+    assert.ok(!content.includes('test-only-not-a-secret'));
+    if (file !== 'release-source.json') assert.equal(content.trim(), git(root, 'show', `${head}:${file}`));
+  }
+});
+
+test('artifact preparation rejects wrong HEAD or invalid build identity before writing', t => {
+  const { root, head } = gitFixture(t);
+  for (const override of [{ BUILD_SOURCEVERSION: otherSha }, { BUILD_BUILDID: '0' },
+    { BUILD_BUILDID: '0100' }, { SYSTEM_DEFINITIONID: '-1' }, { SYSTEM_DEFINITIONID: 'unknown' },
+    { BUILD_SOURCEBRANCH: '' }]) {
+    const output = fixture(t);
+    assert.throws(() => prepareSourceArtifact(output, environment({ BUILD_SOURCEVERSION: head, ...override }), root));
+    assert.deepEqual(readdirSync(output), []);
+  }
+});
+
+test('artifact verification rejects missing or mismatched identity and malformed version metadata before REST', async t => {
+  const { root, head } = gitFixture(t);
+  const output = fixture(t);
+  const env = environment({ BUILD_SOURCEVERSION: head });
+  prepareSourceArtifact(output, env, root);
+  const source = JSON.parse(readFileSync(join(output, 'release-source.json'), 'utf8'));
+  const lines = [];
+  const options = { cwd: output, fromArtifact: true,
+    fetchImpl: () => assert.fail('Invalid artifact must not request REST'), write: line => lines.push(line) };
+  for (const value of [null, {}, { ...source, id: 99 }, { ...source, definition: { id: 13 } },
+    { ...source, sourceBranch: 'refs/heads/release/other' }, { ...source, sourceVersion: otherSha }]) {
+    put(output, 'release-source.json', JSON.stringify(value));
+    await assert.rejects(main(env, options), /exact main\/release-branch/);
+  }
+  put(output, 'release-source.json', '{invalid-json');
+  await assert.rejects(main(env, options), SyntaxError);
+  rmSync(join(output, 'release-source.json'));
+  await assert.rejects(main(env, options), /ENOENT/);
+  put(output, 'release-source.json', JSON.stringify(source));
+  put(output, `${PACKAGES.chat_client.folder}/CHANGELOG.md`, '## [9.9.9]\n');
+  await assert.rejects(main(env, options), /does not equal/);
+  assert.deepEqual(lines, []);
+});
+
+test('artifact verification still requires authenticated same-run artifact registration and noncanceled build refresh', async t => {
+  const { root, head } = gitFixture(t);
+  const output = fixture(t);
+  const env = environment({ BUILD_SOURCEVERSION: head });
+  prepareSourceArtifact(output, env, root);
+  const current = build({ sourceVersion: head });
+  const source = { name: RELEASE_SOURCE_ARTIFACT, resource: { type: 'PipelineArtifact' } };
+  for (const sources of [[], [source, source], [{ ...source, resource: { type: 'Container' } }]]) {
+    const lines = [];
+    const adapter = fetchSequence([current, timeline(), { value: [...artifacts().value, ...sources] }], lines);
+    await assert.rejects(main(env, { cwd: output, fromArtifact: true, fetchImpl: adapter.fetchImpl,
+      write: line => lines.push(line) }), /Missing validated pipeline artifact: drop_release_source/);
+    assert.deepEqual(lines, []);
+  }
+  const available = { value: [...artifacts().value, source] };
+  for (const refreshed of [{ ...current, status: 'cancelling' }, { ...current, sourceVersion: otherSha }]) {
+    const lines = [];
+    const adapter = fetchSequence([current, timeline(), available, refreshed], lines);
+    await assert.rejects(main(env, { cwd: output, fromArtifact: true, fetchImpl: adapter.fetchImpl,
+      write: line => lines.push(line) }), /not ready for release|exact main\/release-branch/);
+    assert.deepEqual(lines, []);
+  }
+});
+
+test('real artifact CLI works without Git or checkout and preserves same-run readiness outputs', async t => {
+  const { root, head } = gitFixture(t);
+  const output = fixture(t);
+  const env = environment({ BUILD_SOURCEVERSION: head });
+  const prepared = await runNode([join('.pipelines', 'scripts', 'Get-ReadyNpmRelease.mjs'), '--prepare-artifact', output], root, env);
+  assert.equal(prepared.code, 0, prepared.stderr);
+  assert.equal(prepared.stdout, '');
+  const current = build({ sourceVersion: head, status: 'inProgress' });
+  const available = { value: [...artifacts(['chat_client', 'tunnel']).value,
+    { name: RELEASE_SOURCE_ARTIFACT, resource: { type: 'PipelineArtifact' } }] };
+  const http = await protocolServer(t, [current, timeline({ socketio_build: { result: 'skipped' } }), available, current]
+    .map(body => ({ body })));
+  const result = await runNode([join('.pipelines', 'scripts', 'Get-ReadyNpmRelease.mjs'), '--from-artifact'], output,
+    { ...env, SYSTEM_COLLECTIONURI: http.collection, PATH: '', Path: '' });
+  assert.equal(result.code, 0, result.stderr);
+  assertRequests(http.requests, 4);
+  assert.deepEqual(outputEntries(result.stdout), Object.entries(expectedOutputs(['chat_client', 'tunnel'])));
 });
 
 test('all 4^3 npm stage outcomes select only successful builds and reject no selection', async t => {
