@@ -124,9 +124,6 @@ extends:
                   ob_sdl_codeSignValidation_enabled: false
                   ob_sdl_binskim_enabled: false
                 steps:
-                  - checkout: self
-                    path: s/azure-webpubsub
-                    persistCredentials: false
                   - download: current
                     artifact: drop_emulator
                   - task: UseDotNet@2
