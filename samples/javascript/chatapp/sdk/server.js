@@ -4,15 +4,10 @@ const { WebPubSubEventHandler } = require('@azure/web-pubsub-express');
 
 const app = express();
 const hubName = 'sample_chat';
-const port = process.env.PORT || 8080;
+const port = 8080;
 
 let connectionString = process.argv[2] || process.env.WebPubSubConnectionString;
 let serviceClient = new WebPubSubServiceClient(connectionString, hubName);
-const endpoint = new URL(serviceClient.endpoint);
-if (endpoint.protocol === 'http:' && ['localhost', '127.0.0.1', '[::1]'].includes(endpoint.hostname)) {
-  // Keep the SDK's HTTPS requirement everywhere except the local emulator.
-  serviceClient = new WebPubSubServiceClient(connectionString, hubName, { allowInsecureConnection: true });
-}
 let handler = new WebPubSubEventHandler(hubName, {
   path: '/eventhandler',
   onConnected: async req => {

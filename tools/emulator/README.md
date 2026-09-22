@@ -12,85 +12,44 @@ depend on cloud authentication, message expiration, or recovery across process r
 
 ## Quick start
 
-Run the [JavaScript chat sample](../../samples/javascript/chatapp/sdk/Readme.md) entirely locally:
-no Azure resource, Azure CLI, tunnel, or certificate setup. You need Node.js, a repository checkout,
-and the [.NET prerequisites](#prerequisites).
+The small [Getting started sample](getting-started) runs entirely in your terminal: no frontend build,
+Azure resource, tunnel, or certificates. You need Node.js 20 or later, a repository checkout, and an
+[installed emulator](#install-a-local-package) with the [.NET prerequisites](#prerequisites).
 
-### 1. Install your local package
-
-Already installed the emulator? Skip to step 2. Otherwise, create an `emulator-local` folder and
-put **one** downloaded `Microsoft.Azure.WebPubSub.Emulator.*.nupkg` in its `packages` subfolder.
-Run these PowerShell commands from `emulator-local`:
+**Terminal 1**, from the repository root:
 
 ```powershell
-@'
-<configuration>
-  <packageSources>
-    <clear />
-    <add key="local" value="./packages" />
-  </packageSources>
-</configuration>
-'@ | Set-Content NuGet.Config
-
-$package = Get-Item .\packages\Microsoft.Azure.WebPubSub.Emulator.*.nupkg
-$version = $package.BaseName -replace '^Microsoft.Azure.WebPubSub.Emulator\.', ''
-dotnet tool install Microsoft.Azure.WebPubSub.Emulator `
-  --version $version --tool-path .\tool --configfile .\NuGet.Config
+Set-Location .\tools\emulator\getting-started
+awps-emulator --urls http://localhost:8081
 ```
 
-This uses only your local package, not a public NuGet or MyGet release. If you do not have a
-package, [build and install one from source](#pack-and-install-the-tool). Older installed packages
-do not acquire hot reload automatically: install a build that includes it.
+Use the executable's full path if it is not on PATH, **without changing this working directory**.
+The emulator reads and watches the included [appsettings.json](getting-started/appsettings.json).
+It routes the `getting_started` hub's `connected` and `message` events to
+`http://127.0.0.1:8080/eventhandler`.
 
-### 2. Configure and start the emulator
-
-In your emulator working folder, create `appsettings.json` and start the tool:
-
-```powershell
-@'
-{
-  "WebPubSub": {
-    "Hubs": {
-      "sample_chat": {
-        "EventHandlers": [{
-          "UrlTemplate": "http://localhost:8080/eventhandler",
-          "SystemEvents": ["connected"],
-          "EventPattern": "broadcast"
-        }]
-      }
-    }
-  }
-}
-'@ | Set-Content -Encoding utf8 appsettings.json
-
-.\tool\awps-emulator --urls http://localhost:8081
-```
-
-If already installed elsewhere, use that executable's path instead, **without changing your
-working folder**. The installed tool reads and watches `appsettings.json` in the current working
-directory. Port **8081** leaves port **8080** available for the chat app.
-
-### 3. Start chatting
-
-In a second terminal, from the repository root:
+**Terminal 2**, also from the repository root:
 
 ```powershell
-Set-Location .\samples\javascript\chatapp\sdk
+Set-Location .\tools\emulator\getting-started
 npm install
-npm run release
-npm run start -- "Endpoint=http://localhost:8081;AccessKey=ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789ABCDEFGH;Version=1.0;"
+npm start
 ```
 
-Open <http://localhost:8080/index.html> in two tabs, choose different names, and send messages.
-If you customized the access key, use the connection string printed by the emulator instead.
-The sample allows HTTP only for loopback endpoints; Azure connections still use HTTPS.
+Type `hello` and press Enter. You should see `Received: hello`: your WebSocket message becomes a
+client event, the HTTP handler calls the real server SDK's `sendToAll`, and the connected client
+receives the broadcast. Ctrl+C stops the sample. Piped input also works: `"hello" | npm start`
+waits for the reply before exiting (a missing reply fails after 10 seconds).
 
-Save changes to the hub's `EventHandlers` in `appsettings.json` to apply them to subsequent events
-without restarting or disconnecting clients. See [Hot reload](#hot-reload) for the limits.
+The sample explicitly uses `{ allowInsecureConnection: true }` for SDK REST calls to the local
+HTTP emulator. It rejects non-loopback endpoints, binds its handler to `127.0.0.1`, and does not
+disable TLS certificate validation. Set `WebPubSubConnectionString` to the emulator's printed
+connection string if you change its endpoint or access key. If handler port 8080 is busy, set
+`PORT` (PowerShell: `$env:PORT = "8090"`) and change the handler URL in `appsettings.json` to match.
 
-For other applications, [connect a client](#connect-a-client) and [use a server SDK](#use-a-server-sdk)
-with the printed connection string. Server-to-client and group messaging do not require a handler.
-See the [changelog](CHANGELOG.md) for preview changes and [troubleshooting](#troubleshooting) for help.
+Save edits to per-hub `EventHandlers` or `EventListeners` to update subsequent events without
+restarting or disconnecting clients. See [Hot reload](#hot-reload) for limits; older installed
+packages need a new build to gain this feature.
 
 ## Prerequisites
 
@@ -351,17 +310,19 @@ recovery retains these values and does not invoke `connect` again.
 
 ### Hot reload
 
-Save `appsettings.json` to update `WebPubSub:Hubs:<hub>:EventHandlers` while the emulator runs.
-Changes to handler URLs, `SystemEvents`, and `EventPattern`, including adding or removing hubs or
-handlers, apply to subsequent events without restarting or dropping connected clients. Events
-already in progress may finish with the previous configuration.
+Save `appsettings.json` to update per-hub `EventHandlers` and `EventListeners` under
+`WebPubSub:Hubs` while the emulator runs. Handler URLs, system/user event filters, listener targets,
+and additions or removals of hubs, handlers, and listeners apply to subsequent events without
+restarting or dropping connected clients. Events already in progress may finish with the previous
+configuration; in-flight Event Hubs sends drain before the old producer is released.
 
-Invalid edits log a warning and leave the last valid handler configuration active; correct and save
-the file to try again. Invalid configuration at startup still prevents the emulator from starting.
-Environment variables and command-line values take precedence over JSON and do not hot reload.
+Malformed JSON or invalid settings log a warning and retain the last valid **entire event
+configuration**; correct and save the file to try again. Invalid configuration at startup still
+prevents the emulator from starting. Environment variables and command-line values override JSON
+and do not hot reload.
 
-Only per-hub `EventHandlers` hot reload. `EventListeners`, access keys,
-`AllowUnvalidatedEntraTokens`, and the listening URL require a restart. An older installed package
+Only per-hub `EventHandlers` and `EventListeners` hot reload. Access keys,
+`AllowUnvalidatedEntraTokens`, and listening URLs still require a restart. An older installed package
 must be replaced with a build containing this feature; editing JSON cannot upgrade the executable.
 
 ### Handler validation and retries
@@ -474,7 +435,9 @@ Invocation and streaming are not supported. Streaming requests are rejected.
 
 Listeners forward lifecycle and user events **from the Web PubSub emulator to Event Hubs**.
 
-Configure `EventListeners` alongside `EventHandlers` within `WebPubSub:Hubs:<hub>`:
+Configure `EventListeners` alongside `EventHandlers` within `WebPubSub:Hubs:<hub>`.
+JSON changes to listener filters and targets [hot reload](#hot-reload); existing sends drain before
+retired producers are released:
 
 ```json
 "EventListeners": [{
@@ -559,6 +522,34 @@ SDKs can instead generate client tokens locally without calling this endpoint.
 When multiple listening addresses are configured, use the connection string printed at startup
 to identify the selected endpoint.
 
+## Install a local package
+
+If you already have a `.nupkg` from a local test build or a download, put **one**
+`Microsoft.Azure.WebPubSub.Emulator.*.nupkg` in an `emulator-local\packages` folder.
+Run the following from `emulator-local`. The version is taken from that actual package's filename,
+including its local-test or CI suffix; this does not assume a public NuGet or MyGet release.
+
+```powershell
+@'
+<configuration>
+  <packageSources>
+    <clear />
+    <add key="local" value="./packages" />
+  </packageSources>
+</configuration>
+'@ | Set-Content NuGet.Config
+
+$package = Get-Item .\packages\Microsoft.Azure.WebPubSub.Emulator.*.nupkg
+$version = $package.BaseName -replace '^Microsoft.Azure.WebPubSub.Emulator\.', ''
+dotnet tool install Microsoft.Azure.WebPubSub.Emulator `
+  --version $version --tool-path .\tool --configfile .\NuGet.Config
+```
+
+The executable is `emulator-local\tool\awps-emulator`; use its full path when following the
+[Quick start](#quick-start), keeping the sample directory as your working directory.
+If you do not have a package, build one below. Installing an older package does not give it
+newer hot-reload features.
+
 ## Pack and install the tool
 
 To build and install a package from this checkout, run the following from the repository root.
@@ -594,8 +585,8 @@ then repeat the install command with `--no-cache` to avoid reusing an earlier pa
 | Symptom | What to check |
 | --- | --- |
 | The SDK cannot be found, or the tool reports a missing framework | Run `dotnet --list-sdks` and `dotnet --list-runtimes`, and check the [prerequisites](#prerequisites). |
-| The emulator cannot bind to port 8080 | The chat sample also uses 8080. Start the emulator with `--urls http://localhost:8081` and use its printed connection string in the sample. Otherwise, [choose another endpoint](#configure-the-endpoint-and-access-key). |
-| JSON handler edits do not take effect | Check the working directory, confirm the installed build supports [hot reload](#hot-reload), remove overriding environment/command-line values, and check logs for rejected edits. |
+| The emulator cannot bind to port 8080 | The Getting started handler uses 8080. Start the emulator with `--urls http://localhost:8081`. Otherwise, [choose another endpoint](#configure-the-endpoint-and-access-key) and set the sample's `WebPubSubConnectionString` to its printed connection string. |
+| JSON handler or listener edits do not take effect | Check the working directory, confirm the installed build supports [hot reload](#hot-reload), remove overriding environment/command-line values, and check logs for rejected edits. |
 | A client cannot connect, or a REST request returns `401` | Use the current endpoint and access key. Generate a fresh token for that endpoint and check its expiration; a token for your Azure resource cannot be reused locally. |
 | A group operation is denied | Check the client's token roles or granted connection permissions. Group membership alone does not grant permission to publish. |
 | A user event fails, or a raw client closes with status 1011 | Configure a matching HTTP handler or Event Hubs listener. Check the emulator logs and verify that your HTTP handler responds to validation requests. |
