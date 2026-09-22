@@ -1,9 +1,9 @@
-# Build affected packages automatically; approve only public npm publication.
+# Build affected packages automatically; start public npm releases on demand.
 
 name: package-release_$(Date:yyyyMMdd)$(Rev:.r)
 
 trigger:
-  batch: false
+  batch: true
   branches:
     include:
       - main
@@ -56,6 +56,8 @@ extends:
   template: v2/OneBranch.Official.CrossPlat.yml@templates
   parameters:
     featureFlags:
+      # Keep the 1ES publishing path when using a release-stage server approval job.
+      use1esentry: true
       linuxEsrpSigning: true
       WindowsHostVersion:
         Version: 2022
@@ -237,45 +239,56 @@ extends:
                   nuGetFeedType: external
                   publishFeedCredentials: azure-webpubsub-dev
 
-      - stage: manual_release
-        displayName: 'Approve public npm publication'
+      - stage: Prod_npm_release
+        displayName: 'Release npm packages (manual)'
+        trigger: manual
         isSkippable: false
-        dependsOn:
-          - release_check
-          - chat_client_build
-          - socketio_build
-          - tunnel_build
         condition: |
           and(
             not(canceled()),
-            eq(dependencies.release_check.result, 'Succeeded'),
             or(
               eq(variables['Build.SourceBranch'], 'refs/heads/main'),
               startsWith(variables['Build.SourceBranch'], 'refs/heads/release/')
-            ),
-            or(
-              eq(dependencies.release_check.outputs['check.read.chat_client_needsRelease'], 'true'),
-              eq(dependencies.release_check.outputs['check.read.socketio_needsRelease'], 'true'),
-              eq(dependencies.release_check.outputs['check.read.tunnel_needsRelease'], 'true')
-            ),
-            or(
-              and(eq(dependencies.release_check.outputs['check.read.chat_client_needsRelease'], 'false'), in(dependencies.chat_client_build.result, 'Succeeded', 'Skipped')),
-              and(eq(dependencies.release_check.outputs['check.read.chat_client_needsRelease'], 'true'), eq(dependencies.chat_client_build.result, 'Succeeded'))
-            ),
-            or(
-              and(eq(dependencies.release_check.outputs['check.read.socketio_needsRelease'], 'false'), in(dependencies.socketio_build.result, 'Succeeded', 'Skipped')),
-              and(eq(dependencies.release_check.outputs['check.read.socketio_needsRelease'], 'true'), eq(dependencies.socketio_build.result, 'Succeeded'))
-            ),
-            or(
-              and(eq(dependencies.release_check.outputs['check.read.tunnel_needsRelease'], 'false'), in(dependencies.tunnel_build.result, 'Succeeded', 'Skipped')),
-              and(eq(dependencies.release_check.outputs['check.read.tunnel_needsRelease'], 'true'), eq(dependencies.tunnel_build.result, 'Succeeded'))
             )
           )
+        variables:
+          ob_release_environment: Production
         jobs:
+          - job: verify
+            displayName: 'Check completed npm builds and available packages'
+            condition: not(canceled())
+            pool:
+              type: release
+              os: linux
+            variables:
+              ob_outputDirectory: '$(Build.ArtifactStagingDirectory)'
+              ob_sdl_codeSignValidation_enabled: false
+              ob_sdl_binskim_enabled: false
+            steps:
+              - checkout: self
+                path: s/azure-webpubsub
+                fetchDepth: 1
+                persistCredentials: false
+              - task: UseNode@1
+                inputs:
+                  version: '22.x'
+              - task: Bash@3
+                name: read
+                displayName: 'Verify this build before requesting approval'
+                inputs:
+                  targetType: inline
+                  workingDirectory: '$(Pipeline.Workspace)/s/azure-webpubsub'
+                  script: |
+                    set -euo pipefail
+                    node .pipelines/scripts/Get-ReadyNpmRelease.mjs
+                env:
+                  SYSTEM_ACCESSTOKEN: $(System.AccessToken)
           - job: approve
             displayName: 'Review affected npm packages before public publication'
+            dependsOn: verify
+            condition: and(not(canceled()), eq(dependencies.verify.result, 'Succeeded'))
             pool:
-              type: agentless
+              type: server
             timeoutInMinutes: 1500
             steps:
               - task: ManualValidation@1
@@ -283,8 +296,27 @@ extends:
                 inputs:
                   notifyUsers: ''
                   allowApproversToApproveTheirOwnRuns: true
-                  instructions: 'Review the affected npm package versions, build results, and tarballs. Approve to publish those npm packages through ESRP, create release tags, and open next-beta PRs. Emulator MyGet publication and the signed formal NuGet download do not require this approval.'
+                  instructions: 'Review the listed npm versions, successful builds, and tarballs. Approve to publish to npm, create release tags, and open next-beta PRs.'
                   onTimeout: reject
+          - template: templates/jobs/release-package.yml
+            parameters:
+              package_key: chat_client
+              package_name: web-pubsub-chat-client
+              npm_package_name: '@azure/web-pubsub-chat-client'
+              package_folder: sdk/webpubsub-chat-client
+          - template: templates/jobs/release-package.yml
+            parameters:
+              package_key: socketio
+              package_name: webpubsub-socketio-extension
+              npm_package_name: '@azure/web-pubsub-socket.io'
+              package_folder: sdk/webpubsub-socketio-extension
+          - template: templates/jobs/release-package.yml
+            parameters:
+              package_key: tunnel
+              package_name: awps-tunnel
+              npm_package_name: '@azure/web-pubsub-tunnel-tool'
+              package_folder: tools/awps-tunnel/server
+
       - template: templates/stages/release-package.yml
         parameters:
           package_key: chat_client

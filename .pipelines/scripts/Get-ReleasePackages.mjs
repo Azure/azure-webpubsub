@@ -254,6 +254,9 @@ export function createAdoClient(env, { fetchImpl = globalThis.fetch, timeoutMs =
     getBuild(buildId) {
       return get(`/${positiveId(buildId, 'build ID')}`);
     },
+    getArtifacts(buildId) {
+      return get(`/${positiveId(buildId, 'build ID')}/artifacts`);
+    },
   };
 }
 

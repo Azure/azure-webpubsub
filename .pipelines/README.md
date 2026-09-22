@@ -21,9 +21,12 @@ The pipeline builds these packages:
 - `@azure/web-pubsub-socket.io`
 - `@azure/web-pubsub-tunnel-tool`
 
-Review the affected packages' versions and build results, then approve
-**manual_release** to publish them to npm. Reject the approval to skip publication;
-unanswered approvals expire after 24 hours.
+Automatic builds finish without waiting for npm approval. To publish, open a
+completed build on `main` or `release/*` and select **Run stage** for
+**Release npm packages (manual)**. It first checks that the npm builds succeeded
+and their artifacts are available. Review the versions and tarballs, then approve
+publication. This reuses that build's packages without rebuilding them.
+Rejecting the approval or letting it expire after 24 hours prevents publication.
 
 After publication, the pipeline creates a release tag and opens a PR preparing
 the package version and changelog for the next beta.

@@ -359,6 +359,7 @@ test('pending/rejected manual publishing and approval records do not block the a
   for (const state of ['pending', 'inProgress', 'completed']) {
     const data = timeline();
     data.records.push(
+      { type: 'Stage', identifier: 'Prod_npm_release', state, result: state === 'completed' ? 'failed' : null },
       { type: 'Stage', identifier: 'Prod_chat_client_publish', state, result: 'failed' },
       { type: 'Stage', identifier: 'Prod_socketio_publish', state, result: 'canceled' },
       { type: 'Checkpoint.Approval', identifier: 'manual_approval', state, result: 'rejected' },
@@ -452,7 +453,7 @@ test('pending and rejected manual npm gates still allow a noncanceled automatic 
     { status: 'inProgress', result: 'none' }, { status: 'completed', result: 'failed' },
   ]) {
     const data = timeline({ socketio_build: { result: 'skipped' } });
-    data.records.push({ type: 'Stage', identifier: 'Prod_chat_client_publish', state: 'pending', result: null },
+    data.records.push({ type: 'Stage', identifier: 'Prod_npm_release', state: 'pending', result: null },
       { type: 'Checkpoint.Approval', identifier: 'npm_approval', state: 'completed', result: 'rejected' });
     const client = {
       listBuilds: async () => [build(99, state)],
@@ -598,7 +599,7 @@ test('CLI uses repo-root cwd even when ADO sources directory differs, and emits 
     requests.push({ url: request.url, authorization: request.headers.authorization });
     response.setHeader('Content-Type', 'application/json');
     const stages = timeline({ emulator_build: { result: 'skipped' }, emulator_myget: { result: 'skipped' } });
-    stages.records.push({ type: 'Stage', identifier: 'Prod_tunnel_publish', state: 'pending', result: null });
+    stages.records.push({ type: 'Stage', identifier: 'Prod_npm_release', state: 'pending', result: null });
     response.end(JSON.stringify(request.url.includes('/timeline?') ? stages
       : request.url.includes('/builds/90?') ? build(90, { sourceVersion: baseline, status: 'inProgress', result: null })
       : { value: [build(100, { sourceVersion: head }), build(90, { sourceVersion: baseline, status: 'inProgress', result: null })] }));
