@@ -427,6 +427,18 @@ class ReleasePipelineTests(unittest.TestCase):
             for suffix in ('post_deploy_tag', 'post_deploy_pr'):
                 self.assertEqual(RELEASE_JOBS[f'{key}_{suffix}']['pool'], {'type': 'linux'})
 
+    def test_emulator_checkout_precedes_onebranch_signing_setup(self):
+        self.assertIs(PIPELINE['extends']['parameters']['featureFlags']['linuxEsrpSigning'], True)
+        steps = STAGES['emulator_build']['jobs'][0]['steps']
+        checkouts = [step for step in steps if 'checkout' in step]
+        self.assertEqual(checkouts, [steps[0]])
+        self.assertEqual(steps[0]['checkout'], 'self')
+        self.assertEqual(steps[0]['path'], 's/azure-webpubsub')
+        self.assertIs(steps[0]['persistCredentials'], False)
+        self.assertIs(steps[0].get('env', {}).get('ob_restore_phase'), True)
+        restore_steps = [step for step in steps if step.get('env', {}).get('ob_restore_phase')]
+        self.assertEqual(restore_steps, checkouts)
+
     def test_emulator_sign_pack_validate_order_and_artifacts(self):
         build = STAGES['emulator_build']['jobs'][0]
         self.assertEqual(build['pool']['type'], 'linux')

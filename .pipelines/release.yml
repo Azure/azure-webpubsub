@@ -102,6 +102,9 @@ extends:
               - checkout: self
                 path: s/azure-webpubsub
                 persistCredentials: false
+                env:
+                  # Relocate and clean the checkout before the signing watcher starts.
+                  ob_restore_phase: true
               - task: UseDotNet@2
                 displayName: 'Use emulator .NET SDK'
                 inputs:
