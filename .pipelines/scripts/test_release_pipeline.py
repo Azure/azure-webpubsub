@@ -17,7 +17,6 @@ import yaml
 ROOT = Path(__file__).resolve().parents[2]
 PIPELINE = yaml.safe_load((ROOT / '.pipelines/release.yml').read_text(encoding='utf-8'))
 TEMPLATE = yaml.safe_load((ROOT / '.pipelines/templates/stages/release-package.yml').read_text(encoding='utf-8'))
-RELEASE_TEMPLATE = yaml.safe_load((ROOT / '.pipelines/templates/jobs/release-package.yml').read_text(encoding='utf-8'))
 ENTRIES = PIPELINE['extends']['parameters']['stages']
 NPM_KEYS = ('chat_client', 'socketio', 'tunnel')
 MANUAL_STAGE = 'Prod_npm_release'
@@ -50,11 +49,7 @@ for entry in ENTRIES:
         for stage in instantiate(TEMPLATE, entry['parameters'], 'stages'):
             STAGES[stage['stage']] = stage
 
-RELEASE_JOBS = {}
-for entry in STAGES[MANUAL_STAGE]['jobs']:
-    jobs = [entry] if 'job' in entry else instantiate(RELEASE_TEMPLATE, entry['parameters'], 'jobs')
-    for job in jobs:
-        RELEASE_JOBS[job['job']] = job
+RELEASE_JOBS = {job['job']: job for job in STAGES[MANUAL_STAGE]['jobs']}
 
 
 def dependencies(node):
@@ -144,6 +139,16 @@ class ReleasePipelineTests(unittest.TestCase):
         self.assertTrue(PIPELINE['trigger']['batch'])
         self.assertEqual(PIPELINE['trigger']['branches']['include'], ['main'])
         self.assertEqual(PIPELINE['pr'], 'none')
+
+    def test_manual_release_jobs_are_inline(self):
+        stage = STAGES[MANUAL_STAGE]
+        expected = ['verify', 'approve'] + [
+            f'{key}_{suffix}' for key in NPM_KEYS
+            for suffix in ('publish', 'post_deploy_tag', 'post_deploy_pr')
+        ]
+        self.assertEqual([job['job'] for job in stage['jobs']], expected)
+        self.assertNotIn('"template":', json.dumps(stage))
+        self.assertNotIn('${{', json.dumps(stage))
 
     def test_stage_and_release_job_graphs(self):
         self.assertEqual(len(STAGES), 7)
@@ -293,12 +298,7 @@ class ReleasePipelineTests(unittest.TestCase):
 
     def test_manual_release_reuses_same_run_artifacts_without_building(self):
         build_packages = {e['parameters']['package_key']: e['parameters'] for e in ENTRIES if 'template' in e}
-        release_packages = {e['parameters']['package_key']: e['parameters']
-                            for e in STAGES[MANUAL_STAGE]['jobs'] if 'template' in e}
-        self.assertEqual(set(build_packages), set(release_packages))
-        for key, package in release_packages.items():
-            for field in ('package_key', 'package_name', 'package_folder', 'npm_package_name'):
-                self.assertEqual(package[field], build_packages[key][field])
+        for key, package in build_packages.items():
             build = STAGES[f'{key}_build']['jobs'][0]
             publish = RELEASE_JOBS[f'{key}_publish']
             self.assertEqual(publish['pool'], {'type': 'release', 'os': 'windows'})
@@ -315,7 +315,16 @@ class ReleasePipelineTests(unittest.TestCase):
             self.assertEqual(steps[-1]['inputs']['FolderLocation'],
                              publish['templateContext']['inputs'][0]['targetPath'])
             self.assertEqual(steps[-1]['inputs']['ContentType'], 'npm')
-            self.assertIn('Npm-Release.mjs check', steps[-2]['inputs']['script'])
+            self.assertEqual(steps[-1]['inputs']['ConnectedServiceName'], '$(ESRP_SERVICE_CONNECTION)')
+            check_script = steps[-2]['inputs']['script']
+            self.assertIn('Npm-Release.mjs check', check_script)
+            for field in ('package_folder', 'npm_package_name', 'package_name'):
+                self.assertIn(f"'{package[field]}'", check_script)
+            tag_script = RELEASE_JOBS[f'{key}_post_deploy_tag']['steps'][-1]['inputs']['script']
+            self.assertIn(f'tag="release/{package["package_name"]}/v$(releaseVersion)"', tag_script)
+            pr_script = RELEASE_JOBS[f'{key}_post_deploy_pr']['steps'][-1]['inputs']['script']
+            self.assertIn(f"PACKAGE_FOLDER='{package['package_folder']}'", pr_script)
+            self.assertIn(f"PACKAGE_NAME='{package['package_name']}'", pr_script)
             for suffix in ('publish', 'post_deploy_tag', 'post_deploy_pr'):
                 job = RELEASE_JOBS[f'{key}_{suffix}']
                 checkout = job['steps'][0]

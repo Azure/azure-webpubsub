@@ -298,24 +298,572 @@ extends:
                   allowApproversToApproveTheirOwnRuns: true
                   instructions: 'Review the listed npm versions, successful builds, and tarballs. Approve to publish to npm, create release tags, and open next-beta PRs.'
                   onTimeout: reject
-          - template: templates/jobs/release-package.yml
-            parameters:
-              package_key: chat_client
-              package_name: web-pubsub-chat-client
-              npm_package_name: '@azure/web-pubsub-chat-client'
-              package_folder: sdk/webpubsub-chat-client
-          - template: templates/jobs/release-package.yml
-            parameters:
-              package_key: socketio
-              package_name: webpubsub-socketio-extension
-              npm_package_name: '@azure/web-pubsub-socket.io'
-              package_folder: sdk/webpubsub-socketio-extension
-          - template: templates/jobs/release-package.yml
-            parameters:
-              package_key: tunnel
-              package_name: awps-tunnel
-              npm_package_name: '@azure/web-pubsub-tunnel-tool'
-              package_folder: tools/awps-tunnel/server
+          - job: chat_client_publish
+            displayName: 'Publish web-pubsub-chat-client through ESRP'
+            dependsOn:
+              - verify
+              - approve
+            condition: |
+              and(
+                not(canceled()),
+                eq(dependencies.verify.result, 'Succeeded'),
+                eq(dependencies.approve.result, 'Succeeded'),
+                eq(variables['needsRelease'], 'true')
+              )
+            pool:
+              type: release
+              os: windows
+            variables:
+              needsRelease: $[ dependencies.verify.outputs['read.chat_client_needsRelease'] ]
+              releaseVersion: $[ dependencies.verify.outputs['read.chat_client_releaseVersion'] ]
+              productState: $[ dependencies.verify.outputs['read.chat_client_productState'] ]
+              ob_outputDirectory: '$(Build.ArtifactStagingDirectory)'
+              ob_sdl_codeSignValidation_enabled: false
+              ob_sdl_binskim_enabled: false
+            templateContext:
+              inputs:
+                - input: pipelineArtifact
+                  artifactName: 'drop_web-pubsub-chat-client'
+                  targetPath: '$(Pipeline.Workspace)/esrp-release/$(Build.BuildId)/chat_client'
+            steps:
+              - checkout: self
+                path: s/azure-webpubsub
+                fetchDepth: 1
+                persistCredentials: true
+              - task: UseNode@1
+                displayName: 'Use Node 22.x'
+                inputs:
+                  version: 22.x
+              - task: PowerShell@2
+                displayName: 'Check public npm version and GitHub tag availability'
+                inputs:
+                  pwsh: true
+                  targetType: inline
+                  workingDirectory: '$(Pipeline.Workspace)/s/azure-webpubsub'
+                  script: |
+                    $ErrorActionPreference = 'Stop'
+                    & node .pipelines/scripts/Npm-Release.mjs check `
+                      'sdk/webpubsub-chat-client' `
+                      '@azure/web-pubsub-chat-client' `
+                      'web-pubsub-chat-client' `
+                      '$(releaseVersion)' `
+                      'Azure/azure-webpubsub'
+                    if ($LASTEXITCODE -ne 0) { throw 'Public package availability checks failed.' }
+              - task: EsrpRelease@11
+                displayName: 'Publish npm package through ESRP'
+                inputs:
+                  ConnectedServiceName: $(ESRP_SERVICE_CONNECTION)
+                  ClientId: '$(ESRP_CLIENT_ID)'
+                  DomainTenantId: '$(ESRP_TENANT_ID)'
+                  UseManagedIdentity: true
+                  KeyVaultName: '$(ESRP_KEY_VAULT_NAME)'
+                  SignCertName: '$(ESRP_SIGN_CERT_NAME)'
+                  Intent: 'PackageDistribution'
+                  ContentType: 'npm'
+                  ContentSource: 'Folder'
+                  FolderLocation: '$(Pipeline.Workspace)/esrp-release/$(Build.BuildId)/chat_client'
+                  Owners: '$(ESRP_OWNERS)'
+                  Approvers: '$(ESRP_APPROVERS)'
+                  ServiceEndpointUrl: 'https://api.esrp.microsoft.com'
+                  MainPublisher: '$(ESRP_MAIN_PUBLISHER)'
+                  ProductState: '$(productState)'
+
+          - job: chat_client_post_deploy_tag
+            displayName: 'Tag web-pubsub-chat-client release'
+            dependsOn:
+              - verify
+              - chat_client_publish
+            condition: |
+              and(
+                not(canceled()),
+                eq(dependencies.verify.result, 'Succeeded'),
+                eq(dependencies.chat_client_publish.result, 'Succeeded')
+              )
+            pool:
+              type: release
+              os: linux
+            variables:
+              releaseVersion: $[ dependencies.verify.outputs['read.chat_client_releaseVersion'] ]
+              ob_outputDirectory: '$(Build.ArtifactStagingDirectory)'
+              ob_sdl_codeSignValidation_enabled: false
+              ob_sdl_binskim_enabled: false
+            steps:
+              - checkout: self
+                path: s/azure-webpubsub
+                fetchDepth: 1
+                fetchTags: true
+                persistCredentials: true
+              - task: Bash@3
+                displayName: 'Create and push release tag'
+                inputs:
+                  targetType: inline
+                  workingDirectory: '$(Pipeline.Workspace)/s/azure-webpubsub'
+                  script: |
+                    set -euo pipefail
+                    tag="release/web-pubsub-chat-client/v$(releaseVersion)"
+
+                    if git rev-parse --verify "refs/tags/${tag}" >/dev/null 2>&1; then
+                      echo "Tag ${tag} already exists locally. Skipping."
+                      exit 0
+                    fi
+
+                    git config --global user.name 'azure-webpubsub-release-bot'
+                    git config --global user.email 'azure-webpubsub-release-bot@users.noreply.github.com'
+                    git tag "${tag}"
+                    git push origin "${tag}"
+
+          - job: chat_client_post_deploy_pr
+            displayName: 'Open web-pubsub-chat-client beta bump PR'
+            dependsOn:
+              - verify
+              - chat_client_publish
+              - chat_client_post_deploy_tag
+            condition: |
+              and(
+                not(canceled()),
+                eq(dependencies.verify.result, 'Succeeded'),
+                eq(dependencies.chat_client_publish.result, 'Succeeded'),
+                eq(dependencies.chat_client_post_deploy_tag.result, 'Succeeded')
+              )
+            pool:
+              type: release
+              os: linux
+            variables:
+              releaseVersion: $[ dependencies.verify.outputs['read.chat_client_releaseVersion'] ]
+              ob_outputDirectory: '$(Build.ArtifactStagingDirectory)'
+              ob_sdl_codeSignValidation_enabled: false
+              ob_sdl_binskim_enabled: false
+            steps:
+              - checkout: self
+                path: s/azure-webpubsub
+                fetchDepth: 1
+                persistCredentials: true
+              - task: UseNode@1
+                displayName: 'Use Node 22.x'
+                inputs:
+                  version: 22.x
+              - task: Bash@3
+                displayName: 'Bump package.json and changelog, then open GitHub PR'
+                inputs:
+                  targetType: inline
+                  workingDirectory: '$(Pipeline.Workspace)/s/azure-webpubsub'
+                  script: |
+                    set -euo pipefail
+
+                    PACKAGE_FOLDER='sdk/webpubsub-chat-client'
+                    PACKAGE_NAME='web-pubsub-chat-client'
+
+                    package_json="$PACKAGE_FOLDER/package.json"
+                    current_version='$(releaseVersion)'
+                    new_version=$(node .pipelines/scripts/Npm-Release.mjs bump "$PACKAGE_FOLDER" "$current_version")
+                    branch="auto/upv-${PACKAGE_NAME}-${new_version}"
+                    echo "Current: $current_version  ->  Next: $new_version"
+                    echo "Branch:  $branch"
+
+                    git config --global user.name 'azure-webpubsub-release-bot'
+                    git config --global user.email 'azure-webpubsub-release-bot@users.noreply.github.com'
+                    git checkout -b "$branch"
+                    git add "$package_json" "$PACKAGE_FOLDER/CHANGELOG.md"
+                    git commit -m "Update ${PACKAGE_NAME} to next beta version ${new_version}"
+                    git push origin "$branch"
+
+                    auth_header=$(git config --get-urlmatch http.extraheader "https://github.com/Azure/azure-webpubsub" || true)
+                    if [ -z "$auth_header" ]; then
+                      echo "ERROR: no extraheader found in .git/config. Is checkout.persistCredentials true?"
+                      exit 1
+                    fi
+
+                    pr_body=$(BRANCH="$branch" NEW_VERSION="$new_version" PACKAGE_NAME="$PACKAGE_NAME" node -e "console.log(JSON.stringify({
+                      title: 'Update package.json to next beta version ' + process.env.NEW_VERSION,
+                      head: process.env.BRANCH,
+                      base: 'main',
+                      body: 'This PR updates ' + process.env.PACKAGE_NAME + ' package.json and CHANGELOG.md to the next beta version.'
+                    }))")
+
+                    curl -fsSL -X POST \
+                      -H "$auth_header" \
+                      -H 'Accept: application/vnd.github+json' \
+                      -H 'X-GitHub-Api-Version: 2022-11-28' \
+                      "https://api.github.com/repos/Azure/azure-webpubsub/pulls" \
+                      -d "$pr_body"
+
+          - job: socketio_publish
+            displayName: 'Publish webpubsub-socketio-extension through ESRP'
+            dependsOn:
+              - verify
+              - approve
+            condition: |
+              and(
+                not(canceled()),
+                eq(dependencies.verify.result, 'Succeeded'),
+                eq(dependencies.approve.result, 'Succeeded'),
+                eq(variables['needsRelease'], 'true')
+              )
+            pool:
+              type: release
+              os: windows
+            variables:
+              needsRelease: $[ dependencies.verify.outputs['read.socketio_needsRelease'] ]
+              releaseVersion: $[ dependencies.verify.outputs['read.socketio_releaseVersion'] ]
+              productState: $[ dependencies.verify.outputs['read.socketio_productState'] ]
+              ob_outputDirectory: '$(Build.ArtifactStagingDirectory)'
+              ob_sdl_codeSignValidation_enabled: false
+              ob_sdl_binskim_enabled: false
+            templateContext:
+              inputs:
+                - input: pipelineArtifact
+                  artifactName: 'drop_webpubsub-socketio-extension'
+                  targetPath: '$(Pipeline.Workspace)/esrp-release/$(Build.BuildId)/socketio'
+            steps:
+              - checkout: self
+                path: s/azure-webpubsub
+                fetchDepth: 1
+                persistCredentials: true
+              - task: UseNode@1
+                displayName: 'Use Node 22.x'
+                inputs:
+                  version: 22.x
+              - task: PowerShell@2
+                displayName: 'Check public npm version and GitHub tag availability'
+                inputs:
+                  pwsh: true
+                  targetType: inline
+                  workingDirectory: '$(Pipeline.Workspace)/s/azure-webpubsub'
+                  script: |
+                    $ErrorActionPreference = 'Stop'
+                    & node .pipelines/scripts/Npm-Release.mjs check `
+                      'sdk/webpubsub-socketio-extension' `
+                      '@azure/web-pubsub-socket.io' `
+                      'webpubsub-socketio-extension' `
+                      '$(releaseVersion)' `
+                      'Azure/azure-webpubsub'
+                    if ($LASTEXITCODE -ne 0) { throw 'Public package availability checks failed.' }
+              - task: EsrpRelease@11
+                displayName: 'Publish npm package through ESRP'
+                inputs:
+                  ConnectedServiceName: $(ESRP_SERVICE_CONNECTION)
+                  ClientId: '$(ESRP_CLIENT_ID)'
+                  DomainTenantId: '$(ESRP_TENANT_ID)'
+                  UseManagedIdentity: true
+                  KeyVaultName: '$(ESRP_KEY_VAULT_NAME)'
+                  SignCertName: '$(ESRP_SIGN_CERT_NAME)'
+                  Intent: 'PackageDistribution'
+                  ContentType: 'npm'
+                  ContentSource: 'Folder'
+                  FolderLocation: '$(Pipeline.Workspace)/esrp-release/$(Build.BuildId)/socketio'
+                  Owners: '$(ESRP_OWNERS)'
+                  Approvers: '$(ESRP_APPROVERS)'
+                  ServiceEndpointUrl: 'https://api.esrp.microsoft.com'
+                  MainPublisher: '$(ESRP_MAIN_PUBLISHER)'
+                  ProductState: '$(productState)'
+
+          - job: socketio_post_deploy_tag
+            displayName: 'Tag webpubsub-socketio-extension release'
+            dependsOn:
+              - verify
+              - socketio_publish
+            condition: |
+              and(
+                not(canceled()),
+                eq(dependencies.verify.result, 'Succeeded'),
+                eq(dependencies.socketio_publish.result, 'Succeeded')
+              )
+            pool:
+              type: release
+              os: linux
+            variables:
+              releaseVersion: $[ dependencies.verify.outputs['read.socketio_releaseVersion'] ]
+              ob_outputDirectory: '$(Build.ArtifactStagingDirectory)'
+              ob_sdl_codeSignValidation_enabled: false
+              ob_sdl_binskim_enabled: false
+            steps:
+              - checkout: self
+                path: s/azure-webpubsub
+                fetchDepth: 1
+                fetchTags: true
+                persistCredentials: true
+              - task: Bash@3
+                displayName: 'Create and push release tag'
+                inputs:
+                  targetType: inline
+                  workingDirectory: '$(Pipeline.Workspace)/s/azure-webpubsub'
+                  script: |
+                    set -euo pipefail
+                    tag="release/webpubsub-socketio-extension/v$(releaseVersion)"
+
+                    if git rev-parse --verify "refs/tags/${tag}" >/dev/null 2>&1; then
+                      echo "Tag ${tag} already exists locally. Skipping."
+                      exit 0
+                    fi
+
+                    git config --global user.name 'azure-webpubsub-release-bot'
+                    git config --global user.email 'azure-webpubsub-release-bot@users.noreply.github.com'
+                    git tag "${tag}"
+                    git push origin "${tag}"
+
+          - job: socketio_post_deploy_pr
+            displayName: 'Open webpubsub-socketio-extension beta bump PR'
+            dependsOn:
+              - verify
+              - socketio_publish
+              - socketio_post_deploy_tag
+            condition: |
+              and(
+                not(canceled()),
+                eq(dependencies.verify.result, 'Succeeded'),
+                eq(dependencies.socketio_publish.result, 'Succeeded'),
+                eq(dependencies.socketio_post_deploy_tag.result, 'Succeeded')
+              )
+            pool:
+              type: release
+              os: linux
+            variables:
+              releaseVersion: $[ dependencies.verify.outputs['read.socketio_releaseVersion'] ]
+              ob_outputDirectory: '$(Build.ArtifactStagingDirectory)'
+              ob_sdl_codeSignValidation_enabled: false
+              ob_sdl_binskim_enabled: false
+            steps:
+              - checkout: self
+                path: s/azure-webpubsub
+                fetchDepth: 1
+                persistCredentials: true
+              - task: UseNode@1
+                displayName: 'Use Node 22.x'
+                inputs:
+                  version: 22.x
+              - task: Bash@3
+                displayName: 'Bump package.json and changelog, then open GitHub PR'
+                inputs:
+                  targetType: inline
+                  workingDirectory: '$(Pipeline.Workspace)/s/azure-webpubsub'
+                  script: |
+                    set -euo pipefail
+
+                    PACKAGE_FOLDER='sdk/webpubsub-socketio-extension'
+                    PACKAGE_NAME='webpubsub-socketio-extension'
+
+                    package_json="$PACKAGE_FOLDER/package.json"
+                    current_version='$(releaseVersion)'
+                    new_version=$(node .pipelines/scripts/Npm-Release.mjs bump "$PACKAGE_FOLDER" "$current_version")
+                    branch="auto/upv-${PACKAGE_NAME}-${new_version}"
+                    echo "Current: $current_version  ->  Next: $new_version"
+                    echo "Branch:  $branch"
+
+                    git config --global user.name 'azure-webpubsub-release-bot'
+                    git config --global user.email 'azure-webpubsub-release-bot@users.noreply.github.com'
+                    git checkout -b "$branch"
+                    git add "$package_json" "$PACKAGE_FOLDER/CHANGELOG.md"
+                    git commit -m "Update ${PACKAGE_NAME} to next beta version ${new_version}"
+                    git push origin "$branch"
+
+                    auth_header=$(git config --get-urlmatch http.extraheader "https://github.com/Azure/azure-webpubsub" || true)
+                    if [ -z "$auth_header" ]; then
+                      echo "ERROR: no extraheader found in .git/config. Is checkout.persistCredentials true?"
+                      exit 1
+                    fi
+
+                    pr_body=$(BRANCH="$branch" NEW_VERSION="$new_version" PACKAGE_NAME="$PACKAGE_NAME" node -e "console.log(JSON.stringify({
+                      title: 'Update package.json to next beta version ' + process.env.NEW_VERSION,
+                      head: process.env.BRANCH,
+                      base: 'main',
+                      body: 'This PR updates ' + process.env.PACKAGE_NAME + ' package.json and CHANGELOG.md to the next beta version.'
+                    }))")
+
+                    curl -fsSL -X POST \
+                      -H "$auth_header" \
+                      -H 'Accept: application/vnd.github+json' \
+                      -H 'X-GitHub-Api-Version: 2022-11-28' \
+                      "https://api.github.com/repos/Azure/azure-webpubsub/pulls" \
+                      -d "$pr_body"
+
+          - job: tunnel_publish
+            displayName: 'Publish awps-tunnel through ESRP'
+            dependsOn:
+              - verify
+              - approve
+            condition: |
+              and(
+                not(canceled()),
+                eq(dependencies.verify.result, 'Succeeded'),
+                eq(dependencies.approve.result, 'Succeeded'),
+                eq(variables['needsRelease'], 'true')
+              )
+            pool:
+              type: release
+              os: windows
+            variables:
+              needsRelease: $[ dependencies.verify.outputs['read.tunnel_needsRelease'] ]
+              releaseVersion: $[ dependencies.verify.outputs['read.tunnel_releaseVersion'] ]
+              productState: $[ dependencies.verify.outputs['read.tunnel_productState'] ]
+              ob_outputDirectory: '$(Build.ArtifactStagingDirectory)'
+              ob_sdl_codeSignValidation_enabled: false
+              ob_sdl_binskim_enabled: false
+            templateContext:
+              inputs:
+                - input: pipelineArtifact
+                  artifactName: 'drop_awps-tunnel'
+                  targetPath: '$(Pipeline.Workspace)/esrp-release/$(Build.BuildId)/tunnel'
+            steps:
+              - checkout: self
+                path: s/azure-webpubsub
+                fetchDepth: 1
+                persistCredentials: true
+              - task: UseNode@1
+                displayName: 'Use Node 22.x'
+                inputs:
+                  version: 22.x
+              - task: PowerShell@2
+                displayName: 'Check public npm version and GitHub tag availability'
+                inputs:
+                  pwsh: true
+                  targetType: inline
+                  workingDirectory: '$(Pipeline.Workspace)/s/azure-webpubsub'
+                  script: |
+                    $ErrorActionPreference = 'Stop'
+                    & node .pipelines/scripts/Npm-Release.mjs check `
+                      'tools/awps-tunnel/server' `
+                      '@azure/web-pubsub-tunnel-tool' `
+                      'awps-tunnel' `
+                      '$(releaseVersion)' `
+                      'Azure/azure-webpubsub'
+                    if ($LASTEXITCODE -ne 0) { throw 'Public package availability checks failed.' }
+              - task: EsrpRelease@11
+                displayName: 'Publish npm package through ESRP'
+                inputs:
+                  ConnectedServiceName: $(ESRP_SERVICE_CONNECTION)
+                  ClientId: '$(ESRP_CLIENT_ID)'
+                  DomainTenantId: '$(ESRP_TENANT_ID)'
+                  UseManagedIdentity: true
+                  KeyVaultName: '$(ESRP_KEY_VAULT_NAME)'
+                  SignCertName: '$(ESRP_SIGN_CERT_NAME)'
+                  Intent: 'PackageDistribution'
+                  ContentType: 'npm'
+                  ContentSource: 'Folder'
+                  FolderLocation: '$(Pipeline.Workspace)/esrp-release/$(Build.BuildId)/tunnel'
+                  Owners: '$(ESRP_OWNERS)'
+                  Approvers: '$(ESRP_APPROVERS)'
+                  ServiceEndpointUrl: 'https://api.esrp.microsoft.com'
+                  MainPublisher: '$(ESRP_MAIN_PUBLISHER)'
+                  ProductState: '$(productState)'
+
+          - job: tunnel_post_deploy_tag
+            displayName: 'Tag awps-tunnel release'
+            dependsOn:
+              - verify
+              - tunnel_publish
+            condition: |
+              and(
+                not(canceled()),
+                eq(dependencies.verify.result, 'Succeeded'),
+                eq(dependencies.tunnel_publish.result, 'Succeeded')
+              )
+            pool:
+              type: release
+              os: linux
+            variables:
+              releaseVersion: $[ dependencies.verify.outputs['read.tunnel_releaseVersion'] ]
+              ob_outputDirectory: '$(Build.ArtifactStagingDirectory)'
+              ob_sdl_codeSignValidation_enabled: false
+              ob_sdl_binskim_enabled: false
+            steps:
+              - checkout: self
+                path: s/azure-webpubsub
+                fetchDepth: 1
+                fetchTags: true
+                persistCredentials: true
+              - task: Bash@3
+                displayName: 'Create and push release tag'
+                inputs:
+                  targetType: inline
+                  workingDirectory: '$(Pipeline.Workspace)/s/azure-webpubsub'
+                  script: |
+                    set -euo pipefail
+                    tag="release/awps-tunnel/v$(releaseVersion)"
+
+                    if git rev-parse --verify "refs/tags/${tag}" >/dev/null 2>&1; then
+                      echo "Tag ${tag} already exists locally. Skipping."
+                      exit 0
+                    fi
+
+                    git config --global user.name 'azure-webpubsub-release-bot'
+                    git config --global user.email 'azure-webpubsub-release-bot@users.noreply.github.com'
+                    git tag "${tag}"
+                    git push origin "${tag}"
+
+          - job: tunnel_post_deploy_pr
+            displayName: 'Open awps-tunnel beta bump PR'
+            dependsOn:
+              - verify
+              - tunnel_publish
+              - tunnel_post_deploy_tag
+            condition: |
+              and(
+                not(canceled()),
+                eq(dependencies.verify.result, 'Succeeded'),
+                eq(dependencies.tunnel_publish.result, 'Succeeded'),
+                eq(dependencies.tunnel_post_deploy_tag.result, 'Succeeded')
+              )
+            pool:
+              type: release
+              os: linux
+            variables:
+              releaseVersion: $[ dependencies.verify.outputs['read.tunnel_releaseVersion'] ]
+              ob_outputDirectory: '$(Build.ArtifactStagingDirectory)'
+              ob_sdl_codeSignValidation_enabled: false
+              ob_sdl_binskim_enabled: false
+            steps:
+              - checkout: self
+                path: s/azure-webpubsub
+                fetchDepth: 1
+                persistCredentials: true
+              - task: UseNode@1
+                displayName: 'Use Node 22.x'
+                inputs:
+                  version: 22.x
+              - task: Bash@3
+                displayName: 'Bump package.json and changelog, then open GitHub PR'
+                inputs:
+                  targetType: inline
+                  workingDirectory: '$(Pipeline.Workspace)/s/azure-webpubsub'
+                  script: |
+                    set -euo pipefail
+
+                    PACKAGE_FOLDER='tools/awps-tunnel/server'
+                    PACKAGE_NAME='awps-tunnel'
+
+                    package_json="$PACKAGE_FOLDER/package.json"
+                    current_version='$(releaseVersion)'
+                    new_version=$(node .pipelines/scripts/Npm-Release.mjs bump "$PACKAGE_FOLDER" "$current_version")
+                    branch="auto/upv-${PACKAGE_NAME}-${new_version}"
+                    echo "Current: $current_version  ->  Next: $new_version"
+                    echo "Branch:  $branch"
+
+                    git config --global user.name 'azure-webpubsub-release-bot'
+                    git config --global user.email 'azure-webpubsub-release-bot@users.noreply.github.com'
+                    git checkout -b "$branch"
+                    git add "$package_json" "$PACKAGE_FOLDER/CHANGELOG.md"
+                    git commit -m "Update ${PACKAGE_NAME} to next beta version ${new_version}"
+                    git push origin "$branch"
+
+                    auth_header=$(git config --get-urlmatch http.extraheader "https://github.com/Azure/azure-webpubsub" || true)
+                    if [ -z "$auth_header" ]; then
+                      echo "ERROR: no extraheader found in .git/config. Is checkout.persistCredentials true?"
+                      exit 1
+                    fi
+
+                    pr_body=$(BRANCH="$branch" NEW_VERSION="$new_version" PACKAGE_NAME="$PACKAGE_NAME" node -e "console.log(JSON.stringify({
+                      title: 'Update package.json to next beta version ' + process.env.NEW_VERSION,
+                      head: process.env.BRANCH,
+                      base: 'main',
+                      body: 'This PR updates ' + process.env.PACKAGE_NAME + ' package.json and CHANGELOG.md to the next beta version.'
+                    }))")
+
+                    curl -fsSL -X POST \
+                      -H "$auth_header" \
+                      -H 'Accept: application/vnd.github+json' \
+                      -H 'X-GitHub-Api-Version: 2022-11-28' \
+                      "https://api.github.com/repos/Azure/azure-webpubsub/pulls" \
+                      -d "$pr_body"
 
       - template: templates/stages/release-package.yml
         parameters:
