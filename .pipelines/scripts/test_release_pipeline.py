@@ -545,7 +545,9 @@ class ReleasePipelineTests(unittest.TestCase):
         prepare = RELEASE_JOBS['emulator_prepare']
         self.assertEqual(prepare['pool'], {'type': 'linux'})
         self.assertEqual(prepare['variables']['ob_artifactBaseName'], 'drop_emulator_nuget')
-        self.assertEqual(prepare['steps'][0], {'checkout': 'none'})
+        self.assertEqual(prepare['steps'][0], {
+            'checkout': 'self', 'fetchDepth': 1, 'persistCredentials': False,
+        })
         download = prepare['steps'][1]
         self.assertEqual(download['task'], 'DownloadPipelineArtifact@2')
         self.assertEqual(download['inputs'], {
