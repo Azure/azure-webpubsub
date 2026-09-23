@@ -17,6 +17,8 @@ ROOT = Path(__file__).resolve().parents[2]
 PIPELINE = yaml.safe_load((ROOT / '.pipelines/release.yml').read_text(encoding='utf-8'))
 TEMPLATE = yaml.safe_load((ROOT / '.pipelines/templates/stages/release-package.yml').read_text(encoding='utf-8'))
 ENTRIES = PIPELINE['extends']['parameters']['stages']
+NPM_BUILD_ENTRIES = [entry for entry in ENTRIES
+                     if entry.get('template') == 'templates/stages/release-package.yml']
 NPM_KEYS = ('chat_client', 'socketio', 'tunnel')
 PACKAGE_KEYS = ('emulator', *NPM_KEYS)
 MANUAL_STAGES = tuple(f'Prod_{key}_approve' for key in PACKAGE_KEYS)
@@ -41,13 +43,20 @@ def instantiate(template, parameters, kind):
     return expand(template[kind], defaults | parameters)
 
 
-STAGES = {}
-for entry in ENTRIES:
-    if 'stage' in entry:
-        STAGES[entry['stage']] = entry
-    else:
-        for stage in instantiate(TEMPLATE, entry['parameters'], 'stages'):
-            STAGES[stage['stage']] = stage
+def expand_stages(entries, directory):
+    """Resolve local stage templates; OneBranch expansion is validated in the cloud."""
+    for entry in entries:
+        if 'stage' in entry:
+            yield entry
+        else:
+            path = directory / entry['template']
+            template = yaml.safe_load(path.read_text(encoding='utf-8'))
+            stages = instantiate(template, entry.get('parameters', {}), 'stages')
+            yield from expand_stages(stages, path.parent)
+
+
+EXPANDED_STAGES = list(expand_stages(ENTRIES, ROOT / '.pipelines'))
+STAGES = {stage['stage']: stage for stage in EXPANDED_STAGES}
 
 NPM_STAGES = tuple(name for key in NPM_KEYS for name in
                    (f'Prod_{key}_approve', f'Prod_{key}_publish', f'{key}_release_finalize'))
@@ -141,7 +150,7 @@ class ReleasePipelineTests(unittest.TestCase):
     def test_unconditional_templates_no_runtime_switches(self):
         self.assertNotIn('parameters', PIPELINE)
         self.assertNotIn('publish_package', {p['name'] for p in TEMPLATE['parameters']})
-        self.assertEqual([e['parameters']['package_key'] for e in ENTRIES if 'template' in e], list(NPM_KEYS))
+        self.assertEqual([e['parameters']['package_key'] for e in NPM_BUILD_ENTRIES], list(NPM_KEYS))
         self.assertIs(PIPELINE['trigger']['batch'], True)
         self.assertEqual(PIPELINE['trigger']['branches']['include'], ['main'])
         self.assertEqual(PIPELINE['pr'], 'none')
@@ -149,7 +158,8 @@ class ReleasePipelineTests(unittest.TestCase):
         self.assertEqual({name for name, stage in STAGES.items() if stage.get('trigger') == 'manual'},
                          set(MANUAL_STAGES))
 
-    def test_manual_release_jobs_are_inline(self):
+    def test_release_templates_resolve_to_concrete_stages_and_jobs(self):
+        self.assertEqual(len(EXPANDED_STAGES), len(STAGES), 'Stage names must be unique')
         for name in RELEASE_STAGES:
             self.assertNotIn('"template":', json.dumps(STAGES[name]))
             self.assertNotIn('${{', json.dumps(STAGES[name]))
@@ -426,7 +436,7 @@ class ReleasePipelineTests(unittest.TestCase):
             self.assertEqual(RELEASE_JOBS[f'{key}_publish']['pool']['type'], 'release')
 
     def test_manual_release_reuses_same_run_artifacts_without_building(self):
-        build_packages = {e['parameters']['package_key']: e['parameters'] for e in ENTRIES if 'template' in e}
+        build_packages = {e['parameters']['package_key']: e['parameters'] for e in NPM_BUILD_ENTRIES}
         for key, package in build_packages.items():
             build = STAGES[f'{key}_build']['jobs'][0]
             publish = RELEASE_JOBS[f'{key}_publish']
@@ -531,7 +541,7 @@ class ReleasePipelineTests(unittest.TestCase):
             'nuGetFeedType': 'external', 'publishFeedCredentials': 'azure-webpubsub-dev'})
 
     def test_npm_pack_commands_and_shallow_version_checkout(self):
-        packages = {e['parameters']['package_key']: e['parameters'] for e in ENTRIES if 'template' in e}
+        packages = {e['parameters']['package_key']: e['parameters'] for e in NPM_BUILD_ENTRIES}
         for key, package in packages.items():
             checkout = STAGES[f'{key}_build']['jobs'][0]['steps'][0]
             self.assertEqual(checkout['fetchDepth'], 1)
