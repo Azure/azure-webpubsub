@@ -42,8 +42,8 @@ extends:
       policheck:
         break: true
     stages:
-      - stage: release_check
-        displayName: 'Check versions'
+      - stage: emulator_build
+        displayName: 'Build emulator'
         isSkippable: false
         dependsOn: []
         condition: |
@@ -53,42 +53,6 @@ extends:
               eq(variables['Build.SourceBranch'], 'refs/heads/main'),
               eq(variables['Build.Reason'], 'Manual')
             )
-          )
-        jobs:
-          - job: check
-            pool:
-              type: linux
-            variables:
-              ob_outputDirectory: '$(Build.ArtifactStagingDirectory)'
-              ob_sdl_codeSignValidation_enabled: false
-              ob_sdl_binskim_enabled: false
-            steps:
-              - checkout: self
-                path: s/azure-webpubsub
-                fetchDepth: 1
-                persistCredentials: false
-              - task: UseNode@1
-                displayName: 'Use Node 22.x'
-                inputs:
-                  version: '22.x'
-              - task: Bash@3
-                name: read
-                displayName: 'Validate versions'
-                inputs:
-                  targetType: inline
-                  workingDirectory: '$(Pipeline.Workspace)/s/azure-webpubsub'
-                  script: |
-                    set -euo pipefail
-                    node .pipelines/scripts/Get-ReleasePackages.mjs
-
-      - stage: emulator_build
-        displayName: 'Build emulator'
-        isSkippable: false
-        dependsOn: release_check
-        condition: |
-          and(
-            not(canceled()),
-            eq(dependencies.release_check.result, 'Succeeded')
           )
         jobs:
           - job: build
@@ -106,6 +70,19 @@ extends:
                 env:
                   # Relocate and clean the checkout before the signing watcher starts.
                   ob_restore_phase: true
+              - task: UseNode@1
+                displayName: 'Use Node 22.x'
+                inputs:
+                  version: '22.x'
+              - task: Bash@3
+                name: read
+                displayName: 'Check version'
+                inputs:
+                  targetType: inline
+                  workingDirectory: '$(Pipeline.Workspace)/s/azure-webpubsub'
+                  script: |
+                    set -euo pipefail
+                    node .pipelines/scripts/Get-ReleasePackages.mjs emulator
               - task: UseDotNet@2
                 displayName: 'Use .NET SDK'
                 inputs:
@@ -246,12 +223,10 @@ extends:
         displayName: 'Publish MyGet preview'
         isSkippable: false
         dependsOn:
-          - release_check
           - emulator_build
         condition: |
           and(
             not(canceled()),
-            eq(dependencies.release_check.result, 'Succeeded'),
             eq(dependencies.emulator_build.result, 'Succeeded'),
             or(
               eq(variables['Build.SourceBranch'], 'refs/heads/main'),
@@ -332,13 +307,11 @@ extends:
         displayName: 'Prepare NuGet artifact'
         isSkippable: false
         dependsOn:
-          - release_check
           - emulator_build
           - Prod_emulator_approve
         condition: |
           and(
             not(canceled()),
-            eq(dependencies.release_check.result, 'Succeeded'),
             eq(dependencies.emulator_build.result, 'Succeeded'),
             eq(dependencies.Prod_emulator_approve.result, 'Succeeded')
           )
@@ -349,7 +322,7 @@ extends:
             pool:
               type: linux
             variables:
-              releaseVersion: $[ stageDependencies.release_check.check.outputs['read.emulator_releaseVersion'] ]
+              releaseVersion: $[ stageDependencies.emulator_build.build.outputs['read.emulator_releaseVersion'] ]
               ob_outputDirectory: '$(Build.ArtifactStagingDirectory)/nuget'
               ob_artifactBaseName: drop_emulator_nuget
               ob_sdl_codeSignValidation_enabled: false
@@ -421,13 +394,11 @@ extends:
         displayName: 'Check chat client'
         isSkippable: false
         dependsOn:
-          - release_check
           - chat_client_build
           - Prod_chat_client_approve
         condition: |
           and(
             not(canceled()),
-            eq(dependencies.release_check.result, 'Succeeded'),
             eq(dependencies.chat_client_build.result, 'Succeeded'),
             eq(dependencies.Prod_chat_client_approve.result, 'Succeeded')
           )
@@ -438,7 +409,7 @@ extends:
             pool:
               type: linux
             variables:
-              releaseVersion: $[ stageDependencies.release_check.check.outputs['read.chat_client_releaseVersion'] ]
+              releaseVersion: $[ stageDependencies.chat_client_build.build.outputs['read.chat_client_releaseVersion'] ]
               ob_outputDirectory: '$(Build.ArtifactStagingDirectory)'
               ob_sdl_codeSignValidation_enabled: false
               ob_sdl_binskim_enabled: false
@@ -471,7 +442,7 @@ extends:
         displayName: 'Publish chat client'
         isSkippable: false
         dependsOn:
-          - release_check
+          - chat_client_build
           - Prod_chat_client_approve
           - chat_client_release_check
         condition: |
@@ -496,8 +467,8 @@ extends:
               os: windows
             variables:
               checkResult: $[ stageDependencies.chat_client_release_check.chat_client_check.result ]
-              releaseVersion: $[ stageDependencies.release_check.check.outputs['read.chat_client_releaseVersion'] ]
-              productState: $[ stageDependencies.release_check.check.outputs['read.chat_client_productState'] ]
+              releaseVersion: $[ stageDependencies.chat_client_build.build.outputs['read.chat_client_releaseVersion'] ]
+              productState: $[ stageDependencies.chat_client_build.build.outputs['read.chat_client_productState'] ]
               ob_outputDirectory: '$(Build.ArtifactStagingDirectory)'
               ob_sdl_codeSignValidation_enabled: false
               ob_sdl_binskim_enabled: false
@@ -530,7 +501,7 @@ extends:
         displayName: 'Finalize chat client'
         isSkippable: false
         dependsOn:
-          - release_check
+          - chat_client_build
           - Prod_chat_client_approve
           - chat_client_release_check
           - Prod_chat_client_publish
@@ -556,7 +527,7 @@ extends:
             variables:
               checkResult: $[ stageDependencies.chat_client_release_check.chat_client_check.result ]
               publishResult: $[ stageDependencies.Prod_chat_client_publish.chat_client_publish.result ]
-              releaseVersion: $[ stageDependencies.release_check.check.outputs['read.chat_client_releaseVersion'] ]
+              releaseVersion: $[ stageDependencies.chat_client_build.build.outputs['read.chat_client_releaseVersion'] ]
               ob_outputDirectory: '$(Build.ArtifactStagingDirectory)'
               ob_sdl_codeSignValidation_enabled: false
               ob_sdl_binskim_enabled: false
@@ -600,7 +571,7 @@ extends:
             variables:
               checkResult: $[ stageDependencies.chat_client_release_check.chat_client_check.result ]
               publishResult: $[ stageDependencies.Prod_chat_client_publish.chat_client_publish.result ]
-              releaseVersion: $[ stageDependencies.release_check.check.outputs['read.chat_client_releaseVersion'] ]
+              releaseVersion: $[ stageDependencies.chat_client_build.build.outputs['read.chat_client_releaseVersion'] ]
               ob_outputDirectory: '$(Build.ArtifactStagingDirectory)'
               ob_sdl_codeSignValidation_enabled: false
               ob_sdl_binskim_enabled: false
@@ -697,13 +668,11 @@ extends:
         displayName: 'Check Socket.IO'
         isSkippable: false
         dependsOn:
-          - release_check
           - socketio_build
           - Prod_socketio_approve
         condition: |
           and(
             not(canceled()),
-            eq(dependencies.release_check.result, 'Succeeded'),
             eq(dependencies.socketio_build.result, 'Succeeded'),
             eq(dependencies.Prod_socketio_approve.result, 'Succeeded')
           )
@@ -714,7 +683,7 @@ extends:
             pool:
               type: linux
             variables:
-              releaseVersion: $[ stageDependencies.release_check.check.outputs['read.socketio_releaseVersion'] ]
+              releaseVersion: $[ stageDependencies.socketio_build.build.outputs['read.socketio_releaseVersion'] ]
               ob_outputDirectory: '$(Build.ArtifactStagingDirectory)'
               ob_sdl_codeSignValidation_enabled: false
               ob_sdl_binskim_enabled: false
@@ -747,7 +716,7 @@ extends:
         displayName: 'Publish Socket.IO'
         isSkippable: false
         dependsOn:
-          - release_check
+          - socketio_build
           - Prod_socketio_approve
           - socketio_release_check
         condition: |
@@ -772,8 +741,8 @@ extends:
               os: windows
             variables:
               checkResult: $[ stageDependencies.socketio_release_check.socketio_check.result ]
-              releaseVersion: $[ stageDependencies.release_check.check.outputs['read.socketio_releaseVersion'] ]
-              productState: $[ stageDependencies.release_check.check.outputs['read.socketio_productState'] ]
+              releaseVersion: $[ stageDependencies.socketio_build.build.outputs['read.socketio_releaseVersion'] ]
+              productState: $[ stageDependencies.socketio_build.build.outputs['read.socketio_productState'] ]
               ob_outputDirectory: '$(Build.ArtifactStagingDirectory)'
               ob_sdl_codeSignValidation_enabled: false
               ob_sdl_binskim_enabled: false
@@ -806,7 +775,7 @@ extends:
         displayName: 'Finalize Socket.IO'
         isSkippable: false
         dependsOn:
-          - release_check
+          - socketio_build
           - Prod_socketio_approve
           - socketio_release_check
           - Prod_socketio_publish
@@ -832,7 +801,7 @@ extends:
             variables:
               checkResult: $[ stageDependencies.socketio_release_check.socketio_check.result ]
               publishResult: $[ stageDependencies.Prod_socketio_publish.socketio_publish.result ]
-              releaseVersion: $[ stageDependencies.release_check.check.outputs['read.socketio_releaseVersion'] ]
+              releaseVersion: $[ stageDependencies.socketio_build.build.outputs['read.socketio_releaseVersion'] ]
               ob_outputDirectory: '$(Build.ArtifactStagingDirectory)'
               ob_sdl_codeSignValidation_enabled: false
               ob_sdl_binskim_enabled: false
@@ -876,7 +845,7 @@ extends:
             variables:
               checkResult: $[ stageDependencies.socketio_release_check.socketio_check.result ]
               publishResult: $[ stageDependencies.Prod_socketio_publish.socketio_publish.result ]
-              releaseVersion: $[ stageDependencies.release_check.check.outputs['read.socketio_releaseVersion'] ]
+              releaseVersion: $[ stageDependencies.socketio_build.build.outputs['read.socketio_releaseVersion'] ]
               ob_outputDirectory: '$(Build.ArtifactStagingDirectory)'
               ob_sdl_codeSignValidation_enabled: false
               ob_sdl_binskim_enabled: false
@@ -973,13 +942,11 @@ extends:
         displayName: 'Check tunnel'
         isSkippable: false
         dependsOn:
-          - release_check
           - tunnel_build
           - Prod_tunnel_approve
         condition: |
           and(
             not(canceled()),
-            eq(dependencies.release_check.result, 'Succeeded'),
             eq(dependencies.tunnel_build.result, 'Succeeded'),
             eq(dependencies.Prod_tunnel_approve.result, 'Succeeded')
           )
@@ -990,7 +957,7 @@ extends:
             pool:
               type: linux
             variables:
-              releaseVersion: $[ stageDependencies.release_check.check.outputs['read.tunnel_releaseVersion'] ]
+              releaseVersion: $[ stageDependencies.tunnel_build.build.outputs['read.tunnel_releaseVersion'] ]
               ob_outputDirectory: '$(Build.ArtifactStagingDirectory)'
               ob_sdl_codeSignValidation_enabled: false
               ob_sdl_binskim_enabled: false
@@ -1023,7 +990,7 @@ extends:
         displayName: 'Publish tunnel'
         isSkippable: false
         dependsOn:
-          - release_check
+          - tunnel_build
           - Prod_tunnel_approve
           - tunnel_release_check
         condition: |
@@ -1048,8 +1015,8 @@ extends:
               os: windows
             variables:
               checkResult: $[ stageDependencies.tunnel_release_check.tunnel_check.result ]
-              releaseVersion: $[ stageDependencies.release_check.check.outputs['read.tunnel_releaseVersion'] ]
-              productState: $[ stageDependencies.release_check.check.outputs['read.tunnel_productState'] ]
+              releaseVersion: $[ stageDependencies.tunnel_build.build.outputs['read.tunnel_releaseVersion'] ]
+              productState: $[ stageDependencies.tunnel_build.build.outputs['read.tunnel_productState'] ]
               ob_outputDirectory: '$(Build.ArtifactStagingDirectory)'
               ob_sdl_codeSignValidation_enabled: false
               ob_sdl_binskim_enabled: false
@@ -1082,7 +1049,7 @@ extends:
         displayName: 'Finalize tunnel'
         isSkippable: false
         dependsOn:
-          - release_check
+          - tunnel_build
           - Prod_tunnel_approve
           - tunnel_release_check
           - Prod_tunnel_publish
@@ -1108,7 +1075,7 @@ extends:
             variables:
               checkResult: $[ stageDependencies.tunnel_release_check.tunnel_check.result ]
               publishResult: $[ stageDependencies.Prod_tunnel_publish.tunnel_publish.result ]
-              releaseVersion: $[ stageDependencies.release_check.check.outputs['read.tunnel_releaseVersion'] ]
+              releaseVersion: $[ stageDependencies.tunnel_build.build.outputs['read.tunnel_releaseVersion'] ]
               ob_outputDirectory: '$(Build.ArtifactStagingDirectory)'
               ob_sdl_codeSignValidation_enabled: false
               ob_sdl_binskim_enabled: false
@@ -1152,7 +1119,7 @@ extends:
             variables:
               checkResult: $[ stageDependencies.tunnel_release_check.tunnel_check.result ]
               publishResult: $[ stageDependencies.Prod_tunnel_publish.tunnel_publish.result ]
-              releaseVersion: $[ stageDependencies.release_check.check.outputs['read.tunnel_releaseVersion'] ]
+              releaseVersion: $[ stageDependencies.tunnel_build.build.outputs['read.tunnel_releaseVersion'] ]
               ob_outputDirectory: '$(Build.ArtifactStagingDirectory)'
               ob_sdl_codeSignValidation_enabled: false
               ob_sdl_binskim_enabled: false

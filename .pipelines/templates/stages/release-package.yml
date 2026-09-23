@@ -31,15 +31,16 @@ parameters:
 stages:
   - stage: ${{ format('{0}_build', parameters.package_key) }}
     displayName: 'Build ${{ parameters.package_title }}'
-    dependsOn: release_check
+    dependsOn: []
     isSkippable: false
     condition: |
       and(
         not(canceled()),
-        eq(dependencies.release_check.result, 'Succeeded')
+        or(
+          eq(variables['Build.SourceBranch'], 'refs/heads/main'),
+          eq(variables['Build.Reason'], 'Manual')
+        )
       )
-    variables:
-      releaseVersion: $[ stageDependencies.release_check.check.outputs['read.${{ parameters.package_key }}_releaseVersion'] ]
     jobs:
       - job: build
         displayName: 'Build and pack'
@@ -59,6 +60,15 @@ stages:
             displayName: 'Use Node ${{ parameters.node_version }}'
             inputs:
               version: ${{ parameters.node_version }}
+          - task: Bash@3
+            name: read
+            displayName: 'Check version'
+            inputs:
+              targetType: inline
+              workingDirectory: '$(Pipeline.Workspace)/s/azure-webpubsub'
+              script: |
+                set -euo pipefail
+                node .pipelines/scripts/Get-ReleasePackages.mjs ${{ parameters.package_key }}
           - task: Bash@3
             displayName: 'Configure npm feed'
             inputs:
@@ -132,8 +142,8 @@ stages:
                   echo "ERROR: expected package name ${{ parameters.npm_package_name }}, found $packed_name"
                   exit 1
                 fi
-                if [ "$packed_version" != "$(releaseVersion)" ]; then
-                  echo "ERROR: expected package version $(releaseVersion), found $packed_version"
+                if [ "$packed_version" != "$(read.${{ parameters.package_key }}_releaseVersion)" ]; then
+                  echo "ERROR: expected package version $(read.${{ parameters.package_key }}_releaseVersion), found $packed_version"
                   exit 1
                 fi
                 echo "Tarball: $tarball_path"

@@ -161,7 +161,7 @@ class ReleasePipelineTests(unittest.TestCase):
                              [release_job(key)])
 
     def test_stage_and_release_job_graphs(self):
-        self.assertEqual(len(STAGES), 20)
+        self.assertEqual(len(STAGES), 19)
         self.assertEqual(len(RELEASE_JOBS), 17)
         graphs = [STAGES] + [{job['job']: job for job in stage['jobs']} for stage in STAGES.values()]
         for graph in graphs:
@@ -185,10 +185,10 @@ class ReleasePipelineTests(unittest.TestCase):
             self.assertEqual(dependencies(RELEASE_JOBS[f'{key}_approve']), [])
         for key in NPM_KEYS:
             approve, check, publish = f'Prod_{key}_approve', f'{key}_release_check', f'Prod_{key}_publish'
-            self.assertEqual(dependencies(STAGES[check]), ['release_check', f'{key}_build', approve])
-            self.assertEqual(dependencies(STAGES[publish]), ['release_check', approve, check])
+            self.assertEqual(dependencies(STAGES[check]), [f'{key}_build', approve])
+            self.assertEqual(dependencies(STAGES[publish]), [f'{key}_build', approve, check])
             self.assertEqual(dependencies(STAGES[f'{key}_release_finalize']),
-                             ['release_check', approve, check, publish])
+                             [f'{key}_build', approve, check, publish])
         seen = set()
         for name, stage in STAGES.items():
             self.assertTrue(set(dependencies(stage)) <= seen)
@@ -203,7 +203,7 @@ class ReleasePipelineTests(unittest.TestCase):
                 values[f'dependencies.{name}.result'] = 'Succeeded' if allowed else 'Skipped'
                 if allowed:
                     ran.add(name)
-            self.assertEqual(ran, {'release_check', 'emulator_build', 'emulator_myget',
+            self.assertEqual(ran, {'emulator_build', 'emulator_myget',
                                    *(f'{key}_build' for key in NPM_KEYS)})
             for name in RELEASE_JOBS:
                 # Trigger selection is separate from condition eligibility.
@@ -252,14 +252,34 @@ class ReleasePipelineTests(unittest.TestCase):
                 if output:
                     self.assertEqual(output.split('.')[0], 'read')
                     self.assertIn('read', [step.get('name') for step in job['steps']])
+                    key = stage_name.removesuffix('_build')
+                    self.assertIn(key, PACKAGE_KEYS)
+                    self.assertIn(output, (f'read.{key}_releaseVersion', f'read.{key}_productState'))
 
-    def test_version_check_has_no_history_or_readiness_tracking(self):
-        job = STAGES['release_check']['jobs'][0]
-        self.assertEqual(job['steps'][-1]['name'], 'read')
-        self.assertEqual(job['steps'][-1]['inputs']['script'],
-                         'set -euo pipefail\nnode .pipelines/scripts/Get-ReleasePackages.mjs\n')
-        self.assertNotIn('env', job['steps'][-1])
-        self.assertNotIn('ob_artifactBaseName', job['variables'])
+    def test_version_checks_run_first_in_each_build_without_history_or_readiness_tracking(self):
+        self.assertNotIn('release_check', STAGES)
+        for key in PACKAGE_KEYS:
+            stage = STAGES[f'{key}_build']
+            job = stage['jobs'][0]
+            self.assertEqual(job['job'], 'build')
+            self.assertEqual(dependencies(stage), [])
+            steps = job['steps']
+            self.assertEqual(steps[0]['checkout'], 'self')
+            self.assertEqual(steps[1]['task'], 'UseNode@1')
+            check = steps[2]
+            self.assertEqual(check['name'], 'read')
+            self.assertEqual(check['task'], 'Bash@3')
+            self.assertEqual(check['inputs']['script'],
+                             f'set -euo pipefail\nnode .pipelines/scripts/Get-ReleasePackages.mjs {key}\n')
+            self.assertEqual(check['inputs']['workingDirectory'], '$(Pipeline.Workspace)/s/azure-webpubsub')
+            self.assertNotIn('condition', check)
+            self.assertNotIn('continueOnError', check)
+            self.assertNotIn('continueOnError', job)
+            if key in NPM_KEYS:
+                locate = next(step for step in steps if step.get('name') == 'locate')
+                self.assertIn(f'"$packed_version" != "$(read.{key}_releaseVersion)"', locate['inputs']['script'])
+                self.assertNotIn('$(releaseVersion)', locate['inputs']['script'])
+                self.assertNotIn('stageDependencies.', json.dumps(stage))
         for filename in ('Get-ReadyNpmRelease.mjs', 'Get-ReadyNpmRelease.test.mjs'):
             self.assertFalse((ROOT / '.pipelines/scripts' / filename).exists())
         helper = (ROOT / '.pipelines/scripts/Get-ReleasePackages.mjs').read_text(encoding='utf-8')
@@ -284,26 +304,16 @@ class ReleasePipelineTests(unittest.TestCase):
         for branch, reason, eligible in cases:
             with self.subTest(branch=branch, reason=reason):
                 values = context(branch, reason)
-                self.assertEqual(permits('release_check', values), eligible)
-                if not eligible:
-                    values['dependencies.release_check.result'] = 'Skipped'
                 for key in PACKAGE_KEYS:
                     self.assertEqual(permits(f'{key}_build', values), eligible)
                     self.assertEqual(permits(f'Prod_{key}_approve', values), eligible)
                 self.assertEqual(permits('emulator_myget', values), eligible)
 
-    def test_all_builds_and_myget_fail_closed(self):
+    def test_builds_are_independent_and_release_gates_fail_closed(self):
         states = ('Skipped', 'Failed', 'Canceled', 'SucceededWithIssues', 'Pending', '')
         for key in PACKAGE_KEYS:
-            self.assertEqual(dependencies(STAGES[f'{key}_build']), ['release_check'])
+            self.assertEqual(STAGES[f'{key}_build']['dependsOn'], [])
             self.assertTrue(permits(f'{key}_build', context()))
-            for result in states:
-                values = context()
-                values['dependencies.release_check.result'] = result
-                self.assertFalse(permits(f'{key}_build', values))
-                following = 'emulator_release_prepare' if key == 'emulator' else f'{key}_release_check'
-                self.assertFalse(permits(following, values))
-                self.assertFalse(permits('emulator_myget', values))
         for result in ('Succeeded', *states):
             values = context()
             values['dependencies.emulator_build.result'] = result
@@ -312,6 +322,8 @@ class ReleasePipelineTests(unittest.TestCase):
             values = context()
             values[f'dependencies.{key}_build.result'] = result
             for other in PACKAGE_KEYS:
+                if other != key:
+                    self.assertTrue(permits(f'{other}_build', values))
                 following = 'emulator_release_prepare' if other == 'emulator' else f'{other}_release_check'
                 self.assertEqual(permits(following, values), other != key)
 
@@ -328,7 +340,7 @@ class ReleasePipelineTests(unittest.TestCase):
                                          (key, result, other, suffix))
 
     def test_myget_and_public_releases_have_no_dependency_on_each_other(self):
-        self.assertEqual(set(dependencies(STAGES['emulator_myget'])), {'release_check', 'emulator_build'})
+        self.assertEqual(dependencies(STAGES['emulator_myget']), ['emulator_build'])
         for name in RELEASE_STAGES:
             self.assertNotIn('emulator_myget', dependencies(STAGES[name]))
         for state in ('Succeeded', 'Skipped', 'Failed', 'Canceled', 'Pending', 'SucceededWithIssues', ''):
@@ -430,7 +442,7 @@ class ReleasePipelineTests(unittest.TestCase):
             }])
             for variable in ('releaseVersion', 'productState'):
                 self.assertEqual(publish['variables'][variable],
-                                 f"$[ stageDependencies.release_check.check.outputs['read.{key}_{variable}'] ]")
+                                 f"$[ stageDependencies.{key}_build.build.outputs['read.{key}_{variable}'] ]")
             steps = publish['steps']
             self.assertEqual(len(steps), 1)
             self.assertEqual(steps[-1]['task'], 'EsrpRelease@11')
@@ -442,7 +454,7 @@ class ReleasePipelineTests(unittest.TestCase):
             self.assertEqual(len(check['steps']), 3)
             self.assertNotIn('condition', check['steps'][-1])
             self.assertEqual(check['variables']['releaseVersion'],
-                             f"$[ stageDependencies.release_check.check.outputs['read.{key}_releaseVersion'] ]")
+                             f"$[ stageDependencies.{key}_build.build.outputs['read.{key}_releaseVersion'] ]")
             check_script = check['steps'][-1]['inputs']['script']
             self.assertIn('Npm-Release.mjs check', check_script)
             self.assertIn("'$(releaseVersion)'", check_script)
@@ -481,8 +493,8 @@ class ReleasePipelineTests(unittest.TestCase):
         self.assertEqual(build['pool']['type'], 'linux')
         self.assertEqual(build['variables']['ob_artifactBaseName'], 'drop_emulator')
         steps = build['steps']
-        self.assertEqual(steps[1]['task'], 'UseDotNet@2')
-        self.assertIs(steps[1]['inputs']['useGlobalJson'], True)
+        self.assertEqual(steps[3]['task'], 'UseDotNet@2')
+        self.assertIs(steps[3]['inputs']['useGlobalJson'], True)
         sdk = json.loads((ROOT / 'tools/emulator/global.json').read_text(encoding='utf-8'))
         self.assertEqual(sdk['sdk']['version'], '10.0.401')
         scripts = [s['inputs']['script'] for s in steps if s.get('task') == 'PowerShell@2']
@@ -495,12 +507,12 @@ class ReleasePipelineTests(unittest.TestCase):
         self.assertIn('-ReleaseVersion -Phase Validate -RequireSignature', scripts[2])
         self.assertEqual(scripts[2].count('-RequireSignature'), 1)
         self.assertEqual(scripts[2].count('-Phase Validate'), 2)
-        sequence = [s.get('task') for s in steps[2:]]
+        sequence = [s.get('task') for s in steps[4:]]
         self.assertEqual(sequence, ['PowerShell@2', 'onebranch.pipeline.signing@1', 'PowerShell@2',
                                     'onebranch.pipeline.signing@1', 'PowerShell@2'])
-        self.assertEqual(steps[3]['inputs']['files_to_sign'], 'obj/Release/*/Microsoft.Azure.WebPubSub.Emulator.dll')
-        self.assertEqual(steps[5]['inputs']['search_root'], '$(ob_outputDirectory)/release')
-        self.assertEqual(steps[5]['inputs']['cp_code'], 'CP-401405')
+        self.assertEqual(steps[5]['inputs']['files_to_sign'], 'obj/Release/*/Microsoft.Azure.WebPubSub.Emulator.dll')
+        self.assertEqual(steps[7]['inputs']['search_root'], '$(ob_outputDirectory)/release')
+        self.assertEqual(steps[7]['inputs']['cp_code'], 'CP-401405')
         script = (ROOT / '.pipelines/scripts/Build-EmulatorPackage.ps1').read_text(encoding='utf-8')
         self.assertIn('--configuration Release --no-build --no-restore --output', script)
         self.assertIn('$version = "$version-preview-$BuildId"', script)
@@ -521,10 +533,10 @@ class ReleasePipelineTests(unittest.TestCase):
             'nuGetFeedType': 'external', 'publishFeedCredentials': 'azure-webpubsub-dev'})
 
     def test_npm_pack_commands_and_shallow_version_checkout(self):
-        checkout = STAGES['release_check']['jobs'][0]['steps'][0]
-        self.assertEqual(checkout['fetchDepth'], 1)
         packages = {e['parameters']['package_key']: e['parameters'] for e in ENTRIES if 'template' in e}
         for key, package in packages.items():
+            checkout = STAGES[f'{key}_build']['jobs'][0]['steps'][0]
+            self.assertEqual(checkout['fetchDepth'], 1)
             script = package['pack_steps'][0]['inputs']['script']
             self.assertIn('yarn --frozen-lockfile', script)
             self.assertIn('yarn test:unit', script)
@@ -547,8 +559,10 @@ class ReleasePipelineTests(unittest.TestCase):
 
     def test_nuget_placeholder_prepares_only_the_approved_signed_artifact(self):
         self.assertEqual(dependencies(STAGES['emulator_release_prepare']),
-                         ['release_check', 'emulator_build', 'Prod_emulator_approve'])
+                         ['emulator_build', 'Prod_emulator_approve'])
         prepare = RELEASE_JOBS['emulator_prepare']
+        self.assertEqual(prepare['variables']['releaseVersion'],
+                         "$[ stageDependencies.emulator_build.build.outputs['read.emulator_releaseVersion'] ]")
         self.assertEqual(prepare['pool'], {'type': 'linux'})
         self.assertEqual(prepare['variables']['ob_artifactBaseName'], 'drop_emulator_nuget')
         self.assertEqual(prepare['steps'][0], {
@@ -576,13 +590,12 @@ class ReleasePipelineTests(unittest.TestCase):
         states = ('Succeeded', 'Pending', 'Failed', 'Skipped', 'Canceled', 'SucceededWithIssues', '')
         for key in PACKAGE_KEYS:
             following = 'emulator_release_prepare' if key == 'emulator' else f'{key}_release_check'
-            for version_check, build, approval in itertools.product(states, repeat=3):
+            for build, approval in itertools.product(states, repeat=2):
                 values = context()
-                values['dependencies.release_check.result'] = version_check
                 values[f'dependencies.{key}_build.result'] = build
                 values[f'dependencies.Prod_{key}_approve.result'] = approval
                 self.assertEqual(permits(following, values),
-                                 version_check == build == approval == 'Succeeded')
+                                 build == approval == 'Succeeded')
 
     def test_only_the_selected_release_chain_can_continue(self):
         for key in PACKAGE_KEYS:

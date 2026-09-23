@@ -34,8 +34,9 @@ function put(root, relative, content) {
   writeFileSync(path, content);
 }
 
-function metadata(root) {
-  for (const [key, pkg] of Object.entries(PACKAGES)) {
+function metadata(root, packageKeys = keys) {
+  for (const key of packageKeys) {
+    const pkg = PACKAGES[key];
     put(root, `${pkg.folder}/CHANGELOG.md`, `# Changelog\n\n## [Unreleased]\n\n## [${versions[key]}] - Unreleased\n`);
     put(root, `${pkg.folder}/${pkg.metadata}`, key === 'emulator'
       ? '<Project><PropertyGroup><VersionPrefix>1.0.0</VersionPrefix><VersionSuffix>beta.1</VersionSuffix></PropertyGroup></Project>'
@@ -139,6 +140,40 @@ test('real repository changelogs and metadata satisfy the same release contract'
   for (const pkg of Object.values(actual)) validateVersion(pkg.releaseVersion);
 });
 
+test('selected package validation ignores missing or malformed unrelated packages', t => {
+  for (const key of keys) {
+    const root = fixture(t);
+    metadata(root, [key]);
+    const expected = { [key]: { releaseVersion: versions[key], productState: key === 'socketio' ? 'Current' : 'Beta' } };
+    assert.deepEqual(readPackageVersions(root, [key]), expected);
+    for (const other of keys.filter(other => other !== key)) {
+      put(root, `${PACKAGES[other].folder}/CHANGELOG.md`, '## [invalid]');
+      put(root, `${PACKAGES[other].folder}/${PACKAGES[other].metadata}`, 'invalid metadata');
+    }
+    assert.deepEqual(readPackageVersions(root, [key]), expected);
+  }
+});
+
+test('unknown package keys fail before reading metadata or emitting outputs', async t => {
+  const root = fixture(t);
+  for (const key of ['chat-client', 'unknown', 'constructor', '__proto__', '']) {
+    const lines = [];
+    await assert.rejects(main({ BUILD_BUILDID: '123' }, {
+      cwd: root, packageKeys: ['emulator', key], write: line => lines.push(line),
+    }), /Unknown package:/);
+    assert.deepEqual(lines, []);
+  }
+});
+
+test('selected npm outputs need no preview build ID', async t => {
+  const root = fixture(t);
+  metadata(root, ['socketio']);
+  const lines = [];
+  const outputs = await main({}, { cwd: root, packageKeys: ['socketio'], write: line => lines.push(line) });
+  assert.deepEqual(outputs, { socketio_releaseVersion: '2.0.0', socketio_productState: 'Current' });
+  assert.deepEqual(parsedOutputs(lines.join('\n')), outputs);
+});
+
 test('outputs contain every release version and product state plus the emulator preview', t => {
   const root = fixture(t);
   metadata(root);
@@ -180,6 +215,31 @@ test('real CLI works without Git, Azure credentials, history, or source commit v
   assert.equal(result.code, 0, result.stderr);
   assert.equal(result.stderr, '');
   assert.deepEqual(parsedOutputs(result.stdout), releaseOutputs(readPackageVersions(root), '789'));
+});
+
+test('build CLI checks and emits outputs only for its requested package', async t => {
+  for (const key of keys) {
+    const root = fixture(t);
+    metadata(root, [key]);
+    const result = await runNode([helperPath, key], root, { BUILD_BUILDID: '123' });
+    assert.equal(result.code, 0, result.stderr);
+    assert.equal(result.stderr, '');
+    const expected = {
+      [`${key}_releaseVersion`]: versions[key],
+      [`${key}_productState`]: key === 'socketio' ? 'Current' : 'Beta',
+      ...(key === 'emulator' ? { emulator_previewVersion: '1.0.0-beta.1-preview-123' } : {}),
+    };
+    assert.deepEqual(parsedOutputs(result.stdout), expected);
+    put(root, `${PACKAGES[key].folder}/CHANGELOG.md`, '## [9.9.9] - Unreleased');
+    const invalid = await runNode([helperPath, key], root, { BUILD_BUILDID: '123' });
+    assert.equal(invalid.code, 1);
+    assert.match(invalid.stderr, /does not equal/);
+    assert.equal(invalid.stdout, '');
+  }
+  const invalid = await runNode([helperPath, 'unknown'], repoRoot, { BUILD_BUILDID: '123' });
+  assert.equal(invalid.code, 1);
+  assert.match(invalid.stderr, /Unknown package: unknown/);
+  assert.equal(invalid.stdout, '');
 });
 
 test('invalid build IDs or any package metadata fail before emitting outputs', async t => {

@@ -51,8 +51,12 @@ export function previewVersion(version, buildId) {
   return `${validateVersion(version)}-preview-${positiveId(buildId, 'BUILD_BUILDID')}`;
 }
 
-export function readPackageVersions(repoRoot) {
-  return Object.fromEntries(Object.entries(PACKAGES).map(([key, pkg]) => {
+export function readPackageVersions(repoRoot, packageKeys = Object.keys(PACKAGES)) {
+  for (const key of packageKeys) {
+    if (!Object.hasOwn(PACKAGES, key)) throw new Error(`Unknown package: ${key}`);
+  }
+  return Object.fromEntries(packageKeys.map(key => {
+    const pkg = PACKAGES[key];
     const folder = join(repoRoot, pkg.folder);
     try {
       const version = readChangelogVersion(readFileSync(join(folder, 'CHANGELOG.md'), 'utf8'));
@@ -72,11 +76,13 @@ export function readPackageVersions(repoRoot) {
 
 export function releaseOutputs(versions, buildId) {
   const outputs = {};
-  for (const key of Object.keys(PACKAGES)) {
-    outputs[`${key}_releaseVersion`] = versions[key].releaseVersion;
-    outputs[`${key}_productState`] = versions[key].productState;
+  for (const [key, version] of Object.entries(versions)) {
+    outputs[`${key}_releaseVersion`] = version.releaseVersion;
+    outputs[`${key}_productState`] = version.productState;
   }
-  outputs.emulator_previewVersion = previewVersion(versions.emulator.releaseVersion, buildId);
+  if (versions.emulator) {
+    outputs.emulator_previewVersion = previewVersion(versions.emulator.releaseVersion, buildId);
+  }
   return outputs;
 }
 
@@ -87,14 +93,15 @@ export function emitOutputs(outputs, write = console.log) {
   }
 }
 
-export async function main(env = process.env, { write = console.log, cwd = process.cwd() } = {}) {
-  const outputs = releaseOutputs(readPackageVersions(resolve(cwd)), env.BUILD_BUILDID);
+export async function main(env = process.env, { write = console.log, cwd = process.cwd(), packageKeys } = {}) {
+  const outputs = releaseOutputs(readPackageVersions(resolve(cwd), packageKeys), env.BUILD_BUILDID);
   emitOutputs(outputs, write);
   return outputs;
 }
 
 if (process.argv[1] && pathToFileURL(resolve(process.argv[1])).href === import.meta.url) {
-  main().catch(error => {
+  // No arguments checks all packages; builds pass only their own package key.
+  main(process.env, { packageKeys: process.argv.length > 2 ? process.argv.slice(2) : undefined }).catch(error => {
     console.error(`Release check failed: ${error.message}`);
     process.exitCode = 1;
   });
