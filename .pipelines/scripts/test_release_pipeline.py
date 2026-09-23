@@ -512,19 +512,14 @@ class ReleasePipelineTests(unittest.TestCase):
         self.assertEqual(scripts[1].count('-Phase Pack'), 2)
         self.assertIn('/release', scripts[1])
         self.assertIn('/preview', scripts[1])
-        self.assertIn('-ReleaseVersion -Phase Validate -RequireSignature', scripts[2])
-        self.assertEqual(scripts[2].count('-RequireSignature'), 1)
+        self.assertIn('-ReleaseVersion -Phase Validate', scripts[2])
         self.assertEqual(scripts[2].count('-Phase Validate'), 2)
         sequence = [s.get('task') for s in steps[4:]]
-        self.assertEqual(sequence, ['PowerShell@2', 'onebranch.pipeline.signing@1', 'PowerShell@2',
-                                    'onebranch.pipeline.signing@1', 'PowerShell@2'])
+        self.assertEqual(sequence, ['PowerShell@2', 'onebranch.pipeline.signing@1', 'PowerShell@2', 'PowerShell@2'])
         self.assertEqual(steps[5]['inputs']['files_to_sign'], 'obj/Release/*/Microsoft.Azure.WebPubSub.Emulator.dll')
-        self.assertEqual(steps[7]['inputs']['search_root'], '$(ob_outputDirectory)/release')
-        self.assertEqual(steps[7]['inputs']['cp_code'], 'CP-401405')
         script = (ROOT / '.pipelines/scripts/Build-EmulatorPackage.ps1').read_text(encoding='utf-8')
         self.assertIn('--configuration Release --no-build --no-restore --output', script)
         self.assertIn('$version = "$version-preview-$BuildId"', script)
-        self.assertIn('if ($RequireSignature) { Invoke-DotNet nuget verify', script)
         self.assertIn('--configfile $localConfig --no-cache', script)
         self.assertIn('[Net.Http.HttpMethod]::Head', script)
         self.assertIn('Stop-Process -Id $process.Id', script)
@@ -565,7 +560,7 @@ class ReleasePipelineTests(unittest.TestCase):
 
 
 
-    def test_nuget_placeholder_prepares_only_the_approved_signed_artifact(self):
+    def test_nuget_prepare_uses_only_the_approved_release_artifact(self):
         self.assertEqual(dependencies(STAGES['emulator_release_prepare']),
                          ['emulator_build', 'Prod_emulator_approve'])
         prepare = RELEASE_JOBS['emulator_prepare']

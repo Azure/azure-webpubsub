@@ -119,14 +119,6 @@ extends:
                     & ./.pipelines/scripts/Build-EmulatorPackage.ps1 `
                       -OutputDirectory '$(ob_outputDirectory)/preview' `
                       -BuildId $env:BUILD_BUILDID -Phase Pack
-              - task: onebranch.pipeline.signing@1
-                displayName: 'Sign NuGet package'
-                inputs:
-                  command: sign
-                  signing_profile: external_distribution
-                  cp_code: CP-401405
-                  files_to_sign: '*.nupkg'
-                  search_root: '$(ob_outputDirectory)/release'
               - task: PowerShell@2
                 displayName: 'Validate packages'
                 inputs:
@@ -136,7 +128,7 @@ extends:
                   script: |
                     & ./.pipelines/scripts/Build-EmulatorPackage.ps1 `
                       -OutputDirectory '$(ob_outputDirectory)/release' `
-                      -BuildId $env:BUILD_BUILDID -ReleaseVersion -Phase Validate -RequireSignature
+                      -BuildId $env:BUILD_BUILDID -ReleaseVersion -Phase Validate
                     & ./.pipelines/scripts/Build-EmulatorPackage.ps1 `
                       -OutputDirectory '$(ob_outputDirectory)/preview' `
                       -BuildId $env:BUILD_BUILDID -Phase Validate
@@ -273,9 +265,9 @@ extends:
             Prepare Microsoft.Azure.WebPubSub.Emulator from build $(Build.BuildNumber) for NuGet.org.
             Review the package version in drop_emulator/release and source: $(Build.SourceBranch) @ $(Build.SourceVersion).
             Resume to create the release artifact; Reject to skip it. Other packages are independent.
-            NuGet.org publication is not enabled yet. Download drop_emulator_nuget after this stage.
+            Use net - partner-release to sign and publish the package to NuGet.org.
 
-      # Placeholder until NuGet.org publishing is configured.
+      # Optional download of the selected package for partner release.
       - stage: emulator_release_prepare
         displayName: 'Prepare NuGet artifact'
         isSkippable: false
@@ -323,7 +315,7 @@ extends:
                     }
                     New-Item -ItemType Directory -Path $env:OUTPUT_DIRECTORY -Force | Out-Null
                     Copy-Item -LiteralPath $env:PACKAGE_PATH -Destination $env:OUTPUT_DIRECTORY
-                    Write-Host 'NuGet release artifact is ready. NuGet.org publication is not enabled yet.'
+                    Write-Host 'Release artifact is ready. Use net - partner-release to sign and publish it to NuGet.org.'
                 env:
                   PACKAGE_PATH: '$(Pipeline.Workspace)/drop_emulator/release/Microsoft.Azure.WebPubSub.Emulator.$(releaseVersion).nupkg'
                   OUTPUT_DIRECTORY: $(ob_outputDirectory)
