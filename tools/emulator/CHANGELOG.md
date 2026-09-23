@@ -6,6 +6,7 @@
 
 - Initial preview of the Azure Web PubSub local emulator, available as the `awps-emulator`
   .NET tool for local development and testing.
+- Run the emulator locally with Docker.
 - Hot reload for `EventHandlers` and `EventListeners` in `appsettings.json`.
 - A Quick start for running the existing SDK chat sample with the emulator, including event
   handler configuration and the local HTTP SDK option.

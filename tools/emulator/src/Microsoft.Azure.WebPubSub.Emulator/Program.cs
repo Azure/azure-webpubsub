@@ -25,7 +25,7 @@ static void WriteStartupMessage(WebApplication app)
         throw new InvalidOperationException("The emulator server did not report a bound address.");
     }
 
-    var endpoint = new Uri(addresses[0]);
+    var endpoint = StartupMessageWriter.GetConnectableEndpoint(new Uri(addresses[0]));
     var options = app.Services.GetRequiredService<IOptions<EmulatorOptions>>().Value;
     StartupMessageWriter.Write(
         Console.Out,

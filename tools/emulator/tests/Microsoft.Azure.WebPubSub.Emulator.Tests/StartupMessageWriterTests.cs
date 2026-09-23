@@ -33,6 +33,37 @@ public class StartupMessageWriterTests
         Assert.Contains("http://127.0.0.1:8090/api/health", message);
     }
 
+    [Theory]
+    [InlineData("http://0.0.0.0:8080", "http://localhost:8080/")]
+    [InlineData("http://[::]:8090", "http://localhost:8090/")]
+    [InlineData("https://0.0.0.0:8443", "https://localhost:8443/")]
+    [InlineData("http://127.0.0.1:8090", "http://127.0.0.1:8090/")]
+    [InlineData("http://emulator:8080", "http://emulator:8080/")]
+    [InlineData("http://[::1]:8080", "http://[::1]:8080/")]
+    public void ConnectableEndpointPreservesSpecificHostsAndPorts(string boundAddress, string expected)
+    {
+        Assert.Equal(new Uri(expected), StartupMessageWriter.GetConnectableEndpoint(new Uri(boundAddress)));
+    }
+
+    [Theory]
+    [InlineData("http://0.0.0.0:8080")]
+    [InlineData("http://[::]:8080")]
+    public void WildcardListenersIncludeUsableLocalGuidance(string boundAddress)
+    {
+        using var writer = new StringWriter();
+        var endpoint = StartupMessageWriter.GetConnectableEndpoint(new Uri(boundAddress));
+        var options = new EmulatorOptions();
+
+        StartupMessageWriter.Write(writer, [boundAddress], options.GetConnectionString(endpoint), endpoint);
+
+        var message = writer.ToString();
+        Assert.Contains($"Listening on:{Environment.NewLine}  {boundAddress}", message);
+        Assert.Contains("Endpoint=http://localhost:8080;", message);
+        Assert.Contains("ws://localhost:8080/client/hubs/{hub}", message);
+        Assert.Contains("http://localhost:8080/api/health", message);
+        Assert.Contains("reachable host and published port", message);
+    }
+
     [Fact]
     public void WriteIncludesGeneratedDefaultConnectionString()
     {
@@ -48,5 +79,6 @@ public class StartupMessageWriterTests
             new Uri("http://localhost:8080"));
 
         Assert.Contains(connectionString, writer.ToString());
+        Assert.DoesNotContain("reachable host and published port", writer.ToString());
     }
 }
