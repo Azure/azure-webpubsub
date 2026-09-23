@@ -10,12 +10,12 @@ release approvals.
 ## Publish packages
 
 Open the completed build you want to release, select the package's **Release**
-stage below, and choose **Run stage**. It checks package availability, then
-starts manual validation after the package build succeeds.
+stage below, and choose **Run stage**. This starts its manual validation.
 Review the package version, source branch/commit, and artifacts, then choose
 **Resume** to release that package or **Reject** to stop it. The release reuses
 that build's artifacts. CI builds and manual feature-branch builds both support
-this flow.
+this flow. After approval, the next stage requires successful version validation
+and a successful package build before it can check or prepare the release.
 
 | Manual stage | Package | Destination |
 | --- | --- | --- |

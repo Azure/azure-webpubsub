@@ -3,7 +3,7 @@
 name: package-release_$(Date:yyyyMMdd)$(Rev:.r)
 
 trigger:
-  # Release entry stages are manual, so ordinary CI runs finish without approvals.
+  # Manual release stages stay unstarted during ordinary CI runs.
   batch: true
   branches:
     include:
@@ -289,14 +289,13 @@ extends:
                   nuGetFeedType: external
                   publishFeedCredentials: azure-webpubsub-dev
 
-      # Start only the packages to release. Unstarted entries do not wait for approval.
-      # Preflight checks are manual; approval still requires this run's successful build.
-      - stage: emulator_release_check
+      # Azure DevOps manual stages cannot declare dependencies or read upstream outputs.
+      # The following check/prepare stage gates each release on this run's successful build.
+      # Unstarted release entries do not wait for approval during ordinary CI runs.
+      - stage: Prod_emulator_approve
         displayName: 'Release emulator'
         trigger: manual
         isSkippable: true
-        # Azure DevOps manual stages cannot declare stage dependencies.
-        # The approval stage below checks this run's version and package build.
         condition: |
           and(
             not(canceled()),
@@ -304,56 +303,6 @@ extends:
               eq(variables['Build.SourceBranch'], 'refs/heads/main'),
               eq(variables['Build.Reason'], 'Manual')
             )
-          )
-        jobs:
-          - job: emulator_check
-            displayName: 'Check release artifact'
-            condition: not(canceled())
-            pool:
-              type: linux
-            variables:
-              ob_outputDirectory: '$(Build.ArtifactStagingDirectory)'
-              ob_sdl_codeSignValidation_enabled: false
-              ob_sdl_binskim_enabled: false
-            steps:
-              - checkout: self
-                fetchDepth: 1
-                persistCredentials: false
-              - task: DownloadPipelineArtifact@2
-                displayName: 'Download release package'
-                inputs:
-                  buildType: current
-                  artifactName: drop_emulator
-                  itemPattern: 'release/*.nupkg'
-                  targetPath: '$(Pipeline.Workspace)/drop_emulator'
-              - task: PowerShell@2
-                displayName: 'Check release artifact'
-                inputs:
-                  pwsh: true
-                  targetType: inline
-                  script: |
-                    $ErrorActionPreference = 'Stop'
-                    $packages = @(Get-ChildItem -LiteralPath $env:PACKAGE_DIRECTORY -Filter '*.nupkg')
-                    if ($packages.Count -ne 1) {
-                      throw 'Expected one emulator release package. Start this stage after the emulator build succeeds.'
-                    }
-                    Write-Host "Release package: $($packages[0].Name)"
-                env:
-                  PACKAGE_DIRECTORY: '$(Pipeline.Workspace)/drop_emulator/release'
-
-      - stage: Prod_emulator_approve
-        displayName: 'Approve emulator'
-        isSkippable: false
-        dependsOn:
-          - release_check
-          - emulator_build
-          - emulator_release_check
-        condition: |
-          and(
-            not(canceled()),
-            eq(dependencies.release_check.result, 'Succeeded'),
-            eq(dependencies.emulator_build.result, 'Succeeded'),
-            eq(dependencies.emulator_release_check.result, 'Succeeded')
           )
         variables:
           ob_release_environment: Production
@@ -363,8 +312,6 @@ extends:
             condition: not(canceled())
             pool:
               type: server
-            variables:
-              releaseVersion: $[ stageDependencies.release_check.check.outputs['read.emulator_releaseVersion'] ]
             timeoutInMinutes: 1500
             steps:
               - task: ManualValidation@1
@@ -374,8 +321,8 @@ extends:
                   notifyUsers: ''
                   allowApproversToApproveTheirOwnRuns: true
                   instructions: |
-                    Prepare Microsoft.Azure.WebPubSub.Emulator $(releaseVersion) for NuGet.org.
-                    Review the build artifacts and source: $(Build.SourceBranch) @ $(Build.SourceVersion).
+                    Prepare Microsoft.Azure.WebPubSub.Emulator from build $(Build.BuildNumber) for NuGet.org.
+                    Review the package version in drop_emulator/release and source: $(Build.SourceBranch) @ $(Build.SourceVersion).
                     Resume to create the release artifact; Reject to skip it. Other packages are independent.
                     NuGet.org publication is not enabled yet. Download drop_emulator_nuget after this stage.
                   onTimeout: reject
@@ -386,10 +333,13 @@ extends:
         isSkippable: false
         dependsOn:
           - release_check
+          - emulator_build
           - Prod_emulator_approve
         condition: |
           and(
             not(canceled()),
+            eq(dependencies.release_check.result, 'Succeeded'),
+            eq(dependencies.emulator_build.result, 'Succeeded'),
             eq(dependencies.Prod_emulator_approve.result, 'Succeeded')
           )
         jobs:
@@ -432,12 +382,10 @@ extends:
                   PACKAGE_PATH: '$(Pipeline.Workspace)/drop_emulator/release/Microsoft.Azure.WebPubSub.Emulator.$(releaseVersion).nupkg'
                   OUTPUT_DIRECTORY: $(ob_outputDirectory)
 
-      - stage: chat_client_release_check
+      - stage: Prod_chat_client_approve
         displayName: 'Release chat client'
         trigger: manual
         isSkippable: true
-        # Azure DevOps manual stages cannot declare stage dependencies.
-        # The approval stage below checks this run's version and package build.
         condition: |
           and(
             not(canceled()),
@@ -446,6 +394,43 @@ extends:
               eq(variables['Build.Reason'], 'Manual')
             )
           )
+        variables:
+          ob_release_environment: Production
+        jobs:
+          - job: chat_client_approve
+            displayName: 'Approve chat client'
+            condition: not(canceled())
+            pool:
+              type: server
+            timeoutInMinutes: 1500
+            steps:
+              - task: ManualValidation@1
+                displayName: 'Approve chat client'
+                timeoutInMinutes: 1440
+                inputs:
+                  notifyUsers: ''
+                  allowApproversToApproveTheirOwnRuns: true
+                  instructions: |
+                    Publish @azure/web-pubsub-chat-client from build $(Build.BuildNumber) to npm.
+                    Review the package version in drop_web-pubsub-chat-client and source: $(Build.SourceBranch) @ $(Build.SourceVersion).
+                    Resume to publish this package; Reject to skip it. Other packages are independent.
+                    Publication also creates its release tag and next-beta PR.
+                  onTimeout: reject
+
+      - stage: chat_client_release_check
+        displayName: 'Check chat client'
+        isSkippable: false
+        dependsOn:
+          - release_check
+          - chat_client_build
+          - Prod_chat_client_approve
+        condition: |
+          and(
+            not(canceled()),
+            eq(dependencies.release_check.result, 'Succeeded'),
+            eq(dependencies.chat_client_build.result, 'Succeeded'),
+            eq(dependencies.Prod_chat_client_approve.result, 'Succeeded')
+          )
         jobs:
           - job: chat_client_check
             displayName: 'Check chat client'
@@ -453,6 +438,7 @@ extends:
             pool:
               type: linux
             variables:
+              releaseVersion: $[ stageDependencies.release_check.check.outputs['read.chat_client_releaseVersion'] ]
               ob_outputDirectory: '$(Build.ArtifactStagingDirectory)'
               ob_sdl_codeSignValidation_enabled: false
               ob_sdl_binskim_enabled: false
@@ -473,53 +459,13 @@ extends:
                   workingDirectory: '$(Pipeline.Workspace)/s/azure-webpubsub'
                   script: |
                     $ErrorActionPreference = 'Stop'
-                    $releaseVersion = (Get-Content -LiteralPath 'sdk/webpubsub-chat-client/package.json' -Raw | ConvertFrom-Json).version
                     & node .pipelines/scripts/Npm-Release.mjs check `
                       'sdk/webpubsub-chat-client' `
                       '@azure/web-pubsub-chat-client' `
                       'web-pubsub-chat-client' `
-                      $releaseVersion `
+                      '$(releaseVersion)' `
                       'Azure/azure-webpubsub'
                     if ($LASTEXITCODE -ne 0) { throw 'Public package availability checks failed.' }
-
-      - stage: Prod_chat_client_approve
-        displayName: 'Approve chat client'
-        isSkippable: false
-        dependsOn:
-          - release_check
-          - chat_client_build
-          - chat_client_release_check
-        condition: |
-          and(
-            not(canceled()),
-            eq(dependencies.release_check.result, 'Succeeded'),
-            eq(dependencies.chat_client_build.result, 'Succeeded'),
-            eq(dependencies.chat_client_release_check.result, 'Succeeded')
-          )
-        variables:
-          ob_release_environment: Production
-        jobs:
-          - job: chat_client_approve
-            displayName: 'Approve chat client'
-            condition: not(canceled())
-            pool:
-              type: server
-            variables:
-              releaseVersion: $[ stageDependencies.release_check.check.outputs['read.chat_client_releaseVersion'] ]
-            timeoutInMinutes: 1500
-            steps:
-              - task: ManualValidation@1
-                displayName: 'Approve chat client'
-                timeoutInMinutes: 1440
-                inputs:
-                  notifyUsers: ''
-                  allowApproversToApproveTheirOwnRuns: true
-                  instructions: |
-                    Publish @azure/web-pubsub-chat-client $(releaseVersion) to npm.
-                    Review the build artifacts and source: $(Build.SourceBranch) @ $(Build.SourceVersion).
-                    Resume to publish this package; Reject to skip it. Other packages are independent.
-                    Publication also creates its release tag and next-beta PR.
-                  onTimeout: reject
 
       - stage: Prod_chat_client_publish
         displayName: 'Publish chat client'
@@ -712,12 +658,10 @@ extends:
                       "https://api.github.com/repos/Azure/azure-webpubsub/pulls" \
                       -d "$pr_body"
 
-      - stage: socketio_release_check
+      - stage: Prod_socketio_approve
         displayName: 'Release Socket.IO'
         trigger: manual
         isSkippable: true
-        # Azure DevOps manual stages cannot declare stage dependencies.
-        # The approval stage below checks this run's version and package build.
         condition: |
           and(
             not(canceled()),
@@ -726,6 +670,43 @@ extends:
               eq(variables['Build.Reason'], 'Manual')
             )
           )
+        variables:
+          ob_release_environment: Production
+        jobs:
+          - job: socketio_approve
+            displayName: 'Approve Socket.IO'
+            condition: not(canceled())
+            pool:
+              type: server
+            timeoutInMinutes: 1500
+            steps:
+              - task: ManualValidation@1
+                displayName: 'Approve Socket.IO'
+                timeoutInMinutes: 1440
+                inputs:
+                  notifyUsers: ''
+                  allowApproversToApproveTheirOwnRuns: true
+                  instructions: |
+                    Publish @azure/web-pubsub-socket.io from build $(Build.BuildNumber) to npm.
+                    Review the package version in drop_webpubsub-socketio-extension and source: $(Build.SourceBranch) @ $(Build.SourceVersion).
+                    Resume to publish this package; Reject to skip it. Other packages are independent.
+                    Publication also creates its release tag and next-beta PR.
+                  onTimeout: reject
+
+      - stage: socketio_release_check
+        displayName: 'Check Socket.IO'
+        isSkippable: false
+        dependsOn:
+          - release_check
+          - socketio_build
+          - Prod_socketio_approve
+        condition: |
+          and(
+            not(canceled()),
+            eq(dependencies.release_check.result, 'Succeeded'),
+            eq(dependencies.socketio_build.result, 'Succeeded'),
+            eq(dependencies.Prod_socketio_approve.result, 'Succeeded')
+          )
         jobs:
           - job: socketio_check
             displayName: 'Check Socket.IO'
@@ -733,6 +714,7 @@ extends:
             pool:
               type: linux
             variables:
+              releaseVersion: $[ stageDependencies.release_check.check.outputs['read.socketio_releaseVersion'] ]
               ob_outputDirectory: '$(Build.ArtifactStagingDirectory)'
               ob_sdl_codeSignValidation_enabled: false
               ob_sdl_binskim_enabled: false
@@ -753,53 +735,13 @@ extends:
                   workingDirectory: '$(Pipeline.Workspace)/s/azure-webpubsub'
                   script: |
                     $ErrorActionPreference = 'Stop'
-                    $releaseVersion = (Get-Content -LiteralPath 'sdk/webpubsub-socketio-extension/package.json' -Raw | ConvertFrom-Json).version
                     & node .pipelines/scripts/Npm-Release.mjs check `
                       'sdk/webpubsub-socketio-extension' `
                       '@azure/web-pubsub-socket.io' `
                       'webpubsub-socketio-extension' `
-                      $releaseVersion `
+                      '$(releaseVersion)' `
                       'Azure/azure-webpubsub'
                     if ($LASTEXITCODE -ne 0) { throw 'Public package availability checks failed.' }
-
-      - stage: Prod_socketio_approve
-        displayName: 'Approve Socket.IO'
-        isSkippable: false
-        dependsOn:
-          - release_check
-          - socketio_build
-          - socketio_release_check
-        condition: |
-          and(
-            not(canceled()),
-            eq(dependencies.release_check.result, 'Succeeded'),
-            eq(dependencies.socketio_build.result, 'Succeeded'),
-            eq(dependencies.socketio_release_check.result, 'Succeeded')
-          )
-        variables:
-          ob_release_environment: Production
-        jobs:
-          - job: socketio_approve
-            displayName: 'Approve Socket.IO'
-            condition: not(canceled())
-            pool:
-              type: server
-            variables:
-              releaseVersion: $[ stageDependencies.release_check.check.outputs['read.socketio_releaseVersion'] ]
-            timeoutInMinutes: 1500
-            steps:
-              - task: ManualValidation@1
-                displayName: 'Approve Socket.IO'
-                timeoutInMinutes: 1440
-                inputs:
-                  notifyUsers: ''
-                  allowApproversToApproveTheirOwnRuns: true
-                  instructions: |
-                    Publish @azure/web-pubsub-socket.io $(releaseVersion) to npm.
-                    Review the build artifacts and source: $(Build.SourceBranch) @ $(Build.SourceVersion).
-                    Resume to publish this package; Reject to skip it. Other packages are independent.
-                    Publication also creates its release tag and next-beta PR.
-                  onTimeout: reject
 
       - stage: Prod_socketio_publish
         displayName: 'Publish Socket.IO'
@@ -992,12 +934,10 @@ extends:
                       "https://api.github.com/repos/Azure/azure-webpubsub/pulls" \
                       -d "$pr_body"
 
-      - stage: tunnel_release_check
+      - stage: Prod_tunnel_approve
         displayName: 'Release tunnel'
         trigger: manual
         isSkippable: true
-        # Azure DevOps manual stages cannot declare stage dependencies.
-        # The approval stage below checks this run's version and package build.
         condition: |
           and(
             not(canceled()),
@@ -1006,6 +946,43 @@ extends:
               eq(variables['Build.Reason'], 'Manual')
             )
           )
+        variables:
+          ob_release_environment: Production
+        jobs:
+          - job: tunnel_approve
+            displayName: 'Approve tunnel'
+            condition: not(canceled())
+            pool:
+              type: server
+            timeoutInMinutes: 1500
+            steps:
+              - task: ManualValidation@1
+                displayName: 'Approve tunnel'
+                timeoutInMinutes: 1440
+                inputs:
+                  notifyUsers: ''
+                  allowApproversToApproveTheirOwnRuns: true
+                  instructions: |
+                    Publish @azure/web-pubsub-tunnel-tool from build $(Build.BuildNumber) to npm.
+                    Review the package version in drop_awps-tunnel and source: $(Build.SourceBranch) @ $(Build.SourceVersion).
+                    Resume to publish this package; Reject to skip it. Other packages are independent.
+                    Publication also creates its release tag and next-beta PR.
+                  onTimeout: reject
+
+      - stage: tunnel_release_check
+        displayName: 'Check tunnel'
+        isSkippable: false
+        dependsOn:
+          - release_check
+          - tunnel_build
+          - Prod_tunnel_approve
+        condition: |
+          and(
+            not(canceled()),
+            eq(dependencies.release_check.result, 'Succeeded'),
+            eq(dependencies.tunnel_build.result, 'Succeeded'),
+            eq(dependencies.Prod_tunnel_approve.result, 'Succeeded')
+          )
         jobs:
           - job: tunnel_check
             displayName: 'Check tunnel'
@@ -1013,6 +990,7 @@ extends:
             pool:
               type: linux
             variables:
+              releaseVersion: $[ stageDependencies.release_check.check.outputs['read.tunnel_releaseVersion'] ]
               ob_outputDirectory: '$(Build.ArtifactStagingDirectory)'
               ob_sdl_codeSignValidation_enabled: false
               ob_sdl_binskim_enabled: false
@@ -1033,53 +1011,13 @@ extends:
                   workingDirectory: '$(Pipeline.Workspace)/s/azure-webpubsub'
                   script: |
                     $ErrorActionPreference = 'Stop'
-                    $releaseVersion = (Get-Content -LiteralPath 'tools/awps-tunnel/server/package.json' -Raw | ConvertFrom-Json).version
                     & node .pipelines/scripts/Npm-Release.mjs check `
                       'tools/awps-tunnel/server' `
                       '@azure/web-pubsub-tunnel-tool' `
                       'awps-tunnel' `
-                      $releaseVersion `
+                      '$(releaseVersion)' `
                       'Azure/azure-webpubsub'
                     if ($LASTEXITCODE -ne 0) { throw 'Public package availability checks failed.' }
-
-      - stage: Prod_tunnel_approve
-        displayName: 'Approve tunnel'
-        isSkippable: false
-        dependsOn:
-          - release_check
-          - tunnel_build
-          - tunnel_release_check
-        condition: |
-          and(
-            not(canceled()),
-            eq(dependencies.release_check.result, 'Succeeded'),
-            eq(dependencies.tunnel_build.result, 'Succeeded'),
-            eq(dependencies.tunnel_release_check.result, 'Succeeded')
-          )
-        variables:
-          ob_release_environment: Production
-        jobs:
-          - job: tunnel_approve
-            displayName: 'Approve tunnel'
-            condition: not(canceled())
-            pool:
-              type: server
-            variables:
-              releaseVersion: $[ stageDependencies.release_check.check.outputs['read.tunnel_releaseVersion'] ]
-            timeoutInMinutes: 1500
-            steps:
-              - task: ManualValidation@1
-                displayName: 'Approve tunnel'
-                timeoutInMinutes: 1440
-                inputs:
-                  notifyUsers: ''
-                  allowApproversToApproveTheirOwnRuns: true
-                  instructions: |
-                    Publish @azure/web-pubsub-tunnel-tool $(releaseVersion) to npm.
-                    Review the build artifacts and source: $(Build.SourceBranch) @ $(Build.SourceVersion).
-                    Resume to publish this package; Reject to skip it. Other packages are independent.
-                    Publication also creates its release tag and next-beta PR.
-                  onTimeout: reject
 
       - stage: Prod_tunnel_publish
         displayName: 'Publish tunnel'
