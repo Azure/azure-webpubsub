@@ -1,0 +1,43 @@
+# Manual stages cannot declare dependencies or read upstream outputs.
+# The downstream publish/prepare stage requires this run's successful package build.
+
+parameters:
+  - name: package_key
+    type: string
+  - name: package_title
+    type: string
+  - name: instructions
+    type: string
+
+stages:
+  - stage: Prod_${{ parameters.package_key }}_approve
+    displayName: 'Release ${{ parameters.package_title }}'
+    trigger: manual
+    isSkippable: true
+    condition: |
+      and(
+        not(canceled()),
+        or(
+          eq(variables['Build.SourceBranch'], 'refs/heads/main'),
+          eq(variables['Build.Reason'], 'Manual')
+        )
+      )
+    variables:
+      # Approval-only coordination; the downstream publisher owns production release checks.
+      ob_release_environment: Test
+    jobs:
+      - job: ${{ parameters.package_key }}_approve
+        displayName: 'Approve ${{ parameters.package_title }}'
+        condition: not(canceled())
+        pool:
+          type: server
+        timeoutInMinutes: 1500
+        steps:
+          - task: ManualValidation@1
+            displayName: 'Approve ${{ parameters.package_title }}'
+            timeoutInMinutes: 1440
+            inputs:
+              notifyUsers: ''
+              allowApproversToApproveTheirOwnRuns: true
+              instructions: ${{ parameters.instructions }}
+              onTimeout: reject

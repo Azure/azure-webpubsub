@@ -1,65 +1,45 @@
-# Package release pipeline
+# Package releases
 
-`.pipelines/release.yml` automatically publishes emulator CI packages to MyGet
-and supports manual releases of these npm packages:
+All four packages build automatically on pushes to `main`.
+To build a different branch, select **Run pipeline** and choose that branch.
+Emulator previews publish to MyGet automatically. Other releases start only
+when you choose them; builds finish without waiting for release approvals.
 
-- `@azure/web-pubsub-chat-client`
-- `@azure/web-pubsub-socket.io`
-- `@azure/web-pubsub-tunnel-tool`
+## Publish packages
 
-## Emulator preview packages
+1. Open the completed build containing the package you want to release.
+2. Select its **Release** stage below and choose **Run stage**.
+3. Review the package version, source branch/commit, and artifacts. Choose
+   **Resume** to continue or **Reject** to stop that package's release.
 
-Changes to the emulator, its protobuf definitions, or its pipeline on `main` trigger
-a batched CI run. The pipeline builds and tests the solution, packs the .NET tool,
-and verifies installation and startup before publishing that same package to MyGet
-through the existing `azure-signalr-dev` service connection.
-Versions append `.ci.<Build.BuildId>` to the preview version in
-`tools/emulator/version.props` (for example, `1.0.0-beta.1.ci.12345`); a stable
-version instead gets `-ci.<Build.BuildId>`. CI does not edit the changelog or create
-release tags.
+You can approve your own selection. npm publication also requires the separate
+publication approval shown in the pipeline.
 
-For a validation-only manual run, select `build_emulator`. Manual runs, PRs, and
-branches other than `main` never publish emulator packages. `publish_packages`
-continues to control only npm publication; official NuGet publication is not configured.
-The validated package is available in the `drop_emulator` pipeline artifact.
+| Manual stage | Package | Destination |
+| --- | --- | --- |
+| Release emulator | `Microsoft.Azure.WebPubSub.Emulator` | Downloadable NuGet package |
+| Release chat client | `@azure/web-pubsub-chat-client` | npm |
+| Release Socket.IO | `@azure/web-pubsub-socket.io` | npm |
+| Release tunnel | `@azure/web-pubsub-tunnel-tool` | npm |
 
-## Run an npm release
+Leave other packages unstarted. Each package can be approved independently.
+Selection approvals expire after 24 hours without a response. Reject a package
+to stop its release; cancel the whole run only to stop all packages.
 
-1. Update the package version in `package.json`.
-2. Add a dated entry for that version to the package `CHANGELOG.md`.
-3. Run `.pipelines/release.yml` from `main` and select the packages to release.
+After the emulator release completes, download the signed package from
+`drop_emulator_nuget` in the build's artifacts. NuGet.org publication is not
+enabled yet. Preview and release packages are also available in `drop_emulator`.
 
-The pipeline skips a selected package when its changelog entry is missing. It
-fails when either the npm package version or its release tag already exists,
-preventing a published version from being reused.
+## Updating versions
 
-## Release flow
+Update the package's version file and `CHANGELOG.md` together before building.
 
-For each selected package, the pipeline:
+| Package | Version file |
+| --- | --- |
+| Emulator | `tools/emulator/version.props` |
+| Chat client | `sdk/webpubsub-chat-client/package.json` |
+| Socket.IO | `sdk/webpubsub-socketio-extension/package.json` |
+| Tunnel | `tools/awps-tunnel/server/package.json` |
 
-1. validates the package version and changelog;
-2. builds and validates the npm tarball;
-3. publishes the tarball through ESRP;
-4. creates a `release/<package>/v<version>` Git tag; and
-5. opens a pull request that advances `package.json` to the next beta version.
-
-Emulator build and MyGet publication stages are defined directly in
-`.pipelines/release.yml`, alongside the npm release configuration. The shared npm
-release implementation is in `.pipelines/templates/stages/release-package.yml`.
-
-## Pipeline configuration
-
-The pipeline expects these settings in the `npm-release` Azure DevOps variable group:
-
-- `ESRP_SERVICE_CONNECTION`
-- `NPM_FEED_REGISTRY`
-- `ESRP_CLIENT_ID`
-- `ESRP_TENANT_ID`
-- `ESRP_KEY_VAULT_NAME`
-- `ESRP_SIGN_CERT_NAME`
-- `ESRP_OWNERS`
-- `ESRP_APPROVERS`
-- `ESRP_MAIN_PUBLISHER`
-
-Their values and credentials are intentionally kept outside this public
-repository.
+Emulator version updates are manual. After npm publication, the pipeline creates
+release tags and next-beta version/changelog PRs.

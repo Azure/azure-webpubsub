@@ -30,7 +30,7 @@ if ($version -notmatch '^\d+\.\d+\.\d+(-beta\.\d+)?$') {
     throw "Unsupported emulator version: $version"
 }
 if (-not $ReleaseVersion) {
-    $version = if ($suffix) { "$version.ci.$BuildId" } else { "$version-ci.$BuildId" }
+    $version = "$version-preview-$BuildId"
 }
 
 $output = [IO.Path]::GetFullPath($OutputDirectory)
