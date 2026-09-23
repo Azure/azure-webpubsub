@@ -2,32 +2,35 @@
 
 parameters:
   - name: package_key
-    displayName: 'Identifier used to make stage names unique when multiple packages are released in one run.'
+    displayName: 'Package key'
+    type: string
+  - name: package_title
+    displayName: 'Package title'
     type: string
   - name: package_name
-    displayName: 'Public package name used for the blob prefix and release tag (e.g. web-pubsub-chat-client).'
+    displayName: 'Package name'
     type: string
   - name: package_folder
-    displayName: 'Folder containing package.json / CHANGELOG.md and the *.tgz emitted by pack_steps.'
+    displayName: 'Package folder'
     type: string
   - name: npm_package_name
-    displayName: 'Exact npm package name expected inside the tarball.'
+    displayName: 'npm package name'
     type: string
   - name: pack_steps
-    displayName: 'Steps that build and pack the package. Must run from the repo root and produce a single *.tgz inside package_folder.'
+    displayName: 'Build and pack steps'
     type: stepList
   - name: npm_feed_registry
-    displayName: 'Authenticated npm registry used to restore release dependencies.'
+    displayName: 'npm registry'
     type: string
     default: '$(NPM_FEED_REGISTRY)'
   - name: node_version
-    displayName: 'Node.js version used for the build.'
+    displayName: 'Node.js version'
     type: string
     default: '22.x'
 
 stages:
   - stage: ${{ format('{0}_build', parameters.package_key) }}
-    displayName: 'Build ${{ parameters.package_name }}'
+    displayName: 'Build ${{ parameters.package_title }}'
     dependsOn: release_check
     isSkippable: false
     condition: |
@@ -39,7 +42,7 @@ stages:
       releaseVersion: $[ stageDependencies.release_check.check.outputs['read.${{ parameters.package_key }}_releaseVersion'] ]
     jobs:
       - job: build
-        displayName: 'Build, test, and pack npm package'
+        displayName: 'Build and pack'
         pool:
           type: linux
         variables:
@@ -57,7 +60,7 @@ stages:
             inputs:
               version: ${{ parameters.node_version }}
           - task: Bash@3
-            displayName: 'Create Azure Artifacts npm configuration'
+            displayName: 'Configure npm feed'
             inputs:
               targetType: inline
               workingDirectory: '$(Pipeline.Workspace)/s/azure-webpubsub'
@@ -70,11 +73,11 @@ stages:
                 fi
                 printf 'registry=%s\nalways-auth=true\n' "$feed_registry" > .npmrc
           - task: npmAuthenticate@0
-            displayName: 'Authenticate to npm feed'
+            displayName: 'Authenticate npm'
             inputs:
               workingFile: '$(Pipeline.Workspace)/s/azure-webpubsub/.npmrc'
           - task: Bash@3
-            displayName: 'Install Yarn through Azure Artifacts'
+            displayName: 'Install Yarn'
             inputs:
               targetType: inline
               workingDirectory: '$(Pipeline.Workspace)/s/azure-webpubsub'
@@ -96,7 +99,7 @@ stages:
             env:
               SYSTEM_ACCESSTOKEN: $(System.AccessToken)
           - task: Bash@3
-            displayName: 'Remove stale package tarballs'
+            displayName: 'Clean tarballs'
             inputs:
               targetType: inline
               workingDirectory: '$(Pipeline.Workspace)/s/azure-webpubsub'
@@ -107,7 +110,7 @@ stages:
               - ${{ step }}
           - task: Bash@3
             name: locate
-            displayName: 'Locate produced tarball'
+            displayName: 'Validate tarball'
             inputs:
               targetType: inline
               workingDirectory: '$(Pipeline.Workspace)/s/azure-webpubsub'
