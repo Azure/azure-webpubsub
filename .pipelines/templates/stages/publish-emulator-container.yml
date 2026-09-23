@@ -1,0 +1,74 @@
+parameters:
+  - name: action
+    type: string
+    values: [version, latest]
+  - name: prerequisite_stage
+    type: string
+  - name: prerequisite_job
+    type: string
+  - name: azure_service_connection
+    type: string
+  - name: instructions
+    type: string
+
+stages:
+  - template: release-approval.yml
+    parameters:
+      package_key: emulator_container_${{ parameters.action }}
+      package_title: Docker ${{ parameters.action }}
+      instructions: |
+        ${{ parameters.instructions }}
+        Review drop_emulator_container/container-release.json from build $(Build.BuildNumber).
+        Source: $(Build.SourceBranch) @ $(Build.SourceVersion). Repository: $(EmulatorContainerReleaseRepository).
+        Resume to continue; Reject to stop this operation. Other releases are independent.
+
+  # Manual entry stages cannot have dependencies. Enforce prerequisites here,
+  # including the actual job result so a skipped job cannot authorize publication.
+  - stage: Prod_emulator_container_${{ parameters.action }}_publish
+    displayName: 'Publish Docker ${{ parameters.action }}'
+    isSkippable: false
+    dependsOn:
+      - ${{ parameters.prerequisite_stage }}
+      - Prod_emulator_container_${{ parameters.action }}_approve
+    condition: |
+      and(
+        not(canceled()),
+        eq(dependencies.${{ parameters.prerequisite_stage }}.result, 'Succeeded'),
+        eq(dependencies.Prod_emulator_container_${{ parameters.action }}_approve.result, 'Succeeded'),
+        or(
+          eq(variables['Build.SourceBranch'], 'refs/heads/main'),
+          startsWith(variables['Build.SourceBranch'], 'refs/heads/release/')
+        )
+      )
+    # Both operations must use the same service connection's Exclusive lock check.
+    lockBehavior: sequential
+    variables:
+      ob_release_environment: Production
+    jobs:
+      - job: publish
+        dependsOn: []
+        condition: and(not(canceled()), eq(variables['prerequisiteResult'], 'Succeeded'))
+        pool:
+          type: release
+          os: linux
+        variables:
+          prerequisiteResult: $[ stageDependencies.${{ parameters.prerequisite_stage }}.${{ parameters.prerequisite_job }}.result ]
+        templateContext:
+          inputs:
+            - input: pipelineArtifact
+              artifactName: drop_emulator_container
+              targetPath: '$(Pipeline.Workspace)/drop_emulator_container'
+        steps:
+          - task: AzureCLI@2
+            displayName: 'Publish Docker ${{ parameters.action }}'
+            inputs:
+              azureSubscription: ${{ parameters.azure_service_connection }}
+              scriptType: pscore
+              scriptLocation: scriptPath
+              scriptPath: '$(Pipeline.Workspace)/drop_emulator_container/Publish-EmulatorContainer.ps1'
+              arguments: '-ArtifactDirectory "$(Pipeline.Workspace)/drop_emulator_container" -Action ${{ parameters.action }}'
+              addSpnToEnvironment: false
+            env:
+              CONTAINER_ACR_RESOURCE_ID: $(EmulatorContainerRegistryResourceId)
+              CONTAINER_STAGING_REPOSITORY: $(EmulatorContainerStagingRepository)
+              CONTAINER_RELEASE_REPOSITORY: $(EmulatorContainerReleaseRepository)

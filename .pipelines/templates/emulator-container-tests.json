@@ -1,0 +1,37 @@
+{
+  "schemaVersion": "2.0.0",
+  "containerRunOptions": {
+    "bindMounts": [
+      "__SMOKE_DIRECTORY__/smoke:/container-smoke:ro"
+    ]
+  },
+  "metadataTest": {
+    "workdir": "/app",
+    "entrypoint": [
+      "/opt/emulator/awps-emulator"
+    ],
+    "exposedPorts": [
+      "8080"
+    ],
+    "envVars": [
+      {
+        "key": "DOTNET_USE_POLLING_FILE_WATCHER",
+        "value": "1"
+      }
+    ]
+  },
+  "commandTests": [
+    {
+      "name": "Non-root runtime REST, WebSocket, upstream and configuration reload",
+      "command": "/bin/sh",
+      "args": [
+        "-ec",
+        "cp /container-smoke/node /tmp/awps-container-test-node; chmod 755 /tmp/awps-container-test-node; exec /tmp/awps-container-test-node /container-smoke/onebranch-container-test.mjs"
+      ],
+      "expectedOutput": [
+        "PASS OneBranch container smoke"
+      ],
+      "exitCode": 0
+    }
+  ]
+}
