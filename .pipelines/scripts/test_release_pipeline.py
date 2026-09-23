@@ -400,7 +400,7 @@ class ReleasePipelineTests(unittest.TestCase):
     def test_agentless_approval_for_each_package(self):
         for key in PACKAGE_KEYS:
             stage = STAGES[f'Prod_{key}_approve']
-            self.assertEqual(stage['variables']['ob_release_environment'], 'Production')
+            self.assertEqual(stage['variables']['ob_release_environment'], 'Test')
             job = RELEASE_JOBS[f'{key}_approve']
             self.assertEqual(job['pool'], {'type': 'server'})
             self.assertEqual(job['timeoutInMinutes'], 1500)
@@ -417,6 +417,13 @@ class ReleasePipelineTests(unittest.TestCase):
             for detail in ('$(Build.BuildNumber)', '$(Build.SourceBranch)', '$(Build.SourceVersion)', 'Reject'):
                 self.assertIn(detail, instructions)
             self.assertIn('NuGet.org' if key == 'emulator' else 'npm', instructions)
+
+    def test_public_npm_publishers_keep_their_production_classification(self):
+        for key in NPM_KEYS:
+            stage = STAGES[f'Prod_{key}_publish']
+            self.assertEqual(stage['variables']['ob_release_environment'], 'Production')
+            self.assertIn(f'Prod_{key}_approve', dependencies(stage))
+            self.assertEqual(RELEASE_JOBS[f'{key}_publish']['pool']['type'], 'release')
 
     def test_manual_release_reuses_same_run_artifacts_without_building(self):
         build_packages = {e['parameters']['package_key']: e['parameters'] for e in ENTRIES if 'template' in e}

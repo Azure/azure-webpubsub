@@ -280,7 +280,8 @@ extends:
             )
           )
         variables:
-          ob_release_environment: Production
+          # Approval-only coordination; the downstream publisher owns production release checks.
+          ob_release_environment: Test
         jobs:
           - job: emulator_approve
             displayName: 'Approve emulator'
@@ -368,7 +369,8 @@ extends:
             )
           )
         variables:
-          ob_release_environment: Production
+          # Approval-only coordination; the downstream publisher owns production release checks.
+          ob_release_environment: Test
         jobs:
           - job: chat_client_approve
             displayName: 'Approve chat client'
@@ -583,7 +585,8 @@ extends:
             )
           )
         variables:
-          ob_release_environment: Production
+          # Approval-only coordination; the downstream publisher owns production release checks.
+          ob_release_environment: Test
         jobs:
           - job: socketio_approve
             displayName: 'Approve Socket.IO'
@@ -798,7 +801,8 @@ extends:
             )
           )
         variables:
-          ob_release_environment: Production
+          # Approval-only coordination; the downstream publisher owns production release checks.
+          ob_release_environment: Test
         jobs:
           - job: tunnel_approve
             displayName: 'Approve tunnel'

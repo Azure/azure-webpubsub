@@ -21,6 +21,13 @@ that build's artifacts. CI builds and manual feature-branch builds both support
 this flow. After approval, the next stage requires a successful package build,
 including its version validation, before it can check or prepare the release.
 
+The selection stages contain only Azure DevOps `ManualValidation`, with
+self-approval enabled. They use OneBranch's `Test` classification because they
+perform no publication. The actual npm publish stages remain `Production`:
+OneBranch injects a separate `ApprovalService` there, with its own approval rules.
+Consequently npm publication currently still requires that additional approval;
+changing `ManualValidation` settings does not change the OneBranch service rules.
+
 For npm, the publish job checks the actual tarball's name/version and confirms
 that the npm version and GitHub release tag are still available immediately
 before publishing. Checks use public endpoints; errors, rate limits, or an
