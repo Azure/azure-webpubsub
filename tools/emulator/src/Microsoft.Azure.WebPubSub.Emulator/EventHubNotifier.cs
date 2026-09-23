@@ -10,7 +10,6 @@ namespace Microsoft.Azure.WebPubSub.Emulator;
 
 internal sealed class EventHubNotifier : IAsyncDisposable
 {
-    private readonly HubSettingsConfiguration _configuration;
     private readonly Func<EventHubEndpointOptions, EventHubProducerClient> _createProducer;
     private readonly ILogger<EventHubNotifier> _logger;
     private readonly Dictionary<EventHubEndpointOptions, Lazy<EventHubProducerClient>> _producers = [];
@@ -20,10 +19,8 @@ internal sealed class EventHubNotifier : IAsyncDisposable
     private int _pending;
     private bool _stopping;
 
-    public EventHubNotifier(HubSettingsConfiguration configuration,
-        Func<EventHubEndpointOptions, EventHubProducerClient> createProducer, ILogger<EventHubNotifier> logger)
+    public EventHubNotifier(Func<EventHubEndpointOptions, EventHubProducerClient> createProducer, ILogger<EventHubNotifier> logger)
     {
-        _configuration = configuration;
         _createProducer = createProducer;
         _logger = logger;
     }
@@ -38,17 +35,17 @@ internal sealed class EventHubNotifier : IAsyncDisposable
         return producer;
     }
 
-    public async Task<bool> TryNotifyAsync(UpstreamConnectionContext connection, string eventName, int id,
-        MessageData data, bool userEvent)
+    public async Task<bool> TryNotifyAsync(EventListenerOptions[] listeners, UpstreamConnectionContext connection,
+        string eventName, int id, MessageData data, bool userEvent)
     {
+        var endpoints = listeners.Where(listener => listener.EventNameFilter.Matches(eventName, userEvent))
+            .Select(listener => listener.EventHubEndpoint).ToArray();
         Lazy<EventHubProducerClient>[] deliveries;
         lock (_gate)
         {
             if (_stopping) throw new ObjectDisposedException(nameof(EventHubNotifier));
-            if (!_configuration.Current.Hubs.TryGetValue(connection.Hub, out var hub)) return false;
-            deliveries = hub.EventListeners.Where(listener => listener.EventNameFilter.Matches(eventName, userEvent))
-                .Select(listener => GetProducer(listener.EventHubEndpoint)).ToArray();
-            if (deliveries.Length == 0) return false;
+            if (endpoints.Length == 0) return false;
+            deliveries = endpoints.Select(GetProducer).ToArray();
             _pending++;
         }
         try

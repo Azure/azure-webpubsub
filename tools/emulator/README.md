@@ -78,6 +78,9 @@ Open <http://localhost:8080/index.html> in two tabs and send messages. The clien
 portal, and tunnel steps: the JSON above replaces that event handler configuration.
 
 `EventHandlers` and `EventListeners` in `appsettings.json` support hot reload.
+Each event uses one configuration snapshot for both listeners and handlers; events already
+being dispatched finish with their original settings. Changes to `AccessKey`,
+`AllowUnvalidatedEntraTokens`, or the listening URLs require a restart.
 
 ## Prerequisites
 
@@ -496,6 +499,10 @@ requires its Docker prerequisites and your acceptance of its license terms.
   failures are logged but do not cause the client event to fail when a listener matches.
   The SDK handles transport retries;
   there is no emulator dead-letter store or durable replay. Shutdown allows 10 seconds to drain.
+
+Event Hubs clients are created on first use and cached by target until shutdown, even after a
+listener is removed. Removed listeners receive no new events; re-adding the same target reuses
+its cached client. Shutdown disposes all cached clients.
 
 ## Local server SDK authentication
 

@@ -19,7 +19,6 @@ using Microsoft.AspNetCore.TestHost;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging.Abstractions;
-using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
 using Xunit;
 
@@ -148,14 +147,9 @@ public class EventHubNotifierTests
         };
         var other = new RecordingProducer();
         var second = new EventListenerOptions { EventHubEndpoint = listener.EventHubEndpoint with { EventHubName = "other" }, EventNameFilter = listener.EventNameFilter };
-        var options = Options.Create(new EmulatorOptions { Hubs = new() { ["chat"] = new() { EventListeners = [listener, listener, second] } } });
         var creations = 0;
-        using var monitor = new OptionsMonitor<EmulatorOptions>(
-            new OptionsFactory<EmulatorOptions>([new ConfigureOptions<EmulatorOptions>(settings => settings.Hubs = options.Value.Hubs)], []),
-            [], new OptionsCache<EmulatorOptions>());
-        using var configuration = new HubSettingsConfiguration(monitor, options, NullLogger<HubSettingsConfiguration>.Instance);
-        await using var notifier = new EventHubNotifier(configuration, endpoint => { creations++; return endpoint.EventHubName == "other" ? other : producer; }, NullLogger<EventHubNotifier>.Instance);
-        var sending = notifier.TryNotifyAsync(new("connection", "chat", null, null, "localhost"), "message", 2,
+        await using var notifier = new EventHubNotifier(endpoint => { creations++; return endpoint.EventHubName == "other" ? other : producer; }, NullLogger<EventHubNotifier>.Instance);
+        var sending = notifier.TryNotifyAsync([listener, listener, second], new("connection", "chat", null, null, "localhost"), "message", 2,
             new(MessageDataType.Text, "hi"u8.ToArray()), true);
         await producer.ReadAsync();
         await producer.ReadAsync();

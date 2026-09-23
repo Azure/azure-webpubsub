@@ -122,12 +122,12 @@ public class EventListenerReloadTests
             _ => updated.Replace("\"EventNameFilter\":{", "\"EventNameFilter\":{\"Unexpected\":true,"),
         };
         await fixture.WriteAsync(json, LogLevel.Warning);
-        Assert.Equal("http://localhost:1/original", Assert.Single(fixture.Configuration.GetHandlers("chat")).UrlTemplate);
+        Assert.Equal("http://localhost:1/original", Assert.Single(fixture.Configuration.GetHub("chat")!.EventHandlers).UrlTemplate);
         Assert.True(await fixture.SendAsync());
         Assert.Equal(1, fixture.Creations);
         Assert.False(first.Disposed);
         await fixture.WriteAsync(updated);
-        Assert.Equal("http://localhost:1/changed", Assert.Single(fixture.Configuration.GetHandlers("chat")).UrlTemplate);
+        Assert.Equal("http://localhost:1/changed", Assert.Single(fixture.Configuration.GetHub("chat")!.EventHandlers).UrlTemplate);
         Assert.True(await fixture.SendAsync());
         Assert.Equal(2, fixture.Creations);
         Assert.False(first.Disposed);
@@ -241,7 +241,8 @@ public class EventListenerReloadTests
         public HubSettingsConfiguration Configuration => app.Services.GetRequiredService<HubSettingsConfiguration>();
         public EventHubNotifier Notifier => app.Services.GetRequiredService<EventHubNotifier>();
         public Task<bool> SendAsync(string name = "message", bool userEvent = true) => Notifier.TryNotifyAsync(
-            new("connection", "chat", null, null, "localhost"), name, 1, new(MessageDataType.Text, "hello"u8.ToArray()), userEvent);
+            Configuration.GetHub("chat")?.EventListeners ?? [], new("connection", "chat", null, null, "localhost"),
+            name, 1, new(MessageDataType.Text, "hello"u8.ToArray()), userEvent);
 
         public async Task WriteAsync(string json, LogLevel expected = LogLevel.Information)
         {

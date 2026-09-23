@@ -25,8 +25,7 @@ internal sealed class HubSettingsConfiguration : IHostedService, IDisposable
 
     public EmulatorOptions Current => Volatile.Read(ref _current);
 
-    public EventHandlerOptions[] GetHandlers(string hub) =>
-        Current.Hubs.TryGetValue(hub, out var settings) ? settings.EventHandlers : [];
+    public HubOptions? GetHub(string hub) => Current.Hubs.GetValueOrDefault(hub);
 
     public Task StartAsync(CancellationToken cancellationToken) => Task.CompletedTask;
 

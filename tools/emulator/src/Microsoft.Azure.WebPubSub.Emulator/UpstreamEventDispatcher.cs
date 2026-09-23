@@ -20,9 +20,11 @@ internal sealed class UpstreamEventDispatcher(
         UpstreamConnectionContext connection, ClientMessagePayload message, CancellationToken cancellationToken)
     {
         var id = connection.GetNextEventId();
-        var hasListener = await NotifyListenersAsync(connection, message.EventName, id, message.Data, userEvent: true);
-        var handler = configuration.GetHandlers(connection.Hub)
-            .FirstOrDefault(item => item.MatchesUserEvent(message.EventName));
+        // Keep both routes from one configuration snapshot while listener delivery is in flight.
+        var hub = configuration.GetHub(connection.Hub);
+        var handler = hub?.EventHandlers.FirstOrDefault(item => item.MatchesUserEvent(message.EventName));
+        var hasListener = await NotifyListenersAsync(hub?.EventListeners ?? [], connection,
+            message.EventName, id, message.Data, userEvent: true);
         if (handler is null)
         {
             if (hasListener) return new();
@@ -64,7 +66,7 @@ internal sealed class UpstreamEventDispatcher(
     public async Task<(HttpStatusCode Status, ConnectEventResponse? Response)> DispatchConnectAsync(
         UpstreamConnectionContext connection, ConnectEventRequest body, CancellationToken cancellationToken)
     {
-        var handler = GetHandler(connection.Hub, "connect");
+        var handler = GetHandler(configuration.GetHub(connection.Hub), "connect");
         if (handler is null)
         {
             return (HttpStatusCode.OK, null);
@@ -112,8 +114,10 @@ internal sealed class UpstreamEventDispatcher(
         UpstreamConnectionContext connection, string eventName, byte[] body)
     {
         var id = connection.GetNextEventId();
-        await NotifyListenersAsync(connection, eventName, id, new MessageData(MessageDataType.Json, body), userEvent: false);
-        var handler = GetHandler(connection.Hub, eventName);
+        var hub = configuration.GetHub(connection.Hub);
+        var handler = GetHandler(hub, eventName);
+        await NotifyListenersAsync(hub?.EventListeners ?? [], connection,
+            eventName, id, new MessageData(MessageDataType.Json, body), userEvent: false);
         if (handler is null)
         {
             return;
@@ -136,10 +140,10 @@ internal sealed class UpstreamEventDispatcher(
         }
     }
 
-    private async Task<bool> NotifyListenersAsync(UpstreamConnectionContext connection, string eventName,
-        int id, MessageData data, bool userEvent)
+    private async Task<bool> NotifyListenersAsync(EventListenerOptions[] listeners, UpstreamConnectionContext connection,
+        string eventName, int id, MessageData data, bool userEvent)
     {
-        try { return await notifier.TryNotifyAsync(connection, eventName, id, data, userEvent); }
+        try { return await notifier.TryNotifyAsync(listeners, connection, eventName, id, data, userEvent); }
         catch (Exception exception)
         {
             logger.LogWarning("Notifying listeners failed for {ConnectionId} ({ErrorType}).", connection.ConnectionId, exception.GetType().Name);
@@ -147,8 +151,8 @@ internal sealed class UpstreamEventDispatcher(
         }
     }
 
-    private EventHandlerOptions? GetHandler(string hub, string eventName) =>
-        configuration.GetHandlers(hub).FirstOrDefault(item => item.SystemEvents.Contains(eventName, StringComparer.OrdinalIgnoreCase));
+    private static EventHandlerOptions? GetHandler(HubOptions? hub, string eventName) =>
+        hub?.EventHandlers.FirstOrDefault(item => item.SystemEvents.Contains(eventName, StringComparer.OrdinalIgnoreCase));
 
     private async Task<HttpResponseMessage> SendAsync(
         EventHandlerOptions handler, UpstreamConnectionContext connection, string eventName, int id,
