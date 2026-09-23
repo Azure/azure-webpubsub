@@ -259,7 +259,7 @@ async function runTest(endpoint, upstreamEndpoint, hub, route) {
         const afterReload = `after-reload-${runId}`;
         await rest(endpoint, sendPath, 'POST', 202, afterReload);
         await Promise.all(clients.map(client => client.text(afterReload)));
-        console.log(`PASS [${route}] atomic mounted configuration reload updates the handler without reconnecting either client`);
+        console.log(`PASS [${route}] atomic configuration reload updates the handler without reconnecting either client`);
         completed = true;
     } finally {
         const results = await Promise.allSettled(clients.map(client => client.close()));
@@ -268,7 +268,7 @@ async function runTest(endpoint, upstreamEndpoint, hub, route) {
     }
 }
 
-async function serve(hub) {
+async function serve(hub, configurationPath = '/home/node/appsettings.json', upstreamEndpoint = 'http://upstream:8080') {
     assert.ok(hub, 'serve requires a hub');
     let origin = 'http-upstream';
     async function writeConfiguration(nextOrigin) {
@@ -279,7 +279,7 @@ async function serve(hub) {
                 Hubs: {
                     [hub]: {
                         EventHandlers: [{
-                            UrlTemplate: `http://upstream:8080/events/{hub}/{event}?origin=${encodeURIComponent(nextOrigin)}`,
+                            UrlTemplate: `${upstreamEndpoint}/events/{hub}/{event}?origin=${encodeURIComponent(nextOrigin)}`,
                             SystemEvents: ['connect', 'connected'],
                             EventPattern: 'echo',
                         }],
@@ -287,7 +287,7 @@ async function serve(hub) {
                 },
             },
         };
-        const path = '/home/node/appsettings.json';
+        const path = configurationPath;
         await writeFile(`${path}.tmp`, JSON.stringify(configuration));
         await rename(`${path}.tmp`, path);
         origin = nextOrigin;
@@ -305,7 +305,7 @@ async function serve(hub) {
             }
             if (url.pathname === '/configuration' && req.method === 'POST') {
                 const nextOrigin = url.searchParams.get('origin');
-                assert.match(nextOrigin, /^(host|network)-[a-f0-9-]{36}$/);
+                assert.match(nextOrigin, /^(host|network|container)-[a-f0-9-]{36}$/);
                 await writeConfiguration(nextOrigin);
                 res.writeHead(204).end();
                 return;

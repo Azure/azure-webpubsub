@@ -1,0 +1,113 @@
+parameters:
+  - name: azure_service_connection
+    type: string
+
+stages:
+  - stage: emulator_container_build
+    displayName: 'Build and test Docker image with OneBranch'
+    isSkippable: false
+    dependsOn: emulator_build
+    condition: and(not(canceled()), eq(dependencies.emulator_build.result, 'Succeeded'))
+    jobs:
+      - job: container
+        pool:
+          type: docker
+          os: linux
+        variables:
+          ob_git_checkout: false
+          releaseVersion: $[ stageDependencies.emulator_build.build.outputs['read.emulator_releaseVersion'] ]
+        steps:
+          - task: DownloadPipelineArtifact@2
+            inputs:
+              buildType: current
+              artifactName: drop_emulator
+              itemPattern: 'container/*'
+              targetPath: '$(Build.SourcesDirectory)/dst'
+          # A fixed per-build path lets the test config mount its Node runner on
+          # any OneBranch worker, independently of that worker's checkout path.
+          - task: DownloadPipelineArtifact@2
+            inputs:
+              buildType: current
+              artifactName: drop_emulator
+              itemPattern: 'container/smoke/**'
+              targetPath: '/tmp/awps-container-$(Build.BuildId)'
+          - task: onebranch.pipeline.imagebuildinfo@1
+            displayName: 'Build release-package image and run container smoke'
+            inputs:
+              repositoryName: webpubsub-emulator-build
+              registry: onebranch.azurecr.io
+              dockerFileRelPath: container/Dockerfile
+              dockerFileContextPath: container
+              build_tag: '$(Build.BuildId)'
+              arguments: '--build-arg EMULATOR_VERSION=$(releaseVersion) --label org.opencontainers.image.revision=$(Build.SourceVersion)'
+              buildkit: 1
+              enable_network: true
+              enable_acr_push: false
+              enable_isolated_acr_push: false
+              saveImageToPath: 'webpubsub-emulator.$(releaseVersion).linux-amd64.tar'
+              compress: false
+              containerTestsYAMLPath: '$(Build.SourcesDirectory)/dst/container/container-tests.json'
+              failTaskOnFailedTests: true
+
+  - stage: emulator_container_validate
+    displayName: 'Record tested Docker image artifact'
+    isSkippable: false
+    dependsOn:
+      - emulator_build
+      - emulator_container_build
+    condition: and(not(canceled()), eq(dependencies.emulator_build.result, 'Succeeded'), eq(dependencies.emulator_container_build.result, 'Succeeded'))
+    jobs:
+      - job: container
+        condition: and(not(canceled()), eq(variables['containerBuildResult'], 'Succeeded'))
+        pool:
+          type: linux
+        variables:
+          containerBuildResult: $[ stageDependencies.emulator_container_build.container.result ]
+          ob_outputDirectory: '$(Build.ArtifactStagingDirectory)/emulator-container'
+          ob_artifactBaseName: drop_emulator_container
+          ob_sdl_codeSignValidation_enabled: false
+          ob_sdl_binskim_enabled: false
+        steps:
+          - checkout: self
+            path: s/azure-webpubsub
+            persistCredentials: false
+          - task: DownloadPipelineArtifact@2
+            inputs:
+              buildType: current
+              artifactName: drop_emulator
+              itemPattern: container/container-input.json
+              targetPath: '$(Pipeline.Workspace)/container-context'
+          - task: DownloadPipelineArtifact@2
+            inputs:
+              buildType: current
+              artifactName: drop_emulator_container_build_container
+              itemPattern: 'webpubsub-emulator.*.linux-amd64.tar'
+              targetPath: '$(ob_outputDirectory)'
+          - task: PowerShell@2
+            displayName: 'Verify image provenance and save release artifact'
+            inputs:
+              pwsh: true
+              filePath: '$(Pipeline.Workspace)/s/azure-webpubsub/.pipelines/scripts/Complete-EmulatorContainer.ps1'
+              arguments: >-
+                -ContextDirectory "$(Pipeline.Workspace)/container-context/container"
+                -OutputDirectory "$(ob_outputDirectory)"
+
+  - ${{ if ne(parameters.azure_service_connection, '') }}:
+      - template: publish-emulator-container.yml
+        parameters:
+          action: version
+          prerequisite_stage: emulator_container_validate
+          prerequisite_job: container
+          azure_service_connection: ${{ parameters.azure_service_connection }}
+          instructions: |
+            Publish and lock the version tag using this build's tested image archive named in container-release.json. This does not update latest.
+            Start this entry after container validation succeeds.
+      - template: publish-emulator-container.yml
+        parameters:
+          action: latest
+          prerequisite_stage: Prod_emulator_container_version_publish
+          prerequisite_job: publish
+          azure_service_connection: ${{ parameters.azure_service_connection }}
+          instructions: |
+            Point latest to this build's already published, immutable version (including beta). No image is rebuilt or re-uploaded.
+            Start this entry after Publish Docker version succeeds. Leave it unstarted to keep latest unchanged.

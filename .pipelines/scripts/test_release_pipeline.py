@@ -4,6 +4,7 @@ Run: python -m unittest discover -s .pipelines/scripts -p test_release_pipeline.
 Requires PyYAML. Dependency-free Node helper tests run separately.
 """
 
+import copy
 import itertools
 import json
 from pathlib import Path
@@ -27,16 +28,38 @@ MANUAL_STAGES = tuple(f'Prod_{key}_approve' for key in RELEASE_KEYS)
 
 def expand(value, parameters):
     if isinstance(value, str):
+        parameter = re.fullmatch(r'\$\{\{\s*parameters\.(\w+)\s*\}\}', value)
+        if parameter:
+            return parameters[parameter[1]]
         value = re.sub(
             r"\$\{\{\s*format\('([^']+)', parameters\.(\w+)\)\s*\}\}",
             lambda m: m[1].format(parameters[m[2]]), value)
         return re.sub(r'\$\{\{\s*parameters\.(\w+)\s*\}\}',
                       lambda m: str(parameters.get(m[1], m[0])), value)
     if isinstance(value, list):
-        return [expand(item, parameters) for item in value]
+        result = []
+        for item in value:
+            if isinstance(item, dict) and len(item) == 1:
+                key = next(iter(item))
+                condition = re.fullmatch(r'\$\{\{ if (.+) \}\}', key)
+                if condition:
+                    if template_condition(condition[1], parameters):
+                        result.extend(expand(item[key], parameters))
+                    continue
+            result.append(expand(item, parameters))
+        return result
     if isinstance(value, dict):
         return {expand(k, parameters): expand(v, parameters) for k, v in value.items()}
     return value
+
+
+def template_condition(expression, parameters):
+    """Only the compile-time operators used by container infrastructure configuration."""
+    comparison = re.fullmatch(r"(eq|ne)\(parameters\.(\w+), '([^']*)'\)", expression)
+    if not comparison:
+        raise AssertionError(f'Unsupported template condition: {expression}')
+    equal = parameters[comparison[2]] == comparison[3]
+    return equal if comparison[1] == 'eq' else not equal
 
 
 def instantiate(template, parameters, kind):
@@ -56,7 +79,19 @@ def expand_stages(entries, directory):
             yield from expand_stages(stages, path.parent)
 
 
-EXPANDED_STAGES = list(expand_stages(ENTRIES, ROOT / '.pipelines'))
+DEFAULT_PARAMETERS = {p['name']: p['default'] for p in PIPELINE.get('parameters', [])}
+
+
+def pipeline_stages(**container_configuration):
+    # Simulate infrastructure onboarding by changing static template inputs,
+    # not queue-time pipeline parameters.
+    entries = copy.deepcopy(ENTRIES)
+    container = next(e for e in entries if e.get('template') == 'templates/stages/release-emulator-container.yml')
+    container['parameters'].update(container_configuration)
+    return list(expand_stages(entries, ROOT / '.pipelines'))
+
+
+EXPANDED_STAGES = pipeline_stages()
 STAGES = {stage['stage']: stage for stage in EXPANDED_STAGES}
 
 RELEASE_STAGES = tuple(name for key in RELEASE_KEYS for name in
@@ -143,7 +178,162 @@ def permits_job(name, values, canceled=False):
 
 
 class ReleasePipelineTests(unittest.TestCase):
-    def test_unconditional_templates_no_runtime_switches(self):
+    def test_managed_docker_build_is_automatic_and_uses_the_release_package(self):
+        for connection in ('', 'acr-connection'):
+            stages = {s['stage']: s for s in pipeline_stages(azure_service_connection=connection)}
+            self.assertEqual({name: stages[name] for name in STAGES}, STAGES)
+            expected = set(STAGES)
+            if connection:
+                expected.update(f'Prod_emulator_container_{action}_{step}'
+                                for action in ('version', 'latest') for step in ('approve', 'publish'))
+            self.assertEqual(set(stages), expected)
+        self.assertNotIn('build_pool', json.dumps(PIPELINE))
+        build = STAGES['emulator_container_build']
+        self.assertEqual(dependencies(build), ['emulator_build'])
+        for result in ('Succeeded', 'Failed', 'Skipped', 'Canceled', 'SucceededWithIssues'):
+            self.assertEqual(evaluate(build['condition'], {'dependencies.emulator_build.result': result}), result == 'Succeeded')
+        job = build['jobs'][0]
+        self.assertEqual(job['pool'], {'type': 'docker', 'os': 'linux'})
+        self.assertEqual(job['variables']['releaseVersion'], "$[ stageDependencies.emulator_build.build.outputs['read.emulator_releaseVersion'] ]")
+        steps = job['steps']
+        self.assertEqual([step['task'] for step in steps], ['DownloadPipelineArtifact@2', 'DownloadPipelineArtifact@2', 'onebranch.pipeline.imagebuildinfo@1'])
+        self.assertTrue(all(step['inputs']['artifactName'] == 'drop_emulator' and step['inputs']['buildType'] == 'current' for step in steps[:2]))
+        self.assertEqual(steps[0]['inputs']['itemPattern'], 'container/*')
+        self.assertEqual(steps[0]['inputs']['targetPath'], '$(Build.SourcesDirectory)/dst')
+        self.assertEqual(steps[1]['inputs']['itemPattern'], 'container/smoke/**')
+        self.assertEqual(steps[1]['inputs']['targetPath'], '/tmp/awps-container-$(Build.BuildId)')
+        image = steps[-1]['inputs']
+        self.assertEqual(image['dockerFileRelPath'], 'container/Dockerfile')
+        self.assertEqual(image['dockerFileContextPath'], 'container')
+        self.assertIn('--build-arg EMULATOR_VERSION=$(releaseVersion)', image['arguments'])
+        self.assertNotIn('--target', image['arguments'])
+        self.assertIn('org.opencontainers.image.revision=$(Build.SourceVersion)', image['arguments'])
+        self.assertEqual(image['saveImageToPath'], 'webpubsub-emulator.$(releaseVersion).linux-amd64.tar')
+        self.assertIs(image['enable_acr_push'], False)
+        self.assertIs(image['enable_isolated_acr_push'], False)
+        self.assertIs(image['compress'], False)
+        self.assertIs(image['failTaskOnFailedTests'], True)
+        self.assertEqual(image['containerTestsYAMLPath'], '$(Build.SourcesDirectory)/dst/container/container-tests.json')
+
+    def test_context_preparation_reuses_package_build_and_installed_node(self):
+        self.assertNotIn('emulator_container_prepare', STAGES)
+        jobs = STAGES['emulator_build']['jobs']
+        self.assertEqual(len(jobs), 1)
+        job = jobs[0]
+        steps = job['steps']
+        self.assertFalse(any(s.get('task') == 'DownloadPipelineArtifact@2' for s in steps))
+        node = next(s for s in steps if s.get('task') == 'UseNode@1')
+        self.assertEqual(node['inputs']['version'], '$(emulatorSmokeNodeVersion)')
+        self.assertRegex(job['variables']['emulatorSmokeNodeVersion'], r'^22\.\d+\.\d+$')
+        script = steps[-1]['inputs']['script']
+        self.assertLess(script.rindex('-Phase Validate'), script.index('Prepare-EmulatorContainer.ps1'))
+        self.assertIn("-PackageDirectory '$(ob_outputDirectory)/release'", script)
+        self.assertIn("-Version '$(read.emulator_releaseVersion)'", script)
+        self.assertIn("-OutputDirectory '$(ob_outputDirectory)/container'", script)
+        self.assertIn("-NodePath '$(Agent.ToolsDirectory)/node/$(emulatorSmokeNodeVersion)/x64/bin/node'", script)
+
+    def test_container_archive_is_recorded_only_after_successful_image_tests(self):
+        validate = STAGES['emulator_container_validate']
+        self.assertEqual(dependencies(validate), ['emulator_build', 'emulator_container_build'])
+        job = validate['jobs'][0]
+        self.assertEqual(job['variables']['containerBuildResult'], '$[ stageDependencies.emulator_container_build.container.result ]')
+        self.assertEqual(job['variables']['ob_artifactBaseName'], 'drop_emulator_container')
+        downloads = [s['inputs'] for s in job['steps'] if s.get('task') == 'DownloadPipelineArtifact@2']
+        self.assertEqual([(s['artifactName'], s['itemPattern']) for s in downloads], [
+            ('drop_emulator', 'container/container-input.json'),
+            ('drop_emulator_container_build_container', 'webpubsub-emulator.*.linux-amd64.tar')])
+        self.assertEqual(downloads[1]['targetPath'], '$(ob_outputDirectory)')
+        states = ('Succeeded', 'Failed', 'Skipped', 'Canceled', 'SucceededWithIssues', '')
+        for preparation, build in itertools.product(states, repeat=2):
+            values = context() | {'dependencies.emulator_build.result': preparation,
+                                  'dependencies.emulator_container_build.result': build}
+            self.assertEqual(evaluate(validate['condition'], values), preparation == build == 'Succeeded')
+        for result in states:
+            self.assertEqual(evaluate(job['condition'], {"variables['containerBuildResult']": result}), result == 'Succeeded')
+
+    def test_docker_operations_require_their_own_approval_and_successful_prerequisite(self):
+        stages = {s['stage']: s for s in pipeline_stages(azure_service_connection='acr-connection')}
+        states = ('Succeeded', 'Pending', 'Failed', 'Skipped', 'Canceled', 'SucceededWithIssues', '')
+        for action, prerequisite, job_name in (
+                ('version', 'emulator_container_validate', 'container'),
+                ('latest', 'Prod_emulator_container_version_publish', 'publish')):
+            approval_name = f'Prod_emulator_container_{action}_approve'
+            approve = stages[approval_name]
+            self.assertEqual(approve['displayName'], f'Release Docker {action}')
+            self.assertEqual(approve['trigger'], 'manual')
+            self.assertIs(approve['isSkippable'], True)
+            self.assertNotIn('dependsOn', approve)
+            self.assertNotIn('stageDependencies.', json.dumps(approve))
+            gate = approve['jobs'][0]
+            self.assertEqual(gate['pool'], {'type': 'server'})
+            check = gate['steps'][0]
+            self.assertEqual(check['task'], 'ManualValidation@1')
+            self.assertEqual(check['timeoutInMinutes'], 1440)
+            self.assertGreater(gate['timeoutInMinutes'], check['timeoutInMinutes'])
+            self.assertEqual(check['inputs']['onTimeout'], 'reject')
+            self.assertIs(check['inputs']['allowApproversToApproveTheirOwnRuns'], True)
+            self.assertIn('drop_emulator_container/container-release.json', check['inputs']['instructions'])
+            publish = stages[f'Prod_emulator_container_{action}_publish']
+            self.assertEqual(dependencies(publish), [prerequisite, approval_name])
+            self.assertEqual(publish['variables']['ob_release_environment'], 'Production')
+            self.assertEqual(publish['lockBehavior'], 'sequential')
+            publisher = publish['jobs'][0]
+            self.assertEqual(publisher['pool'], {'type': 'release', 'os': 'linux'})
+            self.assertEqual(publisher['variables']['prerequisiteResult'], f'$[ stageDependencies.{prerequisite}.{job_name}.result ]')
+            self.assertIn(job_name, [job['job'] for job in stages[prerequisite]['jobs']])
+            self.assertEqual(publisher['templateContext']['inputs'][0]['artifactName'], 'drop_emulator_container')
+            self.assertNotIn('checkout', json.dumps(publisher))
+            self.assertEqual(publisher['steps'][0]['inputs']['azureSubscription'], 'acr-connection')
+            self.assertIn(f'-Action {action}', publisher['steps'][0]['inputs']['arguments'])
+            self.assertNotIn('${{', json.dumps(publish))
+            for branch, reason, result, approval in itertools.product(
+                    ('refs/heads/main', 'refs/heads/release/1.0', 'refs/heads/topic'),
+                    ('Manual', 'IndividualCI', 'BatchedCI'), states, states):
+                values = context(branch, reason) | {
+                    f'dependencies.{prerequisite}.result': result,
+                    f'dependencies.{approval_name}.result': approval,
+                }
+                self.assertEqual(evaluate(publish['condition'], values),
+                                 branch != 'refs/heads/topic' and result == approval == 'Succeeded')
+                self.assertFalse(evaluate(publish['condition'], values, canceled=True))
+            for state in states:
+                self.assertEqual(evaluate(publisher['condition'], {"variables['prerequisiteResult']": state}), state == 'Succeeded')
+                self.assertFalse(evaluate(publisher['condition'], {"variables['prerequisiteResult']": state}, canceled=True))
+
+    def test_optional_latest_does_not_block_version_packages_or_ci(self):
+        stages = {s['stage']: s for s in pipeline_stages(azure_service_connection='acr-connection')}
+        latest = {'Prod_emulator_container_latest_approve', 'Prod_emulator_container_latest_publish'}
+        docker = {name for name in stages if 'emulator_container' in name}
+        for name, stage in stages.items():
+            if name not in latest:
+                self.assertTrue(set(dependencies(stage)).isdisjoint(latest))
+            if name not in docker:
+                self.assertTrue(set(dependencies(stage)).isdisjoint(docker))
+        for reason in ('IndividualCI', 'BatchedCI', 'Manual'):
+            values = context(reason=reason)
+            ran = set()
+            for name, stage in stages.items():
+                allowed = stage.get('trigger') != 'manual' and evaluate(stage['condition'], values)
+                values[f'dependencies.{name}.result'] = 'Succeeded' if allowed else 'Skipped'
+                if allowed:
+                    ran.add(name)
+            self.assertEqual(ran, {'emulator_build', 'emulator_myget', 'emulator_container_build', 'emulator_container_validate',
+                                   *(f'{key}_build' for key in NPM_KEYS)})
+        for state in ('Pending', 'Skipped', 'Failed', 'Canceled', 'SucceededWithIssues', ''):
+            values = context()
+            for name in docker:
+                values[f'dependencies.{name}.result'] = state
+            for key in RELEASE_KEYS:
+                self.assertTrue(permits_job(f'{key}_publish', values))
+            values['dependencies.emulator_container_validate.result'] = 'Succeeded'
+            values['dependencies.Prod_emulator_container_version_approve.result'] = 'Succeeded'
+            self.assertTrue(evaluate(stages['Prod_emulator_container_version_publish']['condition'], values))
+            # An early latest approval still cannot bypass incomplete version publication.
+            values['dependencies.Prod_emulator_container_latest_approve.result'] = 'Succeeded'
+            self.assertFalse(evaluate(stages['Prod_emulator_container_latest_publish']['condition'], values))
+
+    def test_package_builds_and_releases_need_no_runtime_switches(self):
+        self.assertEqual(DEFAULT_PARAMETERS, {})
         self.assertNotIn('parameters', PIPELINE)
         self.assertNotIn('publish_package', {p['name'] for p in TEMPLATE['parameters']})
         self.assertEqual([e['parameters']['package_key'] for e in NPM_BUILD_ENTRIES], list(NPM_KEYS))
@@ -166,7 +356,7 @@ class ReleasePipelineTests(unittest.TestCase):
                              [f'{key}_publish'])
 
     def test_stage_and_release_job_graphs(self):
-        self.assertEqual(len(STAGES), 14)
+        self.assertEqual(len(STAGES), 16)
         self.assertEqual(len(RELEASE_JOBS), 9)
         graphs = [STAGES] + [{job['job']: job for job in stage['jobs']} for stage in STAGES.values()]
         for graph in graphs:
@@ -208,6 +398,7 @@ class ReleasePipelineTests(unittest.TestCase):
                 if allowed:
                     ran.add(name)
             self.assertEqual(ran, {'emulator_build', 'emulator_myget',
+                                   'emulator_container_build', 'emulator_container_validate',
                                    *(f'{key}_build' for key in NPM_KEYS)})
             for name in RELEASE_JOBS:
                 # Trigger selection is separate from condition eligibility.
@@ -235,7 +426,7 @@ class ReleasePipelineTests(unittest.TestCase):
                     for forbidden in ('git clone', 'git push', 'persistCredentials', 'getGithubAuthorization'):
                         self.assertNotIn(forbidden, json.dumps(job))
                 else:
-                    self.assertEqual(job['pool'], {'type': 'linux'})
+                    self.assertIn(job['pool'], ({'type': 'linux'}, {'type': 'docker', 'os': 'linux'}))
         for key in NPM_KEYS:
             job = RELEASE_JOBS[f'{key}_finalize']
             self.assertEqual(job['pool'], {'type': 'linux'})

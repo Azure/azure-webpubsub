@@ -7,12 +7,26 @@ on:
       - 'tools/emulator/**'
       - 'protocols/protobuf.webpubsub.azure.v1/**'
       - '.github/workflows/emulator-tests.yml'
+      - '.pipelines/release.yml'
+      - '.pipelines/scripts/*EmulatorContainer*.ps1'
+      - '.pipelines/scripts/test_release_pipeline.py'
+      - '.pipelines/templates/stages/*emulator-container.yml'
+      - '.pipelines/templates/stages/release-approval.yml'
+      - '.pipelines/templates/push-tested-emulator-image.yml'
+      - '.pipelines/templates/emulator-container-tests.json'
   pull_request:
     branches: ["main"]
     paths:
       - 'tools/emulator/**'
       - 'protocols/protobuf.webpubsub.azure.v1/**'
       - '.github/workflows/emulator-tests.yml'
+      - '.pipelines/release.yml'
+      - '.pipelines/scripts/*EmulatorContainer*.ps1'
+      - '.pipelines/scripts/test_release_pipeline.py'
+      - '.pipelines/templates/stages/*emulator-container.yml'
+      - '.pipelines/templates/stages/release-approval.yml'
+      - '.pipelines/templates/push-tested-emulator-image.yml'
+      - '.pipelines/templates/emulator-container-tests.json'
 
 permissions:
   contents: read
@@ -35,6 +49,15 @@ jobs:
         uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6.0.0
         with:
           dotnet-version: ${{ matrix.dotnet-version }}
+
+      - name: Test container release guards without cloud access
+        shell: pwsh
+        run: ./.pipelines/scripts/Test-EmulatorContainerRelease.ps1
+
+      - name: Test release pipeline integration
+        run: |
+          python -m pip install PyYAML==6.0.2
+          python -m unittest discover -s .pipelines/scripts -p test_release_pipeline.py
 
       - name: Restore dependencies
         run: >-
@@ -148,6 +171,26 @@ jobs:
         if: runner.os == 'Linux'
         shell: pwsh
         run: ./tools/emulator/docker/Test-EmulatorContainer.ps1 -Image webpubsub-emulator:package
+
+      - name: Test the OneBranch container test interface
+        if: runner.os == 'Linux'
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $directory = Join-Path $env:RUNNER_TEMP 'onebranch-smoke'
+          New-Item -ItemType Directory -Force "$directory/smoke" | Out-Null
+          Copy-Item (Get-Command node).Source "$directory/smoke/node"
+          Copy-Item tools/emulator/docker/*container-test.mjs "$directory/smoke/"
+          (Get-Content .pipelines/templates/emulator-container-tests.json -Raw).Replace('__SMOKE_DIRECTORY__', $directory) |
+            Set-Content "$directory/container-tests.json"
+          $tester = "$directory/container-structure-test"
+          Invoke-WebRequest 'https://github.com/GoogleContainerTools/container-structure-test/releases/download/v1.22.1/container-structure-test-linux-amd64' -OutFile $tester
+          if ((Get-FileHash $tester -Algorithm SHA256).Hash.ToLowerInvariant() -ne 'fa35e89512a8978585f76cf41397956d2e3a30c62c2ad3fb857b1597074d14ca') {
+            throw 'Container Structure Test checksum mismatch.'
+          }
+          chmod +x $tester
+          & $tester test --image webpubsub-emulator:package --config "$directory/container-tests.json"
+          if ($LASTEXITCODE -ne 0) { throw 'The OneBranch container test interface failed.' }
 
       - name: Upload emulator package
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1

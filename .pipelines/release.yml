@@ -63,6 +63,7 @@ extends:
               ob_artifactBaseName: 'drop_emulator'
               ob_sdl_codeSignValidation_enabled: false
               ob_sdl_binskim_enabled: false
+              emulatorSmokeNodeVersion: '22.23.2'
             steps:
               - checkout: self
                 path: s/azure-webpubsub
@@ -71,9 +72,9 @@ extends:
                   # Relocate and clean the checkout before the signing watcher starts.
                   ob_restore_phase: true
               - task: UseNode@1
-                displayName: 'Use Node 22.x'
+                displayName: 'Use Node for build and container tests'
                 inputs:
-                  version: '22.x'
+                  version: '$(emulatorSmokeNodeVersion)'
               - task: Bash@3
                 name: read
                 displayName: 'Check version'
@@ -120,7 +121,7 @@ extends:
                       -OutputDirectory '$(ob_outputDirectory)/preview' `
                       -BuildId $env:BUILD_BUILDID -Phase Pack
               - task: PowerShell@2
-                displayName: 'Validate packages'
+                displayName: 'Validate packages and prepare Docker context'
                 inputs:
                   pwsh: true
                   targetType: inline
@@ -132,6 +133,11 @@ extends:
                     & ./.pipelines/scripts/Build-EmulatorPackage.ps1 `
                       -OutputDirectory '$(ob_outputDirectory)/preview' `
                       -BuildId $env:BUILD_BUILDID -Phase Validate
+                    & ./.pipelines/scripts/Prepare-EmulatorContainer.ps1 `
+                      -PackageDirectory '$(ob_outputDirectory)/release' `
+                      -Version '$(read.emulator_releaseVersion)' `
+                      -NodePath '$(Agent.ToolsDirectory)/node/$(emulatorSmokeNodeVersion)/x64/bin/node' `
+                      -OutputDirectory '$(ob_outputDirectory)/container'
 
       - template: templates/stages/release-package.yml
         parameters:
@@ -255,6 +261,11 @@ extends:
                   packagesToPush: '$(Pipeline.Workspace)/drop_emulator/preview/*.nupkg'
                   nuGetFeedType: external
                   publishFeedCredentials: azure-webpubsub-dev
+
+      - template: templates/stages/release-emulator-container.yml
+        parameters:
+          # OneBranch supplies the Docker build pool. Configure a connection only for publication.
+          azure_service_connection: ''
 
       - template: templates/stages/release-npm-package.yml
         parameters:

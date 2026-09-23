@@ -1,26 +1,21 @@
 # Get started with the Web PubSub emulator in Docker
 
-You need Docker with Linux containers and BuildKit, a checkout of this repository,
-and an existing emulator NuGet package. Docker uses the .NET SDK and runtime inside
-container images; building and running this image does not require .NET on your host.
-Creating the NuGet package from source is a separate, optional step that requires the
-.NET SDK on your host.
+You need Docker with Linux containers and BuildKit, curl, and a checkout of this
+repository. Building and running this image does not require .NET on your host.
 
 The commands below use Bash and start from the repository root.
 
 ## 1. Build the image from a package
 
-Create a local folder for your downloaded package:
+Choose a published version from the [emulator package on NuGet](https://www.nuget.org/packages/Microsoft.Azure.WebPubSub.Emulator).
+Replace `<version>` below with that version, then download the package and build the image:
 
 ```bash
+version='<version>'
 mkdir -p artifacts/emulator
-```
-
-Copy `Microsoft.Azure.WebPubSub.Emulator.<version>.nupkg` into that folder and set
-the matching version below. The Dockerfile installs that local package.
-
-```bash
-version='1.0.0-beta.1'
+curl --fail --location \
+  "https://www.nuget.org/api/v2/package/Microsoft.Azure.WebPubSub.Emulator/$version" \
+  --output "artifacts/emulator/Microsoft.Azure.WebPubSub.Emulator.$version.nupkg"
 docker build --file tools/emulator/Dockerfile \
   --build-arg "EMULATOR_VERSION=$version" \
   --tag webpubsub-emulator:local artifacts/emulator
@@ -122,5 +117,5 @@ not require an HTTP handler.
 ## Optional: test source changes
 
 With the .NET SDK installed on your host, [pack the tool](../README.md#pack-and-install-the-tool)
-to produce a `.nupkg` in `artifacts/emulator`. Then build the image from that package
-using step 1 above.
+to produce a `.nupkg` in `artifacts/emulator`. Set `version` to the package version
+and run the `docker build` command from step 1.
