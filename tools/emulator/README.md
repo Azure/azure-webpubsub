@@ -12,6 +12,9 @@ depend on cloud authentication, message expiration, or recovery across process r
 
 ## Quick start
 
+To run an existing NuGet package in Docker without installing .NET on the host,
+see [Docker getting started](docker/README.md).
+
 Run the existing [JavaScript SDK chat sample](../../samples/javascript/chatapp/sdk) against the
 emulator instead of Azure. You need Node.js, a repository checkout, and an
 [installed emulator](#install-a-local-package) with the [.NET prerequisites](#prerequisites).
@@ -39,7 +42,7 @@ In the directory where you will run the emulator, create `appsettings.json`:
 
 From that same directory, run:
 
-```powershell
+```bash
 awps-emulator --urls http://localhost:8081
 ```
 
@@ -65,8 +68,8 @@ It does not disable TLS certificate checks. Keep this opt-in local; use HTTPS fo
 
 In another terminal, from the repository root:
 
-```powershell
-Set-Location .\samples\javascript\chatapp\sdk
+```bash
+cd samples/javascript/chatapp/sdk
 npm install
 npm run release
 npm run start -- "<connection string printed by the emulator>"
@@ -84,7 +87,9 @@ being dispatched finish with their original settings. Changes to `AccessKey`,
 
 ## Prerequisites
 
-- To build or run from source: .NET SDK 10.0.401 or later in the .NET 10 release line.
+- To use Docker: Docker with Linux containers and BuildKit (Docker Desktop includes both).
+  Building an image from an existing NuGet package needs no .NET installation on the host.
+- To build, pack, or run from source: .NET SDK 10.0.401 or later in the .NET 10 release line.
 - A local checkout of this repository for the source and packaging commands below.
 - To run the packaged tool on another machine: the .NET 10 and ASP.NET Core 10 runtimes.
   The .NET SDK above includes both. The package is not a self-contained executable.
@@ -93,22 +98,28 @@ No Azure subscription is needed for access-key-based local messaging. Forwarding
 Azure Event Hubs and obtaining real Microsoft Entra tokens require their own Azure access;
 these are optional scenarios.
 
-Check your installed SDKs with `dotnet --list-sdks`. Unless stated otherwise, the reference
-commands below use PowerShell and run from the repository root.
+Unless stated otherwise, the reference commands below use Bash and run from the repository root.
+
+## Run with Docker
+
+Follow [Docker getting started](docker/README.md) to build an image from an existing
+NuGet package and start with the default settings. This uses .NET inside Docker;
+no .NET installation is needed on your host. Configuration files and HTTP handlers
+are optional.
 
 ## Run from source
 
 From the repository root, run:
 
-```powershell
-dotnet run --project tools\emulator\src\Microsoft.Azure.WebPubSub.Emulator
+```bash
+dotnet run --project tools/emulator/src/Microsoft.Azure.WebPubSub.Emulator
 ```
 
 The emulator listens on `http://localhost:8080` by default and prints a connection string and
 client endpoint at startup. To check whether it is ready:
 
-```powershell
-curl.exe --head "http://localhost:8080/api/health"
+```bash
+curl --head "http://localhost:8080/api/health"
 ```
 
 A healthy process returns `200 OK`. Keep the emulator running while your application connects.
@@ -257,17 +268,17 @@ for limits, continuation tokens, and behavior when membership changes.
 Set the ASP.NET Core `Urls` configuration value to use another address. The generated connection
 string automatically uses the address and port that the emulator actually binds. For example:
 
-```powershell
-$env:Urls = "http://localhost:8090"
-dotnet run --project tools\emulator\src\Microsoft.Azure.WebPubSub.Emulator
+```bash
+export Urls="http://localhost:8090"
+dotnet run --project tools/emulator/src/Microsoft.Azure.WebPubSub.Emulator
 ```
 
 Set `WebPubSub__AccessKey` to customize the local access key. It must be at least 32 UTF-8 bytes and
 cannot contain leading or trailing whitespace, semicolons, or control characters:
 
-```powershell
-$env:WebPubSub__AccessKey = "custom-emulator-access-key-1234567890"
-dotnet run --project tools\emulator\src\Microsoft.Azure.WebPubSub.Emulator
+```bash
+export WebPubSub__AccessKey="custom-emulator-access-key-1234567890"
+dotnet run --project tools/emulator/src/Microsoft.Azure.WebPubSub.Emulator
 ```
 
 ## HTTP lifecycle notifications
@@ -297,13 +308,13 @@ Environment variables with `__` separators and command-line values override JSON
 
 Alternatively, configure the same handler using environment variables (these do not hot reload):
 
-```powershell
-$env:WebPubSub__Hubs__chat__EventHandlers__0__UrlTemplate = "http://localhost:7071/events/{hub}/{event}"
-$env:WebPubSub__Hubs__chat__EventHandlers__0__SystemEvents__0 = "connect"
-$env:WebPubSub__Hubs__chat__EventHandlers__0__SystemEvents__1 = "connected"
-$env:WebPubSub__Hubs__chat__EventHandlers__0__SystemEvents__2 = "disconnected"
-$env:WebPubSub__Hubs__chat__EventHandlers__0__EventPattern = "*"
-artifacts\emulator-tool\awps-emulator
+```bash
+export WebPubSub__Hubs__chat__EventHandlers__0__UrlTemplate="http://localhost:7071/events/{hub}/{event}"
+export WebPubSub__Hubs__chat__EventHandlers__0__SystemEvents__0="connect"
+export WebPubSub__Hubs__chat__EventHandlers__0__SystemEvents__1="connected"
+export WebPubSub__Hubs__chat__EventHandlers__0__SystemEvents__2="disconnected"
+export WebPubSub__Hubs__chat__EventHandlers__0__EventPattern="*"
+artifacts/emulator-tool/awps-emulator
 ```
 
 Start your application at the configured URL before connecting clients, and implement
@@ -467,7 +478,9 @@ Configure `EventListeners` alongside `EventHandlers` within `WebPubSub:Hubs:<hub
 For Azure, the emulator uses `DefaultAzureCredential` for the **host's identity**, which needs
 **Azure Event Hubs Data Sender** on the target, and connects over AMQP WebSockets. It does not
 impersonate a Web PubSub resource's managed identity or reproduce trusted-service firewall bypass.
-This credential is only for Event Hubs; HTTP handler `Auth` remains unsupported.
+When using Docker, configure Azure credentials inside the container; your host's Azure CLI login
+is not available there automatically. This credential is only for Event Hubs; HTTP handler `Auth`
+remains unsupported.
 
 For the [local Event Hubs emulator](https://learn.microsoft.com/azure/event-hubs/test-locally-with-event-hub-emulator),
 omit `FullyQualifiedNamespace` and set `EventHubEndpoint:ConnectionString` through configuration,
@@ -541,27 +554,28 @@ to identify the selected endpoint.
 ## Install a local package
 
 If you already have a `.nupkg` from a local test build or a download, put **one**
-`Microsoft.Azure.WebPubSub.Emulator.*.nupkg` in an `emulator-local\packages` folder.
+`Microsoft.Azure.WebPubSub.Emulator.*.nupkg` in an `emulator-local/packages` folder.
 Run the following from `emulator-local`. The version is taken from that actual package's filename,
 including its local-test or CI suffix; this does not assume a public NuGet or MyGet release.
 
-```powershell
-@'
+```bash
+cat > NuGet.Config <<'EOF'
 <configuration>
   <packageSources>
     <clear />
     <add key="local" value="./packages" />
   </packageSources>
 </configuration>
-'@ | Set-Content NuGet.Config
+EOF
 
-$package = Get-Item .\packages\Microsoft.Azure.WebPubSub.Emulator.*.nupkg
-$version = $package.BaseName -replace '^Microsoft.Azure.WebPubSub.Emulator\.', ''
-dotnet tool install Microsoft.Azure.WebPubSub.Emulator `
-  --version $version --tool-path .\tool --configfile .\NuGet.Config
+package=$(basename ./packages/Microsoft.Azure.WebPubSub.Emulator.*.nupkg)
+version=${package#Microsoft.Azure.WebPubSub.Emulator.}
+version=${version%.nupkg}
+dotnet tool install Microsoft.Azure.WebPubSub.Emulator \
+  --version "$version" --tool-path ./tool --configfile ./NuGet.Config
 ```
 
-The executable is `emulator-local\tool\awps-emulator`; use its full path when following the
+The executable is `emulator-local/tool/awps-emulator`; use its full path when following the
 [Quick start](#quick-start), keeping the sample directory as your working directory.
 If you do not have a package, build one below. Installing an older package does not give it
 newer hot-reload features.
@@ -571,19 +585,19 @@ newer hot-reload features.
 To build and install a package from this checkout, run the following from the repository root.
 This installs your local build; it does not download a published release.
 
-```powershell
-dotnet pack tools\emulator\src\Microsoft.Azure.WebPubSub.Emulator `
-  --configuration Release `
-  --output artifacts\emulator
+```bash
+dotnet pack tools/emulator/src/Microsoft.Azure.WebPubSub.Emulator \
+  --configuration Release \
+  --output artifacts/emulator
 
-dotnet tool install `
-  --tool-path artifacts\emulator-tool `
-  Microsoft.Azure.WebPubSub.Emulator `
-  --version 1.0.0-beta.1 `
-  --add-source artifacts\emulator `
-  --configfile tools\emulator\NuGet.Config
+dotnet tool install \
+  --tool-path artifacts/emulator-tool \
+  Microsoft.Azure.WebPubSub.Emulator \
+  --version 1.0.0-beta.1 \
+  --add-source artifacts/emulator \
+  --configfile tools/emulator/NuGet.Config
 
-artifacts\emulator-tool\awps-emulator
+artifacts/emulator-tool/awps-emulator
 ```
 
 The package version is declared in [version.props](version.props); use that version in the
@@ -593,7 +607,7 @@ install command if it differs from the example. The tool-path installation does 
 To install a newer version, stop the running tool and use `dotnet tool update` with the same
 tool path, package ID, and source options, specifying the new version. To replace a local build
 without changing its version, stop the tool, run
-`dotnet tool uninstall Microsoft.Azure.WebPubSub.Emulator --tool-path artifacts\emulator-tool`,
+`dotnet tool uninstall Microsoft.Azure.WebPubSub.Emulator --tool-path artifacts/emulator-tool`,
 then repeat the install command with `--no-cache` to avoid reusing an earlier package.
 
 ## Troubleshooting
