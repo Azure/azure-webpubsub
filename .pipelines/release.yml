@@ -265,7 +265,7 @@ extends:
                   publishFeedCredentials: azure-webpubsub-dev
 
       # Azure DevOps manual stages cannot declare dependencies or read upstream outputs.
-      # The following check/prepare stage gates each release on this run's successful build.
+      # The following publish/prepare stage gates each release on this run's successful build.
       # Unstarted release entries do not wait for approval during ordinary CI runs.
       - stage: Prod_emulator_approve
         displayName: 'Release emulator'
@@ -385,58 +385,10 @@ extends:
                   allowApproversToApproveTheirOwnRuns: true
                   instructions: |
                     Publish @azure/web-pubsub-chat-client from build $(Build.BuildNumber) to npm.
-                    Review the package version in drop_web-pubsub-chat-client and source: $(Build.SourceBranch) @ $(Build.SourceVersion).
+                    Review the package version in drop_web-pubsub-chat-client/npm and source: $(Build.SourceBranch) @ $(Build.SourceVersion).
                     Resume to publish this package; Reject to skip it. Other packages are independent.
                     Publication also creates its release tag and next-beta PR.
                   onTimeout: reject
-
-      - stage: chat_client_release_check
-        displayName: 'Check chat client'
-        isSkippable: false
-        dependsOn:
-          - chat_client_build
-          - Prod_chat_client_approve
-        condition: |
-          and(
-            not(canceled()),
-            eq(dependencies.chat_client_build.result, 'Succeeded'),
-            eq(dependencies.Prod_chat_client_approve.result, 'Succeeded')
-          )
-        jobs:
-          - job: chat_client_check
-            displayName: 'Check chat client'
-            condition: not(canceled())
-            pool:
-              type: linux
-            variables:
-              releaseVersion: $[ stageDependencies.chat_client_build.build.outputs['read.chat_client_releaseVersion'] ]
-              ob_outputDirectory: '$(Build.ArtifactStagingDirectory)'
-              ob_sdl_codeSignValidation_enabled: false
-              ob_sdl_binskim_enabled: false
-            steps:
-              - checkout: self
-                path: s/azure-webpubsub
-                fetchDepth: 1
-                persistCredentials: true
-              - task: UseNode@1
-                displayName: 'Use Node 22.x'
-                inputs:
-                  version: 22.x
-              - task: PowerShell@2
-                displayName: 'Check npm and tag'
-                inputs:
-                  pwsh: true
-                  targetType: inline
-                  workingDirectory: '$(Pipeline.Workspace)/s/azure-webpubsub'
-                  script: |
-                    $ErrorActionPreference = 'Stop'
-                    & node .pipelines/scripts/Npm-Release.mjs check `
-                      'sdk/webpubsub-chat-client' `
-                      '@azure/web-pubsub-chat-client' `
-                      'web-pubsub-chat-client' `
-                      '$(releaseVersion)' `
-                      'Azure/azure-webpubsub'
-                    if ($LASTEXITCODE -ne 0) { throw 'Public package availability checks failed.' }
 
       - stage: Prod_chat_client_publish
         displayName: 'Publish chat client'
@@ -444,12 +396,11 @@ extends:
         dependsOn:
           - chat_client_build
           - Prod_chat_client_approve
-          - chat_client_release_check
         condition: |
           and(
             not(canceled()),
             eq(dependencies.Prod_chat_client_approve.result, 'Succeeded'),
-            eq(dependencies.chat_client_release_check.result, 'Succeeded')
+            eq(dependencies.chat_client_build.result, 'Succeeded')
           )
         variables:
           ob_release_environment: Production
@@ -460,13 +411,13 @@ extends:
             condition: |
               and(
                 not(canceled()),
-                eq(variables['checkResult'], 'Succeeded')
+                eq(variables['buildResult'], 'Succeeded')
               )
             pool:
               type: release
               os: windows
             variables:
-              checkResult: $[ stageDependencies.chat_client_release_check.chat_client_check.result ]
+              buildResult: $[ stageDependencies.chat_client_build.build.result ]
               releaseVersion: $[ stageDependencies.chat_client_build.build.outputs['read.chat_client_releaseVersion'] ]
               productState: $[ stageDependencies.chat_client_build.build.outputs['read.chat_client_productState'] ]
               ob_outputDirectory: '$(Build.ArtifactStagingDirectory)'
@@ -478,6 +429,24 @@ extends:
                   artifactName: 'drop_web-pubsub-chat-client'
                   targetPath: '$(Pipeline.Workspace)/esrp-release/$(Build.BuildId)/chat_client'
             steps:
+              - task: UseNode@1
+                displayName: 'Use Node 22.x'
+                inputs:
+                  version: '22.x'
+              - task: PowerShell@2
+                displayName: 'Check npm and tag'
+                inputs:
+                  pwsh: true
+                  targetType: inline
+                  script: |
+                    $ErrorActionPreference = 'Stop'
+                    & node '$(Pipeline.Workspace)/esrp-release/$(Build.BuildId)/chat_client/release/Npm-Release.mjs' check `
+                      '$(Pipeline.Workspace)/esrp-release/$(Build.BuildId)/chat_client/npm' `
+                      '@azure/web-pubsub-chat-client' `
+                      'web-pubsub-chat-client' `
+                      '$(releaseVersion)' `
+                      'Azure/azure-webpubsub'
+                    if ($LASTEXITCODE -ne 0) { throw 'Public package availability checks failed.' }
               - task: EsrpRelease@11
                 displayName: 'Publish to npm'
                 inputs:
@@ -490,7 +459,7 @@ extends:
                   Intent: 'PackageDistribution'
                   ContentType: 'npm'
                   ContentSource: 'Folder'
-                  FolderLocation: '$(Pipeline.Workspace)/esrp-release/$(Build.BuildId)/chat_client'
+                  FolderLocation: '$(Pipeline.Workspace)/esrp-release/$(Build.BuildId)/chat_client/npm'
                   Owners: '$(ESRP_OWNERS)'
                   Approvers: '$(ESRP_APPROVERS)'
                   ServiceEndpointUrl: 'https://api.esrp.microsoft.com'
@@ -503,29 +472,26 @@ extends:
         dependsOn:
           - chat_client_build
           - Prod_chat_client_approve
-          - chat_client_release_check
           - Prod_chat_client_publish
         condition: |
           and(
             not(canceled()),
             eq(dependencies.Prod_chat_client_approve.result, 'Succeeded'),
-            eq(dependencies.chat_client_release_check.result, 'Succeeded'),
+            eq(dependencies.chat_client_build.result, 'Succeeded'),
             eq(dependencies.Prod_chat_client_publish.result, 'Succeeded')
           )
         jobs:
-          - job: chat_client_post_deploy_tag
-            displayName: 'Tag chat client'
+          - job: chat_client_finalize
+            displayName: 'Finalize chat client'
             dependsOn: []
             condition: |
               and(
                 not(canceled()),
-                eq(variables['checkResult'], 'Succeeded'),
                 eq(variables['publishResult'], 'Succeeded')
               )
             pool:
               type: linux
             variables:
-              checkResult: $[ stageDependencies.chat_client_release_check.chat_client_check.result ]
               publishResult: $[ stageDependencies.Prod_chat_client_publish.chat_client_publish.result ]
               releaseVersion: $[ stageDependencies.chat_client_build.build.outputs['read.chat_client_releaseVersion'] ]
               ob_outputDirectory: '$(Build.ArtifactStagingDirectory)'
@@ -537,6 +503,10 @@ extends:
                 fetchDepth: 1
                 fetchTags: true
                 persistCredentials: true
+              - task: UseNode@1
+                displayName: 'Use Node 22.x'
+                inputs:
+                  version: '22.x'
               - task: Bash@3
                 displayName: 'Push release tag'
                 inputs:
@@ -555,35 +525,6 @@ extends:
                     git config --global user.email 'azure-webpubsub-release-bot@users.noreply.github.com'
                     git tag "${tag}"
                     git push origin "${tag}"
-
-          - job: chat_client_post_deploy_pr
-            displayName: 'Bump chat client'
-            dependsOn: chat_client_post_deploy_tag
-            condition: |
-              and(
-                not(canceled()),
-                eq(variables['checkResult'], 'Succeeded'),
-                eq(variables['publishResult'], 'Succeeded'),
-                eq(dependencies.chat_client_post_deploy_tag.result, 'Succeeded')
-              )
-            pool:
-              type: linux
-            variables:
-              checkResult: $[ stageDependencies.chat_client_release_check.chat_client_check.result ]
-              publishResult: $[ stageDependencies.Prod_chat_client_publish.chat_client_publish.result ]
-              releaseVersion: $[ stageDependencies.chat_client_build.build.outputs['read.chat_client_releaseVersion'] ]
-              ob_outputDirectory: '$(Build.ArtifactStagingDirectory)'
-              ob_sdl_codeSignValidation_enabled: false
-              ob_sdl_binskim_enabled: false
-            steps:
-              - checkout: self
-                path: s/azure-webpubsub
-                fetchDepth: 1
-                persistCredentials: true
-              - task: UseNode@1
-                displayName: 'Use Node 22.x'
-                inputs:
-                  version: 22.x
               - task: Bash@3
                 displayName: 'Open next-beta PR'
                 inputs:
@@ -659,58 +600,10 @@ extends:
                   allowApproversToApproveTheirOwnRuns: true
                   instructions: |
                     Publish @azure/web-pubsub-socket.io from build $(Build.BuildNumber) to npm.
-                    Review the package version in drop_webpubsub-socketio-extension and source: $(Build.SourceBranch) @ $(Build.SourceVersion).
+                    Review the package version in drop_webpubsub-socketio-extension/npm and source: $(Build.SourceBranch) @ $(Build.SourceVersion).
                     Resume to publish this package; Reject to skip it. Other packages are independent.
                     Publication also creates its release tag and next-beta PR.
                   onTimeout: reject
-
-      - stage: socketio_release_check
-        displayName: 'Check Socket.IO'
-        isSkippable: false
-        dependsOn:
-          - socketio_build
-          - Prod_socketio_approve
-        condition: |
-          and(
-            not(canceled()),
-            eq(dependencies.socketio_build.result, 'Succeeded'),
-            eq(dependencies.Prod_socketio_approve.result, 'Succeeded')
-          )
-        jobs:
-          - job: socketio_check
-            displayName: 'Check Socket.IO'
-            condition: not(canceled())
-            pool:
-              type: linux
-            variables:
-              releaseVersion: $[ stageDependencies.socketio_build.build.outputs['read.socketio_releaseVersion'] ]
-              ob_outputDirectory: '$(Build.ArtifactStagingDirectory)'
-              ob_sdl_codeSignValidation_enabled: false
-              ob_sdl_binskim_enabled: false
-            steps:
-              - checkout: self
-                path: s/azure-webpubsub
-                fetchDepth: 1
-                persistCredentials: true
-              - task: UseNode@1
-                displayName: 'Use Node 22.x'
-                inputs:
-                  version: 22.x
-              - task: PowerShell@2
-                displayName: 'Check npm and tag'
-                inputs:
-                  pwsh: true
-                  targetType: inline
-                  workingDirectory: '$(Pipeline.Workspace)/s/azure-webpubsub'
-                  script: |
-                    $ErrorActionPreference = 'Stop'
-                    & node .pipelines/scripts/Npm-Release.mjs check `
-                      'sdk/webpubsub-socketio-extension' `
-                      '@azure/web-pubsub-socket.io' `
-                      'webpubsub-socketio-extension' `
-                      '$(releaseVersion)' `
-                      'Azure/azure-webpubsub'
-                    if ($LASTEXITCODE -ne 0) { throw 'Public package availability checks failed.' }
 
       - stage: Prod_socketio_publish
         displayName: 'Publish Socket.IO'
@@ -718,12 +611,11 @@ extends:
         dependsOn:
           - socketio_build
           - Prod_socketio_approve
-          - socketio_release_check
         condition: |
           and(
             not(canceled()),
             eq(dependencies.Prod_socketio_approve.result, 'Succeeded'),
-            eq(dependencies.socketio_release_check.result, 'Succeeded')
+            eq(dependencies.socketio_build.result, 'Succeeded')
           )
         variables:
           ob_release_environment: Production
@@ -734,13 +626,13 @@ extends:
             condition: |
               and(
                 not(canceled()),
-                eq(variables['checkResult'], 'Succeeded')
+                eq(variables['buildResult'], 'Succeeded')
               )
             pool:
               type: release
               os: windows
             variables:
-              checkResult: $[ stageDependencies.socketio_release_check.socketio_check.result ]
+              buildResult: $[ stageDependencies.socketio_build.build.result ]
               releaseVersion: $[ stageDependencies.socketio_build.build.outputs['read.socketio_releaseVersion'] ]
               productState: $[ stageDependencies.socketio_build.build.outputs['read.socketio_productState'] ]
               ob_outputDirectory: '$(Build.ArtifactStagingDirectory)'
@@ -752,6 +644,24 @@ extends:
                   artifactName: 'drop_webpubsub-socketio-extension'
                   targetPath: '$(Pipeline.Workspace)/esrp-release/$(Build.BuildId)/socketio'
             steps:
+              - task: UseNode@1
+                displayName: 'Use Node 22.x'
+                inputs:
+                  version: '22.x'
+              - task: PowerShell@2
+                displayName: 'Check npm and tag'
+                inputs:
+                  pwsh: true
+                  targetType: inline
+                  script: |
+                    $ErrorActionPreference = 'Stop'
+                    & node '$(Pipeline.Workspace)/esrp-release/$(Build.BuildId)/socketio/release/Npm-Release.mjs' check `
+                      '$(Pipeline.Workspace)/esrp-release/$(Build.BuildId)/socketio/npm' `
+                      '@azure/web-pubsub-socket.io' `
+                      'webpubsub-socketio-extension' `
+                      '$(releaseVersion)' `
+                      'Azure/azure-webpubsub'
+                    if ($LASTEXITCODE -ne 0) { throw 'Public package availability checks failed.' }
               - task: EsrpRelease@11
                 displayName: 'Publish to npm'
                 inputs:
@@ -764,7 +674,7 @@ extends:
                   Intent: 'PackageDistribution'
                   ContentType: 'npm'
                   ContentSource: 'Folder'
-                  FolderLocation: '$(Pipeline.Workspace)/esrp-release/$(Build.BuildId)/socketio'
+                  FolderLocation: '$(Pipeline.Workspace)/esrp-release/$(Build.BuildId)/socketio/npm'
                   Owners: '$(ESRP_OWNERS)'
                   Approvers: '$(ESRP_APPROVERS)'
                   ServiceEndpointUrl: 'https://api.esrp.microsoft.com'
@@ -777,29 +687,26 @@ extends:
         dependsOn:
           - socketio_build
           - Prod_socketio_approve
-          - socketio_release_check
           - Prod_socketio_publish
         condition: |
           and(
             not(canceled()),
             eq(dependencies.Prod_socketio_approve.result, 'Succeeded'),
-            eq(dependencies.socketio_release_check.result, 'Succeeded'),
+            eq(dependencies.socketio_build.result, 'Succeeded'),
             eq(dependencies.Prod_socketio_publish.result, 'Succeeded')
           )
         jobs:
-          - job: socketio_post_deploy_tag
-            displayName: 'Tag Socket.IO'
+          - job: socketio_finalize
+            displayName: 'Finalize Socket.IO'
             dependsOn: []
             condition: |
               and(
                 not(canceled()),
-                eq(variables['checkResult'], 'Succeeded'),
                 eq(variables['publishResult'], 'Succeeded')
               )
             pool:
               type: linux
             variables:
-              checkResult: $[ stageDependencies.socketio_release_check.socketio_check.result ]
               publishResult: $[ stageDependencies.Prod_socketio_publish.socketio_publish.result ]
               releaseVersion: $[ stageDependencies.socketio_build.build.outputs['read.socketio_releaseVersion'] ]
               ob_outputDirectory: '$(Build.ArtifactStagingDirectory)'
@@ -811,6 +718,10 @@ extends:
                 fetchDepth: 1
                 fetchTags: true
                 persistCredentials: true
+              - task: UseNode@1
+                displayName: 'Use Node 22.x'
+                inputs:
+                  version: '22.x'
               - task: Bash@3
                 displayName: 'Push release tag'
                 inputs:
@@ -829,35 +740,6 @@ extends:
                     git config --global user.email 'azure-webpubsub-release-bot@users.noreply.github.com'
                     git tag "${tag}"
                     git push origin "${tag}"
-
-          - job: socketio_post_deploy_pr
-            displayName: 'Bump Socket.IO'
-            dependsOn: socketio_post_deploy_tag
-            condition: |
-              and(
-                not(canceled()),
-                eq(variables['checkResult'], 'Succeeded'),
-                eq(variables['publishResult'], 'Succeeded'),
-                eq(dependencies.socketio_post_deploy_tag.result, 'Succeeded')
-              )
-            pool:
-              type: linux
-            variables:
-              checkResult: $[ stageDependencies.socketio_release_check.socketio_check.result ]
-              publishResult: $[ stageDependencies.Prod_socketio_publish.socketio_publish.result ]
-              releaseVersion: $[ stageDependencies.socketio_build.build.outputs['read.socketio_releaseVersion'] ]
-              ob_outputDirectory: '$(Build.ArtifactStagingDirectory)'
-              ob_sdl_codeSignValidation_enabled: false
-              ob_sdl_binskim_enabled: false
-            steps:
-              - checkout: self
-                path: s/azure-webpubsub
-                fetchDepth: 1
-                persistCredentials: true
-              - task: UseNode@1
-                displayName: 'Use Node 22.x'
-                inputs:
-                  version: 22.x
               - task: Bash@3
                 displayName: 'Open next-beta PR'
                 inputs:
@@ -933,58 +815,10 @@ extends:
                   allowApproversToApproveTheirOwnRuns: true
                   instructions: |
                     Publish @azure/web-pubsub-tunnel-tool from build $(Build.BuildNumber) to npm.
-                    Review the package version in drop_awps-tunnel and source: $(Build.SourceBranch) @ $(Build.SourceVersion).
+                    Review the package version in drop_awps-tunnel/npm and source: $(Build.SourceBranch) @ $(Build.SourceVersion).
                     Resume to publish this package; Reject to skip it. Other packages are independent.
                     Publication also creates its release tag and next-beta PR.
                   onTimeout: reject
-
-      - stage: tunnel_release_check
-        displayName: 'Check tunnel'
-        isSkippable: false
-        dependsOn:
-          - tunnel_build
-          - Prod_tunnel_approve
-        condition: |
-          and(
-            not(canceled()),
-            eq(dependencies.tunnel_build.result, 'Succeeded'),
-            eq(dependencies.Prod_tunnel_approve.result, 'Succeeded')
-          )
-        jobs:
-          - job: tunnel_check
-            displayName: 'Check tunnel'
-            condition: not(canceled())
-            pool:
-              type: linux
-            variables:
-              releaseVersion: $[ stageDependencies.tunnel_build.build.outputs['read.tunnel_releaseVersion'] ]
-              ob_outputDirectory: '$(Build.ArtifactStagingDirectory)'
-              ob_sdl_codeSignValidation_enabled: false
-              ob_sdl_binskim_enabled: false
-            steps:
-              - checkout: self
-                path: s/azure-webpubsub
-                fetchDepth: 1
-                persistCredentials: true
-              - task: UseNode@1
-                displayName: 'Use Node 22.x'
-                inputs:
-                  version: 22.x
-              - task: PowerShell@2
-                displayName: 'Check npm and tag'
-                inputs:
-                  pwsh: true
-                  targetType: inline
-                  workingDirectory: '$(Pipeline.Workspace)/s/azure-webpubsub'
-                  script: |
-                    $ErrorActionPreference = 'Stop'
-                    & node .pipelines/scripts/Npm-Release.mjs check `
-                      'tools/awps-tunnel/server' `
-                      '@azure/web-pubsub-tunnel-tool' `
-                      'awps-tunnel' `
-                      '$(releaseVersion)' `
-                      'Azure/azure-webpubsub'
-                    if ($LASTEXITCODE -ne 0) { throw 'Public package availability checks failed.' }
 
       - stage: Prod_tunnel_publish
         displayName: 'Publish tunnel'
@@ -992,12 +826,11 @@ extends:
         dependsOn:
           - tunnel_build
           - Prod_tunnel_approve
-          - tunnel_release_check
         condition: |
           and(
             not(canceled()),
             eq(dependencies.Prod_tunnel_approve.result, 'Succeeded'),
-            eq(dependencies.tunnel_release_check.result, 'Succeeded')
+            eq(dependencies.tunnel_build.result, 'Succeeded')
           )
         variables:
           ob_release_environment: Production
@@ -1008,13 +841,13 @@ extends:
             condition: |
               and(
                 not(canceled()),
-                eq(variables['checkResult'], 'Succeeded')
+                eq(variables['buildResult'], 'Succeeded')
               )
             pool:
               type: release
               os: windows
             variables:
-              checkResult: $[ stageDependencies.tunnel_release_check.tunnel_check.result ]
+              buildResult: $[ stageDependencies.tunnel_build.build.result ]
               releaseVersion: $[ stageDependencies.tunnel_build.build.outputs['read.tunnel_releaseVersion'] ]
               productState: $[ stageDependencies.tunnel_build.build.outputs['read.tunnel_productState'] ]
               ob_outputDirectory: '$(Build.ArtifactStagingDirectory)'
@@ -1026,6 +859,24 @@ extends:
                   artifactName: 'drop_awps-tunnel'
                   targetPath: '$(Pipeline.Workspace)/esrp-release/$(Build.BuildId)/tunnel'
             steps:
+              - task: UseNode@1
+                displayName: 'Use Node 22.x'
+                inputs:
+                  version: '22.x'
+              - task: PowerShell@2
+                displayName: 'Check npm and tag'
+                inputs:
+                  pwsh: true
+                  targetType: inline
+                  script: |
+                    $ErrorActionPreference = 'Stop'
+                    & node '$(Pipeline.Workspace)/esrp-release/$(Build.BuildId)/tunnel/release/Npm-Release.mjs' check `
+                      '$(Pipeline.Workspace)/esrp-release/$(Build.BuildId)/tunnel/npm' `
+                      '@azure/web-pubsub-tunnel-tool' `
+                      'awps-tunnel' `
+                      '$(releaseVersion)' `
+                      'Azure/azure-webpubsub'
+                    if ($LASTEXITCODE -ne 0) { throw 'Public package availability checks failed.' }
               - task: EsrpRelease@11
                 displayName: 'Publish to npm'
                 inputs:
@@ -1038,7 +889,7 @@ extends:
                   Intent: 'PackageDistribution'
                   ContentType: 'npm'
                   ContentSource: 'Folder'
-                  FolderLocation: '$(Pipeline.Workspace)/esrp-release/$(Build.BuildId)/tunnel'
+                  FolderLocation: '$(Pipeline.Workspace)/esrp-release/$(Build.BuildId)/tunnel/npm'
                   Owners: '$(ESRP_OWNERS)'
                   Approvers: '$(ESRP_APPROVERS)'
                   ServiceEndpointUrl: 'https://api.esrp.microsoft.com'
@@ -1051,29 +902,26 @@ extends:
         dependsOn:
           - tunnel_build
           - Prod_tunnel_approve
-          - tunnel_release_check
           - Prod_tunnel_publish
         condition: |
           and(
             not(canceled()),
             eq(dependencies.Prod_tunnel_approve.result, 'Succeeded'),
-            eq(dependencies.tunnel_release_check.result, 'Succeeded'),
+            eq(dependencies.tunnel_build.result, 'Succeeded'),
             eq(dependencies.Prod_tunnel_publish.result, 'Succeeded')
           )
         jobs:
-          - job: tunnel_post_deploy_tag
-            displayName: 'Tag tunnel'
+          - job: tunnel_finalize
+            displayName: 'Finalize tunnel'
             dependsOn: []
             condition: |
               and(
                 not(canceled()),
-                eq(variables['checkResult'], 'Succeeded'),
                 eq(variables['publishResult'], 'Succeeded')
               )
             pool:
               type: linux
             variables:
-              checkResult: $[ stageDependencies.tunnel_release_check.tunnel_check.result ]
               publishResult: $[ stageDependencies.Prod_tunnel_publish.tunnel_publish.result ]
               releaseVersion: $[ stageDependencies.tunnel_build.build.outputs['read.tunnel_releaseVersion'] ]
               ob_outputDirectory: '$(Build.ArtifactStagingDirectory)'
@@ -1085,6 +933,10 @@ extends:
                 fetchDepth: 1
                 fetchTags: true
                 persistCredentials: true
+              - task: UseNode@1
+                displayName: 'Use Node 22.x'
+                inputs:
+                  version: '22.x'
               - task: Bash@3
                 displayName: 'Push release tag'
                 inputs:
@@ -1103,35 +955,6 @@ extends:
                     git config --global user.email 'azure-webpubsub-release-bot@users.noreply.github.com'
                     git tag "${tag}"
                     git push origin "${tag}"
-
-          - job: tunnel_post_deploy_pr
-            displayName: 'Bump tunnel'
-            dependsOn: tunnel_post_deploy_tag
-            condition: |
-              and(
-                not(canceled()),
-                eq(variables['checkResult'], 'Succeeded'),
-                eq(variables['publishResult'], 'Succeeded'),
-                eq(dependencies.tunnel_post_deploy_tag.result, 'Succeeded')
-              )
-            pool:
-              type: linux
-            variables:
-              checkResult: $[ stageDependencies.tunnel_release_check.tunnel_check.result ]
-              publishResult: $[ stageDependencies.Prod_tunnel_publish.tunnel_publish.result ]
-              releaseVersion: $[ stageDependencies.tunnel_build.build.outputs['read.tunnel_releaseVersion'] ]
-              ob_outputDirectory: '$(Build.ArtifactStagingDirectory)'
-              ob_sdl_codeSignValidation_enabled: false
-              ob_sdl_binskim_enabled: false
-            steps:
-              - checkout: self
-                path: s/azure-webpubsub
-                fetchDepth: 1
-                persistCredentials: true
-              - task: UseNode@1
-                displayName: 'Use Node 22.x'
-                inputs:
-                  version: 22.x
               - task: Bash@3
                 displayName: 'Open next-beta PR'
                 inputs:

@@ -10,9 +10,8 @@ import {
   assertVersionAvailable,
   bumpPackage,
   checkPublicAvailability,
-  getGithubAuthorization,
   nextBetaVersion,
-  readReleasePackage,
+  readReleaseArtifact,
 } from './Npm-Release.mjs';
 
 const scriptsFolder = path.dirname(fileURLToPath(import.meta.url));
@@ -30,6 +29,16 @@ function writePackage(folder, version = '1.2.3', changelog = '# Changelog\n\n## 
   writeFileSync(path.join(folder, 'package.json'), manifest);
   writeFileSync(path.join(folder, 'CHANGELOG.md'), changelog);
   return { manifest, changelog };
+}
+
+function writeArtifact(folder, version = '1.2.3') {
+  const source = path.join(folder, 'package');
+  const output = path.join(folder, 'npm artifact');
+  mkdirSync(source);
+  mkdirSync(output);
+  writePackage(source, version);
+  execFileSync('tar', ['-czf', path.join(output, 'package.tgz'), '-C', folder, 'package']);
+  return output;
 }
 
 async function localServer(t, handler) {
@@ -89,22 +98,41 @@ test('bump CLI updates package and changelog together, preserving manifest forma
   assert.equal(readFileSync(path.join(packageFolder, 'CHANGELOG.md'), 'utf8'), original.changelog.replace('## [Unreleased]', '## [1.2.3-beta.5] - Unreleased\n\n## [Unreleased]'));
 });
 
-test('stable bump changes both files and validates the release identity without npm install', (t) => {
+test('stable bump changes both files without npm install', (t) => {
   const folder = fixture(t);
   writePackage(folder);
-  assert.deepEqual(readReleasePackage(folder, '@azure/test-package', '1.2.3'), { name: '@azure/test-package', version: '1.2.3' });
-  assert.throws(() => readReleasePackage(folder, '@azure/other', '1.2.3'), /does not match/);
-  assert.throws(() => readReleasePackage(folder, '@azure/test-package', '1.2.4'), /does not match/);
   assert.equal(bumpPackage(folder, '1.2.3'), '1.2.4-beta.1');
   assert.equal(JSON.parse(readFileSync(path.join(folder, 'package.json'), 'utf8')).version, '1.2.4-beta.1');
   assert.match(readFileSync(path.join(folder, 'CHANGELOG.md'), 'utf8'), /^## \[1\.2\.4-beta\.1\] - Unreleased$/m);
 });
 
-test('check CLI rejects mismatched package identity before credentials or network access', (t) => {
+test('release checks read the actual tarball identity without a checkout or npm install', (t) => {
   const folder = fixture(t);
-  writePackage(folder);
+  const artifact = writeArtifact(folder);
+  rmSync(path.join(folder, 'package'), { recursive: true });
+  assert.deepEqual(readReleaseArtifact(artifact, '@azure/test-package', '1.2.3'), { name: '@azure/test-package', version: '1.2.3' });
+  assert.throws(() => readReleaseArtifact(artifact, '@azure/other', '1.2.3'), /does not match/);
+  assert.throws(() => readReleaseArtifact(artifact, '@azure/test-package', '1.2.4'), /does not match/);
+});
+
+test('empty, ambiguous, polluted, and malformed artifact folders block release', (t) => {
+  const folder = fixture(t);
+  assert.throws(() => readReleaseArtifact(folder, '@azure/test-package', '1.2.3'), /exactly one npm tarball/);
+  const artifact = writeArtifact(folder);
+  for (const name of ['second.tgz', 'script.mjs']) {
+    writeFileSync(path.join(artifact, name), 'unexpected file');
+    assert.throws(() => readReleaseArtifact(artifact, '@azure/test-package', '1.2.3'), /exactly one npm tarball/);
+    rmSync(path.join(artifact, name));
+  }
+  writeFileSync(path.join(artifact, 'package.tgz'), 'invalid tarball');
+  assert.throws(() => readReleaseArtifact(artifact, '@azure/test-package', '1.2.3'));
+});
+
+test('check CLI rejects mismatched tarball identity before network access', (t) => {
+  const folder = fixture(t);
+  const artifact = writeArtifact(folder);
   const result = spawnSync(process.execPath, [
-    path.join(scriptsFolder, 'Npm-Release.mjs'), 'check', folder, '@azure/wrong-package',
+    path.join(scriptsFolder, 'Npm-Release.mjs'), 'check', artifact, '@azure/wrong-package',
     'test-package', '1.2.3', 'Azure/azure-webpubsub',
   ], { cwd: folder, encoding: 'utf8' });
   assert.equal(result.status, 1);
@@ -122,17 +150,6 @@ test('invalid bump leaves both source files unchanged', (t) => {
   assert.throws(() => bumpPackage(folder, '1.2.3'), /no release heading/);
   assert.equal(readFileSync(path.join(folder, 'package.json'), 'utf8'), original.manifest);
   assert.equal(readFileSync(path.join(folder, 'CHANGELOG.md'), 'utf8'), '# Changelog\n');
-});
-
-test('GitHub authorization reuses the persisted checkout extraheader', (t) => {
-  const folder = fixture(t);
-  const git = (...args) => execFileSync('git', args, { cwd: folder, stdio: 'pipe' });
-  git('init', '--quiet');
-  git('config', 'http.https://github.com/Azure/azure-webpubsub.extraheader', 'AUTHORIZATION: basic test-only-credential');
-  assert.equal(getGithubAuthorization('Azure/azure-webpubsub', folder), 'basic test-only-credential');
-  git('config', 'http.https://github.com/Azure/azure-webpubsub.extraheader', '');
-  assert.throws(() => getGithubAuthorization('Azure/azure-webpubsub', folder), /must contain one Authorization/);
-  assert.throws(() => getGithubAuthorization('Azure/azure-webpubsub', path.join(folder, 'missing')), /persistCredentials: true/);
 });
 
 test('HTTP availability permits only 404 and rejects every other status, including redirects', async (t) => {
@@ -159,33 +176,40 @@ test('HTTP network errors and bounded request timeouts block publication', { tim
   await assert.rejects(assertVersionAvailable(`${base}/timeout`, 'package', { timeoutMs: 100 }), /lookup failed or timed out/);
 });
 
-test('public lookups use canonical npm and GitHub tag endpoints, with credentials only on GitHub', async () => {
+test('public lookups check repository visibility and tag availability without credentials', async () => {
   const requests = [];
   const release = {
     npmName: '@azure/web-pubsub-chat-client', packageName: 'web-pubsub-chat-client',
-    version: '1.0.0-beta.2', githubRepo: 'Azure/azure-webpubsub', authorization: 'basic test-only-credential',
+    version: '1.0.0-beta.2', githubRepo: 'Azure/azure-webpubsub',
   };
   await checkPublicAvailability(release, {
     fetchImpl: async (url, options) => {
       requests.push({ url, ...options });
-      return new Response(null, { status: 404 });
+      return new Response(null, { status: requests.length === 2 ? 200 : 404 });
     },
   });
-  assert.equal(requests.length, 2);
+  assert.equal(requests.length, 3);
   assert.equal(requests[0].url, 'https://registry.npmjs.org/%40azure%2Fweb-pubsub-chat-client/1.0.0-beta.2');
   assert.equal(requests[0].headers.Authorization, undefined);
-  assert.equal(requests[1].url, 'https://api.github.com/repos/Azure/azure-webpubsub/git/ref/tags/release/web-pubsub-chat-client/v1.0.0-beta.2');
-  assert.equal(requests[1].headers.Authorization, release.authorization);
+  assert.equal(requests[1].url, 'https://api.github.com/repos/Azure/azure-webpubsub');
+  assert.equal(requests[2].url, 'https://api.github.com/repos/Azure/azure-webpubsub/git/ref/tags/release/web-pubsub-chat-client/v1.0.0-beta.2');
+  assert.ok(requests.every((request) => !('Authorization' in request.headers)));
   assert.equal(requests[1].headers['X-GitHub-Api-Version'], '2022-11-28');
   assert.ok(requests.every((request) => request.redirect === 'manual' && request.signal instanceof AbortSignal));
-  for (const status of [200, 403, 503]) {
+  for (const status of [200, 301, 403, 429, 503]) {
+    let calls = 0;
+    await assert.rejects(checkPublicAvailability(release, {
+      fetchImpl: async () => new Response(null, { status: [404, 200, status][calls++] }),
+    }), status === 200 ? /already exists/ : new RegExp(`unexpected HTTP ${status}`));
+    assert.equal(calls, 3);
+  }
+  for (const status of [301, 401, 403, 404, 429, 503]) {
     let calls = 0;
     await assert.rejects(checkPublicAvailability(release, {
       fetchImpl: async () => new Response(null, { status: ++calls === 1 ? 404 : status }),
-    }), status === 200 ? /already exists/ : new RegExp(`unexpected HTTP ${status}`));
-    assert.equal(calls, 2);
+    }), new RegExp(`Public GitHub repository: unexpected HTTP ${status}`));
+    assert.equal(calls, 2, 'an inaccessible repository must not be treated as a missing tag');
   }
-  await assert.rejects(checkPublicAvailability({ ...release, authorization: '' }), /authorization is required/);
 });
 
 test('helper can be imported from node --eval without assuming a script argument', () => {

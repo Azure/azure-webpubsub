@@ -1,5 +1,5 @@
 import { execFileSync } from 'node:child_process';
-import { readFileSync, writeFileSync } from 'node:fs';
+import { readFileSync, readdirSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -45,8 +45,14 @@ export function bumpPackage(packageFolder, releaseVersion) {
   return nextVersion;
 }
 
-export function readReleasePackage(packageFolder, expectedName, releaseVersion) {
-  const manifest = JSON.parse(readFileSync(path.join(packageFolder, 'package.json'), 'utf8'));
+export function readReleaseArtifact(packageFolder, expectedName, releaseVersion) {
+  const files = readdirSync(packageFolder, { withFileTypes: true });
+  if (files.length !== 1 || !files[0].isFile() || !files[0].name.endsWith('.tgz')) {
+    throw new Error('Release folder must contain exactly one npm tarball and no other files.');
+  }
+  const manifest = JSON.parse(execFileSync('tar', [
+    '-xOf', path.resolve(packageFolder, files[0].name), 'package/package.json',
+  ], { encoding: 'utf8', timeout: 15000, stdio: ['ignore', 'pipe', 'pipe'] }));
   if (manifest.name !== expectedName || manifest.version !== releaseVersion) {
     throw new Error('package.json name/version does not match the validated release artifact.');
   }
@@ -54,21 +60,7 @@ export function readReleasePackage(packageFolder, expectedName, releaseVersion) 
   return { name: manifest.name, version: manifest.version };
 }
 
-export function getGithubAuthorization(githubRepo, cwd = process.cwd()) {
-  let header;
-  try {
-    header = execFileSync('git', [
-      'config', '--get-urlmatch', 'http.extraheader', `https://github.com/${githubRepo}`,
-    ], { cwd, encoding: 'utf8', timeout: 10000, stdio: ['ignore', 'pipe', 'pipe'] }).trim();
-  } catch {
-    throw new Error('No persisted GitHub credentials found. Checkout must set persistCredentials: true.');
-  }
-  const match = /^authorization:[ \t]*(\S[^\r\n]*)$/i.exec(header);
-  if (!match) throw new Error('Persisted GitHub http.extraheader must contain one Authorization header.');
-  return match[1];
-}
-
-export async function assertVersionAvailable(url, label, {
+async function assertHttpStatus(url, label, expectedStatus, {
   headers = {}, timeoutMs = 15000, fetchImpl = fetch,
 } = {}) {
   const controller = new AbortController();
@@ -82,35 +74,41 @@ export async function assertVersionAvailable(url, label, {
   } finally {
     clearTimeout(timeout);
   }
-  if (response.status === 200) throw new Error(`${label} already exists.`);
-  if (response.status !== 404) {
+  if (expectedStatus === 404 && response.status === 200) throw new Error(`${label} already exists.`);
+  if (response.status !== expectedStatus) {
     throw new Error(`${label}: unexpected HTTP ${response.status}; publication is blocked.`);
   }
 }
 
-export async function checkPublicAvailability({ npmName, packageName, version, githubRepo, authorization }, options = {}) {
+export async function assertVersionAvailable(url, label, options = {}) {
+  await assertHttpStatus(url, label, 404, options);
+}
+
+export async function checkPublicAvailability({ npmName, packageName, version, githubRepo }, options = {}) {
   nextBetaVersion(version);
   if (!/^[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+$/.test(githubRepo)) throw new Error('Invalid GitHub repository.');
   if (!/^[A-Za-z0-9_.-]+$/.test(packageName)) throw new Error('Invalid release package name.');
-  if (!authorization) throw new Error('Persisted GitHub authorization is required.');
   await assertVersionAvailable(
     `https://registry.npmjs.org/${encodeURIComponent(npmName)}/${encodeURIComponent(version)}`,
     `npm ${npmName}@${version}`,
     { ...options, headers: { Accept: 'application/json' } },
   );
+  const githubOptions = {
+    ...options,
+    headers: {
+      Accept: 'application/vnd.github+json',
+      'X-GitHub-Api-Version': '2022-11-28',
+      'User-Agent': 'azure-webpubsub-release-bot',
+    },
+  };
+  // This repository is public. Confirm it is accessible before treating a tag
+  // lookup's 404 as available; private/missing repositories must fail closed.
+  await assertHttpStatus(`https://api.github.com/repos/${githubRepo}`, 'Public GitHub repository', 200, githubOptions);
   const tag = `release/${packageName}/v${version}`;
   await assertVersionAvailable(
     `https://api.github.com/repos/${githubRepo}/git/ref/tags/${tag.split('/').map(encodeURIComponent).join('/')}`,
     `GitHub tag ${tag}`,
-    {
-      ...options,
-      headers: {
-        Authorization: authorization,
-        Accept: 'application/vnd.github+json',
-        'X-GitHub-Api-Version': '2022-11-28',
-        'User-Agent': 'azure-webpubsub-release-bot',
-      },
-    },
+    githubOptions,
   );
 }
 
@@ -120,12 +118,11 @@ async function main() {
     console.log(bumpPackage(...args));
   } else if (command === 'check' && args.length === 5) {
     const [packageFolder, npmName, packageName, version, githubRepo] = args;
-    readReleasePackage(packageFolder, npmName, version);
-    const authorization = getGithubAuthorization(githubRepo);
-    await checkPublicAvailability({ npmName, packageName, version, githubRepo, authorization });
+    readReleaseArtifact(packageFolder, npmName, version);
+    await checkPublicAvailability({ npmName, packageName, version, githubRepo });
     console.log(`Public npm version and release tag are available for ${npmName}@${version}.`);
   } else {
-    throw new Error('Usage: Npm-Release.mjs check <folder> <npm-name> <package-name> <version> <github-repo> | bump <folder> <version>');
+    throw new Error('Usage: Npm-Release.mjs check <tarball-folder> <npm-name> <package-name> <version> <github-repo> | bump <source-folder> <version>');
   }
 }
 

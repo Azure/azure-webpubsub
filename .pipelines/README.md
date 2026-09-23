@@ -21,6 +21,14 @@ that build's artifacts. CI builds and manual feature-branch builds both support
 this flow. After approval, the next stage requires a successful package build,
 including its version validation, before it can check or prepare the release.
 
+For npm, the publish job checks the actual tarball's name/version and confirms
+that the npm version and GitHub release tag are still available immediately
+before publishing. Checks use public endpoints; errors, rate limits, or an
+inaccessible repository block publication. The artifact contains the tarball
+under `npm/` and its check script under `release/`; only `npm/` is sent to ESRP.
+After publication, one finalize job creates the tag and then the next-beta PR.
+A failed check prevents publishing, and a failed tag step prevents PR creation.
+
 | Manual stage | Package | Destination |
 | --- | --- | --- |
 | Release emulator | `Microsoft.Azure.WebPubSub.Emulator` | NuGet artifact (placeholder) |

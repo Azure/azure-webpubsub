@@ -147,4 +147,6 @@ stages:
                   exit 1
                 fi
                 echo "Tarball: $tarball_path"
-                cp "$tarball_path" "$(ob_outputDirectory)/"
+                mkdir -p "$(ob_outputDirectory)/npm" "$(ob_outputDirectory)/release"
+                cp "$tarball_path" "$(ob_outputDirectory)/npm/"
+                cp '$(Pipeline.Workspace)/s/azure-webpubsub/.pipelines/scripts/Npm-Release.mjs' "$(ob_outputDirectory)/release/"

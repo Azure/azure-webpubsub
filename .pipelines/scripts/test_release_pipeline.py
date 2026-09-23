@@ -50,8 +50,7 @@ for entry in ENTRIES:
             STAGES[stage['stage']] = stage
 
 NPM_STAGES = tuple(name for key in NPM_KEYS for name in
-                   (f'Prod_{key}_approve', f'{key}_release_check',
-                    f'Prod_{key}_publish', f'{key}_release_finalize'))
+                   (f'Prod_{key}_approve', f'Prod_{key}_publish', f'{key}_release_finalize'))
 RELEASE_STAGES = ('Prod_emulator_approve', 'emulator_release_prepare', *NPM_STAGES)
 RELEASE_JOBS = {job['job']: job for name in RELEASE_STAGES for job in STAGES[name]['jobs']}
 JOB_STAGES = {job['job']: name for name in RELEASE_STAGES for job in STAGES[name]['jobs']}
@@ -161,8 +160,8 @@ class ReleasePipelineTests(unittest.TestCase):
                              [release_job(key)])
 
     def test_stage_and_release_job_graphs(self):
-        self.assertEqual(len(STAGES), 19)
-        self.assertEqual(len(RELEASE_JOBS), 17)
+        self.assertEqual(len(STAGES), 16)
+        self.assertEqual(len(RELEASE_JOBS), 11)
         graphs = [STAGES] + [{job['job']: job for job in stage['jobs']} for stage in STAGES.values()]
         for graph in graphs:
             completed = set()
@@ -184,11 +183,10 @@ class ReleasePipelineTests(unittest.TestCase):
             self.assertNotIn('stageDependencies.', json.dumps(STAGES[f'Prod_{key}_approve']))
             self.assertEqual(dependencies(RELEASE_JOBS[f'{key}_approve']), [])
         for key in NPM_KEYS:
-            approve, check, publish = f'Prod_{key}_approve', f'{key}_release_check', f'Prod_{key}_publish'
-            self.assertEqual(dependencies(STAGES[check]), [f'{key}_build', approve])
-            self.assertEqual(dependencies(STAGES[publish]), [f'{key}_build', approve, check])
+            approve, publish = f'Prod_{key}_approve', f'Prod_{key}_publish'
+            self.assertEqual(dependencies(STAGES[publish]), [f'{key}_build', approve])
             self.assertEqual(dependencies(STAGES[f'{key}_release_finalize']),
-                             [f'{key}_build', approve, check, publish])
+                             [f'{key}_build', approve, publish])
         seen = set()
         for name, stage in STAGES.items():
             self.assertTrue(set(dependencies(stage)) <= seen)
@@ -233,14 +231,12 @@ class ReleasePipelineTests(unittest.TestCase):
                 else:
                     self.assertEqual(job['pool'], {'type': 'linux'})
         for key in NPM_KEYS:
-            for suffix in ('check', 'post_deploy_tag', 'post_deploy_pr'):
-                job = RELEASE_JOBS[f'{key}_{suffix}']
-                self.assertEqual(job['pool'], {'type': 'linux'})
-                self.assertEqual(job['steps'][0]['checkout'], 'self')
-                self.assertIs(job['steps'][0]['persistCredentials'], True)
-                self.assertNotIn('ref', job['steps'][0])
-            self.assertIs(RELEASE_JOBS[f'{key}_post_deploy_tag']['steps'][0]['fetchTags'], True)
-            self.assertEqual(dependencies(RELEASE_JOBS[f'{key}_post_deploy_pr']), [f'{key}_post_deploy_tag'])
+            job = RELEASE_JOBS[f'{key}_finalize']
+            self.assertEqual(job['pool'], {'type': 'linux'})
+            self.assertEqual(job['steps'][0]['checkout'], 'self')
+            self.assertIs(job['steps'][0]['persistCredentials'], True)
+            self.assertNotIn('ref', job['steps'][0])
+            self.assertIs(job['steps'][0]['fetchTags'], True)
 
     def test_cross_stage_output_bindings_reference_real_direct_dependencies(self):
         pattern = re.compile(r"\$\[ stageDependencies\.(\w+)\.(\w+)\.(result|outputs\['([^']+)'\]) \]")
@@ -324,7 +320,7 @@ class ReleasePipelineTests(unittest.TestCase):
             for other in PACKAGE_KEYS:
                 if other != key:
                     self.assertTrue(permits(f'{other}_build', values))
-                following = 'emulator_release_prepare' if other == 'emulator' else f'{other}_release_check'
+                following = 'emulator_release_prepare' if other == 'emulator' else f'Prod_{other}_publish'
                 self.assertEqual(permits(following, values), other != key)
 
     def test_rejected_or_incomplete_approval_blocks_only_its_package(self):
@@ -334,7 +330,7 @@ class ReleasePipelineTests(unittest.TestCase):
                 values[f'dependencies.Prod_{key}_approve.result'] = result
                 for other in PACKAGE_KEYS:
                     self.assertTrue(permits_job(f'{other}_approve', values))
-                    suffixes = ('check', 'publish', 'post_deploy_tag', 'post_deploy_pr') if other in NPM_KEYS else ('publish',)
+                    suffixes = ('publish', 'finalize') if other in NPM_KEYS else ('publish',)
                     for suffix in suffixes:
                         self.assertEqual(permits_job(release_job(other) if suffix == 'publish' else f'{other}_{suffix}', values), other != key,
                                          (key, result, other, suffix))
@@ -353,27 +349,21 @@ class ReleasePipelineTests(unittest.TestCase):
                 values[f'dependencies.{name}.result'] = state
             self.assertTrue(permits('emulator_myget', values))
 
-    def test_publication_requires_approval_and_package_availability(self):
+    def test_publication_requires_approval_and_build_and_finalize_requires_publication(self):
         states = ('Succeeded', 'Failed', 'Canceled', 'Skipped', 'Pending', 'SucceededWithIssues', '')
         for key in NPM_KEYS:
-            for approval, check in itertools.product(states, repeat=2):
+            for approval, build_stage, build_job in itertools.product(states, repeat=3):
                 values = context()
                 values[f'dependencies.Prod_{key}_approve.result'] = approval
-                values[f'dependencies.{key}_release_check.result'] = check
-                values[f'stageDependencies.{key}_release_check.{key}_check.result'] = check
-                self.assertEqual(permits_job(release_job(key), values), approval == check == 'Succeeded')
-            values = context()
-            del values[f'stageDependencies.{key}_release_check.{key}_check.result']
-            self.assertFalse(permits_job(release_job(key), values))
-            for check, publish, tag in itertools.product(states, repeat=3):
+                values[f'dependencies.{key}_build.result'] = build_stage
+                values[f'stageDependencies.{key}_build.build.result'] = build_job
+                self.assertEqual(permits_job(release_job(key), values), approval == build_stage == build_job == 'Succeeded')
+            for build, publish_stage, publish_job in itertools.product(states, repeat=3):
                 values = context()
-                values[f'dependencies.{key}_release_check.result'] = check
-                values[f'dependencies.Prod_{key}_publish.result'] = publish
-                values[f'stageDependencies.{key}_release_check.{key}_check.result'] = check
-                values[f'stageDependencies.Prod_{key}_publish.{key}_publish.result'] = publish
-                values[f'dependencies.{key}_post_deploy_tag.result'] = tag
-                self.assertEqual(permits_job(f'{key}_post_deploy_tag', values), check == publish == 'Succeeded')
-                self.assertEqual(permits_job(f'{key}_post_deploy_pr', values), check == publish == tag == 'Succeeded')
+                values[f'dependencies.{key}_build.result'] = build
+                values[f'dependencies.Prod_{key}_publish.result'] = publish_stage
+                values[f'stageDependencies.Prod_{key}_publish.{key}_publish.result'] = publish_job
+                self.assertEqual(permits_job(f'{key}_finalize', values), build == publish_stage == publish_job == 'Succeeded')
 
     def test_packages_have_independent_dependency_chains(self):
         def ancestors(name):
@@ -399,8 +389,7 @@ class ReleasePipelineTests(unittest.TestCase):
                 self.assertTrue(permits_job(f'{key}_approve', values))
                 self.assertTrue(permits_job(release_job(key), values))
                 if key in NPM_KEYS:
-                    self.assertTrue(permits_job(f'{key}_post_deploy_tag', values))
-                    self.assertTrue(permits_job(f'{key}_post_deploy_pr', values))
+                    self.assertTrue(permits_job(f'{key}_finalize', values))
 
     def test_cancellation_blocks_every_stage_and_release_job(self):
         for name in STAGES:
@@ -434,47 +423,49 @@ class ReleasePipelineTests(unittest.TestCase):
         for key, package in build_packages.items():
             build = STAGES[f'{key}_build']['jobs'][0]
             publish = RELEASE_JOBS[f'{key}_publish']
+            artifact_root = f'$(Pipeline.Workspace)/esrp-release/$(Build.BuildId)/{key}'
             self.assertEqual(publish['pool'], {'type': 'release', 'os': 'windows'})
             self.assertEqual(publish['templateContext']['inputs'], [{
                 'input': 'pipelineArtifact',
                 'artifactName': build['variables']['ob_artifactBaseName'],
-                'targetPath': f'$(Pipeline.Workspace)/esrp-release/$(Build.BuildId)/{key}',
+                'targetPath': artifact_root,
             }])
             for variable in ('releaseVersion', 'productState'):
                 self.assertEqual(publish['variables'][variable],
                                  f"$[ stageDependencies.{key}_build.build.outputs['read.{key}_{variable}'] ]")
             steps = publish['steps']
-            self.assertEqual(len(steps), 1)
-            self.assertEqual(steps[-1]['task'], 'EsrpRelease@11')
-            self.assertEqual(steps[-1]['inputs']['FolderLocation'],
-                             publish['templateContext']['inputs'][0]['targetPath'])
+            self.assertEqual([step['task'] for step in steps], ['UseNode@1', 'PowerShell@2', 'EsrpRelease@11'])
+            self.assertEqual(steps[-1]['inputs']['FolderLocation'], artifact_root + '/npm')
             self.assertEqual(steps[-1]['inputs']['ContentType'], 'npm')
             self.assertEqual(steps[-1]['inputs']['ConnectedServiceName'], '$(ESRP_SERVICE_CONNECTION)')
-            check = RELEASE_JOBS[f'{key}_check']
-            self.assertEqual(len(check['steps']), 3)
-            self.assertNotIn('condition', check['steps'][-1])
-            self.assertEqual(check['variables']['releaseVersion'],
-                             f"$[ stageDependencies.{key}_build.build.outputs['read.{key}_releaseVersion'] ]")
-            check_script = check['steps'][-1]['inputs']['script']
-            self.assertIn('Npm-Release.mjs check', check_script)
+            check_script = steps[1]['inputs']['script']
+            self.assertIn(f"& node '{artifact_root}/release/Npm-Release.mjs' check", check_script)
+            self.assertIn(f"'{artifact_root}/npm'", check_script)
             self.assertIn("'$(releaseVersion)'", check_script)
-            for field in ('package_folder', 'npm_package_name', 'package_name'):
+            self.assertIn("if ($LASTEXITCODE -ne 0) { throw", check_script)
+            for field in ('npm_package_name', 'package_name'):
                 self.assertIn(f"'{package[field]}'", check_script)
-            tag_script = RELEASE_JOBS[f'{key}_post_deploy_tag']['steps'][-1]['inputs']['script']
+            locate = next(step for step in build['steps'] if step.get('name') == 'locate')['inputs']['script']
+            self.assertIn('cp "$tarball_path" "$(ob_outputDirectory)/npm/"', locate)
+            self.assertIn('Npm-Release.mjs\' "$(ob_outputDirectory)/release/"', locate)
+            finalize = RELEASE_JOBS[f'{key}_finalize']
+            self.assertEqual([step.get('task', 'checkout') for step in finalize['steps']],
+                             ['checkout', 'UseNode@1', 'Bash@3', 'Bash@3'])
+            tag_script = finalize['steps'][2]['inputs']['script']
             self.assertIn(f'tag="release/{package["package_name"]}/v$(releaseVersion)"', tag_script)
-            pr_script = RELEASE_JOBS[f'{key}_post_deploy_pr']['steps'][-1]['inputs']['script']
+            pr_script = finalize['steps'][3]['inputs']['script']
             self.assertIn(f"PACKAGE_FOLDER='{package['package_folder']}'", pr_script)
             self.assertIn(f"PACKAGE_NAME='{package['package_name']}'", pr_script)
-            for suffix in ('check', 'publish', 'post_deploy_tag', 'post_deploy_pr'):
-                job = RELEASE_JOBS[f'{key}_{suffix}']
+            for job in (publish, finalize):
                 self.assertNotIn('continueOnError', job)
                 for step in job['steps']:
+                    # Default succeeded() blocks publication on check failure and PR creation on tag failure.
+                    self.assertNotIn('condition', step)
                     self.assertNotIn('continueOnError', step)
                 scripts = '\n'.join(step.get('inputs', {}).get('script', '') for step in job['steps'])
                 self.assertNotRegex(scripts, r'\b(?:yarn\s|npm\s+(?:run|pack)\b)')
                 self.assertNotIn('Build-EmulatorPackage.ps1', scripts)
-            for suffix in ('post_deploy_tag', 'post_deploy_pr'):
-                self.assertEqual(RELEASE_JOBS[f'{key}_{suffix}']['pool'], {'type': 'linux'})
+            self.assertEqual(finalize['pool'], {'type': 'linux'})
 
     def test_emulator_checkout_precedes_onebranch_signing_setup(self):
         self.assertIs(PIPELINE['extends']['parameters']['featureFlags']['linuxEsrpSigning'], True)
@@ -589,7 +580,7 @@ class ReleasePipelineTests(unittest.TestCase):
     def test_manual_approval_cannot_bypass_a_failed_or_incomplete_build(self):
         states = ('Succeeded', 'Pending', 'Failed', 'Skipped', 'Canceled', 'SucceededWithIssues', '')
         for key in PACKAGE_KEYS:
-            following = 'emulator_release_prepare' if key == 'emulator' else f'{key}_release_check'
+            following = 'emulator_release_prepare' if key == 'emulator' else f'Prod_{key}_publish'
             for build, approval in itertools.product(states, repeat=2):
                 values = context()
                 values[f'dependencies.{key}_build.result'] = build
@@ -604,7 +595,7 @@ class ReleasePipelineTests(unittest.TestCase):
                 for other in PACKAGE_KEYS:
                     values[f'dependencies.Prod_{other}_approve.result'] = approval if other == key else 'Skipped'
                 for other in PACKAGE_KEYS:
-                    following = 'emulator_release_prepare' if other == 'emulator' else f'{other}_release_check'
+                    following = 'emulator_release_prepare' if other == 'emulator' else f'Prod_{other}_publish'
                     self.assertEqual(permits(following, values), other == key and approval == 'Succeeded')
 
 
