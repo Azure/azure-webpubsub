@@ -26,9 +26,9 @@ Leave other packages unstarted. Each package can be approved independently.
 Selection approvals expire after 24 hours without a response. Reject a package
 to stop its release; cancel the whole run only to stop all packages.
 
-After the emulator release completes, download the signed package from
-`drop_emulator_nuget` in the build's artifacts. NuGet.org publication is not
-enabled yet. Preview and release packages are also available in `drop_emulator`.
+Use `drop_emulator/release` from a successful **Build emulator** run for Azure SDK
+**net - partner-release**, which signs and publishes the package to NuGet.org.
+The optional **Release emulator** stage also provides it as `drop_emulator_nuget`.
 
 ## Updating versions
 

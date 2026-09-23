@@ -3,8 +3,7 @@ param(
     [Parameter(Mandatory)][string] $OutputDirectory,
     [Parameter(Mandatory)][ValidatePattern('^[1-9]\d*$')][string] $BuildId,
     [switch] $ReleaseVersion,
-    [ValidateSet('All', 'Build', 'Pack', 'Validate')][string] $Phase = 'All',
-    [switch] $RequireSignature
+    [ValidateSet('All', 'Build', 'Pack', 'Validate')][string] $Phase = 'All'
 )
 
 $ErrorActionPreference = 'Stop'
@@ -78,7 +77,6 @@ try {
 finally {
     $archive.Dispose()
 }
-if ($RequireSignature) { Invoke-DotNet nuget verify $packages[0].FullName --all }
 
 $scratch = Join-Path ([IO.Path]::GetTempPath()) "emulator-package-$([guid]::NewGuid())"
 New-Item -ItemType Directory $scratch | Out-Null
