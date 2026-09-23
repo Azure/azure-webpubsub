@@ -143,7 +143,8 @@ class ReleasePipelineTests(unittest.TestCase):
         self.assertNotIn('parameters', PIPELINE)
         self.assertNotIn('publish_package', {p['name'] for p in TEMPLATE['parameters']})
         self.assertEqual([e['parameters']['package_key'] for e in ENTRIES if 'template' in e], list(NPM_KEYS))
-        self.assertTrue(PIPELINE['trigger']['batch'])
+        self.assertIs(PIPELINE['trigger']['batch'], False,
+                      'Pending approvals must not block CI runs for newer commits')
         self.assertEqual(PIPELINE['trigger']['branches']['include'], ['main'])
         self.assertEqual(PIPELINE['pr'], 'none')
         self.assertNotIn('paths', PIPELINE['trigger'])

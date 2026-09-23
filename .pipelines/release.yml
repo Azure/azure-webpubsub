@@ -3,7 +3,8 @@
 name: package-release_$(Date:yyyyMMdd)$(Rev:.r)
 
 trigger:
-  batch: true
+  # Pending package approvals must not delay CI for newer commits.
+  batch: false
   branches:
     include:
       - main

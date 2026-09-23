@@ -3,6 +3,9 @@
 `.pipelines/release.yml` builds all four packages on pushes to `main`.
 To build a different branch, select **Run pipeline** and choose that branch.
 No package-selection parameters are needed.
+CI runs are not batched: a run waiting for package approvals does not delay
+builds or MyGet previews for newer commits. That run stays pending until its
+approvals are resolved or time out.
 
 ## Publish packages
 
