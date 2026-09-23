@@ -5,50 +5,57 @@ using System.Globalization;
 using Azure.Messaging.EventHubs;
 using Azure.Messaging.EventHubs.Producer;
 using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.Options;
 
 namespace Microsoft.Azure.WebPubSub.Emulator;
 
 internal sealed class EventHubNotifier : IAsyncDisposable
 {
-    private readonly IOptions<EmulatorOptions> _options;
+    private readonly Func<EventHubEndpointOptions, EventHubProducerClient> _createProducer;
     private readonly ILogger<EventHubNotifier> _logger;
-    private readonly Dictionary<EventHubEndpointOptions, Lazy<EventHubProducerClient>> _producers;
+    private readonly Dictionary<EventHubEndpointOptions, Lazy<EventHubProducerClient>> _producers = [];
     private readonly object _gate = new();
     private readonly CancellationTokenSource _shutdown = new();
     private readonly TaskCompletionSource _drained = new(TaskCreationOptions.RunContinuationsAsynchronously);
     private int _pending;
     private bool _stopping;
 
-    public EventHubNotifier(IOptions<EmulatorOptions> options,
-        Func<EventHubEndpointOptions, EventHubProducerClient> createProducer, ILogger<EventHubNotifier> logger)
+    public EventHubNotifier(Func<EventHubEndpointOptions, EventHubProducerClient> createProducer, ILogger<EventHubNotifier> logger)
     {
-        _options = options;
+        _createProducer = createProducer;
         _logger = logger;
-        _producers = options.Value.Hubs.Values.SelectMany(hub => hub.EventListeners)
-            .Select(listener => listener.EventHubEndpoint).Distinct()
-            .ToDictionary(endpoint => endpoint, endpoint => new Lazy<EventHubProducerClient>(() => createProducer(endpoint)));
     }
 
-    public async Task<bool> TryNotifyAsync(UpstreamConnectionContext connection, string eventName, int id,
-        MessageData data, bool userEvent)
+    private Lazy<EventHubProducerClient> GetProducer(EventHubEndpointOptions endpoint)
     {
-        if (!_options.Value.Hubs.TryGetValue(connection.Hub, out var hub)) return false;
-        var listeners = hub.EventListeners.Where(listener => listener.EventNameFilter.Matches(eventName, userEvent)).ToArray();
-        if (listeners.Length == 0) return false;
+        if (!_producers.TryGetValue(endpoint, out var producer))
+        {
+            producer = new Lazy<EventHubProducerClient>(() => _createProducer(endpoint));
+            _producers.Add(endpoint, producer);
+        }
+        return producer;
+    }
+
+    public async Task<bool> TryNotifyAsync(EventListenerOptions[] listeners, UpstreamConnectionContext connection,
+        string eventName, int id, MessageData data, bool userEvent)
+    {
+        var endpoints = listeners.Where(listener => listener.EventNameFilter.Matches(eventName, userEvent))
+            .Select(listener => listener.EventHubEndpoint).ToArray();
+        Lazy<EventHubProducerClient>[] deliveries;
         lock (_gate)
         {
             if (_stopping) throw new ObjectDisposedException(nameof(EventHubNotifier));
+            if (endpoints.Length == 0) return false;
+            deliveries = endpoints.Select(GetProducer).ToArray();
             _pending++;
         }
         try
         {
-            await Task.WhenAll(listeners.Select(async listener =>
+            await Task.WhenAll(deliveries.Select(async producer =>
             {
                 try
                 {
                     var message = CreateMessage(connection, eventName, id, data, userEvent);
-                    await _producers[listener.EventHubEndpoint].Value.SendAsync([message],
+                    await producer.Value.SendAsync([message],
                         new SendEventOptions { PartitionKey = connection.ConnectionId }, _shutdown.Token);
                 }
                 catch (Exception exception)
@@ -77,10 +84,13 @@ internal sealed class EventHubNotifier : IAsyncDisposable
         }
         try { await _drained.Task.WaitAsync(TimeSpan.FromSeconds(10)); }
         catch (TimeoutException) { _logger.LogWarning("Listener shutdown timed out; remaining deliveries will be canceled."); }
-        await _shutdown.CancelAsync();
-        await Task.WhenAll(_producers.Values.Where(producer => producer.IsValueCreated)
-            .Select(producer => producer.Value.DisposeAsync().AsTask()));
-        _shutdown.Dispose();
+        try
+        {
+            await _shutdown.CancelAsync();
+            await Task.WhenAll(_producers.Values.Where(producer => producer.IsValueCreated)
+                .Select(async producer => await producer.Value.DisposeAsync()));
+        }
+        finally { _shutdown.Dispose(); }
     }
 
     internal static EventData CreateMessage(UpstreamConnectionContext connection, string eventName, int id,

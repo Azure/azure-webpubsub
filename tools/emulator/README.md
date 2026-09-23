@@ -10,21 +10,77 @@ Message TTL is validated but expiration is not enforced. See
 [Supported features and limitations](SUPPORTED_FEATURES.md) before testing scenarios that
 depend on cloud authentication, message expiration, or recovery across process restarts.
 
-## Get started
+## Quick start
 
-The emulator is in preview. The instructions below build it from source; they do not require
-or assume an available public NuGet release. See the [changelog](CHANGELOG.md) for the current
-preview's features and [supported features and limitations](SUPPORTED_FEATURES.md) for
-compatibility with Azure Web PubSub.
+Run the existing [JavaScript SDK chat sample](../../samples/javascript/chatapp/sdk) against the
+emulator instead of Azure. You need Node.js, a repository checkout, and an
+[installed emulator](#install-a-local-package) with the [.NET prerequisites](#prerequisites).
+No Azure resource, tunnel, or certificates are needed.
 
-1. [Run from source](#run-from-source), or [build and install a local tool package](#pack-and-install-the-tool).
-2. Copy the connection string printed at startup into your server application's configuration.
-3. [Connect a client](#connect-a-client) and [send messages with a server SDK](#use-a-server-sdk).
-4. To receive client user events in your application, [configure an HTTP handler](#http-lifecycle-notifications)
-   or [Event Hubs listener](#event-hubs-listeners). Server-to-client and group messaging do not require a handler.
+### 1. Configure the event handler and start the emulator
 
-For additional setup, see [endpoint and access key configuration](#configure-the-endpoint-and-access-key),
-[protobuf clients](#protobuf-clients), and [troubleshooting](#troubleshooting).
+In the directory where you will run the emulator, create `appsettings.json`:
+
+```json
+{
+  "WebPubSub": {
+    "Hubs": {
+      "sample_chat": {
+        "EventHandlers": [{
+          "UrlTemplate": "http://localhost:8080/eventhandler",
+          "SystemEvents": ["connected"],
+          "EventPattern": "broadcast"
+        }]
+      }
+    }
+  }
+}
+```
+
+From that same directory, run:
+
+```powershell
+awps-emulator --urls http://localhost:8081
+```
+
+Use the executable's full path if it is not on PATH. The emulator reads `appsettings.json`
+from its working directory. Port **8081** leaves **8080** for the sample's HTTP handler.
+Copy the connection string printed at startup.
+
+### 2. Allow local HTTP in the sample's server SDK
+
+For this local run, change the `WebPubSubServiceClient` construction in
+`samples/javascript/chatapp/sdk/server.js` to:
+
+```javascript
+let serviceClient = new WebPubSubServiceClient(connectionString, hubName, {
+  allowInsecureConnection: true
+});
+```
+
+This allows the sample's REST calls, including `sendToAll`, to reach the HTTP emulator.
+It does not disable TLS certificate checks. Keep this opt-in local; use HTTPS for Azure.
+
+### 3. Start the existing sample
+
+In another terminal, from the repository root:
+
+```powershell
+Set-Location .\samples\javascript\chatapp\sdk
+npm install
+npm run release
+npm run start -- "<connection string printed by the emulator>"
+```
+
+Open <http://localhost:8080/index.html> in two tabs and send messages. The client sends a
+`broadcast` event to the emulator, the emulator calls `/eventhandler`, and the sample uses
+`sendToAll` to broadcast the message back to clients. Skip the sample README's Azure resource,
+portal, and tunnel steps: the JSON above replaces that event handler configuration.
+
+`EventHandlers` and `EventListeners` in `appsettings.json` support hot reload.
+Each event uses one configuration snapshot for both listeners and handlers; events already
+being dispatched finish with their original settings. Changes to `AccessKey`,
+`AllowUnvalidatedEntraTokens`, or the listening URLs require a restart.
 
 ## Prerequisites
 
@@ -37,8 +93,8 @@ No Azure subscription is needed for access-key-based local messaging. Forwarding
 Azure Event Hubs and obtaining real Microsoft Entra tokens require their own Azure access;
 these are optional scenarios.
 
-Check your installed SDKs with `dotnet --list-sdks`. The commands below use PowerShell and
-run from the repository root.
+Check your installed SDKs with `dotnet --list-sdks`. Unless stated otherwise, the reference
+commands below use PowerShell and run from the repository root.
 
 ## Run from source
 
@@ -216,12 +272,12 @@ dotnet run --project tools\emulator\src\Microsoft.Azure.WebPubSub.Emulator
 
 ## HTTP lifecycle notifications
 
-Configure per-hub lifecycle and user-event handlers through ASP.NET Core configuration:
-
-When running from source, add the `Hubs` section below under `WebPubSub` in
-`tools/emulator/src/Microsoft.Azure.WebPubSub.Emulator/appsettings.json`. You can also use
-environment variables with `__` separators, for example
-`WebPubSub__Hubs__chat__EventHandlers__0__UrlTemplate`.
+Configure per-hub lifecycle and user-event handlers through ASP.NET Core configuration.
+For the installed tool, put `appsettings.json` in the **current working directory** from which you
+launch `awps-emulator`; you do not need to edit the installed package. When running from source,
+add the `Hubs` section below under `WebPubSub` in
+`tools/emulator/src/Microsoft.Azure.WebPubSub.Emulator/appsettings.json`.
+Environment variables with `__` separators and command-line values override JSON settings.
 
 ```json
 {
@@ -239,7 +295,7 @@ environment variables with `__` separators, for example
 }
 ```
 
-For the locally installed tool, you can configure the same handler without editing the package:
+Alternatively, configure the same handler using environment variables (these do not hot reload):
 
 ```powershell
 $env:WebPubSub__Hubs__chat__EventHandlers__0__UrlTemplate = "http://localhost:7071/events/{hub}/{event}"
@@ -292,9 +348,9 @@ Origin matching is case-insensitive. Return `*` or the matching origin as a head
 than a comma-separated string. Validation carries `ce-awpsversion: 1.0`, but no connection
 cookies or signature, and has a 10-second timeout per OPTIONS/GET operation.
 
-Restart the emulator after changing handler configuration so that validation runs again.
-An unreachable or incorrectly configured validation endpoint can prevent events from reaching
-your handler; check the emulator logs when troubleshooting.
+Updated handlers are validated before use after a successful configuration reload; a restart is
+not required for JSON handler edits. An unreachable or incorrectly configured validation endpoint
+can prevent events from reaching your handler; check the emulator logs when troubleshooting.
 
 Validation and handler requests retry HTTP 408, 5xx, and eligible network failures after 1, 3,
 and 5 seconds (at most four attempts). HTTP 429, other 4xx responses, timeouts, cancellations,
@@ -444,6 +500,10 @@ requires its Docker prerequisites and your acceptance of its license terms.
   The SDK handles transport retries;
   there is no emulator dead-letter store or durable replay. Shutdown allows 10 seconds to drain.
 
+Event Hubs clients are created on first use and cached by target until shutdown, even after a
+listener is removed. Removed listeners receive no new events; re-adding the same target reuses
+its cached client. Shutdown disposes all cached clients.
+
 ## Local server SDK authentication
 
 > **Security warning:** This optional mode does not authenticate the caller's identity or
@@ -477,6 +537,34 @@ SDKs can instead generate client tokens locally without calling this endpoint.
 
 When multiple listening addresses are configured, use the connection string printed at startup
 to identify the selected endpoint.
+
+## Install a local package
+
+If you already have a `.nupkg` from a local test build or a download, put **one**
+`Microsoft.Azure.WebPubSub.Emulator.*.nupkg` in an `emulator-local\packages` folder.
+Run the following from `emulator-local`. The version is taken from that actual package's filename,
+including its local-test or CI suffix; this does not assume a public NuGet or MyGet release.
+
+```powershell
+@'
+<configuration>
+  <packageSources>
+    <clear />
+    <add key="local" value="./packages" />
+  </packageSources>
+</configuration>
+'@ | Set-Content NuGet.Config
+
+$package = Get-Item .\packages\Microsoft.Azure.WebPubSub.Emulator.*.nupkg
+$version = $package.BaseName -replace '^Microsoft.Azure.WebPubSub.Emulator\.', ''
+dotnet tool install Microsoft.Azure.WebPubSub.Emulator `
+  --version $version --tool-path .\tool --configfile .\NuGet.Config
+```
+
+The executable is `emulator-local\tool\awps-emulator`; use its full path when following the
+[Quick start](#quick-start), keeping the sample directory as your working directory.
+If you do not have a package, build one below. Installing an older package does not give it
+newer hot-reload features.
 
 ## Pack and install the tool
 
@@ -513,7 +601,7 @@ then repeat the install command with `--no-cache` to avoid reusing an earlier pa
 | Symptom | What to check |
 | --- | --- |
 | The SDK cannot be found, or the tool reports a missing framework | Run `dotnet --list-sdks` and `dotnet --list-runtimes`, and check the [prerequisites](#prerequisites). |
-| The emulator cannot bind to port 8080 | Stop the process using that port or [choose another endpoint](#configure-the-endpoint-and-access-key). Update your application's connection string to the one printed at startup. |
+| The emulator cannot bind to port 8080 | The chat sample uses 8080. Start the emulator with `--urls http://localhost:8081`, or [choose another endpoint](#configure-the-endpoint-and-access-key), and pass the printed connection string to the sample. |
 | A client cannot connect, or a REST request returns `401` | Use the current endpoint and access key. Generate a fresh token for that endpoint and check its expiration; a token for your Azure resource cannot be reused locally. |
 | A group operation is denied | Check the client's token roles or granted connection permissions. Group membership alone does not grant permission to publish. |
 | A user event fails, or a raw client closes with status 1011 | Configure a matching HTTP handler or Event Hubs listener. Check the emulator logs and verify that your HTTP handler responds to validation requests. |
