@@ -17,7 +17,6 @@ publication approval shown in the pipeline.
 
 | Manual stage | Package | Destination |
 | --- | --- | --- |
-| Release emulator | `Microsoft.Azure.WebPubSub.Emulator` | Downloadable NuGet package |
 | Release chat client | `@azure/web-pubsub-chat-client` | npm |
 | Release Socket.IO | `@azure/web-pubsub-socket.io` | npm |
 | Release tunnel | `@azure/web-pubsub-tunnel-tool` | npm |
@@ -28,7 +27,6 @@ to stop its release; cancel the whole run only to stop all packages.
 
 Use `drop_emulator/release` from a successful **Build emulator** run for Azure SDK
 **net - partner-release**, which signs and publishes the package to NuGet.org.
-The optional **Release emulator** stage also provides it as `drop_emulator_nuget`.
 
 ## Updating versions
 

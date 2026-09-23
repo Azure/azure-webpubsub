@@ -2,7 +2,7 @@
   <Import Project="version.props" />
 
   <PropertyGroup>
-    <!-- The partner-release signing service completes the strong-name signature. -->
+    <!-- The release signing service completes the strong-name signature. -->
     <!-- Public key source: https://github.com/Azure/azure-sdk-for-net/blob/main/eng/MSSharedLibKey.snk -->
     <SignAssembly>true</SignAssembly>
     <AssemblyOriginatorKeyFile>$(MSBuildThisFileDirectory)build/MSSharedLibKey.snk</AssemblyOriginatorKeyFile>

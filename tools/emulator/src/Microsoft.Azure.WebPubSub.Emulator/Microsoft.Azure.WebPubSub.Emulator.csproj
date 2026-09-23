@@ -14,7 +14,7 @@
     <Title>Azure Web PubSub Emulator</Title>
     <Description>Local emulator for Azure Web PubSub service.</Description>
     <Authors>Microsoft</Authors>
-    <Copyright>Microsoft Corporation. All rights reserved.</Copyright>
+    <Copyright>© Microsoft Corporation. All rights reserved.</Copyright>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
     <PackageIcon>microsoft.png</PackageIcon>
     <PackageProjectUrl>https://github.com/Azure/azure-webpubsub/tree/main/tools/emulator</PackageProjectUrl>
