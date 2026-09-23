@@ -3,28 +3,31 @@
 `.pipelines/release.yml` builds all four packages on pushes to `main`.
 To build a different branch, select **Run pipeline** and choose that branch.
 No package-selection parameters are needed.
-CI runs are not batched: a run waiting for package approvals does not delay
-builds or MyGet previews for newer commits. That run stays pending until its
-approvals are resolved or time out.
+CI runs are batched. Builds and MyGet previews run automatically; package
+releases start only on demand, so ordinary CI runs finish without waiting for
+release approvals.
 
 ## Publish packages
 
-After each package builds, its **Approve** stage waits for manual validation,
-including on CI runs and manual builds of feature branches. Open the pending
-validation, review the package version, source branch/commit, and artifacts,
-then choose **Resume** to release that package or **Reject** to skip it.
+Open the completed build you want to release, select the package's **Release**
+stage below, and choose **Run stage**. This starts its manual validation.
+Review the package version, source branch/commit, and artifacts, then choose
+**Resume** to release that package or **Reject** to stop it. The release reuses
+that build's artifacts. CI builds and manual feature-branch builds both support
+this flow.
 
-| Approval | Package | Destination |
+| Manual stage | Package | Destination |
 | --- | --- | --- |
-| Approve emulator | `Microsoft.Azure.WebPubSub.Emulator` | NuGet artifact (placeholder) |
-| Approve chat client | `@azure/web-pubsub-chat-client` | npm |
-| Approve Socket.IO | `@azure/web-pubsub-socket.io` | npm |
-| Approve tunnel | `@azure/web-pubsub-tunnel-tool` | npm |
+| Release emulator | `Microsoft.Azure.WebPubSub.Emulator` | NuGet artifact (placeholder) |
+| Release chat client | `@azure/web-pubsub-chat-client` | npm |
+| Release Socket.IO | `@azure/web-pubsub-socket.io` | npm |
+| Release tunnel | `@azure/web-pubsub-tunnel-tool` | npm |
 
-Approvals are independent: a pending, rejected, or failed package does not block
-the others. Unanswered approvals reject after 24 hours. Rejection marks that
-approval as failed and skips its release chain; do not cancel the whole run
-unless you want to stop all packages.
+Leave other release stages unstarted; no rejection is needed for those packages.
+Once started, a release waits for approval and rejects after 24 hours without a
+response. Approvals are independent: a pending, rejected, or failed package does
+not block the other packages' release chains. Rejection marks that approval as
+failed and skips its release chain; cancel the whole run only to stop all packages.
 
 The emulator preview still publishes automatically to MyGet as
 `<version>-preview-<BuildId>`. Both preview and signed release packages remain

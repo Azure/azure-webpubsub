@@ -143,12 +143,15 @@ class ReleasePipelineTests(unittest.TestCase):
         self.assertNotIn('parameters', PIPELINE)
         self.assertNotIn('publish_package', {p['name'] for p in TEMPLATE['parameters']})
         self.assertEqual([e['parameters']['package_key'] for e in ENTRIES if 'template' in e], list(NPM_KEYS))
-        self.assertIs(PIPELINE['trigger']['batch'], False,
-                      'Pending approvals must not block CI runs for newer commits')
+        self.assertIs(PIPELINE['trigger']['batch'], True)
         self.assertEqual(PIPELINE['trigger']['branches']['include'], ['main'])
         self.assertEqual(PIPELINE['pr'], 'none')
         self.assertNotIn('paths', PIPELINE['trigger'])
-        self.assertTrue(all('trigger' not in stage for stage in STAGES.values()))
+        self.assertEqual({name for name, stage in STAGES.items() if stage.get('trigger') == 'manual'},
+                         set(MANUAL_STAGES))
+        for name, stage in STAGES.items():
+            if name not in MANUAL_STAGES:
+                self.assertNotIn('trigger', stage)
 
     def test_manual_release_jobs_are_inline(self):
         for name in RELEASE_STAGES:
@@ -177,8 +180,8 @@ class ReleasePipelineTests(unittest.TestCase):
 
             for name in graph:
                 visit(name, set())
-        for stage in STAGES.values():
-            self.assertIs(stage['isSkippable'], False)
+        for name, stage in STAGES.items():
+            self.assertIs(stage['isSkippable'], name in MANUAL_STAGES)
         for key in PACKAGE_KEYS:
             self.assertEqual(dependencies(STAGES[f'Prod_{key}_approve']), ['release_check', f'{key}_build'])
             self.assertEqual(dependencies(RELEASE_JOBS[f'{key}_approve']), [])
@@ -193,26 +196,40 @@ class ReleasePipelineTests(unittest.TestCase):
             self.assertTrue(set(dependencies(stage)) <= seen)
             seen.add(name)
 
-    def test_main_ci_builds_everything_and_waits_for_each_approval(self):
+    def test_main_ci_builds_everything_without_starting_release_approvals(self):
         for reason in ('IndividualCI', 'BatchedCI'):
             values = context(reason=reason)
             ran = set()
             for name in STAGES:
-                allowed = permits(name, values)
-                result = 'Pending' if name in MANUAL_STAGES else 'Succeeded'
-                values[f'dependencies.{name}.result'] = result if allowed else 'Skipped'
+                allowed = STAGES[name].get('trigger') != 'manual' and permits(name, values)
+                values[f'dependencies.{name}.result'] = 'Succeeded' if allowed else 'Skipped'
                 if allowed:
                     ran.add(name)
             self.assertEqual(ran, {'release_check', 'emulator_build', 'emulator_myget',
-                                   *(f'{key}_build' for key in NPM_KEYS), *MANUAL_STAGES})
+                                   *(f'{key}_build' for key in NPM_KEYS)})
             for name in RELEASE_JOBS:
-                self.assertEqual(permits_job(name, values), name.endswith('_approve'))
+                # Trigger selection is separate from the dependency conditions:
+                # approval jobs are eligible but require an explicit Run stage.
+                if not name.endswith('_approve'):
+                    self.assertFalse(permits_job(name, values))
         self.assertTrue(PIPELINE['extends']['parameters']['featureFlags']['use1esentry'])
         for name, stage in STAGES.items():
             if name not in RELEASE_STAGES:
                 self.assertTrue(set(dependencies(stage)).isdisjoint(RELEASE_STAGES))
                 for forbidden in ('ManualValidation@1', 'EsrpRelease@11', 'git push', 'Npm-Release.mjs bump'):
                     self.assertNotIn(forbidden, json.dumps(stage), name)
+
+    def test_starting_one_release_does_not_require_starting_the_others(self):
+        for key in PACKAGE_KEYS:
+            for approval in ('Pending', 'Succeeded', 'Failed', 'Skipped'):
+                values = context()
+                for other in PACKAGE_KEYS:
+                    values[f'dependencies.Prod_{other}_approve.result'] = approval if other == key else 'Skipped'
+                    self.assertEqual(STAGES[f'Prod_{other}_approve']['trigger'], 'manual')
+                self.assertTrue(permits_job(f'{key}_approve', values))
+                for other in PACKAGE_KEYS:
+                    self.assertEqual(permits_job(release_job(other), values),
+                                     other == key and approval == 'Succeeded')
 
     def test_onebranch_release_jobs_are_artifact_only_and_git_jobs_are_normal_linux_jobs(self):
         for stage in STAGES.values():

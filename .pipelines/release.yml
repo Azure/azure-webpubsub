@@ -1,10 +1,10 @@
-# Build all packages; approve each npm or NuGet release independently.
+# Build all packages; start and approve each release on demand.
 
 name: package-release_$(Date:yyyyMMdd)$(Rev:.r)
 
 trigger:
-  # Pending package approvals must not delay CI for newer commits.
-  batch: false
+  # Release entry stages are manual, so ordinary CI runs finish without approvals.
+  batch: true
   branches:
     include:
       - main
@@ -289,11 +289,12 @@ extends:
                   nuGetFeedType: external
                   publishFeedCredentials: azure-webpubsub-dev
 
-      # Each package has its own approval and release chain. A rejected or pending
-      # approval must not block the other packages. release_check controls run eligibility.
+      # Start only the packages to release. Unstarted entries do not wait for approval.
+      # Each release uses this run's artifacts and has its own approval and dependencies.
       - stage: Prod_emulator_approve
-        displayName: 'Approve emulator'
-        isSkippable: false
+        displayName: 'Release emulator'
+        trigger: manual
+        isSkippable: true
         dependsOn:
           - release_check
           - emulator_build
@@ -381,8 +382,9 @@ extends:
                   OUTPUT_DIRECTORY: $(ob_outputDirectory)
 
       - stage: Prod_chat_client_approve
-        displayName: 'Approve chat client'
-        isSkippable: false
+        displayName: 'Release chat client'
+        trigger: manual
+        isSkippable: true
         dependsOn:
           - release_check
           - chat_client_build
@@ -656,8 +658,9 @@ extends:
                       -d "$pr_body"
 
       - stage: Prod_socketio_approve
-        displayName: 'Approve Socket.IO'
-        isSkippable: false
+        displayName: 'Release Socket.IO'
+        trigger: manual
+        isSkippable: true
         dependsOn:
           - release_check
           - socketio_build
@@ -931,8 +934,9 @@ extends:
                       -d "$pr_body"
 
       - stage: Prod_tunnel_approve
-        displayName: 'Approve tunnel'
-        isSkippable: false
+        displayName: 'Release tunnel'
+        trigger: manual
+        isSkippable: true
         dependsOn:
           - release_check
           - tunnel_build
