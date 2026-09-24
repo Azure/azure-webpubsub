@@ -106,6 +106,8 @@ stages:
               filePath: '$(Pipeline.Workspace)/drop_emulator_container/Publish-EmulatorContainer.ps1'
               arguments: '-ArtifactDirectory "$(Pipeline.Workspace)/drop_emulator_container" -Action ${{ parameters.action }}'
             env:
+              # Explicitly map the login configuration when the task variable is secret.
+              DOCKER_CONFIG: $(DOCKER_CONFIG)
               CONTAINER_ACR_RESOURCE_ID: $(EmulatorContainerRegistryResourceId)
               CONTAINER_STAGING_REPOSITORY: $(EmulatorContainerStagingRepository)
               CONTAINER_RELEASE_REPOSITORY: $(EmulatorContainerReleaseRepository)

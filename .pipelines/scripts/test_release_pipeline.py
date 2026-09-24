@@ -303,6 +303,7 @@ class ReleasePipelineTests(unittest.TestCase):
             login = next(step for step in steps if step['task'] == 'Docker@1')
             self.assertEqual(login['inputs']['azureSubscriptionEndpoint'], 'acr-connection')
             self.assertEqual(login['inputs']['command'], 'login')
+            self.assertEqual(steps[-1]['env']['DOCKER_CONFIG'], '$(DOCKER_CONFIG)')
             self.assertIn(f'-Action {action}', steps[-1]['inputs']['arguments'])
             for step in steps:
                 self.assertNotIn('continueOnError', step)
