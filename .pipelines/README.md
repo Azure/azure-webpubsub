@@ -3,17 +3,15 @@
 All four packages build automatically on pushes to `main`.
 To build a different branch, select **Run pipeline** and choose that branch.
 Emulator previews publish to MyGet automatically. Other releases start only
-when you choose them; builds finish without waiting for release approvals.
+when you choose them; builds finish without waiting for release selections.
 
 ## Publish packages
 
 1. Open the completed build containing the package you want to release.
-2. Select its **Release** stage below and choose **Run stage**.
-3. Review the package version, source branch/commit, and artifacts. Choose
-   **Resume** to continue or **Reject** to stop that package's release.
+2. Review the package version, source branch/commit, and artifacts.
+3. Select its **Release** stage below and choose **Run stage** to authorize that release.
 
-You can approve your own selection. npm publication also requires the separate
-publication approval shown in the pipeline.
+npm publication still requires the separate publication approval shown in the pipeline.
 
 | Manual stage | Package | Destination |
 | --- | --- | --- |
@@ -21,9 +19,12 @@ publication approval shown in the pipeline.
 | Release Socket.IO | `@azure/web-pubsub-socket.io` | npm |
 | Release tunnel | `@azure/web-pubsub-tunnel-tool` | npm |
 
-Leave other packages unstarted. Each package can be approved independently.
-Selection approvals expire after 24 hours without a response. Reject a package
-to stop its release; cancel the whole run only to stop all packages.
+Leave other releases unstarted. Each release can be selected independently.
+
+For Docker, review `drop_emulator_container/container-release.json` and start
+**Release Docker version** after container validation succeeds. To also update
+`latest`, start **Release Docker latest** after version publication succeeds.
+Both use the same tested image archive from this build.
 
 Use `drop_emulator/release` from a successful **Build emulator** run for Azure SDK
 **net - partner-release**, which signs and publishes the package to NuGet.org.

@@ -99,15 +99,9 @@ stages:
           prerequisite_stage: emulator_container_validate
           prerequisite_job: container
           azure_service_connection: ${{ parameters.azure_service_connection }}
-          instructions: |
-            Publish the version tag using this build's tested image archive named in container-release.json. This does not update latest.
-            Start this entry after container validation succeeds.
       - template: publish-emulator-container.yml
         parameters:
           action: latest
           prerequisite_stage: Prod_emulator_container_version_publish
           prerequisite_job: publish
           azure_service_connection: ${{ parameters.azure_service_connection }}
-          instructions: |
-            Publish latest using the same tested image archive as this build's version (including beta). No image is rebuilt.
-            Start this entry after Publish Docker version succeeds. Leave it unstarted to keep latest unchanged.

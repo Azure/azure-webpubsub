@@ -1,4 +1,4 @@
-# Approve, publish, and finalize an npm package using this run's build artifacts.
+# Select, publish, and finalize an npm package using this run's build artifacts.
 
 parameters:
   - name: package_key
@@ -17,11 +17,6 @@ stages:
     parameters:
       package_key: ${{ parameters.package_key }}
       package_title: ${{ parameters.package_title }}
-      instructions: |
-        Publish ${{ parameters.npm_package_name }} from build $(Build.BuildNumber) to npm.
-        Review the package version in drop_${{ parameters.package_name }}/npm and source: $(Build.SourceBranch) @ $(Build.SourceVersion).
-        Resume to publish this package; Reject to skip it. Other packages are independent.
-        Publication also creates its release tag and next-beta PR.
 
   - stage: Prod_${{ parameters.package_key }}_publish
     displayName: 'Publish ${{ parameters.package_title }}'

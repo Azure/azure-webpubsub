@@ -6,8 +6,6 @@ parameters:
     type: string
   - name: package_title
     type: string
-  - name: instructions
-    type: string
 
 stages:
   - stage: Prod_${{ parameters.package_key }}_approve
@@ -23,21 +21,17 @@ stages:
         )
       )
     variables:
-      # Approval-only coordination; the downstream publisher owns production release checks.
+      # Manual selection only; the downstream publisher owns production release checks.
       ob_release_environment: Test
     jobs:
       - job: ${{ parameters.package_key }}_approve
-        displayName: 'Approve ${{ parameters.package_title }}'
+        displayName: 'Start ${{ parameters.package_title }}'
         condition: not(canceled())
         pool:
           type: server
-        timeoutInMinutes: 1500
         steps:
-          - task: ManualValidation@1
-            displayName: 'Approve ${{ parameters.package_title }}'
-            timeoutInMinutes: 1440
+          # Run stage is the user's confirmation. Complete without another prompt or agent.
+          - task: Delay@1
+            displayName: 'Start ${{ parameters.package_title }}'
             inputs:
-              notifyUsers: ''
-              allowApproversToApproveTheirOwnRuns: true
-              instructions: ${{ parameters.instructions }}
-              onTimeout: reject
+              delayForMinutes: '0'

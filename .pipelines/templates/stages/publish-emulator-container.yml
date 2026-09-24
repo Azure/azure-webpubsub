@@ -8,19 +8,12 @@ parameters:
     type: string
   - name: azure_service_connection
     type: string
-  - name: instructions
-    type: string
 
 stages:
   - template: release-approval.yml
     parameters:
       package_key: emulator_container_${{ parameters.action }}
       package_title: Docker ${{ parameters.action }}
-      instructions: |
-        ${{ parameters.instructions }}
-        Review drop_emulator_container/container-release.json from build $(Build.BuildNumber).
-        Source: $(Build.SourceBranch) @ $(Build.SourceVersion). Repository: $(EmulatorContainerReleaseRepository).
-        Resume to continue; Reject to stop this operation. Other releases are independent.
 
   # Manual entry stages cannot have dependencies. Enforce prerequisites here,
   # including the actual job result so a skipped job cannot authorize publication.

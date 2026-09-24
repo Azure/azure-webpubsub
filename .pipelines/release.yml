@@ -1,4 +1,4 @@
-# Build all packages; start and approve each release on demand.
+# Build all packages; select each release on demand.
 
 name: package-release_$(Date:yyyyMMdd)$(Rev:.r)
 
@@ -30,7 +30,7 @@ extends:
   template: v2/OneBranch.Official.CrossPlat.yml@templates
   parameters:
     featureFlags:
-      # Keep the 1ES publishing path when using a release-stage server approval job.
+      # Keep the 1ES publishing path when using a release-stage server job.
       use1esentry: true
       linuxEsrpSigning: true
       WindowsHostVersion:
