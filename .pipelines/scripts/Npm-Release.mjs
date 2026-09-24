@@ -63,16 +63,12 @@ export function readReleaseArtifact(packageFolder, expectedName, releaseVersion)
 async function assertHttpStatus(url, label, expectedStatus, {
   headers = {}, timeoutMs = 15000, fetchImpl = fetch,
 } = {}) {
-  const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), timeoutMs);
   let response;
   try {
-    response = await fetchImpl(url, { headers, signal: controller.signal, redirect: 'manual' });
+    response = await fetchImpl(url, { headers, signal: AbortSignal.timeout(timeoutMs), redirect: 'manual' });
     await response.body?.cancel();
   } catch {
     throw new Error(`${label}: availability lookup failed or timed out; publication is blocked.`);
-  } finally {
-    clearTimeout(timeout);
   }
   if (expectedStatus === 404 && response.status === 200) throw new Error(`${label} already exists.`);
   if (response.status !== expectedStatus) {

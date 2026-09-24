@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { spawn } from 'node:child_process';
+import { spawnSync } from 'node:child_process';
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
@@ -45,19 +45,12 @@ function metadata(root, packageKeys = keys) {
 }
 
 function runNode(args, cwd, environment) {
-  return new Promise((resolve, reject) => {
-    const child = spawn(process.execPath, args, {
-      cwd, env: { ...process.env, ...environment }, windowsHide: true,
-      stdio: ['ignore', 'pipe', 'pipe'],
-    });
-    let stdout = '';
-    let stderr = '';
-    const timeout = setTimeout(() => { child.kill(); reject(new Error('Test CLI timed out')); }, 15_000);
-    child.stdout.on('data', data => { stdout += data; });
-    child.stderr.on('data', data => { stderr += data; });
-    child.once('error', error => { clearTimeout(timeout); reject(error); });
-    child.once('close', code => { clearTimeout(timeout); resolve({ code, stdout, stderr }); });
+  const { status, stdout, stderr, error } = spawnSync(process.execPath, args, {
+    cwd, env: { ...process.env, ...environment }, windowsHide: true,
+    encoding: 'utf8', timeout: 15_000,
   });
+  if (error) throw error;
+  return { code: status, stdout, stderr };
 }
 
 function parsedOutputs(stdout) {
@@ -205,10 +198,10 @@ test('main needs only local metadata and a build ID', async t => {
   assert.equal(lines.length, 9);
 });
 
-test('real CLI works without Git, Azure credentials, history, or source commit variables', async t => {
+test('real CLI works without Git, Azure credentials, history, or source commit variables', t => {
   const root = fixture(t);
   metadata(root);
-  const result = await runNode([helperPath], root, {
+  const result = runNode([helperPath], root, {
     PATH: '', Path: '', BUILD_BUILDID: '789', BUILD_SOURCEVERSION: '', BUILD_SOURCEBRANCH: '',
     SYSTEM_COLLECTIONURI: '', SYSTEM_TEAMPROJECT: '', SYSTEM_DEFINITIONID: '', SYSTEM_ACCESSTOKEN: '',
   });
@@ -217,11 +210,11 @@ test('real CLI works without Git, Azure credentials, history, or source commit v
   assert.deepEqual(parsedOutputs(result.stdout), releaseOutputs(readPackageVersions(root), '789'));
 });
 
-test('build CLI checks and emits outputs only for its requested package', async t => {
+test('build CLI checks and emits outputs only for its requested package', t => {
   for (const key of keys) {
     const root = fixture(t);
     metadata(root, [key]);
-    const result = await runNode([helperPath, key], root, { BUILD_BUILDID: '123' });
+    const result = runNode([helperPath, key], root, { BUILD_BUILDID: '123' });
     assert.equal(result.code, 0, result.stderr);
     assert.equal(result.stderr, '');
     const expected = {
@@ -231,29 +224,29 @@ test('build CLI checks and emits outputs only for its requested package', async 
     };
     assert.deepEqual(parsedOutputs(result.stdout), expected);
     put(root, `${PACKAGES[key].folder}/CHANGELOG.md`, '## [9.9.9] - Unreleased');
-    const invalid = await runNode([helperPath, key], root, { BUILD_BUILDID: '123' });
+    const invalid = runNode([helperPath, key], root, { BUILD_BUILDID: '123' });
     assert.equal(invalid.code, 1);
     assert.match(invalid.stderr, /does not equal/);
     assert.equal(invalid.stdout, '');
   }
-  const invalid = await runNode([helperPath, 'unknown'], repoRoot, { BUILD_BUILDID: '123' });
+  const invalid = runNode([helperPath, 'unknown'], repoRoot, { BUILD_BUILDID: '123' });
   assert.equal(invalid.code, 1);
   assert.match(invalid.stderr, /Unknown package: unknown/);
   assert.equal(invalid.stdout, '');
 });
 
-test('invalid build IDs or any package metadata fail before emitting outputs', async t => {
+test('invalid build IDs or any package metadata fail before emitting outputs', t => {
   const root = fixture(t);
   metadata(root);
   for (const id of ['', '0', '01', '-1', 'invalid']) {
-    const result = await runNode([helperPath], root, { BUILD_BUILDID: id });
+    const result = runNode([helperPath], root, { BUILD_BUILDID: id });
     assert.equal(result.code, 1);
     assert.match(result.stderr, /BUILD_BUILDID/);
     assert.equal(result.stdout, '');
   }
   for (const key of keys) {
     put(root, `${PACKAGES[key].folder}/CHANGELOG.md`, '## [9.9.9] - Unreleased');
-    const result = await runNode([helperPath], root, { BUILD_BUILDID: '123' });
+    const result = runNode([helperPath], root, { BUILD_BUILDID: '123' });
     assert.equal(result.code, 1);
     assert.match(result.stderr, /does not equal/);
     assert.equal(result.stdout, '');
@@ -261,8 +254,8 @@ test('invalid build IDs or any package metadata fail before emitting outputs', a
   }
 });
 
-test('module imports through node --eval without process.argv[1]', async () => {
-  const result = await runNode(['--input-type=module', '--eval', `await import(${JSON.stringify(pathToFileURL(helperPath).href)})`], repoRoot, {});
+test('module imports through node --eval without process.argv[1]', () => {
+  const result = runNode(['--input-type=module', '--eval', `await import(${JSON.stringify(pathToFileURL(helperPath).href)})`], repoRoot, {});
   assert.equal(result.code, 0, result.stderr);
   assert.equal(result.stdout, '');
 });
