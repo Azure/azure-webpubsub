@@ -286,8 +286,27 @@ class ReleasePipelineTests(unittest.TestCase):
             self.assertIn(job_name, [job['job'] for job in stages[prerequisite]['jobs']])
             self.assertEqual(publisher['templateContext']['inputs'][0]['artifactName'], 'drop_emulator_container')
             self.assertNotIn('checkout', json.dumps(publisher))
-            self.assertEqual(publisher['steps'][0]['inputs']['azureSubscription'], 'acr-connection')
-            self.assertIn(f'-Action {action}', publisher['steps'][0]['inputs']['arguments'])
+            steps = publisher['steps']
+            tasks = [step['task'] for step in steps]
+            expected_tasks = ['PowerShell@2', 'Docker@1', 'PowerShell@2']
+            if action == 'version':
+                expected_tasks = ['PowerShell@2', 'ContainerSecuritySetup@2', 'Docker@1',
+                                  'ContainerSecurityCopyImage@2', 'ContainerSecurityCopyImage@2', 'PowerShell@2']
+                load, push = steps[3:5]
+                self.assertEqual(load['inputs']['sourceType'], 'tarball')
+                self.assertEqual(load['inputs']['targetType'], 'ociLayout')
+                self.assertEqual(push['inputs']['sourceType'], 'ociLayout')
+                self.assertEqual(push['inputs']['targetType'], 'remoteImage')
+                self.assertEqual(load['inputs']['targetOciLayout'], push['inputs']['sourceOciLayout'])
+            self.assertEqual(tasks, expected_tasks)
+            self.assertIn('-Phase Prepare', steps[0]['inputs']['arguments'])
+            login = next(step for step in steps if step['task'] == 'Docker@1')
+            self.assertEqual(login['inputs']['azureSubscriptionEndpoint'], 'acr-connection')
+            self.assertEqual(login['inputs']['command'], 'login')
+            self.assertIn(f'-Action {action}', steps[-1]['inputs']['arguments'])
+            for step in steps:
+                self.assertNotIn('continueOnError', step)
+                self.assertNotIn('condition', step)
             self.assertNotIn('${{', json.dumps(publish))
             for branch, reason, result, approval in itertools.product(
                     ('refs/heads/main', 'refs/heads/release/1.0', 'refs/heads/topic'),
