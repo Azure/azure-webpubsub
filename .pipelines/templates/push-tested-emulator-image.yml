@@ -1,8 +1,0 @@
-# ACR Tasks transports an already-tested image; it never builds or recompiles it.
-version: v1.1.0
-stepTimeout: 600
-steps:
-  - cmd: docker load --input {{.Values.archiveFile}}
-  - cmd: docker tag {{.Values.imageReference}} {{.Run.Registry}}/{{.Values.repository}}:{{.Run.ID}}
-  - push:
-      - '{{.Run.Registry}}/{{.Values.repository}}:{{.Run.ID}}'

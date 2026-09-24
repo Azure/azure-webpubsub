@@ -39,5 +39,4 @@ $metadata | Add-Member -NotePropertyMembers @{
 }
 $metadata | ConvertTo-Json | Set-Content (Join-Path $OutputDirectory 'container-release.json') -Encoding utf8NoBOM
 Copy-Item (Join-Path $PSScriptRoot 'Publish-EmulatorContainer.ps1') $OutputDirectory
-Copy-Item (Join-Path $PSScriptRoot '../templates/push-tested-emulator-image.yml') $OutputDirectory
 Write-Host "Recorded tested OneBranch image $imageReference ($imageConfigDigest). No registry writes were performed."

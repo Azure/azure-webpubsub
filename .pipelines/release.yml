@@ -13,6 +13,7 @@ pr: none
 
 variables:
   - group: 'npm-release'
+  - group: 'webpubsub-emulator-release'
   - name: CDP_DEFINITION_BUILD_COUNT
     value: $[counter('', 0)]
   - name: LinuxContainerImage
@@ -265,7 +266,7 @@ extends:
       - template: templates/stages/release-emulator-container.yml
         parameters:
           # OneBranch supplies the Docker build pool. Configure a connection only for publication.
-          azure_service_connection: ''
+          azure_service_connection: 'azure-webpubsub-emulator-acr'
 
       - template: templates/stages/release-npm-package.yml
         parameters:

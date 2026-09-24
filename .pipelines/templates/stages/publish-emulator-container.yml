@@ -59,15 +59,52 @@ stages:
               artifactName: drop_emulator_container
               targetPath: '$(Pipeline.Workspace)/drop_emulator_container'
         steps:
-          - task: AzureCLI@2
+          - task: PowerShell@2
+            displayName: 'Validate tested Docker artifact'
+            inputs:
+              pwsh: true
+              filePath: '$(Pipeline.Workspace)/drop_emulator_container/Publish-EmulatorContainer.ps1'
+              arguments: '-ArtifactDirectory "$(Pipeline.Workspace)/drop_emulator_container" -Action ${{ parameters.action }} -Phase Prepare'
+            env:
+              CONTAINER_ACR_RESOURCE_ID: $(EmulatorContainerRegistryResourceId)
+              CONTAINER_STAGING_REPOSITORY: $(EmulatorContainerStagingRepository)
+              CONTAINER_RELEASE_REPOSITORY: $(EmulatorContainerReleaseRepository)
+          - ${{ if eq(parameters.action, 'version') }}:
+              - task: ContainerSecuritySetup@2
+                displayName: 'Initialize container image transport'
+                inputs:
+                  skipBuildkitWorker: true
+          # Docker@1 supports ARM/WIF connections for registry-only authentication.
+          - task: Docker@1
+            displayName: 'Authenticate to the container registry'
+            inputs:
+              containerregistrytype: 'Azure Container Registry'
+              azureSubscriptionEndpoint: ${{ parameters.azure_service_connection }}
+              azureContainerRegistry: '$(emulatorRegistry)'
+              command: login
+          - ${{ if eq(parameters.action, 'version') }}:
+              - task: ContainerSecurityCopyImage@2
+                displayName: 'Load tested image archive'
+                inputs:
+                  image: '$(emulatorImageReference)'
+                  sourceType: tarball
+                  sourceTarballPath: '$(emulatorArchivePath)'
+                  targetType: ociLayout
+                  targetOciLayout: '$(Agent.TempDirectory)/emulator-image'
+              - task: ContainerSecurityCopyImage@2
+                displayName: 'Push tested image to staging'
+                inputs:
+                  image: '$(emulatorImageReference)'
+                  sourceType: ociLayout
+                  sourceOciLayout: '$(Agent.TempDirectory)/emulator-image'
+                  targetType: remoteImage
+                  targetRemoteImages: '$(emulatorStagingImage)'
+          - task: PowerShell@2
             displayName: 'Publish Docker ${{ parameters.action }}'
             inputs:
-              azureSubscription: ${{ parameters.azure_service_connection }}
-              scriptType: pscore
-              scriptLocation: scriptPath
-              scriptPath: '$(Pipeline.Workspace)/drop_emulator_container/Publish-EmulatorContainer.ps1'
+              pwsh: true
+              filePath: '$(Pipeline.Workspace)/drop_emulator_container/Publish-EmulatorContainer.ps1'
               arguments: '-ArtifactDirectory "$(Pipeline.Workspace)/drop_emulator_container" -Action ${{ parameters.action }}'
-              addSpnToEnvironment: false
             env:
               CONTAINER_ACR_RESOURCE_ID: $(EmulatorContainerRegistryResourceId)
               CONTAINER_STAGING_REPOSITORY: $(EmulatorContainerStagingRepository)
