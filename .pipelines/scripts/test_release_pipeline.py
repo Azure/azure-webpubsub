@@ -23,7 +23,8 @@ NPM_BUILD_ENTRIES = [entry for entry in ENTRIES
 NPM_KEYS = ('chat_client', 'socketio', 'tunnel')
 PACKAGE_KEYS = ('emulator', *NPM_KEYS)
 RELEASE_KEYS = tuple(key for key in PACKAGE_KEYS if key != 'emulator')
-MANUAL_STAGES = tuple(f'Prod_{key}_approve' for key in RELEASE_KEYS)
+MANUAL_STAGES = tuple(f'Prod_{key}_approve' for key in
+                      (*RELEASE_KEYS, 'emulator_container_version', 'emulator_container_latest'))
 
 
 def expand(value, parameters):
@@ -179,10 +180,12 @@ def permits_job(name, values, canceled=False):
 
 class ReleasePipelineTests(unittest.TestCase):
     def test_managed_docker_build_is_automatic_and_uses_the_release_package(self):
+        build_stages = {name: stage for name, stage in STAGES.items()
+                        if not name.startswith('Prod_emulator_container_')}
         for connection in ('', 'acr-connection'):
             stages = {s['stage']: s for s in pipeline_stages(azure_service_connection=connection)}
-            self.assertEqual({name: stages[name] for name in STAGES}, STAGES)
-            expected = set(STAGES)
+            self.assertEqual({name: stages[name] for name in build_stages}, build_stages)
+            expected = set(build_stages)
             if connection:
                 expected.update(f'Prod_emulator_container_{action}_{step}'
                                 for action in ('version', 'latest') for step in ('approve', 'publish'))
@@ -356,7 +359,7 @@ class ReleasePipelineTests(unittest.TestCase):
                              [f'{key}_publish'])
 
     def test_stage_and_release_job_graphs(self):
-        self.assertEqual(len(STAGES), 16)
+        self.assertEqual(len(STAGES), 20)
         self.assertEqual(len(RELEASE_JOBS), 9)
         graphs = [STAGES] + [{job['job']: job for job in stage['jobs']} for stage in STAGES.values()]
         for graph in graphs:
@@ -407,7 +410,7 @@ class ReleasePipelineTests(unittest.TestCase):
                     self.assertFalse(permits_job(name, values))
         self.assertTrue(PIPELINE['extends']['parameters']['featureFlags']['use1esentry'])
         for name, stage in STAGES.items():
-            if name not in RELEASE_STAGES:
+            if name not in RELEASE_STAGES and not name.startswith('Prod_emulator_container_'):
                 self.assertTrue(set(dependencies(stage)).isdisjoint(RELEASE_STAGES))
                 for forbidden in ('ManualValidation@1', 'EsrpRelease@11', 'git push', 'Npm-Release.mjs bump'):
                     self.assertNotIn(forbidden, json.dumps(stage), name)
