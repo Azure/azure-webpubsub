@@ -100,7 +100,7 @@ stages:
           prerequisite_job: container
           azure_service_connection: ${{ parameters.azure_service_connection }}
           instructions: |
-            Publish and lock the version tag using this build's tested image archive named in container-release.json. This does not update latest.
+            Publish the version tag using this build's tested image archive named in container-release.json. This does not update latest.
             Start this entry after container validation succeeds.
       - template: publish-emulator-container.yml
         parameters:
@@ -109,5 +109,5 @@ stages:
           prerequisite_job: publish
           azure_service_connection: ${{ parameters.azure_service_connection }}
           instructions: |
-            Point latest to this build's already published, immutable version (including beta). No image is rebuilt or re-uploaded.
+            Publish latest using the same tested image archive as this build's version (including beta). No image is rebuilt.
             Start this entry after Publish Docker version succeeds. Leave it unstarted to keep latest unchanged.

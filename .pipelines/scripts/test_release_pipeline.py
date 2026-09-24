@@ -288,23 +288,28 @@ class ReleasePipelineTests(unittest.TestCase):
             self.assertNotIn('checkout', json.dumps(publisher))
             steps = publisher['steps']
             tasks = [step['task'] for step in steps]
-            expected_tasks = ['PowerShell@2', 'Docker@1', 'PowerShell@2']
-            if action == 'version':
-                expected_tasks = ['PowerShell@2', 'ContainerSecuritySetup@2', 'Docker@1',
-                                  'ContainerSecurityCopyImage@2', 'ContainerSecurityCopyImage@2', 'PowerShell@2']
-                load, push = steps[3:5]
-                self.assertEqual(load['inputs']['sourceType'], 'tarball')
-                self.assertEqual(load['inputs']['targetType'], 'ociLayout')
-                self.assertEqual(push['inputs']['sourceType'], 'ociLayout')
-                self.assertEqual(push['inputs']['targetType'], 'remoteImage')
-                self.assertEqual(load['inputs']['targetOciLayout'], push['inputs']['sourceOciLayout'])
+            expected_tasks = ['PowerShell@2', 'ContainerSecuritySetup@2', 'Docker@1',
+                              'ContainerSecurityCopyImage@2', 'ContainerSecurityCopyImage@2', 'PowerShell@2']
             self.assertEqual(tasks, expected_tasks)
-            self.assertIn('-Phase Prepare', steps[0]['inputs']['arguments'])
+            load, push = steps[3:5]
+            self.assertEqual(load['inputs']['sourceType'], 'tarball')
+            self.assertEqual(load['inputs']['sourceTarballPath'], '$(emulatorArchivePath)')
+            self.assertEqual(load['inputs']['targetType'], 'ociLayout')
+            self.assertEqual(push['inputs']['sourceType'], 'ociLayout')
+            self.assertEqual(push['inputs']['targetType'], 'remoteImage')
+            self.assertEqual(load['inputs']['targetOciLayout'], push['inputs']['sourceOciLayout'])
+            self.assertEqual(push['inputs']['targetRemoteImages'], '$(emulatorTargetImage)')
+            verify = steps[-1]['inputs']
+            self.assertTrue(verify['filePath'].endswith('/Verify-EmulatorContainer.ps1'))
+            self.assertIn(f'-OciLayout "{push["inputs"]["sourceOciLayout"]}"', verify['arguments'])
+            self.assertIn(f'-TargetImage "{push["inputs"]["targetRemoteImages"]}"', verify['arguments'])
+            self.assertIn('-ImageReference "$(emulatorImageReference)"', verify['arguments'])
+            self.assertIn('/oras/$(ORAS_VERSION)/x64/oras', verify['arguments'])
+            self.assertIn('ORAS_VERSION', publisher['variables'])
+            self.assertIn(f'-Action {action}', steps[0]['inputs']['arguments'])
             login = next(step for step in steps if step['task'] == 'Docker@1')
             self.assertEqual(login['inputs']['azureSubscriptionEndpoint'], 'acr-connection')
             self.assertEqual(login['inputs']['command'], 'login')
-            self.assertEqual(steps[-1]['env']['DOCKER_CONFIG'], '$(DOCKER_CONFIG)')
-            self.assertIn(f'-Action {action}', steps[-1]['inputs']['arguments'])
             for step in steps:
                 self.assertNotIn('continueOnError', step)
                 self.assertNotIn('condition', step)

@@ -53,6 +53,8 @@ stages:
           os: linux
         variables:
           prerequisiteResult: $[ stageDependencies.${{ parameters.prerequisite_stage }}.${{ parameters.prerequisite_job }}.result ]
+          # Use the same cached ORAS executable for transport and read-back verification.
+          ORAS_VERSION: latest
         templateContext:
           inputs:
             - input: pipelineArtifact
@@ -64,16 +66,14 @@ stages:
             inputs:
               pwsh: true
               filePath: '$(Pipeline.Workspace)/drop_emulator_container/Publish-EmulatorContainer.ps1'
-              arguments: '-ArtifactDirectory "$(Pipeline.Workspace)/drop_emulator_container" -Action ${{ parameters.action }} -Phase Prepare'
+              arguments: '-ArtifactDirectory "$(Pipeline.Workspace)/drop_emulator_container" -Action ${{ parameters.action }}'
             env:
               CONTAINER_ACR_RESOURCE_ID: $(EmulatorContainerRegistryResourceId)
-              CONTAINER_STAGING_REPOSITORY: $(EmulatorContainerStagingRepository)
               CONTAINER_RELEASE_REPOSITORY: $(EmulatorContainerReleaseRepository)
-          - ${{ if eq(parameters.action, 'version') }}:
-              - task: ContainerSecuritySetup@2
-                displayName: 'Initialize container image transport'
-                inputs:
-                  skipBuildkitWorker: true
+          - task: ContainerSecuritySetup@2
+            displayName: 'Initialize container image transport'
+            inputs:
+              skipBuildkitWorker: true
           # Docker@1 supports ARM/WIF connections for registry-only authentication.
           - task: Docker@1
             displayName: 'Authenticate to the container registry'
@@ -82,32 +82,29 @@ stages:
               azureSubscriptionEndpoint: ${{ parameters.azure_service_connection }}
               azureContainerRegistry: '$(emulatorRegistry)'
               command: login
-          - ${{ if eq(parameters.action, 'version') }}:
-              - task: ContainerSecurityCopyImage@2
-                displayName: 'Load tested image archive'
-                inputs:
-                  image: '$(emulatorImageReference)'
-                  sourceType: tarball
-                  sourceTarballPath: '$(emulatorArchivePath)'
-                  targetType: ociLayout
-                  targetOciLayout: '$(Agent.TempDirectory)/emulator-image'
-              - task: ContainerSecurityCopyImage@2
-                displayName: 'Push tested image to staging'
-                inputs:
-                  image: '$(emulatorImageReference)'
-                  sourceType: ociLayout
-                  sourceOciLayout: '$(Agent.TempDirectory)/emulator-image'
-                  targetType: remoteImage
-                  targetRemoteImages: '$(emulatorStagingImage)'
-          - task: PowerShell@2
+          - task: ContainerSecurityCopyImage@2
+            displayName: 'Load tested image archive'
+            inputs:
+              image: '$(emulatorImageReference)'
+              sourceType: tarball
+              sourceTarballPath: '$(emulatorArchivePath)'
+              targetType: ociLayout
+              targetOciLayout: '$(Agent.TempDirectory)/emulator-image'
+          - task: ContainerSecurityCopyImage@2
             displayName: 'Publish Docker ${{ parameters.action }}'
             inputs:
+              image: '$(emulatorImageReference)'
+              sourceType: ociLayout
+              sourceOciLayout: '$(Agent.TempDirectory)/emulator-image'
+              targetType: remoteImage
+              targetRemoteImages: '$(emulatorTargetImage)'
+          - task: PowerShell@2
+            displayName: 'Verify published Docker ${{ parameters.action }}'
+            inputs:
               pwsh: true
-              filePath: '$(Pipeline.Workspace)/drop_emulator_container/Publish-EmulatorContainer.ps1'
-              arguments: '-ArtifactDirectory "$(Pipeline.Workspace)/drop_emulator_container" -Action ${{ parameters.action }}'
-            env:
-              # Explicitly map the login configuration when the task variable is secret.
-              DOCKER_CONFIG: $(DOCKER_CONFIG)
-              CONTAINER_ACR_RESOURCE_ID: $(EmulatorContainerRegistryResourceId)
-              CONTAINER_STAGING_REPOSITORY: $(EmulatorContainerStagingRepository)
-              CONTAINER_RELEASE_REPOSITORY: $(EmulatorContainerReleaseRepository)
+              filePath: '$(Pipeline.Workspace)/drop_emulator_container/Verify-EmulatorContainer.ps1'
+              arguments: >-
+                -OciLayout "$(Agent.TempDirectory)/emulator-image"
+                -ImageReference "$(emulatorImageReference)"
+                -TargetImage "$(emulatorTargetImage)"
+                -OrasPath "$(Agent.ToolsDirectory)/oras/$(ORAS_VERSION)/x64/oras"
