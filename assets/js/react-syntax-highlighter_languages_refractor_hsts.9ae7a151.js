@@ -1,0 +1,1 @@
+"use strict";(globalThis.webpackChunkgithub_pages=globalThis.webpackChunkgithub_pages||[]).push([[452],{116(a){function s(a){a.languages.hsts={directive:{pattern:/\b(?:includeSubDomains|max-age|preload)(?=[\s;=]|$)/i,alias:"property"},operator:/=/,punctuation:/;/}}a.exports=s,s.displayName="hsts",s.aliases=[]}}]);
