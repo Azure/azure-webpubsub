@@ -1,5 +1,5 @@
 azure-messaging-webpubsubservice==1.3.0
-protobuf==6.33.6
+protobuf==7.36.1
 grpcio-tools==1.76.0
 requests
 websockets
