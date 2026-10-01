@@ -16,7 +16,7 @@
     "jquery": "^3.6.0",
     "markdown-it": "^14.2.0",
     "merge": "^2.1.1",
-    "moment": "^2.29.4",
+    "moment": "^2.31.0",
     "oidc-client": "^1.11.5",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
