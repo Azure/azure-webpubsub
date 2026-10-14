@@ -10,7 +10,7 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="Azure.Messaging.WebPubSub" Version="1.6.0" />
+    <PackageReference Include="Azure.Messaging.WebPubSub" Version="1.7.0" />
     <PackageReference Include="Azure.Messaging.WebPubSub.Client" Version="1.0.0" />
     <PackageReference Include="coverlet.collector" Version="6.0.4" />
     <PackageReference Include="dotenv.net" Version="3.2.1" />
