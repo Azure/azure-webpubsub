@@ -1,6 +1,12 @@
 # Changelog
 
-## [1.0.0-beta.1] - Unreleased
+## [1.0.0-beta.2] - Unreleased
+
+### Fixed
+
+- Support `GET /api/health` alongside `HEAD` for compatibility with service health checks.
+
+## [1.0.0-beta.1]
 
 ### Added
 

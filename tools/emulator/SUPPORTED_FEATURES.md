@@ -10,7 +10,7 @@ See the [README](README.md) for setup and configuration.
 
 | Area | What you can do |
 | --- | --- |
-| Local endpoint | Choose a listening address and access key, and use the connection string printed at startup. Check readiness with `HEAD /api/health`. |
+| Local endpoint | Choose a listening address and access key, and use the connection string printed at startup. Check readiness with `GET /api/health` or `HEAD /api/health`. |
 | Client authentication | Connect with an access-key-signed JWT in the query string or bearer header. |
 | Raw WebSocket | Send text or binary user events, receive handler replies, or publish to a group with `noEcho`. See [raw modes](README.md#raw-websocket-events-and-group-sends). |
 | JSON clients | Use `json.webpubsub.azure.v1` for group operations, user events, acknowledgements, ping, and metadata. |

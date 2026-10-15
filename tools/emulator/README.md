@@ -122,7 +122,8 @@ client endpoint at startup. To check whether it is ready:
 curl --head "http://localhost:8080/api/health"
 ```
 
-A healthy process returns `200 OK`. Keep the emulator running while your application connects.
+Both `GET` and `HEAD` requests return `200 OK` when the process is healthy.
+Keep the emulator running while your application connects.
 Press Ctrl+C to stop it; connections, group membership, and pending messages are not preserved
 across restarts.
 
@@ -593,7 +594,7 @@ dotnet pack tools/emulator/src/Microsoft.Azure.WebPubSub.Emulator \
 dotnet tool install \
   --tool-path artifacts/emulator-tool \
   Microsoft.Azure.WebPubSub.Emulator \
-  --version 1.0.0-beta.1 \
+  --version 1.0.0-beta.2 \
   --add-source artifacts/emulator \
   --configfile tools/emulator/NuGet.Config
 

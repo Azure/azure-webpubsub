@@ -210,8 +210,10 @@ public class EmulatorApplicationTests
         Assert.Contains("Auth", exception.GetBaseException().Message, StringComparison.Ordinal);
     }
 
-    [Fact]
-    public async Task ServiceHealthEndpoint_WithoutApiVersionFallsBackToLatest()
+    [Theory]
+    [InlineData("GET")]
+    [InlineData("HEAD")]
+    public async Task ServiceHealthEndpoint_WithoutApiVersionFallsBackToLatest(string method)
     {
         var builder = EmulatorApplication.CreateBuilder();
         builder.WebHost.UseTestServer();
@@ -219,7 +221,7 @@ public class EmulatorApplicationTests
         await application.StartAsync().WaitAsync(TestTimeout);
 
         using var request = new HttpRequestMessage(
-            HttpMethod.Head,
+            new HttpMethod(method),
             "/api/health");
         using var response = await application.GetTestClient().SendAsync(request).WaitAsync(TestTimeout);
 
