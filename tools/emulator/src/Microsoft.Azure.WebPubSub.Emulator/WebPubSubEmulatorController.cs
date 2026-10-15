@@ -27,6 +27,7 @@ internal sealed partial class WebPubSubEmulatorController : WebPubSubApiControll
         _tokenService = tokenService;
     }
 
+    [AcceptVerbs("GET", "HEAD", Route = "/api/health", Name = "HealthApi_GetServiceStatus")]
     public override Task<IActionResult> GetServiceStatus(
         CancellationToken cancellationToken = default)
     {
