@@ -8,7 +8,7 @@
     "license": "BSD",
     "dependencies": {
       "express": "^4.22.2",
-      "@azure/web-pubsub-socket.io": "1.0.0-beta.6"
+      "@azure/web-pubsub-socket.io": "1.2.1"
     },
     "scripts": {
       "start": "node index.js"
