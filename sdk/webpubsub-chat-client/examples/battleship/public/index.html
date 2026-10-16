@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Battleship</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    .board {
+      display: inline-grid;
+      grid-template-columns: 20px repeat(8, 32px);
+      gap: 1px;
+    }
+    .cell {
+      width: 32px; height: 32px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 16px; border-radius: 3px; user-select: none;
+      transition: background-color 0.15s;
+    }
+    .lbl {
+      font-size: 10px; color: #9ca3af; font-weight: 600;
+      display: flex; align-items: center; justify-content: center;
+    }
+    .lbl-row { width: 20px; height: 32px; }
+    .lbl-col { height: 16px; }
+    .cell-water  { background: #dbeafe; }
+    .cell-ship   { background: #475569; border-radius: 3px; }
+    .cell-hit    { background: #dc2626; }
+    .cell-miss   { background: #e2e8f0; }
+    .cell-target { background: #dbeafe; cursor: pointer; }
+    .cell-target:hover { background: #93c5fd; }
+
+    @keyframes shake { 0%,100%{transform:translateX(0)} 25%{transform:translateX(-2px)} 75%{transform:translateX(2px)} }
+    .hit-anim { animation: shake 0.3s ease; }
+    @keyframes flash-red { 0%,100%{background-color:#fee2e2} 50%{background-color:#fecaca} }
+    .flash-red { animation: flash-red 0.6s ease; }
+
+    /* Attack animation */
+    .attack-overlay {
+      position: fixed; top: 0; left: 0;
+      width: 100vw; height: 100vh;
+      pointer-events: none; z-index: 9999;
+    }
+    .projectile {
+      position: fixed; font-size: 18px;
+      pointer-events: none; z-index: 10000;
+      transform: translate(-50%, -50%);
+      filter: drop-shadow(0 0 6px rgba(239,68,68,0.7));
+    }
+    .impact-effect {
+      position: fixed; font-size: 28px;
+      pointer-events: none; z-index: 10000;
+      transform: translate(-50%, -50%) scale(0.5);
+      animation: impact-boom 0.5s ease-out forwards;
+    }
+    @keyframes impact-boom {
+      0%   { transform: translate(-50%,-50%) scale(0.5); opacity: 1; }
+      50%  { transform: translate(-50%,-50%) scale(2);   opacity: 0.8; }
+      100% { transform: translate(-50%,-50%) scale(2.5); opacity: 0; }
+    }
+    @keyframes board-hit-flash {
+      0%   { box-shadow: 0 0 0 0 rgba(239,68,68,0); }
+      20%  { box-shadow: 0 0 20px 8px rgba(239,68,68,0.5); }
+      50%  { box-shadow: 0 0 30px 12px rgba(239,68,68,0.3); }
+      100% { box-shadow: 0 0 0 0 rgba(239,68,68,0); }
+    }
+    .board-hit-flash {
+      animation: board-hit-flash 0.6s ease-out;
+      border-radius: 6px;
+    }
+  </style>
+</head>
+<body class="bg-gray-100 min-h-screen p-4">
+
+<div class="max-w-7xl mx-auto">
+  <h1 class="text-2xl font-bold mb-1">&#x1F6A2; Battleship Game</h1>
+  <p class="text-gray-400 text-sm mb-6">Multiplayer real-time naval combat · Powered by Web PubSub Chat</p>
+
+  <!-- ① Login -->
+  <div id="login-bar" class="bg-white rounded-lg shadow-md p-4 mb-6 flex items-center gap-3 flex-wrap">
+    <span class="text-sm font-medium text-gray-600 shrink-0">Login as:</span>
+    <div class="flex gap-2 flex-wrap">
+      <button data-name="alice" class="name-btn px-3 py-1 rounded border border-blue-300 bg-blue-50 text-sm hover:bg-blue-100">alice</button>
+      <button data-name="bob" class="name-btn px-3 py-1 rounded border border-green-300 bg-green-50 text-sm hover:bg-green-100">bob</button>
+      <button data-name="jack" class="name-btn px-3 py-1 rounded border border-purple-300 bg-purple-50 text-sm hover:bg-purple-100">jack</button>
+      <button data-name="mike" class="name-btn px-3 py-1 rounded border border-orange-300 bg-orange-50 text-sm hover:bg-orange-100">mike</button>
+    </div>
+    <div class="flex gap-2 items-center ml-auto">
+      <input id="input-username" type="text" placeholder="or type a name..."
+        class="border rounded px-3 py-1 text-sm w-36 focus:outline-none focus:ring-2 focus:ring-blue-400" />
+      <button id="btn-login" class="bg-blue-500 text-white rounded px-4 py-1 text-sm hover:bg-blue-600">Login</button>
+    </div>
+    <p id="login-error" class="text-red-500 text-sm w-full hidden"></p>
+  </div>
+
+  <!-- ② Main (hidden until login) -->
+  <div id="main-content" class="hidden">
+    <div class="flex items-center justify-between mb-4">
+      <span id="display-username" class="text-sm text-green-600 font-medium"></span>
+    </div>
+
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+
+      <!-- Left: Create + list -->
+      <div class="space-y-4">
+        <div class="bg-white rounded-lg shadow-md p-5">
+          <h2 class="font-semibold mb-3">New Game</h2>
+          <input id="input-players" type="text" value="alice, bob, jack, mike"
+            placeholder="Invite players (comma-separated)"
+            class="w-full border rounded px-3 py-2 mb-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400" />
+          <button id="btn-create"
+            class="w-full bg-blue-500 text-white rounded py-2 text-sm hover:bg-blue-600 disabled:opacity-50">
+            Start Game
+          </button>
+        </div>
+
+        <div class="bg-white rounded-lg shadow-md p-5">
+          <h2 class="font-semibold mb-3">Active Games</h2>
+          <div id="game-list" class="space-y-2">
+            <p class="text-gray-400 text-sm">No games yet. Create or wait for an invitation.</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Right: Game board (2-col span) -->
+      <div id="game-panel" class="lg:col-span-2 bg-white rounded-lg shadow-md p-5 hidden">
+        <div class="flex items-center justify-between mb-2">
+          <h2 id="game-title" class="font-semibold text-lg"></h2>
+        </div>
+
+        <!-- Players bar -->
+        <div id="players-bar" class="flex gap-2 flex-wrap mb-4"></div>
+
+        <!-- Winner banner -->
+        <div id="winner-banner" class="hidden border-2 border-yellow-400 bg-yellow-50 rounded-lg p-3 mb-4 text-center font-semibold text-yellow-800"></div>
+
+        <!-- My Fleet (centered) -->
+        <div class="flex flex-col items-center mb-6">
+          <h3 class="text-sm font-medium text-gray-600 mb-1">My Fleet</h3>
+          <div id="my-board" class="board"></div>
+          <p class="text-xs text-gray-400 mt-1">
+            🚢 ship
+            💥 hit
+            🌊 miss
+          </p>
+        </div>
+
+        <!-- Opponent boards -->
+        <div class="flex flex-wrap gap-6 justify-center mb-4">
+          <div id="opponent-boards" class="flex flex-wrap gap-6"></div>
+        </div>
+
+        <!-- Battle Log -->
+        <div>
+          <h3 class="font-semibold mb-2 text-sm text-gray-600">Battle Log</h3>
+          <div id="battle-log" class="border rounded max-h-48 overflow-y-auto divide-y text-sm"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script type="module" src="app.js"></script>
+</body>
+</html>

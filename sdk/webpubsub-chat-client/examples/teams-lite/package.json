@@ -1,0 +1,15 @@
+{
+  "name": "teams-lite-demo",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Teams-Lite Chat Demo using Azure Web PubSub Chat SDK",
+  "scripts": {
+    "install:all": "cd client && yarn install && cd ../server && yarn install",
+    "build": "cd client && yarn build",
+    "dev:client": "cd client && yarn dev",
+    "dev:server": "cd server && node index.js"
+  },
+  "keywords": ["azure", "web-pubsub", "chat", "demo"],
+  "author": "Microsoft",
+  "license": "MIT"
+}
