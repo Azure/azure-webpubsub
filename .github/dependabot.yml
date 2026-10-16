@@ -1,4 +1,7 @@
-# Dependabot version-update policy for this repository.
+# Dependabot update policy for this repository.
+#
+# Ignore routine patch version updates. Security updates remain enabled
+# and are grouped separately using the same risk boundaries below.
 #
 # Grouping is split by risk of the consuming code, not by package:
 #
@@ -25,7 +28,15 @@ updates:
     schedule:
       interval: weekly
       day: monday
+    ignore:
+      - dependency-name: "*"
+        update-types:
+          - version-update:semver-patch
     groups:
+      actions-security:
+        applies-to: security-updates
+        patterns:
+          - "*"
       actions-minor-patch:
         applies-to: version-updates
         patterns:
@@ -68,7 +79,15 @@ updates:
       semver-major-days: 14
       semver-minor-days: 7
       semver-patch-days: 3
+    ignore:
+      - dependency-name: "*"
+        update-types:
+          - version-update:semver-patch
     groups:
+      npm-security:
+        applies-to: security-updates
+        patterns:
+          - "*"
       npm-minor-patch:
         applies-to: version-updates
         patterns:
@@ -100,7 +119,18 @@ updates:
       semver-major-days: 14
       semver-minor-days: 7
       semver-patch-days: 3
+    ignore:
+      - dependency-name: "*"
+        update-types:
+          - version-update:semver-patch
     groups:
+      npm-sdk-tools-security-minor-patch:
+        applies-to: security-updates
+        patterns:
+          - "*"
+        update-types:
+          - minor
+          - patch
       npm-sdk-tools-minor-patch:
         applies-to: version-updates
         patterns:
@@ -137,7 +167,15 @@ updates:
       semver-major-days: 14
       semver-minor-days: 7
       semver-patch-days: 3
+    ignore:
+      - dependency-name: "*"
+        update-types:
+          - version-update:semver-patch
     groups:
+      pip-security:
+        applies-to: security-updates
+        patterns:
+          - "*"
       pip-minor-patch:
         applies-to: version-updates
         patterns:
@@ -169,7 +207,18 @@ updates:
       semver-major-days: 14
       semver-minor-days: 7
       semver-patch-days: 3
+    ignore:
+      - dependency-name: "*"
+        update-types:
+          - version-update:semver-patch
     groups:
+      pip-sdk-tools-security-minor-patch:
+        applies-to: security-updates
+        patterns:
+          - "*"
+        update-types:
+          - minor
+          - patch
       pip-sdk-tools-minor-patch:
         applies-to: version-updates
         patterns:
@@ -206,7 +255,15 @@ updates:
       semver-major-days: 14
       semver-minor-days: 7
       semver-patch-days: 3
+    ignore:
+      - dependency-name: "*"
+        update-types:
+          - version-update:semver-patch
     groups:
+      maven-security:
+        applies-to: security-updates
+        patterns:
+          - "*"
       maven-minor-patch:
         applies-to: version-updates
         patterns:
@@ -250,7 +307,15 @@ updates:
       interval: weekly
       day: monday
     open-pull-requests-limit: 5
+    ignore:
+      - dependency-name: "*"
+        update-types:
+          - version-update:semver-patch
     groups:
+      gomod-security:
+        applies-to: security-updates
+        patterns:
+          - "*"
       gomod-minor-patch:
         applies-to: version-updates
         patterns:
@@ -296,7 +361,15 @@ updates:
       semver-major-days: 14
       semver-minor-days: 7
       semver-patch-days: 3
+    ignore:
+      - dependency-name: "*"
+        update-types:
+          - version-update:semver-patch
     groups:
+      nuget-security:
+        applies-to: security-updates
+        patterns:
+          - "*"
       nuget-minor-patch:
         applies-to: version-updates
         patterns:
@@ -328,7 +401,18 @@ updates:
       semver-major-days: 14
       semver-minor-days: 7
       semver-patch-days: 3
+    ignore:
+      - dependency-name: "*"
+        update-types:
+          - version-update:semver-patch
     groups:
+      nuget-sdk-tools-security-minor-patch:
+        applies-to: security-updates
+        patterns:
+          - "*"
+        update-types:
+          - minor
+          - patch
       nuget-sdk-tools-minor-patch:
         applies-to: version-updates
         patterns:
@@ -361,7 +445,15 @@ updates:
       interval: weekly
       day: monday
     open-pull-requests-limit: 3
+    ignore:
+      - dependency-name: "*"
+        update-types:
+          - version-update:semver-patch
     groups:
+      docker-security:
+        applies-to: security-updates
+        patterns:
+          - "*"
       docker-minor-patch:
         applies-to: version-updates
         patterns:
@@ -389,7 +481,18 @@ updates:
       interval: weekly
       day: monday
     open-pull-requests-limit: 3
+    ignore:
+      - dependency-name: "*"
+        update-types:
+          - version-update:semver-patch
     groups:
+      docker-sdk-tools-security-minor-patch:
+        applies-to: security-updates
+        patterns:
+          - "*"
+        update-types:
+          - minor
+          - patch
       docker-sdk-tools-minor-patch:
         applies-to: version-updates
         patterns:
