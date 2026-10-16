@@ -1,7 +1,7 @@
 # Dependabot update policy for this repository.
 #
-# Ignore routine patch version updates. Security updates remain enabled
-# and are grouped separately using the same risk boundaries below.
+# Disable routine version-update PRs with open-pull-requests-limit: 0.
+# Security updates remain enabled and use the risk boundaries below.
 #
 # Grouping is split by risk of the consuming code, not by package:
 #
@@ -28,6 +28,7 @@ updates:
     schedule:
       interval: weekly
       day: monday
+    open-pull-requests-limit: 0
     ignore:
       - dependency-name: "*"
         update-types:
@@ -74,7 +75,7 @@ updates:
     schedule:
       interval: weekly
       day: monday
-    open-pull-requests-limit: 5
+    open-pull-requests-limit: 0
     cooldown:
       semver-major-days: 14
       semver-minor-days: 7
@@ -114,7 +115,7 @@ updates:
     schedule:
       interval: weekly
       day: monday
-    open-pull-requests-limit: 5
+    open-pull-requests-limit: 0
     cooldown:
       semver-major-days: 14
       semver-minor-days: 7
@@ -162,7 +163,7 @@ updates:
     schedule:
       interval: weekly
       day: monday
-    open-pull-requests-limit: 5
+    open-pull-requests-limit: 0
     cooldown:
       semver-major-days: 14
       semver-minor-days: 7
@@ -202,7 +203,7 @@ updates:
     schedule:
       interval: weekly
       day: monday
-    open-pull-requests-limit: 5
+    open-pull-requests-limit: 0
     cooldown:
       semver-major-days: 14
       semver-minor-days: 7
@@ -250,7 +251,7 @@ updates:
     schedule:
       interval: weekly
       day: monday
-    open-pull-requests-limit: 5
+    open-pull-requests-limit: 0
     cooldown:
       semver-major-days: 14
       semver-minor-days: 7
@@ -306,7 +307,7 @@ updates:
     schedule:
       interval: weekly
       day: monday
-    open-pull-requests-limit: 5
+    open-pull-requests-limit: 0
     ignore:
       - dependency-name: "*"
         update-types:
@@ -356,7 +357,7 @@ updates:
     schedule:
       interval: weekly
       day: monday
-    open-pull-requests-limit: 5
+    open-pull-requests-limit: 0
     cooldown:
       semver-major-days: 14
       semver-minor-days: 7
@@ -396,7 +397,7 @@ updates:
     schedule:
       interval: weekly
       day: monday
-    open-pull-requests-limit: 5
+    open-pull-requests-limit: 0
     cooldown:
       semver-major-days: 14
       semver-minor-days: 7
@@ -444,7 +445,7 @@ updates:
     schedule:
       interval: weekly
       day: monday
-    open-pull-requests-limit: 3
+    open-pull-requests-limit: 0
     ignore:
       - dependency-name: "*"
         update-types:
@@ -480,7 +481,7 @@ updates:
     schedule:
       interval: weekly
       day: monday
-    open-pull-requests-limit: 3
+    open-pull-requests-limit: 0
     ignore:
       - dependency-name: "*"
         update-types:
