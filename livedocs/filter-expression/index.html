@@ -1,0 +1,1941 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<!-- saved from url=(0065)https://awpslivedocs.z13.web.core.windows.net/#primary_expression -->
+<html xmlns="http://www.w3.org/1999/xhtml"><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+      
+      <meta name="generator" content="Railroad Diagram Generator 1.63">
+      <style type="text/css">
+    ::-moz-selection
+    {
+      color: #FFFCF0;
+      background: #0F0C00;
+    }
+    ::selection
+    {
+      color: #FFFCF0;
+      background: #0F0C00;
+    }
+    .ebnf a, .grammar a
+    {
+      text-decoration: none;
+    }
+    .ebnf a:hover, .grammar a:hover
+    {
+      color: #050400;
+      text-decoration: underline;
+    }
+    .signature
+    {
+      color: #806600;
+      font-size: 11px;
+      text-align: right;
+    }
+    body
+    {
+      font: normal 12px Verdana, sans-serif;
+      color: #0F0C00;
+      background: #FFFCF0;
+    }
+    a:link, a:visited
+    {
+      color: #0F0C00;
+    }
+    a:link.signature, a:visited.signature
+    {
+      color: #806600;
+    }
+    a.button, #tabs li a
+    {
+      padding: 0.25em 0.5em;
+      border: 1px solid #806600;
+      background: #F1E8C6;
+      color: #806600;
+      text-decoration: none;
+      font-weight: bold;
+    }
+    a.button:hover, #tabs li a:hover
+    {
+      color: #050400;
+      background: #FFF6D1;
+      border-color: #050400;
+    }
+    #tabs
+    {
+      padding: 3px 10px;
+      margin-left: 0;
+      margin-top: 58px;
+      border-bottom: 1px solid #0F0C00;
+    }
+    #tabs li
+    {
+      list-style: none;
+      margin-left: 5px;
+      display: inline;
+    }
+    #tabs li a
+    {
+      border-bottom: 1px solid #0F0C00;
+    }
+    #tabs li a.active
+    {
+      color: #0F0C00;
+      background: #FFFCF0;
+      border-color: #0F0C00;
+      border-bottom: 1px solid #FFFCF0;
+      outline: none;
+    }
+    #divs div
+    {
+      display: none;
+      overflow:auto;
+    }
+    #divs div.active
+    {
+      display: block;
+    }
+    #text
+    {
+      border-color: #806600;
+      background: #FFFEFA;
+      color: #050400;
+    }
+    .small
+    {
+      vertical-align: top;
+      text-align: right;
+      font-size: 9px;
+      font-weight: normal;
+      line-height: 120%;
+    }
+    td.small
+    {
+      padding-top: 0px;
+    }
+    .hidden
+    {
+      visibility: hidden;
+    }
+    td:hover .hidden
+    {
+      visibility: visible;
+    }
+    div.download
+    {
+      display: none;
+      background: #FFFCF0;
+      position: absolute;
+      right: 34px;
+      top: 94px;
+      padding: 10px;
+      border: 1px dotted #0F0C00;
+    }
+    #divs div.ebnf, .ebnf code
+    {
+      display: block;
+      padding: 10px;
+      background: #FFF6D1;
+      width: 992px;
+    }
+    #divs div.grammar
+    {
+      display: block;
+      padding-left: 16px;
+      padding-top: 2px;
+      padding-bottom: 2px;
+      background: #FFF6D1;
+    }
+    pre
+    {
+      margin: 0px;
+    }
+    .ebnf div
+    {
+      padding-left: 13ch;
+      text-indent: -13ch;
+    }
+    .ebnf code, .grammar code, textarea, pre
+    {
+      font:12px SFMono-Regular,Consolas,Liberation Mono,Menlo,Courier,monospace;
+    }
+    tr.option-line td:first-child
+    {
+      text-align: right
+    }
+    tr.option-text td
+    {
+      padding-bottom: 10px
+    }
+    table.palette
+    {
+      border-top: 1px solid #050400;
+      border-right: 1px solid #050400;
+      margin-bottom: 4px
+    }
+    td.palette
+    {
+      border-bottom: 1px solid #050400;
+      border-left: 1px solid #050400;
+    }
+    a.palette
+    {
+      padding: 2px 3px 2px 10px;
+      text-decoration: none;
+    }
+    .palette
+    {
+      -webkit-user-select: none;
+      -khtml-user-select: none;
+      -moz-user-select: none;
+      -o-user-select: none;
+      -ms-user-select: none;
+    }
+  </style></head><body data-new-gr-c-s-check-loaded="14.1025.0" data-gr-ext-installed=""><svg xmlns="http://www.w3.org/2000/svg">
+         <defs>
+            <style type="text/css">
+    @namespace "http://www.w3.org/2000/svg";
+    .line                 {fill: none; stroke: #332900; stroke-width: 1;}
+    .bold-line            {stroke: #141000; shape-rendering: crispEdges; stroke-width: 2;}
+    .thin-line            {stroke: #1F1800; shape-rendering: crispEdges}
+    .filled               {fill: #332900; stroke: none;}
+    text.terminal         {font-family: Verdana, Sans-serif;
+                            font-size: 12px;
+                            fill: #141000;
+                            font-weight: bold;
+                          }
+    text.nonterminal      {font-family: Verdana, Sans-serif;
+                            font-size: 12px;
+                            fill: #1A1400;
+                            font-weight: normal;
+                          }
+    text.regexp           {font-family: Verdana, Sans-serif;
+                            font-size: 12px;
+                            fill: #1F1800;
+                            font-weight: normal;
+                          }
+    rect, circle, polygon {fill: #332900; stroke: #332900;}
+    rect.terminal         {fill: #FFDB4D; stroke: #332900; stroke-width: 1;}
+    rect.nonterminal      {fill: #FFEC9E; stroke: #332900; stroke-width: 1;}
+    rect.text             {fill: none; stroke: none;}
+    polygon.regexp        {fill: #FFF4C7; stroke: #332900; stroke-width: 1;}
+  </style>
+         </defs></svg>
+   
+      <p xmlns:xhtml="http://www.w3.org/1999/xhtml" style="font-size: 14px; font-weight:bold"><a name="filter_expression">filter_expression:</a></p><svg xmlns="http://www.w3.org/2000/svg" width="207" height="37">
+         <defs>
+            <style type="text/css">
+    @namespace "http://www.w3.org/2000/svg";
+    .line                 {fill: none; stroke: #332900; stroke-width: 1;}
+    .bold-line            {stroke: #141000; shape-rendering: crispEdges; stroke-width: 2;}
+    .thin-line            {stroke: #1F1800; shape-rendering: crispEdges}
+    .filled               {fill: #332900; stroke: none;}
+    text.terminal         {font-family: Verdana, Sans-serif;
+                            font-size: 12px;
+                            fill: #141000;
+                            font-weight: bold;
+                          }
+    text.nonterminal      {font-family: Verdana, Sans-serif;
+                            font-size: 12px;
+                            fill: #1A1400;
+                            font-weight: normal;
+                          }
+    text.regexp           {font-family: Verdana, Sans-serif;
+                            font-size: 12px;
+                            fill: #1F1800;
+                            font-weight: normal;
+                          }
+    rect, circle, polygon {fill: #332900; stroke: #332900;}
+    rect.terminal         {fill: #FFDB4D; stroke: #332900; stroke-width: 1;}
+    rect.nonterminal      {fill: #FFEC9E; stroke: #332900; stroke-width: 1;}
+    rect.text             {fill: none; stroke: none;}
+    polygon.regexp        {fill: #FFF4C7; stroke: #332900; stroke-width: 1;}
+  </style>
+         </defs>
+         <polygon points="9 17 1 13 1 21"></polygon>
+         <polygon points="17 17 9 13 9 21"></polygon><a xmlns:xlink="http://www.w3.org/1999/xlink" xlink:href="#boolean_expression" xlink:title="boolean_expression">
+            <rect x="31" y="3" width="148" height="32"></rect>
+            <rect x="29" y="1" width="148" height="32" class="nonterminal"></rect>
+            <text class="nonterminal" x="39" y="21">boolean_expression</text></a><path xmlns:svg="http://www.w3.org/2000/svg" class="line" d="m17 17 h2 m0 0 h10 m148 0 h10 m3 0 h-3"></path>
+         <polygon points="197 17 205 13 205 21"></polygon>
+         <polygon points="197 17 189 13 189 21"></polygon></svg><p xmlns:xhtml="http://www.w3.org/1999/xhtml">
+         </p><div class="ebnf"><code>
+               <div><a href="https://awpslivedocs.z13.web.core.windows.net/#filter_expression" title="filter_expression">filter_expression</a></div>
+               <div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;::= <a href="https://awpslivedocs.z13.web.core.windows.net/#boolean_expression" title="boolean_expression">boolean_expression</a></div></code></div>
+      <p></p>
+      <p xmlns:xhtml="http://www.w3.org/1999/xhtml">no references</p><br xmlns:xhtml="http://www.w3.org/1999/xhtml"><p xmlns:xhtml="http://www.w3.org/1999/xhtml" style="font-size: 14px; font-weight:bold"><a name="string_identifier">string_identifier:</a></p><svg xmlns="http://www.w3.org/2000/svg" width="207" height="81">
+         <defs>
+            <style type="text/css">
+    @namespace "http://www.w3.org/2000/svg";
+    .line                 {fill: none; stroke: #332900; stroke-width: 1;}
+    .bold-line            {stroke: #141000; shape-rendering: crispEdges; stroke-width: 2;}
+    .thin-line            {stroke: #1F1800; shape-rendering: crispEdges}
+    .filled               {fill: #332900; stroke: none;}
+    text.terminal         {font-family: Verdana, Sans-serif;
+                            font-size: 12px;
+                            fill: #141000;
+                            font-weight: bold;
+                          }
+    text.nonterminal      {font-family: Verdana, Sans-serif;
+                            font-size: 12px;
+                            fill: #1A1400;
+                            font-weight: normal;
+                          }
+    text.regexp           {font-family: Verdana, Sans-serif;
+                            font-size: 12px;
+                            fill: #1F1800;
+                            font-weight: normal;
+                          }
+    rect, circle, polygon {fill: #332900; stroke: #332900;}
+    rect.terminal         {fill: #FFDB4D; stroke: #332900; stroke-width: 1;}
+    rect.nonterminal      {fill: #FFEC9E; stroke: #332900; stroke-width: 1;}
+    rect.text             {fill: none; stroke: none;}
+    polygon.regexp        {fill: #FFF4C7; stroke: #332900; stroke-width: 1;}
+  </style>
+         </defs>
+         <polygon points="9 17 1 13 1 21"></polygon>
+         <polygon points="17 17 9 13 9 21"></polygon>
+         <rect x="51" y="3" width="108" height="32" rx="10"></rect>
+         <rect x="49" y="1" width="108" height="32" class="terminal" rx="10"></rect>
+         <text class="terminal" x="59" y="21">connectionId</text>
+         <rect x="51" y="47" width="64" height="32" rx="10"></rect>
+         <rect x="49" y="45" width="64" height="32" class="terminal" rx="10"></rect>
+         <text class="terminal" x="59" y="65">userId</text>
+         <path xmlns:svg="http://www.w3.org/2000/svg" class="line" d="m17 17 h2 m20 0 h10 m108 0 h10 m-148 0 h20 m128 0 h20 m-168 0 q10 0 10 10 m148 0 q0 -10 10 -10 m-158 10 v24 m148 0 v-24 m-148 24 q0 10 10 10 m128 0 q10 0 10 -10 m-138 10 h10 m64 0 h10 m0 0 h44 m23 -44 h-3"></path>
+         <polygon points="197 17 205 13 205 21"></polygon>
+         <polygon points="197 17 189 13 189 21"></polygon></svg><p xmlns:xhtml="http://www.w3.org/1999/xhtml">
+         </p><div class="ebnf"><code>
+               <div><a href="https://awpslivedocs.z13.web.core.windows.net/#string_identifier" title="string_identifier">string_identifier</a></div>
+               <div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;::= 'connectionId'</div>
+               <div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;| 'userId'</div></code></div>
+      <p></p>
+      <p xmlns:xhtml="http://www.w3.org/1999/xhtml">referenced by:
+         </p><ul>
+            <li><a href="https://awpslivedocs.z13.web.core.windows.net/#primary_variable" title="primary_variable">primary_variable</a></li>
+            <li><a href="https://awpslivedocs.z13.web.core.windows.net/#string_expression" title="string_expression">string_expression</a></li>
+         </ul>
+      <p></p><br xmlns:xhtml="http://www.w3.org/1999/xhtml"><p xmlns:xhtml="http://www.w3.org/1999/xhtml" style="font-size: 14px; font-weight:bold"><a name="boolean_expression">boolean_expression:</a></p><svg xmlns="http://www.w3.org/2000/svg" width="339" height="257">
+         <defs>
+            <style type="text/css">
+    @namespace "http://www.w3.org/2000/svg";
+    .line                 {fill: none; stroke: #332900; stroke-width: 1;}
+    .bold-line            {stroke: #141000; shape-rendering: crispEdges; stroke-width: 2;}
+    .thin-line            {stroke: #1F1800; shape-rendering: crispEdges}
+    .filled               {fill: #332900; stroke: none;}
+    text.terminal         {font-family: Verdana, Sans-serif;
+                            font-size: 12px;
+                            fill: #141000;
+                            font-weight: bold;
+                          }
+    text.nonterminal      {font-family: Verdana, Sans-serif;
+                            font-size: 12px;
+                            fill: #1A1400;
+                            font-weight: normal;
+                          }
+    text.regexp           {font-family: Verdana, Sans-serif;
+                            font-size: 12px;
+                            fill: #1F1800;
+                            font-weight: normal;
+                          }
+    rect, circle, polygon {fill: #332900; stroke: #332900;}
+    rect.terminal         {fill: #FFDB4D; stroke: #332900; stroke-width: 1;}
+    rect.nonterminal      {fill: #FFEC9E; stroke: #332900; stroke-width: 1;}
+    rect.text             {fill: none; stroke: none;}
+    polygon.regexp        {fill: #FFF4C7; stroke: #332900; stroke-width: 1;}
+  </style>
+         </defs>
+         <polygon points="9 17 1 13 1 21"></polygon>
+         <polygon points="17 17 9 13 9 21"></polygon><a xmlns:xlink="http://www.w3.org/1999/xlink" xlink:href="#logical_expression" xlink:title="logical_expression">
+            <rect x="51" y="3" width="138" height="32"></rect>
+            <rect x="49" y="1" width="138" height="32" class="nonterminal"></rect>
+            <text class="nonterminal" x="59" y="21">logical_expression</text></a><a xmlns:xlink="http://www.w3.org/1999/xlink" xlink:href="#comparison_expression" xlink:title="comparison_expression">
+            <rect x="51" y="47" width="170" height="32"></rect>
+            <rect x="49" y="45" width="170" height="32" class="nonterminal"></rect>
+            <text class="nonterminal" x="59" y="65">comparison_expression</text></a><a xmlns:xlink="http://www.w3.org/1999/xlink" xlink:href="#in_expression" xlink:title="in_expression">
+            <rect x="51" y="91" width="108" height="32"></rect>
+            <rect x="49" y="89" width="108" height="32" class="nonterminal"></rect>
+            <text class="nonterminal" x="59" y="109">in_expression</text></a><a xmlns:xlink="http://www.w3.org/1999/xlink" xlink:href="#boolean_literal" xlink:title="boolean_literal">
+            <rect x="51" y="135" width="114" height="32"></rect>
+            <rect x="49" y="133" width="114" height="32" class="nonterminal"></rect>
+            <text class="nonterminal" x="59" y="153">boolean_literal</text></a><a xmlns:xlink="http://www.w3.org/1999/xlink" xlink:href="#boolean_function_call" xlink:title="boolean_function_call">
+            <rect x="51" y="179" width="158" height="32"></rect>
+            <rect x="49" y="177" width="158" height="32" class="nonterminal"></rect>
+            <text class="nonterminal" x="59" y="197">boolean_function_call</text></a><rect x="51" y="223" width="26" height="32" rx="10"></rect>
+         <rect x="49" y="221" width="26" height="32" class="terminal" rx="10"></rect>
+         <text class="terminal" x="59" y="241">(</text><a xmlns:xlink="http://www.w3.org/1999/xlink" xlink:href="#boolean_expression" xlink:title="boolean_expression">
+            <rect x="97" y="223" width="148" height="32"></rect>
+            <rect x="95" y="221" width="148" height="32" class="nonterminal"></rect>
+            <text class="nonterminal" x="105" y="241">boolean_expression</text></a><rect x="265" y="223" width="26" height="32" rx="10"></rect>
+         <rect x="263" y="221" width="26" height="32" class="terminal" rx="10"></rect>
+         <text class="terminal" x="273" y="241">)</text>
+         <path xmlns:svg="http://www.w3.org/2000/svg" class="line" d="m17 17 h2 m20 0 h10 m138 0 h10 m0 0 h102 m-280 0 h20 m260 0 h20 m-300 0 q10 0 10 10 m280 0 q0 -10 10 -10 m-290 10 v24 m280 0 v-24 m-280 24 q0 10 10 10 m260 0 q10 0 10 -10 m-270 10 h10 m170 0 h10 m0 0 h70 m-270 -10 v20 m280 0 v-20 m-280 20 v24 m280 0 v-24 m-280 24 q0 10 10 10 m260 0 q10 0 10 -10 m-270 10 h10 m108 0 h10 m0 0 h132 m-270 -10 v20 m280 0 v-20 m-280 20 v24 m280 0 v-24 m-280 24 q0 10 10 10 m260 0 q10 0 10 -10 m-270 10 h10 m114 0 h10 m0 0 h126 m-270 -10 v20 m280 0 v-20 m-280 20 v24 m280 0 v-24 m-280 24 q0 10 10 10 m260 0 q10 0 10 -10 m-270 10 h10 m158 0 h10 m0 0 h82 m-270 -10 v20 m280 0 v-20 m-280 20 v24 m280 0 v-24 m-280 24 q0 10 10 10 m260 0 q10 0 10 -10 m-270 10 h10 m26 0 h10 m0 0 h10 m148 0 h10 m0 0 h10 m26 0 h10 m23 -220 h-3"></path>
+         <polygon points="329 17 337 13 337 21"></polygon>
+         <polygon points="329 17 321 13 321 21"></polygon></svg><p xmlns:xhtml="http://www.w3.org/1999/xhtml">
+         </p><div class="ebnf"><code>
+               <div><a href="https://awpslivedocs.z13.web.core.windows.net/#boolean_expression" title="boolean_expression">boolean_expression</a></div>
+               <div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;::= <a href="https://awpslivedocs.z13.web.core.windows.net/#logical_expression" title="logical_expression">logical_expression</a></div>
+               <div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;| <a href="https://awpslivedocs.z13.web.core.windows.net/#comparison_expression" title="comparison_expression">comparison_expression</a></div>
+               <div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;| <a href="https://awpslivedocs.z13.web.core.windows.net/#in_expression" title="in_expression">in_expression</a></div>
+               <div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;| <a href="https://awpslivedocs.z13.web.core.windows.net/#boolean_literal" title="boolean_literal">boolean_literal</a></div>
+               <div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;| <a href="https://awpslivedocs.z13.web.core.windows.net/#boolean_function_call" title="boolean_function_call">boolean_function_call</a></div>
+               <div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;| '(' <a href="https://awpslivedocs.z13.web.core.windows.net/#boolean_expression" title="boolean_expression">boolean_expression</a> ')'</div></code></div>
+      <p></p>
+      <p xmlns:xhtml="http://www.w3.org/1999/xhtml">referenced by:
+         </p><ul>
+            <li><a href="https://awpslivedocs.z13.web.core.windows.net/#boolean_expression" title="boolean_expression">boolean_expression</a></li>
+            <li><a href="https://awpslivedocs.z13.web.core.windows.net/#filter_expression" title="filter_expression">filter_expression</a></li>
+            <li><a href="https://awpslivedocs.z13.web.core.windows.net/#logical_expression" title="logical_expression">logical_expression</a></li>
+         </ul>
+      <p></p><br xmlns:xhtml="http://www.w3.org/1999/xhtml"><p xmlns:xhtml="http://www.w3.org/1999/xhtml" style="font-size: 14px; font-weight:bold"><a name="logical_expression">logical_expression:</a></p><svg xmlns="http://www.w3.org/2000/svg" width="519" height="125">
+         <defs>
+            <style type="text/css">
+    @namespace "http://www.w3.org/2000/svg";
+    .line                 {fill: none; stroke: #332900; stroke-width: 1;}
+    .bold-line            {stroke: #141000; shape-rendering: crispEdges; stroke-width: 2;}
+    .thin-line            {stroke: #1F1800; shape-rendering: crispEdges}
+    .filled               {fill: #332900; stroke: none;}
+    text.terminal         {font-family: Verdana, Sans-serif;
+                            font-size: 12px;
+                            fill: #141000;
+                            font-weight: bold;
+                          }
+    text.nonterminal      {font-family: Verdana, Sans-serif;
+                            font-size: 12px;
+                            fill: #1A1400;
+                            font-weight: normal;
+                          }
+    text.regexp           {font-family: Verdana, Sans-serif;
+                            font-size: 12px;
+                            fill: #1F1800;
+                            font-weight: normal;
+                          }
+    rect, circle, polygon {fill: #332900; stroke: #332900;}
+    rect.terminal         {fill: #FFDB4D; stroke: #332900; stroke-width: 1;}
+    rect.nonterminal      {fill: #FFEC9E; stroke: #332900; stroke-width: 1;}
+    rect.text             {fill: none; stroke: none;}
+    polygon.regexp        {fill: #FFF4C7; stroke: #332900; stroke-width: 1;}
+  </style>
+         </defs>
+         <polygon points="9 17 1 13 1 21"></polygon>
+         <polygon points="17 17 9 13 9 21"></polygon><a xmlns:xlink="http://www.w3.org/1999/xlink" xlink:href="#boolean_expression" xlink:title="boolean_expression">
+            <rect x="51" y="3" width="148" height="32"></rect>
+            <rect x="49" y="1" width="148" height="32" class="nonterminal"></rect>
+            <text class="nonterminal" x="59" y="21">boolean_expression</text></a><rect x="239" y="3" width="44" height="32" rx="10"></rect>
+         <rect x="237" y="1" width="44" height="32" class="terminal" rx="10"></rect>
+         <text class="terminal" x="247" y="21">and</text>
+         <rect x="239" y="47" width="34" height="32" rx="10"></rect>
+         <rect x="237" y="45" width="34" height="32" class="terminal" rx="10"></rect>
+         <text class="terminal" x="247" y="65">or</text>
+         <rect x="51" y="91" width="42" height="32" rx="10"></rect>
+         <rect x="49" y="89" width="42" height="32" class="terminal" rx="10"></rect>
+         <text class="terminal" x="59" y="109">not</text><a xmlns:xlink="http://www.w3.org/1999/xlink" xlink:href="#boolean_expression" xlink:title="boolean_expression">
+            <rect x="343" y="3" width="148" height="32"></rect>
+            <rect x="341" y="1" width="148" height="32" class="nonterminal"></rect>
+            <text class="nonterminal" x="351" y="21">boolean_expression</text></a><path xmlns:svg="http://www.w3.org/2000/svg" class="line" d="m17 17 h2 m20 0 h10 m148 0 h10 m20 0 h10 m44 0 h10 m-84 0 h20 m64 0 h20 m-104 0 q10 0 10 10 m84 0 q0 -10 10 -10 m-94 10 v24 m84 0 v-24 m-84 24 q0 10 10 10 m64 0 q10 0 10 -10 m-74 10 h10 m34 0 h10 m0 0 h10 m-272 -44 h20 m272 0 h20 m-312 0 q10 0 10 10 m292 0 q0 -10 10 -10 m-302 10 v68 m292 0 v-68 m-292 68 q0 10 10 10 m272 0 q10 0 10 -10 m-282 10 h10 m42 0 h10 m0 0 h210 m20 -88 h10 m148 0 h10 m3 0 h-3"></path>
+         <polygon points="509 17 517 13 517 21"></polygon>
+         <polygon points="509 17 501 13 501 21"></polygon></svg><p xmlns:xhtml="http://www.w3.org/1999/xhtml">
+         </p><div class="ebnf"><code>
+               <div><a href="https://awpslivedocs.z13.web.core.windows.net/#logical_expression" title="logical_expression">logical_expression</a></div>
+               <div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;::= ( <a href="https://awpslivedocs.z13.web.core.windows.net/#boolean_expression" title="boolean_expression">boolean_expression</a> ( 'and' | 'or' ) | 'not' ) <a href="https://awpslivedocs.z13.web.core.windows.net/#boolean_expression" title="boolean_expression">boolean_expression</a></div></code></div>
+      <p></p>
+      <p xmlns:xhtml="http://www.w3.org/1999/xhtml">referenced by:
+         </p><ul>
+            <li><a href="https://awpslivedocs.z13.web.core.windows.net/#boolean_expression" title="boolean_expression">boolean_expression</a></li>
+         </ul>
+      <p></p><br xmlns:xhtml="http://www.w3.org/1999/xhtml"><p xmlns:xhtml="http://www.w3.org/1999/xhtml" style="font-size: 14px; font-weight:bold"><a name="comparison_expression">comparison_expression:</a></p><svg xmlns="http://www.w3.org/2000/svg" width="547" height="37">
+         <defs>
+            <style type="text/css">
+    @namespace "http://www.w3.org/2000/svg";
+    .line                 {fill: none; stroke: #332900; stroke-width: 1;}
+    .bold-line            {stroke: #141000; shape-rendering: crispEdges; stroke-width: 2;}
+    .thin-line            {stroke: #1F1800; shape-rendering: crispEdges}
+    .filled               {fill: #332900; stroke: none;}
+    text.terminal         {font-family: Verdana, Sans-serif;
+                            font-size: 12px;
+                            fill: #141000;
+                            font-weight: bold;
+                          }
+    text.nonterminal      {font-family: Verdana, Sans-serif;
+                            font-size: 12px;
+                            fill: #1A1400;
+                            font-weight: normal;
+                          }
+    text.regexp           {font-family: Verdana, Sans-serif;
+                            font-size: 12px;
+                            fill: #1F1800;
+                            font-weight: normal;
+                          }
+    rect, circle, polygon {fill: #332900; stroke: #332900;}
+    rect.terminal         {fill: #FFDB4D; stroke: #332900; stroke-width: 1;}
+    rect.nonterminal      {fill: #FFEC9E; stroke: #332900; stroke-width: 1;}
+    rect.text             {fill: none; stroke: none;}
+    polygon.regexp        {fill: #FFF4C7; stroke: #332900; stroke-width: 1;}
+  </style>
+         </defs>
+         <polygon points="9 17 1 13 1 21"></polygon>
+         <polygon points="17 17 9 13 9 21"></polygon><a xmlns:xlink="http://www.w3.org/1999/xlink" xlink:href="#primary_expression" xlink:title="primary_expression">
+            <rect x="31" y="3" width="146" height="32"></rect>
+            <rect x="29" y="1" width="146" height="32" class="nonterminal"></rect>
+            <text class="nonterminal" x="39" y="21">primary_expression</text></a><a xmlns:xlink="http://www.w3.org/1999/xlink" xlink:href="#comparison_operator" xlink:title="comparison_operator">
+            <rect x="197" y="3" width="156" height="32"></rect>
+            <rect x="195" y="1" width="156" height="32" class="nonterminal"></rect>
+            <text class="nonterminal" x="205" y="21">comparison_operator</text></a><a xmlns:xlink="http://www.w3.org/1999/xlink" xlink:href="#primary_expression" xlink:title="primary_expression">
+            <rect x="373" y="3" width="146" height="32"></rect>
+            <rect x="371" y="1" width="146" height="32" class="nonterminal"></rect>
+            <text class="nonterminal" x="381" y="21">primary_expression</text></a><path xmlns:svg="http://www.w3.org/2000/svg" class="line" d="m17 17 h2 m0 0 h10 m146 0 h10 m0 0 h10 m156 0 h10 m0 0 h10 m146 0 h10 m3 0 h-3"></path>
+         <polygon points="537 17 545 13 545 21"></polygon>
+         <polygon points="537 17 529 13 529 21"></polygon></svg><p xmlns:xhtml="http://www.w3.org/1999/xhtml">
+         </p><div class="ebnf"><code>
+               <div><a href="https://awpslivedocs.z13.web.core.windows.net/#comparison_expression" title="comparison_expression">comparison_expression</a></div>
+               <div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;::= <a href="https://awpslivedocs.z13.web.core.windows.net/#primary_expression" title="primary_expression">primary_expression</a> <a href="https://awpslivedocs.z13.web.core.windows.net/#comparison_operator" title="comparison_operator">comparison_operator</a> <a href="https://awpslivedocs.z13.web.core.windows.net/#primary_expression" title="primary_expression">primary_expression</a></div></code></div>
+      <p></p>
+      <p xmlns:xhtml="http://www.w3.org/1999/xhtml">referenced by:
+         </p><ul>
+            <li><a href="https://awpslivedocs.z13.web.core.windows.net/#boolean_expression" title="boolean_expression">boolean_expression</a></li>
+         </ul>
+      <p></p><br xmlns:xhtml="http://www.w3.org/1999/xhtml"><p xmlns:xhtml="http://www.w3.org/1999/xhtml" style="font-size: 14px; font-weight:bold"><a name="in_expression">in_expression:</a></p><svg xmlns="http://www.w3.org/2000/svg" width="595" height="125">
+         <defs>
+            <style type="text/css">
+    @namespace "http://www.w3.org/2000/svg";
+    .line                 {fill: none; stroke: #332900; stroke-width: 1;}
+    .bold-line            {stroke: #141000; shape-rendering: crispEdges; stroke-width: 2;}
+    .thin-line            {stroke: #1F1800; shape-rendering: crispEdges}
+    .filled               {fill: #332900; stroke: none;}
+    text.terminal         {font-family: Verdana, Sans-serif;
+                            font-size: 12px;
+                            fill: #141000;
+                            font-weight: bold;
+                          }
+    text.nonterminal      {font-family: Verdana, Sans-serif;
+                            font-size: 12px;
+                            fill: #1A1400;
+                            font-weight: normal;
+                          }
+    text.regexp           {font-family: Verdana, Sans-serif;
+                            font-size: 12px;
+                            fill: #1F1800;
+                            font-weight: normal;
+                          }
+    rect, circle, polygon {fill: #332900; stroke: #332900;}
+    rect.terminal         {fill: #FFDB4D; stroke: #332900; stroke-width: 1;}
+    rect.nonterminal      {fill: #FFEC9E; stroke: #332900; stroke-width: 1;}
+    rect.text             {fill: none; stroke: none;}
+    polygon.regexp        {fill: #FFF4C7; stroke: #332900; stroke-width: 1;}
+  </style>
+         </defs>
+         <polygon points="9 61 1 57 1 65"></polygon>
+         <polygon points="17 61 9 57 9 65"></polygon><a xmlns:xlink="http://www.w3.org/1999/xlink" xlink:href="#primary_expression" xlink:title="primary_expression">
+            <rect x="51" y="47" width="146" height="32"></rect>
+            <rect x="49" y="45" width="146" height="32" class="nonterminal"></rect>
+            <text class="nonterminal" x="59" y="65">primary_expression</text></a><rect x="217" y="47" width="32" height="32" rx="10"></rect>
+         <rect x="215" y="45" width="32" height="32" class="terminal" rx="10"></rect>
+         <text class="terminal" x="225" y="65">in</text>
+         <rect x="269" y="47" width="26" height="32" rx="10"></rect>
+         <rect x="267" y="45" width="26" height="32" class="terminal" rx="10"></rect>
+         <text class="terminal" x="277" y="65">(</text><a xmlns:xlink="http://www.w3.org/1999/xlink" xlink:href="#primary_expression" xlink:title="primary_expression">
+            <rect x="335" y="47" width="146" height="32"></rect>
+            <rect x="333" y="45" width="146" height="32" class="nonterminal"></rect>
+            <text class="nonterminal" x="343" y="65">primary_expression</text></a><rect x="335" y="3" width="24" height="32" rx="10"></rect>
+         <rect x="333" y="1" width="24" height="32" class="terminal" rx="10"></rect>
+         <text class="terminal" x="343" y="21">,</text>
+         <rect x="521" y="47" width="26" height="32" rx="10"></rect>
+         <rect x="519" y="45" width="26" height="32" class="terminal" rx="10"></rect>
+         <text class="terminal" x="529" y="65">)</text><a xmlns:xlink="http://www.w3.org/1999/xlink" xlink:href="#collection_expression" xlink:title="collection_expression">
+            <rect x="51" y="91" width="156" height="32"></rect>
+            <rect x="49" y="89" width="156" height="32" class="nonterminal"></rect>
+            <text class="nonterminal" x="59" y="109">collection_expression</text></a><path xmlns:svg="http://www.w3.org/2000/svg" class="line" d="m17 61 h2 m20 0 h10 m146 0 h10 m0 0 h10 m32 0 h10 m0 0 h10 m26 0 h10 m20 0 h10 m146 0 h10 m-186 0 l20 0 m-1 0 q-9 0 -9 -10 l0 -24 q0 -10 10 -10 m166 44 l20 0 m-20 0 q10 0 10 -10 l0 -24 q0 -10 -10 -10 m-166 0 h10 m24 0 h10 m0 0 h122 m20 44 h10 m26 0 h10 m-536 0 h20 m516 0 h20 m-556 0 q10 0 10 10 m536 0 q0 -10 10 -10 m-546 10 v24 m536 0 v-24 m-536 24 q0 10 10 10 m516 0 q10 0 10 -10 m-526 10 h10 m156 0 h10 m0 0 h340 m23 -44 h-3"></path>
+         <polygon points="585 61 593 57 593 65"></polygon>
+         <polygon points="585 61 577 57 577 65"></polygon></svg><p xmlns:xhtml="http://www.w3.org/1999/xhtml">
+         </p><div class="ebnf"><code>
+               <div><a href="https://awpslivedocs.z13.web.core.windows.net/#in_expression" title="in_expression">in_expression</a></div>
+               <div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;::= <a href="https://awpslivedocs.z13.web.core.windows.net/#primary_expression" title="primary_expression">primary_expression</a> 'in' '(' <a href="https://awpslivedocs.z13.web.core.windows.net/#primary_expression" title="primary_expression">primary_expression</a> ( ',' <a href="https://awpslivedocs.z13.web.core.windows.net/#primary_expression" title="primary_expression">primary_expression</a> )* ')'</div>
+               <div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;| <a href="https://awpslivedocs.z13.web.core.windows.net/#collection_expression" title="collection_expression">collection_expression</a></div></code></div>
+      <p></p>
+      <p xmlns:xhtml="http://www.w3.org/1999/xhtml">referenced by:
+         </p><ul>
+            <li><a href="https://awpslivedocs.z13.web.core.windows.net/#boolean_expression" title="boolean_expression">boolean_expression</a></li>
+         </ul>
+      <p></p><br xmlns:xhtml="http://www.w3.org/1999/xhtml"><p xmlns:xhtml="http://www.w3.org/1999/xhtml" style="font-size: 14px; font-weight:bold"><a name="collection_expression">collection_expression:</a></p><svg xmlns="http://www.w3.org/2000/svg" width="347" height="81">
+         <defs>
+            <style type="text/css">
+    @namespace "http://www.w3.org/2000/svg";
+    .line                 {fill: none; stroke: #332900; stroke-width: 1;}
+    .bold-line            {stroke: #141000; shape-rendering: crispEdges; stroke-width: 2;}
+    .thin-line            {stroke: #1F1800; shape-rendering: crispEdges}
+    .filled               {fill: #332900; stroke: none;}
+    text.terminal         {font-family: Verdana, Sans-serif;
+                            font-size: 12px;
+                            fill: #141000;
+                            font-weight: bold;
+                          }
+    text.nonterminal      {font-family: Verdana, Sans-serif;
+                            font-size: 12px;
+                            fill: #1A1400;
+                            font-weight: normal;
+                          }
+    text.regexp           {font-family: Verdana, Sans-serif;
+                            font-size: 12px;
+                            fill: #1F1800;
+                            font-weight: normal;
+                          }
+    rect, circle, polygon {fill: #332900; stroke: #332900;}
+    rect.terminal         {fill: #FFDB4D; stroke: #332900; stroke-width: 1;}
+    rect.nonterminal      {fill: #FFEC9E; stroke: #332900; stroke-width: 1;}
+    rect.text             {fill: none; stroke: none;}
+    polygon.regexp        {fill: #FFF4C7; stroke: #332900; stroke-width: 1;}
+  </style>
+         </defs>
+         <polygon points="9 17 1 13 1 21"></polygon>
+         <polygon points="17 17 9 13 9 21"></polygon>
+         <rect x="51" y="3" width="66" height="32" rx="10"></rect>
+         <rect x="49" y="1" width="66" height="32" class="terminal" rx="10"></rect>
+         <text class="terminal" x="59" y="21">groups</text>
+         <rect x="51" y="47" width="26" height="32" rx="10"></rect>
+         <rect x="49" y="45" width="26" height="32" class="terminal" rx="10"></rect>
+         <text class="terminal" x="59" y="65">(</text><a xmlns:xlink="http://www.w3.org/1999/xlink" xlink:href="#collection_expression" xlink:title="collection_expression">
+            <rect x="97" y="47" width="156" height="32"></rect>
+            <rect x="95" y="45" width="156" height="32" class="nonterminal"></rect>
+            <text class="nonterminal" x="105" y="65">collection_expression</text></a><rect x="273" y="47" width="26" height="32" rx="10"></rect>
+         <rect x="271" y="45" width="26" height="32" class="terminal" rx="10"></rect>
+         <text class="terminal" x="281" y="65">)</text>
+         <path xmlns:svg="http://www.w3.org/2000/svg" class="line" d="m17 17 h2 m20 0 h10 m66 0 h10 m0 0 h182 m-288 0 h20 m268 0 h20 m-308 0 q10 0 10 10 m288 0 q0 -10 10 -10 m-298 10 v24 m288 0 v-24 m-288 24 q0 10 10 10 m268 0 q10 0 10 -10 m-278 10 h10 m26 0 h10 m0 0 h10 m156 0 h10 m0 0 h10 m26 0 h10 m23 -44 h-3"></path>
+         <polygon points="337 17 345 13 345 21"></polygon>
+         <polygon points="337 17 329 13 329 21"></polygon></svg><p xmlns:xhtml="http://www.w3.org/1999/xhtml">
+         </p><div class="ebnf"><code>
+               <div><a href="https://awpslivedocs.z13.web.core.windows.net/#collection_expression" title="collection_expression">collection_expression</a></div>
+               <div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;::= 'groups'</div>
+               <div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;| '(' <a href="https://awpslivedocs.z13.web.core.windows.net/#collection_expression" title="collection_expression">collection_expression</a> ')'</div></code></div>
+      <p></p>
+      <p xmlns:xhtml="http://www.w3.org/1999/xhtml">referenced by:
+         </p><ul>
+            <li><a href="https://awpslivedocs.z13.web.core.windows.net/#collection_expression" title="collection_expression">collection_expression</a></li>
+            <li><a href="https://awpslivedocs.z13.web.core.windows.net/#in_expression" title="in_expression">in_expression</a></li>
+            <li><a href="https://awpslivedocs.z13.web.core.windows.net/#length_function_call" title="length_function_call">length_function_call</a></li>
+         </ul>
+      <p></p><br xmlns:xhtml="http://www.w3.org/1999/xhtml"><p xmlns:xhtml="http://www.w3.org/1999/xhtml" style="font-size: 14px; font-weight:bold"><a name="primary_expression">primary_expression:</a></p><svg xmlns="http://www.w3.org/2000/svg" width="337" height="169">
+         <defs>
+            <style type="text/css">
+    @namespace "http://www.w3.org/2000/svg";
+    .line                 {fill: none; stroke: #332900; stroke-width: 1;}
+    .bold-line            {stroke: #141000; shape-rendering: crispEdges; stroke-width: 2;}
+    .thin-line            {stroke: #1F1800; shape-rendering: crispEdges}
+    .filled               {fill: #332900; stroke: none;}
+    text.terminal         {font-family: Verdana, Sans-serif;
+                            font-size: 12px;
+                            fill: #141000;
+                            font-weight: bold;
+                          }
+    text.nonterminal      {font-family: Verdana, Sans-serif;
+                            font-size: 12px;
+                            fill: #1A1400;
+                            font-weight: normal;
+                          }
+    text.regexp           {font-family: Verdana, Sans-serif;
+                            font-size: 12px;
+                            fill: #1F1800;
+                            font-weight: normal;
+                          }
+    rect, circle, polygon {fill: #332900; stroke: #332900;}
+    rect.terminal         {fill: #FFDB4D; stroke: #332900; stroke-width: 1;}
+    rect.nonterminal      {fill: #FFEC9E; stroke: #332900; stroke-width: 1;}
+    rect.text             {fill: none; stroke: none;}
+    polygon.regexp        {fill: #FFF4C7; stroke: #332900; stroke-width: 1;}
+  </style>
+         </defs>
+         <polygon points="9 17 1 13 1 21"></polygon>
+         <polygon points="17 17 9 13 9 21"></polygon><a xmlns:xlink="http://www.w3.org/1999/xlink" xlink:href="#primary_variable" xlink:title="primary_variable">
+            <rect x="51" y="3" width="126" height="32"></rect>
+            <rect x="49" y="1" width="126" height="32" class="nonterminal"></rect>
+            <text class="nonterminal" x="59" y="21">primary_variable</text></a><a xmlns:xlink="http://www.w3.org/1999/xlink" xlink:href="#function_call" xlink:title="function_call">
+            <rect x="51" y="47" width="100" height="32"></rect>
+            <rect x="49" y="45" width="100" height="32" class="nonterminal"></rect>
+            <text class="nonterminal" x="59" y="65">function_call</text></a><a xmlns:xlink="http://www.w3.org/1999/xlink" xlink:href="#constant" xlink:title="constant">
+            <rect x="51" y="91" width="74" height="32"></rect>
+            <rect x="49" y="89" width="74" height="32" class="nonterminal"></rect>
+            <text class="nonterminal" x="59" y="109">constant</text></a><rect x="51" y="135" width="26" height="32" rx="10"></rect>
+         <rect x="49" y="133" width="26" height="32" class="terminal" rx="10"></rect>
+         <text class="terminal" x="59" y="153">(</text><a xmlns:xlink="http://www.w3.org/1999/xlink" xlink:href="#primary_expression" xlink:title="primary_expression">
+            <rect x="97" y="135" width="146" height="32"></rect>
+            <rect x="95" y="133" width="146" height="32" class="nonterminal"></rect>
+            <text class="nonterminal" x="105" y="153">primary_expression</text></a><rect x="263" y="135" width="26" height="32" rx="10"></rect>
+         <rect x="261" y="133" width="26" height="32" class="terminal" rx="10"></rect>
+         <text class="terminal" x="271" y="153">)</text>
+         <path xmlns:svg="http://www.w3.org/2000/svg" class="line" d="m17 17 h2 m20 0 h10 m126 0 h10 m0 0 h112 m-278 0 h20 m258 0 h20 m-298 0 q10 0 10 10 m278 0 q0 -10 10 -10 m-288 10 v24 m278 0 v-24 m-278 24 q0 10 10 10 m258 0 q10 0 10 -10 m-268 10 h10 m100 0 h10 m0 0 h138 m-268 -10 v20 m278 0 v-20 m-278 20 v24 m278 0 v-24 m-278 24 q0 10 10 10 m258 0 q10 0 10 -10 m-268 10 h10 m74 0 h10 m0 0 h164 m-268 -10 v20 m278 0 v-20 m-278 20 v24 m278 0 v-24 m-278 24 q0 10 10 10 m258 0 q10 0 10 -10 m-268 10 h10 m26 0 h10 m0 0 h10 m146 0 h10 m0 0 h10 m26 0 h10 m23 -132 h-3"></path>
+         <polygon points="327 17 335 13 335 21"></polygon>
+         <polygon points="327 17 319 13 319 21"></polygon></svg><p xmlns:xhtml="http://www.w3.org/1999/xhtml">
+         </p><div class="ebnf"><code>
+               <div><a href="https://awpslivedocs.z13.web.core.windows.net/#primary_expression" title="primary_expression">primary_expression</a></div>
+               <div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;::= <a href="https://awpslivedocs.z13.web.core.windows.net/#primary_variable" title="primary_variable">primary_variable</a></div>
+               <div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;| <a href="https://awpslivedocs.z13.web.core.windows.net/#function_call" title="function_call">function_call</a></div>
+               <div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;| <a href="https://awpslivedocs.z13.web.core.windows.net/#constant" title="constant">constant</a></div>
+               <div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;| '(' <a href="https://awpslivedocs.z13.web.core.windows.net/#primary_expression" title="primary_expression">primary_expression</a> ')'</div></code></div>
+      <p></p>
+      <p xmlns:xhtml="http://www.w3.org/1999/xhtml">referenced by:
+         </p><ul>
+            <li><a href="https://awpslivedocs.z13.web.core.windows.net/#comparison_expression" title="comparison_expression">comparison_expression</a></li>
+            <li><a href="https://awpslivedocs.z13.web.core.windows.net/#in_expression" title="in_expression">in_expression</a></li>
+            <li><a href="https://awpslivedocs.z13.web.core.windows.net/#primary_expression" title="primary_expression">primary_expression</a></li>
+         </ul>
+      <p></p><br xmlns:xhtml="http://www.w3.org/1999/xhtml"><p xmlns:xhtml="http://www.w3.org/1999/xhtml" style="font-size: 14px; font-weight:bold"><a name="string_expression">string_expression:</a></p><svg xmlns="http://www.w3.org/2000/svg" width="325" height="213">
+         <defs>
+            <style type="text/css">
+    @namespace "http://www.w3.org/2000/svg";
+    .line                 {fill: none; stroke: #332900; stroke-width: 1;}
+    .bold-line            {stroke: #141000; shape-rendering: crispEdges; stroke-width: 2;}
+    .thin-line            {stroke: #1F1800; shape-rendering: crispEdges}
+    .filled               {fill: #332900; stroke: none;}
+    text.terminal         {font-family: Verdana, Sans-serif;
+                            font-size: 12px;
+                            fill: #141000;
+                            font-weight: bold;
+                          }
+    text.nonterminal      {font-family: Verdana, Sans-serif;
+                            font-size: 12px;
+                            fill: #1A1400;
+                            font-weight: normal;
+                          }
+    text.regexp           {font-family: Verdana, Sans-serif;
+                            font-size: 12px;
+                            fill: #1F1800;
+                            font-weight: normal;
+                          }
+    rect, circle, polygon {fill: #332900; stroke: #332900;}
+    rect.terminal         {fill: #FFDB4D; stroke: #332900; stroke-width: 1;}
+    rect.nonterminal      {fill: #FFEC9E; stroke: #332900; stroke-width: 1;}
+    rect.text             {fill: none; stroke: none;}
+    polygon.regexp        {fill: #FFF4C7; stroke: #332900; stroke-width: 1;}
+  </style>
+         </defs>
+         <polygon points="9 17 1 13 1 21"></polygon>
+         <polygon points="17 17 9 13 9 21"></polygon><a xmlns:xlink="http://www.w3.org/1999/xlink" xlink:href="#string_literal" xlink:title="string_literal">
+            <rect x="51" y="3" width="100" height="32"></rect>
+            <rect x="49" y="1" width="100" height="32" class="nonterminal"></rect>
+            <text class="nonterminal" x="59" y="21">string_literal</text></a><rect x="51" y="47" width="44" height="32" rx="10"></rect>
+         <rect x="49" y="45" width="44" height="32" class="terminal" rx="10"></rect>
+         <text class="terminal" x="59" y="65">null</text><a xmlns:xlink="http://www.w3.org/1999/xlink" xlink:href="#string_identifier" xlink:title="string_identifier">
+            <rect x="51" y="91" width="120" height="32"></rect>
+            <rect x="49" y="89" width="120" height="32" class="nonterminal"></rect>
+            <text class="nonterminal" x="59" y="109">string_identifier</text></a><a xmlns:xlink="http://www.w3.org/1999/xlink" xlink:href="#string_function_call" xlink:title="string_function_call">
+            <rect x="51" y="135" width="144" height="32"></rect>
+            <rect x="49" y="133" width="144" height="32" class="nonterminal"></rect>
+            <text class="nonterminal" x="59" y="153">string_function_call</text></a><rect x="51" y="179" width="26" height="32" rx="10"></rect>
+         <rect x="49" y="177" width="26" height="32" class="terminal" rx="10"></rect>
+         <text class="terminal" x="59" y="197">(</text><a xmlns:xlink="http://www.w3.org/1999/xlink" xlink:href="#string_expression" xlink:title="string_expression">
+            <rect x="97" y="179" width="134" height="32"></rect>
+            <rect x="95" y="177" width="134" height="32" class="nonterminal"></rect>
+            <text class="nonterminal" x="105" y="197">string_expression</text></a><rect x="251" y="179" width="26" height="32" rx="10"></rect>
+         <rect x="249" y="177" width="26" height="32" class="terminal" rx="10"></rect>
+         <text class="terminal" x="259" y="197">)</text>
+         <path xmlns:svg="http://www.w3.org/2000/svg" class="line" d="m17 17 h2 m20 0 h10 m100 0 h10 m0 0 h126 m-266 0 h20 m246 0 h20 m-286 0 q10 0 10 10 m266 0 q0 -10 10 -10 m-276 10 v24 m266 0 v-24 m-266 24 q0 10 10 10 m246 0 q10 0 10 -10 m-256 10 h10 m44 0 h10 m0 0 h182 m-256 -10 v20 m266 0 v-20 m-266 20 v24 m266 0 v-24 m-266 24 q0 10 10 10 m246 0 q10 0 10 -10 m-256 10 h10 m120 0 h10 m0 0 h106 m-256 -10 v20 m266 0 v-20 m-266 20 v24 m266 0 v-24 m-266 24 q0 10 10 10 m246 0 q10 0 10 -10 m-256 10 h10 m144 0 h10 m0 0 h82 m-256 -10 v20 m266 0 v-20 m-266 20 v24 m266 0 v-24 m-266 24 q0 10 10 10 m246 0 q10 0 10 -10 m-256 10 h10 m26 0 h10 m0 0 h10 m134 0 h10 m0 0 h10 m26 0 h10 m23 -176 h-3"></path>
+         <polygon points="315 17 323 13 323 21"></polygon>
+         <polygon points="315 17 307 13 307 21"></polygon></svg><p xmlns:xhtml="http://www.w3.org/1999/xhtml">
+         </p><div class="ebnf"><code>
+               <div><a href="https://awpslivedocs.z13.web.core.windows.net/#string_expression" title="string_expression">string_expression</a></div>
+               <div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;::= <a href="https://awpslivedocs.z13.web.core.windows.net/#string_literal" title="string_literal">string_literal</a></div>
+               <div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;| 'null'</div>
+               <div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;| <a href="https://awpslivedocs.z13.web.core.windows.net/#string_identifier" title="string_identifier">string_identifier</a></div>
+               <div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;| <a href="https://awpslivedocs.z13.web.core.windows.net/#string_function_call" title="string_function_call">string_function_call</a></div>
+               <div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;| '(' <a href="https://awpslivedocs.z13.web.core.windows.net/#string_expression" title="string_expression">string_expression</a> ')'</div></code></div>
+      <p></p>
+      <p xmlns:xhtml="http://www.w3.org/1999/xhtml">referenced by:
+         </p><ul>
+            <li><a href="https://awpslivedocs.z13.web.core.windows.net/#concat_function_call" title="concat_function_call">concat_function_call</a></li>
+            <li><a href="https://awpslivedocs.z13.web.core.windows.net/#contains_function_call" title="contains_function_call">contains_function_call</a></li>
+            <li><a href="https://awpslivedocs.z13.web.core.windows.net/#endsWith_function_call" title="endsWith_function_call">endsWith_function_call</a></li>
+            <li><a href="https://awpslivedocs.z13.web.core.windows.net/#indexof_function_call" title="indexof_function_call">indexof_function_call</a></li>
+            <li><a href="https://awpslivedocs.z13.web.core.windows.net/#length_function_call" title="length_function_call">length_function_call</a></li>
+            <li><a href="https://awpslivedocs.z13.web.core.windows.net/#startsWith_function_call" title="startsWith_function_call">startsWith_function_call</a></li>
+            <li><a href="https://awpslivedocs.z13.web.core.windows.net/#string_expression" title="string_expression">string_expression</a></li>
+            <li><a href="https://awpslivedocs.z13.web.core.windows.net/#substring_function_call" title="substring_function_call">substring_function_call</a></li>
+            <li><a href="https://awpslivedocs.z13.web.core.windows.net/#tolower_function_call" title="tolower_function_call">tolower_function_call</a></li>
+            <li><a href="https://awpslivedocs.z13.web.core.windows.net/#toupper_function_call" title="toupper_function_call">toupper_function_call</a></li>
+            <li><a href="https://awpslivedocs.z13.web.core.windows.net/#trim_function_call" title="trim_function_call">trim_function_call</a></li>
+         </ul>
+      <p></p><br xmlns:xhtml="http://www.w3.org/1999/xhtml"><p xmlns:xhtml="http://www.w3.org/1999/xhtml" style="font-size: 14px; font-weight:bold"><a name="primary_variable">primary_variable:</a></p><svg xmlns="http://www.w3.org/2000/svg" width="179" height="37">
+         <defs>
+            <style type="text/css">
+    @namespace "http://www.w3.org/2000/svg";
+    .line                 {fill: none; stroke: #332900; stroke-width: 1;}
+    .bold-line            {stroke: #141000; shape-rendering: crispEdges; stroke-width: 2;}
+    .thin-line            {stroke: #1F1800; shape-rendering: crispEdges}
+    .filled               {fill: #332900; stroke: none;}
+    text.terminal         {font-family: Verdana, Sans-serif;
+                            font-size: 12px;
+                            fill: #141000;
+                            font-weight: bold;
+                          }
+    text.nonterminal      {font-family: Verdana, Sans-serif;
+                            font-size: 12px;
+                            fill: #1A1400;
+                            font-weight: normal;
+                          }
+    text.regexp           {font-family: Verdana, Sans-serif;
+                            font-size: 12px;
+                            fill: #1F1800;
+                            font-weight: normal;
+                          }
+    rect, circle, polygon {fill: #332900; stroke: #332900;}
+    rect.terminal         {fill: #FFDB4D; stroke: #332900; stroke-width: 1;}
+    rect.nonterminal      {fill: #FFEC9E; stroke: #332900; stroke-width: 1;}
+    rect.text             {fill: none; stroke: none;}
+    polygon.regexp        {fill: #FFF4C7; stroke: #332900; stroke-width: 1;}
+  </style>
+         </defs>
+         <polygon points="9 17 1 13 1 21"></polygon>
+         <polygon points="17 17 9 13 9 21"></polygon><a xmlns:xlink="http://www.w3.org/1999/xlink" xlink:href="#string_identifier" xlink:title="string_identifier">
+            <rect x="31" y="3" width="120" height="32"></rect>
+            <rect x="29" y="1" width="120" height="32" class="nonterminal"></rect>
+            <text class="nonterminal" x="39" y="21">string_identifier</text></a><path xmlns:svg="http://www.w3.org/2000/svg" class="line" d="m17 17 h2 m0 0 h10 m120 0 h10 m3 0 h-3"></path>
+         <polygon points="169 17 177 13 177 21"></polygon>
+         <polygon points="169 17 161 13 161 21"></polygon></svg><p xmlns:xhtml="http://www.w3.org/1999/xhtml">
+         </p><div class="ebnf"><code>
+               <div><a href="https://awpslivedocs.z13.web.core.windows.net/#primary_variable" title="primary_variable">primary_variable</a></div>
+               <div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;::= <a href="https://awpslivedocs.z13.web.core.windows.net/#string_identifier" title="string_identifier">string_identifier</a></div></code></div>
+      <p></p>
+      <p xmlns:xhtml="http://www.w3.org/1999/xhtml">referenced by:
+         </p><ul>
+            <li><a href="https://awpslivedocs.z13.web.core.windows.net/#primary_expression" title="primary_expression">primary_expression</a></li>
+         </ul>
+      <p></p><br xmlns:xhtml="http://www.w3.org/1999/xhtml"><p xmlns:xhtml="http://www.w3.org/1999/xhtml" style="font-size: 14px; font-weight:bold"><a name="comparison_operator">comparison_operator:</a></p><svg xmlns="http://www.w3.org/2000/svg" width="135" height="257">
+         <defs>
+            <style type="text/css">
+    @namespace "http://www.w3.org/2000/svg";
+    .line                 {fill: none; stroke: #332900; stroke-width: 1;}
+    .bold-line            {stroke: #141000; shape-rendering: crispEdges; stroke-width: 2;}
+    .thin-line            {stroke: #1F1800; shape-rendering: crispEdges}
+    .filled               {fill: #332900; stroke: none;}
+    text.terminal         {font-family: Verdana, Sans-serif;
+                            font-size: 12px;
+                            fill: #141000;
+                            font-weight: bold;
+                          }
+    text.nonterminal      {font-family: Verdana, Sans-serif;
+                            font-size: 12px;
+                            fill: #1A1400;
+                            font-weight: normal;
+                          }
+    text.regexp           {font-family: Verdana, Sans-serif;
+                            font-size: 12px;
+                            fill: #1F1800;
+                            font-weight: normal;
+                          }
+    rect, circle, polygon {fill: #332900; stroke: #332900;}
+    rect.terminal         {fill: #FFDB4D; stroke: #332900; stroke-width: 1;}
+    rect.nonterminal      {fill: #FFEC9E; stroke: #332900; stroke-width: 1;}
+    rect.text             {fill: none; stroke: none;}
+    polygon.regexp        {fill: #FFF4C7; stroke: #332900; stroke-width: 1;}
+  </style>
+         </defs>
+         <polygon points="9 17 1 13 1 21"></polygon>
+         <polygon points="17 17 9 13 9 21"></polygon>
+         <rect x="51" y="3" width="34" height="32" rx="10"></rect>
+         <rect x="49" y="1" width="34" height="32" class="terminal" rx="10"></rect>
+         <text class="terminal" x="59" y="21">gt</text>
+         <rect x="51" y="47" width="30" height="32" rx="10"></rect>
+         <rect x="49" y="45" width="30" height="32" class="terminal" rx="10"></rect>
+         <text class="terminal" x="59" y="65">lt</text>
+         <rect x="51" y="91" width="36" height="32" rx="10"></rect>
+         <rect x="49" y="89" width="36" height="32" class="terminal" rx="10"></rect>
+         <text class="terminal" x="59" y="109">ge</text>
+         <rect x="51" y="135" width="32" height="32" rx="10"></rect>
+         <rect x="49" y="133" width="32" height="32" class="terminal" rx="10"></rect>
+         <text class="terminal" x="59" y="153">le</text>
+         <rect x="51" y="179" width="36" height="32" rx="10"></rect>
+         <rect x="49" y="177" width="36" height="32" class="terminal" rx="10"></rect>
+         <text class="terminal" x="59" y="197">eq</text>
+         <rect x="51" y="223" width="36" height="32" rx="10"></rect>
+         <rect x="49" y="221" width="36" height="32" class="terminal" rx="10"></rect>
+         <text class="terminal" x="59" y="241">ne</text>
+         <path xmlns:svg="http://www.w3.org/2000/svg" class="line" d="m17 17 h2 m20 0 h10 m34 0 h10 m0 0 h2 m-76 0 h20 m56 0 h20 m-96 0 q10 0 10 10 m76 0 q0 -10 10 -10 m-86 10 v24 m76 0 v-24 m-76 24 q0 10 10 10 m56 0 q10 0 10 -10 m-66 10 h10 m30 0 h10 m0 0 h6 m-66 -10 v20 m76 0 v-20 m-76 20 v24 m76 0 v-24 m-76 24 q0 10 10 10 m56 0 q10 0 10 -10 m-66 10 h10 m36 0 h10 m-66 -10 v20 m76 0 v-20 m-76 20 v24 m76 0 v-24 m-76 24 q0 10 10 10 m56 0 q10 0 10 -10 m-66 10 h10 m32 0 h10 m0 0 h4 m-66 -10 v20 m76 0 v-20 m-76 20 v24 m76 0 v-24 m-76 24 q0 10 10 10 m56 0 q10 0 10 -10 m-66 10 h10 m36 0 h10 m-66 -10 v20 m76 0 v-20 m-76 20 v24 m76 0 v-24 m-76 24 q0 10 10 10 m56 0 q10 0 10 -10 m-66 10 h10 m36 0 h10 m23 -220 h-3"></path>
+         <polygon points="125 17 133 13 133 21"></polygon>
+         <polygon points="125 17 117 13 117 21"></polygon></svg><p xmlns:xhtml="http://www.w3.org/1999/xhtml">
+         </p><div class="ebnf"><code>
+               <div><a href="https://awpslivedocs.z13.web.core.windows.net/#comparison_operator" title="comparison_operator">comparison_operator</a></div>
+               <div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;::= 'gt'</div>
+               <div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;| 'lt'</div>
+               <div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;| 'ge'</div>
+               <div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;| 'le'</div>
+               <div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;| 'eq'</div>
+               <div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;| 'ne'</div></code></div>
+      <p></p>
+      <p xmlns:xhtml="http://www.w3.org/1999/xhtml">referenced by:
+         </p><ul>
+            <li><a href="https://awpslivedocs.z13.web.core.windows.net/#comparison_expression" title="comparison_expression">comparison_expression</a></li>
+         </ul>
+      <p></p><br xmlns:xhtml="http://www.w3.org/1999/xhtml"><p xmlns:xhtml="http://www.w3.org/1999/xhtml" style="font-size: 14px; font-weight:bold"><a name="constant">constant:</a></p><svg xmlns="http://www.w3.org/2000/svg" width="213" height="169">
+         <defs>
+            <style type="text/css">
+    @namespace "http://www.w3.org/2000/svg";
+    .line                 {fill: none; stroke: #332900; stroke-width: 1;}
+    .bold-line            {stroke: #141000; shape-rendering: crispEdges; stroke-width: 2;}
+    .thin-line            {stroke: #1F1800; shape-rendering: crispEdges}
+    .filled               {fill: #332900; stroke: none;}
+    text.terminal         {font-family: Verdana, Sans-serif;
+                            font-size: 12px;
+                            fill: #141000;
+                            font-weight: bold;
+                          }
+    text.nonterminal      {font-family: Verdana, Sans-serif;
+                            font-size: 12px;
+                            fill: #1A1400;
+                            font-weight: normal;
+                          }
+    text.regexp           {font-family: Verdana, Sans-serif;
+                            font-size: 12px;
+                            fill: #1F1800;
+                            font-weight: normal;
+                          }
+    rect, circle, polygon {fill: #332900; stroke: #332900;}
+    rect.terminal         {fill: #FFDB4D; stroke: #332900; stroke-width: 1;}
+    rect.nonterminal      {fill: #FFEC9E; stroke: #332900; stroke-width: 1;}
+    rect.text             {fill: none; stroke: none;}
+    polygon.regexp        {fill: #FFF4C7; stroke: #332900; stroke-width: 1;}
+  </style>
+         </defs>
+         <polygon points="9 17 1 13 1 21"></polygon>
+         <polygon points="17 17 9 13 9 21"></polygon><a xmlns:xlink="http://www.w3.org/1999/xlink" xlink:href="#string_literal" xlink:title="string_literal">
+            <rect x="51" y="3" width="100" height="32"></rect>
+            <rect x="49" y="1" width="100" height="32" class="nonterminal"></rect>
+            <text class="nonterminal" x="59" y="21">string_literal</text></a><a xmlns:xlink="http://www.w3.org/1999/xlink" xlink:href="#integer_literal" xlink:title="integer_literal">
+            <rect x="51" y="47" width="108" height="32"></rect>
+            <rect x="49" y="45" width="108" height="32" class="nonterminal"></rect>
+            <text class="nonterminal" x="59" y="65">integer_literal</text></a><a xmlns:xlink="http://www.w3.org/1999/xlink" xlink:href="#boolean_literal" xlink:title="boolean_literal">
+            <rect x="51" y="91" width="114" height="32"></rect>
+            <rect x="49" y="89" width="114" height="32" class="nonterminal"></rect>
+            <text class="nonterminal" x="59" y="109">boolean_literal</text></a><rect x="51" y="135" width="44" height="32" rx="10"></rect>
+         <rect x="49" y="133" width="44" height="32" class="terminal" rx="10"></rect>
+         <text class="terminal" x="59" y="153">null</text>
+         <path xmlns:svg="http://www.w3.org/2000/svg" class="line" d="m17 17 h2 m20 0 h10 m100 0 h10 m0 0 h14 m-154 0 h20 m134 0 h20 m-174 0 q10 0 10 10 m154 0 q0 -10 10 -10 m-164 10 v24 m154 0 v-24 m-154 24 q0 10 10 10 m134 0 q10 0 10 -10 m-144 10 h10 m108 0 h10 m0 0 h6 m-144 -10 v20 m154 0 v-20 m-154 20 v24 m154 0 v-24 m-154 24 q0 10 10 10 m134 0 q10 0 10 -10 m-144 10 h10 m114 0 h10 m-144 -10 v20 m154 0 v-20 m-154 20 v24 m154 0 v-24 m-154 24 q0 10 10 10 m134 0 q10 0 10 -10 m-144 10 h10 m44 0 h10 m0 0 h70 m23 -132 h-3"></path>
+         <polygon points="203 17 211 13 211 21"></polygon>
+         <polygon points="203 17 195 13 195 21"></polygon></svg><p xmlns:xhtml="http://www.w3.org/1999/xhtml">
+         </p><div class="ebnf"><code>
+               <div><a href="https://awpslivedocs.z13.web.core.windows.net/#constant" title="constant">constant</a>&nbsp;::= <a href="https://awpslivedocs.z13.web.core.windows.net/#string_literal" title="string_literal">string_literal</a></div>
+               <div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;| <a href="https://awpslivedocs.z13.web.core.windows.net/#integer_literal" title="integer_literal">integer_literal</a></div>
+               <div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;| <a href="https://awpslivedocs.z13.web.core.windows.net/#boolean_literal" title="boolean_literal">boolean_literal</a></div>
+               <div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;| 'null'</div></code></div>
+      <p></p>
+      <p xmlns:xhtml="http://www.w3.org/1999/xhtml">referenced by:
+         </p><ul>
+            <li><a href="https://awpslivedocs.z13.web.core.windows.net/#primary_expression" title="primary_expression">primary_expression</a></li>
+         </ul>
+      <p></p><br xmlns:xhtml="http://www.w3.org/1999/xhtml"><p xmlns:xhtml="http://www.w3.org/1999/xhtml" style="font-size: 14px; font-weight:bold"><a name="boolean_literal">boolean_literal:</a></p><svg xmlns="http://www.w3.org/2000/svg" width="151" height="81">
+         <defs>
+            <style type="text/css">
+    @namespace "http://www.w3.org/2000/svg";
+    .line                 {fill: none; stroke: #332900; stroke-width: 1;}
+    .bold-line            {stroke: #141000; shape-rendering: crispEdges; stroke-width: 2;}
+    .thin-line            {stroke: #1F1800; shape-rendering: crispEdges}
+    .filled               {fill: #332900; stroke: none;}
+    text.terminal         {font-family: Verdana, Sans-serif;
+                            font-size: 12px;
+                            fill: #141000;
+                            font-weight: bold;
+                          }
+    text.nonterminal      {font-family: Verdana, Sans-serif;
+                            font-size: 12px;
+                            fill: #1A1400;
+                            font-weight: normal;
+                          }
+    text.regexp           {font-family: Verdana, Sans-serif;
+                            font-size: 12px;
+                            fill: #1F1800;
+                            font-weight: normal;
+                          }
+    rect, circle, polygon {fill: #332900; stroke: #332900;}
+    rect.terminal         {fill: #FFDB4D; stroke: #332900; stroke-width: 1;}
+    rect.nonterminal      {fill: #FFEC9E; stroke: #332900; stroke-width: 1;}
+    rect.text             {fill: none; stroke: none;}
+    polygon.regexp        {fill: #FFF4C7; stroke: #332900; stroke-width: 1;}
+  </style>
+         </defs>
+         <polygon points="9 17 1 13 1 21"></polygon>
+         <polygon points="17 17 9 13 9 21"></polygon>
+         <rect x="51" y="3" width="48" height="32" rx="10"></rect>
+         <rect x="49" y="1" width="48" height="32" class="terminal" rx="10"></rect>
+         <text class="terminal" x="59" y="21">true</text>
+         <rect x="51" y="47" width="52" height="32" rx="10"></rect>
+         <rect x="49" y="45" width="52" height="32" class="terminal" rx="10"></rect>
+         <text class="terminal" x="59" y="65">false</text>
+         <path xmlns:svg="http://www.w3.org/2000/svg" class="line" d="m17 17 h2 m20 0 h10 m48 0 h10 m0 0 h4 m-92 0 h20 m72 0 h20 m-112 0 q10 0 10 10 m92 0 q0 -10 10 -10 m-102 10 v24 m92 0 v-24 m-92 24 q0 10 10 10 m72 0 q10 0 10 -10 m-82 10 h10 m52 0 h10 m23 -44 h-3"></path>
+         <polygon points="141 17 149 13 149 21"></polygon>
+         <polygon points="141 17 133 13 133 21"></polygon></svg><p xmlns:xhtml="http://www.w3.org/1999/xhtml">
+         </p><div class="ebnf"><code>
+               <div><a href="https://awpslivedocs.z13.web.core.windows.net/#boolean_literal" title="boolean_literal">boolean_literal</a></div>
+               <div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;::= 'true'</div>
+               <div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;| 'false'</div></code></div>
+      <p></p>
+      <p xmlns:xhtml="http://www.w3.org/1999/xhtml">referenced by:
+         </p><ul>
+            <li><a href="https://awpslivedocs.z13.web.core.windows.net/#boolean_expression" title="boolean_expression">boolean_expression</a></li>
+            <li><a href="https://awpslivedocs.z13.web.core.windows.net/#constant" title="constant">constant</a></li>
+         </ul>
+      <p></p><br xmlns:xhtml="http://www.w3.org/1999/xhtml"><p xmlns:xhtml="http://www.w3.org/1999/xhtml" style="font-size: 14px; font-weight:bold"><a name="string_literal">string_literal:</a></p><svg xmlns="http://www.w3.org/2000/svg" width="321" height="113">
+         <defs>
+            <style type="text/css">
+    @namespace "http://www.w3.org/2000/svg";
+    .line                 {fill: none; stroke: #332900; stroke-width: 1;}
+    .bold-line            {stroke: #141000; shape-rendering: crispEdges; stroke-width: 2;}
+    .thin-line            {stroke: #1F1800; shape-rendering: crispEdges}
+    .filled               {fill: #332900; stroke: none;}
+    text.terminal         {font-family: Verdana, Sans-serif;
+                            font-size: 12px;
+                            fill: #141000;
+                            font-weight: bold;
+                          }
+    text.nonterminal      {font-family: Verdana, Sans-serif;
+                            font-size: 12px;
+                            fill: #1A1400;
+                            font-weight: normal;
+                          }
+    text.regexp           {font-family: Verdana, Sans-serif;
+                            font-size: 12px;
+                            fill: #1F1800;
+                            font-weight: normal;
+                          }
+    rect, circle, polygon {fill: #332900; stroke: #332900;}
+    rect.terminal         {fill: #FFDB4D; stroke: #332900; stroke-width: 1;}
+    rect.nonterminal      {fill: #FFEC9E; stroke: #332900; stroke-width: 1;}
+    rect.text             {fill: none; stroke: none;}
+    polygon.regexp        {fill: #FFF4C7; stroke: #332900; stroke-width: 1;}
+  </style>
+         </defs>
+         <polygon points="9 33 1 29 1 37"></polygon>
+         <polygon points="17 33 9 29 9 37"></polygon>
+         <rect x="31" y="19" width="24" height="32" rx="10"></rect>
+         <rect x="29" y="17" width="24" height="32" class="terminal" rx="10"></rect>
+         <text class="terminal" x="39" y="37">'</text>
+         <polygon points="135 35 142 19 182 19 189 35 182 51 142 51"></polygon>
+         <polygon points="133 33 140 17 180 17 187 33 180 49 140 49" class="regexp"></polygon>
+         <text class="regexp" x="148" y="37">[^']</text>
+         <rect x="135" y="63" width="28" height="32" rx="10"></rect>
+         <rect x="133" y="61" width="28" height="32" class="terminal" rx="10"></rect>
+         <text class="terminal" x="143" y="81">''</text>
+         <rect x="269" y="19" width="24" height="32" rx="10"></rect>
+         <rect x="267" y="17" width="24" height="32" class="terminal" rx="10"></rect>
+         <text class="terminal" x="277" y="37">'</text>
+         <path xmlns:svg="http://www.w3.org/2000/svg" class="line" d="m17 33 h2 m0 0 h10 m24 0 h10 m60 0 h10 m54 0 h10 m-94 0 h20 m74 0 h20 m-114 0 q10 0 10 10 m94 0 q0 -10 10 -10 m-104 10 v24 m94 0 v-24 m-94 24 q0 10 10 10 m74 0 q10 0 10 -10 m-84 10 h10 m28 0 h10 m0 0 h26 m-114 -44 l20 0 m-1 0 q-9 0 -9 -10 l0 -12 q0 -10 10 -10 m114 32 l20 0 m-20 0 q10 0 10 -10 l0 -12 q0 -10 -10 -10 m-114 0 h10 m0 0 h104 m-154 32 h20 m154 0 h20 m-194 0 q10 0 10 10 m174 0 q0 -10 10 -10 m-184 10 v58 m174 0 v-58 m-174 58 q0 10 10 10 m154 0 q10 0 10 -10 m-164 10 h10 m0 0 h144 m20 -78 h10 m24 0 h10 m3 0 h-3"></path>
+         <polygon points="311 33 319 29 319 37"></polygon>
+         <polygon points="311 33 303 29 303 37"></polygon></svg><p xmlns:xhtml="http://www.w3.org/1999/xhtml">
+         </p><div class="ebnf"><code>
+               <div><a href="https://awpslivedocs.z13.web.core.windows.net/#string_literal" title="string_literal">string_literal</a></div>
+               <div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;::= "'" ( [^'] | "''" )* "'"</div></code></div>
+      <p></p>
+      <p xmlns:xhtml="http://www.w3.org/1999/xhtml">referenced by:
+         </p><ul>
+            <li><a href="https://awpslivedocs.z13.web.core.windows.net/#constant" title="constant">constant</a></li>
+            <li><a href="https://awpslivedocs.z13.web.core.windows.net/#string_expression" title="string_expression">string_expression</a></li>
+         </ul>
+      <p></p><br xmlns:xhtml="http://www.w3.org/1999/xhtml"><p xmlns:xhtml="http://www.w3.org/1999/xhtml" style="font-size: 14px; font-weight:bold"><a name="digit">digit:</a></p><svg xmlns="http://www.w3.org/2000/svg" width="121" height="37">
+         <defs>
+            <style type="text/css">
+    @namespace "http://www.w3.org/2000/svg";
+    .line                 {fill: none; stroke: #332900; stroke-width: 1;}
+    .bold-line            {stroke: #141000; shape-rendering: crispEdges; stroke-width: 2;}
+    .thin-line            {stroke: #1F1800; shape-rendering: crispEdges}
+    .filled               {fill: #332900; stroke: none;}
+    text.terminal         {font-family: Verdana, Sans-serif;
+                            font-size: 12px;
+                            fill: #141000;
+                            font-weight: bold;
+                          }
+    text.nonterminal      {font-family: Verdana, Sans-serif;
+                            font-size: 12px;
+                            fill: #1A1400;
+                            font-weight: normal;
+                          }
+    text.regexp           {font-family: Verdana, Sans-serif;
+                            font-size: 12px;
+                            fill: #1F1800;
+                            font-weight: normal;
+                          }
+    rect, circle, polygon {fill: #332900; stroke: #332900;}
+    rect.terminal         {fill: #FFDB4D; stroke: #332900; stroke-width: 1;}
+    rect.nonterminal      {fill: #FFEC9E; stroke: #332900; stroke-width: 1;}
+    rect.text             {fill: none; stroke: none;}
+    polygon.regexp        {fill: #FFF4C7; stroke: #332900; stroke-width: 1;}
+  </style>
+         </defs>
+         <polygon points="9 17 1 13 1 21"></polygon>
+         <polygon points="17 17 9 13 9 21"></polygon>
+         <polygon points="31 19 38 3 86 3 93 19 86 35 38 35"></polygon>
+         <polygon points="29 17 36 1 84 1 91 17 84 33 36 33" class="regexp"></polygon>
+         <text class="regexp" x="44" y="21">[0-9]</text>
+         <path xmlns:svg="http://www.w3.org/2000/svg" class="line" d="m17 17 h2 m0 0 h10 m62 0 h10 m3 0 h-3"></path>
+         <polygon points="111 17 119 13 119 21"></polygon>
+         <polygon points="111 17 103 13 103 21"></polygon></svg><p xmlns:xhtml="http://www.w3.org/1999/xhtml">
+         </p><div class="ebnf"><code>
+               <div><a href="https://awpslivedocs.z13.web.core.windows.net/#digit" title="digit">digit</a>&nbsp;&nbsp;&nbsp;&nbsp;::= [0-9]</div></code></div>
+      <p></p>
+      <p xmlns:xhtml="http://www.w3.org/1999/xhtml">referenced by:
+         </p><ul>
+            <li><a href="https://awpslivedocs.z13.web.core.windows.net/#integer_literal" title="integer_literal">integer_literal</a></li>
+         </ul>
+      <p></p><br xmlns:xhtml="http://www.w3.org/1999/xhtml"><p xmlns:xhtml="http://www.w3.org/1999/xhtml" style="font-size: 14px; font-weight:bold"><a name="sign">sign:</a></p><svg xmlns="http://www.w3.org/2000/svg" width="129" height="81">
+         <defs>
+            <style type="text/css">
+    @namespace "http://www.w3.org/2000/svg";
+    .line                 {fill: none; stroke: #332900; stroke-width: 1;}
+    .bold-line            {stroke: #141000; shape-rendering: crispEdges; stroke-width: 2;}
+    .thin-line            {stroke: #1F1800; shape-rendering: crispEdges}
+    .filled               {fill: #332900; stroke: none;}
+    text.terminal         {font-family: Verdana, Sans-serif;
+                            font-size: 12px;
+                            fill: #141000;
+                            font-weight: bold;
+                          }
+    text.nonterminal      {font-family: Verdana, Sans-serif;
+                            font-size: 12px;
+                            fill: #1A1400;
+                            font-weight: normal;
+                          }
+    text.regexp           {font-family: Verdana, Sans-serif;
+                            font-size: 12px;
+                            fill: #1F1800;
+                            font-weight: normal;
+                          }
+    rect, circle, polygon {fill: #332900; stroke: #332900;}
+    rect.terminal         {fill: #FFDB4D; stroke: #332900; stroke-width: 1;}
+    rect.nonterminal      {fill: #FFEC9E; stroke: #332900; stroke-width: 1;}
+    rect.text             {fill: none; stroke: none;}
+    polygon.regexp        {fill: #FFF4C7; stroke: #332900; stroke-width: 1;}
+  </style>
+         </defs>
+         <polygon points="9 17 1 13 1 21"></polygon>
+         <polygon points="17 17 9 13 9 21"></polygon>
+         <rect x="51" y="3" width="30" height="32" rx="10"></rect>
+         <rect x="49" y="1" width="30" height="32" class="terminal" rx="10"></rect>
+         <text class="terminal" x="59" y="21">+</text>
+         <rect x="51" y="47" width="26" height="32" rx="10"></rect>
+         <rect x="49" y="45" width="26" height="32" class="terminal" rx="10"></rect>
+         <text class="terminal" x="59" y="65">-</text>
+         <path xmlns:svg="http://www.w3.org/2000/svg" class="line" d="m17 17 h2 m20 0 h10 m30 0 h10 m-70 0 h20 m50 0 h20 m-90 0 q10 0 10 10 m70 0 q0 -10 10 -10 m-80 10 v24 m70 0 v-24 m-70 24 q0 10 10 10 m50 0 q10 0 10 -10 m-60 10 h10 m26 0 h10 m0 0 h4 m23 -44 h-3"></path>
+         <polygon points="119 17 127 13 127 21"></polygon>
+         <polygon points="119 17 111 13 111 21"></polygon></svg><p xmlns:xhtml="http://www.w3.org/1999/xhtml">
+         </p><div class="ebnf"><code>
+               <div><a href="https://awpslivedocs.z13.web.core.windows.net/#sign" title="sign">sign</a>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;::= '+'</div>
+               <div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;| '-'</div></code></div>
+      <p></p>
+      <p xmlns:xhtml="http://www.w3.org/1999/xhtml">referenced by:
+         </p><ul>
+            <li><a href="https://awpslivedocs.z13.web.core.windows.net/#integer_literal" title="integer_literal">integer_literal</a></li>
+         </ul>
+      <p></p><br xmlns:xhtml="http://www.w3.org/1999/xhtml"><p xmlns:xhtml="http://www.w3.org/1999/xhtml" style="font-size: 14px; font-weight:bold"><a name="integer_literal">integer_literal:</a></p><svg xmlns="http://www.w3.org/2000/svg" width="253" height="85">
+         <defs>
+            <style type="text/css">
+    @namespace "http://www.w3.org/2000/svg";
+    .line                 {fill: none; stroke: #332900; stroke-width: 1;}
+    .bold-line            {stroke: #141000; shape-rendering: crispEdges; stroke-width: 2;}
+    .thin-line            {stroke: #1F1800; shape-rendering: crispEdges}
+    .filled               {fill: #332900; stroke: none;}
+    text.terminal         {font-family: Verdana, Sans-serif;
+                            font-size: 12px;
+                            fill: #141000;
+                            font-weight: bold;
+                          }
+    text.nonterminal      {font-family: Verdana, Sans-serif;
+                            font-size: 12px;
+                            fill: #1A1400;
+                            font-weight: normal;
+                          }
+    text.regexp           {font-family: Verdana, Sans-serif;
+                            font-size: 12px;
+                            fill: #1F1800;
+                            font-weight: normal;
+                          }
+    rect, circle, polygon {fill: #332900; stroke: #332900;}
+    rect.terminal         {fill: #FFDB4D; stroke: #332900; stroke-width: 1;}
+    rect.nonterminal      {fill: #FFEC9E; stroke: #332900; stroke-width: 1;}
+    rect.text             {fill: none; stroke: none;}
+    polygon.regexp        {fill: #FFF4C7; stroke: #332900; stroke-width: 1;}
+  </style>
+         </defs>
+         <polygon points="9 33 1 29 1 37"></polygon>
+         <polygon points="17 33 9 29 9 37"></polygon><a xmlns:xlink="http://www.w3.org/1999/xlink" xlink:href="#sign" xlink:title="sign">
+            <rect x="51" y="51" width="46" height="32"></rect>
+            <rect x="49" y="49" width="46" height="32" class="nonterminal"></rect>
+            <text class="nonterminal" x="59" y="69">sign</text></a><a xmlns:xlink="http://www.w3.org/1999/xlink" xlink:href="#digit" xlink:title="digit">
+            <rect x="157" y="19" width="48" height="32"></rect>
+            <rect x="155" y="17" width="48" height="32" class="nonterminal"></rect>
+            <text class="nonterminal" x="165" y="37">digit</text></a><path xmlns:svg="http://www.w3.org/2000/svg" class="line" d="m17 33 h2 m20 0 h10 m0 0 h56 m-86 0 h20 m66 0 h20 m-106 0 q10 0 10 10 m86 0 q0 -10 10 -10 m-96 10 v12 m86 0 v-12 m-86 12 q0 10 10 10 m66 0 q10 0 10 -10 m-76 10 h10 m46 0 h10 m40 -32 h10 m48 0 h10 m-88 0 l20 0 m-1 0 q-9 0 -9 -10 l0 -12 q0 -10 10 -10 m68 32 l20 0 m-20 0 q10 0 10 -10 l0 -12 q0 -10 -10 -10 m-68 0 h10 m0 0 h58 m23 32 h-3"></path>
+         <polygon points="243 33 251 29 251 37"></polygon>
+         <polygon points="243 33 235 29 235 37"></polygon></svg><p xmlns:xhtml="http://www.w3.org/1999/xhtml">
+         </p><div class="ebnf"><code>
+               <div><a href="https://awpslivedocs.z13.web.core.windows.net/#integer_literal" title="integer_literal">integer_literal</a></div>
+               <div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;::= <a href="https://awpslivedocs.z13.web.core.windows.net/#sign" title="sign">sign</a>? <a href="https://awpslivedocs.z13.web.core.windows.net/#digit" title="digit">digit</a>+</div></code></div>
+      <p></p>
+      <p xmlns:xhtml="http://www.w3.org/1999/xhtml">referenced by:
+         </p><ul>
+            <li><a href="https://awpslivedocs.z13.web.core.windows.net/#constant" title="constant">constant</a></li>
+            <li><a href="https://awpslivedocs.z13.web.core.windows.net/#substring_function_call" title="substring_function_call">substring_function_call</a></li>
+         </ul>
+      <p></p><br xmlns:xhtml="http://www.w3.org/1999/xhtml"><p xmlns:xhtml="http://www.w3.org/1999/xhtml" style="font-size: 14px; font-weight:bold"><a name="function_call">function_call:</a></p><svg xmlns="http://www.w3.org/2000/svg" width="257" height="169">
+         <defs>
+            <style type="text/css">
+    @namespace "http://www.w3.org/2000/svg";
+    .line                 {fill: none; stroke: #332900; stroke-width: 1;}
+    .bold-line            {stroke: #141000; shape-rendering: crispEdges; stroke-width: 2;}
+    .thin-line            {stroke: #1F1800; shape-rendering: crispEdges}
+    .filled               {fill: #332900; stroke: none;}
+    text.terminal         {font-family: Verdana, Sans-serif;
+                            font-size: 12px;
+                            fill: #141000;
+                            font-weight: bold;
+                          }
+    text.nonterminal      {font-family: Verdana, Sans-serif;
+                            font-size: 12px;
+                            fill: #1A1400;
+                            font-weight: normal;
+                          }
+    text.regexp           {font-family: Verdana, Sans-serif;
+                            font-size: 12px;
+                            fill: #1F1800;
+                            font-weight: normal;
+                          }
+    rect, circle, polygon {fill: #332900; stroke: #332900;}
+    rect.terminal         {fill: #FFDB4D; stroke: #332900; stroke-width: 1;}
+    rect.nonterminal      {fill: #FFEC9E; stroke: #332900; stroke-width: 1;}
+    rect.text             {fill: none; stroke: none;}
+    polygon.regexp        {fill: #FFF4C7; stroke: #332900; stroke-width: 1;}
+  </style>
+         </defs>
+         <polygon points="9 17 1 13 1 21"></polygon>
+         <polygon points="17 17 9 13 9 21"></polygon><a xmlns:xlink="http://www.w3.org/1999/xlink" xlink:href="#indexof_function_call" xlink:title="indexof_function_call">
+            <rect x="51" y="3" width="154" height="32"></rect>
+            <rect x="49" y="1" width="154" height="32" class="nonterminal"></rect>
+            <text class="nonterminal" x="59" y="21">indexof_function_call</text></a><a xmlns:xlink="http://www.w3.org/1999/xlink" xlink:href="#length_function_call" xlink:title="length_function_call">
+            <rect x="51" y="47" width="148" height="32"></rect>
+            <rect x="49" y="45" width="148" height="32" class="nonterminal"></rect>
+            <text class="nonterminal" x="59" y="65">length_function_call</text></a><a xmlns:xlink="http://www.w3.org/1999/xlink" xlink:href="#string_function_call" xlink:title="string_function_call">
+            <rect x="51" y="91" width="144" height="32"></rect>
+            <rect x="49" y="89" width="144" height="32" class="nonterminal"></rect>
+            <text class="nonterminal" x="59" y="109">string_function_call</text></a><a xmlns:xlink="http://www.w3.org/1999/xlink" xlink:href="#boolean_function_call" xlink:title="boolean_function_call">
+            <rect x="51" y="135" width="158" height="32"></rect>
+            <rect x="49" y="133" width="158" height="32" class="nonterminal"></rect>
+            <text class="nonterminal" x="59" y="153">boolean_function_call</text></a><path xmlns:svg="http://www.w3.org/2000/svg" class="line" d="m17 17 h2 m20 0 h10 m154 0 h10 m0 0 h4 m-198 0 h20 m178 0 h20 m-218 0 q10 0 10 10 m198 0 q0 -10 10 -10 m-208 10 v24 m198 0 v-24 m-198 24 q0 10 10 10 m178 0 q10 0 10 -10 m-188 10 h10 m148 0 h10 m0 0 h10 m-188 -10 v20 m198 0 v-20 m-198 20 v24 m198 0 v-24 m-198 24 q0 10 10 10 m178 0 q10 0 10 -10 m-188 10 h10 m144 0 h10 m0 0 h14 m-188 -10 v20 m198 0 v-20 m-198 20 v24 m198 0 v-24 m-198 24 q0 10 10 10 m178 0 q10 0 10 -10 m-188 10 h10 m158 0 h10 m23 -132 h-3"></path>
+         <polygon points="247 17 255 13 255 21"></polygon>
+         <polygon points="247 17 239 13 239 21"></polygon></svg><p xmlns:xhtml="http://www.w3.org/1999/xhtml">
+         </p><div class="ebnf"><code>
+               <div><a href="https://awpslivedocs.z13.web.core.windows.net/#function_call" title="function_call">function_call</a></div>
+               <div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;::= <a href="https://awpslivedocs.z13.web.core.windows.net/#indexof_function_call" title="indexof_function_call">indexof_function_call</a></div>
+               <div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;| <a href="https://awpslivedocs.z13.web.core.windows.net/#length_function_call" title="length_function_call">length_function_call</a></div>
+               <div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;| <a href="https://awpslivedocs.z13.web.core.windows.net/#string_function_call" title="string_function_call">string_function_call</a></div>
+               <div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;| <a href="https://awpslivedocs.z13.web.core.windows.net/#boolean_function_call" title="boolean_function_call">boolean_function_call</a></div></code></div>
+      <p></p>
+      <p xmlns:xhtml="http://www.w3.org/1999/xhtml">referenced by:
+         </p><ul>
+            <li><a href="https://awpslivedocs.z13.web.core.windows.net/#primary_expression" title="primary_expression">primary_expression</a></li>
+         </ul>
+      <p></p><br xmlns:xhtml="http://www.w3.org/1999/xhtml"><p xmlns:xhtml="http://www.w3.org/1999/xhtml" style="font-size: 14px; font-weight:bold"><a name="boolean_function_call">boolean_function_call:</a></p><svg xmlns="http://www.w3.org/2000/svg" width="273" height="125">
+         <defs>
+            <style type="text/css">
+    @namespace "http://www.w3.org/2000/svg";
+    .line                 {fill: none; stroke: #332900; stroke-width: 1;}
+    .bold-line            {stroke: #141000; shape-rendering: crispEdges; stroke-width: 2;}
+    .thin-line            {stroke: #1F1800; shape-rendering: crispEdges}
+    .filled               {fill: #332900; stroke: none;}
+    text.terminal         {font-family: Verdana, Sans-serif;
+                            font-size: 12px;
+                            fill: #141000;
+                            font-weight: bold;
+                          }
+    text.nonterminal      {font-family: Verdana, Sans-serif;
+                            font-size: 12px;
+                            fill: #1A1400;
+                            font-weight: normal;
+                          }
+    text.regexp           {font-family: Verdana, Sans-serif;
+                            font-size: 12px;
+                            fill: #1F1800;
+                            font-weight: normal;
+                          }
+    rect, circle, polygon {fill: #332900; stroke: #332900;}
+    rect.terminal         {fill: #FFDB4D; stroke: #332900; stroke-width: 1;}
+    rect.nonterminal      {fill: #FFEC9E; stroke: #332900; stroke-width: 1;}
+    rect.text             {fill: none; stroke: none;}
+    polygon.regexp        {fill: #FFF4C7; stroke: #332900; stroke-width: 1;}
+  </style>
+         </defs>
+         <polygon points="9 17 1 13 1 21"></polygon>
+         <polygon points="17 17 9 13 9 21"></polygon><a xmlns:xlink="http://www.w3.org/1999/xlink" xlink:href="#endsWith_function_call" xlink:title="endsWith_function_call">
+            <rect x="51" y="3" width="168" height="32"></rect>
+            <rect x="49" y="1" width="168" height="32" class="nonterminal"></rect>
+            <text class="nonterminal" x="59" y="21">endsWith_function_call</text></a><a xmlns:xlink="http://www.w3.org/1999/xlink" xlink:href="#startsWith_function_call" xlink:title="startsWith_function_call">
+            <rect x="51" y="47" width="174" height="32"></rect>
+            <rect x="49" y="45" width="174" height="32" class="nonterminal"></rect>
+            <text class="nonterminal" x="59" y="65">startsWith_function_call</text></a><a xmlns:xlink="http://www.w3.org/1999/xlink" xlink:href="#contains_function_call" xlink:title="contains_function_call">
+            <rect x="51" y="91" width="160" height="32"></rect>
+            <rect x="49" y="89" width="160" height="32" class="nonterminal"></rect>
+            <text class="nonterminal" x="59" y="109">contains_function_call</text></a><path xmlns:svg="http://www.w3.org/2000/svg" class="line" d="m17 17 h2 m20 0 h10 m168 0 h10 m0 0 h6 m-214 0 h20 m194 0 h20 m-234 0 q10 0 10 10 m214 0 q0 -10 10 -10 m-224 10 v24 m214 0 v-24 m-214 24 q0 10 10 10 m194 0 q10 0 10 -10 m-204 10 h10 m174 0 h10 m-204 -10 v20 m214 0 v-20 m-214 20 v24 m214 0 v-24 m-214 24 q0 10 10 10 m194 0 q10 0 10 -10 m-204 10 h10 m160 0 h10 m0 0 h14 m23 -88 h-3"></path>
+         <polygon points="263 17 271 13 271 21"></polygon>
+         <polygon points="263 17 255 13 255 21"></polygon></svg><p xmlns:xhtml="http://www.w3.org/1999/xhtml">
+         </p><div class="ebnf"><code>
+               <div><a href="https://awpslivedocs.z13.web.core.windows.net/#boolean_function_call" title="boolean_function_call">boolean_function_call</a></div>
+               <div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;::= <a href="https://awpslivedocs.z13.web.core.windows.net/#endsWith_function_call" title="endsWith_function_call">endsWith_function_call</a></div>
+               <div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;| <a href="https://awpslivedocs.z13.web.core.windows.net/#startsWith_function_call" title="startsWith_function_call">startsWith_function_call</a></div>
+               <div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;| <a href="https://awpslivedocs.z13.web.core.windows.net/#contains_function_call" title="contains_function_call">contains_function_call</a></div></code></div>
+      <p></p>
+      <p xmlns:xhtml="http://www.w3.org/1999/xhtml">referenced by:
+         </p><ul>
+            <li><a href="https://awpslivedocs.z13.web.core.windows.net/#boolean_expression" title="boolean_expression">boolean_expression</a></li>
+            <li><a href="https://awpslivedocs.z13.web.core.windows.net/#function_call" title="function_call">function_call</a></li>
+         </ul>
+      <p></p><br xmlns:xhtml="http://www.w3.org/1999/xhtml"><p xmlns:xhtml="http://www.w3.org/1999/xhtml" style="font-size: 14px; font-weight:bold"><a name="string_function_call">string_function_call:</a></p><svg xmlns="http://www.w3.org/2000/svg" width="265" height="213">
+         <defs>
+            <style type="text/css">
+    @namespace "http://www.w3.org/2000/svg";
+    .line                 {fill: none; stroke: #332900; stroke-width: 1;}
+    .bold-line            {stroke: #141000; shape-rendering: crispEdges; stroke-width: 2;}
+    .thin-line            {stroke: #1F1800; shape-rendering: crispEdges}
+    .filled               {fill: #332900; stroke: none;}
+    text.terminal         {font-family: Verdana, Sans-serif;
+                            font-size: 12px;
+                            fill: #141000;
+                            font-weight: bold;
+                          }
+    text.nonterminal      {font-family: Verdana, Sans-serif;
+                            font-size: 12px;
+                            fill: #1A1400;
+                            font-weight: normal;
+                          }
+    text.regexp           {font-family: Verdana, Sans-serif;
+                            font-size: 12px;
+                            fill: #1F1800;
+                            font-weight: normal;
+                          }
+    rect, circle, polygon {fill: #332900; stroke: #332900;}
+    rect.terminal         {fill: #FFDB4D; stroke: #332900; stroke-width: 1;}
+    rect.nonterminal      {fill: #FFEC9E; stroke: #332900; stroke-width: 1;}
+    rect.text             {fill: none; stroke: none;}
+    polygon.regexp        {fill: #FFF4C7; stroke: #332900; stroke-width: 1;}
+  </style>
+         </defs>
+         <polygon points="9 17 1 13 1 21"></polygon>
+         <polygon points="17 17 9 13 9 21"></polygon><a xmlns:xlink="http://www.w3.org/1999/xlink" xlink:href="#tolower_function_call" xlink:title="tolower_function_call">
+            <rect x="51" y="3" width="154" height="32"></rect>
+            <rect x="49" y="1" width="154" height="32" class="nonterminal"></rect>
+            <text class="nonterminal" x="59" y="21">tolower_function_call</text></a><a xmlns:xlink="http://www.w3.org/1999/xlink" xlink:href="#toupper_function_call" xlink:title="toupper_function_call">
+            <rect x="51" y="47" width="158" height="32"></rect>
+            <rect x="49" y="45" width="158" height="32" class="nonterminal"></rect>
+            <text class="nonterminal" x="59" y="65">toupper_function_call</text></a><a xmlns:xlink="http://www.w3.org/1999/xlink" xlink:href="#trim_function_call" xlink:title="trim_function_call">
+            <rect x="51" y="91" width="132" height="32"></rect>
+            <rect x="49" y="89" width="132" height="32" class="nonterminal"></rect>
+            <text class="nonterminal" x="59" y="109">trim_function_call</text></a><a xmlns:xlink="http://www.w3.org/1999/xlink" xlink:href="#substring_function_call" xlink:title="substring_function_call">
+            <rect x="51" y="135" width="166" height="32"></rect>
+            <rect x="49" y="133" width="166" height="32" class="nonterminal"></rect>
+            <text class="nonterminal" x="59" y="153">substring_function_call</text></a><a xmlns:xlink="http://www.w3.org/1999/xlink" xlink:href="#concat_function_call" xlink:title="concat_function_call">
+            <rect x="51" y="179" width="148" height="32"></rect>
+            <rect x="49" y="177" width="148" height="32" class="nonterminal"></rect>
+            <text class="nonterminal" x="59" y="197">concat_function_call</text></a><path xmlns:svg="http://www.w3.org/2000/svg" class="line" d="m17 17 h2 m20 0 h10 m154 0 h10 m0 0 h12 m-206 0 h20 m186 0 h20 m-226 0 q10 0 10 10 m206 0 q0 -10 10 -10 m-216 10 v24 m206 0 v-24 m-206 24 q0 10 10 10 m186 0 q10 0 10 -10 m-196 10 h10 m158 0 h10 m0 0 h8 m-196 -10 v20 m206 0 v-20 m-206 20 v24 m206 0 v-24 m-206 24 q0 10 10 10 m186 0 q10 0 10 -10 m-196 10 h10 m132 0 h10 m0 0 h34 m-196 -10 v20 m206 0 v-20 m-206 20 v24 m206 0 v-24 m-206 24 q0 10 10 10 m186 0 q10 0 10 -10 m-196 10 h10 m166 0 h10 m-196 -10 v20 m206 0 v-20 m-206 20 v24 m206 0 v-24 m-206 24 q0 10 10 10 m186 0 q10 0 10 -10 m-196 10 h10 m148 0 h10 m0 0 h18 m23 -176 h-3"></path>
+         <polygon points="255 17 263 13 263 21"></polygon>
+         <polygon points="255 17 247 13 247 21"></polygon></svg><p xmlns:xhtml="http://www.w3.org/1999/xhtml">
+         </p><div class="ebnf"><code>
+               <div><a href="https://awpslivedocs.z13.web.core.windows.net/#string_function_call" title="string_function_call">string_function_call</a></div>
+               <div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;::= <a href="https://awpslivedocs.z13.web.core.windows.net/#tolower_function_call" title="tolower_function_call">tolower_function_call</a></div>
+               <div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;| <a href="https://awpslivedocs.z13.web.core.windows.net/#toupper_function_call" title="toupper_function_call">toupper_function_call</a></div>
+               <div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;| <a href="https://awpslivedocs.z13.web.core.windows.net/#trim_function_call" title="trim_function_call">trim_function_call</a></div>
+               <div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;| <a href="https://awpslivedocs.z13.web.core.windows.net/#substring_function_call" title="substring_function_call">substring_function_call</a></div>
+               <div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;| <a href="https://awpslivedocs.z13.web.core.windows.net/#concat_function_call" title="concat_function_call">concat_function_call</a></div></code></div>
+      <p></p>
+      <p xmlns:xhtml="http://www.w3.org/1999/xhtml">referenced by:
+         </p><ul>
+            <li><a href="https://awpslivedocs.z13.web.core.windows.net/#function_call" title="function_call">function_call</a></li>
+            <li><a href="https://awpslivedocs.z13.web.core.windows.net/#string_expression" title="string_expression">string_expression</a></li>
+         </ul>
+      <p></p><br xmlns:xhtml="http://www.w3.org/1999/xhtml"><p xmlns:xhtml="http://www.w3.org/1999/xhtml" style="font-size: 14px; font-weight:bold"><a name="indexof_function_call">indexof_function_call:</a></p><svg xmlns="http://www.w3.org/2000/svg" width="573" height="37">
+         <defs>
+            <style type="text/css">
+    @namespace "http://www.w3.org/2000/svg";
+    .line                 {fill: none; stroke: #332900; stroke-width: 1;}
+    .bold-line            {stroke: #141000; shape-rendering: crispEdges; stroke-width: 2;}
+    .thin-line            {stroke: #1F1800; shape-rendering: crispEdges}
+    .filled               {fill: #332900; stroke: none;}
+    text.terminal         {font-family: Verdana, Sans-serif;
+                            font-size: 12px;
+                            fill: #141000;
+                            font-weight: bold;
+                          }
+    text.nonterminal      {font-family: Verdana, Sans-serif;
+                            font-size: 12px;
+                            fill: #1A1400;
+                            font-weight: normal;
+                          }
+    text.regexp           {font-family: Verdana, Sans-serif;
+                            font-size: 12px;
+                            fill: #1F1800;
+                            font-weight: normal;
+                          }
+    rect, circle, polygon {fill: #332900; stroke: #332900;}
+    rect.terminal         {fill: #FFDB4D; stroke: #332900; stroke-width: 1;}
+    rect.nonterminal      {fill: #FFEC9E; stroke: #332900; stroke-width: 1;}
+    rect.text             {fill: none; stroke: none;}
+    polygon.regexp        {fill: #FFF4C7; stroke: #332900; stroke-width: 1;}
+  </style>
+         </defs>
+         <polygon points="9 17 1 13 1 21"></polygon>
+         <polygon points="17 17 9 13 9 21"></polygon>
+         <rect x="31" y="3" width="70" height="32" rx="10"></rect>
+         <rect x="29" y="1" width="70" height="32" class="terminal" rx="10"></rect>
+         <text class="terminal" x="39" y="21">indexof</text>
+         <rect x="121" y="3" width="26" height="32" rx="10"></rect>
+         <rect x="119" y="1" width="26" height="32" class="terminal" rx="10"></rect>
+         <text class="terminal" x="129" y="21">(</text><a xmlns:xlink="http://www.w3.org/1999/xlink" xlink:href="#string_expression" xlink:title="string_expression">
+            <rect x="167" y="3" width="134" height="32"></rect>
+            <rect x="165" y="1" width="134" height="32" class="nonterminal"></rect>
+            <text class="nonterminal" x="175" y="21">string_expression</text></a><rect x="321" y="3" width="24" height="32" rx="10"></rect>
+         <rect x="319" y="1" width="24" height="32" class="terminal" rx="10"></rect>
+         <text class="terminal" x="329" y="21">,</text><a xmlns:xlink="http://www.w3.org/1999/xlink" xlink:href="#string_expression" xlink:title="string_expression">
+            <rect x="365" y="3" width="134" height="32"></rect>
+            <rect x="363" y="1" width="134" height="32" class="nonterminal"></rect>
+            <text class="nonterminal" x="373" y="21">string_expression</text></a><rect x="519" y="3" width="26" height="32" rx="10"></rect>
+         <rect x="517" y="1" width="26" height="32" class="terminal" rx="10"></rect>
+         <text class="terminal" x="527" y="21">)</text>
+         <path xmlns:svg="http://www.w3.org/2000/svg" class="line" d="m17 17 h2 m0 0 h10 m70 0 h10 m0 0 h10 m26 0 h10 m0 0 h10 m134 0 h10 m0 0 h10 m24 0 h10 m0 0 h10 m134 0 h10 m0 0 h10 m26 0 h10 m3 0 h-3"></path>
+         <polygon points="563 17 571 13 571 21"></polygon>
+         <polygon points="563 17 555 13 555 21"></polygon></svg><p xmlns:xhtml="http://www.w3.org/1999/xhtml">
+         </p><div class="ebnf"><code>
+               <div><a href="https://awpslivedocs.z13.web.core.windows.net/#indexof_function_call" title="indexof_function_call">indexof_function_call</a></div>
+               <div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;::= 'indexof' '(' <a href="https://awpslivedocs.z13.web.core.windows.net/#string_expression" title="string_expression">string_expression</a> ',' <a href="https://awpslivedocs.z13.web.core.windows.net/#string_expression" title="string_expression">string_expression</a> ')'</div></code></div>
+      <p></p>
+      <p xmlns:xhtml="http://www.w3.org/1999/xhtml">referenced by:
+         </p><ul>
+            <li><a href="https://awpslivedocs.z13.web.core.windows.net/#function_call" title="function_call">function_call</a></li>
+         </ul>
+      <p></p><br xmlns:xhtml="http://www.w3.org/1999/xhtml"><p xmlns:xhtml="http://www.w3.org/1999/xhtml" style="font-size: 14px; font-weight:bold"><a name="concat_function_call">concat_function_call:</a></p><svg xmlns="http://www.w3.org/2000/svg" width="567" height="37">
+         <defs>
+            <style type="text/css">
+    @namespace "http://www.w3.org/2000/svg";
+    .line                 {fill: none; stroke: #332900; stroke-width: 1;}
+    .bold-line            {stroke: #141000; shape-rendering: crispEdges; stroke-width: 2;}
+    .thin-line            {stroke: #1F1800; shape-rendering: crispEdges}
+    .filled               {fill: #332900; stroke: none;}
+    text.terminal         {font-family: Verdana, Sans-serif;
+                            font-size: 12px;
+                            fill: #141000;
+                            font-weight: bold;
+                          }
+    text.nonterminal      {font-family: Verdana, Sans-serif;
+                            font-size: 12px;
+                            fill: #1A1400;
+                            font-weight: normal;
+                          }
+    text.regexp           {font-family: Verdana, Sans-serif;
+                            font-size: 12px;
+                            fill: #1F1800;
+                            font-weight: normal;
+                          }
+    rect, circle, polygon {fill: #332900; stroke: #332900;}
+    rect.terminal         {fill: #FFDB4D; stroke: #332900; stroke-width: 1;}
+    rect.nonterminal      {fill: #FFEC9E; stroke: #332900; stroke-width: 1;}
+    rect.text             {fill: none; stroke: none;}
+    polygon.regexp        {fill: #FFF4C7; stroke: #332900; stroke-width: 1;}
+  </style>
+         </defs>
+         <polygon points="9 17 1 13 1 21"></polygon>
+         <polygon points="17 17 9 13 9 21"></polygon>
+         <rect x="31" y="3" width="64" height="32" rx="10"></rect>
+         <rect x="29" y="1" width="64" height="32" class="terminal" rx="10"></rect>
+         <text class="terminal" x="39" y="21">concat</text>
+         <rect x="115" y="3" width="26" height="32" rx="10"></rect>
+         <rect x="113" y="1" width="26" height="32" class="terminal" rx="10"></rect>
+         <text class="terminal" x="123" y="21">(</text><a xmlns:xlink="http://www.w3.org/1999/xlink" xlink:href="#string_expression" xlink:title="string_expression">
+            <rect x="161" y="3" width="134" height="32"></rect>
+            <rect x="159" y="1" width="134" height="32" class="nonterminal"></rect>
+            <text class="nonterminal" x="169" y="21">string_expression</text></a><rect x="315" y="3" width="24" height="32" rx="10"></rect>
+         <rect x="313" y="1" width="24" height="32" class="terminal" rx="10"></rect>
+         <text class="terminal" x="323" y="21">,</text><a xmlns:xlink="http://www.w3.org/1999/xlink" xlink:href="#string_expression" xlink:title="string_expression">
+            <rect x="359" y="3" width="134" height="32"></rect>
+            <rect x="357" y="1" width="134" height="32" class="nonterminal"></rect>
+            <text class="nonterminal" x="367" y="21">string_expression</text></a><rect x="513" y="3" width="26" height="32" rx="10"></rect>
+         <rect x="511" y="1" width="26" height="32" class="terminal" rx="10"></rect>
+         <text class="terminal" x="521" y="21">)</text>
+         <path xmlns:svg="http://www.w3.org/2000/svg" class="line" d="m17 17 h2 m0 0 h10 m64 0 h10 m0 0 h10 m26 0 h10 m0 0 h10 m134 0 h10 m0 0 h10 m24 0 h10 m0 0 h10 m134 0 h10 m0 0 h10 m26 0 h10 m3 0 h-3"></path>
+         <polygon points="557 17 565 13 565 21"></polygon>
+         <polygon points="557 17 549 13 549 21"></polygon></svg><p xmlns:xhtml="http://www.w3.org/1999/xhtml">
+         </p><div class="ebnf"><code>
+               <div><a href="https://awpslivedocs.z13.web.core.windows.net/#concat_function_call" title="concat_function_call">concat_function_call</a></div>
+               <div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;::= 'concat' '(' <a href="https://awpslivedocs.z13.web.core.windows.net/#string_expression" title="string_expression">string_expression</a> ',' <a href="https://awpslivedocs.z13.web.core.windows.net/#string_expression" title="string_expression">string_expression</a> ')'</div></code></div>
+      <p></p>
+      <p xmlns:xhtml="http://www.w3.org/1999/xhtml">referenced by:
+         </p><ul>
+            <li><a href="https://awpslivedocs.z13.web.core.windows.net/#string_function_call" title="string_function_call">string_function_call</a></li>
+         </ul>
+      <p></p><br xmlns:xhtml="http://www.w3.org/1999/xhtml"><p xmlns:xhtml="http://www.w3.org/1999/xhtml" style="font-size: 14px; font-weight:bold"><a name="contains_function_call">contains_function_call:</a></p><svg xmlns="http://www.w3.org/2000/svg" width="579" height="37">
+         <defs>
+            <style type="text/css">
+    @namespace "http://www.w3.org/2000/svg";
+    .line                 {fill: none; stroke: #332900; stroke-width: 1;}
+    .bold-line            {stroke: #141000; shape-rendering: crispEdges; stroke-width: 2;}
+    .thin-line            {stroke: #1F1800; shape-rendering: crispEdges}
+    .filled               {fill: #332900; stroke: none;}
+    text.terminal         {font-family: Verdana, Sans-serif;
+                            font-size: 12px;
+                            fill: #141000;
+                            font-weight: bold;
+                          }
+    text.nonterminal      {font-family: Verdana, Sans-serif;
+                            font-size: 12px;
+                            fill: #1A1400;
+                            font-weight: normal;
+                          }
+    text.regexp           {font-family: Verdana, Sans-serif;
+                            font-size: 12px;
+                            fill: #1F1800;
+                            font-weight: normal;
+                          }
+    rect, circle, polygon {fill: #332900; stroke: #332900;}
+    rect.terminal         {fill: #FFDB4D; stroke: #332900; stroke-width: 1;}
+    rect.nonterminal      {fill: #FFEC9E; stroke: #332900; stroke-width: 1;}
+    rect.text             {fill: none; stroke: none;}
+    polygon.regexp        {fill: #FFF4C7; stroke: #332900; stroke-width: 1;}
+  </style>
+         </defs>
+         <polygon points="9 17 1 13 1 21"></polygon>
+         <polygon points="17 17 9 13 9 21"></polygon>
+         <rect x="31" y="3" width="76" height="32" rx="10"></rect>
+         <rect x="29" y="1" width="76" height="32" class="terminal" rx="10"></rect>
+         <text class="terminal" x="39" y="21">contains</text>
+         <rect x="127" y="3" width="26" height="32" rx="10"></rect>
+         <rect x="125" y="1" width="26" height="32" class="terminal" rx="10"></rect>
+         <text class="terminal" x="135" y="21">(</text><a xmlns:xlink="http://www.w3.org/1999/xlink" xlink:href="#string_expression" xlink:title="string_expression">
+            <rect x="173" y="3" width="134" height="32"></rect>
+            <rect x="171" y="1" width="134" height="32" class="nonterminal"></rect>
+            <text class="nonterminal" x="181" y="21">string_expression</text></a><rect x="327" y="3" width="24" height="32" rx="10"></rect>
+         <rect x="325" y="1" width="24" height="32" class="terminal" rx="10"></rect>
+         <text class="terminal" x="335" y="21">,</text><a xmlns:xlink="http://www.w3.org/1999/xlink" xlink:href="#string_expression" xlink:title="string_expression">
+            <rect x="371" y="3" width="134" height="32"></rect>
+            <rect x="369" y="1" width="134" height="32" class="nonterminal"></rect>
+            <text class="nonterminal" x="379" y="21">string_expression</text></a><rect x="525" y="3" width="26" height="32" rx="10"></rect>
+         <rect x="523" y="1" width="26" height="32" class="terminal" rx="10"></rect>
+         <text class="terminal" x="533" y="21">)</text>
+         <path xmlns:svg="http://www.w3.org/2000/svg" class="line" d="m17 17 h2 m0 0 h10 m76 0 h10 m0 0 h10 m26 0 h10 m0 0 h10 m134 0 h10 m0 0 h10 m24 0 h10 m0 0 h10 m134 0 h10 m0 0 h10 m26 0 h10 m3 0 h-3"></path>
+         <polygon points="569 17 577 13 577 21"></polygon>
+         <polygon points="569 17 561 13 561 21"></polygon></svg><p xmlns:xhtml="http://www.w3.org/1999/xhtml">
+         </p><div class="ebnf"><code>
+               <div><a href="https://awpslivedocs.z13.web.core.windows.net/#contains_function_call" title="contains_function_call">contains_function_call</a></div>
+               <div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;::= 'contains' '(' <a href="https://awpslivedocs.z13.web.core.windows.net/#string_expression" title="string_expression">string_expression</a> ',' <a href="https://awpslivedocs.z13.web.core.windows.net/#string_expression" title="string_expression">string_expression</a> ')'</div></code></div>
+      <p></p>
+      <p xmlns:xhtml="http://www.w3.org/1999/xhtml">referenced by:
+         </p><ul>
+            <li><a href="https://awpslivedocs.z13.web.core.windows.net/#boolean_function_call" title="boolean_function_call">boolean_function_call</a></li>
+         </ul>
+      <p></p><br xmlns:xhtml="http://www.w3.org/1999/xhtml"><p xmlns:xhtml="http://www.w3.org/1999/xhtml" style="font-size: 14px; font-weight:bold"><a name="endsWith_function_call">endsWith_function_call:</a></p><svg xmlns="http://www.w3.org/2000/svg" width="585" height="37">
+         <defs>
+            <style type="text/css">
+    @namespace "http://www.w3.org/2000/svg";
+    .line                 {fill: none; stroke: #332900; stroke-width: 1;}
+    .bold-line            {stroke: #141000; shape-rendering: crispEdges; stroke-width: 2;}
+    .thin-line            {stroke: #1F1800; shape-rendering: crispEdges}
+    .filled               {fill: #332900; stroke: none;}
+    text.terminal         {font-family: Verdana, Sans-serif;
+                            font-size: 12px;
+                            fill: #141000;
+                            font-weight: bold;
+                          }
+    text.nonterminal      {font-family: Verdana, Sans-serif;
+                            font-size: 12px;
+                            fill: #1A1400;
+                            font-weight: normal;
+                          }
+    text.regexp           {font-family: Verdana, Sans-serif;
+                            font-size: 12px;
+                            fill: #1F1800;
+                            font-weight: normal;
+                          }
+    rect, circle, polygon {fill: #332900; stroke: #332900;}
+    rect.terminal         {fill: #FFDB4D; stroke: #332900; stroke-width: 1;}
+    rect.nonterminal      {fill: #FFEC9E; stroke: #332900; stroke-width: 1;}
+    rect.text             {fill: none; stroke: none;}
+    polygon.regexp        {fill: #FFF4C7; stroke: #332900; stroke-width: 1;}
+  </style>
+         </defs>
+         <polygon points="9 17 1 13 1 21"></polygon>
+         <polygon points="17 17 9 13 9 21"></polygon>
+         <rect x="31" y="3" width="82" height="32" rx="10"></rect>
+         <rect x="29" y="1" width="82" height="32" class="terminal" rx="10"></rect>
+         <text class="terminal" x="39" y="21">endswith</text>
+         <rect x="133" y="3" width="26" height="32" rx="10"></rect>
+         <rect x="131" y="1" width="26" height="32" class="terminal" rx="10"></rect>
+         <text class="terminal" x="141" y="21">(</text><a xmlns:xlink="http://www.w3.org/1999/xlink" xlink:href="#string_expression" xlink:title="string_expression">
+            <rect x="179" y="3" width="134" height="32"></rect>
+            <rect x="177" y="1" width="134" height="32" class="nonterminal"></rect>
+            <text class="nonterminal" x="187" y="21">string_expression</text></a><rect x="333" y="3" width="24" height="32" rx="10"></rect>
+         <rect x="331" y="1" width="24" height="32" class="terminal" rx="10"></rect>
+         <text class="terminal" x="341" y="21">,</text><a xmlns:xlink="http://www.w3.org/1999/xlink" xlink:href="#string_expression" xlink:title="string_expression">
+            <rect x="377" y="3" width="134" height="32"></rect>
+            <rect x="375" y="1" width="134" height="32" class="nonterminal"></rect>
+            <text class="nonterminal" x="385" y="21">string_expression</text></a><rect x="531" y="3" width="26" height="32" rx="10"></rect>
+         <rect x="529" y="1" width="26" height="32" class="terminal" rx="10"></rect>
+         <text class="terminal" x="539" y="21">)</text>
+         <path xmlns:svg="http://www.w3.org/2000/svg" class="line" d="m17 17 h2 m0 0 h10 m82 0 h10 m0 0 h10 m26 0 h10 m0 0 h10 m134 0 h10 m0 0 h10 m24 0 h10 m0 0 h10 m134 0 h10 m0 0 h10 m26 0 h10 m3 0 h-3"></path>
+         <polygon points="575 17 583 13 583 21"></polygon>
+         <polygon points="575 17 567 13 567 21"></polygon></svg><p xmlns:xhtml="http://www.w3.org/1999/xhtml">
+         </p><div class="ebnf"><code>
+               <div><a href="https://awpslivedocs.z13.web.core.windows.net/#endsWith_function_call" title="endsWith_function_call">endsWith_function_call</a></div>
+               <div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;::= 'endswith' '(' <a href="https://awpslivedocs.z13.web.core.windows.net/#string_expression" title="string_expression">string_expression</a> ',' <a href="https://awpslivedocs.z13.web.core.windows.net/#string_expression" title="string_expression">string_expression</a> ')'</div></code></div>
+      <p></p>
+      <p xmlns:xhtml="http://www.w3.org/1999/xhtml">referenced by:
+         </p><ul>
+            <li><a href="https://awpslivedocs.z13.web.core.windows.net/#boolean_function_call" title="boolean_function_call">boolean_function_call</a></li>
+         </ul>
+      <p></p><br xmlns:xhtml="http://www.w3.org/1999/xhtml"><p xmlns:xhtml="http://www.w3.org/1999/xhtml" style="font-size: 14px; font-weight:bold"><a name="startsWith_function_call">startsWith_function_call:</a></p><svg xmlns="http://www.w3.org/2000/svg" width="591" height="37">
+         <defs>
+            <style type="text/css">
+    @namespace "http://www.w3.org/2000/svg";
+    .line                 {fill: none; stroke: #332900; stroke-width: 1;}
+    .bold-line            {stroke: #141000; shape-rendering: crispEdges; stroke-width: 2;}
+    .thin-line            {stroke: #1F1800; shape-rendering: crispEdges}
+    .filled               {fill: #332900; stroke: none;}
+    text.terminal         {font-family: Verdana, Sans-serif;
+                            font-size: 12px;
+                            fill: #141000;
+                            font-weight: bold;
+                          }
+    text.nonterminal      {font-family: Verdana, Sans-serif;
+                            font-size: 12px;
+                            fill: #1A1400;
+                            font-weight: normal;
+                          }
+    text.regexp           {font-family: Verdana, Sans-serif;
+                            font-size: 12px;
+                            fill: #1F1800;
+                            font-weight: normal;
+                          }
+    rect, circle, polygon {fill: #332900; stroke: #332900;}
+    rect.terminal         {fill: #FFDB4D; stroke: #332900; stroke-width: 1;}
+    rect.nonterminal      {fill: #FFEC9E; stroke: #332900; stroke-width: 1;}
+    rect.text             {fill: none; stroke: none;}
+    polygon.regexp        {fill: #FFF4C7; stroke: #332900; stroke-width: 1;}
+  </style>
+         </defs>
+         <polygon points="9 17 1 13 1 21"></polygon>
+         <polygon points="17 17 9 13 9 21"></polygon>
+         <rect x="31" y="3" width="88" height="32" rx="10"></rect>
+         <rect x="29" y="1" width="88" height="32" class="terminal" rx="10"></rect>
+         <text class="terminal" x="39" y="21">startswith</text>
+         <rect x="139" y="3" width="26" height="32" rx="10"></rect>
+         <rect x="137" y="1" width="26" height="32" class="terminal" rx="10"></rect>
+         <text class="terminal" x="147" y="21">(</text><a xmlns:xlink="http://www.w3.org/1999/xlink" xlink:href="#string_expression" xlink:title="string_expression">
+            <rect x="185" y="3" width="134" height="32"></rect>
+            <rect x="183" y="1" width="134" height="32" class="nonterminal"></rect>
+            <text class="nonterminal" x="193" y="21">string_expression</text></a><rect x="339" y="3" width="24" height="32" rx="10"></rect>
+         <rect x="337" y="1" width="24" height="32" class="terminal" rx="10"></rect>
+         <text class="terminal" x="347" y="21">,</text><a xmlns:xlink="http://www.w3.org/1999/xlink" xlink:href="#string_expression" xlink:title="string_expression">
+            <rect x="383" y="3" width="134" height="32"></rect>
+            <rect x="381" y="1" width="134" height="32" class="nonterminal"></rect>
+            <text class="nonterminal" x="391" y="21">string_expression</text></a><rect x="537" y="3" width="26" height="32" rx="10"></rect>
+         <rect x="535" y="1" width="26" height="32" class="terminal" rx="10"></rect>
+         <text class="terminal" x="545" y="21">)</text>
+         <path xmlns:svg="http://www.w3.org/2000/svg" class="line" d="m17 17 h2 m0 0 h10 m88 0 h10 m0 0 h10 m26 0 h10 m0 0 h10 m134 0 h10 m0 0 h10 m24 0 h10 m0 0 h10 m134 0 h10 m0 0 h10 m26 0 h10 m3 0 h-3"></path>
+         <polygon points="581 17 589 13 589 21"></polygon>
+         <polygon points="581 17 573 13 573 21"></polygon></svg><p xmlns:xhtml="http://www.w3.org/1999/xhtml">
+         </p><div class="ebnf"><code>
+               <div><a href="https://awpslivedocs.z13.web.core.windows.net/#startsWith_function_call" title="startsWith_function_call">startsWith_function_call</a></div>
+               <div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;::= 'startswith' '(' <a href="https://awpslivedocs.z13.web.core.windows.net/#string_expression" title="string_expression">string_expression</a> ',' <a href="https://awpslivedocs.z13.web.core.windows.net/#string_expression" title="string_expression">string_expression</a> ')'</div></code></div>
+      <p></p>
+      <p xmlns:xhtml="http://www.w3.org/1999/xhtml">referenced by:
+         </p><ul>
+            <li><a href="https://awpslivedocs.z13.web.core.windows.net/#boolean_function_call" title="boolean_function_call">boolean_function_call</a></li>
+         </ul>
+      <p></p><br xmlns:xhtml="http://www.w3.org/1999/xhtml"><p xmlns:xhtml="http://www.w3.org/1999/xhtml" style="font-size: 14px; font-weight:bold"><a name="substring_function_call">substring_function_call:</a></p><svg xmlns="http://www.w3.org/2000/svg" width="773" height="69">
+         <defs>
+            <style type="text/css">
+    @namespace "http://www.w3.org/2000/svg";
+    .line                 {fill: none; stroke: #332900; stroke-width: 1;}
+    .bold-line            {stroke: #141000; shape-rendering: crispEdges; stroke-width: 2;}
+    .thin-line            {stroke: #1F1800; shape-rendering: crispEdges}
+    .filled               {fill: #332900; stroke: none;}
+    text.terminal         {font-family: Verdana, Sans-serif;
+                            font-size: 12px;
+                            fill: #141000;
+                            font-weight: bold;
+                          }
+    text.nonterminal      {font-family: Verdana, Sans-serif;
+                            font-size: 12px;
+                            fill: #1A1400;
+                            font-weight: normal;
+                          }
+    text.regexp           {font-family: Verdana, Sans-serif;
+                            font-size: 12px;
+                            fill: #1F1800;
+                            font-weight: normal;
+                          }
+    rect, circle, polygon {fill: #332900; stroke: #332900;}
+    rect.terminal         {fill: #FFDB4D; stroke: #332900; stroke-width: 1;}
+    rect.nonterminal      {fill: #FFEC9E; stroke: #332900; stroke-width: 1;}
+    rect.text             {fill: none; stroke: none;}
+    polygon.regexp        {fill: #FFF4C7; stroke: #332900; stroke-width: 1;}
+  </style>
+         </defs>
+         <polygon points="9 17 1 13 1 21"></polygon>
+         <polygon points="17 17 9 13 9 21"></polygon>
+         <rect x="31" y="3" width="84" height="32" rx="10"></rect>
+         <rect x="29" y="1" width="84" height="32" class="terminal" rx="10"></rect>
+         <text class="terminal" x="39" y="21">substring</text>
+         <rect x="135" y="3" width="26" height="32" rx="10"></rect>
+         <rect x="133" y="1" width="26" height="32" class="terminal" rx="10"></rect>
+         <text class="terminal" x="143" y="21">(</text><a xmlns:xlink="http://www.w3.org/1999/xlink" xlink:href="#string_expression" xlink:title="string_expression">
+            <rect x="181" y="3" width="134" height="32"></rect>
+            <rect x="179" y="1" width="134" height="32" class="nonterminal"></rect>
+            <text class="nonterminal" x="189" y="21">string_expression</text></a><rect x="335" y="3" width="24" height="32" rx="10"></rect>
+         <rect x="333" y="1" width="24" height="32" class="terminal" rx="10"></rect>
+         <text class="terminal" x="343" y="21">,</text><a xmlns:xlink="http://www.w3.org/1999/xlink" xlink:href="#integer_literal" xlink:title="integer_literal">
+            <rect x="379" y="3" width="108" height="32"></rect>
+            <rect x="377" y="1" width="108" height="32" class="nonterminal"></rect>
+            <text class="nonterminal" x="387" y="21">integer_literal</text></a><rect x="527" y="35" width="24" height="32" rx="10"></rect>
+         <rect x="525" y="33" width="24" height="32" class="terminal" rx="10"></rect>
+         <text class="terminal" x="535" y="53">,</text><a xmlns:xlink="http://www.w3.org/1999/xlink" xlink:href="#integer_literal" xlink:title="integer_literal">
+            <rect x="571" y="35" width="108" height="32"></rect>
+            <rect x="569" y="33" width="108" height="32" class="nonterminal"></rect>
+            <text class="nonterminal" x="579" y="53">integer_literal</text></a><rect x="719" y="3" width="26" height="32" rx="10"></rect>
+         <rect x="717" y="1" width="26" height="32" class="terminal" rx="10"></rect>
+         <text class="terminal" x="727" y="21">)</text>
+         <path xmlns:svg="http://www.w3.org/2000/svg" class="line" d="m17 17 h2 m0 0 h10 m84 0 h10 m0 0 h10 m26 0 h10 m0 0 h10 m134 0 h10 m0 0 h10 m24 0 h10 m0 0 h10 m108 0 h10 m20 0 h10 m0 0 h162 m-192 0 h20 m172 0 h20 m-212 0 q10 0 10 10 m192 0 q0 -10 10 -10 m-202 10 v12 m192 0 v-12 m-192 12 q0 10 10 10 m172 0 q10 0 10 -10 m-182 10 h10 m24 0 h10 m0 0 h10 m108 0 h10 m20 -32 h10 m26 0 h10 m3 0 h-3"></path>
+         <polygon points="763 17 771 13 771 21"></polygon>
+         <polygon points="763 17 755 13 755 21"></polygon></svg><p xmlns:xhtml="http://www.w3.org/1999/xhtml">
+         </p><div class="ebnf"><code>
+               <div><a href="https://awpslivedocs.z13.web.core.windows.net/#substring_function_call" title="substring_function_call">substring_function_call</a></div>
+               <div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;::= 'substring' '(' <a href="https://awpslivedocs.z13.web.core.windows.net/#string_expression" title="string_expression">string_expression</a> ',' <a href="https://awpslivedocs.z13.web.core.windows.net/#integer_literal" title="integer_literal">integer_literal</a> ( ',' <a href="https://awpslivedocs.z13.web.core.windows.net/#integer_literal" title="integer_literal">integer_literal</a> )? ')'</div></code></div>
+      <p></p>
+      <p xmlns:xhtml="http://www.w3.org/1999/xhtml">referenced by:
+         </p><ul>
+            <li><a href="https://awpslivedocs.z13.web.core.windows.net/#string_function_call" title="string_function_call">string_function_call</a></li>
+         </ul>
+      <p></p><br xmlns:xhtml="http://www.w3.org/1999/xhtml"><p xmlns:xhtml="http://www.w3.org/1999/xhtml" style="font-size: 14px; font-weight:bold"><a name="tolower_function_call">tolower_function_call:</a></p><svg xmlns="http://www.w3.org/2000/svg" width="377" height="37">
+         <defs>
+            <style type="text/css">
+    @namespace "http://www.w3.org/2000/svg";
+    .line                 {fill: none; stroke: #332900; stroke-width: 1;}
+    .bold-line            {stroke: #141000; shape-rendering: crispEdges; stroke-width: 2;}
+    .thin-line            {stroke: #1F1800; shape-rendering: crispEdges}
+    .filled               {fill: #332900; stroke: none;}
+    text.terminal         {font-family: Verdana, Sans-serif;
+                            font-size: 12px;
+                            fill: #141000;
+                            font-weight: bold;
+                          }
+    text.nonterminal      {font-family: Verdana, Sans-serif;
+                            font-size: 12px;
+                            fill: #1A1400;
+                            font-weight: normal;
+                          }
+    text.regexp           {font-family: Verdana, Sans-serif;
+                            font-size: 12px;
+                            fill: #1F1800;
+                            font-weight: normal;
+                          }
+    rect, circle, polygon {fill: #332900; stroke: #332900;}
+    rect.terminal         {fill: #FFDB4D; stroke: #332900; stroke-width: 1;}
+    rect.nonterminal      {fill: #FFEC9E; stroke: #332900; stroke-width: 1;}
+    rect.text             {fill: none; stroke: none;}
+    polygon.regexp        {fill: #FFF4C7; stroke: #332900; stroke-width: 1;}
+  </style>
+         </defs>
+         <polygon points="9 17 1 13 1 21"></polygon>
+         <polygon points="17 17 9 13 9 21"></polygon>
+         <rect x="31" y="3" width="72" height="32" rx="10"></rect>
+         <rect x="29" y="1" width="72" height="32" class="terminal" rx="10"></rect>
+         <text class="terminal" x="39" y="21">tolower</text>
+         <rect x="123" y="3" width="26" height="32" rx="10"></rect>
+         <rect x="121" y="1" width="26" height="32" class="terminal" rx="10"></rect>
+         <text class="terminal" x="131" y="21">(</text><a xmlns:xlink="http://www.w3.org/1999/xlink" xlink:href="#string_expression" xlink:title="string_expression">
+            <rect x="169" y="3" width="134" height="32"></rect>
+            <rect x="167" y="1" width="134" height="32" class="nonterminal"></rect>
+            <text class="nonterminal" x="177" y="21">string_expression</text></a><rect x="323" y="3" width="26" height="32" rx="10"></rect>
+         <rect x="321" y="1" width="26" height="32" class="terminal" rx="10"></rect>
+         <text class="terminal" x="331" y="21">)</text>
+         <path xmlns:svg="http://www.w3.org/2000/svg" class="line" d="m17 17 h2 m0 0 h10 m72 0 h10 m0 0 h10 m26 0 h10 m0 0 h10 m134 0 h10 m0 0 h10 m26 0 h10 m3 0 h-3"></path>
+         <polygon points="367 17 375 13 375 21"></polygon>
+         <polygon points="367 17 359 13 359 21"></polygon></svg><p xmlns:xhtml="http://www.w3.org/1999/xhtml">
+         </p><div class="ebnf"><code>
+               <div><a href="https://awpslivedocs.z13.web.core.windows.net/#tolower_function_call" title="tolower_function_call">tolower_function_call</a></div>
+               <div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;::= 'tolower' '(' <a href="https://awpslivedocs.z13.web.core.windows.net/#string_expression" title="string_expression">string_expression</a> ')'</div></code></div>
+      <p></p>
+      <p xmlns:xhtml="http://www.w3.org/1999/xhtml">referenced by:
+         </p><ul>
+            <li><a href="https://awpslivedocs.z13.web.core.windows.net/#string_function_call" title="string_function_call">string_function_call</a></li>
+         </ul>
+      <p></p><br xmlns:xhtml="http://www.w3.org/1999/xhtml"><p xmlns:xhtml="http://www.w3.org/1999/xhtml" style="font-size: 14px; font-weight:bold"><a name="toupper_function_call">toupper_function_call:</a></p><svg xmlns="http://www.w3.org/2000/svg" width="377" height="37">
+         <defs>
+            <style type="text/css">
+    @namespace "http://www.w3.org/2000/svg";
+    .line                 {fill: none; stroke: #332900; stroke-width: 1;}
+    .bold-line            {stroke: #141000; shape-rendering: crispEdges; stroke-width: 2;}
+    .thin-line            {stroke: #1F1800; shape-rendering: crispEdges}
+    .filled               {fill: #332900; stroke: none;}
+    text.terminal         {font-family: Verdana, Sans-serif;
+                            font-size: 12px;
+                            fill: #141000;
+                            font-weight: bold;
+                          }
+    text.nonterminal      {font-family: Verdana, Sans-serif;
+                            font-size: 12px;
+                            fill: #1A1400;
+                            font-weight: normal;
+                          }
+    text.regexp           {font-family: Verdana, Sans-serif;
+                            font-size: 12px;
+                            fill: #1F1800;
+                            font-weight: normal;
+                          }
+    rect, circle, polygon {fill: #332900; stroke: #332900;}
+    rect.terminal         {fill: #FFDB4D; stroke: #332900; stroke-width: 1;}
+    rect.nonterminal      {fill: #FFEC9E; stroke: #332900; stroke-width: 1;}
+    rect.text             {fill: none; stroke: none;}
+    polygon.regexp        {fill: #FFF4C7; stroke: #332900; stroke-width: 1;}
+  </style>
+         </defs>
+         <polygon points="9 17 1 13 1 21"></polygon>
+         <polygon points="17 17 9 13 9 21"></polygon>
+         <rect x="31" y="3" width="72" height="32" rx="10"></rect>
+         <rect x="29" y="1" width="72" height="32" class="terminal" rx="10"></rect>
+         <text class="terminal" x="39" y="21">toupper</text>
+         <rect x="123" y="3" width="26" height="32" rx="10"></rect>
+         <rect x="121" y="1" width="26" height="32" class="terminal" rx="10"></rect>
+         <text class="terminal" x="131" y="21">(</text><a xmlns:xlink="http://www.w3.org/1999/xlink" xlink:href="#string_expression" xlink:title="string_expression">
+            <rect x="169" y="3" width="134" height="32"></rect>
+            <rect x="167" y="1" width="134" height="32" class="nonterminal"></rect>
+            <text class="nonterminal" x="177" y="21">string_expression</text></a><rect x="323" y="3" width="26" height="32" rx="10"></rect>
+         <rect x="321" y="1" width="26" height="32" class="terminal" rx="10"></rect>
+         <text class="terminal" x="331" y="21">)</text>
+         <path xmlns:svg="http://www.w3.org/2000/svg" class="line" d="m17 17 h2 m0 0 h10 m72 0 h10 m0 0 h10 m26 0 h10 m0 0 h10 m134 0 h10 m0 0 h10 m26 0 h10 m3 0 h-3"></path>
+         <polygon points="367 17 375 13 375 21"></polygon>
+         <polygon points="367 17 359 13 359 21"></polygon></svg><p xmlns:xhtml="http://www.w3.org/1999/xhtml">
+         </p><div class="ebnf"><code>
+               <div><a href="https://awpslivedocs.z13.web.core.windows.net/#toupper_function_call" title="toupper_function_call">toupper_function_call</a></div>
+               <div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;::= 'toupper' '(' <a href="https://awpslivedocs.z13.web.core.windows.net/#string_expression" title="string_expression">string_expression</a> ')'</div></code></div>
+      <p></p>
+      <p xmlns:xhtml="http://www.w3.org/1999/xhtml">referenced by:
+         </p><ul>
+            <li><a href="https://awpslivedocs.z13.web.core.windows.net/#string_function_call" title="string_function_call">string_function_call</a></li>
+         </ul>
+      <p></p><br xmlns:xhtml="http://www.w3.org/1999/xhtml"><p xmlns:xhtml="http://www.w3.org/1999/xhtml" style="font-size: 14px; font-weight:bold"><a name="trim_function_call">trim_function_call:</a></p><svg xmlns="http://www.w3.org/2000/svg" width="353" height="37">
+         <defs>
+            <style type="text/css">
+    @namespace "http://www.w3.org/2000/svg";
+    .line                 {fill: none; stroke: #332900; stroke-width: 1;}
+    .bold-line            {stroke: #141000; shape-rendering: crispEdges; stroke-width: 2;}
+    .thin-line            {stroke: #1F1800; shape-rendering: crispEdges}
+    .filled               {fill: #332900; stroke: none;}
+    text.terminal         {font-family: Verdana, Sans-serif;
+                            font-size: 12px;
+                            fill: #141000;
+                            font-weight: bold;
+                          }
+    text.nonterminal      {font-family: Verdana, Sans-serif;
+                            font-size: 12px;
+                            fill: #1A1400;
+                            font-weight: normal;
+                          }
+    text.regexp           {font-family: Verdana, Sans-serif;
+                            font-size: 12px;
+                            fill: #1F1800;
+                            font-weight: normal;
+                          }
+    rect, circle, polygon {fill: #332900; stroke: #332900;}
+    rect.terminal         {fill: #FFDB4D; stroke: #332900; stroke-width: 1;}
+    rect.nonterminal      {fill: #FFEC9E; stroke: #332900; stroke-width: 1;}
+    rect.text             {fill: none; stroke: none;}
+    polygon.regexp        {fill: #FFF4C7; stroke: #332900; stroke-width: 1;}
+  </style>
+         </defs>
+         <polygon points="9 17 1 13 1 21"></polygon>
+         <polygon points="17 17 9 13 9 21"></polygon>
+         <rect x="31" y="3" width="48" height="32" rx="10"></rect>
+         <rect x="29" y="1" width="48" height="32" class="terminal" rx="10"></rect>
+         <text class="terminal" x="39" y="21">trim</text>
+         <rect x="99" y="3" width="26" height="32" rx="10"></rect>
+         <rect x="97" y="1" width="26" height="32" class="terminal" rx="10"></rect>
+         <text class="terminal" x="107" y="21">(</text><a xmlns:xlink="http://www.w3.org/1999/xlink" xlink:href="#string_expression" xlink:title="string_expression">
+            <rect x="145" y="3" width="134" height="32"></rect>
+            <rect x="143" y="1" width="134" height="32" class="nonterminal"></rect>
+            <text class="nonterminal" x="153" y="21">string_expression</text></a><rect x="299" y="3" width="26" height="32" rx="10"></rect>
+         <rect x="297" y="1" width="26" height="32" class="terminal" rx="10"></rect>
+         <text class="terminal" x="307" y="21">)</text>
+         <path xmlns:svg="http://www.w3.org/2000/svg" class="line" d="m17 17 h2 m0 0 h10 m48 0 h10 m0 0 h10 m26 0 h10 m0 0 h10 m134 0 h10 m0 0 h10 m26 0 h10 m3 0 h-3"></path>
+         <polygon points="343 17 351 13 351 21"></polygon>
+         <polygon points="343 17 335 13 335 21"></polygon></svg><p xmlns:xhtml="http://www.w3.org/1999/xhtml">
+         </p><div class="ebnf"><code>
+               <div><a href="https://awpslivedocs.z13.web.core.windows.net/#trim_function_call" title="trim_function_call">trim_function_call</a></div>
+               <div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;::= 'trim' '(' <a href="https://awpslivedocs.z13.web.core.windows.net/#string_expression" title="string_expression">string_expression</a> ')'</div></code></div>
+      <p></p>
+      <p xmlns:xhtml="http://www.w3.org/1999/xhtml">referenced by:
+         </p><ul>
+            <li><a href="https://awpslivedocs.z13.web.core.windows.net/#string_function_call" title="string_function_call">string_function_call</a></li>
+         </ul>
+      <p></p><br xmlns:xhtml="http://www.w3.org/1999/xhtml"><p xmlns:xhtml="http://www.w3.org/1999/xhtml" style="font-size: 14px; font-weight:bold"><a name="length_function_call">length_function_call:</a></p><svg xmlns="http://www.w3.org/2000/svg" width="361" height="81">
+         <defs>
+            <style type="text/css">
+    @namespace "http://www.w3.org/2000/svg";
+    .line                 {fill: none; stroke: #332900; stroke-width: 1;}
+    .bold-line            {stroke: #141000; shape-rendering: crispEdges; stroke-width: 2;}
+    .thin-line            {stroke: #1F1800; shape-rendering: crispEdges}
+    .filled               {fill: #332900; stroke: none;}
+    text.terminal         {font-family: Verdana, Sans-serif;
+                            font-size: 12px;
+                            fill: #141000;
+                            font-weight: bold;
+                          }
+    text.nonterminal      {font-family: Verdana, Sans-serif;
+                            font-size: 12px;
+                            fill: #1A1400;
+                            font-weight: normal;
+                          }
+    text.regexp           {font-family: Verdana, Sans-serif;
+                            font-size: 12px;
+                            fill: #1F1800;
+                            font-weight: normal;
+                          }
+    rect, circle, polygon {fill: #332900; stroke: #332900;}
+    rect.terminal         {fill: #FFDB4D; stroke: #332900; stroke-width: 1;}
+    rect.nonterminal      {fill: #FFEC9E; stroke: #332900; stroke-width: 1;}
+    rect.text             {fill: none; stroke: none;}
+    polygon.regexp        {fill: #FFF4C7; stroke: #332900; stroke-width: 1;}
+  </style>
+         </defs>
+         <polygon points="9 17 1 13 1 21"></polygon>
+         <polygon points="17 17 9 13 9 21"></polygon>
+         <rect x="51" y="3" width="62" height="32" rx="10"></rect>
+         <rect x="49" y="1" width="62" height="32" class="terminal" rx="10"></rect>
+         <text class="terminal" x="59" y="21">length</text>
+         <rect x="133" y="3" width="26" height="32" rx="10"></rect>
+         <rect x="131" y="1" width="26" height="32" class="terminal" rx="10"></rect>
+         <text class="terminal" x="141" y="21">(</text><a xmlns:xlink="http://www.w3.org/1999/xlink" xlink:href="#string_expression" xlink:title="string_expression">
+            <rect x="179" y="3" width="134" height="32"></rect>
+            <rect x="177" y="1" width="134" height="32" class="nonterminal"></rect>
+            <text class="nonterminal" x="187" y="21">string_expression</text></a><a xmlns:xlink="http://www.w3.org/1999/xlink" xlink:href="#collection_expression" xlink:title="collection_expression">
+            <rect x="51" y="47" width="156" height="32"></rect>
+            <rect x="49" y="45" width="156" height="32" class="nonterminal"></rect>
+            <text class="nonterminal" x="59" y="65">collection_expression</text></a><rect x="227" y="47" width="26" height="32" rx="10"></rect>
+         <rect x="225" y="45" width="26" height="32" class="terminal" rx="10"></rect>
+         <text class="terminal" x="235" y="65">)</text>
+         <path xmlns:svg="http://www.w3.org/2000/svg" class="line" d="m17 17 h2 m20 0 h10 m62 0 h10 m0 0 h10 m26 0 h10 m0 0 h10 m134 0 h10 m-302 0 h20 m282 0 h20 m-322 0 q10 0 10 10 m302 0 q0 -10 10 -10 m-312 10 v24 m302 0 v-24 m-302 24 q0 10 10 10 m282 0 q10 0 10 -10 m-292 10 h10 m156 0 h10 m0 0 h10 m26 0 h10 m0 0 h60 m23 -44 h-3"></path>
+         <polygon points="351 17 359 13 359 21"></polygon>
+         <polygon points="351 17 343 13 343 21"></polygon></svg><p xmlns:xhtml="http://www.w3.org/1999/xhtml">
+         </p><div class="ebnf"><code>
+               <div><a href="https://awpslivedocs.z13.web.core.windows.net/#length_function_call" title="length_function_call">length_function_call</a></div>
+               <div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;::= 'length' '(' <a href="https://awpslivedocs.z13.web.core.windows.net/#string_expression" title="string_expression">string_expression</a></div>
+               <div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;| <a href="https://awpslivedocs.z13.web.core.windows.net/#collection_expression" title="collection_expression">collection_expression</a> ')'</div></code></div>
+      <p></p>
+      <p xmlns:xhtml="http://www.w3.org/1999/xhtml">referenced by:
+         </p><ul>
+            <li><a href="https://awpslivedocs.z13.web.core.windows.net/#function_call" title="function_call">function_call</a></li>
+         </ul>
+      <p></p><br xmlns:xhtml="http://www.w3.org/1999/xhtml"><hr xmlns:xhtml="http://www.w3.org/1999/xhtml">
+      <p xmlns:xhtml="http://www.w3.org/1999/xhtml">
+         </p><table border="0" class="signature">
+            <tbody><tr>
+               <td style="width: 100%">&nbsp;</td>
+               <td valign="top">
+                  <nobr class="signature">... generated by <a name="Railroad-Diagram-Generator" class="signature" title="https://bottlecaps.de/rr/ui" href="https://bottlecaps.de/rr/ui" target="_blank">RR - Railroad Diagram Generator</a></nobr>
+               </td>
+               <td><a name="Railroad-Diagram-Generator" title="https://bottlecaps.de/rr/ui" href="https://bottlecaps.de/rr/ui" target="_blank"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16">
+                        <g transform="scale(0.178)">
+                           <circle cx="45" cy="45" r="45" style="stroke:none; fill:#FFCC00"></circle>
+                           <circle cx="45" cy="45" r="42" style="stroke:#332900; stroke-width:2px; fill:#FFCC00"></circle>
+                           <line x1="15" y1="15" x2="75" y2="75" stroke="#332900" style="stroke-width:9px;"></line>
+                           <line x1="15" y1="75" x2="75" y2="15" stroke="#332900" style="stroke-width:9px;"></line>
+                           <text x="7" y="54" style="font-size:26px; font-family:Arial, Sans-serif; font-weight:bold; fill: #332900">R</text>
+                           <text x="64" y="54" style="font-size:26px; font-family:Arial, Sans-serif; font-weight:bold; fill: #332900">R</text>
+                        </g></svg></a></td>
+            </tr>
+         </tbody></table>
+      <p></p>
+   
+<grammarly-desktop-integration data-grammarly-shadow-root="true"></grammarly-desktop-integration></body></html>
