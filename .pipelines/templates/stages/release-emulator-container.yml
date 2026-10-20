@@ -4,11 +4,52 @@ parameters:
 
 stages:
   - stage: emulator_container_build
-    displayName: 'Build and test Docker image with OneBranch'
+    displayName: 'Build and test AMD64 and ARM64 Docker images with OneBranch'
     isSkippable: false
     dependsOn: emulator_build
     condition: and(not(canceled()), eq(dependencies.emulator_build.result, 'Succeeded'))
     jobs:
+      - job: arm64_node
+        displayName: 'Prepare native ARM64 container test tools'
+        pool:
+          type: linux
+          hostArchitecture: arm64
+        variables:
+          ob_git_checkout: false
+          ob_outputDirectory: '$(Build.ArtifactStagingDirectory)/arm64-smoke'
+          ob_artifactBaseName: drop_emulator_arm64_smoke
+          ob_sdl_codeSignValidation_enabled: false
+          ob_sdl_binskim_enabled: false
+        steps:
+          - task: DownloadPipelineArtifact@2
+            inputs:
+              buildType: current
+              artifactName: drop_emulator
+              itemPattern: 'container/smoke/*.mjs'
+              targetPath: '$(ob_outputDirectory)'
+          - task: UseNode@1
+            inputs:
+              version: '$(emulatorSmokeNodeVersion)'
+          - task: Bash@3
+            displayName: 'Save native ARM64 container test tools'
+            inputs:
+              targetType: inline
+              script: |
+                set -euo pipefail
+                node_path='$(Agent.ToolsDirectory)/node/$(emulatorSmokeNodeVersion)/arm64/bin/node'
+                test "$("$node_path" -p process.arch)" = arm64
+                cp "$node_path" '$(ob_outputDirectory)/container/smoke/node'
+                # ContainerStructureTest@0 downloads an AMD64 binary by default.
+                # Its cache lookup uses 1.0.0 regardless of the downloaded version.
+                tester_root='$(ob_outputDirectory)/container-structure-test/1.0.0'
+                mkdir -p "$tester_root/arm64"
+                tester="$tester_root/arm64/container-structure-test"
+                curl --fail --location \
+                  'https://github.com/GoogleContainerTools/container-structure-test/releases/download/v1.22.1/container-structure-test-linux-arm64' \
+                  --output "$tester"
+                printf '%s  %s\n' '801826ed107222120eb6df8c143b7de752cfebbe3aebfeea576e7098486917c2' "$tester" | sha256sum --check
+                chmod +x "$tester"
+                touch "$tester_root/arm64.complete"
       - job: container
         pool:
           type: docker
@@ -38,13 +79,60 @@ stages:
               registry: onebranch.azurecr.io
               dockerFileRelPath: container/Dockerfile
               dockerFileContextPath: container
-              build_tag: '$(Build.BuildId)'
+              build_tag: '$(Build.BuildId)-amd64'
               arguments: '--build-arg EMULATOR_VERSION=$(releaseVersion) --label org.opencontainers.image.revision=$(Build.SourceVersion)'
               buildkit: 1
               enable_network: true
               enable_acr_push: false
               enable_isolated_acr_push: false
               saveImageToPath: 'webpubsub-emulator.$(releaseVersion).linux-amd64.tar'
+              compress: false
+              containerTestsYAMLPath: '$(Build.SourcesDirectory)/dst/container/container-tests.json'
+              failTaskOnFailedTests: true
+
+      - job: container_arm64
+        dependsOn: arm64_node
+        pool:
+          type: docker
+          os: linux
+          hostArchitecture: arm64
+        variables:
+          ob_git_checkout: false
+          releaseVersion: $[ stageDependencies.emulator_build.build.outputs['read.emulator_releaseVersion'] ]
+        steps:
+          - task: DownloadPipelineArtifact@2
+            inputs:
+              buildType: current
+              artifactName: drop_emulator
+              itemPattern: 'container/*'
+              targetPath: '$(Build.SourcesDirectory)/dst'
+          - task: DownloadPipelineArtifact@2
+            inputs:
+              buildType: current
+              artifactName: drop_emulator_arm64_smoke
+              itemPattern: 'container/smoke/**'
+              targetPath: '/tmp/awps-container-$(Build.BuildId)'
+          - task: DownloadPipelineArtifact@2
+            displayName: 'Install the native ARM64 container test tool cache'
+            inputs:
+              buildType: current
+              artifactName: drop_emulator_arm64_smoke
+              itemPattern: 'container-structure-test/**'
+              targetPath: '$(Agent.ToolsDirectory)'
+          - task: onebranch.pipeline.imagebuildinfo@1
+            displayName: 'Build ARM64 release-package image and run container smoke'
+            inputs:
+              repositoryName: webpubsub-emulator-build
+              registry: onebranch.azurecr.io
+              dockerFileRelPath: container/Dockerfile
+              dockerFileContextPath: container
+              build_tag: '$(Build.BuildId)-arm64'
+              arguments: '--build-arg EMULATOR_VERSION=$(releaseVersion) --label org.opencontainers.image.revision=$(Build.SourceVersion)'
+              buildkit: 1
+              enable_network: true
+              enable_acr_push: false
+              enable_isolated_acr_push: false
+              saveImageToPath: 'webpubsub-emulator.$(releaseVersion).linux-arm64.tar'
               compress: false
               containerTestsYAMLPath: '$(Build.SourcesDirectory)/dst/container/container-tests.json'
               failTaskOnFailedTests: true
@@ -58,11 +146,12 @@ stages:
     condition: and(not(canceled()), eq(dependencies.emulator_build.result, 'Succeeded'), eq(dependencies.emulator_container_build.result, 'Succeeded'))
     jobs:
       - job: container
-        condition: and(not(canceled()), eq(variables['containerBuildResult'], 'Succeeded'))
+        condition: and(not(canceled()), eq(variables['containerBuildResult'], 'Succeeded'), eq(variables['arm64BuildResult'], 'Succeeded'))
         pool:
           type: linux
         variables:
           containerBuildResult: $[ stageDependencies.emulator_container_build.container.result ]
+          arm64BuildResult: $[ stageDependencies.emulator_container_build.container_arm64.result ]
           ob_outputDirectory: '$(Build.ArtifactStagingDirectory)/emulator-container'
           ob_artifactBaseName: drop_emulator_container
           ob_sdl_codeSignValidation_enabled: false
@@ -82,6 +171,12 @@ stages:
               buildType: current
               artifactName: drop_emulator_container_build_container
               itemPattern: 'webpubsub-emulator.*.linux-amd64.tar'
+              targetPath: '$(ob_outputDirectory)'
+          - task: DownloadPipelineArtifact@2
+            inputs:
+              buildType: current
+              artifactName: drop_emulator_container_build_container_arm64
+              itemPattern: 'webpubsub-emulator.*.linux-arm64.tar'
               targetPath: '$(ob_outputDirectory)'
           - task: PowerShell@2
             displayName: 'Verify image provenance and save release artifact'

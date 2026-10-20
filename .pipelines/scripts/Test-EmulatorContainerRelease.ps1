@@ -5,7 +5,7 @@ $ErrorActionPreference = 'Stop'
 Set-StrictMode -Version Latest
 
 foreach ($name in @('Prepare-EmulatorContainer.ps1', 'Complete-EmulatorContainer.ps1', 'Publish-EmulatorContainer.ps1',
-    'Verify-EmulatorContainer.ps1', 'Test-EmulatorContainerRelease.ps1')) {
+    'Join-EmulatorContainer.ps1', 'Verify-EmulatorContainer.ps1', 'Test-EmulatorContainerRelease.ps1')) {
     $tokens = $null
     $parseErrors = $null
     [Management.Automation.Language.Parser]::ParseFile((Join-Path $PSScriptRoot $name), [ref] $tokens, [ref] $parseErrors) | Out-Null
@@ -32,19 +32,25 @@ function Reset-Test {
     $env:CONTAINER_RELEASE_REPOSITORY = 'release/emulator'
     Set-Content (Join-Path $root 'archive-fixture') 'Offline fixture: this is not a container image.'
     $script:metadata = @{
-        schemaVersion = 1; buildId = '123'; sourceVersion = $env:BUILD_SOURCEVERSION; version = '1.2.3'
-        packageSha256 = 'd' * 64; archiveSha256 = (Get-FileHash (Join-Path $root 'archive-fixture')).Hash.ToLowerInvariant()
-        imageReference = 'onebranch.azurecr.io/webpubsub-emulator-build:123'
-        imageConfigDigest = ('sha256:' + ('b' * 64)); platform = 'linux/amd64'
+        schemaVersion = 2; buildId = '123'; sourceVersion = $env:BUILD_SOURCEVERSION; version = '1.2.3'
+        packageSha256 = 'd' * 64
+        images = @(foreach ($architecture in @('amd64', 'arm64')) {
+            @{
+                archiveSha256 = (Get-FileHash (Join-Path $root 'archive-fixture')).Hash.ToLowerInvariant()
+                imageReference = "onebranch.azurecr.io/webpubsub-emulator-build:123-$architecture"
+                imageConfigDigest = ('sha256:' + ('b' * 64)); platform = "linux/$architecture"
+            }
+        })
     }
 }
 function Invoke-Case([string] $Name, [scriptblock] $Arrange, [string] $Failure = '') {
     Reset-Test
     & $Arrange
-    $archiveFile = "webpubsub-emulator.$($metadata.version).linux-amd64.tar"
-    $metadata.archiveFile = $archiveFile
-    Copy-Item (Join-Path $root 'archive-fixture') (Join-Path $root $archiveFile)
-    $metadata | ConvertTo-Json | Set-Content (Join-Path $root 'container-release.json')
+    foreach ($image in $metadata.images) {
+        $image.archiveFile = "webpubsub-emulator.$($metadata.version).$($image.platform.Replace('/', '-')).tar"
+        Copy-Item (Join-Path $root 'archive-fixture') (Join-Path $root $image.archiveFile)
+    }
+    $metadata | ConvertTo-Json -Depth 5 | Set-Content (Join-Path $root 'container-release.json')
     $caught = ''
     $variables = @{}
     try {
@@ -63,9 +69,15 @@ function Invoke-Case([string] $Name, [scriptblock] $Arrange, [string] $Failure =
         $tag = if ($env:CONTAINER_ACTION -eq 'latest') { 'latest' } else { $metadata.version }
         if ($variables.emulatorRegistry -cne 'testregistry.azurecr.io' -or
             $variables.emulatorTargetImage -cne "testregistry.azurecr.io/release/emulator:$tag" -or
-            $variables.emulatorArchivePath -cne (Join-Path $root $archiveFile) -or
-            $variables.emulatorImageReference -cne $metadata.imageReference) {
+            $variables.emulatorImageReference -cne "webpubsub-emulator:$($metadata.version)") {
             throw "${Name}: incorrect 1ES image publication inputs."
+        }
+        foreach ($image in $metadata.images) {
+            $architecture = $image.platform.Split('/')[-1]
+            if ($variables["emulatorArchivePath_$architecture"] -cne (Join-Path $root $image.archiveFile) -or
+                $variables["emulatorImageReference_$architecture"] -cne $image.imageReference) {
+                throw "${Name}: incorrect $architecture publication inputs."
+            }
         }
     }
     Write-Host "PASS $Name"
@@ -137,11 +149,13 @@ function Test-ContainerBuild {
     $configHash = 'b' * 64
     function tar {
         $global:LASTEXITCODE = 0
+        $architecture = if ($args[1] -like '*.linux-arm64.tar') { 'arm64' } else { 'amd64' }
         if ($args[-1] -eq 'manifest.json') {
-            ConvertTo-Json -InputObject @(@{ Config = $case.config; RepoTags = @($case.tag) }) -Compress
+            ConvertTo-Json -InputObject @(@{ Config = $case.config; RepoTags = @("$($case.tag)-$architecture") }) -Compress
         }
         else {
-            @{ os = 'linux'; architecture = 'amd64'; config = @{ Labels = @{
+            if ($case.wrongPlatform -and $architecture -eq 'arm64') { $architecture = 'amd64' }
+            @{ os = 'linux'; architecture = $architecture; config = @{ Labels = @{
                 'org.opencontainers.image.version' = $case.version
                 'org.opencontainers.image.revision' = $case.source
             } } } | ConvertTo-Json -Depth 4 -Compress
@@ -149,14 +163,16 @@ function Test-ContainerBuild {
     }
     $defaults = @{
         config = "$configHash.json"; tag = 'onebranch.azurecr.io/webpubsub-emulator-build:123'
-        source = $env:BUILD_SOURCEVERSION; version = '1.2.3'; failure = ''
+        source = $env:BUILD_SOURCEVERSION; version = '1.2.3'; failure = ''; wrongPlatform = $false; missingArm64 = $false
     }
     foreach ($overrides in @(
         @{ name = 'classic' },
         @{ name = 'containerd'; config = "blobs/sha256/$configHash" },
         @{ name = 'invalid-config'; config = 'invalid'; failure = 'configuration digest' },
         @{ name = 'wrong-source'; source = 'e' * 40; failure = 'source labels' },
-        @{ name = 'wrong-version'; version = '1.2.4'; failure = 'source labels' }
+        @{ name = 'wrong-version'; version = '1.2.4'; failure = 'source labels' },
+        @{ name = 'wrong-arm64-platform'; wrongPlatform = $true; failure = 'platform' },
+        @{ name = 'missing-arm64'; missingArm64 = $true; failure = 'does not exist' }
     )) {
         $case = $defaults.Clone()
         foreach ($entry in $overrides.GetEnumerator()) { $case[$entry.Key] = $entry.Value }
@@ -164,6 +180,9 @@ function Test-ContainerBuild {
         New-Item -ItemType Directory $output | Out-Null
         $archivePath = Join-Path $output 'webpubsub-emulator.1.2.3.linux-amd64.tar'
         Copy-Item (Join-Path $root 'archive-fixture') $archivePath
+        if (-not $case.missingArm64) {
+            Copy-Item (Join-Path $root 'archive-fixture') (Join-Path $output 'webpubsub-emulator.1.2.3.linux-arm64.tar')
+        }
         $archiveHash = (Get-FileHash $archivePath).Hash.ToLowerInvariant()
         $caught = ''
         try { & (Join-Path $PSScriptRoot 'Complete-EmulatorContainer.ps1') -ContextDirectory $contextDirectory -OutputDirectory $output }
@@ -176,10 +195,14 @@ function Test-ContainerBuild {
             if ($caught) { throw "Complete $($case.name): $caught" }
             if (-not (Test-Path (Join-Path $output 'Verify-EmulatorContainer.ps1'))) { throw 'Release artifact is missing the verification script.' }
             $saved = Get-Content (Join-Path $output 'container-release.json') -Raw | ConvertFrom-Json
-            if ($saved.archiveFile -cne 'webpubsub-emulator.1.2.3.linux-amd64.tar' -or
-                $saved.imageConfigDigest -cne "sha256:$configHash" -or $saved.imageReference -cne $case.tag -or
-                $saved.archiveSha256 -cne $archiveHash -or (Get-FileHash $archivePath).Hash.ToLowerInvariant() -cne $archiveHash) {
-                throw 'Recorded archive provenance does not match the saved image.'
+            if ($saved.schemaVersion -ne 2 -or $saved.images.Count -ne 2) { throw 'Both platforms must be recorded.' }
+            foreach ($image in $saved.images) {
+                $architecture = $image.platform.Split('/')[-1]
+                if ($image.archiveFile -cne "webpubsub-emulator.1.2.3.linux-$architecture.tar" -or
+                    $image.imageConfigDigest -cne "sha256:$configHash" -or $image.imageReference -cne "$($case.tag)-$architecture" -or
+                    $image.archiveSha256 -cne $archiveHash -or (Get-FileHash (Join-Path $output $image.archiveFile)).Hash.ToLowerInvariant() -cne $archiveHash) {
+                    throw 'Recorded archive provenance does not match the saved image.'
+                }
             }
         }
         Write-Host "PASS complete $($case.name)"
@@ -192,13 +215,16 @@ try {
     Invoke-Case 'invalid release repository fails' { $env:CONTAINER_RELEASE_REPOSITORY = '../invalid' } 'valid release repository'
     Invoke-Case 'metadata from another build fails' { $script:metadata.buildId = '122' } 'exact pipeline run'
     Invoke-Case 'metadata from another commit fails' { $script:metadata.sourceVersion = 'e' * 40 } 'exact pipeline run'
-    Invoke-Case 'tampered archive fails before transport' { $script:metadata.archiveSha256 = 'e' * 64 } 'bytes validated'
+    Invoke-Case 'tampered AMD64 archive fails before transport' { $script:metadata.images[0].archiveSha256 = 'e' * 64 } 'bytes validated'
+    Invoke-Case 'tampered ARM64 archive fails before transport' { $script:metadata.images[1].archiveSha256 = 'e' * 64 } 'bytes validated'
+    Invoke-Case 'missing ARM64 fails before transport' { $script:metadata.images = @($script:metadata.images[0]) } 'Expected tested AMD64 and ARM64'
+    Invoke-Case 'duplicated platform fails before transport' { $script:metadata.images[1].platform = 'linux/amd64' } 'Expected tested AMD64 and ARM64'
     Invoke-Case 'version prepares a direct release target' {}
     Invoke-Case 'beta prepares a version tag without advancing latest' { $script:metadata.version = '1.2.3-beta.1' }
     Invoke-Case 'latest uses the same tested archive' { $env:CONTAINER_ACTION = 'latest' }
     Invoke-Case 'latest rejects a tampered archive' {
         $env:CONTAINER_ACTION = 'latest'
-        $script:metadata.archiveSha256 = 'e' * 64
+        $script:metadata.images[1].archiveSha256 = 'e' * 64
     } 'bytes validated'
     Test-ContainerBuild
     Test-PublicationVerification

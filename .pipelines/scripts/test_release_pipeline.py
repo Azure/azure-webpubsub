@@ -192,28 +192,33 @@ class ReleasePipelineTests(unittest.TestCase):
         self.assertEqual(dependencies(build), ['emulator_build'])
         for result in ('Succeeded', 'Failed', 'Skipped', 'Canceled', 'SucceededWithIssues'):
             self.assertEqual(evaluate(build['condition'], {'dependencies.emulator_build.result': result}), result == 'Succeeded')
-        job = build['jobs'][0]
-        self.assertEqual(job['pool'], {'type': 'docker', 'os': 'linux'})
-        self.assertEqual(job['variables']['releaseVersion'], "$[ stageDependencies.emulator_build.build.outputs['read.emulator_releaseVersion'] ]")
-        steps = job['steps']
-        self.assertEqual([step['task'] for step in steps], ['DownloadPipelineArtifact@2', 'DownloadPipelineArtifact@2', 'onebranch.pipeline.imagebuildinfo@1'])
-        self.assertTrue(all(step['inputs']['artifactName'] == 'drop_emulator' and step['inputs']['buildType'] == 'current' for step in steps[:2]))
-        self.assertEqual(steps[0]['inputs']['itemPattern'], 'container/*')
-        self.assertEqual(steps[0]['inputs']['targetPath'], '$(Build.SourcesDirectory)/dst')
-        self.assertEqual(steps[1]['inputs']['itemPattern'], 'container/smoke/**')
-        self.assertEqual(steps[1]['inputs']['targetPath'], '/tmp/awps-container-$(Build.BuildId)')
-        image = steps[-1]['inputs']
-        self.assertEqual(image['dockerFileRelPath'], 'container/Dockerfile')
-        self.assertEqual(image['dockerFileContextPath'], 'container')
-        self.assertIn('--build-arg EMULATOR_VERSION=$(releaseVersion)', image['arguments'])
-        self.assertNotIn('--target', image['arguments'])
-        self.assertIn('org.opencontainers.image.revision=$(Build.SourceVersion)', image['arguments'])
-        self.assertEqual(image['saveImageToPath'], 'webpubsub-emulator.$(releaseVersion).linux-amd64.tar')
-        self.assertIs(image['enable_acr_push'], False)
-        self.assertIs(image['enable_isolated_acr_push'], False)
-        self.assertIs(image['compress'], False)
-        self.assertIs(image['failTaskOnFailedTests'], True)
-        self.assertEqual(image['containerTestsYAMLPath'], '$(Build.SourcesDirectory)/dst/container/container-tests.json')
+        jobs = {job['job']: job for job in build['jobs']}
+        native_runner = jobs['arm64_node']
+        self.assertEqual(native_runner['pool']['hostArchitecture'], 'arm64')
+        self.assertIn(native_runner['job'], dependencies(jobs['container_arm64']))
+        for architecture, name in (('amd64', 'container'), ('arm64', 'container_arm64')):
+            job = jobs[name]
+            self.assertEqual(job['pool'].get('hostArchitecture', 'amd64'), architecture)
+            self.assertEqual(job['variables']['releaseVersion'], "$[ stageDependencies.emulator_build.build.outputs['read.emulator_releaseVersion'] ]")
+            downloads = [s['inputs'] for s in job['steps'] if s.get('task') == 'DownloadPipelineArtifact@2']
+            self.assertTrue(all(d['buildType'] == 'current' for d in downloads))
+            package = next(d for d in downloads if d['itemPattern'] == 'container/*')
+            self.assertEqual(package['artifactName'], 'drop_emulator')
+            smoke = next(d for d in downloads if d['itemPattern'] == 'container/smoke/**')
+            self.assertEqual(smoke['artifactName'], 'drop_emulator' if architecture == 'amd64'
+                             else native_runner['variables']['ob_artifactBaseName'])
+            image = next(s['inputs'] for s in job['steps'] if s.get('task') == 'onebranch.pipeline.imagebuildinfo@1')
+            self.assertEqual(image['dockerFileRelPath'], 'container/Dockerfile')
+            self.assertEqual(image['dockerFileContextPath'], 'container')
+            self.assertIn('--build-arg EMULATOR_VERSION=$(releaseVersion)', image['arguments'])
+            self.assertNotIn('--target', image['arguments'])
+            self.assertIn('org.opencontainers.image.revision=$(Build.SourceVersion)', image['arguments'])
+            self.assertEqual(image['saveImageToPath'], f'webpubsub-emulator.$(releaseVersion).linux-{architecture}.tar')
+            self.assertIs(image['enable_acr_push'], False)
+            self.assertIs(image['enable_isolated_acr_push'], False)
+            self.assertIs(image['compress'], False)
+            self.assertIs(image['failTaskOnFailedTests'], True)
+            self.assertEqual(image['containerTestsYAMLPath'], package['targetPath'] + '/container/container-tests.json')
 
     def test_context_preparation_reuses_package_build_and_installed_node(self):
         self.assertNotIn('emulator_container_prepare', STAGES)
@@ -224,7 +229,8 @@ class ReleasePipelineTests(unittest.TestCase):
         self.assertFalse(any(s.get('task') == 'DownloadPipelineArtifact@2' for s in steps))
         node = next(s for s in steps if s.get('task') == 'UseNode@1')
         self.assertEqual(node['inputs']['version'], '$(emulatorSmokeNodeVersion)')
-        self.assertRegex(job['variables']['emulatorSmokeNodeVersion'], r'^22\.\d+\.\d+$')
+        node_version = next(v['value'] for v in PIPELINE['variables'] if v.get('name') == 'emulatorSmokeNodeVersion')
+        self.assertRegex(node_version, r'^22\.\d+\.\d+$')
         script = steps[-1]['inputs']['script']
         self.assertLess(script.rindex('-Phase Validate'), script.index('Prepare-EmulatorContainer.ps1'))
         self.assertIn("-PackageDirectory '$(ob_outputDirectory)/release'", script)
@@ -237,19 +243,24 @@ class ReleasePipelineTests(unittest.TestCase):
         self.assertEqual(dependencies(validate), ['emulator_build', 'emulator_container_build'])
         job = validate['jobs'][0]
         self.assertEqual(job['variables']['containerBuildResult'], '$[ stageDependencies.emulator_container_build.container.result ]')
+        self.assertEqual(job['variables']['arm64BuildResult'], '$[ stageDependencies.emulator_container_build.container_arm64.result ]')
         self.assertEqual(job['variables']['ob_artifactBaseName'], 'drop_emulator_container')
         downloads = [s['inputs'] for s in job['steps'] if s.get('task') == 'DownloadPipelineArtifact@2']
-        self.assertEqual([(s['artifactName'], s['itemPattern']) for s in downloads], [
+        self.assertCountEqual([(s['artifactName'], s['itemPattern']) for s in downloads], [
             ('drop_emulator', 'container/container-input.json'),
-            ('drop_emulator_container_build_container', 'webpubsub-emulator.*.linux-amd64.tar')])
-        self.assertEqual(downloads[1]['targetPath'], '$(ob_outputDirectory)')
+            ('drop_emulator_container_build_container', 'webpubsub-emulator.*.linux-amd64.tar'),
+            ('drop_emulator_container_build_container_arm64', 'webpubsub-emulator.*.linux-arm64.tar')])
+        self.assertTrue(all(d['targetPath'] == '$(ob_outputDirectory)' for d in downloads if d['itemPattern'].endswith('.tar')))
         states = ('Succeeded', 'Failed', 'Skipped', 'Canceled', 'SucceededWithIssues', '')
         for preparation, build in itertools.product(states, repeat=2):
             values = context() | {'dependencies.emulator_build.result': preparation,
                                   'dependencies.emulator_container_build.result': build}
             self.assertEqual(evaluate(validate['condition'], values), preparation == build == 'Succeeded')
-        for result in states:
-            self.assertEqual(evaluate(job['condition'], {"variables['containerBuildResult']": result}), result == 'Succeeded')
+        for amd64, arm64 in itertools.product(states, repeat=2):
+            self.assertEqual(evaluate(job['condition'], {
+                "variables['containerBuildResult']": amd64,
+                "variables['arm64BuildResult']": arm64,
+            }), amd64 == arm64 == 'Succeeded')
 
     def test_docker_operations_require_manual_selection_and_successful_prerequisite(self):
         stages = {s['stage']: s for s in pipeline_stages(azure_service_connection='acr-connection')}
@@ -280,26 +291,30 @@ class ReleasePipelineTests(unittest.TestCase):
             self.assertEqual(publisher['templateContext']['inputs'][0]['artifactName'], 'drop_emulator_container')
             self.assertNotIn('checkout', json.dumps(publisher))
             steps = publisher['steps']
-            tasks = [step['task'] for step in steps]
-            expected_tasks = ['PowerShell@2', 'ContainerSecuritySetup@2', 'Docker@1',
-                              'ContainerSecurityCopyImage@2', 'ContainerSecurityCopyImage@2', 'PowerShell@2']
-            self.assertEqual(tasks, expected_tasks)
-            load, push = steps[3:5]
-            self.assertEqual(load['inputs']['sourceType'], 'tarball')
-            self.assertEqual(load['inputs']['sourceTarballPath'], '$(emulatorArchivePath)')
-            self.assertEqual(load['inputs']['targetType'], 'ociLayout')
+            copies = [s for s in steps if s.get('task') == 'ContainerSecurityCopyImage@2']
+            push = next(s for s in copies if s['inputs']['targetType'] == 'remoteImage')
+            loads = [s['inputs'] for s in copies if s['inputs']['sourceType'] == 'tarball']
+            self.assertCountEqual([s['sourceTarballPath'] for s in loads],
+                                  ['$(emulatorArchivePath_amd64)', '$(emulatorArchivePath_arm64)'])
+            for architecture in ('amd64', 'arm64'):
+                load = next(s for s in loads if s['sourceTarballPath'] == f'$(emulatorArchivePath_{architecture})')
+                self.assertEqual(load['image'], f'$(emulatorImageReference_{architecture})')
+                self.assertEqual(load['targetType'], 'ociLayout')
+                self.assertEqual(load['targetOciLayout'], push['inputs']['sourceOciLayout'] + '-' + architecture)
+            scripts = {Path(s['inputs']['filePath']).name: s['inputs'] for s in steps
+                       if s.get('task') == 'PowerShell@2' and 'filePath' in s['inputs']}
+            join = scripts['Join-EmulatorContainer.ps1']
+            self.assertIn(f'-OciLayout "{push["inputs"]["sourceOciLayout"]}"', join['arguments'])
             self.assertEqual(push['inputs']['sourceType'], 'ociLayout')
             self.assertEqual(push['inputs']['targetType'], 'remoteImage')
-            self.assertEqual(load['inputs']['targetOciLayout'], push['inputs']['sourceOciLayout'])
             self.assertEqual(push['inputs']['targetRemoteImages'], '$(emulatorTargetImage)')
-            verify = steps[-1]['inputs']
-            self.assertTrue(verify['filePath'].endswith('/Verify-EmulatorContainer.ps1'))
+            verify = scripts['Verify-EmulatorContainer.ps1']
             self.assertIn(f'-OciLayout "{push["inputs"]["sourceOciLayout"]}"', verify['arguments'])
             self.assertIn(f'-TargetImage "{push["inputs"]["targetRemoteImages"]}"', verify['arguments'])
             self.assertIn('-ImageReference "$(emulatorImageReference)"', verify['arguments'])
             self.assertIn('/oras/$(ORAS_VERSION)/x64/oras', verify['arguments'])
             self.assertIn('ORAS_VERSION', publisher['variables'])
-            self.assertIn(f'-Action {action}', steps[0]['inputs']['arguments'])
+            self.assertIn(f'-Action {action}', scripts['Publish-EmulatorContainer.ps1']['arguments'])
             login = next(step for step in steps if step['task'] == 'Docker@1')
             self.assertEqual(login['inputs']['azureSubscriptionEndpoint'], 'acr-connection')
             self.assertEqual(login['inputs']['command'], 'login')
@@ -416,7 +431,11 @@ class ReleasePipelineTests(unittest.TestCase):
                     for forbidden in ('git clone', 'git push', 'persistCredentials', 'getGithubAuthorization'):
                         self.assertNotIn(forbidden, json.dumps(job))
                 else:
-                    self.assertIn(job['pool'], ({'type': 'linux'}, {'type': 'docker', 'os': 'linux'}))
+                    self.assertIn(job['pool'], (
+                        {'type': 'linux'}, {'type': 'docker', 'os': 'linux'},
+                        {'type': 'linux', 'hostArchitecture': 'arm64'},
+                        {'type': 'docker', 'os': 'linux', 'hostArchitecture': 'arm64'},
+                    ))
         for key in NPM_KEYS:
             job = RELEASE_JOBS[f'{key}_finalize']
             self.assertEqual(job['pool'], {'type': 'linux'})
