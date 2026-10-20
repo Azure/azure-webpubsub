@@ -22,15 +22,26 @@ if ($metadata.buildId -cne $env:BUILD_BUILDID -or $metadata.sourceVersion -cne $
 }
 $version = [string] $metadata.version
 if ($version -cnotmatch '^\d+\.\d+\.\d+(?:-beta\.\d+)?$') { throw 'Invalid container release version.' }
-if ($metadata.archiveFile -cne "webpubsub-emulator.$version.linux-amd64.tar") { throw 'Invalid image archive filename.' }
-$imagePath = Join-Path $artifactRoot $metadata.archiveFile
-if ((Get-FileHash $imagePath -Algorithm SHA256).Hash.ToLowerInvariant() -cne $metadata.archiveSha256) {
-    throw 'The image archive does not match the bytes validated by the build stage.'
+$platforms = @($metadata.images.platform | Sort-Object)
+if (($platforms -join ',') -cne 'linux/amd64,linux/arm64') {
+    throw 'Expected tested AMD64 and ARM64 images.'
+}
+foreach ($image in $metadata.images) {
+    $architecture = $image.platform.Split('/')[-1]
+    if ($image.archiveFile -cne "webpubsub-emulator.$version.linux-$architecture.tar") { throw 'Invalid image archive filename.' }
+    $imagePath = Join-Path $artifactRoot $image.archiveFile
+    if ((Get-FileHash $imagePath -Algorithm SHA256).Hash.ToLowerInvariant() -cne $image.archiveSha256) {
+        throw 'The image archive does not match the bytes validated by the build stage.'
+    }
 }
 
-# Both tags use this build's tested archive; the pipeline tasks handle login and push.
+# Both tags use this build's tested images; the pipeline tasks handle login and push.
 $tag = if ($Action -eq 'latest') { 'latest' } else { $version }
 Write-Host "##vso[task.setvariable variable=emulatorRegistry]$registry"
-Write-Host "##vso[task.setvariable variable=emulatorImageReference]$($metadata.imageReference)"
-Write-Host "##vso[task.setvariable variable=emulatorArchivePath]$imagePath"
+foreach ($image in $metadata.images) {
+    $architecture = $image.platform.Split('/')[-1]
+    Write-Host "##vso[task.setvariable variable=emulatorImageReference_$architecture]$($image.imageReference)"
+    Write-Host "##vso[task.setvariable variable=emulatorArchivePath_$architecture]$(Join-Path $artifactRoot $image.archiveFile)"
+}
+Write-Host "##vso[task.setvariable variable=emulatorImageReference]webpubsub-emulator:$version"
 Write-Host "##vso[task.setvariable variable=emulatorTargetImage]${registry}/${releaseRepository}:$tag"

@@ -2,6 +2,7 @@
 
 You need Docker with Linux containers and BuildKit, curl, and a checkout of this
 repository. Building and running this image does not require .NET on your host.
+The image supports `linux/amd64` and `linux/arm64`, including Apple Silicon.
 
 The commands below use Bash and start from the repository root.
 

@@ -40,7 +40,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest, windows-latest]
+        os: [ubuntu-latest, ubuntu-24.04-arm, windows-latest]
         dotnet-version: [10.x]
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -184,8 +184,13 @@ jobs:
           (Get-Content .pipelines/templates/emulator-container-tests.json -Raw).Replace('__SMOKE_DIRECTORY__', $directory) |
             Set-Content "$directory/container-tests.json"
           $tester = "$directory/container-structure-test"
-          Invoke-WebRequest 'https://github.com/GoogleContainerTools/container-structure-test/releases/download/v1.22.1/container-structure-test-linux-amd64' -OutFile $tester
-          if ((Get-FileHash $tester -Algorithm SHA256).Hash.ToLowerInvariant() -ne 'fa35e89512a8978585f76cf41397956d2e3a30c62c2ad3fb857b1597074d14ca') {
+          $architecture = if ($env:RUNNER_ARCH -eq 'ARM64') { 'arm64' } else { 'amd64' }
+          $checksum = @{
+            amd64 = 'fa35e89512a8978585f76cf41397956d2e3a30c62c2ad3fb857b1597074d14ca'
+            arm64 = '801826ed107222120eb6df8c143b7de752cfebbe3aebfeea576e7098486917c2'
+          }[$architecture]
+          Invoke-WebRequest "https://github.com/GoogleContainerTools/container-structure-test/releases/download/v1.22.1/container-structure-test-linux-$architecture" -OutFile $tester
+          if ((Get-FileHash $tester -Algorithm SHA256).Hash.ToLowerInvariant() -ne $checksum) {
             throw 'Container Structure Test checksum mismatch.'
           }
           chmod +x $tester
@@ -195,6 +200,6 @@ jobs:
       - name: Upload emulator package
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
-          name: Microsoft.Azure.WebPubSub.Emulator.${{ env.PACKAGE_VERSION }}.${{ runner.os }}
+          name: Microsoft.Azure.WebPubSub.Emulator.${{ env.PACKAGE_VERSION }}.${{ runner.os }}.${{ runner.arch }}
           path: artifacts/build/*.nupkg
           if-no-files-found: error

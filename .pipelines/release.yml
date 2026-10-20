@@ -18,6 +18,8 @@ variables:
     value: $[counter('', 0)]
   - name: LinuxContainerImage
     value: 'mcr.microsoft.com/onebranch/azurelinux/build:3.0'
+  - name: emulatorSmokeNodeVersion
+    value: '22.23.2'
 
 resources:
   repositories:
@@ -64,7 +66,6 @@ extends:
               ob_artifactBaseName: 'drop_emulator'
               ob_sdl_codeSignValidation_enabled: false
               ob_sdl_binskim_enabled: false
-              emulatorSmokeNodeVersion: '22.23.2'
             steps:
               - checkout: self
                 path: s/azure-webpubsub

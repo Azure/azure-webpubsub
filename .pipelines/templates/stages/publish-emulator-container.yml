@@ -76,13 +76,30 @@ stages:
               azureContainerRegistry: '$(emulatorRegistry)'
               command: login
           - task: ContainerSecurityCopyImage@2
-            displayName: 'Load tested image archive'
+            displayName: 'Load tested AMD64 image archive'
             inputs:
-              image: '$(emulatorImageReference)'
+              image: '$(emulatorImageReference_amd64)'
               sourceType: tarball
-              sourceTarballPath: '$(emulatorArchivePath)'
+              sourceTarballPath: '$(emulatorArchivePath_amd64)'
               targetType: ociLayout
-              targetOciLayout: '$(Agent.TempDirectory)/emulator-image'
+              targetOciLayout: '$(Agent.TempDirectory)/emulator-image-amd64'
+          - task: ContainerSecurityCopyImage@2
+            displayName: 'Load tested ARM64 image archive'
+            inputs:
+              image: '$(emulatorImageReference_arm64)'
+              sourceType: tarball
+              sourceTarballPath: '$(emulatorArchivePath_arm64)'
+              targetType: ociLayout
+              targetOciLayout: '$(Agent.TempDirectory)/emulator-image-arm64'
+          - task: PowerShell@2
+            displayName: 'Assemble tested multi-platform image index'
+            inputs:
+              pwsh: true
+              filePath: '$(Pipeline.Workspace)/drop_emulator_container/Join-EmulatorContainer.ps1'
+              arguments: >-
+                -ArtifactDirectory "$(Pipeline.Workspace)/drop_emulator_container"
+                -OciLayout "$(Agent.TempDirectory)/emulator-image"
+                -OrasPath "$(Agent.ToolsDirectory)/oras/$(ORAS_VERSION)/x64/oras"
           - task: ContainerSecurityCopyImage@2
             displayName: 'Publish Docker ${{ parameters.action }}'
             inputs:
