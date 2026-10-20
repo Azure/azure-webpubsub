@@ -594,7 +594,7 @@ dotnet pack tools/emulator/src/Microsoft.Azure.WebPubSub.Emulator \
 dotnet tool install \
   --tool-path artifacts/emulator-tool \
   Microsoft.Azure.WebPubSub.Emulator \
-  --version 1.0.0-beta.2 \
+  --version 1.0.0-beta.3 \
   --add-source artifacts/emulator \
   --configfile tools/emulator/NuGet.Config
 
