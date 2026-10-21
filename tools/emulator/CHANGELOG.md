@@ -1,6 +1,12 @@
 # Changelog
 
-## [1.0.0-beta.2] - Unreleased
+## [1.0.0-beta.3]
+
+### Added
+
+- Native `linux/arm64` Docker images alongside `linux/amd64`, including support for Apple Silicon.
+
+## [1.0.0-beta.2]
 
 ### Fixed
 
