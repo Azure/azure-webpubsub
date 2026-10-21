@@ -489,7 +489,11 @@ public class LogicalConnectionTests
         Assert.True(manager.TryActivate(connection));
 
         connection.Detach(transport);
-        await Task.Delay(250);
+        using var timeout = new CancellationTokenSource(TestTimeout);
+        while (manager.TryGet(connection.Hub, connection.ConnectionId, out _))
+        {
+            await Task.Delay(10, timeout.Token);
+        }
 
         Assert.False(manager.TryGet(connection.Hub, connection.ConnectionId, out _));
     }
