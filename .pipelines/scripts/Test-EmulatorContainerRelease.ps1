@@ -115,6 +115,48 @@ function Test-PublicationVerification {
     }
 }
 
+function Test-ContainerIndex {
+    Reset-Test
+    $metadata | ConvertTo-Json -Depth 5 | Set-Content (Join-Path $root 'container-release.json')
+    $layout = Join-Path $root 'image-index'
+    New-Item -ItemType Directory $layout | Out-Null
+    # ORAS records tag annotations on the layout descriptors, independently of
+    # the content-addressed image index and its platform manifests.
+    $descriptors = @(foreach ($tag in @('amd64', 'arm64', $metadata.version)) {
+        @{
+            mediaType = 'application/vnd.oci.image.index.v1+json'
+            digest = 'sha256:' + ('c' * 64); size = 123
+            annotations = @{ 'org.opencontainers.image.ref.name' = $tag }
+        }
+    })
+    $before = @{ schemaVersion = 2; manifests = $descriptors } | ConvertTo-Json -Depth 5
+    Set-Content (Join-Path $layout 'index.json') $before
+    function oras {
+        $global:LASTEXITCODE = 0
+        if ($args[0] -eq 'copy' -or $args[1] -eq 'index') { return }
+        if ($args -contains '--platform') {
+            @{ config = @{ digest = 'sha256:' + ('b' * 64) } } | ConvertTo-Json -Depth 3
+        }
+        else {
+            @{ manifests = @(foreach ($architecture in @('amd64', 'arm64')) {
+                @{ platform = @{ os = 'linux'; architecture = $architecture } }
+            }) } | ConvertTo-Json -Depth 4
+        }
+    }
+    & (Join-Path $PSScriptRoot 'Join-EmulatorContainer.ps1') -ArtifactDirectory $root -OciLayout $layout -OrasPath oras
+    $after = Get-Content (Join-Path $layout 'index.json') -Raw | ConvertFrom-Json -AsHashtable
+    $release = @($after.manifests | Where-Object { $_.annotations['org.opencontainers.image.ref.name'] -ceq $metadata.version })
+    if ($release.Count -ne 1 -or $release[0].annotations['io.containerd.image.name'] -cne "webpubsub-emulator:$($metadata.version)") {
+        throw 'The release descriptor must expose the image name required by ContainerSecurityCopyImage.'
+    }
+    $release[0].annotations.Remove('io.containerd.image.name')
+    if (($after | ConvertTo-Json -Depth 5) -cne $before) {
+        throw 'Adding the release image name must preserve all tags, digests and other descriptor fields.'
+    }
+    Write-Host 'PASS assembled index exposes the release image name without changing image descriptors'
+    $script:passed++
+}
+
 function Test-ContainerBuild {
     Reset-Test
     $packageId = 'Microsoft.Azure.WebPubSub.Emulator'
@@ -227,6 +269,7 @@ try {
         $script:metadata.images[1].archiveSha256 = 'e' * 64
     } 'bytes validated'
     Test-ContainerBuild
+    Test-ContainerIndex
     Test-PublicationVerification
     Write-Host "All $passed offline cases passed. No Azure, Docker, or registry calls were made."
 }
