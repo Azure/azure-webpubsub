@@ -12,7 +12,7 @@ trigger:
 pr: none
 
 variables:
-  - group: 'npm-release'
+  - group: 'Azure SignalR Service - SDK Release'
   - group: 'webpubsub-emulator-release'
   - name: CDP_DEFINITION_BUILD_COUNT
     value: $[counter('', 0)]
