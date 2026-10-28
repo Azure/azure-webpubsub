@@ -525,9 +525,14 @@ components:
         etag:
           type: string
           nullable: true
-        refMessageId:
+        replyTo:
           type: string
           nullable: true
+        mentions:
+          type: array
+          nullable: true
+          items:
+            type: string
       required:
         - messageId
         - sender
@@ -570,22 +575,19 @@ components:
           $ref: '#/components/schemas/ChatConversation'
         message:
           type: string
-        refMessageId:
+        replyTo:
           type: string
           nullable: true
-        extMentions:
+        mentions:
           type: array
+          nullable: true
           items:
             type: string
+        metadata:
+          type: object
           nullable: true
-          description: Array of UserId
-        extDeleteAfterRead:
-          type: boolean
-          nullable: true
-        extScheduled:
-          type: string
-          format: date-time
-          nullable: true
+          additionalProperties:
+            type: string
       required:
         - conversation
         - message
@@ -608,22 +610,19 @@ components:
               type: string
               format: binary
               nullable: true
-        refMessageId:
+        replyTo:
           type: string
           nullable: true
-        extMentions:
+        mentions:
           type: array
+          nullable: true
           items:
             type: string
+        metadata:
+          type: object
           nullable: true
-          description: Array of UserId
-        extDeleteAfterRead:
-          type: boolean
-          nullable: true
-        extScheduled:
-          type: string
-          format: date-time
-          nullable: true
+          additionalProperties:
+            type: string
       required:
         - conversation
         - messageType
@@ -652,7 +651,7 @@ components:
               type: string
               format: binary
               nullable: true
-        refMessageId:
+        replyTo:
           type: string
           nullable: true
       required:

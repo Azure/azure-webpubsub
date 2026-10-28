@@ -4,8 +4,9 @@ import { EventEmitter } from "node:events";
 import type { WebPubSubClientCredential, WebPubSubDataType } from "@azure/web-pubsub-client";
 import { ChatClient } from "../src/chatClient.js";
 import { INVOCATION_NAME } from "../src/constant.js";
-import type { OnStoppedArgs } from "../src/events.js";
+import type { OnMessageArgs, OnStoppedArgs } from "../src/events.js";
 import type { RoomInfoWithMembers, UserProfile } from "../src/generatedTypes.js";
+import type { OperationOptions, SendToRoomOptions } from "../src/options.js";
 
 /**
  * `_isStarted` is private; accessor used by tests to assert the post-login
@@ -36,6 +37,7 @@ class FakeWebPubSubClient {
   public getRoomDelay?: Deferred<void>;
   public getRoomError?: Error;
   public stopDelay?: Deferred<void>;
+  public sendCalls: Array<{ payload: unknown; dataType: WebPubSubDataType; options?: OperationOptions }> = [];
 
   private readonly emitter = new EventEmitter();
   private connectionStopped = true;
@@ -73,7 +75,12 @@ class FakeWebPubSubClient {
 
   public onGroupStream(_listener: (stream: unknown) => void): void {}
 
-  public async invokeEvent(eventName: string, payload: any, dataType: WebPubSubDataType): Promise<{ data: unknown }> {
+  public async invokeEvent(
+    eventName: string,
+    payload: any,
+    dataType: WebPubSubDataType,
+    options?: OperationOptions,
+  ): Promise<{ data: unknown }> {
     void dataType;
     if (eventName === INVOCATION_NAME.LOGIN) {
       return { data: this.loginResponse };
@@ -96,6 +103,11 @@ class FakeWebPubSubClient {
         members: [],
       };
       return { data: roomInfo };
+    }
+
+    if (eventName === INVOCATION_NAME.SEND_TEXT_MESSAGE) {
+      this.sendCalls.push({ payload, dataType, options });
+      return { data: { id: "sent-message-id" } };
     }
 
     throw new Error(`Unexpected invocation: ${eventName}`);
@@ -126,6 +138,77 @@ class FakeWebPubSubClient {
 
 function createClient(fakeClient: FakeWebPubSubClient): ChatClient {
   return new ChatClient(fakeClient as unknown as WebPubSubClientCredential);
+}
+
+const sendCases: Array<{
+  name: string;
+  options?: SendToRoomOptions;
+  properties: Pick<SendToRoomOptions, "mentions" | "replyTo" | "metadata">;
+}> = [
+  { name: "without options", properties: {} },
+  { name: "with empty options", options: {}, properties: {} },
+  {
+    name: "with message properties and cancellation",
+    options: {
+      mentions: ["bob", "charlie"],
+      replyTo: "previous-message-id",
+      metadata: { category: "greeting" },
+      abortSignal: new AbortController().signal,
+    },
+    properties: {
+      mentions: ["bob", "charlie"],
+      replyTo: "previous-message-id",
+      metadata: { category: "greeting" },
+    },
+  },
+  {
+    name: "with null properties",
+    options: { mentions: null, replyTo: null, metadata: null },
+    properties: { mentions: null, replyTo: null, metadata: null },
+  },
+  {
+    name: "with empty mentions and metadata",
+    options: { mentions: [], metadata: {} },
+    properties: { mentions: [], metadata: {} },
+  },
+];
+
+for (const { name, options, properties } of sendCases) {
+  test(`sendToRoom sends and echoes message properties ${name}`, async () => {
+    const fakeClient = new FakeWebPubSubClient();
+    fakeClient.loginResponse = {
+      userId: "alice",
+      roomIds: ["room1"],
+      conversationIds: ["conversation-room1"],
+    };
+    const client = createClient(fakeClient);
+    await client.start();
+    const events: OnMessageArgs[] = [];
+    client.on("message", (event) => events.push(event));
+
+    const result = await client.sendToRoom("room1", "Hello!", options);
+
+    assert.deepEqual(result, { messageId: "sent-message-id" });
+    assert.equal(fakeClient.sendCalls.length, 1);
+    assert.deepEqual(fakeClient.sendCalls[0]?.payload, {
+      conversation: { conversationId: "conversation-room1" },
+      content: "Hello!",
+      ...properties,
+    });
+    assert.equal(fakeClient.sendCalls[0]?.dataType, "json");
+    assert.equal(fakeClient.sendCalls[0]?.options?.abortSignal, options?.abortSignal);
+    assert.deepEqual(events, [{
+      roomId: "room1",
+      message: {
+        messageId: "sent-message-id",
+        createdBy: "alice",
+        messageBodyType: "Inline",
+        content: { text: "Hello!", binary: null },
+        ...properties,
+      },
+    }]);
+    await client.stop();
+  });
 }
 
 test("stop before start is a no-op", async () => {

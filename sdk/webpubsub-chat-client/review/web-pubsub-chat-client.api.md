@@ -178,10 +178,11 @@ export interface MessageInfo {
     createdAt?: string;
     createdBy?: string;
     etag?: string | null;
+    mentions?: string[] | null;
     messageBodyType: string;
     messageId: string;
     metadata?: Record<string, string> | null;
-    refMessageId?: string | null;
+    replyTo?: string | null;
     streamId?: string | null;
 }
 
@@ -254,6 +255,9 @@ export interface SendMessageResult {
 
 // @public
 export interface SendToRoomOptions extends OperationOptions {
+    mentions?: string[] | null;
+    metadata?: Record<string, string> | null;
+    replyTo?: string | null;
 }
 
 // @public

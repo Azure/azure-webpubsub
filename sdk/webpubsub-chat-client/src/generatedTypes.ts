@@ -265,7 +265,8 @@ export interface components {
             } | null;
             streamId?: string | null;
             etag?: string | null;
-            refMessageId?: string | null;
+            replyTo?: string | null;
+            mentions?: string[] | null;
         };
         ContentItem: {
             type?: string;
@@ -284,12 +285,11 @@ export interface components {
         CreateTextMessage: {
             conversation: components["schemas"]["ChatConversation"];
             message: string;
-            refMessageId?: string | null;
-            /** @description Array of UserId */
-            extMentions?: string[] | null;
-            extDeleteAfterRead?: boolean | null;
-            /** Format: date-time */
-            extScheduled?: string | null;
+            replyTo?: string | null;
+            mentions?: string[] | null;
+            metadata?: {
+                [key: string]: string;
+            } | null;
         };
         CreateMessage: {
             conversation: components["schemas"]["ChatConversation"];
@@ -300,12 +300,11 @@ export interface components {
                 /** Format: binary */
                 binary?: string | null;
             };
-            refMessageId?: string | null;
-            /** @description Array of UserId */
-            extMentions?: string[] | null;
-            extDeleteAfterRead?: boolean | null;
-            /** Format: date-time */
-            extScheduled?: string | null;
+            replyTo?: string | null;
+            mentions?: string[] | null;
+            metadata?: {
+                [key: string]: string;
+            } | null;
         };
         MessageBody: {
             conversation: components["schemas"]["ChatConversation"];
@@ -319,7 +318,7 @@ export interface components {
                 /** Format: binary */
                 binary?: string | null;
             };
-            refMessageId?: string | null;
+            replyTo?: string | null;
         };
         /** @enum {string} */
         JoinRoomState: "OK" | "Pending" | "Failed";

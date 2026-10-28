@@ -452,12 +452,18 @@ class ChatClient {
   private async sendToConversation(
     conversationId: string,
     message: string,
-    options?: OperationOptions,
+    options?: SendToRoomOptions,
   ): Promise<SendMessageResult> {
     this.ensureStarted();
+    const properties = {
+      ...(options?.mentions !== undefined ? { mentions: options.mentions } : {}),
+      ...(options?.replyTo !== undefined ? { replyTo: options.replyTo } : {}),
+      ...(options?.metadata !== undefined ? { metadata: options.metadata } : {}),
+    };
     const payload = {
       conversation: { conversationId: conversationId },
       content: message,
+      ...properties,
     };
     const resp = await this.invokeWithReturnType<SendMessageResponse>(
       INVOCATION_NAME.SEND_TEXT_MESSAGE,
@@ -490,7 +496,8 @@ class ChatClient {
           text: message,
           binary: null,
         },
-      } as ChatMessage,
+        ...properties,
+      },
     };
     this._emitter.emit("message", event);
     return { messageId: msgId };
@@ -504,7 +511,7 @@ class ChatClient {
    *
    * @param roomId - Target room.
    * @param message - Message text to send.
-   * @param options - Optional `{ abortSignal }`.
+   * @param options - Optional `{ mentions, replyTo, metadata, abortSignal }`.
    * @returns A {@link SendMessageResult} with the service-assigned `messageId`.
    */
   public async sendToRoom(roomId: string, message: string, options?: SendToRoomOptions): Promise<SendMessageResult> {
