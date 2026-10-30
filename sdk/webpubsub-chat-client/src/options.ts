@@ -41,7 +41,12 @@ export interface CreateRoomOptions extends OperationOptions {
 }
 
 /** Options for `ChatClient.sendToRoom()`. */
-export interface SendToRoomOptions extends OperationOptions {}
+export interface SendToRoomOptions extends OperationOptions {
+  /** Mentioned user ids. Individual ids must be strings. */
+  mentions?: string[] | null;
+  /** Id of the message being replied to. */
+  replyTo?: string | null;
+}
 
 /** Options for `ChatClient.addUserToRoom()`. */
 export interface AddUserToRoomOptions extends OperationOptions {}

@@ -55,8 +55,10 @@ export interface MessageInfo {
   streamId?: string | null;
   /** Latest persisted entity tag, including streaming checkpoints. */
   etag?: string | null;
-  /** Id of the message this one references (e.g. a reply), when applicable. */
-  refMessageId?: string | null;
+  /** Id of the message this one replies to, when applicable. */
+  replyTo?: string | null;
+  /** Mentioned user ids. The list may be omitted or null; individual ids must be strings. */
+  mentions?: string[] | null;
 }
 
 /** Metadata describing a room. */
