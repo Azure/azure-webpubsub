@@ -458,7 +458,6 @@ class ChatClient {
     const properties = {
       ...(options?.mentions !== undefined ? { mentions: options.mentions } : {}),
       ...(options?.replyTo !== undefined ? { replyTo: options.replyTo } : {}),
-      ...(options?.metadata !== undefined ? { metadata: options.metadata } : {}),
     };
     const payload = {
       conversation: { conversationId: conversationId },
@@ -511,7 +510,7 @@ class ChatClient {
    *
    * @param roomId - Target room.
    * @param message - Message text to send.
-   * @param options - Optional `{ mentions, replyTo, metadata, abortSignal }`.
+   * @param options - Optional `{ mentions, replyTo, abortSignal }`.
    * @returns A {@link SendMessageResult} with the service-assigned `messageId`.
    */
   public async sendToRoom(roomId: string, message: string, options?: SendToRoomOptions): Promise<SendMessageResult> {

@@ -583,11 +583,6 @@ components:
           nullable: true
           items:
             type: string
-        metadata:
-          type: object
-          nullable: true
-          additionalProperties:
-            type: string
       required:
         - conversation
         - message
@@ -617,11 +612,6 @@ components:
           type: array
           nullable: true
           items:
-            type: string
-        metadata:
-          type: object
-          nullable: true
-          additionalProperties:
             type: string
       required:
         - conversation

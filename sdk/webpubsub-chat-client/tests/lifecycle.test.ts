@@ -143,7 +143,7 @@ function createClient(fakeClient: FakeWebPubSubClient): ChatClient {
 const sendCases: Array<{
   name: string;
   options?: SendToRoomOptions;
-  properties: Pick<SendToRoomOptions, "mentions" | "replyTo" | "metadata">;
+  properties: Pick<SendToRoomOptions, "mentions" | "replyTo">;
 }> = [
   { name: "without options", properties: {} },
   { name: "with empty options", options: {}, properties: {} },
@@ -152,24 +152,27 @@ const sendCases: Array<{
     options: {
       mentions: ["bob", "charlie"],
       replyTo: "previous-message-id",
-      metadata: { category: "greeting" },
       abortSignal: new AbortController().signal,
     },
     properties: {
       mentions: ["bob", "charlie"],
       replyTo: "previous-message-id",
-      metadata: { category: "greeting" },
     },
   },
   {
     name: "with null properties",
-    options: { mentions: null, replyTo: null, metadata: null },
-    properties: { mentions: null, replyTo: null, metadata: null },
+    options: { mentions: null, replyTo: null },
+    properties: { mentions: null, replyTo: null },
   },
   {
-    name: "with empty mentions and metadata",
-    options: { mentions: [], metadata: {} },
-    properties: { mentions: [], metadata: {} },
+    name: "with empty mentions",
+    options: { mentions: [] },
+    properties: { mentions: [] },
+  },
+  {
+    name: "with unsupported metadata from an untyped caller",
+    options: Object.assign({ mentions: ["bob"] }, { metadata: { category: "greeting" } }),
+    properties: { mentions: ["bob"] },
   },
 ];
 

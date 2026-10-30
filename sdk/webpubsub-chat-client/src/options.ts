@@ -46,8 +46,6 @@ export interface SendToRoomOptions extends OperationOptions {
   mentions?: string[] | null;
   /** Id of the message being replied to. */
   replyTo?: string | null;
-  /** Custom message metadata. */
-  metadata?: Record<string, string> | null;
 }
 
 /** Options for `ChatClient.addUserToRoom()`. */

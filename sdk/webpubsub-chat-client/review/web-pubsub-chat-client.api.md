@@ -256,7 +256,6 @@ export interface SendMessageResult {
 // @public
 export interface SendToRoomOptions extends OperationOptions {
     mentions?: string[] | null;
-    metadata?: Record<string, string> | null;
     replyTo?: string | null;
 }
 

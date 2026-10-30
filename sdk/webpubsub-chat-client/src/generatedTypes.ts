@@ -287,9 +287,6 @@ export interface components {
             message: string;
             replyTo?: string | null;
             mentions?: string[] | null;
-            metadata?: {
-                [key: string]: string;
-            } | null;
         };
         CreateMessage: {
             conversation: components["schemas"]["ChatConversation"];
@@ -302,9 +299,6 @@ export interface components {
             };
             replyTo?: string | null;
             mentions?: string[] | null;
-            metadata?: {
-                [key: string]: string;
-            } | null;
         };
         MessageBody: {
             conversation: components["schemas"]["ChatConversation"];
