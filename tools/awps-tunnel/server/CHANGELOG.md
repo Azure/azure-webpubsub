@@ -1,5 +1,11 @@
 # Changelog
 
+## Unreleased
+
+### Changed
+
+- Upgrade Azure Identity to 4.13.1 to support MSAL Browser 5.27.0, and update the dashboard's shell-quote resolution to 1.12.0.
+
 ## [1.0.0-beta.15] - 2026-08-21
 
 ### Changed

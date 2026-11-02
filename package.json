@@ -16,6 +16,9 @@
   },
   "resolutions": {
     "**/@typescript-eslint/typescript-estree/minimatch": "9.0.9",
+    "@azure/identity": "4.13.1",
+    "@azure/msal-browser": "5.27.0",
+    "@azure/msal-node": "7.1.0",
     "@babel/core": "7.29.6",
     "@babel/helpers": "7.29.7",
     "@babel/plugin-transform-modules-systemjs": "7.29.4",
@@ -47,7 +50,7 @@
     "send": "0.19.2",
     "serialize-javascript": "7.0.5",
     "serve-static": "1.16.3",
-    "shell-quote": "1.10.0",
+    "shell-quote": "1.12.0",
     "socket.io": "4.8.3",
     "socket.io-adapter": "2.5.6",
     "socket.io-client": "4.8.3",
