@@ -167,7 +167,7 @@
 
 "@azure/identity@4.13.1", "@azure/identity@^4.13.1":
   version "4.13.1"
-  resolved "https://registry.npmjs.org/@azure/identity/-/identity-4.13.1.tgz#bdc091658baa59a47ee9fbab487a4bb018729bc3"
+  resolved "https://packagefeedproxy.microsoft.io/npm/@azure/identity/-/identity-4.13.1.tgz"
   integrity sha512-5C/2WD5Vb1lHnZS16dNQRPMjN6oV/Upba+C9nBIs15PmOi6A3ZGs4Lr2u60zw4S04gi+u3cEXiqTVP7M4Pz3kw==
   dependencies:
     "@azure/abort-controller" "^2.0.0"
@@ -198,24 +198,24 @@
 
 "@azure/msal-browser@5.27.0", "@azure/msal-browser@^5.5.0":
   version "5.27.0"
-  resolved "https://registry.npmjs.org/@azure/msal-browser/-/msal-browser-5.27.0.tgz#796beccdc77e4fc1f073fa63977052cbfc582dd9"
+  resolved "https://packagefeedproxy.microsoft.io/npm/@azure/msal-browser/-/msal-browser-5.27.0.tgz"
   integrity sha512-i2CKKyuCuOZEBZJiAoFK/viYZAP6CRaqqlkeHl3ViteDHOUE/tkI/Slq1cdGnwhkIB+k1OE0g00QGl9O0gAFNQ==
   dependencies:
     "@azure/msal-common" "16.15.0"
 
 "@azure/msal-common@16.13.0":
   version "16.13.0"
-  resolved "https://registry.npmjs.org/@azure/msal-common/-/msal-common-16.13.0.tgz#62e424c6b21e143e8ef4374a64dbf8772dfe1a07"
+  resolved "https://packagefeedproxy.microsoft.io/npm/@azure/msal-common/-/msal-common-16.13.0.tgz"
   integrity sha512-rOAy0KUcyBbdwVJ+f3uPpthXatFLLZN+/KWAsTLzk1aB23Xl9DRmmXYwSvBFOZyXj4jUQQ5FKxxRkhAFW1fOow==
 
 "@azure/msal-common@16.15.0":
   version "16.15.0"
-  resolved "https://registry.npmjs.org/@azure/msal-common/-/msal-common-16.15.0.tgz#bb6ac5bfdac9b90cd8aab716718a8139d0f2c658"
+  resolved "https://packagefeedproxy.microsoft.io/npm/@azure/msal-common/-/msal-common-16.15.0.tgz"
   integrity sha512-lwdLb1B9Q5nEhPLVIKe78XH5wFMN15fCiDkY7ylPDSWZuWcD93G3jpJajrKhO3CQld8SLKz0sHiOi24mxdvtsg==
 
 "@azure/msal-node@^5.1.0":
   version "5.6.0"
-  resolved "https://registry.npmjs.org/@azure/msal-node/-/msal-node-5.6.0.tgz#8cbfeff021b6d2f3d064a3afb82262ad985e8434"
+  resolved "https://packagefeedproxy.microsoft.io/npm/@azure/msal-node/-/msal-node-5.6.0.tgz"
   integrity sha512-uFY9NxrWHw8PwZx7gAX6PDn+9vdfS05+levc/kwkx77IkjfaldnQbbcQzzDIZ5Hq5Zdr6/z92oAIoRWKp6MnOA==
   dependencies:
     "@azure/msal-common" "16.13.0"
@@ -4421,7 +4421,7 @@ buffer@^6.0.0:
 
 bundle-name@^4.1.0:
   version "4.1.1"
-  resolved "https://registry.npmjs.org/bundle-name/-/bundle-name-4.1.1.tgz#d9ecc7a201aee8e2f5a717a081215c2e2a3827b0"
+  resolved "https://packagefeedproxy.microsoft.io/npm/bundle-name/-/bundle-name-4.1.1.tgz"
   integrity sha512-DdH81/zPLVS11EUgWq3tEu/xn+EzljlMYooDNdzWEnFha3R3NBMpMV1UqYIpjYHV/SgpFKMIX1Oh7o06SjM/oA==
   dependencies:
     run-applescript "^7.0.0"
@@ -4963,12 +4963,12 @@ deepmerge@^4.2.2:
 
 default-browser-id@^5.0.0:
   version "5.0.1"
-  resolved "https://registry.npmjs.org/default-browser-id/-/default-browser-id-5.0.1.tgz#f7a7ccb8f5104bf8e0f71ba3b1ccfa5eafdb21e8"
+  resolved "https://packagefeedproxy.microsoft.io/npm/default-browser-id/-/default-browser-id-5.0.1.tgz"
   integrity sha512-x1VCxdX4t+8wVfd1so/9w+vQ4vx7lKd2Qp5tDRutErwmR85OgmfX7RlLRMWafRMY7hbEiXIbudNrjOAPa/hL8Q==
 
 default-browser@^5.2.1:
   version "5.5.1"
-  resolved "https://registry.npmjs.org/default-browser/-/default-browser-5.5.1.tgz#1790affc52680fbb11e17cab2752d69aa2a37d2c"
+  resolved "https://packagefeedproxy.microsoft.io/npm/default-browser/-/default-browser-5.5.1.tgz"
   integrity sha512-m1pAzaJgZ/gssEqlOhJkPJp8Xly7QyW6xcrkUa2KKcDeDSEMP7X8xipU3snUcfisTQx0w1AGae+9UtJSfVnXGw==
   dependencies:
     bundle-name "^4.1.0"
@@ -4985,7 +4985,7 @@ define-data-property@^1.0.1, define-data-property@^1.1.4:
 
 define-lazy-prop@^3.0.0:
   version "3.0.0"
-  resolved "https://registry.npmjs.org/define-lazy-prop/-/define-lazy-prop-3.0.0.tgz#dbb19adfb746d7fc6d734a06b72f4a00d021255f"
+  resolved "https://packagefeedproxy.microsoft.io/npm/define-lazy-prop/-/define-lazy-prop-3.0.0.tgz"
   integrity sha512-N+MeXYoqr3pOgn8xfyRPREN7gHakLYjhsHhWGT3fWAiL4IkAt0iDw14QiiEm2bE30c5XX5q0FtAA3CK5f9/BUg==
 
 define-properties@^1.2.0, define-properties@^1.2.1:
@@ -6616,7 +6616,7 @@ is-decimal@^2.0.0:
 
 is-docker@^3.0.0:
   version "3.0.0"
-  resolved "https://registry.npmjs.org/is-docker/-/is-docker-3.0.0.tgz#90093aa3106277d8a77a5910dbae71747e15a200"
+  resolved "https://packagefeedproxy.microsoft.io/npm/is-docker/-/is-docker-3.0.0.tgz"
   integrity sha512-eljcgEDlEns/7AXFosB5K/2nCM4P7FQPkGc/DWLy5rmFEWvZayGrik1d9/QIY5nJ4f9YsVvBkA6kJpHn9rISdQ==
 
 is-extglob@^2.1.1:
@@ -6667,7 +6667,7 @@ is-hexadecimal@^2.0.0:
 
 is-inside-container@^1.0.0:
   version "1.0.0"
-  resolved "https://registry.npmjs.org/is-inside-container/-/is-inside-container-1.0.0.tgz#e81fba699662eb31dbdaf26766a61d4814717ea4"
+  resolved "https://packagefeedproxy.microsoft.io/npm/is-inside-container/-/is-inside-container-1.0.0.tgz"
   integrity sha512-KIYLCCJghfHZxqjYBE7rEy0OBuTd5xCHS7tHVgvCLkx7StIoaxwNW3hCALgEUjFfeRk+MG/Qxmp/vtETEF3tRA==
   dependencies:
     is-docker "^3.0.0"
@@ -6782,7 +6782,7 @@ is-weakset@^2.0.3:
 
 is-wsl@^3.1.0:
   version "3.1.1"
-  resolved "https://registry.npmjs.org/is-wsl/-/is-wsl-3.1.1.tgz#327897b26832a3eb117da6c27492d04ca132594f"
+  resolved "https://packagefeedproxy.microsoft.io/npm/is-wsl/-/is-wsl-3.1.1.tgz"
   integrity sha512-e6rvdUCiQCAuumZslxRJWR/Doq4VpPR82kqclvcS0efgt430SlGIk05vdCN58+VrzgtIcfNODjozVielycD4Sw==
   dependencies:
     is-inside-container "^1.0.0"
@@ -8367,7 +8367,7 @@ onetime@^5.1.2:
 
 open@^10.1.0:
   version "10.2.0"
-  resolved "https://registry.npmjs.org/open/-/open-10.2.0.tgz#b9d855be007620e80b6fb05fac98141fe62db73c"
+  resolved "https://packagefeedproxy.microsoft.io/npm/open/-/open-10.2.0.tgz"
   integrity sha512-YgBpdJHPyQ2UE5x+hlSXcnejzAvD0b22U2OuAP+8OnlJT+PjWPxtgmGqKKc+RgTM63U9gN0YzrYc71R2WT/hTA==
   dependencies:
     default-browser "^5.2.1"
@@ -9087,7 +9087,7 @@ rtl-css-js@^1.16.1:
 
 run-applescript@^7.0.0:
   version "7.1.0"
-  resolved "https://registry.npmjs.org/run-applescript/-/run-applescript-7.1.0.tgz#2e9e54c4664ec3106c5b5630e249d3d6595c4911"
+  resolved "https://packagefeedproxy.microsoft.io/npm/run-applescript/-/run-applescript-7.1.0.tgz"
   integrity sha512-DPe5pVFaAsinSaV6QjQ6gdiedWDcRCbUuiQfQa2wmWV7+xC9bGulGI8+TdRmoFkAPaBXk8CrAbnlY2ISniJ47Q==
 
 run-parallel@^1.1.9:
@@ -9270,7 +9270,7 @@ shebang-regex@^3.0.0:
 
 shell-quote@1.12.0, shell-quote@^1.8.4:
   version "1.12.0"
-  resolved "https://registry.npmjs.org/shell-quote/-/shell-quote-1.12.0.tgz#e98fdfd2e921d8a58ae2820f4fc0f75c39f09675"
+  resolved "https://packagefeedproxy.microsoft.io/npm/shell-quote/-/shell-quote-1.12.0.tgz"
   integrity sha512-PcByqNyT/38F2kDNi006HAMRJaULuBzq/FOsw3qdZvX/GA9W/jamDaRskgHjubHiftXK5sIFxLNkvrXUwcof6Q==
 
 side-channel-list@^1.0.1:
@@ -10534,7 +10534,7 @@ ws@8.21.3, ws@8.22.0, ws@^7.4.5, ws@^8.18.0, ws@~8.18.3, ws@~8.21.0:
 
 wsl-utils@^0.1.0:
   version "0.1.0"
-  resolved "https://registry.npmjs.org/wsl-utils/-/wsl-utils-0.1.0.tgz#8783d4df671d4d50365be2ee4c71917a0557baab"
+  resolved "https://packagefeedproxy.microsoft.io/npm/wsl-utils/-/wsl-utils-0.1.0.tgz"
   integrity sha512-h3Fbisa2nKGPxCpm89Hk33lBLsnaGBvctQopaBSOW/uIs6FTe1ATyAnKFJrzVs9vpGdsTe73WF3V4lIsk4Gacw==
   dependencies:
     is-wsl "^3.1.0"

@@ -9089,7 +9089,7 @@ tiny-warning@^1.0.0:
 
 tinypool@2.2.0, tinypool@^1.0.2:
   version "2.2.0"
-  resolved "https://registry.npmjs.org/tinypool/-/tinypool-2.2.0.tgz#cbd3f850b02f132ad288546bbc14c42cd93b32e5"
+  resolved "https://packagefeedproxy.microsoft.io/npm/tinypool/-/tinypool-2.2.0.tgz"
   integrity sha512-jBrmx4lYmaC9k/mgPbylxs7kBUxHtD8256up+HjLaDFfXScKJQyil+SWXSvhAtT7XHo+yTVlpB81PGmHP8oLSQ==
 
 to-regex-range@^5.0.1:
