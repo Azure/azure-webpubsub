@@ -1,5 +1,7 @@
 # Changelog
 
+## [1.0.0-beta.4] - Unreleased
+
 ## [1.0.0-beta.3] - 2026-10-30
 
 ### Breaking Changes
