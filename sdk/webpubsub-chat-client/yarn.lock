@@ -2,12 +2,10 @@
 # yarn lockfile v1
 
 
-"@ag-ui/core@0.0.57":
-  version "0.0.57"
-  resolved "https://packagefeedproxy.microsoft.io/npm/@ag-ui/core/-/core-0.0.57.tgz"
-  integrity sha512-gho1OWjNE6E3Rl7ZEZ1wr2CEpUHjLFU0FqzCZZk439TicLu+BfLCMkMokB07bMGlRmbJ60hM6LW60iOVauCx+Q==
-  dependencies:
-    zod "^3.22.4"
+"@ag-ui/core@1.0.3":
+  version "1.0.3"
+  resolved "https://packagefeedproxy.microsoft.io/npm/@ag-ui/core/-/core-1.0.3.tgz"
+  integrity sha512-HdMdZPOqworKlnzLaNktnbNYgIzOPbzt5ow6J4bPhbmHCdpWpCSZQFgkifQkn1zVHgCK1V+pmKc8xtW6FsQZKA==
 
 "@azure/abort-controller@2.1.2", "@azure/abort-controller@^2.1.2":
   version "2.1.2"
@@ -965,7 +963,7 @@ yargs-parser@^21.1.1:
   resolved "https://packagefeedproxy.microsoft.io/npm/yargs-parser/-/yargs-parser-21.1.1.tgz"
   integrity sha512-tVpsJW7DdjecAiFpbIB1e3qxIQsE6NoPc5/eTdrbbIC4h0LVsWhnoa3g+m2HclBIujHzsxZ4VJVA+GUuc2/LBw==
 
-zod@^3.22.4:
-  version "3.25.76"
-  resolved "https://packagefeedproxy.microsoft.io/npm/zod/-/zod-3.25.76.tgz"
-  integrity sha512-gzUt/qt81nXsFGKIFcC3YnfEAx5NkunCfnDlvuBSSFS02bcXu4Lmea0AFIUwbLWxWPx3d9p8S5QoaujKcNQxcQ==
+zod@^4.6.6:
+  version "4.6.6"
+  resolved "https://packagefeedproxy.microsoft.io/npm/zod/-/zod-4.6.6.tgz"
+  integrity sha512-4UmzQUF5fxvfcYHlbjBmejU+w+hbDnWFx4aS8kBx7nPBHcO2SqPbpAG8snbdg+Xse4pRefR98hgjFgIMCI/UhA==

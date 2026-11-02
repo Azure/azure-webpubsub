@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { EventSchemas, EventType, type AGUIEvent } from "@ag-ui/core";
+import { EventType, type AGUIEvent } from "@ag-ui/core";
+import { EventSchemas } from "@ag-ui/core/schemas";
 import type { GroupStreamMessage } from "@azure/web-pubsub-client";
 
 import {
