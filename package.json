@@ -18,6 +18,7 @@
     "**/@typescript-eslint/typescript-estree/minimatch": "9.0.9",
     "@azure/identity": "4.13.1",
     "@azure/msal-browser": "5.27.0",
+    "@azure/msal-node": "7.1.0",
     "@babel/core": "7.29.6",
     "@babel/helpers": "7.29.7",
     "@babel/plugin-transform-modules-systemjs": "7.29.4",
