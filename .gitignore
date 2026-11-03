@@ -369,3 +369,4 @@ website/docusaurus/
 
 # Azure Web PubSub tunnel API visulization tool resources
 tools/awps-tunnel/client/public/api/
+/.local/

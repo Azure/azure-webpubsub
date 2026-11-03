@@ -1,5 +1,15 @@
 # Changelog
 
+## [1.0.0-beta.4] - Unreleased
+
+### Bugs Fixed
+
+- Upgrade `zod` to `4.6.6` to address the memory-exhaustion vulnerability GHSA-mrhx-c7xc-m3w5.
+
+### Other Changes
+
+- Upgrade `@ag-ui/core` from `0.0.57` to `1.0.3` and adapt schema imports to `@ag-ui/core/schemas`.
+
 ## [1.0.0-beta.3] - 2026-10-30
 
 ### Breaking Changes

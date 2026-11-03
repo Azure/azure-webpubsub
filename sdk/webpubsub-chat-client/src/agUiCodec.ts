@@ -1,11 +1,11 @@
 import {
-  EventSchemas,
   EventType,
   type AGUIEvent,
   type TextMessageContentEvent,
   type ToolCallArgsEvent,
   type ReasoningMessageContentEvent,
 } from "@ag-ui/core";
+import { EventSchemas } from "@ag-ui/core/schemas";
 
 import type {
   DecodedMessage,
