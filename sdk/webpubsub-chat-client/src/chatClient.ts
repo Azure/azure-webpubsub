@@ -681,7 +681,7 @@ class ChatClient {
     const fetchPage = async (
       link: MessageRangeQuery,
       maxPageSize?: number,
-    ): Promise<{ page: ChatMessage[]; nextPageLink?: MessageRangeQuery } | undefined> => {
+    ): Promise<{ page: ChatMessage[]; nextPageLink?: MessageRangeQuery }> => {
       const query: MessageRangeQuery = {
         ...link,
         maxCount: maxPageSize ?? link.maxCount ?? defaultPageSize,
@@ -692,9 +692,6 @@ class ChatClient {
         "json",
         { abortSignal: options?.abortSignal },
       );
-      if (result.messages.length === 0) {
-        return undefined;
-      }
       const page = result.messages.map((wireMessage): ChatMessage => {
         const message = wireMessage as ChatMessage;
         if (!this.useReceiver(message)) {
