@@ -1,0 +1,16 @@
+{
+  "name": "live-auction-example",
+  "version": "1.0.0",
+  "description": "Real-time live auction example using Web PubSub Chat SDK",
+  "type": "module",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "author": "Microsoft",
+  "license": "MIT",
+  "dependencies": {
+    "@azure/web-pubsub": "^1.2.0",
+    "@azure/web-pubsub-chat-client": "1.0.0-beta.2",
+    "express": "^5.2.1"
+  }
+}
