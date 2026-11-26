@@ -4,6 +4,7 @@
 
 ### Bugs Fixed
 
+- Fix `listRoomMessages()` yielding an undefined item for empty history and dropping continuation queries after empty pages.
 - Upgrade `zod` to `4.6.6` to address the memory-exhaustion vulnerability GHSA-mrhx-c7xc-m3w5.
 
 ### Other Changes

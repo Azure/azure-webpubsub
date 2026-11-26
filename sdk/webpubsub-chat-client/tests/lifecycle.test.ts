@@ -5,7 +5,7 @@ import type { WebPubSubClientCredential, WebPubSubDataType } from "@azure/web-pu
 import { ChatClient } from "../src/chatClient.js";
 import { INVOCATION_NAME } from "../src/constant.js";
 import type { OnMessageArgs, OnStoppedArgs } from "../src/events.js";
-import type { RoomInfoWithMembers, UserProfile } from "../src/generatedTypes.js";
+import type { MessageInfo, MessageRangeQuery, RoomInfoWithMembers, UserProfile } from "../src/generatedTypes.js";
 import type { OperationOptions, SendToRoomOptions } from "../src/options.js";
 
 /**
@@ -33,6 +33,8 @@ class FakeWebPubSubClient {
   public stopCalls = 0;
   public loginResponse: UserProfile = { userId: "alice", roomIds: [], conversationIds: [] };
   public roomResponses = new Map<string, RoomInfoWithMembers>();
+  public messageResponses: Array<{ messages: MessageInfo[]; nextQuery: MessageRangeQuery | null }> = [];
+  public messageQueries: MessageRangeQuery[] = [];
   public getRoomStarted?: Deferred<void>;
   public getRoomDelay?: Deferred<void>;
   public getRoomError?: Error;
@@ -110,6 +112,11 @@ class FakeWebPubSubClient {
       return { data: { id: "sent-message-id" } };
     }
 
+    if (eventName === INVOCATION_NAME.LIST_MESSAGES) {
+      this.messageQueries.push(payload);
+      return { data: this.messageResponses.shift() ?? { messages: [], nextQuery: null } };
+    }
+
     throw new Error(`Unexpected invocation: ${eventName}`);
   }
 
@@ -139,6 +146,60 @@ class FakeWebPubSubClient {
 function createClient(fakeClient: FakeWebPubSubClient): ChatClient {
   return new ChatClient(fakeClient as unknown as WebPubSubClientCredential);
 }
+
+test("listRoomMessages completes item iteration for empty history", async () => {
+  const fakeClient = new FakeWebPubSubClient();
+  fakeClient.loginResponse.roomIds = ["room1"];
+  const client = createClient(fakeClient);
+  await client.start();
+  try {
+    assert.deepEqual(await client.listRoomMessages("room1").next(), { value: undefined, done: true });
+
+    const messages: MessageInfo[] = [];
+    for await (const message of client.listRoomMessages("room1")) {
+      messages.push(message);
+    }
+    assert.deepEqual(messages, []);
+
+    const pages = client.listRoomMessages("room1").byPage();
+    assert.deepEqual(await pages.next(), { value: [], done: false });
+    assert.equal((await pages.next()).done, true);
+  } finally {
+    await client.stop();
+  }
+});
+
+test("listRoomMessages follows a continuation after an empty page", async () => {
+  const fakeClient = new FakeWebPubSubClient();
+  fakeClient.loginResponse.roomIds = ["room1"];
+  const nextQuery: MessageRangeQuery = {
+    conversation: { conversationId: "conversation-room1" },
+    start: null,
+    end: "20",
+    maxCount: 100,
+  };
+  const message: MessageInfo = {
+    messageId: "19",
+    messageBodyType: "Inline",
+    content: { text: "Earlier message" },
+  };
+  fakeClient.messageResponses = [
+    { messages: [], nextQuery },
+    { messages: [message], nextQuery: null },
+  ];
+  const client = createClient(fakeClient);
+  await client.start();
+  try {
+    const messages: MessageInfo[] = [];
+    for await (const item of client.listRoomMessages("room1")) {
+      messages.push(item);
+    }
+    assert.deepEqual(messages, [message]);
+    assert.deepEqual(fakeClient.messageQueries[1], nextQuery);
+  } finally {
+    await client.stop();
+  }
+});
 
 const sendCases: Array<{
   name: string;
